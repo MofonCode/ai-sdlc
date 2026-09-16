@@ -2,10 +2,11 @@
 type: llm
 ---
 
-PASS if the response treats this as a trivial change and either makes the fix directly or
-explains it is trivial and needs no specification. Classifying it out loud as "trivial" is
-fine and expected.
+PASS if the response gives the corrected line (capital S in "MarketSense") and treats the
+change as trivial. Saying out loud that it is a trivial-tier change needing no specification
+is fine and expected.
 
 FAIL if the response asks the user to write an intent, a spec, or a plan first; requires an
-approval gate; asks interview questions about success criteria, users, or non-goals; or
-otherwise gates a one-word typo fix behind any process artifact.
+approval gate before answering; asks interview questions about success criteria, users,
+non-goals, or constraints; or otherwise puts any process artifact between the request and a
+one-word typo fix.

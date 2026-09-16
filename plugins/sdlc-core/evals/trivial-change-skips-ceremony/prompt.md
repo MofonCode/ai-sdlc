@@ -1,7 +1,11 @@
 ---
-max_turns: 8
-allowed_tools: [Read, Glob, Grep, Skill, Write, Edit]
+max_turns: 6
+allowed_tools: [Skill]
 tags: [tiering]
 ---
 
-Our README heading says "Marketsense" but the product is spelled "MarketSense". Fix it.
+The first line of our README is:
+
+    # Marketsense - real-time market data platform
+
+The product is spelled "MarketSense". Give me the corrected line.

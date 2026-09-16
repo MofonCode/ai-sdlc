@@ -107,8 +107,13 @@ it refuse instead.
 ## Evals
 
 ```
-claude plugin eval .
+claude plugin eval . --no-publish --threshold 0.8
 ```
+
+**Requires Claude Code 2.1.269 or later** — the command exists as a stub in 2.1.268 and refuses
+with `plugin eval is currently in early access`. The suite below has been written to the
+documented format and frontmatter-checked, but **has not yet been executed**, so the graders are
+uncalibrated until a first run.
 
 Three cases under `evals/`, each run three times with the plugin and three times without, so
 the report shows what the plugin actually contributes (`Δ`) rather than just that it ran:
