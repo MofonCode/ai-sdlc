@@ -22,21 +22,34 @@ layout, naming, error handling, test conventions, how similar features were buil
 fights the existing architecture will be rejected at plan time. Cite the files that taught you
 the pattern.
 
-**3. Write requirements that can be tested.** Number them R1, R2, and so on. plan.md and the
-test suite cite these numbers, so they are an API: do not renumber on revision — append, and
-mark superseded ones. Each requirement is one behavior, stated so a test either passes or
-fails. "The system should handle errors gracefully" is not a requirement.
+**3. Write requirements in EARS form.** Number them R1, R2, and so on. plan.md and the test
+suite cite these numbers, so they are an API: do not renumber on revision — append, and mark
+superseded ones.
+
+Every requirement uses one of the five EARS templates (full table in
+`references/artifact-schemas.md`): ubiquitous `THE <system> SHALL <response>`, event-driven
+`WHEN <trigger>`, state-driven `WHILE <state>`, unwanted-behavior `IF <trigger> THEN`, and
+optional-feature `WHERE <feature>`. The syntax forces the trigger, state, or condition to be
+explicit, which is what makes a requirement testable and what kills "the system should handle
+errors gracefully". If you cannot fit a requirement into one of the five forms, you do not yet
+understand the requirement — that is a finding for **Open questions**, not a reason to write
+prose.
 
 **4. Decide, and show the alternatives you rejected.** Pick one design and commit. Then list
 the two or three approaches you did not pick and the specific reason — cost, complexity,
 reversibility, fit with existing code. The rejected list is what makes the spec reviewable;
 without it a reviewer cannot tell whether you considered their preferred approach.
 
-**5. Be loud about anything persisted or public.** Schema changes, serialization formats, API
+**5. Make the spec self-contained, and end it with one end-to-end verification step.** Name the
+files and interfaces involved, state what is out of scope, and finish with the single check that
+proves the whole feature works. A fresh session with no other context will implement from this
+document, so anything you leave in your head is lost.
+
+**6. Be loud about anything persisted or public.** Schema changes, serialization formats, API
 surface, message contracts, migrations. These are the expensive-to-reverse decisions and they
 deserve their own section with the migration path spelled out.
 
-**6. Flag concerns with a named owner.** Security, compliance, cost, privacy, data retention.
+**7. Flag concerns with a named owner.** Security, compliance, cost, privacy, data retention.
 Each flag names who must resolve it. Engineering does not proceed past an unresolved flag, so
 do not flag reflexively — but do not stay quiet to keep the spec moving either.
 

@@ -1,6 +1,8 @@
 ---
-description: Capture an idea as an approved intent.md — tier-route it, interrogate the gaps, then commit the artifact
+name: intent
+description: Capture an idea as an approved intent.md - tier-route it (trivial/task/feature), interrogate the gaps with the user, attack the draft in fresh context, then commit the artifact. Stage 1 (Plan) of the AI-Native SDLC artifact chain.
 argument-hint: A rough description of the idea, or an existing slug to revise
+disable-model-invocation: true
 ---
 
 # /intent — Stage 1, Plan
@@ -81,4 +83,4 @@ On approval, set `status: approved` and commit the file:
 git add .sdlc/<slug>/intent.md && git commit -m "intent(<slug>): <title>"
 ```
 
-Then tell them `/spec` is next. Do not run it automatically — the gate is the point.
+Then tell them `/sdlc-core:spec` is next. Do not run it automatically — the gate is the point.

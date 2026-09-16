@@ -1,6 +1,8 @@
 ---
-description: Turn an approved spec.md into an approved plan.md with a file-disjoint slice manifest ready for parallel implementation
+name: plan
+description: Turn an approved spec.md into an approved plan.md carrying a pairwise-disjoint per-slice file manifest, ready for parallel implementation. Stage 3 (Build planning) of the AI-Native SDLC artifact chain.
 argument-hint: Slug of the slice to plan, or a direct description for a task-tier change
+disable-model-invocation: true
 ---
 
 # /plan — Stage 3, Build (planning half)
@@ -18,7 +20,7 @@ per slice straight from its frontmatter manifest.
 - **No spec and tier is `task`** — legitimate. Plan directly from the description in
   `$ARGUMENTS`, still writing `.sdlc/<slug>/plan.md`. Requirements come from the conversation
   instead of R-numbers; say so in the file.
-- **No spec and tier is `feature`** — run `/spec` first.
+- **No spec and tier is `feature`** — run `/sdlc-core:spec` first.
 
 ## 2. Read the code before planning it
 
@@ -72,7 +74,21 @@ commit:
 git add .sdlc/<slug>/plan.md && git commit -m "plan(<slug>): <n> slices"
 ```
 
-Then offer the build. Parallel implementation runs through a Workflow script — see
-`workflows/parallel-build.js` — which requires the user to opt in per run. A single-writer
-build in one worktree is always the safe fallback, and is the better choice when the
-dependency graph turned out deep or the slices are small.
+Then offer the build, **in a fresh session** (`/clear`) — the plan is self-contained and the
+planning conversation is dead weight during implementation.
+
+Three ways to run it, in descending order of how much the fan-out buys you:
+
+1. **Agent teams** (`CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1`) — one teammate per slice, each
+   owning its manifest. Anthropic's own guidance for teams is *"break the work so each teammate
+   owns a different set of files"*, which is exactly what the manifest guarantees. Start with
+   3-5 teammates; more scales tokens linearly and coordination worse than linearly.
+2. **Workflow script** — `workflows/parallel-build.js`, deterministic waves, re-proves
+   disjointness, halts on a red build. Requires the user to opt in per run.
+3. **Single writer in one worktree** — always safe, and the *better* choice when the dependency
+   graph turned out deep, the slices are small, or the slices touch adjacent code. Say so plainly
+   when that is the case rather than fanning out for its own sake.
+
+Anthropic's stated caveat applies and should be repeated to the user when relevant: parallel
+implementation carries coordination costs that research and review fan-out does not. Sequential
+work, same-file edits, and deep dependency chains are faster with one session.

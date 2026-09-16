@@ -55,7 +55,7 @@ def main() -> int:
 
     sys.stderr.write(
         f"[sdlc-gate] Editing {p.name} with no approved plan. {detail} "
-        "Run /plan first, or state the tier if this is a trivial/task change.\n"
+        "Run /sdlc-core:plan first, or state the tier if this is a trivial/task change.\n"
     )
 
     if os.environ.get("SDLC_GATE") == "block":

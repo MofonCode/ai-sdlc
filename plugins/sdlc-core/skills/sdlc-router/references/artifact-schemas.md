@@ -90,13 +90,44 @@ tier: feature
 
 Required sections:
 
-- **Requirements** — numbered `R1, R2, ...` so plan.md and tests can cite them. Each is testable.
+- **Requirements** — numbered `R1, R2, ...` so plan.md and tests can cite them. Each is testable,
+  and each is written in **EARS** form (see below).
 - **Design** — the chosen approach, and the alternatives rejected with the reason.
 - **Data and contracts** — schemas, message shapes, API surface, migration implications. Call out anything persisted or public.
 - **Failure modes** — what breaks, what the system does about it.
 - **Flagged concerns** — security, compliance, cost, privacy. Each flag names the policy owner who must resolve it. Engineering does not proceed past an unresolved flag.
 - **Test strategy** — how each requirement gets verified.
 - **Out of scope** — carried forward from intent Non-goals, plus anything discovered during design.
+- **End-to-end verification** — the single check that proves the whole feature works, start to
+  finish. A spec without one has no definition of done.
+
+A spec is *self-contained* when it names the files and interfaces involved, states what is out
+of scope, and ends with that end-to-end verification step. Aim for a spec a fresh session could
+implement from with no other context, because that is exactly what will happen.
+
+### EARS requirement syntax
+
+Write every requirement in one of these five forms. They force the trigger, condition, or state
+to be explicit, which is what makes a requirement testable and what kills the "the system should
+handle errors gracefully" class of non-requirement.
+
+| Pattern | Template | Use for |
+|---|---|---|
+| Ubiquitous | THE `<system>` SHALL `<response>` | always-true properties |
+| Event-driven | WHEN `<trigger>`, THE `<system>` SHALL `<response>` | responses to an event |
+| State-driven | WHILE `<state>`, THE `<system>` SHALL `<response>` | behavior during a state |
+| Unwanted behavior | IF `<trigger>`, THEN THE `<system>` SHALL `<response>` | errors and failure handling |
+| Optional feature | WHERE `<feature is included>`, THE `<system>` SHALL `<response>` | conditional capabilities |
+
+```
+R1. WHEN a level-2 order book update is received, THE snapshot writer SHALL persist the
+    resulting book state with the exchange timestamp of that update.
+R2. IF the sequence number of an update is not exactly one greater than the last persisted
+    sequence number, THEN THE snapshot writer SHALL reject the update and raise a gap event.
+R3. WHILE a replay is in progress, THE snapshot store SHALL reject writes.
+```
+
+Each maps to a test with no translation step. That is the whole point.
 
 Gate: requester approves; flagged concerns resolved with their named owners.
 

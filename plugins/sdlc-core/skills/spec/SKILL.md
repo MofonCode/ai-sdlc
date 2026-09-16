@@ -1,6 +1,8 @@
 ---
-description: Turn an approved intent.md into an approved spec.md — requirements, chosen design, rejected alternatives, flagged concerns
+name: spec
+description: Turn an approved intent.md into an approved spec.md - EARS-form testable requirements, the chosen design with rejected alternatives, data and contract changes, and flagged concerns with named owners. Stage 2 (Design) of the AI-Native SDLC artifact chain.
 argument-hint: Slug of the slice to spec, or blank to infer from .sdlc/
+disable-model-invocation: true
 ---
 
 # /spec — Stage 2, Design
@@ -59,4 +61,6 @@ Explicit approval, and every flagged concern resolved by its named owner. On app
 git add .sdlc/<slug>/spec.md && git commit -m "spec(<slug>): <one-line design>"
 ```
 
-Then tell them `/plan` is next. Do not chain into it.
+Then tell them `/sdlc-core:plan` is next, **and to run it in a fresh session** (`/clear`).
+The spec is self-contained by design; carrying the whole design conversation into planning
+just fills context with reasoning the artifact already captures. Do not chain into it.

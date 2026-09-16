@@ -1,6 +1,6 @@
 ---
 name: sdlc-router
-description: Routes a change request to the right amount of SDLC ceremony (trivial / task / feature) and locates the artifact chain under .sdlc/. Use at the start of any non-trivial coding request, when the user says "spec this", "what tier is this", "where are we on <slug>", or when an /intent, /spec, or /plan command runs. Also use before writing code to check whether a plan.md exists for the current work.
+description: Routes a change request to the right amount of SDLC ceremony (trivial / task / feature) and locates the artifact chain under .sdlc/. Use at the start of any non-trivial coding request, when the user says "spec this", "what tier is this", "where are we on <slug>", or when an /sdlc-core:intent, /sdlc-core:spec, or /sdlc-core:plan skill runs. Also use before writing code to check whether a plan.md exists for the current work.
 user-invocable: false
 ---
 
@@ -16,7 +16,7 @@ intent.md  ->  spec.md  ->  plan.md  ->  code + tests  ->  verified diff
   Plan          Design       Build         Build            Test
 ```
 
-Each arrow is a human gate. Artifacts are re-enterable: running `/spec` on an existing
+Each arrow is a human gate. Artifacts are re-enterable: running `/sdlc-core:spec` on an existing
 spec.md revises it, it does not start over.
 
 ## Tiers — the escape hatch
@@ -52,10 +52,13 @@ the same kind of thing and the difference matters.
 The charter is not decoration - **every new intent is checked against it.** An intent that
 violates a charter invariant, or lands inside a permanent non-goal, is a blocking finding at
 Stage 1, which is where "this feature quietly turns us into a different product" is cheap to
-catch. Read `CHARTER.md` at the start of `/intent` and `/spec` when one exists.
+catch. Read `CHARTER.md` at the start of `/sdlc-core:intent` and `/sdlc-core:spec` when one exists.
 
 If a change genuinely requires breaking a charter invariant, that is a charter amendment with
 its own approval - not something an intent may do in passing.
+
+(GitHub Spec Kit calls this same repo-scope artifact a *constitution*. Same idea, different
+name: the durable rules a per-change spec is checked against.)
 
 ## Locating the chain
 
@@ -69,7 +72,7 @@ To orient at the start of any SDLC command:
 2. If the user named a slice, use it. If exactly one slice has no `plan.md` yet, that is
    probably the active one — confirm, do not assume.
 3. `git branch --show-current` — branch names often carry the slug.
-4. No `.sdlc/` at all and tier is `feature`? Create the directory as part of `/intent`.
+4. No `.sdlc/` at all and tier is `feature`? Create the directory as part of `/sdlc-core:intent`.
 
 ## Gates
 
