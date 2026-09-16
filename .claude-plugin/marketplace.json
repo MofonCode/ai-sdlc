@@ -1,0 +1,18 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "ai-sdlc",
+  "description": "Peter's AI-assisted SDLC framework: artifact-chain commands, interrogation and verification agents, and competition tooling",
+  "owner": {
+    "name": "Peter Almanzar",
+    "email": "peter.almanzar@gmail.com"
+  },
+  "plugins": [
+    {
+      "name": "sdlc-core",
+      "description": "Artifact-chain SDLC for AI-assisted development: intent.md -> spec.md -> plan.md -> parallel build -> verify. Tier router skips ceremony on small changes. Implements Anthropic's AI-Native SDLC Playbook.",
+      "author": { "name": "Peter Almanzar" },
+      "source": "./plugins/sdlc-core",
+      "category": "development"
+    }
+  ]
+}

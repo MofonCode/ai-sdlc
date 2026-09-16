@@ -1,0 +1,5 @@
+{
+  "name": "sdlc-core",
+  "description": "Artifact-chain SDLC for AI-assisted development: intent.md -> spec.md -> plan.md -> parallel build -> verify. Tier router skips ceremony on small changes.",
+  "author": { "name": "Peter Almanzar" }
+}
