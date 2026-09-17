@@ -10,6 +10,11 @@ Two layers, deliberately separate:
 - **`stack-*` packs** — one opinionated answer each to "what do we build this with". `init`
   discovers whichever are installed and proposes one. Swap the pack, keep the engine.
 
+`stack-dotnet` is installed, so **.NET is the default in practice** — `init` proposes it without
+asking. The separation is not about weakening that default. It is about keeping *stack*, which
+belongs in a pack and is the same across all of this owner's projects, apart from *domain*,
+which belongs in each repo's own `CHARTER.md` and never in the library.
+
 The one idea everything rests on: **every stage commits a version-controlled artifact the next
 stage reads.** The artifact chain is the state machine — not the order the skills were invoked.
 
@@ -28,6 +33,7 @@ be self-contained precisely so the prior conversation can be dropped.
 ```
 /plugin marketplace add C:\Repos\ai-sdlc
 /plugin install sdlc-core@ai-sdlc
+/plugin install stack-dotnet@ai-sdlc
 ```
 
 Installed once, available in every project. It stays silent in repos that have no `.sdlc/`
