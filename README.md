@@ -34,12 +34,13 @@ Plugin skills are namespaced, so the short form works only when nothing else cla
 
 | Skill | Stage | Produces |
 |---|---|---|
+| `/sdlc-core:init` | 0 — once per repo | `.sdlc/CHARTER.md` |
 | `/sdlc-core:intent` | Plan | `.sdlc/<slug>/intent.md` |
 | `/sdlc-core:spec` | Design | `.sdlc/<slug>/spec.md` |
 | `/sdlc-core:plan` | Build | `.sdlc/<slug>/plan.md` with a file-disjoint slice manifest |
 | `sdlc-router` | — | model-invoked; tiering rules and artifact location |
 
-All three chain skills are `disable-model-invocation: true` — they write files and commit, so
+The chain skills are `disable-model-invocation: true` — they write files and commit, so
 they are triggered by you, never reached for on Claude's own initiative.
 
 | Agent | Role |
@@ -142,5 +143,5 @@ From the official marketplace: `feature-dev` (code-explorer, code-architect),
 - `sdlc-kaggle` — sibling plugin. Competitions need an experiment ledger, a validation architect
   that owns the CV scheme and hunts leakage, baseline-first discipline, and submission-budget
   accounting — not `intent → spec → plan`, because the objective is already given by the metric.
-- `sdlc-init` — `/init-solution`, `/init-competition`, `/charter` scaffolding.
+- `/init-competition` — the Kaggle equivalent of `/sdlc-core:init`.
 - Stage 4-6: `/verify`, `/ship`, and the Maintain loop back to `intent.md`.
