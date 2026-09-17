@@ -1,26 +1,32 @@
 # Terraform — append to the repo .gitignore, or keep as terraform/.gitignore
 
-# Provider binaries and module cache. Large, machine-specific, re-downloadable.
-.terraform/
-.terraform.lock.hcl.bak
+# Provider binaries and module cache. Large (a single provider runs to hundreds of MB)
+# and re-downloadable.
+**/.terraform/*
+
+# .terraform.lock.hcl is deliberately NOT ignored: provider versions are part of the
+# build, and a lock file that is not committed pins nothing.
 
 # State and its backups. State holds resource IDs and can hold secret values in plain
-# text; it belongs in the remote backend, never in the repository.
+# text; it belongs in the remote backend. These lines guard a stray local run.
 *.tfstate
 *.tfstate.*
+*.tfplan
 crash.log
 crash.*.log
 
-# Variable files routinely carry secrets and per-environment values.
-*.tfvars
-*.tfvars.json
-!example.tfvars
-
-# Saved plans are binary and can contain secrets.
-*.tfplan
-
-# Terraform's own override convention for local experiments.
+# Terraform's override convention, for local experiments that must not ship.
 override.tf
 override.tf.json
 *_override.tf
 *_override.tf.json
+
+# CLI credentials.
+.terraformrc
+terraform.rc
+
+# NOTE: *.tfvars is deliberately NOT ignored. A tfvars file holds identifiers —
+# subscription id, tenant id, object ids — and never secrets; secrets live in the
+# key store and are set out of band. Ignoring tfvars would HIDE a leaked secret
+# rather than prevent one. Committed and reviewable is the stronger position: if a
+# tfvars ever needs a secret, that is the bug, not this line.

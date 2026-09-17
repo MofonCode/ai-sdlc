@@ -74,8 +74,12 @@ machine. The storage account holding state is created **out of band** — the th
 state cannot be managed by the state it stores — and `versions.tf` leaves its backend block
 blank for that reason.
 
-`terraform.gitignore` exists because state and `.tfvars` routinely contain secrets in plain
-text. Committing either is a credential leak, not an untidy repository.
+`terraform.gitignore` keeps state out of the repository — state can hold secret values in plain
+text. It deliberately does **not** ignore two things. `.terraform.lock.hcl` is committed because
+provider versions are part of the build and an uncommitted lock file pins nothing. `*.tfvars` is
+committed because a tfvars file holds identifiers and never secrets: ignoring it would *hide* a
+leaked secret rather than prevent one, where committed-and-reviewable makes the violation
+visible. If a tfvars ever needs a secret, that is the bug, not the gitignore line.
 
 A change that creates or alters infrastructure is a change like any other: it belongs to a
 slice, it names its files in the plan manifest, and `terraform plan` output is the evidence that
