@@ -62,9 +62,19 @@ name: the durable rules a per-change spec is checked against.)
 
 ## Locating the chain
 
-Artifacts live at `.sdlc/<slug>/` in the repo, committed on the feature branch, where
-`<slug>` is kebab-case derived from the intent title (e.g. `.sdlc/order-book-snapshots/`).
-`CHARTER.md` sits at `.sdlc/CHARTER.md`, outside any slug.
+Artifacts live at `<artifact-root>/<slug>/`, committed on the feature branch, where `<slug>` is
+kebab-case derived from the intent title. `CHARTER.md` sits at `<artifact-root>/CHARTER.md`,
+outside any slug.
+
+**The artifact root defaults to `.sdlc/` but is per-repo.** Find it before anything else:
+
+```bash
+ls .sdlc/CHARTER.md 2>/dev/null || ls */CHARTER.md 2>/dev/null
+```
+
+The charter's frontmatter declares its own root in `artifact_root`. A repo that keeps its
+backlog visible at top level (`intent/`, `specs/`, `docs/sdlc/`) is making a deliberate choice —
+respect it, and never create a second root alongside one that already exists.
 
 To orient at the start of any SDLC command:
 
