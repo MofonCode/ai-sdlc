@@ -34,6 +34,15 @@ Read the codebase first if there is one — an existing README, project layout, 
 answer several of these questions without asking. Ask only what the code cannot tell you, and
 say what you inferred so it can be corrected.
 
+### Propose a stack profile first
+
+Read `references/stack-profiles.md` and propose one before asking anything open-ended. An
+existing project file in the repo wins outright; competition markers mean `python-ml`;
+otherwise `dotnet`. Say which signal you used, and take an override without argument.
+
+Proposing beats interviewing here: confirming a default costs the owner one word, while
+composing a stack from nothing costs a conversation and usually lands in the same place.
+
 Use AskUserQuestion for choices, prose for open questions, and batch related ones. What the
 charter cannot ship without:
 
@@ -72,7 +81,28 @@ not an invariant; "no computation reads data unavailable at its own timestamp" i
 ## 3. Write it
 
 Write `.sdlc/CHARTER.md` per the schema in `references/artifact-schemas.md` (the `sdlc-router`
-skill), `status: draft`, `version: 1`.
+skill), `status: draft`, `version: 1`. Technology commitments records **the profile name and any
+overrides**, not the style rules themselves.
+
+Then write the profile's `.editorconfig` from `assets/` if the repo does not already have one:
+
+```bash
+[ -f .editorconfig ] || cp "${CLAUDE_SKILL_DIR}/assets/dotnet.editorconfig" .editorconfig
+```
+
+**Never overwrite an existing `.editorconfig`** — a repo that has one has already made this
+decision, and silently replacing it changes every file on the next format run. If one exists,
+say so and leave it.
+
+### Do not interrogate code style
+
+Style is enforced by `.editorconfig` and the formatter: deterministic, checkable in CI, and free
+of any dependence on an agent remembering it. Asking the owner about brace placement spends a
+gate on something a file settles, and the whole point of these gates is to spend the owner's
+attention on intent instead.
+
+If the owner raises style unprompted, translate it into an `.editorconfig` rule rather than
+recording it as prose anywhere.
 
 ## 4. Attack it
 

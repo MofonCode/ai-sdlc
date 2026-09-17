@@ -136,7 +136,18 @@ Three layers, read by `spec-writer` in this order — first answer wins:
 | `CLAUDE.md` | one repo | conventions, commands, gotchas for the agent |
 | the codebase | one repo | patterns inferred from existing code |
 
-Set it **once per repo** at `/sdlc-core:init`, not once per feature. A spec that wants a
+`init` **proposes** a stack profile rather than interviewing you for one — an existing project
+file in the repo wins, competition markers mean `python-ml`, otherwise `dotnet`. Confirming a
+default costs one word; composing a stack from nothing costs a conversation and lands in the
+same place.
+
+**Code style is never asked about and never stored in the charter.** `init` writes the profile's
+`.editorconfig` (it will not overwrite an existing one) and the formatter enforces it —
+deterministic, checkable in CI, no dependence on an agent remembering anything. The charter
+holds *invariants*, things that make a change wrong regardless of intent; brace placement is not
+one, and mixing them dilutes the section that gates future work.
+
+Set the stack **once per repo** at `/sdlc-core:init`, not once per feature. A spec that wants a
 commitment changed raises a flagged concern; changing one is a charter amendment.
 
 For conventions spanning several projects, put them in their own skill and name it from the
