@@ -158,7 +158,7 @@ claude plugin update sdlc-core@ai-sdlc
 ```
 
 Skipping the bump means the update is a no-op. While iterating on the plugin itself,
-`claude --plugin-dir C:\Reposi-sdlc\plugins\sdlc-core` loads the working tree directly and
+`claude --plugin-dir C:\Repos\ai-sdlc\plugins\sdlc-core` loads the working tree directly and
 skips the cache entirely.
 
 ## Reused rather than rebuilt
