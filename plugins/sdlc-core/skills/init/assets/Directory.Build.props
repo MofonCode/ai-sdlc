@@ -1,0 +1,68 @@
+<Project>
+  <PropertyGroup>
+    <NoWarn>$(NoWarn);MSB3277</NoWarn>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    <!--
+      Solution-wide warnings-as-errors — every csc/analyzer warning fails the
+      build. Combined with EnforceCodeStyleInBuild=true above this pulls the
+      IDExxxx style diagnostics into the same gate. If a specific rule ever
+      needs an exception, add its ID to NoWarn ABOVE this line rather than
+      turning the flag off. Enabled 2026-08-24 after the 15-warning cleanup.
+    -->
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+  </PropertyGroup>
+
+  <!--
+    NuGet vulnerability auditing. Every one of these is already the net10.0
+    SDK default today; they are pinned here so the gate cannot silently move
+    when the SDK bumps, and so the severity choice below is reviewable.
+
+    NuGetAuditMode=all audits transitive dependencies, not just direct ones -
+    which is where advisories almost always land for us.
+
+    NuGetAuditLevel=moderate is a DELIBERATE step up from the SDK's `low`.
+    Audit findings surface as NU1901-NU1904 warnings, and TreatWarningsAsErrors
+    above promotes them to build errors, on a pipeline that is a *blocking*
+    branch policy on main. At `low`, a newly published low-severity advisory
+    against any transitive package halts every merge overnight with no code
+    change on our side. `moderate` keeps the hard gate for anything that
+    actually matters without letting the noise floor stop work. Revisit when
+    there is a prod environment to protect.
+  -->
+  <PropertyGroup>
+    <NuGetAudit>true</NuGetAudit>
+    <NuGetAuditMode>all</NuGetAuditMode>
+    <NuGetAuditLevel>moderate</NuGetAuditLevel>
+  </PropertyGroup>
+
+  <!--
+    Static security analysis. .NET's own analyzers are already enabled
+    (EnableNETAnalyzers defaults true on net10.0), but AnalysisMode=Default
+    leaves most of the CA security category switched OFF - including the
+    CA3001-CA3012 injection rules and most of the CA5xxx crypto rules.
+
+    AnalysisModeSecurity=All turns on that category and ONLY that category, so
+    we get the security rules without dragging in every design, naming and
+    performance rule at the same time. Findings become build errors via
+    TreatWarningsAsErrors above, same as any other diagnostic.
+
+    Suppressions are per-site with a written justification (see CA2100 and
+    CA5394 sites), never a blanket NoWarn here. A NoWarn on CA5394 would also
+    cover the day someone reaches for Random to generate a token, which is the
+    exact bug the rule exists to catch.
+  -->
+  <PropertyGroup>
+    <AnalysisModeSecurity>All</AnalysisModeSecurity>
+  </PropertyGroup>
+
+  <!--
+    Assembly + root namespace convention: every project ships as MarketSense.{ProjectName}
+    (and matching root namespace). Skipped when the project name already starts with
+    "MarketSense." to prevent double-prefixing. Per-project overrides win when set in
+    the csproj itself.
+  -->
+  <PropertyGroup Condition="!$(MSBuildProjectName.StartsWith('MarketSense.'))">
+    <AssemblyName>MarketSense.$(MSBuildProjectName)</AssemblyName>
+    <RootNamespace>MarketSense.$(MSBuildProjectName.Replace(' ', '_'))</RootNamespace>
+  </PropertyGroup>
+</Project>

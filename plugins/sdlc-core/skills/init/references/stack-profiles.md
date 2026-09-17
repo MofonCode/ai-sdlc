@@ -1,90 +1,168 @@
 # Stack profiles
 
-Defaults `init` **proposes**, so the owner confirms instead of composing a stack from nothing.
-A proposal is not a decision: always show what you picked and why, and take an override without
-argument.
+.NET/C# is the default for **everything** this owner builds, competitions included. `init`
+**proposes** a profile so the owner confirms rather than composing a stack from nothing. A
+proposal is not a decision: say what you picked and why, and take an override without argument.
 
 ## Contents
 
-- How to choose a profile
-- Profile: `dotnet`
-- Profile: `python-ml`
-- What gets written
+- Choosing a profile
+- Profile: `dotnet` (default)
+- Profile: `dotnet-ml`
+- The local SQL password
+- Files written
 - What never gets asked
 
-## How to choose a profile
+## Choosing a profile
 
-Read the signals before proposing. In order:
+1. **An existing stack in the repo wins outright** — never propose something that contradicts
+   code already there.
+2. **Competition, contest, or ML repo** → `dotnet-ml` (the `dotnet` profile plus ML.NET).
+3. **Otherwise** → `dotnet`.
 
-1. **An existing stack in the repo wins outright** — `*.csproj`/`*.sln`, `pyproject.toml`,
-   `package.json`. Never propose a profile that contradicts code already there.
-2. **Competition or contest repo** (a Kaggle slug, `train.csv`/`test.csv`, a
-   `sample_submission.csv`, a rules or leaderboard reference) → `python-ml`.
-3. **Otherwise** → `dotnet`, this owner's default for solution work.
+State the signal in one line: *"No project files and no competition markers, so proposing the
+dotnet profile."*
 
-State the signal you used in one line: *"No existing project files and no competition markers,
-so proposing the dotnet profile — say the word if this is Python."*
-
-## Profile: `dotnet`
-
-The default for solution projects.
+## Profile: `dotnet` (default)
 
 | Commitment | Value |
 |---|---|
-| Language | C#, latest LTS `net` target |
-| Build | `dotnet build` |
-| Tests | xUnit, `dotnet test` |
-| Style | `.editorconfig` (analyzer severities included), `dotnet format` |
-| Nullable | enabled, warnings as errors |
+| Language | C#, `net10.0`, `LangVersion latest` |
+| Nullable | `enable`, warnings as errors |
+| Orchestration | .NET Aspire — AppHost + ServiceDefaults |
+| Database | SQL Server via Aspire, persisted with `WithDataVolume` |
+| Tests | **MSTest** (the `MSTest` meta-package) |
+| Coverage | `coverlet.collector`, Cobertura, `coverage.runsettings` |
+| Integration tests | `Aspire.Hosting.Testing` against a real AppHost |
+| Style | `.editorconfig` + `EnforceCodeStyleInBuild` |
+| Packages | Central Package Management (`Directory.Packages.props`) |
+| SDK | pinned in `global.json` |
 
-Ask, rather than assume: persistence, hosting, and whether this is a library, service, or app.
-Those genuinely differ per project and a wrong guess is expensive.
+Ask, rather than assume: the solution's module boundaries, and whether each module is a
+library, an API, or a function app.
 
-## Profile: `python-ml`
+### Why the SDK pin matters here specifically
 
-The default for competitions and analysis work.
+Aspire's AppHost SDK version, the Aspire NuGet package versions, and the **installed Aspire CLI
+bundle** must all agree. When they don't, the AppHost fails at startup with an error that names
+the wrong side of the mismatch. `global.json` pins the SDK and `Directory.Packages.props` pins
+the packages, so only the CLI is left to keep in step manually. Say this out loud when writing
+the charter's Technology commitments — it is the kind of thing that costs an afternoon once.
+
+## Profile: `dotnet-ml`
+
+Everything in `dotnet`, plus:
 
 | Commitment | Value |
 |---|---|
-| Language | Python 3.12+ |
-| Deps | `pyproject.toml` |
-| Tests | pytest |
-| Style | ruff (lint + format), `.editorconfig` for the editor |
-| Types | type hints on public functions; not enforced by default |
+| ML | ML.NET (`Microsoft.ML`) |
+| Gradient boosting | `Microsoft.ML.LightGbm` |
+| AutoML | `Microsoft.ML.AutoML` |
+| Dataframes | `Microsoft.Data.Analysis` |
+| Structure | `MLContext` estimator pipelines, one per experiment |
 
-Ask, rather than assume: notebook or module layout, and the ML libraries in play.
+ML.NET pipelines are `IEstimator` chains — `Fit` produces an `ITransformer`, and the
+transformer is the artifact worth persisting per experiment. Keep the pipeline definition and
+its fitted output separable so an experiment can be replayed without retraining.
 
-## What gets written
+### Flag this honestly when proposing it for a Kaggle competition
 
-On confirmation, `init` writes the profile's style files if they are absent — it never
-overwrites an existing one, since a repo with an `.editorconfig` has already made this decision:
+Kaggle's notebook kernels are Python. A C# entry works only for competitions that accept a
+plain submission file, and the public solutions, notebooks and community discussion for any
+given competition will be Python end to end, so none of it is directly reusable. ML.NET does
+cover the ground that matters — LightGBM is there, AutoML is there — but this is a real
+handicap in a competitive setting, not a neutral choice.
 
-| Profile | File | Source |
+Say it once, in one or two sentences, when proposing `dotnet-ml` for a competition repo. Then
+record the owner's answer as a charter commitment and stop raising it.
+
+## The local SQL password
+
+The owner's convention: SQL Server persists via a data volume, and local development uses the
+password `password1!` so no per-project secret setup is needed.
+
+Wire it as an Aspire parameter with that value as the **default**, not as a bare literal:
+
+```csharp
+// Local development default. Overridable per developer via:
+//   dotnet user-secrets --project src/AppHost set "Parameters:sql-password" "<value>"
+IResourceBuilder<ParameterResource> sqlPassword = builder.AddParameter(
+    "sql-password",
+    builder.Configuration["Parameters:sql-password"] ?? "password1!",
+    secret: true);
+
+IResourceBuilder<SqlServerServerResource> sql = builder
+    .AddSqlServer("sql", password: sqlPassword)
+    .WithDataVolume();
+```
+
+Two things this shape buys that a bare literal does not:
+
+- **A default means the parameter always resolves.** An *unresolved* Aspire parameter does not
+  raise an error — the resource is silently never handed to DCP, and the AppHost starts with no
+  database and no explanation. A default removes that failure mode entirely.
+- **Rotation does not break the volume.** A persisted data volume keeps the auth metadata from
+  when it was created. Change the password without recreating the volume and SQL rejects the
+  login. A constant default is stable by construction, which is the property that matters.
+
+**Guard it so it can never reach a deployed environment.** The default is for Development and
+integration-test environments only:
+
+```csharp
+if (!builder.Environment.IsDevelopment()
+    && builder.Configuration["Parameters:sql-password"] is null)
+{
+    throw new InvalidOperationException(
+        "The local development SQL password default is not permitted outside Development. "
+        + "Supply Parameters:sql-password from configuration for this environment.");
+}
+```
+
+Note for the charter: `password1!` satisfies SQL Server's container password policy (10
+characters; lowercase, digit and symbol is three of the required four categories) but has no
+uppercase, so it clears the bar rather than comfortably passing it. It is committed to the
+repository by design — that is acceptable for a value whose only job is to unlock a local
+container, and unacceptable for anything else. Never reuse it for a cloud resource, and never
+let the same value appear in a Key Vault entry, a connection string for a deployed service, or
+a CI variable.
+
+## Files written
+
+On confirmation, write these from `assets/` if absent. **Never overwrite an existing one** — a
+repo that has one has already made the decision, and replacing it silently rewrites every file
+on the next format run.
+
+| File | Source | Purpose |
 |---|---|---|
-| `dotnet` | `.editorconfig` | `assets/dotnet.editorconfig` |
-| `python-ml` | `.editorconfig` | `assets/python.editorconfig` |
+| `.editorconfig` | `assets/dotnet.editorconfig` | style, naming, EF-migration exemptions |
+| `Directory.Build.props` | `assets/Directory.Build.props` | warnings as errors, NuGet audit, security analyzers, assembly naming |
+| `Directory.Packages.props` | `assets/Directory.Packages.props` | one package version per solution |
+| `global.json` | `assets/global.json` | pinned SDK and Aspire AppHost SDK |
+| `coverage.runsettings` | `assets/coverage.runsettings` | Cobertura output, generated-code exclusions |
 
-The charter then records **the profile name and any overrides**, not the style rules themselves:
+`Directory.Build.props` carries the owner's assembly-naming convention (`{Solution}.{Project}`)
+with the solution name hard-coded — **replace it with this repo's name** when writing the file.
+
+The charter records the **profile name and overrides**, never the contents of these files:
 
 ```markdown
 ## Technology commitments
 
-- Profile: `dotnet` (C#, xUnit, .editorconfig + dotnet format)
-- Persistence: Azure Table Storage — append-only fits the market-data invariant
-- Hosting: Azure Container Apps — matches the existing deployment
+- Profile: `dotnet` (C# net10.0, Aspire, MSTest, coverlet, .editorconfig)
+- Persistence: SQL Server via Aspire, WithDataVolume, local password default
+- Module layout: vertical slices, each {Module}.Api / .Application / .UnitTests
 ```
-
-`spec-writer` reads that section before the codebase, so a named profile is all a spec needs.
 
 ## What never gets asked
 
-**Code style is not interrogated, and does not belong in the charter.** Brace placement, indent
-width, and naming conventions are enforced by `.editorconfig` and the formatter — deterministic,
-checkable in CI, and free of any dependence on an agent remembering them.
+**Code style is not interrogated and does not belong in the charter.** Brace placement, indent
+width and naming are enforced by `.editorconfig` plus `EnforceCodeStyleInBuild`, which
+`TreatWarningsAsErrors` promotes to build failures. That is deterministic and checkable in CI;
+prose in a charter is neither.
 
-The charter holds *invariants*: properties that make a change wrong regardless of what it was
-trying to do. Style is not one. Mixing the two dilutes the section that actually gates future
+The charter holds *invariants* — properties that make a change wrong regardless of what it was
+trying to do. Style is not one, and mixing the two dilutes the section that gates future
 intents.
 
-If the owner raises style during the interview, record it as a one-line note and move on — or,
-better, translate it into an `.editorconfig` rule and a formatter that enforces it.
+If the owner raises style unprompted, translate it into an `.editorconfig` rule rather than
+recording it as prose anywhere.

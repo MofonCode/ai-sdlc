@@ -37,8 +37,13 @@ say what you inferred so it can be corrected.
 ### Propose a stack profile first
 
 Read `references/stack-profiles.md` and propose one before asking anything open-ended. An
-existing project file in the repo wins outright; competition markers mean `python-ml`;
+existing project file in the repo wins outright; competition or ML markers mean `dotnet-ml`;
 otherwise `dotnet`. Say which signal you used, and take an override without argument.
+
+.NET/C# is the default for everything here, competitions included. When proposing `dotnet-ml`
+for a Kaggle repo, state the tradeoff once — Kaggle kernels are Python, so a C# entry only
+works for file-submission competitions and no public notebook is reusable — then record the
+owner's answer and stop raising it.
 
 Proposing beats interviewing here: confirming a default costs the owner one word, while
 composing a stack from nothing costs a conversation and usually lands in the same place.
@@ -84,15 +89,23 @@ Write `.sdlc/CHARTER.md` per the schema in `references/artifact-schemas.md` (the
 skill), `status: draft`, `version: 1`. Technology commitments records **the profile name and any
 overrides**, not the style rules themselves.
 
-Then write the profile's `.editorconfig` from `assets/` if the repo does not already have one:
+Then write the profile's scaffold files from `assets/`, skipping any that already exist:
 
 ```bash
-[ -f .editorconfig ] || cp "${CLAUDE_SKILL_DIR}/assets/dotnet.editorconfig" .editorconfig
+for f in .editorconfig Directory.Build.props Directory.Packages.props global.json coverage.runsettings; do
+  [ -e "$f" ] || cp "${CLAUDE_SKILL_DIR}/assets/${f#.editorconfig}" "$f" 2>/dev/null
+done
 ```
 
-**Never overwrite an existing `.editorconfig`** — a repo that has one has already made this
-decision, and silently replacing it changes every file on the next format run. If one exists,
-say so and leave it.
+Copy them individually rather than in a loop if the source names differ — `.editorconfig` comes
+from `assets/dotnet.editorconfig`, the rest share their names. Report which were written and
+which were skipped.
+
+**Never overwrite an existing file** — a repo that has one has already made that decision, and
+replacing it silently rewrites every file on the next format run.
+
+`Directory.Build.props` hard-codes an assembly-naming prefix. **Replace it with this repo's
+name** before writing, and say that you did.
 
 ### Do not interrogate code style
 

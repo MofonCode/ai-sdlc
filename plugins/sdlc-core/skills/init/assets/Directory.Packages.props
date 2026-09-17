@@ -1,0 +1,37 @@
+<!--
+  Central Package Management. One version per package for the whole solution.
+
+  Without this, every project pins its own version and they drift: a solution with
+  thirty test projects ends up with three MSTest versions and a coverage report that
+  silently covers less than it claims. Add PackageVersion here; projects reference
+  the package with no Version attribute.
+
+  Aspire package versions MUST match the Aspire.AppHost.Sdk version in global.json,
+  and the installed Aspire CLI must match both. A mismatch fails at AppHost startup
+  with an error naming the wrong side of it.
+-->
+<Project>
+  <PropertyGroup>
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+    <CentralPackageTransitivePinningEnabled>true</CentralPackageTransitivePinningEnabled>
+  </PropertyGroup>
+
+  <ItemGroup Label="Testing">
+    <PackageVersion Include="MSTest" Version="4.2.3" />
+    <PackageVersion Include="coverlet.collector" Version="10.0.1" />
+    <PackageVersion Include="Aspire.Hosting.Testing" Version="13.5.3" />
+  </ItemGroup>
+
+  <ItemGroup Label="Aspire">
+    <PackageVersion Include="Aspire.Hosting.SqlServer" Version="13.5.3" />
+    <PackageVersion Include="Aspire.Hosting.Redis" Version="13.5.3" />
+    <PackageVersion Include="Aspire.Hosting.Azure.Storage" Version="13.5.3" />
+  </ItemGroup>
+
+  <ItemGroup Label="ML">
+    <PackageVersion Include="Microsoft.ML" Version="4.0.2" />
+    <PackageVersion Include="Microsoft.ML.LightGbm" Version="4.0.2" />
+    <PackageVersion Include="Microsoft.ML.AutoML" Version="0.23.2" />
+    <PackageVersion Include="Microsoft.Data.Analysis" Version="0.23.2" />
+  </ItemGroup>
+</Project>

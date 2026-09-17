@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Coverage config. Run it with the "settings" option pointed at this file:
+    dotnet test [settings option] coverage.runsettings
+
+  (An XML comment cannot contain a double hyphen, so the option itself is not
+  written out here. Same reason the AppHost csproj spells out its CLI commands
+  in a skill instead of a comment.)
+
+  Produces Cobertura at TestResults/<guid>/coverage.cobertura.xml. Render it with
+  the reportgenerator global tool.
+
+  A coverage number that counts generated code is a number that lies, so the
+  exclusions below are the point of this file, not decoration.
+-->
+<RunSettings>
+  <RunConfiguration>
+    <CollectSourceInformation>true</CollectSourceInformation>
+  </RunConfiguration>
+
+  <DataCollectionRunSettings>
+    <DataCollectors>
+      <DataCollector friendlyName="XPlat code coverage">
+        <Configuration>
+          <Format>cobertura</Format>
+          <ExcludeByAttribute>Obsolete,GeneratedCodeAttribute,CompilerGeneratedAttribute,ExcludeFromCodeCoverageAttribute</ExcludeByAttribute>
+          <!-- Test projects, the Aspire orchestrator, and EF migrations are not product code. -->
+          <Exclude>[*.UnitTests]*,[*.IntegrationTests]*,[AppHost]*,[MarketSense.AppHost]*</Exclude>
+          <ExcludeByFile>**/Data/Migrations/*.cs,**/*.Designer.cs,**/*.g.cs</ExcludeByFile>
+          <SkipAutoProps>true</SkipAutoProps>
+          <UseSourceLink>true</UseSourceLink>
+        </Configuration>
+      </DataCollector>
+    </DataCollectors>
+  </DataCollectionRunSettings>
+</RunSettings>

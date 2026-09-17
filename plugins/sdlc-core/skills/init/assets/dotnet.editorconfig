@@ -1,85 +1,162 @@
-# EditorConfig — C# / .NET
-# Enforced by the IDE, `dotnet format`, and CI. Style is never a prompt.
 root = true
 
 [*]
-charset = utf-8
-end_of_line = crlf
-insert_final_newline = true
-trim_trailing_whitespace = true
 indent_style = space
 indent_size = 4
+end_of_line = crlf
+charset = utf-8
+trim_trailing_whitespace = true
+insert_final_newline = true
 
-[*.{json,yml,yaml,csproj,props,targets,xml}]
-indent_size = 2
-
-[*.md]
-trim_trailing_whitespace = false
-
-[*.cs]
-# --- usings ---
-dotnet_sort_system_directives_first = true
-dotnet_separate_import_directive_groups = false
-csharp_using_directive_placement = outside_namespace:warning
-
-# --- modern C# ---
+[*.{cs,csx}]
+# Namespace
 csharp_style_namespace_declarations = file_scoped:warning
-csharp_prefer_braces = true:warning
-csharp_style_prefer_primary_constructors = true:suggestion
-csharp_style_var_for_built_in_types = false:suggestion
-csharp_style_var_when_type_is_apparent = true:suggestion
-csharp_style_var_elsewhere = false:suggestion
+
+# var preferences — use var only when type is obvious, prefer explicit types elsewhere
+csharp_style_var_for_built_in_types = false:warning
+csharp_style_var_when_type_is_apparent = true:warning
+csharp_style_var_elsewhere = false:warning
+
+# Prefer indexer over LINQ methods (First/Last)
+dotnet_style_prefer_index_operator = true:warning
+
+# Prefer Type x = new() over var x = new Type()
+dotnet_style_prefer_simplified_object_creation = true:warning
+
+# Prefer collection expressions: [] over new List<T>(), Array.Empty<T>(), etc.
+dotnet_style_prefer_collection_expression = true:warning
+
+# Expression-bodied members
 csharp_style_expression_bodied_methods = when_on_single_line:suggestion
 csharp_style_expression_bodied_properties = true:suggestion
-csharp_prefer_simple_using_statement = true:suggestion
-csharp_style_pattern_matching_over_is_with_cast_check = true:warning
-csharp_style_pattern_matching_over_as_with_null_check = true:warning
+csharp_style_expression_bodied_accessors = true:suggestion
+csharp_style_expression_bodied_constructors = false:suggestion
+csharp_style_expression_bodied_lambdas = true:suggestion
+csharp_style_expression_bodied_local_functions = when_on_single_line:suggestion
 
-# --- null handling: loud, because these are the bugs that reach production ---
-dotnet_diagnostic.CS8600.severity = error
-dotnet_diagnostic.CS8602.severity = error
-dotnet_diagnostic.CS8603.severity = error
-dotnet_diagnostic.CS8625.severity = error
+# Braces
+csharp_prefer_braces = when_multiline:suggestion
 
-# --- correctness analyzers worth failing a build over ---
-dotnet_diagnostic.CA2007.severity = none      # ConfigureAwait: noise outside libraries
-dotnet_diagnostic.CA1848.severity = none      # LoggerMessage delegates: opt in deliberately
-dotnet_diagnostic.CA2016.severity = warning   # forward CancellationToken
-dotnet_diagnostic.CA1062.severity = warning   # validate public arguments
-dotnet_diagnostic.VSTHRD002.severity = warning # no sync blocking on async
+# Pattern matching
+csharp_style_pattern_matching_over_is_with_cast_check = true:suggestion
+csharp_style_pattern_matching_over_as_with_null_check = true:suggestion
+csharp_style_prefer_switch_expression = true:suggestion
 
-# --- unused code is dead weight; surface it ---
-dotnet_diagnostic.IDE0005.severity = warning  # unnecessary using
-dotnet_code_quality_unused_parameters = non_public:suggestion
+# Null checking
+csharp_style_throw_expression = true:suggestion
+csharp_style_conditional_delegate_call = true:suggestion
+dotnet_style_coalesce_expression = true:suggestion
+dotnet_style_null_propagation = true:suggestion
 
-# --- braces and spacing ---
-csharp_new_line_before_open_brace = all
-csharp_new_line_before_else = true
-csharp_new_line_before_catch = true
-csharp_new_line_before_finally = true
-csharp_indent_case_contents = true
-csharp_indent_switch_labels = true
-csharp_space_after_keywords_in_control_flow_statements = true
+# Using directives
+dotnet_sort_system_directives_first = true
+csharp_using_directive_placement = outside_namespace:warning
 
-# --- naming ---
-dotnet_naming_rule.interfaces_start_with_i.severity = warning
-dotnet_naming_rule.interfaces_start_with_i.symbols = interface
-dotnet_naming_rule.interfaces_start_with_i.style = begins_with_i
-dotnet_naming_symbols.interface.applicable_kinds = interface
-dotnet_naming_style.begins_with_i.required_prefix = I
-dotnet_naming_style.begins_with_i.capitalization = pascal_case
+# this. qualification
+dotnet_style_qualification_for_field = false:suggestion
+dotnet_style_qualification_for_property = false:suggestion
+dotnet_style_qualification_for_method = false:suggestion
+dotnet_style_qualification_for_event = false:suggestion
 
-dotnet_naming_rule.private_fields_underscore.severity = warning
-dotnet_naming_rule.private_fields_underscore.symbols = private_field
-dotnet_naming_rule.private_fields_underscore.style = underscore_camel
-dotnet_naming_symbols.private_field.applicable_kinds = field
-dotnet_naming_symbols.private_field.applicable_accessibilities = private
-dotnet_naming_style.underscore_camel.required_prefix = _
-dotnet_naming_style.underscore_camel.capitalization = camel_case
+# Modifier preferences
+dotnet_style_require_accessibility_modifiers = for_non_interface_members:warning
+csharp_preferred_modifier_order = public,private,protected,internal,static,extern,new,virtual,abstract,sealed,override,readonly,unsafe,volatile,async:suggestion
 
-dotnet_naming_rule.constants_pascal.severity = warning
-dotnet_naming_rule.constants_pascal.symbols = constant
-dotnet_naming_rule.constants_pascal.style = pascal
-dotnet_naming_symbols.constant.applicable_kinds = field
-dotnet_naming_symbols.constant.required_modifiers = const
-dotnet_naming_style.pascal.capitalization = pascal_case
+# Naming rules
+
+# Private fields: _camelCase
+dotnet_naming_rule.private_fields_should_be_underscore_camel.severity = warning
+dotnet_naming_rule.private_fields_should_be_underscore_camel.symbols = private_fields
+dotnet_naming_rule.private_fields_should_be_underscore_camel.style = underscore_camel_case
+
+dotnet_naming_symbols.private_fields.applicable_kinds = field
+dotnet_naming_symbols.private_fields.applicable_accessibilities = private, private_protected
+dotnet_naming_symbols.private_fields.required_modifiers =
+
+dotnet_naming_style.underscore_camel_case.required_prefix = _
+dotnet_naming_style.underscore_camel_case.capitalization = camel_case
+
+# Static private fields: _camelCase (same as instance)
+dotnet_naming_rule.static_private_fields_should_be_underscore_camel.severity = warning
+dotnet_naming_rule.static_private_fields_should_be_underscore_camel.symbols = static_private_fields
+dotnet_naming_rule.static_private_fields_should_be_underscore_camel.style = underscore_camel_case
+
+dotnet_naming_symbols.static_private_fields.applicable_kinds = field
+dotnet_naming_symbols.static_private_fields.applicable_accessibilities = private, private_protected
+dotnet_naming_symbols.static_private_fields.required_modifiers = static
+
+# Constants: PascalCase (no prefix)
+dotnet_naming_rule.constants_should_be_pascal.severity = warning
+dotnet_naming_rule.constants_should_be_pascal.symbols = constants
+dotnet_naming_rule.constants_should_be_pascal.style = pascal_case
+
+dotnet_naming_symbols.constants.applicable_kinds = field
+dotnet_naming_symbols.constants.required_modifiers = const
+
+dotnet_naming_style.pascal_case.capitalization = pascal_case
+
+# Private methods: camelCase
+dotnet_naming_rule.private_methods_should_be_camel.severity = warning
+dotnet_naming_rule.private_methods_should_be_camel.symbols = private_methods
+dotnet_naming_rule.private_methods_should_be_camel.style = camel_case_style
+
+dotnet_naming_symbols.private_methods.applicable_kinds = method
+dotnet_naming_symbols.private_methods.applicable_accessibilities = private, private_protected
+
+dotnet_naming_style.camel_case_style.capitalization = camel_case
+
+# Public/internal members: PascalCase
+dotnet_naming_rule.public_members_should_be_pascal.severity = warning
+dotnet_naming_rule.public_members_should_be_pascal.symbols = public_members
+dotnet_naming_rule.public_members_should_be_pascal.style = pascal_case
+
+dotnet_naming_symbols.public_members.applicable_kinds = method, property, event, class, struct, interface, enum, delegate, namespace
+dotnet_naming_symbols.public_members.applicable_accessibilities = public, internal, protected, protected_internal
+
+# Interfaces: IPascalCase
+dotnet_naming_rule.interfaces_should_be_prefixed.severity = warning
+dotnet_naming_rule.interfaces_should_be_prefixed.symbols = interfaces
+dotnet_naming_rule.interfaces_should_be_prefixed.style = interface_style
+
+dotnet_naming_symbols.interfaces.applicable_kinds = interface
+
+dotnet_naming_style.interface_style.required_prefix = I
+dotnet_naming_style.interface_style.capitalization = pascal_case
+
+# Type parameters: TPascalCase
+dotnet_naming_rule.type_parameters_should_be_prefixed.severity = warning
+dotnet_naming_rule.type_parameters_should_be_prefixed.symbols = type_parameters
+dotnet_naming_rule.type_parameters_should_be_prefixed.style = type_parameter_style
+
+dotnet_naming_symbols.type_parameters.applicable_kinds = type_parameter
+
+dotnet_naming_style.type_parameter_style.required_prefix = T
+dotnet_naming_style.type_parameter_style.capitalization = pascal_case
+
+# Local variables and parameters: camelCase
+dotnet_naming_rule.locals_should_be_camel.severity = suggestion
+dotnet_naming_rule.locals_should_be_camel.symbols = locals
+dotnet_naming_rule.locals_should_be_camel.style = camel_case_style
+
+dotnet_naming_symbols.locals.applicable_kinds = parameter, local
+
+[*.{xml,json,yaml,yml,csproj,props,targets,slnx}]
+indent_size = 2
+
+# EF Core-generated migration files (timestamp-prefixed + Designer + ModelSnapshot)
+# use block-scoped namespaces + other legacy style. Suppress the style rules that
+# don't apply. Hand-written migration infrastructure in the same folder is not
+# affected because it doesn't match these patterns.
+[**/Data/Migrations/[0-9][0-9][0-9][0-9]*.cs]
+generated_code = true
+dotnet_diagnostic.IDE0161.severity = none
+dotnet_diagnostic.IDE0130.severity = none
+
+[**/Data/Migrations/*ModelSnapshot.cs]
+generated_code = true
+dotnet_diagnostic.IDE0161.severity = none
+dotnet_diagnostic.IDE0130.severity = none
+
+# Markdown uses trailing double-space as a hard line break.
+[*.md]
+trim_trailing_whitespace = false
