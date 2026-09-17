@@ -56,13 +56,13 @@
   </PropertyGroup>
 
   <!--
-    Assembly + root namespace convention: every project ships as MarketSense.{ProjectName}
+    Assembly + root namespace convention: every project ships as {{SOLUTION}}.{ProjectName}
     (and matching root namespace). Skipped when the project name already starts with
-    "MarketSense." to prevent double-prefixing. Per-project overrides win when set in
+    "{{SOLUTION}}." to prevent double-prefixing. Per-project overrides win when set in
     the csproj itself.
   -->
-  <PropertyGroup Condition="!$(MSBuildProjectName.StartsWith('MarketSense.'))">
-    <AssemblyName>MarketSense.$(MSBuildProjectName)</AssemblyName>
-    <RootNamespace>MarketSense.$(MSBuildProjectName.Replace(' ', '_'))</RootNamespace>
+  <PropertyGroup Condition="!$(MSBuildProjectName.StartsWith('{{SOLUTION}}.'))">
+    <AssemblyName>{{SOLUTION}}.$(MSBuildProjectName)</AssemblyName>
+    <RootNamespace>{{SOLUTION}}.$(MSBuildProjectName.Replace(' ', '_'))</RootNamespace>
   </PropertyGroup>
 </Project>

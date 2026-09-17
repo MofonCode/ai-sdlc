@@ -9,8 +9,8 @@ per slice, all at the same time. Is this ready to fan out?
 
     slices:
       - id: storage
-        files: ["src/Storage/SnapshotWriter.cs", "src/Storage/ISnapshotStore.cs"]
+        files: ["src/storage/audit_writer", "src/storage/audit_store_contract"]
         depends_on: []
       - id: api
-        files: ["src/Api/SnapshotController.cs", "src/Storage/ISnapshotStore.cs"]
+        files: ["src/api/audit_endpoint", "src/storage/audit_store_contract"]
         depends_on: []

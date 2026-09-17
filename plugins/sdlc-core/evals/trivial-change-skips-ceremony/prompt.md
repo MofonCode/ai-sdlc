@@ -6,6 +6,6 @@ tags: [tiering]
 
 The first line of our README is:
 
-    # Marketsense - real-time market data platform
+    # Acme Portal - internal operations console
 
-The product is spelled "MarketSense". Give me the corrected line.
+It should say "Acme Console", not "Acme Portal". Give me the corrected line.

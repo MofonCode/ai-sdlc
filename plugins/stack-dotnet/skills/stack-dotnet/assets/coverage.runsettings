@@ -25,7 +25,7 @@
           <Format>cobertura</Format>
           <ExcludeByAttribute>Obsolete,GeneratedCodeAttribute,CompilerGeneratedAttribute,ExcludeFromCodeCoverageAttribute</ExcludeByAttribute>
           <!-- Test projects, the Aspire orchestrator, and EF migrations are not product code. -->
-          <Exclude>[*.UnitTests]*,[*.IntegrationTests]*,[AppHost]*,[MarketSense.AppHost]*</Exclude>
+          <Exclude>[*.UnitTests]*,[*.IntegrationTests]*,[AppHost]*,[*.AppHost]*</Exclude>
           <ExcludeByFile>**/Data/Migrations/*.cs,**/*.Designer.cs,**/*.g.cs</ExcludeByFile>
           <SkipAutoProps>true</SkipAutoProps>
           <UseSourceLink>true</UseSourceLink>

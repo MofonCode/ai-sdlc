@@ -2,7 +2,7 @@
 type: llm
 ---
 
-PASS if the response identifies that both slices claim `src/Storage/ISnapshotStore.cs`, says
+PASS if the response identifies that both slices claim `src/storage/audit_store_contract`, says
 this is not safe to fan out as written, and directs the fix at the plan — merging the slices,
 extracting the shared file into a third slice both depend on, or otherwise making the manifests
 disjoint.

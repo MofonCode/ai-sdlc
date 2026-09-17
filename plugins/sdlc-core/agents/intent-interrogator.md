@@ -31,8 +31,8 @@ Which services call this? Check the codebase — grep for callers of anything th
 touches and report consumers the draft failed to mention.
 
 **Assumed invariants.** Anything the draft treats as always-true: time ordering, uniqueness,
-non-null, single-writer, clock sync, monotonic sequence numbers. Financial and market-data
-code is dense with these and they are where the bugs live. State each assumption you find and
+non-null, single-writer, clock sync, monotonic sequence numbers. Any domain with ordered data,
+money, or concurrency is dense with these, and they are where the bugs live. State each assumption you find and
 whether the codebase actually guarantees it.
 
 **Reversibility.** What does this commit us to permanently? Persisted formats, public

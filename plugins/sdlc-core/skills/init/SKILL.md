@@ -34,19 +34,33 @@ Read the codebase first if there is one — an existing README, project layout, 
 answer several of these questions without asking. Ask only what the code cannot tell you, and
 say what you inferred so it can be corrected.
 
-### Propose a stack profile first
+### Establish the stack first
 
-Read `references/stack-profiles.md` and propose one before asking anything open-ended. An
-existing project file in the repo wins outright; competition or ML markers mean `dotnet-ml`;
-otherwise `dotnet`. Say which signal you used, and take an override without argument.
+The stack is the one commitment every later spec depends on, so settle it before the open
+questions. This framework is stack-agnostic and ships no defaults of its own — it consumes
+**stack packs**.
 
-.NET/C# is the default for everything here, competitions included. When proposing `dotnet-ml`
-for a Kaggle repo, state the tradeoff once — Kaggle kernels are Python, so a C# entry only
-works for file-submission competitions and no public notebook is reusable — then record the
-owner's answer and stop raising it.
+A stack pack is a skill named `stack-<something>` that describes one opinionated stack and
+carries its scaffold files. Find the ones available:
 
-Proposing beats interviewing here: confirming a default costs the owner one word, while
-composing a stack from nothing costs a conversation and usually lands in the same place.
+```bash
+ls ~/.claude/plugins/cache/*/*/*/skills 2>/dev/null | grep '^stack-'
+```
+
+Then:
+
+- **An existing stack in the repo wins outright.** Project files, a lockfile, a manifest — never
+  propose something that contradicts code already there. Name the stack pack that matches it, if
+  one exists.
+- **Exactly one stack pack installed** → propose it. Read its skill, apply its own rules for
+  choosing between any variants it offers, and say which signal you used.
+- **Several installed** → ask which, with AskUserQuestion, listing what each is for.
+- **None installed** → ask the owner for the stack directly: language and version, framework,
+  test runner, persistence. Record the answers in the charter. Do not invent a stack, and do not
+  write scaffold files you have no template for.
+
+Proposing beats interviewing when a pack exists: confirming a default costs the owner one word,
+while composing a stack from nothing costs a conversation and usually lands in the same place.
 
 Use AskUserQuestion for choices, prose for open questions, and batch related ones. What the
 charter cannot ship without:
@@ -73,7 +87,7 @@ charter cannot ship without:
 Owners answer "what are your invariants?" with silence and "no lookahead bias in any signal
 path" with certainty — so ask the concrete version. Useful probes, chosen by domain:
 
-- *Ordered data, market data, backtests:* can any computation read a value that did not exist
+- *Ordered data, event streams, time series:* can any computation read a value that did not exist
   at its own timestamp? Are stored values ever restated after the fact? Is a result reproducible
   from persisted inputs alone?
 - *Money, ledgers, orders:* what must never be lost, double-counted, or silently reordered?
@@ -89,23 +103,15 @@ Write `.sdlc/CHARTER.md` per the schema in `references/artifact-schemas.md` (the
 skill), `status: draft`, `version: 1`. Technology commitments records **the profile name and any
 overrides**, not the style rules themselves.
 
-Then write the profile's scaffold files from `assets/`, skipping any that already exist:
-
-```bash
-for f in .editorconfig Directory.Build.props Directory.Packages.props global.json coverage.runsettings; do
-  [ -e "$f" ] || cp "${CLAUDE_SKILL_DIR}/assets/${f#.editorconfig}" "$f" 2>/dev/null
-done
-```
-
-Copy them individually rather than in a loop if the source names differ — `.editorconfig` comes
-from `assets/dotnet.editorconfig`, the rest share their names. Report which were written and
-which were skipped.
+Then write the scaffold files **the chosen stack pack names**, skipping any that already exist.
+The pack's skill lists its files, their sources under its `assets/`, and any placeholder tokens
+that must be substituted before writing. Follow it; this skill has no file list of its own.
 
 **Never overwrite an existing file** — a repo that has one has already made that decision, and
-replacing it silently rewrites every file on the next format run.
+replacing it silently rewrites every file on the next format run. Report which files you wrote
+and which you skipped, and confirm every placeholder token was substituted.
 
-`Directory.Build.props` hard-codes an assembly-naming prefix. **Replace it with this repo's
-name** before writing, and say that you did.
+If no stack pack is installed, skip this step entirely rather than improvising templates.
 
 ### Do not interrogate code style
 

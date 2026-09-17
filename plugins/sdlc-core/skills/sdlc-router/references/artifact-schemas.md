@@ -16,7 +16,7 @@ own approval, never a side effect of shipping a feature.
 
 ```yaml
 ---
-solution: MarketSense
+solution: Orders Platform
 status: approved
 version: 1
 updated: 2026-09-16
@@ -29,10 +29,11 @@ Required sections:
 - **What this is** — the system in three sentences, written for someone who has never seen it.
 - **Who it is for** — the actual users and the job they hire it for.
 - **Architectural invariants** — the properties that must hold across every change, stated so a
-  reviewer could catch a violation. These are the load-bearing section. For a market-data or
-  trading system they typically include things like: no computation reads data unavailable at
-  its own timestamp; stored market data is append-only; point-in-time values are never
-  overwritten by restatements; every signal is reproducible from persisted inputs alone.
+  reviewer could catch a violation. These are the load-bearing section. They are always
+  domain-specific; the useful ones read like: no computation reads data unavailable at its own
+  timestamp; stored events are append-only; a persisted value is never overwritten by a later
+  correction; every derived result is reproducible from persisted inputs alone; no tenant can
+  observe another tenant's rows.
 - **Permanent non-goals** — what this system will never be. An intent landing here is blocked,
   not negotiated.
 - **Technology commitments** — the stack decisions already made and not up for relitigation per
@@ -40,7 +41,7 @@ Required sections:
   and treats it as binding, so it is how you stop every spec re-deciding the same things.
   Record language and version, framework, test runner, persistence, and anything else a spec
   would otherwise have to guess. Where conventions span projects, name the skill that carries
-  them (for example `conventions: the stack-dotnet skill`) rather than restating them here.
+  them (for example `conventions: the stack-<name> skill`) rather than restating them here.
   A spec that needs a commitment changed raises it as a flagged concern; changing one is a
   charter amendment.
 - **Amendment log** — what changed, when, why. An invariant that was removed matters more than
@@ -58,8 +59,8 @@ Captures the problem *before* anyone has decided on a solution. Written by
 
 ```yaml
 ---
-slug: order-book-snapshots
-title: Persist order book snapshots for replay
+slug: audit-log-retention
+title: Retain a queryable audit log
 status: draft
 tier: feature
 created: 2026-09-16
@@ -87,7 +88,7 @@ Requirements and design. Written by `spec-writer`, reading an **approved** inten
 
 ```yaml
 ---
-slug: order-book-snapshots
+slug: audit-log-retention
 status: draft
 intent: ./intent.md
 tier: feature
@@ -126,11 +127,11 @@ handle errors gracefully" class of non-requirement.
 | Optional feature | WHERE `<feature is included>`, THE `<system>` SHALL `<response>` | conditional capabilities |
 
 ```
-R1. WHEN a level-2 order book update is received, THE snapshot writer SHALL persist the
-    resulting book state with the exchange timestamp of that update.
-R2. IF the sequence number of an update is not exactly one greater than the last persisted
-    sequence number, THEN THE snapshot writer SHALL reject the update and raise a gap event.
-R3. WHILE a replay is in progress, THE snapshot store SHALL reject writes.
+R1. WHEN a record is modified, THE audit writer SHALL persist the prior value with the
+    timestamp of the modification.
+R2. IF an entry arrives with a sequence number not exactly one greater than the last persisted
+    sequence number, THEN THE audit writer SHALL reject it and raise a gap event.
+R3. WHILE a retention purge is running, THE audit store SHALL reject writes.
 ```
 
 Each maps to a test with no translation step. That is the whole point.
@@ -146,17 +147,17 @@ load-bearing, not documentation.
 
 ```yaml
 ---
-slug: order-book-snapshots
+slug: audit-log-retention
 status: draft
 spec: ./spec.md
 tier: feature
 slices:
   - id: storage
-    files: ["src/MarketSense.Storage/SnapshotWriter.cs", "src/MarketSense.Storage/ISnapshotStore.cs"]
+    files: ["src/storage/audit_writer", "src/storage/audit_store_contract"]
     requirements: [R1, R2]
     depends_on: []
   - id: api
-    files: ["src/MarketSense.Api/SnapshotController.cs"]
+    files: ["src/api/audit_endpoint"]
     requirements: [R4]
     depends_on: [storage]
 ---

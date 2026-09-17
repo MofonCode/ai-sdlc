@@ -3,6 +3,13 @@
 A personal Claude Code plugin marketplace for AI-assisted software development, implementing
 [Anthropic's AI-Native SDLC Playbook](https://claude.com/blog/the-ai-native-sdlc-playbook).
 
+Two layers, deliberately separate:
+
+- **`sdlc-core`** — the engine. Stack-agnostic: it knows about intent, specs, plans, gates and
+  verification, and nothing about any language, framework or company.
+- **`stack-*` packs** — one opinionated answer each to "what do we build this with". `init`
+  discovers whichever are installed and proposes one. Swap the pack, keep the engine.
+
 The one idea everything rests on: **every stage commits a version-controlled artifact the next
 stage reads.** The artifact chain is the state machine — not the order the skills were invoked.
 
@@ -128,33 +135,45 @@ claude-sonnet-5 --no-publish`.
 
 ## Where the tech stack is specified
 
-Three layers, read by `spec-writer` in this order — first answer wins:
+`sdlc-core` ships **no stack defaults**. A **stack pack** is a skill named `stack-<name>` that
+describes one opinionated stack and carries its scaffold files. `init` lists the installed
+packs, proposes one (an existing stack in the repo always wins), and writes the files that pack
+names. With no pack installed it asks for the stack directly and writes nothing it has no
+template for.
+
+`spec-writer` then reads, first answer wins:
 
 | Layer | Scope | Holds |
 |---|---|---|
-| `.sdlc/CHARTER.md` → **Technology commitments** | one repo | language, framework, test runner, persistence — **binding** |
+| `.sdlc/CHARTER.md` → **Technology commitments** | one repo | the profile name and overrides — **binding** |
 | `CLAUDE.md` | one repo | conventions, commands, gotchas for the agent |
 | the codebase | one repo | patterns inferred from existing code |
 
-`init` **proposes** a stack profile rather than interviewing you for one — an existing project
-file in the repo wins, competition markers mean `python-ml`, otherwise `dotnet`. Confirming a
-default costs one word; composing a stack from nothing costs a conversation and lands in the
-same place.
+Set it **once per repo** at `/sdlc-core:init`, not once per feature. A spec that wants a
+commitment changed raises a flagged concern; changing one is a charter amendment. On a
+greenfield repo `spec-writer` will **ask** rather than invent — the project would otherwise
+inherit a guess.
 
-**Code style is never asked about and never stored in the charter.** `init` writes the profile's
-`.editorconfig` (it will not overwrite an existing one) and the formatter enforces it —
-deterministic, checkable in CI, no dependence on an agent remembering anything. The charter
-holds *invariants*, things that make a change wrong regardless of intent; brace placement is not
-one, and mixing them dilutes the section that gates future work.
+**Code style is never asked about and never stored in the charter.** The stack pack's
+`.editorconfig` and formatter enforce it: deterministic, checkable in CI, no dependence on an
+agent remembering anything. The charter holds *invariants* — things that make a change wrong
+regardless of intent. Brace placement is not one.
 
-Set the stack **once per repo** at `/sdlc-core:init`, not once per feature. A spec that wants a
-commitment changed raises a flagged concern; changing one is a charter amendment.
+### `stack-dotnet`
 
-For conventions spanning several projects, put them in their own skill and name it from the
-charter (`conventions: the stack-dotnet skill`) rather than restating them per repo.
+net10.0 · Aspire (AppHost + ServiceDefaults) · SQL Server with a persisted data volume · MSTest
+· coverlet/Cobertura · `EnforceCodeStyleInBuild` + `TreatWarningsAsErrors`. A `dotnet-ml`
+variant adds ML.NET, LightGbm, AutoML and `Microsoft.Data.Analysis`.
 
-On a greenfield repo `spec-writer` will **ask** rather than invent a stack — the whole project
-would otherwise inherit a guess.
+Scaffolds `.editorconfig`, `Directory.Build.props`, `Directory.Packages.props`, `global.json`
+and `coverage.runsettings`, never overwriting an existing one. `Directory.Build.props` carries a
+`{{SOLUTION}}` token that must be substituted with the repo's name.
+
+### Writing your own pack
+
+Copy `plugins/stack-dotnet`, rename the skill `stack-<yours>`, and replace `assets/`. The
+skill's body states which files it writes, from which asset, and any tokens to substitute —
+`init` follows that and has no file list of its own.
 
 ## Updating the library
 

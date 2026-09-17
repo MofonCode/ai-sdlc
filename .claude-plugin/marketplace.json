@@ -1,7 +1,7 @@
 {
   "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
   "name": "ai-sdlc",
-  "description": "Peter's AI-assisted SDLC framework: artifact-chain commands, interrogation and verification agents, and competition tooling",
+  "description": "Peter's AI-SDLC framework: a stack-agnostic artifact-chain engine plus interchangeable stack packs",
   "owner": {
     "name": "Peter Almanzar",
     "email": "peter.almanzar@gmail.com"
@@ -9,9 +9,20 @@
   "plugins": [
     {
       "name": "sdlc-core",
-      "description": "Artifact-chain SDLC for AI-assisted development: intent.md -> spec.md -> plan.md -> parallel build -> verify. Tier router skips ceremony on small changes. Implements Anthropic's AI-Native SDLC Playbook.",
-      "author": { "name": "Peter Almanzar" },
+      "description": "Stack-agnostic artifact-chain SDLC: intent.md -> spec.md -> plan.md -> parallel build -> verify, with a tier router that skips ceremony on small changes. Knows no language or framework; consumes stack packs. Implements Anthropic's AI-Native SDLC Playbook.",
+      "author": {
+        "name": "Peter Almanzar"
+      },
       "source": "./plugins/sdlc-core",
+      "category": "development"
+    },
+    {
+      "name": "stack-dotnet",
+      "description": "Opinionated .NET/C# stack pack for sdlc-core: net10.0, Aspire, SQL Server, MSTest, coverlet coverage, and scaffold files. Includes an ML.NET variant.",
+      "author": {
+        "name": "Peter Almanzar"
+      },
+      "source": "./plugins/stack-dotnet",
       "category": "development"
     }
   ]

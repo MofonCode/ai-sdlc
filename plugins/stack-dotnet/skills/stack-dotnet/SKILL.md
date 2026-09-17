@@ -1,8 +1,19 @@
-# Stack profiles
+---
+name: stack-dotnet
+description: The .NET/C# stack pack - net10.0, Aspire orchestration, SQL Server with a persisted volume, MSTest, coverlet coverage, and the scaffold files (.editorconfig, Directory.Build.props, Directory.Packages.props, global.json, coverage.runsettings). Includes a dotnet-ml variant using ML.NET. Use when /sdlc-core:init is choosing a stack, when a spec needs the committed stack for a .NET repo, or when the user asks what the default stack is.
+---
 
-.NET/C# is the default for **everything** this owner builds, competitions included. `init`
-**proposes** a profile so the owner confirms rather than composing a stack from nothing. A
-proposal is not a decision: say what you picked and why, and take an override without argument.
+# stack-dotnet — the .NET/C# stack pack
+
+A **stack pack**: one opinionated answer to "what do we build this with", consumed by
+`/sdlc-core:init` when a repo is set up and by `spec-writer` when it needs the committed stack.
+The SDLC framework itself knows nothing about .NET — this file is where all of that lives.
+
+This owner's default for **everything**, competitions included. `init` proposes a profile so the
+owner confirms rather than composing a stack from nothing. A proposal is not a decision: say
+what you picked and why, and take an override without argument.
+
+Assets referenced below live in `assets/`, beside this file.
 
 ## Contents
 
@@ -140,8 +151,10 @@ on the next format run.
 | `global.json` | `assets/global.json` | pinned SDK and Aspire AppHost SDK |
 | `coverage.runsettings` | `assets/coverage.runsettings` | Cobertura output, generated-code exclusions |
 
-`Directory.Build.props` carries the owner's assembly-naming convention (`{Solution}.{Project}`)
-with the solution name hard-coded — **replace it with this repo's name** when writing the file.
+`Directory.Build.props` carries an assembly-naming convention of `{{SOLUTION}}.{ProjectName}`.
+**Replace every `{{SOLUTION}}` token with this repo's solution name** when writing the file, and
+say that you did. Leaving the token in place produces assemblies literally named
+`{{SOLUTION}}.Foo`.
 
 The charter records the **profile name and overrides**, never the contents of these files:
 
