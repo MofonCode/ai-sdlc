@@ -126,6 +126,41 @@ the report shows what the plugin actually contributes (`Δ`) rather than just th
 In CI: `claude plugin eval . --trust-plugin --json results.json --threshold 0.8 --model
 claude-sonnet-5 --no-publish`.
 
+## Where the tech stack is specified
+
+Three layers, read by `spec-writer` in this order — first answer wins:
+
+| Layer | Scope | Holds |
+|---|---|---|
+| `.sdlc/CHARTER.md` → **Technology commitments** | one repo | language, framework, test runner, persistence — **binding** |
+| `CLAUDE.md` | one repo | conventions, commands, gotchas for the agent |
+| the codebase | one repo | patterns inferred from existing code |
+
+Set it **once per repo** at `/sdlc-core:init`, not once per feature. A spec that wants a
+commitment changed raises a flagged concern; changing one is a charter amendment.
+
+For conventions spanning several projects, put them in their own skill and name it from the
+charter (`conventions: the stack-dotnet skill`) rather than restating them per repo.
+
+On a greenfield repo `spec-writer` will **ask** rather than invent a stack — the whole project
+would otherwise inherit a guess.
+
+## Updating the library
+
+The plugin is cached **per version** at `~/.claude/plugins/cache/ai-sdlc/sdlc-core/<version>/`.
+Source edits do *not* propagate on their own. To ship a change to every project:
+
+```
+# 1. bump version in plugins/sdlc-core/.claude-plugin/plugin.json
+# 2.
+claude plugin update sdlc-core@ai-sdlc
+# 3. restart, or /reload-plugins
+```
+
+Skipping the bump means the update is a no-op. While iterating on the plugin itself,
+`claude --plugin-dir C:\Reposi-sdlc\plugins\sdlc-core` loads the working tree directly and
+skips the cache entirely.
+
 ## Reused rather than rebuilt
 
 From the official marketplace: `feature-dev` (code-explorer, code-architect),

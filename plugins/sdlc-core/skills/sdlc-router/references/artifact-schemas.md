@@ -36,7 +36,13 @@ Required sections:
 - **Permanent non-goals** — what this system will never be. An intent landing here is blocked,
   not negotiated.
 - **Technology commitments** — the stack decisions already made and not up for relitigation per
-  feature, each with a one-line reason.
+  feature, each with a one-line reason. `spec-writer` reads this section **before** the codebase
+  and treats it as binding, so it is how you stop every spec re-deciding the same things.
+  Record language and version, framework, test runner, persistence, and anything else a spec
+  would otherwise have to guess. Where conventions span projects, name the skill that carries
+  them (for example `conventions: the stack-dotnet skill`) rather than restating them here.
+  A spec that needs a commitment changed raises it as a flagged concern; changing one is a
+  charter amendment.
 - **Amendment log** — what changed, when, why. An invariant that was removed matters more than
   one that was added.
 

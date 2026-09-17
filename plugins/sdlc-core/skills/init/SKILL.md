@@ -45,7 +45,14 @@ charter cannot ship without:
 - **Permanent non-goals** — what this system will never be. A later intent landing here is
   blocked outright, not negotiated, so be sure the owner means *never* and not *not yet*.
 - **Technology commitments** — decisions already made and not up for relitigation per feature,
-  each with a one-line reason.
+  each with a one-line reason. Capture language and version, framework, test runner, and
+  persistence at minimum: `spec-writer` reads this section before the codebase, so whatever is
+  missing here is something every future spec has to re-decide or ask about. Where conventions
+  span several of the owner's projects, name the skill that carries them rather than restating
+  them.
+
+  On a **greenfield** repo this section is the whole point of running init early — there is no
+  codebase to infer a stack from, so ask directly rather than letting the first spec guess.
 
 ### Drawing out invariants
 

@@ -17,10 +17,27 @@ follow it exactly — downstream commands parse the frontmatter.
 You choose the solution. If the intent already contains a solution, note it as an inherited
 constraint and say whether you agree with it.
 
-**2. Read the codebase before designing anything.** Find the patterns already in use — project
-layout, naming, error handling, test conventions, how similar features were built. A spec that
-fights the existing architecture will be rejected at plan time. Cite the files that taught you
-the pattern.
+**2. Establish the stack before designing anything.** Read these in order and stop at the first
+that answers a question:
+
+1. **`.sdlc/CHARTER.md` -> Technology commitments** — the decisions already made for this repo
+   and not up for relitigation per feature. Binding. If the charter names a conventions skill
+   for the stack, read that too.
+2. **`CLAUDE.md`** — conventions, commands, and architectural decisions for this project.
+3. **The codebase** — project layout, naming, error handling, test conventions, how similar
+   features were built. Cite the files that taught you the pattern.
+
+A spec that fights the committed stack will be rejected at plan time, so treat a charter
+commitment as a constraint, not a suggestion. If you believe a commitment is wrong for this
+feature, say so as a **flagged concern** naming the charter owner — do not quietly design
+around it.
+
+**On a greenfield repo — ASK, do not invent.** When the repo is empty or near-empty and no
+charter or CLAUDE.md records a stack, you have no basis for choosing a language, framework,
+test runner, or persistence layer. Picking one silently sets a direction the whole project then
+inherits from a guess. Stop, put the stack choice to the user, and record the answer as a
+**charter amendment**, not as a line buried in this spec. There is no cost to asking and a large
+cost to being wrong.
 
 **3. Write requirements in EARS form.** Number them R1, R2, and so on. plan.md and the test
 suite cite these numbers, so they are an API: do not renumber on revision — append, and mark
