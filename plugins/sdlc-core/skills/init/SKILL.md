@@ -25,6 +25,11 @@ ls -la .sdlc/ 2>/dev/null; ls CLAUDE.md 2>/dev/null; git branch --show-current
   and write the charter now; then re-check the existing intents against it and report conflicts.
 - **Nothing** — normal first run.
 
+**Choose the artifact root.** It defaults to `.sdlc/`, but a repo that already keeps a visible
+backlog (`intent/`, `specs/`, `docs/sdlc/`) has a convention worth keeping — ask rather than
+impose one, and record the answer in the charter's `artifact_root`. Every later skill reads it
+from there.
+
 Also check the branch. If this is `main` or another protected branch, say so and ask whether to
 branch first; the charter is a commit like any other.
 

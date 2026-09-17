@@ -10,13 +10,14 @@ Nothing downstream may be produced from a `draft`.
 
 ## CHARTER.md — repo scope, long-lived
 
-One per repository, at `.sdlc/CHARTER.md`. Not part of the per-change chain: it is the thing
+One per repository, at `<artifact_root>/CHARTER.md`. Not part of the per-change chain: it is the thing
 every `intent.md` is checked **against**. Edited rarely and deliberately; amending it is its
 own approval, never a side effect of shipping a feature.
 
 ```yaml
 ---
 solution: Orders Platform
+artifact_root: .sdlc/     # where this repo keeps the chain; every skill reads this
 status: approved
 version: 1
 updated: 2026-09-16
