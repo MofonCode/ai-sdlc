@@ -48,6 +48,8 @@ dotnet profile."*
 | Style | `.editorconfig` + `EnforceCodeStyleInBuild` |
 | Packages | Central Package Management (`Directory.Packages.props`) |
 | SDK | pinned in `global.json` |
+| Infrastructure | **Terraform**, remote state, provider versions pinned |
+| Cloud | Azure — this pack targets .NET **on Azure**; another cloud is a different pack |
 
 Ask, rather than assume: the solution's module boundaries, and whether each module is a
 library, an API, or a function app.
@@ -59,6 +61,25 @@ bundle** must all agree. When they don't, the AppHost fails at startup with an e
 the wrong side of the mismatch. `global.json` pins the SDK and `Directory.Packages.props` pins
 the packages, so only the CLI is left to keep in step manually. Say this out loud when writing
 the charter's Technology commitments — it is the kind of thing that costs an afternoon once.
+
+### Infrastructure is Terraform
+
+Every environment is created by Terraform, never by portal clicks, and never by a script that
+cannot be re-run. Two things are pinned for the same reason `global.json` pins the SDK: an
+unpinned `required_version` or provider constraint upgrades itself between a plan and an apply,
+and the diff that gets applied is then not the diff that was reviewed.
+
+**State is remote, always.** Local state cannot be shared, cannot be locked, and dies with the
+machine. The storage account holding state is created **out of band** — the thing that stores
+state cannot be managed by the state it stores — and `versions.tf` leaves its backend block
+blank for that reason.
+
+`terraform.gitignore` exists because state and `.tfvars` routinely contain secrets in plain
+text. Committing either is a credential leak, not an untidy repository.
+
+A change that creates or alters infrastructure is a change like any other: it belongs to a
+slice, it names its files in the plan manifest, and `terraform plan` output is the evidence that
+the review is reviewing.
 
 ## Profile: `dotnet-ml`
 
@@ -139,7 +160,7 @@ a CI variable.
 
 ## Files written
 
-On confirmation, write these from `assets/` if absent. **Never overwrite an existing one** — a
+On confirmation, write these from `assets/` if absent. The `.gitignore` entries are **appended** if absent rather than replacing the file. Otherwise, **never overwrite an existing one** — a
 repo that has one has already made the decision, and replacing it silently rewrites every file
 on the next format run.
 
@@ -150,6 +171,8 @@ on the next format run.
 | `Directory.Packages.props` | `assets/Directory.Packages.props` | one package version per solution |
 | `global.json` | `assets/global.json` | pinned SDK and Aspire AppHost SDK |
 | `coverage.runsettings` | `assets/coverage.runsettings` | Cobertura output, generated-code exclusions |
+| `terraform/versions.tf` | `assets/terraform/versions.tf` | pinned Terraform and provider versions, remote backend stub |
+| `.gitignore` (append) | `assets/terraform.gitignore` | state and tfvars never reach the repo |
 
 `Directory.Build.props` carries an assembly-naming convention of `{{SOLUTION}}.{ProjectName}`.
 **Replace every `{{SOLUTION}}` token with this repo's solution name** when writing the file, and

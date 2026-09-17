@@ -1,0 +1,26 @@
+# Terraform — append to the repo .gitignore, or keep as terraform/.gitignore
+
+# Provider binaries and module cache. Large, machine-specific, re-downloadable.
+.terraform/
+.terraform.lock.hcl.bak
+
+# State and its backups. State holds resource IDs and can hold secret values in plain
+# text; it belongs in the remote backend, never in the repository.
+*.tfstate
+*.tfstate.*
+crash.log
+crash.*.log
+
+# Variable files routinely carry secrets and per-environment values.
+*.tfvars
+*.tfvars.json
+!example.tfvars
+
+# Saved plans are binary and can contain secrets.
+*.tfplan
+
+# Terraform's own override convention for local experiments.
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json

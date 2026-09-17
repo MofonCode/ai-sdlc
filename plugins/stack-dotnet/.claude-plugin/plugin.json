@@ -1,6 +1,8 @@
 {
   "name": "stack-dotnet",
-  "version": "0.1.0",
-  "description": "Opinionated .NET/C# stack pack for the sdlc framework: net10.0, Aspire orchestration, SQL Server, MSTest, coverlet coverage, and scaffold files (.editorconfig, Directory.Build.props, Directory.Packages.props, global.json, coverage.runsettings). Includes an ML.NET variant.",
-  "author": { "name": "Peter Almanzar" }
+  "version": "0.2.0",
+  "description": "Opinionated .NET/C# stack pack for the sdlc framework: net10.0, Aspire orchestration, SQL Server, MSTest, coverlet coverage, Terraform infrastructure with remote state, and scaffold files (.editorconfig, Directory.Build.props, Directory.Packages.props, global.json, coverage.runsettings). Includes an ML.NET variant.",
+  "author": {
+    "name": "Peter Almanzar"
+  }
 }
