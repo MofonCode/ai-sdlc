@@ -144,10 +144,16 @@ on every edit must never be the reason a session breaks. Behaviour pinned in
 claude plugin eval . --no-publish --threshold 0.8
 ```
 
-**Requires Claude Code 2.1.269 or later** — the command exists as a stub in 2.1.268 and refuses
-with `plugin eval is currently in early access`. The suite below has been written to the
-documented format and frontmatter-checked, but **has not yet been executed**, so the graders are
-uncalibrated until a first run.
+**Requires Claude Code 2.1.269 or later, plus early-access enablement on the account.** Retested
+on 2.1.268 (2026-09-18): `--help` returns full usage, which is misleading — the command is
+registered as a stub and running it still refuses with `plugin eval is currently in early
+access`. `winget` reports no newer version available, so this is not a bump away.
+
+The suite below is written to the documented format and frontmatter-checked, but **has never
+been executed**, so its graders are uncalibrated. Until it runs, the "process improves itself"
+claim has no number attached, and the agent-team topology question has no instrument to settle
+it. Both are recorded as blocked in the charter rather than as pending work — the blocker is
+external and no amount of effort here moves it.
 
 Three cases under `evals/`, each run three times with the plugin and three times without, so
 the report shows what the plugin actually contributes (`Δ`) rather than just that it ran:

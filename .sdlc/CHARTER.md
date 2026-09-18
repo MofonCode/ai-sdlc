@@ -275,16 +275,22 @@ and give them one parser.
   because an earlier draft asserted it as a binding commitment *and* listed it as unimplemented
   in the same document, and a commitment is what every future spec is held to. It becomes a
   commitment when it exists. *Owner: peter — needs an intent.*
-- **Agent team topology.** Orchestrator, two BAs, delivery, QA was proposed. Open: what the
-  second BA does that the first does not, and whether the orchestrator earns its relay hop when
-  the main loop already orchestrates. I7 settles the part that matters — QA is isolated by
-  context, not by headcount. *Owner: peter.*
+- **Agent team topology — blocked on the above.** Orchestrator, two BAs, delivery, QA was
+  proposed. Open: what the second BA does that the first does not, and whether the orchestrator
+  earns its relay hop when the main loop already orchestrates. Both are measurement questions,
+  and the only instrument is the eval suite, which cannot run — so this is downstream of the
+  blocker above and should not be picked up before it clears. I7 already settles the part that
+  does not need measuring: QA is isolated by context, not by headcount. *Owner: peter.*
 - **Discovery entry points.** The chain assumes a change to an existing system. A bug intent is
   a repro; a competition objective is given by its metric. Likely several entry points feeding
   the same downstream artifacts, rather than one generalised `intent`. *Owner: peter.*
-- **Self-improvement loop.** The eval suite exists and has never been run, so its graders are
-  uncalibrated. Until it runs, "the process improves itself" has no number attached.
-  *Owner: peter.*
+- **Self-improvement loop — BLOCKED, externally.** The eval suite exists and has never been
+  run, so its graders are uncalibrated and "the process improves itself" has no number attached.
+  Retested 2026-09-18 on Claude Code 2.1.268: `plugin eval` refuses with *"currently in early
+  access"*, and `winget` reports no newer version, so this is not a version bump away. **Trigger
+  to unblock: 2.1.269+ available AND early access enabled on the account.** Recorded as blocked
+  rather than pending, because no effort here moves it. *Owner: peter, but not actionable by
+  the owner.*
 
 ## Amendment log
 
