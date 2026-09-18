@@ -1,6 +1,6 @@
 ---
 name: stack-dotnet
-description: The .NET/C# stack pack - net10.0, Blazor front ends, ASP.NET Core APIs, EF Core, Aspire orchestration with Docker-based local emulation, Azure PaaS (Web Apps, Function Apps, Azure SQL) for deployed environments with Terraform as the single source of truth, SQL Server with a persisted volume, MSTest, coverlet coverage, and the scaffold files. C# scripts and Jupyter (.ipynb) notebooks on the .NET Interactive kernel are endorsed for exploration only, because they sit outside the analyzer gate. Includes a dotnet-ml variant using ML.NET. Use when /sdlc-core:init is choosing a stack, when a spec needs the committed stack for a .NET repo, or when the user asks what the default stack is.
+description: The .NET/C# stack pack - net10.0, Blazor front ends, ASP.NET Core APIs, EF Core, Aspire orchestration with Docker-based local emulation, Azure PaaS (Web Apps, Function Apps, Azure SQL) for deployed environments with Terraform as the single source of truth, SQL Server with a persisted volume, MSTest, coverlet coverage, and the scaffold files. C# scripts and Polyglot notebooks (.ipynb on the .NET Interactive kernel) are endorsed for exploration only, because they sit outside the analyzer gate. Includes a dotnet-ml variant using ML.NET. Use when /sdlc-core:init is choosing a stack, when a spec needs the committed stack for a .NET repo, or when the user asks what the default stack is.
 ---
 
 # stack-dotnet — the .NET/C# stack pack
@@ -51,6 +51,7 @@ dotnet profile."*
 | Database | SQL Server via Aspire, persisted with `WithDataVolume` |
 | Local emulation | Docker containers, orchestrated by Aspire — **local only** |
 | Deployed compute | **Azure PaaS: Web Apps, Function Apps, Azure SQL.** Not containers |
+| Exploration | **Polyglot Notebooks** (VS Code) and `.csx` scripts — `.ipynb` on the .NET Interactive kernel |
 | Tests | **MSTest** (the `MSTest` meta-package) |
 | Coverage | `coverlet.collector`, Cobertura, `coverage.runsettings` |
 | Integration tests | `Aspire.Hosting.Testing` against a real AppHost |
@@ -129,19 +130,18 @@ apart, checking a hypothesis, sketching an algorithm before it has a home. Use t
 Prefer them over Python notebooks — the language stays the same as the thing being built, so an
 idea moves into a project without a rewrite.
 
-**The commitment is the format and the kernel, not the editor.** A C# notebook is a Jupyter
-notebook: `.ipynb`, run by the .NET Interactive kernel. Two frontends open the same file and
-neither is privileged here:
+**Polyglot Notebooks (VS Code) is the notebook frontend.** It needs nothing beyond the SDK,
+gives C# completion and debugging, and sits next to the solution the notebook is exploring.
 
-| Frontend | Needs | Worth knowing |
-|---|---|---|
-| **Polyglot Notebooks** (VS Code) | nothing beyond the SDK | Better C# tooling — completion, debugging, the solution alongside it. |
-| **JupyterLab** | **a Python install**, plus `dotnet interactive jupyter install` to register the kernel | Familiar to anyone arriving from data science, and the wider Jupyter tooling works. |
+The reason it is the default rather than JupyterLab is the same reason this stack chose
+PowerShell for its own tooling: **JupyterLab is a Python application**, so standardising a team
+on it puts Python on every developer machine to run notebooks in a language that needs none.
 
-Pick per developer; the file is identical either way, so a notebook written in one opens in the
-other. Note the asymmetry before standardising a team on JupyterLab: it is a Python application,
-so choosing it as *the* default puts Python on every machine — which may be exactly the trade
-this stack was avoiding. The kernel is the same regardless.
+Nothing is locked in by that choice, which is why it is safe to make. A C# notebook is an
+ordinary **Jupyter notebook** — `.ipynb`, run by the .NET Interactive kernel — so a developer
+who already has Jupyter can register the kernel and open the identical file, and any notebook
+written here stays readable by the whole Jupyter ecosystem. The frontend is a preference; the
+format and the kernel are the commitment.
 
 **But be exact about what they do not get.** Neither has a project file, so
 `Directory.Build.props` never reaches them. In practice that means **no analyzers, no
