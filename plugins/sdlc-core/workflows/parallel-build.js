@@ -30,12 +30,21 @@ const root = String(artifactRoot).replace(/\/+$/, '')
 const chain = `${root}/${slug}`
 
 // --- Disjointness, re-proven here. A failure is a planning bug, not a runtime condition. ---
+// Normalised exactly as Assert-SliceManifest.ps1 and the gate hook normalise: separators
+// to forward slashes, leading "./" removed. Three independent parsers read this manifest and
+// they must agree - before this, a plan listing "./src/X.cs" and "src/X.cs" in two slices
+// passed here and failed there, which is the worst possible split because the check that
+// passes is the one that fans out.
+const normalise = (f) =>
+  String(f).split(String.fromCharCode(92)).join('/').replace(/^[.]?[/]/, '')
+
 const owner = new Map()
 for (const s of slices) {
   if (!Array.isArray(s.files) || s.files.length === 0) {
     throw new Error(`slice "${s.id}" owns no files. A slice with an empty manifest is a planning bug.`)
   }
-  for (const f of s.files) {
+  for (const raw of s.files) {
+    const f = normalise(raw)
     if (owner.has(f)) {
       throw new Error(
         `plan.md manifest overlap: "${f}" claimed by both "${owner.get(f)}" and "${s.id}". ` +
