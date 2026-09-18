@@ -20,18 +20,21 @@ jobs:
         run: node scripts/check-plugins.mjs
 
   gate:
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        # The hook must behave identically with and without the optional PyYAML, because
-        # on a machine without it the regex fallback is the only parser there is.
-        pyyaml: [true, false]
+    # windows-latest for Windows PowerShell 5.1 specifically. The hook targets 5.1 because
+    # that is the runtime present on every Windows machine with no install step, so testing
+    # it on pwsh would test something other than what ships.
+    runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
-      - if: matrix.pyyaml
-        run: pip install pyyaml
       - name: Gate hook behaviour
-        run: python scripts/test_sdlc_gate.py
+        shell: powershell
+        run: powershell -NoProfile -ExecutionPolicy Bypass -File scripts/Test-SdlcGate.ps1
+
+      - name: Hook parses under 5.1
+        shell: powershell
+        run: |
+          $errs = $null
+          $null = [System.Management.Automation.Language.Parser]::ParseFile(
+            (Resolve-Path 'plugins/sdlc-core/hooks/sdlc_gate.ps1').Path, [ref]$null, [ref]$errs)
+          if ($errs -and $errs.Count -gt 0) { $errs | ForEach-Object { $_.ToString() }; exit 1 }
+          'parse ok'

@@ -1,5 +1,5 @@
 {
-  "description": "sdlc-core gate: warns when source files are edited with no approved plan.md. Advisory by default; set SDLC_GATE=block to enforce. Silent in repos with no .sdlc/ directory.",
+  "description": "sdlc-core gate: warns when source files are edited outside an approved plan.md - either no plan is approved, or no slice claims the file. Advisory by default; set SDLC_GATE=block to enforce. Silent in repos with no artifact root.",
   "hooks": {
     "PreToolUse": [
       {
@@ -7,7 +7,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python \"${CLAUDE_PLUGIN_ROOT}/hooks/sdlc_gate.py\""
+            "command": "powershell -NoProfile -ExecutionPolicy Bypass -File \"${CLAUDE_PLUGIN_ROOT}/hooks/sdlc_gate.ps1\""
           }
         ]
       }

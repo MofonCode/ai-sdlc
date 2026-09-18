@@ -133,8 +133,9 @@ implementer its own worktree. The manifest guarantees nothing here — it is abo
 
 Advisory by default — a hard block on every edit gets the plugin uninstalled. Set
 `SDLC_GATE=block` to make it refuse instead. It resolves the artifact root from the charter,
-is silent in repos with no chain, and never breaks a session over a malformed payload or a
-missing PyYAML. Its behaviour is pinned in `scripts/test_sdlc_gate.py`.
+is silent in repos with no chain, and exits 0 on anything it did not expect: a hook that runs
+on every edit must never be the reason a session breaks. Behaviour pinned in
+`scripts/Test-SdlcGate.ps1`.
 
 ## Evals
 
@@ -160,19 +161,29 @@ claude-sonnet-5 --no-publish`.
 ## Checks
 
 ```
-node scripts/check-plugins.mjs     # structure: manifests, frontmatter, workflows, hooks
-python scripts/test_sdlc_gate.py   # behaviour: the gate hook, 16 cases
+node scripts/check-plugins.mjs                                  # structure
+powershell -NoProfile -File scripts/Test-SdlcGate.ps1           # gate behaviour, 15 cases
 ```
 
-Both run in CI on every push and pull request (`.github/workflows/checks.yml`), the gate
-tests twice — with and without PyYAML, because on a machine without it the regex fallback is
-the only parser there is.
+Both run in CI on every push and pull request (`.github/workflows/checks.yml`); the gate
+tests on `windows-latest` against Windows PowerShell 5.1 specifically, because testing it on
+`pwsh` would test something other than what ships.
 
 These exist because **every failure they catch is silent at runtime.** A skill whose
 frontmatter is not the first line of the file is simply never loaded; a workflow whose
 `phase()` titles disagree with its `meta` renders a blank phase; a gate that stops matching
 reads as approval. None of it raises an error — it just quietly stops working, which is the
 expensive kind of broken and exactly what bit this repo before.
+
+### Which runtime, and why
+
+| | Runtime | Reason |
+|---|---|---|
+| `hooks/sdlc_gate.ps1` | Windows PowerShell 5.1 | Ships to every user and runs on every edit, so the only thing that matters is being present with no install step. Measured: ~150ms per edit against ~67ms for node and ~51ms for python — the tax was measured and accepted, not assumed. |
+| `scripts/check-plugins.mjs` | Node | Dev and CI only, never ships. It evaluates a workflow's body the way the runtime does, which is the check that catches a syntax error; no other runtime can do that honestly. |
+
+Preference order for anything new: C# script, then PowerShell, then — only with a stated
+reason like the one above — bash or python. There is no Python in this repo.
 
 ## Where the tech stack is specified
 
