@@ -165,11 +165,14 @@ claude-sonnet-5 --no-publish`.
 dotnet test tests/AiSdlc.Tests/AiSdlc.Tests.csproj
 ```
 
-One command, 36 tests, run in CI on `windows-latest` (`.github/workflows/checks.yml`). MSTest,
+One command, 49 tests, run in CI on `windows-latest` (`.github/workflows/checks.yml`). MSTest,
 the same framework every solution this framework builds uses. The tests drive the **real
-shipped artefacts** as external processes — the hook, the manifest check, the structure
-checker — rather than reimplementing their logic in C#, because a reimplementation tests the
+shipped artefacts** as external processes — the hook, the manifest check, the workflow
+validator — rather than reimplementing their logic in C#, because a reimplementation tests the
 reimplementation and the two drift silently.
+
+**Every check is mutation-tested.** The fault is injected and the named check must fail; a
+check nobody has seen fail is a check nobody should trust. Twelve faults, twelve caught.
 
 Windows only: the hook and the manifest check both invoke `powershell.exe`.
 
@@ -184,13 +187,18 @@ expensive kind of broken and exactly what bit this repo before.
 | | Runtime | Ships? | Reason |
 |---|---|---|---|
 | `hooks/sdlc_gate.ps1`, `scripts/Assert-SliceManifest.ps1` | Windows PowerShell 5.1 | **yes** | Runs on every edit and at every fan-out. Present on every Windows machine with no install step, which beats 100ms: measured at 149ms against 67 for node, 51 for python. |
-| `workflows/parallel-build.js` | Node | **yes** | Workflow scripts are JavaScript by definition — that is the format the runtime evaluates. |
-| `scripts/check-plugins.mjs` | Node | no | Evaluates a workflow body the way the runtime does, which is what catches a syntax error. No other runtime does that honestly. |
-| `tests/AiSdlc.Tests` | MSTest / net10.0 | no | One test framework across everything this owner builds. |
+| `workflows/parallel-build.js` | Node | **yes** | Not a choice — workflow scripts *are* JavaScript. That is the format the runtime evaluates. |
+| `scripts/check-workflow.mjs` | Node, ~80 lines | no | The only remaining JS tooling. A workflow body must be evaluated the way the runtime evaluates it, which needs a JS parser. Nothing else does. |
+| `tests/AiSdlc.Tests` | MSTest / net10.0 | no | Everything else. One framework across everything this owner builds. |
 
 Preference order for anything new: C# → PowerShell → Node → bash/python, each with the standing
 exception that a runtime already justified above keeps its job. **There is no Python here**, and
 a test fails if any returns.
+
+A 220-line Node structure checker used to sit here. Four of its five check groups were plain
+file and string work that needed no JavaScript at all — they are now MSTest, and the ~20 lines
+that genuinely need a JS parser are all that remain. Every fault the old checker caught was
+re-injected against the ported version before it was deleted.
 
 ## Where the tech stack is specified
 

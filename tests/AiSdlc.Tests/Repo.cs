@@ -22,8 +22,6 @@ internal static class Repo
     public static string ManifestCheck => Path.Combine(
         Root, "plugins", "sdlc-core", "scripts", "Assert-SliceManifest.ps1");
 
-    public static string StructureChecker => Path.Combine(Root, "scripts", "check-plugins.mjs");
-
     private static string FindRoot()
     {
         DirectoryInfo? dir = new(AppContext.BaseDirectory);

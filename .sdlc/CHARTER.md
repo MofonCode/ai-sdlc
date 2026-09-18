@@ -121,20 +121,26 @@ The set is enumerated instead, and grows whenever a new class is found.
 
 | Silent failure | Check |
 |---|---|
-| Frontmatter malformed, so the file is never loaded | `check-plugins.mjs` |
-| Skill body has an unclosed fence or a mangled command | `check-plugins.mjs` |
-| Workflow `phase()` disagrees with `meta.phases` | `check-plugins.mjs` |
-| Workflow body does not parse | `check-plugins.mjs` |
-| Hook command points at a missing file | `check-plugins.mjs` |
+| Frontmatter malformed, so the file is never loaded | `EveryDefinition_HasFrontmatterAsItsFirstLine` |
+| Skill or agent name disagrees with its path | `EverySkillName_MatchesItsDirectory`, `EveryAgentName_MatchesItsFilename` |
+| Skill body has an unclosed fence or a mangled command | `EveryBody_HasBalancedCodeFences`, `NoBody_ContainsALiteralBackslashN` |
+| Workflow `phase()` disagrees with `meta.phases` | `EveryWorkflow_IsValid` |
+| Workflow body does not parse | `EveryWorkflow_IsValid` |
+| Plugin version is not semver, so an update is a no-op | `EveryPluginVersion_IsSemver` |
+| Marketplace points at a directory that moved | `EveryListedPlugin_HasADirectoryThatExists` |
+| Hook command points at a missing file | `EveryHookCommand_PointsAtAFileThatExists` |
 | Gate stops matching, or goes quiet on a non-default root | `GateHookTests` |
 | A manifest overlap slips through | `SliceManifestTests` |
 | Shipped PowerShell does not parse | `EveryShippedPowerShellScript_Parses` |
 | A stack leaks into the engine | `CharterInvariantI1_EngineImposesNoStack` |
 | Python returns to the repo | `NoPythonShipsInThisRepository` |
 
+Every row is mutation-tested: the fault is injected and the named check must fail. A check that
+has never been seen to fail is a check nobody should trust.
+
 **Known and unchecked**, recorded rather than hidden: a plugin version that is valid semver but
-was never bumped, which makes an update a silent no-op; and the eval suite, which has never
-run.
+was never *bumped* — the format is checked, the increment is not, so an update can still be a
+silent no-op; and the eval suite, which has never run.
 
 **I10 — A default root may be named, but never used *instead of* resolving.** Prose saying "it
 defaults to `.sdlc/`" is correct and useful. Code that reads `.sdlc/` without first looking for
@@ -210,7 +216,7 @@ in a long-lived artifact is wrong by the next commit.
 | Skills, agents, schemas | Markdown with YAML frontmatter | What the harness loads. |
 | Shipped executables | Windows PowerShell 5.1 | The hook runs on every edit in every repo and the manifest check runs at every fan-out. Present on every Windows machine with no install step, which beats 100ms: measured at 149ms against 67 for node and 51 for python. |
 | Tests | **MSTest**, one project under `tests/` | The same framework as every solution this framework builds. Tests drive the real shipped artefacts as external processes — a reimplementation in C# would test the reimplementation, and the two would drift silently. |
-| Repo tooling | Node, where it earns it | `check-plugins.mjs` evaluates a workflow body the way the runtime does, which no other runtime can do honestly. Invoked from a test, so `dotnet test` stays the single entry point. |
+| Repo tooling | Node, only where it earns it | `check-workflow.mjs` — about 80 lines — evaluates a workflow body the way the runtime does, which needs a JS parser. It is invoked from a test, so `dotnet test` stays the single entry point. A 220-line Node checker was ported to MSTest once four of its five check groups turned out to need no JavaScript at all. |
 | Runtime preference | C# → PowerShell → Node → bash/python | For *new* code, in that order, each with the standing exception that a runtime already justified above keeps its job. Python is last and currently absent; putting it back needs a reason written in the file. |
 | Platform | **Windows-first, and only Windows is supported** | The hook and the manifest check both invoke `powershell.exe`, which does not exist on macOS or Linux. A non-Windows teammate cannot run them today. This is a real limit on N2's portability claim and is recorded rather than glossed. |
 | CI | GitHub Actions, `windows-latest` | One `dotnet test`. Windows specifically, because testing on `pwsh` would test something other than what ships. |

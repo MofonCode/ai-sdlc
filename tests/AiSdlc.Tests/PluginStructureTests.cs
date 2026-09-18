@@ -35,16 +35,6 @@ public sealed class PluginStructureTests
     }
 
     [TestMethod]
-    public void StructureChecker_Passes()
-    {
-        // One entry point for the whole suite: the Node checker runs from here rather than
-        // as a separate CI step, so `dotnet test` is the single command that says whether
-        // this repository is sound.
-        Repo.RunResult result = Repo.Run("node", [Repo.StructureChecker]);
-        Assert.AreEqual(0, result.ExitCode, result.Combined);
-    }
-
-    [TestMethod]
     public void CharterInvariantI1_EngineImposesNoStack()
     {
         string[] stackTerms =

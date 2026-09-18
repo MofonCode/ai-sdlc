@@ -21,7 +21,9 @@ jobs:
         with:
           dotnet-version: '10.0.x'
 
-      # The suite shells out to node for the structure checker.
+      # The suite shells out to node for the workflow validator - the one check that
+      # needs a JS parser, because a workflow body must be evaluated the way the
+      # runtime evaluates it.
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
