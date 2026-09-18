@@ -1,6 +1,6 @@
 ---
 name: stack-dotnet
-description: The .NET/C# stack pack - net10.0, Blazor front ends, ASP.NET Core APIs, EF Core, Aspire orchestration with Docker-based local emulation, Azure PaaS (Web Apps, Function Apps, Azure SQL) for deployed environments with Terraform as the single source of truth, SQL Server with a persisted volume, MSTest, coverlet coverage, and the scaffold files. C# scripts and notebooks are endorsed for exploration only, because they sit outside the analyzer gate. Includes a dotnet-ml variant using ML.NET. Use when /sdlc-core:init is choosing a stack, when a spec needs the committed stack for a .NET repo, or when the user asks what the default stack is.
+description: The .NET/C# stack pack - net10.0, Blazor front ends, ASP.NET Core APIs, EF Core, Aspire orchestration with Docker-based local emulation, Azure PaaS (Web Apps, Function Apps, Azure SQL) for deployed environments with Terraform as the single source of truth, SQL Server with a persisted volume, MSTest, coverlet coverage, and the scaffold files. C# scripts and Jupyter (.ipynb) notebooks on the .NET Interactive kernel are endorsed for exploration only, because they sit outside the analyzer gate. Includes a dotnet-ml variant using ML.NET. Use when /sdlc-core:init is choosing a stack, when a spec needs the committed stack for a .NET repo, or when the user asks what the default stack is.
 ---
 
 # stack-dotnet — the .NET/C# stack pack
@@ -124,10 +124,24 @@ What this means per change:
 
 ### Scripts and notebooks are exploration only
 
-C# scripts (`.csx`) and Polyglot notebooks running the C# kernel are both endorsed for
-exploration: pulling a dataset apart, checking a hypothesis, sketching an algorithm before it
-has a home. Use them freely. Prefer them over Python notebooks — the language stays the same as
-the thing being built, so an idea moves into a project without a rewrite.
+C# scripts (`.csx`) and **C# notebooks** are both endorsed for exploration: pulling a dataset
+apart, checking a hypothesis, sketching an algorithm before it has a home. Use them freely.
+Prefer them over Python notebooks — the language stays the same as the thing being built, so an
+idea moves into a project without a rewrite.
+
+**The commitment is the format and the kernel, not the editor.** A C# notebook is a Jupyter
+notebook: `.ipynb`, run by the .NET Interactive kernel. Two frontends open the same file and
+neither is privileged here:
+
+| Frontend | Needs | Worth knowing |
+|---|---|---|
+| **Polyglot Notebooks** (VS Code) | nothing beyond the SDK | Better C# tooling — completion, debugging, the solution alongside it. |
+| **JupyterLab** | **a Python install**, plus `dotnet interactive jupyter install` to register the kernel | Familiar to anyone arriving from data science, and the wider Jupyter tooling works. |
+
+Pick per developer; the file is identical either way, so a notebook written in one opens in the
+other. Note the asymmetry before standardising a team on JupyterLab: it is a Python application,
+so choosing it as *the* default puts Python on every machine — which may be exactly the trade
+this stack was avoiding. The kernel is the same regardless.
 
 **But be exact about what they do not get.** Neither has a project file, so
 `Directory.Build.props` never reaches them. In practice that means **no analyzers, no
