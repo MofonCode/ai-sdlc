@@ -30,11 +30,21 @@ jobs:
         shell: powershell
         run: powershell -NoProfile -ExecutionPolicy Bypass -File scripts/Test-SdlcGate.ps1
 
-      - name: Hook parses under 5.1
+      - name: Slice manifest assertion
+        shell: powershell
+        run: powershell -NoProfile -ExecutionPolicy Bypass -File scripts/Test-AssertSliceManifest.ps1
+
+      - name: Shipped PowerShell parses under 5.1
         shell: powershell
         run: |
-          $errs = $null
-          $null = [System.Management.Automation.Language.Parser]::ParseFile(
-            (Resolve-Path 'plugins/sdlc-core/hooks/sdlc_gate.ps1').Path, [ref]$null, [ref]$errs)
-          if ($errs -and $errs.Count -gt 0) { $errs | ForEach-Object { $_.ToString() }; exit 1 }
-          'parse ok'
+          $bad = 0
+          Get-ChildItem -Path 'plugins' -Filter *.ps1 -Recurse | ForEach-Object {
+            $errs = $null
+            $null = [System.Management.Automation.Language.Parser]::ParseFile($_.FullName, [ref]$null, [ref]$errs)
+            if ($errs -and $errs.Count -gt 0) {
+              Write-Host "FAIL $($_.FullName)"
+              $errs | ForEach-Object { Write-Host "  $_" }
+              $bad++
+            } else { Write-Host "ok   $($_.Name)" }
+          }
+          if ($bad -gt 0) { exit 1 }

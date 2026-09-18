@@ -54,8 +54,12 @@ class or a single file.
 
 Write `<root>/<slug>/plan.md`, `status: draft`.
 
-Then **run the disjointness check** in `references/artifact-schemas.md` and paste the real
-output. Do not assert the manifests are disjoint — show it. An overlap is a planning bug: fix
+Then **run the manifest check and paste the real output.** Do not assert the manifests are
+disjoint — show it:
+
+```
+powershell -NoProfile -ExecutionPolicy Bypass \n  -File "${CLAUDE_PLUGIN_ROOT}/scripts/Assert-SliceManifest.ps1" \n  -Plan <root>/<slug>/plan.md
+``` An overlap is a planning bug: fix
 the plan and re-check, never start the build intending to reconcile in the merge.
 
 ## 5. Present

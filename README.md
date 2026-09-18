@@ -100,8 +100,9 @@ isn't understood yet.
 ## Parallel implementation
 
 Slices are built concurrently, one implementer per slice. That is only safe because `plan.md`
-carries a **pairwise-disjoint per-slice file manifest** — proven at plan time, re-proven before
-fan-out. This is Anthropic's own rule for agent teams (*"break the work so each teammate owns a
+carries a **pairwise-disjoint per-slice file manifest** — proven at plan time by
+`scripts/Assert-SliceManifest.ps1`, which also rejects empty manifests, unknown `depends_on`
+and dependency cycles, and re-proven in JS before fan-out. This is Anthropic's own rule for agent teams (*"break the work so each teammate owns a
 different set of files"*) enforced as a data structure instead of a hope.
 
 Three ways to run a plan, in descending order of what the fan-out buys you:
@@ -161,8 +162,9 @@ claude-sonnet-5 --no-publish`.
 ## Checks
 
 ```
-node scripts/check-plugins.mjs                                  # structure
-powershell -NoProfile -File scripts/Test-SdlcGate.ps1           # gate behaviour, 15 cases
+node scripts/check-plugins.mjs                                       # structure
+powershell -NoProfile -File scripts/Test-SdlcGate.ps1                # gate behaviour, 15 cases
+powershell -NoProfile -File scripts/Test-AssertSliceManifest.ps1     # manifest safety, 10 cases
 ```
 
 Both run in CI on every push and pull request (`.github/workflows/checks.yml`); the gate

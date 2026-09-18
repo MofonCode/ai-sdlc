@@ -233,44 +233,15 @@ never by asking the same agent to reconsider. A verdict that can be talked down 
 
 Before fanning out, verify:
 
-```bash
-# Substitute the artifact root and slug; the root is resolved per sdlc-router.
-python - <<'CHECK'
-import itertools, pathlib, re, sys
-
-PLAN = pathlib.Path(".sdlc/<slug>/plan.md")          # <- substitute root and slug
-parts = PLAN.read_text(encoding="utf-8").split("---")
-if len(parts) < 3:
-    sys.exit("plan.md has no frontmatter - the slice manifest is mandatory")
-
-try:
-    import yaml
-    slices = yaml.safe_load(parts[1])["slices"]
-except ImportError:
-    # PyYAML is not guaranteed to be installed and this check must still run. Same
-    # fallback the gate hook uses, deliberately, so the two parsers never disagree.
-    slices, cur = [], None
-    for line in parts[1].splitlines():
-        if re.match(r"\s*-\s+id:", line):
-            cur = {"id": line.split("id:", 1)[1].strip(), "files": []}
-            slices.append(cur)
-        elif "files:" in line and cur is not None:
-            cur["files"] = re.findall(r'''["']([^"']+)["']''', line)
-
-bad = [(a["id"], b["id"], sorted(set(a["files"]) & set(b["files"])))
-       for a, b in itertools.combinations(slices, 2) if set(a["files"]) & set(b["files"])]
-if bad:
-    for x, y, overlap in bad:
-        print(f"OVERLAP {x} <-> {y}: {overlap}")
-    sys.exit(1)
-
-empty = [s["id"] for s in slices if not s["files"]]
-if empty:
-    sys.exit(f"empty manifest: {empty} - a slice that owns no files is not a slice")
-
-print(f"{len(slices)} slices, {sum(len(s['files']) for s in slices)} files, manifests disjoint")
-CHECK
 ```
+powershell -NoProfile -ExecutionPolicy Bypass   -File "${CLAUDE_PLUGIN_ROOT}/scripts/Assert-SliceManifest.ps1"   -Plan <root>/<slug>/plan.md
+```
+
+It exits non-zero on an overlap, an empty manifest, an unknown `depends_on`, or a dependency
+cycle, and on success prints the wave plan - which is what the approver actually needs to see,
+because the shape of the fan-out is the thing being approved. A plan whose every wave holds one
+slice is sequential, and it says so: a chain of five slices is a sequential build wearing a
+parallel costume.
 
 A failure here is a **planning** bug. Fix plan.md and re-approve; do not start the build and
 sort it out in the merge.

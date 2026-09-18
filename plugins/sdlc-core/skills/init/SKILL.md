@@ -66,7 +66,7 @@ Then:
   test runner, persistence. Record the answers in the charter. Do not invent a stack, and do not
   write scaffold files you have no template for.
 - **No pack applies** → some repos are not built with a stack: a prompt library, a docs site, a
-  plugin marketplace. Proposing one anyway is how a markdown repo acquires a `global.json`. Say
+  plugin marketplace. Proposing one anyway is how a documentation repo acquires a pinned build toolchain. Say
   so, write the charter's Technology commitments by hand naming what the repo actually is, and
   write no scaffold files. A pack being installed is not a reason to use it.
 
@@ -126,12 +126,12 @@ If no stack pack is installed, skip this step entirely rather than improvising t
 
 ### Do not interrogate code style
 
-Style is enforced by `.editorconfig` and the formatter: deterministic, checkable in CI, and free
-of any dependence on an agent remembering it. Asking the owner about brace placement spends a
+Style is enforced by whatever style and formatter config the chosen stack pack ships:
+deterministic, checkable in CI, and free of any dependence on an agent remembering it. Asking the owner about brace placement spends a
 gate on something a file settles, and the whole point of these gates is to spend the owner's
 attention on intent instead.
 
-If the owner raises style unprompted, translate it into an `.editorconfig` rule rather than
+If the owner raises style unprompted, translate it into a rule in that config rather than
 recording it as prose anywhere.
 
 ## 4. Attack it
