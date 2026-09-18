@@ -103,6 +103,50 @@ for (const file of walk(path.join(ROOT, 'plugins'))) {
   }
 }
 
+// --- skill and agent BODIES -----------------------------------------------------------
+// Frontmatter validation alone let a command ship with a literal backslash-n in it and an
+// unclosed fence that swallowed the rest of its section. Nothing raised an error: the skill
+// loaded fine and simply told the agent to run a command that cannot execute. That is the
+// silent-failure class this repo is most exposed to, so bodies get checked too.
+const BACKSLASH_N = String.fromCharCode(92) + 'n'
+
+for (const file of walk(path.join(ROOT, 'plugins'))) {
+  const r = rel(file)
+  if (!r.endsWith('/SKILL.md') && !/^plugins[/][^/]+[/]agents[/][^/]+[.]md$/.test(r)) continue
+
+  const lines = read(file).split(String.fromCharCode(10)).map((l) => l.replace(String.fromCharCode(13), ''))
+  let inFence = false
+  let fenceOpenedAt = 0
+
+  lines.forEach((line, i) => {
+    const n = i + 1
+    const trimmed = line.trim()
+
+    if (trimmed.startsWith('```')) {
+      if (!inFence) {
+        inFence = true
+        fenceOpenedAt = n
+      } else if (trimmed === '```') {
+        inFence = false
+      } else {
+        // A closing fence with trailing text does not close the block: everything below is
+        // swallowed into the code block and never read as instructions.
+        fail(r, 'line ' + n + ': closing fence has trailing text - it does not close the block opened at line ' + fenceOpenedAt)
+        inFence = false
+      }
+      return
+    }
+
+    // A literal backslash-n is never intended in a command or in prose. It is the signature
+    // of a string written through one escaping layer too many.
+    if (line.includes(BACKSLASH_N) && !trimmed.startsWith('|')) {
+      fail(r, 'line ' + n + ': literal backslash-n in body - ' + trimmed.slice(0, 60))
+    }
+  })
+
+  if (inFence) fail(r, 'unclosed code fence opened at line ' + fenceOpenedAt)
+}
+
 // --- workflows ------------------------------------------------------------------------
 for (const plugin of fs.readdirSync(path.join(ROOT, 'plugins'))) {
   const wfDir = path.join(ROOT, 'plugins', plugin, 'workflows')

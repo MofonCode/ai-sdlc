@@ -58,8 +58,12 @@ Then **run the manifest check and paste the real output.** Do not assert the man
 disjoint — show it:
 
 ```
-powershell -NoProfile -ExecutionPolicy Bypass \n  -File "${CLAUDE_PLUGIN_ROOT}/scripts/Assert-SliceManifest.ps1" \n  -Plan <root>/<slug>/plan.md
-``` An overlap is a planning bug: fix
+powershell -NoProfile -ExecutionPolicy Bypass -File "${CLAUDE_PLUGIN_ROOT}/scripts/Assert-SliceManifest.ps1" -Plan <root>/<slug>/plan.md
+```
+
+It rejects an overlap, an empty manifest, an unknown `depends_on`, and a dependency cycle.
+On success it prints the wave plan, which is the thing being approved: the user is agreeing
+to a shape of fan-out, not to a claim that one is safe. An overlap is a planning bug — fix
 the plan and re-check, never start the build intending to reconcile in the merge.
 
 ## 5. Present
