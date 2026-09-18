@@ -138,7 +138,12 @@ recording it as prose anywhere.
 
 Dispatch **intent-interrogator** against the draft charter. It arrives with no memory of the
 interview, so it catches invariants stated too vaguely to enforce and non-goals that are really
-just "not this quarter". Relay the blocking findings in your own words — its report is not shown
+just "not this quarter".
+
+**Pass it the artifact path and nothing else.** No summary of the conversation, no note about
+which parts you think are solid, no account of why a choice was made. Its whole value is that
+it was not in the room; every line of context you add hands back the reasoning it exists to be
+free of, and a reader who has heard the argument has already been argued with. Relay the blocking findings in your own words — its report is not shown
 to the user.
 
 ## 5. Check CLAUDE.md exists

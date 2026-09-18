@@ -37,6 +37,11 @@ Then read the spec yourself. You are accountable for what you present, not the s
 Dispatch **intent-interrogator** against the draft spec. Relay the blocking findings in your
 own words — its report is not shown to the user.
 
+**Pass it the artifact path and nothing else.** No summary of the conversation, no note about
+which parts you think are solid, no account of why a choice was made. Its whole value is that
+it was not in the room; every line of context you add hands back the reasoning it exists to be
+free of, and a reader who has heard the argument has already been argued with.
+
 ## 4. Present for review, honestly
 
 Show the user, in this order:

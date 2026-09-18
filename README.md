@@ -162,14 +162,16 @@ claude-sonnet-5 --no-publish`.
 ## Checks
 
 ```
-node scripts/check-plugins.mjs                                       # structure
-powershell -NoProfile -File scripts/Test-SdlcGate.ps1                # gate behaviour, 15 cases
-powershell -NoProfile -File scripts/Test-AssertSliceManifest.ps1     # manifest safety, 10 cases
+dotnet test tests/AiSdlc.Tests/AiSdlc.Tests.csproj
 ```
 
-Both run in CI on every push and pull request (`.github/workflows/checks.yml`); the gate
-tests on `windows-latest` against Windows PowerShell 5.1 specifically, because testing it on
-`pwsh` would test something other than what ships.
+One command, 36 tests, run in CI on `windows-latest` (`.github/workflows/checks.yml`). MSTest,
+the same framework every solution this framework builds uses. The tests drive the **real
+shipped artefacts** as external processes — the hook, the manifest check, the structure
+checker — rather than reimplementing their logic in C#, because a reimplementation tests the
+reimplementation and the two drift silently.
+
+Windows only: the hook and the manifest check both invoke `powershell.exe`.
 
 These exist because **every failure they catch is silent at runtime.** A skill whose
 frontmatter is not the first line of the file is simply never loaded; a workflow whose
@@ -179,13 +181,16 @@ expensive kind of broken and exactly what bit this repo before.
 
 ### Which runtime, and why
 
-| | Runtime | Reason |
-|---|---|---|
-| `hooks/sdlc_gate.ps1` | Windows PowerShell 5.1 | Ships to every user and runs on every edit, so the only thing that matters is being present with no install step. Measured: ~150ms per edit against ~67ms for node and ~51ms for python — the tax was measured and accepted, not assumed. |
-| `scripts/check-plugins.mjs` | Node | Dev and CI only, never ships. It evaluates a workflow's body the way the runtime does, which is the check that catches a syntax error; no other runtime can do that honestly. |
+| | Runtime | Ships? | Reason |
+|---|---|---|---|
+| `hooks/sdlc_gate.ps1`, `scripts/Assert-SliceManifest.ps1` | Windows PowerShell 5.1 | **yes** | Runs on every edit and at every fan-out. Present on every Windows machine with no install step, which beats 100ms: measured at 149ms against 67 for node, 51 for python. |
+| `workflows/parallel-build.js` | Node | **yes** | Workflow scripts are JavaScript by definition — that is the format the runtime evaluates. |
+| `scripts/check-plugins.mjs` | Node | no | Evaluates a workflow body the way the runtime does, which is what catches a syntax error. No other runtime does that honestly. |
+| `tests/AiSdlc.Tests` | MSTest / net10.0 | no | One test framework across everything this owner builds. |
 
-Preference order for anything new: C# script, then PowerShell, then — only with a stated
-reason like the one above — bash or python. There is no Python in this repo.
+Preference order for anything new: C# → PowerShell → Node → bash/python, each with the standing
+exception that a runtime already justified above keeps its job. **There is no Python here**, and
+a test fails if any returns.
 
 ## Where the tech stack is specified
 

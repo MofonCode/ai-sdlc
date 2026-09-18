@@ -3,3 +3,8 @@ node_modules/
 .DS_Store
 __pycache__/
 *.pyc
+
+# .NET build output (the test project)
+bin/
+obj/
+TestResults/

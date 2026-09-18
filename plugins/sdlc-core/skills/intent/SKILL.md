@@ -70,6 +70,11 @@ Write `<root>/<slug>/intent.md` per the schema, `status: draft`. Create the root
 Dispatch the **intent-interrogator** agent against the draft. It arrives with no memory of
 your conversation, so it catches what you have already been talked into.
 
+**Pass it the artifact path and nothing else.** No summary of the conversation, no note about
+which parts you think are solid, no account of why a choice was made. Its whole value is that
+it was not in the room; every line of context you add hands back the reasoning it exists to be
+free of, and a reader who has heard the argument has already been argued with.
+
 Relay its findings — the agent's report is not shown to the user, so summarise the blocking
 ones in your own words. Fix what is clearly right to fix, and put the rest to the user.
 

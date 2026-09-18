@@ -1,50 +1,30 @@
 name: checks
 
-# Every failure these catch is silent at runtime: a skill with broken frontmatter is not
-# loaded and never says so, and a gate that stops matching reads as approval. Cheap to run,
-# so run them on everything.
+# One entry point. Every failure these catch is silent at runtime - a skill with broken
+# frontmatter is never loaded and says nothing, a gate that stops matching reads as
+# approval - so they run on everything.
 on:
   push:
     branches: [main, master]
   pull_request:
 
 jobs:
-  structure:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-      - name: Plugin structure
-        run: node scripts/check-plugins.mjs
-
-  gate:
-    # windows-latest for Windows PowerShell 5.1 specifically. The hook targets 5.1 because
+  test:
+    # windows-latest for Windows PowerShell 5.1 specifically: the hook targets 5.1 because
     # that is the runtime present on every Windows machine with no install step, so testing
-    # it on pwsh would test something other than what ships.
+    # against pwsh would test something other than what ships.
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Gate hook behaviour
-        shell: powershell
-        run: powershell -NoProfile -ExecutionPolicy Bypass -File scripts/Test-SdlcGate.ps1
 
-      - name: Slice manifest assertion
-        shell: powershell
-        run: powershell -NoProfile -ExecutionPolicy Bypass -File scripts/Test-AssertSliceManifest.ps1
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
 
-      - name: Shipped PowerShell parses under 5.1
-        shell: powershell
-        run: |
-          $bad = 0
-          Get-ChildItem -Path 'plugins' -Filter *.ps1 -Recurse | ForEach-Object {
-            $errs = $null
-            $null = [System.Management.Automation.Language.Parser]::ParseFile($_.FullName, [ref]$null, [ref]$errs)
-            if ($errs -and $errs.Count -gt 0) {
-              Write-Host "FAIL $($_.FullName)"
-              $errs | ForEach-Object { Write-Host "  $_" }
-              $bad++
-            } else { Write-Host "ok   $($_.Name)" }
-          }
-          if ($bad -gt 0) { exit 1 }
+      # The suite shells out to node for the structure checker.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: dotnet test
+        run: dotnet test tests/AiSdlc.Tests/AiSdlc.Tests.csproj --nologo

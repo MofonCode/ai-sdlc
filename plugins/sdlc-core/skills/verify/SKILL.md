@@ -73,10 +73,22 @@ later whether a requirement was ever actually tested.
 
 ## 6. Gate — DO NOT SHIP is a stop, not an opinion
 
-On **DO NOT SHIP**: the change does not ship. Fix the blocking findings and re-verify from
-step 2 with a fresh dispatch — not by arguing with the report, and not by asking the same agent
-to reconsider. A verdict that can be talked down is not a gate, and a QA role that can be
-overruled by the implementer is decoration.
+On **DO NOT SHIP**: the change does not ship — and **the record is committed anyway**:
+
+```
+git add <root>/<slug>/verification.md && git commit -m "verify(<slug>): do not ship - <n> blocking"
+```
+
+Commit it *before* fixing anything. A failed verification is the most valuable artifact this
+stage produces and the easiest to lose: it is what the retrospective reads, what the next eval
+case is written from, and the only evidence that the defect was found here rather than in
+production. A stage that records its successes and discards its failures is measuring the wrong
+thing.
+
+Then fix the blocking findings and re-verify from step 2 with a fresh dispatch — not by arguing
+with the report, and not by asking the same agent to reconsider. A verdict that can be talked
+down is not a gate, and a QA role the implementer can overrule is decoration. The re-run appends
+a new verification; it does not overwrite the failed one.
 
 If you believe a blocking finding is wrong, the resolution is evidence: a test that
 demonstrates the scenario does not occur. Put that in front of the user, and let them decide.

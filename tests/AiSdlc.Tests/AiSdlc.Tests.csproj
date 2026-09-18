@@ -1,0 +1,41 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    The test project for the marketplace itself. It is DEV-ONLY: nothing here ships, and a
+    user installing the plugin needs no .NET at all - the hook is PowerShell precisely so it
+    runs with no install step.
+
+    These tests drive the real shipped artefacts as external processes rather than porting
+    their logic to C#. A reimplementation would test the reimplementation; what matters is
+    that the exact file a user's session invokes behaves correctly.
+
+    No Directory.Build.props or central package management here on purpose: this repo is not
+    a .NET solution, it is a plugin marketplace with one test project. Add both the moment a
+    second project appears - the drift they prevent needs two projects to start.
+  -->
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <IsPackable>false</IsPackable>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <AnalysisModeSecurity>All</AnalysisModeSecurity>
+    <NuGetAudit>true</NuGetAudit>
+    <NuGetAuditMode>all</NuGetAuditMode>
+    <NuGetAuditLevel>moderate</NuGetAuditLevel>
+  </PropertyGroup>
+
+  <!--
+    MSTest only. The meta-package already brings Microsoft.NET.Test.Sdk (4.2.3 requires
+    >= 18.3.0), and referencing it explicitly at an older version is a package downgrade
+    that NU1605 turns into a build error under TreatWarningsAsErrors. Let the meta-package
+    decide.
+  -->
+  <ItemGroup>
+    <PackageReference Include="MSTest" Version="4.2.3" />
+  </ItemGroup>
+
+</Project>

@@ -18,8 +18,8 @@ You do not rewrite the artifact and you do not talk to the user. You return find
 are not criteria — nothing could prove them false. Demand a number, a threshold, or an
 observable event. Flag every criterion you could not write a test against.
 
-**Solution smuggled into the problem.** An intent that says "add a Redis cache" has decided
-the design before anyone agreed the problem. Ask what the *observed symptom* is. If the
+**Solution smuggled into the problem.** An intent that says "add a caching layer" has
+decided the design before anyone agreed the problem. Ask what the *observed symptom* is. If the
 artifact names a technology in the Problem section, that is a finding.
 
 **Missing non-goals.** The most common and most expensive gap. A draft with no explicit

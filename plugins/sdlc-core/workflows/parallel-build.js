@@ -2,6 +2,7 @@ export const meta = {
   name: 'sdlc-parallel-build',
   description: 'Build an approved plan.md by dispatching one implementer per file-disjoint slice, then verify the whole change in fresh context',
   phases: [
+    { title: 'Gate', detail: 'Confirm plan.md is approved and matches the slices passed in' },
     { title: 'Build', detail: 'One implementer per slice, parallel within each dependency wave' },
     { title: 'Verify', detail: 'Fresh-context adversarial verification against spec.md and plan.md' },
   ],
@@ -71,6 +72,62 @@ const SLICE_RESULT = {
     notes: { type: 'string' },
   },
   required: ['sliceId', 'filesTouched', 'buildPassed'],
+}
+
+// --- The approval gate, read from the FILE, not from args. -----------------------------
+// This script re-checks disjointness rather than trusting args, on the grounds that a stale
+// payload is how two implementers end up holding one file. The same reasoning applies to
+// approval: trusting args for the gate means a draft plan can be built from a payload that
+// merely claims otherwise. The script has no filesystem access, so an agent reads the file.
+phase('Gate')
+const gate = await agent(
+  `Read ${chain}/plan.md and report on it. Do not modify anything and do not implement.
+
+Return:
+  status          - the literal value of the frontmatter "status:" field
+  sliceIds        - every slice id in the frontmatter manifest, in order
+  manifestMatches - true only if those ids are exactly ${JSON.stringify(slices.map((s) => s.id))}, same set
+
+If the file does not exist, report status "missing".`,
+  {
+    label: `gate:${slug}`,
+    phase: 'Gate',
+    schema: {
+      type: 'object',
+      properties: {
+        status: { type: 'string' },
+        sliceIds: { type: 'array', items: { type: 'string' } },
+        manifestMatches: { type: 'boolean' },
+      },
+      required: ['status', 'manifestMatches'],
+    },
+  }
+)
+
+if (gate.status !== 'approved') {
+  return {
+    slug,
+    artifactRoot: root,
+    status: 'blocked',
+    reason: `${chain}/plan.md has status "${gate.status}", not "approved".`,
+    nextStep:
+      'Nothing downstream is produced from a draft. Get the plan approved, then re-run. ' +
+      'Building ahead of the gate is the failure this framework exists to prevent.',
+  }
+}
+
+if (!gate.manifestMatches) {
+  return {
+    slug,
+    artifactRoot: root,
+    status: 'blocked',
+    reason: 'The slices passed in do not match the approved plan.md manifest.',
+    planSlices: gate.sliceIds ?? [],
+    argSlices: slices.map((s) => s.id),
+    nextStep:
+      'The payload is stale or hand-edited. Re-read the frontmatter from the approved ' +
+      'plan.md and invoke again with that, so what gets built is what was approved.',
+  }
 }
 
 const built = []
