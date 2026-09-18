@@ -21,9 +21,12 @@ stage reads.** The artifact chain is the state machine — not the order the ski
 ```
 CHARTER.md                            repo scope, long-lived, every intent is checked against it
    │
-   ├── intent.md  →  spec.md  →  plan.md  →  code + tests  →  verified diff
+   ├── intent.md  →  spec.md  →  plan.md  →  code + tests  →  verification.md
         Plan          Design       Build         Build            Test
 ```
+
+The artifact root defaults to `.sdlc/` and is per-repo: the charter declares its own location
+in `artifact_root`, and every skill, agent and the gate hook resolve it rather than assuming.
 
 Each arrow is a human gate. Cross a gate in a **fresh session** — the artifacts are written to
 be self-contained precisely so the prior conversation can be dropped.
@@ -47,10 +50,11 @@ Plugin skills are namespaced, so the short form works only when nothing else cla
 
 | Skill | Stage | Produces |
 |---|---|---|
-| `/sdlc-core:init` | 0 — once per repo | `.sdlc/CHARTER.md` |
-| `/sdlc-core:intent` | Plan | `.sdlc/<slug>/intent.md` |
-| `/sdlc-core:spec` | Design | `.sdlc/<slug>/spec.md` |
-| `/sdlc-core:plan` | Build | `.sdlc/<slug>/plan.md` with a file-disjoint slice manifest |
+| `/sdlc-core:init` | 0 — once per repo | `<root>/CHARTER.md` |
+| `/sdlc-core:intent` | Plan | `<root>/<slug>/intent.md` |
+| `/sdlc-core:spec` | Design | `<root>/<slug>/spec.md` |
+| `/sdlc-core:plan` | Build | `<root>/<slug>/plan.md` with a file-disjoint slice manifest |
+| `/sdlc-core:verify` | Test | `<root>/<slug>/verification.md` — verdict, requirement coverage, real build output |
 | `sdlc-router` | — | model-invoked; tiering rules and artifact location |
 
 The chain skills are `disable-model-invocation: true` — they write files and commit, so
@@ -112,11 +116,25 @@ Three ways to run a plan, in descending order of what the fan-out buys you:
 Anthropic's caveat is worth repeating: parallel *implementation* carries coordination costs
 that parallel *research and review* does not.
 
+**Disjoint source files are not disjoint build output.** Implementers fanned out into one
+working tree still share `obj/`, `bin/`, and every other intermediate directory, so a
+solution-wide build in two slices at once races itself and fails with a file lock that looks
+like a code error. Scope build and test commands to the slice's own project, or give each
+implementer its own worktree. The manifest guarantees nothing here — it is about source.
+
 ## The gate hook
 
-`hooks/sdlc_gate.py` warns when source files are edited with no approved `plan.md`. Advisory by
-default — a hard block on every edit gets the plugin uninstalled. Set `SDLC_GATE=block` to make
-it refuse instead.
+`hooks/sdlc_gate.py` warns on two distinct states, because they are not the same problem:
+
+- **no approved plan** — nothing has been agreed yet.
+- **unplanned scope** — a plan is approved but no slice claims the file being edited. That is
+  the verifier's manifest check moved from after the build to before it, which is where it is
+  cheap.
+
+Advisory by default — a hard block on every edit gets the plugin uninstalled. Set
+`SDLC_GATE=block` to make it refuse instead. It resolves the artifact root from the charter,
+is silent in repos with no chain, and never breaks a session over a malformed payload or a
+missing PyYAML. Its behaviour is pinned in `scripts/test_sdlc_gate.py`.
 
 ## Evals
 
@@ -138,6 +156,23 @@ the report shows what the plugin actually contributes (`Δ`) rather than just th
 
 In CI: `claude plugin eval . --trust-plugin --json results.json --threshold 0.8 --model
 claude-sonnet-5 --no-publish`.
+
+## Checks
+
+```
+node scripts/check-plugins.mjs     # structure: manifests, frontmatter, workflows, hooks
+python scripts/test_sdlc_gate.py   # behaviour: the gate hook, 16 cases
+```
+
+Both run in CI on every push and pull request (`.github/workflows/checks.yml`), the gate
+tests twice — with and without PyYAML, because on a machine without it the regex fallback is
+the only parser there is.
+
+These exist because **every failure they catch is silent at runtime.** A skill whose
+frontmatter is not the first line of the file is simply never loaded; a workflow whose
+`phase()` titles disagree with its `meta` renders a blank phase; a gate that stops matching
+reads as approval. None of it raises an error — it just quietly stops working, which is the
+expensive kind of broken and exactly what bit this repo before.
 
 ## Where the tech stack is specified
 
@@ -215,4 +250,4 @@ From the official marketplace: `feature-dev` (code-explorer, code-architect),
   that owns the CV scheme and hunts leakage, baseline-first discipline, and submission-budget
   accounting — not `intent → spec → plan`, because the objective is already given by the metric.
 - `/init-competition` — the Kaggle equivalent of `/sdlc-core:init`.
-- Stage 4-6: `/verify`, `/ship`, and the Maintain loop back to `intent.md`.
+- Stage 5-6: `/ship`, and the Maintain loop back to `intent.md`.

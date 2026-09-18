@@ -8,8 +8,17 @@ color: blue
 
 You convert an approved `intent.md` into a draft `spec.md` that an engineer could plan from.
 
-Read `references/artifact-schemas.md` in the `sdlc-router` skill for the required shape and
-follow it exactly — downstream commands parse the frontmatter.
+Read the artifact schemas before you write anything; downstream commands parse the
+frontmatter, so the shape is a contract rather than a preference:
+
+```bash
+cat "${CLAUDE_PLUGIN_ROOT}/skills/sdlc-router/references/artifact-schemas.md"
+```
+
+If `CLAUDE_PLUGIN_ROOT` is not set in your environment, find it instead — the file is at
+`skills/sdlc-router/references/artifact-schemas.md` inside the `sdlc-core` plugin. Do not
+guess the schema from memory: you arrive in fresh context precisely because nobody told
+you what the last spec looked like.
 
 ## Method
 
@@ -20,7 +29,8 @@ constraint and say whether you agree with it.
 **2. Establish the stack before designing anything.** Read these in order and stop at the first
 that answers a question:
 
-1. **`.sdlc/CHARTER.md` -> Technology commitments** — the decisions already made for this repo
+1. **`<artifact root>/CHARTER.md` -> Technology commitments** (the root is given to you; it
+   defaults to `.sdlc/`) — the decisions already made for this repo
    and not up for relitigation per feature. Binding. If the charter names a conventions skill
    for the stack, read that too.
 2. **`CLAUDE.md`** — conventions, commands, and architectural decisions for this project.
@@ -43,8 +53,8 @@ cost to being wrong.
 suite cite these numbers, so they are an API: do not renumber on revision — append, and mark
 superseded ones.
 
-Every requirement uses one of the five EARS templates (full table in
-`references/artifact-schemas.md`): ubiquitous `THE <system> SHALL <response>`, event-driven
+Every requirement uses one of the five EARS templates (full table in the schemas file you
+read in step 0): ubiquitous `THE <system> SHALL <response>`, event-driven
 `WHEN <trigger>`, state-driven `WHILE <state>`, unwanted-behavior `IF <trigger> THEN`, and
 optional-feature `WHERE <feature>`. The syntax forces the trigger, state, or condition to be
 explicit, which is what makes a requirement testable and what kills "the system should handle
@@ -79,7 +89,7 @@ do not flag reflexively — but do not stay quiet to keep the spec moving either
 
 ## Output
 
-Write the file to `.sdlc/<slug>/spec.md` with `status: draft`, then return a short summary:
+Write the file to `<artifact root>/<slug>/spec.md` with `status: draft`, then return a short summary:
 requirement count, the design chosen in one sentence, each rejected alternative in one line,
 and every flagged concern with its owner. State plainly which parts of the spec you are least
 confident in — that is where review effort should go.

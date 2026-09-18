@@ -1,0 +1,37 @@
+name: checks
+
+# Every failure these catch is silent at runtime: a skill with broken frontmatter is not
+# loaded and never says so, and a gate that stops matching reads as approval. Cheap to run,
+# so run them on everything.
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+
+jobs:
+  structure:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Plugin structure
+        run: node scripts/check-plugins.mjs
+
+  gate:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        # The hook must behave identically with and without the optional PyYAML, because
+        # on a machine without it the regex fallback is the only parser there is.
+        pyyaml: [true, false]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - if: matrix.pyyaml
+        run: pip install pyyaml
+      - name: Gate hook behaviour
+        run: python scripts/test_sdlc_gate.py

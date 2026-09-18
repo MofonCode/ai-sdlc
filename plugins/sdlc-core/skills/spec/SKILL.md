@@ -5,17 +5,19 @@ argument-hint: Slug of the slice to spec, or blank to infer from .sdlc/
 disable-model-invocation: true
 ---
 
-# /spec — Stage 2, Design
+# /sdlc-core:spec — Stage 2, Design
 
 Produce a `spec.md` an engineer could plan from. Schema in `references/artifact-schemas.md`
 (the `sdlc-router` skill).
 
+**Resolve the artifact root first.** It defaults to `.sdlc/` but is per-repo, declared in the charter's `artifact_root` (see `sdlc-router`). Everything below writes `<root>/`; never hardcode `.sdlc/`.
+
 ## 1. Check the gate behind you
 
-Read `.sdlc/<slug>/intent.md`.
+Read `<root>/<slug>/intent.md`.
 
-- **No intent.md** — if the tier is `feature`, run `/intent` first; say so and stop. If the
-  user insists there is no intent because this is a `task`, offer `/plan` instead.
+- **No intent.md** — if the tier is `feature`, run `/sdlc-core:intent` first; say so and stop. If the
+  user insists there is no intent because this is a `task`, offer `/sdlc-core:plan` instead.
 - **`status: draft`** — the intent is not approved. Stop and ask for approval. Producing a
   spec from an unapproved intent means designing a solution to a problem nobody agreed on.
 - **`status: approved`** — proceed.
@@ -26,7 +28,7 @@ and mark superseded ones — **never renumber**, because plan.md and tests cite 
 ## 2. Draft
 
 Dispatch the **spec-writer** agent with the slug and the approved intent. It reads the
-codebase, chooses a design, and writes `.sdlc/<slug>/spec.md` as `status: draft`.
+codebase, chooses a design, and writes `<root>/<slug>/spec.md` as `status: draft`.
 
 Then read the spec yourself. You are accountable for what you present, not the subagent.
 
@@ -58,7 +60,7 @@ Explicit approval, and every flagged concern resolved by its named owner. On app
 `status: approved` and commit:
 
 ```
-git add .sdlc/<slug>/spec.md && git commit -m "spec(<slug>): <one-line design>"
+git add <root>/<slug>/spec.md && git commit -m "spec(<slug>): <one-line design>"
 ```
 
 Then tell them `/sdlc-core:plan` is next, **and to run it in a fresh session** (`/clear`).

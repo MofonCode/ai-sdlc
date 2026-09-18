@@ -5,7 +5,7 @@ argument-hint: Slug of the slice to plan, or a direct description for a task-tie
 disable-model-invocation: true
 ---
 
-# /plan — Stage 3, Build (planning half)
+# /sdlc-core:plan — Stage 3, Build (planning half)
 
 Produce the `plan.md` the build fans out from. Schema in `references/artifact-schemas.md`
 (the `sdlc-router` skill).
@@ -13,12 +13,14 @@ Produce the `plan.md` the build fans out from. Schema in `references/artifact-sc
 This artifact is **load-bearing, not documentation.** Parallel implementers are dispatched one
 per slice straight from its frontmatter manifest.
 
+**Resolve the artifact root first.** It defaults to `.sdlc/` but is per-repo, declared in the charter's `artifact_root` (see `sdlc-router`). Everything below writes `<root>/`; never hardcode `.sdlc/`.
+
 ## 1. Establish the input
 
 - **Slug given, spec.md approved** — plan from it.
 - **spec.md is `draft`** — stop. Ask for approval first.
 - **No spec and tier is `task`** — legitimate. Plan directly from the description in
-  `$ARGUMENTS`, still writing `.sdlc/<slug>/plan.md`. Requirements come from the conversation
+  `$ARGUMENTS`, still writing `<root>/<slug>/plan.md`. Requirements come from the conversation
   instead of R-numbers; say so in the file.
 - **No spec and tier is `feature`** — run `/sdlc-core:spec` first.
 
@@ -50,7 +52,7 @@ class or a single file.
 
 ## 4. Write it and prove the manifest
 
-Write `.sdlc/<slug>/plan.md`, `status: draft`.
+Write `<root>/<slug>/plan.md`, `status: draft`.
 
 Then **run the disjointness check** in `references/artifact-schemas.md` and paste the real
 output. Do not assert the manifests are disjoint — show it. An overlap is a planning bug: fix
@@ -71,7 +73,7 @@ Get explicit approval before any code is written. On approval, set `status: appr
 commit:
 
 ```
-git add .sdlc/<slug>/plan.md && git commit -m "plan(<slug>): <n> slices"
+git add <root>/<slug>/plan.md && git commit -m "plan(<slug>): <n> slices"
 ```
 
 Then offer the build, **in a fresh session** (`/clear`) — the plan is self-contained and the

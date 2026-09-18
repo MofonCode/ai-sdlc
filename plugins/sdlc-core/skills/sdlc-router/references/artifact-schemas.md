@@ -1,6 +1,8 @@
 # Artifact schemas
 
-All artifacts are markdown with YAML frontmatter, committed at `.sdlc/<slug>/`.
+All artifacts are markdown with YAML frontmatter, committed at `<artifact_root>/<slug>/`.
+The root defaults to `.sdlc/` and is declared in the charter's `artifact_root`; resolve it
+once per command as `sdlc-router` describes, and never hardcode it.
 Frontmatter is the machine-readable part; the body is for humans and for the next agent.
 
 Status values: `draft` | `approved` | `superseded`.
@@ -55,8 +57,8 @@ with an invariant or a permanent non-goal as a **blocking** finding.
 
 ## intent.md — Stage: Plan
 
-Captures the problem *before* anyone has decided on a solution. Written by
-`intent-interrogator`. A good intent.md contains no implementation.
+Captures the problem *before* anyone has decided on a solution. Written by the `/sdlc-core:intent`
+skill and then attacked by `intent-interrogator`, which reports weaknesses and never writes. A good intent.md contains no implementation.
 
 ```yaml
 ---
@@ -79,7 +81,7 @@ Required sections:
 - **Non-goals** — explicitly out of scope. The most valuable section; it is what stops scope creep at build time.
 - **Open questions** — with an owner named for each.
 
-Gate: the requester approves before `/spec` runs.
+Gate: the requester approves before `/sdlc-core:spec` runs.
 
 ---
 
@@ -154,11 +156,11 @@ spec: ./spec.md
 tier: feature
 slices:
   - id: storage
-    files: ["src/storage/audit_writer", "src/storage/audit_store_contract"]
+    files: ["src/Storage/AuditWriter.cs", "src/Storage/IAuditStore.cs", "tests/Storage/AuditWriterTests.cs"]
     requirements: [R1, R2]
     depends_on: []
   - id: api
-    files: ["src/api/audit_endpoint"]
+    files: ["src/Api/AuditEndpoint.cs", "tests/Api/AuditEndpointTests.cs"]
     requirements: [R4]
     depends_on: [storage]
 ---
@@ -184,22 +186,90 @@ Gate: engineer approves the plan before any code is written.
 
 ---
 
+## verification.md — Stage: Test
+
+The record of whether the change actually does what the spec said. Written by the
+`/sdlc-core:verify` skill from the `verifier` agent's fresh-context report.
+
+This artifact is what makes verification a stage rather than a chat message. A retrospective
+reads it, the next eval case is written from it, and six weeks later it is the only thing that
+answers "was that requirement ever actually tested".
+
+```yaml
+---
+slug: audit-log-retention
+status: draft            # approved once the verdict is acted on
+spec: ./spec.md
+plan: ./plan.md
+verdict: ship            # ship | do-not-ship
+verified: 2026-09-17
+requirements_total: 7
+requirements_tested: 6
+---
+```
+
+Required sections:
+
+- **Verdict** — SHIP or DO NOT SHIP, first line, with the one-sentence reason.
+- **Blocking findings** — each with a concrete failure scenario: specific inputs or state
+  leading to a specific wrong outcome. A finding with no scenario belongs under *Should fix*.
+- **Requirement coverage** — a row per R-number: implemented, tested, note. A requirement that
+  is implemented but untested is the gap that survives to production; say so per row rather
+  than in a total.
+- **Manifest drift** — `git diff --name-only` against the plan's `files` lists. Files changed
+  that no slice claimed are unplanned scope; files claimed but untouched mean a slice did not
+  land.
+- **Build and test output** — the real output, including failures. Not a summary of it. A
+  verification that reports success when tests failed is worse than no verification, because
+  it converts an unknown into a false known.
+- **Not checked** — what the verifier could not reach, and why. Silence here reads as coverage.
+
+Gate: **DO NOT SHIP stops the change.** Fix the findings and re-verify with a fresh dispatch,
+never by asking the same agent to reconsider. A verdict that can be talked down is not a gate.
+
+---
+
 ## Disjointness check
 
 Before fanning out, verify:
 
 ```bash
-python - <<'PY'
-import sys, itertools, yaml, pathlib
-fm = pathlib.Path(".sdlc/<slug>/plan.md").read_text().split("---")[1]
-slices = yaml.safe_load(fm)["slices"]
+# Substitute the artifact root and slug; the root is resolved per sdlc-router.
+python - <<'CHECK'
+import itertools, pathlib, re, sys
+
+PLAN = pathlib.Path(".sdlc/<slug>/plan.md")          # <- substitute root and slug
+parts = PLAN.read_text(encoding="utf-8").split("---")
+if len(parts) < 3:
+    sys.exit("plan.md has no frontmatter - the slice manifest is mandatory")
+
+try:
+    import yaml
+    slices = yaml.safe_load(parts[1])["slices"]
+except ImportError:
+    # PyYAML is not guaranteed to be installed and this check must still run. Same
+    # fallback the gate hook uses, deliberately, so the two parsers never disagree.
+    slices, cur = [], None
+    for line in parts[1].splitlines():
+        if re.match(r"\s*-\s+id:", line):
+            cur = {"id": line.split("id:", 1)[1].strip(), "files": []}
+            slices.append(cur)
+        elif "files:" in line and cur is not None:
+            cur["files"] = re.findall(r'''["']([^"']+)["']''', line)
+
 bad = [(a["id"], b["id"], sorted(set(a["files"]) & set(b["files"])))
        for a, b in itertools.combinations(slices, 2) if set(a["files"]) & set(b["files"])]
 if bad:
-    for x, y, f in bad: print(f"OVERLAP {x} <-> {y}: {f}")
+    for x, y, overlap in bad:
+        print(f"OVERLAP {x} <-> {y}: {overlap}")
     sys.exit(1)
-print(f"{len(slices)} slices, manifests disjoint")
-PY
+
+empty = [s["id"] for s in slices if not s["files"]]
+if empty:
+    sys.exit(f"empty manifest: {empty} - a slice that owns no files is not a slice")
+
+print(f"{len(slices)} slices, {sum(len(s['files']) for s in slices)} files, manifests disjoint")
+CHECK
 ```
 
 A failure here is a **planning** bug. Fix plan.md and re-approve; do not start the build and

@@ -15,8 +15,11 @@ This runs in the main loop because it has to interview the owner.
 ## 1. Check what is already here
 
 ```bash
-ls -la .sdlc/ 2>/dev/null; ls CLAUDE.md 2>/dev/null; git branch --show-current
+ls -d .sdlc/ 2>/dev/null; ls */CHARTER.md */*/CHARTER.md 2>/dev/null
+ls CLAUDE.md 2>/dev/null; git branch --show-current
 ```
+
+The second command is the one that matters: **a charter anywhere means this repo already has a root.** Use it. Creating a second root alongside an existing one splits the chain in half, and the gate hook will then follow only one of them.
 
 - **`.sdlc/CHARTER.md` already exists** — this repo is initialised. Read it and offer to
   *amend* it instead, which is a deliberate act with its own approval. Do not silently rewrite
@@ -46,11 +49,10 @@ questions. This framework is stack-agnostic and ships no defaults of its own —
 **stack packs**.
 
 A stack pack is a skill named `stack-<something>` that describes one opinionated stack and
-carries its scaffold files. Find the ones available:
-
-```bash
-ls ~/.claude/plugins/cache/*/*/*/skills 2>/dev/null | grep '^stack-'
-```
+carries its scaffold files. **Read the available-skills list already in your context** and take
+every skill whose name starts with `stack-`. Do not shell out to the plugin cache: it misses
+packs loaded with `--plugin-dir`, assumes a cache layout that is not a contract, and answers a
+question you can already see the answer to.
 
 Then:
 
@@ -63,6 +65,10 @@ Then:
 - **None installed** → ask the owner for the stack directly: language and version, framework,
   test runner, persistence. Record the answers in the charter. Do not invent a stack, and do not
   write scaffold files you have no template for.
+- **No pack applies** → some repos are not built with a stack: a prompt library, a docs site, a
+  plugin marketplace. Proposing one anyway is how a markdown repo acquires a `global.json`. Say
+  so, write the charter's Technology commitments by hand naming what the repo actually is, and
+  write no scaffold files. A pack being installed is not a reason to use it.
 
 Proposing beats interviewing when a pack exists: confirming a default costs the owner one word,
 while composing a stack from nothing costs a conversation and usually lands in the same place.
@@ -104,7 +110,7 @@ not an invariant; "no computation reads data unavailable at its own timestamp" i
 
 ## 3. Write it
 
-Write `.sdlc/CHARTER.md` per the schema in `references/artifact-schemas.md` (the `sdlc-router`
+Write `<root>/CHARTER.md` per the schema in `references/artifact-schemas.md` (the `sdlc-router`
 skill), `status: draft`, `version: 1`. Technology commitments records **the profile name and any
 overrides**, not the style rules themselves.
 
@@ -138,15 +144,16 @@ to the user.
 ## 5. Check CLAUDE.md exists
 
 Different artifact, different job: `CHARTER.md` is product intent for humans and future intents;
-`CLAUDE.md` is instructions for the agent. If there is no `CLAUDE.md`, say so and suggest `/init`
-— do not write one here, and do not merge the two.
+`CLAUDE.md` is instructions for the agent. If there is no `CLAUDE.md`, say so and suggest
+Claude Code's own built-in `/init` command — not this skill — and do not write one here or
+merge the two.
 
 ## 6. Gate
 
 Get explicit approval. On approval set `status: approved` and commit:
 
 ```
-git add .sdlc/CHARTER.md && git commit -m "charter: <solution name> v1"
+git add <root>/CHARTER.md && git commit -m "charter: <solution name> v1"
 ```
 
 Then tell them the chain is open and the next command is:

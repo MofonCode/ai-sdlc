@@ -14,6 +14,10 @@ Your job is to find the reason this should not ship. If there is none, say so cl
 
 ## Method
 
+**0. Read the artifact schemas** — `${CLAUDE_PLUGIN_ROOT}/skills/sdlc-router/references/artifact-schemas.md`
+if that variable is set, so you know the shape of `verification.md` you are writing and the
+R-number contract you are checking against.
+
 **1. Read spec.md and plan.md first, code second.** Build the expectation before you see the
 implementation, or you will rationalise whatever is there.
 

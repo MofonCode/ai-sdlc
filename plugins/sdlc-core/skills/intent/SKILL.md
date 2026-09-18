@@ -5,7 +5,7 @@ argument-hint: A rough description of the idea, or an existing slug to revise
 disable-model-invocation: true
 ---
 
-# /intent — Stage 1, Plan
+# /sdlc-core:intent — Stage 1, Plan
 
 Turn a rough idea into a committed `intent.md` that the Design stage can read. Use the
 `sdlc-router` skill for tiering rules and artifact locations, and `references/artifact-schemas.md`
@@ -14,13 +14,15 @@ for the required shape.
 This command runs in the main loop because **it has to ask you questions.** That is most of
 its value.
 
+**Resolve the artifact root first.** It defaults to `.sdlc/` but is per-repo, declared in the charter's `artifact_root` (see `sdlc-router`). Everything below writes `<root>/`; never hardcode `.sdlc/`.
+
 ## 1. Tier first
 
 Before anything else, classify: `trivial`, `task`, or `feature`. State the tier and why, in
 one line.
 
 - **trivial** — stop. Say "this is trivial, no intent needed" and just do the work.
-- **task** — stop. Say so, and offer `/plan` instead. An intent here is pure overhead.
+- **task** — stop. Say so, and offer `/sdlc-core:plan` instead. An intent here is pure overhead.
 - **feature** — continue.
 
 If it is genuinely between two tiers, ask which, naming the cost difference. Do not silently
@@ -28,11 +30,11 @@ upgrade someone into a full chain.
 
 ## 2. Orient
 
-Read `.sdlc/CHARTER.md` if it exists — the solution's invariants and permanent non-goals. You
+Read `<root>/CHARTER.md` if it exists — the solution's invariants and permanent non-goals. You
 are looking for whether this idea conflicts with one. If it does, raise it now: that is a
 charter amendment conversation, not an intent.
 
-Check `.sdlc/` for existing slices. If `$ARGUMENTS` names one, you are **revising** — read the
+Check `<root>/` for existing slices. If `$ARGUMENTS` names one, you are **revising** — read the
 existing intent.md and work from it rather than starting over. Otherwise derive a kebab-case
 slug from the idea and confirm it with the user.
 
@@ -61,7 +63,7 @@ open questions, as long as each names an owner.
 
 ## 4. Write it
 
-Write `.sdlc/<slug>/intent.md` per the schema, `status: draft`. Create `.sdlc/` if needed.
+Write `<root>/<slug>/intent.md` per the schema, `status: draft`. Create the root if needed.
 
 ## 5. Attack it
 
@@ -80,7 +82,7 @@ criteria.
 On approval, set `status: approved` and commit the file:
 
 ```
-git add .sdlc/<slug>/intent.md && git commit -m "intent(<slug>): <title>"
+git add <root>/<slug>/intent.md && git commit -m "intent(<slug>): <title>"
 ```
 
 Then tell them `/sdlc-core:spec` is next. Do not run it automatically — the gate is the point.

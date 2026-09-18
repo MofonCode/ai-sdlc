@@ -41,7 +41,7 @@ contracts, schema shapes, external integrations. If the draft does not say, that
 **Open questions with no owner.** An open question without a named person is a question that
 never gets answered.
 
-**Charter conflict.** If `.sdlc/CHARTER.md` exists, read it first. An intent that violates a
+**Charter conflict.** If a `CHARTER.md` exists at the artifact root you were given (default `.sdlc/`), read it first. An intent that violates a
 stated architectural invariant, or lands inside a permanent non-goal, is **blocking** - quote
 the invariant and the line of the draft that breaks it. This is the cheapest possible place to
 catch a change that quietly turns the product into a different product. A draft that needs the
