@@ -275,8 +275,8 @@ and give them one parser.
   because an earlier draft asserted it as a binding commitment *and* listed it as unimplemented
   in the same document, and a commitment is what every future spec is held to. It becomes a
   commitment when it exists. *Owner: peter — needs an intent.*
-- **Agent team topology — blocked on the above.** Orchestrator, two BAs, delivery, QA was
-  proposed. Open: what the second BA does that the first does not, and whether the orchestrator
+- **Agent team topology — blocked on behavioural measurement.** Orchestrator, two BAs,
+  delivery, QA was proposed. Open: what the second BA does that the first does not, and whether the orchestrator
   earns its relay hop when the main loop already orchestrates. Both are measurement questions,
   and the only instrument is the eval suite, which cannot run — so this is downstream of the
   blocker above and should not be picked up before it clears. I7 already settles the part that
@@ -284,13 +284,27 @@ and give them one parser.
 - **Discovery entry points.** The chain assumes a change to an existing system. A bug intent is
   a repro; a competition objective is given by its metric. Likely several entry points feeding
   the same downstream artifacts, rather than one generalised `intent`. *Owner: peter.*
-- **Self-improvement loop — BLOCKED, externally.** The eval suite exists and has never been
-  run, so its graders are uncalibrated and "the process improves itself" has no number attached.
-  Retested 2026-09-18 on Claude Code 2.1.268: `plugin eval` refuses with *"currently in early
-  access"*, and `winget` reports no newer version, so this is not a version bump away. **Trigger
-  to unblock: 2.1.269+ available AND early access enabled on the account.** Recorded as blocked
-  rather than pending, because no effort here moves it. *Owner: peter, but not actionable by
-  the owner.*
+- **Self-improvement loop — running, but the trigger is manual.** The loop is *a defect found
+  becomes a permanent named check*, and it ran six times on 2026-09-17 alone: a shipped broken
+  command became the skill-body checks, a gate that opened permanently became manifest matching
+  plus fifteen tests, three manifest parsers disagreeing became a normalisation fix and a test,
+  two stack leaks became `CharterInvariantI1_EngineImposesNoStack`, a lingering shim became
+  `NoPythonShipsInThisRepository`, and an owner observation became I12. I9's table is the
+  register of it, and it has numbers: 49 tests, 12 injected faults, 12 caught.
+
+  **What is missing is the trigger, not the mechanism.** Every one of those conversions
+  happened because somebody noticed. The loop closes when it becomes a rule — a blocking
+  finding from the verifier or the interrogator becomes a named check before the change ships,
+  and `verification.md` is what a retrospective reads to find the ones that were missed. That
+  is unbuilt work, not blocked work. *Owner: peter — needs an intent.*
+
+- **Behavioural measurement — BLOCKED, externally.** Separate question, and the one the eval
+  suite actually answers: does the plugin change what a *model* does, against a no-plugin
+  baseline? That is the Δ, and it is about agent behaviour rather than repository correctness,
+  so no amount of testing here substitutes for it. Retested 2026-09-18 on Claude Code 2.1.268:
+  `plugin eval` refuses with *"currently in early access"*, and `winget` reports no newer
+  version, so it is not a bump away. **Trigger: 2.1.269+ AND early access on the account.**
+  *Owner: peter, not actionable by the owner.*
 
 ## Amendment log
 
