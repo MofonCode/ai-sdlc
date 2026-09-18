@@ -2,7 +2,7 @@
 solution: ai-sdlc
 artifact_root: .sdlc/
 status: approved
-version: 1
+version: 2
 updated: 2026-09-17
 owner: peter
 ---
@@ -162,6 +162,24 @@ difference.
 and `plan`, which tier; it does not bind `spec`, `verify` or `init`, which are entered at a
 tier already decided. The earlier phrasing implied all five and was false for three.
 
+**I12 — Nothing is committed on a red build or a failing test.** The build is green and both
+suites pass — unit *and* integration — and the real output is seen before the commit. Not a
+summary of the output, and not an assurance: the output. This binds every tier, `trivial`
+included; a one-line change that breaks the build is still a broken build, and checking costs
+one command.
+
+*Checkable: a plan's Validation section names the commands and what they must show, and the
+run appears in the transcript or the commit before the commit exists.*
+
+The three ways this fails all look like success, which is why it is an invariant and not a
+habit: reporting a pass without running anything; running the unit suite only, while the
+composed system is broken; and reading the exit code rather than the output, so a suite that
+collected zero tests reports green. A red build inherited from someone else is stated before
+work starts, never folded into your own verification.
+
+The **commands** live in the stack pack, never here and never in the engine — I1 would forbid
+naming them. The engine states that they must be run; the pack states what they are.
+
 ## Permanent non-goals
 
 Not "not yet" — never. An intent landing here is blocked outright, not negotiated.
@@ -272,4 +290,5 @@ and give them one parser.
 
 | Version | Date | Change |
 |---|---|---|
+| 2 | 2026-09-17 | **Added I12** — nothing is committed on a red build or a failing test, both suites, real output seen. Requested by the owner as a standing rule rather than a per-change habit. The engine states the requirement (`sdlc-router`, Gates); the stack pack states the commands, because I1 forbids the engine from naming them. |
 | 1 | 2026-09-17 | Initial charter. Written by hand rather than from a stack pack, because no pack applies to a library of instructions. Attacked by `intent-interrogator` in fresh context before approval, which returned NOT READY: four invariants were contradicted by code in this repo, three statements of fact in Technology commitments were false, and N1 as first drafted forbade something the engine had already shipped. Nine of the eleven invariants were rewritten and four code defects fixed before this version was approved. The provenance matters — these invariants read as obvious now, and every one of them survived a reviewer trying to break it. |

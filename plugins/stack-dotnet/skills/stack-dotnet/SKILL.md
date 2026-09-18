@@ -23,6 +23,7 @@ Assets referenced below live in `assets/`, beside this file.
   - Infrastructure is Terraform
   - Containers are local. The cloud is PaaS.
   - Scripts and notebooks are exploration only
+  - Validation — what has to be green before a commit
 - Profile: `dotnet-ml`
 - The local SQL password
 - Files written
@@ -158,6 +159,39 @@ So the rule, and it is not negotiable because the gate cannot be made to apply:
 Treat a spec that proposes shipping behaviour that lives in a `.csx` or a notebook as a flagged
 concern, not a detail. The code is unvalidated by construction, and it will look exactly as
 trustworthy as code that was validated.
+
+### Validation — what has to be green before a commit
+
+`sdlc-core` requires a green build and passing tests before anything is committed, at every
+tier. These are the commands for this stack.
+
+```
+dotnet build                                          # warnings are errors; a warning fails this
+dotnet test                                           # unit and integration together
+dotnet test --settings coverage.runsettings           # when the coverage number is being claimed
+```
+
+**Both suites, not just the fast one.** Unit tests exercise a class; integration tests
+exercise the composed system through `Aspire.Hosting.Testing` against a real AppHost, with the
+real SQL Server container. Most of what goes wrong in this stack goes wrong *between*
+components — a connection string that resolves locally and not in the composed graph, a
+migration that applies to an empty database and not a persisted volume, an Aspire parameter
+that silently never resolves. A unit suite cannot see any of it.
+
+Read the output, not the exit code:
+
+- **`dotnet build` is the first test.** `TreatWarningsAsErrors` plus `EnforceCodeStyleInBuild`
+  means a nullable warning, a style violation, and a moderate-or-worse NuGet advisory each
+  fail the build. That is the gate working, not the build being fussy — fix the finding rather
+  than adding a `NoWarn`.
+- **A run that collected zero tests exits clean.** Check the count, not just the colour. A
+  renamed or mis-targeted test project reports success by finding nothing.
+- **Integration tests failing to start the AppHost** usually means the Aspire CLI, the
+  `Aspire.AppHost.Sdk` in `global.json`, and the Aspire package versions have drifted apart.
+  The error names the wrong side of the mismatch; check all three.
+
+If the build or a test is red before your change, say so before touching anything, and do not
+fold someone else's breakage into your own verification.
 
 ## Profile: `dotnet-ml`
 

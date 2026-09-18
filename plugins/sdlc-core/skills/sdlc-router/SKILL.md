@@ -94,6 +94,33 @@ The one gate that is *not* negotiable: **do not write implementation code for a 
 tier change until a `plan.md` exists and the user has approved it.** The `sdlc-gate` hook
 warns when this is violated; the discipline is yours.
 
+### Validation before every commit
+
+**Nothing is committed until the build is green and the tests pass — both the unit suite and
+the integration suite — and the real output is pasted.** Not a summary of it, not an assurance
+that it passed: the output.
+
+This binds code changes and artifact commits alike, because an artifact that describes a
+broken build is a lie the next stage will act on. It applies at every tier, `trivial`
+included: a one-line change that breaks the build is still a broken build, and the cost of
+checking is one command.
+
+Three failure modes this is aimed at, all of which look like success:
+
+- **Reporting a pass without running anything.** If no command was run, say so plainly rather
+  than inferring the result from the size of the change.
+- **Running the unit suite only.** Unit tests pass while the composed system is broken —
+  that is most of what integration tests exist to catch, so "tests pass" means both.
+- **Reading the exit code and not the output.** A suite that silently collected zero tests
+  exits clean. Check what actually ran, not just that something did.
+
+If the build or a test is already red before your change, say so before touching anything.
+Inheriting a red build and then reporting your own change as verified attributes someone
+else's breakage to you, and hides theirs.
+
+The **commands** are the stack pack's business, not this skill's — read the committed pack for
+the exact invocations. This skill states only that they must be run and seen to pass.
+
 ## Parallel build safety
 
 This framework fans out multiple implementer agents. That is only safe when slices are
