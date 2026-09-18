@@ -1,6 +1,6 @@
 ---
 name: stack-dotnet
-description: The .NET/C# stack pack - net10.0, Aspire orchestration, SQL Server with a persisted volume, MSTest, coverlet coverage, and the scaffold files (.editorconfig, Directory.Build.props, Directory.Packages.props, global.json, coverage.runsettings). Includes a dotnet-ml variant using ML.NET. Use when /sdlc-core:init is choosing a stack, when a spec needs the committed stack for a .NET repo, or when the user asks what the default stack is.
+description: The .NET/C# stack pack - net10.0, Blazor front ends, ASP.NET Core APIs, EF Core, Aspire orchestration with Docker-based local emulation, Azure PaaS (Web Apps, Function Apps, Azure SQL) for deployed environments with Terraform as the single source of truth, SQL Server with a persisted volume, MSTest, coverlet coverage, and the scaffold files. C# scripts and notebooks are endorsed for exploration only, because they sit outside the analyzer gate. Includes a dotnet-ml variant using ML.NET. Use when /sdlc-core:init is choosing a stack, when a spec needs the committed stack for a .NET repo, or when the user asks what the default stack is.
 ---
 
 # stack-dotnet — the .NET/C# stack pack
@@ -19,6 +19,10 @@ Assets referenced below live in `assets/`, beside this file.
 
 - Choosing a profile
 - Profile: `dotnet` (default)
+  - Why the SDK pin matters here specifically
+  - Infrastructure is Terraform
+  - Containers are local. The cloud is PaaS.
+  - Scripts and notebooks are exploration only
 - Profile: `dotnet-ml`
 - The local SQL password
 - Files written
@@ -40,8 +44,13 @@ dotnet profile."*
 |---|---|
 | Language | C#, `net10.0`, `LangVersion latest` |
 | Nullable | `enable`, warnings as errors |
-| Orchestration | .NET Aspire — AppHost + ServiceDefaults |
+| Front end | **Blazor** |
+| APIs | **ASP.NET Core** |
+| Data access | **EF Core**, code-first migrations |
+| Orchestration (local) | .NET Aspire — AppHost + ServiceDefaults |
 | Database | SQL Server via Aspire, persisted with `WithDataVolume` |
+| Local emulation | Docker containers, orchestrated by Aspire — **local only** |
+| Deployed compute | **Azure PaaS: Web Apps, Function Apps, Azure SQL.** Not containers |
 | Tests | **MSTest** (the `MSTest` meta-package) |
 | Coverage | `coverlet.collector`, Cobertura, `coverage.runsettings` |
 | Integration tests | `Aspire.Hosting.Testing` against a real AppHost |
@@ -84,6 +93,57 @@ visible. If a tfvars ever needs a secret, that is the bug, not the gitignore lin
 A change that creates or alters infrastructure is a change like any other: it belongs to a
 slice, it names its files in the plan manifest, and `terraform plan` output is the evidence that
 the review is reviewing.
+
+### Containers are local. The cloud is PaaS.
+
+Aspire runs containers to emulate dependencies on a developer machine — SQL Server, Redis,
+storage. **Deployed environments run none of them.** Test and production are Azure PaaS: Web
+Apps, Function Apps, Azure SQL. A container in a deployed environment is a decision nobody made.
+
+This has one consequence big enough to state as an invariant in every repo built with this pack:
+
+> **The AppHost resource graph describes local development and never production. Terraform is
+> the single source of truth for anything deployed.**
+
+Say this out loud when writing the charter's Technology commitments, because the alternative is
+a team discovering it the expensive way. Aspire's own deployment story (`azd`) provisions
+Container Apps, which is precisely what this stack does not use — so the two models will never
+converge, and the time spent trying to make them agree is time spent on a reconciliation that
+was never going to happen. Two models, one of them explicitly not authoritative, is a stable
+arrangement. Two models both claiming authority is not.
+
+What this means per change:
+
+- Local dependency added to the AppHost → nothing is owed to Terraform. It is a dev convenience.
+- A deployed resource added → **Terraform, always**, in the slice's file manifest, with the
+  `terraform plan` output pasted into the review. The AppHost may gain a matching local
+  emulation, but that is a second, separate act.
+- A resource that exists in the AppHost and not in Terraform is **not deployed**, no matter how
+  well it works locally. That failure mode reads as "works on my machine" and is the single most
+  likely way this split goes wrong.
+
+### Scripts and notebooks are exploration only
+
+C# scripts (`.csx`) and Polyglot notebooks running the C# kernel are both endorsed for
+exploration: pulling a dataset apart, checking a hypothesis, sketching an algorithm before it
+has a home. Use them freely. Prefer them over Python notebooks — the language stays the same as
+the thing being built, so an idea moves into a project without a rewrite.
+
+**But be exact about what they do not get.** Neither has a project file, so
+`Directory.Build.props` never reaches them. In practice that means **no analyzers, no
+`EnforceCodeStyleInBuild`, and no `TreatWarningsAsErrors`** — the entire validation gate this
+pack relies on is silently absent. Nullable reference warnings that would fail the build in a
+project are invisible in a notebook cell.
+
+So the rule, and it is not negotiable because the gate cannot be made to apply:
+
+> **Nothing graduates from a script or a notebook to a deliverable by being copied.** It moves
+> into a project, compiles under the same analyzers as everything else, and gets tests. Until
+> then it is a sketch, regardless of how finished it looks.
+
+Treat a spec that proposes shipping behaviour that lives in a `.csx` or a notebook as a flagged
+concern, not a detail. The code is unvalidated by construction, and it will look exactly as
+trustworthy as code that was validated.
 
 ## Profile: `dotnet-ml`
 
@@ -188,9 +248,20 @@ The charter records the **profile name and overrides**, never the contents of th
 ```markdown
 ## Technology commitments
 
-- Profile: `dotnet` (C# net10.0, Aspire, MSTest, coverlet, .editorconfig)
-- Persistence: SQL Server via Aspire, WithDataVolume, local password default
+- Profile: `dotnet` (C# net10.0, Blazor, ASP.NET Core, EF Core, Aspire, MSTest, coverlet)
+- Persistence: SQL Server via Aspire locally, Azure SQL deployed; WithDataVolume, local
+  password default
+- Deployed compute: Azure PaaS (Web Apps, Function Apps). Not containers.
 - Module layout: vertical slices, each {Module}.Api / .Application / .UnitTests
+```
+
+And add this to that repo's **Architectural invariants**, not its commitments — it is a
+property that makes a change wrong regardless of intent, which is the test for an invariant:
+
+```markdown
+- The AppHost resource graph describes local development only. Terraform is the single
+  source of truth for every deployed resource. A resource present in the AppHost and absent
+  from Terraform is not deployed.
 ```
 
 ## What never gets asked

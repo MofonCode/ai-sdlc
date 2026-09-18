@@ -28,6 +28,36 @@
     <PackageVersion Include="Aspire.Hosting.Azure.Storage" Version="13.5.3" />
   </ItemGroup>
 
+  <!--
+    EF Core. Design is a build-time-only dependency (dotnet ef), so reference it with
+    PrivateAssets="all" in the project that owns migrations - otherwise it flows into
+    consumers and ships tooling to production.
+
+    Migrations are generated code: they are already excluded from coverage in
+    coverage.runsettings and exempted from style rules in the .editorconfig. Both
+    exemptions are deliberate. A coverage number that counts migrations is a number
+    that lies, and a generated file that fails a style gate stops the build for a
+    reason nobody can act on.
+  -->
+  <ItemGroup Label="Data">
+    <PackageVersion Include="Microsoft.EntityFrameworkCore" Version="10.0.1" />
+    <PackageVersion Include="Microsoft.EntityFrameworkCore.SqlServer" Version="10.0.1" />
+    <PackageVersion Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.1" />
+    <PackageVersion Include="Microsoft.EntityFrameworkCore.Tools" Version="10.0.1" />
+  </ItemGroup>
+
+  <!--
+    Web. Blazor and ASP.NET Core themselves come from the shared framework, not from
+    packages - these are the pieces that do not: component testing, and the auth
+    handlers a deployed Web App or Function App needs.
+  -->
+  <ItemGroup Label="Web">
+    <PackageVersion Include="Microsoft.AspNetCore.Components.WebAssembly" Version="10.0.1" />
+    <PackageVersion Include="Microsoft.AspNetCore.Components.WebAssembly.Server" Version="10.0.1" />
+    <PackageVersion Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.1" />
+    <PackageVersion Include="bunit" Version="1.41.1" />
+  </ItemGroup>
+
   <ItemGroup Label="ML">
     <PackageVersion Include="Microsoft.ML" Version="4.0.2" />
     <PackageVersion Include="Microsoft.ML.LightGbm" Version="4.0.2" />
