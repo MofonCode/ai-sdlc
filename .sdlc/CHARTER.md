@@ -2,8 +2,8 @@
 solution: ai-sdlc
 artifact_root: .sdlc/
 status: approved
-version: 2
-updated: 2026-09-17
+version: 3
+updated: 2026-09-18
 owner: peter
 ---
 
@@ -81,15 +81,28 @@ the artifact looks fine, and not by silence. *Checkable: every gate section name
 approval question it asks and the `status:` transition that approval unlocks — which is on the
 page, unlike "waits", which is a claim about runtime that no reviewer can inspect.*
 
-**I5 — A pack's own skill is the only list of the files it writes.** The engine never names a
-pack's files, tokens, or assets. Adding a pack must require no change to the engine.
-*Checkable: the engine names no filename it did not itself create.* Phrased as a property
-rather than a grep, because grepping for "any pack's filenames" only works for packs that
-already exist, and the case that matters is the pack nobody has written yet.
+**I5 — A pack's own skill is the only list of the actions it performs.** The engine never
+names a pack's files, directories, commands, tokens, or assets. Adding a pack must require no
+change to the engine. *Checkable: the engine names no filename, path or command it did not
+itself create.* Phrased as a property rather than a grep, because grepping for "any pack's
+filenames" only works for packs that already exist, and the case that matters is the pack
+nobody has written yet.
 
-The mechanism behind this is undeclared elsewhere and belongs here: `init` discovers packs by
-taking every skill whose name begins with `stack-`. A pack named anything else is silently
-never proposed.
+**Widened from "files" to "actions" in v3.** A pack that scaffolds a repository declares
+directories to create and commands to run, and the original wording left both outside the
+invariant — so the engine could have grown a `mkdir src` or a generator invocation without
+technically breaking it. Anything a pack causes to happen is the pack's to declare.
+
+**This makes the engine an executor of pack-supplied command strings, which is worth naming
+rather than leaving implicit.** I1 leaves no alternative: the engine cannot say `dotnet`, so it
+cannot hold the commands. The trust boundary is therefore the pack itself — installed
+deliberately, from this marketplace, and reviewed like any other code here. A pack is not
+untrusted input and must never be treated as a place to put something a reviewer would not
+read.
+
+The discovery mechanism is undeclared elsewhere and belongs here: `init` finds packs by taking
+every skill whose name begins with `stack-`. A pack named anything else is silently never
+proposed.
 
 **I6 — Slice manifests are pairwise disjoint.** Two implementers holding one file is a merge
 conflict by construction. Overlap is a planning bug, fixed in `plan.md` and re-approved —
@@ -251,13 +264,28 @@ parsers read. Once a second repo has a committed `.sdlc/` tree, changing these i
 not an edit — so it is worth saying now which is which.
 
 **Frozen.** The five artifact frontmatter shapes in `artifact-schemas.md`; the
-`slices` / `files` / `depends_on` manifest; and `R<n>` requirement numbering, which `spec`
-already calls an API ("never renumber, append and mark superseded"). Downstream repos cite
-these numbers from tests.
+`slices` / `files` / `depends_on` manifest; `R<n>` requirement numbering, which `spec` already
+calls an API ("never renumber, append and mark superseded") and which downstream repos cite
+from tests; and — **added in v3** — **the directory layout a pack emits when it scaffolds a
+repository**: the top-level split it creates, and the project-name patterns that other config
+depends on matching.
 
-**Still movable.** Skill prose, agent method sections, the tier table, and everything in
-`stack-*` packs — a pack revision never invalidates an existing repo, because `init` never
-overwrites a file it did not create.
+Layout is frozen because, once repositories exist that were built from it, four separate
+things cite it: `spec-writer` reads the structure to ground its design, slice manifests name
+paths inside it, the coverage configuration excludes assemblies by name pattern, and the gate
+hook matches edited paths against manifests. Changing it afterwards is a migration across every
+downstream repository, performed by whoever notices, and a coverage pattern that silently stops
+matching produces a number that lies rather than an error.
+
+**Still movable.** Skill prose, agent method sections, the tier table, and the *contents* of
+`stack-*` packs — asset file contents, package versions, the prose of a pack's skill. A pack
+revision does not invalidate an existing repo, because `init` never overwrites a file it did
+not create.
+
+**That reasoning covers contents and breaks for layout**, which is why v3 separates them. "We
+never overwrite" protects a repo from having its files changed; it does nothing about a repo
+whose structure no longer matches what the current pack assumes. The first is a promise about
+writes, the second is a promise about shape, and only the first was ever made.
 
 **The manifest is parsed three times by three hand-rolled parsers**, in
 `Assert-SliceManifest.ps1`, the gate hook, and `parallel-build.js`. None shares code with the
@@ -310,5 +338,6 @@ and give them one parser.
 
 | Version | Date | Change |
 |---|---|---|
+| 3 | 2026-09-18 | **Widened I5** from the *files* a pack writes to the *actions* it performs, and named the consequence: the engine executes pack-supplied command strings, so the trust boundary is the pack. **Froze the emitted repository layout**, separating it from pack *contents*, which stay movable — "we never overwrite" is a promise about writes and says nothing about shape. Both amendments were required by the approved `init-scaffolds-solution` intent before its spec could be written, rather than discovered during it. |
 | 2 | 2026-09-17 | **Added I12** — nothing is committed on a red build or a failing test, both suites, real output seen. Requested by the owner as a standing rule rather than a per-change habit. The engine states the requirement (`sdlc-router`, Gates); the stack pack states the commands, because I1 forbids the engine from naming them. |
 | 1 | 2026-09-17 | Initial charter. Written by hand rather than from a stack pack, because no pack applies to a library of instructions. Attacked by `intent-interrogator` in fresh context before approval, which returned NOT READY: four invariants were contradicted by code in this repo, three statements of fact in Technology commitments were false, and N1 as first drafted forbade something the engine had already shipped. Nine of the eleven invariants were rewritten and four code defects fixed before this version was approved. The provenance matters — these invariants read as obvious now, and every one of them survived a reviewer trying to break it. |
