@@ -461,3 +461,37 @@ caught by running the thing. A three-way fan-out of `executor` / `pack` / `init`
 is reasonable; a single writer in one worktree is also reasonable and is the safer choice if the
 schema risk reads as larger than the time saving. **Wave 2 should not be fanned out** — two
 slices, one of which is where every failure will surface.
+
+---
+
+## Accepted drift — recorded 2026-09-18, after approval
+
+**The frontmatter manifest above is deliberately NOT updated.** It is the record of what was
+approved on 2026-09-18 and editing it afterwards to match what happened would destroy the only
+thing it is for. What follows is the post-approval decision, dated separately so the two are
+never confused.
+
+The `pack` slice wrote three files beyond the eight its manifest lists. All three sit inside
+`plugins/stack-dotnet/`, which no other slice touches, so disjointness is unaffected and no
+implementer was at risk of a collision. The owner accepted the drift rather than amending and
+re-approving the plan.
+
+| File | Why it was not foreseen |
+|---|---|
+| `assets/competition.readme.md` | R24 mandates that the emitted README carry the orchestration-versus-infrastructure invariant. That invariant is meaningless in a competition repo, so one shared README could not honestly serve both kinds. The plan assumed one README asset; two are needed. |
+| `assets/web.IntegrationStarterTests.cs` | The generated sample integration test contains zero live tests *and* a property that fails compilation under warnings-as-errors. R26 deletes sample content and R64 requires the integration suite to report a test count above zero; with nothing put in its place those two requirements contradict each other. The plan provided a starter for the unit suite only. |
+| `assets/dotnet.gitignore` | Listed in the plan; recorded here only because the pack's report grouped it with the other two. Not drift. |
+
+Two of the three are the same class of miss: **the plan counted one asset where the spec's own
+requirements need two.** Neither is scope creep, and both were flagged by the implementer
+rather than found later.
+
+Also accepted, and not a file change: the competition kind declares one preflight check where
+the plan's prose said it "carries none". The plan's sentence was about the project-template
+prerequisites specifically; the spec's failure-modes table is explicit that an absent SDK is a
+pack-declared preflight for every kind. The implementer's reading was correct and the plan's
+prose was loose.
+
+**For verification:** these files are expected. Report them as drift — that is the check
+working — and record that the owner accepted them here rather than treating them as a blocking
+finding.
