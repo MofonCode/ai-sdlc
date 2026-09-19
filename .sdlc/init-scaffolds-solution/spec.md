@@ -339,11 +339,14 @@ this from R69 — a test proving only the first would pass on the code R70 repla
 R71 closes the finding from the fourth fresh-context verification: R70's sentence and R70's
 own rationale described different sets, and the sentence was the narrower one.
 
-- **R71.** WHEN the executor completes, IF any file under the target directory contains a token
+- **R71.** ~~WHEN the executor completes, IF any file under the target directory contains a token
   the manifest declares, THEN THE executor SHALL exit non-zero naming the file and the token —
   whether or not this execution wrote that file — EXCEPT that a file under the resolved
   artifact root SHALL be swept only when this execution **wrote to** it, whether by creating it
-  or by appending to it.
+  or by appending to it.~~ **Superseded by R72** — `append` was not the only unregistered
+  write path. A `run` action's generator modifying a chain file that already existed writes
+  bytes nothing registers, and the fourth enumeration of mechanisms came up short exactly as
+  the first three did.
 
 **This is a one-word correction to R70, not a new idea.** R70 already located the boundary
 correctly — *the executor is answerable for what it wrote* — and then wrote "created" in the
@@ -363,6 +366,43 @@ whose sentence and whose rationale disagree will be implemented from the sentenc
 *Checkable: the three parts R70 already required, plus a fourth — a token in a chain file this
 run **appended to** halts the run.* The fourth is the only one that distinguishes R71 from R70;
 a suite without it passes on the code R71 replaces.
+
+### Added at revision 6
+
+R72 closes the finding from the fifth fresh-context verification. It is not a fifth word for
+the same rule — it is a different **kind** of rule, and that is the point.
+
+- **R72.** WHEN the executor completes, IF any file under the target directory contains a token
+  the manifest declares, THEN THE executor SHALL exit non-zero naming the file and the token —
+  EXCEPT that a file under the resolved artifact root SHALL NOT be swept WHERE it existed
+  before this execution began AND its content is unchanged since.
+
+**Four revisions failed the same way, and the failure was the method.** R50 swept by location.
+R69 excluded by location. R70 named one mechanism, `create`. R71 named two, `create` and
+`append`. Each was a better word than the last, and each was short a mechanism: a `run` action's
+generator modifying a pre-existing chain file writes bytes that no registration path records.
+Reproduced — the same fixture and command halts the run when the generator *creates* the file
+and exits 0 when it *modifies* one that was already there, with the token still on disk. The
+executor already accepts authorship of generator-created files, so its own model of "this run
+wrote it" was inconsistent between two outcomes of a single action.
+
+**R72 names no mechanism, so it cannot be short one.** The question stops being *how was this
+file written* and becomes *is it different from before*. Any write path — declared, generated,
+or added to the executor next year — is covered by construction rather than by remembering to
+register it.
+
+This is what the earlier rules were reaching for. "The executor is answerable for what it
+wrote" was always the right principle; enumerating the ways it can write was the wrong way to
+express it, because that list is open and the spec kept treating it as closed.
+
+**Cost, stated rather than discovered:** the executor must hash the chain files it snapshots
+before the run and compare after, where before it only recorded paths. That is a real cost on a
+large chain and it is the price of a rule that cannot be short a mechanism.
+
+*Checkable, and the fourth part is the one that distinguishes R72 from R71:* a chain file this
+run did not touch does not halt it; a chain file this run created does; a scaffolded file
+outside the chain does; **and a pre-existing chain file that a `run` action's generator modified
+does.** A suite without the fourth passes on the code R72 replaces.
 
 ---
 
@@ -924,7 +964,7 @@ revision that the tests catch and the requirements already permit.
 | A generator command fails midway | Executor halts at that action, reports what was already created, exits non-zero. The repository is left partially scaffolded — a re-run fills the rest (R7, R34), which is why idempotence is a requirement and not a nicety. |
 | A destination file exists | Skipped and reported. Never overwritten (R5). |
 | A rewrite stops matching after a template bump | `assert_after` fails the run on a file this run created that does not end in the declared state (R42). Without this, the pinned SDK version silently stops binding — defect 3 above, re-introduced. |
-| A token is never substituted, or survives from an earlier run | Post-run sweep of every file under the target fails the run naming file and token (R71). A file under the artifact chain is swept only when this run wrote to it, by creating or appending: the chain's own documents quote the token while specifying it, and a pack that wrote there without substituting would otherwise go unnoticed. This is the `{{SOLUTION}}.Foo` assembly regression, including the gap-filling case where this run wrote nothing. |
+| A token is never substituted, or survives from an earlier run | Post-run sweep of every file under the target fails the run naming file and token (R72). A file under the artifact chain is swept unless it existed before the run with its bytes unchanged - a rule naming no write mechanism, so it cannot be short one: the chain's own documents quote the token while specifying it, and a pack that wrote there without substituting would otherwise go unnoticed. This is the `{{SOLUTION}}.Foo` assembly regression, including the gap-filling case where this run wrote nothing. |
 | A rewrite or delete glob is too broad in a mature repo | Both are restricted to paths this run created (R41), and both appear in the report as `mutated` or `removed` (R56, R59). |
 | The charter is still a draft | The executor reads `status:` from the file and refuses (R38, R39) — not left to `init`'s prose. |
 | Generator output references an unpinned package | Restore fails with NU1008 at R31's build. Loud, and it is the check that keeps R28 honest as templates move. |
@@ -1019,7 +1059,7 @@ SDK, slow, and conditional on prerequisites).
 |---|---|---|
 | S1 build exits 0 | R28, R29, R31, R66 | `ScaffoldEmitsBuildableSolution_<kind>` — execute into temp, build, assert exit 0 |
 | S2 tests run and pass, count > 0 | R26, R32, R62, R64 | Assert the reported test count > 0 and 0 failed, for the unit suite **and** the integration suite; integration compiled-or-run per container runtime |
-| S3 no `{{` survives | R71 | Sweep every file under the target, including files this run did not write; under the artifact root, only files this run wrote to - created or appended |
+| S3 no `{{` survives | R72 | Sweep every file under the target, including files this run did not write; under the artifact root, every file except those unchanged since the run began |
 | S4 restore under CPM | R27, R28, R66 | No version attribute on any reference; restore clean with transitive pinning on — the NU1008 regression test |
 | S5 names match coverage patterns | R23 | Assert each emitted test/host assembly name matches an exclusion in `coverage.runsettings`, parsed from the asset — not from a copy in the test |
 | S6 re-run is a no-op | R7, R41, R42, R43, R46 | Hash the tree, re-execute, compare. This is the row revision 1's `required` rewrite would have failed |
