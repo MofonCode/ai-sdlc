@@ -1,6 +1,6 @@
 ---
 slug: init-scaffolds-solution
-status: draft
+status: approved
 spec: ./spec.md
 plan: ./plan.md
 verdict: ship
