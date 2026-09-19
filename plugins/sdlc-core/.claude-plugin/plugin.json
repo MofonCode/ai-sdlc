@@ -1,6 +1,6 @@
 {
   "name": "sdlc-core",
-  "version": "0.8.0",
+  "version": "0.9.0",
   "description": "Stack-agnostic artifact-chain SDLC: intent.md -> spec.md -> plan.md -> parallel build -> verification.md. Tier router skips ceremony on small changes; a gate hook flags unplanned scope. Consumes stack packs; knows no language or framework itself.",
   "author": {
     "name": "Peter Almanzar"

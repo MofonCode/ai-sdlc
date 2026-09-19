@@ -16,13 +16,101 @@
     <CentralPackageTransitivePinningEnabled>true</CentralPackageTransitivePinningEnabled>
   </PropertyGroup>
 
+  <!--
+    Scaffold output. Every project template scaffold.json invokes emits package
+    references with an inline Version attribute; central package management rejects
+    that outright (NU1008), so the manifest strips the attributes and these entries
+    are what is left to decide the version. A package a generator emits and this
+    file does not pin fails restore, which is the only thing keeping this group
+    honest as the template pack moves - there is no list to read it off.
+
+    Pinned at what the templates shipped with the SDK emitted, except where a
+    later version is forced. Two are:
+
+    Microsoft.Extensions.Http.Resilience is at 10.8.0 rather than the template's
+    10.6.0 because Aspire.Hosting.Testing 13.5.3 depends on it at >= 10.8.0, and a
+    central pin below a transitive floor is a downgrade rather than a choice:
+
+      error NU1109: Detected package downgrade: Microsoft.Extensions.Http.Resilience
+      from 10.8.0 to centrally defined 10.7.0.
+
+    Microsoft.Extensions.ServiceDiscovery stays at 10.7.0 despite sharing that
+    release band. Nothing in the graph depends on it - the service defaults project
+    is the only thing that references it, and it does so directly - so there is no
+    floor to clear and no reason to move it. Read the restore error rather than
+    assuming the two travel together.
+
+    Microsoft.AspNetCore.OpenApi is at 10.0.12 rather than the template's 10.0.9 to
+    clear a vulnerability; see the note above it.
+  -->
+  <ItemGroup Label="Scaffold output">
+    <!--
+      A version bump that exists only to close a vulnerability, in a package the
+      web API template emits.
+
+      10.0.9 - what the template writes - depends on Microsoft.OpenApi >= 2.0.0,
+      and 2.0.0 is what resolves. That version is vulnerable, NuGetAudit reports
+      it, and TreatWarningsAsErrors turns the report into a failed build:
+
+        error NU1903: Warning As Error: Package 'Microsoft.OpenApi' 2.0.0 has a
+        known high severity vulnerability
+
+      GHSA-v5pm-xwqc-g5wc / CVE-2026-49451: a circular schema reference in an
+      OpenAPI document recurses without bound, overflows the stack and takes the
+      process with it. Affects Microsoft.OpenApi 2.0.0-preview.11 through 2.7.4.
+
+      10.0.12 depends on Microsoft.OpenApi [2.12.0, 3.0.0), so the vulnerable
+      version can no longer resolve and the upper bound keeps the 3.x line - which
+      carries the same defect until 3.5.4 - out of reach as well.
+
+      10.0.12 is the version the advisory was CLEARED at, not the lowest version
+      that clears it. Nobody established which release first drops the vulnerable
+      dependency, so treat this as a known-good floor rather than a measured one,
+      and re-check the advisory rather than the changelog when moving it.
+
+      Do NOT silence this with NoWarn instead: the audit level here is a deliberate
+      step up from the SDK default, and a scaffold that suppresses a high severity
+      advisory does it in every repository it creates.
+    -->
+    <PackageVersion Include="Microsoft.AspNetCore.OpenApi" Version="10.0.12" />
+    <PackageVersion Include="Microsoft.Extensions.Http.Resilience" Version="10.8.0" />
+    <PackageVersion Include="Microsoft.Extensions.ServiceDiscovery" Version="10.7.0" />
+    <PackageVersion Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="1.15.3" />
+    <PackageVersion Include="OpenTelemetry.Extensions.Hosting" Version="1.15.3" />
+    <PackageVersion Include="OpenTelemetry.Instrumentation.AspNetCore" Version="1.15.2" />
+    <PackageVersion Include="OpenTelemetry.Instrumentation.Http" Version="1.15.1" />
+    <PackageVersion Include="OpenTelemetry.Instrumentation.Runtime" Version="1.15.1" />
+  </ItemGroup>
+
   <ItemGroup Label="Testing">
     <PackageVersion Include="MSTest" Version="4.2.3" />
     <PackageVersion Include="coverlet.collector" Version="10.0.1" />
     <PackageVersion Include="Aspire.Hosting.Testing" Version="13.5.3" />
   </ItemGroup>
 
+  <!--
+    Aspire.Hosting is pinned even though no emitted csproj names it: the
+    Aspire.AppHost.Sdk brings it into the AppHost project, and a reference that
+    arrives without being typed out is still a reference this file answers for
+    once transitive pinning is on. It tracks the SDK version in global.json,
+    which the scaffold rewrites the AppHost's inline SDK attribute to match -
+    the template emits whichever version happens to be installed.
+
+    Aspire.Hosting.AppHost is deliberately NOT pinned here, and the difference is
+    worth knowing before reaching for it. The SDK declares that one as an
+    IMPLICIT package reference, and central package management forbids pinning an
+    implicit reference outright:
+
+      error NU1009: The following PackageReference items are implicitly defined
+      and cannot define a PackageVersion item: Aspire.Hosting.AppHost.
+
+    An implicit reference already carries its version from the SDK that defined
+    it, so there is nothing here to decide and adding a line only breaks restore.
+    "Injected but explicit" and "implicit" look the same from the csproj, which is
+    why this is written down rather than left to be rediscovered.
+  -->
   <ItemGroup Label="Aspire">
+    <PackageVersion Include="Aspire.Hosting" Version="13.5.3" />
     <PackageVersion Include="Aspire.Hosting.SqlServer" Version="13.5.3" />
     <PackageVersion Include="Aspire.Hosting.Redis" Version="13.5.3" />
     <PackageVersion Include="Aspire.Hosting.Azure.Storage" Version="13.5.3" />

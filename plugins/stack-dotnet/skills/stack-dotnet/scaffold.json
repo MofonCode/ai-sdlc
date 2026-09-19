@@ -1,0 +1,259 @@
+{
+  "version": 1,
+  "solution_token": "{{SOLUTION}}",
+  "solution_file_glob": "*.slnx",
+  "kinds": {
+    "web": {
+      "description": "A web solution: a Blazor front end and an ASP.NET Core API composed by a .NET Aspire AppHost, with service defaults, a unit suite and an integration suite. Requires the Aspire project templates, which are not in the SDK box.",
+      "profile": "dotnet",
+      "preflight": [
+        {
+          "command": "dotnet",
+          "args": ["--version"],
+          "expect_exit": 0,
+          "expect_match": "\\d+\\.\\d+\\.\\d+",
+          "remediation": "The .NET SDK is not on PATH. Install the .NET 10 SDK from https://dotnet.microsoft.com/download, then run init again. This scaffold never installs anything on your machine."
+        },
+        {
+          "command": "dotnet",
+          "args": ["new", "list", "aspire-apphost"],
+          "expect_exit": 0,
+          "expect_match": "(?<![\\w-])aspire-apphost(?![\\w-])",
+          "remediation": "The Aspire project templates are not installed, and this scaffold will not install them for you - a global template install outlives the repository that caused it. Run this yourself, then run init again:    dotnet new install Aspire.ProjectTemplates::13.5.3"
+        },
+        {
+          "command": "dotnet",
+          "args": ["new", "list", "aspire-servicedefaults"],
+          "expect_exit": 0,
+          "expect_match": "(?<![\\w-])aspire-servicedefaults(?![\\w-])",
+          "remediation": "The Aspire project templates are not installed, and this scaffold will not install them for you - a global template install outlives the repository that caused it. Run this yourself, then run init again:    dotnet new install Aspire.ProjectTemplates::13.5.3"
+        },
+        {
+          "command": "dotnet",
+          "args": ["new", "list", "aspire-mstest"],
+          "expect_exit": 0,
+          "expect_match": "(?<![\\w-])aspire-mstest(?![\\w-])",
+          "remediation": "The Aspire project templates are not installed, and this scaffold will not install them for you - a global template install outlives the repository that caused it. Run this yourself, then run init again:    dotnet new install Aspire.ProjectTemplates::13.5.3"
+        }
+      ],
+      "actions": [
+        { "kind": "mkdir", "path": "src" },
+        { "kind": "mkdir", "path": "tests" },
+        { "kind": "mkdir", "path": "terraform" },
+
+        { "kind": "copy", "asset": "assets/dotnet.editorconfig", "path": ".editorconfig" },
+        { "kind": "copy", "asset": "assets/Directory.Build.props", "path": "Directory.Build.props", "tokens": ["solution"] },
+        { "kind": "copy", "asset": "assets/Directory.Packages.props", "path": "Directory.Packages.props" },
+        { "kind": "copy", "asset": "assets/global.json", "path": "global.json" },
+        { "kind": "copy", "asset": "assets/coverage.runsettings", "path": "coverage.runsettings" },
+        { "kind": "copy", "asset": "assets/terraform/versions.tf", "path": "terraform/versions.tf" },
+        { "kind": "copy", "asset": "assets/solution.readme.md", "path": "README.md", "tokens": ["solution"] },
+
+        { "kind": "append", "asset": "assets/dotnet.gitignore", "path": ".gitignore" },
+        { "kind": "append", "asset": "assets/terraform.gitignore", "path": ".gitignore" },
+
+        {
+          "kind": "run",
+          "command": "dotnet",
+          "args": ["new", "sln", "--name", "{{SOLUTION}}"],
+          "unless_exists": "{{SOLUTION}}.slnx"
+        },
+        {
+          "kind": "run",
+          "command": "dotnet",
+          "args": ["new", "aspire-apphost", "--no-restore", "-n", "{{SOLUTION}}.AppHost", "-o", "src/{{SOLUTION}}.AppHost"],
+          "unless_exists": "src/{{SOLUTION}}.AppHost/{{SOLUTION}}.AppHost.csproj"
+        },
+        {
+          "kind": "run",
+          "command": "dotnet",
+          "args": ["new", "aspire-servicedefaults", "--no-restore", "-n", "{{SOLUTION}}.ServiceDefaults", "-o", "src/{{SOLUTION}}.ServiceDefaults"],
+          "unless_exists": "src/{{SOLUTION}}.ServiceDefaults/{{SOLUTION}}.ServiceDefaults.csproj"
+        },
+        {
+          "kind": "run",
+          "command": "dotnet",
+          "args": ["new", "blazor", "--empty", "--no-restore", "-n", "{{SOLUTION}}.Web", "-o", "src/{{SOLUTION}}.Web"],
+          "unless_exists": "src/{{SOLUTION}}.Web/{{SOLUTION}}.Web.csproj"
+        },
+        {
+          "kind": "run",
+          "command": "dotnet",
+          "args": ["new", "webapi", "--use-controllers", "--no-restore", "-n", "{{SOLUTION}}.Api", "-o", "src/{{SOLUTION}}.Api"],
+          "unless_exists": "src/{{SOLUTION}}.Api/{{SOLUTION}}.Api.csproj"
+        },
+        {
+          "kind": "run",
+          "command": "dotnet",
+          "args": ["new", "mstest", "--no-restore", "-n", "{{SOLUTION}}.UnitTests", "-o", "tests/{{SOLUTION}}.UnitTests"],
+          "unless_exists": "tests/{{SOLUTION}}.UnitTests/{{SOLUTION}}.UnitTests.csproj"
+        },
+        {
+          "kind": "run",
+          "command": "dotnet",
+          "args": ["new", "aspire-mstest", "--no-restore", "-n", "{{SOLUTION}}.IntegrationTests", "-o", "tests/{{SOLUTION}}.IntegrationTests"],
+          "unless_exists": "tests/{{SOLUTION}}.IntegrationTests/{{SOLUTION}}.IntegrationTests.csproj"
+        },
+        {
+          "kind": "run",
+          "command": "dotnet",
+          "args": [
+            "sln", "{{SOLUTION}}.slnx", "add",
+            "src/{{SOLUTION}}.AppHost/{{SOLUTION}}.AppHost.csproj",
+            "src/{{SOLUTION}}.ServiceDefaults/{{SOLUTION}}.ServiceDefaults.csproj",
+            "src/{{SOLUTION}}.Web/{{SOLUTION}}.Web.csproj",
+            "src/{{SOLUTION}}.Api/{{SOLUTION}}.Api.csproj",
+            "tests/{{SOLUTION}}.UnitTests/{{SOLUTION}}.UnitTests.csproj",
+            "tests/{{SOLUTION}}.IntegrationTests/{{SOLUTION}}.IntegrationTests.csproj"
+          ]
+        },
+
+        { "kind": "delete", "glob": "src/{{SOLUTION}}.Api/Controllers/WeatherForecastController.cs" },
+        { "kind": "delete", "glob": "src/{{SOLUTION}}.Api/WeatherForecast.cs" },
+        { "kind": "delete", "glob": "src/{{SOLUTION}}.Api/{{SOLUTION}}.Api.http" },
+        { "kind": "delete", "glob": "tests/{{SOLUTION}}.UnitTests/Test1.cs" },
+        { "kind": "delete", "glob": "tests/{{SOLUTION}}.IntegrationTests/IntegrationTest1.cs" },
+
+        { "kind": "copy", "asset": "assets/web.StarterTests.cs", "path": "tests/{{SOLUTION}}.UnitTests/StarterTests.cs", "tokens": ["solution"] },
+        { "kind": "copy", "asset": "assets/web.IntegrationStarterTests.cs", "path": "tests/{{SOLUTION}}.IntegrationTests/IntegrationStarterTests.cs", "tokens": ["solution"] },
+
+        {
+          "kind": "rewrite",
+          "glob": "**/*.csproj",
+          "pattern": "(<PackageReference\\b[^>]*?)\\s+Version=\"[^\"]*\"",
+          "replacement": "$1",
+          "assert_after": "\\A(?!(?s:.*<PackageReference[^>]*\\sVersion=\"))"
+        },
+        {
+          "kind": "rewrite",
+          "glob": "**/*.csproj",
+          "pattern": "Sdk=\"Aspire\\.AppHost\\.Sdk/[^\"]*\"",
+          "replacement": "Sdk=\"Aspire.AppHost.Sdk/13.5.3\"",
+          "assert_after": "\\A(?!(?s:.*Sdk=\"Aspire\\.AppHost\\.Sdk/(?!13\\.5\\.3\")))"
+        },
+
+        {
+          "kind": "rewrite",
+          "glob": "src/{{SOLUTION}}.Api/**/*.cs",
+          "pattern": "\\bvar(\\s+[A-Za-z_]\\w*\\s*=\\s*WebApplication\\.CreateBuilder\\()",
+          "replacement": "WebApplicationBuilder$1",
+          "assert_after": "\\A(?!(?s:.*\\bvar\\s+[A-Za-z_]\\w*\\s*=\\s*WebApplication\\.CreateBuilder\\())"
+        },
+        {
+          "kind": "rewrite",
+          "glob": "src/{{SOLUTION}}.Api/**/*.cs",
+          "pattern": "\\bvar(\\s+[A-Za-z_]\\w*\\s*=\\s*builder\\.Build\\(\\)\\s*;)",
+          "replacement": "WebApplication$1",
+          "assert_after": "\\A(?!(?s:.*\\bvar\\s+[A-Za-z_]\\w*\\s*=\\s*builder\\.Build\\(\\)\\s*;))"
+        },
+        {
+          "kind": "rewrite",
+          "glob": "src/{{SOLUTION}}.Web/**/*.cs",
+          "pattern": "\\bvar(\\s+[A-Za-z_]\\w*\\s*=\\s*WebApplication\\.CreateBuilder\\()",
+          "replacement": "WebApplicationBuilder$1",
+          "assert_after": "\\A(?!(?s:.*\\bvar\\s+[A-Za-z_]\\w*\\s*=\\s*WebApplication\\.CreateBuilder\\())"
+        },
+        {
+          "kind": "rewrite",
+          "glob": "src/{{SOLUTION}}.Web/**/*.cs",
+          "pattern": "\\bvar(\\s+[A-Za-z_]\\w*\\s*=\\s*builder\\.Build\\(\\)\\s*;)",
+          "replacement": "WebApplication$1",
+          "assert_after": "\\A(?!(?s:.*\\bvar\\s+[A-Za-z_]\\w*\\s*=\\s*builder\\.Build\\(\\)\\s*;))"
+        },
+        {
+          "kind": "rewrite",
+          "glob": "src/{{SOLUTION}}.AppHost/**/*.cs",
+          "pattern": "\\bvar(\\s+[A-Za-z_]\\w*\\s*=\\s*DistributedApplication\\.CreateBuilder\\()",
+          "replacement": "IDistributedApplicationBuilder$1",
+          "assert_after": "\\A(?!(?s:.*\\bvar\\s+[A-Za-z_]\\w*\\s*=\\s*DistributedApplication\\.CreateBuilder\\())"
+        },
+        {
+          "kind": "rewrite",
+          "glob": "src/{{SOLUTION}}.ServiceDefaults/**/*.cs",
+          "pattern": "\\bvar(\\s+[A-Za-z_]\\w*\\s*=\\s*!?string\\.IsNullOrWhiteSpace\\()",
+          "replacement": "bool$1",
+          "assert_after": "\\A(?!(?s:.*\\bvar\\s+[A-Za-z_]\\w*\\s*=\\s*!?string\\.IsNullOrWhiteSpace\\())"
+        }
+      ]
+    },
+    "competition": {
+      "description": "A competition solution: a feature-and-scoring library, a training runner, a unit suite and a starter notebook. Every template it uses is in the SDK box, so it scaffolds on a clean machine with nothing but the SDK installed.",
+      "profile": "dotnet-ml",
+      "preflight": [
+        {
+          "command": "dotnet",
+          "args": ["--version"],
+          "expect_exit": 0,
+          "expect_match": "\\d+\\.\\d+\\.\\d+",
+          "remediation": "The .NET SDK is not on PATH. Install the .NET 10 SDK from https://dotnet.microsoft.com/download, then run init again. This scaffold never installs anything on your machine."
+        }
+      ],
+      "actions": [
+        { "kind": "mkdir", "path": "src" },
+        { "kind": "mkdir", "path": "tests" },
+        { "kind": "mkdir", "path": "terraform" },
+        { "kind": "mkdir", "path": "notebooks" },
+
+        { "kind": "copy", "asset": "assets/dotnet.editorconfig", "path": ".editorconfig" },
+        { "kind": "copy", "asset": "assets/Directory.Build.props", "path": "Directory.Build.props", "tokens": ["solution"] },
+        { "kind": "copy", "asset": "assets/Directory.Packages.props", "path": "Directory.Packages.props" },
+        { "kind": "copy", "asset": "assets/global.json", "path": "global.json" },
+        { "kind": "copy", "asset": "assets/coverage.runsettings", "path": "coverage.runsettings" },
+        { "kind": "copy", "asset": "assets/terraform/versions.tf", "path": "terraform/versions.tf" },
+        { "kind": "copy", "asset": "assets/competition.readme.md", "path": "README.md", "tokens": ["solution"] },
+        { "kind": "copy", "asset": "assets/competition.starter.ipynb", "path": "notebooks/{{SOLUTION}}.ipynb", "tokens": ["solution"] },
+
+        { "kind": "append", "asset": "assets/dotnet.gitignore", "path": ".gitignore" },
+        { "kind": "append", "asset": "assets/terraform.gitignore", "path": ".gitignore" },
+
+        {
+          "kind": "run",
+          "command": "dotnet",
+          "args": ["new", "sln", "--name", "{{SOLUTION}}"],
+          "unless_exists": "{{SOLUTION}}.slnx"
+        },
+        {
+          "kind": "run",
+          "command": "dotnet",
+          "args": ["new", "classlib", "--no-restore", "-n", "{{SOLUTION}}.Features", "-o", "src/{{SOLUTION}}.Features"],
+          "unless_exists": "src/{{SOLUTION}}.Features/{{SOLUTION}}.Features.csproj"
+        },
+        {
+          "kind": "run",
+          "command": "dotnet",
+          "args": ["new", "console", "--no-restore", "-n", "{{SOLUTION}}.Training", "-o", "src/{{SOLUTION}}.Training"],
+          "unless_exists": "src/{{SOLUTION}}.Training/{{SOLUTION}}.Training.csproj"
+        },
+        {
+          "kind": "run",
+          "command": "dotnet",
+          "args": ["new", "mstest", "--no-restore", "-n", "{{SOLUTION}}.UnitTests", "-o", "tests/{{SOLUTION}}.UnitTests"],
+          "unless_exists": "tests/{{SOLUTION}}.UnitTests/{{SOLUTION}}.UnitTests.csproj"
+        },
+        {
+          "kind": "run",
+          "command": "dotnet",
+          "args": [
+            "sln", "{{SOLUTION}}.slnx", "add",
+            "src/{{SOLUTION}}.Features/{{SOLUTION}}.Features.csproj",
+            "src/{{SOLUTION}}.Training/{{SOLUTION}}.Training.csproj",
+            "tests/{{SOLUTION}}.UnitTests/{{SOLUTION}}.UnitTests.csproj"
+          ]
+        },
+
+        { "kind": "delete", "glob": "src/{{SOLUTION}}.Features/Class1.cs" },
+        { "kind": "delete", "glob": "tests/{{SOLUTION}}.UnitTests/Test1.cs" },
+
+        { "kind": "copy", "asset": "assets/competition.StarterTests.cs", "path": "tests/{{SOLUTION}}.UnitTests/StarterTests.cs", "tokens": ["solution"] },
+
+        {
+          "kind": "rewrite",
+          "glob": "**/*.csproj",
+          "pattern": "(<PackageReference\\b[^>]*?)\\s+Version=\"[^\"]*\"",
+          "replacement": "$1",
+          "assert_after": "\\A(?!(?s:.*<PackageReference[^>]*\\sVersion=\"))"
+        }
+      ]
+    }
+  }
+}

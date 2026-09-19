@@ -13,7 +13,8 @@ This owner's default for **everything**, competitions included. `init` proposes 
 owner confirms rather than composing a stack from nothing. A proposal is not a decision: say
 what you picked and why, and take an override without argument.
 
-Assets referenced below live in `assets/`, beside this file.
+What this pack scaffolds is declared in `scaffold.json`, beside this file; the files it copies
+live in `assets/`, beside both. See **What the scaffold writes**.
 
 ## Contents
 
@@ -26,7 +27,7 @@ Assets referenced below live in `assets/`, beside this file.
   - Validation — what has to be green before a commit
 - Profile: `dotnet-ml`
 - The local SQL password
-- Files written
+- What the scaffold writes
 - What never gets asked
 
 ## Choosing a profile
@@ -270,26 +271,79 @@ container, and unacceptable for anything else. Never reuse it for a cloud resour
 let the same value appear in a Key Vault entry, a connection string for a deployed service, or
 a CI variable.
 
-## Files written
+## What the scaffold writes
 
-On confirmation, write these from `assets/` if absent. The `.gitignore` entries are **appended** if absent rather than replacing the file. Otherwise, **never overwrite an existing one** — a
-repo that has one has already made the decision, and replacing it silently rewrites every file
-on the next format run.
+**`scaffold.json`, beside this file, is the list.** It declares everything this pack
+scaffolds — the checks that run before anything is written, the directories, the generator
+commands, the files copied from `assets/`, the lines appended, the post-generation rewrites,
+and the generated sample content that is removed again — for each solution kind. Read it when
+you need to know what this pack produces.
 
-| File | Source | Purpose |
-|---|---|---|
-| `.editorconfig` | `assets/dotnet.editorconfig` | style, naming, EF-migration exemptions |
-| `Directory.Build.props` | `assets/Directory.Build.props` | warnings as errors, NuGet audit, security analyzers, assembly naming |
-| `Directory.Packages.props` | `assets/Directory.Packages.props` | one package version per solution |
-| `global.json` | `assets/global.json` | pinned SDK and Aspire AppHost SDK |
-| `coverage.runsettings` | `assets/coverage.runsettings` | Cobertura output, generated-code exclusions |
-| `terraform/versions.tf` | `assets/terraform/versions.tf` | pinned Terraform and provider versions, remote backend stub |
-| `.gitignore` (append) | `assets/terraform.gitignore` | state and tfvars never reach the repo |
+**Do not restate that list here, and do not write any of those files by hand.** A second list
+beside the manifest is two lists nothing checks against each other, and the first thing that
+happens is one of them quietly stops being true. The shipped executor performs the manifest,
+and it is the only thing that writes a file this pack names:
 
-`Directory.Build.props` carries an assembly-naming convention of `{{SOLUTION}}.{ProjectName}`.
-**Replace every `{{SOLUTION}}` token with this repo's solution name** when writing the file, and
-say that you did. Leaving the token in place produces assemblies literally named
-`{{SOLUTION}}.Foo`.
+```
+powershell -NoProfile -ExecutionPolicy Bypass -File "<sdlc-core>/scripts/Invoke-ScaffoldManifest.ps1" -Manifest <this pack>/scaffold.json -Kind <kind> -Target <repository directory> [-Solution <Identifier>]
+```
+
+Two kinds are declared. **`web`** emits a Blazor front end and an ASP.NET Core API composed by
+an Aspire AppHost, with service defaults, a unit suite and an integration suite. **`competition`**
+emits a feature-and-scoring library, a training runner, a unit suite and a starter notebook,
+and selects the `dotnet-ml` profile. The interview settles which one; a kind is not guessed.
+
+Three properties of the executor are worth knowing before reading the manifest, because they
+are what make a re-run safe:
+
+- **An existing file is never overwritten.** A repo that already has a `.editorconfig` has
+  already made that decision, and replacing it silently rewrites every file on the next format
+  run. The action is skipped and reported as skipped.
+- **The ignore entries are appended, not copied.** Only the lines not already present are
+  added, so a `.gitignore` a generator wrote first still gets them, and a second run adds
+  nothing.
+- **Re-running fills gaps.** Nothing is regenerated, nothing is rewritten twice, and the run
+  exits 0 having changed no file.
+
+### The prerequisite the `web` kind has, and why it is not installed for you
+
+The Aspire project templates are **not in the SDK box** — they resolve on a machine where
+`Aspire.ProjectTemplates` was installed from nuget.org at some point, and are simply absent
+otherwise. The manifest declares them as preflight checks, so on a machine without them the
+run writes nothing at all and relays the install command for the owner to run themselves.
+
+That is the "never mutates the developer's machine" rule being honoured rather than a gap: a
+global template install outlives the repository that caused it, and half-scaffolding is worse
+than failing clearly. Say so plainly if it happens, and do not run the install on the owner's
+behalf.
+
+The `competition` kind has no such prerequisite — `sln`, `classlib`, `console` and `mstest` are
+all in the box.
+
+### The solution token
+
+`Directory.Build.props` and several other assets carry a `{{SOLUTION}}` token, and the manifest
+declares it. The executor substitutes it and then sweeps every file under the target for it, so
+a token that survives — including one left by an earlier run — fails the run naming the file.
+That check exists because leaving it in place produces assemblies literally named
+`{{SOLUTION}}.Foo`, which nothing else notices.
+
+The identifier itself is derived from the repository directory name, confirmed by the owner
+during the interview, and on a later run recovered from the solution file already on disk
+rather than re-derived. It becomes every assembly name, every root namespace and every project
+directory, so it is confirmed rather than assumed.
+
+### Generator output has to be reconciled
+
+Every template emits package references with an inline `Version` attribute, which central
+package management rejects outright (`NU1008`), and the AppHost template hardcodes its SDK
+version inline where it silently overrides the pin in `global.json`. The manifest fixes both
+with regular expressions it supplies itself, each carrying an assertion about the file's end
+state so that a template which changes shape fails loudly rather than quietly unpinning.
+
+The consequence for `Directory.Packages.props` is a standing cost worth naming: **every package
+any generator emits needs a version pinned there**, and the only thing that catches a missing
+one is a failing restore. Expect to add entries when the template pack moves.
 
 The charter records the **profile name and overrides**, never the contents of these files:
 

@@ -28,5 +28,25 @@ jobs:
         with:
           node-version: '22'
 
+      # This looks like a contradiction and is not. The stack pack's scaffold manifest
+      # refuses to install anything, and that rule stands: it protects a person's
+      # workstation, where a global template install is irreversible, outlives the
+      # repository that caused it, and was never consented to. A hosted runner is none of
+      # those - it is ephemeral, declared in this reviewed file, and destroyed when the job
+      # ends. The rule is about consent and reversibility, not about the verb "install".
+      #
+      # Without this step the suite cannot prove the web solution kind at all: that kind's
+      # preflight probes for templates that are not in the SDK box, and halts with the
+      # pack's own instruction when they are absent. ScaffoldPrerequisiteTests holds this
+      # step and the manifest against each other, so a prerequisite added to the manifest
+      # and not here fails in the suite rather than as a preflight failure on the runner.
+      #
+      # That check reads the step below and not this comment, which is why the templates are
+      # named in the step's own name: a name only a comment carries outlives the step it
+      # describes, and a workflow that had this step deleted and the sentence left behind would
+      # still have read as providing them. Name a new prerequisite in the step that provides it.
+      - name: install aspire-apphost, aspire-servicedefaults, aspire-mstest
+        run: dotnet new install Aspire.ProjectTemplates::13.5.3
+
       - name: dotnet test
         run: dotnet test tests/AiSdlc.Tests/AiSdlc.Tests.csproj --nologo

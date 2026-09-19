@@ -50,7 +50,7 @@ Plugin skills are namespaced, so the short form works only when nothing else cla
 
 | Skill | Stage | Produces |
 |---|---|---|
-| `/sdlc-core:init` | 0 — once per repo | `<root>/CHARTER.md` |
+| `/sdlc-core:init` | 0 — per repo, re-enterable | `<root>/CHARTER.md`, then the solution the chosen stack pack scaffolds |
 | `/sdlc-core:intent` | Plan | `<root>/<slug>/intent.md` |
 | `/sdlc-core:spec` | Design | `<root>/<slug>/spec.md` |
 | `/sdlc-core:plan` | Build | `<root>/<slug>/plan.md` with a file-disjoint slice manifest |
@@ -125,7 +125,7 @@ implementer its own worktree. The manifest guarantees nothing here — it is abo
 
 ## The gate hook
 
-`hooks/sdlc_gate.py` warns on two distinct states, because they are not the same problem:
+`hooks/sdlc_gate.ps1` warns on two distinct states, because they are not the same problem:
 
 - **no approved plan** — nothing has been agreed yet.
 - **unplanned scope** — a plan is approved but no slice claims the file being edited. That is
@@ -171,16 +171,26 @@ claude-sonnet-5 --no-publish`.
 dotnet test tests/AiSdlc.Tests/AiSdlc.Tests.csproj
 ```
 
-One command, 49 tests, run in CI on `windows-latest` (`.github/workflows/checks.yml`). MSTest,
-the same framework every solution this framework builds uses. The tests drive the **real
-shipped artefacts** as external processes — the hook, the manifest check, the workflow
-validator — rather than reimplementing their logic in C#, because a reimplementation tests the
-reimplementation and the two drift silently.
+One command, run in CI on `windows-latest` (`.github/workflows/checks.yml`). MSTest, the same
+framework every solution this framework builds uses. The tests drive the **real shipped
+artefacts** as external processes — the hook, the manifest check, the scaffold executor, the
+workflow validator — rather than reimplementing their logic in C#, because a reimplementation
+tests the reimplementation and the two drift silently. A count is deliberately not given here;
+a hand-maintained tally in a long-lived document is wrong by the next commit.
 
 **Every check is mutation-tested.** The fault is injected and the named check must fail; a
-check nobody has seen fail is a check nobody should trust. Twelve faults, twelve caught.
+check nobody has seen fail is a check nobody should trust. Which check catches which silent
+failure is enumerated in the charter's I9 table — the one place that register lives.
 
-Windows only: the hook and the manifest check both invoke `powershell.exe`.
+The CI job installs the Aspire project templates before the suite runs, because the web
+solution kind's preflight requires them and a hosted runner does not have them. That is not the
+scaffold installing something on your behalf: the manifest still refuses to, and the runner is
+ephemeral, declared in a reviewed file, and destroyed at the end of the job.
+`ScaffoldPrerequisiteTests` holds the workflow and the pack's manifest against each other so
+the two cannot drift.
+
+Windows only: the hook, the manifest check and the scaffold executor all invoke
+`powershell.exe`.
 
 These exist because **every failure they catch is silent at runtime.** A skill whose
 frontmatter is not the first line of the file is simply never loaded; a workflow whose
@@ -192,7 +202,7 @@ expensive kind of broken and exactly what bit this repo before.
 
 | | Runtime | Ships? | Reason |
 |---|---|---|---|
-| `hooks/sdlc_gate.ps1`, `scripts/Assert-SliceManifest.ps1` | Windows PowerShell 5.1 | **yes** | Runs on every edit and at every fan-out. Present on every Windows machine with no install step, which beats 100ms: measured at 149ms against 67 for node, 51 for python. |
+| `hooks/sdlc_gate.ps1`, `scripts/Assert-SliceManifest.ps1`, `scripts/Invoke-ScaffoldManifest.ps1` | Windows PowerShell 5.1 | **yes** | Runs on every edit, at every fan-out, and at every scaffold. Present on every Windows machine with no install step, which beats 100ms: measured at 149ms against 67 for node, 51 for python. C# would have been first preference for the executor and cannot ship: installing the engine would then require a .NET SDK, and the engine must work for a pack that has nothing to do with .NET. |
 | `workflows/parallel-build.js` | Node | **yes** | Not a choice — workflow scripts *are* JavaScript. That is the format the runtime evaluates. |
 | `scripts/check-workflow.mjs` | Node, ~80 lines | no | The only remaining JS tooling. A workflow body must be evaluated the way the runtime evaluates it, which needs a JS parser. Nothing else does. |
 | `tests/AiSdlc.Tests` | MSTest / net10.0 | no | Everything else. One framework across everything this owner builds. |
@@ -210,9 +220,9 @@ re-injected against the ported version before it was deleted.
 
 `sdlc-core` ships **no stack defaults**. A **stack pack** is a skill named `stack-<name>` that
 describes one opinionated stack and carries its scaffold files. `init` lists the installed
-packs, proposes one (an existing stack in the repo always wins), and writes the files that pack
-names. With no pack installed it asks for the stack directly and writes nothing it has no
-template for.
+packs, proposes one (an existing stack in the repo always wins), and hands that pack's
+`scaffold.json` to the engine's executor, which is the only thing that writes. With no pack
+installed it asks for the stack directly and writes nothing it has no template for.
 
 `spec-writer` then reads, first answer wins:
 
@@ -238,15 +248,54 @@ net10.0 · Aspire (AppHost + ServiceDefaults) · SQL Server with a persisted dat
 · coverlet/Cobertura · `EnforceCodeStyleInBuild` + `TreatWarningsAsErrors`. A `dotnet-ml`
 variant adds ML.NET, LightGbm, AutoML and `Microsoft.Data.Analysis`.
 
-Scaffolds `.editorconfig`, `Directory.Build.props`, `Directory.Packages.props`, `global.json`
-and `coverage.runsettings`, never overwriting an existing one. `Directory.Build.props` carries a
-`{{SOLUTION}}` token that must be substituted with the repo's name.
+What it scaffolds is declared in `skills/stack-dotnet/scaffold.json` and performed by the
+engine's executor, so the list is something a test can read rather than prose a model follows.
+Two solution kinds. A web solution:
+
+```
+<repo>/
+  <Solution>.slnx
+  README.md  .gitignore  .editorconfig  global.json
+  Directory.Build.props  Directory.Packages.props  coverage.runsettings
+  .sdlc/CHARTER.md
+  src/<Solution>.AppHost/           src/<Solution>.ServiceDefaults/
+  src/<Solution>.Web/               src/<Solution>.Api/
+  tests/<Solution>.UnitTests/       tests/<Solution>.IntegrationTests/
+  terraform/versions.tf
+```
+
+A competition solution — same top-level split, different projects:
+
+```
+  src/<Solution>.Features/   src/<Solution>.Training/
+  tests/<Solution>.UnitTests/
+  notebooks/<Solution>.ipynb
+```
+
+`<Solution>` is derived from the repository directory name and confirmed with you before
+anything is written; every project, assembly and namespace carries it. **The result compiles
+and its own tests run** — that is what `init` finishes with now, rather than a folder of
+configuration files with a build still to be assembled by hand. Sample pages, endpoints and
+data types the generators emit are removed, and a real starter test replaces the sample one so
+the suite is never empty.
+
+Nothing is ever overwritten. A second run fills in what is missing and leaves every file that
+already existed byte-identical, which is what makes `init` safe to re-enter on a repo that was
+half-scaffolded.
+
+The web kind needs the Aspire project templates, which are **not** in the SDK box. Its
+preflight probes for them and stops with the install command for you to run; the scaffold
+never installs anything on your machine. The competition kind uses only in-box templates and
+scaffolds on a clean machine unaided.
 
 ### Writing your own pack
 
-Copy `plugins/stack-dotnet`, rename the skill `stack-<yours>`, and replace `assets/`. The
-skill's body states which files it writes, from which asset, and any tokens to substitute —
-`init` follows that and has no file list of its own.
+Copy `plugins/stack-dotnet`, rename the skill `stack-<yours>`, and replace `assets/` and
+`scaffold.json`. The manifest is where the pack declares, per solution kind, what to probe for
+before it starts, which directories to create, which commands to run, which assets to copy and
+with which tokens substituted, and which rewrites to apply to what the generators produced. The
+skill's body points at that manifest rather than repeating it. `init` executes it and has no
+list of its own, so adding a pack changes no engine file.
 
 ## Updating the library
 
@@ -281,5 +330,4 @@ From the official marketplace: `feature-dev` (code-explorer, code-architect),
 - `sdlc-kaggle` — sibling plugin. Competitions need an experiment ledger, a validation architect
   that owns the CV scheme and hunts leakage, baseline-first discipline, and submission-budget
   accounting — not `intent → spec → plan`, because the objective is already given by the metric.
-- `/init-competition` — the Kaggle equivalent of `/sdlc-core:init`.
 - Stage 5-6: `/ship`, and the Maintain loop back to `intent.md`.

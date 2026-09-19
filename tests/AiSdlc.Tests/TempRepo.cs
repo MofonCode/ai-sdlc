@@ -21,7 +21,7 @@ internal sealed class TempRepo : IDisposable
         ---
         solution: Test
         artifact_root: {0}
-        status: approved
+        status: {1}
         ---
         """;
 
@@ -38,10 +38,15 @@ internal sealed class TempRepo : IDisposable
     /// When set, a CHARTER.md declaring this artifact_root. Without it the hook can only
     /// find the chain if it sits at the default location.
     /// </param>
+    /// <param name="charterStatus">
+    /// The charter's own <c>status:</c>. Approved unless a test is about what happens
+    /// before approval - the scaffold executor reads this and refuses a draft.
+    /// </param>
     public static TempRepo Create(
         string rootDirectory = ".sdlc",
         string? planStatus = "approved",
-        string? charterRoot = null)
+        string? charterRoot = null,
+        string charterStatus = "approved")
     {
         string path = System.IO.Path.Combine(
             System.IO.Path.GetTempPath(), "aisdlc-" + Guid.NewGuid().ToString("N"));
@@ -61,7 +66,11 @@ internal sealed class TempRepo : IDisposable
         {
             File.WriteAllText(
                 System.IO.Path.Combine(root, "CHARTER.md"),
-                string.Format(System.Globalization.CultureInfo.InvariantCulture, CharterTemplate, charterRoot));
+                string.Format(
+                    System.Globalization.CultureInfo.InvariantCulture,
+                    CharterTemplate,
+                    charterRoot,
+                    charterStatus));
         }
 
         return new TempRepo(path);

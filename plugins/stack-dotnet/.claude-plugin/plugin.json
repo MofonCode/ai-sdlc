@@ -1,6 +1,6 @@
 {
   "name": "stack-dotnet",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "description": "Opinionated .NET/C# stack pack for the sdlc framework: net10.0, Blazor, ASP.NET Core, EF Core, Aspire orchestration with container-based local emulation, Azure PaaS (not containers) for deployed environments, Terraform as the sole source of truth for deployed infrastructure, MSTest, coverlet coverage, and scaffold files. Includes an ML.NET variant.",
   "author": {
     "name": "Peter Almanzar"
