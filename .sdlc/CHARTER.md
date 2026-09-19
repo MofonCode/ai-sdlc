@@ -2,8 +2,8 @@
 solution: ai-sdlc
 artifact_root: .sdlc/
 status: approved
-version: 4
-updated: 2026-09-18
+version: 5
+updated: 2026-09-19
 owner: peter
 ---
 
@@ -170,6 +170,11 @@ The set is enumerated instead, and grows whenever a new class is found.
 | A prerequisite is absent and the check skips rather than fails | `ScaffoldEmitsBuildableSolutionTests` — an absent prerequisite fails the run |
 | The pack's skill and its manifest list different files | `PackSkillCitesItsManifest` |
 | CI stops providing a prerequisite a pack's manifest declares | `ScaffoldPrerequisiteTests` |
+| A pack file is written by something other than the executor | `EveryPackAsset_IsDeclaredByItsManifest` — the manifest and the pack's assets name the same set, both directions |
+| An engine skill or agent names a file a pack scaffolds | `EngineInstructions_NameNoPackFile` |
+| The verification record's schema and the agent that writes it drift apart | `SchemaAndAgentTemplate_DescribeTheSameRecord`, `SchemaAndAgentTemplate_AgreeOnOrder` |
+| A verification record stops opening with a summary or closing with the owner's options | `TheRecordOpensWithASummaryAndClosesWithOptions` |
+| The Options section survives as a heading with no instruction behind it | `TheAgent_IsToldToWriteOptionsRatherThanLeaveThemInferred` |
 
 Every row is mutation-tested: the fault is injected and the named check must fail. A check that
 has never been seen to fail is a check nobody should trust.
@@ -361,6 +366,7 @@ and give them one parser.
 
 | Version | Date | Change |
 |---|---|---|
+| 5 | 2026-09-19 | **Added six rows to I9's table** for checks that already existed and were never registered. Two — the pack-asset and engine-instruction checks behind R47 — were flagged by the sixth verification of `init-scaffolds-solution`, which had no seventh round to dispose of its own finding, and the chain shipped. The other four arrived with `verification-reports-options`, a task-tier change that needs no verification and therefore got none. Both routes are the same failure: a defect became a named check and the register that enumerates them did not move, because nothing requires it to. I9 says the set grows whenever a new class is found; it did not say who notices. That is the subject of the `findings-leave-only-by-decision` intent, and this amendment is the evidence for it rather than its fix. |
 | 4 | 2026-09-18 | **Widened I1's checkable clause** from the engine's instruction files to the executables it ships as well, and named the second instrument beside the first. The old scope rested on engine tooling not executing pack-supplied data; the scaffold executor does, so the one engine file with the strongest reason to name a stack was the one file nothing scanned. Both instruments read one shared term list, because a second copy is how an instrument quietly stops covering what it claims to. **Added rows to I9's table** for the silent failures the scaffold checks now catch, plus one for an engine skill dropping its pointer to the plain-language rule and one for CI drifting from the prerequisites a pack's manifest declares. Deferred to ship time by the approved `init-scaffolds-solution` spec — unlike the two amendments before it, this one widens a check that change *adds* rather than an invariant it cites, so it could not move underneath the spec. |
 | 3 | 2026-09-18 | **Widened I5** from the *files* a pack writes to the *actions* it performs, and named the consequence: the engine executes pack-supplied command strings, so the trust boundary is the pack. **Froze the emitted repository layout**, separating it from pack *contents*, which stay movable — "we never overwrite" is a promise about writes and says nothing about shape. Both amendments were required by the approved `init-scaffolds-solution` intent before its spec could be written, rather than discovered during it. |
 | 2 | 2026-09-17 | **Added I12** — nothing is committed on a red build or a failing test, both suites, real output seen. Requested by the owner as a standing rule rather than a per-change habit. The engine states the requirement (`sdlc-router`, Gates); the stack pack states the commands, because I1 forbids the engine from naming them. |
