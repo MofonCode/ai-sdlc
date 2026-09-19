@@ -182,9 +182,12 @@ are struck through above with the reason; nothing is renumbered.
 
 **Tokens**
 
-- **R50.** WHEN the executor completes, IF any file under the target directory contains a
+- **R50.** ~~WHEN the executor completes, IF any file under the target directory contains a
   token the manifest declares, THEN THE executor SHALL exit non-zero naming the file and the
-  token — whether or not this execution wrote that file.
+  token — whether or not this execution wrote that file.~~ **Superseded by R69** — "any file
+  under the target" includes the artifact chain, whose own documents quote the token while
+  specifying it, so the sweep halted on the engine's paperwork and made R16's gap-filling re-run
+  impossible in any repository that had used this process.
 
 **The identifier reaches the executor**
 
@@ -265,6 +268,39 @@ are struck through above with the reason; nothing is renumbered.
   solution only, and SHALL contain no executable scoring, cross-validation, feature-engineering
   or other domain logic, so that the one emitted file outside the analyzer gate carries nothing
   that could be wrong and nothing a permanent non-goal forbids.
+
+### Added at revision 3
+
+R69 closes the finding from the second fresh-context verification: the token sweep halted on
+this repository's own artifact chain, so the gap-filling re-run R16 exists to allow was
+impossible in any repository that had ever used this process.
+
+- **R69.** WHEN the executor completes, IF any file under the target directory **other than
+  those under the resolved artifact root** contains a token the manifest declares, THEN THE
+  executor SHALL exit non-zero naming the file and the token — whether or not this execution
+  wrote that file. THE executor SHALL NOT sweep the artifact root.
+
+**Why the carve-out is not a weakening.** R50 said "any file under the target" deliberately:
+a token surviving from an earlier run is the intent's opening complaint, and binding the sweep
+to files this run wrote is exactly what made R8 useless. That reasoning is unchanged for
+everything a pack writes.
+
+What it did not anticipate is that the artifact chain lives under the target too, and that the
+chain's own documents quote the token while *specifying* it — this spec contains it four times.
+So the sweep halted on the engine's own paperwork rather than on a defect.
+
+The chain is the engine's territory, not scaffolded output: no pack names it, no manifest
+action writes into it, and nothing in it is ever token-substituted. Excluding it removes
+nothing the sweep was for.
+
+**The gate hook already follows this rule**, which is what makes the carve-out consistent
+rather than a special case: it resolves the artifact root and then ignores any path inside it,
+on the same grounds. The executor already resolves that root for R38 and R40, so the value is
+in hand and no new resolution logic is introduced.
+
+*Checkable: a token inside the artifact root does not halt the run, AND the same token in a
+scaffolded file still does.* Both halves are required — a test proving only the first would
+pass on an executor that had stopped sweeping altogether.
 
 ---
 
@@ -826,7 +862,7 @@ revision that the tests catch and the requirements already permit.
 | A generator command fails midway | Executor halts at that action, reports what was already created, exits non-zero. The repository is left partially scaffolded — a re-run fills the rest (R7, R34), which is why idempotence is a requirement and not a nicety. |
 | A destination file exists | Skipped and reported. Never overwritten (R5). |
 | A rewrite stops matching after a template bump | `assert_after` fails the run on a file this run created that does not end in the declared state (R42). Without this, the pinned SDK version silently stops binding — defect 3 above, re-introduced. |
-| A token is never substituted, or survives from an earlier run | Post-run sweep of every file under the target fails the run naming file and token (R50). This is the `{{SOLUTION}}.Foo` assembly regression, including the gap-filling case where this run wrote nothing. |
+| A token is never substituted, or survives from an earlier run | Post-run sweep of every file under the target fails the run naming file and token (R69), excluding the artifact chain, whose own documents quote the token while specifying it. This is the `{{SOLUTION}}.Foo` assembly regression, including the gap-filling case where this run wrote nothing. |
 | A rewrite or delete glob is too broad in a mature repo | Both are restricted to paths this run created (R41), and both appear in the report as `mutated` or `removed` (R56, R59). |
 | The charter is still a draft | The executor reads `status:` from the file and refuses (R38, R39) — not left to `init`'s prose. |
 | Generator output references an unpinned package | Restore fails with NU1008 at R31's build. Loud, and it is the check that keeps R28 honest as templates move. |
