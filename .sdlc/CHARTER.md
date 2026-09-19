@@ -2,7 +2,7 @@
 solution: ai-sdlc
 artifact_root: .sdlc/
 status: approved
-version: 3
+version: 4
 updated: 2026-09-18
 owner: peter
 ---
@@ -40,15 +40,27 @@ Properties that must hold across every change. A change that breaks one is wrong
 what it was trying to do. Each is written so a reviewer can catch a violation.
 
 **I1 — The engine imposes no stack.** No language, framework, cloud, vendor, or product name
-appears in `plugins/sdlc-core/skills/**` or `plugins/sdlc-core/agents/**` as a requirement,
-default, or recommendation **for the repo being built**. Stack knowledge lives in a `stack-*`
-pack. One carve-out: fenced examples, where an illustrative path demonstrates path matching
-and imposes nothing.
+appears in `plugins/sdlc-core/skills/**`, in `plugins/sdlc-core/agents/**`, or in any
+executable the engine plugin ships, as a requirement, default, or recommendation **for the
+repo being built**. Stack knowledge lives in a `stack-*` pack. One carve-out: fenced examples,
+where an illustrative path demonstrates path matching and imposes nothing. That carve-out
+covers the instruction files and nothing else — a script has no illustrative prose, so every
+line of one counts.
 
-*Checkable: the `CharterInvariantI1_EngineImposesNoStack` test — mechanical, with the term
-list written down in it, so the check is reproducible rather than a matter of which words a
-reviewer happened to try.* Engine tooling lives outside `skills/` and `agents/`, which is why
-the scope is those two directories rather than the whole plugin.
+*Checkable: two tests over two file sets, reading one term list —
+`CharterInvariantI1_EngineImposesNoStack` over the engine's instruction files, and
+`EngineExecutablesImposeNoStack` over the executables it ships. Mechanical, with the term list
+written down once and shared by both, so the check is reproducible rather than a matter of
+which words a reviewer happened to try, and so neither instrument can quietly stop covering
+what it claims to.*
+
+**Widened in v4 from those two directories to the shipped executables as well.** The earlier
+scope was justified by *"engine tooling lives outside `skills/` and `agents/`"* — true then,
+and it rested on engine tooling not executing pack-supplied data. The scaffold executor does:
+it reads a pack's manifest and performs the actions declared in it. That makes it the engine
+file with the strongest pull towards naming a directory, a file extension, a package or a
+generator command, and it was the one file outside the only instrument. The rationale did not
+become wrong; the thing it described changed.
 
 This invariant has been violated twice, both times by something that read as harmless: the
 disjointness check was an inline Python script, and the interrogator used a named cache product
@@ -146,7 +158,18 @@ The set is enumerated instead, and grows whenever a new class is found.
 | A manifest overlap slips through | `SliceManifestTests` |
 | Shipped PowerShell does not parse | `EveryShippedPowerShellScript_Parses` |
 | A stack leaks into the engine | `CharterInvariantI1_EngineImposesNoStack` |
+| A stack leaks into a shipped engine **executable** | `EngineExecutablesImposeNoStack` |
 | Python returns to the repo | `NoPythonShipsInThisRepository` |
+| An engine skill drops its pointer to the plain-language rule | `EveryEngineSkill_CitesThePlainLanguageRule` |
+| Scaffold produces an unbuildable solution | `ScaffoldEmitsBuildableSolution_<kind>` |
+| Generator output breaks central package management | `ScaffoldEmitsBuildableSolutionTests` — restore with transitive pinning on |
+| Emitted names stop matching the coverage patterns | `ScaffoldEmitsBuildableSolutionTests` — each emitted assembly name against `coverage.runsettings` |
+| A re-run overwrites, or a rewrite re-fires | `ScaffoldEmitsBuildableSolutionTests` — hash the tree, re-execute, compare |
+| A token survives, including from an earlier run | `ScaffoldManifestTests` — the sweep of every file under the target except the artifact chain |
+| The executor scaffolds from a draft charter | `ScaffoldManifestTests` — draft charter refuses, and leaves an empty tree |
+| A prerequisite is absent and the check skips rather than fails | `ScaffoldEmitsBuildableSolutionTests` — an absent prerequisite fails the run |
+| The pack's skill and its manifest list different files | `PackSkillCitesItsManifest` |
+| CI stops providing a prerequisite a pack's manifest declares | `ScaffoldPrerequisiteTests` |
 
 Every row is mutation-tested: the fault is injected and the named check must fail. A check that
 has never been seen to fail is a check nobody should trust.
@@ -338,6 +361,7 @@ and give them one parser.
 
 | Version | Date | Change |
 |---|---|---|
+| 4 | 2026-09-18 | **Widened I1's checkable clause** from the engine's instruction files to the executables it ships as well, and named the second instrument beside the first. The old scope rested on engine tooling not executing pack-supplied data; the scaffold executor does, so the one engine file with the strongest reason to name a stack was the one file nothing scanned. Both instruments read one shared term list, because a second copy is how an instrument quietly stops covering what it claims to. **Added rows to I9's table** for the silent failures the scaffold checks now catch, plus one for an engine skill dropping its pointer to the plain-language rule and one for CI drifting from the prerequisites a pack's manifest declares. Deferred to ship time by the approved `init-scaffolds-solution` spec — unlike the two amendments before it, this one widens a check that change *adds* rather than an invariant it cites, so it could not move underneath the spec. |
 | 3 | 2026-09-18 | **Widened I5** from the *files* a pack writes to the *actions* it performs, and named the consequence: the engine executes pack-supplied command strings, so the trust boundary is the pack. **Froze the emitted repository layout**, separating it from pack *contents*, which stay movable — "we never overwrite" is a promise about writes and says nothing about shape. Both amendments were required by the approved `init-scaffolds-solution` intent before its spec could be written, rather than discovered during it. |
 | 2 | 2026-09-17 | **Added I12** — nothing is committed on a red build or a failing test, both suites, real output seen. Requested by the owner as a standing rule rather than a per-change habit. The engine states the requirement (`sdlc-router`, Gates); the stack pack states the commands, because I1 forbids the engine from naming them. |
 | 1 | 2026-09-17 | Initial charter. Written by hand rather than from a stack pack, because no pack applies to a library of instructions. Attacked by `intent-interrogator` in fresh context before approval, which returned NOT READY: four invariants were contradicted by code in this repo, three statements of fact in Technology commitments were false, and N1 as first drafted forbade something the engine had already shipped. Nine of the eleven invariants were rewritten and four code defects fixed before this version was approved. The provenance matters — these invariants read as obvious now, and every one of them survived a reviewer trying to break it. |

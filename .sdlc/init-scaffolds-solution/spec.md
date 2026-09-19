@@ -957,7 +957,7 @@ SDK, slow, and conditional on prerequisites).
 |---|---|---|
 | S1 build exits 0 | R28, R29, R31, R66 | `ScaffoldEmitsBuildableSolution_<kind>` — execute into temp, build, assert exit 0 |
 | S2 tests run and pass, count > 0 | R26, R32, R62, R64 | Assert the reported test count > 0 and 0 failed, for the unit suite **and** the integration suite; integration compiled-or-run per container runtime |
-| S3 no `{{` survives | R50 | Sweep every file under the target, including files this run did not write |
+| S3 no `{{` survives | R69 | Sweep every file under the target **except the resolved artifact root**, including files this run did not write |
 | S4 restore under CPM | R27, R28, R66 | No version attribute on any reference; restore clean with transitive pinning on — the NU1008 regression test |
 | S5 names match coverage patterns | R23 | Assert each emitted test/host assembly name matches an exclusion in `coverage.runsettings`, parsed from the asset — not from a copy in the test |
 | S6 re-run is a no-op | R7, R41, R42, R43, R46 | Hash the tree, re-execute, compare. This is the row revision 1's `required` rewrite would have failed |
