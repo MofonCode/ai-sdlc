@@ -399,10 +399,40 @@ express it, because that list is open and the spec kept treating it as closed.
 before the run and compare after, where before it only recorded paths. That is a real cost on a
 large chain and it is the price of a rule that cannot be short a mechanism.
 
+**One property of a content-based rule, stated rather than left to be discovered.** A chain file
+this run changes and then changes *back* to byte-identical content is treated as untouched. That
+is correct under R72 as written — the question is *is it different from before*, and the answer
+is no — and it is the single case where content and authorship genuinely diverge. It is
+deliberate, and it is the price of a rule that cannot be short a mechanism. The sixth
+verification showed it costs nothing in practice: if end content equals start content then a
+token at the end was a token at the start, which is exactly the chain paperwork this exception
+exists for. An authorship rule would halt there — which is what R50 was superseded for.
+
 *Checkable, and the fourth part is the one that distinguishes R72 from R71:* a chain file this
 run did not touch does not halt it; a chain file this run created does; a scaffolded file
 outside the chain does; **and a pre-existing chain file that a `run` action's generator modified
 does.** A suite without the fourth passes on the code R72 replaces.
+
+- **R73.** THE executor SHALL exclude the repository's version-control directory from the sweep
+  by location, and this exclusion SHALL be stated rather than left implicit.
+
+**Why one exclusion is by location after revision 6 argued against location.** The sixth
+verification caught revision 6 claiming the change-and-change-back case was *the only*
+remaining exception when it was not: the executor has always skipped everything under `.git`,
+by location, and no requirement had ever said so. Behaviour with no requirement behind it is
+the gap this spec keeps finding in other people's work, and it was sitting unmentioned beside
+the rule that abandoned location as a method.
+
+It is recorded rather than removed, for three reasons the verification established by running
+it: no pack writes into the version-control directory, nothing there reaches the emitted
+solution, and the exclusion is why the sweep stays fast on a mature repository. The reachable
+failure needs a pack to write inside a git directory, which is beyond every containment rule
+this spec has anyway.
+
+The distinction from R50 and R69 is worth keeping straight, because it is not "location is fine
+after all": those drew a location boundary around files the executor **is** answerable for and
+so missed defects. This one is drawn around a directory whose contents are not part of the
+emitted solution at all.
 
 ---
 
