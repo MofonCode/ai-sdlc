@@ -59,8 +59,9 @@ Show the user, in this order:
 Requirements go in the file, not the chat. Summarise the count and the shape; the user reads
 the artifact.
 
-Describe every item by what it does. A requirement number, invariant label or concern id on
-its own tells the reviewer nothing they can decide with. See `references/plain-language.md`
+Keep every number and add what it says beside it. A requirement number, invariant label or
+concern id on its own tells the reviewer nothing they can decide with, and stripping it out
+loses the handle they need to look it up. See `references/plain-language.md`
 (the `sdlc-router` skill).
 
 ## 5. Gate

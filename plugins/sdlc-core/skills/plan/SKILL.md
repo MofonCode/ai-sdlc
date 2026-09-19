@@ -76,7 +76,8 @@ the plan and re-check, never start the build intending to reconcile in the merge
 - Requirement coverage: any R-number in the spec that no slice claims is a gap. Say so.
 
 Write all five in plain language, for someone who has never used this process: what each slice
-builds, not a list of ids and numbers. See `references/plain-language.md` (the `sdlc-router`
+builds, with each requirement number kept and glossed rather than listed bare. See
+`references/plain-language.md` (the `sdlc-router`
 skill).
 
 ## 6. Gate — the one that is not negotiable

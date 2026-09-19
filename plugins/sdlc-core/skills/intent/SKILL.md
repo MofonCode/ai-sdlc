@@ -78,7 +78,7 @@ free of, and a reader who has heard the argument has already been argued with.
 Relay its findings — the agent's report is not shown to the user, so summarise the blocking
 ones in your own words. Fix what is clearly right to fix, and put the rest to the user.
 
-**Relay in plain words, not labels.** Name each finding by what it actually objects to. See
+**Relay each finding as its label plus what it objects to**, never the label alone. See
 `references/plain-language.md` (the `sdlc-router` skill) — it binds every presentation in this
 chain.
 

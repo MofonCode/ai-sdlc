@@ -27,8 +27,9 @@ in opposite directions, and it is the conversation that loses: a summary built o
 requirement numbers, invariant labels and concern ids is unreadable even when every claim in
 it is correct.
 
-Say what a thing is and why it matters. A label may accompany a one-line summary; it may never
-stand alone. Assume the reader has never used this process before.
+Keep the label and put the meaning beside it: `R4 — no scaffold action may write outside the
+target directory`. The numbering in the artifacts is a feature and stays exactly as it is; what
+fails is a label standing alone in a sentence. Assume the reader has never used this process.
 
 **Read `references/plain-language.md` before presenting anything for approval.** It binds every
 skill in the chain.

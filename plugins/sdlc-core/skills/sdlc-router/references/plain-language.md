@@ -1,21 +1,30 @@
 # Talking to the owner in plain language
 
-Artifacts number things so that tooling and a fresh session can cite them exactly. **The
-conversation does not inherit that numbering.** An identifier is an address, not a sentence.
+Artifacts number things — requirements, invariants, flagged concerns, success criteria — and
+that numbering is **a feature, not a wart**. It is what lets a fresh session with no memory
+pick the chain up, what downstream stages cite, and what a test names when it proves a
+requirement is met. Nothing here asks for any of it to go away.
 
-Every skill in this chain presents its work to a person before a gate opens. That person is
-deciding whether to approve something, and a paragraph built out of index references gives them
-nothing to decide with — every claim can be correct and the paragraph still unreadable.
+What fails is using those numbers *as the conversation*. A label is an address. An address is
+not a sentence.
 
 ## The rule
 
-**Never hand the owner a bare identifier.** Requirement numbers, charter invariants, flagged
-concerns, success criteria, eval ids — none of them mean anything on their own.
+**Cite the index and explain it. Never the index alone.**
 
-Say what the thing *is* and why it matters. If the label genuinely earns its place, put a
-one-line summary beside it, never the label alone.
+Keep the label — the owner may want to look it up, and it is the shared handle between the
+chat and the file. Put a short plain-language gloss beside it, every time, so the sentence
+still means something to someone who has not memorised the artifact.
 
-## What this looks like
+```
+R4 — no scaffold action may write outside the target directory
+I5 — a pack's own skill is the only list of what that pack does
+F2 — the scaffold writes files where the safety check cannot see them
+```
+
+That is the whole shape: **label, dash, what it says.**
+
+## What this looks like in a paragraph
 
 Unreadable, and a real example of the failure:
 
@@ -24,33 +33,25 @@ R47 and R48 close the gap F2 names, and S10 becomes machine-checkable rather tha
 the prose R13 already admitted nobody could verify.
 ```
 
-The same content, readable:
+The same content, with the labels kept and the meaning put back:
 
 ```
-Two new requirements move every file the stack pack writes into a single program, so the
-scaffold stops writing half its files where the safety check cannot see them. That also turns
-"nothing gets generated before the owner approves the charter" from a promise in prose into
-something a test can actually prove.
+Two new requirements — R47, every file the pack writes is declared in one place, and R48,
+the setup command writes nothing but the charter — close the hole flagged as F2, where the
+scaffold was writing files the safety check never saw. That also upgrades success criterion
+S10, "nothing is generated before the owner approves", from a promise in prose to something
+a test can actually prove.
 ```
 
-The second version is longer. That is the trade being made deliberately: the owner's
-understanding is worth more than the author's word count.
+Longer, and the trade is deliberate: the owner's understanding is worth more than the
+author's word count. The labels survived; they simply stopped carrying the sentence alone.
 
-## When a label earns its place
+## Summarise the shape as well as the count
 
-Only when the owner is about to open the file and look at that exact line. Then write it as
-*label plus summary*:
-
-- Good: *"the third requirement — a scaffold action may never write outside the target
-  directory (R4)"*
-- Bad: *"R4"*
-
-## Summarise the shape, not the list
-
-When presenting an artifact for approval, give the **count and the shape**, not an enumeration.
-*"Sixty-eight requirements; the new ones are all about one thing — making the scaffold refuse to
-run rather than half-finish"* tells the owner what to look for. A list of numbers tells them to
-go read the file, which is the job they asked you to do for them.
+When presenting an artifact for approval, give the count *and* what the items are about —
+*"sixty-eight requirements; the new ones are all about one thing, making the scaffold refuse
+to run rather than half-finish"*. The owner reads the file for the full list. A bare count
+tells them nothing; a bare list of numbers tells them to go do the reading themselves.
 
 ## Assume no prior exposure
 
@@ -65,6 +66,8 @@ appears in a session, say what it means in half a sentence:
 
 ## This binds the conversation, not the file
 
-Keep the numbering *in* the artifacts. Downstream stages, tests and a fresh session with no
-memory all depend on it. The file holds the numbering; the conversation holds the meaning.
-Collapsing the two defeats the reason both exist.
+Artifacts keep their numbering exactly as it is. Do not strip labels out of a spec, a plan or
+a verification record to make them read more casually — downstream stages, tests and a fresh
+session all depend on them being there.
+
+The file holds the numbering. The conversation holds the numbering **and** the meaning.
