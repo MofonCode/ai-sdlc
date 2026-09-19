@@ -208,11 +208,19 @@ requirements_tested: 6
 ---
 ```
 
-Required sections:
+Required sections, in this order. The `verifier` agent's output template names the same set —
+`VerificationRecordTests` fails when the two drift apart, because three documents describing one
+record with nothing comparing them is how the verdict ended up last here and first there.
 
-- **Verdict** — SHIP or DO NOT SHIP, first line, with the one-sentence reason.
+- **Summary** — the whole record in five lines or fewer: the verdict, one line per blocking
+  finding, and a count of everything else. It exists because a record nobody reads is a record
+  that gets summarised by whoever relays it, from memory. Put it first so the reader who has
+  thirty seconds spends them here.
+- **Verdict** — SHIP or DO NOT SHIP, with the one-sentence reason. The Summary states it; this
+  section is where the reason lives.
 - **Blocking findings** — each with a concrete failure scenario: specific inputs or state
   leading to a specific wrong outcome. A finding with no scenario belongs under *Should fix*.
+- **Should fix** — real but not blocking, each with why it does not block.
 - **Requirement coverage** — a row per R-number: implemented, tested, note. A requirement that
   is implemented but untested is the gap that survives to production; say so per row rather
   than in a total.
@@ -223,6 +231,12 @@ Required sections:
   verification that reports success when tests failed is worse than no verification, because
   it converts an unknown into a false known.
 - **Not checked** — what the verifier could not reach, and why. Silence here reads as coverage.
+- **Options** — what the owner can do now, each with its cost. This is the section that turns a
+  report into a decision. Findings alone leave the reader to invent the choices, and whoever
+  relays the record then invents them from less information than the verifier had. Name every
+  course that is actually open, including the one you would not take, and never present a
+  single course as inevitable when more than one exists. On a SHIP verdict with nothing
+  outstanding, "ship it" is a complete and honest list of one.
 
 Gate: **DO NOT SHIP stops the change.** Fix the findings and re-verify with a fresh dispatch,
 never by asking the same agent to reconsider. A verdict that can be talked down is not a gate.

@@ -60,19 +60,36 @@ This artifact is why the stage exists rather than being a chat message. It is wh
 retrospective reads, what the next eval case is written from, and what tells you six weeks
 later whether a requirement was ever actually tested.
 
-## 5. Present, worst first
+## 5. Present — relay the record, do not rebuild it
 
-1. **The verdict** — SHIP or DO NOT SHIP, in the first line.
+The verifier wrote a **Summary** and an **Options** section. Relay those. Do not reconstruct
+them from the findings: the verifier had just finished learning what was wrong and how hard
+each thing would be to fix, and you are further from that than it was.
+
+1. **The Summary**, as it stands — verdict first.
 2. **Blocking findings**, each with its concrete failure scenario. A finding with no scenario
    goes below, not here.
-3. **Requirement coverage** — every R-number implemented but untested, and every one tested
-   only vacuously. Untested requirements are the gap that survives to production.
+3. **Requirement coverage** — every requirement implemented but untested, and every one tested
+   only vacuously, each named by what it asks for. Untested requirements are the gap that
+   survives to production.
 4. **Manifest drift** — files changed that no slice claimed (unplanned scope), and files
    claimed but untouched (a slice that did not land).
 5. **What the verifier could not check**, and why.
+6. **The Options**, last and in full — every course it named, each with its cost, including the
+   one it would not take. Ending on the options is what lets the owner answer rather than
+   digest.
 
-Present all five in plain language — a verdict the owner has to decode is a verdict they will
+Present all of it in plain language — a verdict the owner has to decode is a verdict they will
 not act on. See `references/plain-language.md` (the `sdlc-router` skill).
+
+**If the record has no Options section, say so rather than filling the gap.** An older record
+predates this requirement and that is fine; a new one missing it means the verifier skipped the
+section that turns its report into a decision, and quietly supplying your own choices hides
+that. Name the omission, then give your own options clearly marked as yours.
+
+**Do not narrow the options to the one you would pick.** Recommend, by all means — say which
+you would take and why. But a relay that presents one course as the only course has taken a
+decision that belongs to the owner, and done it invisibly.
 
 ## 6. Gate — DO NOT SHIP is a stop, not an opinion
 

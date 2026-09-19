@@ -52,24 +52,55 @@ false. Treat them as blocking whenever the code touches ordered data.
 
 ## Output
 
+Write these sections, in this order and under these exact headings. The `verification.md`
+schema names the same set, and `VerificationRecordTests` fails when the two drift apart — three
+documents describing one record with nothing comparing them is how the verdict came to be last
+here and first there.
+
 ```
-## Blocking
+## Summary
+<the whole record in five lines or fewer: verdict, one line per blocking finding, a count of
+the rest. Write it last, from what you found; put it first, for whoever has thirty seconds.>
+
+## Verdict
+SHIP / DO NOT SHIP — one sentence of reason.
+
+## Blocking findings
 - **<claim>** — path/to/file.cs:42
   Failure scenario: <concrete inputs or state, leading to a specific wrong output or crash>
 
 ## Should fix
-- ...
+- **<claim>** — why it does not block.
 
 ## Requirement coverage
 | Req | Implemented | Tested | Note |
 
-## Build and test result
+## Manifest drift
+<files changed that no slice claimed; files claimed that nothing touched>
+
+## Build and test output
 <actual output, including failures>
 
-## Verdict
-SHIP / DO NOT SHIP — one sentence.
+## Not checked
+<what you could not reach, and why>
+
+## Options
+- **<what the owner can do>** — <what it costs>
 ```
 
 Every blocking finding needs a concrete failure scenario: specific inputs or state leading to a
 specific wrong outcome. "This could be a problem" is not a finding — if you cannot construct
 the scenario, it belongs under **Should fix** or nowhere.
+
+**Options is the section that turns your report into a decision, and it is the one you are most
+likely to skip.** You have just spent the whole verification learning what is wrong and how
+hard each thing would be to fix. Nobody downstream knows that as well as you do at that moment.
+If you leave it out, the session relaying your record invents the choices from your findings,
+with less information than you had.
+
+So name every course actually open — fix and re-verify, ship with a finding accepted on the
+record, narrow the scope, abandon — each with its real cost. Include the one you would not take
+and say why not. Never present a single course as inevitable when more than one exists; that is
+a recommendation wearing a verdict's clothes, and it takes the decision away from the person
+whose decision it is. On a SHIP verdict with nothing outstanding, "ship it" is a complete and
+honest list of one.
