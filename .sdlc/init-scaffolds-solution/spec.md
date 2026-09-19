@@ -275,10 +275,12 @@ R69 closes the finding from the second fresh-context verification: the token swe
 this repository's own artifact chain, so the gap-filling re-run R16 exists to allow was
 impossible in any repository that had ever used this process.
 
-- **R69.** WHEN the executor completes, IF any file under the target directory **other than
+- **R69.** ~~WHEN the executor completes, IF any file under the target directory **other than
   those under the resolved artifact root** contains a token the manifest declares, THEN THE
   executor SHALL exit non-zero naming the file and the token — whether or not this execution
-  wrote that file. THE executor SHALL NOT sweep the artifact root.
+  wrote that file. THE executor SHALL NOT sweep the artifact root.~~ **Superseded by R70** —
+  the carve-out was unconditional, and it rested on "no manifest action writes into the chain",
+  which nothing enforces.
 
 **Why the carve-out is not a weakening.** R50 said "any file under the target" deliberately:
 a token surviving from an earlier run is the intent's opening complaint, and binding the sweep
@@ -301,6 +303,34 @@ in hand and no new resolution logic is introduced.
 *Checkable: a token inside the artifact root does not halt the run, AND the same token in a
 scaffolded file still does.* Both halves are required — a test proving only the first would
 pass on an executor that had stopped sweeping altogether.
+
+### Added at revision 4
+
+R70 closes the finding from the third fresh-context verification: revision 3's carve-out moved
+part of the defect it was fixing rather than removing it.
+
+- **R70.** WHEN the executor completes, IF any file under the target directory contains a token
+  the manifest declares, THEN THE executor SHALL exit non-zero naming the file and the token —
+  whether or not this execution wrote that file — EXCEPT that a file under the resolved
+  artifact root SHALL be swept only when this execution created it.
+
+**What revision 3 got wrong.** R69 excluded the artifact root unconditionally, and justified it
+on the grounds that the chain is the engine's territory: *no pack names it, no manifest action
+writes into it.* The first half is a fact about the engine. The second is an assumption about
+every pack that will ever exist, and nothing enforces it. A manifest that copied an asset into
+the chain without declaring `tokens` would leave a token on disk and exit 0 — which is R50's
+defect exactly, one directory in, and now with a requirement authorising the silence.
+
+This spec has now made the same mistake twice in the same place, which is worth stating rather
+than quietly correcting: R50 drew the boundary by *location* and caught the engine's own
+paperwork; R69 drew it by *location* again and stopped catching a pack's mistake. **The boundary
+is authorship, not location** — the executor is answerable for what it wrote and for nothing
+else, and it already tracks that set for R41.
+
+*Checkable in three parts, all required:* a token in a chain file this run did **not** create
+does not halt it; a token in a chain file this run **did** create halts it; a token in a
+scaffolded file outside the chain still halts it. The first two together are what distinguish
+this from R69 — a test proving only the first would pass on the code R70 replaces.
 
 ---
 
@@ -862,7 +892,7 @@ revision that the tests catch and the requirements already permit.
 | A generator command fails midway | Executor halts at that action, reports what was already created, exits non-zero. The repository is left partially scaffolded — a re-run fills the rest (R7, R34), which is why idempotence is a requirement and not a nicety. |
 | A destination file exists | Skipped and reported. Never overwritten (R5). |
 | A rewrite stops matching after a template bump | `assert_after` fails the run on a file this run created that does not end in the declared state (R42). Without this, the pinned SDK version silently stops binding — defect 3 above, re-introduced. |
-| A token is never substituted, or survives from an earlier run | Post-run sweep of every file under the target fails the run naming file and token (R69), excluding the artifact chain, whose own documents quote the token while specifying it. This is the `{{SOLUTION}}.Foo` assembly regression, including the gap-filling case where this run wrote nothing. |
+| A token is never substituted, or survives from an earlier run | Post-run sweep of every file under the target fails the run naming file and token (R70). A file under the artifact chain is swept only when this run created it: the chain's own documents quote the token while specifying it, and a pack that wrote there without substituting would otherwise go unnoticed. This is the `{{SOLUTION}}.Foo` assembly regression, including the gap-filling case where this run wrote nothing. |
 | A rewrite or delete glob is too broad in a mature repo | Both are restricted to paths this run created (R41), and both appear in the report as `mutated` or `removed` (R56, R59). |
 | The charter is still a draft | The executor reads `status:` from the file and refuses (R38, R39) — not left to `init`'s prose. |
 | Generator output references an unpinned package | Restore fails with NU1008 at R31's build. Loud, and it is the check that keeps R28 honest as templates move. |
@@ -957,7 +987,7 @@ SDK, slow, and conditional on prerequisites).
 |---|---|---|
 | S1 build exits 0 | R28, R29, R31, R66 | `ScaffoldEmitsBuildableSolution_<kind>` — execute into temp, build, assert exit 0 |
 | S2 tests run and pass, count > 0 | R26, R32, R62, R64 | Assert the reported test count > 0 and 0 failed, for the unit suite **and** the integration suite; integration compiled-or-run per container runtime |
-| S3 no `{{` survives | R69 | Sweep every file under the target **except the resolved artifact root**, including files this run did not write |
+| S3 no `{{` survives | R70 | Sweep every file under the target, including files this run did not write; under the artifact root, only files this run created |
 | S4 restore under CPM | R27, R28, R66 | No version attribute on any reference; restore clean with transitive pinning on — the NU1008 regression test |
 | S5 names match coverage patterns | R23 | Assert each emitted test/host assembly name matches an exclusion in `coverage.runsettings`, parsed from the asset — not from a copy in the test |
 | S6 re-run is a no-op | R7, R41, R42, R43, R46 | Hash the tree, re-execute, compare. This is the row revision 1's `required` rewrite would have failed |

@@ -165,7 +165,7 @@ The set is enumerated instead, and grows whenever a new class is found.
 | Generator output breaks central package management | `ScaffoldEmitsBuildableSolutionTests` — restore with transitive pinning on |
 | Emitted names stop matching the coverage patterns | `ScaffoldEmitsBuildableSolutionTests` — each emitted assembly name against `coverage.runsettings` |
 | A re-run overwrites, or a rewrite re-fires | `ScaffoldEmitsBuildableSolutionTests` — hash the tree, re-execute, compare |
-| A token survives, including from an earlier run | `ScaffoldManifestTests` — the sweep of every file under the target except the artifact chain |
+| A token survives, including from an earlier run | `ScaffoldManifestTests` — the sweep of every file under the target, and of chain files this run created |
 | The executor scaffolds from a draft charter | `ScaffoldManifestTests` — draft charter refuses, and leaves an empty tree |
 | A prerequisite is absent and the check skips rather than fails | `ScaffoldEmitsBuildableSolutionTests` — an absent prerequisite fails the run |
 | The pack's skill and its manifest list different files | `PackSkillCitesItsManifest` |
