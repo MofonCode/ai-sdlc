@@ -149,4 +149,39 @@ public sealed class SkillAndAgentTests
 
         Assert.AreEqual(0, problems.Count, string.Join(Environment.NewLine, problems));
     }
+
+    [TestMethod]
+    public void EveryEngineSkill_CitesThePlainLanguageRule()
+    {
+        // The rule this guards - present work in plain words rather than in requirement
+        // numbers and invariant labels - is about how a stage TALKS, which no test can assert
+        // directly. What is checkable is that every skill still points at it. That is the
+        // shape this particular failure takes: the rule was written down once, the pointer
+        // was never there, and it drifted out of practice with nothing to notice.
+        string reference = Path.Combine(
+            Repo.Root, "plugins", "sdlc-core", "skills", "sdlc-router",
+            "references", "plain-language.md");
+
+        Assert.IsTrue(
+            File.Exists(reference),
+            Marketplace.Rel(reference) + " is missing, and every engine skill cites it");
+
+        List<string> problems = [];
+        string skills = Path.Combine(Repo.Root, "plugins", "sdlc-core", "skills");
+
+        foreach (string file in Directory.EnumerateFiles(skills, "SKILL.md", SearchOption.AllDirectories))
+        {
+            if (!File.ReadAllText(file).Contains("plain-language.md", StringComparison.Ordinal))
+            {
+                problems.Add(Marketplace.Rel(file));
+            }
+        }
+
+        Assert.AreEqual(
+            0,
+            problems.Count,
+            "these engine skills present work to the owner and do not cite the plain-language rule:"
+                + Environment.NewLine
+                + string.Join(Environment.NewLine, problems));
+    }
 }

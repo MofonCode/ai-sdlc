@@ -146,6 +146,10 @@ it was not in the room; every line of context you add hands back the reasoning i
 free of, and a reader who has heard the argument has already been argued with. Relay the blocking findings in your own words — its report is not shown
 to the user.
 
+Name each invariant and non-goal by what it forbids rather than by a label, and assume the
+owner has never used this process. See `references/plain-language.md` (the `sdlc-router`
+skill).
+
 ## 5. Check CLAUDE.md exists
 
 Different artifact, different job: `CHARTER.md` is product intent for humans and future intents;

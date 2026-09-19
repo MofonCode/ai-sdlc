@@ -71,6 +71,9 @@ later whether a requirement was ever actually tested.
    claimed but untouched (a slice that did not land).
 5. **What the verifier could not check**, and why.
 
+Present all five in plain language — a verdict the owner has to decode is a verdict they will
+not act on. See `references/plain-language.md` (the `sdlc-router` skill).
+
 ## 6. Gate — DO NOT SHIP is a stop, not an opinion
 
 On **DO NOT SHIP**: the change does not ship — and **the record is committed anyway**:

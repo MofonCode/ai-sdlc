@@ -19,6 +19,20 @@ intent.md  ->  spec.md  ->  plan.md  ->  code + tests  ->  verified diff
 Each arrow is a human gate. Artifacts are re-enterable: running `/sdlc-core:spec` on an existing
 spec.md revises it, it does not start over.
 
+## Talk to the owner in plain language, not identifiers
+
+Every stage of this chain presents its work to a person before a gate opens, and every stage
+numbers things so that tooling and a fresh session can cite them exactly. Those two facts pull
+in opposite directions, and it is the conversation that loses: a summary built out of
+requirement numbers, invariant labels and concern ids is unreadable even when every claim in
+it is correct.
+
+Say what a thing is and why it matters. A label may accompany a one-line summary; it may never
+stand alone. Assume the reader has never used this process before.
+
+**Read `references/plain-language.md` before presenting anything for approval.** It binds every
+skill in the chain.
+
 ## Tiers — the escape hatch
 
 Ceremony that costs more than it saves gets abandoned, and then nothing is used. Pick a tier
