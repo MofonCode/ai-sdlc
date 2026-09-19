@@ -3,14 +3,14 @@ slug: init-scaffolds-solution
 status: draft
 spec: ./spec.md
 plan: ./plan.md
-verdict: ship
+verdict: do-not-ship
 verified: 2026-09-19
 requirements_total: 63
-requirements_tested: 52
-verification_rounds: 4
+requirements_tested: 53
+verification_rounds: 5
 ---
 
-*Frontmatter describes the fourth and current verification, at the foot of this file. The three
+*Frontmatter describes the fifth and current verification, at the foot of this file. The four
 sections above it are earlier verifications of earlier states and stand as written.*
 
 # verification — init produces a solution you can build
@@ -2079,3 +2079,543 @@ version-4 amendment.
   unexpected failure still produces a report. Preflight parsing is not: a manifest declaring
   `"expect_exit": "abc"` throws on the cast at line 785 and produces a stack trace with no report.
   Same trust boundary as above, and a smaller hole than the one that section already accepts.
+
+---
+
+# Verification 5 — 2026-09-19, of the state after spec revision 5
+
+**Which state this describes.** The fourth round returned SHIP against spec revision 4 and
+carried two items. Both were then acted on, so that verdict describes a state that no longer
+exists. This round verifies the state after:
+
+- the post-run placeholder sweep moved from **R70** — a chain file is swept only when this run
+  *created* it — to **R71**, which widens "created" to "wrote to, by creating or appending",
+  because `append` writes to a file that is already on disk and creates nothing;
+- **R47** — the pack's manifest is the declaration of every file the pack scaffolds, so that
+  nothing but the executor writes one — gaining machine checks for the first time, after four
+  rounds in which it had none.
+
+I reached my own conclusions. The four earlier verdicts were read as evidence about earlier
+states, not inherited as a baseline.
+
+---
+
+## Verdict
+
+**DO NOT SHIP**, on one finding.
+
+The suite is green — 139 tests, 0 failed, 0 skipped — and almost everything in this change is
+ready. The containment paths are real, the two new checks behind R47 are genuine instruments
+rather than paperwork, and the design decision the implementer made against the lead's steer is
+the right one; I say so with reasons below rather than deferring to it.
+
+The finding is this. **R71 — the placeholder sweep covers a file under the artifact chain only
+when this run wrote to it, by creating or appending — still does not cover every way this run
+writes to a file.** `append` was the mechanism the fourth round found missing. It was not the
+only one. A `run` action's generator that modifies a chain file which already existed writes
+bytes that nothing registers, so the sweep skips the file and the run exits 0 with the
+placeholder sitting on disk and no entry in the report. I reproduced it in one command; the
+transcript is under **Blocking findings**.
+
+The implementation is faithful to R71 *as written* — R71 names two mechanisms and a generator
+modification is neither — so this is a gap in the requirement that the code inherited honestly,
+not an implementation defect. That matters for how it gets fixed, and it is why I am blocking
+rather than carrying it: **this is the fourth time this one boundary has been specified by
+enumerating mechanisms, and the fourth time the enumeration turned out to be short.** The spec
+itself says the pattern is the lesson. A fifth mechanism word would leave the next reader to
+find the sixth. The fix that ends it is to stop naming mechanisms and define the set by
+observation, which the executor is already most of the way to computing.
+
+Everything else I found is in **Should fix**. None of it is blocking, and I say plainly per item
+why not.
+
+---
+
+## Blocking findings
+
+### B1 — A generator that modifies an existing chain file writes a placeholder past the sweep, and the run exits 0
+
+**What R71 asks for:** when the executor finishes, any file under the target directory holding a
+placeholder the manifest declares fails the run and is named — *except* a file under the
+resolved artifact chain, which is swept only when this execution wrote to it, "whether by
+creating it or by appending to it".
+
+**What R71's own rationale says**, in the sentence it inherits verbatim from the requirement it
+replaces: *the executor is answerable for what it wrote and for nothing else.*
+
+**Those two are not the same set, and the narrower one is the sentence again.** The failure
+shape is identical to the one revision 5 was written to close, one action kind over.
+
+**The scenario, run rather than argued.** A target repository with an approved charter at
+`.sdlc/CHARTER.md` and one other chain file, `.sdlc/notes.md`, already on disk. A manifest with a
+single `run` action whose command appends a line carrying the pack's placeholder to that file.
+The placeholder is assembled from pieces inside the command so that it is not in the manifest
+text — the executor substitutes its own strings before running anything, which is correct, and
+is why a generator is the only way the placeholder reaches disk here:
+
+```
+$ powershell -File plugins/sdlc-core/scripts/Invoke-ScaffoldManifest.ps1 \
+    -Manifest <fixture>/scaffold2.json -Kind demo -Target <fixture>/repoB
+
+solution identifier: RepoB (derived from the directory name)
+action 1 (run) powershell.exe -NoProfile -Command "$t = '{' + '{SOLUTION}' + '}'; ..."
+scaffold completed for kind 'demo' in ...\repoB
+EXIT=0
+
+$ cat repoB/.sdlc/notes.md
+pre-existing note
+assembly = {{SOLUTION}}.Thing
+
+$ grep outcome report.json
+    "outcome":  "completed",
+```
+
+Exit 0. Outcome `completed`. The placeholder is on disk. The report carries one `run` entry
+recorded as `created` and nothing else — no token entry, because the sweep never read the file.
+
+**The control, in the same fixture, proving it is the modification and not the directory.** Add a
+second line to the same command writing the same text to `.sdlc/fresh.md`, which does *not*
+already exist:
+
+```
+token {{SOLUTION}} survives in: .sdlc/fresh.md
+EXIT=1
+   { "kind": "token", "outcome": "failed", "path": ".sdlc/fresh.md",
+     "reason": "token {{SOLUTION}} was not substituted" }
+```
+
+The file the generator **created** is registered and swept. The file the generator **modified**
+is not. Same command, same directory, same run.
+
+**Why that asymmetry is the finding and not a quibble.** The executor already accepts authorship
+of what a generator produces — after every `run` it walks the tree and registers everything that
+was not there before (`Invoke-ScaffoldManifest.ps1:906-908`), which is what makes generator
+output eligible for `rewrite` and `delete` as well as for the sweep. So the executor's own model
+of "this run wrote it" is inconsistent between two outcomes of the same action: a generator
+creating a chain file is this run's, a generator modifying one is not. The gap is not a
+principled limit; it is the limit of what "created" can detect.
+
+**I enumerated the write paths rather than trusting a list.** Every call in the script that puts
+bytes into a file:
+
+| Line | Path | Registered? |
+|---|---|---|
+| 946 | `copy`, no substitution — `Copy-Item` | yes, as created |
+| 950 | `copy`, with substitution — `WriteAllText` | yes, as created |
+| 981 | `append` where the file is absent — `WriteAllText` | yes, as created |
+| 1012 | `append` where the file exists — `AppendAllText` | yes, as appended — **this is what R71 added** |
+| 1046 | `rewrite` — `WriteAllText` | already created; `rewrite` can only reach the created set |
+| 1091 | `delete` — `Remove-Item` | removed from both sets; the file is gone |
+| 815, 900 | `preflight` and `run` — an external command | **new files yes, modifications no** |
+
+The five directory creations (625, 871, 895, 939, 979) write no file bytes. So the closed set of
+unregistered writes is exactly one entry: **bytes written by a command the executor started, into
+a file that existed when the execution began.** There is also a narrower sibling — a file created
+by a *preflight* command is registered only if some later `run` action happens to trigger the
+tree walk, so a kind with preflights and no `run` action leaves preflight output unregistered
+too.
+
+**Likelihood, stated honestly, because it argues the other way.** Nothing in `stack-dotnet`
+declares a `run` action that writes into `.sdlc/`, and a generator that writes there at all is
+doing something unusual. This is less likely than the case R71 closed, where the realistic shape
+— a pack appending a section to the charter, which the setup command always writes first — is
+named in the spec. If the question were only "will this fire", the answer would be "probably
+never", and carrying it would be defensible.
+
+**Why I am blocking anyway.** Not for this one hole. For the method that keeps producing them,
+and because the change that ends it is small and available now:
+
+- **R50** — sweep every file under the target — drew the boundary by *location* and caught the
+  engine's own paperwork.
+- **R69** — exclude the chain — drew it by *location* again and stopped catching a pack's
+  mistake.
+- **R70** — sweep a chain file this run *created* — drew it by authorship and then
+  under-described its own principle.
+- **R71** — *created or appended* — extends the enumeration by one term. This finding is the
+  next term.
+
+The spec's own words on revision 5 are *"a requirement whose sentence and whose rationale
+disagree will be implemented from the sentence."* R71's sentence and rationale still disagree, in
+the same direction, and it was implemented from the sentence again — exactly as predicted.
+
+**The fix, which is not another mechanism word.** Define the exception observationally instead of
+by enumeration: *a file under the resolved artifact chain is swept unless it existed when this
+execution began **and its bytes are unchanged since**.* That is complete by construction — it
+cannot be short a mechanism, because it names no mechanism — and it is the same set the current
+rule is trying to describe. The executor already snapshots what was on disk before the first
+action (`$script:PreExisting`, line 793); this needs that snapshot to carry a content hash for
+chain files only, which is a handful of files, and one comparison in `Test-Sweepable`. It wants a
+requirement of its own (an R72) because it changes what the spec promises, not just how the
+script computes it.
+
+**The test that pins it**, and which no current row would catch: a manifest whose `run` action's
+command modifies a pre-existing chain file to contain the placeholder must halt the run and name
+that file. The four rows that exist for R71 all pass on the code as it stands.
+
+---
+
+## Should fix
+
+None of these blocks. Each says why.
+
+### S1 — The two-set design is correct, and the guard test really does pin it
+
+Not a defect — the lead asked for an independent judgement on a decision the implementer made
+against an explicit steer, so here it is, and it does not agree with the steer.
+
+**The steer was to fold appended paths into the single set the executor already keeps.** The
+implementer refused and kept two: `$script:Created`, which is what R41 — a `rewrite` or a
+`delete` may touch only paths this execution created — bounds those two actions to; and
+`$script:Appended`, which exists only so the sweep knows what else this run put bytes into. The
+union is computed at its single point of use, `Test-Sweepable`.
+
+**The reasoning holds, and merging would have been a regression.** The two sets answer two
+different questions, and only one of them is about ownership. An `append` destination was already
+on disk, so its existing content belongs to whoever put it there. Merging would make an appended
+file eligible for `delete` — and the pack's own manifest appends to `.gitignore`, a file a
+generator or a mature repository routinely already has. A `delete` glob broad enough to catch it
+would then remove a real repository's ignore file because the pack added two lines to it, which
+is precisely the harm R41 exists to prevent. The safer-looking simplification is the dangerous
+one here.
+
+**They cannot drift in a way that matters.** I traced every transition. `delete` removes a path
+from both sets (lines 1092-1093), and that second removal is reachable only for a file that was
+created *and* appended to in the same run, which is the only state that puts a path in both.
+Nothing else writes either set after registration, nothing reads the union anywhere but
+`Test-Sweepable`, and no third set caches it. There is no pair of values that can disagree,
+because there is no invariant between them to violate — which is the property the implementer's
+comment claims and I was able to confirm rather than take.
+
+**The guard test is not decorative.** `AFileThisRunOnlyAppendedTo_IsNotTheRunsToRewriteOrDelete`
+appends to a pre-existing `kept.gitignore`, then runs a `rewrite` and a `delete` whose globs both
+match it, and asserts the file survives with its original line intact. Under the merged design
+the `rewrite` would fire and the `delete` would remove the file, so both assertions fail — the
+test discriminates the two designs rather than describing the one that shipped. It also asserts
+the appended line is present, so it cannot pass by the append having silently not happened.
+
+**The one residual, and it is small.** `Test-Sweepable` is the only place the union is computed.
+A future requirement that needs "what did this run write to" somewhere else will have to
+recompute it, and the next author has only the comment to tell them. Worth leaving as it is;
+worth knowing.
+
+### S2 — The two new checks behind R47 are real instruments, with one vacuity gap
+
+The lead's concern was the right one to raise: a check written to close a finding tends to assert
+the state its author just created, and R47 — the manifest declares every file the pack scaffolds,
+so that nothing but the executor writes one — is a claim about *absence*, which is the hardest
+shape to instrument. I asked of each check what change would break it and whether anyone would
+make that change.
+
+**`EveryPackAsset_IsDeclaredByItsManifest`** holds the manifest and the pack's `assets/`
+directory against each other in both directions. It is not vacuous today: fourteen assets are
+declared and exactly those fourteen are on disk, matched name for name. It breaks on two changes
+people really make — adding an asset file without giving it a manifest action, which is the
+pre-change habit this whole slice exists to end; and renaming or moving an asset the manifest
+still names, which otherwise fails mid-scaffold on a user's machine. The assets directory is
+derived from the declared paths rather than written into the test, so a pack that reorganises
+carries the check with it.
+
+**Its gap:** unlike its sibling it has no non-vacuity guard. A manifest that declared no assets at
+all would yield an empty expectation set, contribute no directory to scan, and pass silently. The
+sibling check asserts its needle set is non-empty for exactly this reason; this one should assert
+the declared set is non-empty. Not blocking, because such a manifest fails several other rows.
+
+**`EngineInstructions_NameNoPackFile`** is the half that actually speaks to R47's absence claim:
+it reads the destination filenames out of each pack's manifest and fails if any engine skill or
+agent file names one outside a fenced example. It has the non-vacuity guard, and it has a
+precedent rather than a hypothesis — the setup skill's previous wording had the engine writing
+seven of the pack's configuration files itself, which is how the half-gated write surface
+survived the design that claimed to have resolved it. Re-adding one line of that prose fails this
+check. That is a change someone would plausibly make.
+
+**Its hazard, in the safe direction:** the needle set includes `README.md` and `.gitignore`,
+because the pack copies and appends to those names. No engine instruction file mentions either
+today. The day one legitimately does — telling an owner to update the repository's own README,
+say — this check fails with a message about pack files. Erring towards firing is the right
+direction for this check, and the message names the pack that declared the file, so the failure
+is at least diagnosable. Worth knowing before someone hits it.
+
+**What neither check reaches**, and both say so in their own remarks: a file written by a
+generator inside a `run` action, and prose that describes a pack file without spelling its name.
+
+### S3 — `unless_exists` binds every action kind, and only one kind is tested (carried, third round)
+
+**R43** — where an action declares `unless_exists`, the executor skips it when that path is
+present, for every action kind and not only for `run`. The implementation is right: the check
+sits at the top of the action loop before the kind switch (lines 846-857), so it binds all six
+kinds by construction.
+
+The test does not hold that. `SecondExecution_ChangesNoFileAndExitsZero` declares `unless_exists`
+on a `run` action only; every other action in its fixture reaches `skipped` through its own
+idempotence — `mkdir` finds the directory, `copy` finds the destination, `append` finds its lines
+present, `rewrite` and `delete` are bounded to what this run created. Move the check inside the
+`run` branch and the test still passes.
+
+**Why it does not block, and this is a stronger reason than the last two rounds gave.** For the
+other five kinds `unless_exists` is a convenience, not the thing that makes a re-run safe — each
+already refuses to act on a destination that exists, for its own reasons, and those refusals *are*
+tested. Breaking R43 for `mkdir` or `copy` would change nothing observable. The fix is one fixture
+row declaring `unless_exists` with a sentinel on an action of each kind; it is cheap and it
+should be done, but nothing rides on it.
+
+### S4 — Removal of generator sample content is reported, never measured (carried, second round)
+
+**R26** — the manifest removes every sample page, component, endpoint and data type the
+generators produce, and leaves at least one executable test. The second half has a real
+instrument: both suites are run and a test count above zero is asserted from a TRX file, so a
+suite deleted down to nothing fails loudly. The first half has none. No row asserts that
+`WeatherForecastController.cs`, `WeatherForecast.cs`, `Test1.cs`, `IntegrationTest1.cs` or
+`Class1.cs` are gone from the emitted tree.
+
+What exists instead is a report entry: a `delete` that matched nothing is recorded as `skipped`
+with the reason "no file this run created matched '<glob>'", which the setup command relays. That
+is reporting, not measuring — it needs a human to read a line in a report and notice.
+
+**The failure it leaves open:** a template bump renames the sample file, every glob matches
+nothing, the run exits 0, the build is green, both suites pass, and every repository scaffolded
+from that day forward ships the generator's demo content. Nothing in the suite says a word.
+
+**Why it does not block:** the scaffold is still correct in every other respect when this fires,
+and the report does carry the evidence. The fix is one row per kind asserting the sample paths
+are absent from the emitted tree, which also gives R26's first half its I9 entry.
+
+### S5 — A refusal creates the target directory and leaves it behind (carried, second round)
+
+Confirmed by running it. Pointed at a directory that does not exist, the executor creates it
+(line 625) before the approval gate, then refuses because there is no chain, leaving an empty
+directory on disk:
+
+```
+$ powershell -File Invoke-ScaffoldManifest.ps1 ... -Target <fixture>/probeC
+no artifact chain under ...\probeC - there is no charter to approve this scaffold.
+EXIT=1
+$ ls probeC
+(empty)
+```
+
+**R38** and **R39** — the executor reads the charter's status and refuses to write anything
+without an approved one — say "write nothing", and no file is written. An empty directory is
+cosmetic. Not blocking; worth either creating the target after the gate, or removing it on a
+refusal that created it.
+
+### S6 — R61's consumer half is proven only by a consumer the suite wrote
+
+**R61** — the report carries a schema version and a consumer rejects a version it does not know.
+The first half is tested against the real script. The second is tested against `Accept`, a helper
+inside `ScaffoldManifestTests` that the same author wrote. The production consumer is the setup
+skill, and its body never mentions `report_version` at all — it is told to read the report and
+relay it, with no instruction to check the version first.
+
+Not blocking: the setup skill is prose and human-verified by design, and there is only one report
+version in existence. Worth a sentence in the skill body so the requirement has a consumer
+outside the test that asserts it.
+
+### S7 — Two smaller holes in instruments, and one carried item, noted rather than left silent
+
+- **`NoManifest_InstallsItsOwnPrerequisite`** — which holds **R30**, that a missing prerequisite
+  fails with the pack's instruction and nothing is installed — scans `run` actions' arguments for
+  the install verb and does not scan `preflight` commands. A manifest that installed from a
+  preflight would pass. The preflight is the *first* thing that runs, so it is if anything the
+  more attractive place to put one.
+- **Two start-up refusals emit no report.** A `-Target` that is not a usable path, or that names
+  a file, exits 1 at lines 615 and 623 before the target is resolved, with a stderr line and no
+  JSON on stdout. **R56** binds "completes or halts" and **R20** has the setup command relay the
+  report verbatim; on those two paths there is nothing to relay. Reachable only by passing a
+  garbage path.
+- **Hostile-manifest parsing outside the action loop** — carried unchanged from the fourth round.
+  `"expect_exit": "abc"` still throws on the integer cast during preflight (line 818), outside the
+  wrapped action loop, producing a stack trace and no report. Inside the trust boundary that
+  flagged concern **F1** — the engine runs command strings a pack supplies — places at the pack.
+
+---
+
+## Requirement coverage
+
+Live requirements only. **Eight are struck through in the spec and correctly claimed by nobody:**
+R6 (the report outcome set with no `mutated` or `removed`), R8 (the placeholder rule bound to
+files this run wrote), R11 (the `required` rewrite that contradicted re-runnability), R14 (the
+two-argument invocation), R33 (the integration criterion a zero-test suite could satisfy), R50
+(the sweep of every file under the target), R69 (the unconditional chain carve-out) and now
+**R70** (the carve-out that said "created" where it meant "wrote to"). **Sixty-three live.**
+
+| Req | What it says | Implemented | Tested | Note |
+|---|---|---|---|---|
+| R1 | every pack ships a scaffold manifest | yes | yes | `EveryPack_ShipsAScaffoldManifest`, guarded against an empty pack list |
+| R2 | the engine names no string a pack owns | yes | yes | both invariant-I1 checks off one shared term list, which carries the file extension and the placeholder spelling |
+| R3 | actions run in order, halting at the first failure | yes | yes | asserts the later action did not run |
+| R4 | a path outside the target is refused, nothing written | yes | yes | one row per action kind |
+| R5 | an existing destination is skipped and left byte-identical | yes | yes | |
+| R7 | a second run changes no file and exits 0 | yes | yes | fixture manifest, and the real pack per kind by tree hash including the chain |
+| R9 | preflight runs first; on failure nothing is written | yes | yes | relays the pack's remediation verbatim |
+| R10 | `unless_exists` skips the action (restated as R43) | yes | partial | see R43 |
+| R12 | an unknown or missing kind lists the declared kinds | yes | yes | plus an unknown manifest version refused before any action |
+| R13 | no scaffold action while the charter is draft | yes | n/a | the setup command's prose; the substantive half is machine-checked by R38 |
+| R15 | stop and name the missing answer when the kind or the boundaries are unsettled | yes | no | prose, human-verified by design |
+| R16 | a re-run offers charter amendment and gap-filling | yes | no | prose; the gap-filling half stays unblocked — a chain document quoting the placeholder does not halt the run |
+| R17 | derive the identifier from the directory name, present it for confirmation | yes | yes | derivation tested per case; the confirmation half is prose |
+| R18 | an underivable candidate is refused, never repaired | yes | yes | empty and leading-digit rows |
+| R19 | recover the identifier from an existing solution file, never re-derive | yes | yes | |
+| R20 | relay the report verbatim; never claim the repo is scaffolded after a non-zero exit | yes | no | prose |
+| R21 | the web kind emits the frozen set of projects | yes | yes | `EmittedLayoutIsTheFrozenOne_Web`, projects also checked registered in the solution |
+| R22 | the competition kind emits its frozen set | yes | yes | `EmittedLayoutIsTheFrozenOne_Competition` |
+| R23 | emitted test and host names match a coverage exclusion | yes | yes | patterns parsed from the emitted settings file, not copied into the test |
+| R24 | the emitted README carries build, test, local-run, chain location, the authority invariant | yes | yes | expectations stated in the test rather than lifted from the asset |
+| R25 | a base ignore file alongside the Terraform entries | yes | yes | both sets asserted, so one cannot stand in for the other |
+| R26 | sample content removed; at least one executable test left | yes | partial | the second half only — see should-fix S4 |
+| R27 | version attributes stripped from every package reference | yes | yes | asserted over the emitted projects, plus the restore |
+| R28 | the pack pins every package its generators emit | yes | yes | the restore is the only instrument, and the spec says so |
+| R29 | an inline SDK version rewritten to the pinned one | yes | yes | via the rewrite's `assert_after` and the build |
+| R30 | a missing prerequisite fails with the pack's instruction; nothing is installed | yes | yes | with the preflight hole in should-fix S7 |
+| R31 | the emitted solution builds with exit 0 | yes | yes | per kind, real SDK |
+| R32 | the unit suite reports a count above zero and no failures | yes | yes | count read from a TRX, not from console text |
+| R34 | a partial repository is filled, everything else byte-identical | yes | yes | `tests/` deleted and restored, rest hashed |
+| R35 | invariant I1 still holds | yes | yes | both I1 checks |
+| R36 | the repository README describes what setup produces | yes | yes | layout read out of each manifest, so the README tracks what is emitted |
+| R37 | CI installs a prerequisite the manifest declares and refuses to install | yes | yes | workflow and manifest parsed and held against each other, with fabricated-workflow rows proving the rule can fail |
+| R38 | the executor reads the charter's status and refuses a draft | yes | yes | non-zero, empty tree |
+| R39 | no charter means refuse | yes | yes | both "chain without charter" and "no chain" |
+| R40 | the resolved chain root is named in the report | yes | yes | tested against a non-default root |
+| R41 | `rewrite` and `delete` touch only paths this run created | yes | yes | proven with a pre-existing file matching the glob |
+| R42 | `assert_after` failing fails the run naming the file | yes | yes | |
+| R43 | `unless_exists` binds every action kind | yes | partial | tested on `run` only — should-fix S3 |
+| R44 | a `rewrite` or `delete` glob outside the target is refused | yes | yes | |
+| R45 | `append` creates the file, or adds only the lines not present | yes | yes | including a non-ASCII asset surviving a re-run |
+| R46 | `append` with every line present is a no-op recorded as skipped | yes | yes | |
+| R47 | the manifest declares every file the pack scaffolds | yes | yes | **new this round** — `EveryPackAsset_IsDeclaredByItsManifest` and `EngineInstructions_NameNoPackFile`; assessed in should-fix S2 |
+| R48 | the setup command writes the charter and nothing else | yes | yes | **newly instrumented** by the engine-instruction scan |
+| R49 | the pack's skill cites the manifest and carries no competing list | yes | yes | `PackSkillCitesItsManifest`, with a narrow file-table rule |
+| R51 | a supplied identifier wins over derivation and recovery | yes | yes | |
+| R52 | an invalid supplied identifier is refused | yes | yes | |
+| R53 | more than one solution file refused; none falls back to derivation | yes | yes | |
+| R54 | the executable scan reuses the same term list | yes | yes | one shared member, asserted non-empty |
+| R55 | a stack term in a shipped engine executable fails a named check | yes | yes | `EngineExecutablesImposeNoStack` |
+| R56 | every action recorded with an outcome and its path or command | yes | yes | all five outcomes asserted present, plus the two that can match nothing |
+| R57 | a preflight declared inside actions is rejected | yes | yes | by kind and by field |
+| R58 | a rewrite records each file it changed as mutated | yes | yes | |
+| R59 | failures, mutations and removals shown in full, never a count | yes | no | prose |
+| R60 | the executor is invoked with all four arguments | yes | no | prose; the command line is frozen in the plan and driven by two test classes |
+| R61 | the report carries a schema version and a consumer rejects an unknown one | yes | partial | see should-fix S6 |
+| R62 | a starter test asset that asserts a property of the emitted solution | yes | yes | via the suite count and the emitted layout |
+| R63 | `run` starts inside the target; a `cwd` outside it is refused | yes | yes | |
+| R64 | the integration suite runs and reports a count, or compiles and says it was not run | yes | yes | run path exercised on this machine; the compile-only branch is in **Not checked** |
+| R65 | an absent prerequisite fails rather than skips | yes | yes | `NoRowInThisClassCanSkip` scans for both `[Ignore]` and inconclusive results |
+| R66 | restore succeeds with transitive pinning on | yes | yes | the setting is asserted present so the restore proves the larger surface |
+| R67 | the competition kind applies the machine-learning profile | yes | yes | and asserts the web kind does not, so the row says something about one kind |
+| R68 | the notebook is headings and a solution reference only | yes | yes | no code cell, no recorded output, no fenced block |
+| **R71** | **the sweep covers a chain file this run wrote to, by creating or appending** | **partial** | **partial** | **four rows, all passing; the fifth mechanism is uncovered — blocking finding B1** |
+
+**Fifty-three fully tested.** Five are prose the setup command owns and are human-verified by
+design (R15, R16, R20, R59, R60); one is prose whose substantive half is machine-checked
+elsewhere (R13); four are partial (R10 and R43, `unless_exists` on one kind; R26, removal not
+measured; R61, the consumer is the suite's own). R71 is the finding.
+
+---
+
+## Manifest drift
+
+`git diff --name-only` plus untracked files against the plan's frontmatter slice manifest.
+
+**Every file the manifest claims was touched.** All twenty are present — the executor script and
+its two test files, the pack's manifest, skill and six assets, the setup skill, the structure
+checks, the build-tests class, and the release slice's six. `.sdlc/CHARTER.md` is the one that
+does not appear in `git status`: its amendment is already committed (`056121b`, with the
+amendment log's row 4 dated 2026-09-18 widening invariant I1's checkable clause to shipped
+engine executables and adding the new rows to I9's table). That is the release slice having
+landed, not a slice that did not.
+
+**Two files beyond the manifest, and both are the recorded, accepted drift:**
+
+| File | Status |
+|---|---|
+| `plugins/stack-dotnet/skills/stack-dotnet/assets/competition.readme.md` | accepted 2026-09-18 — R24's orchestration-versus-infrastructure invariant is meaningless in a competition repo, so one README asset could not honestly serve both kinds |
+| `plugins/stack-dotnet/skills/stack-dotnet/assets/web.IntegrationStarterTests.cs` | accepted 2026-09-18 — the generated sample integration test has zero live tests and a property that fails compilation under warnings-as-errors, so R26 and R64 contradict each other without a replacement |
+
+Both sit inside `plugins/stack-dotnet/`, which no other slice touches, so disjointness was never
+at risk. Reporting them is the check working; the owner accepted them in the plan's dated
+post-approval section. `assets/dotnet.gitignore`, listed there for completeness, is in the
+manifest and is not drift.
+
+**No unplanned file.** Nothing outside the manifest and those two.
+
+---
+
+## Build and test output
+
+The whole suite, real output:
+
+```
+$ dotnet test tests/AiSdlc.Tests/AiSdlc.Tests.csproj --nologo
+
+  Determining projects to restore...
+  All projects are up-to-date for restore.
+  AiSdlc.Tests -> C:\Repos\ai-sdlc\tests\AiSdlc.Tests\bin\Debug\net10.0\AiSdlc.Tests.dll
+Test run for C:\Repos\ai-sdlc\tests\AiSdlc.Tests\bin\Debug\net10.0\AiSdlc.Tests.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
+
+Passed!  - Failed:     0, Passed:   139, Skipped:     0, Total:   139, Duration: 5 m 10 s - AiSdlc.Tests.dll (net10.0)
+```
+
+**Read as counts, not as an exit code: 139 run, 0 failed, 0 skipped.** Nothing was ignored and
+nothing reported inconclusive — `NoRowInThisClassCanSkip` asserts both for the end-to-end class,
+and the zero in the Skipped column is the suite-wide confirmation.
+
+**The integration suite really ran on this machine rather than taking R64's compile-only
+downgrade**, which is what makes a green run mean what the spec's end-to-end section says it
+means. Re-run with the row's own output visible:
+
+```
+$ dotnet test ... --filter "FullyQualifiedName~EmittedSuitesReportATestCount" -l "console;verbosity=detailed"
+
+ web: scaffolded into C:\Users\peter\AppData\Local\Temp\aisdlc-scaffold-9f27a37f...\probe-repo
+ web: container runtime detected (docker)
+ web / Probe.IntegrationTests: ran 1 test(s), 0 failed
+ web / Probe.UnitTests: ran 2 test(s), 0 failed
+ competition: scaffolded into C:\Users\peter\AppData\Local\Temp\aisdlc-scaffold-430af07f...\probe-repo
+ competition: container runtime detected (docker)
+ competition / Probe.UnitTests: ran 2 test(s), 0 failed
+```
+
+A machine created two solutions from nothing in that run, compiled both, and watched their own
+tests execute — the integration suite included, against a started container.
+
+**The blocking finding's reproduction**, run against the shipped script with a two-line fixture
+manifest, is transcribed in full under **B1**: exit 0, outcome `completed`, `{{SOLUTION}}` left in
+`.sdlc/notes.md`, and the control case in the same fixture halting on `.sdlc/fresh.md`.
+
+---
+
+## Not checked
+
+- **Mutation-testing the two new R47 checks by injecting a fault.** Doing it properly means
+  adding an undeclared asset file or a pack filename to an engine skill, and this verification
+  was instructed to modify no file but this one. I established non-vacuity a different way — the
+  declared and on-disk asset sets are both fourteen and match name for name, and the
+  engine-instruction scan asserts its needle set is non-empty — and I traced what each check
+  reads. That is weaker than watching them fail, and I am saying so rather than implying I ran
+  them red.
+- **The compile-only branch of R64.** This machine has a container runtime, so the downgrade path
+  could not be exercised short of hiding Docker from the process. Unchanged from the fourth
+  round.
+- **CI on a hosted runner.** I did not push. Whether `dotnet new install
+  Aspire.ProjectTemplates::13.5.3` succeeds on `windows-latest` and the web kind's preflight then
+  passes is still unproven, and it is the scenario R37 exists for. **Still the first thing to
+  watch on the first push.**
+- **A clean machine without the Aspire templates.** The refusal path is covered by fixture tests;
+  the real pack's preflight against a machine that genuinely lacks them was not exercised.
+- **The human-verified half of S10 and all of S11** — that the setup command calls the executor at
+  the right point in its own prose, and that declining the module-boundary question stops the
+  command rather than selecting a kind. I read the skill body and it does both: the kind, the
+  boundaries and the identifier are settled before the charter, the charter is the only file it
+  writes, and the executor runs after approval with all four arguments and the relay rules spelled
+  out. I did not run `/sdlc-core:init` by hand.
+- **The charter root declared as `.`** — the third and fourth rounds established it needs two
+  charters disagreeing about where the chain lives before the run starts at all. I did not
+  re-derive it a third time; the fourth round's recommendation to record it in the
+  known-and-unchecked list with its two-charter precondition still stands, and B1 does not change
+  it.
+- **Whether a manifest could escape the target through a directory junction.** Containment
+  compares resolved path prefixes, which does not follow a junction. Inside the trust boundary
+  flagged concern F1 places at the pack.
+- **A locked or unreadable file during the sweep.** The sweep skips a file it cannot read
+  (line 1141) and says nothing. A file holding a placeholder that something else has open would
+  pass. Unavoidable, and noted because silence reads as coverage.
