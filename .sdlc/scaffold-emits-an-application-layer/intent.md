@@ -175,8 +175,14 @@ the guess into a directory structure.
   repository's work, named as a dependency because this chain is worthless without it.
 - **Not MarketSense's adoption.** Its own work, in its own repository.
 - **Not the encapsulation rules.** Private handlers, internal `DbContext`, non-public EF
-  configurations — a separate intent. Two of the three are already MarketSense's practice by 221
-  to 7; the third is not, with all 52 configurations public.
+  configurations — a separate intent. **Corrected 2026-09-20, re-measured against
+  `legacy/v02`:** handlers are 217 private and 4 internal of 221, none public; all 12
+  `DbContext` classes are internal, none public. The third rule as written here was wrong. It
+  said *"all 52 configurations are public"*; they are **declared** public but every one is
+  nested inside an internal or private holder inside an internal context, so none of the 59 is
+  reachable outside its assembly — 35 effectively private, 24 effectively internal, zero public.
+  What is inconsistent is a `public` keyword the compiler overrides, and a holder spelled
+  `internal` in five modules and `private` in two. A smaller problem than this bullet claimed.
 - **Not the competition kind — the web kind only.** That kind emits a class library, a console
   runner and a test project: no host, no dependency-injection container, no EF, no database.
   Deferred rather than refused.
