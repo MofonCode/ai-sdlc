@@ -17,7 +17,7 @@ hold it. **To see what is in flight, read the chain documents.**
 **How an item leaves.** By being done, or by becoming a chain of its own — at which point the
 chain's documents are the record and the line here is deleted. Not by being forgotten.
 
-Last reviewed: 2026-09-20. Four items open; the missing git remote was closed the same day.
+Last reviewed: 2026-09-20. Five items open; the missing git remote was closed the same day.
 
 ---
 
@@ -101,6 +101,44 @@ whose purpose is to catch silent failures contains one.
 **What closes it:** rewriting the row so its Check column names something the parser accepts, or
 teaching the parser to expand a placeholder. Found on 2026-09-20 while scoping
 `solution-identifier-can-carry-a-dot`; not that chain's to fix.
+
+## 5. The framework cannot be installed anywhere but this machine
+
+`.claude-plugin/marketplace.json` is a valid Claude Code marketplace declaring two plugins —
+`sdlc-core` at 0.9.1 and `stack-dotnet` at 0.6.0. **Both sources are relative paths** into this
+working tree, and the documented install is a local filesystem path:
+
+    /plugin marketplace add C:\Repos\ai-sdlc
+
+So it installs on a machine that has this repository checked out at that path, and nowhere else.
+
+**Three things are missing, and none of them is a bug — they were simply never built:**
+
+- **No remote install path.** The repository had no remote at all until 2026-09-20. It is now at
+  `MofonCode/ai-sdlc` and **private**, which was the deliberate reversible choice; private means
+  only accounts with access could install it even once the marketplace points at the remote.
+- **No releases.** `git tag` returns nothing. Plugin versions are bumped per change, but nothing
+  consumes them, because nothing is ever packaged. The charter already records the consequence
+  under **Known and unchecked**: *"a plugin version that is valid semver but was never bumped —
+  the format is checked, the increment is not, so an update can still be a silent no-op."*
+  Untagged, the bump is a no-op regardless of whether it happened.
+- **No build or publish pipeline.** `.github/workflows/checks.yml` is the only workflow and it
+  runs the test suite. No artifact, no package, no release job.
+
+**Not a defect in the framework's design.** A plugin is installed once per machine and is inert
+in repositories with no chain directory, so "install it into a repo" is not a step that exists —
+running `/sdlc-core:init` there is. What is missing is a way for a *second machine* to get it.
+
+**What closes it:** pointing the marketplace at the git remote rather than a local path, and
+tagging releases so a version bump means something. A publish job is the larger question, and it
+is worth deciding deliberately rather than drifting into — permanent non-goal N3 says this
+framework *"never becomes a CI/CD or project-management system"*, which governs what the
+framework does rather than whether this repository may release itself, but a marketplace that
+publishes itself is exactly the shape that argument gets made about.
+
+**Unverified, and stated as such:** the exact syntax and behaviour for adding a marketplace from
+a private git remote is a Claude Code mechanic, not something this repository documents. It was
+not confirmed before writing this.
 
 ---
 
