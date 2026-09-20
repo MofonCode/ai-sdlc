@@ -53,21 +53,65 @@ reorder the interview, add a flag, three unchosen output contracts.
 
 ## The order of work
 
-1. **Settle the charter's internal contradiction.** The artifact schema says amending the charter
-   *"is its own approval, never a side effect of shipping a feature."* Invariant 9 says the
-   register of known silent failures grows whenever a new class is found — which happens while
-   shipping. Charter versions 4, 5, 6 and 7 each did it anyway and recorded the contradiction.
-   It has now shaped three drafts of one intent and produced a blocking finding in two separate
-   interrogations. **Small, and it unblocks a recurring pattern rather than one change.**
+1. **Slice manifests are proven disjoint across chains, not only within one.** Raised on
+   2026-09-20 while asking whether two sessions could each run an intent without colliding, and
+   **placed first by the owner: nothing else starts until this does.** The reason is practical —
+   until it exists, two lines of work cannot safely run at once, so every other item on this list
+   is serialised behind one session's attention.
 
-   **Three charter questions, one amendment conversation.** An amendment carries a version bump
-   and a log row, so asking these separately costs three of each for no benefit:
-   - the amendment-versus-register contradiction above;
-   - the register row `ScaffoldEmitsBuildableSolution_<kind>` registering nothing, because the
-     angle brackets fail the identifier filter the parser applies (see `.sdlc/OPEN.md`);
-   - whether permanent non-goal N2 reaches `.sdlc/` artifacts or only what the plugins ship —
-     the owner's organisation appears in four committed chain artifacts, so either the charter
-     says N2 binds `plugins/**` or those four need editing.
+   **The hole:** `plan.md` declares every file each slice touches and `Assert-SliceManifest.ps1`
+   proves those manifests are pairwise disjoint before a build fans out — but **only within one
+   plan**. Nothing proves two *approved* plans do not claim the same file. The failure mode is a
+   merge conflict discovered after both implementers have finished.
+
+   **No new mechanism; widen two that exist.** The manifest check reads every `plan.md` with
+   `status: approved` and proves them disjoint across chains. The gate hook already matches an
+   edited path against manifests and could say *"claimed by chain X"* rather than checking only
+   the current one.
+
+   **Timing wrinkle:** files are declared at *plan* time, because at intent stage the design has
+   not happened and nobody knows them yet. So this protects concurrent **builds**. Two concurrent
+   **intents** cannot clash on implementation files, because neither has any.
+
+   **Prerequisite, and it is the one thing that must happen before even this: the charter
+   conversation.** This step adds a named check, and a named check needs a row in the
+   silent-failure register, which is the contradiction below. Three charter questions, one
+   amendment conversation — an amendment carries a version bump and a log row, so asking them
+   separately costs three of each for no benefit:
+   - **Amendment versus register.** The artifact schema says amending the charter *"is its own
+     approval, never a side effect of shipping a feature."* Invariant 9 says the register grows
+     whenever a new class of failure is found — which happens while shipping. Charter versions 4,
+     5, 6 and 7 each did it anyway and recorded the contradiction. It has now shaped three drafts
+     of one intent and produced a blocking finding in two separate interrogations.
+   - **The inert register row.** `ScaffoldEmitsBuildableSolution_<kind>` registers nothing,
+     because the angle brackets fail the identifier filter the parser applies (see
+     `.sdlc/OPEN.md`).
+   - **The reach of permanent non-goal N2.** Does it bind `.sdlc/` artifacts or only what the
+     plugins ship? The owner's organisation appears in four committed chain artifacts, so either
+     the charter says N2 binds `plugins/**` or those four need editing.
+
+   **The collision surface, measured 2026-09-20** rather than assumed:
+
+   | | |
+   |---|---|
+   | `.sdlc/<slug>/` | safe — different slugs, different directories |
+   | Test fixtures | safe — every temp path is GUID-based |
+   | `CHARTER.md` | real — version number, amendment log, register |
+   | `OPEN.md`, `DIRECTION.md` | real — both sessions append |
+   | Git index and branch | **real, and the worst** — `git add -A` stages another session's half-finished work |
+   | `bin/`, `obj/` | real — two concurrent suite runs fight over build output |
+   | A shipped spec's forward pointers | real — two chains both annotate one file |
+
+   **Works today with no framework change**, and worth adopting immediately rather than waiting
+   for the check: different slugs; **never `git add -A`** — stage only the paths the chain
+   declares; do not run the full suite in two sessions at once, or give one a worktree. Charter
+   amendments serialise by construction, because an amendment bumps a version and git refuses the
+   second push — that is correct behaviour, not a bug.
+
+   **Why not a lock file**, which was the first idea considered: a lock goes stale when a session
+   dies and then needs arbitration for breaking it; it serialises where this framework detects and
+   refuses loudly; and nothing forces a session to take one. That last point is the subject of
+   `findings-leave-only-by-decision` — a mechanism used by choice is one that eventually is not.
 
 2. **The executor answers queries.** A query takes inputs, returns a value, touches nothing, and
    runs before any gate. It carries a defined report shape, the way the scaffold action set
