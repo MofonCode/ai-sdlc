@@ -9,6 +9,10 @@ by its own process, so the rules below are not advice about this repo; they are 
 - **`.sdlc/CHARTER.md`** — the invariants every change is held to, the technology commitments,
   the register of silent failures and the named check that catches each one, and the amendment
   log. Approved, versioned, and binding. Nothing here is a preference.
+- **`.sdlc/DIRECTION.md`** — the diagnosis behind the current order of work, and the ideas that
+  are not chains yet. Read it before starting anything: it says which chain is next and why, and
+  it records why the identifier chain was parked after eleven interrogations rather than a
+  twelfth.
 - **`.sdlc/OPEN.md`** — the handful of outstanding items that exist in no other file. It
   deliberately does **not** list open chains, because those record their own state; read it for
   what is invisible, not for what is in flight.

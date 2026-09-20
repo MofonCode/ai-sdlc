@@ -17,7 +17,7 @@ hold it. **To see what is in flight, read the chain documents.**
 **How an item leaves.** By being done, or by becoming a chain of its own — at which point the
 chain's documents are the record and the line here is deleted. Not by being forgotten.
 
-Last reviewed: 2026-09-20. Three items open; the missing git remote was closed the same day.
+Last reviewed: 2026-09-20. Four items open; the missing git remote was closed the same day.
 
 ---
 
@@ -83,6 +83,24 @@ Nothing about the second half exists in any file — not an intent, not a non-go
 **What closes it:** an intent, if it is still wanted. The nearest thing already drafted is
 `findings-leave-only-by-decision`, which is about findings not escaping the record; this is about
 findings *arriving* from outside. They are related and they are not the same chain.
+
+## 4. One row of the silent-failure register registers nothing
+
+The charter's register of known silent failures carries the row:
+
+    | Scaffold produces an unbuildable solution | `ScaffoldEmitsBuildableSolution_<kind>` |
+
+The check that holds the register and the suite against each other keeps a backticked string only
+when it matches an identifier, and the angle brackets fail that — so **the parser drops the row
+entirely**. It names no instrument in either direction: nothing asserts that check exists, and it
+counts toward nothing.
+
+Harmless today, because three other rows name the same class. Worth recording because a register
+whose purpose is to catch silent failures contains one.
+
+**What closes it:** rewriting the row so its Check column names something the parser accepts, or
+teaching the parser to expand a placeholder. Found on 2026-09-20 while scoping
+`solution-identifier-can-carry-a-dot`; not that chain's to fix.
 
 ---
 
