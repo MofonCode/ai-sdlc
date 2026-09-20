@@ -1,6 +1,6 @@
 # Open items that live in no other file
 
-**What this file is for.** Four things are outstanding that no document in this repository
+**What this file is for.** A few things are outstanding that no document in this repository
 records. A session starting fresh reads the charter, the chain directories and the code, and
 learns none of them — so each one survives only as long as someone remembers to say it out loud.
 This is where they are written down instead.
@@ -17,7 +17,7 @@ hold it. **To see what is in flight, read the chain documents.**
 **How an item leaves.** By being done, or by becoming a chain of its own — at which point the
 chain's documents are the record and the line here is deleted. Not by being forgotten.
 
-Last reviewed: 2026-09-20.
+Last reviewed: 2026-09-20. Three items open; the missing git remote was closed the same day.
 
 ---
 
@@ -42,6 +42,11 @@ happened. `pack-promises-what-it-scaffolds` changed the R15 clause, so that run 
 only evidence the change reads correctly to someone who did not write it.
 
 **Why it is not a chain:** it is an act, not a change. There is nothing to plan.
+
+**Where to do it, as of 2026-09-20:** `MofonCode/MofonCode.Core` was created empty and needs
+initialising anyway. Running `init` there does the hand-run against a repository that genuinely
+needs the output, rather than against a directory created to be thrown away — which also
+exercises the interview honestly, because the answers matter.
 
 ## 2. Four task-tier changes shipped with no fresh-context verification
 
@@ -79,14 +84,6 @@ Nothing about the second half exists in any file — not an intent, not a non-go
 `findings-leave-only-by-decision`, which is about findings not escaping the record; this is about
 findings *arriving* from outside. They are related and they are not the same chain.
 
-## 4. This repository has no git remote
-
-`git remote -v` returns nothing. One branch, `master`, no upstream. The framework, the charter,
-every chain document, the whole verification history and 151 tests exist on one machine.
-
-**What closes it:** deciding where it lives — private or public, and under which account — and
-pushing. Two decisions, both the owner's.
-
 ---
 
 ## Deliberately not listed here, and where each actually lives
@@ -101,5 +98,8 @@ pushing. Two decisions, both the owner's.
   effect of shipping while its silent-failure register cannot stay complete unless it moves while
   something ships. In the charter's own amendment log, recorded at versions 4, 5, 6 and 7.
 - **The two live defects in `SharedKernel`** — thread-pool-sized concurrency limits, and
-  `Expression.Invoke` in the specification combinators. Another repository's work, named as a
-  dependency in `scaffold-emits-an-application-layer`.
+  `Expression.Invoke` in the specification combinators. Named as a dependency in
+  `scaffold-emits-an-application-layer`. **MarketSense was sunsetted on 2026-09-20**, so these
+  stop being another repository's problem and become part of whatever is carried into
+  `MofonCode.Core`: code lifted out of a dead codebase arrives with its defects, and nothing
+  will fix them there.

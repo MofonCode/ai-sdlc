@@ -7,13 +7,25 @@ created: 2026-09-20
 owner: peter
 ---
 
-> **BLOCKED on a repository that does not exist, and split on 2026-09-20.**
+> **BLOCKED on a package that does not exist, and split on 2026-09-20.**
 >
-> `MofonCode.Core` has no repository, no chain and no date. The dependency is larger than a
-> publish pipeline: `MarketSense/src/SharedKernel` is 40 files and most of it is that product's
-> domain — trading clock, supported intervals, entitlements, batch ledger, chart ranges.
-> Separating the generic third is the real work and it is unestimated. An earlier version of this
-> draft said "the shared code" where the parked one said "the generic third", which hid that.
+> **Narrowed the same day.** `MofonCode/MofonCode.Core` now exists as an empty public repository,
+> so "no repository" is no longer the blocker. What is still missing is the package: the library
+> has no chain, no content and nothing published, and `Directory.Packages.props` cannot pin a
+> version that resolves to nothing.
+>
+> The dependency is still larger than a publish pipeline. `MarketSense/src/SharedKernel` is 40
+> files and most of it is that product's domain — trading clock, supported intervals,
+> entitlements, batch ledger, chart ranges. Choosing the generic third is the real work and it is
+> unestimated. An earlier version of this draft said "the shared code" where the parked one said
+> "the generic third", which hid that.
+>
+> **What the sunsetting changed.** MarketSense was sunsetted on 2026-09-20. The extraction was
+> partly feared because it meant two copies drifting — three fixes had already reached one copy
+> and not the other. With nothing live to stay in step with, this becomes a one-way lift rather
+> than a split, and the files left behind are simply left behind. Smaller, and a different shape.
+> The cost that does not go away: the two live defects come with whatever is carried across, and
+> no maintained codebase will fix them afterwards.
 >
 > **And this chain cannot be verified without it.** The worked slice must use the mediator or it
 > demonstrates nothing, so the `Application` project does not compile until the package exists.
