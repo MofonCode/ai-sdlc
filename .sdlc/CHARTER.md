@@ -2,8 +2,8 @@
 solution: ai-sdlc
 artifact_root: .sdlc/
 status: approved
-version: 6
-updated: 2026-09-19
+version: 7
+updated: 2026-09-20
 owner: peter
 ---
 
@@ -169,6 +169,7 @@ The set is enumerated instead, and grows whenever a new class is found.
 | The executor scaffolds from a draft charter | `ScaffoldManifestTests` — draft charter refuses, and leaves an empty tree |
 | A prerequisite is absent and the check skips rather than fails | `ScaffoldEmitsBuildableSolutionTests` — an absent prerequisite fails the run |
 | The pack's skill and its manifest list different files | `PackSkillCitesItsManifest` |
+| A pack promises a layout its manifest does not scaffold | `PackPromiseTests` — the pack's charter line and its `sln add` actions, per kind, both directions |
 | CI stops providing a prerequisite a pack's manifest declares | `ScaffoldPrerequisiteTests` |
 | A pack file is written by something other than the executor | `EveryPackAsset_IsDeclaredByItsManifest` — the manifest and the pack's assets name the same set, both directions |
 | An engine skill or agent names a file a pack scaffolds | `EngineInstructions_NameNoPackFile` |
@@ -367,6 +368,7 @@ and give them one parser.
 
 | Version | Date | Change |
 |---|---|---|
+| 7 | 2026-09-20 | **Registered the check that holds a pack's promise to its manifest.** `pack-promises-what-it-scaffolds` adds `PackPromiseTests`, and I9's table gains a row for it. **The same contradiction as v4, v5 and v6, now four for four:** the schema says amending the charter is *"never a side effect of shipping a feature"*, and the register cannot be complete unless it moves while one ships. The plan for this change did not list `CHARTER.md` in its slice manifest and the build could not go green without editing it — which is the clearest evidence yet that the two sentences disagree rather than that any one author keeps forgetting. Still recorded, still unresolved, and still the subject of `findings-leave-only-by-decision`. |
 | 6 | 2026-09-19 | **Registered the check that enforces registration.** v5 added six rows by hand for checks that had existed for hours; `SilentFailureRegisterTests` now holds the register and the suite against each other, both directions — every test class is named by a row, and every check a row names exists. It closes four of those six. The other two were new methods on a class the register already named, and telling a new instrument from a new class of failure is a judgement no parser makes. **Recorded and not resolved:** this amendment is itself the thing the charter schema forbids — *"amending it is its own approval, never a side effect of shipping a feature"* — while I9 says its table *"grows whenever a new class is found"*, which happens while shipping. Versions 4, 5 and 6 all did it. The two sentences cannot both be right, and the sixth interrogation of `findings-leave-only-by-decision` blocked on exactly this. |
 | 5 | 2026-09-19 | **Added six rows to I9's table** for checks that already existed and were never registered. Two — the pack-asset and engine-instruction checks behind R47 — were flagged by the sixth verification of `init-scaffolds-solution`, which had no seventh round to dispose of its own finding, and the chain shipped. The other four arrived with `verification-reports-options`, a task-tier change that needs no verification and therefore got none. Both routes are the same failure: a defect became a named check and the register that enumerates them did not move, because nothing requires it to. I9 says the set grows whenever a new class is found; it did not say who notices. That is the subject of the `findings-leave-only-by-decision` intent, and this amendment is the evidence for it rather than its fix. |
 | 4 | 2026-09-18 | **Widened I1's checkable clause** from the engine's instruction files to the executables it ships as well, and named the second instrument beside the first. The old scope rested on engine tooling not executing pack-supplied data; the scaffold executor does, so the one engine file with the strongest reason to name a stack was the one file nothing scanned. Both instruments read one shared term list, because a second copy is how an instrument quietly stops covering what it claims to. **Added rows to I9's table** for the silent failures the scaffold checks now catch, plus one for an engine skill dropping its pointer to the plain-language rule and one for CI drifting from the prerequisites a pack's manifest declares. Deferred to ship time by the approved `init-scaffolds-solution` spec — unlike the two amendments before it, this one widens a check that change *adds* rather than an invariant it cites, so it could not move underneath the spec. |

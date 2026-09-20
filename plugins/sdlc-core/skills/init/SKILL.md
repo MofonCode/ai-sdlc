@@ -79,18 +79,23 @@ Then:
 Proposing beats interviewing when a pack exists: confirming a default costs the owner one word,
 while composing a stack from nothing costs a conversation and usually lands in the same place.
 
-### Settle the solution kind and its module boundaries
+### Settle the solution kind
 
 A pack's manifest declares one or more **kinds** — named shapes of repository the pack knows how
 to generate, each with a description. Read the kind names and descriptions out of the manifest
-(§3 says where it lives), put them to the owner with AskUserQuestion, and ask the question no
-kind answers on its own: **what the modules are, and where the boundaries between them fall.**
+(§3 says where it lives) and put them to the owner with AskUserQuestion.
 
-Both answers are required and neither has a default. **If the interview ends without them, stop
-and say which answer is missing** — that the kind is unsettled, or the module boundaries are, or
-both. Do not pick a kind yourself to keep the command moving. The kind decides what exists on
-disk and which layout the repository is stuck with afterwards, and a layout nobody chose is one
-nobody will own.
+**The kind is required and has no default. If the interview ends without it, stop and say so.**
+Do not pick one yourself to keep the command moving. The kind decides what exists on disk and
+which layout the repository is stuck with afterwards, and a layout nobody chose is one nobody
+will own.
+
+**The kind is the only answer required here.** Ask for nothing else about structure — in
+particular, do not ask where the module boundaries fall. That question used to be asked and
+stopped the command when unanswered, and nothing consumed the answer: no manifest has ever
+declared a module. A question whose answer is discarded costs the owner a decision and buys
+the repository nothing. If a pack ever needs a second answer, it declares it, and the question
+comes from the pack rather than from here.
 
 ### Confirm the solution identifier
 

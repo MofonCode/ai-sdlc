@@ -62,6 +62,10 @@ one of the intent's success criteria (S1–S11) in the coverage table under **Te
   declared path into the executor and the confirmation step was decorative.
 - **R15.** IF the interview has not settled the solution kind and its module boundaries, THEN
   THE `init` skill SHALL stop and say which answer is missing, rather than choosing a kind.
+  **Half superseded, 2026-09-20, by `pack-promises-what-it-scaffolds`:** the *kind* clause
+  stands unchanged; the *module boundaries* clause is gone. No manifest ever declared a module,
+  so the answer was collected and discarded, and the owner's choice of a modular monolith made
+  that deliberate rather than accidental. This line records what shipped and is not edited.
 - **R16.** WHEN `init` runs in a repository that already has an approved charter, THE `init`
   skill SHALL offer charter amendment and scaffold gap-filling as the two things it can do,
   and SHALL no longer state that it is never run again.

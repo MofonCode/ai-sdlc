@@ -63,8 +63,10 @@ dotnet profile."*
 | Infrastructure | **Terraform**, remote state, provider versions pinned |
 | Cloud | Azure — this pack targets .NET **on Azure**; another cloud is a different pack |
 
-Ask, rather than assume: the solution's module boundaries, and whether each module is a
-library, an API, or a function app.
+**One solution, not one per module.** Vertical slices live inside it. Splitting a grown
+solution into modules is a later, explicitly-invoked act, once the seams are known rather than
+guessed in an opening interview — so nothing here asks the owner where the module boundaries
+fall. Asking would collect an answer nothing this pack scaffolds reads.
 
 ### Why the SDK pin matters here specifically
 
@@ -354,8 +356,21 @@ The charter records the **profile name and overrides**, never the contents of th
 - Persistence: SQL Server via Aspire locally, Azure SQL deployed; WithDataVolume, local
   password default
 - Deployed compute: Azure PaaS (Web Apps, Function Apps). Not containers.
-- Module layout: vertical slices, each {Module}.Api / .Application / .UnitTests
+- Solution layout (`web` kind): `src/{Solution}.AppHost`, `src/{Solution}.ServiceDefaults`, `src/{Solution}.Web`, `src/{Solution}.Api`, `tests/{Solution}.UnitTests`, `tests/{Solution}.IntegrationTests`
+- Solution layout (`competition` kind): `src/{Solution}.Features`, `src/{Solution}.Training`, `tests/{Solution}.UnitTests`
 ```
+
+**Keep the layout line for the kind that was scaffolded and delete the other.** It describes
+what is on disk after the run — nothing more. It is deliberately not a statement about where
+the code *should* go, because a charter line saying that is read as binding by every later
+spec, and the previous one committed every scaffolded repository to a per-module layout with
+an `Application` project that the scaffold has never emitted.
+
+This is the one place the pack restates something `scaffold.json` already says, against the
+rule under **What the scaffold writes** that a second list beside the manifest always drifts.
+It is allowed here, and only here, because `PackPromiseTests` reads the two against each other
+on every run and fails naming the project and the document that omits it — a checked second
+list is a different thing from an unchecked one.
 
 And add this to that repo's **Architectural invariants**, not its commitments — it is a
 property that makes a change wrong regardless of intent, which is the test for an invariant:
