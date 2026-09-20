@@ -60,6 +60,15 @@ reorder the interview, add a flag, three unchosen output contracts.
    It has now shaped three drafts of one intent and produced a blocking finding in two separate
    interrogations. **Small, and it unblocks a recurring pattern rather than one change.**
 
+   **Three charter questions, one amendment conversation.** An amendment carries a version bump
+   and a log row, so asking these separately costs three of each for no benefit:
+   - the amendment-versus-register contradiction above;
+   - the register row `ScaffoldEmitsBuildableSolution_<kind>` registering nothing, because the
+     angle brackets fail the identifier filter the parser applies (see `.sdlc/OPEN.md`);
+   - whether permanent non-goal N2 reaches `.sdlc/` artifacts or only what the plugins ship —
+     the owner's organisation appears in four committed chain artifacts, so either the charter
+     says N2 binds `plugins/**` or those four need editing.
+
 2. **The executor answers queries.** A query takes inputs, returns a value, touches nothing, and
    runs before any gate. It carries a defined report shape, the way the scaffold action set
    already does — that report is what makes the existing boundary testable, and it is the part
