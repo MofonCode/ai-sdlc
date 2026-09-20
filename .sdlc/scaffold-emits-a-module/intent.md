@@ -7,6 +7,22 @@ created: 2026-09-19
 owner: peter
 ---
 
+> **PARKED, 2026-09-20, not abandoned.** The owner chose a solution-level scaffold — a modular
+> monolith with an `Application` project — over per-module projects, on the grounds that module
+> boundaries gathered in an opening interview are a guess frozen into a directory structure, and
+> that MarketSense's eleven modules were discovered rather than designed. Splitting a grown
+> solution into modules becomes a separate, explicitly-invoked skill later.
+>
+> **Nothing below is wrong; it is unneeded.** A second placeholder exists only because `Billing`
+> has to reach `src/Billing.Api`. Without per-module projects there is no second placeholder, so
+> the five closures stop blocking anything.
+>
+> **They remain real defects against I5** — the engine still decides which tokens can exist, in
+> the executor, in `init`'s invocation, in the report schema, in recovery, and in the derivation
+> transform. Seven interrogations' worth of evidence is below and every line reference in it was
+> read out of the code. It will be here when a second token is genuinely wanted.
+
+
 # intent — the scaffold emits the architecture the pack already commits to
 
 > **BLOCKED, and split from a larger draft on 2026-09-20.** Four changes were bound together

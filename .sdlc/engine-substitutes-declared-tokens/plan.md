@@ -10,6 +10,32 @@ slices:
     depends_on: []
 ---
 
+
+> **SUPERSEDED, 2026-09-20, without being built. Re-tiered to feature; see the intent in this
+> same directory.**
+>
+> The build began and stopped on the signal this plan named for itself: *"If the build turns up
+> a design question, that is the signal it was mis-tiered."* It did.
+>
+> **The contradiction is between T1 and Not in scope.** T1 requires a manifest declaring two
+> tokens to substitute both. A second token needs a *value*, the only value source is
+> `-Solution`, and Not-in-scope forbids adding another. So a declared second token has a
+> spelling and nothing to substitute — unusable either way, whether the engine refuses it or
+> lets it survive to fail the sweep.
+>
+> **The narrower version that would have passed is cosmetic.** The engine would stop *saying* it
+> knows the only token name while still deciding which names can hold values, so I5's own test —
+> *adding a pack must require no change to the engine* — still fails for a pack wanting a module
+> token. That relocates the violation rather than fixing it, and calling it a bug fix against I5
+> would be an overclaim.
+>
+> Making it real means generalising `-Solution` into a token-value mechanism, which is the frozen
+> command-line contract three slices code against. That is feature work with a spec.
+>
+> The implementation reached a parsing, passing state before it was reverted — 59 executor tests
+> green, back-compat holding — and was discarded deliberately rather than kept, because a spec
+> written against code that already exists inverts the chain.
+
 # plan — the engine substitutes what the manifest declares
 
 **Tier: task, stated out loud.** Three files, behaviour agreed in conversation, no design
