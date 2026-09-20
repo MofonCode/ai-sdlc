@@ -68,6 +68,12 @@ reorder the interview, add a flag, three unchosen output contracts.
    **This is also the first vertical** (see below), prototyped on the one case forcing it rather
    than designed in the abstract.
 
+   **Write the capability contract before building the mechanism, and check it describes
+   `scaffold.json`.** If the contract cannot describe the one vertical that already ships, it is
+   wrong. This ordering is the whole point: an abstraction derived from the case forcing it, then
+   validated against the case already shipped — rather than designed first and discovered later to
+   fit neither.
+
 3. **Rewrite the dot chain short.** Once derivation is a query, `solution-identifier-can-carry-a-dot`
    is roughly thirty lines: widen the identifier grammar to permit interior dots, change the
    anchors from `^`/`$` to `\A`/`\z`, and move derivation behind the query. Most of the eleven
@@ -128,8 +134,8 @@ Three tensions, named rather than solved:
 `engine-substitutes-declared-tokens` exist because the engine decides which placeholders can
 exist. Every vertical wants its own parameters, so that parked work becomes a prerequisite.
 
-**Cheapest honest first step:** not building verticals — writing the contract that makes one
-work, and checking it can describe `scaffold.json`. If it cannot, it is wrong.
+**The first step is in the order of work above, inside step 2**, because the query mechanism is
+the case forcing this abstraction and is the right place to derive it from.
 
 ### ML separated from competition, and how goals, features and labels reach the process
 
