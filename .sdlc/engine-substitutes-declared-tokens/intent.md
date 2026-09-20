@@ -13,14 +13,46 @@ owner: peter
 > that MarketSense's eleven modules were discovered rather than designed. Splitting a grown
 > solution into modules becomes a separate, explicitly-invoked skill later.
 >
-> **Nothing below is wrong; it is unneeded.** A second placeholder exists only because `Billing`
-> has to reach `src/Billing.Api`. Without per-module projects there is no second placeholder, so
-> the five closures stop blocking anything.
+> **Nothing below is wrong; four fifths of it is unneeded.** A second placeholder exists only
+> because `Billing` has to reach `src/Billing.Api`. Without per-module projects there is no
+> second placeholder, so closures one to four stop blocking anything.
 >
-> **They remain real defects against I5** — the engine still decides which tokens can exist, in
-> the executor, in `init`'s invocation, in the report schema, in recovery, and in the derivation
-> transform. Seven interrogations' worth of evidence is below and every line reference in it was
-> read out of the code. It will be here when a second token is genuinely wanted.
+> **CORRECTED 2026-09-20, later the same day: closure five is live, and this banner had it
+> wrong.** The paragraph above said the parking was safe because no second token is wanted.
+> Closure five is not about a second token. It is about the **shape of the first one's value**,
+> and nothing about the modular-monolith decision touches it.
+>
+> It surfaced while scoping a `library` kind for `stack-dotnet`, whose first real target is the
+> package `MofonCode.Core`. Measured against the shipped executor:
+>
+> ```
+> derived from the directory "MofonCode.Core" : MofonCodeCore
+> "MofonCode.Core" supplied explicitly        : refused
+> ```
+>
+> The derivation splits on `-`, `_`, `.` and space and joins the pieces, so the dot is gone; and
+> `Test-Identifier` is `^[A-Za-z][A-Za-z0-9]*$`, so supplying the dotted name does not get round
+> it. The identifier becomes the package ID, the assembly name, the root namespace and every
+> project name, and renaming what is already in a repo is a permanent non-goal — so the package
+> would ship as `MofonCodeCore` permanently. **This blocks real work now**, which is exactly what
+> the parked note said would not happen until a second token was wanted.
+>
+> **Both stated justifications for the rule fail for a dot specifically.** The JSON-safety
+> argument holds against quotes, backslashes and control characters, not dots. And a dot is legal
+> in a C# namespace, an assembly name, a directory name and a package ID, while recovery still
+> works because `GetFileNameWithoutExtension("MofonCode.Core.slnx")` strips only the last
+> extension. The rule is tighter than either of its reasons requires.
+>
+> **Closure five leaves this chain** and becomes `solution-identifier-can-carry-a-dot`, which
+> supersedes R17's pinned derivation and R52's refusal rule, and has one genuine design question:
+> whether preserving a dot changes derivation for every repo whose directory has one — `my-app.v2`
+> derives `MyAppV2` today and would derive `MyApp.V2`. A test pins the current behaviour outright,
+> `[DataRow("widget_shop.core", "WidgetShopCore")]`, so this is a supersession and not a fix.
+>
+> **Closures one to four remain real defects against I5** — the engine still decides which tokens
+> can exist, in the executor, in `init`'s invocation, in the report schema, and in recovery. Seven
+> interrogations' worth of evidence is below and every line reference in it was read out of the
+> code. They will be here when a second token is genuinely wanted.
 
 
 # intent — a pack can add a token without touching the engine
@@ -206,7 +238,9 @@ manifest in existence uses them and a released executor breaking it breaks every
 - **Does `solution` fully become an ordinary declared token?** *Owner: peter.* Folding it in means
   one path rather than two and is the only version where the engine holds no rule about any
   particular token; keeping `-Solution` is kinder to three slices that code against it.
-- **What happens to the derivation transform — closure five?** *Owner: peter.* Three answers and
+- **What happens to the derivation transform — closure five?** *Owner: peter.* **Moved out on
+  2026-09-20 to `solution-identifier-can-carry-a-dot`; see the correction in the banner above.**
+  The three answers below are that chain's to choose between, not this one's. Three answers and
   none is obviously right: the pack declares the split characters and casing, which is config
   rather than the templating language the non-goals forbid; derivation stays `solution`-only as a
   stated limit, which leaves a pack wanting a derived token blocked; or derivation leaves the
