@@ -1,6 +1,6 @@
 ---
 slug: no-two-plans-claim-one-file
-status: draft
+status: approved
 spec: ./spec.md
 tier: feature
 slices:
