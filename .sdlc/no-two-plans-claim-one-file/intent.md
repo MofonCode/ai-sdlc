@@ -27,12 +27,13 @@ owner: peter
 > asserting something about the code that is not so — and the Affected list below now carries
 > an instance of it in a shipped engine file.**
 >
-> **The charter is at 17 and the two versions past 15 are not this chain's.** 16 swept every
+> **The charter is at 19 and the four versions past 15 are not this chain's.** 16 swept every
 > claim the charter makes about the code rather than waiting for a sixth reader to trip over
 > one, and 17 rode the gate of `every-workflow-body-runs` — the chain that repaired the parallel
 > build's wave loop and built the harness that executes a workflow body instead of parsing it.
-> Both are named here only so a reader who checks the version does not have to go and find out
-> whether something moved underneath this document. Nothing did.
+> 18 corrected the divergence count this document quotes — three disagreements between the two
+> readers, not four — and 19 removed two tallies that had gone stale within hours of being
+> dated. **Only 18 moves anything this document says**, and it is followed here.
 >
 > **This document was rewritten against those answers, and shortened.** Its first draft ran to
 > 1680 lines and held the design — where the extracted parser lives, how paths normalise, what
@@ -65,13 +66,20 @@ one tree, so the symptom this change can actually prevent is the quiet one. Sayi
 conflict" alone would argue for the case the change does not reach.
 
 **Until version 9 the artifacts could not tell a live plan from a finished one.** `approved`
-was where a plan's status came to rest; `superseded` was declared and honoured by nothing. Six
-plans carried `approved`, five of them done and a sixth replaced without ever being built.
-Comparing them the obvious way reported **35 file claims over 26 distinct paths, with eight
-paths claimed by more than one chain** and the stack pack's skill claimed by three — and not
-one of those eight was a live collision. **Seven, strictly**, once the charter is carved out of
-the comparison; the eighth is `.sdlc/CHARTER.md`, which the invariant now excludes. A check
-reporting seven false collisions on the day it lands is a check that gets switched off. The amendment settles the marker; this change uses it.
+was where a plan's status came to rest; `superseded` was declared and honoured by nothing.
+**Seven plans carry `approved` and every one of them is done or replaced** — six finished and
+one replaced without ever being built. Comparing them the obvious way reports **40 file claims
+over 30 distinct paths, with eight paths claimed by more than one chain**, the stack pack's
+skill and the charter each claimed by three — and not one of those eight is a live collision.
+**Seven, strictly**, once the charter is carved out of the comparison. A check reporting seven
+false collisions on the day it lands is a check that gets switched off. The amendment settles
+the marker; this change uses it.
+
+**Re-measured on 2026-09-21 and the figures moved, which is the point of re-measuring.** It was
+six plans, 35 claims and 26 paths a day earlier. A seventh chain shipped in between and added
+five claims and four paths of its own, and **the number of multi-claimed paths did not move** —
+new work tends to claim new files, and what collides is the small set every chain has to touch.
+That is the shape of the problem stated in numbers rather than in adjectives.
 
 **The cost of the gap, stated as what this change actually removes.** Two sessions cannot
 safely run at once today, and this removes exactly one reason: two approved plans silently
@@ -172,7 +180,8 @@ Every file below was opened while writing this, not inferred from a search.
   everywhere in this document; it said four here until the owner's decision at this gate was
   carried through, which would have produced a commit of four rows and five classes and a red
   register check that nothing could be committed over.
-- **`tests/AiSdlc.Tests/TempRepo.cs` and `Repo.cs`** — the fixture, which writes one chain with
+- **`tests/AiSdlc.Tests/TempRepo.cs`, claimed by `init-scaffolds-solution`, and `Repo.cs`,
+  claimed by nobody** — the fixture, which writes one chain with
   one plan and cannot express two colliding plans. Shared by three suites, so it sits in exactly
   one slice. **There is a second reason they are edited and it was implied rather than said:**
   the packaging check in criterion 8 injects a missing parser "in a fixture, never in the live
@@ -276,11 +285,18 @@ Every file below was opened while writing this, not inferred from a search.
   same reason the stale script name is — a known-false line beside prose this change already
   edits. The README's and the charter's copies are left alone, because they frame the figure as
   a startup comparison and are correct; the reasoning and the numbers are in Constraints, once.
-- **The five finished plans and the one superseded plan** — `init-scaffolds-solution`,
+- **The six finished plans and the one superseded plan** — `init-scaffolds-solution`,
   `pack-promises-what-it-scaffolds`, `register-names-every-check`, `stack-dotnet-house-stack`,
-  `verification-reports-options`, and `engine-substitutes-declared-tokens` — the last superseded
-  in fact but not yet in its frontmatter, which still reads `approved`, and which this change
-  corrects.
+  `verification-reports-options`, `every-workflow-body-runs`, and
+  `engine-substitutes-declared-tokens` — the last superseded in fact but not yet in its
+  frontmatter, which still reads `approved`, and which this change corrects.
+
+  **`every-workflow-body-runs` is on that list because the rule above puts it there, not because
+  it feels done.** It was approved and shipped on 2026-09-21, after this document was written,
+  and every file its manifest claims is in git with its work in it. An earlier version of this
+  document called it "the only other live plan" an hour after its own commit landed — **which
+  is the staleness this change exists to make visible, committed by the person writing the
+  change that makes it visible.** Nothing caught it; a re-read against the tree did.
 - **`.sdlc/OPEN.md` and `.sdlc/DIRECTION.md`** — both describe this change in the future tense
   and both are false the day it ships. The open items say nothing writes a task-tier plan's
   finished state, that a replaced plan is retired by nobody, and that closing the install item
@@ -295,14 +311,13 @@ Every file below was opened while writing this, not inferred from a search.
   answering yes after the work is done. Named rather than edited: the non-goals already put the
   router's competing notion of an active chain out of scope, and the list's purpose is that
   omission is the lapse.
-- **`every-workflow-body-runs`, a seventh plan and the only other live one.** Approved on
-  2026-09-21, after this document was written. It claims `parallel-build.js`, `.sdlc/CHARTER.md`
-  and `.sdlc/OPEN.md`, and **it is why the JavaScript-parser question below is closed as a
-  non-goal rather than left open**. The enumeration above names the six this change marks; it
-  is not a list of what is on disk, and this bullet exists so nobody reads it as one. The two
-  plans overlap on the charter alone, which the artifact-root carve-out puts outside the
-  comparison by design — so the first genuine test of two live chains produced no collision in
-  implementation files, which is the outcome the carve-out was for.
+- **The tree holds seven plans and no other live one.** Every `plan.md` under the artifact root
+  reads `status: approved`, and every one of them is done or replaced — which is why the
+  enumeration above is both the marking set and, at this moment, the whole list. **That
+  coincidence is temporary and the document does not rely on it:** the moment anything else is
+  planned there will be a live plan this change must compare against, and nothing here assumes
+  otherwise. Stated because a reader checking the tree will find seven approved plans and needs
+  to know that is the state being fixed rather than the state being described.
 - **The owner**, who cannot currently run two sessions without hand-checking for overlap.
 
 **Five of the files this change edits outside the artifact root are claimed by another live
@@ -351,12 +366,12 @@ back, so it says what the change does rather than what it would be nice for it t
   its loop and built a harness. What is still true is that **it has never dispatched a real
   agent**, and that it is a second chain's file. Covering fan-out from here would mean claiming
   a file another live plan claims, which is the thing this change exists to report.
-- **The six plans that are done or replaced say so**, so the check's first real run is true.
+- **All seven plans that are done or replaced say so**, so the check's first real run is true.
 - **And it decays from there, by two separate routes, until a closing step exists.** A plan
   stops being live in two ways and **neither is written by a tool for the common case**:
 
   - **Finished.** Only feature chains get `finished:` written for them, by the verify skill on
-    the SHIP branch of its gate. Four of the five shipped here were task tier and pass through
+    the SHIP branch of its gate. Five of the six that shipped here were task tier and pass through
     no closing stage at all, so their plans stay live after the work ships. That is recorded as
     item 4 in `.sdlc/OPEN.md`, with the closing step as its fix.
   - **Superseded.** The shipped schema says the plan skill writes this value when it replaces a
@@ -446,12 +461,12 @@ properties hold.
    position exactly.
 
    **It follows that this change's own artifact claims are invisible to its own instrument.**
-   The six plans it marks and the charter it declares all sit under the artifact root, so the
+   The seven plans it marks and the charter it declares all sit under the artifact root, so the
    most dangerous edits it makes are outside the comparison. Declaring them still buys the two
    things it always bought — the gate hook stays quiet for work that was agreed, and the
    declaration is the record of what this change touched — but it does not buy collision
    detection, and saying otherwise would be the false comfort this document keeps removing.
-2. **A finished plan claims nothing; the six done-or-replaced plans say so; and the write is
+2. **A finished plan claims nothing; all seven done-or-replaced plans say so; and the write is
    bound to the SHIP verdict, not to the verify stage.** The last clause is not a detail. The
    verify skill runs on both verdicts — the charter binds it to commit its record on DO NOT SHIP
    as well — so a write placed at the stage rather than at the SHIP branch would have a
@@ -468,18 +483,18 @@ properties hold.
    unstaged means a fresh session reads a live plan.
 
    **What makes a plan finished, since the marking is irreversible and the evidence is thin.**
-   Only one of the six chains has a verification record; four shipped task-tier and passed
-   through no closing stage at all, and the sixth was superseded without ever being built. The
+   Only one of the seven chains has a verification record; five shipped task-tier and passed
+   through no closing stage at all, and the seventh was superseded without ever being built. The
    rule used here is not recollection: **a plan is finished when every file its manifest claims
    exists in git with that chain's work in it** — checkable by a person against the diff, which
    is what a reviewable commit is for.
 
-   **What each of the six actually carries afterwards, in one place, because reading criterion 2
-   alone produces an illegal plan.** Five of them keep `status: approved` and gain
-   `finished: true`. The sixth, `engine-substitutes-declared-tokens`, takes `status: superseded`
+   **What each of the seven actually carries afterwards, in one place, because reading criterion 2
+   alone produces an illegal plan.** Six of them keep `status: approved` and gain
+   `finished: true`. The seventh, `engine-substitutes-declared-tokens`, takes `status: superseded`
    and **no `finished:` line at all** — its work was never built, so there is nothing finished
    about it, and `finished: true` beside `status: superseded` is rejected by the fourth grammar
-   rule this same change ships. A reader who took "the six done-or-replaced plans say so" at
+   rule this same change ships. A reader who took "all seven done-or-replaced plans say so" at
    face value would write exactly that and be refused by the instrument in the next slice.
 
    **It is about the plan's files and not the chain's
@@ -497,7 +512,7 @@ properties hold.
    all, so finished-awareness lives only in the cross-plan mode.
 
    **The bootstrap, stated because an engineer will hit it.** This plan is approved at a moment
-   when all six plans still read `approved` and this one claims five files they claim. **The
+   when all seven plans still read `approved` and this one claims five files they claim. **The
    marking commit therefore lands before this plan is approved**, not as a slice inside its
    build.
 
@@ -514,7 +529,7 @@ properties hold.
    what makes the tooling quiet.
 
    **What evidence that commit carries, since nothing checks it and nothing will.** For each of
-   the six, the commit message names the commit that landed that plan's files, so a reviewer at
+   the seven, the commit message names the commit that landed that plan's files, so a reviewer at
    the gate reads a claim they can follow rather than an assertion they must accept. **This is
    not a sixth known-and-unchecked entry**, deliberately: that list is for *classes* of silent
    failure, recurring ones whose instrument is a different change. A one-time act performed by a
@@ -523,8 +538,8 @@ properties hold.
    which is the misuse the invariant warns about in its own words.
 
    **If this chain is dropped after the marking, nothing needs restoring.** The marking records
-   a fact that is true independently of this change — five of those plans' work shipped weeks
-   ago and the sixth was replaced without being built — so abandoning this chain leaves six
+   a fact that is true independently of this change — six of those plans' work is in git, most
+   of it weeks ago, and the seventh was replaced without being built — so abandoning this chain leaves seven
    correctly-retired plans and no debt. That is what makes an irreversible act acceptable three
    gates early: it is not a bet on this change, it is the recording of something already
    settled. **The one-way rule is not in tension with it**, because that rule forbids reopening
@@ -533,7 +548,7 @@ properties hold.
    ship — putting it back is a correction of the record, not a reopening of finished work, and
    the distinction is worth having written down before anyone needs it.
 
-   **It touches the six plans and nothing else, and the charter is deliberately not in it.**
+   **It touches the seven plans and nothing else, and the charter is deliberately not in it.**
    The five register rows go in with their five checks, inside the planned slice that declares
    `.sdlc/CHARTER.md` in its manifest, because the version-8 rule puts a register row on the
    gate of the change that adds the check — and because rows naming tests that do not exist yet
@@ -563,13 +578,20 @@ properties hold.
    design, so a fixture that collides on an artifact would prove it stays silent rather than
    that it speaks, and would pass while proving the opposite of the criterion. The plan skill's prose is not evidence for this — it
    is where a collision is usually caught and never what guarantees it.
-5. **The gate hook, and the script's cross-plan mode, each have a stated behaviour under the
-   new field, asserted rather than read.** Both must treat an approved-and-finished plan as not
+5. **A plan that is approved and finished contributes no claims, in either reader, proved by
+   an observable event rather than by a sentence.** The event: two plans claiming one code file
+   in a throwaway repository, one of them marked finished; editing that file draws no collision
+   warning, and the same fixture with the marking removed draws one. Criterion 4's shape, on the
+   field instead of on the mechanism. **An earlier version of this criterion said only that each
+   reader "has a stated behaviour, asserted rather than read"**, which names nothing anyone
+   could write a test against and was the least testable line in this section.
+
+   Both readers must treat an approved-and-finished plan as not
    live — **and, among the *other* plans, a `draft` or `superseded` one as not live either.**
    The qualifier matters: criterion 3 says the plan being checked contributes its claims
    whatever its own status says, precisely because it is a draft at the moment the check runs.
    Read without it, these two criteria give opposite answers for the commonest case there is.
-   It is not a detail for a second reason too: one of the six plans retires by `superseded`
+   It is not a detail for a second reason too: one of the seven plans retires by `superseded`
    rather than by the new field, and the cross-plan mode is new code with no behaviour to
    inherit. The hook happens to get this right already,
    because its pattern demands the bare word `approved` and nothing else matches; the new reader
@@ -595,6 +617,21 @@ properties hold.
    naming the other chain. Without it the hook's existing message reports only that *nothing*
    claims the file, which is the opposite state. The hook stops at the first claiming plan
    today, so moving that return is the change.
+
+   **The new state gets a label, because this change has just made labels a contract.** The two
+   that exist are `no approved plan` and `unplanned scope`; the third is **`contested file`**,
+   and it goes in all three copies the fifth check compares. Without one, the criterion adds a
+   row to three shipped documents with nothing to compare it on — the exact defect that made the
+   `hooks.json` description need rewriting.
+
+   **And it gets an action string, which is where it differs from its two neighbours.** Each of
+   those tells the editor something they can do alone: run the plan command, or add the file to
+   a manifest and re-approve. **A contested file cannot be remedied by the person editing it** —
+   the fix is re-planning a chain that may not be theirs, and a non-goal here forbids any tool
+   doing that unattended. Under the blocking switch that file is uneditable by anybody until a
+   human intervenes elsewhere. So the action names the other chain and says to settle it with
+   whoever owns it, rather than implying a fix the reader can perform. **Stated at this gate
+   because it is text every user sees and a dead end nobody has been shown before.**
 7. **In the script, a comparison that found nothing is distinguishable from one that compared
    nothing.** The constraint below fixes one cause of an empty set — a wrongly resolved root —
    but a nested chain directory, a renamed `plan.md` or a refused parse produce the same silence
@@ -635,10 +672,22 @@ properties hold.
      **It binds `plan.md` and no other shape.** Two of the four rules are plan-only by the
      schema; the third — `status:` unquoted and one of the declared values — is stated there
      for all five artifact shapes, and binding the check to all five would be a wider promise
-     than this change measured, since the conformance measurement covered the six plans and
+     than this change measured, since the conformance measurement covered the seven plans and
      nothing else. **The charter and verification records are outside it**, said plainly
      because the non-goal that no check reads a real `plan.md` means nobody can settle the
      question by running something.
+
+     **The same hole exists for `status:` and it is the worse of the two.** The fourth rule is
+     about `finished:` being alone on its line; the third says only that `status:` is unquoted
+     and one of the declared values, and nothing says there is exactly one `status:` line. Every
+     reader here matches *a* line — the hook's pattern is unanchored to position — so a plan
+     carrying `status: draft` and, further down, `status: approved` reads as approved to the
+     hook, to the new cross-plan reader, and to anything else that looks. **That is a way to
+     produce downstream work from a draft that no instrument sees**, in a repository that
+     already has one plan approved over a draft intent recorded as an open item. The grammar
+     check rejects a second `status:` line for the same reason it rejects a second `finished:`
+     one, and this is said here rather than left for the spec because the rule it extends is one
+     the charter froze.
 
      **Two spellings the grammar does not yet answer, and for a one-way field that is a
      property rather than a detail:** a plan carrying **two** `finished:` lines, and one
@@ -762,7 +811,7 @@ properties hold.
   a shipped advisor. A plan that today gets claims recognised by the loose reading — a `files:`
   line outside any slice, or one the script's anchor would reject — loses them, so files the
   hook quietly treated as claimed start drawing an unplanned-scope warning. **Noisier, not less
-  safe**, and it cannot happen in this repository: all six plans were measured against the
+  safe**, and it cannot happen in this repository: all seven plans were measured against the
   strict reading and conform. It can happen in another one, which is where the no-migration
   non-goal has nothing to say, because this is not version skew — it is the same version
   reading the same file more carefully.
@@ -824,7 +873,7 @@ properties hold.
   reproduce.** Root discovery globs one and two levels below the working directory, so its cost
   is driven by **breadth at those two levels** and not by depth or by total directories: 500
   directories side by side at the top and 500 nested ten deep give different numbers on the same
-  code. The fixture is **500 directories at the top level, holding six plans** — six because
+  code. The fixture is **500 directories at the top level, holding seven plans** — seven because
   that is what this repository has and plan count is the other measured term, at roughly 2.75ms
   each. **The before-figure is re-measured on that same fixture**, not taken from the numbers
   above: those came from a flat tree and a 900-directory one, and comparing a 500-after against
@@ -861,7 +910,7 @@ properties hold.
   of the five that are real. All five stay handled by practice.
 - **Not the artifact files.** Nothing under the artifact root is compared, for the reason in
   criterion 1.
-- **Nothing rewrites a plan automatically.** The six are marked by a person in a reviewable
+- **Nothing rewrites a plan automatically.** The seven are marked by a person in a reviewable
   commit; no tool ships that could do it unattended.
 - **Nothing stages or commits on anyone's behalf.**
 - **No slice manifest is rewritten on a finished plan.** Only the status line and the new field
@@ -872,17 +921,35 @@ properties hold.
 - **The hook's existing skip rules are unchanged**, wrong edge cases included: its artifact-root
   test is segment equality, so a root at `docs/sdlc` also skips `src/sdlc/Thing.cs`, and `bin/`,
   `obj/` and `node_modules/` are *not* skipped on edits.
-- **The hook's tool matcher is not widened.** A `git mv` still never reaches it.
+- **The hook's tool matcher is not widened.** A `git mv` still never reaches it. **And "three
+  tools" is this repository reading an alternation, not a behaviour anyone pinned:** the matcher
+  is `Edit|Write|NotebookEdit`, unanchored, and whether the host also matches a name containing
+  one of those — a multi-edit variant, say — is a mechanic nothing here documents or tests. It
+  is the same shape as the admitted gap about the hook's base directory: a claim about the host
+  rather than about this code. Widening the matcher deliberately is out of scope; knowing that
+  the number three was never verified is not.
 - **`plugins/sdlc-core/workflows/parallel-build.js` is not edited here and the JavaScript
-  parser is not reconciled.** This was an open question until 2026-09-21 and is a non-goal now,
-  because the facts moved: `every-workflow-body-runs` claims that file, so answering the
-  question the other way would put two live plans on one implementation file — the exact state
-  this change exists to report, discovered while the mechanism that would report it is still
-  unbuilt. **What stays true and unfixed:** the comment in that file claiming all three parsers
-  normalise identically is false, and stays false. The JavaScript strips one optional leading
-  `./` where the two PowerShell readers strip every leading dot and slash, so `.sdlc/CHARTER.md`
-  survives there and does not here — and the JavaScript is the one that is right. Recorded for
-  whoever reconciles it, which is neither of these two chains.
+  parser is not reconciled.** This was an open question until 2026-09-21. **The reason first
+  given for closing it has since lapsed and the decision survives on a better one.** That reason
+  was that `every-workflow-body-runs` claims the file — but that plan is finished, so its claim
+  has lapsed with it, and a finished plan cannot be the argument for anything being out of
+  bounds.
+
+  **What the argument actually is:** the lossless-normalisation constraint moves the two
+  PowerShell readers *toward* the JavaScript, which is already correct on the case that matters
+  — it strips one optional leading `./` and leaves `.sdlc/CHARTER.md` intact, where the
+  PowerShell strips every leading dot and slash and destroys it. So the gap that costs this
+  change something closes as a side effect. What remains is the rest: the JavaScript does not
+  fold `a//x`, a trailing slash, `a/../a/x`, case or surrounding whitespace, and nothing holds
+  the three readers together in either direction. **Reconciling that is a third reader in a
+  third language with a check to match**, and it now has an instrument it did not have this
+  morning — the harness that executes a workflow body. It is its own work, and the thing that
+  makes it real work is no longer unavailable, which is a better place to leave it than the
+  scope argument this bullet used to make.
+
+  **What stays true and unfixed:** the comment in that file claiming all three parsers normalise
+  identically is false, and stays false after this change — less false, which is not the same
+  thing. Recorded for whoever reconciles it.
 - **The scaffold executor's duplicated root resolver and the router's competing notion of an
   active chain are not fixed here.** Each is its own work.
 - **The plan skill gains no new gate and no new step.** The open question about where the
@@ -982,7 +1049,8 @@ here because the arithmetic was the reason to decide early, and a reader who fin
 criterion would not know the question had been a blocking one. It is criterion 8's fifth check.
 
 **Closed on 2026-09-21 rather than carried:** *when is the amendment's grammar enforced on the
-plans that already exist?* Measured — all six conform already. Every `status:` line is the
+plans that already exist?* Measured again on 2026-09-21 — **all seven conform**, the seventh
+included, which was written after the question was first answered for six. Every `status:` line is the
 unquoted word, every `files:` line is a quoted flow-style list, and no entry is a directory; and
 no plan carries `finished:` at all, which the field's own rule reads as not finished. So all
 four rules break nothing in this repository and can be enforced from the day they land.
@@ -1030,6 +1098,15 @@ the sections that use them.**
 - **`superseded` being written by the plan skill.** Believed because the shipped schema says so.
   The skill has never contained the word. Found by interrogation, not by reading the document
   that asserts it — which is the whole argument for interrogating in a fresh context.
+- **Calling a plan live an hour after committing its work.** `every-workflow-body-runs` was
+  described here as "the only other live plan" while every file it claims was already in git,
+  and two decisions rested on that claim. **Found by re-reading the document against the tree
+  rather than by argument**, which is the pass that now runs before an interrogation instead of
+  after five of them.
+- **Every count in this document, which is why they are now derived rather than written.** Seven
+  plans, not six. Forty claims over thirty paths, not thirty-five over twenty-six. Five of six
+  shipped chains task tier, not four of five. Every one was true when written and false within a
+  day, and every one was a command away.
 - **Counting divergences at all.** Five, then four, then three — and each recount removed an
   item that was a real defect but not a disagreement between the two readers. The frame was
   wrong, not the arithmetic: what the shared parser is for is that one question about one file
@@ -1072,7 +1149,7 @@ the sections that use them.**
 - **Four rows where the rest of the document said five.** In the one bullet that states the
   slicing constraint, so an engineer following it would have produced the red build the same
   bullet says nothing may be committed over.
-- **What the pre-approval marking commit touches.** Said to rewrite six plans *and the charter*.
+- **What the pre-approval marking commit touches.** Said to rewrite the other plans *and the charter*.
   It cannot: register rows landing before their checks turn the register check red, and the
   charter edit belongs in the planned slice that declares it. Two rules broken by one clause.
 - **Which disjointness invocation learns about `finished:`.** One criterion said "the
