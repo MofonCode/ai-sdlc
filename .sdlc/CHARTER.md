@@ -2,7 +2,7 @@
 solution: ai-sdlc
 artifact_root: .sdlc/
 status: approved
-version: 12
+version: 13
 updated: 2026-09-21
 owner: peter
 ---
@@ -391,7 +391,9 @@ writes, the second is a promise about shape, and only the first was ever made.
 the change that extracts one parser for the first two; the JavaScript one will still stand
 alone afterwards, because it cannot source PowerShell. **v9 wrote this in the present tense, as
 though the extraction had happened** — corrected in v11, and it is the same defect v10 repaired
-for the three grammar rules, in this same paragraph, four lines away. They have diverged before — two normalised a
+for the grammar rules below, in this same paragraph, four lines away.
+
+They have diverged before — two normalised a
 leading `./` and the third did not, so a plan could pass the check that fans out and fail the
 check that merely warns — and by v9 they had diverged in five ways, on anchoring, on leading
 dots, on case, on where a slice begins, and on the edited path against the claimed one.
@@ -452,7 +454,11 @@ instrument. The register rows arrive with the checks, under the v8 rule.
   plus fifteen tests, three manifest parsers disagreeing became a normalisation fix and a test,
   two stack leaks became `CharterInvariantI1_EngineImposesNoStack`, a lingering shim became
   `NoPythonShipsInThisRepository`, and an owner observation became I12. I9's table is the
-  register of it, and it has numbers: 49 tests, 12 injected faults, 12 caught.
+  register of it, and the loop has numbers rather than a feeling. **As recorded when this
+  paragraph was written:** 49 tests, 12 injected faults, 12 caught. **Counted again on
+  2026-09-21:** 30 register rows, and a suite of 151 cases from 125 methods. Both figures are
+  dated on purpose — the first stood here in the present tense long after the suite had passed
+  it, which is the same defect v11 recorded about a claim four lines from the grammar rules.
 
   **What is missing is the trigger, not the mechanism.** Every one of those conversions
   happened because somebody noticed. The loop closes when it becomes a rule — a blocking
@@ -472,6 +478,7 @@ instrument. The register rows arrive with the checks, under the v8 rule.
 
 | Version | Date | Change |
 |---|---|---|
+| 13 | 2026-09-21 | **Two stale figures dated, one of them describing a suite a third the size of the one that now runs.** The self-improvement paragraph read *"I9 table is the register of it, and it has numbers: 49 tests, 12 injected faults, 12 caught"* in the present tense; the suite is at 151 cases from 125 methods and the register at 30 rows, counted rather than recalled. Both figures now carry the date they were taken, because a number in a charter is read as current unless it says otherwise. The parsers paragraph also still said v10 repaired *"the three grammar rules"*, which collided with the four the paragraph below now lists; it points at the rules rather than counting them, since the count is the thing that moved. **Same class as v11 and v12, and the third version in a row spent on it:** a claim about the code written from memory, in the document whose register exists so that every named check is real. Nothing binding moves. |
 | 12 | 2026-09-21 | **The grammar paragraph lists four rules, not three.** It stated the two `files:` rules and the `status:` rule and stopped, because when it was written the `finished:` field had no grammar — the field gained one later in the same conversation and this paragraph did not follow. Meanwhile the shipped schema listed four, so the charter and the engine's own reference disagreed about how many rules bind: the second-list failure, between the two documents that define the shape. **A version for one paragraph, deliberately.** The number is free and the row is the point — this is the fifth defect traceable to the twelve-question conversation at v9, which is the count v11's row said to watch. Nothing here is new: all four rules already bind and the schema already carried them. What changes is that the charter now says what the schema says. |
 | 11 | 2026-09-21 | **Two more factual claims in v9 corrected, and the pattern behind all of them recorded.** The charter said *"from v9 the first two share one extracted parser"* in the present tense; they do not, and `no-two-plans-claim-one-file` is the change that will extract it — a reader of that sentence concludes the work is done and skips the check that proves it. And the known-and-unchecked count moved three times while that change was scoped — seven, then five, then seven — as the entry list itself grew, each interrogation finding another class nothing catches. The figure is right again; what was wrong was ever stating it from memory instead of counting the list. I9 now records the instability rather than just the number. **The pattern is the reason this row exists.** v8 settled three questions and has needed no repair. v9 settled twelve, and v10 was required within the hour to fix two defects in it — then introduced this present-tense claim while repairing its exact twin four lines away in the same paragraph. Three consecutive fresh-context interrogations of the chain v9 unblocked found defects only in amendment prose, never in the change itself. **So: an amendment's error rate scales with its agenda, and the batching argument is about cost, not correctness.** v8's rule — batch, because an amendment costs a version and a log row — stands for cost and is now qualified for accuracy: **settle what one conversation can be reviewed in, and take a second version rather than a wrong one.** A factual claim about the code belongs checked against the code before it is written down, in the document whose register exists so that every named check is real. |
 | 10 | 2026-09-21 | **Two defects in v9, found by the first fresh-context interrogation of the intent that amendment unblocked, and fixed the same day.** **I6 gains the carve-out it needed:** disjointness binds implementation files, not the chain's own artifacts under the artifact root. v9 stated the rule without it, and the rule without it is unsatisfiable — I9 obliges any check-adding change to declare `CHARTER.md`, so two such chains must claim that file by construction, and with nothing committable on a red build only one check-adding chain could ever be live. The intent had resolved the contradiction by making its instrument blind to the artifact root, which put the carve-out in one check rather than in the constraint, and left the shipped schema saying "across every live plan" while the sole instrument did something narrower — a second list beside a source of truth. What it gives up is stated: two chains colliding on `OPEN.md`, `DIRECTION.md` or a shipped spec's forward pointers is caught by nothing, and those are prose documents that merge. **The three grammar rules stop claiming an instrument that does not exist:** v9 said each "is checked", present tense, while nothing in the suite checked any of them — in the document whose register exists precisely so that every named check is real. The rules bind from v9; their checks land with `no-two-plans-claim-one-file`, and their register rows arrive with them under the v8 rule. Both defects were mine to make in one conversation and are recorded here rather than quietly repaired, because an amendment log that shows only the decisions and not the corrections teaches the wrong lesson about how much an amendment can settle at once. |

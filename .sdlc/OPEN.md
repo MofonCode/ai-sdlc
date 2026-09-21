@@ -97,8 +97,9 @@ the one-time marking that change performs — *unless the chain is feature tier*
 version 9 settled that `/sdlc-core:verify` writes the field on the SHIP branch of its gate, so
 feature chains are covered. **Task tier is the hole**, and it is the larger half: task tier
 requires only a plan and passes through no stage after approval, so nothing writes the field
-and nobody is prompted to. Four of the five plans in this repository shipped that way, which is
-the majority case rather than an edge.
+and nobody is prompted to. Of the five plans that have actually shipped here, four shipped that
+way — the majority case rather than an edge. A sixth plan carries `approved` and was superseded
+without ever being built.
 
 An earlier version of this item said *nothing* writes it, which was true when it was written
 and stopped being true when the amendment landed.
