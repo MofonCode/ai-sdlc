@@ -17,11 +17,12 @@ hold it. **To see what is in flight, read the chain documents.**
 **How an item leaves.** By being done, or by becoming a chain of its own — at which point the
 chain's documents are the record and the line here is deleted. Not by being forgotten.
 
-Last reviewed: 2026-09-21. Seven items open. Two closed the same day: the missing git remote, and
-the register row that registered nothing — the latter by charter version 8, which rewrote it to
-name its test class and proved the row live by injecting a fault and watching the check fail.
-Three opened since: the parallel build does not terminate and never has; nothing writes a
-*task-tier* plan's finished state once the collision check depends on one; and an approved plan
+Last reviewed: 2026-09-21. Six items open. Three closed the same day: the missing git remote;
+the register row that registered nothing — by charter version 8, which rewrote it to name its
+test class and proved the row live by injecting a fault and watching the check fail; and **the
+parallel build that had never run**, by `every-workflow-body-runs`, which fixed the loop and
+built the harness the item said was the larger half. Two opened since: nothing writes a
+*task-tier* plan's finished state once the collision check depends on one, and an approved plan
 was produced from a draft intent, which the collision change is about to erase the evidence of.
 
 ---
@@ -53,7 +54,7 @@ initialising anyway. Running `init` there does the hand-run against a repository
 needs the output, rather than against a directory created to be thrown away — which also
 exercises the interview honestly, because the answers matter.
 
-## 2. Four task-tier changes shipped with no fresh-context verification
+## 2. Five task-tier changes shipped with no fresh-context verification
 
 The framework runs adversarial verification in a clean context for **feature**-tier work only.
 Everything shipped since the scaffold was task tier and got none:
@@ -62,6 +63,9 @@ Everything shipped since the scaffold was task tier and got none:
 - `register-names-every-check` — the silent-failure register and the test suite name each other
 - `stack-dotnet-house-stack`
 - `pack-promises-what-it-scaffolds`
+- `every-workflow-body-runs` — the wave loop repaired, and the harness that executes a workflow
+  body rather than parsing it. Added on the day it shipped rather than noticed later, which is
+  the only difference between it and the four above.
 
 The last of those has the strongest case for one it never got: it superseded half of a
 requirement in an approved, shipped spec, it amended the charter, and two of its four
@@ -149,53 +153,7 @@ clause is *"every path that consumes an artifact reads `status:` from the file a
 the plan skill's own gate is prose. Found on 2026-09-21 by the twenty-ninth interrogation of
 that chain's intent.
 
-## 6. The parallel build has never run, and nothing would have noticed
-
-`parallel-build.js` computes dependency waves, then removes the dispatched ones:
-
-    remaining = remaining.filter((s) => !ready.includes(s.id))
-
-`ready` holds slice **objects** and `s.id` is a **string**, so the test is always false,
-`remaining` never shrinks, and the loop builds waves forever. Reproduced on 2026-09-20 with a
-two-slice plan: five waves and still not terminating. It fails this way on any plan at all,
-including a single-slice one.
-
-**Why it survived:** the only instrument over the workflow is `EveryWorkflow_IsValid`, which
-shells out to `check-workflow.mjs` — and that file says what it does in its own words,
-*"Not executed - constructing the function is enough to parse it."* Nothing in this repository
-executes a workflow body, so a non-terminating loop parses clean.
-
-**The charter said otherwise until version 16**, in two places: its technology table called the
-checker something that *"evaluates a workflow body the way the runtime does"*, and the
-no-drafts invariant said this script *"now reads the plan and refuses to build a draft"* — a
-gate that is real code sitting below the loop that never exits. Both are corrected there. Worth
-recording here because a reader who checked the charter before opening this file would have
-concluded the workflow was both executed and gated, and it is neither.
-
-**Two things, and the second is the larger one.** The loop is a one-line fix. Proving it works
-needs a harness that actually runs a workflow body with its agent, parallel and phase calls
-bound, which does not exist — and without one, the fix ships verified by reading, which is the
-same defect class that let this through.
-
-**The README recommends it, in a section nothing has corrected.** "Three ways to run a plan, in
-descending order of what the fan-out buys you" lists `workflows/parallel-build.js` second, as
-*"deterministic dependency waves, re-proves disjointness, halts on a red build rather than
-feeding a broken dependency forward."* Every clause is true of the code as written and none of
-it is reachable, because the wave loop never terminates. **That is the one false claim in this
-repository that a person outside it would act on**, since the README is what an installer reads.
-It is recorded here rather than fixed in passing: the honest fix is the one-line loop repair
-plus the harness that proves it, and a README note saying "this has never run" is worse than
-either — it advertises a broken tool with a disclaimer.
-
-**Consequences worth stating.** Every fan-out this framework has done was dispatched by hand
-rather than by this script, so the parallel-build premise is unproven rather than working.
-And `no-two-plans-claim-one-file` dropped fan-out as one of its homes because of this: a
-guarantee asserted against a code path that has never run is not a guarantee.
-
-**Found on 2026-09-20** by the seventh fresh-context interrogation of that intent, while
-checking whether the build could host a cross-plan check. Not that chain's to fix.
-
-## 7. The framework cannot be installed anywhere but this machine
+## 6. The framework cannot be installed anywhere but this machine
 
 `.claude-plugin/marketplace.json` is a valid Claude Code marketplace declaring two plugins —
 `sdlc-core` at 0.9.1 and `stack-dotnet` at 0.6.0. **Both sources are relative paths** into this

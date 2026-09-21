@@ -68,7 +68,11 @@ while (remaining.length) {
   }
   waves.push(ready)
   ready.forEach((s) => done.add(s.id))
-  remaining = remaining.filter((s) => !ready.includes(s.id))
+  // Against `done`, not against `ready`: `ready` holds slice objects and `s.id` is a string, so
+  // `ready.includes(s.id)` was always false, `remaining` never shrank, and this loop could not
+  // end. Nothing below it had ever executed. `done` already holds exactly the dispatched ids,
+  // which is also one source of truth rather than two.
+  remaining = remaining.filter((s) => !done.has(s.id))
 }
 
 const SLICE_RESULT = {
