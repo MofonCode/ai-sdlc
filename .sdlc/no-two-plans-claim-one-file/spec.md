@@ -269,6 +269,22 @@ maps to one of the intent's success criteria (1–8) in the coverage table under
   hook SHALL warn under R19 **and** name the refused plan and the rule it broke, so that the
   blocking switch does not refuse every edit on account of one duplicated `status:` line with a
   detail that says nothing about a refusal.
+### The test fixtures
+
+- **R63.** THE test fixtures SHALL gain a factory producing a throwaway repository whose chain
+  holds **two plans claiming one code file**, so that the collision checks have a repository to
+  run against. The file's extension matters: the gate hook skips markdown, text, json, yaml and
+  toml, so a fixture colliding on an artifact proves the hook stays silent rather than that it
+  speaks.
+- **R64.** THE test fixtures SHALL gain a copy of the plugin tree into a throwaway repository,
+  so that the packaging check injects a missing parser into a fixture and never into the live
+  plugin directory.
+- **R65.** THE existing `TempRepo` factory's signature and default behaviour SHALL NOT change.
+  **Three suites compile against it** — `GateHookTests`, `SliceManifestTests` and
+  `ScaffoldManifestTests` — and only the first two are this change's business; altering the
+  default would break the third, whose repair would then be an edit outside any slice manifest,
+  during a change whose subject is that nobody edits outside their manifest.
+
 - **R20, revised.** The original read "IF the shared reader records a refusal for a plan, THEN
   THE gate hook SHALL drop that plan's refused claims." That covered a plan-level refusal by
   dropping claims that were not what was wrong, leaving the plan live. Superseded by the pair
@@ -849,6 +865,9 @@ than an earlier version of this paragraph made.
 | R60 | `FrontmatterGrammarTests` — a `finished: true` nested under `slices` on an approved plan: refused, and the plan's claims still counted. Fault: read lifecycle lines at any indentation |
 | R61 | `SliceManifestTests` — `-Plan x -Root y` without `-AcrossPlans` exits 1 naming the flag |
 | R62 | `GateHookTests` — one plan, duplicated `status:`, no other plan: the warning names the refusal as well as the no-live-plan state |
+| R63 | `CrossPlanCollisionTests` — every collision fixture in the suite is built by it; a factory that produced one plan would fail every method that needs two |
+| R64 | `GateHookPackagingTests` — the parser removed from the copy, not from the live tree; the live plugin directory is asserted untouched after the run |
+| R65 | `ScaffoldManifestTests`, already in the suite and unmodified in behaviour — it compiles and passes against the fixture this change edits, which is the whole assertion |
 | R51 | `FrontmatterGrammarTests` — the charter and the schema compared on rule count and each rule's key phrase, both directions |
 | R52 | Reviewed at the gate that approves the charter edit; the version and the log row are the visible half of that approval |
 | R53 | `CrossPlanCollisionTests` — a fixture with a non-default root, proving the script and the hook agree on the same claim |
@@ -1027,6 +1046,14 @@ where a patch prepended prose. The corrections are worth keeping; interleaving t
 - **R50 said nine in one sentence and eight in the next.**
 - And, having renumbered `R20a` for its identifier shape, the next two requirements were drafted
   as `R6a` and `R39a` in the same pass.
+
+**Revised after approval, once, on the owner's instruction.** The plan's interrogation found
+that **no requirement covered the fixture work at all** — `R46` describes the five test classes,
+not `Repo.cs` and `TempRepo.cs` — so an implementer dispatched with that slice held two filenames
+and someone else's requirement. The fixture contract existed only as narrative in *Files this
+change touches*. Appended as `R63`–`R65` rather than renumbered, because `R<n>` is an API the
+plan and the tests cite. **`R65` is the one that was least visible and matters most**: three
+suites compile against `TempRepo`, and only two of them are this change's business.
 
 **The pattern, which is the part worth carrying forward.** Round one attacked the document;
 rounds two and three attacked the repairs, and found more there than in the original both times.

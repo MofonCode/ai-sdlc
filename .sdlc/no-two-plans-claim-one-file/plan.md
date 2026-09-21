@@ -14,7 +14,7 @@ slices:
     depends_on: [marking]
   - id: fixtures
     files: ["tests/AiSdlc.Tests/Repo.cs", "tests/AiSdlc.Tests/TempRepo.cs", "tests/AiSdlc.Tests/ScaffoldManifestTests.cs"]
-    requirements: [R46, R48]
+    requirements: [R46, R48, R63, R64, R65]
     depends_on: [marking]
   - id: hook
     files: ["plugins/sdlc-core/hooks/sdlc_gate.ps1", "plugins/sdlc-core/hooks/hooks.json", "tests/AiSdlc.Tests/GateHookTests.cs"]
@@ -36,7 +36,7 @@ slices:
 
 # plan — no two live plans claim one file
 
-**Tier: feature.** Seven slices from an approved `spec.md`, requirements `R1`–`R62`.
+**Tier: feature.** Seven slices from an approved `spec.md`, requirements `R1`–`R65`.
 
 ## This is a sequential build, and saying so is the first honest thing in this document
 
@@ -107,14 +107,12 @@ artefact being measured no longer existed.
   root resolution, refusals as data. `R1`–`R13`, plus containment under the artifact root
   (`R55`), plan-level refusal making a plan not live (`R56`), a `files:` line before the first
   slice dropped rather than refused (`R57`), and a nested `finished:` line refused (`R60`).
-- **`fixtures`** — **the contract, stated here because no spec requirement describes it.** Two
-  additions, both additive rather than changes to existing defaults: a factory producing a
-  repository with **two plans claiming one code file**, and a copy of the plugin tree into a temp
-  repository so the packaging check injects into a fixture rather than the live plugin
-  directory. `TempRepo.Create`'s existing signature and default behaviour do not move, which is
-  what keeps `ScaffoldManifestTests` green. `R48` is claimed here as well as in `instruments`,
-  because it is a direct constraint on what these helpers may do: `Repo.Root` points at the live
-  tree and is right there.
+- **`fixtures`** — a factory producing a repository with **two plans claiming one code file**
+  (`R63`), a copy of the plugin tree into a temp repository so the packaging check injects into a
+  fixture rather than the live plugin directory (`R64`), and **no change to `TempRepo.Create`'s
+  signature or default behaviour** (`R65`), which is what keeps `ScaffoldManifestTests` green.
+  `R48` is claimed here as well as in `instruments`, because it is a direct constraint on what
+  these helpers may do: `Repo.Root` points at the live tree and is right there.
 
 **Wave 3 — `hook` and `script`.**
 
@@ -143,7 +141,8 @@ references corrected, which are at four places in that file rather than one.
 
 ## Requirement coverage
 
-Every requirement `R1`–`R62` is claimed. Five are claimed by more than one slice because they
+Every requirement `R1`–`R65` is claimed — the last three appended to the spec after this
+plan's interrogation found the fixture work uncovered. Five are claimed by more than one slice because they
 bind files in more than one:
 
 - **`R39`**, **`R58`** — the three labels and the state counts: the hook's header and
@@ -228,9 +227,11 @@ Kept here rather than inside the slices, the way the spec and intent keep theirs
   would have been an out-of-manifest edit during this change.
 - **`R49`'s before-figures were scheduled after the code they measure had been replaced.**
 - **`prose` depended on `parser` when it depends on `script`.**
-- **`fixtures` carried `R46`, which describes a different slice's files.** No spec requirement
-  covers the fixture work at all; the contract is stated in the work order instead, and the gap
-  is real rather than papered over.
+- **`fixtures` carried `R46`, which describes a different slice's files**, because no spec
+  requirement covered the fixture work at all. Raised to the owner rather than absorbed here, and
+  closed at the source: the spec gained `R63`–`R65`, appended rather than renumbered. The plan
+  carrying a contract the spec should have stated was the smaller of the two wrongs and still a
+  wrong.
 - **`R55` was claimed by one slice while binding three.**
 - **Validation named the single-plan mode and called it this change's subject**, and omitted the
   spec's end-to-end verification entirely.
