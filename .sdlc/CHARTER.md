@@ -2,7 +2,7 @@
 solution: ai-sdlc
 artifact_root: .sdlc/
 status: approved
-version: 9
+version: 10
 updated: 2026-09-21
 owner: peter
 ---
@@ -127,6 +127,22 @@ rather than a widening.** The words above do not limit the comparison to a singl
 Adding that watch adds instruments, which ride the gate of the change that adds them; it does
 not move a constraint. Recorded because the distinction decides whether the next change needs
 its own approval conversation, and because reading it the other way was a live option.
+
+**It binds implementation files, and not the chain's own artifacts under the artifact root —
+added in v10, because v9 stated the rule without the carve-out it requires.** The reason is
+forced rather than convenient: I9's obligation below makes any change that adds a named check
+declare `CHARTER.md` in its slice manifest, so **two check-adding chains must claim that file
+by construction**. Since a blocking finding becoming a named check is this repository's own
+improvement loop, that is most changes — and with nothing committable on a red build, a rule
+without this carve-out would permit exactly one check-adding chain to be live at a time. That
+is the opposite of what disjointness is for.
+
+**What the carve-out gives up, stated rather than implied.** Two chains genuinely colliding on
+`OPEN.md`, `DIRECTION.md` or a shipped spec's forward pointers is not caught by anything. Those
+are prose documents that merge and are reviewed, which is the cheap kind of conflict; code is
+the expensive kind, and that is what the rule now binds. The charter has a further protection
+of its own — an amendment bumps a version and git refuses the second push — but that is
+detection at push time, after both amendments are written, not serialisation.
 
 **A live plan is one whose work is agreed and not yet finished or replaced.** Finished is a
 field of its own beside `status:` — see the frozen shapes below — so a finished plan claims no
@@ -383,8 +399,15 @@ having been retired by the extraction.
 directory, never a glob**. The readers only ever accepted that, so this legalises nothing new;
 what it changes is that a plan written any other way now fails loudly instead of claiming
 nothing in silence. The same goes for `status:`, which must be **unquoted and exactly one of
-the declared values**. Each of the three is checked. A line-oriented parse was chosen so the
-engine ships with no YAML dependency, and that choice is what makes the grammar narrow.
+the declared values**. A line-oriented parse was chosen so the engine ships with no YAML
+dependency, and that choice is what makes the grammar narrow.
+
+**The three rules bind from v9; their instruments land with `no-two-plans-claim-one-file`,
+which is the change that needs the manifest read reliably.** v9 said each was "checked",
+present tense, when no check existed — asserting an instrument in the same document whose
+register exists so that every named check is real. Corrected in v10 rather than left: a rule
+the charter claims is enforced, and is not, is worse than a rule openly waiting for its
+instrument. The register rows arrive with the checks, under the v8 rule.
 
 ## Open questions
 
@@ -430,6 +453,7 @@ engine ships with no YAML dependency, and that choice is what makes the grammar 
 
 | Version | Date | Change |
 |---|---|---|
+| 10 | 2026-09-21 | **Two defects in v9, found by the first fresh-context interrogation of the intent that amendment unblocked, and fixed the same day.** **I6 gains the carve-out it needed:** disjointness binds implementation files, not the chain's own artifacts under the artifact root. v9 stated the rule without it, and the rule without it is unsatisfiable — I9 obliges any check-adding change to declare `CHARTER.md`, so two such chains must claim that file by construction, and with nothing committable on a red build only one check-adding chain could ever be live. The intent had resolved the contradiction by making its instrument blind to the artifact root, which put the carve-out in one check rather than in the constraint, and left the shipped schema saying "across every live plan" while the sole instrument did something narrower — a second list beside a source of truth. What it gives up is stated: two chains colliding on `OPEN.md`, `DIRECTION.md` or a shipped spec's forward pointers is caught by nothing, and those are prose documents that merge. **The three grammar rules stop claiming an instrument that does not exist:** v9 said each "is checked", present tense, while nothing in the suite checked any of them — in the document whose register exists precisely so that every named check is real. The rules bind from v9; their checks land with `no-two-plans-claim-one-file`, and their register rows arrive with them under the v8 rule. Both defects were mine to make in one conversation and are recorded here rather than quietly repaired, because an amendment log that shows only the decisions and not the corrections teaches the wrong lesson about how much an amendment can settle at once. |
 | 9 | 2026-09-21 | **A plan can say its work is finished, and four silent-skip holes in the frontmatter grammar are closed.** Required before `no-two-plans-claim-one-file` could be specified: comparing plans across chains is unusable while `approved` is where a plan's status stops, which measured as 35 claims over 26 distinct paths with 8 collisions, every one false. **Finished is a field of its own beside `status:`, not a new status value** — the alternative was a new value, and it was rejected because a repository whose plans carried it, opened by an older plugin, would have zero approved plans by that hook's reading and, with `SDLC_GATE=block` set, would refuse every code edit in itself. An additive field leaves every existing reader behaving exactly as today; the cost accepted is a second lifecycle signal and every reader learning to check both. **Legal on `plan.md` alone**, not on all five shapes: that keeps the scaffold executor's charter gate untouched and the five status-branching skills unchanged. **One-way** — a defect in finished work is a new chain, because reopening a plan silently re-acquires every file it claimed. **Written by the verify skill at feature tier**; task tier is marked by hand until a closing step exists, which is `OPEN.md` item 4 and not this change. **Grammar, stated and checked rather than widened:** a `files:` entry is a quoted string on the `files:` line and is a file path, never a directory or glob; `status:` is unquoted and exactly one declared value. The readers only ever accepted these, so nothing becomes illegal that ever worked — what changes is that the other forms now fail loudly instead of claiming nothing. **I6 gains a line saying cross-chain disjointness was always inside its words**, so the checks that watch for it are instruments riding a change's gate rather than a constraint move. **I8 records how much sharper the blocking switch becomes**: between chains the ordinary state is no live plan, and the gate then refuses every code edit under that switch. **I9 records what the known-and-unchecked list is for** — a class whose instrument is a different change — and that a list growing from two entries to seven in one change is itself a finding for this conversation. **The three-parsers paragraph is corrected**: two of the three now share an extracted parser, the JavaScript stands alone, and the claim that they were "kept in step by hand and by test" was false when written — no test has ever compared them. The fourth-consumer trigger stands. **Twelve questions, one conversation**, for the reason v8 gave: an amendment costs a version and a log row, and asking separately costs twelve of each. |
 | 8 | 2026-09-20 | **Settled the contradiction that versions 4, 5, 6 and 7 each recorded and none resolved**, plus two smaller things, in one conversation rather than three — an amendment costs a version and a log row, so batching them costs one of each instead of three. **The contradiction:** the charter schema forbade amending as a side effect of shipping, while the silent-failure register cannot stay complete unless it moves while a check ships. Resolved by splitting what the rule governs — moving a *constraint* an intent was approved against still takes its own approval conversation; adding a *row* that records an instrument rides the approval gate of the change that adds the check, and that change's plan must declare this file in its slice manifest. The schema carries the rule and this file points at it, so there is one statement rather than two that can drift. Four amendments' worth of evidence is what the distinction was drawn from, which is why it took four to see it. **The inert row:** `ScaffoldEmitsBuildableSolution_<kind>` named no instrument in either direction, because the register parser keeps a backticked string only when it matches an identifier and the angle brackets fail that filter — so the register built to catch silent failures contained one. Now names the test class like its three neighbours, which also keeps a list of solution kinds out of this file. **The reach of N2:** it binds `plugins/**` and not the chain under the artifact root, because the non-goal exists so the library survives a change of employer and a chain document never leaves with the plugin. No artifact edits follow; the four documents naming external repositories stay as they are. Recorded as unchecked: that non-goal has no instrument, unlike the first invariant's two. **Raised by** the cross-chain slice-manifest work, which adds a named check and could not be planned until the first of these was settled. |
 | 7 | 2026-09-20 | **Registered the check that holds a pack's promise to its manifest.** `pack-promises-what-it-scaffolds` adds `PackPromiseTests`, and I9's table gains a row for it. **The same contradiction as v4, v5 and v6, now four for four:** the schema says amending the charter is *"never a side effect of shipping a feature"*, and the register cannot be complete unless it moves while one ships. The plan for this change did not list `CHARTER.md` in its slice manifest and the build could not go green without editing it — which is the clearest evidence yet that the two sentences disagree rather than that any one author keeps forgetting. Still recorded, still unresolved, and still the subject of `findings-leave-only-by-decision`. |

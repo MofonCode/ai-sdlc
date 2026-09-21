@@ -191,12 +191,17 @@ slices:
 ```
 
 **The `slices` block is mandatory and its `files` lists must be pairwise disjoint** — within
-one plan, and **across every live plan in the repository**. Parallel implementers are
-dispatched one per slice; two agents holding the same file is a merge conflict by
-construction, and two *chains* holding it is the same conflict discovered later. If two slices
-genuinely need the same file, they are one slice — merge them, or extract the shared part into
-a third slice that both `depends_on`. If two chains need it, that is a planning conversation,
-not something to reconcile in the merge.
+one plan, and **across every live plan in the repository, for files outside the artifact
+root**. Parallel implementers are dispatched one per slice; two agents holding the same file is
+a merge conflict by construction, and two *chains* holding it is the same conflict discovered
+later. If two slices genuinely need the same file, they are one slice — merge them, or extract
+the shared part into a third slice that both `depends_on`. If two chains need it, that is a
+planning conversation, not something to reconcile in the merge.
+
+**The artifact root is excluded deliberately**: a change that adds a named check must declare
+the charter in its manifest, so two such chains claim that one file by construction. The rule
+binds the implementation files where a collision is expensive, not the chain's own prose, which
+merges.
 
 `depends_on` serialises what cannot be parallel. Slices with no unmet dependency run
 concurrently; the rest wait.
