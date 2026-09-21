@@ -135,8 +135,8 @@ Every file below was opened while writing this, not inferred from a search.
   reason that survives. Its `approved` reading will need to learn about `finished:` eventually;
   that is its own work.
 - **`plugins/sdlc-core/skills/sdlc-router/references/artifact-schemas.md`** — carries the plan
-  shape, including the `finished:` field and the four grammar rules settled at versions 9 and
-  12. **It is edited by this change**, not merely read: it says the grammar check "lands with
+  shape, including the `finished:` field and the five grammar rules settled at versions 9, 12
+  and 21. **It is edited by this change**, not merely read: it says the grammar check "lands with
   `no-two-plans-claim-one-file`", which goes stale the day this ships.
 
   **And it asserts an instrument that does not exist, which matters more than the stale line.**
@@ -729,7 +729,7 @@ properties hold.
    - **The packaging check** — the shipped hook still speaks when its extracted parser is
      present, and fails when it is removed. Injected in a fixture, never in the live plugin
      directory.
-   - **The frontmatter grammar**, covering all four rules: a `files:` entry is a quoted string
+   - **The frontmatter grammar**, covering all five rules: a `files:` entry is a quoted string
      on its line, it is a file path rather than a directory or glob, `status:` is unquoted and
      one of the declared values, and `finished:` is `true` or `false` alone on its line — with
      **`true` requiring `status: approved`, `false` legal anywhere, and absent meaning not
@@ -738,32 +738,34 @@ properties hold.
      (it carries `finished: false` on a draft, because a plan is authored as one) and, read
      literally, requires the field on every plan when not one carries it today.
 
-     **It binds `plan.md` and no other shape.** Two of the four rules are plan-only by the
-     schema; the third — `status:` unquoted and one of the declared values — is stated there
-     for all five artifact shapes, and binding the check to all five would be a wider promise
-     than this change measured, since the conformance measurement covered the seven plans and
-     nothing else. **The charter and verification records are outside it**, said plainly
+     **It binds `plan.md` and no other shape.** Two of the five rules are plan-only by the
+     schema; the other three — the `status:` value, and the singularity of both lifecycle
+     lines — are stated there for all five artifact shapes, and binding the check to all five
+     would be a wider promise than this change measured, since the conformance measurement
+     covered the seven plans and nothing else. **The fifth rule is the one this most strains**,
+     because an artifact carrying two `status:` lines is as dangerous in a spec as in a plan;
+     widening the check is a smaller job than this document's scope allows and belongs with
+     whoever next touches the grammar. **The charter and verification records are outside it**, said plainly
      because the non-goal that no check reads a real `plan.md` means nobody can settle the
      question by running something.
 
-     **The same hole exists for `status:`, it is the worse of the two, and this change cannot
-     close it.** The fourth rule is about `finished:` being alone on its line; the third says
-     only that `status:` is unquoted and one of the declared values, and nothing says there is
-     exactly one `status:` line. Every reader matches *a* line — the hook's pattern is unanchored
-     to position — so a plan carrying `status: draft` and, further down, `status: approved` reads
-     as approved to the hook, to the new cross-plan reader, and to anything else that looks.
-     **That is a route to producing downstream work from a draft that no instrument sees**, in a
-     repository that already has one plan approved over a draft intent recorded as an open item.
+     **The same hole existed for `status:`, it was the worse of the two, and charter version 21
+     closed it.** Nothing used to say an artifact carries exactly one `status:` line, and every
+     reader matches *a* line rather than *the* line — the hook's pattern is unanchored to
+     position — so a plan carrying `status: draft` and, further down, `status: approved` read as
+     approved to the hook, to the new cross-plan reader, and to anything else that looked. **A
+     route to producing downstream work from a draft that no instrument would ever have seen**,
+     in a repository that already has one plan approved over a draft intent recorded as an open
+     item.
 
-     **Why it is not simply added as a fifth rule.** The four are a frozen shape, declared in
-     the charter and in the shipped schema, and the charter says of the first three that they
-     *"legalise nothing new — the readers only ever accepted those forms."* A rule rejecting a
-     second `status:` line is not of that kind: today's readers accept such a plan and treat it
-     as approved, so the rule makes illegal something that works. **Narrowing a frozen shape is
-     an amendment conversation, not something an intent decides in passing**, and shipping a
-     check that enforces five rules while two documents enumerate four would repeat the version-12
-     defect exactly, in the same paragraph. An earlier version of this criterion decided it here.
-     It is an open question below instead.
+     **It took an amendment rather than a decision here, and that distinction is the point.**
+     The other four rules legalise nothing that ever worked; this one rejects an artifact the
+     shipped readers accept today, which narrows a shape the charter freezes and the schema
+     publishes. The version-8 rule puts a narrowing in its own approval conversation. **An
+     earlier version of this criterion simply decided it**, which would have shipped a check
+     enforcing five rules while two documents enumerated four — the version-12 defect exactly,
+     in the same paragraph. The owner amended instead, so the grammar check covers five rules
+     and both documents say five.
 
      **Two spellings the grammar does not yet answer, and for a one-way field that is a
      property rather than a detail:** a plan carrying **two** `finished:` lines, and one
@@ -1122,21 +1124,6 @@ properties hold.
   before the status line is written is the obvious candidate and is not free, because it is
   prose in a skill with no instrument behind it. *Owner: peter, at this document's gate, because
   the answer decides whether a limitation gets written down or a mechanism gets specified.*
-- **Does the frontmatter grammar gain a fifth rule — one `status:` line, not several — and
-  therefore a charter amendment?** Nothing today says a plan carries exactly one, and every
-  reader matches a line rather than the line, so `status: draft` followed further down by
-  `status: approved` reads as approved to all of them. It is the quietest route to downstream
-  work from a draft that this repository has, and the invariant against that is one of the
-  twelve the charter holds.
-
-  **But it cannot ride this change's gate.** The other four rules legalise nothing new; this one
-  makes illegal a plan the shipped readers accept today, which is a narrowing of a shape the
-  charter freezes and the schema publishes. Under the version-8 rule that takes its own approval
-  conversation. **So the question is the owner's and it has three answers**: amend to five rules
-  and let this change carry the check; leave the grammar at four and record the hole as a sixth
-  known-and-unchecked entry, which moves the ratio the owner weighed at this gate; or decide the
-  hole is not worth closing, which is defensible and should then be written down as a decision
-  rather than left as a gap nobody named. *Owner: peter — an amendment question, not a spec one.*
 - **Does shrinking the live set make the hook noisy enough to want softening?** Today's claims
   keep it quiet on those paths; after the marking, code files only finished plans claimed begin
   warning on every edit. Correct by the gate's definition, and a behaviour change to something
@@ -1149,6 +1136,18 @@ nothing about disjointness forbids touching the file. What decides it is size an
 which the non-goal sets out. The reason for asking has not gone away: that file's comment
 claiming all three parsers normalise identically is false today and is less false, not false-free,
 after this change.
+
+**Closed at this gate on 2026-09-21 by an amendment, not by an answer:** *does the frontmatter
+grammar gain a fifth rule — exactly one `status:` line — and therefore a charter amendment?*
+**Yes to both, as charter version 21.** The question could not be settled here whichever way it
+went: adding the rule narrows a shape the charter freezes and the schema publishes, and under
+the version-8 rule a narrowing takes its own conversation. **What made it worth the version** is
+that every reader matches a line rather than the line, so `status: draft` followed by
+`status: approved` read as approved to all of them — the quietest route this repository has to
+producing downstream work from a draft, against the invariant written to forbid it, with nothing
+that would ever have noticed. Counted before it was written: all seventeen chain artifacts
+already conform, so nothing needs migrating. The `finished:` half rides along and takes nothing
+away, since no plan carries that field yet.
 
 **Closed at this gate on 2026-09-21, by the owner:** *do the shipped prose lists get a check
 that holds them together, or an entry saying nothing does?* **A check, covering both lists.**
@@ -1164,9 +1163,15 @@ criterion would not know the question had been a blocking one. It is criterion 8
 plans that already exist?* Measured again on 2026-09-21 — **all seven conform**, the seventh
 included, which was written after the question was first answered for six. Every `status:` line is the
 unquoted word, every `files:` line is a quoted flow-style list, and no entry is a directory; and
-no plan carries `finished:` at all, which the field's own rule reads as not finished. So all
-four rules break nothing in this repository and can be enforced from the day they land.
-Recorded because the question was worth asking and the answer took one command.
+no plan carries `finished:` at all, which the field's own rule reads as not finished.
+
+**Measured a third time when the fifth rule arrived, and over a wider set**, because that rule
+binds every artifact shape rather than plans alone: all **seventeen** chain artifacts carrying
+frontmatter have exactly one `status:` line and no more than one `finished:` line. So all five
+rules break nothing in this repository and can be enforced from the day they land — including
+the one that takes something away, which is the only one where that answer was not obvious in
+advance. Recorded because the question was worth asking three times and the answer took one
+command each time.
 
 ## What this document got wrong before it got it right
 

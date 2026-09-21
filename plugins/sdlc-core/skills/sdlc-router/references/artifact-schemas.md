@@ -207,8 +207,8 @@ merges.
 `depends_on` serialises what cannot be parallel. Slices with no unmet dependency run
 concurrently; the rest wait.
 
-**How `finished:` is spelled is one of the four grammar rules below, stated there and not
-here.** Why it is spelled that way belongs with the field: the readers are line-anchored, so a trailing
+**How `finished:` is spelled is covered by two of the five grammar rules below, stated there
+and not here.** Why it is spelled that way belongs with the field: the readers are line-anchored, so a trailing
 comment makes a finished plan read as live — and a reader loose enough to tolerate one is loose
 enough to read `false` as true, which releases every file that plan claims, permanently,
 because finished is one-way.
@@ -235,7 +235,7 @@ claimed, with no way back. And not without the staging: the SHIP commit names on
 Task-tier chains have no stage after plan approval, so theirs is set by hand until one exists.
 
 **The frontmatter grammar is narrower than YAML, because the readers are line-oriented by
-design** — the engine ships with no YAML dependency. Four rules, which bind now and whose
+design** — the engine ships with no YAML dependency. Five rules, which bind now and whose
 single check lands with `no-two-plans-claim-one-file`:
 
 - A `files:` entry is a **quoted string on the `files:` line**. A block-style list or an
@@ -245,11 +245,21 @@ single check lands with `no-two-plans-claim-one-file`:
 - `status:` is **unquoted and exactly one of the declared values**.
 - `finished:` is **`true` or `false`, unquoted, alone on its line**, with `true` requiring
   `status: approved` and `false` legal anywhere.
+- The frontmatter carries **exactly one `status:` line and at most one `finished:` line**.
 
 None of the first three legalises or forbids anything the readers ever handled differently;
 they make the forms those readers never accepted fail loudly instead of quietly. The fourth
 governs a field introduced at charter version 9, and it is the sharpest of them: it is the one
 whose misreading is irreversible.
+
+**The fifth is the only one that rejects something that works today**, which is why it arrived
+as its own charter amendment at version 21 rather than inside the change that wanted it. Every
+reader here matches *a* line rather than *the* line, so an artifact carrying `status: draft` and
+a later `status: approved` reads as approved to all of them — the quietest way there is to
+produce downstream work from a draft, against the invariant written to forbid exactly that. The
+`finished:` half of the rule forbids nothing that ever worked, since no plan carried the field
+before version 9; it is stated together because the same mistake in a one-way field is the
+irreversible version of it.
 
 Required sections:
 

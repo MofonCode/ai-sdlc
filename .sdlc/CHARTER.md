@@ -2,7 +2,7 @@
 solution: ai-sdlc
 artifact_root: .sdlc/
 status: approved
-version: 20
+version: 21
 updated: 2026-09-21
 owner: peter
 ---
@@ -456,7 +456,7 @@ existed. The trigger stands: **if a fourth consumer appears, that is the moment 
 give them one parser** — and the JavaScript still being outside is why it stands rather than
 having been retired by the extraction.
 
-**The frontmatter grammar is narrower than YAML, deliberately, and v9 writes it down.** Four
+**The frontmatter grammar is narrower than YAML, deliberately, and v9 writes it down.** Five
 rules, one check, landing with `no-two-plans-claim-one-file`:
 
 - A `files:` entry is a **quoted string on the `files:` line**.
@@ -464,6 +464,8 @@ rules, one check, landing with `no-two-plans-claim-one-file`:
 - `status:` is **unquoted and exactly one of the declared values**.
 - `finished:` is **`true` or `false`, unquoted, alone on its line**, with `true` requiring
   `status: approved` and `false` legal anywhere.
+- A chain artifact's frontmatter carries **exactly one `status:` line and at most one
+  `finished:` line**. Added in v21.
 
 The first three legalise nothing new — the readers only ever accepted those forms, so what
 changes is that a plan written any other way fails loudly instead of claiming nothing in
@@ -471,9 +473,26 @@ silence. The fourth governs the field v9 introduced, and is the sharpest of them
 misreading is irreversible. A line-oriented parse was chosen so the engine ships with no YAML
 dependency, and that choice is what makes the grammar narrow.
 
+**The fifth is the first of these that takes something away, which is why it needed its own
+conversation.** Every reader here matches *a* line rather than *the* line — the gate hook's
+pattern is unanchored to position — so a plan carrying `status: draft` and, further down,
+`status: approved` reads as approved to all of them today, and after v21 is rejected. That is a
+narrowing of a frozen shape rather than a form nobody ever wrote, and the version-8 rule puts a
+narrowing in an approval conversation rather than inside the change that wants it. **What it
+closes is the quietest route this repository has to producing downstream work from a draft**,
+against an invariant that exists to forbid exactly that, with no instrument that would ever have
+seen it. **Nothing needs migrating:** all seventeen chain artifacts with frontmatter were
+counted before the rule was written, and every one already carries exactly one `status:` line
+and no more than one `finished:` line.
+
+**The `finished:` half rides along and is not a narrowing.** No plan carries the field at all
+yet, so rejecting a second one forbids nothing that has ever worked. It is here rather than in
+a later conversation because the same defect in a one-way field is the irreversible version of
+it, and splitting the rule would have meant two amendments for one idea.
+
 **v9 listed three and stopped**, because the fourth field did not have a grammar yet when the
 paragraph was written; it gained one later in the same conversation, and this paragraph did
-not. Completed in v12.
+not. Completed in v12, and extended in v21.
 
 **The rules bind from v9; their single check lands with `no-two-plans-claim-one-file`,
 which is the change that needs the manifest read reliably.** v9 said each was "checked",
@@ -532,6 +551,7 @@ instrument. The register rows arrive with the checks, under the v8 rule.
 
 | Version | Date | Change |
 |---|---|---|
+| 21 | 2026-09-21 | **A fifth frontmatter rule: exactly one `status:` line, at most one `finished:` line.** Owner's decision at the gate of `no-two-plans-claim-one-file`, taken as its own conversation because **this is the first of the five that takes something away.** Every reader matches *a* line rather than *the* line — the gate hook's pattern is unanchored to position — so a plan carrying `status: draft` and, further down, `status: approved` reads as approved to the hook, to the manifest script, and to the cross-plan reader that change adds. It is the quietest route this repository has to producing downstream work from a draft, which I3 exists to forbid, and no instrument would ever have seen it. The first three rules legalised nothing new and the fourth governed a field that did not exist before v9; this one rejects a plan that works today, and the v8 rule puts a narrowing of a frozen shape in an approval conversation rather than inside the change that wants it. **The `finished:` half is not a narrowing** — no plan carries the field yet, so rejecting a second one forbids nothing that ever worked — and it rides along because the same defect in a one-way field is the irreversible version of it. **Nothing needs migrating, counted rather than assumed:** all seventeen chain artifacts with frontmatter already conform. The shipped schema moves with this row, in the same change, because a charter and an engine reference disagreeing about how many rules bind is the v12 defect and this paragraph has now produced it twice. **Raised by the sixth interrogation of that chain's intent**, which found the rule being decided inside an intent that had no standing to narrow a frozen shape. |
 | 20 | 2026-09-21 | **Three silent-failure classes were kept off the known-and-unchecked list by a test this invariant does not state.** `no-two-plans-claim-one-file` admitted one of four causes of a silent empty comparison in the gate hook — a wrongly resolved root — and left the other three off, on the grounds that the admitted one was the only one that change's own work touched. **That is not the rule.** The rule here is that a class belongs on the list when its instrument is a *different change*, which is true of all four: a hook that can report what it compared without speaking on every keystroke is a behavioural decision about a mechanism that fires constantly, and it deserves its own conversation. Proximity to the work in hand is not a qualification and not a disqualification. The count that change carries therefore moves from seven entries to ten, against five rows. **The paragraph now distinguishes three ways this list grows**, because they are not the same event: a list growing faster than the register is a finding; one that grows because a question was postponed is that finding with a cause; one that grows because its own admission rule was applied properly is the rule working. **Found by a round of interrogation spent on reasoning rather than on facts**, which was the first round dispatched with the mechanically-checkable claims verified up front. |
 | 19 | 2026-09-21 | **The tallies come out, because dating them did not work.** v13 found the self-improvement paragraph claiming "49 tests, 12 injected faults, 12 caught" in the present tense, long after the suite had passed it, and replaced that with two figures carrying the dates they were taken. **Both were wrong within hours.** The same day shipped `every-workflow-body-runs`, which added a register row and eleven test methods, and nothing in the dating mechanism noticed. **The rule that works is already in this document, two sections above:** *counts are deliberately not given here — a hand-maintained tally in a long-lived artifact is wrong by the next commit.* The technology section has obeyed it since v3; the self-improvement paragraph never did. The register counts itself and so does `dotnet test`, so the figures are removed rather than re-dated and a reader who wants one runs the thing. **Found by a mechanical pass over a chain artifact**, of the kind that ought to run before an interrogation rather than instead of one: every number in a document listed and re-derived. That pass found this charter breaking its own stated rule, which five rounds of adversarial reading of the *intent* had no reason to look for. |
 | 18 | 2026-09-21 | **The re-measurement at v14 was itself incomplete, and the fix is to stop counting divergences.** v9 said the two PowerShell readers had diverged in five ways. v14 removed "leading dots" — both strip them identically, so it is a shared defect rather than a disagreement — and said four. **Four was still wrong.** "The edited path" is not a disagreement between the readers either: the script takes `-Plan` and nothing else and has no edited path at all, so the two cannot differ about one. It is the hook being inconsistent with *itself*, normalising the path it compares against differently from the claims it compares it to. Three genuine disagreements remain, and both removed items are real defects that one parser still fixes. **What matters is why this happened twice.** *Divergence* was the wrong frame, so each recount found another item that did not fit it and the number moved again. The frame that does not need recounting is **one question about one file should have one answer** — violated when two readers differ, and equally when one reader disagrees with itself. Five defects, one parser, and the count stops being the argument. **Found by reading for flawed reasoning rather than for false facts**, which is a different pass from the one that produced v13 through v17 and found something none of them did. |
