@@ -212,11 +212,19 @@ else on the line, no trailing comment. The readers are line-anchored, so a comme
 finished plan read as live; and a reader loose enough to tolerate one is loose enough to read
 `false` as true, which releases every file that plan claims, permanently, because finished is
 one-way. **Absent means not finished**, so every plan written before this existed is live and
-needs no migration. **Legal only on a plan whose `status:` is `approved`** — a draft and a
-superseded plan claim nothing regardless, so the field on either is a sign of confusion rather
-than a state, and is rejected. Checked, with the rest of the frontmatter grammar.
+needs no migration. **`finished: true` requires `status: approved`** — a draft and a superseded
+plan claim nothing regardless, so `true` on either is a sign of confusion rather than a state,
+and is rejected. **`finished: false` is legal anywhere**, which is what lets the template above
+carry it on a draft: a plan is authored as a draft, so a rule making the field approved-only
+would make the schema's own example illegal under it. Held by the frontmatter grammar check
+that lands with
+`no-two-plans-claim-one-file`.
 
 **`finished: true` marks a plan whose work has shipped, and a finished plan claims no files.**
+**`finished: true` requires `status: approved`**; `finished: false` is legal anywhere, which is
+why the template above carries it on a draft. An earlier version of this rule said the *field*
+was approved-only, which made the schema's own example illegal under it — a plan is authored as
+a draft, so a template demonstrating the shape has to be legal on one.
 It sits beside `status:` rather than replacing a value in it, so every reader that gates on
 `status: approved` keeps behaving exactly as it does today and a repository written by a newer
 plugin is readable by an older one. **A live plan is one that is `approved` and not finished**;

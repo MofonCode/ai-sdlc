@@ -9,12 +9,13 @@ owner: peter
 
 # intent — no two plans claim one file
 
-> **Unblocked on 2026-09-21 by charter versions 9 and 10**, which settled the twelve questions this
+> **Unblocked on 2026-09-21 by charter versions 9, 10 and 11**, which settled the twelve questions this
 > chain could not be specified without: the mechanism that marks a plan finished, how far it
 > reaches, whether it is one-way, who writes it, and the frontmatter grammar.
 > Those are decided there and are not restated here. Version 10 repaired two defects in 9 that
 > the first interrogation of this document found: the disjointness carve-out for the artifact
-> root, and grammar rules that claimed instruments which did not exist.
+> root, and grammar rules that claimed instruments which did not exist. Version 11 corrected two
+> more of the same kind, and recorded why an amendment that settles twelve things produces them.
 >
 > **This document was rewritten against those answers, and shortened.** Its first draft ran to
 > 1680 lines and held the design — where the extracted parser lives, how paths normalise, what
@@ -82,9 +83,11 @@ Every file below was opened while writing this, not inferred from a search.
 - **`plugins/sdlc-core/skills/plan/SKILL.md`** — runs the disjointness check at a step where the
   plan is still `draft`, and approves at a later one. Gains the cross-plan invocation.
   **`Assert-SliceManifest.ps1 -Plan <path>` alone must keep working exactly as it does today**,
-  including its output and its exit codes: it is invoked that way from this shipped skill, from
-  the test helper, and described that way in the README, in a plugin installed per machine. The
-  cross-plan comparison is a new mode beside it, never a change to that invocation.
+  including its output and its exit codes, in a plugin installed per machine. **The literal
+  command line appears in four places**, counted rather than recalled: this skill, the schema
+  reference, the script's own example block, and a validation row in a shipped chain's plan. The
+  README names the script but carries no invocation, which an earlier version of this bullet
+  claimed it did. The cross-plan comparison is a new mode beside that one, never a change to it.
 - **`plugins/sdlc-core/skills/verify/SKILL.md`** — gains the write of `finished:` on the **SHIP**
   branch of its gate, at feature tier. Not at the stage: it runs on both verdicts.
 - **`plugins/sdlc-core/.claude-plugin/plugin.json`** — the engine plugin's version, bumped
@@ -95,12 +98,17 @@ Every file below was opened while writing this, not inferred from a search.
 - **`tests/AiSdlc.Tests/TempRepo.cs` and `Repo.cs`** — the fixture, which writes one chain with
   one plan and cannot express two colliding plans. Shared by three suites, so it sits in exactly
   one slice. `Repo.cs` resolves shipped scripts by walking up to the plugin directory.
+- **`tests/AiSdlc.Tests/Frontmatter.cs`** — the existing frontmatter-parsing helper, claimed by
+  no plan, and the thing the grammar check most plausibly builds on. Named either way, because
+  an undeclared edit is the lapse this change exists to catch.
 - **`.sdlc/CHARTER.md`** — takes four register rows for the four new checks, and **three
   known-and-unchecked entries, named rather than left as a count**: two colliding live plans in
   this repository passing a green build, since no instrument reads the live chain tree; the hook
   comparing against the wrong base when a session starts above the repository root; and any
   exception inside the new comparison disabling the gate entirely, since the hook swallows
-  everything by design. The fourth surface — two chains colliding on `OPEN.md` or `DIRECTION.md`
+  everything by design. A fourth candidate — that a prose check cannot prove the verify skill
+  follows at runtime the branch it names — belongs with them if the amendment agrees; it is the
+  residue of the one instrument this change has over an irreversible write. The fourth surface — two chains colliding on `OPEN.md` or `DIRECTION.md`
   after the version-10 carve-out — is recorded in the invariant itself rather than the list.
   Declared in the slice manifest, per the rule settled at version 8. An unnamed set cannot be
   reviewed against the invariant's own rule that a fast-growing list is itself a finding.
@@ -112,6 +120,12 @@ Every file below was opened while writing this, not inferred from a search.
   for the same reason the stale script name is: a known-false line beside prose you are already
   editing. The charter's copy is not — that one is a technology commitment, and version 8's rule
   does not let an edit to a commitment ride a change's gate.
+
+  **That leaves two documents agreeing and a third disagreeing, which is the pattern this
+  repository has been bitten by four times.** What closes it is the next charter amendment,
+  which has a standing reason to happen — this change's register rows ride its own gate, but a
+  commitment does not. Named here so the divergence is a scheduled repair rather than a thing
+  someone finds.
 - **The five finished plans and the one superseded plan** — `init-scaffolds-solution`,
   `pack-promises-what-it-scaffolds`, `register-names-every-check`, `stack-dotnet-house-stack`,
   `verification-reports-options`, and `engine-substitutes-declared-tokens` — the last superseded
@@ -132,8 +146,13 @@ and the one most worth distrusting.
 
 ## Proposed outcome
 
-A file claimed by a live plan is claimed by exactly one, and the framework says so without
-being asked.
+Two live plans claiming one file stops being invisible — reported at the moments the framework
+already has, and by the one mechanism that fires on its own.
+
+**Not "a file claimed by a live plan is claimed by exactly one".** That was the earlier
+headline and the four bullets below contradict it: three tools, code files only, the path being
+edited, and approval a catch rather than a guarantee. It is the sentence that would be quoted
+back, so it says what the change does rather than what it would be nice for it to do.
 
 - **Two live plans claiming one file is reported**, naming the file and every live plan claiming
   it. At plan approval it refuses; on a code edit it warns.
@@ -239,11 +258,17 @@ properties hold.
    naming the other chain. Without it the hook's existing message reports only that *nothing*
    claims the file, which is the opposite state. The hook stops at the first claiming plan
    today, so moving that return is the change.
-7. **A comparison that found nothing is distinguishable from one that compared nothing.** The
-   constraint below fixes one cause of an empty set — a wrongly resolved root — but a nested
-   chain directory, a renamed `plan.md` or a refused parse produce the same silence and report
-   green. The single-plan script already models it, printing what it counted. Without this, the
-   check's most reassuring output is also what it prints when it is broken.
+7. **In the script, a comparison that found nothing is distinguishable from one that compared
+   nothing.** The constraint below fixes one cause of an empty set — a wrongly resolved root —
+   but a nested chain directory, a renamed `plan.md` or a refused parse produce the same silence
+   and report green. The single-plan script already models it, printing what it counted. Without
+   this, the check's most reassuring output is also what it prints when it is broken.
+
+   **It binds the script and deliberately not the hook.** The hook writes only when it has
+   something to say and is otherwise silent by contract, so a hook that compared six plans and a
+   hook that compared none produce identical output — nothing. Making it announce its counts
+   would put a line on standard error on every edit in every repository, which is the constraint
+   below that it stay quiet where the framework is not in use.
 8. **Four checks, each a new test class in its own file, each named by its own register row,
    each seen to fail when its fault is injected.**
 
@@ -255,9 +280,16 @@ properties hold.
      on its line, it is a file path rather than a directory or glob, `status:` is unquoted and
      one of the declared values, and `finished:` is `true` or `false` alone on its line and
      only on an approved plan.
-   - **The verify skill's SHIP branch**, proved by a prose check over the skill body — that it
-     names the `finished:` transition and stages `plan.md` in the same commit as the record.
-     There is precedent: an existing check holds that same skill to naming its options.
+   - **The verify skill's SHIP branch**, proved by a prose check over the skill body — that the
+     `finished:` transition and the `plan.md` staging are named **inside the SHIP branch of the
+     gate section**, matched by that heading, not merely present somewhere in the file. Without
+     the placement clause the check passes when the write sits under DO NOT SHIP four lines
+     above, which is the exact failure the criterion exists to prevent. There is precedent for
+     holding this skill's prose: an existing check requires it to name its options.
+
+   **What that check still cannot prove**, named rather than implied: that the skill, at
+   runtime, follows the branch it names. A prose check reads a document. That residue joins the
+   known-and-unchecked entries below rather than passing as covered.
 
    **Four rather than the five first proposed, and the difference is worth naming.** The three
    grammar rules were going to be three classes and three rows; they are one class with four
@@ -356,6 +388,21 @@ properties hold.
   restoring it — the operation this repository's standing instruction warns has already
   destroyed uncommitted work. Stated here because adding such a test is the obvious next move
   and the reason against it is not obvious.
+- **A collision on a file nobody edits and no plan re-approves is never reported.** Both
+  mechanisms are event-driven — the hook per edited path on three tools, the script once per
+  approval — so two live plans overlapping on ten files say nothing until one of those ten is
+  touched or one plan is re-approved. Criterion 1 reads as a standing property; it is not, in
+  the same way fan-out is not covered.
+- **No migration for repositories running an older engine**, and the reason costs nothing
+  today: the marketplace points at a local filesystem path, so no second machine has this
+  installed. The normalisation rewrite changes which paths two plans are judged to collide on
+  and plugins are cached per version, so an older engine and a newer one would disagree with no
+  version gate. That is free only while the installed population is one, which is recorded as
+  an open item — and closing that item reopens this.
+- **The hook's root resolution moves unchanged, wrong edges included.** It returns from the
+  first candidate charter it finds, so a repository with an unrelated `docs/CHARTER.md` gets
+  `docs/` as its artifact root whether or not that charter declares one. Extracting it is a
+  move, not a repair; fixing it would change which plans every existing repository sees.
 - **Warning volume is not in scope.** Code files that only finished plans claimed will begin
   drawing unplanned-scope warnings; those edits genuinely are outside any live plan.
 - **This is not status tracking.** A plan's status is a parser input read at the moment of a
@@ -376,6 +423,7 @@ properties hold.
   so it is off the critical path — but its comment claiming all three normalise identically is
   false today and stays false. *Owner: peter, at the spec gate, with the charter's
   fourth-consumer line as the test.*
+
 **Closed on 2026-09-21 rather than carried:** *when is the amendment's grammar enforced on the
 plans that already exist?* Measured — all six conform already. Every `status:` line is the
 unquoted word, every `files:` line is a quoted flow-style list, and no entry is a directory. The

@@ -82,15 +82,18 @@ reorder the interview, add a flag, three unchosen output contracts.
      `git mv` or a formatter never reaches it.
 
    **What the step actually is:** a lifecycle marker on a frozen frontmatter shape, one parser
-   extracted from two that disagree in five ways, a rewritten path normalisation, and five new
+   extracted from two that disagree in five ways, a rewritten path normalisation, and four new
    named checks with their register rows. It is still first, because the reason it was placed
    first is untouched — until two approved plans can be compared, two lines of work cannot
    safely run at once.
 
-   **The charter amendment it was blocked on has landed**, as versions 9 and 10 on 2026-09-21:
-   9 settled twelve questions in one conversation, and 10 repaired two defects in 9 that the
-   first fresh-context interrogation of the unblocked intent found. The chain is at
-   `status: draft` and its next gate is the owner's approval, then the spec.
+   **The charter amendment it was blocked on has landed**, as versions 9, 10 and 11 on
+   2026-09-21: 9 settled twelve questions in one conversation, and 10 and 11 repaired four
+   defects in it, each found by a fresh-context interrogation of the chain it unblocked. The
+   chain is at `status: draft` and its next gate is the owner's approval, then the spec.
+
+   **What that sequence taught, recorded in v11's log row rather than here:** an amendment's
+   error rate scales with its agenda. v8 settled three questions and has needed no repair.
 
    **Timing wrinkle:** files are declared at *plan* time, because at intent stage the design has
    not happened and nobody knows them yet. So this protects concurrent **builds**. Two concurrent
@@ -106,12 +109,12 @@ reorder the interview, add a flag, three unchosen output contracts.
    the approval gate of the change that adds the check, and that change's plan must declare the
    charter in its slice manifest.** So the plan for this step declares `.sdlc/CHARTER.md`.
 
-   **Second prerequisite — done on 2026-09-21, charter versions 9 and 10.** Twelve questions
-   in one conversation, each a move of a shape the charter freezes: what marks a plan finished
-   and who writes it, how far that reaches, whether it is one-way, and the grammar of the
-   manifest and the status line. Version 10 then repaired two defects in 9 — a disjointness
-   rule stated without the carve-out it requires, and three grammar rules that claimed
-   instruments which did not exist.
+   **Second prerequisite — done on 2026-09-21, charter versions 9, 10 and 11.** Twelve
+   questions in one conversation, each a move of a shape the charter freezes: what marks a plan
+   finished and who writes it, how far that reaches, whether it is one-way, and the grammar of
+   the manifest and the status line. Versions 10 and 11 then repaired four defects in 9 —
+   a disjointness rule stated without the carve-out it requires, and three separate claims that
+   instruments existed when they did not.
 
    **The answers are not copied here.** An earlier version of this paragraph copied the agenda
    and it went stale within the hour. They live in the charter's amendment log and in the
