@@ -17,9 +17,12 @@ hold it. **To see what is in flight, read the chain documents.**
 **How an item leaves.** By being done, or by becoming a chain of its own — at which point the
 chain's documents are the record and the line here is deleted. Not by being forgotten.
 
-Last reviewed: 2026-09-20. Four items open. Two closed the same day: the missing git remote, and
+Last reviewed: 2026-09-21. Seven items open. Two closed the same day: the missing git remote, and
 the register row that registered nothing — the latter by charter version 8, which rewrote it to
 name its test class and proved the row live by injecting a fault and watching the check fail.
+Three opened since: the parallel build does not terminate and never has; nothing writes a plan's
+finished state once the collision check depends on one; and an approved plan was produced from a
+draft intent, which the collision change is about to erase the evidence of.
 
 ---
 
@@ -86,7 +89,79 @@ Nothing about the second half exists in any file — not an intent, not a non-go
 `findings-leave-only-by-decision`, which is about findings not escaping the record; this is about
 findings *arriving* from outside. They are related and they are not the same chain.
 
-## 4. The framework cannot be installed anywhere but this machine
+## 4. Nothing writes a plan's finished state, so live plans accumulate
+
+Once `no-two-plans-claim-one-file` ships, a plan that is not live claims no files — which is
+what makes cross-chain collision reporting usable. **Nothing moves a plan into that state after
+the one-time marking that change performs.** There is no stage every tier passes through at
+ship time: verification is feature-tier only and is a human-typed command, the plan skill runs
+at plan time, and task tier requires only a plan. Four of the five plans in this repository
+shipped through no closing stage at all, which is the majority case rather than an edge.
+
+**The consequence is slow and quiet.** Every new plan stays live after its work ships, so the
+collision report fills with chains that are finished, and the check reaches the state its own
+intent says gets a check switched off — reporting collisions that are all false.
+
+**What closes it:** a closing step — one gate every tier passes through at ship time, which
+moves the plan to finished and commits it. It binds the tier contract, needs its own approval
+question and status transition, and is impossible at trivial tier, which has no plan to mark.
+So it is a change of its own, not a detail of collision checking.
+
+**It converges with item 2 above**, which asks whether task tier should mean no verification or
+a shorter one. Same question from the other side: task-tier work passes through nothing after
+approval, and both items are about that.
+
+**Recorded rather than fixed on 2026-09-20**, deliberately: making it a success criterion of
+the collision change produced a deadlock, since that step is placed first with nothing else
+starting until it lands, and the criterion blocked it on a chain that does not exist.
+
+## 5. An approved plan was produced from a draft intent, and the evidence is about to be erased
+
+`engine-substitutes-declared-tokens/plan.md` carries `status: approved` and `spec: none` over an
+`intent.md` that reads `status: draft`. That is a direct violation of the invariant that nothing
+downstream is produced from a draft — the plan was approved before its intent ever was.
+
+**It is recorded here because it is about to become invisible.** `no-two-plans-claim-one-file`
+marks that plan superseded, which is correct and which erases the only machine-readable trace:
+afterwards the frontmatter no longer says `approved`, and a fresh session reading the artifacts
+alone — the premise the whole design rests on — would never learn it happened.
+
+**What closes it:** nothing to fix in the artifact; the plan is superseded and stays so. What is
+open is whether the gate that let it through needs an instrument. The invariant's checkable
+clause is *"every path that consumes an artifact reads `status:` from the file and stops"*, and
+the plan skill's own gate is prose. Found on 2026-09-21 by the twenty-ninth interrogation of
+that chain's intent.
+
+## 6. The parallel build has never run, and nothing would have noticed
+
+`parallel-build.js` computes dependency waves, then removes the dispatched ones:
+
+    remaining = remaining.filter((s) => !ready.includes(s.id))
+
+`ready` holds slice **objects** and `s.id` is a **string**, so the test is always false,
+`remaining` never shrinks, and the loop builds waves forever. Reproduced on 2026-09-20 with a
+two-slice plan: five waves and still not terminating. It fails this way on any plan at all,
+including a single-slice one.
+
+**Why it survived:** the only instrument over the workflow is `EveryWorkflow_IsValid`, which
+shells out to `check-workflow.mjs` — and that file says what it does in its own words,
+*"Not executed - constructing the function is enough to parse it."* Nothing in this repository
+executes a workflow body, so a non-terminating loop parses clean.
+
+**Two things, and the second is the larger one.** The loop is a one-line fix. Proving it works
+needs a harness that actually runs a workflow body with its agent, parallel and phase calls
+bound, which does not exist — and without one, the fix ships verified by reading, which is the
+same defect class that let this through.
+
+**Consequences worth stating.** Every fan-out this framework has done was dispatched by hand
+rather than by this script, so the parallel-build premise is unproven rather than working.
+And `no-two-plans-claim-one-file` dropped fan-out as one of its homes because of this: a
+guarantee asserted against a code path that has never run is not a guarantee.
+
+**Found on 2026-09-20** by the seventh fresh-context interrogation of that intent, while
+checking whether the build could host a cross-plan check. Not that chain's to fix.
+
+## 7. The framework cannot be installed anywhere but this machine
 
 `.claude-plugin/marketplace.json` is a valid Claude Code marketplace declaring two plugins —
 `sdlc-core` at 0.9.1 and `stack-dotnet` at 0.6.0. **Both sources are relative paths** into this

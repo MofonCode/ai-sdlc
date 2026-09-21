@@ -64,24 +64,51 @@ reorder the interview, add a flag, three unchosen output contracts.
    plan**. Nothing proves two *approved* plans do not claim the same file. The failure mode is a
    merge conflict discovered after both implementers have finished.
 
-   **No new mechanism; widen two that exist.** The manifest check reads every `plan.md` with
-   `status: approved` and proves them disjoint across chains. The gate hook already matches an
-   edited path against manifests and could say *"claimed by chain X"* rather than checking only
-   the current one.
+   **This was scoped as "no new mechanism; widen two that exist" and that estimate was wrong.**
+   Rewritten on 2026-09-21 after the intent was repeatedly interrogated in fresh context.
+   Three assumptions in the original scoping did not survive contact with the code:
+
+   - **"Read every `plan.md` with `status: approved` and prove them disjoint"** is the rule that
+     cannot work. Measured: 35 claims over 26 distinct paths, eight paths claimed by more than
+     one chain — and every one of the eight is false, because `approved` is where a plan's
+     status stops and five of the six plans carrying it shipped weeks ago. A way to say a plan
+     is *finished* has to exist first, and that moves a shape the charter freezes.
+   - **"The gate hook could say *claimed by chain X* rather than checking only the current
+     one"** is wrong twice. The hook already reads every approved plan under the root, not only
+     the current chain's; and it has no notion of a current chain at all, so it cannot name the
+     *other* one. What it can honestly say is that more than one live plan claims the file.
+   - **The hook is narrower than assumed.** It skips markdown and json by design, so five of the
+     eight measured collisions are invisible to it, and it fires on three edit tools only — a
+     `git mv` or a formatter never reaches it.
+
+   **What the step actually is:** a lifecycle marker on a frozen frontmatter shape, one parser
+   extracted from two that disagree in five ways, a rewritten path normalisation, three new
+   named checks with their register rows, and a charter amendment that blocks the spec. It is
+   still first, because the reason it was placed first is untouched — until two approved plans
+   can be compared, two lines of work cannot safely run at once.
 
    **Timing wrinkle:** files are declared at *plan* time, because at intent stage the design has
    not happened and nobody knows them yet. So this protects concurrent **builds**. Two concurrent
    **intents** cannot clash on implementation files, because neither has any.
 
-   **Prerequisite — done on 2026-09-20, charter version 8.** This step adds a named check, and a
-   named check needs a row in the register of silent failures, which was blocked on a
-   contradiction four charter versions had recorded and none had settled. All three questions
-   went into one amendment conversation, because an amendment costs a version and a log row and
+   **First prerequisite — done on 2026-09-20, charter version 8.** This step adds named checks,
+   and a named check needs a row in the register of silent failures, which was blocked on a
+   contradiction four charter versions had recorded and none had settled. Three questions went
+   into one amendment conversation, because an amendment costs a version and a log row and
    asking them separately costs three of each. **The decisions live in the charter's amendment
    log and in the charter schema the engine ships — not here**, so that there is one statement of
-   each rather than two that can drift. What this step needs to know from them: **a register row
-   rides the approval gate of the change that adds the check, and that change's plan must declare
-   the charter in its slice manifest.** So the plan for this step declares `.sdlc/CHARTER.md`.
+   each rather than two that can drift. What this step needs from them: **a register row rides
+   the approval gate of the change that adds the check, and that change's plan must declare the
+   charter in its slice manifest.** So the plan for this step declares `.sdlc/CHARTER.md`.
+
+   **Second prerequisite — NOT done, and it blocks the spec.** The intent is drafted; the spec
+   cannot be written until a second charter amendment settles a set of questions that each move
+   a shape the charter freezes and each change the design depending on the answer.
+
+   **The agenda is not copied here**, and an earlier version of this paragraph copied it anyway
+   — then went stale within the hour when the list grew. It lives in that chain's banner and
+   its Prerequisite section, which is the only place it lives. Read them before starting
+   anything.
 
    **The collision surface, measured 2026-09-20** rather than assumed:
 
@@ -97,9 +124,15 @@ reorder the interview, add a flag, three unchosen output contracts.
 
    **Works today with no framework change**, and worth adopting immediately rather than waiting
    for the check: different slugs; **never `git add -A`** — stage only the paths the chain
-   declares; do not run the full suite in two sessions at once, or give one a worktree. Charter
-   amendments serialise by construction, because an amendment bumps a version and git refuses the
-   second push — that is correct behaviour, not a bug.
+   declares; do not run the full suite in two sessions at once, or give one a worktree.
+
+   **Two corrections to that advice, from scoping the intent.** Charter amendments do **not**
+   serialise by construction, as an earlier version of this said — a version bump makes git
+   refuse the *second push*, which is detection after both amendments are fully written, and
+   two sessions in separate worktrees will both write version 9 and find out afterwards. And
+   **a worktree per session trades one protection for another**: the gate hook can only see a
+   collision when both live plans are on disk in one working tree, so worktrees buy separation
+   of build output at the cost of the file-collision warning this step is building.
 
    **Why not a lock file**, which was the first idea considered: a lock goes stale when a session
    dies and then needs arbitration for breaking it; it serialises where this framework detects and
