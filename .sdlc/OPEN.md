@@ -17,13 +17,14 @@ hold it. **To see what is in flight, read the chain documents.**
 **How an item leaves.** By being done, or by becoming a chain of its own — at which point the
 chain's documents are the record and the line here is deleted. Not by being forgotten.
 
-Last reviewed: 2026-09-21. Six items open. Three closed the same day: the missing git remote;
+Last reviewed: 2026-09-21. Seven items open. Three closed the same day: the missing git remote;
 the register row that registered nothing — by charter version 8, which rewrote it to name its
 test class and proved the row live by injecting a fault and watching the check fail; and **the
 parallel build that had never run**, by `every-workflow-body-runs`, which fixed the loop and
-built the harness the item said was the larger half. Two opened since: nothing writes a
-*task-tier* plan's finished state once the collision check depends on one, and an approved plan
-was produced from a draft intent, which the collision change is about to erase the evidence of.
+built the harness the item said was the larger half. **Three opened since:** nothing writes a
+*task-tier* plan's finished state once the collision check depends on one; an approved plan was
+produced from a draft intent, which the collision change is about to erase the evidence of; and
+fan-out has still never dispatched a real agent, which is what survives of the item that closed.
 
 ---
 
@@ -199,6 +200,33 @@ publishes itself is exactly the shape that argument gets made about.
 **Unverified, and stated as such:** the exact syntax and behaviour for adding a marketplace from
 a private git remote is a Claude Code mechanic, not something this repository documents. It was
 not confirmed before writing this.
+
+## 7. Fan-out has never dispatched a real agent
+
+**This is what is left of item 6 after it closed, not a new discovery.** That item said the
+parallel build had never run and that nothing would have noticed. `every-workflow-body-runs`
+fixed the loop and built the harness, so the body now runs end to end — the gate reads the plan
+and refuses a draft, waves dispatch in dependency order, a red build halts before the next wave,
+a do-not-ship verdict comes back blocked. **All of it against doubles.** Not one real
+implementer has ever been dispatched by that script, and every fan-out this framework has done
+was arranged by hand.
+
+**Why it is not covered by what shipped.** The harness proves the body's control flow. It says
+nothing about whether an implementer agent respects the file boundary in its prompt, whether
+two of them racing over shared build output behave the way the prompt warns they will, or
+whether the verification stage produces a usable record when the thing it verifies is real.
+Those are the questions a first live run answers and nothing else does.
+
+**What closes it:** running one plan through `workflows/parallel-build.js` for real, on work
+small enough that a bad outcome is cheap, and recording what happened. Two independent slices is
+the honest minimum, because a single-slice plan exercises no fan-out at all.
+
+**Why it is not a chain:** it is an act, not a change — the same shape as the `init` hand-run
+above, and for the same reason. There is nothing to plan until it has been tried once.
+
+**Recorded on 2026-09-21**, the day the harness shipped, so that a green suite is not read as
+evidence of something it does not show. The charter's amendment log and the new check's own
+remarks say the same thing; this is where it lives as outstanding work rather than as a caveat.
 
 ---
 
