@@ -42,8 +42,9 @@ was where a plan's status came to rest; `superseded` was declared and honoured b
 plans carried `approved`, five of them done and a sixth replaced without ever being built.
 Comparing them the obvious way reported **35 file claims over 26 distinct paths, with eight
 paths claimed by more than one chain** and the stack pack's skill claimed by three — and not
-one of those eight was a live collision. A check reporting eight false collisions on the day it
-lands is a check that gets switched off. The amendment settles the marker; this change uses it.
+one of those eight was a live collision. **Seven, strictly**, once the charter is carved out of
+the comparison; the eighth is `.sdlc/CHARTER.md`, which the invariant now excludes. A check
+reporting seven false collisions on the day it lands is a check that gets switched off. The amendment settles the marker; this change uses it.
 
 **The cost of the gap, stated as what this change actually removes.** Two sessions cannot
 safely run at once today, and this removes exactly one reason: two approved plans silently
@@ -75,11 +76,14 @@ Every file below was opened while writing this, not inferred from a search.
   plan, so it is structurally blind to a second. Swallows every error and exits 0 on purpose,
   because a broken advisor on every keystroke is worse than a silent one.
 - **`plugins/sdlc-core/workflows/parallel-build.js`** — gates on the literal value `approved`.
-  **Its status gate is unreachable:** the wave loop forty-six lines above filters slice objects
+  **Its status gate is unreachable:** the wave loop forty-five lines above filters slice objects
   against a string id, so the remaining set never shrinks and no execution reaches the gate.
   Recorded as an open item; not this change's to fix.
 - **`plugins/sdlc-core/skills/sdlc-router/references/artifact-schemas.md`** — carries the plan
-  shape, including the `finished:` field and the grammar rules settled at version 9.
+  shape, including the `finished:` field and the grammar rules settled at version 9. **It is
+  edited by this change**, not merely read: it says in two places that the grammar check "lands
+  with `no-two-plans-claim-one-file`", which goes stale the day this ships, and it states the
+  `finished:` rules twice in different words, which is a second list inside one file.
 - **`plugins/sdlc-core/skills/plan/SKILL.md`** — runs the disjointness check at a step where the
   plan is still `draft`, and approves at a later one. Gains the cross-plan invocation.
   **`Assert-SliceManifest.ps1 -Plan <path>` alone must keep working exactly as it does today**,
@@ -101,31 +105,38 @@ Every file below was opened while writing this, not inferred from a search.
 - **`tests/AiSdlc.Tests/Frontmatter.cs`** — the existing frontmatter-parsing helper, claimed by
   no plan, and the thing the grammar check most plausibly builds on. Named either way, because
   an undeclared edit is the lapse this change exists to catch.
-- **`.sdlc/CHARTER.md`** — takes four register rows for the four new checks, and **three
+- **`.sdlc/CHARTER.md`** — takes four register rows for the four new checks, and **five
   known-and-unchecked entries, named rather than left as a count**: two colliding live plans in
   this repository passing a green build, since no instrument reads the live chain tree; the hook
   comparing against the wrong base when a session starts above the repository root; and any
   exception inside the new comparison disabling the gate entirely, since the hook swallows
-  everything by design. A fourth candidate — that a prose check cannot prove the verify skill
-  follows at runtime the branch it names — belongs with them if the amendment agrees; it is the
-  residue of the one instrument this change has over an irreversible write. The fourth surface — two chains colliding on `OPEN.md` or `DIRECTION.md`
+  everything by design. **Two more, and the second is the sharpest gap in the change:** that a
+  prose check cannot prove the verify skill follows at runtime the branch it names; and that
+  **nothing holds `finished:` one-way at all**. A person editing `true` back to `false`, or
+  deleting the line, silently re-acquires every file that plan claimed — the failure criterion 2
+  calls irreversible — and no instrument sees it, because the grammar check reads a file's
+  current state and has no memory. Git history is the only record, and nothing consults it.
+  An earlier version of this document claimed the verify check "holds the one-way write"; it
+  holds where the write is named, which is a different thing. The fourth surface — two chains colliding on `OPEN.md` or `DIRECTION.md`
   after the version-10 carve-out — is recorded in the invariant itself rather than the list.
   Declared in the slice manifest, per the rule settled at version 8. An unnamed set cannot be
   reviewed against the invariant's own rule that a fast-growing list is itself a finding.
 - **`README.md`** — its gate-hook prose cites `scripts/Test-SdlcGate.ps1`, a file that has never
-  existed, four lines from a paragraph this change edits. It also repeats the ~150ms figure.
-- **The ~150ms per-edit claim, in two shipped files this change already edits** — the hook's own
-  header and the README. Measured, the hook takes 306ms to 1188ms depending on tree size; that
-  number is the *runtime startup* comparison, not the hook's wall time. Both are corrected here
-  for the same reason the stale script name is: a known-false line beside prose you are already
-  editing. The charter's copy is not — that one is a technology commitment, and version 8's rule
-  does not let an edit to a commitment ride a change's gate.
+  existed, four lines from a paragraph this change edits. It also **enumerates the hook's two
+  warning states**, and this change adds a third.
+- **`plugins/sdlc-core/hooks/hooks.json`** — its `description` ships to every user and also
+  names the hook's two states: *"either no plan is approved, or no slice claims the file."*
+  Third such list, and the one that travels furthest.
+- **One false timing claim, in the hook's own header**: *"It costs ~150ms per edit."* Measured,
+  the hook takes 306ms to 1188ms depending on tree size. Corrected here for the same reason the
+  stale script name is — a known-false line beside prose this change already edits.
 
-  **That leaves two documents agreeing and a third disagreeing, which is the pattern this
-  repository has been bitten by four times.** What closes it is the next charter amendment,
-  which has a standing reason to happen — this change's register rows ride its own gate, but a
-  commitment does not. Named here so the divergence is a scheduled repair rather than a thing
-  someone finds.
+  **The README and the charter are *not* corrected, because they are not wrong.** Both frame
+  149ms as a *runtime startup* comparison against node and python, which is what the number
+  actually is. An earlier version of this bullet proposed correcting the README too, on the
+  reading that the figure was false wherever it appeared — that would have made a true line
+  false and manufactured the divergence it claimed to close. There is one false statement, not
+  three, and no charter amendment is owed.
 - **The five finished plans and the one superseded plan** — `init-scaffolds-solution`,
   `pack-promises-what-it-scaffolds`, `register-names-every-check`, `stack-dotnet-house-stack`,
   `verification-reports-options`, and `engine-substitutes-declared-tokens` — the last superseded
@@ -234,7 +245,15 @@ properties hold.
    check it introduces exists, at a moment when all six plans still read `approved` and this one
    claims five files they claim. The marking commit therefore lands **before this plan is
    approved**, not as a slice inside its build — otherwise the first re-approval after the
-   check ships refuses the plan that shipped it. Both halves are load-bearing. Without the exclusion
+   check ships refuses the plan that shipped it.
+
+   **Which raises the gate question that commit has no answer for.** It rewrites six other
+   chains' approved artifacts and the charter at a moment when no approved plan authorises any
+   of it, and the framework's whole posture is that a gate is crossed only by explicit human
+   words. The honest position: **that commit is the owner's act, taken against this intent at
+   its approval gate, and this paragraph is where it is authorised.** Naming it here is what
+   makes it a decision rather than six undeclared edits — and it is the one place in the chain
+   where work precedes the plan that declares it, which is worth flagging rather than smoothing. Both halves are load-bearing. Without the exclusion
    every *re*-approval refuses, because the plan is already approved on disk when the fix is
    re-checked — and re-approving after fixing an overlap is the path the invariant prescribes.
    Without the first half the check never fires on a *first* approval, because the plan is a
@@ -278,18 +297,25 @@ properties hold.
      directory.
    - **The frontmatter grammar**, covering all four rules: a `files:` entry is a quoted string
      on its line, it is a file path rather than a directory or glob, `status:` is unquoted and
-     one of the declared values, and `finished:` is `true` or `false` alone on its line and
-     only on an approved plan.
+     one of the declared values, and `finished:` is `true` or `false` alone on its line — with
+     **`true` requiring `status: approved`, `false` legal anywhere, and absent meaning not
+     finished**. The last three clauses are load-bearing: an earlier version of this criterion
+     said the *field* was approved-only, which makes the schema's own plan template illegal
+     (it carries `finished: false` on a draft, because a plan is authored as one) and, read
+     literally, requires the field on every plan when not one carries it today.
    - **The verify skill's SHIP branch**, proved by a prose check over the skill body — that the
-     `finished:` transition and the `plan.md` staging are named **inside the SHIP branch of the
-     gate section**, matched by that heading, not merely present somewhere in the file. Without
-     the placement clause the check passes when the write sits under DO NOT SHIP four lines
-     above, which is the exact failure the criterion exists to prevent. There is precedent for
-     holding this skill's prose: an existing check requires it to name its options.
+     `finished:` transition and the `plan.md` staging appear **after the `On **SHIP**` marker
+     and nowhere in the DO NOT SHIP block**. Both halves are required: presence alone passes a
+     skill that names the transition in both branches, which is the fatal case. **Matching on
+     headings does not work** — the gate has one heading and it contains the literal string
+     `DO NOT SHIP`, so a naive match finds the wrong branch first; the branches are bold inline
+     markers, not headings. An earlier version of this criterion specified a heading match and
+     was unbuildable. There is precedent for holding this skill's prose: an existing check
+     requires it to name its options.
 
    **What that check still cannot prove**, named rather than implied: that the skill, at
    runtime, follows the branch it names. A prose check reads a document. That residue joins the
-   known-and-unchecked entries below rather than passing as covered.
+   known-and-unchecked entries rather than passing as covered.
 
    **Four rather than the five first proposed, and the difference is worth naming.** The three
    grammar rules were going to be three classes and three rows; they are one class with four
@@ -403,6 +429,11 @@ properties hold.
   first candidate charter it finds, so a repository with an unrelated `docs/CHARTER.md` gets
   `docs/` as its artifact root whether or not that charter declares one. Extracting it is a
   move, not a repair; fixing it would change which plans every existing repository sees.
+- **The cross-plan mode's cost at approval is unbounded, deliberately.** It walks every chain
+  directory and parses every plan on each approval, and root discovery dominates and scales
+  with repository size. The hook has a budget because it runs on every keystroke; this runs
+  once, when a person is already waiting at a gate. Stated as a decision rather than left as
+  the one measured cost nobody bounded.
 - **Warning volume is not in scope.** Code files that only finished plans claimed will begin
   drawing unplanned-scope warnings; those edits genuinely are outside any live plan.
 - **This is not status tracking.** A plan's status is a parser input read at the moment of a
