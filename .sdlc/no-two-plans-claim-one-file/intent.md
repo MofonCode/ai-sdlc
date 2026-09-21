@@ -1,7 +1,7 @@
 ---
 slug: no-two-plans-claim-one-file
 title: No two live plans claim the same file
-status: draft
+status: approved
 tier: feature
 created: 2026-09-20
 owner: peter
@@ -989,8 +989,10 @@ properties hold.
   is what the number is, and are correct. The hook's own header says *"It costs ~150ms per
   edit"* — a claim about wall time, and false by the measurement above. That one is corrected
   here; the other two are left alone.
-- **This change writes six other chains' plans and the charter, and must declare every one.**
-  Editing another chain's artifact without declaring it is the lapse this change exists to catch.
+- **This change writes seven other chains' plans, the charter, the shipped schema, the open
+  items and the direction, and must declare every one.** Editing another chain's artifact
+  without declaring it is the lapse this change exists to catch, and the artifact-root carve-out
+  means no instrument would ever report the omission.
 
 ## Non-goals
 
