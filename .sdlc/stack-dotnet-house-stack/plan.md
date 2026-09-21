@@ -1,7 +1,6 @@
 ---
 slug: stack-dotnet-house-stack
 status: approved
-finished: true
 tier: task
 spec: none
 slices:

@@ -1,7 +1,7 @@
 ---
 slug: no-two-plans-claim-one-file
 title: No two live plans claim the same file
-status: approved
+status: draft
 tier: feature
 created: 2026-09-20
 owner: peter

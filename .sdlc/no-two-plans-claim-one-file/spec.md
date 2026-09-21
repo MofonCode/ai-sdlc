@@ -1,6 +1,6 @@
 ---
 slug: no-two-plans-claim-one-file
-status: approved
+status: draft
 intent: ./intent.md
 tier: feature
 ---
