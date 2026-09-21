@@ -18,11 +18,14 @@ owner: peter
 > more of the same kind, and recorded why an amendment that settles twelve things produces them.
 > Version 12 completed the grammar paragraph, which listed three of its four rules while the
 > shipped schema listed all four — the fifth defect traceable to that one conversation.
-> Version 13 dated two stale figures of the same kind, one of them a test count describing a
-> suite a third the size of the one that runs today. It unblocked nothing; it is here because
-> **four consecutive charter versions were spent on one class — a document asserting something
-> about the code that is not so — and the Affected list below now carries an instance of it in
-> a shipped engine file.**
+> **Versions 13 through 15 unblocked nothing and are named anyway**, because what they were
+> spent on is the reason this document keeps being interrogated. 13 dated two stale figures,
+> one a test count describing a suite a third the size of the one that runs today. 14 found
+> that one of the five parser divergences was never a divergence — re-measuring a number this
+> document had already called *measured*. 15 moved the register-row count after the owner
+> settled a question at this gate. **Five consecutive versions on one class — a document
+> asserting something about the code that is not so — and the Affected list below now carries
+> an instance of it in a shipped engine file.**
 >
 > **This document was rewritten against those answers, and shortened.** Its first draft ran to
 > 1680 lines and held the design — where the extracted parser lives, how paths normalise, what
@@ -150,8 +153,10 @@ Every file below was opened while writing this, not inferred from a search.
   and call anything unclaimed unplanned scope. Read by a model rather than by code, so the
   charter's three-parsers paragraph is right not to count it — but it is a reader, it reads the
   plan under verification at the moment verify is also writing `finished:` to that plan, and
-  leaving it off this list would be the omission the list exists to prevent. Not edited unless
-  the spec finds a reason.
+  leaving it off this list would be the omission the list exists to prevent. **It is also one
+  of the three copies of the manifest-drift instruction**, so the fifth check reads it even
+  though this change does not edit it — which is the point of that check: the copy nobody
+  touches is the one that drifts.
 - **`tests/AiSdlc.Tests/Frontmatter.cs`** — the harness's own frontmatter reader, claimed by no
   plan. Named because an undeclared edit is the lapse this change exists to catch, **and not
   because the grammar check is built on it** — an earlier version of this bullet called it "the
@@ -168,8 +173,9 @@ Every file below was opened while writing this, not inferred from a search.
   files and seven claims rather than five and six** — stated here so the number moves with the
   decision instead of after it.
 - **`.sdlc/CHARTER.md`** — also says the grammar check "lands with" this change, which goes
-  stale the day it does, in the same way the schema's copy does. It takes four register rows
-  for the four new checks, and **five known-and-unchecked entries**.
+  stale the day it does, in the same way the schema's copy does. It takes **five register rows
+  for the five new checks** — four until the owner settled the prose-list question at this
+  document's gate — and **five known-and-unchecked entries**.
 
   **Each is named, and each says which change would instrument it**, because the charter admits
   a class to that list only when its instrument is a *different* change and explicitly not
@@ -217,9 +223,10 @@ Every file below was opened while writing this, not inferred from a search.
   deletion would lose a true and useful pointer along with the false filename.
 - **`plugins/sdlc-core/hooks/hooks.json`** — its `description` ships to every user and also
   names the hook's two states: *"either no plan is approved, or no slice claims the file."*
-  Third such list, and the one that travels furthest. **Nothing compares any of the three to
-  the strings the hook emits**, and this change adds an item to all three — carried as an open
-  question below rather than settled here.
+  Third such list, and the one that travels furthest — it reaches every user who installs the
+  plugin, whether or not they ever open the README. **Nothing compared the three until now**,
+  and this change adds an item to all three; the fifth check in criterion 8 holds them to each
+  other from here.
 - **One false timing claim, in the hook's own header**: *"It costs ~150ms per edit."* It is a
   claim about wall time and the measurement in Constraints falsifies it. Corrected here for the
   same reason the stale script name is — a known-false line beside prose this change already
@@ -374,7 +381,7 @@ properties hold.
    check ships refuses the plan that shipped it.
 
    **It touches the six plans and nothing else, and the charter is deliberately not in it.**
-   The four register rows go in with their four checks, inside the planned slice that declares
+   The five register rows go in with their five checks, inside the planned slice that declares
    `.sdlc/CHARTER.md` in its manifest, because the version-8 rule puts a register row on the
    gate of the change that adds the check — and because rows naming tests that do not exist yet
    turn the register check red, which nothing may be committed over. An earlier version of this
@@ -431,7 +438,7 @@ properties hold.
    hook that compared none produce identical output — nothing. Making it announce its counts
    would put a line on standard error on every edit in every repository, which is the constraint
    below that it stay quiet where the framework is not in use.
-8. **Four checks, each a new test class in its own file, each named by its own register row,
+8. **Five checks, each a new test class in its own file, each named by its own register row,
    each seen to fail when its fault is injected.**
 
    - **The comparison**, proved over built fixtures.
@@ -475,17 +482,41 @@ properties hold.
      sweep every skill gets. The check is still buildable and the shape is still borrowed from
      a real one; what was false was that this particular file already had an instrument.
 
-   **What that check still cannot prove**, named rather than implied: that the skill, at
-   runtime, follows the branch it names. A prose check reads a document. That residue joins the
-   known-and-unchecked entries rather than passing as covered.
+   - **The shipped prose lists agree with each other**, in both directions, for the two lists
+     this change touches. **The hook's warning states** are written out in three places — the
+     script's header, the README's gate-hook section, and the `description` in `hooks.json`
+     that ships to every user — and this change adds a third state to all three. **The
+     manifest-drift instruction** is written out in three more — the verifier agent, the schema
+     reference and the verify skill — each naming the same two conditions, files changed that
+     no slice claimed and files claimed that nothing touched, and this change edits two of
+     them. One class, two lists, because the register enumerates classes and "a shipped
+     description of an engine behaviour disagrees with the other copies of itself" is one.
 
-   **Four rather than the five first proposed, and the difference is worth naming.** The
-   grammar had three rules when that count was written and has four now. The three were going
-   to be three classes and three rows; the four are one class with four
-   methods, because the register enumerates *classes of silent failure* and "a chain artifact's
-   frontmatter is spelled in a form no reader accepts" is one class with four instances — the
-   same granularity as the existing row for malformed definition frontmatter. The fourth check
-   is new and was not in that count at all: it holds the one-way write.
+     **Decided at this gate rather than deferred to the spec**, because the rule this
+     repository states about second lists is that the comparing check is part of the same
+     change — and because the evidence sits four lines from the prose being edited, where a
+     README line naming a test script that has never existed went undetected for the life of
+     the file.
+
+     **What it does not prove, said now rather than discovered later:** that a named state
+     corresponds to a branch that exists. The two documents and the header agree on *no
+     approved plan*, and that phrase appears nowhere in the hook's executable body — only in
+     its own header comment. `unplanned scope` is emitted and is already asserted by the
+     existing hook tests. So the check holds the copies to each other and the existing suite
+     holds one of the names to the code; the link for the other is documentation agreeing with
+     documentation, which is worth having and is not the same thing.
+
+   **What the verify-skill check still cannot prove**, named rather than implied: that the
+   skill, at runtime, follows the branch it names. A prose check reads a document. That residue
+   joins the known-and-unchecked entries rather than passing as covered.
+
+   **Five rather than the four this document carried until the owner decided, and rather than
+   the five first proposed — which were a different five.** The original count had the grammar
+   as three classes and three rows; that collapsed to one class with four methods, because the
+   register enumerates *classes of silent failure* and "a chain artifact's frontmatter is
+   spelled in a form no reader accepts" is one class with four instances, the same granularity
+   as the existing row for malformed definition frontmatter. Two checks were then new and in
+   neither count: the one holding the one-way write, and this one.
 
    **The shape is load-bearing because the register check is weaker than it looks:** it reads
    only the first `[TestClass]` per file, scans the top directory only, and passes a class when
@@ -649,35 +680,6 @@ properties hold.
 
 ## Open questions
 
-- **Does the third warning state get a check that holds its three descriptions together, or an
-  entry saying nothing does?** The hook's two states are written out in three places — the
-  script's own header, the README's gate-hook section, and the `description` in `hooks.json`
-  that ships to every user — and **nothing compares any of them to the strings the hook
-  actually emits.** One existing test asserts that `unplanned scope` reaches stderr; no test
-  reads the three prose copies at all. This change adds a state to all three, which is the
-  repository's own cardinal failure in its live form: a list beside a source of truth, with the
-  rule that the comparing check is part of the same change. Against that stands the argument
-  this document already makes for four checks rather than five — the register enumerates
-  classes, and "a shipped description disagrees with the hook it describes" is a class of its
-  own rather than an instance of an existing one.
-
-  **This one cannot wait for the spec gate, which is why it sits above the others.** Either
-  answer moves a number the charter edit in this change's slice manifest commits to: a check
-  makes it **five register rows**, and no check makes it a **sixth known-and-unchecked entry**,
-  taking that list from two to eight against four rows — the ratio the charter says the
-  amendment conversation exists to notice. The charter cannot be edited correctly until it is
-  answered. **The evidence that deferral is the wrong answer is in the same README section:**
-  the line naming a test script that has never existed is a prose list beside the hook, drifting
-  in exactly this way, with nothing that would have caught it.
-
-  **And the hook's states are not the only such list — there is a second, of the same size,
-  which this change edits two thirds of.** The manifest-drift instruction — *files changed that
-  no slice claimed are unplanned scope* — is written out in the verifier agent, in the schema
-  reference, and in the verify skill. Nothing compares those three either, and this change edits
-  the schema and the verify skill while leaving the agent alone. Whichever way the question is
-  answered, it should be answered for both lists at once, or the next interrogation finds the
-  one that was not. *Owner: peter, at this document's approval gate.*
-
 - **Does the cross-plan check run before the plan skill's approval gate, or at it?** The skill
   writes the plan as a draft, runs the single-plan check, and approves later. Running it early
   leaves the approval window unguarded — two sessions both past it and neither past the gate each
@@ -691,6 +693,16 @@ properties hold.
   so it is off the critical path — but its comment claiming all three normalise identically is
   false today and stays false. *Owner: peter, at the spec gate, with the charter's
   fourth-consumer line as the test.*
+
+**Closed at this gate on 2026-09-21, by the owner:** *do the shipped prose lists get a check
+that holds them together, or an entry saying nothing does?* **A check, covering both lists.**
+It could not wait for the spec, because either answer moved a number the charter edit commits
+to — a check makes it five register rows, no check made it a sixth known-and-unchecked entry
+and took that list from two to eight against four rows. The answer follows the rule this
+repository has been bitten by four times and built five checks for: if a second list is
+genuinely necessary, the check comparing it to the first is part of the same change. Recorded
+here because the arithmetic was the reason to decide early, and a reader who finds only the
+criterion would not know the question had been a blocking one. It is criterion 8's fifth check.
 
 **Closed on 2026-09-21 rather than carried:** *when is the amendment's grammar enforced on the
 plans that already exist?* Measured — all six conform already. Every `status:` line is the

@@ -84,7 +84,7 @@ reorder the interview, add a flag, three unchosen output contracts.
      `git mv` or a formatter never reaches it.
 
    **What the step actually is:** a lifecycle marker on a frozen frontmatter shape, one parser
-   extracted from two that disagree in four ways, a rewritten path normalisation, and four new
+   extracted from two that disagree in four ways, a rewritten path normalisation, and five new
    named checks with their register rows. It is still first, because the reason it was placed
    first is untouched — until two approved plans can be compared, two lines of work cannot
    safely run at once.

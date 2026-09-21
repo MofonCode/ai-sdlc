@@ -2,7 +2,7 @@
 solution: ai-sdlc
 artifact_root: .sdlc/
 status: approved
-version: 14
+version: 15
 updated: 2026-09-21
 owner: peter
 ---
@@ -234,8 +234,13 @@ is about to grow.** A class belongs here when its instrument is a *different cha
 catching it means rebuilding something this change only touches in passing. It is not a place
 to put a class because writing the check is tedious. **A list that grows faster than the
 register is itself a finding**, and the review that notices it is the amendment conversation:
-`no-two-plans-claim-one-file` takes this list from two entries to seven, against four new
-register rows, which is worth saying out loud rather than letting accumulate quietly. **That
+`no-two-plans-claim-one-file` takes this list from two entries to seven, against **five** new
+register rows, which is worth saying out loud rather than letting accumulate quietly. **It was
+four until the owner settled a question at that change's gate**, and the ratio is why the
+question could not be deferred: the alternative answer left the prose lists uninstrumented,
+which would have made it eight entries against four rows. A list growing faster than the
+register is a finding; a list that grows *because* a question was postponed is the same finding
+with a cause attached. **That
 number moved three times while the change was being scoped** — seven, then five, then seven —
 because the entry list itself grew as each interrogation found another class nothing catches.
 Recorded because the instability is the finding: a list whose length nobody can state from
@@ -496,6 +501,7 @@ instrument. The register rows arrive with the checks, under the v8 rule.
 
 | Version | Date | Change |
 |---|---|---|
+| 15 | 2026-09-21 | **The count in I9's own warning moves: five new register rows, not four.** The owner settled, at `no-two-plans-claim-one-file`'s approval gate, that the shipped prose lists get a check rather than an entry admitting nothing holds them. Two lists, one class, one row: the hook's warning states — written out in the script's header, the README and the `description` in `hooks.json` that ships to every user — and the manifest-drift instruction, written out in the verifier agent, the schema reference and the verify skill. Nothing compared either set to anything. **The row is here because the ratio was the reason the question could not wait.** I9 says a list growing faster than the register is itself a finding, and the alternative answer would have made it eight known-and-unchecked entries against four rows, by postponement rather than by discovery. The paragraph now records that, so the next reader sees a count with a cause rather than a count. Nothing binding moves: I9 already required a named check per known class, and this is that rule being applied rather than relaxed. |
 | 14 | 2026-09-21 | **One of the five parser divergences was never a divergence.** The parsers paragraph said the two PowerShell readers had diverged in five ways — on anchoring, on leading dots, on case, on where a slice begins, and on the edited path against the claimed one. Reproduced rather than recalled: four of those hold, and **leading dots does not.** Both readers strip them with the same `TrimStart` call, and what that call does is map `.sdlc/CHARTER.md` onto a string matching nothing on disk, in both readers at once — a shared defect the extraction must repair, not a disagreement it resolves. **It mattered because the count was the argument.** "Five ways" was the case for extracting one parser, and it was four real reasons and one borrowed one. The paragraph now enumerates the four and says what each one does, so the next reader checks a list rather than a number. **Fifth consecutive version spent on one class** — a claim about the code written from memory — and the first of them found by re-measuring a figure that had already been called measured, which is the part worth carrying forward: *measured* is a claim with a shelf life, and the way to renew it is the command, not the memory of having run it. |
 | 13 | 2026-09-21 | **Two stale figures dated, one of them describing a suite a third the size of the one that now runs.** The self-improvement paragraph read *"I9 table is the register of it, and it has numbers: 49 tests, 12 injected faults, 12 caught"* in the present tense; the suite is at 151 cases from 125 methods and the register at 30 rows, counted rather than recalled. Both figures now carry the date they were taken, because a number in a charter is read as current unless it says otherwise. The parsers paragraph also still said v10 repaired *"the three grammar rules"*, which collided with the four the paragraph below now lists; it points at the rules rather than counting them, since the count is the thing that moved. **Same class as v11 and v12, and the third version in a row spent on it:** a claim about the code written from memory, in the document whose register exists so that every named check is real. Nothing binding moves. |
 | 12 | 2026-09-21 | **The grammar paragraph lists four rules, not three.** It stated the two `files:` rules and the `status:` rule and stopped, because when it was written the `finished:` field had no grammar — the field gained one later in the same conversation and this paragraph did not follow. Meanwhile the shipped schema listed four, so the charter and the engine's own reference disagreed about how many rules bind: the second-list failure, between the two documents that define the shape. **A version for one paragraph, deliberately.** The number is free and the row is the point — this is the fifth defect traceable to the twelve-question conversation at v9, which is the count v11's row said to watch. Nothing here is new: all four rules already bind and the schema already carried them. What changes is that the charter now says what the schema says. |
