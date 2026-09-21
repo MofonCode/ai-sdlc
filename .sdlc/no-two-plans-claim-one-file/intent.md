@@ -131,9 +131,20 @@ Every file below was opened while writing this, not inferred from a search.
   a finished plan, and one of the five files in the collision set below.
 - **`tests/AiSdlc.Tests/SliceManifestTests.cs` and `GateHookTests.cs`** — the existing instruments
   for the two mechanisms being widened.
+- **`tests/AiSdlc.Tests/SilentFailureRegisterTests.cs`** — not edited, and named because **it
+  imposes a slicing constraint nothing else here states.** It reads the live `.sdlc/CHARTER.md`
+  and enumerates the live top-level test directory, both directions, so a charter row without
+  its test file is red and a test file without its row is red. **The four rows and the four new
+  test classes therefore land in one commit**, which cannot be split across slices without
+  leaving the tree red in between — and nothing may be committed on a red build. That makes it
+  a constraint on the plan's shape rather than a detail of the register.
 - **`tests/AiSdlc.Tests/TempRepo.cs` and `Repo.cs`** — the fixture, which writes one chain with
   one plan and cannot express two colliding plans. Shared by three suites, so it sits in exactly
-  one slice. `Repo.cs` resolves shipped scripts by walking up to the plugin directory.
+  one slice. `Repo.cs` resolves shipped scripts by walking **up to the repository root** —
+  the first ancestor holding a `.claude-plugin` directory — and joining the plugin path onto it.
+  An earlier version of this line said "up to the plugin directory", which names a different
+  place: both the repository root and each plugin hold a `.claude-plugin`, so the distinction
+  decides what the walk stops at.
 - **`plugins/sdlc-core/agents/verifier.md`** — a **fourth reader of `files:` lists that is not
   a fourth parser**: it tells an agent to compare `git diff --name-only` against the manifest
   and call anything unclaimed unplanned scope. Read by a model rather than by code, so the
@@ -141,9 +152,21 @@ Every file below was opened while writing this, not inferred from a search.
   plan under verification at the moment verify is also writing `finished:` to that plan, and
   leaving it off this list would be the omission the list exists to prevent. Not edited unless
   the spec finds a reason.
-- **`tests/AiSdlc.Tests/Frontmatter.cs`** — the existing frontmatter-parsing helper, claimed by
-  no plan, and the thing the grammar check most plausibly builds on. Named either way, because
-  an undeclared edit is the lapse this change exists to catch.
+- **`tests/AiSdlc.Tests/Frontmatter.cs`** — the harness's own frontmatter reader, claimed by no
+  plan. Named because an undeclared edit is the lapse this change exists to catch, **and not
+  because the grammar check is built on it** — an earlier version of this bullet called it "the
+  thing the grammar check most plausibly builds on", which is the wrong half of a decision the
+  constraints now settle. Worth knowing if anything does build on it: `Read` assigns each match
+  into a dictionary, so **two `finished:` lines resolve last-wins with no error**, and its field
+  regex anchors on a non-whitespace first character, so a `finished:` nested under `slices` is
+  **invisible**. Those are the two spellings criterion 8 says should be rejected, already
+  answered the other way, in a helper several suites call.
+- **`tests/AiSdlc.Tests/PluginStructureTests.cs`** — holds the two checks whose file globs the
+  constraint below may have to widen, **and it is claimed by `init-scaffolds-solution`**. Named
+  because the constraint's own conditional requires editing it: if the shared parser does not
+  ship as `.ps1`, this file does. **If that branch is taken the headline count becomes six
+  files and seven claims rather than five and six** — stated here so the number moves with the
+  decision instead of after it.
 - **`.sdlc/CHARTER.md`** — also says the grammar check "lands with" this change, which goes
   stale the day it does, in the same way the schema's copy does. It takes four register rows
   for the four new checks, and **five known-and-unchecked entries**.
@@ -350,9 +373,17 @@ properties hold.
    approved**, not as a slice inside its build — otherwise the first re-approval after the
    check ships refuses the plan that shipped it.
 
-   **Which raises the gate question that commit has no answer for.** It rewrites six other
-   chains' approved artifacts and the charter at a moment when no approved plan authorises any
-   of it, and the framework's whole posture is that a gate is crossed only by explicit human
+   **It touches the six plans and nothing else, and the charter is deliberately not in it.**
+   The four register rows go in with their four checks, inside the planned slice that declares
+   `.sdlc/CHARTER.md` in its manifest, because the version-8 rule puts a register row on the
+   gate of the change that adds the check — and because rows naming tests that do not exist yet
+   turn the register check red, which nothing may be committed over. An earlier version of this
+   paragraph said the marking commit rewrote the charter too; that would have put the rows
+   before their checks and outside any manifest at once.
+
+   **Which still raises the gate question that commit has no answer for.** It rewrites six other
+   chains' approved artifacts at a moment when no approved plan authorises any of it, and the
+   framework's whole posture is that a gate is crossed only by explicit human
    words. The honest position: **that commit is the owner's act, taken against this intent at
    its approval gate, and this paragraph is where it is authorised.** Naming it here is what
    makes it a decision rather than six undeclared edits — and it is the one place in the chain
@@ -369,8 +400,15 @@ properties hold.
    payload in a throwaway repository holding nothing but a charter and two colliding plans,
    writes the collision to standard error. The plan skill's prose is not evidence for this — it
    is where a collision is usually caught and never what guarantees it.
-5. **The gate hook and the disjointness script each have a stated behaviour under the new field,
-   asserted rather than read.** Both must treat an approved-and-finished plan as not live.
+5. **The gate hook, and the script's cross-plan mode, each have a stated behaviour under the
+   new field, asserted rather than read.** Both must treat an approved-and-finished plan as not
+   live. **The single-plan invocation is excluded and that exclusion is load-bearing:** it reads
+   no status today, the Affected list promises it keeps working exactly as it does, and
+   criterion 3 says finished-awareness lives only in the cross-plan mode. An earlier version of
+   this criterion said "the disjointness script", full stop, which reads as an instruction to
+   teach `-Plan <path>` to read status — breaking the one guarantee this change makes about
+   behaviour it does not change.
+
    **This grew rather than shrank under the amendment's answer:** because `finished:` sits
    beside `status:` rather than replacing a value in it, `status: approved` still matches
    everywhere, so each reader must learn to check a second field. The parallel build is
@@ -409,6 +447,14 @@ properties hold.
      (it carries `finished: false` on a draft, because a plan is authored as one) and, read
      literally, requires the field on every plan when not one carries it today.
 
+     **It binds `plan.md` and no other shape.** Two of the four rules are plan-only by the
+     schema; the third — `status:` unquoted and one of the declared values — is stated there
+     for all five artifact shapes, and binding the check to all five would be a wider promise
+     than this change measured, since the conformance measurement covered the six plans and
+     nothing else. **The charter and verification records are outside it**, said plainly
+     because the non-goal that no check reads a real `plan.md` means nobody can settle the
+     question by running something.
+
      **Two spellings the grammar does not yet answer, and for a one-way field that is a
      property rather than a detail:** a plan carrying **two** `finished:` lines, and one
      carrying the field **inside the `slices` block** rather than at the top level. A
@@ -423,8 +469,11 @@ properties hold.
      headings does not work** — the gate has one heading and it contains the literal string
      `DO NOT SHIP`, so a naive match finds the wrong branch first; the branches are bold inline
      markers, not headings. An earlier version of this criterion specified a heading match and
-     was unbuildable. There is precedent for holding this skill's prose: an existing check
-     requires it to name its options.
+     was unbuildable. **It also claimed precedent that does not exist:** the check requiring an
+     options section to carry an instruction reads `agents/verifier.md`, not the verify skill,
+     and no check in the suite reads that skill body by name — it is reached only by the generic
+     sweep every skill gets. The check is still buildable and the shape is still borrowed from
+     a real one; what was false was that this particular file already had an instrument.
 
    **What that check still cannot prove**, named rather than implied: that the skill, at
    runtime, follows the branch it names. A prose check reads a document. That residue joins the
@@ -468,6 +517,16 @@ properties hold.
   those two instruments do not cover. Either it ships as `.ps1`, or the globs widen in the same
   change. This is the same shape as the packaging constraint below: a placement decision that
   silently turns a check off is not a placement decision.
+- **Every new check drives the shipped readers as external processes, the grammar check
+  included.** The charter's technology table commits to it in one sentence — *"a
+  reimplementation in C# would test the reimplementation, and the two would drift silently"* —
+  and the grammar check is the one most tempting to write the other way, because a C# validator
+  over fixture text is quicker to write than driving PowerShell. **It would also be a fourth
+  consumer of the manifest grammar**, which is the exact trigger the charter's parsers paragraph
+  arms: *if a fourth consumer appears, that is the moment to stop and give them one parser*. So
+  the tempting shortcut is not merely weaker evidence, it is a charter question — and the
+  answer that avoids asking it is to drive the readers, which is what the non-goals already say
+  this check does.
 - **The normalisation must be lossless where today's is lossy.** `TrimStart('.', '/')` strips
   *every* leading dot and slash, mapping `.sdlc/CHARTER.md` and `.github/workflows/checks.yml`
   onto strings matching nothing on disk — so two different paths can collide with each other and
@@ -492,7 +551,10 @@ properties hold.
   costs about 2.75ms each; **root discovery dominates and scales with repository size**, which is
   the term this change relocates. The budget: **no regression beyond the greater of 15% or
   50ms**, median of five runs, on a fixture of 500 directories, measured before and after and
-  pasted into `plan.md` as a validation row.
+  pasted into `plan.md` as a validation row. **The before-figure is re-measured on that same
+  500-directory fixture**, not taken from the numbers above — those came from a flat tree and a
+  900-directory one, and comparing 500-after against 900-before would show an improvement the
+  change did not make.
 
   **That is a one-time measurement and nothing watches it afterwards, which is worth saying
   because this change moves the dominant cost term.** Root discovery goes into shared code, so
@@ -606,8 +668,15 @@ properties hold.
   amendment conversation exists to notice. The charter cannot be edited correctly until it is
   answered. **The evidence that deferral is the wrong answer is in the same README section:**
   the line naming a test script that has never existed is a prose list beside the hook, drifting
-  in exactly this way, with nothing that would have caught it. *Owner: peter, at this
-  document's approval gate.*
+  in exactly this way, with nothing that would have caught it.
+
+  **And the hook's states are not the only such list — there is a second, of the same size,
+  which this change edits two thirds of.** The manifest-drift instruction — *files changed that
+  no slice claimed are unplanned scope* — is written out in the verifier agent, in the schema
+  reference, and in the verify skill. Nothing compares those three either, and this change edits
+  the schema and the verify skill while leaving the agent alone. Whichever way the question is
+  answered, it should be answered for both lists at once, or the next interrogation finds the
+  one that was not. *Owner: peter, at this document's approval gate.*
 
 - **Does the cross-plan check run before the plan skill's approval gate, or at it?** The skill
   writes the plan as a draft, runs the single-plan check, and approves later. Running it early
@@ -671,6 +740,22 @@ the sections that use them.**
 - **`superseded` being written by the plan skill.** Believed because the shipped schema says so.
   The skill has never contained the word. Found by interrogation, not by reading the document
   that asserts it — which is the whole argument for interrogating in a fresh context.
+- **What the pre-approval marking commit touches.** Said to rewrite six plans *and the charter*.
+  It cannot: register rows landing before their checks turn the register check red, and the
+  charter edit belongs in the planned slice that declares it. Two rules broken by one clause.
+- **Which disjointness invocation learns about `finished:`.** One criterion said "the
+  disjointness script" where another said only the cross-plan mode — opposite instructions to
+  anyone building from either alone, and the wider reading breaks the promise that
+  `-Plan <path>` behaves exactly as it does today.
+- **Precedent for holding the verify skill's prose.** Claimed an existing check requires that
+  skill to name its options. The check reads the verifier *agent*; no instrument reads the
+  verify skill body by name.
+- **`Frontmatter.cs` as the grammar check's foundation.** The charter commits to tests driving
+  the shipped artefacts as external processes, and a C# grammar validator would also be a
+  fourth consumer of the manifest grammar — the charter's own trigger for stopping and
+  extracting one parser. Named as the likely basis anyway.
+- **`Repo.cs` walking "up to the plugin directory".** It walks to the repository root. Both hold
+  a `.claude-plugin`, so the wrong name points at the wrong place.
 - **"Five measured ways" the two parsers disagree.** Four. Leading dots is not one of them —
   both readers strip them identically, so it is a shared defect rather than a divergence. **The
   new part is how it was found:** by re-running the measurement on a figure this document had
