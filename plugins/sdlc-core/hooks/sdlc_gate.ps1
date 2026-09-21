@@ -1,7 +1,7 @@
 #Requires -Version 5.1
 <#
 .SYNOPSIS
-    PreToolUse gate: warn when code is edited outside an approved plan.
+    PreToolUse gate: warn when code is edited outside an approved plan, or claimed by two.
 
 .DESCRIPTION
     Deliberately advisory by default. A hard block on every edit is infuriating and gets the
@@ -11,17 +11,26 @@
     Silent in repos that do not use the framework at all, because this plugin loads in every
     project.
 
-    Two distinct states are worth warning about and they are not the same problem:
+    Three distinct states are worth warning about and they are not the same problem:
 
       no approved plan   nothing has been agreed; this is the gate the README describes.
       unplanned scope    a plan is approved but does not claim this file. That is the
                          verifier's manifest check, moved from after the build to before
                          it, which is where it is cheap.
+      contested file     two live plans claim it. Unlike the other two, the person editing
+                         cannot fix this alone: the remedy is re-planning a chain that may
+                         not be theirs.
+
+    Those three labels are a contract. They are written here, in the README's gate-hook
+    section, and in the description shipped in hooks.json, and a check compares all three.
 
     Windows PowerShell 5.1 on purpose: it is the only runtime present on every Windows
     machine with no install step, which is the property that matters for something that
-    ships to a team and runs on every single edit. It costs ~150ms per edit against ~50ms
-    for python; that tax was measured and accepted rather than assumed.
+    ships to a team and runs on every single edit.
+
+    The manifest is read by scripts/SliceManifestParser.ps1, which is the only thing in the
+    engine that knows how to read one. This file used to carry its own copy, and the two
+    disagreed.
 #>
 
 Set-StrictMode -Version 2.0
@@ -31,74 +40,8 @@ $ErrorActionPreference = 'Stop'
 # setting a repo up. Never gate them.
 $SkipExtensions = @('.md', '.txt', '.json', '.yml', '.yaml', '.toml')
 $SkipNames      = @('.gitignore', '.editorconfig', '.gitattributes')
-$SkipDirs       = @('.git', 'node_modules', 'bin', 'obj', '.venv', 'dist', 'target')
-$DefaultRoot    = '.sdlc'
-
-function Get-Frontmatter {
-    param([string] $Path)
-    try { $text = Get-Content -LiteralPath $Path -Raw -ErrorAction Stop }
-    catch { return '' }
-    if ($null -eq $text) { return '' }
-    if ($text -match '(?s)\A---\r?\n(.*?)\r?\n---(\r?\n|\z)') { return $Matches[1] }
-    return ''
-}
-
-function Get-ArtifactRoot {
-    <#
-      Where this repo keeps its chain, or $null if it does not use the framework.
-
-      The charter declares its own root in `artifact_root`, so a repo that keeps its backlog
-      visible at top level (intent/, specs/, docs/sdlc/) is found rather than silently
-      ignored - a gate that goes quiet on a non-default root is worse than no gate, because
-      silence reads as approval.
-
-      Two levels deep, because docs/sdlc/ is a documented root and is two levels.
-    #>
-    param([string] $Cwd)
-
-    $candidates = New-Object System.Collections.Generic.List[string]
-    $candidates.Add((Join-Path (Join-Path $Cwd $DefaultRoot) 'CHARTER.md'))
-
-    foreach ($depth in @('*', '*/*')) {
-        $glob = Join-Path $Cwd (Join-Path $depth 'CHARTER.md')
-        $hits = @(Get-ChildItem -Path $glob -File -ErrorAction SilentlyContinue | Sort-Object FullName)
-        foreach ($hit in $hits) {
-            $parts = $hit.FullName.Substring($Cwd.Length).Replace('\', '/').Split('/')
-            $noisy = $false
-            foreach ($part in $parts) { if ($SkipDirs -contains $part) { $noisy = $true } }
-            if (-not $noisy) { $candidates.Add($hit.FullName) }
-        }
-    }
-
-    foreach ($charter in $candidates) {
-        if (-not (Test-Path -LiteralPath $charter -PathType Leaf)) { continue }
-        $fm = Get-Frontmatter -Path $charter
-        if ($fm -match '(?m)^artifact_root:\s*(.+?)\s*$') {
-            $declared = $Matches[1].Trim().Trim("'").Trim('"')
-            $resolved = Join-Path $Cwd $declared
-            if (Test-Path -LiteralPath $resolved -PathType Container) {
-                return (Resolve-Path -LiteralPath $resolved).Path
-            }
-        }
-        return (Split-Path -Parent $charter)
-    }
-
-    # A repo mid-flight can have a chain before it has a charter.
-    $default = Join-Path $Cwd $DefaultRoot
-    if (Test-Path -LiteralPath $default -PathType Container) {
-        return (Resolve-Path -LiteralPath $default).Path
-    }
-    return $null
-}
 
 function Get-Field {
-    <#
-      Read one property, or $null when it is absent.
-
-      Strict mode throws on `$obj.PSObject.Properties.Name` when the object has no
-      properties at all, which `{}` produces - so the obvious membership test is exactly
-      the one that crashes on the payload shape you did not anticipate.
-    #>
     param($Object, [string] $Name)
     if ($null -eq $Object) { return $null }
     $prop = $Object.PSObject.Properties[$Name]
@@ -106,28 +49,13 @@ function Get-Field {
     return $prop.Value
 }
 
-function Get-ClaimedFile {
-    <#
-      Every path in a plan's slice manifest, normalised to forward slashes.
-
-      Deliberately a regex over the `files:` lines rather than a YAML parser: PowerShell 5.1
-      has no YAML support in the box, and taking a module dependency on something that runs
-      on every single edit is not worth it for a shape the schema already mandates.
-    #>
-    param([string] $Frontmatter)
-
-    $files = New-Object System.Collections.Generic.HashSet[string]
-    foreach ($line in ($Frontmatter -split "`n")) {
-        if ($line -notmatch 'files:') { continue }
-        foreach ($m in [regex]::Matches($line, '["'']([^"'']+)["'']')) {
-            $null = $files.Add($m.Groups[1].Value.Replace('\', '/').TrimStart('.', '/'))
-        }
-    }
-    return $files
-}
-
 # --- main -----------------------------------------------------------------------------
 function Invoke-Gate {
+
+# The parser is loaded here rather than at file scope, so a missing or unreadable one is
+# caught by the try around this call and leaves the gate silent instead of printing a stack
+# trace on every keystroke. A dot-source at file scope would be outside that guard.
+. (Join-Path $PSScriptRoot '..' | Join-Path -ChildPath 'scripts' | Join-Path -ChildPath 'SliceManifestParser.ps1')
 
 try { $raw = [Console]::In.ReadToEnd() } catch { return 0 }
 
@@ -142,51 +70,71 @@ if ($SkipExtensions -contains $ext.ToLowerInvariant()) { return 0 }
 if ($SkipNames -contains $leaf.ToLowerInvariant()) { return 0 }
 
 $cwd  = (Get-Location).Path
-$root = Get-ArtifactRoot -Cwd $cwd
+$root = Get-SdlcArtifactRoot -Cwd $cwd
 if ($null -eq $root) { return 0 }   # repo does not use the framework
 
+# Segment equality on the root's leaf, unchanged, wrong edges included. This decides what
+# the hook *inspects*; whether a claim is under the artifact root is a different question
+# with a different answer, and the parser holds that one.
 $rootLeaf = Split-Path -Leaf $root
 if ($path.Replace('\', '/').Split('/') -contains $rootLeaf) { return 0 }   # the chain itself
 
-$plans = @(Get-ChildItem -Path (Join-Path $root '*/plan.md') -File -ErrorAction SilentlyContinue |
-           Sort-Object FullName)
+$planPaths = @(Get-SdlcPlanPath -Root $root)
 
-$approved = @()
-foreach ($plan in $plans) {
-    $fm = Get-Frontmatter -Path $plan.FullName
-    if ($fm -match '(?m)^status:\s*approved\s*$') {
-        $approved += [pscustomobject]@{
-            Slug        = (Split-Path -Leaf $plan.DirectoryName)
-            Frontmatter = $fm
+$live     = @()
+$refusals = @()
+foreach ($planPath in $planPaths) {
+    # Each plan in its own try: one malformed file must not disable the gate for the whole
+    # repository, which is what a single failure outside this loop would do.
+    try {
+        $plan = Read-SdlcPlan -Path $planPath -BaseDirectory $cwd
+        foreach ($r in $plan.Refusals) {
+            if ($r.Kind -eq 'plan') { $refusals += [pscustomobject]@{ Slug = $plan.Slug; Rule = $r.Rule } }
         }
+        if (Test-SdlcPlanIsLive -Plan $plan) { $live += $plan }
     }
+    catch { continue }
 }
 
-if ($approved.Count -eq 0) {
-    if ($plans.Count -gt 0) {
-        $slugs  = ($plans | ForEach-Object { Split-Path -Leaf $_.DirectoryName }) -join ', '
-        $detail = "$($plans.Count) plan.md found under $rootLeaf/ but none approved ($slugs)."
+if ($live.Count -eq 0) {
+    $detail = "no approved plan: "
+    if ($planPaths.Count -gt 0) {
+        $slugs = ($planPaths | ForEach-Object { Split-Path -Leaf (Split-Path -Parent $_) }) -join ', '
+        $detail += "$($planPaths.Count) plan.md found under $rootLeaf/, none live ($slugs)."
     } else {
-        $detail = "No plan.md exists under $rootLeaf/."
+        $detail += "no plan.md exists under $rootLeaf/."
+    }
+    # A plan refused for its lifecycle lines is not live, so its absence from the live set is
+    # the whole reason there is nothing to compare against. Saying so beats a warning that
+    # blames the repository for a typo in one file.
+    if ($refusals.Count -gt 0) {
+        $named = ($refusals | ForEach-Object { "$($_.Slug) ($($_.Rule))" }) -join ', '
+        $detail += " Refused: $named."
     }
     $action = 'Run /sdlc-core:plan first, or state the tier if this is a trivial/task change.'
 } else {
-    $full = $path
-    if (-not [System.IO.Path]::IsPathRooted($full)) { $full = Join-Path $cwd $path }
-    $target = [System.IO.Path]::GetFullPath($full)
-    if ($target.StartsWith($cwd, [StringComparison]::OrdinalIgnoreCase)) {
-        $target = $target.Substring($cwd.Length).TrimStart('\', '/')
-    }
-    $target = $target.Replace('\', '/')
+    $targetKey = ConvertTo-SdlcPathKey -Path $path -BaseDirectory $cwd
 
-    foreach ($a in $approved) {
-        $claimed = Get-ClaimedFile -Frontmatter $a.Frontmatter
-        if ($claimed.Contains($target)) { return 0 }  # claimed by an approved plan: the point of the gate
+    # Collect every claimant rather than returning at the first. Returning early is what made
+    # a second claim structurally unobservable.
+    $claimants = @()
+    foreach ($plan in $live) {
+        foreach ($claim in $plan.Claims) {
+            if ($claim.Key -eq $targetKey) { $claimants += $plan.Slug; break }
+        }
     }
 
-    $slugs  = ($approved | ForEach-Object { $_.Slug }) -join ', '
-    $detail = "$target is claimed by no slice of the approved plan(s): $slugs."
-    $action = 'This is unplanned scope. Add the file to a slice manifest and re-approve, or say why it is out-of-chain work.'
+    if ($claimants.Count -eq 1) { return 0 }   # claimed by one live plan: the point of the gate
+
+    if ($claimants.Count -gt 1) {
+        $spelling = $path.Replace('\', '/')
+        $detail = "contested file: $spelling is claimed by $($claimants.Count) live plans ($($claimants -join ', '))."
+        $action = 'Settle which chain owns it with whoever owns the other one and re-plan there; this is not something this edit can fix.'
+    } else {
+        $slugs  = ($live | ForEach-Object { $_.Slug }) -join ', '
+        $detail = "unplanned scope: $($path.Replace('\', '/')) is claimed by no slice of the live plan(s): $slugs."
+        $action = 'Add the file to a slice manifest and re-approve, or say why it is out-of-chain work.'
+    }
 }
 
 [Console]::Error.WriteLine("[sdlc-gate] Editing $leaf. $detail $action")

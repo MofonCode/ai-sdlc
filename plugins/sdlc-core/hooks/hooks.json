@@ -1,5 +1,5 @@
 {
-  "description": "sdlc-core gate: warns when source files are edited outside an approved plan.md - either no plan is approved, or no slice claims the file. Advisory by default; set SDLC_GATE=block to enforce. Silent in repos with no artifact root.",
+  "description": "sdlc-core gate: warns when source files are edited outside a live plan.md - either no approved plan, or unplanned scope, or a contested file claimed by two live plans. Advisory by default; set SDLC_GATE=block to enforce. Silent in repos with no artifact root.",
   "hooks": {
     "PreToolUse": [
       {

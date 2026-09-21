@@ -257,6 +257,11 @@ function Read-SdlcPlan {
         $quoted = [regex]::Matches($value, '["'']([^"'']+)["'']')
 
         if ($quoted.Count -eq 0) {
+            # `files: []` is well-formed and empty, not malformed. The caller's own "a slice
+            # that owns no files is not a slice" is the better diagnosis and the one a reader
+            # can act on; refusing it here would replace a precise message with a vaguer one.
+            if ($value.Trim() -eq '[]') { continue }
+
             $refusals.Add((New-SdlcRefusal -Kind 'claim' -Rule 'files entry is a quoted string' `
                 -Message ("slice '{0}': a 'files:' line carries no quoted entry" -f $current.Id)))
             continue

@@ -99,7 +99,8 @@ public sealed class GateHookTests
         Repo.RunResult result = Edit(repo, "src/Storage/Writer.cs");
 
         Assert.AreEqual(0, result.ExitCode);
-        StringAssert.Contains(result.StdErr, "none approved");
+        StringAssert.Contains(result.StdErr, "no approved plan");
+        StringAssert.Contains(result.StdErr, "none live");
     }
 
     [TestMethod]
@@ -109,7 +110,8 @@ public sealed class GateHookTests
         Repo.RunResult result = Edit(repo, "src/Storage/Writer.cs");
 
         Assert.AreEqual(0, result.ExitCode);
-        StringAssert.Contains(result.StdErr, "No plan.md exists");
+        StringAssert.Contains(result.StdErr, "no approved plan");
+        StringAssert.Contains(result.StdErr, "no plan.md exists");
     }
 
     // --- the half-finished refactor these tests exist to prevent -----------------------
