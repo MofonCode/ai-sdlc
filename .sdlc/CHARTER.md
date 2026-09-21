@@ -2,7 +2,7 @@
 solution: ai-sdlc
 artifact_root: .sdlc/
 status: approved
-version: 7
+version: 8
 updated: 2026-09-20
 owner: peter
 ---
@@ -144,6 +144,13 @@ looks.
 silently" was unfalsifiable: it named no set, so no reviewer could ever declare it violated.
 The set is enumerated instead, and grows whenever a new class is found.
 
+**A row is added by the change that adds the check, and that is not an amendment in the sense
+the charter schema forbids** — the schema draws the line and this is the pointer to it, not a
+second copy of the rule. The short of it: a row records an instrument, where an invariant or a
+non-goal records a constraint an intent was approved against, and only the second kind can move
+underneath work already approved. The obligation that follows sits on the change: **its plan
+declares this file in its slice manifest**, which is the step versions 4 through 7 each skipped.
+
 | Silent failure | Check |
 |---|---|
 | Frontmatter malformed, so the file is never loaded | `EveryDefinition_HasFrontmatterAsItsFirstLine` |
@@ -161,7 +168,7 @@ The set is enumerated instead, and grows whenever a new class is found.
 | A stack leaks into a shipped engine **executable** | `EngineExecutablesImposeNoStack` |
 | Python returns to the repo | `NoPythonShipsInThisRepository` |
 | An engine skill drops its pointer to the plain-language rule | `EveryEngineSkill_CitesThePlainLanguageRule` |
-| Scaffold produces an unbuildable solution | `ScaffoldEmitsBuildableSolution_<kind>` |
+| Scaffold produces an unbuildable solution | `ScaffoldEmitsBuildableSolutionTests` — one real build per solution kind |
 | Generator output breaks central package management | `ScaffoldEmitsBuildableSolutionTests` — restore with transitive pinning on |
 | Emitted names stop matching the coverage patterns | `ScaffoldEmitsBuildableSolutionTests` — each emitted assembly name against `coverage.runsettings` |
 | A re-run overwrites, or a rewrite re-fires | `ScaffoldEmitsBuildableSolutionTests` — hash the tree, re-execute, compare |
@@ -243,6 +250,18 @@ the verifier that had already landed in the non-goal.
 **N2 — It never encodes a specific employer's conventions.** No company names, internal tool
 names, or org-specific process. The library stays portable across jobs and shareable with a
 team that is not the owner's current one.
+
+**It binds `plugins/**` — what this repository ships to other people — and not the chain under
+the artifact root.** The non-goal exists so the library survives a change of employer; a chain
+document is this repository's own working record and never leaves with the plugin. Four chain
+documents name real external repositories, and one of them is *blocked on* a named repository,
+so stripping the name would delete the only thing that makes the blocker actionable. Naming a
+repository you depend on is a fact. Encoding how a particular company likes its work done is
+the thing forbidden here, and that distinction is the test to apply.
+
+**Not yet checked.** The first invariant has two instruments scanning for stack names; this
+non-goal has none, so it holds by review alone. Recorded rather than hidden, and the same shape
+as the gaps under **Known and unchecked** in the invariants above.
 
 **N3 — It never becomes a CI/CD or project-management system.** It guides an agent through one
 change. It does not track tickets, own a board, or report status. The artifacts are files in
@@ -368,6 +387,7 @@ and give them one parser.
 
 | Version | Date | Change |
 |---|---|---|
+| 8 | 2026-09-20 | **Settled the contradiction that versions 4, 5, 6 and 7 each recorded and none resolved**, plus two smaller things, in one conversation rather than three — an amendment costs a version and a log row, so batching them costs one of each instead of three. **The contradiction:** the charter schema forbade amending as a side effect of shipping, while the silent-failure register cannot stay complete unless it moves while a check ships. Resolved by splitting what the rule governs — moving a *constraint* an intent was approved against still takes its own approval conversation; adding a *row* that records an instrument rides the approval gate of the change that adds the check, and that change's plan must declare this file in its slice manifest. The schema carries the rule and this file points at it, so there is one statement rather than two that can drift. Four amendments' worth of evidence is what the distinction was drawn from, which is why it took four to see it. **The inert row:** `ScaffoldEmitsBuildableSolution_<kind>` named no instrument in either direction, because the register parser keeps a backticked string only when it matches an identifier and the angle brackets fail that filter — so the register built to catch silent failures contained one. Now names the test class like its three neighbours, which also keeps a list of solution kinds out of this file. **The reach of N2:** it binds `plugins/**` and not the chain under the artifact root, because the non-goal exists so the library survives a change of employer and a chain document never leaves with the plugin. No artifact edits follow; the four documents naming external repositories stay as they are. Recorded as unchecked: that non-goal has no instrument, unlike the first invariant's two. **Raised by** the cross-chain slice-manifest work, which adds a named check and could not be planned until the first of these was settled. |
 | 7 | 2026-09-20 | **Registered the check that holds a pack's promise to its manifest.** `pack-promises-what-it-scaffolds` adds `PackPromiseTests`, and I9's table gains a row for it. **The same contradiction as v4, v5 and v6, now four for four:** the schema says amending the charter is *"never a side effect of shipping a feature"*, and the register cannot be complete unless it moves while one ships. The plan for this change did not list `CHARTER.md` in its slice manifest and the build could not go green without editing it — which is the clearest evidence yet that the two sentences disagree rather than that any one author keeps forgetting. Still recorded, still unresolved, and still the subject of `findings-leave-only-by-decision`. |
 | 6 | 2026-09-19 | **Registered the check that enforces registration.** v5 added six rows by hand for checks that had existed for hours; `SilentFailureRegisterTests` now holds the register and the suite against each other, both directions — every test class is named by a row, and every check a row names exists. It closes four of those six. The other two were new methods on a class the register already named, and telling a new instrument from a new class of failure is a judgement no parser makes. **Recorded and not resolved:** this amendment is itself the thing the charter schema forbids — *"amending it is its own approval, never a side effect of shipping a feature"* — while I9 says its table *"grows whenever a new class is found"*, which happens while shipping. Versions 4, 5 and 6 all did it. The two sentences cannot both be right, and the sixth interrogation of `findings-leave-only-by-decision` blocked on exactly this. |
 | 5 | 2026-09-19 | **Added six rows to I9's table** for checks that already existed and were never registered. Two — the pack-asset and engine-instruction checks behind R47 — were flagged by the sixth verification of `init-scaffolds-solution`, which had no seventh round to dispose of its own finding, and the chain shipped. The other four arrived with `verification-reports-options`, a task-tier change that needs no verification and therefore got none. Both routes are the same failure: a defect became a named check and the register that enumerates them did not move, because nothing requires it to. I9 says the set grows whenever a new class is found; it did not say who notices. That is the subject of the `findings-leave-only-by-decision` intent, and this amendment is the evidence for it rather than its fix. |

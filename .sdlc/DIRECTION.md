@@ -73,22 +73,15 @@ reorder the interview, add a flag, three unchosen output contracts.
    not happened and nobody knows them yet. So this protects concurrent **builds**. Two concurrent
    **intents** cannot clash on implementation files, because neither has any.
 
-   **Prerequisite, and it is the one thing that must happen before even this: the charter
-   conversation.** This step adds a named check, and a named check needs a row in the
-   silent-failure register, which is the contradiction below. Three charter questions, one
-   amendment conversation — an amendment carries a version bump and a log row, so asking them
-   separately costs three of each for no benefit:
-   - **Amendment versus register.** The artifact schema says amending the charter *"is its own
-     approval, never a side effect of shipping a feature."* Invariant 9 says the register grows
-     whenever a new class of failure is found — which happens while shipping. Charter versions 4,
-     5, 6 and 7 each did it anyway and recorded the contradiction. It has now shaped three drafts
-     of one intent and produced a blocking finding in two separate interrogations.
-   - **The inert register row.** `ScaffoldEmitsBuildableSolution_<kind>` registers nothing,
-     because the angle brackets fail the identifier filter the parser applies (see
-     `.sdlc/OPEN.md`).
-   - **The reach of permanent non-goal N2.** Does it bind `.sdlc/` artifacts or only what the
-     plugins ship? The owner's organisation appears in four committed chain artifacts, so either
-     the charter says N2 binds `plugins/**` or those four need editing.
+   **Prerequisite — done on 2026-09-20, charter version 8.** This step adds a named check, and a
+   named check needs a row in the register of silent failures, which was blocked on a
+   contradiction four charter versions had recorded and none had settled. All three questions
+   went into one amendment conversation, because an amendment costs a version and a log row and
+   asking them separately costs three of each. **The decisions live in the charter's amendment
+   log and in the charter schema the engine ships — not here**, so that there is one statement of
+   each rather than two that can drift. What this step needs to know from them: **a register row
+   rides the approval gate of the change that adds the check, and that change's plan must declare
+   the charter in its slice manifest.** So the plan for this step declares `.sdlc/CHARTER.md`.
 
    **The collision surface, measured 2026-09-20** rather than assumed:
 

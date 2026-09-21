@@ -13,8 +13,22 @@ Nothing downstream may be produced from a `draft`.
 ## CHARTER.md — repo scope, long-lived
 
 One per repository, at `<artifact_root>/CHARTER.md`. Not part of the per-change chain: it is the thing
-every `intent.md` is checked **against**. Edited rarely and deliberately; amending it is its
-own approval, never a side effect of shipping a feature.
+every `intent.md` is checked **against**. Edited rarely and deliberately.
+
+**Two kinds of edit, and only one of them needs its own approval conversation.** Changing what
+the charter **constrains** — an invariant, a permanent non-goal, a technology commitment — is its
+own approval and never a side effect of shipping a feature, because intents were approved against
+those exact words and moving them moves the ground under work already agreed. Adding an entry to a
+list the charter merely **enumerates** is different — the usual case is an invariant that names the
+set of failures it knows about and the check that catches each, so the list grows every time a new
+check is built. That entry records an instrument that now exists rather than a constraint anyone
+was held to, and it cannot be added ahead of time, because the check does not exist until the
+change builds it. So it rides the approval gate of the change that adds the check, and **that
+change's plan must declare the charter in its slice manifest** — the edit is part of the change,
+not a surprise discovered when the build will not go green without it.
+
+Either kind bumps the version and adds a row to the amendment log. The distinction is about which
+gate approves the edit, never about whether it is recorded.
 
 ```yaml
 ---

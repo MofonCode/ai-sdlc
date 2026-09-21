@@ -17,7 +17,9 @@ hold it. **To see what is in flight, read the chain documents.**
 **How an item leaves.** By being done, or by becoming a chain of its own — at which point the
 chain's documents are the record and the line here is deleted. Not by being forgotten.
 
-Last reviewed: 2026-09-20. Five items open; the missing git remote was closed the same day.
+Last reviewed: 2026-09-20. Four items open. Two closed the same day: the missing git remote, and
+the register row that registered nothing — the latter by charter version 8, which rewrote it to
+name its test class and proved the row live by injecting a fault and watching the check fail.
 
 ---
 
@@ -84,25 +86,7 @@ Nothing about the second half exists in any file — not an intent, not a non-go
 `findings-leave-only-by-decision`, which is about findings not escaping the record; this is about
 findings *arriving* from outside. They are related and they are not the same chain.
 
-## 4. One row of the silent-failure register registers nothing
-
-The charter's register of known silent failures carries the row:
-
-    | Scaffold produces an unbuildable solution | `ScaffoldEmitsBuildableSolution_<kind>` |
-
-The check that holds the register and the suite against each other keeps a backticked string only
-when it matches an identifier, and the angle brackets fail that — so **the parser drops the row
-entirely**. It names no instrument in either direction: nothing asserts that check exists, and it
-counts toward nothing.
-
-Harmless today, because three other rows name the same class. Worth recording because a register
-whose purpose is to catch silent failures contains one.
-
-**What closes it:** rewriting the row so its Check column names something the parser accepts, or
-teaching the parser to expand a placeholder. Found on 2026-09-20 while scoping
-`solution-identifier-can-carry-a-dot`; not that chain's to fix.
-
-## 5. The framework cannot be installed anywhere but this machine
+## 4. The framework cannot be installed anywhere but this machine
 
 `.claude-plugin/marketplace.json` is a valid Claude Code marketplace declaring two plugins —
 `sdlc-core` at 0.9.1 and `stack-dotnet` at 0.6.0. **Both sources are relative paths** into this
@@ -150,9 +134,12 @@ not confirmed before writing this.
   configurations. Recorded as an explicit non-goal in both `scaffold-emits-a-module` and
   `scaffold-emits-an-application-layer`. Poorly placed, since both of those are themselves parked
   or blocked, but genuinely written down; it becomes its own chain next.
-- **The charter's unresolved contradiction** — that amending the charter is forbidden as a side
-  effect of shipping while its silent-failure register cannot stay complete unless it moves while
-  something ships. In the charter's own amendment log, recorded at versions 4, 5, 6 and 7.
+- **The charter's contradiction between amending and registering** — that amending the charter was
+  forbidden as a side effect of shipping while its silent-failure register cannot stay complete
+  unless it moves while something ships. Recorded unresolved at versions 4, 5, 6 and 7, and
+  **settled at version 8** by splitting the rule: moving a constraint takes its own approval
+  conversation, adding a register row rides the gate of the change that adds the check. In the
+  charter's amendment log, and in the charter schema the engine ships.
 - **The two live defects in `SharedKernel`** — thread-pool-sized concurrency limits, and
   `Expression.Invoke` in the specification combinators. Named as a dependency in
   `scaffold-emits-an-application-layer`. **MarketSense was sunsetted on 2026-09-20**, so these
