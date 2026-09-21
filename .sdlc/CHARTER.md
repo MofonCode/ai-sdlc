@@ -2,7 +2,7 @@
 solution: ai-sdlc
 artifact_root: .sdlc/
 status: approved
-version: 15
+version: 16
 updated: 2026-09-21
 owner: peter
 ---
@@ -85,8 +85,17 @@ stops.*
 
 "From the file" is the load-bearing half. `parallel-build.js` originally took its slices from
 its arguments and never opened `plan.md` — it re-proved disjointness against a payload it
-explicitly distrusted, then trusted that same payload for the approval gate. It now reads the
-plan and refuses to build a draft, or a manifest that does not match the approved one.
+explicitly distrusted, then trusted that same payload for the approval gate. It was then given
+a gate that reads the plan and refuses to build a draft, or a manifest that does not match the
+approved one.
+
+**That gate has never run, and v16 stops this paragraph claiming it does.** The gate sits below
+the dependency-wave loop, and that loop removes dispatched slices by testing slice *objects*
+against a string id — a comparison that is always false, so the set never shrinks and execution
+never leaves the loop. The repair is real code and it is unreachable code, which is a weaker
+state than the paragraph described and a stronger warning than it gave: **this invariant is
+satisfied here by something nothing has ever executed.** The loop, and the missing harness that
+would have caught it, are an open item rather than a charter question.
 
 **I4 — A gate is crossed only by explicit human words.** Not by the agent's own judgement that
 the artifact looks fine, and not by silence. *Checkable: every gate section names the literal
@@ -351,7 +360,7 @@ in a long-lived artifact is wrong by the next commit.
 | Skills, agents, schemas | Markdown with YAML frontmatter | What the harness loads. |
 | Shipped executables | Windows PowerShell 5.1 | The hook runs on every edit in every repo and the manifest check runs at every fan-out. Present on every Windows machine with no install step, which beats 100ms: measured at 149ms against 67 for node and 51 for python. |
 | Tests | **MSTest**, one project under `tests/` | The same framework as every solution this framework builds. Tests drive the real shipped artefacts as external processes — a reimplementation in C# would test the reimplementation, and the two would drift silently. |
-| Repo tooling | Node, only where it earns it | `check-workflow.mjs` — about 80 lines — evaluates a workflow body the way the runtime does, which needs a JS parser. It is invoked from a test, so `dotnet test` stays the single entry point. A 220-line Node checker was ported to MSTest once four of its five check groups turned out to need no JavaScript at all. |
+| Repo tooling | Node, only where it earns it | `check-workflow.mjs` — about 80 lines — **parses** a workflow body the way the runtime would, which needs a JS parser, and executes only its `meta` block. It never runs the body: its own comment says *"Not executed - constructing the function is enough to parse it."* This row said "evaluates a workflow body the way the runtime does" until v16, which reads as though the body runs, and that difference is exactly why a workflow with a non-terminating loop has parsed clean since the day it was written. It is invoked from a test, so `dotnet test` stays the single entry point. A 220-line Node checker was ported to MSTest once four of its five check groups turned out to need no JavaScript at all. |
 | Runtime preference | C# → PowerShell → Node → bash/python | For *new* code, in that order, each with the standing exception that a runtime already justified above keeps its job. Python is last and currently absent; putting it back needs a reason written in the file. |
 | Platform | **Windows-first, and only Windows is supported** | The hook and the manifest check both invoke `powershell.exe`, which does not exist on macOS or Linux. A non-Windows teammate cannot run them today. This is a real limit on N2's portability claim and is recorded rather than glossed. |
 | CI | GitHub Actions, `windows-latest` | One `dotnet test`. Windows specifically, because testing on `pwsh` would test something other than what ships. |
@@ -501,6 +510,7 @@ instrument. The register rows arrive with the checks, under the v8 rule.
 
 | Version | Date | Change |
 |---|---|---|
+| 16 | 2026-09-21 | **Swept, rather than spending a sixth version on one more defect.** Versions 10 through 15 each repaired a single claim this charter made about the code that was not so, every one found by someone reading past it on other business. Five versions, five defects, five days' worth of the same lesson — so this one checked *every* claim in the file against the code instead of waiting for the next reader. **Two more were found, and both were about something never having run.** The technology table said `check-workflow.mjs` *"evaluates a workflow body the way the runtime does"*; it parses the body and executes only the `meta` block, and its own comment says so — which is precisely why a workflow whose wave loop cannot terminate has passed that check since the day it was written. And I3 said `parallel-build.js` *"now reads the plan and refuses to build a draft"*; that gate is real code sitting below a loop that never exits, so the invariant was being satisfied here by something nothing has ever executed. **What was checked and held:** every test class named in I9's register exists in the suite; `init` does find packs by the `stack-` prefix; the hook names its default root and then resolves the declared one; the advisory exit is pinned where I8 says; the manifest is parsed in exactly the three places named. **The method is the amendment.** A claim about the code is worth what the last check of it was worth, and checking them one at a time as readers trip over them costs a version each. |
 | 15 | 2026-09-21 | **The count in I9's own warning moves: five new register rows, not four.** The owner settled, at `no-two-plans-claim-one-file`'s approval gate, that the shipped prose lists get a check rather than an entry admitting nothing holds them. Two lists, one class, one row: the hook's warning states — written out in the script's header, the README and the `description` in `hooks.json` that ships to every user — and the manifest-drift instruction, written out in the verifier agent, the schema reference and the verify skill. Nothing compared either set to anything. **The row is here because the ratio was the reason the question could not wait.** I9 says a list growing faster than the register is itself a finding, and the alternative answer would have made it eight known-and-unchecked entries against four rows, by postponement rather than by discovery. The paragraph now records that, so the next reader sees a count with a cause rather than a count. Nothing binding moves: I9 already required a named check per known class, and this is that rule being applied rather than relaxed. |
 | 14 | 2026-09-21 | **One of the five parser divergences was never a divergence.** The parsers paragraph said the two PowerShell readers had diverged in five ways — on anchoring, on leading dots, on case, on where a slice begins, and on the edited path against the claimed one. Reproduced rather than recalled: four of those hold, and **leading dots does not.** Both readers strip them with the same `TrimStart` call, and what that call does is map `.sdlc/CHARTER.md` onto a string matching nothing on disk, in both readers at once — a shared defect the extraction must repair, not a disagreement it resolves. **It mattered because the count was the argument.** "Five ways" was the case for extracting one parser, and it was four real reasons and one borrowed one. The paragraph now enumerates the four and says what each one does, so the next reader checks a list rather than a number. **Fifth consecutive version spent on one class** — a claim about the code written from memory — and the first of them found by re-measuring a figure that had already been called measured, which is the part worth carrying forward: *measured* is a claim with a shelf life, and the way to renew it is the command, not the memory of having run it. |
 | 13 | 2026-09-21 | **Two stale figures dated, one of them describing a suite a third the size of the one that now runs.** The self-improvement paragraph read *"I9 table is the register of it, and it has numbers: 49 tests, 12 injected faults, 12 caught"* in the present tense; the suite is at 151 cases from 125 methods and the register at 30 rows, counted rather than recalled. Both figures now carry the date they were taken, because a number in a charter is read as current unless it says otherwise. The parsers paragraph also still said v10 repaired *"the three grammar rules"*, which collided with the four the paragraph below now lists; it points at the rules rather than counting them, since the count is the thing that moved. **Same class as v11 and v12, and the third version in a row spent on it:** a claim about the code written from memory, in the document whose register exists so that every named check is real. Nothing binding moves. |

@@ -94,7 +94,10 @@ Every file below was opened while writing this, not inferred from a search.
   makes it refuse. Collects plans whose frontmatter reads exactly `status: approved`, matches the
   edited path against their claims, warns in one of two states. Returns at the *first* claiming
   plan, so it is structurally blind to a second. Swallows every error and exits 0 on purpose,
-  because a broken advisor on every keystroke is worse than a silent one.
+  because a broken advisor on every keystroke is worse than a silent one. **Its header carries
+  the first of the three copies of the warning-state list** — a two-row table naming
+  *no approved plan* and *unplanned scope* — which this change adds a third row to, and which
+  the fifth check holds against the other two copies from here.
 - **`plugins/sdlc-core/workflows/parallel-build.js`** — gates on the literal value `approved`.
   **Its status gate is unreachable:** the wave loop forty-five lines above filters slice objects
   against a string id, so the remaining set never shrinks and no execution reaches the gate.
@@ -156,7 +159,9 @@ Every file below was opened while writing this, not inferred from a search.
   leaving it off this list would be the omission the list exists to prevent. **It is also one
   of the three copies of the manifest-drift instruction**, so the fifth check reads it even
   though this change does not edit it — which is the point of that check: the copy nobody
-  touches is the one that drifts.
+  touches is the one that drifts. **It is claimed by `verification-reports-options`**, a
+  finished plan, so if the spec ever does decide to edit it the collision set grows by one file
+  and one claim. Reading a file is not claiming it, so it stays outside the count today.
 - **`tests/AiSdlc.Tests/Frontmatter.cs`** — the harness's own frontmatter reader, claimed by no
   plan. Named because an undeclared edit is the lapse this change exists to catch, **and not
   because the grammar check is built on it** — an earlier version of this bullet called it "the
@@ -488,9 +493,11 @@ properties hold.
      that ships to every user — and this change adds a third state to all three. **The
      manifest-drift instruction** is written out in three more — the verifier agent, the schema
      reference and the verify skill — each naming the same two conditions, files changed that
-     no slice claimed and files claimed that nothing touched, and this change edits two of
-     them. One class, two lists, because the register enumerates classes and "a shipped
-     description of an engine behaviour disagrees with the other copies of itself" is one.
+     no slice claimed and files claimed that nothing touched. **The three agree today and this
+     change does not touch the instruction**; what it does is edit two of the three files, for
+     unrelated reasons, which is precisely the situation in which the untouched third drifts.
+     One class, two lists, because the register enumerates classes and "a shipped description of
+     an engine behaviour disagrees with the other copies of itself" is one.
 
      **Decided at this gate rather than deferred to the spec**, because the rule this
      repository states about second lists is that the comparing check is part of the same

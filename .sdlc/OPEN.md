@@ -165,6 +165,13 @@ shells out to `check-workflow.mjs` — and that file says what it does in its ow
 *"Not executed - constructing the function is enough to parse it."* Nothing in this repository
 executes a workflow body, so a non-terminating loop parses clean.
 
+**The charter said otherwise until version 16**, in two places: its technology table called the
+checker something that *"evaluates a workflow body the way the runtime does"*, and the
+no-drafts invariant said this script *"now reads the plan and refuses to build a draft"* — a
+gate that is real code sitting below the loop that never exits. Both are corrected there. Worth
+recording here because a reader who checked the charter before opening this file would have
+concluded the workflow was both executed and gated, and it is neither.
+
 **Two things, and the second is the larger one.** The loop is a one-line fix. Proving it works
 needs a harness that actually runs a workflow body with its agent, parallel and phase calls
 bound, which does not exist — and without one, the fix ships verified by reading, which is the
