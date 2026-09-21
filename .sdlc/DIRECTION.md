@@ -87,8 +87,8 @@ reorder the interview, add a flag, three unchosen output contracts.
    first is untouched — until two approved plans can be compared, two lines of work cannot
    safely run at once.
 
-   **The charter amendment it was blocked on has landed**, as versions 9, 10 and 11 on
-   2026-09-21: 9 settled twelve questions in one conversation, and 10 and 11 repaired four
+   **The charter amendment it was blocked on has landed**, as versions 9 through 12 on
+   2026-09-21: 9 settled twelve questions in one conversation, and 10, 11 and 12 repaired five
    defects in it, each found by a fresh-context interrogation of the chain it unblocked. The
    chain is at `status: draft` and its next gate is the owner's approval, then the spec.
 
@@ -109,12 +109,13 @@ reorder the interview, add a flag, three unchosen output contracts.
    the approval gate of the change that adds the check, and that change's plan must declare the
    charter in its slice manifest.** So the plan for this step declares `.sdlc/CHARTER.md`.
 
-   **Second prerequisite — done on 2026-09-21, charter versions 9, 10 and 11.** Twelve
+   **Second prerequisite — done on 2026-09-21, charter versions 9 through 12.** Twelve
    questions in one conversation, each a move of a shape the charter freezes: what marks a plan
    finished and who writes it, how far that reaches, whether it is one-way, and the grammar of
-   the manifest and the status line. Versions 10 and 11 then repaired four defects in 9 —
-   a disjointness rule stated without the carve-out it requires, and three separate claims that
-   instruments existed when they did not.
+   the manifest and the status line. Versions 10, 11 and 12 then repaired five defects in 9 —
+   a disjointness rule stated without the carve-out it requires, three separate claims that
+   instruments existed when they did not, and a grammar paragraph that listed three of its four
+   rules while the shipped schema listed all four.
 
    **The answers are not copied here.** An earlier version of this paragraph copied the agenda
    and it went stale within the hour. They live in the charter's amendment log and in the
@@ -139,7 +140,8 @@ reorder the interview, add a flag, three unchosen output contracts.
    **Two corrections to that advice, from scoping the intent.** Charter amendments do **not**
    serialise by construction, as an earlier version of this said — a version bump makes git
    refuse the *second push*, which is detection after both amendments are fully written, and
-   two sessions in separate worktrees will both write version 9 and find out afterwards. And
+   two sessions in separate worktrees will both write the same next version and find out
+   afterwards. And
    **a worktree per session trades one protection for another**: the gate hook can only see a
    collision when both live plans are on disk in one working tree, so worktrees buy separation
    of build output at the cost of the file-collision warning this step is building.

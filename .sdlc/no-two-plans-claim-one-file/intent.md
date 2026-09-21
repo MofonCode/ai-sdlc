@@ -9,13 +9,15 @@ owner: peter
 
 # intent — no two plans claim one file
 
-> **Unblocked on 2026-09-21 by charter versions 9, 10 and 11**, which settled the twelve questions this
+> **Unblocked on 2026-09-21 by charter versions 9 through 12**, which settled the twelve questions this
 > chain could not be specified without: the mechanism that marks a plan finished, how far it
 > reaches, whether it is one-way, who writes it, and the frontmatter grammar.
 > Those are decided there and are not restated here. Version 10 repaired two defects in 9 that
 > the first interrogation of this document found: the disjointness carve-out for the artifact
 > root, and grammar rules that claimed instruments which did not exist. Version 11 corrected two
 > more of the same kind, and recorded why an amendment that settles twelve things produces them.
+> Version 12 completed the grammar paragraph, which listed three of its four rules while the
+> shipped schema listed all four — the fifth defect traceable to that one conversation.
 >
 > **This document was rewritten against those answers, and shortened.** Its first draft ran to
 > 1680 lines and held the design — where the extracted parser lives, how paths normalise, what
@@ -80,10 +82,9 @@ Every file below was opened while writing this, not inferred from a search.
   against a string id, so the remaining set never shrinks and no execution reaches the gate.
   Recorded as an open item; not this change's to fix.
 - **`plugins/sdlc-core/skills/sdlc-router/references/artifact-schemas.md`** — carries the plan
-  shape, including the `finished:` field and the grammar rules settled at version 9. **It is
-  edited by this change**, not merely read: it says in two places that the grammar check "lands
-  with `no-two-plans-claim-one-file`", which goes stale the day this ships, and it states the
-  `finished:` rules twice in different words, which is a second list inside one file.
+  shape, including the `finished:` field and the four grammar rules settled at versions 9 and
+  12. **It is edited by this change**, not merely read: it says the grammar check "lands with
+  `no-two-plans-claim-one-file`", which goes stale the day this ships.
 - **`plugins/sdlc-core/skills/plan/SKILL.md`** — runs the disjointness check at a step where the
   plan is still `draft`, and approves at a later one. Gains the cross-plan invocation.
   **`Assert-SliceManifest.ps1 -Plan <path>` alone must keep working exactly as it does today**,
@@ -105,7 +106,9 @@ Every file below was opened while writing this, not inferred from a search.
 - **`tests/AiSdlc.Tests/Frontmatter.cs`** — the existing frontmatter-parsing helper, claimed by
   no plan, and the thing the grammar check most plausibly builds on. Named either way, because
   an undeclared edit is the lapse this change exists to catch.
-- **`.sdlc/CHARTER.md`** — takes four register rows for the four new checks, and **five
+- **`.sdlc/CHARTER.md`** — also says the grammar check "lands with" this change, which goes
+  stale the day it does, in the same way the schema's copy does. It takes four register rows
+  for the four new checks, and **five
   known-and-unchecked entries, named rather than left as a count**: two colliding live plans in
   this repository passing a green build, since no instrument reads the live chain tree; the hook
   comparing against the wrong base when a session starts above the repository root; and any
@@ -117,26 +120,25 @@ Every file below was opened while writing this, not inferred from a search.
   calls irreversible — and no instrument sees it, because the grammar check reads a file's
   current state and has no memory. Git history is the only record, and nothing consults it.
   An earlier version of this document claimed the verify check "holds the one-way write"; it
-  holds where the write is named, which is a different thing. The fourth surface — two chains colliding on `OPEN.md` or `DIRECTION.md`
-  after the version-10 carve-out — is recorded in the invariant itself rather than the list.
+  holds where the write is named, which is a different thing. **One more was considered and
+  does not go on the list:** two chains colliding on `OPEN.md` or `DIRECTION.md` after the
+  version-10 carve-out, which the invariant records in its own words rather than here.
   Declared in the slice manifest, per the rule settled at version 8. An unnamed set cannot be
   reviewed against the invariant's own rule that a fast-growing list is itself a finding.
-- **`README.md`** — its gate-hook prose cites `scripts/Test-SdlcGate.ps1`, a file that has never
-  existed, four lines from a paragraph this change edits. It also **enumerates the hook's two
-  warning states**, and this change adds a third.
+- **`README.md`** — its gate-hook section **enumerates the hook's two warning states**, and this
+  change adds a third. The same section closes by citing `scripts/Test-SdlcGate.ps1`, a file
+  that has never existed — fixed here because it is a known-false line inside prose this change
+  is already rewriting.
 - **`plugins/sdlc-core/hooks/hooks.json`** — its `description` ships to every user and also
   names the hook's two states: *"either no plan is approved, or no slice claims the file."*
-  Third such list, and the one that travels furthest.
-- **One false timing claim, in the hook's own header**: *"It costs ~150ms per edit."* Measured,
-  the hook takes 306ms to 1188ms depending on tree size. Corrected here for the same reason the
-  stale script name is — a known-false line beside prose this change already edits.
-
-  **The README and the charter are *not* corrected, because they are not wrong.** Both frame
-  149ms as a *runtime startup* comparison against node and python, which is what the number
-  actually is. An earlier version of this bullet proposed correcting the README too, on the
-  reading that the figure was false wherever it appeared — that would have made a true line
-  false and manufactured the divergence it claimed to close. There is one false statement, not
-  three, and no charter amendment is owed.
+  Third such list, and the one that travels furthest. **Nothing compares any of the three to
+  the strings the hook emits**, and this change adds an item to all three — carried as an open
+  question below rather than settled here.
+- **One false timing claim, in the hook's own header**: *"It costs ~150ms per edit."* It is a
+  claim about wall time and the measurement in Constraints falsifies it. Corrected here for the
+  same reason the stale script name is — a known-false line beside prose this change already
+  edits. The README's and the charter's copies are left alone, because they frame the figure as
+  a startup comparison and are correct; the reasoning and the numbers are in Constraints, once.
 - **The five finished plans and the one superseded plan** — `init-scaffolds-solution`,
   `pack-promises-what-it-scaffolds`, `register-names-every-check`, `stack-dotnet-house-stack`,
   `verification-reports-options`, and `engine-substitutes-declared-tokens` — the last superseded
@@ -144,10 +146,13 @@ Every file below was opened while writing this, not inferred from a search.
   corrects.
 - **The owner**, who cannot currently run two sessions without hand-checking for overlap.
 
-**Five of the files this change edits are claimed by another live plan today** — the schema
-reference (by a superseded plan *and* a finished one), the engine plugin's version file, the
-README, the test fixture, and the verify skill: **five files, six claims**. All six are freed by
-the marking, which is why the marking goes first.
+**Five of the files this change edits outside the artifact root are claimed by another live
+plan today** — the schema reference (by a superseded plan *and* a finished one), the engine
+plugin's version file, the README, the test fixture, and the verify skill: **five files, six
+claims**. All six are freed by the marking, which is why the marking goes first. `.sdlc/CHARTER.md`
+is claimed twice more and is deliberately not in this count, because the version-10 carve-out
+puts the artifact root outside the comparison entirely — which is the whole reason two
+check-adding chains may both claim it.
 
 **This count has now been wrong five times**, and the fifth was in a paragraph that said
 "measured rather than recalled" while omitting the verify skill — a file the second success
@@ -194,8 +199,16 @@ properties hold.
 
 1. **Two live plans claiming one file is reported, naming the file and every plan claiming it,
    comparing paths the way the filesystem does.** Every claiming plan, not "the other chain" —
-   no mechanism here knows which chain an edit belongs to. Comparison is case-insensitive,
-   because the charter commits to Windows. **Files under the artifact root are excluded, and
+   no mechanism here knows which chain an edit belongs to.
+
+   **Comparison is case-insensitive, which also changes the gate that exists today.** A file
+   claimed in one casing and edited in another currently draws an unplanned-scope warning and
+   afterwards will not — a fix rather than a regression, since the filesystem treats them as one
+   file, but a change to shipped behaviour and not only to the new check. **Nothing pins it in
+   either direction:** no test anywhere varies casing between a claim and an edit. The rule
+   itself follows from the charter committing to Windows.
+
+   **Files under the artifact root are excluded, and
    that exclusion now lives in the invariant rather than in this criterion** — charter version
    10, after the first interrogation of this document found the constraint and the instrument
    disagreeing. The reason is unchanged and forced: the version-8 rule obliges any check-adding
@@ -228,12 +241,12 @@ properties hold.
    unstaged means a fresh session reads a live plan.
 
    **What makes a plan finished, since the marking is irreversible and the evidence is thin.**
-   Only one of the six chains has a verification record; the other four shipped task-tier and
-   passed through no closing stage at all. The rule used here is not recollection: **a plan is
-   finished when every file its manifest claims exists in git with that chain's work in it** —
-   checkable by a person against the diff, which is what a reviewable commit is for. Without it,
-   the first real run reports eight collisions that are all false, and the check is switched off
-   rather than trusted.
+   Only one of the six chains has a verification record; four shipped task-tier and passed
+   through no closing stage at all, and the sixth was superseded without ever being built. The
+   rule used here is not recollection: **a plan is finished when every file its manifest claims
+   exists in git with that chain's work in it** — checkable by a person against the diff, which
+   is what a reviewable commit is for. Without it, the first real run reports seven collisions
+   that are all false, and the check is switched off rather than trusted.
 3. **The plan being checked contributes its claims whatever its own status says, and is excluded
    from the set it is compared against.** **This governs the plan under check; the liveness rule
    in criterion 5 governs every *other* plan.** Without that tiebreak the two criteria give
@@ -253,8 +266,10 @@ properties hold.
    words. The honest position: **that commit is the owner's act, taken against this intent at
    its approval gate, and this paragraph is where it is authorised.** Naming it here is what
    makes it a decision rather than six undeclared edits — and it is the one place in the chain
-   where work precedes the plan that declares it, which is worth flagging rather than smoothing. Both halves are load-bearing. Without the exclusion
-   every *re*-approval refuses, because the plan is already approved on disk when the fix is
+   where work precedes the plan that declares it, which is worth flagging rather than smoothing.
+
+   **Both halves of this criterion are load-bearing.** Without the exclusion every
+   *re*-approval refuses, because the plan is already approved on disk when the fix is
    re-checked — and re-approving after fixing an overlap is the path the invariant prescribes.
    Without the first half the check never fires on a *first* approval, because the plan is a
    draft at the moment it runs and a draft claims nothing.
@@ -317,8 +332,9 @@ properties hold.
    runtime, follows the branch it names. A prose check reads a document. That residue joins the
    known-and-unchecked entries rather than passing as covered.
 
-   **Four rather than the five first proposed, and the difference is worth naming.** The three
-   grammar rules were going to be three classes and three rows; they are one class with four
+   **Four rather than the five first proposed, and the difference is worth naming.** The
+   grammar had three rules when that count was written and has four now. The three were going
+   to be three classes and three rows; the four are one class with four
    methods, because the register enumerates *classes of silent failure* and "a chain artifact's
    frontmatter is spelled in a form no reader accepts" is one class with four instances — the
    same granularity as the existing row for malformed definition frontmatter. The fourth check
@@ -365,8 +381,13 @@ properties hold.
   costs about 2.75ms each; **root discovery dominates and scales with repository size**, which is
   the term this change relocates. The budget: **no regression beyond the greater of 15% or
   50ms**, median of five runs, on a fixture of 500 directories, measured before and after and
-  pasted into `plan.md` as a validation row. The ~150ms figure in the hook's header, the
-  charter's technology table and the README is the *runtime startup* comparison, not wall time.
+  pasted into `plan.md` as a validation row.
+
+  **Which of the three places that cite ~150ms are wrong: one.** The charter's technology table
+  and the README both frame it as a *runtime startup* comparison against node and python, which
+  is what the number is, and are correct. The hook's own header says *"It costs ~150ms per
+  edit"* — a claim about wall time, and false by the measurement above. That one is corrected
+  here; the other two are left alone.
 - **This change writes six other chains' plans and the charter, and must declare every one.**
   Editing another chain's artifact without declaring it is the lapse this change exists to catch.
 
@@ -381,8 +402,9 @@ properties hold.
 - **Not cross-branch or cross-worktree**, and the two mitigations are mutually exclusive: the
   hook only sees a collision when both live plans are on disk in one working tree, so a worktree
   per session trades this protection for separation of build output.
-- **Not the other collision surfaces.** Six were measured beside this one, the git index worst
-  among them. All stay handled by practice.
+- **Not the other collision surfaces.** The direction measured seven beside this one, two of
+  them already safe — different slugs, GUID-based fixture paths — and the git index the worst
+  of the five that are real. All five stay handled by practice.
 - **Not the artifact files.** Nothing under the artifact root is compared, for the reason in
   criterion 1.
 - **Nothing rewrites a plan automatically.** The six are marked by a person in a reviewable
@@ -455,11 +477,25 @@ properties hold.
   false today and stays false. *Owner: peter, at the spec gate, with the charter's
   fourth-consumer line as the test.*
 
+- **Does the third warning state get a check that holds its three descriptions together, or an
+  entry saying nothing does?** The hook's two states are written out in three places — the
+  script's own header, the README's gate-hook section, and the `description` in `hooks.json`
+  that ships to every user — and **nothing compares any of them to the strings the hook
+  actually emits.** One existing test asserts that `unplanned scope` reaches stderr; no test
+  reads the three prose copies at all. This change adds a state to all three, which is the
+  repository's own cardinal failure in its live form: a list beside a source of truth, with the
+  rule that the comparing check is part of the same change. Against that stands the argument
+  this document already makes for four checks rather than five — the register enumerates
+  classes, and "a shipped description disagrees with the hook it describes" is a class of its
+  own rather than an instance of an existing one. *Owner: peter, at the spec gate. It is the
+  one question here whose wrong answer is a new second list, not a deferred improvement.*
+
 **Closed on 2026-09-21 rather than carried:** *when is the amendment's grammar enforced on the
 plans that already exist?* Measured — all six conform already. Every `status:` line is the
-unquoted word, every `files:` line is a quoted flow-style list, and no entry is a directory. The
-three new rules break nothing in this repository, so they can be enforced from the day they
-land. Recorded because the question was worth asking and the answer took one command.
+unquoted word, every `files:` line is a quoted flow-style list, and no entry is a directory; and
+no plan carries `finished:` at all, which the field's own rule reads as not finished. So all
+four rules break nothing in this repository and can be enforced from the day they land.
+Recorded because the question was worth asking and the answer took one command.
 
 ## What this document got wrong before it got it right
 
@@ -469,8 +505,9 @@ the sections that use them.**
 
 - **The hook's cost.** Attributed first to file reading, then to file work on top of startup.
   Neither: plan count is nearly free and root discovery dominates.
-- **The number of files shared with other plans.** Restated four times from memory before anyone
-  ran a command.
+- **The number of files shared with other plans.** Wrong five times, every one of them restated
+  from memory before anyone ran a command. The figure in the problem section is the one that
+  came from comparing the touch set against the claim set mechanically.
 - **Readers gating on `approved`.** Overcounted twice — the script reads no status, and the
   scaffold executor reads the charter's rather than a plan's.
 - **Tests pinning the hook's case sensitivity.** Said two existed; none does. Inherited from a

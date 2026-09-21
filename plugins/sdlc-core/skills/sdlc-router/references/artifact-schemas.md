@@ -207,24 +207,18 @@ merges.
 `depends_on` serialises what cannot be parallel. Slices with no unmet dependency run
 concurrently; the rest wait.
 
-**`finished:` is spelled exactly `finished: true` or `finished: false`** — unquoted, nothing
-else on the line, no trailing comment. The readers are line-anchored, so a comment makes a
-finished plan read as live; and a reader loose enough to tolerate one is loose enough to read
-`false` as true, which releases every file that plan claims, permanently, because finished is
-one-way. **Absent means not finished**, so every plan written before this existed is live and
-needs no migration. **`finished: true` requires `status: approved`** — a draft and a superseded
-plan claim nothing regardless, so `true` on either is a sign of confusion rather than a state,
-and is rejected. **`finished: false` is legal anywhere**, which is what lets the template above
-carry it on a draft: a plan is authored as a draft, so a rule making the field approved-only
-would make the schema's own example illegal under it. Held by the frontmatter grammar check
-that lands with
-`no-two-plans-claim-one-file`.
+**How `finished:` is spelled is one of the four grammar rules below, stated there and not
+here.** Why it is spelled that way belongs with the field: the readers are line-anchored, so a trailing
+comment makes a finished plan read as live — and a reader loose enough to tolerate one is loose
+enough to read `false` as true, which releases every file that plan claims, permanently,
+because finished is one-way.
+
+**Absent means not finished**, so every plan written before this field existed is live and
+needs no migration. **`false` is legal on a draft**, which is what lets the template above carry
+it: a plan is authored as a draft, so a rule making the field approved-only would make this
+schema's own example illegal under it.
 
 **`finished: true` marks a plan whose work has shipped, and a finished plan claims no files.**
-**`finished: true` requires `status: approved`**; `finished: false` is legal anywhere, which is
-why the template above carries it on a draft. An earlier version of this rule said the *field*
-was approved-only, which made the schema's own example illegal under it — a plan is authored as
-a draft, so a template demonstrating the shape has to be legal on one.
 It sits beside `status:` rather than replacing a value in it, so every reader that gates on
 `status: approved` keeps behaving exactly as it does today and a repository written by a newer
 plugin is readable by an older one. **A live plan is one that is `approved` and not finished**;
@@ -249,8 +243,8 @@ single check lands with `no-two-plans-claim-one-file`:
 - A `files:` entry is a **file path**, never a directory and never a glob. Every reader
   compares by exact equality, so a directory entry can never match an edited file.
 - `status:` is **unquoted and exactly one of the declared values**.
-- `finished:` is **`true` or `false`, unquoted, alone on its line**, and only on an approved
-  plan.
+- `finished:` is **`true` or `false`, unquoted, alone on its line**, with `true` requiring
+  `status: approved` and `false` legal anywhere.
 
 None of the first three legalises or forbids anything the readers ever handled differently;
 they make the forms those readers never accepted fail loudly instead of quietly. The fourth

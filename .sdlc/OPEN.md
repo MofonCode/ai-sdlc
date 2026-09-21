@@ -20,9 +20,9 @@ chain's documents are the record and the line here is deleted. Not by being forg
 Last reviewed: 2026-09-21. Seven items open. Two closed the same day: the missing git remote, and
 the register row that registered nothing — the latter by charter version 8, which rewrote it to
 name its test class and proved the row live by injecting a fault and watching the check fail.
-Three opened since: the parallel build does not terminate and never has; nothing writes a plan's
-finished state once the collision check depends on one; and an approved plan was produced from a
-draft intent, which the collision change is about to erase the evidence of.
+Three opened since: the parallel build does not terminate and never has; nothing writes a
+*task-tier* plan's finished state once the collision check depends on one; and an approved plan
+was produced from a draft intent, which the collision change is about to erase the evidence of.
 
 ---
 
@@ -89,18 +89,25 @@ Nothing about the second half exists in any file — not an intent, not a non-go
 `findings-leave-only-by-decision`, which is about findings not escaping the record; this is about
 findings *arriving* from outside. They are related and they are not the same chain.
 
-## 4. Nothing writes a plan's finished state, so live plans accumulate
+## 4. Nothing writes a task-tier plan's finished state, so live plans accumulate
 
 Once `no-two-plans-claim-one-file` ships, a plan that is not live claims no files — which is
 what makes cross-chain collision reporting usable. **Nothing moves a plan into that state after
-the one-time marking that change performs.** There is no stage every tier passes through at
-ship time: verification is feature-tier only and is a human-typed command, the plan skill runs
-at plan time, and task tier requires only a plan. Four of the five plans in this repository
-shipped through no closing stage at all, which is the majority case rather than an edge.
+the one-time marking that change performs — *unless the chain is feature tier*.** Charter
+version 9 settled that `/sdlc-core:verify` writes the field on the SHIP branch of its gate, so
+feature chains are covered. **Task tier is the hole**, and it is the larger half: task tier
+requires only a plan and passes through no stage after approval, so nothing writes the field
+and nobody is prompted to. Four of the five plans in this repository shipped that way, which is
+the majority case rather than an edge.
 
-**The consequence is slow and quiet.** Every new plan stays live after its work ships, so the
-collision report fills with chains that are finished, and the check reaches the state its own
-intent says gets a check switched off — reporting collisions that are all false.
+An earlier version of this item said *nothing* writes it, which was true when it was written
+and stopped being true when the amendment landed.
+
+**The consequence is slow and quiet.** Every new *task-tier* plan stays live after its work
+ships, so the collision report fills with chains that are finished, and the check drifts toward
+the state its own intent says gets a check switched off — reporting collisions that are all
+false. Slower than it would have been before the amendment, because feature chains retire
+themselves; not stopped.
 
 **What closes it:** a closing step — one gate every tier passes through at ship time, which
 moves the plan to finished and commits it. It binds the tier contract, needs its own approval
