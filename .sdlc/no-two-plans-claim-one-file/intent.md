@@ -258,10 +258,13 @@ Every file below was opened while writing this, not inferred from a search.
     hook code at runtime; the packaging check reaches the nearest case — a missing parser file —
     and the general one needs a harness that can make live code throw on demand, which nothing
     here has.
-  - **A prose check cannot prove the verify skill follows at runtime the branch it names.** The
-    instrument is a harness that executes a skill body with its agent bound — the same missing
-    harness that lets a workflow with a non-terminating loop parse clean, recorded as its own
-    open item. Squarely a different change.
+  - **A prose check cannot prove a skill does at runtime what its body says.** The instrument is
+    a harness that executes a skill body with its agent bound — the same missing harness that
+    lets a workflow with a non-terminating loop parse clean, recorded as its own open item.
+    Squarely a different change. **Worded at the level of the class rather than at one instance
+    of it**: choosing the wrong branch in the verify skill and never making a call at all in the
+    plan skill are two shapes of one failure and wait on one instrument. An earlier version named
+    the verify skill alone, which would have left the second shape as the unlisted one.
   - **Nothing holds `finished:` one-way at all.** A person editing `true` back to `false`, or
     deleting the line, silently re-acquires every file that plan claimed — the failure
     criterion 2 calls irreversible — and no instrument sees it, because the grammar check reads
