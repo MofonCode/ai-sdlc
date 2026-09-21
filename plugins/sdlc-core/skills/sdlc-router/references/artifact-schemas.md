@@ -7,10 +7,11 @@ Frontmatter is the machine-readable part; the body is for humans and for the nex
 
 Status values: `draft` | `approved` | `superseded`. Written **unquoted**, and exactly one of
 these — every reader matches the bare word, so a quoted or unfamiliar value is silently not
-seen rather than rejected, which is why the form is checked.
+seen rather than rejected, which is why the form is one of the checked grammar rules below.
 Nothing downstream may be produced from a `draft`. **`superseded` is written by
-`/sdlc-core:plan` when it replaces a plan**, which is the moment the replacement is written and
-the only moment anyone reliably knows.
+`/sdlc-core:plan` when it replaces a plan** — the moment the replacement is written and the
+only moment anyone reliably knows — **and by hand when a plan is abandoned**, which is the
+other way a plan stops being live and which nothing else observes.
 
 Whether a plan's *work* has shipped is a separate field, `finished:`, on `plan.md` only — see
 that schema below. It is deliberately not a status value: a status value would make every
@@ -175,7 +176,7 @@ load-bearing, not documentation.
 ---
 slug: audit-log-retention
 status: draft
-finished: false     # set true when the work ships; a finished plan claims no files
+finished: false
 spec: ./spec.md
 tier: feature
 slices:
@@ -206,6 +207,15 @@ merges.
 `depends_on` serialises what cannot be parallel. Slices with no unmet dependency run
 concurrently; the rest wait.
 
+**`finished:` is spelled exactly `finished: true` or `finished: false`** — unquoted, nothing
+else on the line, no trailing comment. The readers are line-anchored, so a comment makes a
+finished plan read as live; and a reader loose enough to tolerate one is loose enough to read
+`false` as true, which releases every file that plan claims, permanently, because finished is
+one-way. **Absent means not finished**, so every plan written before this existed is live and
+needs no migration. **Legal only on a plan whose `status:` is `approved`** — a draft and a
+superseded plan claim nothing regardless, so the field on either is a sign of confusion rather
+than a state, and is rejected. Checked, with the rest of the frontmatter grammar.
+
 **`finished: true` marks a plan whose work has shipped, and a finished plan claims no files.**
 It sits beside `status:` rather than replacing a value in it, so every reader that gates on
 `status: approved` keeps behaving exactly as it does today and a repository written by a newer
@@ -215,20 +225,29 @@ plugin is readable by an older one. **A live plan is one that is `approved` and 
 **Finished is one-way.** A defect in shipped work is a new chain, because moving a plan back
 to live silently re-acquires every file it claimed — which may now belong to work in flight.
 
-**Who writes it:** `/sdlc-core:verify` sets it when a feature chain ships. Task-tier chains
-have no stage after plan approval, so theirs is set by hand until one exists.
+**Who writes it:** `/sdlc-core:verify` sets it **on the SHIP branch of its gate**, and stages
+`plan.md` in the same commit as the verification record. Not at the stage — verify runs on both
+verdicts, so a write placed there would have a *rejected* change release every file its plan
+claimed, with no way back. And not without the staging: the SHIP commit names only
+`verification.md`, so a marking left unstaged means a fresh session reads a live plan.
+Task-tier chains have no stage after plan approval, so theirs is set by hand until one exists.
 
 **The frontmatter grammar is narrower than YAML, because the readers are line-oriented by
-design** — the engine ships with no YAML dependency. Three rules, each checked:
+design** — the engine ships with no YAML dependency. Four rules, which bind now and whose
+single check lands with `no-two-plans-claim-one-file`:
 
 - A `files:` entry is a **quoted string on the `files:` line**. A block-style list or an
   unquoted one is rejected rather than silently claiming nothing.
 - A `files:` entry is a **file path**, never a directory and never a glob. Every reader
   compares by exact equality, so a directory entry can never match an edited file.
 - `status:` is **unquoted and exactly one of the declared values**.
+- `finished:` is **`true` or `false`, unquoted, alone on its line**, and only on an approved
+  plan.
 
-None of this legalises or forbids anything the readers ever handled differently; it makes the
-forms they never accepted fail loudly instead of quietly.
+None of the first three legalises or forbids anything the readers ever handled differently;
+they make the forms those readers never accepted fail loudly instead of quietly. The fourth
+governs a field introduced at charter version 9, and it is the sharpest of them: it is the one
+whose misreading is irreversible.
 
 Required sections:
 
