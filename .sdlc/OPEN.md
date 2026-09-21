@@ -104,6 +104,15 @@ without ever being built.
 An earlier version of this item said *nothing* writes it, which was true when it was written
 and stopped being true when the amendment landed.
 
+**The other way a plan stops being live is written by nobody at all.** The shipped artifact
+schema says `/sdlc-core:plan` writes `superseded` when it replaces a plan. The plan skill has
+never contained the word, and nothing under `plugins/` writes that value anywhere — so a
+replaced plan reads `approved` forever, which is how `engine-substitutes-declared-tokens` came
+to carry an approved plan for work that was abandoned. `no-two-plans-claim-one-file` corrects
+the schema to say supersession is a person's act; it does not build the tool, and the closing
+step below is the fix for both routes. Found on 2026-09-21 by a fresh-context interrogation of
+that chain's intent.
+
 **The consequence is slow and quiet.** Every new *task-tier* plan stays live after its work
 ships, so the collision report fills with chains that are finished, and the check drifts toward
 the state its own intent says gets a check switched off — reporting collisions that are all
@@ -195,6 +204,15 @@ So it installs on a machine that has this repository checked out at that path, a
 **Not a defect in the framework's design.** A plugin is installed once per machine and is inert
 in repositories with no chain directory, so "install it into a repo" is not a step that exists —
 running `/sdlc-core:init` there is. What is missing is a way for a *second machine* to get it.
+
+**Closing this reopens a decision `no-two-plans-claim-one-file` made on the strength of it.**
+That change rewrites how a claimed path is normalised, which changes which paths two plans are
+judged to collide on, and plugins are cached per version — so an older engine and a newer one
+would disagree with no version gate between them. It ships no migration, and the reason it can
+is written down as *"free only while the installed population is one"*. The moment a second
+machine can install this, that sentence stops being true. **Whoever points the marketplace at
+the remote owes that change a migration question**, and this paragraph exists so that the
+dependency is readable from both ends rather than only from the chain that noticed it.
 
 **What closes it:** pointing the marketplace at the git remote rather than a local path, and
 tagging releases so a version bump means something. A publish job is the larger question, and it
