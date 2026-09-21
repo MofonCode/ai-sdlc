@@ -5,8 +5,17 @@ The root defaults to `.sdlc/` and is declared in the charter's `artifact_root`; 
 once per command as `sdlc-router` describes, and never hardcode it.
 Frontmatter is the machine-readable part; the body is for humans and for the next agent.
 
-Status values: `draft` | `approved` | `superseded`.
-Nothing downstream may be produced from a `draft`.
+Status values: `draft` | `approved` | `superseded`. Written **unquoted**, and exactly one of
+these — every reader matches the bare word, so a quoted or unfamiliar value is silently not
+seen rather than rejected, which is why the form is checked.
+Nothing downstream may be produced from a `draft`. **`superseded` is written by
+`/sdlc-core:plan` when it replaces a plan**, which is the moment the replacement is written and
+the only moment anyone reliably knows.
+
+Whether a plan's *work* has shipped is a separate field, `finished:`, on `plan.md` only — see
+that schema below. It is deliberately not a status value: a status value would make every
+existing reader treat a shipped plan as unapproved, which in an older plugin means a repository
+where nothing is approved at all.
 
 ---
 
@@ -166,6 +175,7 @@ load-bearing, not documentation.
 ---
 slug: audit-log-retention
 status: draft
+finished: false     # set true when the work ships; a finished plan claims no files
 spec: ./spec.md
 tier: feature
 slices:
@@ -180,13 +190,40 @@ slices:
 ---
 ```
 
-**The `slices` block is mandatory and its `files` lists must be pairwise disjoint.**
-Parallel implementers are dispatched one per slice; two agents holding the same file is a
-merge conflict by construction. If two slices genuinely need the same file, they are one
-slice — merge them, or extract the shared part into a third slice that both `depends_on`.
+**The `slices` block is mandatory and its `files` lists must be pairwise disjoint** — within
+one plan, and **across every live plan in the repository**. Parallel implementers are
+dispatched one per slice; two agents holding the same file is a merge conflict by
+construction, and two *chains* holding it is the same conflict discovered later. If two slices
+genuinely need the same file, they are one slice — merge them, or extract the shared part into
+a third slice that both `depends_on`. If two chains need it, that is a planning conversation,
+not something to reconcile in the merge.
 
 `depends_on` serialises what cannot be parallel. Slices with no unmet dependency run
 concurrently; the rest wait.
+
+**`finished: true` marks a plan whose work has shipped, and a finished plan claims no files.**
+It sits beside `status:` rather than replacing a value in it, so every reader that gates on
+`status: approved` keeps behaving exactly as it does today and a repository written by a newer
+plugin is readable by an older one. **A live plan is one that is `approved` and not finished**;
+`superseded` is not live either. Only `plan.md` carries this field.
+
+**Finished is one-way.** A defect in shipped work is a new chain, because moving a plan back
+to live silently re-acquires every file it claimed — which may now belong to work in flight.
+
+**Who writes it:** `/sdlc-core:verify` sets it when a feature chain ships. Task-tier chains
+have no stage after plan approval, so theirs is set by hand until one exists.
+
+**The frontmatter grammar is narrower than YAML, because the readers are line-oriented by
+design** — the engine ships with no YAML dependency. Three rules, each checked:
+
+- A `files:` entry is a **quoted string on the `files:` line**. A block-style list or an
+  unquoted one is rejected rather than silently claiming nothing.
+- A `files:` entry is a **file path**, never a directory and never a glob. Every reader
+  compares by exact equality, so a directory entry can never match an edited file.
+- `status:` is **unquoted and exactly one of the declared values**.
+
+None of this legalises or forbids anything the readers ever handled differently; it makes the
+forms they never accepted fail loudly instead of quietly.
 
 Required sections:
 

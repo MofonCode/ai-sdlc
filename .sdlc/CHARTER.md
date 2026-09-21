@@ -2,8 +2,8 @@
 solution: ai-sdlc
 artifact_root: .sdlc/
 status: approved
-version: 8
-updated: 2026-09-20
+version: 9
+updated: 2026-09-21
 owner: peter
 ---
 
@@ -121,6 +121,18 @@ conflict by construction. Overlap is a planning bug, fixed in `plan.md` and re-a
 never reconciled during or after the build. *Checkable: the disjointness script is run and its
 real output pasted.*
 
+**Disjointness has never meant "within one plan", and saying so in v9 is instrumentation
+rather than a widening.** The words above do not limit the comparison to a single plan, so two
+*live* plans claiming one file has always been a violation — with nothing watching for it.
+Adding that watch adds instruments, which ride the gate of the change that adds them; it does
+not move a constraint. Recorded because the distinction decides whether the next change needs
+its own approval conversation, and because reading it the other way was a live option.
+
+**A live plan is one whose work is agreed and not yet finished or replaced.** Finished is a
+field of its own beside `status:` — see the frozen shapes below — so a finished plan claims no
+files and a superseded one claims none either. A parked chain's plan is live: parked describes
+the chain, not the plan.
+
 **I7 — Roles that must not be persuaded run in fresh context.** The interrogator and the
 verifier never participate in the conversation that produced what they are checking, and are
 never handed a summary of it. A reviewer who heard the author reason through a failure has
@@ -139,6 +151,15 @@ tool enforces nothing. *Checkable: the default path exits 0 — pinned in `GateH
 Note the opt-in is an **environment variable, not a per-session flag**: set persistently, it
 enables hard-blocking in every repo until it is unset. That is a sharper instrument than it
 looks.
+
+**Sharper again from v9, and this is what it now means.** Once a plan can be finished, the
+ordinary state *between* chains is that no plan is live — and the gate's no-plan-approved
+branch fires on every code edit regardless of path, so with the switch set, every code edit is
+refused until a chain is started. That is the gate working as designed: with nothing agreed,
+you are editing outside any agreed plan. It has been masked since the hook was written by six
+plans that carried `approved` permanently because nothing could retire them. Recorded rather
+than discovered, because the answer for an owner who hits it is "unset it, or start a chain",
+and that is easier to accept when it was written down first.
 
 **I9 — Every known silent-failure class has a named check in CI.** "Anything that can fail
 silently" was unfalsifiable: it named no set, so no reviewer could ever declare it violated.
@@ -191,6 +212,14 @@ has never been seen to fail is a check nobody should trust.
 **Known and unchecked**, recorded rather than hidden: a plugin version that is valid semver but
 was never *bumped* — the format is checked, the increment is not, so an update can still be a
 silent no-op; and the eval suite, which has never run.
+
+**What this list is for, stated in v9 because the invariant above has no carve-out and the list
+is about to grow.** A class belongs here when its instrument is a *different change* — when
+catching it means rebuilding something this change only touches in passing. It is not a place
+to put a class because writing the check is tedious. **A list that grows faster than the
+register is itself a finding**, and the review that notices it is the amendment conversation:
+this one takes the list from two entries to seven in a single change, which is worth saying out
+loud rather than letting accumulate quietly.
 
 **I10 — A default root may be named, but never used *instead of* resolving.** Prose saying "it
 defaults to `.sdlc/`" is correct and useful. Code that reads `.sdlc/` without first looking for
@@ -336,12 +365,26 @@ never overwrite" protects a repo from having its files changed; it does nothing 
 whose structure no longer matches what the current pack assumes. The first is a promise about
 writes, the second is a promise about shape, and only the first was ever made.
 
-**The manifest is parsed three times by three hand-rolled parsers**, in
-`Assert-SliceManifest.ps1`, the gate hook, and `parallel-build.js`. None shares code with the
-others, and they have already diverged once: two normalised a leading `./` and the third did
-not, so a plan could pass the check that fans out and fail the check that merely warns. They
-are kept in step by hand and by test. If a fourth consumer appears, that is the moment to stop
-and give them one parser.
+**The manifest is parsed in three places**, in `Assert-SliceManifest.ps1`, the gate hook, and
+`parallel-build.js`. **From v9 the first two share one extracted parser**; the JavaScript one
+stands alone, because it cannot source PowerShell. They have diverged before — two normalised a
+leading `./` and the third did not, so a plan could pass the check that fans out and fail the
+check that merely warns — and by v9 they had diverged in five ways, on anchoring, on leading
+dots, on case, on where a slice begins, and on the edited path against the claimed one.
+
+**They are kept in step by hand.** An earlier version of this paragraph said "by hand and by
+test"; no test has ever compared them, and a reader of that sentence believed a safety net
+existed. The trigger stands: **if a fourth consumer appears, that is the moment to stop and
+give them one parser** — and the JavaScript still being outside is why it stands rather than
+having been retired by the extraction.
+
+**The manifest's grammar is narrower than YAML, deliberately, and v9 writes it down.** A
+`files:` entry is a **quoted string on the `files:` line**, and it is a **file path — never a
+directory, never a glob**. The readers only ever accepted that, so this legalises nothing new;
+what it changes is that a plan written any other way now fails loudly instead of claiming
+nothing in silence. The same goes for `status:`, which must be **unquoted and exactly one of
+the declared values**. Each of the three is checked. A line-oriented parse was chosen so the
+engine ships with no YAML dependency, and that choice is what makes the grammar narrow.
 
 ## Open questions
 
@@ -387,6 +430,7 @@ and give them one parser.
 
 | Version | Date | Change |
 |---|---|---|
+| 9 | 2026-09-21 | **A plan can say its work is finished, and four silent-skip holes in the frontmatter grammar are closed.** Required before `no-two-plans-claim-one-file` could be specified: comparing plans across chains is unusable while `approved` is where a plan's status stops, which measured as 35 claims over 26 distinct paths with 8 collisions, every one false. **Finished is a field of its own beside `status:`, not a new status value** — the alternative was a new value, and it was rejected because a repository whose plans carried it, opened by an older plugin, would have zero approved plans by that hook's reading and, with `SDLC_GATE=block` set, would refuse every code edit in itself. An additive field leaves every existing reader behaving exactly as today; the cost accepted is a second lifecycle signal and every reader learning to check both. **Legal on `plan.md` alone**, not on all five shapes: that keeps the scaffold executor's charter gate untouched and the five status-branching skills unchanged. **One-way** — a defect in finished work is a new chain, because reopening a plan silently re-acquires every file it claimed. **Written by the verify skill at feature tier**; task tier is marked by hand until a closing step exists, which is `OPEN.md` item 4 and not this change. **Grammar, stated and checked rather than widened:** a `files:` entry is a quoted string on the `files:` line and is a file path, never a directory or glob; `status:` is unquoted and exactly one declared value. The readers only ever accepted these, so nothing becomes illegal that ever worked — what changes is that the other forms now fail loudly instead of claiming nothing. **I6 gains a line saying cross-chain disjointness was always inside its words**, so the checks that watch for it are instruments riding a change's gate rather than a constraint move. **I8 records how much sharper the blocking switch becomes**: between chains the ordinary state is no live plan, and the gate then refuses every code edit under that switch. **I9 records what the known-and-unchecked list is for** — a class whose instrument is a different change — and that a list growing from two entries to seven in one change is itself a finding for this conversation. **The three-parsers paragraph is corrected**: two of the three now share an extracted parser, the JavaScript stands alone, and the claim that they were "kept in step by hand and by test" was false when written — no test has ever compared them. The fourth-consumer trigger stands. **Twelve questions, one conversation**, for the reason v8 gave: an amendment costs a version and a log row, and asking separately costs twelve of each. |
 | 8 | 2026-09-20 | **Settled the contradiction that versions 4, 5, 6 and 7 each recorded and none resolved**, plus two smaller things, in one conversation rather than three — an amendment costs a version and a log row, so batching them costs one of each instead of three. **The contradiction:** the charter schema forbade amending as a side effect of shipping, while the silent-failure register cannot stay complete unless it moves while a check ships. Resolved by splitting what the rule governs — moving a *constraint* an intent was approved against still takes its own approval conversation; adding a *row* that records an instrument rides the approval gate of the change that adds the check, and that change's plan must declare this file in its slice manifest. The schema carries the rule and this file points at it, so there is one statement rather than two that can drift. Four amendments' worth of evidence is what the distinction was drawn from, which is why it took four to see it. **The inert row:** `ScaffoldEmitsBuildableSolution_<kind>` named no instrument in either direction, because the register parser keeps a backticked string only when it matches an identifier and the angle brackets fail that filter — so the register built to catch silent failures contained one. Now names the test class like its three neighbours, which also keeps a list of solution kinds out of this file. **The reach of N2:** it binds `plugins/**` and not the chain under the artifact root, because the non-goal exists so the library survives a change of employer and a chain document never leaves with the plugin. No artifact edits follow; the four documents naming external repositories stay as they are. Recorded as unchecked: that non-goal has no instrument, unlike the first invariant's two. **Raised by** the cross-chain slice-manifest work, which adds a named check and could not be planned until the first of these was settled. |
 | 7 | 2026-09-20 | **Registered the check that holds a pack's promise to its manifest.** `pack-promises-what-it-scaffolds` adds `PackPromiseTests`, and I9's table gains a row for it. **The same contradiction as v4, v5 and v6, now four for four:** the schema says amending the charter is *"never a side effect of shipping a feature"*, and the register cannot be complete unless it moves while one ships. The plan for this change did not list `CHARTER.md` in its slice manifest and the build could not go green without editing it — which is the clearest evidence yet that the two sentences disagree rather than that any one author keeps forgetting. Still recorded, still unresolved, and still the subject of `findings-leave-only-by-decision`. |
 | 6 | 2026-09-19 | **Registered the check that enforces registration.** v5 added six rows by hand for checks that had existed for hours; `SilentFailureRegisterTests` now holds the register and the suite against each other, both directions — every test class is named by a row, and every check a row names exists. It closes four of those six. The other two were new methods on a class the register already named, and telling a new instrument from a new class of failure is a judgement no parser makes. **Recorded and not resolved:** this amendment is itself the thing the charter schema forbids — *"amending it is its own approval, never a side effect of shipping a feature"* — while I9 says its table *"grows whenever a new class is found"*, which happens while shipping. Versions 4, 5 and 6 all did it. The two sentences cannot both be right, and the sixth interrogation of `findings-leave-only-by-decision` blocked on exactly this. |
