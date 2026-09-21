@@ -54,7 +54,7 @@ function Invoke-Gate {
 
 # The parser is loaded here rather than at file scope, so a missing or unreadable one is
 # caught by the try around this call and leaves the gate silent instead of printing a stack
-# trace on every keystroke. A dot-source at file scope would be outside that guard.
+# trace on every edit an agent makes. A dot-source at file scope would be outside that guard.
 . (Join-Path $PSScriptRoot '..' | Join-Path -ChildPath 'scripts' | Join-Path -ChildPath 'SliceManifestParser.ps1')
 
 try { $raw = [Console]::In.ReadToEnd() } catch { return 0 }
@@ -144,7 +144,7 @@ if ($env:SDLC_GATE -eq 'block') { return 2 }   # PreToolUse: exit 2 blocks the t
 }
 
 # This hook runs on every edit in every repo, so an unhandled error here is a stack trace
-# in the transcript on every keystroke. Whatever goes wrong, stay out of the way: the gate
+# in the transcript on every edit. Whatever goes wrong, stay out of the way: the gate
 # is advisory, and a broken advisor is worse than a silent one.
 try {
     # A PowerShell function returns everything it emits, not just its `return` value, so

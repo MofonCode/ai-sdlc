@@ -23,7 +23,7 @@
 
 # Deliberately no Set-StrictMode here. This file is dot-sourced, so anything it sets at file
 # scope it sets in its caller's session - which is a top-level side effect, and the one kind of
-# side effect a library dot-sourced by a hook that runs on every keystroke must not have. Both
+# side effect a library dot-sourced by a hook that runs on every edit must not have. Both
 # callers set their own.
 
 $script:SdlcDefaultRoot = '.sdlc'
