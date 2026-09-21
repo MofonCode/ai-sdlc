@@ -130,6 +130,15 @@ Every file below was opened while writing this, not inferred from a search.
   reference, the script's own example block, and a validation row in a shipped chain's plan. The
   README names the script but carries no invocation, which an earlier version of this bullet
   claimed it did. The cross-plan comparison is a new mode beside that one, never a change to it.
+
+  **Two things about that four-copy list are worth stating rather than leaving to be found.**
+  It has already drifted: the schema's copy carries doubled spaces before `-File` and `-Plan`
+  that the skill's copy does not. Harmless to PowerShell, and it is the same list-beside-a-list
+  shape as the two the fifth check now holds — a third instance, not covered, named here so
+  the next reader finds it recorded rather than fresh. And **the new cross-plan invocation is
+  prose in this skill with no instrument behind it**, which is the defect the direction
+  diagnoses and which criterion 8 builds a prose check for in the verify skill. It gets no
+  equivalent here. Whether it should is a spec question; that it does not is stated now.
 - **`plugins/sdlc-core/skills/verify/SKILL.md`** — gains the write of `finished:` on the **SHIP**
   branch of its gate, at feature tier. Not at the stage: it runs on both verdicts.
 - **`plugins/sdlc-core/.claude-plugin/plugin.json`** — the engine plugin's version, bumped
@@ -140,10 +149,13 @@ Every file below was opened while writing this, not inferred from a search.
 - **`tests/AiSdlc.Tests/SilentFailureRegisterTests.cs`** — not edited, and named because **it
   imposes a slicing constraint nothing else here states.** It reads the live `.sdlc/CHARTER.md`
   and enumerates the live top-level test directory, both directions, so a charter row without
-  its test file is red and a test file without its row is red. **The four rows and the four new
+  its test file is red and a test file without its row is red. **All five rows and all five new
   test classes therefore land in one commit**, which cannot be split across slices without
   leaving the tree red in between — and nothing may be committed on a red build. That makes it
-  a constraint on the plan's shape rather than a detail of the register.
+  a constraint on the plan's shape rather than a detail of the register. The number is five
+  everywhere in this document; it said four here until the owner's decision at this gate was
+  carried through, which would have produced a commit of four rows and five classes and a red
+  register check that nothing could be committed over.
 - **`tests/AiSdlc.Tests/TempRepo.cs` and `Repo.cs`** — the fixture, which writes one chain with
   one plan and cannot express two colliding plans. Shared by three suites, so it sits in exactly
   one slice. `Repo.cs` resolves shipped scripts by walking **up to the repository root** —
@@ -178,7 +190,10 @@ Every file below was opened while writing this, not inferred from a search.
   files and seven claims rather than five and six** — stated here so the number moves with the
   decision instead of after it.
 - **`.sdlc/CHARTER.md`** — also says the grammar check "lands with" this change, which goes
-  stale the day it does, in the same way the schema's copy does. It takes **five register rows
+  stale the day it does, in the same way the schema's copy does. **It carries a second forward
+  reference of the same kind**, naming this chain as *"the change that extracts one parser for
+  the first two"* — same paragraph family, same staleness the day this ships, and both are
+  edited here. It takes **five register rows
   for the five new checks** — four until the owner settled the prose-list question at this
   document's gate — and **five known-and-unchecked entries**.
 
@@ -242,6 +257,20 @@ Every file below was opened while writing this, not inferred from a search.
   `verification-reports-options`, and `engine-substitutes-declared-tokens` — the last superseded
   in fact but not yet in its frontmatter, which still reads `approved`, and which this change
   corrects.
+- **`.sdlc/OPEN.md` and `.sdlc/DIRECTION.md`** — both describe this change in the future tense
+  and both are false the day it ships. The open items say nothing writes a task-tier plan's
+  finished state, that a replaced plan is retired by nobody, and that closing the install item
+  reopens this change's no-migration decision; the direction's first step says what this change
+  will be. **Declared because the constraint below binds every artifact this change writes, and
+  the artifact-root carve-out means no instrument would ever report them.** The one that most
+  needs the edit is the item recording that an approved plan was produced from a draft intent —
+  it exists precisely to outlive the marking that erases its machine-readable trace.
+- **`plugins/sdlc-core/skills/sdlc-router/SKILL.md`** — reads `plan.md` and says not to write
+  implementation code "until a `plan.md` exists and the user has approved it". **A finished plan
+  still exists and still reads `approved`**, so the router's notion of an active chain keeps
+  answering yes after the work is done. Named rather than edited: the non-goals already put the
+  router's competing notion of an active chain out of scope, and the list's purpose is that
+  omission is the lapse.
 - **The owner**, who cannot currently run two sessions without hand-checking for overlap.
 
 **Five of the files this change edits outside the artifact root are claimed by another live
@@ -307,9 +336,14 @@ the headline change skipped is not a criterion.
 placement that satisfy them are the spec's**, and it may choose them freely provided the
 properties hold.
 
-1. **Two live plans claiming one file is reported, naming the file and every plan claiming it,
-   comparing paths the way the filesystem does.** Every claiming plan, not "the other chain" —
-   no mechanism here knows which chain an edit belongs to.
+1. **Two live plans claiming one file is reported — at the moment one of those files is edited
+   or one of those plans is re-approved — naming the file and every plan claiming it, comparing
+   paths the way the filesystem does.** Every claiming plan, not "the other chain": no mechanism
+   here knows which chain an edit belongs to. **The trigger belongs in the sentence**, because
+   without it this reads as a standing property, and the non-goals below say plainly that it is
+   not — two live plans overlapping on ten files say nothing until one of the ten is touched or
+   one plan is re-approved. An engineer implementing the literal reading would build something
+   that scans on a schedule, which is not what this is.
 
    **"Naming" means the chain directory's own name, which is not necessarily the plan's
    `slug:`.** The hook identifies a plan today by `Split-Path -Leaf` on its directory and never
@@ -370,7 +404,12 @@ properties hold.
    through no closing stage at all, and the sixth was superseded without ever being built. The
    rule used here is not recollection: **a plan is finished when every file its manifest claims
    exists in git with that chain's work in it** — checkable by a person against the diff, which
-   is what a reviewable commit is for. Without it, the first real run reports seven collisions
+   is what a reviewable commit is for. **It is about the plan's files and not the chain's
+   residue**, which is worth saying because it marks `init-scaffolds-solution` finished while
+   seven clauses of that chain's shipped spec have still never been exercised — recorded as the
+   first of the open items. Both are true at once: the plan's work landed, and the command it
+   describes has never been hand-run. A plan is finished when its files are written, not when
+   every consequence of them has been observed, or nothing would ever be finished. Without it, the first real run reports seven collisions
    that are all false, and the check is switched off rather than trusted.
 3. **The plan being checked contributes its claims whatever its own status says, and is excluded
    from the set it is compared against.** **This governs the plan under check; the liveness rule
@@ -379,11 +418,33 @@ properties hold.
    checked — and the single-plan invocation keeps today's behaviour, which reads no status at
    all, so finished-awareness lives only in the cross-plan mode.
 
-   **The bootstrap, stated because an engineer will hit it.** This plan is approved before the
-   check it introduces exists, at a moment when all six plans still read `approved` and this one
-   claims five files they claim. The marking commit therefore lands **before this plan is
-   approved**, not as a slice inside its build — otherwise the first re-approval after the
-   check ships refuses the plan that shipped it.
+   **The bootstrap, stated because an engineer will hit it.** This plan is approved at a moment
+   when all six plans still read `approved` and this one claims five files they claim. **The
+   marking commit therefore lands before this plan is approved**, not as a slice inside its
+   build.
+
+   **The reason is the invariant, not the tooling, and an earlier version of this paragraph had
+   it wrong.** It said the marking must come first "otherwise the first re-approval after the
+   check ships refuses the plan that shipped it" — which does not hold twice over. A marking
+   slice depending on nothing, ordered ahead of the slice that ships the check, would land
+   before any re-approval could reach it; and the check will not be in the *installed* plugin
+   at this chain's own approval moment anyway, because plugins are cached per version and the
+   bump is a late slice. Nothing would refuse anything. **The real reason is that charter
+   invariant I6 is already violated the instant this plan is approved**: disjointness never
+   meant "within one plan", so six live plans claiming five of this plan's files is a violation
+   today, with nothing watching for it. Marking first is what makes the approval legal, not
+   what makes the tooling quiet.
+
+   **If this chain is dropped after the marking, nothing needs restoring.** The marking records
+   a fact that is true independently of this change — five of those plans' work shipped weeks
+   ago and the sixth was replaced without being built — so abandoning this chain leaves six
+   correctly-retired plans and no debt. That is what makes an irreversible act acceptable three
+   gates early: it is not a bet on this change, it is the recording of something already
+   settled. **The one-way rule is not in tension with it**, because that rule forbids reopening
+   a plan whose work is finished, and says nothing about correcting a plan that was marked in
+   error. If a particular plan turns out to have been marked wrongly — its work did not in fact
+   ship — putting it back is a correction of the record, not a reopening of finished work, and
+   the distinction is worth having written down before anyone needs it.
 
    **It touches the six plans and nothing else, and the charter is deliberately not in it.**
    The five register rows go in with their five checks, inside the planned slice that declares
@@ -414,7 +475,13 @@ properties hold.
    is where a collision is usually caught and never what guarantees it.
 5. **The gate hook, and the script's cross-plan mode, each have a stated behaviour under the
    new field, asserted rather than read.** Both must treat an approved-and-finished plan as not
-   live. **The single-plan invocation is excluded and that exclusion is load-bearing:** it reads
+   live — **and a `draft` or `superseded` plan as not live either**, which is not a detail:
+   one of the six plans retires by `superseded` rather than by the new field, and the cross-plan
+   mode is new code with no behaviour to inherit. The hook happens to get this right already,
+   because its pattern demands the bare word `approved` and nothing else matches; the new reader
+   must be told. The schema states the rule once — *a live plan is one that is `approved` and
+   not finished; `superseded` is not live either* — and this criterion points at it rather than
+   restating it. **The single-plan invocation is excluded and that exclusion is load-bearing:** it reads
    no status today, the Affected list promises it keeps working exactly as it does, and
    criterion 3 says finished-awareness lives only in the cross-plan mode. An earlier version of
    this criterion said "the disjointness script", full stop, which reads as an instruction to
@@ -505,13 +572,22 @@ properties hold.
      README line naming a test script that has never existed went undetected for the life of
      the file.
 
+     **The three copies have no shared key today, and making one is part of this.** The hook's
+     header and the README both use the labels `no approved plan` and `unplanned scope`; the
+     `description` in `hooks.json` — the copy that travels furthest — paraphrases them as
+     *"either no plan is approved, or no slice claims the file"* and contains neither label.
+     A both-directions comparison needs something to compare on, so **the labels are the
+     canonical form and the shipped description is rewritten to carry them.** That is a change
+     to text every user sees, which is why it is stated here rather than left to the spec. An
+     earlier version of this criterion asserted the three already agreed on the labels; they do
+     not, and the check would have been unbuildable as written.
+
      **What it does not prove, said now rather than discovered later:** that a named state
-     corresponds to a branch that exists. The two documents and the header agree on *no
-     approved plan*, and that phrase appears nowhere in the hook's executable body — only in
-     its own header comment. `unplanned scope` is emitted and is already asserted by the
-     existing hook tests. So the check holds the copies to each other and the existing suite
-     holds one of the names to the code; the link for the other is documentation agreeing with
-     documentation, which is worth having and is not the same thing.
+     corresponds to a branch that exists. `unplanned scope` is emitted by the hook and already
+     asserted by the existing hook tests; `no approved plan` appears nowhere in the hook's
+     executable body, only in its own header comment. So the check holds the copies to each
+     other, and the link from a label to the code exists for one of the two names. That is
+     worth having and it is not the same thing.
 
    **What the verify-skill check still cannot prove**, named rather than implied: that the
    skill, at runtime, follows the branch it names. A prose check reads a document. That residue
@@ -759,6 +835,18 @@ the sections that use them.**
 - **`superseded` being written by the plan skill.** Believed because the shipped schema says so.
   The skill has never contained the word. Found by interrogation, not by reading the document
   that asserts it — which is the whole argument for interrogating in a fresh context.
+- **Why the marking commit goes first.** Argued from tooling — that a later re-approval would
+  be refused by the check. It would not: a marking slice depending on nothing lands before any
+  re-approval reaches it, and the check is not in the installed plugin at this chain's own
+  approval moment anyway. The real reason is the invariant, which is violated the instant this
+  plan is approved beside six live plans claiming its files.
+- **That the three warning-state copies already agree on the labels.** They do not — the
+  shipped `hooks.json` description paraphrases both and contains neither, so the check had no
+  key to compare on. Asserted the day after deciding to build the check, which is the shortest
+  distance yet between a claim and its refutation in this document.
+- **Four rows where the rest of the document said five.** In the one bullet that states the
+  slicing constraint, so an engineer following it would have produced the red build the same
+  bullet says nothing may be committed over.
 - **What the pre-approval marking commit touches.** Said to rewrite six plans *and the charter*.
   It cannot: register rows landing before their checks turn the register check red, and the
   charter edit belongs in the planned slice that declares it. Two rules broken by one clause.
