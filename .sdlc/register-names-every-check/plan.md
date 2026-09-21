@@ -1,6 +1,7 @@
 ---
 slug: register-names-every-check
 status: approved
+finished: true
 spec: none
 tier: task
 slices:

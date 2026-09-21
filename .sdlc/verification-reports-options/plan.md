@@ -1,6 +1,7 @@
 ---
 slug: verification-reports-options
 status: approved
+finished: true
 spec: none
 tier: task
 slices:

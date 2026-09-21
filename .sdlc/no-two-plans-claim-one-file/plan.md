@@ -177,6 +177,41 @@ Pasted into this file as real output, not asserted:
   guarantee, and an earlier version of this plan omitted it entirely.
 - `R49`'s four medians: two taken in wave 1, two after wave 3.
 
+## Validation output
+
+### Wave 1
+
+**`R49`, the two before-figures.** Median of five, `System.Diagnostics.Process` with redirected
+streams — the mechanism `Repo.cs` uses — against the **shipped** hook, before `hook` replaces it.
+
+```
+bare powershell startup (floor)             113.9 ms
+(a) 500 top-level dirs, 7 plans             952.2 ms   (hook work:  838.3 ms)
+(b) shallow tree, 40 plans                  414.7 ms   (hook work:  300.8 ms)
+```
+
+The floor matches the ~110ms the intent recorded for bare startup. Fixture (a) is dominated by
+root discovery as expected; fixture (b) isolates the per-plan term at roughly 7.5ms a plan, which
+is what it was added for.
+
+**The budget these imply, and a correction to the spec's arithmetic.** The rule is the greater of
+15% or 50ms: **142.8ms on (a)** and **62.2ms on (b)**. The spec predicted the 50ms floor would
+dominate on (b) and tolerate a per-plan regression "on the order of 45%"; measured, the 15% term
+dominates and the tolerance is about **21%** of the hook's work. Tighter than the spec claimed,
+in the safe direction — and the reason the figure had to be taken rather than estimated.
+
+**Two harness defects, recorded because the first one nearly shipped a meaningless number.** The
+first attempt used `Start-Process -Wait` and returned 1,018ms for (a) and 1,013ms for (b) — two
+fixtures designed to differ, reading the same, because the harness overhead swamped what was
+being measured. The second attempt then failed outright on `ProcessStartInfo.ArgumentList`, which
+is .NET Core 2.1 and up and is null on Windows PowerShell 5.1 — **the same class of defect the
+spec rejects `GetFullPath`'s two-argument overload for**, hit for real while measuring.
+
+**The marking.** Six plans keep `status: approved` and gain `finished: true`;
+`engine-substitutes-declared-tokens` takes `status: superseded` with no `finished:` line. All
+five grammar rules hold across every chain artifact — checked, not assumed — and the repository
+now holds **exactly one live plan**, which is this one.
+
 ## Risks
 
 **Mutation testing in wave 5 edits files wave 2 and 3 own.** Two of `CrossPlanCollisionTests`'

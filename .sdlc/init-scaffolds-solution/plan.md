@@ -1,6 +1,7 @@
 ---
 slug: init-scaffolds-solution
 status: approved
+finished: true
 spec: ./spec.md
 tier: feature
 slices:

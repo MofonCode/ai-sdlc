@@ -1,6 +1,6 @@
 ---
 slug: engine-substitutes-declared-tokens
-status: approved
+status: superseded
 spec: none
 tier: task
 slices:

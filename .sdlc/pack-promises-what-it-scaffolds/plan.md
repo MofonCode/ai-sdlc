@@ -1,6 +1,7 @@
 ---
 slug: pack-promises-what-it-scaffolds
 status: approved
+finished: true
 spec: none
 tier: task
 slices:
