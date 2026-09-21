@@ -147,27 +147,40 @@ maps to one of the intent's success criteria (1–8) in the coverage table under
   vocabulary — 0 for pass and 1 for any failure — as it does today.
 - **R25.** WHEN invoked in its cross-plan mode, THE disjointness script SHALL compare the claims
   of the plan under check against the claims of every live plan under the artifact root other
-  than that plan, and SHALL exclude from that comparison every claim **any of whose path
-  segments equals the artifact root's leaf** — the same test the gate hook applies, per R55.
-  **Reworded rather than left to R55:** "lies under the artifact root" is a prefix test and
-  strictly narrower, so an engineer implementing this requirement alone would build a different
-  rule from the one the hook uses, which is the divergence the shared reader exists to remove.
+  than that plan, and SHALL exclude from that comparison every claim **whose path is contained
+  by the artifact root** — the charter's own test, per R55.
 - **R26.** WHEN invoked in its cross-plan mode, THE disjointness script SHALL contribute the
   claims of the plan under check whatever that plan's own `status:` says, and SHALL exclude that
   plan from the set it is compared against by resolved path rather than by slug.
 - **R27.** WHEN the cross-plan comparison finds a contested path, THE disjointness script SHALL
   name the path and the chain directory of every live plan claiming it, and SHALL exit 1.
-- **R28.** WHEN invoked in its cross-plan mode, THE disjointness script SHALL print how many
-  `plan.md` files it read, how many were live, and how many it refused, including when any of
-  those counts is zero, so that a comparison that found nothing is distinguishable from one that
+- **R28.** THE counts line SHALL be printed once, in its normal place after the wave plan, and
+  SHALL carry counts only — never a verdict, since on the refusal path the comparison has not
+  run. **The "counts line first" ordering is gone with the reason for it:** that clause existed
+  because R29 used to exit 1 on any refusal, which would have made the refused count unreachable.
+  R29 no longer exits, so the line reaches its normal position anyway.
+  WHEN invoked in its cross-plan mode, THE disjointness script SHALL print how many
+  `plan.md` files it read, how many were live, and how many it refused — **an overlay, not a
+  partition**: a plan with a claim-level refusal is still live and still counted refused, and a
+  plan-level refusal makes a plan both not-live and refused, so the three do not sum and the
+  worked example must not suggest they do — including when any of those counts is zero, so that a comparison that found nothing is distinguishable from one that
   compared nothing.
 - **R29.** IF the shared reader records a refusal for a plan the cross-plan mode reads **other
-  than the plan under check**, THEN THE disjointness script SHALL print the counts line of R28
-  **first**, then name that plan and the rule broken, exclude it from the comparison, and
-  continue — exiting on the comparison's own verdict rather than on the refusal. The counts line
-  comes first because exiting before it would make R28's refused count unreachable, always zero
-  wherever it printed, and a refusal is one of the four causes of an empty comparison that
-  criterion 7 exists to expose.
+  than the plan under check**, THEN THE disjointness script SHALL name that plan and the rule
+  broken, **drop exactly what the hook drops for the same refusal** — the refused claims for a
+  claim-level refusal, the whole plan for a plan-level one, which R56 has already made not live
+  — and continue, exiting on the comparison's own verdict rather than on the refusal.
+
+  **Matching R20's granularity is the requirement.** An earlier version said "a refusal" and
+  "exclude it", unqualified, which made the two readers disagree about the same repository:
+  a plan with one block-style `files:` block and a well-formed slice claiming `src/X.cs` would
+  be dropped whole by the script — no contested path, approval written — while the hook dropped
+  only the refused claims, kept `src/X.cs`, and refused every edit to it under the blocking
+  switch. Approval passes and the file is then uneditable. The first round's repair removed the
+  asymmetric *exit code* and left the asymmetric *granularity*.
+
+  **For a plan-level refusal the clause is belt and braces**: R56 makes such a plan not live and
+  R25 compares live plans only, so it is excluded before this requirement is reached.
 
   **Exit 1 on any refusal anywhere was the first round's repair and it was too wide.** It made a
   malformed `files:` line in some unrelated finished chain hard-stop *every plan approval in the
@@ -219,7 +232,8 @@ maps to one of the intent's success criteria (1–8) in the coverage table under
   **Three forward references, not two.** The invariant that holds the silent-failure register
   also says, in the present tense, that this chain *"takes this list from two entries to ten,
   against five new register rows"* — false the day it ships, because by then the list is what it
-  says it will be, and wrong now besides, since R50 makes it nine new entries rather than eight.
+  says it will be — and the row's arithmetic must be re-derived against whatever the list holds
+  when the slice lands rather than copied from here.
   Same class as the forward references above, in the same document, and the charter spent
   versions 10 through 16 repairing exactly this.
 - **R43.** THE gate hook's header SHALL stop claiming a per-edit cost of ~150ms; the README's
@@ -267,8 +281,8 @@ maps to one of the intent's success criteria (1–8) in the coverage table under
   claimants instead of returning at the first could get an order of magnitude slower and still
   pass. A budget whose fixture cannot register the regression it exists to catch is a number,
   not a budget.
-- **R50.** THE charter SHALL gain five register rows naming the five new classes, and **nine**
-  known-and-unchecked entries — the eight the intent carries plus the collision R55 hides, in the slice that declares `.sdlc/CHARTER.md`. **Each register
+- **R50.** THE charter SHALL gain five register rows naming the five new classes, and **eight**
+  known-and-unchecked entries — the eight the approved intent carries, no more, in the slice that declares `.sdlc/CHARTER.md`. **Each register
   row SHALL name the silent-failure class in its left column**, not merely the class in its
   right — nothing holds the left column to anything, so what a row *claims to catch* is the one
   part of the register that rests entirely on whoever types it. `CrossPlanCollisionTests` carries
@@ -306,38 +320,28 @@ maps to one of the intent's success criteria (1–8) in the coverage table under
   re-approving. **The branch has to be named.** This is the one place the change touches the
   gate invariant, and a shipped skill body with an undefined branch is exactly the defect class
   this document admits it cannot instrument.
-- **R55.** THE gate hook and the disjointness script SHALL decide "under the artifact root" the
-  same way — segment equality on the root's leaf, which is what the hook does today and what
-  R23 freezes. **Stated because the two would otherwise disagree by construction:** R25's
-  carve-out read as a prefix test means that with a root of `docs/sdlc`, a claim on
-  `src/sdlc/Thing.cs` is skipped silently by the hook and reported as contested by the script.
-  One question about one repository, one answer — which is R12's own justification, and it
-  would have been violated by the pair of requirements that cite it.
+- **R55.** THE gate hook and the disjointness script SHALL decide **whether a claim is under
+  the artifact root** the same way — containment, which is the charter's own wording for the
+  carve-out: it binds implementation files *"and not the chain's own artifacts under the
+  artifact root"*.
 
-  **What agreeing on the wrong answer gives up, which is now a ninth known-and-unchecked entry.**
-  Segment equality is the hook's rule and it is known-wrong at the edges: with a root of
-  `docs/sdlc`, *any* path containing a segment `sdlc` is treated as chain prose, so two live
-  plans both claiming `src/sdlc/Thing.cs` are silently never compared by either mechanism. The
-  intent freezes that wrongness for the hook, "wrong edge cases included"; R55 extends it to code
-  that does not exist yet, which is a wider decision than freezing and needs saying. **Consistency
-  was chosen over correctness deliberately** — two readers agreeing on a known edge beat two
-  readers disagreeing — but the collision it hides appears in no failure mode and belonged to no
-  list, so it becomes one.
-- **R57.** R6 SHALL bind only a `files:` line R4 collects from — inside a slice, first
-  non-whitespace text `files:`. A `files:` line outside any slice contributes nothing and is
-  **not** refused, which is what R4's coverage row already says; without this, R6's antecedent
-  reaches that line and the two requirements disagree about it.
-- **R58.** THE three warning-state copies SHALL stop carrying a count of the states beside the
-  list of them — the hook's header says "Two distinct states", the README "warns on **two**
-  distinct states". R39 compares the *labels* and would pass a README reading "two" over three
-  bullets. A hand-maintained tally beside the list it counts is what the charter removed from
-  its own pages at version 19.
+  **This is not the hook's edit-path skip, and conflating the two was the defect.** The hook
+  decides what to *inspect* by segment equality on the root's leaf, and the intent freezes that
+  rule, wrong edges included. R25 decides which *claims* to exclude from a comparison, in new
+  code that is the instrument for the disjointness invariant at plan approval. Different
+  objects, different tests, and an earlier version of this requirement made both segment
+  equality — which would have exempted implementation files the invariant binds, since with a
+  root of `docs/sdlc` a claim on `src/sdlc/Thing.cs` is not under the artifact root at all.
+  **Widening a carve-out an intent was approved against is an amendment**, and this requirement
+  had quietly performed one.
 
-  **These two are appended as R57 and R58 rather than written as `R6a` and `R39a`**, which is
-  how they were first drafted — in the same pass that renumbered `R20a` to R56 for being a new
-  identifier shape inserted mid-sequence into a numbering the charter freezes as an API. Worth
-  recording: the habit reappeared within minutes of the rule being applied, in the edit applying
-  it.
+  **What still diverges, narrowly, and why it is acceptable.** The hook skips an *edit* to
+  `src/sdlc/Thing.cs` under that root while the script does compare a *claim* on it, so a
+  collision there is reported at plan approval and never at edit time. That is the hook's frozen
+  blind spot doing what the intent said it would, not a new one — and it is already carried as
+  a non-goal rather than as a ninth admission, because the change that would close it is a
+  change to the skip rules the intent put out of scope.
+
 - **R56.** IF the shared reader records a **plan-level** refusal — R8, R9 or R10, where the
   lifecycle lines themselves are malformed or duplicated — THEN THE shared reader SHALL classify
   that plan as **not live**, so it contributes no claims at all. **This is the requirement
@@ -347,6 +351,59 @@ maps to one of the intent's success criteria (1–8) in the coverage table under
   file that plan claimed now reads unclaimed and draws `unplanned scope`. **Numbered R56 rather
   than R20a**, which was a new identifier shape inserted mid-sequence into a numbering the charter
   freezes as an API — *never renumber, append and mark superseded*. R20 is marked revised below.
+- **R57.** R6 SHALL bind only a `files:` line R4 collects from. A `files:` line R4 does not
+  collect from contributes nothing and is **not** refused; without this, R6's antecedent reaches
+  it and the two requirements disagree about the same line.
+
+  **"Outside any slice" is the wrong phrase for what R4 does, and it was the phrase used here.**
+  R4 collects only *after* a `- id:` line has opened a slice, and nothing ever closes one — the
+  reader has no indentation tracking and Design commits to keeping it that way. So a top-level
+  `files:` line appearing *after* the slices block is attributed to the last slice and does
+  contribute. What is dropped is a `files:` line before the first `- id:`, and only that. A
+  fixture exercising the before-case alone would pass this requirement while the after-case
+  behaved oppositely.
+- **R58.** THE hook's header and the README SHALL stop carrying a count of the warning states
+  beside the list of them. **Two copies, not three** — `hooks.json`'s description carries no
+  count today. **The forbidden strings are enumerated, not described:** the header's
+  `Two distinct states` and the README's `warns on **two** distinct states`, replaced by wording
+  that names no number. R39 compares the *labels* and would pass a README reading "two" over
+  three bullets, which is the gap; but "SHALL stop carrying a count" is a property no instrument
+  can generally test — the header legitimately contains `5.1` — and pinning the literals is the
+  same repair R15 took for the same reason.
+
+  **These two are appended as R57 and R58 rather than written as `R6a` and `R39a`**, which is
+  how they were first drafted — in the same pass that renumbered `R20a` to R56 for being a new
+  identifier shape inserted mid-sequence into a numbering the charter freezes as an API. Worth
+  recording: the habit reappeared within minutes of the rule being applied, in the edit applying
+  it.
+- **R59.** THE cross-plan mode SHALL require the plan named by `-Plan` to lie under the
+  artifact root resolved from `-Root`, and IF it does not, or IF no artifact root resolves at
+  all, THEN THE script SHALL say so and exit 1 rather than compare. **Without this the mode is
+  undefined for the invocation shape this repository's own test helper already uses:** that
+  helper defaults its working directory to the live repository root while passing `-Plan` at a
+  temp path, so the cross-plan mode would resolve *this* repository's chain tree and compare a
+  fixture's claims against the seven live plans here — reading `plan.md` files R48 forbids
+  reading, and printing a counts line that reads healthy while comparing the wrong repository.
+  Criterion 7 exists for exactly that shape of reassuring output.
+- **R60.** THE shared reader SHALL read `status:` and `finished:` only from the top level of
+  frontmatter, and IF a `finished:` line appears nested inside the `slices` block, THEN it SHALL
+  record a refusal. **Ignore for a misplaced `files:` line, refuse for a misplaced `finished:`
+  one, and the difference is the consequence.** A `files:` line outside a slice is structurally
+  meaningless — it claims nothing anywhere — so R57 has it contribute nothing. A nested
+  `finished:` is *ambiguous*: a column-anchored reader cannot see it and a looser one reads it
+  as the plan's, and if the looser one wins on `finished: true` the plan releases every file it
+  claims, one-way. Ambiguity on an irreversible field fails loudly; meaninglessness is dropped.
+  The intent handed this spelling to the spec and an earlier version answered it by citing R4,
+  which governs `files:` collection and says nothing about lifecycle lines.
+- **R61.** WHEN `-Root` is supplied without `-AcrossPlans`, THE script SHALL exit 1 naming the
+  flag as cross-plan only, because R24 promises `-Plan <path>` and nothing else behaves exactly
+  as it does today, and a silently-ignored flag on a shipped command line is the quieter failure.
+- **R62.** WHEN a plan-level refusal leaves the repository with no live plan at all, THE gate
+  hook SHALL warn under R19 **and** name the refused plan and the rule it broke. **R56's stated
+  consequence holds only while some other plan is live**, and the commonest case in a
+  single-chain repository is that it is not: the live count falls to zero, R19's
+  `no approved plan` fires, and under the blocking switch every code edit is refused on account
+  of one duplicated `status:` line — with a detail line that says nothing about a refusal.
 - **R20, revised.** The original read "IF the shared reader records a refusal for a plan, THEN
   THE gate hook SHALL drop that plan's refused claims." That covered a plan-level refusal by
   dropping claims that were not what was wrong, leaving the plan live. Superseded by the pair
@@ -546,8 +603,13 @@ Output on success, which is R28 and criterion 7:
 3 slices, 11 files, manifests disjoint
   wave 1: parser
   wave 2: hook, script
-read 6 other plan.md under .sdlc/ (1 live, 5 not live, 0 refused); no contested files
+read 6 other plan.md under .sdlc/ (1 live, 6 read, 1 refused); no contested files
 ```
+
+The three counts are an **overlay**: the refused plan here is also one of the six read, and a
+claim-level refusal would leave its plan among the live ones too. An earlier worked example read
+`1 live, 5 not live, 0 refused`, which sums to six and teaches an implementer a partition that
+does not exist.
 
 A comparison that read nothing says `read 0 other plan.md under .sdlc/`, which is the line that
 makes a nested chain directory or a renamed `plan.md` visible instead of reassuring. The
@@ -688,7 +750,7 @@ long as the park lasts, with no mechanism to release them.
 | `GateHookPackagingTests` | the hook still speaks with its parser present and goes silent without it | delete the parser from the fixture copy of the plugin tree |
 | `FrontmatterGrammarTests` | **two classes**: a plan spelled in a form no reader accepts — all five grammar rules, by driving the shipped readers — and **the charter and the schema disagreeing about that grammar** (R51) | relax one rule in the shared reader (the first); **change the rule count in one document only** (the second). The second class and its fault were missing, so R51 was a requirement no named fault could have failed on |
 | `VerifyShipBranchTests` | the `finished:` write and the `plan.md` staging appear after the `On **SHIP**:` marker and nowhere in the DO NOT SHIP block, **where that block is bounded from its own marker to the next bold inline marker** and not “from the marker onward” — unbounded, the check fails on a correct file, because in the shipped skill DO NOT SHIP precedes SHIP | move the sentence into the other branch |
-| `ShippedProseListTests` | the three warning-state copies and the three manifest-drift copies agree, both directions. **The hook's copy is its header block, bounded from `.DESCRIPTION` to the closing `#>`** — not the whole file, because R19 now has all three labels appear in the hook's *emitted* strings as well, so a grep over the file would pass with the header table deleted. Same bounding problem this document solved for the DO NOT SHIP block and had not noticed here | drop one label from `hooks.json`; delete the header table |
+| `ShippedProseListTests` | the three warning-state copies and the three manifest-drift copies agree, both directions. **The hook's copy is its header block, bounded from `.DESCRIPTION` to the closing `#>`** — not the whole file, because R19 now has all three labels appear in the hook's *emitted* strings as well, so a grep over the file would pass with the header table deleted. Same bounding problem this document solved for the DO NOT SHIP block and had not noticed here | drop one label from `hooks.json`; delete one entry from the header's two-line state list — it is an indented list, not a table, and a fault has to be injectable by the name it is given |
 
 Each is one class in one file with one `[TestClass]`, which is the only shape
 `SilentFailureRegisterTests` actually sees — it reads the first test class per file, scans the
@@ -803,7 +865,7 @@ refuse every code edit in the repository.
 silently re-acquires every file that plan claimed. The grammar check reads a file's current state
 and has no memory; no check in this suite reads git history; and the hook cannot acquire the
 habit, because shelling out to git on every keystroke is the cost this change budgets against.
-This is the weakest of the nine known-and-unchecked admissions and the one the intent flags as
+This is the weakest of the eight known-and-unchecked admissions and the one the intent flags as
 arguable.
 
 ### Three labels, now a contract across three files
@@ -851,7 +913,7 @@ installable elsewhere — reopens this.
 
 | What breaks | What the system does |
 |---|---|
-| A plan's frontmatter breaks a grammar rule | The script names the plan and the rule and exits 1. The hook drops that plan's refused claims, says nothing extra, and the file then reads as unclaimed — so the warning is loud and labelled with the wrong reason. Misattribution, not silence, and stated rather than given a fourth label. |
+| A plan's frontmatter breaks a grammar rule | For the plan under check the script names it and exits 1 (R30); for any other plan it names it, drops what the hook drops — claims for a claim-level refusal, the plan for a plan-level one — and continues (R29). The hook drops the refused claims (R20), or treats the plan as not live if the refusal is plan-level (R56) | The script names the plan and the rule and exits 1. The hook drops that plan's refused claims, says nothing extra, and the file then reads as unclaimed — so the warning is loud and labelled with the wrong reason. Misattribution, not silence, and stated rather than given a fourth label. |
 | One plan raises while being read by the hook | That plan is excluded, the rest are compared (R21). Held by inspection: nothing here can make shipped hook code throw on demand. |
 | The shared parser is missing from an install | The hook exits 0 and says nothing — the gate is silently dead. `GateHookPackagingTests` is what notices, in this repository's CI only. |
 | The artifact root resolves wrongly | Empty comparison, reported green. The script's counts make it visible (R28); the hook cannot say so without speaking on every keystroke, and that is admitted rather than fixed. |
@@ -878,7 +940,7 @@ one machine, from a terminal, against files in git.
 ## Test strategy
 
 Every new check that exercises the grammar drives the shipped readers as external processes
-(R47) and every new check runs over fixtures it builds (R48). No check reads a `plan.md` under
+(R47), and no new check reads a `plan.md` under this repository's own chain tree (R48). No check reads a `plan.md` under
 this repository's own chain tree — which means a plan written with a block-style `files:` list
 fails when the script runs at plan approval, and never in continuous integration. **On an edit
 it does not fail at all**: per R20 the refused claims are dropped, and the file is misattributed
@@ -918,6 +980,10 @@ than an earlier version of this paragraph made.
 | R56 | `FrontmatterGrammarTests` — a plan carrying `status: draft` and a later `status: approved`, beside one live plan claiming the same file: the hook reports no contested file and warns `unplanned scope`, proving the malformed plan contributed nothing. **The one that closes charter v21's hole**, and the one an earlier draft left open by dropping only the refused claims |
 | R57 | `FrontmatterGrammarTests` — a `files:` line outside any slice: no claims contributed and no refusal recorded, the two halves asserted together |
 | R58 | `ShippedProseListTests` — no copy carries a count of the warning states; fault: put "two distinct states" back over three bullets |
+| R59 | `CrossPlanCollisionTests` — `-Plan` at a temp path with the working directory elsewhere: the script refuses and names it, rather than comparing against whatever root the cwd resolves. **The shape this repository's own helper already produces** |
+| R60 | `FrontmatterGrammarTests` — a `finished: true` nested under `slices` on an approved plan: refused, and the plan's claims still counted. Fault: read lifecycle lines at any indentation |
+| R61 | `SliceManifestTests` — `-Plan x -Root y` without `-AcrossPlans` exits 1 naming the flag |
+| R62 | `GateHookTests` — one plan, duplicated `status:`, no other plan: the warning names the refusal as well as the no-live-plan state |
 | R51 | `FrontmatterGrammarTests` — the charter and the schema compared on rule count and each rule's key phrase, both directions |
 | R52 | Reviewed at the gate that approves the charter edit; the version and the log row are the visible half of that approval |
 | R53 | `CrossPlanCollisionTests` — a fixture with a non-default root, proving the script and the hook agree on the same claim |
@@ -931,6 +997,12 @@ than an earlier version of this paragraph made.
 Every one of the five rows is mutation-tested: the fault named in the instruments table is
 injected, the named check must fail, and the real output is seen. A check that has never been
 seen to fail is a check nobody should trust.
+
+**The faults live in the instruments table and nowhere else.** Where a row carries more than
+one silent-failure class it names more than one fault — `CrossPlanCollisionTests` names four and
+`FrontmatterGrammarTests` two. An earlier draft also named faults in the coverage table, which
+made two lists of injected faults with nothing comparing them, inside the document that cites
+that rule as the reason for R51.
 
 ### The performance fixtures
 
