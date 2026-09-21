@@ -330,10 +330,20 @@ edited, and approval a catch rather than a guarantee. It is the sentence that wo
 back, so it says what the change does rather than what it would be nice for it to do.
 
 - **Two live plans claiming one file is reported**, naming the file and every live plan claiming
-  it. At plan approval it refuses; on a code edit it warns.
-- **The gate hook is the guarantee** — the only mechanism that fires on its own, in any
-  repository that merely installs the plugin. Its bounds are real and stated in the problem
-  above: three tools, code files only, and only the path being edited.
+  it. On a code edit it warns; where the plan skill runs its manifest check, it refuses.
+  **Not "at plan approval"** — that is where the check runs *after* open question 1 is answered
+  one particular way, and today it runs a step earlier, with the plan still a draft. An earlier
+  version of this bullet asserted the answer while the question below called it open.
+- **The gate hook is the guarantee**, with one qualification that belongs beside the word and
+  not two hundred lines below it. It is the only mechanism that fires on its own, in any
+  repository that merely installs the plugin; its bounds are three tools, code files only, and
+  only the path being edited. **And it can switch itself off without saying so** — it wraps
+  everything in a catch that exits 0 by design, so an exception inside the new comparison
+  disables the gate for every file in the repository, silently and permanently. That is on the
+  known-and-unchecked list and it is a larger caveat than the three bounds, because the three
+  are limits on what it covers and this one is a limit on whether it runs at all. A guarantee
+  that can quietly stop being one is still the best thing here, and saying so plainly is the
+  difference between a guarantee and a claim.
 - **Plan approval is a catch, not a guarantee.** It runs by an agent following an instruction,
   and that cannot be promised.
 - **Fan-out is not covered**, and the reason changed on 2026-09-21. It used to be that the build
@@ -359,6 +369,21 @@ back, so it says what the change does rather than what it would be nice for it t
   session reads, and because the outcome above promises the first real run is true. **It is
   true on the day it lands and decays afterwards at a rate nothing measures**, which is a
   weaker promise than "the report is trustworthy" and the one this change can keep.
+
+  **And the decay ends where this change started, which has to be said rather than left for
+  someone to notice.** The problem section rejects the direction's rule because *"a check
+  reporting seven false collisions on the day it lands is a check that gets switched off."* If
+  plans accumulate as live, the report returns to exactly that state — the same failure, on a
+  delay. **The starting rate is measurable and was measured:** eight of the twenty-six distinct
+  claimed paths were multi-claimed, near a third, and this repository's chains edit each other's
+  files by design, so successive plans overlap rather than occasionally colliding.
+
+  **So the honest shape of this change is that it buys time, and the closing step is what
+  spends it well.** Not a reason to hold it — the marking makes the report true now, the
+  instruments are real, and a check that degrades is strictly better than a rule that could
+  never have been switched on. But "how long until this is as bad as doing nothing" is a
+  question with a real answer, nothing measures it, and an intent that left the reader to
+  work it out would be hiding the weakest part behind the strongest.
 - **Between chains, with no live plan, the hook warns on every code edit** — the gate working as
   designed, masked until now by plans that could not be retired. Recorded at charter version 9,
   including that the blocking switch then refuses every edit until a chain is started.
@@ -532,14 +557,21 @@ properties hold.
 4. **The check fires without anyone remembering it, in a repository that merely installs the
    plugin.** Without it this is a mechanism used by choice, which the direction rejected as the
    reason not to build a lock file. **The observable event:** the shipped hook, given an edit
-   payload in a throwaway repository holding nothing but a charter and two colliding plans,
-   writes the collision to standard error. The plan skill's prose is not evidence for this — it
+   payload for **a code file both plans claim**, in a throwaway repository holding nothing but a
+   charter and two colliding plans, writes the collision to standard error. **The extension is
+   load-bearing rather than incidental** — the hook skips markdown, text, json, yaml and toml by
+   design, so a fixture that collides on an artifact would prove it stays silent rather than
+   that it speaks, and would pass while proving the opposite of the criterion. The plan skill's prose is not evidence for this — it
    is where a collision is usually caught and never what guarantees it.
 5. **The gate hook, and the script's cross-plan mode, each have a stated behaviour under the
    new field, asserted rather than read.** Both must treat an approved-and-finished plan as not
-   live — **and a `draft` or `superseded` plan as not live either**, which is not a detail:
-   one of the six plans retires by `superseded` rather than by the new field, and the cross-plan
-   mode is new code with no behaviour to inherit. The hook happens to get this right already,
+   live — **and, among the *other* plans, a `draft` or `superseded` one as not live either.**
+   The qualifier matters: criterion 3 says the plan being checked contributes its claims
+   whatever its own status says, precisely because it is a draft at the moment the check runs.
+   Read without it, these two criteria give opposite answers for the commonest case there is.
+   It is not a detail for a second reason too: one of the six plans retires by `superseded`
+   rather than by the new field, and the cross-plan mode is new code with no behaviour to
+   inherit. The hook happens to get this right already,
    because its pattern demands the bare word `approved` and nothing else matches; the new reader
    must be told. The schema states the rule once — *a live plan is one that is `approved` and
    not finished; `superseded` is not live either* — and this criterion points at it rather than
@@ -569,11 +601,21 @@ properties hold.
    and report green. The single-plan script already models it, printing what it counted. Without
    this, the check's most reassuring output is also what it prints when it is broken.
 
-   **It binds the script and deliberately not the hook.** The hook writes only when it has
-   something to say and is otherwise silent by contract, so a hook that compared six plans and a
-   hook that compared none produce identical output — nothing. Making it announce its counts
-   would put a line on standard error on every edit in every repository, which is the constraint
-   below that it stay quiet where the framework is not in use.
+   **It binds the script and deliberately not the hook, and that is a cost decision rather than
+   an impossibility.** The hook writes only when it has something to say and is otherwise silent
+   by contract, so a hook that compared six plans and a hook that compared none produce
+   identical output — nothing. Making it announce its counts would put a line on standard error
+   on every edit in every repository, which the constraints below forbid.
+
+   **What that leaves, stated as a debt rather than as a difference.** All four causes above
+   apply to the hook exactly as they do to the script, and the hook is the mechanism this
+   document calls the guarantee. The known-and-unchecked list admits **one** of the four for it
+   — the wrongly resolved root — because that is the one this change's own normalisation work
+   touches. The other three are just as silent in the hook and are not on any list. The
+   middle option nobody is taking is a hook that speaks only when it compared nothing *and*
+   found a chain directory it could not read; it is not proposed here because it is a new
+   behaviour on a mechanism that fires on every keystroke, and that deserves its own decision
+   rather than riding in on this one.
 8. **Five checks, each a new test class in its own file, each named by its own register row,
    each seen to fail when its fault is injected.**
 
@@ -623,10 +665,17 @@ properties hold.
      script's header, the README's gate-hook section, and the `description` in `hooks.json`
      that ships to every user — and this change adds a third state to all three. **The
      manifest-drift instruction** is written out in three more — the verifier agent, the schema
-     reference and the verify skill — each naming the same two conditions, files changed that
-     no slice claimed and files claimed that nothing touched. **The three agree today and this
+     reference and the verify skill. **The three agree today and this
      change does not touch the instruction**; what it does is edit two of the three files, for
      unrelated reasons, which is precisely the situation in which the untouched third drifts.
+
+     **This list needs a canonical form too, and unlike the hook's it already has one.** The
+     two conditions are *files changed that no slice claimed*, called **unplanned scope**, and
+     *files claimed but untouched*, meaning a slice that did not land. All three copies carry
+     both phrases today — checked, not assumed — so the comparison has a key without anything
+     being rewritten. The hook's warning states needed one invented because the shipped
+     description paraphrased both labels away; this one did not, which is why only one of the
+     two lists costs a change to text users see.
      One class, two lists, because the register enumerates classes and "a shipped description of
      an engine behaviour disagrees with the other copies of itself" is one.
 
@@ -682,26 +731,41 @@ properties hold.
   Windows machine with no install step.
 - **The hook runs on every edit in every repository**, including ones that never adopted this
   framework. It must stay silent where the framework is not in use, and never throw.
-- **One parser, shared.** The two PowerShell readers disagree in **four** measured ways —
-  enumerated in the charter's parsers paragraph and deliberately not restated here — and this
-  change makes both answer the same question about the same file. **It was five until
-  2026-09-21**, when re-running the measurement showed that one of the five, leading dots, is
-  not a disagreement at all: both readers strip them with the same call, so it is a defect they
-  share and the lossless-normalisation constraint below is where it is fixed. The count
-  mattered because it was the argument. A check reporting
-  different collisions depending on which reader ran is worse than no check. **Root resolution
-  travels with it**, because getting the root wrong produces an empty comparison silently, which
-  is a larger failure than a misparsed manifest.
+- **One parser, shared, because one question about one file should have one answer.** That is
+  the property; the count of things wrong with the two readers today is evidence for it and is
+  not the argument. **Five defects, enumerated in the charter's parsers paragraph and not
+  restated here:** three where the two readers genuinely disagree, one where the hook disagrees
+  with itself, and one they share. A check reporting different collisions depending on which
+  reader ran is worse than no check, and so is a reader that answers differently depending on
+  which side of its own comparison a path arrived on.
 
-  **Which reader's behaviour becomes the shared behaviour, said for each of the four rather
-  than left to the spec.** On all four it is the script's, and the hook is the one that moves:
-  the script anchors `files:` to the start of a line where the hook matches the substring
-  anywhere, so a `profiles:` key feeds the hook claims that are not claims; the script collects
-  a path only inside a slice where the hook has no notion of slices; the script compares
-  case-insensitively, which criterion 1 already adopts; and the edited path exists only in the
-  hook, so the shared parser normalises it the same way it normalises a claim. **Four
-  divergences, one direction** — which is itself the argument that this is an extraction rather
-  than a redesign.
+  **The count was stated as a divergence count and moved twice — five, four, three — which is
+  why it is not the argument any more.** Each recount found another item that was a real defect
+  and not a disagreement: leading dots, which both readers strip identically, and the edited
+  path, which only the hook has. Reframed as *one question, one answer*, there is nothing left
+  to recount. **Root resolution travels with the parser**, because getting the root wrong
+  produces an empty comparison silently, which is a larger failure than a misparsed manifest.
+
+  **Which reader's behaviour becomes the shared behaviour, said for each rather than left to
+  the spec.** On all three disagreements it is the script's: it anchors `files:` to the start of
+  a line where the hook matches the substring anywhere, so a `profiles:` key feeds the hook
+  claims that are not claims; it collects a path only inside a slice where the hook has no
+  notion of slices; and it compares case-insensitively, which criterion 1 already adopts. The
+  fourth, the hook's own asymmetry, has no competing behaviour to choose between — the shared
+  parser normalises the edited path the same way it normalises a claim, which is the whole
+  point.
+
+  **So the parser is an extraction and the hook's behaviour change is the price**, and calling
+  the whole thing an extraction would be the comfortable half of that sentence. Nothing new is
+  invented: the shared reader is the script's reader, lifted. But **the hook gets stricter on
+  three axes at once**, and one consequence is worth stating because it is a behaviour change to
+  a shipped advisor. A plan that today gets claims recognised by the loose reading — a `files:`
+  line outside any slice, or one the script's anchor would reject — loses them, so files the
+  hook quietly treated as claimed start drawing an unplanned-scope warning. **Noisier, not less
+  safe**, and it cannot happen in this repository: all six plans were measured against the
+  strict reading and conform. It can happen in another one, which is where the no-migration
+  non-goal has nothing to say, because this is not version skew — it is the same version
+  reading the same file more carefully.
 
   **And "`-Plan <path>` keeps working exactly as it does today" means the invocation, the output
   and the exit-code vocabulary — not the verdict on every input.** The lossless-normalisation
@@ -879,11 +943,22 @@ properties hold.
 
 ## Open questions
 
-- **Does the cross-plan check run before the plan skill's approval gate, or at it?** The skill
-  writes the plan as a draft, runs the single-plan check, and approves later. Running it early
-  leaves the approval window unguarded — two sessions both past it and neither past the gate each
-  see the other as a draft, and both pass. Running it at the gate closes that window and moves
-  the check to a step that does not exist yet. *Owner: peter, at the spec gate.*
+- **Can the approval window be closed without a new step, and if not, is the window accepted?**
+  The skill writes the plan as a draft, runs the single-plan check, and approves later. Running
+  the cross-plan check at the existing early step leaves that window unguarded: two sessions
+  both past it and neither past the gate each see the other as a draft, and both pass.
+
+  **The question is narrower than it was, because a non-goal above forecloses half of it.**
+  "Running it at the gate" means running it at a step that does not exist, and this change adds
+  no step to the plan skill — so that branch is out of scope here by a decision already taken,
+  not by argument. **An earlier version of this question offered both branches while that
+  non-goal ruled one out**, which made the document contradict itself about its own scope.
+
+  What is left is genuinely open: accept the window and record it as a limitation, or find
+  something that narrows it inside the step that exists — re-running the check as the last act
+  before the status line is written is the obvious candidate and is not free, because it is
+  prose in a skill with no instrument behind it. *Owner: peter, at this document's gate, because
+  the answer decides whether a limitation gets written down or a mechanism gets specified.*
 - **Does shrinking the live set make the hook noisy enough to want softening?** Today's claims
   keep it quiet on those paths; after the marking, code files only finished plans claimed begin
   warning on every edit. Correct by the gate's definition, and a behaviour change to something
@@ -955,6 +1030,19 @@ the sections that use them.**
 - **`superseded` being written by the plan skill.** Believed because the shipped schema says so.
   The skill has never contained the word. Found by interrogation, not by reading the document
   that asserts it — which is the whole argument for interrogating in a fresh context.
+- **Counting divergences at all.** Five, then four, then three — and each recount removed an
+  item that was a real defect but not a disagreement between the two readers. The frame was
+  wrong, not the arithmetic: what the shared parser is for is that one question about one file
+  has one answer, which two readers differing violates and one reader disagreeing with itself
+  violates equally. **Found by reading for bad reasoning rather than for false facts**, after
+  five consecutive charter versions spent on the second kind.
+- **"At plan approval it refuses."** Asserted in the outcome while the open questions called the
+  same thing undecided. Today the check runs a step earlier, with the plan still a draft.
+- **"The gate hook is the guarantee", with the caveats two hundred lines away.** Its three bounds
+  were beside the word; the one that matters more — that an exception disables it silently and
+  permanently — was not.
+- **Calling the whole parser change an extraction.** The parser is extracted; the hook's
+  behaviour change is real and is the price, and it gets stricter on three axes at once.
 - **"The parallel build's status gate is unreachable."** True when written and false a day
   later: another chain repaired the loop above it and built the harness that runs a workflow
   body. Three places in this document said it. **Not a mistake so much as the thing this change

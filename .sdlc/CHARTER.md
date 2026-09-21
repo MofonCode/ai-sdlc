@@ -2,7 +2,7 @@
 solution: ai-sdlc
 artifact_root: .sdlc/
 status: approved
-version: 17
+version: 18
 updated: 2026-09-21
 owner: peter
 ---
@@ -413,7 +413,7 @@ They have diverged before — two normalised a
 leading `./` and the third did not, so a plan could pass the check that fans out and fail the
 check that merely warns.
 
-**The two PowerShell readers diverge in four measured ways**, each reproduced at v14 rather
+**The two PowerShell readers disagree in three measured ways**, each reproduced at v14 rather
 than recalled:
 
 - **Anchoring.** The script requires `files:` at the start of a line; the hook matches the
@@ -423,14 +423,27 @@ than recalled:
 - **Case.** The script accumulates into a PowerShell hashtable, which compares
   case-insensitively; the hook uses a `HashSet[string]` with the ordinal comparer. The same two
   paths are one claim to one reader and two to the other.
-- **The edited path.** Only the hook has one, and it normalises it differently from the claim
-  it compares against — full-path resolution and `TrimStart('\', '/')`, never a leading dot.
 
-**v9 listed five and the fifth was not a divergence.** It named "leading dots", which both
-readers strip identically with `TrimStart('.', '/')`; what that transform does is map
-`.sdlc/CHARTER.md` onto a string matching nothing on disk, in *both* readers at once. That is a
-shared defect the extraction must fix, not a disagreement the extraction resolves — and
-counting it here made the case for one parser out of four real reasons and one borrowed one.
+**And the hook disagrees with itself in a fourth way**, which one extraction also settles and
+which is not a divergence between the readers: it normalises the *edited* path differently from
+the claim it compares it against — full-path resolution and `TrimStart('\', '/')`, never a
+leading dot. The script has no edited path at all; it takes `-Plan` and nothing else, so the
+two cannot disagree about one.
+
+**Five, then four, now three — and the way that happened is the lesson.** v9 said five and
+named "leading dots", which both readers strip identically with `TrimStart('.', '/')`; what that
+transform does is map `.sdlc/CHARTER.md` onto a string matching nothing on disk, in *both*
+readers at once. A shared defect the extraction must fix, not a disagreement it resolves. v14
+removed it and said four. **v18 found that the re-measurement had been incomplete**: "the edited
+path" is not a disagreement between the readers either, for the plainer reason that only one of
+them has the concept. Both of the removed items are real defects and one parser fixes both; what
+was wrong twice was calling them disagreements.
+
+**The lesson is not "count carefully".** It is that *divergence* was the wrong frame. What the
+extraction is actually for is that **one question about one file should have one answer**, and
+that is violated whenever two readers differ *and* whenever one reader is inconsistent with
+itself. Counted that way there is nothing to recount: five defects, one parser, and the number
+stops being the argument.
 
 **They are kept in step by hand.** An earlier version of this paragraph said "by hand and by
 test"; no test has ever compared them, and a reader of that sentence believed a safety net
@@ -512,6 +525,7 @@ instrument. The register rows arrive with the checks, under the v8 rule.
 
 | Version | Date | Change |
 |---|---|---|
+| 18 | 2026-09-21 | **The re-measurement at v14 was itself incomplete, and the fix is to stop counting divergences.** v9 said the two PowerShell readers had diverged in five ways. v14 removed "leading dots" — both strip them identically, so it is a shared defect rather than a disagreement — and said four. **Four was still wrong.** "The edited path" is not a disagreement between the readers either: the script takes `-Plan` and nothing else and has no edited path at all, so the two cannot differ about one. It is the hook being inconsistent with *itself*, normalising the path it compares against differently from the claims it compares it to. Three genuine disagreements remain, and both removed items are real defects that one parser still fixes. **What matters is why this happened twice.** *Divergence* was the wrong frame, so each recount found another item that did not fit it and the number moved again. The frame that does not need recounting is **one question about one file should have one answer** — violated when two readers differ, and equally when one reader disagrees with itself. Five defects, one parser, and the count stops being the argument. **Found by reading for flawed reasoning rather than for false facts**, which is a different pass from the one that produced v13 through v17 and found something none of them did. |
 | 17 | 2026-09-21 | **A workflow body is executed before it ships, and the register gains the row for what that catches.** Rides the gate of `every-workflow-body-runs` under the v8 rule — a row recording an instrument travels with the change that adds the check, and that plan declares this file in its slice manifest. **The class is new and distinct from the one beside it:** *does not parse* was already covered; *parses, and then does not terminate, or throws, or dispatches an agent nobody answers* was not, and it is the one that actually shipped. The parallel build's wave loop removed dispatched slices by comparing slice objects against a string id, so it could not end, and nothing below it — the approval gate this charter cites under I3, the implementer dispatch, the verification stage — had ever executed. It passed every check this repository had, because the only instrument over a workflow parsed the body and deliberately never ran it. **The loop repair is one line; the row is for the harness**, which runs the real shipped body in a worker thread against doubles under a bound the parent enforces, because the loop is synchronous and nothing in-process can interrupt it. **I3's paragraph and the technology table are brought up to date in the same version**, since v16 had just finished correcting both of them to say this gate was unreachable. The honest residue is recorded with the check rather than here: the gate, the dispatch and the verification stage have now run against doubles and still never against agents. |
 | 16 | 2026-09-21 | **Swept, rather than spending a sixth version on one more defect.** Versions 10 through 15 each repaired a single claim this charter made about the code that was not so, every one found by someone reading past it on other business. Five versions, five defects, five days' worth of the same lesson — so this one checked *every* claim in the file against the code instead of waiting for the next reader. **Two more were found, and both were about something never having run.** The technology table said `check-workflow.mjs` *"evaluates a workflow body the way the runtime does"*; it parses the body and executes only the `meta` block, and its own comment says so — which is precisely why a workflow whose wave loop cannot terminate has passed that check since the day it was written. And I3 said `parallel-build.js` *"now reads the plan and refuses to build a draft"*; that gate is real code sitting below a loop that never exits, so the invariant was being satisfied here by something nothing has ever executed. **What was checked and held:** every test class named in I9's register exists in the suite; `init` does find packs by the `stack-` prefix; the hook names its default root and then resolves the declared one; the advisory exit is pinned where I8 says; the manifest is parsed in exactly the three places named. **The method is the amendment.** A claim about the code is worth what the last check of it was worth, and checking them one at a time as readers trip over them costs a version each. |
 | 15 | 2026-09-21 | **The count in I9's own warning moves: five new register rows, not four.** The owner settled, at `no-two-plans-claim-one-file`'s approval gate, that the shipped prose lists get a check rather than an entry admitting nothing holds them. Two lists, one class, one row: the hook's warning states — written out in the script's header, the README and the `description` in `hooks.json` that ships to every user — and the manifest-drift instruction, written out in the verifier agent, the schema reference and the verify skill. Nothing compared either set to anything. **The row is here because the ratio was the reason the question could not wait.** I9 says a list growing faster than the register is itself a finding, and the alternative answer would have made it eight known-and-unchecked entries against four rows, by postponement rather than by discovery. The paragraph now records that, so the next reader sees a count with a cause rather than a count. Nothing binding moves: I9 already required a named check per known class, and this is that rule being applied rather than relaxed. |
