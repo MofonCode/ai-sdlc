@@ -1,6 +1,6 @@
 ---
 slug: every-workflow-body-runs
-status: draft
+status: approved
 spec: none
 tier: task
 slices:
