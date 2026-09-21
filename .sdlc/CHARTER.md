@@ -2,7 +2,7 @@
 solution: ai-sdlc
 artifact_root: .sdlc/
 status: approved
-version: 13
+version: 14
 updated: 2026-09-21
 owner: peter
 ---
@@ -395,8 +395,26 @@ for the grammar rules below, in this same paragraph, four lines away.
 
 They have diverged before — two normalised a
 leading `./` and the third did not, so a plan could pass the check that fans out and fail the
-check that merely warns — and by v9 they had diverged in five ways, on anchoring, on leading
-dots, on case, on where a slice begins, and on the edited path against the claimed one.
+check that merely warns.
+
+**The two PowerShell readers diverge in four measured ways**, each reproduced at v14 rather
+than recalled:
+
+- **Anchoring.** The script requires `files:` at the start of a line; the hook matches the
+  substring anywhere, so a `profiles:` key feeds it claims the script never sees.
+- **Slice context.** The script collects a path only after a `- id:` line has opened a slice;
+  the hook has no notion of slices, so any `files:` line in the frontmatter contributes.
+- **Case.** The script accumulates into a PowerShell hashtable, which compares
+  case-insensitively; the hook uses a `HashSet[string]` with the ordinal comparer. The same two
+  paths are one claim to one reader and two to the other.
+- **The edited path.** Only the hook has one, and it normalises it differently from the claim
+  it compares against — full-path resolution and `TrimStart('\', '/')`, never a leading dot.
+
+**v9 listed five and the fifth was not a divergence.** It named "leading dots", which both
+readers strip identically with `TrimStart('.', '/')`; what that transform does is map
+`.sdlc/CHARTER.md` onto a string matching nothing on disk, in *both* readers at once. That is a
+shared defect the extraction must fix, not a disagreement the extraction resolves — and
+counting it here made the case for one parser out of four real reasons and one borrowed one.
 
 **They are kept in step by hand.** An earlier version of this paragraph said "by hand and by
 test"; no test has ever compared them, and a reader of that sentence believed a safety net
@@ -478,6 +496,7 @@ instrument. The register rows arrive with the checks, under the v8 rule.
 
 | Version | Date | Change |
 |---|---|---|
+| 14 | 2026-09-21 | **One of the five parser divergences was never a divergence.** The parsers paragraph said the two PowerShell readers had diverged in five ways — on anchoring, on leading dots, on case, on where a slice begins, and on the edited path against the claimed one. Reproduced rather than recalled: four of those hold, and **leading dots does not.** Both readers strip them with the same `TrimStart` call, and what that call does is map `.sdlc/CHARTER.md` onto a string matching nothing on disk, in both readers at once — a shared defect the extraction must repair, not a disagreement it resolves. **It mattered because the count was the argument.** "Five ways" was the case for extracting one parser, and it was four real reasons and one borrowed one. The paragraph now enumerates the four and says what each one does, so the next reader checks a list rather than a number. **Fifth consecutive version spent on one class** — a claim about the code written from memory — and the first of them found by re-measuring a figure that had already been called measured, which is the part worth carrying forward: *measured* is a claim with a shelf life, and the way to renew it is the command, not the memory of having run it. |
 | 13 | 2026-09-21 | **Two stale figures dated, one of them describing a suite a third the size of the one that now runs.** The self-improvement paragraph read *"I9 table is the register of it, and it has numbers: 49 tests, 12 injected faults, 12 caught"* in the present tense; the suite is at 151 cases from 125 methods and the register at 30 rows, counted rather than recalled. Both figures now carry the date they were taken, because a number in a charter is read as current unless it says otherwise. The parsers paragraph also still said v10 repaired *"the three grammar rules"*, which collided with the four the paragraph below now lists; it points at the rules rather than counting them, since the count is the thing that moved. **Same class as v11 and v12, and the third version in a row spent on it:** a claim about the code written from memory, in the document whose register exists so that every named check is real. Nothing binding moves. |
 | 12 | 2026-09-21 | **The grammar paragraph lists four rules, not three.** It stated the two `files:` rules and the `status:` rule and stopped, because when it was written the `finished:` field had no grammar — the field gained one later in the same conversation and this paragraph did not follow. Meanwhile the shipped schema listed four, so the charter and the engine's own reference disagreed about how many rules bind: the second-list failure, between the two documents that define the shape. **A version for one paragraph, deliberately.** The number is free and the row is the point — this is the fifth defect traceable to the twelve-question conversation at v9, which is the count v11's row said to watch. Nothing here is new: all four rules already bind and the schema already carried them. What changes is that the charter now says what the schema says. |
 | 11 | 2026-09-21 | **Two more factual claims in v9 corrected, and the pattern behind all of them recorded.** The charter said *"from v9 the first two share one extracted parser"* in the present tense; they do not, and `no-two-plans-claim-one-file` is the change that will extract it — a reader of that sentence concludes the work is done and skips the check that proves it. And the known-and-unchecked count moved three times while that change was scoped — seven, then five, then seven — as the entry list itself grew, each interrogation finding another class nothing catches. The figure is right again; what was wrong was ever stating it from memory instead of counting the list. I9 now records the instability rather than just the number. **The pattern is the reason this row exists.** v8 settled three questions and has needed no repair. v9 settled twelve, and v10 was required within the hour to fix two defects in it — then introduced this present-tense claim while repairing its exact twin four lines away in the same paragraph. Three consecutive fresh-context interrogations of the chain v9 unblocked found defects only in amendment prose, never in the change itself. **So: an amendment's error rate scales with its agenda, and the batching argument is about cost, not correctness.** v8's rule — batch, because an amendment costs a version and a log row — stands for cost and is now qualified for accuracy: **settle what one conversation can be reviewed in, and take a second version rather than a wrong one.** A factual claim about the code belongs checked against the code before it is written down, in the document whose register exists so that every named check is real. |

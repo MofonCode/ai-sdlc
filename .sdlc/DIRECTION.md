@@ -7,7 +7,9 @@ that are not yet chains. None of it exists anywhere else.
 **What this file is not.** It is **not a list of open chains** — each chain records its own stage
 in its `status:` line and its parked or blocked banner. It is **not a list of outstanding gaps** —
 `.sdlc/OPEN.md` holds those. Copying either here would make two lists with nothing comparing
-them, which is the failure this repository has built five separate checks for.
+them, which is the failure this repository has been bitten by four times and built five separate
+checks for — one of the four needed two, because the pair it holds together disagrees about
+content and about order.
 
 ---
 
@@ -82,7 +84,7 @@ reorder the interview, add a flag, three unchosen output contracts.
      `git mv` or a formatter never reaches it.
 
    **What the step actually is:** a lifecycle marker on a frozen frontmatter shape, one parser
-   extracted from two that disagree in five ways, a rewritten path normalisation, and four new
+   extracted from two that disagree in four ways, a rewritten path normalisation, and four new
    named checks with their register rows. It is still first, because the reason it was placed
    first is untouched — until two approved plans can be compared, two lines of work cannot
    safely run at once.
@@ -171,8 +173,9 @@ reorder the interview, add a flag, three unchosen output contracts.
    rounds' findings evaporate, because they were about a query mechanism that no longer needs
    inventing there.
 
-**The parked chain keeps its evidence.** Nine rounds of measured findings are real and worth
-keeping; they belong to a chain that has not been written yet.
+**The parked chain keeps its evidence.** Eleven rounds of measured findings are real and worth
+keeping; they belong to a chain that has not been written yet. Eleven is the number in that
+chain's own parked banner, and an earlier version of this line said nine.
 
 ## Two process rules, from the failures rather than from principle
 

@@ -170,6 +170,16 @@ needs a harness that actually runs a workflow body with its agent, parallel and 
 bound, which does not exist — and without one, the fix ships verified by reading, which is the
 same defect class that let this through.
 
+**The README recommends it, in a section nothing has corrected.** "Three ways to run a plan, in
+descending order of what the fan-out buys you" lists `workflows/parallel-build.js` second, as
+*"deterministic dependency waves, re-proves disjointness, halts on a red build rather than
+feeding a broken dependency forward."* Every clause is true of the code as written and none of
+it is reachable, because the wave loop never terminates. **That is the one false claim in this
+repository that a person outside it would act on**, since the README is what an installer reads.
+It is recorded here rather than fixed in passing: the honest fix is the one-line loop repair
+plus the harness that proves it, and a README note saying "this has never run" is worse than
+either — it advertises a broken tool with a disclaimer.
+
 **Consequences worth stating.** Every fan-out this framework has done was dispatched by hand
 rather than by this script, so the parallel-build premise is unproven rather than working.
 And `no-two-plans-claim-one-file` dropped fan-out as one of its homes because of this: a

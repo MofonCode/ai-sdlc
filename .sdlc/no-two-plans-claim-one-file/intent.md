@@ -449,9 +449,13 @@ properties hold.
   Windows machine with no install step.
 - **The hook runs on every edit in every repository**, including ones that never adopted this
   framework. It must stay silent where the framework is not in use, and never throw.
-- **One parser, shared.** The two PowerShell readers disagree in five measured ways — anchoring,
-  leading dots, case, where a slice begins, and the edited path against the claimed one — and
-  this change makes both answer the same question about the same file. A check reporting
+- **One parser, shared.** The two PowerShell readers disagree in **four** measured ways —
+  enumerated in the charter's parsers paragraph and deliberately not restated here — and this
+  change makes both answer the same question about the same file. **It was five until
+  2026-09-21**, when re-running the measurement showed that one of the five, leading dots, is
+  not a disagreement at all: both readers strip them with the same call, so it is a defect they
+  share and the lossless-normalisation constraint below is where it is fixed. The count
+  mattered because it was the argument. A check reporting
   different collisions depending on which reader ran is worse than no check. **Root resolution
   travels with it**, because getting the root wrong produces an empty comparison silently, which
   is a larger failure than a misparsed manifest.
@@ -667,6 +671,11 @@ the sections that use them.**
 - **`superseded` being written by the plan skill.** Believed because the shipped schema says so.
   The skill has never contained the word. Found by interrogation, not by reading the document
   that asserts it — which is the whole argument for interrogating in a fresh context.
+- **"Five measured ways" the two parsers disagree.** Four. Leading dots is not one of them —
+  both readers strip them identically, so it is a shared defect rather than a divergence. **The
+  new part is how it was found:** by re-running the measurement on a figure this document had
+  already labelled *measured*, which every other correction here had taken as settled. Measured
+  is a claim with a shelf life; renewing it takes the command, not the memory of having run it.
 
 Two decisions were reversed on evidence: a bulk-marking tool was dropped once its user population
 was measured at one repository, once; and a check reading this repository's live chain directory
