@@ -2,7 +2,7 @@
 solution: ai-sdlc
 artifact_root: .sdlc/
 status: approved
-version: 19
+version: 20
 updated: 2026-09-21
 owner: peter
 ---
@@ -245,13 +245,18 @@ is about to grow.** A class belongs here when its instrument is a *different cha
 catching it means rebuilding something this change only touches in passing. It is not a place
 to put a class because writing the check is tedious. **A list that grows faster than the
 register is itself a finding**, and the review that notices it is the amendment conversation:
-`no-two-plans-claim-one-file` takes this list from two entries to seven, against **five** new
-register rows, which is worth saying out loud rather than letting accumulate quietly. **It was
-four until the owner settled a question at that change's gate**, and the ratio is why the
-question could not be deferred: the alternative answer left the prose lists uninstrumented,
-which would have made it eight entries against four rows. A list growing faster than the
-register is a finding; a list that grows *because* a question was postponed is the same finding
-with a cause attached. **That
+`no-two-plans-claim-one-file` takes this list from two entries to **ten**, against **five** new
+register rows, which is worth saying out loud rather than letting accumulate quietly.
+
+**Both numbers moved while that change was being reviewed, in opposite directions and for
+opposite reasons, and the difference between them is the whole of this paragraph.** The rows
+went from four to five because the owner settled a question at the gate rather than deferring
+it — the alternative left two shipped prose lists uninstrumented. The entries went from five to
+eight because the test above was finally applied to three classes that had been left off on the
+grounds that this change happened not to touch them, which is not the test. **A list growing
+faster than the register is a finding. A list that grows because a question was postponed is
+that finding with a cause. A list that grows because its own admission rule was applied
+honestly is the rule working**, and telling the three apart is what this paragraph exists for. **That
 number moved three times while the change was being scoped** — seven, then five, then seven —
 because the entry list itself grew as each interrogation found another class nothing catches.
 Recorded because the instability is the finding: a list whose length nobody can state from
@@ -527,6 +532,7 @@ instrument. The register rows arrive with the checks, under the v8 rule.
 
 | Version | Date | Change |
 |---|---|---|
+| 20 | 2026-09-21 | **Three silent-failure classes were kept off the known-and-unchecked list by a test this invariant does not state.** `no-two-plans-claim-one-file` admitted one of four causes of a silent empty comparison in the gate hook — a wrongly resolved root — and left the other three off, on the grounds that the admitted one was the only one that change's own work touched. **That is not the rule.** The rule here is that a class belongs on the list when its instrument is a *different change*, which is true of all four: a hook that can report what it compared without speaking on every keystroke is a behavioural decision about a mechanism that fires constantly, and it deserves its own conversation. Proximity to the work in hand is not a qualification and not a disqualification. The count that change carries therefore moves from seven entries to ten, against five rows. **The paragraph now distinguishes three ways this list grows**, because they are not the same event: a list growing faster than the register is a finding; one that grows because a question was postponed is that finding with a cause; one that grows because its own admission rule was applied properly is the rule working. **Found by a round of interrogation spent on reasoning rather than on facts**, which was the first round dispatched with the mechanically-checkable claims verified up front. |
 | 19 | 2026-09-21 | **The tallies come out, because dating them did not work.** v13 found the self-improvement paragraph claiming "49 tests, 12 injected faults, 12 caught" in the present tense, long after the suite had passed it, and replaced that with two figures carrying the dates they were taken. **Both were wrong within hours.** The same day shipped `every-workflow-body-runs`, which added a register row and eleven test methods, and nothing in the dating mechanism noticed. **The rule that works is already in this document, two sections above:** *counts are deliberately not given here — a hand-maintained tally in a long-lived artifact is wrong by the next commit.* The technology section has obeyed it since v3; the self-improvement paragraph never did. The register counts itself and so does `dotnet test`, so the figures are removed rather than re-dated and a reader who wants one runs the thing. **Found by a mechanical pass over a chain artifact**, of the kind that ought to run before an interrogation rather than instead of one: every number in a document listed and re-derived. That pass found this charter breaking its own stated rule, which five rounds of adversarial reading of the *intent* had no reason to look for. |
 | 18 | 2026-09-21 | **The re-measurement at v14 was itself incomplete, and the fix is to stop counting divergences.** v9 said the two PowerShell readers had diverged in five ways. v14 removed "leading dots" — both strip them identically, so it is a shared defect rather than a disagreement — and said four. **Four was still wrong.** "The edited path" is not a disagreement between the readers either: the script takes `-Plan` and nothing else and has no edited path at all, so the two cannot differ about one. It is the hook being inconsistent with *itself*, normalising the path it compares against differently from the claims it compares it to. Three genuine disagreements remain, and both removed items are real defects that one parser still fixes. **What matters is why this happened twice.** *Divergence* was the wrong frame, so each recount found another item that did not fit it and the number moved again. The frame that does not need recounting is **one question about one file should have one answer** — violated when two readers differ, and equally when one reader disagrees with itself. Five defects, one parser, and the count stops being the argument. **Found by reading for flawed reasoning rather than for false facts**, which is a different pass from the one that produced v13 through v17 and found something none of them did. |
 | 17 | 2026-09-21 | **A workflow body is executed before it ships, and the register gains the row for what that catches.** Rides the gate of `every-workflow-body-runs` under the v8 rule — a row recording an instrument travels with the change that adds the check, and that plan declares this file in its slice manifest. **The class is new and distinct from the one beside it:** *does not parse* was already covered; *parses, and then does not terminate, or throws, or dispatches an agent nobody answers* was not, and it is the one that actually shipped. The parallel build's wave loop removed dispatched slices by comparing slice objects against a string id, so it could not end, and nothing below it — the approval gate this charter cites under I3, the implementer dispatch, the verification stage — had ever executed. It passed every check this repository had, because the only instrument over a workflow parsed the body and deliberately never ran it. **The loop repair is one line; the row is for the harness**, which runs the real shipped body in a worker thread against doubles under a bound the parent enforces, because the loop is synchronous and nothing in-process can interrupt it. **I3's paragraph and the technology table are brought up to date in the same version**, since v16 had just finished correcting both of them to say this gate was unreachable. The honest residue is recorded with the check rather than here: the gate, the dispatch and the verification stage have now run against doubles and still never against agents. |
