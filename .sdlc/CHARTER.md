@@ -54,12 +54,18 @@ The intent is the cheapest place to catch both.
 failed mechanical check, or a location pair is capped at `suggested` and cannot
 halt a cycle.
 
-**Amendment is by counts, not opinion.** Three numbers per invariant, all derived
-from the findings corpus:
+**Amendment is by counts, not opinion.** Every signal below is derived from the
+findings corpus by a read-only query — never stored in a committed file, which would
+be a second list beside the corpus. A signal is a **prompt to investigate, not a
+verdict**: no process may act on one, because acting means changing this document and
+that requires an approved charter intent (INV-08).
 
 | Signal | Reading | Action |
 |---|---|---|
-| cite count of 0 across N cycles | unenforceable, or decoration | candidate for deletion |
+| zero cites, and no violation can be constructed | decoration | delete |
+| zero cites, violations possible but undetectable | unenforceable | keep; make it checkable |
+| zero cites, prevented upstream by a template or check | working as designed | keep |
+| repeated **rejected** charter intents against it | unclear, not wrong | keep; clarify its wording |
 | high override count — cited then dispositioned "accepted, won't fix" | too broad, or wrong | candidate for narrowing |
 | recurring suggestion clusters on one theme | a missing invariant | candidate for addition |
 
@@ -95,8 +101,9 @@ process to protect it from. The rule is enforced by INV-08 from that moment on.
 **Finding an invariant nothing ever cites.** Four of the five amendment triggers
 announce themselves — a blocked cycle, a growing suggestions pile, a change you made,
 an arriving intent. The fifth produces no event at all: an invariant that no finding
-ever points at is either unenforceable or decoration, and nothing will ever prompt
-you to notice. You can be prompted about what happens; you have to go looking for
+ever points at is decoration, unenforceable, or being prevented upstream by a
+template — three readings calling for opposite actions — and nothing will ever prompt
+you to notice which. You can be prompted about what happens; you have to go looking for
 what does not. So one query — *which invariants have zero cites, and which deferred
 decisions are old with zero cites* — runs whenever a charter intent happens for any
 other reason, with a floor of every ten cycles.
@@ -104,6 +111,12 @@ other reason, with a floor of every ten cycles.
 **This document is interrogable.** Three of the four roles apply unchanged; the
 `charter` role is inapplicable to the charter and is substituted by `form`, which
 checks each invariant's shape rather than judging its content.
+
+**`Prevented-by:` is an optional invariant field.** When a template or mechanical
+check guarantees compliance, name it — `Prevented-by: the plan template`. Zero cites
+is then expected and correct rather than suspicious, and the health query can say
+"working as designed" instead of leaving you to work it out. Without the field, zero
+cites is a question.
 
 **Version stamping.** Every retro records the charter version in force when its
 cycle ran.

@@ -431,6 +431,49 @@ judgment.
   evidence, while one touching only facts needs just the reason — a CVE number, a
   release note.
 
+### Charter health is a query, never a file
+
+**DECIDED (2026-09-23):** the amendment signals are computed on demand by a read-only
+skill. They are never stored in a committed document — that document would be a second
+list beside the retro corpus with nothing binding them, INV-03 on the very artifact
+whose job is enforcing INV-03. `facts.md` set the precedent: derivable things are
+generated, uncommitted and regenerable.
+
+You still get to look at it whenever you like. It just cannot drift.
+
+**DECIDED: reporting and proposing are separate acts.** Reporting is read-only and has
+no side effects, so it can be run casually. Proposing files a charter intent, which is
+deliberate. One skill is fine; running it out of curiosity must never leave an intent
+behind.
+
+**DECIDED: no process may act on a signal.** Not a policy choice — INV-08 forbids it.
+Deleting an invariant is a charter change, so the most any skill can do is file a
+proposal a person approves or rejects.
+
+What the query reports, per invariant: cite count, disposition breakdown, override rate
+(`accepted-wont-fix` over total cites), and rejected-charter-intent count. Plus
+per-role rejection rates for the noisy-lens signal and per-deferred-decision cite
+counts. All derived, none stored.
+
+**Reading a zero honestly.** Zero cites has three meanings calling for opposite
+actions, so "candidate for deletion" was wrong:
+
+| Why zero | Action |
+|---|---|
+| no violation can be constructed → **decoration** | delete |
+| violations possible but undetectable → **unenforceable** | keep; make it checkable. Deleting fixes nothing and the violations continue |
+| prevented upstream by a template or check → **working** | keep. Zero cites is the goal |
+
+The third case is not hypothetical: put INV-05's file declaration in the plan template
+and no plan will ever violate it. The optional `Prevented-by:` field on an invariant is
+what lets the query distinguish that case instead of leaving it to interpretation.
+
+And a caution about volume: an invariant like INV-06 fires only when someone tries to
+suppress something, which may legitimately be once in fifty cycles. A low count there
+says nothing. For the first months the corpus is too small for any of this to mean
+anything — run the query early to build the habit, expect no conclusions before twenty
+or thirty cycles.
+
 **OPEN — four follow-ups to the amendment rule, none yet settled:**
 
 1. ~~**The `DEC` register.**~~ **CLOSED 2026-09-23.** Adding an entry is already
@@ -513,7 +556,7 @@ file, and its stopping condition is "all branches resolved" — the exact
 non-convergent condition v01 measured.
 
 **DECIDED:** `intent` asks the questions and **writes `intent.md` itself**, on
-branch `intent/<id>`, then opens the PR. The PR is the review: you read the
+branch `intent-<id>`, then opens the PR. The PR is the review: you read the
 artifact in its final form, in a diff, where review belongs. A bad interview is
 cheap to discard — close the PR and re-run.
 
@@ -1015,7 +1058,7 @@ its own cap, and it is a resource decision, not a correctness one.
 
 ```
 Phase 0 — AUTHORING                          interactive
-  intent -> intents/<id>.md on branch intent/<id>
+  intent -> intents/<id>.md on branch intent-<id>
          -> PR -> approve -> merge to master
   Gate: the merge. This is the human decision.
   No worktree: one markdown file, no build.
@@ -1081,6 +1124,59 @@ the landing itself — rebase conflicts, and the result of the post-rebase re-ve
 Abandonment is the one state with no evidence of its own, so it takes one explicit
 act: move the file to `intents/abandoned/`.
 
+### Two branches per intent
+
+**DECIDED (2026-09-23):** the intent gets its own short-lived branch, merges, and only
+then does the dispatcher create the work branch.
+
+```
+1  branch  intent-20260923-a7f3
+2  write   intents/20260923-a7f3.md on it
+3  PR
+4  approve → merge to master
+5  branch  cycle-20260923-a7f3        ← created by the dispatcher
+6  spec, plan, build, verify all happen here
+```
+
+Same id, different prefix. Both hyphenated, because the cycle name doubles as the
+worktree directory and a slash there would nest a directory — one of the two is forced,
+so matching it is free.
+
+**Why not one branch.** Writing the intent on the work branch would leave its PR open
+while spec, plan and code piled onto the same diff, so approving the intent would
+implicitly approve everything that followed. The intent gate has to close before work
+starts or it is not a gate. Writing the intent straight to master removes the PR, which
+removes the gate entirely.
+
+**DECIDED: the derivation keys on `cycle-<id>` specifically**, not "any branch
+mentioning this id". Otherwise a lingering `intent-<id>` branch reads as work in
+progress.
+
+### Abandonment — one state, one reason
+
+**DECIDED: `abandoned` is the only state, and it carries a mandatory `reason:`.**
+
+`rejected` is not available: it is already a finding disposition meaning *the finding
+was wrong*. Reusing it for intents would make one word mean two things at two altitudes
+— the mistake already corrected for `open` and for `chain`.
+
+Nor does the distinction earn two states. Refused and merely-dropped behave identically
+to the dispatcher, to the derivation, and to the corpus; only the *reason* differs, and
+that is a field. So one state, one directory, and the reason says which.
+
+Three points where an intent can die:
+
+| When | What happens |
+|---|---|
+| at the intent PR | nothing is on master yet. Close the PR |
+| after merge, before work starts | move the file to `intents/abandoned/` |
+| mid-cycle | delete the `cycle-<id>` branch, discarding the worktree; move the intent to `intents/abandoned/`. **No retro** — nothing landed, so it never reads as done |
+
+One judgment call on the first row: closing a PR because the intent is badly *written*
+is a draft iteration and needs no record. Rejecting the **idea** should land in
+`intents/abandoned/` with its reason, on the ADR principle that a rejected idea leaving
+no trace gets re-proposed by someone who does not know it was already considered.
+
 ### Blocked — when a cycle hits the charter
 
 **DECIDED: a cycle never amends the charter governing it. It files a request and
@@ -1126,8 +1222,50 @@ affects nothing else. Eight intents in a batch, cycle three hits a bad invariant
    the invariant they target**, or a batch of eight would file eight identical
    requests.
 4. You approve or reject when you next look.
-5. On merge, every intent blocked on it unblocks automatically and re-runs from
-   spec against the new charter.
+5. On merge, every intent blocked on it unblocks automatically.
+
+### The charter-intent PR carries both halves
+
+**DECIDED (2026-09-23): a charter intent's PR contains the request *and* the charter
+edit, and it merges either way.**
+
+If the intent merged alone and the charter were edited afterwards, there would be a
+window where the request has landed but the rule has not changed. Blocked intents derive
+their state from whether `blocked-by` has merged, so they would unblock, re-run against
+the **unchanged** charter, and block again immediately. One merge closes that window.
+
+| Outcome | The PR is amended to | Effect |
+|---|---|---|
+| **approved** | keep the charter edit; intent → `intents/` | rule changed; blocked intents re-run from spec against it |
+| **rejected** | drop the charter edit; intent → `intents/abandoned/` with a `reason:` | rule unchanged; the reason is on master, readable by the next cycle |
+
+One PR, one merge, opposite content. So `blocked-by` **always** resolves — nothing is
+ever blocked on something that never merges — and **where the intent landed is the
+answer**:
+
+- landed in `intents/` → the charter changed. Re-run from spec.
+- landed in `intents/abandoned/` → refused. This work needs re-scoping, and a human
+  dispositions the intent rather than the cycle retrying.
+
+**DECIDED: dedupe considers abandoned charter intents, not only pending ones.** Three
+cases:
+
+| What exists for this invariant | The cycle |
+|---|---|
+| a **pending** charter intent | links to it, blocks, waits |
+| an **abandoned** charter intent | blocks, and surfaces its `reason:` |
+| nothing | files one |
+
+The middle row is the useful one. A cycle blocked on a question already answered is a
+different signal from one blocked on an open question — it says the *work* needs
+rethinking, not the charter, and you see the reason you already gave instead of
+re-deriving it. A genuinely different case may still file a new charter intent, but it
+must state what differs.
+
+**DECIDED: repeated rejections are a clarification signal, not a deletion signal.**
+Three abandoned charter intents against one invariant means agents keep bumping into it
+and you keep saying no — which points at the rule being *unclear* rather than wrong. Its
+wording does not let an agent tell compliance from violation without trying.
 
 **DECIDED (2026-09-22): no develop branch. Master is the working branch, and the
 marketplace is pinned to a `release` ref.**
@@ -1483,22 +1621,123 @@ Evidence only. Authority is `Directory.Packages.props`.
 | Infra | Terraform ~> 1.14, `hashicorp/azurerm ~> 4.51`, azurerm remote backend |
 | Conventions | Central Package Management, transitive pinning, shared `.editorconfig`, `coverage.runsettings` excluding EF migrations |
 
-**OPEN:** `bunit` 1.41.1 is pinned but dead — no project references it, no
-scaffold emits it, no test uses it. Wire up Blazor component testing, or drop the
-pin.
+**DECIDED (2026-09-23): `bunit` 2.11.3, and bump the Blazor packages to 10.0.10+
+in the same change.**
+
+v01 pinned 1.41.1 with nothing referencing it — a pin asserting a capability no check
+verified, which is INV-07's shape. Rather than drop it, it is brought current and made
+real, and verification cycles confirm the combination.
+
+The version arithmetic, because it forces a second bump: bunit 2.11.3 requires
+`Microsoft.AspNetCore.Components >= 10.0.10`, and v01 pins `Components.WebAssembly` at
+10.0.1 — nine patches behind, while `AspNetCore.OpenApi` sits at 10.0.12 from the CVE
+fix. So the stack is already internally inconsistent and this makes it consistent. The
+1.41.1 → 2.x jump is a major version with API changes, but since nothing used it, the
+migration is free.
+
+### The web pack is host-agnostic by default, so mobile stays additive
+
+**DECIDED (2026-09-23):** the .NET web pack scaffolds a **host-agnostic Razor class
+library** whether or not mobile is wanted. MAUI is not a near-term target; this is about
+not foreclosing it.
+
+Microsoft ships an official `.NET MAUI Blazor Hybrid and Web App` template targeting
+Android, iOS, Mac, Windows and Web from one shared UI, and its architecture is three
+projects with one hard rule:
+
+```
+Lib/        RCL — Razor components, static assets, and INTERFACES for platform
+            capability. Microsoft.NET.Sdk.Razor, plain net10.0, no MAUI dependency
+Lib.Maui/   references Lib; implements those interfaces with MAUI APIs
+MauiApp/    references both; registers the implementations in DI
+```
+
+Dependency flow is App → MAUI library → RCL, and **the RCL never references the MAUI
+library.** Anything platform-specific — device info, permissions, file system,
+connectivity, geolocation — is an interface in the RCL and an implementation outside it.
+
+The reason to adopt the structure now rather than a separate MAUI pack:
+
+| Components live | Adding mobile later is |
+|---|---|
+| directly in the web app | a **refactor** — extract every component, find every platform assumption |
+| in a host-agnostic RCL | **additive** — add two projects, nothing moves |
+
+Cost is one extra project plus the discipline of abstracting platform capability. Low in
+practice for a business web app, where most behaviour is HTTP calls and rendering and is
+already host-agnostic; the abstractions only bite for device-ish things such an app
+rarely does.
+
+**This is also what makes the bunit decision cover everything.** The RCL is plain
+`net10.0` with no MAUI dependency, so bunit tests those components with no device,
+emulator or MAUI involvement — which is Microsoft's own guidance. The testing split
+follows: RCL components by bunit now, the thin MAUI adapter layer by device or emulator
+integration tests, deferred. Risk concentrates in the RCL, which is the part covered.
+
+**Recorded pack constraints:**
+
+- **iOS requires macOS to build and sign.** Apple's constraint, not .NET's. Android and
+  Windows build on a Windows box; iOS needs a networked Mac or a macOS CI runner at a
+  higher billing multiplier. The framework staying Windows-only is unaffected, but a
+  generated iOS-targeting solution is not buildable on Windows alone.
+- **Multi-targeted builds are expensive** — `net10.0-android;net10.0-ios;net10.0-maccatalyst`
+  plus conditional Windows. This is a direct input to the unsupervised concurrency cap:
+  one worktree per cycle each running a multi-target MAUI build costs far more than the
+  pure web case.
+- **MAUI's quality history.** The .NET 10 release focus is stated as "product quality",
+  which is an acknowledgement of MAUI's reputation. LTS through November 2028 is the
+  reassurance. Expect the strict gates — warnings-as-errors, `AnalysisLevel=latest-all` —
+  to meet more friction here than in a pure web project, which argues for the pack
+  shipping a known-good configuration rather than each solution rediscovering it.
 
 ---
 
 ## 10. Hosting and distribution
 
-**DECIDED (moved 2026-09-21):** all MofonCode-owned code lives in Azure DevOps,
-org `dev.azure.com/MofonCode`. GitHub is demoted to a secondary remote. Branch
-tracking follows `origin`, so a bare `git push` goes to ADO.
+**DECIDED (2026-09-23): GitHub only. One home, no mirror.**
 
-| Repo | Clone URL | State |
-|---|---|---|
-| `ai-sdlc` | `https://dev.azure.com/MofonCode/ai-sdlc/_git/ai-sdlc` | `master` + `archive/v01`, SHAs verified identical to local |
-| `MofonCode.Core` | `https://dev.azure.com/MofonCode/MofonCode.Core/_git/MofonCode.Core` | empty — never written |
+This reverses the 2026-09-21 move to Azure DevOps, which was made to match the existing
+`MarketSense` project. Two reasons, and the second is the stronger:
+
+- **A mirror is an INV-03 violation.** Two copies of a repository with nothing enforcing
+  that they agree. An earlier draft of this document proposed keeping GitHub as a push
+  mirror; that was wrong for exactly the reason the charter exists to catch.
+- **GitHub is the documented default marketplace source, and going there deletes the
+  only blocking open item.** Azure DevOps needed a special rule shipped in Claude Code
+  2.1.72 (omit `.git`, `/_git/` path detection) and its credential path is still
+  unverified end to end. On GitHub that question does not arise.
+
+Also, for `MofonCode.Core` specifically: the package publishes publicly to nuget.org, and
+if the source is ever made public — ordinary for a shared kernel — GitHub is its natural
+home and ADO is not.
+
+**Azure DevOps keeps nothing.** Not even a wiki: a wiki restating anything already in
+`concept.md` or `CHARTER.md` is the mirror problem again at smaller scale. Boards would
+be defensible if work tracking is ever wanted, since tracking work is not duplicating
+facts about code — but YAGNI, and nothing needs them today.
+
+**Three things to confirm before executing the move:**
+
+1. **Is `github.com/MofonCode/ai-sdlc` private?** This document records that
+   `MofonCode.Core` there is public and empty; it says nothing about ai-sdlc. If it is
+   public, making it the home publishes everything. One command, and it must run first.
+2. **Do the teammates arriving have GitHub org access?** Whichever host is already
+   provisioned is the lower-friction answer.
+3. **Does `MarketSense` stay on ADO?** If solutions live there and the framework lives on
+   GitHub, that is a deliberate split. Defensible — a plugin consumed by developers is a
+   different kind of thing from solution code, and retro absorption is a manual file copy
+   that does not care about hosts — but it should be chosen rather than drifted into.
+
+Dormant GitHub repos should be **archived** rather than left stale, `MofonCode.Core`
+first: public and empty under an org name is the worst state, since it invites confusion
+about what is canonical.
+
+**Recorded history, since it explains what was considered.** Both repos were moved to
+ADO on 2026-09-21, SHAs verified identical to local, both projects Agile / Git /
+private. The clone URLs were
+`https://dev.azure.com/MofonCode/{ai-sdlc,MofonCode.Core}/_git/…`. The ADO research
+below remains accurate and is kept because it is the fallback if GitHub ever proves
+unsuitable.
 
 ### How ai-sdlc is distributed
 
@@ -1681,14 +1920,24 @@ belong to, with their reason.
 4. When to promote ai-sdlc's seven local invariants into a shared
    `mofoncode-invariants@v1` set — becomes real at solution two. (§2)
 
-**Open — smaller**
+**Closed 2026-09-23 — the five smaller items**
 
-5. Do the two `.mjs` repo tools still have a job now that workflows are a runtime
-   feature? (§9)
-6. `bunit` — wire up Blazor component testing or drop the pin. (§9)
-7. `MofonCode.Core`: one package with analyzers as an asset, or two? (§10)
-8. Does GitHub get retired, or stay as a public mirror? (§10)
-9. Which defaulted stacks to build first. (§6)
+- ~~The two `.mjs` repo tools.~~ **Not carried forward.** v01 needed them because
+  parsing and executing workflow bodies required a JS engine; dynamic workflows are now
+  that engine, and nothing has been ported. Bonus: this removes Node from the framework's
+  dependency list entirely — it was only ever there because nothing else could do the job.
+- ~~`bunit`.~~ **2.11.3, with the Blazor packages bumped to 10.0.10+** (§9).
+- ~~`MofonCode.Core` packaging.~~ **One package**, analyzers shipped inside as an
+  `analyzers/dotnet/cs` asset. The deciding argument is reversibility: splitting later is
+  additive and existing consumers are unaffected, while merging two already-published
+  packages is breaking. One is the direction you can back out of. The usual counter — that
+  analyzers want their own package so consumers can take rules without runtime — does not
+  apply to a shared kernel, where every consumer takes the runtime anyway.
+- ~~GitHub's fate.~~ **GitHub only, no mirror** (§10).
+- ~~Which stack pack first.~~ **.NET library.** `MofonCode.Core` is the first real client
+  and it is a library, so build the pack that client needs rather than the most impressive
+  one. It is also the smallest — no Aspire, no EF Core, no Blazor — which proves the pack
+  mechanism cheaply before committing to its shape. Then .NET API.
 
 **Deferred deliberately, with their trigger conditions recorded**
 
