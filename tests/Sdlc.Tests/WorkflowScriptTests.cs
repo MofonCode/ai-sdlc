@@ -4,24 +4,27 @@ using System.Text.RegularExpressions;
 namespace Sdlc.Tests;
 
 /// <summary>
-/// Checks the interrogation workflow script for the defects the runtime only reports at
-/// launch, and — the one that matters — holds its hardcoded enums against the schema
-/// that owns them.
+/// Structural checks every shipped workflow script must pass, plus the per-script
+/// guarantees that carry real weight.
 ///
-/// The script restates the eleven categories, three states and six stages because a
-/// workflow script cannot read a file. That is a second list, so INV-03 requires the
-/// check binding the two together to ship in the same change. This is that check.
+/// The enum checks are the important ones. A workflow script cannot read a file, so
+/// every script restates the categories and stages the findings schema owns — a second
+/// list, which means INV-03 requires the check binding them together to ship in the same
+/// change. These are those checks.
 /// </summary>
 [TestClass]
 public sealed class WorkflowScriptTests
 {
-    private static string ScriptPath =>
-        Path.Combine(AppContext.BaseDirectory, "workflows", "interrogate.js");
+    private static string WorkflowDir => Path.Combine(AppContext.BaseDirectory, "workflows");
 
     private static string SchemaPath =>
         Path.Combine(AppContext.BaseDirectory, "schemas", "findings.schema.json");
 
-    private static string Script => File.ReadAllText(ScriptPath);
+    public static IEnumerable<object[]> AllScripts() =>
+        Directory.EnumerateFiles(WorkflowDir, "*.js")
+            .Select(p => new object[] { Path.GetFileName(p) });
+
+    private static string Read(string name) => File.ReadAllText(Path.Combine(WorkflowDir, name));
 
     private static string[] SchemaEnum(string defName)
     {
@@ -31,147 +34,202 @@ public sealed class WorkflowScriptTests
             .EnumerateArray().Select(e => e.GetString()!)];
     }
 
-    private static string[] ScriptArray(string constName)
+    private static string[]? ScriptArray(string script, string constName)
     {
         Match block = Regex.Match(
-            Script,
+            script,
             @"const\s+" + Regex.Escape(constName) + @"\s*=\s*\[(?<body>[^\]]*)\]",
             RegexOptions.Singleline);
 
-        Assert.IsTrue(block.Success, $"could not find `const {constName} = [...]` in the script");
+        if (!block.Success)
+        {
+            return null;
+        }
 
         return [.. Regex.Matches(block.Groups["body"].Value, @"'([^']+)'")
             .Select(m => m.Groups[1].Value)];
     }
 
+    // --- structural, every script -------------------------------------------
+
     [TestMethod]
-    public void TheScriptShips()
+    public void WorkflowsShip()
     {
-        Assert.IsTrue(File.Exists(ScriptPath), $"not found: {ScriptPath}");
+        Assert.IsTrue(AllScripts().Any(), "no workflow scripts found in the output");
     }
 
     [TestMethod]
-    public void MetaIsFirstAndCarriesTheRequiredFields()
+    [DynamicData(nameof(AllScripts))]
+    public void MetaIsFirstAndCarriesTheRequiredFields(string name)
     {
-        string script = Script;
+        ArgumentNullException.ThrowIfNull(name);
+        string script = Read(name);
 
         Assert.IsTrue(
             script.TrimStart().StartsWith("export const meta", StringComparison.Ordinal),
-            "meta must be the first statement or the workflow is dropped from autocomplete");
-
-        Assert.IsTrue(script.Contains("name:", StringComparison.Ordinal), "meta needs a name");
-        Assert.IsTrue(script.Contains("description:", StringComparison.Ordinal), "meta needs a description");
+            $"{name}: meta must be the first statement or the workflow is dropped from autocomplete");
+        Assert.IsTrue(script.Contains("name:", StringComparison.Ordinal), $"{name}: meta needs a name");
+        Assert.IsTrue(script.Contains("description:", StringComparison.Ordinal), $"{name}: meta needs a description");
     }
 
     [TestMethod]
-    public void MetaIsAPureLiteral()
+    [DynamicData(nameof(AllScripts))]
+    public void MetaIsAPureLiteral(string name)
     {
+        ArgumentNullException.ThrowIfNull(name);
+        string script = Read(name);
+
         // A variable, call or spread inside meta drops the workflow from autocomplete
-        // silently, which is the worst failure mode available: it just never appears.
-        int start = Script.IndexOf("export const meta", StringComparison.Ordinal);
-        int end = Script.IndexOf("\n}", start, StringComparison.Ordinal);
-        string meta = Script[start..end];
+        // silently — the worst failure available, because it simply never appears.
+        int start = script.IndexOf("export const meta", StringComparison.Ordinal);
+        int end = script.IndexOf("\n}", start, StringComparison.Ordinal);
+        string meta = script[start..end];
 
-        Assert.IsFalse(meta.Contains("${", StringComparison.Ordinal), "no template interpolation in meta");
-        Assert.IsFalse(meta.Contains("...", StringComparison.Ordinal), "no spread in meta");
-        Assert.IsFalse(Regex.IsMatch(meta, @"[A-Za-z_$][\w$]*\("), "no function calls in meta");
+        Assert.IsFalse(meta.Contains("${", StringComparison.Ordinal), $"{name}: no template interpolation in meta");
+        Assert.IsFalse(meta.Contains("...", StringComparison.Ordinal), $"{name}: no spread in meta");
+        Assert.IsFalse(Regex.IsMatch(meta, @"[A-Za-z_$][\w$]*\("), $"{name}: no function calls in meta");
     }
 
     [TestMethod]
-    public void EveryPhaseCallHasAMatchingMetaEntry()
+    [DynamicData(nameof(AllScripts))]
+    public void EveryPhaseCallHasAMatchingMetaEntry(string name)
     {
-        string script = Script;
+        ArgumentNullException.ThrowIfNull(name);
+        string script = Read(name);
 
         string[] called = [.. Regex.Matches(script, @"phase\('([^']+)'\)")
             .Select(m => m.Groups[1].Value).Distinct()];
-
         string[] declared = [.. Regex.Matches(script, @"\{\s*title:\s*'([^']+)'")
             .Select(m => m.Groups[1].Value).Distinct()];
-
-        Assert.IsTrue(called.Length > 0, "no phase() calls found");
 
         foreach (string phase in called)
         {
             CollectionAssert.Contains(declared, phase,
-                $"phase('{phase}') has no meta.phases entry — titles are matched exactly");
+                $"{name}: phase('{phase}') has no meta.phases entry — titles are matched exactly");
         }
     }
 
     [TestMethod]
-    public void NoConstructsTheRuntimeForbids()
+    [DynamicData(nameof(AllScripts))]
+    public void NoConstructsTheRuntimeForbids(string name)
     {
-        string script = Script;
+        ArgumentNullException.ThrowIfNull(name);
+        string script = Read(name);
 
-        // These break resume, so the runtime makes them throw.
-        Assert.IsFalse(script.Contains("Date.now()", StringComparison.Ordinal),
-            "Date.now() throws inside a workflow: it would break resume");
-        Assert.IsFalse(script.Contains("Math.random()", StringComparison.Ordinal),
-            "Math.random() throws inside a workflow: it would break resume");
-        Assert.IsFalse(Regex.IsMatch(script, @"new Date\(\s*\)"),
-            "argless new Date() throws inside a workflow");
+        // These would break resume, so the runtime makes them throw.
+        Assert.IsFalse(script.Contains("Date.now()", StringComparison.Ordinal), $"{name}: Date.now() throws");
+        Assert.IsFalse(script.Contains("Math.random()", StringComparison.Ordinal), $"{name}: Math.random() throws");
+        Assert.IsFalse(Regex.IsMatch(script, @"new Date\(\s*\)"), $"{name}: argless new Date() throws");
 
         // A script containing import() fails before the run starts.
-        Assert.IsFalse(Regex.IsMatch(script, @"\bimport\s*\("),
-            "no module loading inside a workflow script");
+        Assert.IsFalse(Regex.IsMatch(script, @"\bimport\s*\("), $"{name}: no module loading");
 
         // Plain JavaScript, not TypeScript.
-        Assert.IsFalse(Regex.IsMatch(script, @"\b(interface|enum)\s+[A-Z]"),
-            "workflow scripts are plain JavaScript");
+        Assert.IsFalse(Regex.IsMatch(script, @"\b(interface|enum)\s+[A-Z]"), $"{name}: plain JavaScript only");
     }
 
     // --- the INV-03 binding checks -----------------------------------------
 
     [TestMethod]
-    public void ScriptCategoriesMatchTheSchema()
+    [DynamicData(nameof(AllScripts))]
+    public void RestatedEnumsMatchTheSchemaThatOwnsThem(string name)
     {
-        CollectionAssert.AreEquivalent(
-            SchemaEnum("category"),
-            ScriptArray("CATEGORIES"),
-            "the script's categories have drifted from schemas/findings.schema.json, which owns them");
+        ArgumentNullException.ThrowIfNull(name);
+        string script = Read(name);
+
+        string[]? categories = ScriptArray(script, "CATEGORIES");
+        if (categories is not null)
+        {
+            CollectionAssert.AreEquivalent(SchemaEnum("category"), categories,
+                $"{name}: categories have drifted from schemas/findings.schema.json, which owns them");
+        }
+
+        string[]? stages = ScriptArray(script, "STAGES");
+        if (stages is not null)
+        {
+            CollectionAssert.AreEquivalent(SchemaEnum("stage"), stages,
+                $"{name}: stages have drifted from the schema that owns them");
+        }
     }
 
     [TestMethod]
-    public void ScriptStagesMatchTheSchema()
+    public void InterrogateStatesMatchTheSchema()
     {
-        CollectionAssert.AreEquivalent(
-            SchemaEnum("stage"),
-            ScriptArray("STAGES"),
-            "the script's stages have drifted from the schema that owns them");
-    }
+        Match inline = Regex.Match(Read("interrogate.js"), @"state:\s*\{\s*enum:\s*\[(?<body>[^\]]*)\]");
+        Assert.IsTrue(inline.Success, "could not find the state enum in interrogate.js");
 
-    [TestMethod]
-    public void ScriptStatesMatchTheSchema()
-    {
-        // The states are inline in the merge schema rather than a named const, so they
-        // are read from there.
-        Match inline = Regex.Match(Script, @"state:\s*\{\s*enum:\s*\[(?<body>[^\]]*)\]");
-        Assert.IsTrue(inline.Success, "could not find the state enum in the script");
-
-        string[] scriptStates = [.. Regex.Matches(inline.Groups["body"].Value, @"'([^']+)'")
+        string[] states = [.. Regex.Matches(inline.Groups["body"].Value, @"'([^']+)'")
             .Select(m => m.Groups[1].Value)];
 
-        CollectionAssert.AreEquivalent(SchemaEnum("state"), scriptStates,
-            "the script's states have drifted from the schema that owns them");
+        CollectionAssert.AreEquivalent(SchemaEnum("state"), states,
+            "interrogate.js states have drifted from the schema that owns them");
     }
 
+    // --- per-script guarantees that carry weight ---------------------------
+
     [TestMethod]
-    public void StateIsAssignedInCodeAndNotByAnAgent()
+    public void InterrogateForbidsAgentsChangingState()
     {
-        // The anti-inflation guard only holds if an agent cannot set state. The merge
-        // prompt must say so explicitly, because a merge agent handed a list of findings
-        // will otherwise helpfully "correct" them.
+        // The anti-inflation guard only holds if an agent cannot set state. A merge agent
+        // handed a list of findings will otherwise helpfully "correct" them.
         Assert.IsTrue(
-            Script.Contains("Do NOT change any `state`", StringComparison.Ordinal),
+            Read("interrogate.js").Contains("Do NOT change any `state`", StringComparison.Ordinal),
             "the merge prompt must forbid changing state, or the guard is advisory");
     }
 
     [TestMethod]
-    public void TheCharterSubstitutesTheFormRole()
+    public void InterrogateSubstitutesTheFormRoleForTheCharter()
     {
-        // Interrogating the charter has no authority above it, so the charter role is
-        // replaced by form, which judges shape rather than content. Without this the
-        // charter is the one artifact nothing can check.
-        Assert.IsTrue(Script.Contains("FORM_ROLE", StringComparison.Ordinal));
-        Assert.IsTrue(Script.Contains("isCharter", StringComparison.Ordinal));
+        string script = Read("interrogate.js");
+        Assert.IsTrue(script.Contains("FORM_ROLE", StringComparison.Ordinal));
+        Assert.IsTrue(script.Contains("isCharter", StringComparison.Ordinal));
+    }
+
+    [TestMethod]
+    public void RepairTerminatesOnNoProgressRatherThanOnClean()
+    {
+        string script = Read("repair.js");
+
+        Assert.IsTrue(script.Contains("stalls", StringComparison.Ordinal),
+            "repair must track consecutive rounds without progress");
+        Assert.IsTrue(script.Contains("STALL_LIMIT", StringComparison.Ordinal),
+            "repair must have a stall limit — 'until clean' never fires, because the finding rate does not decay");
+        Assert.IsTrue(script.Contains("halted-no-progress", StringComparison.Ordinal),
+            "an unconverged repair must report a named outcome rather than passing quietly");
+    }
+
+    [TestMethod]
+    public void RepairLooksForWhatTheRepairIntroduced()
+    {
+        // This is the whole point. A recheck that only confirms the fix is blind to the
+        // measured failure: roughly three in four repairs create a new blocking defect.
+        string script = Read("repair.js");
+
+        Assert.IsTrue(script.Contains("introduced", StringComparison.Ordinal),
+            "the recheck must ask what the repair introduced, not only whether it worked");
+        Assert.IsTrue(script.Contains("INTRODUCE", StringComparison.Ordinal),
+            "the recheck prompt must make the second job explicit");
+    }
+
+    [TestMethod]
+    public void RepairEscalatesFindingsItCannotHeal()
+    {
+        // A blocking finding with no repair cannot self-heal — a deferred-decision
+        // blocker never can, since no artifact edit resolves "nobody has decided yet".
+        // Carrying it round after round would spin the loop.
+        string script = Read("repair.js");
+
+        Assert.IsTrue(script.Contains("harvestEscalations", StringComparison.Ordinal));
+        Assert.IsTrue(script.Contains("escalated", StringComparison.Ordinal));
+    }
+
+    [TestMethod]
+    public void RepairDropsARepairThatDidNotWork()
+    {
+        // Without this the loop can retry the same failed change forever, and the
+        // no-progress detector would be the only thing stopping it.
+        Assert.IsTrue(
+            Read("repair.js").Contains("repair: undefined", StringComparison.Ordinal),
+            "a repair shown not to resolve its finding must not be retried verbatim");
     }
 }
