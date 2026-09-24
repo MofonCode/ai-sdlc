@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Text;
 using System.Text.Json;
 
 namespace Sdlc.Tests;
@@ -153,6 +154,23 @@ public sealed class FactGatheringTests
             | src/Leaf.cs | new |
             """);
 
+        // NOT PURE ASCII, deliberately. Every other fixture in this suite is, and that is
+        // precisely why the suite could not see the encoding defect: the real charter's
+        // frontmatter contains em-dashes, the gatherer emitted structurally invalid JSON for
+        // it, and all 146 tests passed anyway.
+        File.WriteAllText(Path.Combine(_repo, ".sdlc", "intents", "20260924-ffff.md"), """
+            ---
+            id: 20260924-ffff
+            source: authored
+            origin: hand-written — an em-dash in a frontmatter value
+            ---
+
+            # An intent whose prose uses the house style
+
+            House style uses em-dashes — liberally — and curly quotes
+            like “this”, so an artifact without them is the exception.
+            """);
+
         Git("init --initial-branch=main");
         Git("add -A");
         Git("-c user.email=t@example.invalid -c user.name=Test commit -m fixture");
@@ -193,6 +211,12 @@ public sealed class FactGatheringTests
             RedirectStandardOutput = true,
             RedirectStandardError = true,
             UseShellExecute = false,
+
+            // Read as UTF-8 explicitly. Without this the harness decodes the child's output
+            // using the test host's default codepage, so a script that correctly emits UTF-8
+            // would still arrive mangled and the check would be measuring the harness.
+            StandardOutputEncoding = Encoding.UTF8,
+            StandardErrorEncoding = Encoding.UTF8,
         })!;
 
         string stdout = p.StandardOutput.ReadToEnd();
@@ -230,6 +254,33 @@ public sealed class FactGatheringTests
 
         string sha = facts.RootElement.GetProperty("generated-at-sha").GetString()!;
         Assert.IsFalse(string.IsNullOrWhiteSpace(sha), "facts must pin the commit they were gathered at");
+    }
+
+    [TestMethod]
+    public void ItEmitsValidJsonForAnArtifactThatIsNotPureAscii()
+    {
+        // THE REGRESSION. Windows PowerShell 5.1 reads a BOM-less file as ANSI and encodes
+        // stdout using the console codepage, and both halves broke at once:
+        //
+        //   reading — an em-dash's UTF-8 bytes decoded under CP1252 to three characters
+        //   writing — the last of those, U+201D, best-fit to a plain double quote, which
+        //             TERMINATED the JSON string and made the whole document unparseable
+        //
+        // The caller is a workflow that runs JSON.parse on this, and its failure path is to
+        // continue WITHOUT mechanical findings. So the symptom was never an error: it was an
+        // interrogation quietly losing the mechanical findings that are most of its yield.
+        using JsonDocument facts = Gather(".sdlc/intents/20260924-ffff.md");
+
+        string origin = facts.RootElement
+            .GetProperty("artifact").GetProperty("frontmatter")
+            .GetProperty("origin").GetString()!;
+
+        Assert.AreEqual("hand-written — an em-dash in a frontmatter value", origin,
+            "the em-dash must survive the round trip through the gatherer intact");
+        Assert.IsFalse(origin.Contains('�', StringComparison.Ordinal),
+            "a replacement character means the file was decoded as the wrong codepage");
+        Assert.IsFalse(origin.Contains('"', StringComparison.Ordinal),
+            "a double quote here is the best-fit substitution that broke the JSON");
     }
 
     [TestMethod]

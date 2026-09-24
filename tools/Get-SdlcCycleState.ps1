@@ -51,6 +51,17 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
+# Windows PowerShell 5.1 encodes stdout using the console's codepage, which is ANSI on a
+# default Windows install. An em-dash then leaves this script as a CP1252 best-fit
+# substitution, and U+201D best-fits to a plain double quote — which does not merely look
+# wrong, it TERMINATES the JSON string and the caller receives a structurally invalid
+# document. Every governed artifact in this repository contains em-dashes, so this is the
+# normal case rather than an edge one. UTF8Encoding($false) rather than
+# [System.Text.Encoding]::UTF8 because the latter prepends a BOM to the output stream,
+# which is not valid at the start of a JSON document.
+$OutputEncoding = New-Object System.Text.UTF8Encoding $false
+[Console]::OutputEncoding = $OutputEncoding
+
 function Resolve-RepoRoot {
     param([string] $Start)
 
@@ -70,7 +81,7 @@ function Get-FrontmatterField {
 
     if (-not (Test-Path -LiteralPath $Path)) { return $null }
 
-    $lines = @(Get-Content -LiteralPath $Path)
+    $lines = @(Get-Content -LiteralPath $Path -Encoding UTF8)
     if ($lines.Count -eq 0 -or $lines[0].Trim() -ne '---') { return $null }
 
     for ($i = 1; $i -lt $lines.Count; $i++) {

@@ -47,6 +47,17 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
+# Windows PowerShell 5.1 encodes stdout using the console's codepage, which is ANSI on a
+# default Windows install. An em-dash then leaves this script as a CP1252 best-fit
+# substitution, and U+201D best-fits to a plain double quote — which does not merely look
+# wrong, it TERMINATES the JSON string and the caller receives a structurally invalid
+# document. Every governed artifact in this repository contains em-dashes, so this is the
+# normal case rather than an edge one. UTF8Encoding($false) rather than
+# [System.Text.Encoding]::UTF8 because the latter prepends a BOM to the output stream,
+# which is not valid at the start of a JSON document.
+$OutputEncoding = New-Object System.Text.UTF8Encoding $false
+[Console]::OutputEncoding = $OutputEncoding
+
 function Resolve-RepoRoot {
     param([string] $Start)
 
@@ -221,7 +232,7 @@ function Get-TestAnnotations {
         $full = Join-Path $Root $rel
         if (-not (Test-Path -LiteralPath $full)) { continue }
 
-        $content = Get-Content -LiteralPath $full -Raw
+        $content = Get-Content -LiteralPath $full -Raw -Encoding UTF8
         foreach ($m in [regex]::Matches($content, 'TestProperty\s*\(\s*"AC"\s*,\s*"([^"]+)"\s*\)')) {
             $id = $m.Groups[1].Value
             if (-not $covered.Contains($id)) { $covered[$id] = New-Object System.Collections.ArrayList }
@@ -256,7 +267,7 @@ function Get-Suppressions {
         $full = Join-Path $Root $rel
         if (-not (Test-Path -LiteralPath $full)) { continue }
 
-        $lines = @(Get-Content -LiteralPath $full)
+        $lines = @(Get-Content -LiteralPath $full -Encoding UTF8)
         for ($i = 0; $i -lt $lines.Count; $i++) {
             $line = $lines[$i]
             $isSuppression = ($line -match '#pragma\s+warning\s+disable') -or
@@ -379,7 +390,7 @@ $RepoRoot = (Resolve-Path -LiteralPath $RepoRoot).Path
 
 if (-not $Charter) { $Charter = Join-Path $RepoRoot '.sdlc/CHARTER.md' }
 
-$lines = Get-Content -LiteralPath $artifactPath
+$lines = Get-Content -LiteralPath $artifactPath -Encoding UTF8
 $rawText = $lines -join "`n"
 
 # A struck-through token is a record of absence, not a reference to something that
@@ -395,7 +406,7 @@ $decIds = @()
 $charterVersion = $null
 
 if ($charterPresent) {
-    $charterLines = Get-Content -LiteralPath $Charter
+    $charterLines = Get-Content -LiteralPath $Charter -Encoding UTF8
     $charterText = $charterLines -join "`n"
 
     # An invariant is declared by a heading; a mere mention elsewhere is not a
@@ -470,7 +481,7 @@ $criteria = @(Get-AcceptanceCriteria -Text $text)
 if ($kind -eq 'verify' -and $criteria.Count -eq 0) {
     $siblingSpec = Join-Path (Split-Path -Parent $artifactPath) 'spec.md'
     if (Test-Path -LiteralPath $siblingSpec) {
-        $criteria = @(Get-AcceptanceCriteria -Text ((Get-Content -LiteralPath $siblingSpec) -join "`n"))
+        $criteria = @(Get-AcceptanceCriteria -Text ((Get-Content -LiteralPath $siblingSpec -Encoding UTF8) -join "`n"))
     }
 }
 
