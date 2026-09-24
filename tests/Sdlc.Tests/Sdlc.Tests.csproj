@@ -26,6 +26,7 @@
     <None Include="examples\**\*.json" CopyToOutputDirectory="PreserveNewest" />
     <None Include="$(MSBuildThisFileDirectory)..\..\schemas\*.json" LinkBase="schemas" CopyToOutputDirectory="PreserveNewest" />
     <None Include="$(MSBuildThisFileDirectory)..\..\tools\*.ps1" LinkBase="tools" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="$(MSBuildThisFileDirectory)..\..\workflows\*.js" LinkBase="workflows" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>
