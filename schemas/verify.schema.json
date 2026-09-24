@@ -1,0 +1,65 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://mofoncode.dev/sdlc/schemas/verify.schema.json",
+  "title": "Verify frontmatter",
+  "description": "The YAML frontmatter of a verify document. Its four body sections — traceability, plan adherence, tool gates, dispositions — are generated from the fact-gatherer rather than written by hand: a hand-maintained traceability table beside the real tests drifts the moment anything is refactored, and nothing detects it.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["cycle-id", "plan", "charter-version", "outcome"],
+  "properties": {
+    "cycle-id": { "$ref": "#/$defs/cycleId" },
+    "plan": { "$ref": "#/$defs/cycleId" },
+    "charter-version": { "type": "integer", "minimum": 1 },
+    "pack-version": { "type": ["string", "null"] },
+
+    "outcome": {
+      "enum": ["passed", "blocked", "halted-tier-escalated"],
+      "description": "A verify document never passes quietly: an unconverged cycle leaves with a named reason."
+    },
+
+    "predicted-tier": { "type": "integer", "minimum": 1, "maximum": 3 },
+    "actual-tier": { "type": "integer", "minimum": 1, "maximum": 3 },
+
+    "suppression-count": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Tracked because a zero-warning build is a strong signal BECAUSE it is binary — and the failure mode is not warnings appearing, it is suppressions accumulating until the zero means nothing. An increase over the previous cycle is itself a finding."
+    },
+
+    "criteria-total": { "type": "integer", "minimum": 0 },
+    "criteria-verifiable": { "type": "integer", "minimum": 0 },
+    "criteria-covered": { "type": "integer", "minimum": 0 },
+
+    "undispositioned": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Blocking findings with no recorded disposition. Must be zero to pass — every finding, from adversary or tool, at any severity, is dispositioned."
+    }
+  },
+
+  "allOf": [
+    {
+      "$comment": "Passing requires every verifiable criterion covered and nothing left undispositioned. Those are the two conditions the document exists to assert, so they cannot be asserted loosely.",
+      "if": {
+        "required": ["outcome"],
+        "properties": { "outcome": { "const": "passed" } }
+      },
+      "then": {
+        "required": ["criteria-verifiable", "criteria-covered", "undispositioned"],
+        "properties": { "undispositioned": { "const": 0 } }
+      }
+    },
+    {
+      "$comment": "A tier-escalated halt must record both numbers, or the reason it halted is unreadable.",
+      "if": {
+        "required": ["outcome"],
+        "properties": { "outcome": { "const": "halted-tier-escalated" } }
+      },
+      "then": { "required": ["predicted-tier", "actual-tier"] }
+    }
+  ],
+
+  "$defs": {
+    "cycleId": { "type": "string", "pattern": "^[0-9]{8}-[0-9a-f]{4}$" }
+  }
+}

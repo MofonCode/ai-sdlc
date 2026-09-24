@@ -208,6 +208,95 @@ function Get-BlastRadius {
     }
 }
 
+function Get-TestAnnotations {
+    param([string] $Root, [string[]] $TrackedFiles)
+
+    # Traceability is GENERATED from test metadata, never hand-maintained. A hand-written
+    # table beside the real tests drifts the moment anything is refactored, and nothing
+    # detects it — which is why the annotation is the source and this only reads it.
+    $covered = [ordered]@{}
+
+    foreach ($rel in $TrackedFiles) {
+        if ($rel -notmatch '\.cs$') { continue }
+        $full = Join-Path $Root $rel
+        if (-not (Test-Path -LiteralPath $full)) { continue }
+
+        $content = Get-Content -LiteralPath $full -Raw
+        foreach ($m in [regex]::Matches($content, 'TestProperty\s*\(\s*"AC"\s*,\s*"([^"]+)"\s*\)')) {
+            $id = $m.Groups[1].Value
+            if (-not $covered.Contains($id)) { $covered[$id] = New-Object System.Collections.ArrayList }
+            $null = $covered[$id].Add($rel)
+        }
+    }
+
+    $results = New-Object System.Collections.ArrayList
+    foreach ($id in $covered.Keys) {
+        $null = $results.Add([pscustomobject]@{
+            criterion = $id
+            tests     = @($covered[$id] | Select-Object -Unique)
+        })
+    }
+
+    return $results
+}
+
+function Get-Suppressions {
+    param([string] $Root, [string[]] $TrackedFiles)
+
+    # A zero-warning build is a strong signal BECAUSE it is binary, and the failure mode
+    # is not warnings appearing — it is suppressions accumulating until the zero means
+    # nothing. So the count is tracked, and an increase is itself a finding. Whether a
+    # suppression carries a justification is judged by proximity to a comment, which is a
+    # heuristic that prefers false negatives: it would rather miss an unjustified
+    # suppression than flag a justified one and get the whole check switched off.
+    $results = New-Object System.Collections.ArrayList
+
+    foreach ($rel in $TrackedFiles) {
+        if ($rel -notmatch '\.(cs|csproj|props|targets)$') { continue }
+        $full = Join-Path $Root $rel
+        if (-not (Test-Path -LiteralPath $full)) { continue }
+
+        $lines = @(Get-Content -LiteralPath $full)
+        for ($i = 0; $i -lt $lines.Count; $i++) {
+            $line = $lines[$i]
+            $isSuppression = ($line -match '#pragma\s+warning\s+disable') -or
+                             ($line -match '<NoWarn>') -or
+                             ($line -match 'SuppressMessage')
+            if (-not $isSuppression) { continue }
+
+            # A justification is a comment on the line itself, or immediately above it.
+            #
+            # "Immediately above" means the nearest NON-BLANK preceding lines, and the
+            # test is whether they look like comment CONTENT rather than a comment start.
+            # A multi-line XML justification ends with `-->` and its interior lines begin
+            # with neither `<!--` nor `//`, so looking only for a comment opener reports a
+            # carefully justified suppression as unjustified — which was happening to this
+            # repository's own, and is exactly the false positive that gets a check
+            # switched off.
+            $justified = ($line -match '//' -or $line -match '<!--')
+
+            $checked = 0
+            for ($j = $i - 1; $j -ge 0 -and $checked -lt 3; $j--) {
+                if ($lines[$j].Trim() -eq '') { continue }
+                $checked++
+                if ($lines[$j] -match '-->' -or $lines[$j] -match '^\s*(//|\*|<!--)') {
+                    $justified = $true
+                    break
+                }
+            }
+
+            $null = $results.Add([pscustomobject]@{
+                file      = $rel
+                line      = $i + 1
+                text      = $line.Trim()
+                justified = $justified
+            })
+        }
+    }
+
+    return $results
+}
+
 function Get-ArtifactKind {
     param([string] $RelativePath)
 
@@ -375,6 +464,59 @@ $relative = ($artifactPath.Substring($RepoRoot.Length).TrimStart('\', '/') -repl
 $governed = $relative.StartsWith('.sdlc/', [System.StringComparison]::Ordinal)
 $kind = Get-ArtifactKind -RelativePath $relative
 $criteria = @(Get-AcceptanceCriteria -Text $text)
+
+# A verify document's criteria come from its sibling spec: verify reports on the spec's
+# criteria, so reading them from anywhere else would be a second list.
+if ($kind -eq 'verify' -and $criteria.Count -eq 0) {
+    $siblingSpec = Join-Path (Split-Path -Parent $artifactPath) 'spec.md'
+    if (Test-Path -LiteralPath $siblingSpec) {
+        $criteria = @(Get-AcceptanceCriteria -Text ((Get-Content -LiteralPath $siblingSpec) -join "`n"))
+    }
+}
+
+$annotations = @()
+$suppressions = @()
+$traceability = $null
+
+if ($kind -eq 'spec' -or $kind -eq 'verify') {
+    $annotations = @(Get-TestAnnotations -Root $RepoRoot -TrackedFiles $trackedFiles)
+    $suppressions = @(Get-Suppressions -Root $RepoRoot -TrackedFiles $trackedFiles)
+
+    $coveredIds = @()
+    foreach ($a in $annotations) { $coveredIds += $a.criterion }
+
+    $rows = New-Object System.Collections.ArrayList
+    foreach ($c in $criteria) {
+        $tests = @()
+        foreach ($a in $annotations) { if ($a.criterion -eq $c.id) { $tests = @($a.tests) } }
+        $null = $rows.Add([pscustomobject]@{
+            criterion  = $c.id
+            verifiable = $c.verifiable
+            # An unverifiable criterion is dispositioned by a person at the deploy gate;
+            # it is not covered and is not expected to be.
+            covered    = $(if ($c.verifiable) { $coveredIds -contains $c.id } else { $null })
+            tests      = $tests
+        })
+    }
+
+    $unmapped = @()
+    foreach ($r in $rows) { if ($r.verifiable -and -not $r.covered) { $unmapped += $r.criterion } }
+
+    # An annotation naming a criterion the spec does not declare points at a renumbering
+    # or a typo, and it silently reports coverage for nothing.
+    $criterionIds = @()
+    foreach ($c in $criteria) { $criterionIds += $c.id }
+    $orphanAnnotations = @()
+    foreach ($id in $coveredIds) { if ($criterionIds -notcontains $id) { $orphanAnnotations += $id } }
+
+    $traceability = [ordered]@{
+        rows              = @($rows)
+        'unmapped'        = @($unmapped)
+        'orphan-annotations' = @($orphanAnnotations)
+        'suppression-count' = @($suppressions).Count
+        'unjustified-suppressions' = @($suppressions | Where-Object { -not $_.justified } | ForEach-Object { $_.file + ':' + $_.line })
+    }
+}
 $declaredFiles = @(Get-DeclaredFiles -Text $text -Root $RepoRoot)
 $blastRadius = $null
 $actualRadius = $null
@@ -492,6 +634,32 @@ if ($governed) {
         }
     }
 
+    if ($null -ne $traceability) {
+        if ($traceability['unmapped'].Count -gt 0) {
+            Add-Check 'traceability-complete' $false (
+                "verifiable criteria with no annotated test: " + ($traceability['unmapped'] -join ', '))
+        }
+        else {
+            Add-Check 'traceability-complete' $true $null
+        }
+
+        if ($traceability['orphan-annotations'].Count -gt 0) {
+            Add-Check 'annotations-resolve' $false (
+                "annotated criteria the spec does not declare: " + ($traceability['orphan-annotations'] -join ', '))
+        }
+        else {
+            Add-Check 'annotations-resolve' $true $null
+        }
+
+        if ($traceability['unjustified-suppressions'].Count -gt 0) {
+            Add-Check 'suppressions-justified' $false (
+                "no written justification: " + ($traceability['unjustified-suppressions'] -join ', '))
+        }
+        else {
+            Add-Check 'suppressions-justified' $true $null
+        }
+    }
+
     if ($kind -eq 'plan') {
         if ($declaredFiles.Count -eq 0) {
             Add-Check 'plan-declares-files' $false 'no parseable file table — INV-05 requires one'
@@ -545,6 +713,9 @@ $facts = [ordered]@{
     }
     'acceptance-criteria' = @($criteria)
     'declared-files'      = @($declaredFiles)
+    'traceability'        = $traceability
+    'test-annotations'    = @($annotations)
+    'suppressions'        = @($suppressions)
     'blast-radius'        = $blastRadius
     'actual-blast-radius' = $actualRadius
     'plan-adherence'      = $adherence

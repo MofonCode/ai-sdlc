@@ -86,7 +86,12 @@ public sealed class WorkflowScriptTests
         string meta = script[start..end];
 
         Assert.IsFalse(meta.Contains("${", StringComparison.Ordinal), $"{name}: no template interpolation in meta");
-        Assert.IsFalse(meta.Contains("...", StringComparison.Ordinal), $"{name}: no spread in meta");
+
+        // A spread is `...` followed by an identifier or an opening brace. A literal
+        // ellipsis in prose — "Pass { cycle: ..., findings: [...] }" — is not one, and
+        // matching on the three dots alone reported a perfectly valid meta as broken.
+        Assert.IsFalse(Regex.IsMatch(meta, @"\.\.\.\s*[A-Za-z_${]"), $"{name}: no spread in meta");
+
         Assert.IsFalse(Regex.IsMatch(meta, @"[A-Za-z_$][\w$]*\("), $"{name}: no function calls in meta");
     }
 
@@ -272,11 +277,47 @@ public sealed class WorkflowScriptTests
     }
 
     [TestMethod]
+    public void VerifyDecidesTheOutcomeInCodeNotByAnAgent()
+    {
+        // An agent asked both to report and to rule on its own report rounds in the
+        // direction of done. So the outcome is computed from the evidence, and the
+        // assembling agent is told to transcribe it.
+        string script = Read("verify.js");
+
+        Assert.IsTrue(script.Contains("decided in code", StringComparison.Ordinal),
+            "the outcome must be computed, not judged");
+        Assert.IsTrue(script.Contains("Do not change it", StringComparison.Ordinal),
+            "the assemble prompt must forbid changing the outcome");
+        Assert.IsTrue(script.Contains("halted-tier-escalated", StringComparison.Ordinal));
+    }
+
+    [TestMethod]
+    public void VerifyBlocksOnAnUndispositionedFinding()
+    {
+        // Every finding, from adversary or tool, at any severity, is dispositioned.
+        Assert.IsTrue(
+            Read("verify.js").Contains("undispositioned", StringComparison.Ordinal),
+            "a blocking finding with no disposition must block the gate");
+    }
+
+    [TestMethod]
+    public void VerifyDerivesEveryNumberRatherThanAskingForIt()
+    {
+        // A hand-maintained traceability table beside the real tests drifts the moment
+        // anything is refactored, and nothing detects it.
+        string script = Read("verify.js");
+
+        Assert.IsTrue(script.Contains("do not compute any of these numbers yourself", StringComparison.Ordinal));
+        Assert.IsTrue(script.Contains("GENERATED", StringComparison.Ordinal),
+            "the traceability section must say it is generated, not authored");
+    }
+
+    [TestMethod]
     public void EveryStageNamesItsSuccessor()
     {
         // The chain is self-documenting only if each stage says what comes next; a stage
         // that returns without one leaves the caller guessing.
-        foreach (string name in new[] { "spec.js", "plan.js", "build.js" })
+        foreach (string name in new[] { "spec.js", "plan.js", "build.js", "verify.js" })
         {
             Assert.IsTrue(Read(name).Contains("next:", StringComparison.Ordinal),
                 $"{name} must name the next stage in its result");
