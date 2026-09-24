@@ -47,10 +47,10 @@ public sealed class SchemaTests
         return schema.Evaluate(instance.RootElement, Options);
     }
 
+    // An example is named "<kind>.valid.json" or "<kind>.invalid-NN-what.json", so the
+    // kind picks its schema. Adding a schema plus examples needs no change here.
     private static string SchemaFor(string exampleName) =>
-        exampleName.StartsWith("findings", StringComparison.Ordinal)
-            ? "findings.schema.json"
-            : "intent.schema.json";
+        exampleName[..exampleName.IndexOf('.', StringComparison.Ordinal)] + ".schema.json";
 
     public static IEnumerable<object[]> ValidExamples() =>
         Directory.EnumerateFiles(ExampleDir, "*.valid*.json")

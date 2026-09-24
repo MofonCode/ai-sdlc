@@ -147,6 +147,79 @@ function Get-FailedCheck {
     return [pscustomobject]@{ id = $Id; passed = $false; detail = $Detail }
 }
 
+function Get-ArtifactKind {
+    param([string] $RelativePath)
+
+    $leaf = Split-Path -Leaf $RelativePath
+    switch -Regex ($leaf) {
+        '^CHARTER\.md$' { return 'charter' }
+        '^spec\.md$'    { return 'spec' }
+        '^plan\.md$'    { return 'plan' }
+        '^verify\.md$'  { return 'verify' }
+        '^retro\.md$'   { return 'retro' }
+    }
+
+    if ($RelativePath -match '(?i)/intents/') { return 'intent' }
+    return 'unknown'
+}
+
+function Get-AcceptanceCriteria {
+    param([string] $Text)
+
+    # A spec's criteria live in a markdown table in the body rather than in
+    # frontmatter: they are what a person reads the document for, and a table is
+    # parseable without being unreadable. The shape is fixed because this parses it.
+    #
+    #   | ID | Verifiable | Criterion |
+    #   |---|---|---|
+    #   | AC-20260924-a1b2-1 | yes | ... |
+
+    $results = New-Object System.Collections.ArrayList
+    $pattern = '(?m)^\|\s*(AC-[0-9]{8}-[0-9a-f]{4}-[0-9]+)\s*\|\s*([A-Za-z]+)\s*\|\s*([^|]*)\|'
+
+    foreach ($m in [regex]::Matches($Text, $pattern)) {
+        $flag = $m.Groups[2].Value.Trim().ToLowerInvariant()
+        $null = $results.Add([pscustomobject]@{
+            id         = $m.Groups[1].Value
+            verifiable = ($flag -eq 'yes' -or $flag -eq 'true')
+            text       = $m.Groups[3].Value.Trim()
+        })
+    }
+
+    return $results
+}
+
+function Get-DeclaredFiles {
+    param([string] $Text, [string] $Root)
+
+    # INV-05 requires a plan to enumerate the files it will touch, and the same
+    # declaration is what the blast-radius tier reads. One table serves both.
+    #
+    #   | Path | Change |
+    #   |---|---|
+    #   | src/Foo.cs | new |
+
+    $results = New-Object System.Collections.ArrayList
+    $pattern = '(?m)^\|\s*`?([A-Za-z0-9_./\\-]+\.[A-Za-z0-9]+)`?\s*\|\s*(new|modify|delete)\s*\|'
+
+    foreach ($m in [regex]::Matches($Text, $pattern)) {
+        $path = $m.Groups[1].Value
+        $change = $m.Groups[2].Value.ToLowerInvariant()
+        $full = Join-Path $Root $path
+        $exists = Test-Path -LiteralPath $full
+        $null = $results.Add([pscustomobject]@{
+            path   = $path
+            change = $change
+            exists = $exists
+            # A `new` file that already exists, or a `modify`/`delete` that does not,
+            # means the plan was written against a different tree than the one here.
+            consistent = $(if ($change -eq 'new') { -not $exists } else { $exists })
+        })
+    }
+
+    return $results
+}
+
 # ---------------------------------------------------------------------------
 
 $artifactPath = (Resolve-Path -LiteralPath $Artifact).Path
@@ -234,6 +307,9 @@ $decRefs = Get-MentionedIds -Text $text -Pattern '\bDEC-[0-9]{2}\b' -Known $decI
 
 $relative = ($artifactPath.Substring($RepoRoot.Length).TrimStart('\', '/') -replace '\\', '/')
 $governed = $relative.StartsWith('.sdlc/', [System.StringComparison]::Ordinal)
+$kind = Get-ArtifactKind -RelativePath $relative
+$criteria = Get-AcceptanceCriteria -Text $text
+$declaredFiles = Get-DeclaredFiles -Text $text -Root $RepoRoot
 
 $checks = New-Object System.Collections.ArrayList
 
@@ -277,6 +353,47 @@ if ($governed) {
     # .sdlc/ without it cannot be schema-validated at all.
     Add-Check 'frontmatter-present' $frontmatter.present $(
         if ($frontmatter.present) { $null } else { 'no YAML frontmatter block' })
+
+    # --- kind-specific checks ---------------------------------------------
+
+    if ($kind -eq 'spec') {
+        if ($criteria.Count -eq 0) {
+            Add-Check 'acceptance-criteria-present' $false 'no parseable acceptance-criteria table'
+        }
+        else {
+            Add-Check 'acceptance-criteria-present' $true $null
+        }
+
+        # Ids end up in test annotations, so a duplicate is not cosmetic: two criteria
+        # sharing an id make traceability report one as covered when the other is not.
+        $dupes = @($criteria | Group-Object -Property id | Where-Object { $_.Count -gt 1 })
+        if ($dupes.Count -gt 0) {
+            Add-Check 'acceptance-criteria-unique' $false (
+                "duplicated: " + (($dupes | ForEach-Object { $_.Name }) -join ', '))
+        }
+        else {
+            Add-Check 'acceptance-criteria-unique' $true $null
+        }
+    }
+
+    if ($kind -eq 'plan') {
+        if ($declaredFiles.Count -eq 0) {
+            Add-Check 'plan-declares-files' $false 'no parseable file table — INV-05 requires one'
+        }
+        else {
+            Add-Check 'plan-declares-files' $true $null
+        }
+
+        $inconsistent = @($declaredFiles | Where-Object { -not $_.consistent })
+        if ($inconsistent.Count -gt 0) {
+            Add-Check 'plan-files-consistent' $false (
+                "declared state does not match the tree: " +
+                (($inconsistent | ForEach-Object { $_.path + ' (' + $_.change + ')' }) -join ', '))
+        }
+        else {
+            Add-Check 'plan-files-consistent' $true $null
+        }
+    }
 }
 
 # --- output ---
@@ -286,9 +403,12 @@ $facts = [ordered]@{
     'branch'           = $branch
     'artifact'         = [ordered]@{
         path        = $relative
+        kind        = $kind
         governed    = $governed
         frontmatter = $frontmatter.fields
     }
+    'acceptance-criteria' = @($criteria)
+    'declared-files'      = @($declaredFiles)
     'charter'          = [ordered]@{
         path          = ($Charter -replace '\\', '/')
         present       = $charterPresent

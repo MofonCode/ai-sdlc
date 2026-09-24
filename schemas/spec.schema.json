@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://mofoncode.dev/sdlc/schemas/spec.schema.json",
+  "title": "Spec frontmatter",
+  "description": "The YAML frontmatter of a spec. Acceptance criteria live in the body as a markdown table, not here: they are the document's main content and belong where a person reads them. The table's shape is a convention the fact-gatherer parses — see acceptance-criteria-shape in tools/Get-SdlcFacts.ps1.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["cycle-id", "intent", "charter-version"],
+  "properties": {
+    "cycle-id": { "$ref": "#/$defs/cycleId" },
+    "intent": {
+      "$ref": "#/$defs/cycleId",
+      "description": "The intent this spec derives from. Equal to cycle-id in the normal case; different only if a spec is written for an intent authored elsewhere."
+    },
+    "charter-version": { "type": "integer", "minimum": 1 },
+    "pack-version": { "type": ["string", "null"] },
+    "supersedes": {
+      "$ref": "#/$defs/cycleId",
+      "description": "A spec this one replaces. Semantic, not derivable, so it is written."
+    }
+  },
+  "$defs": {
+    "cycleId": { "type": "string", "pattern": "^[0-9]{8}-[0-9a-f]{4}$" }
+  }
+}

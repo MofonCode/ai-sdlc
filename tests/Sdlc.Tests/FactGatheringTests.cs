@@ -73,6 +73,48 @@ public sealed class FactGatheringTests
             as an illustration. None of these exist, and none of it is wrong.
             """);
 
+        // A spec whose criteria table parses, including a duplicated id — duplication is
+        // not cosmetic, because two criteria sharing an id make traceability report one
+        // as covered when the other is not.
+        Directory.CreateDirectory(Path.Combine(_repo, ".sdlc", "cycles", "20260924-bbbb"));
+        File.WriteAllText(Path.Combine(_repo, ".sdlc", "cycles", "20260924-bbbb", "spec.md"), """
+            ---
+            cycle-id: 20260924-bbbb
+            intent: 20260924-bbbb
+            charter-version: 3
+            ---
+
+            # Spec
+
+            ## Acceptance criteria
+
+            | ID | Verifiable | Criterion |
+            |---|---|---|
+            | AC-20260924-bbbb-1 | yes | Provable by a test. |
+            | AC-20260924-bbbb-2 | no | Should feel responsive. |
+            | AC-20260924-bbbb-2 | yes | A duplicated id. |
+            """);
+
+        // A plan declaring one file that exists and one that does not, which is the
+        // inconsistency INV-05's declaration exists to make detectable.
+        Directory.CreateDirectory(Path.Combine(_repo, ".sdlc", "cycles", "20260924-cccc"));
+        File.WriteAllText(Path.Combine(_repo, ".sdlc", "cycles", "20260924-cccc", "plan.md"), """
+            ---
+            cycle-id: 20260924-cccc
+            spec: 20260924-cccc
+            charter-version: 3
+            ---
+
+            # Plan
+
+            ## Files
+
+            | Path | Change |
+            |---|---|
+            | notes.md | modify |
+            | src/absent.cs | modify |
+            """);
+
         Git("init --initial-branch=main");
         Git("add -A");
         Git("-c user.email=t@example.invalid -c user.name=Test commit -m fixture");
@@ -210,6 +252,58 @@ public sealed class FactGatheringTests
         Assert.IsTrue(
             facts.RootElement.GetProperty("references").GetProperty("paths").GetArrayLength() > 0,
             "facts are still reported — only the verdicts are withheld");
+    }
+
+    [TestMethod]
+    public void ArtifactKindIsInferredFromThePath()
+    {
+        using JsonDocument charter = Gather(".sdlc/CHARTER.md");
+        using JsonDocument spec = Gather(".sdlc/cycles/20260924-bbbb/spec.md");
+        using JsonDocument plan = Gather(".sdlc/cycles/20260924-cccc/plan.md");
+        using JsonDocument intent = Gather(".sdlc/intents/20260924-aaaa.md");
+
+        Assert.AreEqual("charter", charter.RootElement.GetProperty("artifact").GetProperty("kind").GetString());
+        Assert.AreEqual("spec", spec.RootElement.GetProperty("artifact").GetProperty("kind").GetString());
+        Assert.AreEqual("plan", plan.RootElement.GetProperty("artifact").GetProperty("kind").GetString());
+        Assert.AreEqual("intent", intent.RootElement.GetProperty("artifact").GetProperty("kind").GetString());
+    }
+
+    [TestMethod]
+    public void AcceptanceCriteriaAreParsedWithTheirVerifiableFlag()
+    {
+        using JsonDocument facts = Gather(".sdlc/cycles/20260924-bbbb/spec.md");
+
+        JsonElement criteria = facts.RootElement.GetProperty("acceptance-criteria");
+        Assert.AreEqual(3, criteria.GetArrayLength());
+
+        JsonElement first = criteria[0];
+        Assert.AreEqual("AC-20260924-bbbb-1", first.GetProperty("id").GetString());
+        Assert.IsTrue(first.GetProperty("verifiable").GetBoolean());
+        Assert.IsFalse(criteria[1].GetProperty("verifiable").GetBoolean(),
+            "an unverifiable criterion is a correct answer, not a failure");
+    }
+
+    [TestMethod]
+    public void ADuplicatedCriterionIdFailsItsCheck()
+    {
+        using JsonDocument facts = Gather(".sdlc/cycles/20260924-bbbb/spec.md");
+
+        CollectionAssert.Contains(FailedChecks(facts), "acceptance-criteria-unique",
+            "two criteria sharing an id make traceability report one as covered when it is not");
+    }
+
+    [TestMethod]
+    public void APlanDeclaringAnAbsentFileFailsItsCheck()
+    {
+        using JsonDocument facts = Gather(".sdlc/cycles/20260924-cccc/plan.md");
+
+        JsonElement declared = facts.RootElement.GetProperty("declared-files");
+        Assert.AreEqual(2, declared.GetArrayLength());
+
+        CollectionAssert.Contains(FailedChecks(facts), "plan-files-consistent",
+            "a plan claiming to modify a file that does not exist was written against a different tree");
+        CollectionAssert.DoesNotContain(FailedChecks(facts), "plan-declares-files",
+            "the plan does declare files, so that check should pass");
     }
 
     [TestMethod]
