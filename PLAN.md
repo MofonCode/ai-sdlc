@@ -27,15 +27,17 @@ Read this section first. It is the whole handoff.
 
 ```
 branch        bootstrap
-last commit   24329cf
-verify        dotnet test   → expect 139 passed, 0 failed
+last commit   45916c9
+verify        dotnet test   → expect 146 passed, 0 failed
+plugin        claude plugin validate . --strict   → expect "Validation passed"
 ```
 
-**Next task:** the chain is complete. Items 1–10 are done, which is the definition of
-*enough* below — so the next move is a **decision**, not a task: either run a real cycle
-end to end, or continue with items 11–15.
+**Next task:** the chain is complete *and invocable*. The next move is a **decision**, not
+a task: run `interrogate` on the charter — the first real workflow execution, and the
+first evidence about the process rather than about missing parts — or continue with
+items 11, 12, 14, 15.
 
-If `dotnet test` does not report 139 passing, stop and diagnose before building anything:
+If `dotnet test` does not report 146 passing, stop and diagnose before building anything:
 the test suite is the only thing standing between "this looks right" and "this works".
 
 ---
@@ -78,7 +80,15 @@ Items 11–15 are conveniences and distribution. None is needed to prove the cha
 
 8. **A construct check reads comment-stripped code.** Grepping source text for a
    forbidden construct also matches the comment explaining that it is forbidden. Four
-   separate instances; it is now written into both test helpers.
+   separate instances; the rule now lives in one place, `SourceText`, because it was
+   about to be spelled out a third time and a rule that holds in two of three places
+   still reads as enforced.
+
+9. **A reference inside a string is invisible to every tool.** `/sdlc:spec` in a
+   generated prompt is seen by no compiler, analyzer or schema, which is how ten items
+   shipped with nothing invocable. Anything naming a component by string needs a check
+   that resolves it, and that check needs a guard asserting it found references at all —
+   otherwise a broken scan passes as a clean repository.
 
 ---
 
@@ -105,7 +115,7 @@ Items 11–15 are conveniences and distribution. None is needed to prove the cha
 |---|---|---|
 | 11 | `intent` skill — the interview | A convenience, not a dependency: an intent was hand-written successfully |
 | 12 | Retro absorption into ai-sdlc | Needs retros to exist |
-| 13 | Packaging — manifest, marketplace, CI semver check | Answers the one question outside our control: does a marketplace install authenticate against a private remote |
+| 13 | Packaging — ~~manifest~~, marketplace catalog, CI semver check | Manifest done (`45916c9`). What remains answers the one question outside our control: does a marketplace install authenticate against a private remote |
 | 14 | `dotnet-library` pack | The first real client is `MofonCode.Core`, which is a library |
 | 15 | `init` | Cannot precede 14 — it scaffolds *from* a pack |
 
@@ -146,11 +156,24 @@ Items 11–15 are conveniences and distribution. None is needed to prove the cha
   state asserted only by inspection of the derivation rather than end to end.
 - **Interrogator roles are hardcoded in `interrogate.js`** rather than read from the
   charter — see Deferred.
+- **`claude plugin details` does not report workflows.** Its inventory lists skills,
+  agents, hooks, MCP and LSP servers and omits workflows entirely — not even a zero row —
+  so it reads as though nothing loaded. The load is confirmed from the debug log instead:
+  `Total plugin workflows loaded: 7`. Check with `--debug-file`, not `details`.
+- **No workflow has been invoked even though all seven now load.** Loading and running are
+  different claims; only the first is verified.
 - **`master` is still at the initial commit.** Everything lives on `bootstrap`. Nothing
-  has been pushed.
+  has been pushed to either remote.
+- **This repository has two remotes.** `origin` is Azure DevOps
+  (`dev.azure.com/MofonCode/ai-sdlc`) and both `master` and `archive/v01` track it;
+  `github` is `github.com/MofonCode/ai-sdlc`. So v01 already lives on Azure DevOps, and
+  "move to GitHub" is a change of default remote rather than a first push.
 - **Three actions pending:** confirm `github.com/MofonCode/ai-sdlc` is private before
   moving anything there; confirm the arriving teammates have GitHub org access; decide
   whether `MarketSense` stays on Azure DevOps.
+- **A junction at `~/.claude/skills/sdlc` pointing at this repository** is what loads the
+  plugin locally, so every session on this machine picks it up. Remove it with
+  `rmdir` on that path. A marketplace install is item 13.
 
 ---
 
@@ -161,6 +184,7 @@ against real input, not from reading the design.
 
 | Commit | Item | Correction it produced |
 |---|---|---|
+| `45916c9` | 13a · plugin manifest | **Six of the eight "dangling" references were never broken** — a plugin workflow is namespaced `/<plugin>:<meta.name>`, so they resolved the moment the manifest existed. One was real (`/sdlc:intent`, item 11). One was never a reference at all: `/sdlc:init` sits in a comment as an example of a non-path, and I read grep's hit as a claim |
 | `24329cf` | 10 · dispatch and landing | **No script had a UTF-8 BOM**, and 5.1 reads a BOM-less file as ANSI — one em-dash inside a string decoded to a smart quote and terminated it early. Also: `-AsHashtable` matched its own "avoid this" comment |
 | `5f5b56e` | 9 · retro | `Date.now()` in a comment explaining its absence tripped the check forbidding it |
 | `4eb34fa` | 8 · verify | The suppression-justification heuristic reported **this repository's own justified suppression** as unjustified: it looked for a comment *start*, and the justification is a 12-line XML comment. Also: a literal ellipsis read as a spread |
