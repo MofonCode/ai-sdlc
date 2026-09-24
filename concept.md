@@ -261,24 +261,69 @@ traceability table already covers rules, behaviour, and requirement→test→cod
 only thing a living spec adds is a human-readable summary of current behaviour —
 exactly the part most likely to rot.
 
-### Inherited and local invariants
+### One charter per pack, copied — not inherited
 
-**DECIDED:** a solution's charter **names the invariant set and version it
-inherits**, then adds its own. Scaffold never copies invariants in.
+**DECIDED (2026-09-23): each pack ships its own charter, and a solution's charter is a
+copy of it taken at `init` time. No inheritance.**
 
-```
-Inherits: mofoncode-invariants@v1   (INV-01 … INV-07)
-Local:    LOC-01 …
-```
+An earlier draft had solutions inherit a shared invariant set by version. That is
+rejected for a reason stronger than simplicity: **inheritance would let an upstream
+change alter the rules a solution is judged by, without that solution's approval.** It
+would not even be a cycle doing it — it would be a different repository. That is worse
+than the thing INV-08 forbids.
 
-Copying would violate INV-03 immediately — five solutions, five divergent copies of
-one rule with nothing binding them. But the sharper reason is that **copying breaks
-the retro loop.** An engine improvement propagates on a plugin version bump; a
-charter improvement has no delivery mechanism at all if invariants live as copies
-in each solution. Inheritance by version *is* the delivery mechanism.
+So copying is the *more* consistent choice. And improvement delivery still works; it
+goes through the proper door — an improved pack charter reaches an existing solution as
+a **charter intent in that solution**, which someone approves. `/sdlc:init` is that
+mechanism (§6). Deliberate and local, exactly as designed.
 
-ai-sdlc is solution zero and has nothing to inherit, so its seven are local,
-written so that promotion to the shared set is a rename rather than a rewrite.
+**Drift between pack charters is expected and sometimes wanted.** Packs describe
+different kinds of work on stacks that improve at different rates. INV-01 requires error
+paths to be enumerated; an ML competition arguably has no error paths in that sense. A
+test forcing the common invariants to be textually identical was considered and rejected
+— it recreates precisely the coupling inheritance would have caused, since improving one
+pack's wording would force the same change on every other.
+
+**The real hazard was never duplication — it was ID collision**, and it is already
+solved. Every retro carries `solution`, `charter-version` *and* `pack-version`, so
+`cites: INV-03` is unambiguous: INV-03 of that solution's charter, at that version,
+under that pack. Aggregation groups by **(pack, invariant id)**, with no ID prefixes and
+no identity test.
+
+Which surfaces something worth stating plainly: **cross-pack aggregation was always
+suspect.** "Where does our process leak?" may have a genuinely different answer for a
+library than for a competition, and pooling them hides that rather than revealing it.
+Per-pack aggregation is the honest default; comparing across packs is a deliberate act
+with the caveat understood.
+
+### Invariant ids survive the copy
+
+**DECIDED (2026-09-23):** ids are assigned once and never reused — **including across
+the copy boundary from pack charter to solution charter.**
+
+Without this rule: a pack ships INV-01 … INV-08, a solution copies them, drops INV-04
+as inapplicable, later adds a local invariant, and if that local one is numbered INV-04
+then retros citing INV-04 from this solution mean something entirely different from
+retros citing INV-04 from another solution on the same pack. Per-pack aggregation breaks.
+
+So:
+
+- **Pack-derived invariants keep the pack's id exactly.** Gaps are preserved:
+  `INV-01, INV-02, INV-03, INV-05`.
+- **The gap *is* the record** that something was removed. Nothing else needs to say so.
+- **Local additions use `LOC-nn`**, numbered independently and also never reused. A
+  prefix rather than a suffix, because `LOC-01` is distinguishable from `INV-01` at a
+  glance while a suffix has to be read to the end.
+- **Neither is ever renumbered.**
+
+Two edge cases:
+
+- **A pack later drops an invariant the solution kept.** It stays under its original
+  `INV-` id. Renaming it to `LOC-` would break every prior citation, and never-renumber
+  wins. An `INV-` id the pack no longer has is mildly odd; `pack-version` disambiguates.
+- **Gaps need provenance to be readable.** `INV-01, 02, 03, 05` is indistinguishable
+  from a typo unless you know which pack charter it derived from — so `Origin:` carries
+  the pack **and its version**.
 
 ### Start raw, thicken by evidence
 
@@ -1017,6 +1062,62 @@ defects surface in retros. Stack staleness does not — no retro says "Aspire is
 minor version behind". Packs need a refresh cadence and a CVE watch; that is a
 Maintain signal for the framework itself.
 
+### `init` — bringing a solution into conformance
+
+**DECIDED (2026-09-23): one command, `/sdlc:init`, and it is idempotent.**
+
+Not two verbs. An earlier draft split `scaffold` (new) from `adopt` (existing), on the
+grounds that you need to know whether a charter was generated or inferred. But that is
+what the `Origin:` field records, permanently, whichever path wrote it — solving with a
+command name what a field solves better. And making `init` re-runnable turns it into one
+operation rather than two sharing a name: *bring this solution into conformance.*
+
+| Starting state | What `init` does |
+|---|---|
+| empty directory | scaffold the structure and copy the pack's charter. `Origin: scaffolded from dotnet-library@v3` |
+| existing code, no charter | explore, infer a charter, establish the baseline. `Origin: adopted — inferred at <sha>, baseline 47 findings` |
+| already initialised | reconcile against the pack's current charter |
+
+**The third row has a constraint that falls out of INV-08: `init` cannot edit an existing
+charter.** Changing a charter requires an approved charter intent, so reconciling means
+`init` **files a charter intent** carrying the proposed diff, which someone approves or
+rejects. That is the improvement-delivery path promised in §2, and it needed no new
+design.
+
+`scaffold` survives as the pack's file-creating capability that `init` invokes. `adopt`
+is not a verb — it is what `init` does when it finds existing code.
+
+**A charter is a precondition, not an optional extra.** There is never a cycle without
+one; producing it is the first thing `init` does. A repository that has not been
+initialised is simply not governed, and its absence of a charter is the signal — nothing
+needs to record "not adopted".
+
+For completeness, since it shows how much the charter carries: without one, `coherence`,
+`facts` and `gaps` still work and two of the three citation routes survive — failed
+mechanical checks and location pairs. You would still catch unresolvable references,
+false claims about the tree, scope drift, gate bypasses and contradictions. What you lose
+is everything requiring a rule: missing cases, ambiguity, duplicated truth. That is the
+calibration period taken to its limit, and not a mode worth offering.
+
+### Adoption needs a baseline
+
+**DECIDED:** `init` on an existing codebase produces a mountain of findings — every
+pre-existing second list, every unjustified suppression, every missing error path. Under
+the state rules most would be `blocking`, which would mean the solution could not run a
+single cycle until the whole backlog cleared. Unworkable.
+
+So at adoption, existing violations are recorded and dispositioned
+`accepted-wont-fix` with the reason *"pre-existing at adoption"*. They do not block. New
+violations do.
+
+**The ratchet already exists, just narrower.** The suppression-count rule says an
+*increase* in suppressions is itself a finding. Generalised: **the baseline count may not
+increase.** Same mechanism, wider scope. An adopted codebase starts wherever it is and
+can only improve, which is the only workable way to bring enforcement to existing code.
+
+The baseline is derived once at adoption and immutable thereafter, so it is not a second
+list.
+
 **OPEN:** defaulted stacks to build. v01 shipped only `web` and `competition`.
 Wanted: .NET API, .NET web, .NET library, ML, ML competition. The packages are
 already pinned; the generators are not written.
@@ -1036,8 +1137,12 @@ Each stage is a workflow, and a workflow is a command. So:
   `/sdlc:spec`, look, `/sdlc:interrogate`, look, `/sdlc:plan`. You are
   the driver. This is the default, and it is also the debugging mode: when
   something goes wrong unsupervised, re-run that one stage supervised and watch.
-- **Unsupervised** — author N intents, merge them, hit go. A dispatcher invokes
-  the same stages back to back without stopping. It is the driver.
+- **Unsupervised** — author N intents, merge them, hit go. `/sdlc:run` invokes the
+  same stages back to back without stopping. It is the driver.
+
+**DECIDED (2026-09-23): supervised needs no verb.** It is the absence of a driver —
+you type the stage commands yourself. There is nothing to enter or exit, which is
+what "same stages, different driver" already implies.
 
 This is a charter-level invariant, not a convenience. If supervised meant
 "run the verb skills by hand" and unsupervised meant "a separate automated
@@ -1045,12 +1150,45 @@ cycle", there would be two code paths, they would drift, and the one used less
 would rot silently. The only permitted difference is **who calls the next
 stage**.
 
-**OPEN:** concurrency cap for unsupervised fan-out. Eight intents means eight
-worktrees, each a fresh checkout with its own NuGet restore and full build —
-with Aspire in the graph that is real disk and real minutes. The workflow
-runtime's own 16-concurrent-agent cap does not apply here, because cycles are
-separate `claude -p` processes rather than workflow agents. The dispatcher needs
-its own cap, and it is a resource decision, not a correctness one.
+### Running unsupervised
+
+**DECIDED (2026-09-23): one command, and no concurrency cap.**
+
+```
+/sdlc:run 20260923-a7f3        one intent
+/sdlc:run <id> <id> <id>       named intents
+/sdlc:run --all                every approved intent
+```
+
+**No cap**, because a cap is the engine guessing at a resource question it cannot
+know — your machine, what else is running, how much disk is free. Informed consent
+at launch beats an invented ceiling, and it is consistent with everything else here:
+gates are human decision points, not automated limits.
+
+**A confirmation before starting**, listing the intents and **how many worktrees will
+be created**. Worktree count is what predicts the thing most likely to bite, which is
+disk: eight fresh checkouts each holding its own restore is the number you want in
+front of you before saying go.
+
+One command rather than two, because single and batch are the same operation with a
+different N. The landing phase serializes when N > 1 and trivially when N = 1, but
+that is a property of landing, not a second mode. The difference that matters to *you*
+is visible in the confirmation, which is where it belongs.
+
+Held in reserve, not built: the pack could later supply a cost hint so the
+confirmation reads "8 worktrees, roughly 4 minutes of build each" rather than a bare
+count. Disclosure rather than restriction — the useful residue of the cap idea.
+
+**Consequence of having no cap.** Resource exhaustion becomes likelier, and a cycle
+that dies mid-run is otherwise indistinguishable from one still working — both are
+"branch exists, unmerged, no `verify.md`", so a dead cycle would sit in that state
+forever while the dispatcher refuses to touch it.
+
+**DECIDED: the worktree lock distinguishes them.** Claude Code holds a
+`git worktree lock` while an agent runs and releases it when the agent finishes. So
+**locked = running**, and **unlocked with no `verify.md` = dead**, and a dead cycle is
+relaunchable or discardable. Derived, no status field, and it uses a mechanism that
+already exists.
 
 ### Branch model
 
@@ -1097,7 +1235,8 @@ already committed, and it cannot exist for work that has not finished:
 | Branch | `verify.md` on branch | `retro.md` on master | `blocked-by` | State |
 |---|---|---|---|---|
 | none | — | none | none | **queued** |
-| exists, unmerged | absent | none | none | **in progress** |
+| exists, unmerged, worktree **locked** | absent | none | none | **in progress** |
+| exists, unmerged, worktree **unlocked** | absent | none | none | **dead** — relaunch or discard |
 | exists, unmerged | **present** | none | none | **awaiting landing** |
 | none | — | none | **unmerged charter intent** | **blocked** |
 | — | — | present | — | **done** |
@@ -1285,6 +1424,39 @@ question rather than a hedge.
 Finding 4 in §10 reinforces this from the other direction: background
 auto-updates against a private marketplace are intermittently unreliable, so
 updates want to be **rarer and deliberate** rather than triggered by every merge.
+
+**DECIDED (2026-09-23): squash every PR.** Intent, cycle and charter alike.
+
+Two reasons specific to this design. The **artifacts already carry the narrative** — a
+cycle branch has commits for spec, plan, code and verify, but `spec.md`, `plan.md` and
+`verify.md` are in the diff, so the chain of artifacts *is* the history and the commit
+graph need not duplicate it. And **one cycle becomes one commit becomes one revert**,
+which is exactly the revert story already settled: `git revert` on a landed cycle does
+the job, so framework-level revert buys nothing. A squash also *guarantees* the
+atomicity a charter intent requires, rather than relying on it.
+
+The squash message is structured `<intent-id>: <title>`, so master's log reads as the
+cycle log.
+
+**DECIDED: `release` is a single moving branch, plus a version tag at each move.**
+
+```
+git tag v0.2.0
+git push origin master:release v0.2.0
+```
+
+`release` has no commits of its own — it is a pointer whose tip is always a commit
+already on master. Teammates add `…#release` once, forever, and you decide when they
+see something new.
+
+Rejected: **a branch per release** (`release/0.2.0`). A marketplace source can be
+pinned to a branch or tag but **not a commit SHA**, so version pinning means teammates
+editing their marketplace URL to update — which nobody does, leaving people on 0.1.0
+six months later. It only pays off for hotfixing an old release *without* master's
+newer work, and where the verify gate is meant to keep master shippable, that scenario
+means master is broken and the fix is master. If such a case ever genuinely arises, cut
+a release branch then, for that case. Tags give the immutable per-version record
+meanwhile, and the tag matches `plugin.json`.
 
 **DECIDED:** `plugin.json` is bumped **when the `release` ref moves**, never
 in-cycle and not at every merge.

@@ -14,8 +14,22 @@ does — that is the code, the tests, and the traceability in each `verify.md`.
 ## How this document works
 
 **Invariants are immutable and append-only.** IDs are assigned once, never reused,
-never renumbered. A changed conclusion is a *new* invariant that supersedes the
-old one; the original keeps its ID and gains `Superseded-by`.
+never renumbered — **including across the copy from a pack charter into a solution
+charter.** A changed conclusion is a *new* invariant that supersedes the old one; the
+original keeps its ID and gains `Superseded-by`.
+
+A solution that drops an inapplicable invariant leaves a **gap** — `INV-01, INV-02,
+INV-03, INV-05` — and the gap is itself the record that something was removed. Local
+additions use `LOC-nn`, numbered independently and never reused either. Without this,
+a local invariant numbered into a vacated slot would make `cites: INV-04` mean
+different things in different solutions on the same pack, and per-pack aggregation
+would break.
+
+**`Origin:` records where this charter came from** — `scaffolded from dotnet-library@v3`,
+or `adopted — inferred at <sha>` with its baseline count. It tells every interrogation
+how much to trust the document it is checking against, since an inferred charter is a
+guess about a codebase while a scaffolded one is a copy of a known-good template. It
+also makes the id gaps readable, which they are not without knowing the source.
 
 **Every invariant carries a non-empty `Forbids:` clause.** This is the acceptance
 test made mechanical:
