@@ -115,6 +115,44 @@ public sealed class FactGatheringTests
             | src/absent.cs | modify |
             """);
 
+        // A plan touching migrations and auth — tier 3, because neither can be unwound
+        // by reverting the commit.
+        Directory.CreateDirectory(Path.Combine(_repo, ".sdlc", "cycles", "20260924-dddd"));
+        File.WriteAllText(Path.Combine(_repo, ".sdlc", "cycles", "20260924-dddd", "plan.md"), """
+            ---
+            cycle-id: 20260924-dddd
+            spec: 20260924-dddd
+            charter-version: 3
+            ---
+
+            # Plan
+
+            ## Files
+
+            | Path | Change |
+            |---|---|
+            | src/Migrations/0001_Init.cs | new |
+            | src/Auth/TokenService.cs | new |
+            """);
+
+        // A plan touching one leaf file — tier 1, nothing flagged.
+        Directory.CreateDirectory(Path.Combine(_repo, ".sdlc", "cycles", "20260924-eeee"));
+        File.WriteAllText(Path.Combine(_repo, ".sdlc", "cycles", "20260924-eeee", "plan.md"), """
+            ---
+            cycle-id: 20260924-eeee
+            spec: 20260924-eeee
+            charter-version: 3
+            ---
+
+            # Plan
+
+            ## Files
+
+            | Path | Change |
+            |---|---|
+            | src/Leaf.cs | new |
+            """);
+
         Git("init --initial-branch=main");
         Git("add -A");
         Git("-c user.email=t@example.invalid -c user.name=Test commit -m fixture");
@@ -304,6 +342,43 @@ public sealed class FactGatheringTests
             "a plan claiming to modify a file that does not exist was written against a different tree");
         CollectionAssert.DoesNotContain(FailedChecks(facts), "plan-declares-files",
             "the plan does declare files, so that check should pass");
+    }
+
+    [TestMethod]
+    public void IrreversibleChangesReachTierThree()
+    {
+        using JsonDocument facts = Gather(".sdlc/cycles/20260924-dddd/plan.md");
+        JsonElement radius = facts.RootElement.GetProperty("blast-radius");
+
+        Assert.AreEqual(3, radius.GetProperty("tier").GetInt32(),
+            "migrations and auth cannot be unwound by reverting the commit");
+
+        string[] flags = [.. radius.GetProperty("flags").EnumerateArray()
+            .Select(e => e.GetProperty("flag").GetString()!)];
+
+        CollectionAssert.Contains(flags, "migrations", "git revert does not un-migrate");
+        CollectionAssert.Contains(flags, "auth");
+    }
+
+    [TestMethod]
+    public void ALeafChangeStaysAtTierOne()
+    {
+        using JsonDocument facts = Gather(".sdlc/cycles/20260924-eeee/plan.md");
+        JsonElement radius = facts.RootElement.GetProperty("blast-radius");
+
+        Assert.AreEqual(1, radius.GetProperty("tier").GetInt32(),
+            "one leaf file with no flags is the case unattended runs are permitted for");
+        Assert.AreEqual(0, radius.GetProperty("flags").GetArrayLength());
+    }
+
+    [TestMethod]
+    public void OnlyPlansGetABlastRadius()
+    {
+        // The tier is a function of declared files, and nothing but a plan declares any.
+        using JsonDocument spec = Gather(".sdlc/cycles/20260924-bbbb/spec.md");
+
+        Assert.AreEqual(JsonValueKind.Null, spec.RootElement.GetProperty("blast-radius").ValueKind,
+            "a spec declares no files, so it has no blast radius to compute");
     }
 
     [TestMethod]

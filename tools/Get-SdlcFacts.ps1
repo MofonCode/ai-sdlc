@@ -147,6 +147,67 @@ function Get-FailedCheck {
     return [pscustomobject]@{ id = $Id; passed = $false; detail = $Detail }
 }
 
+function Get-BlastRadius {
+    param([object[]] $Files, [int] $SizeThreshold = 10)
+
+    # A real blast radius needs a dependency graph and infra topology. This is a PROXY:
+    # cheap, computable from paths alone, and directionally right. Every flag below
+    # marks a change whose failure CANNOT be corrected by reverting the commit — that
+    # is the selection rule, and it is what lets the list grow without guesswork.
+    #
+    # Heuristics, deliberately. A stack pack can extend them; none is authoritative.
+    $flagPatterns = [ordered]@{
+        # A failure here is a security incident, silent and exploitable while live.
+        'auth'          = '(?i)(^|/)(auth|authn|authz|identity|login|oauth|token)'
+        # git revert does not un-migrate. Transformed data stays transformed.
+        'migrations'    = '(?i)(^|/)migrations?/'
+        # Breaks other people's code, and data already written in the old shape.
+        'contracts'     = '(?i)(^|/)(contracts?|dtos?)/|\.(proto|avsc)$|(?i)openapi'
+        # You cannot un-leak a secret; rotation is the only remedy.
+        'secrets'       = '(?i)(appsettings|\.env|secrets?|credential)'
+        # Can disable the gates that catch everything else. Self-referential risk.
+        'ci'            = '(?i)(^|/)(\.github/workflows|\.azuredevops|azure-pipelines)'
+        # Already in someone''s lock file. NuGet does not recall.
+        'public-api'    = '(?i)PublicAPI\.(Shipped|Unshipped)\.txt$'
+    }
+
+    $flags = New-Object System.Collections.ArrayList
+    foreach ($name in $flagPatterns.Keys) {
+        $pattern = $flagPatterns[$name]
+        $hit = @($Files | Where-Object { $_.path -match $pattern })
+        if ($hit.Count -gt 0) {
+            $null = $flags.Add([pscustomobject]@{
+                flag  = $name
+                paths = @($hit | ForEach-Object { $_.path })
+            })
+        }
+    }
+
+    # Built with foreach rather than a pipeline: under Set-StrictMode -Version Latest,
+    # .Count on the result of an empty pipeline throws, and the zero-flag case — a
+    # tier-1 plan — is the common one.
+    $names = @()
+    foreach ($f in $flags) { $names += $f.flag }
+
+    $fileCount = @($Files).Count
+
+    # Tier 3 is what can never be unwound. Tier 2 is what a reviewer will skim if it
+    # is large. Size is a SEPARATE dimension from irreversibility: a 40-file diff gets
+    # skimmed however careful the reviewer.
+    $tier = 1
+    if ($fileCount -gt $SizeThreshold -or $names.Count -gt 0) { $tier = 2 }
+    if (($names -contains 'auth') -or ($names -contains 'migrations') -or ($names -contains 'public-api')) {
+        $tier = 3
+    }
+
+    return [pscustomobject]@{
+        tier          = $tier
+        flags         = @($flags)
+        fileCount     = $fileCount
+        sizeThreshold = $SizeThreshold
+    }
+}
+
 function Get-ArtifactKind {
     param([string] $RelativePath)
 
@@ -288,9 +349,14 @@ finally {
 # --- references in the artifact ---
 
 $frontmatter = Get-Frontmatter -Lines $lines
-$paths = Get-MentionedPaths -Text $text -Root $RepoRoot
-$invRefs = Get-MentionedIds -Text $text -Pattern '\b(?:INV|LOC)-[0-9]{2}\b' -Known $invariantIds
-$decRefs = Get-MentionedIds -Text $text -Pattern '\bDEC-[0-9]{2}\b' -Known $decIds
+
+# Every extractor is wrapped in @(). PowerShell UNWRAPS a single-element collection on
+# return, so a one-item result arrives as a bare object and `.Count` on it throws under
+# Set-StrictMode. That failure only appears when a result has exactly one element — the
+# commonest case in practice, and the one every earlier fixture happened to avoid.
+$paths = @(Get-MentionedPaths -Text $text -Root $RepoRoot)
+$invRefs = @(Get-MentionedIds -Text $text -Pattern '\b(?:INV|LOC)-[0-9]{2}\b' -Known $invariantIds)
+$decRefs = @(Get-MentionedIds -Text $text -Pattern '\bDEC-[0-9]{2}\b' -Known $decIds)
 
 # --- named checks, each citable by id ---
 #
@@ -308,8 +374,12 @@ $decRefs = Get-MentionedIds -Text $text -Pattern '\bDEC-[0-9]{2}\b' -Known $decI
 $relative = ($artifactPath.Substring($RepoRoot.Length).TrimStart('\', '/') -replace '\\', '/')
 $governed = $relative.StartsWith('.sdlc/', [System.StringComparison]::Ordinal)
 $kind = Get-ArtifactKind -RelativePath $relative
-$criteria = Get-AcceptanceCriteria -Text $text
-$declaredFiles = Get-DeclaredFiles -Text $text -Root $RepoRoot
+$criteria = @(Get-AcceptanceCriteria -Text $text)
+$declaredFiles = @(Get-DeclaredFiles -Text $text -Root $RepoRoot)
+$blastRadius = $null
+if ($kind -eq 'plan' -and $declaredFiles.Count -gt 0) {
+    $blastRadius = Get-BlastRadius -Files $declaredFiles
+}
 
 $checks = New-Object System.Collections.ArrayList
 
@@ -409,6 +479,7 @@ $facts = [ordered]@{
     }
     'acceptance-criteria' = @($criteria)
     'declared-files'      = @($declaredFiles)
+    'blast-radius'        = $blastRadius
     'charter'          = [ordered]@{
         path          = ($Charter -replace '\\', '/')
         present       = $charterPresent
