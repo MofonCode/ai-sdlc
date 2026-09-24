@@ -14,7 +14,7 @@ home that is not this document:
 
 | What | Lives in |
 |---|---|
-| the rules a solution must obey | `.sdlc/CHARTER.md` |
+| the rules a solution must obey | that solution's charter — the first one is in Appendix A |
 | the work to be done | intents |
 | what happened when it was done | retros |
 
@@ -2333,8 +2333,6 @@ here were later revised — most visibly `DEC-05`, which asks when to promote th
 into a shared set, a question the body answers by rejecting inheritance entirely in favour
 of per-pack charters. The appendix is preserved unedited because a verbatim record that
 has been tidied is no longer a record.
-
-## Charter — ai-sdlc
 
     Version:   1
     Solution:  ai-sdlc (solution zero — builds the framework, consumes no stack pack)
