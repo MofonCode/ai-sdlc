@@ -20,8 +20,15 @@ home that is not this document:
 
 Keeping this document alive alongside those would make it a second list beside all three
 — INV-03, on the document that argued for INV-03. So it freezes, and it is read for *why*
-rather than for *what is currently true*. Where it disagrees with the charter, the
+rather than for *what is currently true*. Where it disagrees with a live charter, the
 charter wins.
+
+**Appendix A carries the first charter in full.** The body of this document deliberately
+avoided restating the invariants, the finding taxonomy, the state and disposition values
+and the deferred-decision register, because a live `CHARTER.md` owned them. That file was
+disposed of on 2026-09-24, which would have left those decisions recorded nowhere — so
+they are appended verbatim. A frozen copy beside a future live charter is not a second
+list in the INV-03 sense: divergence is expected, and the precedence is stated above.
 
 ## What this is
 
@@ -666,7 +673,7 @@ have nothing to debate, and therefore why agent teams are not needed here.
 
 ### State and grace
 
-**The values are defined in `.sdlc/CHARTER.md`, not here** — they are a normative
+**The values are defined in Appendix A** — they are a normative
 enum the findings schema depends on, and listing them twice would be INV-03. This
 section holds the reasoning. As of charter v1 there are three: `open`, `blocking`,
 `suggested`.
@@ -732,7 +739,7 @@ vague unease is a suggestion by construction.
 **State says where a finding stands and whether it halts the cycle; disposition says
 what was done about it.**
 Both are carried on every finding, and nothing is left without a recorded outcome.
-The five values are defined in the charter.
+The five values are defined in Appendix A.
 
 They exist because **every amendment signal is computed from dispositions** — that is
 their entire job. Each disposition feeds exactly one signal, which is a decent check
@@ -791,7 +798,7 @@ attribution is the high-value signal. This is also why there is no
 The detection axis makes constraint 2 measurable per cycle rather than measured
 once: it tracks whether fact-gathering is absorbing more of the load over time.
 
-**The categories themselves are defined in `.sdlc/CHARTER.md`, not here.** They are
+**The categories themselves are defined in Appendix A.** They are
 a normative enum the findings schema depends on, and listing them in two places
 would be INV-03 on its first day. This section holds the design reasoning; the
 charter holds the list. As of charter v1 there are eleven, one of them
@@ -2227,32 +2234,555 @@ belong to, with their reason.
 
 ## 13. Next steps
 
-| | Step | Why here |
-|---|---|---|
-| 0 | ~~Run `/deep-research` once~~ | **Done 2026-09-22.** Validated the engine choice and answered §10 (see §3, observed) |
-| 1 | ~~This rewrite~~ | **Done 2026-09-22** |
-| 2 | ~~Hand-write `.sdlc/CHARTER.md`~~ | **Done 2026-09-22.** Seven invariants, taxonomy v1, roles, decision register |
-| 3 | Write intent I1 **by hand, against the charter** | The real test |
-| 4 | Build I1 by hand; the framework starts helping from I2 |
+### What has already happened
 
-Step 3 is the one to pause on. Writing the first intent against the charter is
-the cheapest possible test of whether the charter works as an authority. If I1
-cannot be cleanly interrogated against it, the charter is decoration — learned in
-an afternoon rather than in cycle six.
+| | Step | Outcome |
+|---|---|---|
+| 0 | Run `/deep-research` once | **Done 2026-09-22.** Validated the workflow engine choice and answered §10 — 98 agents, 5.13M tokens, 14 minutes |
+| 1 | Write this document | **Done 2026-09-22**, extended through 2026-09-24 |
+| 2 | Hand-write a charter | **Done 2026-09-22**, disposed 2026-09-24. Preserved verbatim in Appendix A |
+| 3 | Write the first intent by hand and interrogate it | **Done 2026-09-23, disposed 2026-09-24.** Recoverable at `e36fc4b` |
+| 4 | Dispose and restart from this document alone | **Done 2026-09-24** |
+
+**Step 3 produced the most valuable result so far, and it is why step 4 happened.**
+Hand-interrogating one small intent against the charter yielded **four blocking
+findings**, and repairing those four introduced **three more** — every one of them a
+contradiction the repairs created rather than a problem they missed.
+
+v01 had measured *"round 2 found 3-of-5 blocking items inside round 1's repairs."* This
+was 3-of-4, first attempt, on the smallest artifact available. **That measurement is now
+replicated across two codebases**, which is what the no-progress termination rule (§7)
+rests on — previously a single data point.
+
+It also settled two open questions with evidence rather than argument:
+
+- **The charter can cite things against an intent.** All three citation routes fired — a
+  failed mechanical check, two invariants, and a location pair. Widening INV-01 and
+  INV-02 to reach intents was load-bearing.
+- **The location-pair route earned its place.** All three repair-introduced findings cited
+  location pairs and **none could cite an invariant.** Without that route the repaired
+  artifact would have looked clean.
+
+And it exposed a charter gap: **INV-07 forbids asserting unverified facts but says nothing
+about pinning verified ones**, so an honestly-checked claim rots silently. That is how the
+first finding arose in the first place.
+
+### What happens next
+
+Items 1-3 of the split below, as **one deliberately disposable first attempt**, then the
+process takes over. The reasoning is in the split's closing note: bootstrapping is exempt,
+and the exemption ends the moment the framework can check its own work.
 
 ### Intent split
 
-| # | Intent |
-|---|---|
-| I1 | Artifact model, cycle layout, findings schema |
-| I2 | Fact-gathering — runs once, feeds every role agent |
-| I3 | Interrogator workflow, single-pass, schema output |
-| I4 | Repair loop, no-progress termination |
-| I5 | Retro emission + taxonomy |
-| I6 | Retro absorption into ai-sdlc |
-| I7 | Plugin packaging, CI semver check, ADO install proof |
-| I8 | Dispatch and landing — worktrees, tiers, merge serialization |
+**Eleven items, not eight.** The original list predated the `init` design and the
+interview discussion, so it was missing the two skills a human actually types first and
+the pack that `init` scaffolds from.
 
-I2 is new relative to v01's framing: the highest-leverage measured finding had no
+| # | Item | Depends on |
+|---|---|---|
+| 1 | Artifact model — layout, a schema per artifact kind, findings schema, test project | — |
+| 2 | Fact-gathering — runs once, feeds every role | 1 |
+| 3 | Interrogator — four roles, fan-out, merge | 1, 2 |
+| 4 | Repair loop, no-progress termination | 3 |
+| 5 | Retro emission | 1, 3 |
+| 6 | Retro absorption into ai-sdlc | 5 |
+| 7 | Packaging — plugin manifest, marketplace catalog, CI semver check | something to ship |
+| 8 | Dispatch and landing — worktrees, tiers, merge serialization | 3, 4 |
+| 9 | `intent` skill — the interview | 1 |
+| 10 | `init` skill — interview, scaffold, adoption baseline | 1, 11 |
+| 11 | `dotnet-library` pack — the first stack pack | 1 |
+
+**Two dependencies that reorder things.** `init` cannot precede the pack, because it
+scaffolds *from* one. And the `intent` skill is a convenience rather than a dependency —
+an intent was hand-written successfully, so the format matters and the tool that produces
+it does not, yet.
+
+**Recommended order, in phases.** Items 1-3 are the **self-hosting minimum**: after them
+the framework can check its own work, and everything later is interrogated rather than
+hand-verified. Packaging (7) is worth pulling in early regardless, because it answers the
+one open question that depends on something outside this repository — whether a
+marketplace install authenticates against a private remote — and it needs very little to
+test. Then 11, 9, 4, 5, 6, 10, 8.
+
+That ordering is chosen to make the **unguarded stretch as short as possible**: only the
+items before the interrogator exists are hand-verified, and hand-verification is where a
+defect is most likely to be missed.
+
+**Bootstrapping is exempt from the process, and the exemption ends at item 3.** No
+self-hosting system's first version is built with itself. Running the cycle by hand to
+build the thing that automates the cycle is motion, not principle — measured directly:
+one hand-run interrogation of one intent produced four blocking findings, and the repairs
+for those four introduced three more, with no tooling involved at any point. So items 1-3
+are a single deliberately disposable first attempt, written to be rewritten. From item 4
+the process carries the work.
+
+Item 2 is new relative to v01's framing: the highest-leverage measured finding had no
 home in the original A–G grouping. Communication is not an intent; it is a
 charter clause.
+
+---
+
+# Appendix A · The first charter, in full
+
+Recovered verbatim from `e36fc4b:.sdlc/CHARTER.md`, headings demoted one level to nest
+here. This is what the first charter said, not necessarily what any later charter says.
+
+**Precedence within this document: the body supersedes this appendix.** Several decisions
+here were later revised — most visibly `DEC-05`, which asks when to promote the invariants
+into a shared set, a question the body answers by rejecting inheritance entirely in favour
+of per-pack charters. The appendix is preserved unedited because a verbatim record that
+has been tidied is no longer a record.
+
+## Charter — ai-sdlc
+
+    Version:   1
+    Solution:  ai-sdlc (solution zero — builds the framework, consumes no stack pack)
+    Inherits:  nothing
+    Since:     2026-09-22
+
+This is the authority every artifact in this repository is interrogated against.
+It says what work here must **obey**. It does not describe what the framework
+does — that is the code, the tests, and the traceability in each `verify.md`.
+
+---
+
+### How this document works
+
+**Invariants are immutable and append-only.** IDs are assigned once, never reused,
+never renumbered — **including across the copy from a pack charter into a solution
+charter.** A changed conclusion is a *new* invariant that supersedes the old one; the
+original keeps its ID and gains `Superseded-by`.
+
+A solution that drops an inapplicable invariant leaves a **gap** — `INV-01, INV-02,
+INV-03, INV-05` — and the gap is itself the record that something was removed. Local
+additions use `LOC-nn`, numbered independently and never reused either. Without this,
+a local invariant numbered into a vacated slot would make `cites: INV-04` mean
+different things in different solutions on the same pack, and per-pack aggregation
+would break.
+
+**`Origin:` records where this charter came from** — `scaffolded from dotnet-library@v3`,
+or `adopted — inferred at <sha>` with its baseline count. It tells every interrogation
+how much to trust the document it is checking against, since an inferred charter is a
+guess about a codebase while a scaffolded one is a copy of a known-good template. It
+also makes the id gaps readable, which they are not without knowing the source.
+
+**Every invariant carries a non-empty `Forbids:` clause.** This is the acceptance
+test made mechanical:
+
+> If a rule is compatible with every possible implementation, it is not a rule.
+> If a rule does not change at least one downstream plan or diff, it is decoration.
+
+A missing or empty `Forbids:` fails the form check. Excluded from invariants: tool
+names, framework preferences, style rules, package versions, and unenforceable
+aspirations. Where a rule genuinely concerns tooling, it is delegated to the stack
+pack through INV-04.
+
+**Every invariant carries a non-empty `Applies-to:` clause** naming the artifacts it
+governs. This is what tells `interrogate <artifact>` which invariants its `charter`
+role should load. An empty `Applies-to:` governs nothing and fails the form check for
+the same reason an empty `Forbids:` does — it is decoration.
+
+It also makes coverage visible rather than something to be derived by hand:
+
+| Invariant | intent | spec | plan | code | verify |
+|---|---|---|---|---|---|
+| INV-01 error paths | ✓ | ✓ | — | — | — |
+| INV-02 one reading | ✓ | ✓ | ✓ | — | — |
+| INV-03 no second list | ✓ | ✓ | ✓ | ✓ | ✓ |
+| INV-04 declared stack | ✓ | ✓ | ✓ | ✓ | — |
+| INV-05 plans declare files | — | — | ✓ | — | — |
+| INV-06 no unjustified bypass | — | — | — | ✓ | ✓ |
+| INV-07 claims are checked | ✓ | ✓ | ✓ | ✓ | ✓ |
+
+INV-01 and INV-02 were deliberately widened to reach intents. Written for specs
+alone, an intent could be blocked by only two invariants, and everything else about
+it — ambiguity, missing cases — would return as `suggested` no matter how serious.
+The intent is the cheapest place to catch both.
+
+**Findings cite invariants by ID.** A finding that cannot cite an invariant, a
+failed mechanical check, or a location pair is capped at `suggested` and cannot
+halt a cycle.
+
+**Amendment is by counts, not opinion.** Every signal below is derived from the
+findings corpus by a read-only query — never stored in a committed file, which would
+be a second list beside the corpus. A signal is a **prompt to investigate, not a
+verdict**: no process may act on one, because acting means changing this document and
+that requires an approved charter intent (INV-08).
+
+| Signal | Reading | Action |
+|---|---|---|
+| zero cites, and no violation can be constructed | decoration | delete |
+| zero cites, violations possible but undetectable | unenforceable | keep; make it checkable |
+| zero cites, prevented upstream by a template or check | working as designed | keep |
+| repeated **rejected** charter intents against it | unclear, not wrong | keep; clarify its wording |
+| high override count — cited then dispositioned "accepted, won't fix" | too broad, or wrong | candidate for narrowing |
+| recurring suggestion clusters on one theme | a missing invariant | candidate for addition |
+
+**There is exactly one way to change this document, and no process can take it.**
+
+> The charter changes only through a **charter intent** that a **human approves**.
+> No automated process may approve one. No cycle may amend the charter governing it.
+
+A cycle that hits a charter trigger halts, files the intent, and waits. It can
+request; only a person can grant.
+
+The same protection covers the stack pack, because INV-04 delegates the substance of
+its rule there — protecting only this file would leave the rule's content in an
+unlocked drawer. Two sources, so that routine maintenance does not dilute this
+document's version:
+
+| Source | Changes | Bumps |
+|---|---|---|
+| `charter-review` | this document — invariants, taxonomy, `DEC` register, roles, the `Inherits:` line | charter version |
+| `pack-review` | `pack.yaml`, `pack.rules.yaml` | pack version |
+
+Both are human-approved and one-way; which applies is determined by path, so neither
+needs a judgment call. Creating a new pack is an ordinary cycle — nothing exists yet
+to loosen. Modifying one needs the gate.
+
+Amendments never rewrite history: a retro stamped `charter v1` stays interpretable
+against v1 forever.
+
+**Commencement.** This rule takes effect **when the first cycle runs against this
+charter.** Until then the document is a draft being written by hand, and there is no
+process to protect it from. The rule is enforced by INV-08 from that moment on.
+
+**Finding an invariant nothing ever cites.** Four of the five amendment triggers
+announce themselves — a blocked cycle, a growing suggestions pile, a change you made,
+an arriving intent. The fifth produces no event at all: an invariant that no finding
+ever points at is decoration, unenforceable, or being prevented upstream by a
+template — three readings calling for opposite actions — and nothing will ever prompt
+you to notice which. You can be prompted about what happens; you have to go looking for
+what does not. So one query — *which invariants have zero cites, and which deferred
+decisions are old with zero cites* — runs whenever a charter intent happens for any
+other reason, with a floor of every ten cycles.
+
+**This document is interrogable.** Three of the four roles apply unchanged; the
+`charter` role is inapplicable to the charter and is substituted by `form`, which
+checks each invariant's shape rather than judging its content.
+
+**`Prevented-by:` is an optional invariant field.** When a template or mechanical
+check guarantees compliance, name it — `Prevented-by: the plan template`. Zero cites
+is then expected and correct rather than suspicious, and the health query can say
+"working as designed" instead of leaving you to work it out. Without the field, zero
+cites is a question.
+
+**Version stamping.** Every retro records the charter version in force when its
+cycle ran.
+
+---
+
+### Invariants
+
+These seven were chosen by one criterion: **the minimum set that lets every
+finding category block.** Drop any one and a category goes permanently advisory.
+They are written solution-agnostically, so promotion into a shared
+`mofoncode-invariants` set is a rename rather than a rewrite.
+
+#### INV-01 · Error paths are enumerated
+
+    Applies-to: intent, spec
+    Forbids:  an intent or spec that describes behaviour without its failure
+              modes.
+    Evidence: the cheapest defect to prevent and the most expensive to discover
+              in production. Without this, `missing-case` can never block.
+              Scoped to intents as well as specs deliberately: a missing case in
+              an intent propagates into the spec, the plan, the code and the
+              tests, and the intent is the cheapest place to catch it.
+    Unlocks:  missing-case
+    Since:    v1
+
+#### INV-02 · One reading per statement
+
+    Applies-to: intent, spec, plan
+    Forbids:  a statement that admits two readings leading to materially
+              different downstream work.
+    Evidence: ambiguity resolved silently by an agent is a decision nobody made.
+    Unlocks:  ambiguity
+    Since:    v1
+    Note:     the most subjective invariant here, and the one most likely to
+              accumulate overrides. Under the amendment rule it will be narrowed
+              or deleted on evidence. That is the intended behaviour, not a flaw.
+              Titled "per statement" rather than "per criterion" so it reaches
+              intents and plans, which have no acceptance criteria.
+
+#### INV-03 · No second list without a binding check
+
+    Applies-to: every artifact, and code
+    Forbids:  introducing a second representation of a fact without, in the same
+              change, the check that fails when the two disagree.
+    Evidence: measured in v01 — bitten four times. The failure is silent: correct
+              on the day it is written, wrong weeks later, and nothing looks at it.
+              "In the same change" is the load-bearing part; the check must exist
+              before the drift window opens.
+    Scope:    this forbids representations that can DRIFT. A copy of an
+              immutable, append-only artifact is not a second list, because
+              divergence is impossible — provided the mechanism that makes the
+              copy refuses to overwrite with different content. The retro corpus
+              is the standing instance: `absorb-retro` enforces it.
+    Unlocks:  duplicated-truth
+    Since:    v1
+
+#### INV-04 · The declared stack governs
+
+    Applies-to: intent, spec, plan, code
+    Forbids:  a runtime, framework or package choice that contradicts the
+              solution's declared stack pack, unless this charter records the
+              deviation.
+    Evidence: defaults only save work if deviating from them is visible. One
+              invariant makes every pack rule citable, so no invariant is ever
+              added per tech decision — and tool names stay out of the charter.
+    Scope:    what the solution SHIPS AND RUNS. Reading, running or porting
+              existing work in another language is research, not a runtime
+              choice, and is never a violation. Reading a Python notebook to
+              understand an approach: fine. Porting it to C#: fine. Vendoring it
+              into the solution and calling it at runtime: a violation.
+    Unlocks:  charter-violation
+    Since:    v1
+
+#### INV-05 · Plans declare their files
+
+    Applies-to: plan
+    Forbids:  a plan that does not enumerate the files it will touch.
+    Evidence: makes scope drift mechanically detectable rather than a judgment,
+              and is what the blast-radius escalation compares against — the same
+              declaration serves both.
+    Unlocks:  scope-drift
+    Since:    v1
+
+#### INV-06 · No unjustified gate bypass
+
+    Applies-to: code, verify, pack
+    Forbids:  a NoWarn, a pragma disable, a skipped test, or an excluded path
+              without a written justification.
+    Evidence: a zero-warning build is a strong signal because it is binary. The
+              failure mode is not warnings appearing — it is suppressions
+              accumulating until the zero means nothing. The suppression count is
+              tracked in every `verify.md`, and an increase is itself a finding.
+    Unlocks:  gate-bypass
+    Since:    v1
+
+#### INV-07 · Claims about the tree are checked, not asserted
+
+    Applies-to: every artifact
+    Forbids:  an artifact asserting a fact about the repository that no
+              fact-gathering check verified.
+    Evidence: measured in v01 — roughly 70% of findings were mechanical: unresolved
+              paths, stale counts, claims about the tree. Checking them before
+              interrogation cut one round from 30 tool calls to 13, and what came
+              back was reasoning instead of bookkeeping.
+    Unlocks:  unfounded-claim
+    Since:    v1
+
+#### INV-08 · The charter changes only by approved intent
+
+    Applies-to: every artifact, and code
+    Forbids:  amending this document, the stack pack, or the pack rules outside
+              an approved charter or pack intent.
+    Evidence: every other rule here is enforced by being citable, and the rule
+              protecting the charter being the sole exception is backwards — it is
+              the rule with the most to lose. Without it, a cycle that edits its
+              way around an invariant leaves no finding behind.
+    Note:     a charter intent proposing a change to THIS invariant must say so in
+              its title. The self-reference cannot be closed — this rule lives in
+              the document it protects — but quiet removal is the only failure mode
+              that matters, so it is made loud instead.
+    Unlocks:  charter-violation
+    Since:    v1
+
+INV-08 is not part of the seven above. Those seven were selected to make every
+finding category blockable; this one protects the mechanism itself. Different job,
+so it neither strengthens nor weakens the reasoning behind them.
+
+#### Coverage
+
+Every finding category can block, through one of three citation routes:
+
+| Category | Blocks via |
+|---|---|
+| `unresolvable-reference` | failed check — no invariant needed |
+| `internal-contradiction` | location pair — no invariant needed |
+| `untestable` | failed check: marked verifiable, no test annotation |
+| `unfounded-claim` | failed check, or INV-07 |
+| `scope-drift` | failed check (plan vs diff), or INV-05 |
+| `gate-bypass` | failed check (grep and count), or INV-06 |
+| `duplicated-truth` | INV-03 |
+| `ambiguity` | INV-02 |
+| `missing-case` | INV-01 |
+| `charter-violation` | any invariant, INV-04 among them |
+| `unclassified` | never blocks, by construction |
+
+---
+
+### Finding taxonomy · v1
+
+This charter is the authority for these values. The findings schema validates
+against them; nothing else may restate them.
+
+#### Axis 1 — category
+
+| Category | Definition |
+|---|---|
+| `unresolvable-reference` | Points at a file, section, criterion, invariant or package that does not exist |
+| `unfounded-claim` | An assertion about the tree, build or dependency state that is false |
+| `scope-drift` | Does more or less than the upstream artifact authorised |
+| `gate-bypass` | A suppression, skip, exclusion or disabled check with no written justification |
+| `internal-contradiction` | Two parts of the same artifact conflict |
+| `duplicated-truth` | A second list beside a source of truth, with no check binding them |
+| `ambiguity` | Admits two readings that lead to materially different downstream work |
+| `untestable` | Marked verifiable, but stated so that no test could verify it |
+| `missing-case` | A scenario, error path or requirement that should be covered and is not |
+| `charter-violation` | Makes a choice the charter forbids and fits no other shape |
+| `unclassified` | Fits none of the above. **Can never block.** Its rate is a health metric for this taxonomy |
+
+**Tie-break:** when two categories fit, take the more mechanically checkable one.
+It yields a citation and a sharper count, and the bias toward blockable findings is
+deliberate.
+
+**`charter-violation` is a last resort.** If a finding has a shape, use the shape
+and put the invariant in `cites`.
+
+#### Axis 2 — attributed stage
+
+`charter` · `intent` · `spec` · `plan` · `build` · `verify`
+
+Which artifact should have prevented this. May be the current stage or an upstream
+one; upstream attribution is the high-value signal.
+
+#### Axis 3 — detection
+
+`check` — a mechanical check failed. Deterministic and re-runnable.
+`reasoning` — an agent inferred it.
+
+#### State
+
+Discovery and disposition are separate acts. An interrogator notices that something
+is wrong before it knows whether a person is needed, so state is assigned in two
+steps rather than guessed at once.
+
+| State | Meaning | Requires |
+|---|---|---|
+| `open` | discovered, disposition pending. **No cycle may land with any outstanding** | nothing |
+| `blocking` | must resolve before landing. Carries a `repair` → self-heal attempts it under no-progress termination; no repair, or repair fails → escalate to a person | non-empty `cites` |
+| `suggested` | never halts. Accumulates as evidence in `suggestions/<cycle-id>.md` | nothing |
+
+**Findings from a mechanical check skip `open` entirely.** The failed check *is* the
+citation, so there is nothing to triage — they are born `blocking`. Only
+`detection: reasoning` findings start at `open`. Since roughly 70% of findings were
+mechanical in v01, most never enter triage at all.
+
+**Promotion, not discovery, requires a citation.** An `open` finding cannot become
+`blocking` without one; uncited, it becomes `suggested`. This is the anti-inflation
+guard, and it belongs at promotion: at discovery an interrogator is pattern-matching,
+at triage it is investigating. Asking for a citation before it has looked is asking
+it to guess.
+
+`cites` accepts exactly one of: an invariant ID; a failed check ID; or a location
+pair of two or more conflicting positions in the artifact (`internal-contradiction`
+only).
+
+**An `open` finding that will not triage defaults to `blocking`** — two rounds with
+no progress and a person looks. When in doubt, escalate.
+
+**Category never determines state.** Two rules governing state would fight,
+and the easier one would win.
+
+#### Disposition
+
+State says where a finding stands and whether it halts the cycle. Disposition says
+what was done about it. Note that state is deliberately not a measure of how bad
+something is: a trivial unresolved path that fails a mechanical check is `blocking`,
+while a deep concern with no citation is `suggested`.
+Every finding carries both. Nothing is left without a recorded outcome.
+
+| Disposition | Means | Signal it feeds |
+|---|---|---|
+| `fixed` | something changed; the finding no longer holds | none |
+| `rejected` | the finding was **wrong** — nothing to fix | nothing about the invariant, but a high rate for one role marks that role **noisy** |
+| `accepted-wont-fix` | the finding was **right** and we knowingly are not acting | **override count** → the invariant may be too broad |
+| `deferred-to-dec` | real, but the subject is a deferred decision | **`DEC` cite count** → that subject needs deciding, not deferring |
+| `promoted` | a `suggested` finding became its own intent with `source: suggestion` | none |
+
+`rejected` and `accepted-wont-fix` must never be merged. Dismissing a bogus finding
+would otherwise inflate the override count and make a sound invariant look too broad.
+
+**Timing.** A `blocking` finding must be dispositioned before the cycle can land. A
+`suggested` finding is dispositioned later, when the suggestions file is triaged —
+requiring it at landing would defeat the purpose of suggestions.
+
+**Where they live.** On the finding. Recorded in `verify.md` as of the gate, and
+carried in `retro.md` for the corpus — the retro is what travels, so it is what the
+amendment signals are computed from. **Never** stored on the `DEC` entry itself: that
+would be a second list beside the corpus, and this document would grow with every
+cycle.
+
+---
+
+### Interrogator roles
+
+Fan out by *question asked*, never by area. Area roles overlap and dump
+deduplication on the merger; question roles read different evidence and rarely
+collide — which is also why they have nothing to debate.
+
+| Role | Its one question | Evidence | Fails by |
+|---|---|---|---|
+| `charter` | Does this contradict an invariant? | this document | over-matching |
+| `coherence` | Does this contradict itself? | the artifact alone | missing distant contradictions |
+| `facts` | Do its claims about the tree hold? | the tree, via checks | not checking enough |
+| `gaps` | What is missing that should be here? | domain reasoning | inventing requirements |
+
+When the artifact under interrogation **is this document**, `charter` is replaced by:
+
+| Role | Its one question |
+|---|---|
+| `form` | Does each invariant carry a non-empty `Forbids:`, and does it forbid something an implementation could actually do? |
+
+Fact-gathering runs **once**, in the parent, and its results are passed to every
+role. Deduplication and state assignment belong to the merger, never to an
+individual role.
+
+---
+
+### Open-decision register
+
+**Interrogation must not report anything in this register as a violation.** These
+are deliberately unsettled. An interrogator that raises one is producing noise, and
+may cite the `DEC` id when dismissing such a finding.
+
+| ID | Deliberately open |
+|---|---|
+| DEC-01 | Retro transport from other solutions into this repo |
+| DEC-02 | Charter review cadence — every N cycles, or on a clock |
+| DEC-03 | Who moves the `release` ref, and on what trigger |
+| DEC-04 | Concurrency cap for unsupervised fan-out |
+| DEC-05 | When to promote these seven into a shared `mofoncode-invariants@v1` set |
+| DEC-06 | Whether a living solution-level spec is ever adopted |
+| DEC-07 | Artifact directory organisation once the count is annoying |
+| DEC-08 | One real install proving the private-ADO marketplace credential path |
+
+---
+
+### Communication
+
+Artifacts stay indexed. Conversation does not.
+
+When referring to an invariant, a requirement or a finding in prose, **lead with
+what it says**; the identifier is trailing detail, never the whole reference. "No
+second list without a check that binds them (INV-03)" — not "INV-03".
+
+This cannot be checked, only restated. Its cost is repetition, not implementation.
+
+---
+
+### Calibration period
+
+This charter is deliberately thin. Seven invariants cannot catch much, and the
+`cites` rule means anything they do not cover is capped at `suggested`. That is
+the correct failure mode — permissive rather than obstructive — and it is
+self-correcting, because the suggestions pile is the evidence for which invariants
+are missing.
+
+**The consequence: do not run unsupervised until this charter can halt on
+something.** Early cycles are calibration runs. Unsupervised mode earns its way in
+as the charter thickens.
