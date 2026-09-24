@@ -27,7 +27,7 @@ Read this section first. It is the whole handoff.
 
 ```
 branch        bootstrap
-last commit   28fe481
+last commit   7af6d90
 verify        dotnet test   → expect 42 passed, 0 failed
 ```
 
