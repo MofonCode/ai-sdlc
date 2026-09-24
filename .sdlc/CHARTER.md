@@ -1,12 +1,17 @@
+---
+version: 1
+solution: ai-sdlc
+pack: none
+origin: hand-written — solution zero has no pack to copy a charter from
+since: 2026-09-22
+restored: 2026-09-24 from e36fc4b, with one resolved decision dropped from the register
+---
+
 # Charter — ai-sdlc
 
-    Version:   1
-    Solution:  ai-sdlc (solution zero — builds the framework, consumes no stack pack)
-    Origin:    hand-written. Solution zero has no pack to copy a charter from, so this
-               one has no producer by definition; every solution after it is scaffolded
-               or adopted by `/sdlc:init`.
-    Since:     2026-09-22
-    Restored:  2026-09-24 from e36fc4b, with DEC-05 removed
+Solution zero. It builds the framework and consumes no stack pack, so this charter has
+no producer by definition — every solution after it is scaffolded or adopted by the
+init skill, which copies its pack's charter.
 
 This is the authority every artifact in this repository is interrogated against.
 It says what work here must **obey**. It does not describe what the framework
@@ -423,7 +428,8 @@ may cite the `DEC` id when dismissing such a finding.
 | DEC-07 | Artifact directory organisation once the count is annoying |
 | DEC-08 | One real install proving the private-marketplace credential path |
 
-**`DEC-01` through `DEC-05` are absent deliberately.** Each was resolved between
+**~~DEC-01~~ through ~~DEC-05~~ are absent deliberately**, struck through here and below so that a
+mechanical check reads them as records of absence rather than as declarations. Each was resolved between
 2026-09-22 and 2026-09-24, so none is deferred any longer — a register entry exists to
 stop interrogation raising a question that is open, and these are answered. The
 resolutions are recorded in the design record; the gaps are the record that the entries
@@ -431,11 +437,11 @@ existed, under the same rule that governs invariant ids.
 
 | Gap | Was | Resolved as |
 |---|---|---|
-| DEC-01 | retro transport | one manual `absorb-retro`, idempotent by cycle id |
-| DEC-02 | charter review cadence | five triggers, plus a zero-cite query with a ten-cycle floor |
-| DEC-03 | who moves `release` | a person, manually, on no cadence |
-| DEC-04 | concurrency cap | there is none; the launch confirmation is the control |
-| DEC-05 | a shared invariant set | rejected; per-pack charters instead |
+| ~~DEC-01~~ | retro transport | one manual `absorb-retro`, idempotent by cycle id |
+| ~~DEC-02~~ | charter review cadence | five triggers, plus a zero-cite query with a ten-cycle floor |
+| ~~DEC-03~~ | who moves `release` | a person, manually, on no cadence |
+| ~~DEC-04~~ | concurrency cap | there is none; the launch confirmation is the control |
+| ~~DEC-05~~ | a shared invariant set | rejected; per-pack charters instead |
 
 ---
 
