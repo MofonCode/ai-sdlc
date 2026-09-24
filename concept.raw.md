@@ -1,6 +1,6 @@
 # ai-sdlc v02 — raw concept
 
-    Status: FROZEN 2026-09-23
+    Status: CLOSED — pinned by the `raw-concept` tag
     Origin: hand-written, before any tooling existed
 
 **This is the last artifact written entirely by hand, and it is closed.**
@@ -774,6 +774,12 @@ be a second list beside the corpus, and the charter would grow with every cycle.
 because a file every cycle appends to conflicts exactly the way `plugin.json`
 does.
 
+**DECIDED: the schema-validated JSON is authoritative; the markdown is a generated
+view.** Findings exist in two representations, and without a stated authority that is an
+INV-03 duplication. The JSON is what interrogation emits and what aggregation reads; the
+markdown is rendered from it for a human, regenerable, and not committed — the same
+pattern as `facts.md`.
+
 A human triages on their own schedule. A promoted suggestion becomes an ordinary
 intent carrying `source: suggestion`, entering the same PR queue as a maintain
 finding. Same intake, different origin, so no second mechanism.
@@ -1194,6 +1200,12 @@ Whether `init` generates intents, by case:
 `scaffold` survives as the pack's file-creating capability that `init` invokes. `adopt` is
 not a verb — it is what `init` does when it finds existing code.
 
+**Solution zero is the one exception, by definition.** `init` produces a charter by copying
+a *pack's* charter, and ai-sdlc consumes no pack — so its own charter has no producer and
+is hand-written, once. That is not a gap to be closed: the first charter in existence
+cannot be copied from anything, in the same way the first compiler cannot be compiled.
+Every solution after it is scaffolded or adopted.
+
 **`init` and `intent` share the pattern, not the machinery.** Both grill a human and write
 an artifact, but the questions have nothing in common — *what is this solution* versus
 *what do you want to change* — and the only shared element is `AskUserQuestion`, which is
@@ -1368,9 +1380,19 @@ rejected, or killed by a rebase. The two artifacts answer different questions.
 surfacing most: it is where an escalated Tier-3 cycle waits for a human. Without
 it the dispatcher cannot tell "still working" from "done working, needs you".
 
-**DECIDED:** the retro is therefore written to master *after* the merge, as its own
-small commit, not carried in on the cycle branch. That is also what lets it record
-the landing itself — rebase conflicts, and the result of the post-rebase re-verify.
+**DECIDED (revised 2026-09-24): the retro is written on the cycle branch and rides in
+with the squash.** One cycle, one commit.
+
+An earlier draft had it as a separate commit on master *after* the merge, so that it
+could record the landing — rebase conflicts, and the post-rebase re-verify result. That
+contradicted the one-cycle-one-commit rule the squash decision rests on, and made "one
+revert" false: reverting the code would leave a retro behind.
+
+The contradiction dissolves once the landing sequence is read in order: **rebase →
+re-verify → merge.** Re-verify runs *before* the merge, so it updates `verify.md` on the
+branch, and the retro can be written there too, after it. Everything the retro needed
+from the landing is available before the merge, so nothing is lost and the commit count
+stays at one.
 
 Abandonment is the one state with no evidence of its own, so it takes one explicit
 act: move the file to `intents/abandoned/`.
@@ -1652,11 +1674,28 @@ careful the reviewer.
 | 3 | auth, migrations, or public API | full review + explicit human sign-off |
 
 **DECIDED:** blast radius is read twice. **Predicted** tier, from what the intent
-and plan say they will touch, decides whether a run may launch unsupervised.
-**Actual** tier, from the real diff, is checked at verify. Actual exceeding
-predicted **halts and escalates** instead of merging. The check is free —
-`plan.md` already declares its files and `verify.md` already compares plan
-against diff, so it is the same comparison used twice.
+say they will touch, is read **from `plan.md`** and gates the *build*, not the launch.
+**Actual** tier, from the real diff, is checked at verify. Actual exceeding predicted
+**halts and escalates** instead of merging. The check is free — INV-05 already requires
+`plan.md` to declare its files and `verify.md` already compares plan against diff, so it
+is the same comparison used twice.
+
+**DECIDED (revised 2026-09-24): the tier gates build, and dispatch runs unsupervised up
+to the plan.** An earlier draft had the predicted tier read "from the intent and plan" to
+decide whether a run may *launch* — but dispatch happens before either a spec or a plan
+exists, and INV-05 scopes file declaration to plans only. So at the one moment the tier
+was needed, its stated source did not exist and the surviving source was not required to
+carry the information.
+
+The resolution needs no new invariant, because **nothing irreversible happens before the
+plan.** Spec and plan are documents; only build touches code. So a batch dispatches, runs
+intent → spec → plan unattended, tiers from `plan.md`, and halts before build at Tier 2
+or 3.
+
+It also separates two questions that were conflated. **Resource** — how many worktrees,
+how long — is answered by the launch confirmation, at launch. **Risk** — how much damage
+a change can do — is answered by the tier, at the plan. Different questions, different
+moments, different evidence.
 
 This is also what makes unsupervised mode definable rather than philosophical:
 **it crosses workflow boundaries without stopping, at Tier 1 only, terminating on
@@ -1965,9 +2004,10 @@ integration tests, deferred. Risk concentrates in the RCL, which is the part cov
   higher billing multiplier. The framework staying Windows-only is unaffected, but a
   generated iOS-targeting solution is not buildable on Windows alone.
 - **Multi-targeted builds are expensive** — `net10.0-android;net10.0-ios;net10.0-maccatalyst`
-  plus conditional Windows. This is a direct input to the unsupervised concurrency cap:
-  one worktree per cycle each running a multi-target MAUI build costs far more than the
-  pure web case.
+  plus conditional Windows. There is no concurrency cap (§7), so this feeds the **launch
+  confirmation** instead: one worktree per cycle each running a multi-target MAUI build
+  costs far more than the pure web case, and that is exactly the kind of cost the
+  deferred cost-hint on the confirmation would disclose.
 - **MAUI's quality history.** The .NET 10 release focus is stated as "product quality",
   which is an acknowledgement of MAUI's reputation. LTS through November 2028 is the
   reassurance. Expect the strict gates — warnings-as-errors, `AnalysisLevel=latest-all` —
