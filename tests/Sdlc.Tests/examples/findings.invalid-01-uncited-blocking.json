@@ -1,0 +1,15 @@
+{
+  "cycle-id": "20260923-4f2a",
+  "target": "intent",
+  "charter-version": 1,
+  "findings": [
+    {
+      "id": "x1",
+      "category": "missing-case",
+      "state": "blocking",
+      "stage": "intent",
+      "detection": "reasoning",
+      "summary": "RULE 1: blocking with no cites at all. This is the anti-inflation guard."
+    }
+  ]
+}

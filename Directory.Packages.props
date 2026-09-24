@@ -1,0 +1,19 @@
+<Project>
+
+  <PropertyGroup>
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+    <CentralPackageTransitivePinningEnabled>true</CentralPackageTransitivePinningEnabled>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Versions checked against nuget.org on 2026-09-24, not assumed. -->
+    <PackageVersion Include="MSTest" Version="4.4.1" />
+    <PackageVersion Include="coverlet.collector" Version="10.0.1" />
+
+    <!-- JSON Schema 2020-12 validation. No Microsoft-published validator exists —
+         System.Text.Json does not validate schemas — so this is not an INV-04
+         deviation, it is the absence of an on-stack option. -->
+    <PackageVersion Include="JsonSchema.Net" Version="9.4.0" />
+  </ItemGroup>
+
+</Project>
