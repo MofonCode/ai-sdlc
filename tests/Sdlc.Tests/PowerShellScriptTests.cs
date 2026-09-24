@@ -32,29 +32,10 @@ public sealed class PowerShellScriptTests
 
     /// <summary>
     /// The script with comments stripped, for checks that must read code rather than prose.
+    /// See <see cref="SourceText"/> for why every construct check goes through this.
     /// </summary>
-    /// <remarks>
-    /// A check that greps source text for a forbidden construct will also match the
-    /// comment explaining that the construct is forbidden. That happened four separate
-    /// times while building this suite — <c>Date.now()</c> in a workflow comment,
-    /// <c>-AsHashtable</c> here, an ellipsis read as a spread, and a multi-line
-    /// justification read as absent. Every one of them reported a correct artifact as
-    /// broken, which is the noise that gets a check switched off.
-    /// <para>
-    /// So the rule, learned the hard way: a construct check reads stripped code. Stripping
-    /// can only cause false negatives, and a missed violation is cheaper than a check
-    /// nobody trusts.
-    /// </para>
-    /// </remarks>
-    private static string CodeOf(string name)
-    {
-        string text = File.ReadAllText(PathOf(name));
-        text = System.Text.RegularExpressions.Regex.Replace(
-            text, @"<#.*?#>", string.Empty,
-            System.Text.RegularExpressions.RegexOptions.Singleline);
-        return System.Text.RegularExpressions.Regex.Replace(
-            text, @"(?m)#.*$", string.Empty);
-    }
+    private static string CodeOf(string name) =>
+        SourceText.StripPowerShellComments(File.ReadAllText(PathOf(name)));
 
     [TestMethod]
     public void ScriptsShip()

@@ -29,14 +29,10 @@ public sealed class WorkflowScriptTests
     /// <summary>
     /// The script with comments removed, for checks that must look at code rather than
     /// prose. Without this, a comment explaining why <c>Date.now()</c> is unavailable
-    /// trips the check forbidding <c>Date.now()</c> — which is the check reporting a
-    /// correct script as broken, and the same noise that gets a check switched off.
-    /// Stripping can only cause false negatives here, which is the cheaper direction.
+    /// trips the check forbidding <c>Date.now()</c>. See <see cref="SourceText"/>.
     /// </summary>
     private static string ReadCode(string name) =>
-        Regex.Replace(
-            Regex.Replace(Read(name), @"/\*.*?\*/", string.Empty, RegexOptions.Singleline),
-            @"(?m)//.*$", string.Empty);
+        SourceText.StripJavaScriptComments(Read(name));
 
     private static string[] SchemaEnum(string defName)
     {

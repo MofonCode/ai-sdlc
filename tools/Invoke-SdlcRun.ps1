@@ -99,7 +99,10 @@ else {
 if ($selected.Count -eq 0) {
     Write-Host 'Nothing queued.' -ForegroundColor Yellow
     if (-not $All) {
-        Write-Host 'Run without -Intent and with -All to see what is available, or /sdlc:intent to author one.'
+        # Deliberately not '/sdlc:intent' — that skill is not built yet, and a hint naming a
+        # command that does not resolve is the unresolvable-reference failure this framework
+        # exists to catch. PluginManifestTests enforces that; restore the hint with the skill.
+        Write-Host 'Pass -All to see everything queued. To add work, author an intent under .sdlc/intents/.'
     }
     return
 }
