@@ -1062,34 +1062,117 @@ defects surface in retros. Stack staleness does not — no retro says "Aspire is
 minor version behind". Packs need a refresh cadence and a CVE watch; that is a
 Maintain signal for the framework itself.
 
-### `init` — bringing a solution into conformance
+### `init` — an interview that produces a charter
 
-**DECIDED (2026-09-23): one command, `/sdlc:init`, and it is idempotent.**
+**DECIDED (2026-09-23): one command, `/sdlc:init`, idempotent.**
 
 Not two verbs. An earlier draft split `scaffold` (new) from `adopt` (existing), on the
 grounds that you need to know whether a charter was generated or inferred. But that is
-what the `Origin:` field records, permanently, whichever path wrote it — solving with a
-command name what a field solves better. And making `init` re-runnable turns it into one
-operation rather than two sharing a name: *bring this solution into conformance.*
+what `Origin:` records, permanently, whichever path wrote it — solving with a command
+name what a field solves better. Making `init` re-runnable turns it into one operation
+rather than two sharing a name: *bring this solution into conformance.*
+
+**It is an interview first and a generator second.** Nothing in an empty directory says
+which pack governs it, so `init` cannot scaffold before it asks. Files are a side effect
+of knowing the pack; the charter is the output.
 
 | Starting state | What `init` does |
 |---|---|
-| empty directory | scaffold the structure and copy the pack's charter. `Origin: scaffolded from dotnet-library@v3` |
-| existing code, no charter | explore, infer a charter, establish the baseline. `Origin: adopted — inferred at <sha>, baseline 47 findings` |
+| empty directory | ask, then scaffold the structure and copy the pack's charter. `Origin: scaffolded from dotnet-library@v3` |
+| existing code, no charter | infer, confirm, write the charter, establish the baseline. `Origin: adopted — inferred at <sha>, baseline 47 findings` |
 | already initialised | reconcile against the pack's current charter |
 
-**The third row has a constraint that falls out of INV-08: `init` cannot edit an existing
-charter.** Changing a charter requires an approved charter intent, so reconciling means
-`init` **files a charter intent** carrying the proposed diff, which someone approves or
-rejects. That is the improvement-delivery path promised in §2, and it needed no new
-design.
+**The two uninitialised cases differ only in how much can be proposed, not in whether
+`init` asks.** On an empty directory every question is open. On an existing codebase the
+`.csproj` files, `Directory.Packages.props` and the `.sln` are evidence, so `init`
+proposes — *"this looks like a .NET library on net10.0 with central package management;
+use `dotnet-library@v3`?"* — and you confirm or correct. That is the pattern adopted from
+grill-me: investigate what can be looked up, ask only what cannot.
 
-`scaffold` survives as the pack's file-creating capability that `init` invokes. `adopt`
-is not a verb — it is what `init` does when it finds existing code.
+### `init` asks the minimum, deliberately
+
+**DECIDED: `init` does not conduct a full interrogation.** It asks what is needed to
+produce a working charter and nothing more:
+
+- **which pack** — required, because nothing else can tell it
+- **the solution name** — needed for scaffolding and for every retro's `solution` field
+- **whatever the pack's manifest declares as required inputs** — a root namespace, a
+  target, a package id. Stack-specific questions live in the pack, not in `init`, which
+  keeps `init` generic and follows the data-not-code rule
+
+Everything else in the charter arrives from the pack verbatim.
+
+**Why not ask more.** The tempting extra questions are *which invariants do not apply
+here* and *what deviations will this solution need*. Both are guesses at `init` time. You
+discover that INV-01 does not fit on cycle three, when it blocks something
+inappropriately — and at that point the amendment machinery does exactly the right thing:
+the cycle halts, files a charter intent, you approve dropping it, and the `INV-` gap
+records the decision.
+
+Asking up front replaces evidence with guesswork, in the one document whose entire design
+is *start raw, thicken by evidence* (§2). A full interrogation at `init` would pre-load
+assumptions into the thing built to learn from what actually happens.
+
+### Preconditions — refuse, explain, offer, never chain
+
+**DECIDED:** running a stage whose input does not exist does not auto-create the input.
+
+> A stage refuses when its input is missing, names what is missing, and offers the
+> command that produces it. It never chains.
+
+Two levels, failing differently:
+
+| Level | Check | On failure |
+|---|---|---|
+| solution | does a charter exist? | offer `/sdlc:init` |
+| stage | does this stage's input artifact exist? | offer the stage that produces it |
+
+So `/sdlc:intent` in an ungoverned repository says *"no charter here; `/sdlc:init` creates
+one — it will ask what this solution is and which pack governs it. Run it now?"* — and if
+you say yes, **`init` runs and stops.** You return to the intent deliberately.
+
+Stopping rather than chaining is not friction. `init` produces the document everything
+else is judged against, and making it a side effect of wanting to write a feature means
+foundational decisions taken with your attention elsewhere. **A careless charter is worse
+than no charter, because it looks like authority.** And the intent you write *after* the
+charter exists is a better intent, because the charter states the constraints it has to
+satisfy.
+
+Two properties fall out. The check is **mechanical** — "does the input artifact exist?"
+is a `facts`-role check with no judgment. And the stage order becomes
+**self-documenting**: you cannot get lost, because whatever you type tells you what is
+actually next.
+
+The charter gates everything, `/sdlc:run` included — which carries a second precondition
+of its own: approved intents on master. None, and it says so.
+
+### What `init` cannot do, and what it files
+
+**`init` cannot edit an existing charter.** Changing a charter requires an approved
+charter intent (INV-08), so reconciling means `init` **files a charter intent** carrying
+the proposed diff, which someone approves or rejects. That is the improvement-delivery
+path promised in §2, and it needed no new design.
+
+Whether `init` generates intents, by case:
+
+| Starting state | Intents filed |
+|---|---|
+| empty directory | **none.** It produces structure and a charter; the first intent comes from you |
+| existing code | **none** — and this is the temptation to resist. Adoption produces dozens of findings, and turning them into intents would flood the queue on day one. They become a baseline plus a suggestions file, and *you* promote the ones worth doing |
+| already initialised | **exactly one** — the charter intent carrying the reconciliation diff |
+
+`scaffold` survives as the pack's file-creating capability that `init` invokes. `adopt` is
+not a verb — it is what `init` does when it finds existing code.
+
+**`init` and `intent` share the pattern, not the machinery.** Both grill a human and write
+an artifact, but the questions have nothing in common — *what is this solution* versus
+*what do you want to change* — and the only shared element is `AskUserQuestion`, which is
+a tool rather than machinery. Forcing an abstraction over two unrelated interviews would
+be the premature-abstraction mistake again.
 
 **A charter is a precondition, not an optional extra.** There is never a cycle without
 one; producing it is the first thing `init` does. A repository that has not been
-initialised is simply not governed, and its absence of a charter is the signal — nothing
+initialised is simply not governed, and the absence of a charter is the signal — nothing
 needs to record "not adopted".
 
 For completeness, since it shows how much the charter carries: without one, `coherence`,
@@ -1106,9 +1189,8 @@ pre-existing second list, every unjustified suppression, every missing error pat
 the state rules most would be `blocking`, which would mean the solution could not run a
 single cycle until the whole backlog cleared. Unworkable.
 
-So at adoption, existing violations are recorded and dispositioned
-`accepted-wont-fix` with the reason *"pre-existing at adoption"*. They do not block. New
-violations do.
+So at adoption, existing violations are recorded and dispositioned `accepted-wont-fix`
+with the reason *"pre-existing at adoption"*. They do not block. New violations do.
 
 **The ratchet already exists, just narrower.** The suppression-count rule says an
 *increase* in suppressions is itself a finding. Generalised: **the baseline count may not
