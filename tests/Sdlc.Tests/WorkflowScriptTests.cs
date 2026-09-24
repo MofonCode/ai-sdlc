@@ -224,6 +224,66 @@ public sealed class WorkflowScriptTests
     }
 
     [TestMethod]
+    public void SpecRequiresEveryCriterionToBeMarkedVerifiableOrNot()
+    {
+        // Without the distinction you either annotate the unannotatable, or quietly pass
+        // untested criteria as tested.
+        string script = Read("spec.js");
+
+        Assert.IsTrue(script.Contains("verifiable", StringComparison.Ordinal));
+        Assert.IsTrue(script.Contains("AC-", StringComparison.Ordinal),
+            "criterion ids must be prefixed so they can be matched to test annotations");
+        Assert.IsTrue(script.Contains("never renumbered", StringComparison.Ordinal),
+            "the never-renumber rule must be stated: those ids end up in test annotations");
+    }
+
+    [TestMethod]
+    public void PlanComputesTheTierMechanicallyRatherThanJudgingIt()
+    {
+        string script = Read("plan.js");
+
+        Assert.IsTrue(script.Contains("Get-SdlcFacts.ps1", StringComparison.Ordinal),
+            "the tier comes from the gatherer, not from an agent's opinion");
+        Assert.IsTrue(script.Contains("Do not compute or adjust the tier yourself", StringComparison.Ordinal),
+            "the prompt must forbid the agent computing it — the point of a function is that it cannot be argued with");
+        Assert.IsTrue(script.Contains("predicted-tier", StringComparison.Ordinal));
+    }
+
+    [TestMethod]
+    public void BuildRefusesToRunUnattendedAboveTierOne()
+    {
+        string script = Read("build.js");
+
+        Assert.IsTrue(script.Contains("UNATTENDED", StringComparison.Ordinal));
+        Assert.IsTrue(script.Contains("tier 1 only", StringComparison.Ordinal),
+            "unattended builds are permitted at tier 1 only");
+    }
+
+    [TestMethod]
+    public void BuildHaltsOnTierEscalationRatherThanReportingIt()
+    {
+        // The work turned out more dangerous than it was approved to be, and the
+        // approval does not stretch to cover it.
+        string script = Read("build.js");
+
+        Assert.IsTrue(script.Contains("halted-tier-escalated", StringComparison.Ordinal),
+            "an escalation must produce a named halt, not a warning in a log");
+        Assert.IsTrue(script.Contains("tierEscalated", StringComparison.Ordinal));
+    }
+
+    [TestMethod]
+    public void EveryStageNamesItsSuccessor()
+    {
+        // The chain is self-documenting only if each stage says what comes next; a stage
+        // that returns without one leaves the caller guessing.
+        foreach (string name in new[] { "spec.js", "plan.js", "build.js" })
+        {
+            Assert.IsTrue(Read(name).Contains("next:", StringComparison.Ordinal),
+                $"{name} must name the next stage in its result");
+        }
+    }
+
+    [TestMethod]
     public void RepairDropsARepairThatDidNotWork()
     {
         // Without this the loop can retry the same failed change forever, and the

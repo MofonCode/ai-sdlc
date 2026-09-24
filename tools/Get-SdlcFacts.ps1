@@ -377,8 +377,54 @@ $kind = Get-ArtifactKind -RelativePath $relative
 $criteria = @(Get-AcceptanceCriteria -Text $text)
 $declaredFiles = @(Get-DeclaredFiles -Text $text -Root $RepoRoot)
 $blastRadius = $null
+$actualRadius = $null
+$adherence = $null
+
 if ($kind -eq 'plan' -and $declaredFiles.Count -gt 0) {
     $blastRadius = Get-BlastRadius -Files $declaredFiles
+
+    # The same tier function applied to the real diff. Predicted gates the build;
+    # actual is checked at verify, and actual exceeding predicted halts rather than
+    # merges. One function, two inputs — so the two numbers are comparable by
+    # construction rather than by convention.
+    Push-Location $RepoRoot
+    try {
+        $changed = @(git diff --name-only HEAD) + @(git ls-files --others --exclude-standard)
+    }
+    finally {
+        Pop-Location
+    }
+
+    $changed = @($changed | Where-Object { $_ } | Select-Object -Unique)
+
+    if ($changed.Count -gt 0) {
+        $actualFiles = @()
+        foreach ($c in $changed) {
+            $actualFiles += [pscustomobject]@{ path = $c; change = 'modify'; exists = $true; consistent = $true }
+        }
+
+        $actualRadius = Get-BlastRadius -Files $actualFiles
+
+        $declaredPaths = @()
+        foreach ($d in $declaredFiles) { $declaredPaths += ($d.path -replace '\\', '/') }
+
+        $undeclared = @()
+        foreach ($c in $changed) {
+            if ($declaredPaths -notcontains ($c -replace '\\', '/')) { $undeclared += $c }
+        }
+
+        $untouched = @()
+        foreach ($d in $declaredPaths) {
+            if ($changed -notcontains $d) { $untouched += $d }
+        }
+
+        $adherence = [ordered]@{
+            'changed-files'   = @($changed)
+            'undeclared'      = @($undeclared)
+            'declared-untouched' = @($untouched)
+            'tier-escalated'  = ($actualRadius.tier -gt $blastRadius.tier)
+        }
+    }
 }
 
 $checks = New-Object System.Collections.ArrayList
@@ -454,6 +500,26 @@ if ($governed) {
             Add-Check 'plan-declares-files' $true $null
         }
 
+        if ($null -ne $adherence) {
+            # Scope drift, mechanically. An undeclared file is a finding rather than a
+            # footnote, which is the whole reason INV-05 exists.
+            if ($adherence['undeclared'].Count -gt 0) {
+                Add-Check 'plan-adherence' $false (
+                    "changed but not declared: " + ($adherence['undeclared'] -join ', '))
+            }
+            else {
+                Add-Check 'plan-adherence' $true $null
+            }
+
+            # A tier escalation is the one condition that halts a build rather than
+            # merely reporting: the work turned out more dangerous than it was approved
+            # to be, so a person decides.
+            Add-Check 'tier-not-escalated' (-not $adherence['tier-escalated']) $(
+                if ($adherence['tier-escalated']) {
+                    "predicted tier $($blastRadius.tier), actual $($actualRadius.tier)"
+                } else { $null })
+        }
+
         $inconsistent = @($declaredFiles | Where-Object { -not $_.consistent })
         if ($inconsistent.Count -gt 0) {
             Add-Check 'plan-files-consistent' $false (
@@ -480,6 +546,8 @@ $facts = [ordered]@{
     'acceptance-criteria' = @($criteria)
     'declared-files'      = @($declaredFiles)
     'blast-radius'        = $blastRadius
+    'actual-blast-radius' = $actualRadius
+    'plan-adherence'      = $adherence
     'charter'          = [ordered]@{
         path          = ($Charter -replace '\\', '/')
         present       = $charterPresent
