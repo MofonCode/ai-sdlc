@@ -26,6 +26,18 @@ public sealed class WorkflowScriptTests
 
     private static string Read(string name) => File.ReadAllText(Path.Combine(WorkflowDir, name));
 
+    /// <summary>
+    /// The script with comments removed, for checks that must look at code rather than
+    /// prose. Without this, a comment explaining why <c>Date.now()</c> is unavailable
+    /// trips the check forbidding <c>Date.now()</c> — which is the check reporting a
+    /// correct script as broken, and the same noise that gets a check switched off.
+    /// Stripping can only cause false negatives here, which is the cheaper direction.
+    /// </summary>
+    private static string ReadCode(string name) =>
+        Regex.Replace(
+            Regex.Replace(Read(name), @"/\*.*?\*/", string.Empty, RegexOptions.Singleline),
+            @"(?m)//.*$", string.Empty);
+
     private static string[] SchemaEnum(string defName)
     {
         using JsonDocument doc = JsonDocument.Parse(File.ReadAllText(SchemaPath));
@@ -119,7 +131,7 @@ public sealed class WorkflowScriptTests
     public void NoConstructsTheRuntimeForbids(string name)
     {
         ArgumentNullException.ThrowIfNull(name);
-        string script = Read(name);
+        string script = ReadCode(name);
 
         // These would break resume, so the runtime makes them throw.
         Assert.IsFalse(script.Contains("Date.now()", StringComparison.Ordinal), $"{name}: Date.now() throws");
@@ -313,11 +325,58 @@ public sealed class WorkflowScriptTests
     }
 
     [TestMethod]
+    public void RetroRefusesToCertifyACycleThatDidNotPass()
+    {
+        // A retro's PRESENCE is what makes a cycle read as done, which is only a
+        // trustworthy derivation if the certificate is withheld when verify did not pass.
+        string script = Read("retro.js");
+
+        Assert.IsTrue(script.Contains("refusing to write a retro", StringComparison.Ordinal));
+        Assert.IsTrue(script.Contains("outcome: 'refused'", StringComparison.Ordinal),
+            "the refusal must be a named outcome, not a silent return");
+        Assert.IsTrue(script.Contains("completion certificate", StringComparison.Ordinal),
+            "the reason for the refusal must be stated where someone changing it will read it");
+    }
+
+    [TestMethod]
+    public void RetroTakesLandedAtAsInputRatherThanReadingAClock()
+    {
+        // Two reasons, and both matter: the runtime makes Date.now() throw because it
+        // would break resume, and the landing date is not derivable after the retro is
+        // copied into the corpus, since ai-sdlc's git date is the absorption date.
+        string script = Read("retro.js");
+
+        Assert.IsTrue(script.Contains("LANDED_AT", StringComparison.Ordinal));
+        Assert.IsTrue(script.Contains("not derivable", StringComparison.Ordinal));
+    }
+
+    [TestMethod]
+    public void RetroForbidsCollapsingOppositeDispositions()
+    {
+        // rejected says the finding was wrong; accepted-wont-fix says the rule may be too
+        // broad. Merging them would corrupt the only evidence the charter improves from.
+        string script = Read("retro.js");
+
+        Assert.IsTrue(script.Contains("OPPOSITE amendment signals", StringComparison.Ordinal));
+        Assert.IsTrue(script.Contains("do not drop the ones that were dismissed", StringComparison.Ordinal));
+    }
+
+    [TestMethod]
+    public void RetroDoesNotGradeItself()
+    {
+        // Self-assessment at close is structurally optimistic: everything visibly worked,
+        // because it passed its tests ten minutes ago.
+        Assert.IsTrue(
+            Read("retro.js").Contains("Do NOT grade the cycle", StringComparison.Ordinal),
+            "the retro must record rather than judge; the trustworthy signal is delayed");
+    }
+
+    [TestMethod]
     public void EveryStageNamesItsSuccessor()
     {
         // The chain is self-documenting only if each stage says what comes next; a stage
         // that returns without one leaves the caller guessing.
-        foreach (string name in new[] { "spec.js", "plan.js", "build.js", "verify.js" })
+        foreach (string name in new[] { "spec.js", "plan.js", "build.js", "verify.js", "retro.js" })
         {
             Assert.IsTrue(Read(name).Contains("next:", StringComparison.Ordinal),
                 $"{name} must name the next stage in its result");
