@@ -27,8 +27,8 @@ Read this section first. It is the whole handoff.
 
 ```
 branch        bootstrap
-last commit   45916c9
-verify        dotnet test   → expect 146 passed, 0 failed
+last commit   5766f9f
+verify        dotnet test   → expect 147 passed, 0 failed
 plugin        claude plugin validate . --strict   → expect "Validation passed"
 ```
 
@@ -37,7 +37,7 @@ a task: run `interrogate` on the charter — the first real workflow execution, 
 first evidence about the process rather than about missing parts — or continue with
 items 11, 12, 14, 15.
 
-If `dotnet test` does not report 146 passing, stop and diagnose before building anything:
+If `dotnet test` does not report 147 passing, stop and diagnose before building anything:
 the test suite is the only thing standing between "this looks right" and "this works".
 
 ---
@@ -83,6 +83,11 @@ Items 11–15 are conveniences and distribution. None is needed to prove the cha
    separate instances; the rule now lives in one place, `SourceText`, because it was
    about to be spelled out a third time and a rule that holds in two of three places
    still reads as enforced.
+
+10. **A fixture that avoids the house style cannot find bugs the house style causes.**
+   Every fact-gathering fixture was pure ASCII while every real artifact is full of
+   em-dashes, so the encoding defect below was invisible to 146 tests. A fixture should
+   look like the thing it stands in for, including the parts that are inconvenient.
 
 9. **A reference inside a string is invisible to every tool.** `/sdlc:spec` in a
    generated prompt is seen by no compiler, analyzer or schema, which is how ten items
@@ -184,6 +189,7 @@ against real input, not from reading the design.
 
 | Commit | Item | Correction it produced |
 |---|---|---|
+| `5766f9f` | — · encoding | **The fact gatherer emitted JSON that `JSON.parse` rejects**, for any artifact that is not pure ASCII — which is all of them. Reading a BOM-less file as ANSI turned an em-dash into three CP1252 characters, and the last, U+201D, best-fit on output to a plain `"` that terminated the string. `interrogate.js` responds to unparseable facts by continuing *without* mechanical findings, so the symptom was a clean-looking interrogation rather than an error. Found on the first attempt to run one |
 | `45916c9` | 13a · plugin manifest | **Six of the eight "dangling" references were never broken** — a plugin workflow is namespaced `/<plugin>:<meta.name>`, so they resolved the moment the manifest existed. One was real (`/sdlc:intent`, item 11). One was never a reference at all: `/sdlc:init` sits in a comment as an example of a non-path, and I read grep's hit as a claim |
 | `24329cf` | 10 · dispatch and landing | **No script had a UTF-8 BOM**, and 5.1 reads a BOM-less file as ANSI — one em-dash inside a string decoded to a smart quote and terminated it early. Also: `-AsHashtable` matched its own "avoid this" comment |
 | `5f5b56e` | 9 · retro | `Date.now()` in a comment explaining its absence tripped the check forbidding it |
