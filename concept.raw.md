@@ -1,4 +1,27 @@
-# ai-sdlc v02 — concept
+# ai-sdlc v02 — raw concept
+
+    Status: FROZEN 2026-09-23
+    Origin: hand-written, before any tooling existed
+
+**This is the last artifact written entirely by hand, and it is closed.**
+
+It is the design record: ~91 decisions with the reasoning that produced them, the
+alternatives rejected and why, and the open items that remain. That record does not
+change, because the reasoning that led here does not change.
+
+From this point the framework's own process carries the work, and each part of it has a
+home that is not this document:
+
+| What | Lives in |
+|---|---|
+| the rules a solution must obey | `.sdlc/CHARTER.md` |
+| the work to be done | intents |
+| what happened when it was done | retros |
+
+Keeping this document alive alongside those would make it a second list beside all three
+— INV-03, on the document that argued for INV-03. So it freezes, and it is read for *why*
+rather than for *what is currently true*. Where it disagrees with the charter, the
+charter wins.
 
 ## What this is
 
