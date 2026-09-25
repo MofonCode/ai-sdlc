@@ -238,18 +238,23 @@ public sealed class FindingsRenderTests
     [TestMethod]
     public void LandingWritesTheSuggestionsFileBeforeTheSquash()
     {
-        // Order is the point. Written on the cycle branch before the merge, the file rides in
-        // with the squash exactly as the retro does; written after, it would land on master as
-        // a separate commit outside the cycle it belongs to.
+        // Order is the point. Written on the cycle branch before it is pushed for review, the
+        // file rides in with the squash exactly as the retro does; written after, it would land
+        // on master as a separate commit outside the cycle it belongs to.
         string landing = File.ReadAllText(
             Path.Combine(AppContext.BaseDirectory, "tools", "Complete-SdlcCycle.ps1"));
 
         int suggestions = landing.IndexOf("unresolved suggestions become intake", StringComparison.Ordinal);
-        int squash = landing.IndexOf("merge --squash", StringComparison.Ordinal);
+        int push = landing.IndexOf("Add-Step 'push'", StringComparison.Ordinal);
         int reverify = landing.IndexOf("reverify-failed", StringComparison.Ordinal);
 
         Assert.IsTrue(suggestions > 0, "landing must write the suggestions file");
-        Assert.IsTrue(suggestions < squash, "the file must be written before the squash carries it");
+
+        // Before the PUSH, not before a local merge: squashing now happens when a person
+        // merges the pull request, so the branch has to carry the file by the time it is
+        // pushed for review.
+        Assert.IsTrue(suggestions < push,
+            "the file must be committed to the branch before the branch is pushed for review");
         Assert.IsTrue(reverify < suggestions,
             "and after re-verification: a cycle that fails re-verify is not landing, so its " +
             "suggestions are not yet intake");

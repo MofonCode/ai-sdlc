@@ -9,20 +9,32 @@ allowed-tools: Bash(git *) Bash(powershell.exe *)
 
 Write `.sdlc/cycles/$0/retro.md`.
 
-## Refuse unless the cycle actually landed
+## Refuse unless the cycle passed verification
 
 Read `.sdlc/cycles/$0/verify.md` first.
 
 - **No `verify.md`** → refuse.
 - **`outcome` is not `passed`** → refuse.
-- **Not yet merged** → refuse.
 
 Say which condition failed and stop.
 
 This refusal is the single most load-bearing thing here. **The retro is the completion
 certificate**: the lifecycle derivation reads "a retro exists" as `done`. Write one for a cycle
-that did not land and a dead cycle reads as finished, a dispatcher stops relaunching it, and
+that did not pass and a dead cycle reads as finished, a dispatcher stops relaunching it, and
 the work is silently lost. That is worse than no retro at all.
+
+**But do not wait for the merge.** An earlier version of this skill also refused if the cycle
+had not merged yet, and that was wrong: the retro is written **on the cycle branch, before the
+merge, and rides in with the squash**. Requiring the merge first is unsatisfiable, because
+landing refuses to open its pull request until the retro exists — each waiting for the other.
+
+The ordering works out because the certificate only counts where it is visible: on the cycle
+branch the retro exists but master does not have it, so the cycle is not yet `done`. The
+squash is what makes it so.
+
+`landed-at` is therefore the date the cycle is *being* landed. It is passed in rather than
+read from a clock, and it is not derivable afterwards: once the retro is copied into the
+ai-sdlc corpus, git's date there is the absorption date, not the landing date.
 
 ## What goes in, and why each field exists
 

@@ -81,6 +81,7 @@ if ($state.state -ne 'awaiting-landing') {
 
 $branch = $state.branch
 $result = [ordered]@{
+    'pull-request' = $null
     'cycle-id' = $CycleId
     branch     = $branch
     steps      = New-Object System.Collections.ArrayList
@@ -180,28 +181,96 @@ try {
         Add-Step 'suggestions' $true 'no findings document for this cycle'
     }
 
-    # --- 4. squash-merge ---------------------------------------------------
+    # --- 4. the retro must be on the branch before anything merges ---------
+    #
+    # The retro is the COMPLETION CERTIFICATE: the lifecycle derivation reads "a retro
+    # exists" as `done`. It is written on the cycle branch and rides in with the squash, so
+    # merging without one produces a cycle that landed and will never read as finished -
+    # which an unsupervised dispatcher would treat as never started.
+    $retroPath = Join-Path $RepoRoot ".sdlc/cycles/$CycleId/retro.md"
+    if (-not (Test-Path -LiteralPath $retroPath)) {
+        Add-Step 'retro' $false 'no retro.md on the cycle branch'
+        $result['outcome'] = 'refused-no-retro'
+        Write-Host ''
+        Write-Host 'No retro. The retro is the completion certificate, and it rides in with' -ForegroundColor Red
+        Write-Host 'the squash - merging without one lands the work and leaves the cycle' -ForegroundColor Red
+        Write-Host 'reading as never started. Run /sdlc:retro first.' -ForegroundColor Red
+        ConvertTo-Json -InputObject $result -Depth 6
+        return
+    }
+    Add-Step 'retro' $true 'present, and will ride in with the squash'
+
+    # --- 5. deploy: a pull request, not a local merge ----------------------
+    #
+    # DEPLOY MEANS PR + REVIEW + MERGE. Landing used to squash straight onto master here,
+    # which skipped the review half entirely - the same shape of hole the intent gate had.
+    # A person merges; this prepares the merge and stops.
+    #
+    # Squashing happens at the merge, so one cycle still becomes one commit and `git revert`
+    # of a cycle stays one operation.
 
     $log = Invoke-SdlcGit log -1 --format=%s $branch
     $title = $log.stdout.Trim()
 
-    $null = Invoke-SdlcGit checkout master
-    $m = Invoke-SdlcGit merge --squash $branch
-    if (-not $m.ok) {
-        Add-Step 'merge' $false 'squash-merge failed'
-        $result['outcome'] = 'failed-merge'
+    $remotes = @((Invoke-SdlcGit remote).stdout -split "`n" | ForEach-Object { $_.Trim() } | Where-Object { $_ })
+    if ($remotes.Count -eq 0) {
+        $result['outcome'] = 'verified-no-remote'
+        Write-Host ''
+        Write-Host "$CycleId is verified and ready, but there is no remote, so the review" -ForegroundColor Yellow
+        Write-Host 'half of the gate cannot be created.' -ForegroundColor Yellow
         ConvertTo-Json -InputObject $result -Depth 6
         return
     }
 
-    $null = Invoke-SdlcGit commit -m "$CycleId`: $title"
-    Add-Step 'merge' $true "squashed into one commit on master"
+    $push = Invoke-SdlcGit push -u origin $branch
+    if (-not $push.ok) {
+        Add-Step 'push' $false $push.stderr
+        $result['outcome'] = 'failed-push'
+        ConvertTo-Json -InputObject $result -Depth 6
+        return
+    }
+    Add-Step 'push' $true "pushed $branch"
 
-    $result['outcome'] = 'landed'
+    $gh = Get-Command gh -ErrorAction SilentlyContinue
+    if (-not $gh) {
+        $result['outcome'] = 'pushed-no-gh'
+        Write-Host "Pushed $branch. Open its pull request by hand." -ForegroundColor Yellow
+        ConvertTo-Json -InputObject $result -Depth 6
+        return
+    }
+
+    $body = @(
+        "Verified cycle, rebased onto master and re-verified after the rebase.",
+        '',
+        'SQUASH-MERGE THIS. One cycle becomes one commit, which is what keeps `git revert`',
+        'of a cycle a single operation. The retro rides in with the squash and is what makes',
+        'the cycle read as done.',
+        '',
+        "Artifacts: ``.sdlc/cycles/$CycleId/``"
+    ) -join "`n"
+
+    $pr = Invoke-SdlcNative -Command 'gh' -Arguments @(
+        'pr', 'create', '--title', "$CycleId`: $title", '--body', $body,
+        '--base', 'master', '--head', $branch)
+
+    $url = ($pr.stdout -split "`n" | Where-Object { $_ -match 'http' } | Select-Object -Last 1)
+    if (-not $pr.ok) {
+        Add-Step 'pull-request' $false $pr.stderr
+        $result['outcome'] = 'failed-pull-request'
+        ConvertTo-Json -InputObject $result -Depth 6
+        return
+    }
+
+    Add-Step 'pull-request' $true "$url"
+    $result['pull-request'] = "$url"
+    $result['outcome'] = 'awaiting-review'
 
     Write-Host ''
-    Write-Host "$CycleId landed." -ForegroundColor Green
-    Write-Host 'The retro rode in with the squash, so this cycle now reads as done.'
+    Write-Host "$CycleId is ready to land." -ForegroundColor Green
+    Write-Host "  $url"
+    Write-Host ''
+    Write-Host 'Squash-merge it. The retro rides in with the squash, and only then does this'
+    Write-Host 'cycle read as done.'
     Write-Host 'Unresolved suggestions landed as .sdlc/suggestions/' + "$CycleId.md" + ', for triage'
     Write-Host 'on your own schedule. Promoting one means filing an ordinary intent with'
     Write-Host '`source: suggestion`.'

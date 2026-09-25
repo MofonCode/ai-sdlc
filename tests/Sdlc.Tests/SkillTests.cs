@@ -252,6 +252,11 @@ public sealed class SkillTests
         // A retro's PRESENCE is what makes a cycle read as done. Write one for a dead cycle
         // and a dispatcher stops relaunching it, so the work is silently lost.
         MustState("retro", "refuse", "completion certificate", "landed-at", "charter-version");
+
+        // And it must NOT wait for the merge. Landing refuses to open its pull request until
+        // the retro exists, so a retro that required the merge first would deadlock: each
+        // waiting for the other.
+        MustState("retro", "do not wait for the merge", "rides in with the squash");
     }
 
     [TestMethod]
@@ -269,6 +274,28 @@ public sealed class SkillTests
             "name each skipped cycle",
             "no concurrency cap",
             "worktree count");
+    }
+
+    [TestMethod]
+    public void LandingDeploysThroughAPullRequestAndRequiresTheRetroFirst()
+    {
+        // Deploy means PR + REVIEW + merge. Landing used to squash straight onto master,
+        // skipping the review half entirely - the same shape of hole the intent gate had.
+        // And it must refuse without a retro, or the work lands and the cycle reads as never
+        // started.
+        string landing = File.ReadAllText(
+            Path.Combine(AppContext.BaseDirectory, "tools", "Complete-SdlcCycle.ps1"));
+
+        Assert.IsTrue(landing.Contains("refused-no-retro", StringComparison.Ordinal),
+            "landing must refuse a cycle with no completion certificate");
+        Assert.IsTrue(landing.Contains("awaiting-review", StringComparison.Ordinal),
+            "landing prepares the merge and stops; a person merges");
+        Assert.IsTrue(landing.Contains("SQUASH-MERGE THIS", StringComparison.Ordinal),
+            "the pull request must say how to merge, or one cycle stops being one commit");
+
+        int retro = landing.IndexOf("refused-no-retro", StringComparison.Ordinal);
+        int push = landing.IndexOf("Add-Step 'push'", StringComparison.Ordinal);
+        Assert.IsTrue(retro < push, "the retro is checked before anything is pushed");
     }
 
     [TestMethod]

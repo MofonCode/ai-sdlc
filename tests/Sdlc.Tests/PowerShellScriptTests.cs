@@ -239,8 +239,15 @@ public sealed class PowerShellScriptTests
 
         Assert.IsTrue(text.Contains("reverify-failed", StringComparison.Ordinal),
             "a failed post-rebase verification must be a named outcome, not a warning");
-        Assert.IsTrue(text.Contains("merge --squash", StringComparison.Ordinal),
-            "one cycle becomes one commit, which is what makes git revert of a cycle one operation");
+        // The squash now happens when a person merges the pull request, so what the script
+        // owes is the INSTRUCTION. One cycle becomes one commit either way, which is what keeps
+        // git revert of a cycle a single operation - and a PR merged without squashing breaks
+        // that quietly.
+        Assert.IsTrue(text.Contains("SQUASH-MERGE THIS", StringComparison.Ordinal),
+            "the pull request must say how to merge, or one cycle stops being one commit");
+        Assert.IsFalse(text.Contains("Invoke-SdlcGit merge", StringComparison.Ordinal),
+            "landing must not merge locally: deploy means PR plus review, and a local merge " +
+            "skips the review half exactly as writing an intent to master skipped the intent gate");
         Assert.IsTrue(text.Contains("awaiting-landing", StringComparison.Ordinal),
             "only a verified cycle can be landed");
     }
