@@ -79,13 +79,30 @@ Structure the body around what you elicited: what is wrong, how we will know it 
 what happens when it fails, what is out of scope. Prose, not a form. Lead with what each
 thing says and keep identifiers as trailing detail, per the charter's Communication rule.
 
+## Put it behind its gate — this is not optional
+
+An intent written straight to master has **no pull request, and therefore no gate**. Do not
+commit it to master, and do not write it on a cycle branch either: there its PR would stay
+open while spec, plan and code piled onto the same diff, so approving the intent would
+implicitly approve everything that followed.
+
+```
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File tools/Submit-SdlcIntent.ps1 -CycleId <id>
+```
+
+That creates `intent-<id>`, commits only the intent file, pushes, and opens the pull
+request. Two branches per intent, same id, different prefix — and the second one,
+`cycle-<id>`, is created by the dispatcher **after** this merges, never before.
+
+Report whatever the script reports. If it says there is no remote or no GitHub CLI, say so
+plainly rather than presenting a local branch as a closed gate.
+
 ## When you are done
 
-Confirm the path you wrote and show the user the intent. Then tell them what happens next
-and stop:
+Show the user the intent and the pull request. Then stop:
 
-> The next step is `/sdlc:spec <id>`, which you drive. Nothing runs unattended until a plan
-> is approved.
+> Nothing happens until you merge that. Once it lands, `/sdlc:spec <id>` is the next step,
+> and you drive it.
 
-Do not run the spec yourself. The gate between intent and spec is a person, and you are
-not it.
+Do not merge it yourself and do not run the spec. **You can request; only a person can
+grant.**

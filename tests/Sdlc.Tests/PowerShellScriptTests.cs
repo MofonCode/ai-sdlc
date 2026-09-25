@@ -110,6 +110,52 @@ public sealed class PowerShellScriptTests
 
     [TestMethod]
     [DynamicData(nameof(AllScripts))]
+    public void NeverRedirectsNativeStderrIntoTheSuccessStream(string name)
+    {
+        ArgumentNullException.ThrowIfNull(name);
+
+        // THE BUG THIS PREVENTS FIRES ON SUCCESS, which is why nothing caught it for days.
+        //
+        // In Windows PowerShell, `2>&1` on a native command wraps each stderr line in an
+        // ErrorRecord and sets $? to false EVEN AT EXIT CODE 0. Under the
+        // $ErrorActionPreference = 'Stop' every script here sets, that terminates. And git
+        // writes ordinary progress to stderr: `git checkout -b x` says "Switched to a new
+        // branch" there when it works.
+        //
+        // Fourteen calls were written that way, eight in the landing script, which had never
+        // been run. The first landing would have died at its first git command with an error
+        // describing a successful operation.
+        //
+        // SdlcGit.ps1 is the sanctioned path: it redirects stderr to a FILE, which creates no
+        // ErrorRecord, leaving the exit code as the only signal of failure.
+        string code = CodeOf(name);
+
+        Assert.IsFalse(code.Contains("2>&1", StringComparison.Ordinal),
+            $"{name}: redirect native stderr to a file, or use Invoke-SdlcGit / " +
+            "Invoke-SdlcNative from SdlcGit.ps1. `2>&1` makes a successful git call throw.");
+    }
+
+    [TestMethod]
+    public void ScriptsThatCallGitUseTheHelper()
+    {
+        // A script calling git directly is not wrong in itself — a read-only call whose
+        // output is consumed is fine, and Get-SdlcFacts does that. What must not happen is a
+        // script branching on $LASTEXITCODE after a call whose stderr it redirected, because
+        // that is the pattern above wearing a different hat. So: any script that mutates
+        // state with git dot-sources the helper.
+        foreach (string name in new[] { "Complete-SdlcCycle.ps1", "Submit-SdlcIntent.ps1" })
+        {
+            string code = CodeOf(name);
+
+            Assert.IsTrue(code.Contains("SdlcGit.ps1", StringComparison.Ordinal),
+                $"{name} mutates repository state with git and must dot-source the helper");
+            Assert.IsTrue(code.Contains("Invoke-SdlcGit", StringComparison.Ordinal),
+                $"{name} must call git through Invoke-SdlcGit");
+        }
+    }
+
+    [TestMethod]
+    [DynamicData(nameof(AllScripts))]
     public void AvoidsConstructsWindowsPowerShellLacks(string name)
     {
         ArgumentNullException.ThrowIfNull(name);

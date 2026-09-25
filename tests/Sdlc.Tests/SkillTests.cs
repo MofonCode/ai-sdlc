@@ -133,8 +133,32 @@ public sealed class SkillTests
             "INV-01",              // failure modes, the most-skipped question
             "INV-02",              // two readings
             "caused-by");          // the retro loop's raw material
-        Assert.IsTrue(Read("intent").Contains("Do not run the spec yourself", StringComparison.Ordinal),
-            "the gate between intent and spec is a person");
+        MustState("intent", "do not run the spec", "only a person can grant");
+    }
+
+    [TestMethod]
+    public void IntentPutsItselfBehindItsGate()
+    {
+        // The gate that was bypassed twice before it was a script. An intent written straight
+        // to master has no pull request and therefore no gate, and nothing about the artifact
+        // itself reveals that it skipped one.
+        MustState("intent",
+            "Submit-SdlcIntent.ps1",
+            "no pull request, and therefore no gate",
+            "Do not merge it yourself");
+    }
+
+    [TestMethod]
+    public void RepairChecksForAnExistingCharterIntentBeforeFilingOne()
+    {
+        // Without this, eight concurrent cycles hitting one invariant file eight identical
+        // requests. And the abandoned case is the valuable one: already-refused is a signal
+        // about the work, not about the charter.
+        MustState("repair",
+            "Find-SdlcCharterIntent.ps1",
+            "blocked-already-answered",
+            "the work needs rethinking",
+            "targets");
     }
 
     [TestMethod]

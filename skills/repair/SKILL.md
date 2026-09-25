@@ -43,7 +43,32 @@ Halting is a success. A loop that runs forever burning tokens is not.
   making it testable.
 - **Do not touch the charter.** A finding whose repair edits `.sdlc/CHARTER.md` is not
   repairable here at all. It requires an approved `charter-review` intent under INV-08, and no
-  cycle may amend the charter governing it. File it and stop.
+  cycle may amend the charter governing it. File it and stop — but check first, below.
+
+## Before filing a charter intent, check whether the question was already asked
+
+```
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File tools/Find-SdlcCharterIntent.ps1 -Target INV-nn
+```
+
+Three answers, and each means something different:
+
+| Verdict | Do this |
+|---|---|
+| `link-and-block` | A request is already pending. **Link to it and block.** Do not file a second. |
+| `blocked-already-answered` | It was **refused**, and the script shows the reason. Block and surface that reason. |
+| `file-one` | Nothing targets this rule. File one, recording the rule in `targets`. |
+
+The middle row is the one that matters. A cycle blocked on a question already answered is a
+different signal from one blocked on an open question: it says **the work needs rethinking,
+not the charter**. Show the reason already given rather than making someone re-derive it. A
+genuinely different case may still file a new intent, but it has to state what differs.
+
+Without this check, a batch of eight cycles hitting one bad invariant files eight identical
+requests and a person answers the same question eight times.
+
+Record the rule in the intent's `targets` field, or the next cycle cannot find your request
+and files a duplicate.
 
 ## Escalate rather than guess
 

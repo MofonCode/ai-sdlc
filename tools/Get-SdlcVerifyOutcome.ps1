@@ -79,6 +79,10 @@ $ErrorActionPreference = 'Stop'
 $OutputEncoding = New-Object System.Text.UTF8Encoding $false
 [Console]::OutputEncoding = $OutputEncoding
 
+# Dot-sourced, not duplicated: git writes ordinary progress to stderr, and `2>&1` on a
+# native command turns that into a terminating error under `Stop`. See SdlcGit.ps1.
+. (Join-Path $PSScriptRoot 'SdlcGit.ps1')
+
 function Resolve-RepoRoot {
     param([string] $Start)
 
@@ -132,8 +136,8 @@ function Invoke-Gate {
 
     Push-Location $RepoRoot
     try {
-        $null = & cmd.exe /c "$Command" 2>&1
-        return ($LASTEXITCODE -eq 0)
+        $r = Invoke-SdlcNative -Command 'cmd.exe' -Arguments @('/c', $Command)
+        return $r.ok
     }
     finally {
         Pop-Location

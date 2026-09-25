@@ -59,6 +59,10 @@ $ErrorActionPreference = 'Stop'
 $OutputEncoding = New-Object System.Text.UTF8Encoding $false
 [Console]::OutputEncoding = $OutputEncoding
 
+# Dot-sourced, not duplicated: git writes ordinary progress to stderr, and `2>&1` on a
+# native command turns that into a terminating error under `Stop`. See SdlcGit.ps1.
+. (Join-Path $PSScriptRoot 'SdlcGit.ps1')
+
 if (-not $RepoRoot) { $RepoRoot = (Get-Location).Path }
 $RepoRoot = (Resolve-Path -LiteralPath $RepoRoot).Path
 
@@ -100,16 +104,16 @@ try {
 
     # --- 1. rebase ---------------------------------------------------------
 
-    git checkout $branch 2>&1 | Out-Null
-    if ($LASTEXITCODE -ne 0) {
+    $co = Invoke-SdlcGit checkout $branch
+    if (-not $co.ok) {
         Add-Step 'checkout' $false "could not check out $branch"
         $result['outcome'] = 'failed-checkout'
         ConvertTo-Json -InputObject $result -Depth 6
         return
     }
 
-    git rebase master 2>&1 | Out-Null
-    if ($LASTEXITCODE -ne 0) {
+    $rebase = Invoke-SdlcGit rebase master
+    if (-not $rebase.ok) {
         # A conflict here is the ordinary consequence of another cycle landing first. It
         # is a human's to resolve, and the rebase is left in progress deliberately so the
         # working state is the one they need.
@@ -126,8 +130,8 @@ try {
     # Mandatory, not optional. This is what catches semantic collision: the cycle
     # verified against a tree that has since moved.
 
-    dotnet test 2>&1 | Out-Null
-    $testsPass = ($LASTEXITCODE -eq 0)
+    $t = Invoke-SdlcNative -Command 'dotnet' -Arguments @('test')
+    $testsPass = $t.ok
     Add-Step 're-verify' $testsPass $(if ($testsPass) { 'tests pass after rebase' } else { 'tests FAIL after rebase' })
 
     if (-not $testsPass) {
@@ -158,12 +162,14 @@ try {
         & $formatScript -Path $findingsPath -State 'suggested' `
             -OutFile $suggestionsRel -RepoRoot $RepoRoot | Out-Null
 
-        git add -- $suggestionsRel 2>&1 | Out-Null
+        $null = Invoke-SdlcGit add -- $suggestionsRel
         # --quiet so an empty suggestion set is not an error: a cycle with nothing
         # suggested is a good cycle, not a failed landing.
-        git diff --cached --quiet
-        if ($LASTEXITCODE -ne 0) {
-            git commit -m "$CycleId`: unresolved suggestions" 2>&1 | Out-Null
+        # Exit code 1 means "there are staged changes", which is the normal case here
+        # rather than a failure. That is why this reads .code and not .ok.
+        $staged = Invoke-SdlcGit diff --cached --quiet
+        if ($staged.code -ne 0) {
+            $null = Invoke-SdlcGit commit -m "$CycleId`: unresolved suggestions"
             Add-Step 'suggestions' $true "wrote $suggestionsRel"
         }
         else {
@@ -176,18 +182,19 @@ try {
 
     # --- 4. squash-merge ---------------------------------------------------
 
-    $title = (git log -1 --format='%s' $branch).Trim()
+    $log = Invoke-SdlcGit log -1 --format=%s $branch
+    $title = $log.stdout.Trim()
 
-    git checkout master 2>&1 | Out-Null
-    git merge --squash $branch 2>&1 | Out-Null
-    if ($LASTEXITCODE -ne 0) {
+    $null = Invoke-SdlcGit checkout master
+    $m = Invoke-SdlcGit merge --squash $branch
+    if (-not $m.ok) {
         Add-Step 'merge' $false 'squash-merge failed'
         $result['outcome'] = 'failed-merge'
         ConvertTo-Json -InputObject $result -Depth 6
         return
     }
 
-    git commit -m "$CycleId`: $title" 2>&1 | Out-Null
+    $null = Invoke-SdlcGit commit -m "$CycleId`: $title"
     Add-Step 'merge' $true "squashed into one commit on master"
 
     $result['outcome'] = 'landed'
