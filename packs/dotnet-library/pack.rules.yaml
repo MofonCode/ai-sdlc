@@ -1,0 +1,87 @@
+# The dotnet-library stack pack — RULES.
+#
+# These are citable. INV-04 forbids a runtime, framework or package choice that contradicts
+# the declared pack, so ONE invariant makes every rule here blockable — which is why no
+# invariant is ever added per tech decision and why tool names stay out of the charter.
+#
+# Same shape as an invariant, deliberately: an id assigned once and never reused, a
+# non-empty Forbids, and evidence. A rule compatible with every possible implementation is
+# not a rule.
+#
+# Changing anything here is a pack-review intent carrying CORPUS-REPLAY EVIDENCE: the rule
+# governs existing solutions, so the question is what it would have blocked.
+
+pack: dotnet-library
+version: 1
+
+rules:
+  - id: PR-01
+    title: Warnings are errors, with no exceptions list
+    forbids: >
+      a project that builds with warnings, or that carries a non-empty
+      WarningsNotAsErrors.
+    evidence: >
+      A zero-warning build is a strong signal because it is binary. An exceptions list
+      turns it into a judgment call, and the list only ever grows.
+    unlocks: gate-bypass
+    since: v1
+
+  - id: PR-02
+    title: Analyzers run at the strictest level the SDK offers
+    forbids: >
+      AnalysisLevel below latest-all, AnalysisModeSecurity below All, or
+      EnforceCodeStyleInBuild disabled.
+    evidence: >
+      Analyzers are the cheapest review that exists and they never get tired. Lowering
+      the level is how a codebase stops being checked without anyone deciding to.
+    unlocks: gate-bypass
+    since: v1
+
+  - id: PR-03
+    title: Package versions are central and exact
+    forbids: >
+      a version specified in a project file rather than Directory.Packages.props, or
+      any floating version.
+    evidence: >
+      Two places to declare a version is a second list. A floating version means the
+      build is not reproducible, and NU1011 already makes it an error under central
+      package management — this rule is why that setting is not negotiable.
+    unlocks: charter-violation
+    since: v1
+
+  - id: PR-04
+    title: A suppression carries its justification at the point of suppression
+    forbids: >
+      a NoWarn, a pragma disable, an Ignore attribute or an excluded path without a
+      written reason beside it.
+    evidence: >
+      INV-06 forbids the unjustified bypass; this rule supplies the SPELLINGS for this
+      stack, which is the division of labour INV-04 exists to create. The forms in this
+      stack are NoWarn, "#pragma warning disable", [Ignore], [ExcludeFromCodeCoverage]
+      and an excluded path in a coverage or analyzer setting.
+    unlocks: gate-bypass
+    since: v1
+
+  - id: PR-05
+    title: A library does not depend on a host
+    forbids: >
+      a class library referencing an ASP.NET Core, Blazor or hosting package, or
+      reading configuration from a host-owned source.
+    evidence: >
+      This is what makes a library reusable rather than a component of one application.
+      A host dependency is invisible until the second consumer arrives, and by then it
+      is load-bearing.
+    unlocks: charter-violation
+    since: v1
+
+  - id: PR-06
+    title: Tests state which criterion they prove
+    forbids: >
+      a test with no TestProperty("AC", "<id>") annotation in a solution whose spec
+      declares verifiable acceptance criteria.
+    evidence: >
+      Traceability is GENERATED from these annotations. An unannotated test proves
+      nothing traceable, and a hand-maintained table beside the real tests drifts the
+      moment anything is refactored.
+    unlocks: untestable
+    since: v1

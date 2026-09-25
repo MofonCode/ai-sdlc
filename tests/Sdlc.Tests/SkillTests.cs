@@ -287,6 +287,38 @@ public sealed class SkillTests
     }
 
     [TestMethod]
+    public void InitScaffoldsFromThePackAndCopiesOnlyTheCharter()
+    {
+        // Two separate jobs, deliberately. A scaffolder that also wrote the charter could
+        // claim a scaffolded origin for an inferred one, and Origin: is what tells every
+        // later interrogation how much to trust the document.
+        MustState("init",
+            "scaffold.ps1",
+            "Do not copy the pack rules",
+            "idempotent");
+    }
+
+    [TestMethod]
+    public void EveryPackInitNamesActuallyShips()
+    {
+        // The skill names the packs a user can choose. A named pack that does not exist is
+        // the unresolvable-reference failure, one layer up from where it usually appears.
+        string text = Read("init");
+        string packsDir = Path.Combine(AppContext.BaseDirectory, "packs");
+
+        Assert.IsTrue(Directory.Exists(packsDir), "no packs ship at all");
+
+        foreach (string dir in Directory.EnumerateDirectories(packsDir))
+        {
+            string name = Path.GetFileName(dir);
+            Assert.IsTrue(text.Contains(name, StringComparison.Ordinal),
+                $"the pack '{name}' ships but init does not offer it");
+        }
+
+        Assert.IsTrue(text.Contains("dotnet-library", StringComparison.Ordinal));
+    }
+
+    [TestMethod]
     public void AbsorbRetroRefusesToOverwriteAndOnlyProposes()
     {
         // The refusal is what earns INV-03's exemption for an immutable copy. Without it the

@@ -46,16 +46,39 @@ For an adoption, count the existing violations and record the number. Do not fix
 do not quietly narrow the charter so they pass. An honest baseline is what lets the count go
 down visibly later.
 
-## What to write
+## Scaffold, then copy the charter — in that order, and they are different jobs
+
+**Scaffolding is the pack's code.** It is the one verb that is code rather than data, because
+creating files and running `dotnet new` is execution:
 
 ```
-.sdlc/
-  CHARTER.md        copied from the pack, with frontmatter for THIS solution
-  intents/
-  cycles/
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File packs/<pack>/scaffold.ps1 -SolutionName <Name>
 ```
 
-The charter frontmatter records `version`, `solution`, `pack`, `origin` and `since`.
+It is idempotent: a re-run skips what exists rather than overwriting it, because `init` is
+allowed to be re-run and a scaffolder that clobbers is one keystroke from destroying work.
+Pass `-WhatIfOnly` first if the user has not seen the file list.
+
+**The charter is yours to copy, and the scaffolder deliberately does not touch it.** Copy
+`packs/<pack>/CHARTER.md` to `.sdlc/CHARTER.md` and replace every `TEMPLATE`:
+
+| Field | With |
+|---|---|
+| `solution` | the solution's name |
+| `since` | today |
+| `origin` | `scaffolded from <pack>@<version>`, or `adopted, inferred at <sha>` with its baseline count |
+| `version` | `1` |
+
+A scaffolder that also wrote the charter could claim a scaffolded origin for an inferred one,
+and `Origin:` is what tells every later interrogation how much to trust the document. That is
+why the two steps are separate.
+
+**Do not copy the pack rules.** `pack.rules.yaml` stays in the plugin and is resolved from
+there by version, which is why the charter carries `Stack pack: <pack>@v<n>`. Only the charter
+is copied. A local copy of the rules would be a second list with nothing binding it.
+
+The available packs are the directories under `packs/`. Today that is **`dotnet-library`**:
+a .NET class library with analyzers, MSTest and central package management.
 
 **Never renumber an invariant id**, including across the copy from the pack. An id is
 assigned once and never reused. A solution that drops an inapplicable invariant leaves a

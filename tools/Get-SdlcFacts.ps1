@@ -528,6 +528,33 @@ if ($kind -eq 'spec' -or $kind -eq 'verify') {
         'unjustified-suppressions' = @($suppressions | Where-Object { -not $_.justified } | ForEach-Object { $_.file + ':' + $_.line })
     }
 }
+# --- the declared stack pack, and the rule ids INV-04 makes citable --------
+#
+# Resolved from the PLUGIN, not the solution. A pack is a shared versioned artifact
+# reachable at ../packs/ from this script; only the CHARTER is copied into a solution at
+# init time. So a solution consuming dotnet-library@v1 has no local pack.rules.yaml, and
+# without this the id in `cites: PR-04` could never be checked against anything.
+#
+# Rule ids are extracted by pattern rather than parsed: 5.1 ships no YAML reader, and every
+# other extractor in this script works the same way.
+$packName = $null
+$packRuleIds = @()
+$packPresent = $false
+
+if ($null -ne $charterFm -and $charterFm.fields.Contains('pack')) {
+    $packName = [string] $charterFm.fields['pack']
+}
+
+if ($packName -and $packName -ne 'none') {
+    $packRulesPath = Join-Path (Split-Path -Parent $PSScriptRoot) "packs/$packName/pack.rules.yaml"
+    if (Test-Path -LiteralPath $packRulesPath) {
+        $packPresent = $true
+        foreach ($packLine in (Get-Content -LiteralPath $packRulesPath -Encoding UTF8)) {
+            if ($packLine -match '^\s*-\s+id:\s*([A-Z]{2}-[0-9]{2})\s*$') { $packRuleIds += $Matches[1] }
+        }
+    }
+}
+
 $declaredFiles = @(Get-DeclaredFiles -Text $text -Root $RepoRoot)
 $blastRadius = $null
 $actualRadius = $null
@@ -736,6 +763,11 @@ $facts = [ordered]@{
         version       = $charterVersion
         'invariant-ids' = @($invariantIds)
         'dec-ids'     = @($decIds)
+    }
+    pack               = [ordered]@{
+        name       = $packName
+        present    = $packPresent
+        'rule-ids' = @($packRuleIds)
     }
     'tree'             = [ordered]@{
         'tracked-file-count' = $trackedFiles.Count

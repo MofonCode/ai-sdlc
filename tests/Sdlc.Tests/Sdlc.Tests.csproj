@@ -29,6 +29,7 @@
     <None Include="$(MSBuildThisFileDirectory)..\..\workflows\*.js" LinkBase="workflows" CopyToOutputDirectory="PreserveNewest" />
     <None Include="$(MSBuildThisFileDirectory)..\..\.claude-plugin\plugin.json" LinkBase=".claude-plugin" CopyToOutputDirectory="PreserveNewest" />
     <None Include="$(MSBuildThisFileDirectory)..\..\skills\**\*.md" LinkBase="skills" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="$(MSBuildThisFileDirectory)..\..\packs\**\*.*" LinkBase="packs" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>

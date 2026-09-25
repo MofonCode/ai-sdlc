@@ -1,0 +1,77 @@
+# The dotnet-library stack pack — FACTS.
+#
+# Facts, not rules. Everything here is a version, a name or an ordering: things that change
+# on someone else's schedule and carry no argument. The rules that can block a cycle live in
+# pack.rules.yaml, and the split is an EVIDENCE REQUIREMENT rather than a gate:
+#
+#   a pack-review intent touching RULES must carry corpus-replay evidence
+#   a pack-review intent touching FACTS needs only the reason — a CVE number, a release note
+#
+# Both still need the gate. Modifying a pack needs approval; creating one is a normal cycle,
+# because you cannot loosen something that does not exist yet.
+
+name: dotnet-library
+version: 1
+description: A .NET class library with analyzers, MSTest, and central package management.
+
+# ---------------------------------------------------------------------------
+# What a solution on this pack builds and runs.
+# ---------------------------------------------------------------------------
+
+target-framework: net10.0
+sdk: 10.0.301
+language-version: latest
+nullable: enable
+
+# ---------------------------------------------------------------------------
+# The gate commands. Get-SdlcVerifyOutcome.ps1 takes these as parameters and
+# defaults to them, so the pack owns the tool names and the charter never does.
+# ---------------------------------------------------------------------------
+
+gates:
+  build: dotnet build
+  test: dotnet test
+
+# ---------------------------------------------------------------------------
+# Packages. Pinned exactly: floating versions are banned under central package
+# management, and NU1011 makes that a build error rather than a surprise.
+# ---------------------------------------------------------------------------
+
+packages:
+  test-framework: MSTest
+  test-framework-version: 4.4.1
+  coverage: coverlet.collector
+  coverage-version: 10.0.1
+  schema-validation: JsonSchema.Net
+  schema-validation-version: 9.4.0
+
+# ---------------------------------------------------------------------------
+# Language preference, PER CONTEXT and not global.
+#
+# A single global list is wrong because the right answer differs by job. This is the
+# Microsoft-first preference the charter must NOT contain: tool names are excluded from
+# invariants, and INV-04 delegates them here precisely so one invariant can make every
+# entry below citable.
+# ---------------------------------------------------------------------------
+
+language-preference:
+  application-code: [csharp]
+  tests: [csharp]
+  build-and-repo-automation: [powershell, csharp]
+  # JavaScript only where a runtime mandates it. Claude Code's dynamic workflows are
+  # executed by a JS sandbox and accept nothing else, which is a mandate rather than a
+  # preference.
+  workflow-orchestration: [javascript]
+  machine-learning: [csharp]
+  last-resort: [bash, python]
+
+# ---------------------------------------------------------------------------
+# Scaffolding. `scaffold` is the one verb that is CODE rather than data, because
+# creating files and running `dotnet new` is execution, not description.
+# ---------------------------------------------------------------------------
+
+scaffold: ./scaffold.ps1
+
+# The charter a solution copies at init time. Copied, never inherited: inheritance would
+# let an upstream change alter the rules a solution is judged by without its approval.
+charter: ./CHARTER.md
