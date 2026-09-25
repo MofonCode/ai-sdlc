@@ -528,6 +528,61 @@ if ($kind -eq 'spec' -or $kind -eq 'verify') {
         'unjustified-suppressions' = @($suppressions | Where-Object { -not $_.justified } | ForEach-Object { $_.file + ':' + $_.line })
     }
 }
+# --- the interrogator roles, read from the charter ------------------------
+#
+# THE CHARTER OWNS THE ROLES. The interrogator used to hardcode them, and the two disagreed
+# within a day: charter v1's `form` question omitted `Applies-to:` while the shipped role
+# asked for both clauses. That is INV-03, so the roles are parsed here and the interrogator
+# reads them from the attached facts.
+#
+# SCOPED TO THE ROLES SECTION. A first version matched any table row whose first cell was a
+# backticked lowercase word, which swept up the coverage table, the taxonomy, the state table
+# and the disposition table - twenty-five "roles", most of them finding categories. The
+# document is full of tables that look alike; only position distinguishes them.
+$roles = New-Object System.Collections.ArrayList
+$gapsByArtifact = [ordered]@{}
+
+if ($charterPresent) {
+    $section = ''
+    $subsection = ''
+
+    foreach ($cLine in $charterLines) {
+        if ($cLine -match '^##\s+(.+)$') {
+            $section = $Matches[1].Trim()
+            $subsection = ''
+            continue
+        }
+        if ($cLine -match '^###\s+(.+)$') {
+            $subsection = $Matches[1].Trim()
+            continue
+        }
+
+        if ($section -ne 'Interrogator roles') { continue }
+        if ($cLine -notmatch '^\|\s*`([a-z]+)`\s*\|\s*(.+?)\s*\|\s*$') {
+            # Four-column role rows end with a trailing pipe too, so both shapes are handled
+            # by splitting rather than by two regexes.
+            if ($cLine -notmatch '^\|\s*`([a-z]+)`\s*\|') { continue }
+        }
+
+        $cells = @($cLine.Trim().Trim('|') -split '\|' | ForEach-Object { $_.Trim() })
+        if ($cells.Count -lt 2) { continue }
+        if ($cells[0] -notmatch '^`([a-z]+)`$') { continue }
+        $name = $Matches[1]
+
+        if ($subsection -match 'gaps.*by artifact') {
+            $gapsByArtifact[$name] = $cells[1]
+            continue
+        }
+
+        $null = $roles.Add([pscustomobject]@{
+            name       = $name
+            question   = $cells[1]
+            evidence   = $(if ($cells.Count -ge 3) { $cells[2] } else { $null })
+            'fails-by' = $(if ($cells.Count -ge 4) { $cells[3] } else { $null })
+        })
+    }
+}
+
 # --- the declared stack pack, and the rule ids INV-04 makes citable --------
 #
 # Resolved from the PLUGIN, not the solution. A pack is a shared versioned artifact
@@ -764,6 +819,8 @@ $facts = [ordered]@{
         'invariant-ids' = @($invariantIds)
         'dec-ids'     = @($decIds)
     }
+    roles              = @($roles)
+    'gaps-by-artifact' = $gapsByArtifact
     pack               = [ordered]@{
         name       = $packName
         present    = $packPresent

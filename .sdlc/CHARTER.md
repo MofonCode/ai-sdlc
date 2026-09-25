@@ -1,11 +1,12 @@
 ---
-version: 2
+version: 3
 solution: ai-sdlc
 pack: none
 origin: hand-written — solution zero has no pack to copy a charter from
 since: 2026-09-22
 restored: 2026-09-24 from e36fc4b; five deferred decisions were resolved before the restore and are recorded below as gaps rather than entries
 amended: 2026-09-24 by 20260924-c4a1 — ten blocking findings from the first interrogation
+amended: 2026-09-25 by 20260925-1a7e — interrogator roles become data, and gaps learns the artifact
 ---
 
 # Charter — ai-sdlc
@@ -445,6 +446,35 @@ When the artifact under interrogation **is this document**, `charter` is replace
 | Role | Its one question |
 |---|---|
 | `form` | Does each invariant carry a non-empty `Applies-to:` and a non-empty `Forbids:`, and does the `Forbids:` forbid something an implementation could actually do? |
+
+**These tables are DATA, not documentation.** The interrogator reads the roles from this
+document through fact-gathering rather than carrying its own copy. Before v3 it hardcoded
+them, and the two disagreed within a day: charter v1's `form` question omitted `Applies-to:`
+while the shipped role asked for both clauses. That is INV-03, in the document that declares
+it, so the binding check ships with this table.
+
+### What `gaps` must cover, by artifact kind
+
+`gaps` is the one role whose evidence genuinely varies. What counts as missing differs
+completely between an intent and a plan, and leaving it unstated is what produces the role's
+declared failure — inventing requirements nobody asked for. The first interrogation bears that
+out: `gaps` produced five findings where `coherence` and `facts` produced ten each, and four
+of its five were capped at `suggested`.
+
+| Artifact | A gap is |
+|---|---|
+| `intent` | a described behaviour with no failure mode; success stated adjectivally rather than observably; nothing recorded as out of scope |
+| `spec` | an intent goal with no criterion; an error path with no criterion; a criterion marked verifiable that no test could prove |
+| `plan` | a file that must change and is not declared; a verifiable criterion with no test file to prove it |
+| `code` | an enumerated error path with no test; a public surface with no documentation |
+| `verify` | a criterion with no traceability row; a suppression with no justification; a finding with no disposition |
+| `retro` | a finding carried without its category, attributed stage, detection or disposition |
+| `charter` | an invariant with no `Forbids:` or no `Applies-to:`; a blockable category with no citation route |
+| `pack` | a rule with no `forbids:`; a fact the engine reads that the pack does not declare |
+
+This list is what `gaps` is entitled to raise. It is deliberately not exhaustive of everything
+that could be missing — a role reasoning beyond it is doing its job, and a role that cannot
+point at a row here should expect its finding to stay `suggested`.
 
 Fact-gathering runs **once**, in the parent, and its results are passed to every
 role. Deduplication and state assignment belong to the merger, never to an

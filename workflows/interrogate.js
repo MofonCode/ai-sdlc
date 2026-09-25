@@ -121,60 +121,66 @@ const MERGE_SCHEMA = {
 }
 
 // ---------------------------------------------------------------------------
-// Roles. Orthogonal by QUESTION, never by area: area lenses overlap constantly
-// and dump deduplication on the merge, while these read different evidence and
-// so rarely collide.
+// Roles come from the CHARTER, read out of the attached facts. They are orthogonal by
+// QUESTION, never by area: area lenses overlap constantly and dump deduplication on the
+// merge, while these read different evidence and so rarely collide.
 //
-// TODO(disposable-first-attempt): these belong in the charter as data, so the
-// retro can eventually say "the gaps role produced two findings, both rejected"
-// and drop a lens on evidence. Hardcoded here because reading them out of the
-// charter needs a parser the gatherer does not yet have.
+// They used to be hardcoded here, and the copy disagreed with the charter within a day:
+// charter v1's `form` question omitted `Applies-to:` while this file asked for both clauses.
+// That is INV-03, so there is now ONE source and NO fallback copy. A fallback would be the
+// second list again, and interrogating with roles that might not match the charter is worse
+// than declining to interrogate.
+//
+// Because the roles arrive with the facts, they cannot be known until the Facts phase has
+// run. That is why activeRoles is computed there rather than here.
 // ---------------------------------------------------------------------------
 
-const ROLES = [
-  {
-    name: 'charter',
-    question: 'Does this artifact contradict a charter invariant?',
-    evidence: 'the charter, and only the invariants whose Applies-to includes this artifact kind',
-    failsBy: 'over-matching — treating everything as a violation',
-  },
-  {
-    name: 'coherence',
-    question: 'Does this artifact contradict itself?',
-    evidence: 'the artifact alone. Do not consult the charter or the tree',
-    failsBy: 'missing contradictions between distant sections',
-  },
-  {
-    name: 'facts',
-    question: 'Do this artifact\'s claims about the repository hold?',
-    evidence: 'the attached facts, and the tree if you must look further',
-    failsBy: 'not checking enough',
-  },
-  {
-    name: 'gaps',
-    question: 'What is missing that should be here?',
-    evidence: 'domain reasoning about what this kind of artifact must cover',
-    failsBy: 'inventing requirements nobody asked for',
-  },
-]
+const isCharter = ARTIFACT.replace(/\/g, '/').endsWith('CHARTER.md')
 
-// When the artifact IS the charter, the charter role has nothing above it to check
-// against and is replaced by `form`, which judges each invariant's SHAPE rather than
-// its content. That substitution is what makes the charter interrogable without an
-// infinite regress.
-const FORM_ROLE = {
-  name: 'form',
-  question: 'Does every invariant carry a non-empty Forbids: and Applies-to:, and does it forbid something an implementation could actually do?',
-  evidence: 'the charter itself. An invariant compatible with every implementation is not a rule',
-  failsBy: 'judging content instead of shape',
+// When the artifact IS the charter, `charter` has nothing above it to check against and is
+// replaced by `form`, which judges each invariant's SHAPE rather than its content. That
+// substitution is what makes the charter interrogable without an infinite regress, and the
+// charter itself declares both roles.
+function rolesFromFacts(facts) {
+  const declared = (facts && facts.roles) || []
+
+  if (declared.length === 0) {
+    throw new Error(
+      'The charter declares no interrogator roles, so there is nothing to fan out. Roles are ' +
+      'charter data as of charter v3 and this workflow deliberately keeps no copy of them.')
+  }
+
+  const byName = {}
+  for (const r of declared) {
+    if (r && r.name) byName[r.name] = r
+  }
+
+  const wanted = isCharter
+    ? ['form', 'coherence', 'facts', 'gaps']
+    : ['charter', 'coherence', 'facts', 'gaps']
+
+  const active = []
+  for (const name of wanted) {
+    if (byName[name]) active.push(byName[name])
+  }
+
+  if (active.length === 0) {
+    throw new Error('The charter declares roles, but none named: ' + wanted.join(', '))
+  }
+
+  return active
 }
 
-const isCharter = ARTIFACT.replace(/\\/g, '/').endsWith('CHARTER.md')
-const activeRoles = isCharter
-  ? [FORM_ROLE].concat(ROLES.filter(r => r.name !== 'charter'))
-  : ROLES
-
-// ---------------------------------------------------------------------------
+// What counts as MISSING differs completely between an intent and a plan, and leaving that
+// unstated is what produces the `gaps` role's declared failure - inventing requirements
+// nobody asked for. The charter carries the per-artifact list; this hands the relevant row to
+// the role instead of asking it to guess.
+function gapsGuidance(facts) {
+  const kind = (facts && facts.artifact && facts.artifact.kind) || null
+  const table = (facts && facts['gaps-by-artifact']) || {}
+  if (!kind) return null
+  return table[kind] || null
+}
 
 phase('Facts')
 
@@ -210,6 +216,11 @@ try {
 } catch (e) {
   log('facts were not parseable JSON; continuing without mechanical findings')
 }
+
+const activeRoles = rolesFromFacts(parsedFacts)
+const gapsRow = gapsGuidance(parsedFacts)
+
+log(`${activeRoles.length} role(s) from the charter: ${activeRoles.map(r => r.name).join(', ')}`)
 
 const failedChecks = (parsedFacts && parsedFacts['failed-checks']) || []
 const checkDetail = {}
@@ -282,7 +293,15 @@ const discovered = await parallel(
         `    ${role.question}`,
         '',
         `Your evidence is ${role.evidence}.`,
-        `Your characteristic failure is ${role.failsBy} — guard against it.`,
+        `Your characteristic failure is ${role['fails-by']} — guard against it.`,
+        role.name === 'gaps' && gapsRow
+          ? '
+For this kind of artifact the charter says a gap is: ' + gapsRow +
+            '
+That list is what you are entitled to raise. It is deliberately not exhaustive ' +
+            'of everything that could be missing — reasoning beyond it is your job — but a ' +
+            'finding you cannot tie to it should expect to stay `suggested`.'
+          : '',
         '',
         `Artifact under interrogation: ${ARTIFACT}`,
         `Charter: ${CHARTER}`,

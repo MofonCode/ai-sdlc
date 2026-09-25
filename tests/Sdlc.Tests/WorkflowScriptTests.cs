@@ -196,9 +196,70 @@ public sealed class WorkflowScriptTests
     [TestMethod]
     public void InterrogateSubstitutesTheFormRoleForTheCharter()
     {
-        string script = Read("interrogate.js");
-        Assert.IsTrue(script.Contains("FORM_ROLE", StringComparison.Ordinal));
-        Assert.IsTrue(script.Contains("isCharter", StringComparison.Ordinal));
+        // The substitution survives charter v3; only its source moved. `charter` has nothing
+        // above it to check against when the artifact IS the charter, and `form` judges each
+        // invariant's SHAPE instead — which is what makes the charter interrogable without an
+        // infinite regress. Both roles are now declared by the charter, so this asserts the
+        // SELECTION rather than a hardcoded role object.
+        string code = ReadCode("interrogate.js");
+
+        Assert.IsTrue(code.Contains("isCharter", StringComparison.Ordinal));
+        Assert.IsTrue(Regex.IsMatch(code, @"'form',\s*'coherence'"),
+            "interrogating the charter must select form in place of charter");
+        Assert.IsTrue(Regex.IsMatch(code, @"'charter',\s*'coherence'"),
+            "and anything else must select charter");
+    }
+
+    [TestMethod]
+    public void TheCharterDeclaresEveryRoleTheSchemaAllows()
+    {
+        // Role names now live in the charter (which OWNS them), in the findings schema (which
+        // validates them), and in interrogate.js's merge schema (which restates the schema's
+        // enum). Three places, so INV-03 wants the binding — and this is the half that was
+        // missing: the charter and the schema had nothing tying them together.
+        string charter = File.ReadAllText(
+            Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "..",
+                ".sdlc", "CHARTER.md"));
+
+        foreach (string role in SchemaEnum("role"))
+        {
+            Assert.IsTrue(charter.Contains("| `" + role + "` |", StringComparison.Ordinal),
+                $"the schema allows role '{role}' but the charter's role tables do not declare it");
+        }
+    }
+
+    [TestMethod]
+    public void InterrogateKeepsNoCopyOfTheRoles()
+    {
+        // The whole point of charter v3. A fallback copy would be the second list again, and
+        // interrogating with roles that might not match the charter is worse than declining to
+        // interrogate — so there is no fallback and the workflow throws instead.
+        string code = ReadCode("interrogate.js");
+
+        Assert.IsTrue(code.Contains("rolesFromFacts", StringComparison.Ordinal),
+            "roles must be derived from the attached facts");
+        Assert.IsTrue(code.Contains("charter declares no interrogator roles", StringComparison.Ordinal),
+            "missing roles must throw rather than fall back to a copy");
+
+        // The old hardcoded shapes, by name. Their absence is the assertion.
+        Assert.IsFalse(Regex.IsMatch(code, @"const\s+ROLES\s*="),
+            "a hardcoded ROLES array is the second list this change removed");
+        Assert.IsFalse(Regex.IsMatch(code, @"const\s+FORM_ROLE\s*="),
+            "the form substitution is the charter's to declare, not this file's");
+    }
+
+    [TestMethod]
+    public void TheGapsRoleIsGivenTheCharterRowForTheArtifactKind()
+    {
+        // `gaps` is the one role whose evidence varies by artifact, and leaving that unstated
+        // is what produces its declared failure: inventing requirements nobody asked for.
+        string code = ReadCode("interrogate.js");
+
+        Assert.IsTrue(code.Contains("gaps-by-artifact", StringComparison.Ordinal));
+        Assert.IsTrue(code.Contains("gapsGuidance", StringComparison.Ordinal));
+        Assert.IsTrue(code.Contains("not exhaustive", StringComparison.Ordinal),
+            "the row must be offered as entitlement rather than as a closed list, or the role " +
+            "stops reasoning past it");
     }
 
     [TestMethod]
