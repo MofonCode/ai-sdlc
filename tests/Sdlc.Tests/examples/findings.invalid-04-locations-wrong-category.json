@@ -1,0 +1,24 @@
+{
+  "cycle-id": "20260923-4f2a",
+  "target": "intent",
+  "charter-version": 1,
+  "findings": [
+    {
+      "id": "x4",
+      "category": "ambiguity",
+      "state": "blocking",
+      "stage": "intent",
+      "detection": "reasoning",
+      "summary": "RULE 4: a location pair may only cite an internal-contradiction.",
+      "cites": [
+        {
+          "kind": "locations",
+          "locations": [
+            { "file": "a.md", "anchor": "one" },
+            { "file": "a.md", "anchor": "two" }
+          ]
+        }
+      ]
+    }
+  ]
+}

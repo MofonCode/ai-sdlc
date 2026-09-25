@@ -1,0 +1,146 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://mofoncode.dev/sdlc/schemas/intent.schema.json",
+  "title": "Intent frontmatter",
+  "description": "The YAML frontmatter of an intent, expressed as JSON for validation. The body is markdown and is not schema-constrained; its required sections are a template concern.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id",
+    "source",
+    "charter-version"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^[0-9]{8}-[0-9a-f]{4}$",
+      "description": "yyyymmdd-hhhh, assigned once at creation and never changed. It is the filename, the branch suffix, the worktree name, the prefix of every acceptance-criterion id, and the retro's identity."
+    },
+    "source": {
+      "description": "Where this intent came from. Settled here; the design record named every value except the ordinary case.",
+      "enum": [
+        "authored",
+        "maintain",
+        "suggestion",
+        "charter-review",
+        "pack-review",
+        "seed"
+      ]
+    },
+    "charter-version": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "The charter in force when this was authored."
+    },
+    "pack-version": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "The stack pack in force, or null for a solution that consumes none."
+    },
+    "caused-by": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/cycleId"
+        },
+        {
+          "const": "unknown"
+        }
+      ],
+      "description": "The earlier cycle whose work produced the problem this intent fixes. Accepts unknown explicitly: a guessed attribution pollutes the only unbiased signal the retro loop has, so it must never be forced."
+    },
+    "caused-at-stage": {
+      "enum": [
+        "charter",
+        "intent",
+        "spec",
+        "plan",
+        "build",
+        "verify"
+      ],
+      "description": "Which stage of the causing cycle leaked. Only meaningful alongside caused-by."
+    },
+    "blocked-by": {
+      "$ref": "#/$defs/cycleId",
+      "description": "A charter intent this one waits on. Blockedness is derived from whether that intent has merged, so nothing writes a status field."
+    },
+    "superseded-by": {
+      "$ref": "#/$defs/cycleId",
+      "description": "A later intent that replaces this one. Semantic, not derivable, so it is written."
+    },
+    "reason": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Why this intent was abandoned. Required in practice for anything under intents/abandoned/, which is a path convention the schema cannot see."
+    },
+    "targets": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string",
+        "pattern": "^(INV|LOC|DEC)-[0-9]{2}$|^[a-z0-9][a-z0-9.-]*$"
+      },
+      "description": "What a charter-review or pack-review intent seeks to change: invariant ids, DEC ids, or pack rule ids. This is what charter intents DEDUPLICATE on. Optional, because an intent resolving a whole interrogation targets no single rule; but a cycle that halts on one invariant must record it, or a batch of eight files eight identical requests."
+    }
+  },
+  "$defs": {
+    "cycleId": {
+      "type": "string",
+      "pattern": "^[0-9]{8}-[0-9a-f]{4}$"
+    }
+  },
+  "allOf": [
+    {
+      "$comment": "caused-at-stage without caused-by names a stage of nothing.",
+      "if": {
+        "required": [
+          "caused-at-stage"
+        ]
+      },
+      "then": {
+        "required": [
+          "caused-by"
+        ]
+      }
+    },
+    {
+      "$comment": "A charter-review intent is the only kind that may carry the charter edit, and it is always human-approved. Recorded here so the value cannot be used casually.",
+      "if": {
+        "required": [
+          "source"
+        ],
+        "properties": {
+          "source": {
+            "const": "seed"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "charter-version": {
+            "const": 1
+          }
+        }
+      }
+    },
+    {
+      "$comment": "targets names what is being changed, so it is meaningless without a review source.",
+      "if": {
+        "required": [
+          "targets"
+        ]
+      },
+      "then": {
+        "properties": {
+          "source": {
+            "enum": [
+              "charter-review",
+              "pack-review"
+            ]
+          }
+        }
+      }
+    }
+  ]
+}

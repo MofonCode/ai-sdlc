@@ -1,0 +1,16 @@
+{
+  "cycle-id": "20260923-4f2a",
+  "target": "intent",
+  "charter-version": 1,
+  "findings": [
+    {
+      "id": "x2",
+      "category": "unclassified",
+      "state": "blocking",
+      "stage": "intent",
+      "detection": "reasoning",
+      "summary": "RULE 2: unclassified must never block, even when cited.",
+      "cites": [{ "kind": "invariant", "id": "INV-03" }]
+    }
+  ]
+}

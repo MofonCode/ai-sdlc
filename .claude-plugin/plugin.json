@@ -1,0 +1,16 @@
+{
+  "name": "sdlc",
+  "displayName": "ai-sdlc",
+  "version": "0.1.0",
+  "description": "A charter-governed SDLC. An intent becomes a spec, a plan, a build and a verification, each interrogated against the charter before it advances, and every landed cycle emits a retro that feeds back into the process.",
+  "author": {
+    "name": "Peter Almanzar"
+  },
+  "keywords": [
+    "sdlc",
+    "charter",
+    "interrogation",
+    "retro",
+    "dotnet"
+  ]
+}

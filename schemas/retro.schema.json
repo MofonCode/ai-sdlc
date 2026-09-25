@@ -1,0 +1,79 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://mofoncode.dev/sdlc/schemas/retro.schema.json",
+  "title": "Retro frontmatter",
+  "description": "The YAML frontmatter of a retro. Every field is here because it CANNOT SURVIVE THE COPY any other way: a retro is what travels from a solution into ai-sdlc's corpus, and git metadata does not travel. The findings and their dispositions live in the body as a markdown table, following the same convention as a spec's criteria and a plan's files.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["cycle-id", "solution", "landed-at", "charter-version"],
+  "properties": {
+    "cycle-id": {
+      "$ref": "#/$defs/cycleId",
+      "description": "Identity, and the target of caused-by links. Not an indication of completion order: ids are assigned at intent creation and cycles land out of order."
+    },
+
+    "solution": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Which solution this came from. Partitions the corpus, and aggregation groups by (pack, invariant id) rather than pooling across packs — 'where does our process leak' may have a genuinely different answer for a library than for a competition."
+    },
+
+    "landed-at": {
+      "type": "string",
+      "minLength": 1,
+      "description": "When the cycle landed. NOT derivable after absorption: ai-sdlc's git date is the date the retro was copied in, while the landing date lives in the solution repository's history, which ai-sdlc does not have."
+    },
+
+    "charter-version": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "The charter in force when the cycle ran. A retro is uninterpretable without it — the amendment analysis asks what changed between versions."
+    },
+
+    "pack-version": {
+      "type": ["string", "null"],
+      "description": "The stack pack in force, or null for a solution consuming none. Same reason as charter-version, for the half of the rules INV-04 delegates."
+    },
+
+    "outcome": {
+      "enum": ["landed", "landed-with-accepted-findings"],
+      "description": "A retro exists only for a cycle that landed — its presence IS the completion certificate, which is why a blocked or abandoned cycle writes none."
+    },
+
+    "rounds": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Interrogation rounds the cycle took. The headline process metric: the finding rate does not decay, so a high count is the normal case rather than a failure."
+    },
+
+    "caused-by": {
+      "oneOf": [
+        { "$ref": "#/$defs/cycleId" },
+        { "const": "unknown" }
+      ],
+      "description": "For a cycle that fixed something an earlier cycle caused. Accepts `unknown` explicitly: a guessed attribution pollutes the only unbiased signal the loop has, so it must never be forced."
+    },
+
+    "caused-at-stage": {
+      "enum": ["charter", "intent", "spec", "plan", "build", "verify"]
+    },
+
+    "suppression-count": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Carried forward so the next cycle can detect an increase, which is itself a finding."
+    }
+  },
+
+  "allOf": [
+    {
+      "$comment": "Naming a stage without naming the cycle names the stage of nothing.",
+      "if": { "required": ["caused-at-stage"] },
+      "then": { "required": ["caused-by"] }
+    }
+  ],
+
+  "$defs": {
+    "cycleId": { "type": "string", "pattern": "^[0-9]{8}-[0-9a-f]{4}$" }
+  }
+}

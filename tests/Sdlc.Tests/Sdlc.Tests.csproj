@@ -1,0 +1,36 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <IsPackable>false</IsPackable>
+    <OutputType>Exe</OutputType>
+
+    <!-- JUSTIFIED SUPPRESSION (INV-06).
+         CA1515 wants types in a non-library assembly to be internal. MSTest requires
+         test classes and test methods to be public (MSTEST0002, MSTEST0003), and the
+         alternative — internal plus [DiscoverInternals] — trades CA1515 for CA1812,
+         which fires because MSTest instantiates test classes by reflection and the
+         analyzer cannot see it. One of the two must be suppressed; this is the
+         narrower of the pair and it is scoped to the test project alone.
+         Reviewed 2026-09-24. Remove if MSTest ever supports internal discovery
+         without the CA1812 consequence. -->
+    <NoWarn>CA1515</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="MSTest" />
+    <PackageReference Include="JsonSchema.Net" />
+    <PackageReference Include="coverlet.collector" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="examples\**\*.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="$(MSBuildThisFileDirectory)..\..\schemas\*.json" LinkBase="schemas" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="$(MSBuildThisFileDirectory)..\..\tools\*.ps1" LinkBase="tools" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="$(MSBuildThisFileDirectory)..\..\workflows\*.js" LinkBase="workflows" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="$(MSBuildThisFileDirectory)..\..\.claude-plugin\plugin.json" LinkBase=".claude-plugin" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="$(MSBuildThisFileDirectory)..\..\skills\**\*.md" LinkBase="skills" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="$(MSBuildThisFileDirectory)..\..\packs\**\*.*" LinkBase="packs" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="$(MSBuildThisFileDirectory)..\..\.github\workflows\*.yml" LinkBase="workflows-ci" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+</Project>

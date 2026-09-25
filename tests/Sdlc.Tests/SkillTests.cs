@@ -1,0 +1,415 @@
+using System.Text.RegularExpressions;
+
+namespace Sdlc.Tests;
+
+/// <summary>
+/// The shipped skills, and the load-bearing rule each one must still state.
+/// </summary>
+/// <remarks>
+/// These checks are weaker than the ones they replace, and that is worth being honest
+/// about. When a stage was a workflow, "the outcome is decided in code" was enforced by
+/// actual code and a test could assert the branch existed. As a skill, the same rule is
+/// prose that a model is asked to follow, so all a test can do is assert the instruction is
+/// still there.
+/// <para>
+/// That is not nothing. Every rule below was learned from a measured failure, and a skill
+/// quietly losing one is the regression most likely to happen during an edit and least
+/// likely to be noticed — the instruction disappears and everything still "works". What a
+/// test cannot do any more is prove the rule was obeyed.
+/// </para>
+/// <para>
+/// Where a rule genuinely must be mechanical rather than instructed, it belongs in a script
+/// under <c>tools/</c> and is tested there. That is why the blast-radius tier, the lifecycle
+/// derivation and the landing gate are PowerShell and not prose.
+/// </para>
+/// </remarks>
+[TestClass]
+public sealed class SkillTests
+{
+    private static string SkillDir => Path.Combine(AppContext.BaseDirectory, "skills");
+
+    /// <summary>Every skill that must ship, and which is which.</summary>
+    private static readonly string[] Expected =
+    [
+        "intent", "spec", "plan", "repair", "build", "verify", "retro",
+        "run", "init", "absorb-retro", "grill", "maintain",
+    ];
+
+    public static IEnumerable<object[]> AllSkills() => Expected.Select(s => new object[] { s });
+
+    private static string Read(string skill) =>
+        File.ReadAllText(Path.Combine(SkillDir, skill, "SKILL.md"));
+
+    private static string Frontmatter(string skill)
+    {
+        string text = Read(skill);
+        Match m = Regex.Match(text, @"\A---\r?\n(?<body>.*?)\r?\n---", RegexOptions.Singleline);
+        Assert.IsTrue(m.Success, $"{skill}: SKILL.md must open with YAML frontmatter");
+        return m.Groups["body"].Value;
+    }
+
+    /// <summary>
+    /// Collapses every run of whitespace to one space, because these files are hard-wrapped
+    /// at about ninety columns and a phrase that happens to span a line break would never
+    /// match. That is a property of the prose, not of the rule being checked, so matching on
+    /// raw text makes the check fail for reasons the author cannot see — which is the noise
+    /// that gets a check switched off.
+    /// </summary>
+    private static string Flat(string text) =>
+        Regex.Replace(text, @"\s+", " ");
+
+    private static void MustState(string skill, params string[] phrases)
+    {
+        string text = Flat(Read(skill));
+        foreach (string phrase in phrases)
+        {
+            Assert.IsTrue(text.Contains(Flat(phrase), StringComparison.OrdinalIgnoreCase),
+                $"skills/{skill}/SKILL.md no longer states: \"{phrase}\"");
+        }
+    }
+
+    [TestMethod]
+    public void EverySkillTheLibraryPromisesShips()
+    {
+        // The library IS the surface. A stage with no skill is a stage nobody can invoke,
+        // which is how ten items came to be built with nothing callable.
+        foreach (string skill in Expected)
+        {
+            Assert.IsTrue(File.Exists(Path.Combine(SkillDir, skill, "SKILL.md")),
+                $"skills/{skill}/SKILL.md is missing, so /sdlc:{skill} resolves to nothing");
+        }
+    }
+
+    [TestMethod]
+    [DynamicData(nameof(AllSkills))]
+    public void FrontmatterNamesTheSkillAndSaysWhenToUseIt(string skill)
+    {
+        ArgumentNullException.ThrowIfNull(skill);
+        string fm = Frontmatter(skill);
+
+        Match name = Regex.Match(fm, @"(?m)^name:\s*(?<v>\S+)\s*$");
+        Assert.IsTrue(name.Success, $"{skill}: frontmatter needs a name");
+        Assert.AreEqual(skill, name.Groups["v"].Value,
+            "the name must match the directory, because the directory is what forms /sdlc:<name>");
+
+        // Without a description the model cannot tell when the skill applies, so it is
+        // reachable by typing but invisible to delegation.
+        Assert.IsTrue(Regex.IsMatch(fm, @"(?m)^description:\s*\S"),
+            $"{skill}: frontmatter needs a description");
+    }
+
+    [TestMethod]
+    public void SideEffectingSkillsAreNotModelInvocable()
+    {
+        // `run` launches N unattended processes, `init` writes a charter, `absorb-retro`
+        // proposes charter amendments. None should start because a model inferred it was a
+        // good idea; each is a deliberate act by a person.
+        foreach (string skill in new[] { "run", "init", "absorb-retro", "grill", "maintain" })
+        {
+            Assert.IsTrue(Read(skill).Contains("disable-model-invocation: true", StringComparison.Ordinal),
+                $"{skill} has real side effects and must be user-invoked only");
+        }
+    }
+
+    [TestMethod]
+    public void BuildAndVerifyStayModelInvocableBecauseTheBatchCallsThem()
+    {
+        // The dispatcher hands a -p session a prompt telling it to run build then verify.
+        // Marking either user-only would make every unattended batch fail at step one.
+        foreach (string skill in new[] { "build", "verify" })
+        {
+            Assert.IsFalse(Read(skill).Contains("disable-model-invocation: true", StringComparison.Ordinal),
+                $"{skill} is invoked by the batch dispatcher and must stay model-invocable");
+        }
+    }
+
+    // --- the rules each skill carries --------------------------------------
+
+    [TestMethod]
+    public void IntentElicitsRatherThanDrafts()
+    {
+        MustState("intent",
+            "elicit",
+            "INV-01",              // failure modes, the most-skipped question
+            "INV-02",              // two readings
+            "caused-by");          // the retro loop's raw material
+        MustState("intent", "do not run the spec", "only a person can grant");
+    }
+
+    [TestMethod]
+    public void IntentPutsItselfBehindItsGate()
+    {
+        // The gate that was bypassed twice before it was a script. An intent written straight
+        // to master has no pull request and therefore no gate, and nothing about the artifact
+        // itself reveals that it skipped one.
+        MustState("intent",
+            "Submit-SdlcIntent.ps1",
+            "no pull request, and therefore no gate",
+            "Do not merge it yourself");
+    }
+
+    [TestMethod]
+    public void RepairChecksForAnExistingCharterIntentBeforeFilingOne()
+    {
+        // Without this, eight concurrent cycles hitting one invariant file eight identical
+        // requests. And the abandoned case is the valuable one: already-refused is a signal
+        // about the work, not about the charter.
+        MustState("repair",
+            "Find-SdlcCharterIntent.ps1",
+            "blocked-already-answered",
+            "the work needs rethinking",
+            "targets");
+    }
+
+    [TestMethod]
+    public void SpecMarksEveryCriterionVerifiableOrNot()
+    {
+        // Without the distinction you either annotate the unannotatable, or quietly pass
+        // untested criteria as tested.
+        MustState("spec", "AC-", "Verifiable", "unique", "out of scope");
+    }
+
+    [TestMethod]
+    public void SpecAsksRatherThanPickingAReading()
+    {
+        // This is the reason spec is a skill and not a workflow. An ambiguity about what
+        // the user wanted cannot be resolved by reasoning, and a workflow cannot ask.
+        MustState("spec", "ASK THE USER", "Do not pick a reading");
+    }
+
+    [TestMethod]
+    public void PlanTakesTheTierFromTheGathererAndNeverJudgesIt()
+    {
+        MustState("plan",
+            "Get-SdlcFacts.ps1",
+            "Do not compute or adjust the tier yourself",
+            "INV-05");
+    }
+
+    [TestMethod]
+    public void PlanNeverWritesItsOwnApproval()
+    {
+        // `approved:` is what makes a cycle batchable. A stage that writes its own approval
+        // has bypassed the only gate standing between a draft and an unattended build.
+        MustState("plan", "approved:", "You do not approve it");
+    }
+
+    [TestMethod]
+    public void RepairHaltsOnNoProgressAndLooksForWhatItIntroduced()
+    {
+        // Measured, not assumed: three of five blocking findings in a v01 repair round were
+        // introduced by the previous round's repairs; three of four on a second codebase.
+        // And the finding rate does not decay, so "until clean" never fires.
+        MustState("repair", "INTRODUCED", "halted-no-progress", "Halt on no progress");
+    }
+
+    [TestMethod]
+    public void RepairRefusesToEditTheCharterOrErasePlainly()
+    {
+        MustState("repair",
+            "Do not touch the charter",     // INV-08: no cycle amends the charter governing it
+            "Do not repair by deleting the claim",
+            "Do not change a finding's `state`");
+    }
+
+    [TestMethod]
+    public void BuildRefusesAnUnapprovedPlanAndHaltsOnTierEscalation()
+    {
+        MustState("build",
+            "No `approved:`",
+            "halt",
+            "Touch the declared files and nothing else",
+            "more dangerous than it was approved to be");
+    }
+
+    [TestMethod]
+    public void VerifyDerivesEveryNumberAndDecidesByRule()
+    {
+        MustState("verify",
+            "do not compute any of these numbers yourself",
+            "undispositioned",
+            "corrected, never signed off");
+    }
+
+    [TestMethod]
+    public void VerifyDelegatesTheOutcomeRatherThanDecidingIt()
+    {
+        // The one rule here that is NOT merely instructed. The decision lives in
+        // Get-SdlcVerifyOutcome.ps1, which is exercised against a real repository by
+        // VerifyOutcomeTests and mutation-tested. If this skill ever stops calling it and
+        // starts applying the table itself, the guarantee silently degrades from "computed
+        // by code that did not do the work" to "a model following instructions" — and
+        // nothing else would notice.
+        MustState("verify",
+            "Get-SdlcVerifyOutcome.ps1",
+            "Transcribe what it returns",
+            "If the script disagrees with you, the script is right");
+    }
+
+    [TestMethod]
+    public void RetroRefusesToCertifyACycleThatDidNotLand()
+    {
+        // A retro's PRESENCE is what makes a cycle read as done. Write one for a dead cycle
+        // and a dispatcher stops relaunching it, so the work is silently lost.
+        MustState("retro", "refuse", "completion certificate", "landed-at", "charter-version");
+
+        // And it must NOT wait for the merge. Landing refuses to open its pull request until
+        // the retro exists, so a retro that required the merge first would deadlock: each
+        // waiting for the other.
+        MustState("retro", "do not wait for the merge", "rides in with the squash");
+    }
+
+    [TestMethod]
+    public void RetroRecordsRatherThanConcludes()
+    {
+        MustState("retro", "Do not compute the signals here");
+    }
+
+    [TestMethod]
+    public void RunDispatchesOnlyApprovedPlansAndNamesWhatItSkips()
+    {
+        // A batch that silently drops work reads as having covered everything.
+        MustState("run",
+            "planned",
+            "name each skipped cycle",
+            "no concurrency cap",
+            "worktree count");
+    }
+
+    [TestMethod]
+    public void LandingDeploysThroughAPullRequestAndRequiresTheRetroFirst()
+    {
+        // Deploy means PR + REVIEW + merge. Landing used to squash straight onto master,
+        // skipping the review half entirely - the same shape of hole the intent gate had.
+        // And it must refuse without a retro, or the work lands and the cycle reads as never
+        // started.
+        string landing = File.ReadAllText(
+            Path.Combine(AppContext.BaseDirectory, "tools", "Complete-SdlcCycle.ps1"));
+
+        Assert.IsTrue(landing.Contains("refused-no-retro", StringComparison.Ordinal),
+            "landing must refuse a cycle with no completion certificate");
+        Assert.IsTrue(landing.Contains("awaiting-review", StringComparison.Ordinal),
+            "landing prepares the merge and stops; a person merges");
+        Assert.IsTrue(landing.Contains("SQUASH-MERGE THIS", StringComparison.Ordinal),
+            "the pull request must say how to merge, or one cycle stops being one commit");
+
+        int retro = landing.IndexOf("refused-no-retro", StringComparison.Ordinal);
+        int push = landing.IndexOf("Add-Step 'push'", StringComparison.Ordinal);
+        Assert.IsTrue(retro < push, "the retro is checked before anything is pushed");
+    }
+
+    [TestMethod]
+    public void RunDoesNotLand()
+    {
+        MustState("run", "Landing is not part of this", "semantic");
+    }
+
+    [TestMethod]
+    public void InitRefusesToOverwriteACharterAndNeverRenumbers()
+    {
+        MustState("init",
+            "INV-08",
+            "Never renumber",
+            "gap");
+    }
+
+    [TestMethod]
+    public void InitScaffoldsFromThePackAndCopiesOnlyTheCharter()
+    {
+        // Two separate jobs, deliberately. A scaffolder that also wrote the charter could
+        // claim a scaffolded origin for an inferred one, and Origin: is what tells every
+        // later interrogation how much to trust the document.
+        MustState("init",
+            "scaffold.ps1",
+            "Do not copy the pack rules",
+            "idempotent");
+    }
+
+    [TestMethod]
+    public void EveryPackInitNamesActuallyShips()
+    {
+        // The skill names the packs a user can choose. A named pack that does not exist is
+        // the unresolvable-reference failure, one layer up from where it usually appears.
+        string text = Read("init");
+        string packsDir = Path.Combine(AppContext.BaseDirectory, "packs");
+
+        Assert.IsTrue(Directory.Exists(packsDir), "no packs ship at all");
+
+        foreach (string dir in Directory.EnumerateDirectories(packsDir))
+        {
+            string name = Path.GetFileName(dir);
+            Assert.IsTrue(text.Contains(name, StringComparison.Ordinal),
+                $"the pack '{name}' ships but init does not offer it");
+        }
+
+        Assert.IsTrue(text.Contains("dotnet-library", StringComparison.Ordinal));
+    }
+
+    [TestMethod]
+    public void GrillIsDistinguishedFromInterrogationAndProducesNoArtifact()
+    {
+        // The two are opposites and confusing them wastes the expensive one. Interrogation
+        // works because roles cannot contaminate each other; grilling works because teammates
+        // argue directly, which orthogonal roles cannot do.
+        MustState("grill",
+            "This is not interrogation",
+            "No governed artifact",
+            "cannot spawn under `claude -p`",
+            "Do not act on the conclusion");
+    }
+
+    [TestMethod]
+    public void MaintainFilesIntentsAndNeverFixes()
+    {
+        // Maintenance that fixed things directly would be a second path into the codebase
+        // that skips every gate — and the path of least resistance, because the work looks
+        // trivial. A CVE bump is one line that can break a build.
+        MustState("maintain",
+            "It never fixes",
+            "Do not edit a version file",
+            "charter-review",
+            "telemetry");
+    }
+
+    [TestMethod]
+    public void AbsorbRetroComputesSignalsWithTheQueryRatherThanByHand()
+    {
+        MustState("absorb-retro", "Get-SdlcSignals.ps1", "read-only and it stores nothing");
+    }
+
+    [TestMethod]
+    public void AbsorbRetroRefusesToOverwriteAndOnlyProposes()
+    {
+        // The refusal is what earns INV-03's exemption for an immutable copy. Without it the
+        // corpus is just a second list and the exemption does not hold.
+        MustState("absorb-retro",
+            "never overwrite",
+            "Never apply",
+            "one at a time",
+            "must never be merged");
+    }
+
+    [TestMethod]
+    public void NoSkillCollidesWithAWorkflowName()
+    {
+        // Both contribute /sdlc:<name>. Two components claiming one name means one shadows
+        // the other and which one wins is undefined.
+        string workflowDir = Path.Combine(AppContext.BaseDirectory, "workflows");
+        HashSet<string> workflowNames = new(StringComparer.Ordinal);
+
+        foreach (string file in Directory.EnumerateFiles(workflowDir, "*.js"))
+        {
+            Match m = Regex.Match(File.ReadAllText(file), @"\bname:\s*'(?<n>[^']+)'");
+            if (m.Success)
+            {
+                workflowNames.Add(m.Groups["n"].Value);
+            }
+        }
+
+        foreach (string skill in Expected)
+        {
+            Assert.IsFalse(workflowNames.Contains(skill),
+                $"/sdlc:{skill} is claimed by both a skill and a workflow");
+        }
+    }
+}

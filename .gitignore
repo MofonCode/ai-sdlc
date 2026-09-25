@@ -1,0 +1,11 @@
+# build output
+bin/
+obj/
+[Tt]est[Rr]esults/
+
+# generated, regenerable, never authoritative (facts.md and rendered findings views)
+facts.md
+*.findings.md
+
+# worktrees
+.claude/worktrees/

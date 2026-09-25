@@ -1,0 +1,15 @@
+{
+  "cycle-id": "20260923-4f2a",
+  "target": "intent",
+  "charter-version": 1,
+  "findings": [
+    {
+      "id": "x3",
+      "category": "unresolvable-reference",
+      "state": "open",
+      "stage": "intent",
+      "detection": "check",
+      "summary": "RULE 3: a mechanical finding skips triage; the failed check is the citation."
+    }
+  ]
+}

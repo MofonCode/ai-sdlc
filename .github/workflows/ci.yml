@@ -1,0 +1,35 @@
+name: ci
+
+# windows-latest is not a preference. The framework is committed to Windows PowerShell 5.1,
+# which exists only on Windows, and the suite parses every shipped script with the REAL 5.1
+# parser — the only way the BOM and ANSI-decoding defects were catchable at all.
+on:
+  push:
+    branches: [master, 'bootstrap', 'cycle-*', 'intent-*']
+  pull_request:
+    branches: [master]
+
+jobs:
+  test:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # The fact gatherer pins the commit it ran at and the lifecycle derivation reads
+          # branches and merge state, so a shallow clone would make both lie.
+          fetch-depth: 0
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      - name: Build and test
+        run: dotnet test --configuration Debug
+
+      - name: Validate the plugin manifest
+        run: claude plugin validate .claude-plugin/plugin.json --strict
+        continue-on-error: true
+
+      - name: Validate the marketplace manifest
+        run: claude plugin validate . --strict
+        continue-on-error: true

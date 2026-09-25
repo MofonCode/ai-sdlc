@@ -1,0 +1,63 @@
+name: release-gate
+
+# THE RULE: fail a `release` move that does not bump the version.
+#
+# Not "gate every merge". plugin.json is bumped when the release ref moves, never in-cycle,
+# because CI requiring a bump on every plugin change would make two concurrent cycles
+# conflict EVERY time — a guaranteed collision rather than a possible one. And nobody
+# consumes master, so a bump there signals nothing: several merged cycles sharing one
+# released version is normal, and that is what a release is.
+#
+# So this is the one place the rule can be checked accurately, and it is also far less noisy.
+on:
+  push:
+    branches: [release]
+
+jobs:
+  version-must-bump:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: The released version must exceed the last tagged one
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          version=$(python -c "import json;print(json.load(open('.claude-plugin/plugin.json'))['version'])")
+          echo "plugin.json declares $version"
+
+          if ! git rev-parse "v$version" >/dev/null 2>&1; then
+            echo "::error::No tag v$version. A release move carries its version tag, so that the"
+            echo "::error::immutable per-version record and plugin.json cannot disagree."
+            exit 1
+          fi
+
+          previous=$(git tag --list 'v*' --sort=-v:refname | grep -v "^v$version$" | head -1 || true)
+
+          if [ -z "$previous" ]; then
+            echo "First release. Nothing to compare against, and that is not a failure."
+            exit 0
+          fi
+
+          echo "previous release was $previous"
+
+          # sort -V puts the lower version first. If the current version sorts first, it did
+          # not bump — which is the whole thing this job exists to catch.
+          lowest=$(printf '%s\n%s\n' "$version" "${previous#v}" | sort -V | head -1)
+
+          if [ "$lowest" = "$version" ] && [ "$version" != "${previous#v}" ]; then
+            echo "::error::$version is lower than the previous release ${previous#v}."
+            exit 1
+          fi
+
+          if [ "$version" = "${previous#v}" ]; then
+            echo "::error::The release ref moved but plugin.json still declares $version."
+            echo "::error::Everyone subscribed to \`release\` would receive new code under an"
+            echo "::error::old version, so nothing would prompt them to update."
+            exit 1
+          fi
+
+          echo "bumped ${previous#v} -> $version"

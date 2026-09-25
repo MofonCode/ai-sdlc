@@ -1,0 +1,49 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://mofoncode.dev/sdlc/schemas/plan.schema.json",
+  "title": "Plan frontmatter",
+  "description": "The YAML frontmatter of a plan. The files it will touch live in the body as a markdown table, which INV-05 requires and the blast-radius tier reads — one declaration serving both. See Get-DeclaredFiles in tools/Get-SdlcFacts.ps1 for the shape.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "cycle-id",
+    "spec",
+    "charter-version"
+  ],
+  "properties": {
+    "cycle-id": {
+      "$ref": "#/$defs/cycleId"
+    },
+    "spec": {
+      "$ref": "#/$defs/cycleId",
+      "description": "The spec this plan implements."
+    },
+    "charter-version": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "pack-version": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "predicted-tier": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 3,
+      "description": "Blast radius as computed from the declared files. Gates the BUILD, not the launch — dispatch precedes any plan, so there is nothing to read at launch time. The verify stage compares this against the actual diff and halts if the actual tier is higher."
+    },
+    "approved": {
+      "type": "string",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+      "description": "The date a person approved this plan for build, yyyy-mm-dd. Its PRESENCE is the gate: the lifecycle derivation reads a plan without it as not yet dispatchable, so an unattended batch cannot pick up work nobody signed off. Never written by the stage that authors the plan."
+    }
+  },
+  "$defs": {
+    "cycleId": {
+      "type": "string",
+      "pattern": "^[0-9]{8}-[0-9a-f]{4}$"
+    }
+  }
+}

@@ -1,0 +1,233 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://mofoncode.dev/sdlc/schemas/findings.schema.json",
+  "title": "Findings document",
+  "description": "What an interrogation emits. The authoritative representation of findings; any markdown view is generated from this and not committed.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["cycle-id", "target", "charter-version", "findings"],
+  "properties": {
+    "cycle-id": { "$ref": "#/$defs/cycleId" },
+    "target": {
+      "$ref": "#/$defs/artifactKind",
+      "description": "Which artifact was interrogated."
+    },
+    "charter-version": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "The charter in force. A findings document is uninterpretable without it."
+    },
+    "pack-version": {
+      "type": ["string", "null"],
+      "description": "The stack pack in force, or null for a solution that consumes none."
+    },
+    "round": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Interrogation round. Round 2+ interrogates repair diffs, not the whole artifact."
+    },
+    "findings": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/finding" }
+    }
+  },
+
+  "$defs": {
+    "cycleId": {
+      "type": "string",
+      "pattern": "^[0-9]{8}-[0-9a-f]{4}$",
+      "description": "yyyymmdd-hhhh. Identity, not ordering; assigned once and never reused."
+    },
+
+    "artifactKind": {
+      "enum": ["charter", "intent", "spec", "plan", "code", "verify", "retro", "pack"]
+    },
+
+    "category": {
+      "description": "Owned by the charter. Eleven values as of charter v1.",
+      "enum": [
+        "unresolvable-reference",
+        "unfounded-claim",
+        "scope-drift",
+        "gate-bypass",
+        "internal-contradiction",
+        "duplicated-truth",
+        "ambiguity",
+        "untestable",
+        "missing-case",
+        "charter-violation",
+        "unclassified"
+      ]
+    },
+
+    "state": {
+      "description": "open is pending triage; blocking must resolve before landing; suggested never halts.",
+      "enum": ["open", "blocking", "suggested"]
+    },
+
+    "stage": {
+      "description": "Which artifact should have prevented this. May be upstream of the target.",
+      "enum": ["charter", "intent", "spec", "plan", "build", "verify"]
+    },
+
+    "detection": {
+      "description": "check means a mechanical check failed and is deterministic; reasoning means an agent inferred it.",
+      "enum": ["check", "reasoning"]
+    },
+
+    "role": {
+      "enum": ["charter", "coherence", "facts", "gaps", "form"]
+    },
+
+    "disposition": {
+      "enum": ["fixed", "rejected", "accepted-wont-fix", "deferred-to-dec", "promoted"]
+    },
+
+    "location": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["file", "anchor"],
+      "properties": {
+        "file": { "type": "string", "minLength": 1 },
+        "anchor": {
+          "type": "string",
+          "minLength": 1,
+          "description": "A heading or a uniquely-quoted string. Never a line number: a line number is invalidated by any edit above it, and an anchor survives."
+        }
+      }
+    },
+
+    "cite": {
+      "description": "Exactly one of four kinds. A finding cannot reach blocking without at least one.",
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "id"],
+          "properties": {
+            "kind": { "const": "invariant" },
+            "id": { "type": "string", "pattern": "^(INV|LOC)-[0-9]{2}$" }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "id"],
+          "properties": {
+            "kind": { "const": "check" },
+            "id": { "type": "string", "minLength": 1 }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "id"],
+          "properties": {
+            "kind": { "const": "deferred" },
+            "id": { "type": "string", "pattern": "^DEC-[0-9]{2}$" }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "locations"],
+          "properties": {
+            "kind": { "const": "locations" },
+            "locations": {
+              "type": "array",
+              "minItems": 2,
+              "items": { "$ref": "#/$defs/location" }
+            }
+          }
+        }
+      ]
+    },
+
+    "finding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "category", "state", "stage", "detection", "summary"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "category": { "$ref": "#/$defs/category" },
+        "state": { "$ref": "#/$defs/state" },
+        "stage": { "$ref": "#/$defs/stage" },
+        "detection": { "$ref": "#/$defs/detection" },
+        "role": { "$ref": "#/$defs/role" },
+        "summary": { "type": "string", "minLength": 1 },
+        "cites": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/cite" }
+        },
+        "repair": {
+          "type": "string",
+          "minLength": 1,
+          "description": "A concrete change that would resolve this. Its presence is what makes a blocking finding self-healable."
+        },
+        "disposition": { "$ref": "#/$defs/disposition" },
+        "disposition-reason": { "type": "string", "minLength": 1 }
+      },
+
+      "allOf": [
+        {
+          "$comment": "RULE 1 — the anti-inflation guard. blocking requires at least one citation, so an uncited blocking finding cannot be emitted at all.",
+          "if": {
+            "required": ["state"],
+            "properties": { "state": { "const": "blocking" } }
+          },
+          "then": {
+            "required": ["cites"],
+            "properties": { "cites": { "minItems": 1 } }
+          }
+        },
+        {
+          "$comment": "RULE 2 — unclassified can never block. Its rate is a health metric for the taxonomy, so it must never be able to halt a cycle.",
+          "if": {
+            "required": ["category"],
+            "properties": { "category": { "const": "unclassified" } }
+          },
+          "then": {
+            "properties": { "state": { "const": "suggested" } }
+          }
+        },
+        {
+          "$comment": "RULE 3 — mechanical findings skip triage. A failed check IS the citation, so a check-detected finding is born blocking and never sits at open.",
+          "if": {
+            "required": ["state"],
+            "properties": { "state": { "const": "open" } }
+          },
+          "then": {
+            "properties": { "detection": { "const": "reasoning" } }
+          }
+        },
+        {
+          "$comment": "RULE 4 — a location-pair citation is permitted only for internal-contradiction. A contradiction you can point at both halves of is self-evident; nothing else is.",
+          "if": {
+            "required": ["cites"],
+            "properties": {
+              "cites": {
+                "contains": {
+                  "required": ["kind"],
+                  "properties": { "kind": { "const": "locations" } }
+                }
+              }
+            }
+          },
+          "then": {
+            "properties": { "category": { "const": "internal-contradiction" } }
+          }
+        },
+        {
+          "$comment": "RULE 5 — rejected and accepted-wont-fix must say why. They feed opposite amendment signals, so an unexplained one corrupts the evidence.",
+          "if": {
+            "required": ["disposition"],
+            "properties": {
+              "disposition": { "enum": ["rejected", "accepted-wont-fix"] }
+            }
+          },
+          "then": { "required": ["disposition-reason"] }
+        }
+      ]
+    }
+  }
+}

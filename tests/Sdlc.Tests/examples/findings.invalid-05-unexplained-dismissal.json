@@ -1,0 +1,16 @@
+{
+  "cycle-id": "20260923-4f2a",
+  "target": "intent",
+  "charter-version": 1,
+  "findings": [
+    {
+      "id": "x5",
+      "category": "missing-case",
+      "state": "suggested",
+      "stage": "intent",
+      "detection": "reasoning",
+      "summary": "RULE 5: accepted-wont-fix feeds the override count, so it must say why.",
+      "disposition": "accepted-wont-fix"
+    }
+  ]
+}

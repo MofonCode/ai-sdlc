@@ -1,0 +1,97 @@
+{
+  "cycle-id": "20260923-4f2a",
+  "target": "intent",
+  "charter-version": 1,
+  "pack-version": null,
+  "round": 1,
+  "findings": [
+    {
+      "id": "f1",
+      "category": "unfounded-claim",
+      "state": "blocking",
+      "stage": "intent",
+      "detection": "check",
+      "role": "facts",
+      "summary": "Section 8 claims the repository tracks exactly two files; it tracks three.",
+      "cites": [{ "kind": "check", "id": "tracked-file-count" }],
+      "repair": "Pin the claim to a commit SHA so it stays true."
+    },
+    {
+      "id": "f2",
+      "category": "charter-violation",
+      "state": "blocking",
+      "stage": "intent",
+      "detection": "reasoning",
+      "role": "charter",
+      "summary": "Decision 3 has a branch this cycle cannot deliver: adding an invariant requires an approved charter intent.",
+      "cites": [{ "kind": "invariant", "id": "INV-08" }],
+      "repair": "State that the cycle decides the answer and files a charter intent as a separate deliverable."
+    },
+    {
+      "id": "f3",
+      "category": "internal-contradiction",
+      "state": "blocking",
+      "stage": "intent",
+      "detection": "reasoning",
+      "role": "coherence",
+      "summary": "Scope commits to the full field set; failure mode 4 predicts part of it will be wrong.",
+      "cites": [
+        {
+          "kind": "locations",
+          "locations": [
+            { "file": ".sdlc/intents/20260923-4f2a.md", "anchor": "3 · In scope" },
+            { "file": ".sdlc/intents/20260923-4f2a.md", "anchor": "7 · Failure modes" }
+          ]
+        }
+      ],
+      "repair": "Cut verify and retro fields from scope."
+    },
+    {
+      "id": "f4",
+      "category": "missing-case",
+      "state": "suggested",
+      "stage": "intent",
+      "detection": "reasoning",
+      "role": "gaps",
+      "summary": "No JSON schema validation library is named, and the build needs one."
+    },
+    {
+      "id": "f5",
+      "category": "ambiguity",
+      "state": "open",
+      "stage": "spec",
+      "detection": "reasoning",
+      "role": "coherence",
+      "summary": "Awaiting triage: it is not yet established whether this reading difference changes downstream work."
+    },
+    {
+      "id": "f6",
+      "category": "unclassified",
+      "state": "suggested",
+      "stage": "intent",
+      "detection": "reasoning",
+      "summary": "Fits no category; its rate is a health metric for the taxonomy."
+    },
+    {
+      "id": "f7",
+      "category": "duplicated-truth",
+      "state": "suggested",
+      "stage": "plan",
+      "detection": "reasoning",
+      "summary": "Deferred while the subject is open.",
+      "cites": [{ "kind": "deferred", "id": "DEC-07" }],
+      "disposition": "deferred-to-dec"
+    },
+    {
+      "id": "f8",
+      "category": "gate-bypass",
+      "state": "blocking",
+      "stage": "build",
+      "detection": "check",
+      "summary": "A pragma disable was added with no written justification.",
+      "cites": [{ "kind": "invariant", "id": "INV-06" }],
+      "disposition": "accepted-wont-fix",
+      "disposition-reason": "Pre-existing at adoption; recorded in the baseline."
+    }
+  ]
+}
