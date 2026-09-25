@@ -58,6 +58,9 @@ withdrawn.
 | F-15 | **The release gate was hardcoded**, so a fixture with no .NET project could only report `refused-tests-fail` and every check after the gate was unreachable by a test. Also against INV-04: tool names belong to the pack | the same attempt | `421919a` — a `-TestCommand` parameter, matching `Get-SdlcVerifyOutcome` |
 | F-16 | **Six git writes discarded their result.** A CI runner has no git identity, so `git commit` failed there and `Submit-SdlcIntent` reported `branched` with an empty branch — a person would believe the gate had closed on nothing | CI, which had been red for four pushes and which I had never looked at | `f1e3849` — named failures on every write |
 | F-17 | **All three `ShouldProcess` scripts could not run non-interactively.** `ConfirmImpact = 'High'` prompts, and `powershell.exe -File` has no host that can ask. Interactively it throws a null-reference; from a test host it HANGS, waiting for a prompt that never arrives. Eight unattended cycles would have hung silently | cutting the release for real | `421919a` — the automatic prompt removed; `-WhatIf` kept |
+| F-19 | **The only workflow in the framework was syntactically invalid for four commits.** Two errors, both from editing through layers that ate one level of escaping: a regex body that became a single backslash, and a `
+` in a single-quoted string that became a real newline. `interrogate.js` would have thrown at launch the whole time. Every structural test passed, because they read the file as text | doing `US-16`, and only because node turned out to be installed | `d2c6c38` — `WorkflowSyntaxTests` parses each workflow the way the runtime loads it |
+| F-20 | **A behavioural test of a function nothing calls.** I added the citation validation, then a test that executed `citationResolves` directly and proved it correct. Deleting the *call* — leaving the function sitting there, correct and unused — passed all fifteen structural tests **and** that new test. Proving a guard works is not proving anything consults it | mutation-testing `US-16` before committing it | `d2c6c38` — a second test executes the real assignment loop and reads the states it produces |
 | F-18 | **The process has no route for a defect found while doing something else.** F-14 through F-17 were all found mid-task and all blocked progress. Filing an intent for each would mean five gates; fixing them inline bypasses the process. I chose inline, twice, on shipped code — while running the gate for an unrelated intent | doing the above, and being asked about it | **unresolved.** `maintain` files intents and never fixes; the repair loop only works inside a cycle. Neither covers this |
 
 Two entries were **my own errors of claim rather than code**, and they are the ones worth
@@ -80,6 +83,8 @@ dissolved once their content was resolved.
 | dissolved | 2 stories |
 | merged as duplicates | 1 pair (`US-13` and `r1`) |
 | **open** | **22** |
+| closed since | 2 — `US-16` and `US-09`, both by `d2c6c38` |
+| **left** | **20** |
 
 Sizes: **S** under an hour, **M** a sitting, **L** its own cycle.
 
@@ -87,7 +92,6 @@ Sizes: **S** under an hour, **M** a sitting, **L** its own cycle.
 
 | | Size | Kind | Item | From |
 |---|---|---|---|---|
-| **`US-16`** | M | mechanism | A failed-check citation is never verified against a check that ran | `r38` |
 | **`US-17`** | M | mechanism | Three invariants declare charter scope that no role ever loads | `r18` |
 | **`US-18`** | M | mechanism | INV-06 claims a suppression-count comparison that nothing performs | `r27` |
 | **`US-19`** | S | mechanism | INV-04's exemption has nowhere to be recorded, so it cannot be used | `r6` |
@@ -107,7 +111,6 @@ Sizes: **S** under an hour, **M** a sitting, **L** its own cycle.
 | **`US-06`** | [72](https://dev.azure.com/MofonCode/ai-sdlc/_workitems/edit/72) | M | measure | Measure per-role yield before trusting the role set |
 | **`US-07`** | [73](https://dev.azure.com/MofonCode/ai-sdlc/_workitems/edit/73) | M | cost | Cut interrogation cost |
 | **`US-08`** | [74](https://dev.azure.com/MofonCode/ai-sdlc/_workitems/edit/74) | S | charter | Remove DEC-08 from the register |
-| **`US-09`** | [75](https://dev.azure.com/MofonCode/ai-sdlc/_workitems/edit/75) | S | test | Give the one remaining workflow a syntax check |
 | **`US-10`** | [76](https://dev.azure.com/MofonCode/ai-sdlc/_workitems/edit/76) | L | test | Prove a skill obeys its rules, not merely that it states them |
 | **`US-11`** | [77](https://dev.azure.com/MofonCode/ai-sdlc/_workitems/edit/77) | S | test | Cover the one lifecycle state a test cannot reach |
 | **`US-12`** | [78](https://dev.azure.com/MofonCode/ai-sdlc/_workitems/edit/78) | S | decide | The two intents that bypassed the gate |
@@ -141,13 +144,9 @@ Sizes: **S** under an hour, **M** a sitting, **L** its own cycle.
 | `decide` | needs a decision, not work |
 | `blocked` | blocked by agreement |
 
-**`mechanism` is the group that matters.** Six items where the code or the charter claims a check, a scope or a comparison that does not exist. Every one of them makes the framework look stronger than it is, and `US-16` is the worst: it is a hole in the anti-inflation guard, which is the mechanism everything else rests on.
+**`mechanism` is the group that matters.** Five items where the code or the charter claims a check, a scope or a comparison that does not exist. Every one of them makes the framework look stronger than it is. The worst of them, `US-16`, is now closed — it was a hole in the anti-inflation guard, which is what everything else rests on. `US-17` inherits the position: three invariants claim scope over the charter, and interrogating the charter loads none of them.
 
 ### The detail
-
-#### `US-16` · M · **A failed-check citation is never verified against a check that ran** · from `r38`
-
-**The hole is in the anti-inflation guard itself**, which is the framework's central mechanism. Invariant and `DEC` citations must name ids declared in the charter; a `check` citation is unconstrained. Nothing requires the cited check to be one a fact-gathering run actually executed and reported as failed, so an agent can reach `blocking` by naming a check that never ran.
 
 #### `US-17` · M · **Three invariants declare charter scope that no role ever loads** · from `r18`
 
@@ -205,10 +204,6 @@ Four roles may produce two and a half roles' worth of findings at four roles' co
 
 Answered 2026-09-25. Removing it is a charter amendment, not an edit.
 
-#### `US-09` · S · **Give the one remaining workflow a syntax check** · [#75](https://dev.azure.com/MofonCode/ai-sdlc/_workitems/edit/75)
-
-Nothing proves `interrogate.js` is valid JavaScript.
-
 #### `US-10` · L · **Prove a skill obeys its rules, not merely that it states them** · [#76](https://dev.azure.com/MofonCode/ai-sdlc/_workitems/edit/76)
 
 Skill tests assert the instruction is present, not that it was followed.
@@ -244,10 +239,11 @@ board, suggestions in a findings file, and loose observations in commit messages
 | | Holds | Authority for |
 |---|---|---|
 | this file | the resolved record **and the whole open backlog** | **what is true and what is left** |
-| the ADO board | the twelve carried stories | tracking and prioritising those twelve |
+| the ADO board | eleven carried stories, `US-09` now closed | tracking and prioritising those eleven |
 | `.sdlc/intents/` | an intent per item once work starts | **what is authorised**, and the only route |
 
-**The board is behind by ten items** — `US-16` through `US-25` exist only here. Adding them
+**The board is behind by eight items** — `US-17` through `US-25` exist only here, and `US-09`
+is closed on this file while still open as [#75](https://dev.azure.com/MofonCode/ai-sdlc/_workitems/edit/75) on the board. Adding them
 is one call away; leaving the board as the subset is also defensible while it is only Peter
 working. What is not defensible is the state before this document existed, where nothing held
 the whole list.
@@ -257,11 +253,14 @@ the whole list.
 Every item here is bootstrap work until the concept is complete. That is the agreement, and
 `US-01` stays blocked by it deliberately — not deferred, blocked.
 
-### First four, and why
+### Next three, and why
+
+`US-16` was the first and is done — `d2c6c38`. What it cost is worth carrying forward: two
+tests, because the obvious one passed under mutation, and a workflow that had been invalid
+JavaScript for four commits found only by accident.
 
 | | |
 |---|---|
-| `US-16` | it is a hole in the anti-inflation guard, and everything else rests on that |
+| `US-24` | moved up. Doing `US-16` produced two more mid-task defects, F-19 and F-20, and I fixed both inline again. Until there is a route for this, every item on the list below costs the same argument |
 | `US-21` | seven charter defects, one amendment, and it clears the largest single group |
-| `US-24` | until this exists the next twenty defects get handled the way the last four were |
 | `US-14` | the only item with a date on it — teammates arrive around 2026-09-29 |
