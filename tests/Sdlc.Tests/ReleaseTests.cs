@@ -309,6 +309,33 @@ public sealed class ReleaseTests
     }
 
     [TestMethod]
+    public void TheScriptRunsNonInteractivelyWithoutCrashing()
+    {
+        // FOUND BY CUTTING THE REAL RELEASE. With ConfirmImpact = 'High', ShouldProcess tries
+        // to prompt; invoked as `powershell.exe -File`, there is no host that can ask, and it
+        // threw "Object reference not set to an instance of an object" rather than saying so.
+        //
+        // Every other test here passes -WhatIf, which returns before ShouldProcess would
+        // prompt — so the whole suite was green while the script could not actually run. This
+        // one goes all the way to a local tag, which is why it catches it.
+        ClearVersionTags();
+
+        string output = Run(
+            "powershell.exe",
+            $"-NoProfile -ExecutionPolicy Bypass -File \"{ScriptPath}\" -Version 0.2.0 " +
+            "-NoPush -TestCommand \"cmd /c exit 0\"",
+            allowFailure: true);
+
+        Assert.IsFalse(output.Contains("Object reference not set", StringComparison.Ordinal),
+            "the script must not crash when invoked the documented way: " + output);
+        Assert.AreEqual("local-only", OutcomeOf(output),
+            "it must reach the end of its work: " + output);
+
+        ClearVersionTags();
+        Run("git", "reset --hard HEAD~1", allowFailure: true);
+    }
+
+    [TestMethod]
     public void AFailingGateRefusesTheRelease()
     {
         // A release is the one moment the whole tree is claimed shippable, and everyone

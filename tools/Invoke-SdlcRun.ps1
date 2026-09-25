@@ -47,7 +47,18 @@
 .EXAMPLE
     .\Invoke-SdlcRun.ps1 -All -WhatIf
 #>
-[CmdletBinding(SupportsShouldProcess = $true, ConfirmImpact = 'High')]
+# Deliberately NOT ConfirmImpact = 'High'.
+#
+# That setting makes ShouldProcess prompt automatically, and a prompt needs a host that can
+# ask. Invoked the documented way - `powershell.exe -File <script>` - there is none, and
+# ShouldProcess throws "Object reference not set to an instance of an object" instead of
+# saying so. All three scripts that used it were unusable non-interactively, which is how the
+# tests and the dispatcher invoke them, and none had ever been run that way.
+#
+# SupportsShouldProcess stays, because -WhatIf is genuinely useful and is tested. What is gone
+# is the automatic prompt: each of these scripts already prints its own confirmation, which is
+# visible interactively and does not crash anywhere else.
+[CmdletBinding(SupportsShouldProcess = $true)]
 param(
     [Parameter()]
     [string[]] $Intent,
