@@ -51,6 +51,13 @@ function Invoke-SdlcNative {
     $errFile = [System.IO.Path]::GetTempFileName()
     $previous = $ErrorActionPreference
 
+    # -WhatIf MUST NOT reach in here. A caller running with -WhatIf is previewing ITS OWN
+    # actions; reading git and capturing its output is how the caller decides what it would
+    # do, so suppressing that leaves the preview blind. Observed: under -WhatIf the stderr
+    # redirect below was itself previewed, so nothing was captured and temp files were left
+    # behind on every call.
+    $WhatIfPreference = $false
+
     # Belt and braces. The file redirect below is what actually prevents the ErrorRecord,
     # but a native command can still raise one on a path this function does not control,
     # and a helper whose whole job is not to throw should not throw.
@@ -81,7 +88,7 @@ function Invoke-SdlcNative {
     }
     finally {
         $ErrorActionPreference = $previous
-        Remove-Item -LiteralPath $errFile -Force -ErrorAction SilentlyContinue
+        Remove-Item -LiteralPath $errFile -Force -ErrorAction SilentlyContinue -WhatIf:$false
     }
 }
 

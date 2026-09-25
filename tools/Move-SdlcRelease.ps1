@@ -36,6 +36,11 @@
 .PARAMETER NoPush
     Do everything locally and push nothing.
 
+.PARAMETER TestCommand
+    The release gate. Defaults to the .NET one because this solution consumes no pack; a
+    solution with a pack takes its gate commands from there, since INV-04 delegates the stack
+    and tool names stay out of the charter.
+
 .EXAMPLE
     .\Move-SdlcRelease.ps1 -Version 0.2.0
 #>
@@ -48,7 +53,15 @@ param(
     [string] $RepoRoot,
 
     [Parameter()]
-    [switch] $NoPush
+    [switch] $NoPush,
+
+    # The release gate. A parameter rather than a hardcoded command, for the same reason
+    # Get-SdlcVerifyOutcome takes one: INV-04 delegates the stack to the pack, so tool names
+    # belong there. An earlier version hardcoded `dotnet test`, which also made the release
+    # gate untestable - a fixture repository with no .NET project could only ever report
+    # `refused-tests-fail`, so nothing past that point was reachable by a test.
+    [Parameter()]
+    [string] $TestCommand = 'dotnet test'
 )
 
 Set-StrictMode -Version Latest
@@ -105,10 +118,6 @@ function ConvertTo-Comparable {
     return [version]::new([int] $parts[0], [int] $parts[1], [int] $parts[2])
 }
 
-if ((ConvertTo-Comparable $Version) -le (ConvertTo-Comparable $current)) {
-    throw "Version $Version is not greater than the current $current. A release move must bump."
-}
-
 $result = [ordered]@{
     'from-version' = $current
     'to-version'   = $Version
@@ -153,11 +162,46 @@ try {
         return
     }
 
+    # THE FIRST RELEASE HAS NOTHING TO BUMP FROM, and an earlier version of this script could
+    # not cut one: it demanded `$Version > $current` unconditionally, so releasing the version
+    # the manifest already declared was refused and the project could never reach v0.1.0 at all.
+    #
+    # Worse, it contradicted the CI gate written for the same rule, which says "First release.
+    # Nothing to compare against, and that is not a failure." Two halves of one rule
+    # disagreeing. Found by running it.
+    #
+    # So the rule is stated once: a release must never go BACKWARDS, and every release after
+    # the first must go FORWARDS. `v*` tags are how we know which this is, so non-version tags
+    # like `raw-concept` are correctly ignored.
+    $versionTags = @((Invoke-SdlcGit tag --list 'v*').stdout -split "`n" |
+        ForEach-Object { $_.Trim() } | Where-Object { $_ })
+    $isFirstRelease = ($versionTags.Count -eq 0)
+
+    if ($isFirstRelease) {
+        if ((ConvertTo-Comparable $Version) -lt (ConvertTo-Comparable $current)) {
+            $result['outcome'] = 'refused-below-manifest'
+            $result['steps'] = @($steps)
+            Write-Host "Version $Version is below the manifest's $current. A first release may" -ForegroundColor Red
+            Write-Host 'match the manifest, but never go backwards from it.' -ForegroundColor Red
+            ConvertTo-Json -InputObject $result -Depth 6
+            return
+        }
+        Add-Step 'first-release' $true ("no v* tag exists; releasing the manifest's own " + $Version)
+    }
+    elseif ((ConvertTo-Comparable $Version) -le (ConvertTo-Comparable $current)) {
+        $result['outcome'] = 'refused-no-bump'
+        $result['steps'] = @($steps)
+        Write-Host "Version $Version is not greater than the current $current. A release move" -ForegroundColor Red
+        Write-Host 'must bump, or everyone subscribed receives new code under an old version.' -ForegroundColor Red
+        ConvertTo-Json -InputObject $result -Depth 6
+        return
+    }
+
     # The gate that matters, and it runs BEFORE the bump. A release is the one moment the
     # whole tree is claimed to be shippable, and shipping a failing build to everyone who
     # subscribed to `release` is worse than not shipping.
     Write-Host 'Verifying before release. This is the claim a release makes.' -ForegroundColor Cyan
-    $tests = Invoke-SdlcNative -Command 'dotnet' -Arguments @('test')
+    $tests = Invoke-SdlcNative -Command 'cmd.exe' -Arguments @('/c', $TestCommand)
     Add-Step 'verify' $tests.ok $(if ($tests.ok) { 'tests pass' } else { 'tests FAIL' })
 
     if (-not $tests.ok) {
@@ -185,7 +229,22 @@ try {
 
     [System.IO.File]::WriteAllText($manifestPath, $updated, (New-Object System.Text.UTF8Encoding $false))
     $staged = Invoke-SdlcGit add -- $manifestRel
-    $bump = Invoke-SdlcGit commit -m "release v$Version"
+
+    # On a first release at the manifest's own version there is nothing to rewrite, so `commit`
+    # would fail with "nothing to commit" - which is success here, not failure. Reads .code
+    # because for `diff --cached --quiet` a zero code means nothing is staged.
+    $pending = Invoke-SdlcGit diff --cached --quiet
+    if ($pending.code -eq 0) {
+        Add-Step 'bump' $true ("manifest already declares " + $Version + "; nothing to rewrite")
+        $bump = [pscustomobject]@{ ok = $true; code = 0; stdout = ''; stderr = '' }
+    }
+    else {
+        $bump = Invoke-SdlcGit commit -m "release v$Version"
+        if ($bump.ok) {
+            Add-Step 'bump' $true ($current + ' to ' + $Version)
+        }
+    }
+
     if (-not ($staged.ok -and $bump.ok)) {
         # Tagging an uncommitted bump would put v$Version on a tree whose manifest still
         # says the old version - the exact disagreement the release gate exists to catch.
@@ -196,8 +255,6 @@ try {
         ConvertTo-Json -InputObject $result -Depth 6
         return
     }
-    Add-Step 'bump' $true "$current to $Version"
-
     $tag = Invoke-SdlcGit tag "v$Version"
     Add-Step 'tag' $tag.ok "v$Version"
 

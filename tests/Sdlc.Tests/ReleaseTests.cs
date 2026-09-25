@@ -110,11 +110,31 @@ public sealed class ReleaseTests
     /// Runs the mover with <c>-WhatIf</c>, which exercises every refusal and the ordering of
     /// the checks without cutting a release or running a build.
     /// </summary>
+    /// <summary>
+    /// Runs the mover with <c>-WhatIf</c> and a gate command that trivially passes.
+    /// </summary>
+    /// <remarks>
+    /// The gate is a real command, passed in rather than stubbed, so the production path always
+    /// runs and there is no test-only bypass in the shipped script. The fixture repository has
+    /// no .NET project, so the default <c>dotnet test</c> could only ever fail — which made
+    /// every check after the gate unreachable by a test.
+    /// </remarks>
     private static string Move(string version, string extra = "-WhatIf")
     {
         return Run(
             "powershell.exe",
-            $"-NoProfile -ExecutionPolicy Bypass -File \"{ScriptPath}\" -Version {version} {extra}",
+            $"-NoProfile -ExecutionPolicy Bypass -File \"{ScriptPath}\" -Version {version} " +
+            $"-TestCommand \"cmd /c exit 0\" {extra}",
+            allowFailure: true);
+    }
+
+    /// <summary>Runs the mover with a gate command that fails.</summary>
+    private static string MoveWithFailingGate(string version)
+    {
+        return Run(
+            "powershell.exe",
+            $"-NoProfile -ExecutionPolicy Bypass -File \"{ScriptPath}\" -Version {version} " +
+            "-TestCommand \"cmd /c exit 1\" -WhatIf",
             allowFailure: true);
     }
 
@@ -124,6 +144,28 @@ public sealed class ReleaseTests
     /// </summary>
     private static string CiWorkflow(string name) =>
         File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "workflows-ci", name));
+
+    /// <summary>
+    /// Remove every version tag, so a version-rule test starts from a known state.
+    /// </summary>
+    /// <remarks>
+    /// The fixture repository is shared across the class and the script checks for an existing
+    /// tag BEFORE it checks the bump rule — so a tag left behind by one test makes an unrelated
+    /// one report <c>refused-tag-exists</c>, which is what happened.
+    /// </remarks>
+    private static void ClearVersionTags()
+    {
+        // (char)10 rather than an escape: newline escapes have been mangled repeatedly while
+        // generating this file, and a char code cannot be.
+        foreach (string tag in Run("git", "tag --list v*").Split((char)10))
+        {
+            string t = tag.Trim();
+            if (t.Length > 0)
+            {
+                Run("git", "tag -d " + t);
+            }
+        }
+    }
 
     private static string? OutcomeOf(string stdout)
     {
@@ -144,24 +186,68 @@ public sealed class ReleaseTests
     }
 
     [TestMethod]
-    public void AVersionThatDoesNotBumpIsRefused()
+    public void TheFirstReleaseMayMatchTheManifest()
     {
-        // THE RULE, stated as a refusal. The release ref moving while plugin.json stands
-        // still means everyone subscribed receives new code under an old version, so nothing
-        // prompts them to update and nothing tells them what they have.
-        string output = Move("0.1.0");
+        // FOUND BY RUNNING IT. The script demanded a strictly greater version unconditionally,
+        // so a first release at the version the manifest already declared was refused, and the
+        // project could never reach v0.1.0 at all.
+        //
+        // It also contradicted the CI gate written for the same rule, which says "First
+        // release. Nothing to compare against, and that is not a failure." Two halves of one
+        // rule disagreeing with each other.
+        ClearVersionTags();
 
-        Assert.IsTrue(output.Contains("not greater than the current", StringComparison.Ordinal),
-            "a re-release of the same version must be refused:\n" + output);
+        Assert.AreEqual("whatif", OutcomeOf(Move("0.1.0")),
+            "with no v* tag, releasing the manifest's own version must be permitted");
     }
 
     [TestMethod]
-    public void AVersionThatGoesBackwardsIsRefused()
+    public void AFirstReleaseBelowTheManifestIsRefused()
     {
-        string output = Move("0.0.9");
+        // Permissive about equal, never about backwards.
+        ClearVersionTags();
 
-        Assert.IsTrue(output.Contains("not greater than the current", StringComparison.Ordinal),
-            "a lower version must be refused:\n" + output);
+        Assert.AreEqual("refused-below-manifest", OutcomeOf(Move("0.0.9")));
+    }
+
+    [TestMethod]
+    public void OnceATagExistsEveryReleaseMustBump()
+    {
+        // After the first, the rule is strict again: the ref moving while the manifest stands
+        // still means everyone subscribed receives new code under an old version, so nothing
+        // prompts them to update and nothing tells them what they have.
+        // The tag is at a DIFFERENT version from the one being released, deliberately. Tagging
+        // v0.1.0 and then releasing 0.1.0 trips the tag-exists check first, which is a different
+        // refusal and would not test this rule at all.
+        ClearVersionTags();
+        Git("tag v0.0.5");
+        try
+        {
+            Assert.AreEqual("refused-no-bump", OutcomeOf(Move("0.1.0")),
+                "a v* tag exists, so this is no longer a first release and must bump");
+            Assert.AreEqual("refused-no-bump", OutcomeOf(Move("0.0.9")));
+        }
+        finally
+        {
+            ClearVersionTags();
+        }
+    }
+
+    [TestMethod]
+    public void ANonVersionTagDoesNotCountAsAPreviousRelease()
+    {
+        // `raw-concept` is a real tag in this repository and is not a release. Counting it
+        // would make a first release look like a second and refuse it.
+        ClearVersionTags();
+        Git("tag raw-concept-fixture");
+        try
+        {
+            Assert.AreEqual("whatif", OutcomeOf(Move("0.1.0")), "only v* tags mark a release");
+        }
+        finally
+        {
+            Git("tag -d raw-concept-fixture");
+        }
     }
 
     [TestMethod]
@@ -210,6 +296,7 @@ public sealed class ReleaseTests
     {
         // A version tag is the immutable per-version record. Moving one would make an earlier
         // release unidentifiable after the fact.
+        ClearVersionTags();
         Git("tag v0.2.0");
         try
         {
@@ -217,8 +304,19 @@ public sealed class ReleaseTests
         }
         finally
         {
-            Git("tag -d v0.2.0");
+            ClearVersionTags();
         }
+    }
+
+    [TestMethod]
+    public void AFailingGateRefusesTheRelease()
+    {
+        // A release is the one moment the whole tree is claimed shippable, and everyone
+        // subscribed to `release` receives whatever it points at. This assertion was
+        // unreachable until the gate command became a parameter.
+        ClearVersionTags();
+
+        Assert.AreEqual("refused-tests-fail", OutcomeOf(MoveWithFailingGate("0.1.0")));
     }
 
     [TestMethod]
