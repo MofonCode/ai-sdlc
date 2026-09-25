@@ -163,14 +163,28 @@ try {
         & $formatScript -Path $findingsPath -State 'suggested' `
             -OutFile $suggestionsRel -RepoRoot $RepoRoot | Out-Null
 
-        $null = Invoke-SdlcGit add -- $suggestionsRel
+        $staged = Invoke-SdlcGit add -- $suggestionsRel
+        if (-not $staged.ok) {
+            Add-Step 'suggestions' $false $staged.stderr
+            $result['outcome'] = 'failed-suggestions'
+            ConvertTo-Json -InputObject $result -Depth 6
+            return
+        }
         # --quiet so an empty suggestion set is not an error: a cycle with nothing
         # suggested is a good cycle, not a failed landing.
         # Exit code 1 means "there are staged changes", which is the normal case here
         # rather than a failure. That is why this reads .code and not .ok.
         $staged = Invoke-SdlcGit diff --cached --quiet
         if ($staged.code -ne 0) {
-            $null = Invoke-SdlcGit commit -m "$CycleId`: unresolved suggestions"
+            $sc = Invoke-SdlcGit commit -m "$CycleId`: unresolved suggestions"
+            if (-not $sc.ok) {
+                # Not cosmetic: the file rides in with the squash, so a silent failure
+                # lands the cycle without its intake.
+                Add-Step 'suggestions' $false $sc.stderr
+                $result['outcome'] = 'failed-suggestions'
+                ConvertTo-Json -InputObject $result -Depth 6
+                return
+            }
             Add-Step 'suggestions' $true "wrote $suggestionsRel"
         }
         else {

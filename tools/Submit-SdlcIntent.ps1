@@ -183,7 +183,19 @@ try {
 
     # Only the intent file. A submission that swept up unrelated working-tree changes would
     # put them behind the intent gate, where nobody is looking for them.
-    $null = Invoke-SdlcGit add -- $intentRel
+    # CHECKED, not discarded. A failed commit used to be reported as `branched`, so a
+    # person would believe the intent was behind its gate while the branch held nothing.
+    # CI found this: a runner has no git identity, so `git commit` fails there and passed
+    # locally only because a global identity happened to exist.
+    $staged = Invoke-SdlcGit add -- $intentRel
+    if (-not $staged.ok) {
+        Add-Step 'stage' $false $staged.stderr
+        $result['outcome'] = 'failed-stage'
+        $result['steps'] = @($steps)
+        Write-Host "Could not stage $intentRel : $($staged.stderr)" -ForegroundColor Red
+        ConvertTo-Json -InputObject $result -Depth 6
+        return
+    }
     # Exit code 0 means "nothing staged", so there is nothing to commit. Reads .code
     # rather than .ok because for this command a non-zero code is the ordinary case.
     $staged = Invoke-SdlcGit diff --cached --quiet
@@ -191,7 +203,16 @@ try {
         Add-Step 'commit' $true 'already committed; nothing to add'
     }
     else {
-        $null = Invoke-SdlcGit commit -m "$CycleId`: $title"
+        $commit = Invoke-SdlcGit commit -m "$CycleId`: $title"
+        if (-not $commit.ok) {
+            Add-Step 'commit' $false $commit.stderr
+            $result['outcome'] = 'failed-commit'
+            $result['steps'] = @($steps)
+            Write-Host 'Could not commit the intent, so it is NOT behind its gate.' -ForegroundColor Red
+            Write-Host $commit.stderr -ForegroundColor Red
+            ConvertTo-Json -InputObject $result -Depth 6
+            return
+        }
         Add-Step 'commit' $true "committed $intentRel"
     }
 

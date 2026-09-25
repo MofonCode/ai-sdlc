@@ -184,8 +184,18 @@ try {
         1)
 
     [System.IO.File]::WriteAllText($manifestPath, $updated, (New-Object System.Text.UTF8Encoding $false))
-    $null = Invoke-SdlcGit add -- $manifestRel
-    $null = Invoke-SdlcGit commit -m "release v$Version"
+    $staged = Invoke-SdlcGit add -- $manifestRel
+    $bump = Invoke-SdlcGit commit -m "release v$Version"
+    if (-not ($staged.ok -and $bump.ok)) {
+        # Tagging an uncommitted bump would put v$Version on a tree whose manifest still
+        # says the old version - the exact disagreement the release gate exists to catch.
+        Add-Step 'bump' $false ($staged.stderr + ' ' + $bump.stderr).Trim()
+        $result['outcome'] = 'failed-bump'
+        $result['steps'] = @($steps)
+        Write-Host 'Could not commit the version bump, so nothing was tagged.' -ForegroundColor Red
+        ConvertTo-Json -InputObject $result -Depth 6
+        return
+    }
     Add-Step 'bump' $true "$current to $Version"
 
     $tag = Invoke-SdlcGit tag "v$Version"

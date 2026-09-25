@@ -64,6 +64,14 @@ public sealed class GateTests
         }
 
         Git("init --initial-branch=master");
+
+        // A LOCAL IDENTITY, because the scripts under test run `git commit` themselves and a
+        // CI runner has no global one. Without this the commit fails, and it failed SILENTLY:
+        // Submit-SdlcIntent discarded the result and reported a successful submission with an
+        // empty branch. CI caught that; every local run passed because a global identity
+        // happened to exist.
+        Git("config user.email t@example.invalid");
+        Git("config user.name Test");
         Git("add -A");
         Git("-c user.email=t@example.invalid -c user.name=Test commit -m fixture");
     }
@@ -233,6 +241,113 @@ public sealed class GateTests
         finally
         {
             Run("git", "checkout master");
+        }
+    }
+
+    [TestMethod]
+    public void AFailedCommitIsReportedRatherThanSwallowed()
+    {
+        // THE DEFECT CI FOUND. The script discarded the result of its own `git commit`, so a
+        // failure was reported as `branched` and a person would believe the intent was behind
+        // its gate while the branch held nothing at all.
+        //
+        // Forced here with `user.useConfigOnly`, which makes git refuse to guess an identity
+        // rather than inventing one. That is exactly the state a CI runner is in.
+        string repo = Path.Combine(Path.GetTempPath(), "sdlc-noid-" + Guid.NewGuid().ToString("N")[..8]);
+        Directory.CreateDirectory(Path.Combine(repo, ".sdlc", "intents"));
+
+        File.WriteAllText(
+            Path.Combine(repo, ".sdlc", "intents", "20260925-ff01.md"),
+            """
+            ---
+            id: 20260925-ff01
+            source: authored
+            charter-version: 2
+            ---
+
+            # No identity
+            """);
+
+        try
+        {
+            RunIn(repo, "git", "init --initial-branch=master");
+            RunIn(repo, "git", "config user.useConfigOnly true");
+            RunIn(repo, "git",
+                "-c user.email=seed@example.invalid -c user.name=Seed commit --allow-empty -m seed");
+
+            string output = RunIn(repo, "powershell.exe",
+                $"-NoProfile -ExecutionPolicy Bypass -File \"{SubmitScript}\" " +
+                "-CycleId 20260925-ff01 -NoPullRequest",
+                allowFailure: true, noGitIdentity: true);
+
+            Assert.IsTrue(output.Contains("failed-commit", StringComparison.Ordinal),
+                "a commit that could not be made must be a named failure, not a success: " + output);
+            Assert.IsFalse(output.Contains("\"outcome\": \"branched\"", StringComparison.Ordinal),
+                "the script must not report a successful submission");
+        }
+        finally
+        {
+            TryDelete(repo);
+        }
+    }
+
+    private static string RunIn(
+        string cwd, string exe, string args,
+        bool allowFailure = false, bool noGitIdentity = false)
+    {
+        ProcessStartInfo psi = new(exe, args)
+        {
+            WorkingDirectory = cwd,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            UseShellExecute = false,
+            StandardOutputEncoding = Encoding.UTF8,
+            StandardErrorEncoding = Encoding.UTF8,
+        };
+
+        if (noGitIdentity)
+        {
+            // Point git's global and system config at nothing. `user.useConfigOnly` alone is
+            // not enough: it stops git INFERRING an identity from the machine, but a global
+            // config still supplies one — which is why the first version of this test passed
+            // locally and could never have reproduced the CI failure.
+            psi.Environment["GIT_CONFIG_GLOBAL"] = Path.Combine(Path.GetTempPath(), "no-such-gitconfig");
+            psi.Environment["GIT_CONFIG_SYSTEM"] = Path.Combine(Path.GetTempPath(), "no-such-gitconfig");
+        }
+
+        using Process p = Process.Start(psi)!;
+
+        string stdout = p.StandardOutput.ReadToEnd();
+        string stderr = p.StandardError.ReadToEnd();
+        p.WaitForExit();
+
+        if (!allowFailure)
+        {
+            Assert.AreEqual(0, p.ExitCode, $"{exe} {args} failed: {stderr}");
+        }
+
+        return stdout + stderr;
+    }
+
+    private static void TryDelete(string dir)
+    {
+        try
+        {
+            if (Directory.Exists(dir))
+            {
+                foreach (string f in Directory.EnumerateFiles(dir, "*", SearchOption.AllDirectories))
+                {
+                    File.SetAttributes(f, FileAttributes.Normal);
+                }
+
+                Directory.Delete(dir, recursive: true);
+            }
+        }
+        catch (IOException)
+        {
+        }
+        catch (UnauthorizedAccessException)
+        {
         }
     }
 

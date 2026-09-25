@@ -109,6 +109,14 @@ public sealed class CycleStateTests
             """);
 
         Git("init --initial-branch=master");
+
+        // A LOCAL IDENTITY, because the scripts under test run `git commit` themselves and a
+        // CI runner has no global one. Without this the commit fails, and it failed SILENTLY:
+        // Submit-SdlcIntent discarded the result and reported a successful submission with an
+        // empty branch. CI caught that; every local run passed because a global identity
+        // happened to exist.
+        Git("config user.email t@example.invalid");
+        Git("config user.name Test");
         Git("add -A");
         Git("-c user.email=t@example.invalid -c user.name=Test commit -m fixture");
 
