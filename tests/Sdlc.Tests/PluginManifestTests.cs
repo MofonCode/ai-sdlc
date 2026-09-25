@@ -201,15 +201,20 @@ public sealed class PluginManifestTests
     [TestMethod]
     public void EveryStageOfTheChainContributesACommand()
     {
-        // The chain the dispatcher drives. `retro` ships too but is deliberately absent
-        // from that prompt — landing is serialized and human-gated — so it is not listed
-        // here as something the unattended run may reach.
+        // Workflows and skills both contribute /sdlc:<name>, so what matters is the UNION.
+        // Which side a stage falls on is SkillTests' and WorkflowScriptTests' business; here
+        // the only question is whether the stage is reachable at all.
         HashSet<string> commands = WorkflowCommands();
+        commands.UnionWith(SkillCommands());
 
-        foreach (string stage in new[] { "spec", "interrogate", "repair", "plan", "build", "verify", "retro" })
+        foreach (string stage in new[]
+                 {
+                     "intent", "spec", "interrogate", "repair", "plan", "build", "verify",
+                     "retro", "run", "init", "absorb-retro",
+                 })
         {
             Assert.IsTrue(commands.Contains(stage),
-                $"no workflow declares meta.name '{stage}', so /{PluginName}:{stage} resolves to nothing");
+                $"nothing contributes '{stage}', so /{PluginName}:{stage} resolves to nothing");
         }
     }
 

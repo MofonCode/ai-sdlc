@@ -17,6 +17,9 @@ public sealed class WorkflowScriptTests
 {
     private static string WorkflowDir => Path.Combine(AppContext.BaseDirectory, "workflows");
 
+    /// <summary>The one script that clears both clauses of the workflow rule.</summary>
+    private static readonly string[] OnlyWorkflow = ["interrogate.js"];
+
     private static string SchemaPath =>
         Path.Combine(AppContext.BaseDirectory, "schemas", "findings.schema.json");
 
@@ -199,193 +202,18 @@ public sealed class WorkflowScriptTests
     }
 
     [TestMethod]
-    public void RepairTerminatesOnNoProgressRatherThanOnClean()
+    public void InterrogateIsTheOnlyWorkflowThatShips()
     {
-        string script = Read("repair.js");
+        // Every other stage became a skill. A workflow is correct only when several agents
+        // must reach the same artifact without seeing each other's conclusions AND the stage
+        // can never need to ask the user anything. Interrogation is the only stage where both
+        // hold: four orthogonal roles whose independence IS the method, and it reports rather
+        // than asks. Anything else appearing here should be justified against those two
+        // clauses before it is added.
+        string[] scripts = [.. AllScripts().Select(o => (string)o[0])];
 
-        Assert.IsTrue(script.Contains("stalls", StringComparison.Ordinal),
-            "repair must track consecutive rounds without progress");
-        Assert.IsTrue(script.Contains("STALL_LIMIT", StringComparison.Ordinal),
-            "repair must have a stall limit — 'until clean' never fires, because the finding rate does not decay");
-        Assert.IsTrue(script.Contains("halted-no-progress", StringComparison.Ordinal),
-            "an unconverged repair must report a named outcome rather than passing quietly");
-    }
-
-    [TestMethod]
-    public void RepairLooksForWhatTheRepairIntroduced()
-    {
-        // This is the whole point. A recheck that only confirms the fix is blind to the
-        // measured failure: roughly three in four repairs create a new blocking defect.
-        string script = Read("repair.js");
-
-        Assert.IsTrue(script.Contains("introduced", StringComparison.Ordinal),
-            "the recheck must ask what the repair introduced, not only whether it worked");
-        Assert.IsTrue(script.Contains("INTRODUCE", StringComparison.Ordinal),
-            "the recheck prompt must make the second job explicit");
-    }
-
-    [TestMethod]
-    public void RepairEscalatesFindingsItCannotHeal()
-    {
-        // A blocking finding with no repair cannot self-heal — a deferred-decision
-        // blocker never can, since no artifact edit resolves "nobody has decided yet".
-        // Carrying it round after round would spin the loop.
-        string script = Read("repair.js");
-
-        Assert.IsTrue(script.Contains("harvestEscalations", StringComparison.Ordinal));
-        Assert.IsTrue(script.Contains("escalated", StringComparison.Ordinal));
-    }
-
-    [TestMethod]
-    public void SpecRequiresEveryCriterionToBeMarkedVerifiableOrNot()
-    {
-        // Without the distinction you either annotate the unannotatable, or quietly pass
-        // untested criteria as tested.
-        string script = Read("spec.js");
-
-        Assert.IsTrue(script.Contains("verifiable", StringComparison.Ordinal));
-        Assert.IsTrue(script.Contains("AC-", StringComparison.Ordinal),
-            "criterion ids must be prefixed so they can be matched to test annotations");
-        Assert.IsTrue(script.Contains("never renumbered", StringComparison.Ordinal),
-            "the never-renumber rule must be stated: those ids end up in test annotations");
-    }
-
-    [TestMethod]
-    public void PlanComputesTheTierMechanicallyRatherThanJudgingIt()
-    {
-        string script = Read("plan.js");
-
-        Assert.IsTrue(script.Contains("Get-SdlcFacts.ps1", StringComparison.Ordinal),
-            "the tier comes from the gatherer, not from an agent's opinion");
-        Assert.IsTrue(script.Contains("Do not compute or adjust the tier yourself", StringComparison.Ordinal),
-            "the prompt must forbid the agent computing it — the point of a function is that it cannot be argued with");
-        Assert.IsTrue(script.Contains("predicted-tier", StringComparison.Ordinal));
-    }
-
-    [TestMethod]
-    public void BuildRefusesToRunUnattendedAboveTierOne()
-    {
-        string script = Read("build.js");
-
-        Assert.IsTrue(script.Contains("UNATTENDED", StringComparison.Ordinal));
-        Assert.IsTrue(script.Contains("tier 1 only", StringComparison.Ordinal),
-            "unattended builds are permitted at tier 1 only");
-    }
-
-    [TestMethod]
-    public void BuildHaltsOnTierEscalationRatherThanReportingIt()
-    {
-        // The work turned out more dangerous than it was approved to be, and the
-        // approval does not stretch to cover it.
-        string script = Read("build.js");
-
-        Assert.IsTrue(script.Contains("halted-tier-escalated", StringComparison.Ordinal),
-            "an escalation must produce a named halt, not a warning in a log");
-        Assert.IsTrue(script.Contains("tierEscalated", StringComparison.Ordinal));
-    }
-
-    [TestMethod]
-    public void VerifyDecidesTheOutcomeInCodeNotByAnAgent()
-    {
-        // An agent asked both to report and to rule on its own report rounds in the
-        // direction of done. So the outcome is computed from the evidence, and the
-        // assembling agent is told to transcribe it.
-        string script = Read("verify.js");
-
-        Assert.IsTrue(script.Contains("decided in code", StringComparison.Ordinal),
-            "the outcome must be computed, not judged");
-        Assert.IsTrue(script.Contains("Do not change it", StringComparison.Ordinal),
-            "the assemble prompt must forbid changing the outcome");
-        Assert.IsTrue(script.Contains("halted-tier-escalated", StringComparison.Ordinal));
-    }
-
-    [TestMethod]
-    public void VerifyBlocksOnAnUndispositionedFinding()
-    {
-        // Every finding, from adversary or tool, at any severity, is dispositioned.
-        Assert.IsTrue(
-            Read("verify.js").Contains("undispositioned", StringComparison.Ordinal),
-            "a blocking finding with no disposition must block the gate");
-    }
-
-    [TestMethod]
-    public void VerifyDerivesEveryNumberRatherThanAskingForIt()
-    {
-        // A hand-maintained traceability table beside the real tests drifts the moment
-        // anything is refactored, and nothing detects it.
-        string script = Read("verify.js");
-
-        Assert.IsTrue(script.Contains("do not compute any of these numbers yourself", StringComparison.Ordinal));
-        Assert.IsTrue(script.Contains("GENERATED", StringComparison.Ordinal),
-            "the traceability section must say it is generated, not authored");
-    }
-
-    [TestMethod]
-    public void RetroRefusesToCertifyACycleThatDidNotPass()
-    {
-        // A retro's PRESENCE is what makes a cycle read as done, which is only a
-        // trustworthy derivation if the certificate is withheld when verify did not pass.
-        string script = Read("retro.js");
-
-        Assert.IsTrue(script.Contains("refusing to write a retro", StringComparison.Ordinal));
-        Assert.IsTrue(script.Contains("outcome: 'refused'", StringComparison.Ordinal),
-            "the refusal must be a named outcome, not a silent return");
-        Assert.IsTrue(script.Contains("completion certificate", StringComparison.Ordinal),
-            "the reason for the refusal must be stated where someone changing it will read it");
-    }
-
-    [TestMethod]
-    public void RetroTakesLandedAtAsInputRatherThanReadingAClock()
-    {
-        // Two reasons, and both matter: the runtime makes Date.now() throw because it
-        // would break resume, and the landing date is not derivable after the retro is
-        // copied into the corpus, since ai-sdlc's git date is the absorption date.
-        string script = Read("retro.js");
-
-        Assert.IsTrue(script.Contains("LANDED_AT", StringComparison.Ordinal));
-        Assert.IsTrue(script.Contains("not derivable", StringComparison.Ordinal));
-    }
-
-    [TestMethod]
-    public void RetroForbidsCollapsingOppositeDispositions()
-    {
-        // rejected says the finding was wrong; accepted-wont-fix says the rule may be too
-        // broad. Merging them would corrupt the only evidence the charter improves from.
-        string script = Read("retro.js");
-
-        Assert.IsTrue(script.Contains("OPPOSITE amendment signals", StringComparison.Ordinal));
-        Assert.IsTrue(script.Contains("do not drop the ones that were dismissed", StringComparison.Ordinal));
-    }
-
-    [TestMethod]
-    public void RetroDoesNotGradeItself()
-    {
-        // Self-assessment at close is structurally optimistic: everything visibly worked,
-        // because it passed its tests ten minutes ago.
-        Assert.IsTrue(
-            Read("retro.js").Contains("Do NOT grade the cycle", StringComparison.Ordinal),
-            "the retro must record rather than judge; the trustworthy signal is delayed");
-    }
-
-    [TestMethod]
-    public void EveryStageNamesItsSuccessor()
-    {
-        // The chain is self-documenting only if each stage says what comes next; a stage
-        // that returns without one leaves the caller guessing.
-        foreach (string name in new[] { "spec.js", "plan.js", "build.js", "verify.js", "retro.js" })
-        {
-            Assert.IsTrue(Read(name).Contains("next:", StringComparison.Ordinal),
-                $"{name} must name the next stage in its result");
-        }
-    }
-
-    [TestMethod]
-    public void RepairDropsARepairThatDidNotWork()
-    {
-        // Without this the loop can retry the same failed change forever, and the
-        // no-progress detector would be the only thing stopping it.
-        Assert.IsTrue(
-            Read("repair.js").Contains("repair: undefined", StringComparison.Ordinal),
-            "a repair shown not to resolve its finding must not be retried verbatim");
+        CollectionAssert.AreEquivalent(OnlyWorkflow, scripts,
+            "a new workflow must clear both clauses of the rule; a stage that could ever need " +
+            "to ask a question cannot be one, because a workflow cannot ask");
     }
 }

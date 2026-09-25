@@ -76,6 +76,38 @@ public sealed class CycleStateTests
             Path.Combine(intents, "abandoned", "20260924-6666.md"),
             Intent("20260924-6666", "reason: priorities changed"));
 
+        // planned — a plan a person approved. This is the ONLY dispatchable state, and the
+        // `approved:` field is the whole gate: without it an unattended batch would pick up
+        // work nobody signed off.
+        Directory.CreateDirectory(Path.Combine(_repo!, ".sdlc", "cycles", "20260924-9a01"));
+        File.WriteAllText(Path.Combine(intents, "20260924-9a01.md"), Intent("20260924-9a01"));
+        File.WriteAllText(
+            Path.Combine(_repo!, ".sdlc", "cycles", "20260924-9a01", "plan.md"),
+            """
+            ---
+            cycle-id: 20260924-9a01
+            spec: 20260924-9a01
+            charter-version: 1
+            predicted-tier: 1
+            approved: 2026-09-24
+            ---
+            """);
+
+        // queued — a complete-looking plan that nobody approved. The distinction is the
+        // point: completeness is not approval.
+        Directory.CreateDirectory(Path.Combine(_repo!, ".sdlc", "cycles", "20260924-9a02"));
+        File.WriteAllText(Path.Combine(intents, "20260924-9a02.md"), Intent("20260924-9a02"));
+        File.WriteAllText(
+            Path.Combine(_repo!, ".sdlc", "cycles", "20260924-9a02", "plan.md"),
+            """
+            ---
+            cycle-id: 20260924-9a02
+            spec: 20260924-9a02
+            charter-version: 1
+            predicted-tier: 1
+            ---
+            """);
+
         Git("init --initial-branch=master");
         Git("add -A");
         Git("-c user.email=t@example.invalid -c user.name=Test commit -m fixture");
@@ -165,6 +197,7 @@ public sealed class CycleStateTests
                  {
                      "20260924-1111", "20260924-2222", "20260924-3333", "20260924-4444",
                      "20260924-5555", "20260924-6666", "20260924-7777", "20260924-8888",
+                     "20260924-9a01", "20260924-9a02",
                  })
         {
             Assert.IsTrue(states.ContainsKey(id), $"{id} is in no state at all");
@@ -233,17 +266,44 @@ public sealed class CycleStateTests
     }
 
     [TestMethod]
-    public void OnlyQueuedIntentsAreDispatchable()
+    public void AnApprovedPlanIsPlannedAndDispatchable()
+    {
+        Dictionary<string, JsonElement> states = States();
+
+        Assert.AreEqual("planned", StateOf(states, "20260924-9a01"));
+        Assert.IsTrue(states["20260924-9a01"].GetProperty("plan-approved").GetBoolean());
+        Assert.IsTrue(states["20260924-9a01"].GetProperty("dispatchable").GetBoolean(),
+            "an approved plan is the only thing a batch may build");
+    }
+
+    [TestMethod]
+    public void APlanNobodyApprovedIsNotDispatchable()
+    {
+        // The defect this prevents: a complete plan read as ready, so an unattended batch
+        // builds work that never passed its gate. Completeness is not approval, and the
+        // gate is a person.
+        Dictionary<string, JsonElement> states = States();
+
+        Assert.AreEqual("queued", StateOf(states, "20260924-9a02"));
+        Assert.IsTrue(states["20260924-9a02"].GetProperty("has-plan").GetBoolean(),
+            "the plan exists, which is exactly why this case is worth asserting");
+        Assert.IsFalse(states["20260924-9a02"].GetProperty("plan-approved").GetBoolean());
+        Assert.IsFalse(states["20260924-9a02"].GetProperty("dispatchable").GetBoolean());
+    }
+
+    [TestMethod]
+    public void OnlyPlannedCyclesAreDispatchable()
     {
         Dictionary<string, JsonElement> states = States();
 
         foreach ((string id, JsonElement e) in states)
         {
             bool dispatchable = e.GetProperty("dispatchable").GetBoolean();
-            bool queued = e.GetProperty("state").GetString() == "queued";
+            bool planned = e.GetProperty("state").GetString() == "planned";
 
-            Assert.AreEqual(queued, dispatchable,
-                $"{id}: dispatchable must track queued exactly — anything else relaunches work in flight");
+            Assert.AreEqual(planned, dispatchable,
+                $"{id}: dispatchable must track planned exactly — anything looser either " +
+                "relaunches work in flight or builds a plan nobody approved");
         }
     }
 }

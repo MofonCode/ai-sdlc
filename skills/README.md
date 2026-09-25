@@ -1,43 +1,69 @@
 # Skills
 
-Skills go here, one directory each, holding a `SKILL.md`. The plugin manifest does not
-name this directory because Claude Code always scans `skills/` at the plugin root —
-declaring it would only add a second place for the path to drift.
+The library. One directory each, holding a `SKILL.md`, invoked as `/sdlc:<directory-name>`.
 
-## Why there are so few of them
+The plugin manifest does not name this directory because Claude Code always scans `skills/`
+at the plugin root — declaring it would only add a second place for the path to drift.
 
-Most of this framework is **workflows**, not skills, and the split is not stylistic.
+## The rule: skill or workflow
 
-A workflow cannot ask a question mid-run. That is a hard property of the runtime, and it
-is the reason the stages are workflows: *the gate boundary is the workflow boundary*. When
-`spec` finishes, the run ends, and a person deciding whether to continue is the only thing
-that can start the next one. Written as a skill, every stage would be free to carry itself
-past a gate on its own judgment, and the gates would be a convention rather than a
-mechanism. Nothing would enforce them.
+Both contribute `/sdlc:<name>`, so the question is never "which is nicer" but which one the
+stage can actually be. A stage is a **workflow** only when **both** of these hold:
 
-So the rule:
+1. **It needs several agents that must not see each other's conclusions.** Not "it would be
+   faster in parallel" — the *independence* has to be the method.
+2. **It can never need to ask the user anything.** A workflow cannot ask, at all, ever. One
+   question it cannot answer itself and the workflow form is wrong.
 
-| What it is | What it must be |
-|---|---|
-| A stage that produces a governed artifact | a **workflow** — it ends at its gate |
-| An interaction that needs the person in the loop | a **skill** — it cannot be a workflow |
+Everything else is a skill. And where a rule must be mechanical rather than instructed, it
+goes into a script under `tools/` — not into a workflow, because a script can read files and
+be unit-tested and a workflow script can do neither.
 
-Only three things fall on the skill side, because only three of them genuinely need a
-conversation:
+By that rule exactly one stage is a workflow:
 
-| Skill | Why it cannot be a workflow | Status |
+| | Independent agents? | Can need to ask? | |
+|---|---|---|---|
+| `interrogate` | **yes** — four orthogonal roles, plus per-finding triage | no, it reports | **workflow** |
+| `spec` · `plan` | no | **yes** — an ambiguity only the user can settle | skill |
+| `repair` | no | **yes** — an escalation *is* a question | skill |
+| `build` | not by design | **yes** — a plan defect must surface | skill |
+| `verify` · `retro` | no | no, but there is no fan-out either | skill |
+| `intent` | no | **yes** — it is an interview | skill |
+| `run` · `init` · `absorb-retro` | no | yes | skill |
+
+`verify` and `retro` are the interesting pair: they *could* be workflows, since neither needs
+to ask. They are skills because clause 1 fails — a workflow that spawns one agent to do
+everything is a wrapper with no fan-out inside it, and it pays for that with no filesystem
+access, no testability, and a JavaScript file where a script would do.
+
+## Reachability, which is the other half of the rule
+
+| Context | Can launch a workflow | Can invoke a skill |
 |---|---|---|
-| `intent` | It is an interview. The elicitation *is* the work, and a workflow cannot ask | PLAN item 11 |
-| `absorb-retro` | It proposes charter amendments, which a person must approve one at a time | PLAN item 12 |
-| `init` | It scaffolds from a pack, and which pack is a question | PLAN item 15 |
+| Interactive session | yes | yes |
+| `claude -p` (what the batch launches) | yes | yes |
+| Subagent | **no** — the tool is removed | yes |
+| Teammate | **no** | yes |
 
-## Namespacing
+So a skill runs everywhere and a workflow runs only from a main session. Anything a subagent
+or a teammate might need to drive cannot be a workflow, whatever else is true of it.
 
-The plugin is named `sdlc`, so every component is addressed as `/sdlc:<name>`. A workflow
-is named by its `meta.name` rather than its filename; a skill by its directory name.
+## Supervised, and batched
 
-That name is load-bearing: renaming the plugin silently breaks every `/sdlc:…` reference
-in the shipped tooling, because those references are strings inside prompts and no
-compiler sees them. `PluginManifestTests` is what sees them — it asserts the plugin name,
-and that every `/sdlc:…` reference in shipped tooling resolves to a workflow or a skill
-that actually ships.
+- **Supervised, one cycle at a time:** `intent` → `spec` → `plan`. A person drives these and
+  approves the plan, because this is where the judgment is and where a stage may need to ask
+  something only they can answer. An unsupervised spec is perfectly safe and probably wrong.
+- **Batched, unattended:** `build` → `verify`, one worktree per cycle, via `run`. An approved
+  plan is a contract with a declared file list and a signed-off tier, so executing it is
+  mechanical and checkable. That is the only part worth batching.
+
+The gate between them is the `approved:` field in a plan's frontmatter. Without it the
+lifecycle derivation reports the cycle as `queued` rather than `planned`, and no batch will
+touch it. `plan` is forbidden from writing that field itself.
+
+## Naming
+
+The plugin is named `sdlc`, so a skill is addressed by its directory name and a workflow by
+its `meta.name`. That name is load-bearing: renaming the plugin silently breaks every
+`/sdlc:…` reference in the shipped tooling, because those references are strings inside
+prompts and no compiler sees them. `PluginManifestTests` is what sees them.

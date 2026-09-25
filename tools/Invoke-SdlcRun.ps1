@@ -19,15 +19,24 @@
     property of landing rather than a second mode. The difference that matters to a person
     is visible in the confirmation, which is where it belongs.
 
-    Nothing irreversible happens before the plan: spec and plan are documents, and only
-    build touches code. So a run proceeds unattended to the plan and halts there at tier
-    2 or 3, which is why the blast-radius tier gates the build rather than the launch.
+    THE BATCH BUILDS. IT DOES NOT THINK. Intent, spec and plan are supervised, one cycle
+    at a time, because that is where the judgment is and because those stages may need to
+    ask the user something a workflow could never ask. An unsupervised spec is perfectly
+    safe and almost certainly wrong.
+
+    So a run does exactly two things per cycle: build, then verify. A plan a person
+    approved is a contract — a declared file list and an approved tier — which makes
+    executing it mechanical and checkable, and that is the only part worth batching.
+
+    Eligibility is therefore `planned`, not `queued`: the plan frontmatter must carry
+    `approved:`. The mid-run tier check that used to live here is gone, because the tier
+    was seen and signed off when the plan was approved.
 
 .PARAMETER Intent
-    Cycle ids to run. Omit with -All to run every queued intent.
+    Cycle ids to run. Omit with -All to run every cycle with an approved plan.
 
 .PARAMETER All
-    Run every intent whose derived state is `queued`.
+    Run every intent whose derived state is `planned` — an approved plan and no build yet.
 
 .PARAMETER RepoRoot
     Repository root. Defaults to the enclosing git repository.
@@ -65,7 +74,7 @@ $OutputEncoding = New-Object System.Text.UTF8Encoding $false
 [Console]::OutputEncoding = $OutputEncoding
 
 if (-not $All -and (-not $Intent -or $Intent.Count -eq 0)) {
-    throw 'Name at least one intent, or pass -All to run every queued one.'
+    throw 'Name at least one intent, or pass -All to run every cycle with an approved plan.'
 }
 
 if (-not $RepoRoot) { $RepoRoot = (Get-Location).Path }
@@ -108,12 +117,14 @@ else {
 }
 
 if ($selected.Count -eq 0) {
-    Write-Host 'Nothing queued.' -ForegroundColor Yellow
+    Write-Host 'Nothing has an approved plan.' -ForegroundColor Yellow
     if (-not $All) {
         # Deliberately not '/sdlc:intent' — that skill is not built yet, and a hint naming a
         # command that does not resolve is the unresolvable-reference failure this framework
         # exists to catch. PluginManifestTests enforces that; restore the hint with the skill.
-        Write-Host 'Pass -All to see everything queued. To add work, author an intent under .sdlc/intents/.'
+        Write-Host 'Pass -All to list every cycle with an approved plan.'
+        Write-Host 'A cycle becomes eligible when a person approves its plan, which adds'
+        Write-Host '`approved:` to the plan frontmatter. Until then the supervised phase owes it work.'
     }
     return
 }
@@ -132,10 +143,13 @@ Write-Host ''
 Write-Host "$($selected.Count) worktree(s) will be created under .claude/worktrees/." -ForegroundColor Yellow
 Write-Host 'Each is a fresh checkout with its own package restore and build.' -ForegroundColor Yellow
 Write-Host ''
-Write-Host 'Each run proceeds unattended through spec, interrogate, plan — and HALTS'
-Write-Host 'before build at blast-radius tier 2 or 3. Nothing irreversible happens'
-Write-Host 'before the plan, so a tier that turns out higher than expected costs a'
-Write-Host 'halt rather than a rollback.'
+Write-Host 'Each run builds an ALREADY APPROVED plan and then verifies it. It does not'
+Write-Host 'author artifacts, interrogate, or land anything. Every cycle finishes at'
+Write-Host 'awaiting-landing, and landing is serialized and human-gated.'
+Write-Host ''
+Write-Host 'A build still halts on its own if the work turns out more dangerous than the'
+Write-Host 'plan predicted: the actual blast-radius tier is recomputed from the real diff'
+Write-Host 'and an escalation stops the cycle rather than reporting it.'
 Write-Host ''
 
 $launched = New-Object System.Collections.ArrayList
@@ -145,22 +159,20 @@ foreach ($s in $selected) {
     $worktree = "cycle-$id"
 
     $prompt = @(
-        "Run the SDLC cycle for intent $id, unattended.",
+        "Build the approved plan for cycle $id, unattended, then verify it.",
         '',
         'In order, stopping at the first that does not pass:',
-        "  1. /sdlc:spec $id",
-        "  2. /sdlc:interrogate .sdlc/cycles/$id/spec.md",
-        '     If it returns blocking findings, run /sdlc:repair and continue only if it converges.',
-        "  3. /sdlc:plan $id",
-        "  4. /sdlc:interrogate .sdlc/cycles/$id/plan.md",
-        '     Same rule.',
-        '  5. Read the plan frontmatter. If predicted-tier is not 1, STOP and report.',
-        "     Do not build. A person signs off above tier 1.",
-        "  6. /sdlc:build $id",
-        "  7. /sdlc:verify $id",
+        "  1. /sdlc:build $id",
+        "  2. /sdlc:verify $id",
+        '',
+        'The plan is already approved and its tier already signed off, so do not re-plan,',
+        'do not re-interrogate the spec or the plan, and do not widen the declared file',
+        'list. If the plan turns out to be wrong, STOP and report it as a plan defect.',
+        'Absorbing a plan defect silently is the one failure that survives verification.',
         '',
         'Do not merge, do not move any ref, and do not write a retro. Landing is a',
-        'separate, serialized, human-gated step.'
+        'separate, serialized, human-gated step, and the retro is the completion',
+        'certificate written only once a cycle has actually landed.'
     ) -join "`n"
 
     if ($PSCmdlet.ShouldProcess("$id", "create worktree $worktree and run the cycle unattended")) {

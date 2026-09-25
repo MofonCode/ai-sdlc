@@ -30,6 +30,10 @@ public sealed class PowerShellScriptTests
 
     private static string PathOf(string name) => Path.Combine(ToolDir, name);
 
+    /// <summary>Stages a person drives, which an unattended run must never reach.</summary>
+    private static readonly string[] SupervisedStages =
+        ["/sdlc:spec", "/sdlc:plan", "/sdlc:intent", "/sdlc:interrogate"];
+
     /// <summary>
     /// The script with comments stripped, for checks that must read code rather than prose.
     /// See <see cref="SourceText"/> for why every construct check goes through this.
@@ -124,19 +128,41 @@ public sealed class PowerShellScriptTests
     [TestMethod]
     public void TheStateDerivationCoversEveryStateItClaims()
     {
-        // Seven states, each documented in the script's own help. If one is described and
+        // Eight states, each documented in the script's own help. If one is described and
         // never assigned, the derivation is incomplete and something sits in no state at
         // all — which is how a finished cycle came to read as queued in an earlier draft.
         string text = File.ReadAllText(PathOf("Get-SdlcCycleState.ps1"));
 
         foreach (string state in new[]
                  {
-                     "queued", "in-progress", "dead", "awaiting-landing",
+                     "queued", "planned", "in-progress", "dead", "awaiting-landing",
                      "blocked", "done", "abandoned",
                  })
         {
             Assert.IsTrue(text.Contains($"'{state}'", StringComparison.Ordinal),
                 $"the derivation documents '{state}' but never assigns it");
+        }
+    }
+
+    [TestMethod]
+    public void TheRunnerBuildsAndVerifiesAndNothingElse()
+    {
+        // The batch builds; it does not think. Intent, spec and plan are supervised because
+        // they need judgment and may need to ask the user something. If the dispatcher's
+        // prompt grows an authoring stage back, unattended runs start producing artifacts
+        // nobody reviewed — which is the failure this split exists to prevent.
+        // STRIPPED, per SourceText. The script carries a comment explaining why
+        // '/sdlc:intent' is deliberately absent, and reading raw text matched that comment
+        // as if it were the reference — the fifth time this suite has made that mistake.
+        string code = CodeOf("Invoke-SdlcRun.ps1");
+
+        Assert.IsTrue(code.Contains("/sdlc:build", StringComparison.Ordinal));
+        Assert.IsTrue(code.Contains("/sdlc:verify", StringComparison.Ordinal));
+
+        foreach (string stage in SupervisedStages)
+        {
+            Assert.IsFalse(code.Contains(stage, StringComparison.Ordinal),
+                $"the unattended prompt must not reach {stage}: that stage is supervised");
         }
     }
 

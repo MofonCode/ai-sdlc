@@ -8,7 +8,8 @@
     git is a second list with nothing binding the two — and the derivation below is the
     binding. Seven states, each from evidence that already exists:
 
-      queued            on master, no cycle branch, no retro
+      queued            no approved plan yet, so the supervised phase owes it work
+      planned           plan.md carries `approved:`, no branch yet — READY TO BATCH
       in-progress       cycle branch exists, worktree LOCKED, no verify.md
       dead              cycle branch exists, worktree UNLOCKED, no verify.md
       awaiting-landing  cycle branch exists, verify.md present
@@ -16,7 +17,14 @@
       done              a retro exists
       abandoned         the intent file sits under intents/abandoned/
 
-    Two of those are worth the explanation:
+    Three of those are worth the explanation:
+
+    QUEUED vs PLANNED, and this is the one that gates unattended work. Only `planned` is
+    dispatchable. Intent, spec and plan are supervised because they need judgment and may
+    need to ask the user something; build is the execution of a contract a person already
+    approved. The `approved:` field in the plan frontmatter IS that contract, so a plan
+    without it is not batchable however complete it looks. Without this distinction a
+    dispatcher would pick up an intent with no plan at all and try to build nothing.
 
     DEAD vs IN-PROGRESS. Claude Code holds a `git worktree lock` while an agent runs and
     releases it when the agent finishes. Without that distinction a cycle killed by
@@ -150,6 +158,16 @@ foreach ($entry in @($intentFiles + $abandonedFiles)) {
     $hasVerify = Test-Path -LiteralPath $verifyPath
     $hasRetro = Test-Path -LiteralPath $retroPath
 
+    $planPath = Join-Path $cycleDir 'plan.md'
+    $hasPlan = Test-Path -LiteralPath $planPath
+    # Presence is the gate, so the value must be non-empty to count: a plan whose
+    # `approved:` line exists but is blank has not been approved by anyone.
+    $planApproved = $false
+    if ($hasPlan) {
+        $approvedAt = Get-FrontmatterField -Path $planPath -Field 'approved'
+        $planApproved = [bool]$approvedAt
+    }
+
     $blockedBy = Get-FrontmatterField -Path $entry.FullName -Field 'blocked-by'
     $blockerUnresolved = $false
     if ($blockedBy) {
@@ -164,7 +182,7 @@ foreach ($entry in @($intentFiles + $abandonedFiles)) {
 
     # Order matters: the first matching condition wins, most-final first.
     $state = 'queued'
-    $reason = 'on master, no cycle branch, no retro'
+    $reason = 'no approved plan yet — the supervised phase owes this a spec and a plan'
 
     if ($isAbandoned) {
         $state = 'abandoned'
@@ -190,6 +208,10 @@ foreach ($entry in @($intentFiles + $abandonedFiles)) {
         $state = 'dead'
         $reason = 'branch exists, worktree unlocked, no verify.md — relaunch or discard'
     }
+    elseif ($planApproved) {
+        $state = 'planned'
+        $reason = 'plan approved by a person — eligible for an unattended build'
+    }
 
     $null = $results.Add([pscustomobject]@{
         'cycle-id'         = $id
@@ -200,10 +222,12 @@ foreach ($entry in @($intentFiles + $abandonedFiles)) {
         'branch-exists'    = $branchExists
         'branch-merged'    = $branchMerged
         'worktree-locked'  = $worktreeLocked
+        'has-plan'         = $hasPlan
+        'plan-approved'    = $planApproved
         'has-verify'       = $hasVerify
         'has-retro'        = $hasRetro
         'blocked-by'       = $blockedBy
-        dispatchable       = ($state -eq 'queued')
+        dispatchable       = ($state -eq 'planned')
     })
 }
 
