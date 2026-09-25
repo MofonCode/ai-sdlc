@@ -86,7 +86,7 @@ manually, on no cadence*), so a story is pulled into an iteration when it is sta
 | `US-14` | [80](https://dev.azure.com/MofonCode/ai-sdlc/_workitems/edit/80) | S | Confirm teammates have GitHub org access | **Time-sensitive** — they arrive ~2026-09-29, and a private install needs repo access. |
 | `US-15` | [81](https://dev.azure.com/MofonCode/ai-sdlc/_workitems/edit/81) | S | Decide whether MarketSense code stays on ADO | Boards is settled; code hosting is not. **Needs a decision.** |
 
-42 points across fifteen stories. Five are quick wins at 1 point each (`US-08`, `US-09`,
+41 points across fifteen stories. Five are quick wins at 1 point each (`US-08`, `US-09`,
 `US-11`, `US-14`, `US-15`) and three are decisions rather than tasks (`US-03`, `US-12`,
 `US-15`). `US-14` is the only one with a date on it.
 
