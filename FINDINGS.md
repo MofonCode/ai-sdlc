@@ -62,6 +62,7 @@ withdrawn.
 | F-19 | **The only workflow in the framework was syntactically invalid for four commits.** Two errors, both from editing through layers that ate one level of escaping: a regex body that became a single backslash, and a `
 ` in a single-quoted string that became a real newline. `interrogate.js` would have thrown at launch the whole time. Every structural test passed, because they read the file as text | doing `US-16`, and only because node turned out to be installed | `d2c6c38` — `WorkflowSyntaxTests` parses each workflow the way the runtime loads it |
 | F-20 | **A behavioural test of a function nothing calls.** I added the citation validation, then a test that executed `citationResolves` directly and proved it correct. Deleting the *call* — leaving the function sitting there, correct and unused — passed all fifteen structural tests **and** that new test. Proving a guard works is not proving anything consults it | mutation-testing `US-16` before committing it | `d2c6c38` — a second test executes the real assignment loop and reads the states it produces |
+| F-24 | **The charter's Coverage table was a fourth copy of the category list with nothing binding it.** Coverage maps every category to the invariant or check that can block on it. It agreed with the declaring table, by luck rather than by check. Either direction of drift is a live failure mode: a category in Axis 1 but not Coverage has no blocking route, and one in Coverage but not Axis 1 guards something nothing can be classified as | a mutation aimed at the declaring table landed on Coverage instead and every test still passed | bound in `TaxonomyBindingTests`; mutation R fails |
 | F-23 | **`in-progress` was decided by a directory name, not by the branch.** The lock scan collected each locked worktree's directory leaf and compared it to `cycle-<id>`, so the state held only while every worktree happened to be named after its branch — which `Invoke-SdlcRun.ps1` does, which is why it worked and why nothing noticed. A worktree for the same branch at any other path read as `dead`, and `dead` means relaunch or discard, so an unattended dispatcher could start a second agent on a branch someone was working in. The `locked` match was also unanchored, so a worktree whose PATH contained the word read as locked — the opposite error, and the one that makes a dispatcher skip work forever | writing the `US-11` test, which failed against a real locked worktree | `git worktree list --porcelain` states the branch outright, so the scan reads that; the directory leaf stays as a fallback for a detached HEAD |
 | F-22 | **Backtick line continuation, which parses cleanly and fails only when run.** A backtick continues a line only when the very next character ends it; a blank line or a trailing space after it silently terminates the statement, so a call spread over three lines becomes a call with no arguments. `Compare-SdlcBacklog.ps1` shipped broken this way in the commit that introduced it, and two shipped scripts held latent instances — `Complete-SdlcCycle.ps1` would have written the suggestions file with wrong arguments, and `Invoke-SdlcRun.ps1` would have launched `claude` with no working directory and no `-PassThru`, making the next line throw. `ParsesUnderWindowsPowerShell` could never catch any of it: the broken form parses perfectly | reformatting `Compare-SdlcBacklog.ps1`, which then refused to run | `HasNoBacktickLineContinuation` and `HasNoDoubledLineEndings` over every shipped script; both continuations replaced with splatted hashtables |
 | F-21 | **The board and the backlog file drifted, and nothing could fail.** Ten stories existed only in `FINDINGS.md`; `US-03` was released and `US-04`/`US-05` dissolved while all three sat in `New`. Two representations of one list with no check between them — INV-03, in the repository that declares INV-03. Nothing caught it because closing a work item is not part of any ceremony: `verify` reads the build, `land` reads the PR, `retro` reads the findings, and nothing reads the board | being asked whether stories were being updated as they completed | `tools/Compare-SdlcBacklog.ps1` — reports every disagreement and exits non-zero; the comparison is fixture-tested, and three mutations of it fail |
@@ -87,9 +88,9 @@ dissolved once their content was resolved.
 | dissolved | 2 stories |
 | merged as duplicates | 1 pair (`US-13` and `r1`) |
 | **open** | **22** |
-| closed since | 4 — `US-16`, `US-09`, `US-11` and `US-25` |
+| closed since | 5 — `US-16`, `US-09`, `US-11`, `US-25` and `US-20` |
 | added since | 1 — `US-26`, the decision `F-21` left behind |
-| **left** | **19** |
+| **left** | **18** |
 
 Sizes: **S** under an hour, **M** a sitting, **L** its own cycle.
 
@@ -103,7 +104,6 @@ Most came from the first interrogation's suggestions. Two of those still open di
 | **`US-17`** | [83](https://dev.azure.com/MofonCode/ai-sdlc/_workitems/edit/83) | M | mechanism | Three invariants declare charter scope that no role ever loads | `r18` |
 | **`US-18`** | [84](https://dev.azure.com/MofonCode/ai-sdlc/_workitems/edit/84) | M | mechanism | INV-06 claims a suppression-count comparison that nothing performs | `r27` |
 | **`US-19`** | [85](https://dev.azure.com/MofonCode/ai-sdlc/_workitems/edit/85) | S | mechanism | INV-04's exemption has nowhere to be recorded, so it cannot be used | `r6` |
-| **`US-20`** | [86](https://dev.azure.com/MofonCode/ai-sdlc/_workitems/edit/86) | M | mechanism | The taxonomy binding points at the schema, not at the charter that owns it | `r22` |
 | **`US-21`** | [87](https://dev.azure.com/MofonCode/ai-sdlc/_workitems/edit/87) | M | charter | The charter says seven things it does not define or honour | `r4, r11, r15, r17, r29, r31, r36` |
 | **`US-22`** | [88](https://dev.azure.com/MofonCode/ai-sdlc/_workitems/edit/88) | S | charter | Three quantitative claims about v01 have no verifying source | `r28` |
 | **`US-23`** | [89](https://dev.azure.com/MofonCode/ai-sdlc/_workitems/edit/89) | M | charter | Disposition has two lifecycle gaps once time passes | `r37, r40` |
@@ -151,7 +151,7 @@ Most came from the first interrogation's suggestions. Two of those still open di
 | `decide` | needs a decision, not work |
 | `blocked` | blocked by agreement |
 
-**`mechanism` is the group that matters.** Five items where the code or the charter claims a check, a scope or a comparison that does not exist. Every one of them makes the framework look stronger than it is. The worst of them, `US-16`, is now closed — it was a hole in the anti-inflation guard, which is what everything else rests on. `US-17` inherits the position: three invariants claim scope over the charter, and interrogating the charter loads none of them.
+**`mechanism` is the group that matters.** Four items where the code or the charter claims a check, a scope or a comparison that does not exist. Every one of them makes the framework look stronger than it is. The worst of them, `US-16`, is now closed — it was a hole in the anti-inflation guard, which is what everything else rests on. `US-17` inherits the position: three invariants claim scope over the charter, and interrogating the charter loads none of them.
 
 ### The detail
 
@@ -166,10 +166,6 @@ Its evidence says an increase in the suppression count “is itself a finding”
 #### `US-19` · S · **INV-04's exemption has nowhere to be recorded, so it cannot be used** · [#85](https://dev.azure.com/MofonCode/ai-sdlc/_workitems/edit/85) · from `r6`
 
 The clause reads “unless this charter records the deviation” and the charter defines no section, field or format in which to record one. A rule with an unusable escape hatch is a rule with no escape hatch.
-
-#### `US-20` · M · **The taxonomy binding points at the schema, not at the charter that owns it** · [#86](https://dev.azure.com/MofonCode/ai-sdlc/_workitems/edit/86) · from `r22`
-
-The charter says nothing but the findings schema may restate the category, stage and state values. `interrogate.js` restates them, and the only binding check ties those copies to the **schema enum** rather than to the charter. So the charter could drift from both and nothing would fail.
 
 #### `US-21` · M · **The charter says seven things it does not define or honour** · [#87](https://dev.azure.com/MofonCode/ai-sdlc/_workitems/edit/87) · from `r4, r11, r15, r17, r29, r31, r36`
 
