@@ -116,7 +116,7 @@ Most came from the first interrogation's suggestions. Two of those still open di
 |---|---|---|---|---|
 | **`US-01`** | [67](https://dev.azure.com/MofonCode/ai-sdlc/_workitems/edit/67) | L | blocked | Run one cycle end to end |
 | **`US-02`** | [68](https://dev.azure.com/MofonCode/ai-sdlc/_workitems/edit/68) | M | build | Make charter protection mechanical instead of prose |
-| **`US-06`** | [72](https://dev.azure.com/MofonCode/ai-sdlc/_workitems/edit/72) | M | measure | Measure per-role yield before trusting the role set |
+| **`US-06`** | [72](https://dev.azure.com/MofonCode/ai-sdlc/_workitems/edit/72) | M | blocked | Measure per-role yield before trusting the role set |
 | **`US-07`** | [73](https://dev.azure.com/MofonCode/ai-sdlc/_workitems/edit/73) | M | cost | Cut interrogation cost |
 | **`US-08`** | [74](https://dev.azure.com/MofonCode/ai-sdlc/_workitems/edit/74) | S | charter | Remove DEC-08 from the register |
 | **`US-10`** | [76](https://dev.azure.com/MofonCode/ai-sdlc/_workitems/edit/76) | L | test | Prove a skill obeys its rules, not merely that it states them |
@@ -203,7 +203,23 @@ Its design record is the abandoned intent `20260925-963e` — fail closed in eve
 
 #### `US-06` · M · **Measure per-role yield before trusting the role set** · [#72](https://dev.azure.com/MofonCode/ai-sdlc/_workitems/edit/72)
 
-Four roles may produce two and a half roles' worth of findings at four roles' cost.
+**The instrument is built and it withholds judgement.** `Get-SdlcRoleYield.ps1` reports, per
+role, findings raised, how many blocked, and how each was dispositioned — `rejected` and
+`accepted-wont-fix` kept apart, because only the first argues against the role.
+
+On the corpus today: `coherence` 10 findings and 6 blocking, `facts` 10 and 1, `gaps` 5 and 1,
+`form` 5 and 2. **Every verdict reads `insufficient-data`**, because there is one interrogation
+against a floor of ten — the same floor the charter sets for the zero-cite query, for the same
+reason: one interrogation of one artifact tells you about that artifact, not about a role.
+
+`charter` shows zero eligible runs rather than zero yield: the one run in the corpus targeted
+the charter, where `charter` is removed and `form` substituted. Reading that as "produces
+nothing" would argue for deleting the role that checks every other artifact.
+
+**What remains is data, not work** — ten eligible runs, which needs `US-01`. Cost is
+deliberately not reported: it is one agent per role plus one per candidate at triage, and the
+corpus records merged findings rather than candidates, so any figure would be invented. That is
+`US-22`'s defect and it is not being repeated to make a report look finished.
 
 #### `US-07` · M · **Cut interrogation cost** · [#73](https://dev.azure.com/MofonCode/ai-sdlc/_workitems/edit/73)
 
