@@ -135,7 +135,12 @@ const MERGE_SCHEMA = {
 // run. That is why activeRoles is computed there rather than here.
 // ---------------------------------------------------------------------------
 
-const isCharter = ARTIFACT.replace(/\/g, '/').endsWith('CHARTER.md')
+// A backslash via fromCharCode rather than a regex escape. The obvious form is
+// `.replace(/[BACKSLASH][BACKSLASH]/g, '/')` and it did not survive: this file was generated
+// through layers that ate one level of escaping, and it shipped SYNTACTICALLY INVALID for four
+// commits - `/[BACKSLASH]/g` is an unterminated regex, so the only workflow would have thrown
+// at launch. There is nothing here to lose a backslash from.
+const isCharter = ARTIFACT.split(String.fromCharCode(92)).join('/').endsWith('CHARTER.md')
 
 // When the artifact IS the charter, `charter` has nothing above it to check against and is
 // replaced by `form`, which judges each invariant's SHAPE rather than its content. That
@@ -294,11 +299,12 @@ const discovered = await parallel(
         '',
         `Your evidence is ${role.evidence}.`,
         `Your characteristic failure is ${role['fails-by']} — guard against it.`,
+        role.name === 'gaps' && gapsRow ? '' : '',
         role.name === 'gaps' && gapsRow
-          ? '
-For this kind of artifact the charter says a gap is: ' + gapsRow +
-            '
-That list is what you are entitled to raise. It is deliberately not exhaustive ' +
+          ? 'For this kind of artifact the charter says a gap is: ' + gapsRow
+          : '',
+        role.name === 'gaps' && gapsRow
+          ? 'That list is what you are entitled to raise. It is deliberately not exhaustive ' +
             'of everything that could be missing — reasoning beyond it is your job — but a ' +
             'finding you cannot tie to it should expect to stay `suggested`.'
           : '',
@@ -397,6 +403,39 @@ const triaged = await pipeline(
     ).then(verdict => ({ candidate, verdict })),
 )
 
+// THE GUARD ONLY GUARDS IF THE CITATION IS REAL.
+//
+// Until this existed, `cites.push({ kind: v.citeKind, id: v.citeId })` took whatever the
+// triage agent named. So `{kind:'invariant', id:'INV-99'}` reached `blocking` with an
+// invariant that does not exist, and `{kind:'check', id:'anything'}` reached it with no check
+// at all. State was assigned in code, which is what the anti-inflation guard promises - but
+// from an input nothing validated, which is what it was supposed to prevent.
+//
+// A CHECK CITATION IS STRICTER THAN THE OTHERS, deliberately. An invariant or a DEC only has
+// to EXIST; a check has to have actually FAILED in this run. Citing a check that exists and
+// passed is citing nothing, and it is the easiest false citation to write because the id looks
+// entirely plausible.
+const declaredInvariants = (parsedFacts && parsedFacts.charter && parsedFacts.charter['invariant-ids']) || []
+const declaredDecisions = (parsedFacts && parsedFacts.charter && parsedFacts.charter['dec-ids']) || []
+const declaredPackRules = (parsedFacts && parsedFacts.pack && parsedFacts.pack['rule-ids']) || []
+
+function citationResolves(kind, id) {
+  if (kind === 'invariant') {
+    // Pack rules count: INV-04 delegates its substance to them, which is what makes every
+    // pack rule citable through one invariant.
+    return declaredInvariants.indexOf(id) !== -1 || declaredPackRules.indexOf(id) !== -1
+  }
+  if (kind === 'deferred') {
+    return declaredDecisions.indexOf(id) !== -1
+  }
+  if (kind === 'check') {
+    return failedChecks.indexOf(id) !== -1
+  }
+  return false
+}
+
+const rejectedCitations = []
+
 // State is assigned HERE, in plain code, from the citation — never by an agent.
 // That is what makes the anti-inflation guard a guard: an agent can argue for
 // importance, but it cannot grant it.
@@ -422,8 +461,14 @@ for (const row of triaged) {
           ],
         })
       }
-    } else if (v.citeId) {
+    } else if (v.citeId && citationResolves(v.citeKind, v.citeId)) {
       cites.push({ kind: v.citeKind, id: v.citeId })
+    }
+    else if (v.citeId) {
+      // The agent named something that does not exist, or a check that did not fail. The
+      // citation is dropped, so the finding falls to `suggested` - which is the guard working
+      // rather than an error.
+      rejectedCitations.push(c.category + ' cited ' + v.citeKind + ' ' + v.citeId)
     }
   }
 
@@ -486,6 +531,13 @@ const blocking = findings.filter(f => f.state === 'blocking').length
 const suggested = findings.filter(f => f.state === 'suggested').length
 log(`${blocking} blocking, ${suggested} suggested`)
 
+// Said out loud rather than swallowed. A dropped citation is the guard working, and it is also
+// evidence about the triage stage: a role that keeps naming checks that did not fail is a role
+// producing plausible-looking noise, which is exactly what the amendment signals want to know.
+if (rejectedCitations.length > 0) {
+  log(`${rejectedCitations.length} citation(s) rejected as unresolvable: ${rejectedCitations.join('; ')}`)
+}
+
 // The script has no filesystem access, so the caller persists this. It is shaped to
 // validate against schemas/findings.schema.json.
 return {
@@ -494,5 +546,10 @@ return {
   'charter-version': (parsedFacts && parsedFacts.charter && parsedFacts.charter.version) || null,
   'pack-version': null,
   round: ROUND,
+  // PROVENANCE, so a check citation stays auditable after the run. Without it nothing
+  // downstream can tell whether `{kind:'check', id:'x'}` named a check that failed, because
+  // which checks failed is a property of the run and not of the artifact.
+  'failed-checks': failedChecks,
+  'rejected-citations': rejectedCitations,
   findings: findings,
 }

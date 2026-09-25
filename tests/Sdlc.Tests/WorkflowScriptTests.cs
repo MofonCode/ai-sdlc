@@ -304,10 +304,13 @@ public sealed class WorkflowScriptTests
 
     private static Dictionary<string, string> InterrogateCheckCategories()
     {
+        // `[^}]*` rather than `.*?` up to a newline-brace: the object body contains no
+        // closing brace once comments are stripped, and a pattern with no newline in it
+        // cannot lose one. The previous form had a LITERAL newline in a verbatim string,
+        // which git normalised to CRLF while the .js file kept LF - so it matched nothing.
         Match block = Regex.Match(
             ReadCode("interrogate.js"),
-            @"const\s+CHECK_CATEGORY\s*=\s*\{(?<body>.*?)
-\}",
+            @"const\s+CHECK_CATEGORY\s*=\s*\{(?<body>[^}]*)\}",
             RegexOptions.Singleline);
 
         Assert.IsTrue(block.Success, "could not find CHECK_CATEGORY in interrogate.js");
