@@ -66,69 +66,202 @@ found F-13 (I had claimed every decision was recorded when eleven were unbuilt).
 
 ---
 
-## Open
+## Open — one backlog
 
-**These live on the Azure Boards backlog now, not here.** Each work item carries the
-story, the evidence, a proposed fix and acceptance criteria. Keeping a second copy in this
-file would be exactly the INV-03 duplication the charter forbids — two representations of
-one fact with nothing binding them — so what follows is an index and nothing more.
-
-Board: **https://dev.azure.com/MofonCode/ai-sdlc/_workitems** — project `ai-sdlc`, area `ai-sdlc`, parent Feature **#66**.
-Unscheduled deliberately: the process has no cadence (DEC-03 resolved as *a person,
-manually, on no cadence*), so a story is pulled into an iteration when it is started.
-
-| | # | Size | Story | Why |
-|---|---|---|---|---|
-| `US-01` | [67](https://dev.azure.com/MofonCode/ai-sdlc/_workitems/edit/67) | L | Run one cycle end to end | Nothing has gone intent to landed retro. The only large unknown left. |
-| `US-02` | [68](https://dev.azure.com/MofonCode/ai-sdlc/_workitems/edit/68) | M | Make charter protection mechanical instead of prose | INV-08 is enforced by asking nicely. A PreToolUse hook would enforce it. |
-| `US-03` | [69](https://dev.azure.com/MofonCode/ai-sdlc/_workitems/edit/69) | M | Land the bootstrap so a release can be cut | `master` is at the initial commit, so `release` cannot exist. **Needs a decision.** |
-| `US-04` | [70](https://dev.azure.com/MofonCode/ai-sdlc/_workitems/edit/70) | M | Triage the twenty suggestions | The first interrogation's `suggested` pile is undispositioned. |
-| `US-05` | [71](https://dev.azure.com/MofonCode/ai-sdlc/_workitems/edit/71) | S | Decide what the eight unfounded-claim suggestions mean | The strongest cluster. May be a missing invariant, may be eight small things. |
-| `US-06` | [72](https://dev.azure.com/MofonCode/ai-sdlc/_workitems/edit/72) | M | Measure per-role yield | Four roles may be producing two and a half roles' worth of findings. |
-| `US-07` | [73](https://dev.azure.com/MofonCode/ai-sdlc/_workitems/edit/73) | M | Cut interrogation cost | 46 agents and 2.6M tokens per artifact. Triage is one agent per candidate. |
-| `US-08` | [74](https://dev.azure.com/MofonCode/ai-sdlc/_workitems/edit/74) | S | Remove DEC-08 from the register | Answered on 2026-09-25. Removing it is a charter intent, not an edit. |
-| `US-09` | [75](https://dev.azure.com/MofonCode/ai-sdlc/_workitems/edit/75) | S | Give the one workflow a syntax check | Nothing proves `interrogate.js` is valid JavaScript. |
-| `US-10` | [76](https://dev.azure.com/MofonCode/ai-sdlc/_workitems/edit/76) | L | Prove a skill obeys its rules | Skill tests assert the instruction is present, not that it was followed. |
-| `US-11` | [77](https://dev.azure.com/MofonCode/ai-sdlc/_workitems/edit/77) | S | Cover the one unreachable lifecycle state | `in-progress` is asserted by inspection. `git worktree lock` makes it testable. |
-| `US-12` | [78](https://dev.azure.com/MofonCode/ai-sdlc/_workitems/edit/78) | S | The two intents that bypassed the gate | Both predate `Submit-SdlcIntent.ps1`. **Recommend annotating, not retrofitting.** |
-| `US-13` | [79](https://dev.azure.com/MofonCode/ai-sdlc/_workitems/edit/79) | M | Make the charter's form rule mechanical | The charter claims a check that does not exist; the `form` role only reasons about shape. |
-| `US-14` | [80](https://dev.azure.com/MofonCode/ai-sdlc/_workitems/edit/80) | S | Confirm teammates have GitHub org access | **Time-sensitive** — they arrive ~2026-09-29, and a private install needs repo access. |
-| `US-15` | [81](https://dev.azure.com/MofonCode/ai-sdlc/_workitems/edit/81) | S | Decide whether MarketSense code stays on ADO | Boards is settled; code hosting is not. **Needs a decision.** |
-
-41 points across fifteen stories. Five are quick wins at 1 point each (`US-08`, `US-09`,
-`US-11`, `US-14`, `US-15`) and three are decisions rather than tasks (`US-03`, `US-12`,
-`US-15`). `US-14` is the only one with a date on it.
-
-## How to work this list
-
-**The board is where work is tracked. `.sdlc/intents/` is where it is authorised.** Those are
-different jobs and neither replaces the other:
-
-1. Pick a story from the board and set it **Active**.
-2. Author an intent for it (`/sdlc:intent`) and put it behind its gate with
-   `Submit-SdlcIntent.ps1`. Record the work item number in the intent body.
-3. Run the cycle. The intent's state is **derived from git** — the board's `State` is a
-   person's summary of it, and the two are allowed to lag.
-4. When it lands, close the work item and move the row into **Resolved** above with its commit.
-
-### The one thing to watch
-
-A board beside the intents is a second list, and the charter forbids one without a check that
-fails when the two disagree. There is no such check yet, which is a known and accepted gap
-rather than an oversight:
-
-- The **overlap window is small.** Before work starts there is no intent, so nothing is
-  duplicated. After it lands, both are closed. Only an in-flight story is represented twice.
-- The **binding is the work item number** recorded in the intent. That is what a check would
-  compare, and adding one is cheap once there is more than one cycle to compare.
-
-If the board and the derived state ever disagree in a way that matters, the derived state wins:
-it is computed from git, and git is what actually happened.
-
-### First three, and why
+**Everything in one place, deduped.** Two sources fed this: the fifteen stories on the
+Azure Board and the twenty `suggested` findings from the first interrogation. They
+overlapped, several suggestions were already fixed by later work, and two stories
+dissolved once their content was resolved.
 
 | | |
 |---|---|
-| `US-02` #68 | the right first cycle for `US-01` — small, real, and not self-referential |
-| `US-08` #74 | a quick charter intent that exercises the charter-review path a second time |
-| `US-03` #69 | a decision, and it blocks everything about distribution |
+| in | 15 board stories + 20 suggestions + 2 loose findings = **37** |
+| already fixed | 4 suggestions |
+| dissolved | 2 stories |
+| merged as duplicates | 1 pair (`US-13` and `r1`) |
+| **open** | **22** |
+
+Sizes: **S** under an hour, **M** a sitting, **L** its own cycle.
+
+### New — promoted from the suggestions, not previously tracked anywhere
+
+| | Size | Kind | Item | From |
+|---|---|---|---|---|
+| **`US-16`** | M | mechanism | A failed-check citation is never verified against a check that ran | `r38` |
+| **`US-17`** | M | mechanism | Three invariants declare charter scope that no role ever loads | `r18` |
+| **`US-18`** | M | mechanism | INV-06 claims a suppression-count comparison that nothing performs | `r27` |
+| **`US-19`** | S | mechanism | INV-04's exemption has nowhere to be recorded, so it cannot be used | `r6` |
+| **`US-20`** | M | mechanism | The taxonomy binding points at the schema, not at the charter that owns it | `r22` |
+| **`US-21`** | M | charter | The charter says seven things it does not define or honour | `r4, r11, r15, r17, r29, r31, r36` |
+| **`US-22`** | S | charter | Three quantitative claims about v01 have no verifying source | `r28` |
+| **`US-23`** | M | charter | Disposition has two lifecycle gaps once time passes | `r37, r40` |
+| **`US-24`** | M | process | There is no route for a defect found while doing something else | `F-18` |
+| **`US-25`** | S | process | A completed charter-review intent reads as queued forever | `observed 2026-09-25` |
+
+### Carried — already on the board
+
+| | # | Size | Kind | Item |
+|---|---|---|---|---|
+| **`US-01`** | [67](https://dev.azure.com/MofonCode/ai-sdlc/_workitems/edit/67) | L | blocked | Run one cycle end to end |
+| **`US-02`** | [68](https://dev.azure.com/MofonCode/ai-sdlc/_workitems/edit/68) | M | build | Make charter protection mechanical instead of prose |
+| **`US-06`** | [72](https://dev.azure.com/MofonCode/ai-sdlc/_workitems/edit/72) | M | measure | Measure per-role yield before trusting the role set |
+| **`US-07`** | [73](https://dev.azure.com/MofonCode/ai-sdlc/_workitems/edit/73) | M | cost | Cut interrogation cost |
+| **`US-08`** | [74](https://dev.azure.com/MofonCode/ai-sdlc/_workitems/edit/74) | S | charter | Remove DEC-08 from the register |
+| **`US-09`** | [75](https://dev.azure.com/MofonCode/ai-sdlc/_workitems/edit/75) | S | test | Give the one remaining workflow a syntax check |
+| **`US-10`** | [76](https://dev.azure.com/MofonCode/ai-sdlc/_workitems/edit/76) | L | test | Prove a skill obeys its rules, not merely that it states them |
+| **`US-11`** | [77](https://dev.azure.com/MofonCode/ai-sdlc/_workitems/edit/77) | S | test | Cover the one lifecycle state a test cannot reach |
+| **`US-12`** | [78](https://dev.azure.com/MofonCode/ai-sdlc/_workitems/edit/78) | S | decide | The two intents that bypassed the gate |
+| **`US-13`** | [79](https://dev.azure.com/MofonCode/ai-sdlc/_workitems/edit/79) | M | mechanism | Make the charter's form rule mechanical |
+| **`US-14`** | [80](https://dev.azure.com/MofonCode/ai-sdlc/_workitems/edit/80) | S | decide | Confirm teammates have GitHub org access |
+| **`US-15`** | [81](https://dev.azure.com/MofonCode/ai-sdlc/_workitems/edit/81) | S | decide | Decide whether MarketSense code stays on Azure DevOps |
+
+### Closed — done, dissolved, or fixed by later work
+
+| | Outcome | Why |
+|---|---|---|
+| `US-03` [69](https://dev.azure.com/MofonCode/ai-sdlc/_workitems/edit/69) | Landed and released | `bootstrap` squash-merged, v0.1.0 tagged, marketplace re-pointed at `#release`, release-gate CI green on its first run. |
+| `US-04` [70](https://dev.azure.com/MofonCode/ai-sdlc/_workitems/edit/70) | Dissolved | Its content was “triage the twenty suggestions”. This document is that triage, so the story has no remaining work. |
+| `US-05` [71](https://dev.azure.com/MofonCode/ai-sdlc/_workitems/edit/71) | Dissolved | Its content was “decide what the eight unfounded-claim suggestions mean”. Answered: four were true and are now fixed (`r20` `r24` `r25` `r26`), and four survive as `US-18`, `US-20`, `US-21` and `US-22`. |
+| `r20` | Fixed `855498c` | Nine of fourteen checks could not block. All fourteen are classified now, with a binding check in both directions. |
+| `r24` | Fixed `2a2652a` | “No init skill ships and no pack exists”. Both ship. |
+| `r25` | Fixed `7fe1c9b` | “Neither the corpus nor the query exists”. `Get-SdlcSignals.ps1` is the query. |
+| `r26` | Fixed `855498c` | “Nothing writes `suggestions/<cycle-id>.md`”. `Format-SdlcFindings` writes it and landing commits it. |
+
+### What each kind means, and why it is the useful axis
+
+| Kind | |
+|---|---|
+| `mechanism` | the code claims something it does not do |
+| `charter` | the charter says something it does not define or honour |
+| `process` | the process has no route for something that keeps happening |
+| `test` | a guarantee weaker than it looks |
+| `build` | described and not built |
+| `measure` | we are guessing where we could measure |
+| `cost` | it works and costs too much |
+| `decide` | needs a decision, not work |
+| `blocked` | blocked by agreement |
+
+**`mechanism` is the group that matters.** Six items where the code or the charter claims a check, a scope or a comparison that does not exist. Every one of them makes the framework look stronger than it is, and `US-16` is the worst: it is a hole in the anti-inflation guard, which is the mechanism everything else rests on.
+
+### The detail
+
+#### `US-16` · M · **A failed-check citation is never verified against a check that ran** · from `r38`
+
+**The hole is in the anti-inflation guard itself**, which is the framework's central mechanism. Invariant and `DEC` citations must name ids declared in the charter; a `check` citation is unconstrained. Nothing requires the cited check to be one a fact-gathering run actually executed and reported as failed, so an agent can reach `blocking` by naming a check that never ran.
+
+#### `US-17` · M · **Three invariants declare charter scope that no role ever loads** · from `r18`
+
+`Applies-to:` is defined as what tells the `charter` role which invariants to load — and that role is **removed** when the artifact under interrogation is the charter. So INV-03, INV-07 and INV-08 claim scope over the charter, and interrogating the charter loads none of them.
+
+#### `US-18` · M · **INV-06 claims a suppression-count comparison that nothing performs** · from `r27`
+
+Its evidence says an increase in the suppression count “is itself a finding”. `Get-SdlcFacts` emits a per-run count and checks only justification; nothing retains or compares a previous cycle's. Needs cross-cycle state, which nothing in the design has.
+
+#### `US-19` · S · **INV-04's exemption has nowhere to be recorded, so it cannot be used** · from `r6`
+
+The clause reads “unless this charter records the deviation” and the charter defines no section, field or format in which to record one. A rule with an unusable escape hatch is a rule with no escape hatch.
+
+#### `US-20` · M · **The taxonomy binding points at the schema, not at the charter that owns it** · from `r22`
+
+The charter says nothing but the findings schema may restate the category, stage and state values. `interrogate.js` restates them, and the only binding check ties those copies to the **schema enum** rather than to the charter. So the charter could drift from both and nothing would fail.
+
+#### `US-21` · M · **The charter says seven things it does not define or honour** · from `r4, r11, r15, r17, r29, r31, r36`
+
+One amendment, seven defects, grouped because splitting one document edit seven ways is overhead without benefit:<br>**r4** the vocabulary `Applies-to:` draws from is never declared as a closed set (`code` is not a stage name; `every artifact` is undefined).<br>**r11** the frontmatter says `pack: none` while INV-04, INV-06 and INV-08 all define themselves by reference to a pack.<br>**r15** the amendment table says a `DEC` register change bumps the version; a register change was made on 2026-09-24 and the version did not move.<br>**r17** the resolved-decision row counts the zero-cite query as a sixth trigger beside five; the zero-cite paragraph counts it as the fifth of five.<br>**r29** the `charter-review` row lists an `Inherits:` line the charter does not have.<br>**r31** the frontmatter dates the charter from 2026-09-22 and git history has no commit on that date.<br>**r36** commencement is defined as an event and nothing records that it happened.
+
+#### `US-22` · S · **Three quantitative claims about v01 have no verifying source** · from `r28`
+
+“Roughly 70% of findings mechanical”, “INV-03 bitten four times” and “a round cut from 30 tool calls to 13” appear in the charter and the concept as settled fact. The repository holds v01's intents, plans and specs but no findings corpus or retro, so none is checkable. They are load-bearing — several decisions rest on them — which is exactly why they need a source or a hedge.
+
+#### `US-23` · M · **Disposition has two lifecycle gaps once time passes** · from `r37, r40`
+
+**r37** suggestions are required to be dispositioned “later, when the suggestions file is triaged”, and no trigger, cadence or owner for that triage is defined anywhere — which is why twenty sat unread for a day.<br>**r40** nothing states what happens to a finding dispositioned `deferred-to-dec` when the deferred decision is later resolved. Live now: DEC-01 through DEC-05 have been resolved.
+
+#### `US-24` · M · **There is no route for a defect found while doing something else** · from `F-18`
+
+Four defects on 2026-09-25 were found mid-task and all blocked progress. Filing an intent for each means four gates; fixing inline bypasses the process. I chose inline, twice, on shipped code — while running the gate for an unrelated intent. `maintain` files intents and never fixes; the repair loop only works inside a cycle. Neither covers this, and until it does anyone will drift the same way.
+
+#### `US-25` · S · **A completed charter-review intent reads as queued forever** · from `observed 2026-09-25`
+
+The lifecycle derivation reads `done` from a retro, and a charter intent has no cycle to produce one — so `20260924-c4a1` and `20260925-1a7e` will read as `queued` permanently. Harmless today because `dispatchable` needs an approved plan, but the lifecycle model simply does not describe charter intents.
+
+#### `US-01` · L · **Run one cycle end to end** · [#67](https://dev.azure.com/MofonCode/ai-sdlc/_workitems/edit/67)
+
+**Blocked by agreement**: no cycles until the concept is complete.
+
+#### `US-02` · M · **Make charter protection mechanical instead of prose** · [#68](https://dev.azure.com/MofonCode/ai-sdlc/_workitems/edit/68)
+
+Its design record is the abandoned intent `20260925-963e` — fail closed in every case, four protected paths. Build it as bootstrap work.
+
+#### `US-06` · M · **Measure per-role yield before trusting the role set** · [#72](https://dev.azure.com/MofonCode/ai-sdlc/_workitems/edit/72)
+
+Four roles may produce two and a half roles' worth of findings at four roles' cost.
+
+#### `US-07` · M · **Cut interrogation cost** · [#73](https://dev.azure.com/MofonCode/ai-sdlc/_workitems/edit/73)
+
+46 agents, 2.6M tokens, 13 minutes per artifact. Triage spends one agent per candidate.
+
+#### `US-08` · S · **Remove DEC-08 from the register** · [#74](https://dev.azure.com/MofonCode/ai-sdlc/_workitems/edit/74)
+
+Answered 2026-09-25. Removing it is a charter amendment, not an edit.
+
+#### `US-09` · S · **Give the one remaining workflow a syntax check** · [#75](https://dev.azure.com/MofonCode/ai-sdlc/_workitems/edit/75)
+
+Nothing proves `interrogate.js` is valid JavaScript.
+
+#### `US-10` · L · **Prove a skill obeys its rules, not merely that it states them** · [#76](https://dev.azure.com/MofonCode/ai-sdlc/_workitems/edit/76)
+
+Skill tests assert the instruction is present, not that it was followed.
+
+#### `US-11` · S · **Cover the one lifecycle state a test cannot reach** · [#77](https://dev.azure.com/MofonCode/ai-sdlc/_workitems/edit/77)
+
+`git worktree lock` needs no agent, so `in-progress` is testable after all.
+
+#### `US-12` · S · **The two intents that bypassed the gate** · [#78](https://dev.azure.com/MofonCode/ai-sdlc/_workitems/edit/78)
+
+Recommend annotating, not retrofitting a paper trail for approvals made in conversation.
+
+#### `US-13` · M · **Make the charter's form rule mechanical** · [#79](https://dev.azure.com/MofonCode/ai-sdlc/_workitems/edit/79)
+
+**Merged with `r1`**, which found the same thing independently: the rule has no citation route, so nothing can cite it even when it is violated.
+
+#### `US-14` · S · **Confirm teammates have GitHub org access** · [#80](https://dev.azure.com/MofonCode/ai-sdlc/_workitems/edit/80)
+
+**Time-sensitive** — they arrive around 2026-09-29. Now installable from `#release`.
+
+#### `US-15` · S · **Decide whether MarketSense code stays on Azure DevOps** · [#81](https://dev.azure.com/MofonCode/ai-sdlc/_workitems/edit/81)
+
+Boards is settled for both projects; code hosting is not.
+
+---
+
+## How to work this list
+
+**This document is the backlog.** One list, because three lists was the problem: stories on a
+board, suggestions in a findings file, and loose observations in commit messages meant `US-16`
+— a hole in the central mechanism — was invisible to anyone looking at the work queue.
+
+| | Holds | Authority for |
+|---|---|---|
+| this file | the resolved record **and the whole open backlog** | **what is true and what is left** |
+| the ADO board | the twelve carried stories | tracking and prioritising those twelve |
+| `.sdlc/intents/` | an intent per item once work starts | **what is authorised**, and the only route |
+
+**The board is behind by ten items** — `US-16` through `US-25` exist only here. Adding them
+is one call away; leaving the board as the subset is also defensible while it is only Peter
+working. What is not defensible is the state before this document existed, where nothing held
+the whole list.
+
+### And no cycles
+
+Every item here is bootstrap work until the concept is complete. That is the agreement, and
+`US-01` stays blocked by it deliberately — not deferred, blocked.
+
+### First four, and why
+
+| | |
+|---|---|
+| `US-16` | it is a hole in the anti-inflation guard, and everything else rests on that |
+| `US-21` | seven charter defects, one amendment, and it clears the largest single group |
+| `US-24` | until this exists the next twenty defects get handled the way the last four were |
+| `US-14` | the only item with a date on it — teammates arrive around 2026-09-29 |

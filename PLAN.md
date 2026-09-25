@@ -12,8 +12,8 @@ decides:
 | Document | Authority for | Mutable? |
 |---|---|---|
 | **`PLAN.md`** (this) | **what remains, and what is done** | yes — updated per task |
-| `FINDINGS.md` | **what was found and fixed**, plus an index to the board | yes — per finding |
-| Azure Boards, project `ai-sdlc` | **the twelve open stories**, tracked and prioritised | yes — it is the working list |
+| `FINDINGS.md` | **what was found and fixed, and the whole open backlog** — one list | yes — it is the working list |
+| Azure Boards, project `ai-sdlc` | the twelve carried stories, for tracking those twelve | yes, but a subset — ten items exist only in `FINDINGS.md` |
 | `concept.raw.md` | **why** — every decision and the reasoning behind it | no, frozen |
 | `.sdlc/CHARTER.md` | **what the work must obey** | only by approved charter intent |
 
