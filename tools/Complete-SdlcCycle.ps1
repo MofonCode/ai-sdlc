@@ -171,8 +171,16 @@ try {
         $formatScript = Join-Path $PSScriptRoot 'Format-SdlcFindings.ps1'
         $suggestionsRel = ".sdlc/suggestions/$CycleId.md"
 
-        & $formatScript -Path $findingsPath -State 'suggested' `
-            -OutFile $suggestionsRel -RepoRoot $RepoRoot | Out-Null
+        # Splatted rather than continued with a backtick: a blank line or a trailing space
+        # after a backtick silently ends the statement, and the call then runs with the wrong
+        # arguments while still parsing cleanly.
+        $formatArgs = @{
+            Path     = $findingsPath
+            State    = 'suggested'
+            OutFile  = $suggestionsRel
+            RepoRoot = $RepoRoot
+        }
+        & $formatScript @formatArgs | Out-Null
 
         $staged = Invoke-SdlcGit add -- $suggestionsRel
         if (-not $staged.ok) {

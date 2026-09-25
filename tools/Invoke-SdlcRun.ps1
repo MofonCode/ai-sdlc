@@ -197,8 +197,17 @@ foreach ($s in $selected) {
             '--worktree', $worktree
         )
 
-        $process = Start-Process -FilePath 'claude' -ArgumentList $args `
-            -WorkingDirectory $RepoRoot -PassThru -NoNewWindow
+        # Splatted rather than continued with a backtick. Here the stakes are higher than
+        # elsewhere: a broken continuation would launch `claude` with no working directory and
+        # without -PassThru, so $process would be null and the pid recorded below would throw.
+        $startArgs = @{
+            FilePath         = 'claude'
+            ArgumentList     = $args
+            WorkingDirectory = $RepoRoot
+            PassThru         = $true
+            NoNewWindow      = $true
+        }
+        $process = Start-Process @startArgs
 
         $null = $launched.Add([pscustomobject]@{
             'cycle-id' = $id

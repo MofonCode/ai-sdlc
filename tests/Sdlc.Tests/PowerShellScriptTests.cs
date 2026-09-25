@@ -49,6 +49,77 @@ public sealed class PowerShellScriptTests
 
     [TestMethod]
     [DynamicData(nameof(AllScripts))]
+    public void HasNoBacktickLineContinuation(string name)
+    {
+        ArgumentNullException.ThrowIfNull(name);
+
+        // PARSES CLEANLY, FAILS AT RUNTIME — the worst shape a defect can take, because every
+        // syntax check and every AST walk says the file is fine.
+        //
+        // A backtick continuation only works when the very next character ends the line. Put a
+        // blank line or a single trailing space after it and the statement simply ends: a call
+        // spread over three lines becomes a call with no arguments, and PowerShell reports
+        // missing mandatory parameters from a script that looks correct.
+        //
+        // `Compare-SdlcBacklog.ps1` shipped broken this way in the commit that introduced it.
+        // Reformatting the file left a blank line after the backtick, and the script was
+        // committed, because the test suite only ever read these scripts as text.
+        //
+        // Intermediate variables cost one line and cannot break.
+        // Stripped code, line numbers preserved. Reading the raw file reports every backtick
+        // used as prose markup inside a help block — which is most of them, and which is the
+        // noise that gets a check switched off.
+        string stripped = SourceText.StripPowerShellCommentsPreservingLines(
+            File.ReadAllText(PathOf(name)));
+
+        // Split on the line feed by character code. An escape sequence written here has been
+        // eaten in transit more than once in this project, and TrimEnd below removes any
+        // carriage return left on the end of a line, so no escape is needed at all.
+        string[] lines = stripped.Split((char)10);
+        var offenders = new List<string>();
+
+        for (int i = 0; i < lines.Length; i++)
+        {
+            if (lines[i].TrimEnd().EndsWith('`'))
+            {
+                offenders.Add($"line {i + 1}: {lines[i].Trim()}");
+            }
+        }
+
+        Assert.AreEqual(0, offenders.Count,
+            $"{name} uses backtick line continuation, which parses cleanly and fails at " +
+            $"runtime once a blank line or trailing space follows it. Assign intermediate " +
+            $"variables instead.{Environment.NewLine}{string.Join(Environment.NewLine, offenders)}");
+    }
+
+    [TestMethod]
+    [DynamicData(nameof(AllScripts))]
+    public void HasNoDoubledLineEndings(string name)
+    {
+        ArgumentNullException.ThrowIfNull(name);
+
+        // A carriage return, a second carriage return, then a line feed - which is what
+        // writing CRLF text through a CRLF-translating writer produces.
+        // It is invisible in every editor and it is how the backtick above acquired its fatal
+        // blank line: the repair for the doubled endings inserted a blank line between every
+        // pair of real ones.
+        byte[] bytes = File.ReadAllBytes(PathOf(name));
+        int doubled = 0;
+        for (int i = 0; i + 2 < bytes.Length; i++)
+        {
+            if (bytes[i] == 0x0D && bytes[i + 1] == 0x0D && bytes[i + 2] == 0x0A)
+            {
+                doubled++;
+            }
+        }
+
+        Assert.AreEqual(0, doubled,
+            $"{name} has {doubled} doubled carriage returns. The file was written by a CRLF " +
+            "translator over text that already had CRLF endings.");
+    }
+
+    [TestMethod]
+    [DynamicData(nameof(AllScripts))]
     public void HasAUtf8ByteOrderMark(string name)
     {
         ArgumentNullException.ThrowIfNull(name);
