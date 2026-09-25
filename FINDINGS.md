@@ -82,8 +82,13 @@ manually, on no cadence*), so a story is pulled into an iteration when it is sta
 | `US-10` | [76](https://dev.azure.com/MofonCode/ai-sdlc/_workitems/edit/76) | L | Prove a skill obeys its rules | Skill tests assert the instruction is present, not that it was followed. |
 | `US-11` | [77](https://dev.azure.com/MofonCode/ai-sdlc/_workitems/edit/77) | S | Cover the one unreachable lifecycle state | `in-progress` is asserted by inspection. `git worktree lock` makes it testable. |
 | `US-12` | [78](https://dev.azure.com/MofonCode/ai-sdlc/_workitems/edit/78) | S | The two intents that bypassed the gate | Both predate `Submit-SdlcIntent.ps1`. **Recommend annotating, not retrofitting.** |
+| `US-13` | [79](https://dev.azure.com/MofonCode/ai-sdlc/_workitems/edit/79) | M | Make the charter's form rule mechanical | The charter claims a check that does not exist; the `form` role only reasons about shape. |
+| `US-14` | [80](https://dev.azure.com/MofonCode/ai-sdlc/_workitems/edit/80) | S | Confirm teammates have GitHub org access | **Time-sensitive** — they arrive ~2026-09-29, and a private install needs repo access. |
+| `US-15` | [81](https://dev.azure.com/MofonCode/ai-sdlc/_workitems/edit/81) | S | Decide whether MarketSense code stays on ADO | Boards is settled; code hosting is not. **Needs a decision.** |
 
-36 points across twelve stories. Three are quick wins at 1 point each (`US-08`, `US-09`, `US-11`) and two are decisions rather than tasks (`US-03`, `US-12`).
+42 points across fifteen stories. Five are quick wins at 1 point each (`US-08`, `US-09`,
+`US-11`, `US-14`, `US-15`) and three are decisions rather than tasks (`US-03`, `US-12`,
+`US-15`). `US-14` is the only one with a date on it.
 
 ## How to work this list
 

@@ -336,10 +336,14 @@ Answers DEC-08, and depends on the hosting contradiction below being settled.
 
 ## Small, cheap, still outstanding
 
-| Task | Why |
+Nothing. Both rows that lived here are done:
+
+| Was | Outcome |
 |---|---|
-| **Delete the charter's coverage table** | A live INV-03 violation, drifted three ways: INV-08 absent, no `pack` column though INV-06 needs one, and 5 columns against the schema's 8 artifact kinds. Derived data should be derived — the fix is deletion, not a check. **The interrogation found this independently as `r12`**, which is the best evidence yet that the process works |
-| **Resolve the ten blocking charter findings** | They edit the charter, so INV-08 requires an approved `charter-review` intent. That intent is also what would give the findings a `cycle-id` and a legitimate home, retiring `interrogations/` |
+| ~~Delete the charter's coverage table~~ | **Done** in charter v2 (`8346a43`). The drifted `Applies-to` matrix was deleted rather than repaired, because derived data in a hand-maintained document with no generator should not exist. Verified: zero references remain |
+| ~~Resolve the ten blocking charter findings~~ | **Done** in charter v2, via charter intent `20260924-c4a1` |
+
+Everything outstanding now has a work item. See `FINDINGS.md` for the index.
 
 ---
 
@@ -348,12 +352,12 @@ Answers DEC-08, and depends on the hosting contradiction below being settled.
 | Deferred | Trigger |
 |---|---|
 | Health-checking layer | after a real cycle has landed |
-| Corpus health query | when there are retros to aggregate |
-| Repo-scope interrogation | when skills exist, so "a `/sdlc:` command with no skill" is checkable |
+| ~~Corpus health query~~ | **Done** — `tools/Get-SdlcSignals.ps1` is it (`7fe1c9b`) |
+| Repo-scope interrogation | **Trigger fired** — skills exist, and the specific case is covered: `PluginManifestTests` resolves every `/sdlc:` reference. The broader idea (interrogate the whole repo, not one artifact) is still deferred and has no trigger |
 | A living solution-level spec | when someone asks what the solution does and reading the code is too slow |
 | Artifact directory archiving | when `intents/` passes ~50 files |
-| Charter structural checks (`Forbids:` present, `Applies-to` valid) | with the health layer — the `form` rule is prose today |
-| Interrogator roles as charter data | when a retro has enough evidence to drop a lens |
+| ~~Charter structural checks~~ | **Promoted** to `US-13` #79. It was never a health-layer concern: the charter claims a check that does not exist, which is an unfounded claim rather than a missing convenience |
+| ~~Interrogator roles as charter data~~ | **Done** — charter v3 (`a690f29`). The trigger never fired; direct observation of the drift was enough |
 
 ---
 
@@ -376,26 +380,27 @@ Answers DEC-08, and depends on the hosting contradiction below being settled.
 - **`bootstrap` has never merged to master.** `master` is still at the initial commit, so
   `release` cannot be cut and the marketplace is pinned to `#bootstrap` rather than
   `#release`.
-- **A locked worktree cannot be faked in a test**, so `in-progress` is the one lifecycle
-  state asserted only by inspection of the derivation rather than end to end.
-- **Interrogator roles are hardcoded in `interrogate.js`** rather than read from the
-  charter — see Deferred.
+- ~~**A locked worktree cannot be faked in a test.**~~ It can: `git worktree lock` needs no
+  agent. `in-progress` is still the one state asserted only by inspection, but that is now a
+  task rather than a limitation — `US-11` #77.
+- ~~**Interrogator roles are hardcoded in `interrogate.js`.**~~ Charter v3 made them charter
+  data, and the workflow keeps no copy (`a690f29`).
 - **`claude plugin details` does not report workflows.** Its inventory lists skills,
   agents, hooks, MCP and LSP servers and omits workflows entirely — not even a zero row —
   so it reads as though nothing loaded. The load is confirmed from the debug log instead:
   `Total plugin workflows loaded: 7`. Check with `--debug-file`, not `details`.
-- **`master` is still at the initial commit.** Everything lives on `bootstrap`. Nothing
-  has been pushed to either remote.
-- **This repository has two remotes.** `origin` is Azure DevOps
-  (`dev.azure.com/MofonCode/ai-sdlc`) and both `master` and `archive/v01` track it;
-  `github` is `github.com/MofonCode/ai-sdlc`. So v01 already lives on Azure DevOps, and
-  "move to GitHub" is a change of default remote rather than a first push.
-- **Three actions pending:** confirm `github.com/MofonCode/ai-sdlc` is private before
-  moving anything there; confirm the arriving teammates have GitHub org access; decide
-  whether `MarketSense` stays on Azure DevOps.
-- **A junction at `~/.claude/skills/sdlc` pointing at this repository** is what loads the
-  plugin locally, so every session on this machine picks it up. Remove it with
-  `rmdir` on that path. A marketplace install is item 13.
+- **`master` is still at the initial commit.** Everything lives on `bootstrap`, which is
+  pushed. Tracked as `US-03` #69.
+- ~~**This repository has two remotes.**~~ One now: `origin` is
+  `github.com/MofonCode/ai-sdlc`, confirmed private. The Azure DevOps remote was removed on
+  2026-09-25, losing nothing — GitHub already held `master` and `archive/v01` at identical SHAs.
+  **ADO Boards is still in use for work tracking**, which is a different thing from hosting.
+- **Of the three long-pending actions, one is answered and two are now tracked:**
+  `github.com/MofonCode/ai-sdlc` is **confirmed private** (verified via `gh`); teammate org
+  access is `US-14` #80 and is time-sensitive; MarketSense's code hosting is `US-15` #81.
+- ~~**A junction at `~/.claude/skills/sdlc`**~~ is gone. The plugin is installed properly as
+  `sdlc@ai-sdlc` from the private GitHub marketplace, which supersedes it — Claude Code said so
+  itself when both were present.
 
 ---
 
