@@ -102,12 +102,14 @@ proves too expensive on larger artifacts.
 
 ## The goal, and when to stop building
 
-> **Enough = a complete chain from a hand-written intent to a landed retro.**
+> **Enough = every decision in `concept.raw.md` is built.**
 
-**Reached 2026-09-24.** Items 1–10 are done, so running a real intent now produces
-evidence about the **process** rather than about missing parts.
+**Not reached.** An earlier version of this section said "a complete chain from a
+hand-written intent to a landed retro", declared it reached on 2026-09-24, and called the
+rest conveniences. All three were wrong: the chain was not invocable, and eleven concept
+decisions are unbuilt — including the **intent gate**, which is a gate, not a convenience.
 
-Items 11–15 are conveniences and distribution. None is needed to prove the chain works.
+The audit is below. When it is empty, the ceremonies begin.
 
 ---
 
@@ -163,14 +165,78 @@ forbidden from writing that field.
 
 ---
 
+## What the concept still asks for
+
+Audited 2026-09-25 against all 93 `DECIDED` entries in `concept.raw.md`. **Eleven
+components are missing outright.** Build order is A through E; ceremonies begin after E.
+
+### A — finish what is half-built
+
+| # | Missing | Concept | Note |
+|---|---|---|---|
+| A1 | `suggestions/<cycle-id>.md` written at landing | §3 | One file per cycle, never a shared backlog — a file every cycle appends to conflicts the way `plugin.json` does. 20 suggested findings already have nowhere to live |
+| A2 | Findings markdown view, rendered from the JSON | §3 | The JSON is authoritative; the markdown is regenerable and uncommitted, the same pattern as `facts.md`. `*.findings.md` is already gitignored for it |
+
+### B — the gates, which are currently conventions
+
+| # | Missing | Concept | Note |
+|---|---|---|---|
+| B1 | **Intent branch + PR gate**: `intent-<id>` → PR → merge, *then* `cycle-<id>` | §7 | *"The intent gate has to close before work starts or it is not a gate."* Both of today's intents were written straight to master, so this gate does not exist and two artifacts went through the hole |
+| B2 | Charter-intent dedup on the targeted invariant | §7 | Pending → link and wait; **abandoned → block and surface its `reason:`**; nothing → file one. Without it a batch of eight files eight identical requests |
+
+### C — the stack pack seam
+
+| # | Missing | Concept | Note |
+|---|---|---|---|
+| C1 | `pack.yaml`, `pack.rules.yaml`, one real pack | §6 | Build the seam, not the machinery for the seam: one manifest the engine reads, and no registry or resolver until a second pack forces it |
+| C2 | `scaffold` as pack **code** | §6 | The one verb that is code rather than data, because `dotnet new` is execution |
+| C3 | The Microsoft-first ordering, per context | §9 | It is supposed to live in the pack, **not** the charter — tool names stay out of invariants |
+
+Unblocks `init`, which cannot be exercised without a pack, and `maintain`'s staleness half.
+
+### D — distribution
+
+| # | Missing | Concept | Note |
+|---|---|---|---|
+| D1 | `release` as a single moving branch, plus a version tag at each move | §7 | No commits of its own; teammates subscribe once and you decide when they see something new |
+| D2 | CI: **fail a `release` move that does not bump the version** | §7 | Never in-cycle: two concurrent cycles bumping `plugin.json` collide every time |
+
+Answers DEC-08, and depends on the hosting contradiction below being settled.
+
+### E — the remainder
+
+| # | Missing | Concept | Note |
+|---|---|---|---|
+| E1 | `grill` — agent-team design debate, deliberately outside the cycle | §3 | Teammates challenging each other directly, which orthogonal roles do not need. **An original ask that was never built and never flagged** |
+| E2 | `maintain` — files intents, never fixes | §1 | Fuelled by CVE and dependency drift and by pack staleness; telemetry is the reserved path and is unfuelled because nothing is deployed |
+| E3 | `deploy` — PR + review | §1 | Landing exists; PR creation and review do not. *Promotion* is a separate pack-owned sub-step that may be nothing |
+| E4 | Amendment signal query, read-only and on demand | §2 | `absorb-retro` describes it; nothing computes it |
+| E5 | Interrogator roles as charter data | §3 | Intent `20260925-1a7e` drafted, not built |
+
+### Recorded, not built — where we diverged from the frozen concept
+
+| Concept says | We chose | Why |
+|---|---|---|
+| *"each stage is its own dynamic workflow"* (§1) | ten skills, one workflow | `Workflow` is stripped from every subagent and teammate, and most stages can need to ask the user something. See **The shape** above |
+| *"the private ADO git repo IS the distribution"* (§10) | **unsettled** | The same section says *"GitHub only. One home, no mirror"* and explicitly reverses the ADO move. The later decision should win and the earlier text was never cleaned up, which is why this repo has two remotes. **Peter's call**, and D1 depends on it |
+
+---
+
 ## Discipline — agreed, and load-bearing
 
 1. **The whole first draft is disposable.** Written to be rewritten. Do not polish;
    polishing untested design is expensive and teaches nothing.
 
-2. **Bootstrapping is exempt from the process.** Items 1–10 were built without running
-   cycles, deliberately. That exemption **has now expired**: the chain exists, so work
-   from here goes through it.
+2. **Bootstrapping is exempt from the process until the concept is built.** Items 1–10
+   were built without running cycles, deliberately. An earlier version of this line
+   claimed the exemption expired once the chain existed. That was my judgment
+   substituted for a decision that was not mine, and it was wrong on the facts too —
+   the chain was not complete, because nothing was invocable.
+
+   **Restated, as agreed:** running the ceremonies against an incomplete solution buys
+   evidence about missing parts we already have a list of. A few interrogations are
+   worth it — they found real defects — but the full intent-to-retro ceremony waits
+   until the concept is built. See *What the concept still asks for* below.
 
 3. **Exercise each component against real input as it lands.** This is *not* the same as
    running the system, and it is where the evidence comes from. It produced eight design
