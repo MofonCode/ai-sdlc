@@ -27,7 +27,7 @@ Read this section first. It is the whole handoff.
 
 ```
 branch        bootstrap
-last commit   5766f9f
+last commit   f10a659
 verify        dotnet test   → expect 147 passed, 0 failed
 plugin        claude plugin validate . --strict   → expect "Validation passed"
 ```
@@ -39,6 +39,64 @@ items 11, 12, 14, 15.
 
 If `dotnet test` does not report 147 passing, stop and diagnose before building anything:
 the test suite is the only thing standing between "this looks right" and "this works".
+
+---
+
+## The first interrogation — charter v1, round 1
+
+Run 2026-09-24 against `.sdlc/CHARTER.md`. **46 agents, 2.6M tokens, 13 minutes, no agent
+errors.** Full output: `interrogations/charter-v1-round1.findings.json`.
+
+    40 candidates from 4 roles  →  30 findings after merge  →  10 blocking, 20 suggested
+    0 mechanical findings: the charter passes all five checks
+
+**The anti-inflation guard held.** No blocking finding lacks a citation, no `unclassified`
+finding blocks, and no location-cited finding is anything but `internal-contradiction`.
+State was assigned in code from the citation, exactly as designed.
+
+### What it found — the ten blocking findings
+
+| ID | Category | Citation | Defect |
+|---|---|---|---|
+| `r2` | internal-contradiction | two locations | The `form` role that replaces `charter` when this document is interrogated states its one question as covering only `Forbids:`, while the charter mandates a non-empty `Applies-to:` under the same form check and the shipped role in workflows/interrogate.js asks about both clauses. |
+| `r3` | internal-contradiction | two locations | INV-06's `Forbids:` clause names stack-specific tool syntax (NoWarn, pragma disable), which the form rule excludes from invariants, INV-04 delegates to the pack, and the Invariants preamble claims the invariants avoid. |
+| `r7` | internal-contradiction | two locations | The Invariants preamble claims each of the seven invariants is the only blocking route its category has, while the Coverage table gives scope-drift, gate-bypass and unfounded-claim a second, invariant-free route through a failed check. |
+| `r8` | internal-contradiction | two locations | The Coverage section asserts that every finding category can block, while its own table's last row says `unclassified` never blocks by construction. |
+| `r9` | internal-contradiction | two locations | The State section's no-progress default sends an untriaged — therefore uncited — `open` finding to `blocking`, which the promotion rule and the state table's non-empty `cites` requirement both forbid. |
+| `r10` | internal-contradiction | two locations | The `cites` rule admits exactly three kinds of value, none of them a `DEC` id, while the open-decision register, the disposition table and schemas/findings.schema.json all require citing one. |
+| `r12` | internal-contradiction | two locations | The Applies-to coverage matrix disagrees with the clauses it restates: INV-07 is ticked under `code` though its clause reads "every artifact" (a scope the document distinguishes from code by writing "every artifact, and code" for INV-03 and INV-08), INV-08 has no row at all, and INV-06's declared `pack` scope has no column. |
+| `r14` | internal-contradiction | two locations | The frontmatter records the restore from e36fc4b as dropping one resolved decision from the register, while the register accounts for every id from DEC-01 to DEC-08 with five of them (DEC-01 through DEC-05) recorded as resolved and retained as struck-through gaps, and e36fc4b carried all eight as open. |
+| `r23` | unfounded-claim | invariant INV-07 | INV-03's scope exemption for the retro corpus asserts that `absorb-retro` enforces the no-overwrite condition, but no such skill exists in the tree — skills/ contains only README.md, which lists absorb-retro as unbuilt PLAN item 12. |
+| `r39` | missing-case | invariant INV-03 | `Prevented-by:` converts an invariant's zero cites from a question into "working as designed" without requiring that the named template or check still exist or still reject an artifact that violates the invariant. |
+
+Three are independently verified against the charter text: `r8` (lines 272 vs 286), `r10`
+(line 353 admits three cite kinds, line 423 requires a fourth, and the schema implements
+four), and `r12` — which is **the coverage-table drift already on this plan's outstanding
+list, found without being told about it**. That is the strongest signal from the run.
+
+### Two things the run revealed about the framework itself
+
+1. **`cycle-id: null` — the one schema violation, and it is not a schema defect.** The
+   charter routes a charter change through a `charter-review` intent, so a charter
+   interrogation is meant to run inside a cycle; `cycle-id` is required and non-nullable
+   and the schema was right to reject this. What the run exposed is that `interrogate.js`
+   permits a standalone mode the artifact model has no place for. **Decision needed:** make
+   the workflow require a cycle, or let the schema accept a null `cycle-id` for
+   `target: charter`. Everything else in the document validates.
+
+2. **The `locations` citation route is doing almost all the blocking work** — 8 of 10
+   blocking findings cite two conflicting locations; only 2 cite an invariant. That route
+   needs no invariant at all, so it is a far cheaper way to reach `blocking` than the guard
+   contemplated. Not wrong on this artifact — the charter really does contradict itself in
+   eight places — but worth watching, because on a spec or a plan it could become the
+   inflation channel the guard was built to close.
+
+### Cost, measured rather than estimated
+
+46 agents against an estimate of ~15. The driver is triage: **one agent per candidate**, so
+40 candidates cost 40 agents, and candidate count scales with artifact size. A 460-line
+charter costs 2.6M tokens to interrogate once. Batching triage is the obvious lever if that
+proves too expensive on larger artifacts.
 
 ---
 
@@ -130,7 +188,8 @@ Items 11–15 are conveniences and distribution. None is needed to prove the cha
 
 | Task | Why |
 |---|---|
-| **Delete the charter's coverage table** | A live INV-03 violation, drifted three ways: INV-08 absent, no `pack` column though INV-06 needs one, and 5 columns against the schema's 8 artifact kinds. Derived data should be derived — the fix is deletion, not a check |
+| **Delete the charter's coverage table** | A live INV-03 violation, drifted three ways: INV-08 absent, no `pack` column though INV-06 needs one, and 5 columns against the schema's 8 artifact kinds. Derived data should be derived — the fix is deletion, not a check. **The interrogation found this independently as `r12`**, which is the best evidence yet that the process works |
+| **Resolve the ten blocking charter findings** | They edit the charter, so INV-08 requires an approved `charter-review` intent. That intent is also what would give the findings a `cycle-id` and a legitimate home, retiring `interrogations/` |
 
 ---
 
@@ -155,8 +214,9 @@ Items 11–15 are conveniences and distribution. None is needed to prove the cha
   worth it, so a syntax error surfaces at first launch rather than at build. A real cost
   of the Node decision, not a defect in the tests. The PowerShell side has no equivalent
   gap — those are parsed by the real 5.1 parser in the suite.
-- **No workflow has ever been executed.** Every workflow test is structural. The scripts
-  are checked for shape, forbidden constructs and enum drift; none has run an agent.
+- **Six of the seven workflows have never been executed.** `interrogate` has now run once,
+  against the charter. Every workflow test is still structural — shape, forbidden
+  constructs and enum drift — so for the other six, nothing has run an agent.
 - **A locked worktree cannot be faked in a test**, so `in-progress` is the one lifecycle
   state asserted only by inspection of the derivation rather than end to end.
 - **Interrogator roles are hardcoded in `interrogate.js`** rather than read from the
@@ -165,8 +225,6 @@ Items 11–15 are conveniences and distribution. None is needed to prove the cha
   agents, hooks, MCP and LSP servers and omits workflows entirely — not even a zero row —
   so it reads as though nothing loaded. The load is confirmed from the debug log instead:
   `Total plugin workflows loaded: 7`. Check with `--debug-file`, not `details`.
-- **No workflow has been invoked even though all seven now load.** Loading and running are
-  different claims; only the first is verified.
 - **`master` is still at the initial commit.** Everything lives on `bootstrap`. Nothing
   has been pushed to either remote.
 - **This repository has two remotes.** `origin` is Azure DevOps
@@ -189,6 +247,7 @@ against real input, not from reading the design.
 
 | Commit | Item | Correction it produced |
 |---|---|---|
+| `f10a659` | — · first interrogation | **The workflow permits a mode the artifact model has no place for**: a standalone charter interrogation has no cycle, so it emits a `cycle-id` the schema requires and rejects. Also measured rather than guessed: 46 agents, because triage spends one agent per candidate. And the `locations` cite route carried 8 of 10 blocking findings, being much cheaper to earn than an invariant |
 | `5766f9f` | — · encoding | **The fact gatherer emitted JSON that `JSON.parse` rejects**, for any artifact that is not pure ASCII — which is all of them. Reading a BOM-less file as ANSI turned an em-dash into three CP1252 characters, and the last, U+201D, best-fit on output to a plain `"` that terminated the string. `interrogate.js` responds to unparseable facts by continuing *without* mechanical findings, so the symptom was a clean-looking interrogation rather than an error. Found on the first attempt to run one |
 | `45916c9` | 13a · plugin manifest | **Six of the eight "dangling" references were never broken** — a plugin workflow is namespaced `/<plugin>:<meta.name>`, so they resolved the moment the manifest existed. One was real (`/sdlc:intent`, item 11). One was never a reference at all: `/sdlc:init` sits in a comment as an example of a non-path, and I read grep's hit as a claim |
 | `24329cf` | 10 · dispatch and landing | **No script had a UTF-8 BOM**, and 5.1 reads a BOM-less file as ANSI — one em-dash inside a string decoded to a smart quote and terminated it early. Also: `-AsHashtable` matched its own "avoid this" comment |
