@@ -90,9 +90,9 @@ dissolved once their content was resolved.
 | dissolved | 2 stories |
 | merged as duplicates | 1 pair (`US-13` and `r1`) |
 | **open** | **22** |
-| closed since | 7 — `US-16`, `US-09`, `US-11`, `US-25`, `US-20`, `US-13` and `US-02` |
+| closed since | 8 — `US-16`, `US-09`, `US-11`, `US-25`, `US-20`, `US-13`, `US-02` and `US-26` |
 | added since | 1 — `US-26`, the decision `F-21` left behind |
-| **left** | **16** |
+| **left** | **15** |
 
 Sizes: **S** under an hour, **M** a sitting, **L** its own cycle.
 
@@ -110,7 +110,6 @@ Most came from the first interrogation's suggestions. Two of those still open di
 | **`US-22`** | [88](https://dev.azure.com/MofonCode/ai-sdlc/_workitems/edit/88) | S | charter | Three quantitative claims about v01 have no verifying source | `r28` |
 | **`US-23`** | [89](https://dev.azure.com/MofonCode/ai-sdlc/_workitems/edit/89) | M | charter | Disposition has two lifecycle gaps once time passes | `r37, r40` |
 | **`US-24`** | [90](https://dev.azure.com/MofonCode/ai-sdlc/_workitems/edit/90) | M | process | There is no route for a defect found while doing something else | `F-18` |
-| **`US-26`** | [92](https://dev.azure.com/MofonCode/ai-sdlc/_workitems/edit/92) | S | decide | Decide which ceremony runs the backlog parity check | `F-21` |
 
 ### Carried — already on the board
 
@@ -182,16 +181,6 @@ One amendment, seven defects, grouped because splitting one document edit seven 
 #### `US-24` · M · **There is no route for a defect found while doing something else** · [#90](https://dev.azure.com/MofonCode/ai-sdlc/_workitems/edit/90) · from `F-18`
 
 Four defects on 2026-09-25 were found mid-task and all blocked progress. Filing an intent for each means four gates; fixing inline bypasses the process. I chose inline, twice, on shipped code — while running the gate for an unrelated intent. `maintain` files intents and never fixes; the repair loop only works inside a cycle. Neither covers this, and until it does anyone will drift the same way.
-
-#### `US-26` · S · **Decide which ceremony runs the backlog parity check** · [#92](https://dev.azure.com/MofonCode/ai-sdlc/_workitems/edit/92)
-
-`Compare-SdlcBacklog.ps1` exists and exits non-zero on disagreement. Nothing runs it.
-
-Three options: `land` refuses while parity is dirty (strongest, and it already refuses without a
-retro, but it needs board credentials so it would gate the local half only); `retro` reports
-parity while reading the cycle's findings (weaker — a report nobody must act on); or accept that
-it runs by hand and say so rather than implying enforcement. **Recommend the first, scoped to the
-local `land`** — a check that only prints gets skimmed, which is `F-21` repeating one level up.
 
 #### `US-01` · L · **Run one cycle end to end** · [#67](https://dev.azure.com/MofonCode/ai-sdlc/_workitems/edit/67)
 
@@ -288,10 +277,31 @@ release tag moves the gate is present in the repository and inert on this machin
 nobody concludes it is broken when it is merely not yet installed, and so nobody assumes the charter
 is protected locally before then.
 
+### The board is current development, not a governed artifact
+
+Answered 2026-09-25: **nothing in the process attaches to this backlog.** The board and this file
+track the work of building the concept; the SDLC ceremonies will be used with user stories later,
+and wiring a ceremony to the backlog before then would be inventing process for work that has
+none.
+
+So `Compare-SdlcBacklog.ps1` stays a bootstrap utility, run by hand, and `US-26` is closed by
+that answer rather than by building anything. `F-21` remains worth keeping as the record of how
+the two lists drifted, and the script is still what catches it — it caught `US-11` and `US-02`
+mid-session, both times within a minute of my making the mistake.
+
 ### And no cycles
 
-Every item here is bootstrap work until the concept is complete. That is the agreement, and
-`US-01` stays blocked by it deliberately — not deferred, blocked.
+Every item here is bootstrap work until the concept is complete. That is the agreement, restated
+2026-09-25 and sharper than before: **no intents and no ceremonies at all** until the solution
+matches the concept and has been verified. Questions get answered and fixes get implemented
+directly.
+
+Two stories are parked by that, not deferred for lack of an answer:
+
+- `US-01` run one cycle end to end — blocked by the agreement itself
+- `US-24` a route for a defect found mid-task — a process question with no process running to
+  attach it to. The five defects this session produced were fixed inline because that is simply
+  what building looks like right now; it becomes a real question when the ceremonies start
 
 ### Next three, and why
 
