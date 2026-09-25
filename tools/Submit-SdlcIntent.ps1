@@ -118,7 +118,7 @@ function Add-Step {
 
 Push-Location $RepoRoot
 try {
-    $current = (git rev-parse --abbrev-ref HEAD).Trim()
+    $current = (Invoke-SdlcGit rev-parse --abbrev-ref HEAD).stdout.Trim()
 
     # Refusing here rather than later. Submitting from a cycle branch would put the intent
     # commit on top of that cycle's work, which is the mixed-diff failure this whole
@@ -132,7 +132,23 @@ try {
         return
     }
 
-    $existing = @(git for-each-ref --format='%(refname:short)' refs/heads) -contains $branch
+    $heads = @((Invoke-SdlcGit for-each-ref '--format=%(refname:short)' refs/heads).stdout -split "`n" |
+        ForEach-Object { $_.Trim() } | Where-Object { $_ })
+
+    # BRANCHED FROM MASTER EXPLICITLY, not from wherever HEAD happens to be. The pull request
+    # targets master, so branching from a feature branch would put every one of that branch's
+    # commits into the intent's PR - which is precisely the mixed-diff failure this gate
+    # exists to prevent, produced by the gate itself. Found by using it: submitted from a
+    # 45-commit branch, the intent PR proposed all 45.
+    if ($heads -notcontains 'master') {
+        $result['outcome'] = 'refused-no-master'
+        $result['steps'] = @($steps)
+        Write-Host 'No master branch. An intent PR targets master, so there is nothing to base it on.' -ForegroundColor Red
+        ConvertTo-Json -InputObject $result -Depth 6
+        return
+    }
+
+    $existing = $heads -contains $branch
     if ($existing) {
         $result['outcome'] = 'already-submitted'
         $result['steps'] = @($steps)
@@ -155,7 +171,7 @@ try {
         return
     }
 
-    $r = Invoke-SdlcGit checkout -b $branch
+    $r = Invoke-SdlcGit checkout -b $branch master
     if (-not $r.ok) {
         Add-Step 'branch' $false "could not create $branch"
         $result['outcome'] = 'failed-branch'
@@ -163,7 +179,7 @@ try {
         ConvertTo-Json -InputObject $result -Depth 6
         return
     }
-    Add-Step 'branch' $true "created $branch from $current"
+    Add-Step 'branch' $true "created $branch from master (was on $current)"
 
     # Only the intent file. A submission that swept up unrelated working-tree changes would
     # put them behind the intent gate, where nobody is looking for them.

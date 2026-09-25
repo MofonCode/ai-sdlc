@@ -200,6 +200,43 @@ public sealed class GateTests
     }
 
     [TestMethod]
+    public void TheIntentBranchComesFromMasterNotFromWhereverYouAre()
+    {
+        // FOUND BY USING IT. The pull request targets master, so branching from HEAD puts
+        // every commit of the current branch into the intent's PR — which is exactly the
+        // mixed-diff failure this gate exists to prevent, produced by the gate. Submitted
+        // from a 45-commit branch, the intent PR proposed all 45.
+        Run("git", "checkout -b unrelated-work");
+        File.WriteAllText(Path.Combine(_repo!, "unrelated.txt"), "not part of any intent");
+        Run("git", "add -A");
+        Run("git", "-c user.email=t@example.invalid -c user.name=Test commit -m unrelated");
+
+        // Authored now, not in the fixture's initial commit. A newly authored intent is
+        // UNTRACKED, which is the only state in which submitting it has anything to commit —
+        // and an untracked file survives the checkout to master, which is what makes
+        // branching from master work at all.
+        Intent("20260925-aa05", "authored", "Submitted from a branch with other work");
+
+        try
+        {
+            Submit("20260925-aa05", "-NoPullRequest");
+
+            // One commit ahead of master: the intent, and nothing else.
+            string ahead = Run("git", "rev-list --count master..intent-20260925-aa05").Trim();
+            Assert.AreEqual("1", ahead,
+                "the intent branch must carry exactly its own commit, whatever HEAD was");
+
+            string files = Run("git", "diff --name-only master..intent-20260925-aa05");
+            Assert.IsFalse(files.Contains("unrelated.txt", StringComparison.Ordinal),
+                "the unrelated commit must not ride along in the intent's diff");
+        }
+        finally
+        {
+            Run("git", "checkout master");
+        }
+    }
+
+    [TestMethod]
     public void SubmittingTwiceRefusesRatherThanBranchingAgain()
     {
         Submit("20260925-aa02", "-NoPullRequest");
