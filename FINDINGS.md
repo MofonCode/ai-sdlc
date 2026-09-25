@@ -61,6 +61,7 @@ withdrawn.
 | F-19 | **The only workflow in the framework was syntactically invalid for four commits.** Two errors, both from editing through layers that ate one level of escaping: a regex body that became a single backslash, and a `
 ` in a single-quoted string that became a real newline. `interrogate.js` would have thrown at launch the whole time. Every structural test passed, because they read the file as text | doing `US-16`, and only because node turned out to be installed | `d2c6c38` — `WorkflowSyntaxTests` parses each workflow the way the runtime loads it |
 | F-20 | **A behavioural test of a function nothing calls.** I added the citation validation, then a test that executed `citationResolves` directly and proved it correct. Deleting the *call* — leaving the function sitting there, correct and unused — passed all fifteen structural tests **and** that new test. Proving a guard works is not proving anything consults it | mutation-testing `US-16` before committing it | `d2c6c38` — a second test executes the real assignment loop and reads the states it produces |
+| F-21 | **The board and the backlog file drifted, and nothing could fail.** Ten stories existed only in `FINDINGS.md`; `US-03` was released and `US-04`/`US-05` dissolved while all three sat in `New`. Two representations of one list with no check between them — INV-03, in the repository that declares INV-03. Nothing caught it because closing a work item is not part of any ceremony: `verify` reads the build, `land` reads the PR, `retro` reads the findings, and nothing reads the board | being asked whether stories were being updated as they completed | `tools/Compare-SdlcBacklog.ps1` — reports every disagreement and exits non-zero; the comparison is fixture-tested, and three mutations of it fail |
 | F-18 | **The process has no route for a defect found while doing something else.** F-14 through F-17 were all found mid-task and all blocked progress. Filing an intent for each would mean five gates; fixing them inline bypasses the process. I chose inline, twice, on shipped code — while running the gate for an unrelated intent | doing the above, and being asked about it | **unresolved.** `maintain` files intents and never fixes; the repair loop only works inside a cycle. Neither covers this |
 
 Two entries were **my own errors of claim rather than code**, and they are the ones worth
@@ -90,17 +91,17 @@ Sizes: **S** under an hour, **M** a sitting, **L** its own cycle.
 
 ### New — promoted from the suggestions, not previously tracked anywhere
 
-| | Size | Kind | Item | From |
-|---|---|---|---|---|
-| **`US-17`** | M | mechanism | Three invariants declare charter scope that no role ever loads | `r18` |
-| **`US-18`** | M | mechanism | INV-06 claims a suppression-count comparison that nothing performs | `r27` |
-| **`US-19`** | S | mechanism | INV-04's exemption has nowhere to be recorded, so it cannot be used | `r6` |
-| **`US-20`** | M | mechanism | The taxonomy binding points at the schema, not at the charter that owns it | `r22` |
-| **`US-21`** | M | charter | The charter says seven things it does not define or honour | `r4, r11, r15, r17, r29, r31, r36` |
-| **`US-22`** | S | charter | Three quantitative claims about v01 have no verifying source | `r28` |
-| **`US-23`** | M | charter | Disposition has two lifecycle gaps once time passes | `r37, r40` |
-| **`US-24`** | M | process | There is no route for a defect found while doing something else | `F-18` |
-| **`US-25`** | S | process | A completed charter-review intent reads as queued forever | `observed 2026-09-25` |
+| | Board | Size | Kind | Item | From |
+|---|---|---|---|---|---|
+| **`US-17`** | [83](https://dev.azure.com/MofonCode/ai-sdlc/_workitems/edit/83) | M | mechanism | Three invariants declare charter scope that no role ever loads | `r18` |
+| **`US-18`** | [84](https://dev.azure.com/MofonCode/ai-sdlc/_workitems/edit/84) | M | mechanism | INV-06 claims a suppression-count comparison that nothing performs | `r27` |
+| **`US-19`** | [85](https://dev.azure.com/MofonCode/ai-sdlc/_workitems/edit/85) | S | mechanism | INV-04's exemption has nowhere to be recorded, so it cannot be used | `r6` |
+| **`US-20`** | [86](https://dev.azure.com/MofonCode/ai-sdlc/_workitems/edit/86) | M | mechanism | The taxonomy binding points at the schema, not at the charter that owns it | `r22` |
+| **`US-21`** | [87](https://dev.azure.com/MofonCode/ai-sdlc/_workitems/edit/87) | M | charter | The charter says seven things it does not define or honour | `r4, r11, r15, r17, r29, r31, r36` |
+| **`US-22`** | [88](https://dev.azure.com/MofonCode/ai-sdlc/_workitems/edit/88) | S | charter | Three quantitative claims about v01 have no verifying source | `r28` |
+| **`US-23`** | [89](https://dev.azure.com/MofonCode/ai-sdlc/_workitems/edit/89) | M | charter | Disposition has two lifecycle gaps once time passes | `r37, r40` |
+| **`US-24`** | [90](https://dev.azure.com/MofonCode/ai-sdlc/_workitems/edit/90) | M | process | There is no route for a defect found while doing something else | `F-18` |
+| **`US-25`** | [91](https://dev.azure.com/MofonCode/ai-sdlc/_workitems/edit/91) | S | process | A completed charter-review intent reads as queued forever | `observed 2026-09-25` |
 
 ### Carried — already on the board
 
@@ -148,39 +149,39 @@ Sizes: **S** under an hour, **M** a sitting, **L** its own cycle.
 
 ### The detail
 
-#### `US-17` · M · **Three invariants declare charter scope that no role ever loads** · from `r18`
+#### `US-17` · M · **Three invariants declare charter scope that no role ever loads** · [#83](https://dev.azure.com/MofonCode/ai-sdlc/_workitems/edit/83) · from `r18`
 
 `Applies-to:` is defined as what tells the `charter` role which invariants to load — and that role is **removed** when the artifact under interrogation is the charter. So INV-03, INV-07 and INV-08 claim scope over the charter, and interrogating the charter loads none of them.
 
-#### `US-18` · M · **INV-06 claims a suppression-count comparison that nothing performs** · from `r27`
+#### `US-18` · M · **INV-06 claims a suppression-count comparison that nothing performs** · [#84](https://dev.azure.com/MofonCode/ai-sdlc/_workitems/edit/84) · from `r27`
 
 Its evidence says an increase in the suppression count “is itself a finding”. `Get-SdlcFacts` emits a per-run count and checks only justification; nothing retains or compares a previous cycle's. Needs cross-cycle state, which nothing in the design has.
 
-#### `US-19` · S · **INV-04's exemption has nowhere to be recorded, so it cannot be used** · from `r6`
+#### `US-19` · S · **INV-04's exemption has nowhere to be recorded, so it cannot be used** · [#85](https://dev.azure.com/MofonCode/ai-sdlc/_workitems/edit/85) · from `r6`
 
 The clause reads “unless this charter records the deviation” and the charter defines no section, field or format in which to record one. A rule with an unusable escape hatch is a rule with no escape hatch.
 
-#### `US-20` · M · **The taxonomy binding points at the schema, not at the charter that owns it** · from `r22`
+#### `US-20` · M · **The taxonomy binding points at the schema, not at the charter that owns it** · [#86](https://dev.azure.com/MofonCode/ai-sdlc/_workitems/edit/86) · from `r22`
 
 The charter says nothing but the findings schema may restate the category, stage and state values. `interrogate.js` restates them, and the only binding check ties those copies to the **schema enum** rather than to the charter. So the charter could drift from both and nothing would fail.
 
-#### `US-21` · M · **The charter says seven things it does not define or honour** · from `r4, r11, r15, r17, r29, r31, r36`
+#### `US-21` · M · **The charter says seven things it does not define or honour** · [#87](https://dev.azure.com/MofonCode/ai-sdlc/_workitems/edit/87) · from `r4, r11, r15, r17, r29, r31, r36`
 
 One amendment, seven defects, grouped because splitting one document edit seven ways is overhead without benefit:<br>**r4** the vocabulary `Applies-to:` draws from is never declared as a closed set (`code` is not a stage name; `every artifact` is undefined).<br>**r11** the frontmatter says `pack: none` while INV-04, INV-06 and INV-08 all define themselves by reference to a pack.<br>**r15** the amendment table says a `DEC` register change bumps the version; a register change was made on 2026-09-24 and the version did not move.<br>**r17** the resolved-decision row counts the zero-cite query as a sixth trigger beside five; the zero-cite paragraph counts it as the fifth of five.<br>**r29** the `charter-review` row lists an `Inherits:` line the charter does not have.<br>**r31** the frontmatter dates the charter from 2026-09-22 and git history has no commit on that date.<br>**r36** commencement is defined as an event and nothing records that it happened.
 
-#### `US-22` · S · **Three quantitative claims about v01 have no verifying source** · from `r28`
+#### `US-22` · S · **Three quantitative claims about v01 have no verifying source** · [#88](https://dev.azure.com/MofonCode/ai-sdlc/_workitems/edit/88) · from `r28`
 
 “Roughly 70% of findings mechanical”, “INV-03 bitten four times” and “a round cut from 30 tool calls to 13” appear in the charter and the concept as settled fact. The repository holds v01's intents, plans and specs but no findings corpus or retro, so none is checkable. They are load-bearing — several decisions rest on them — which is exactly why they need a source or a hedge.
 
-#### `US-23` · M · **Disposition has two lifecycle gaps once time passes** · from `r37, r40`
+#### `US-23` · M · **Disposition has two lifecycle gaps once time passes** · [#89](https://dev.azure.com/MofonCode/ai-sdlc/_workitems/edit/89) · from `r37, r40`
 
 **r37** suggestions are required to be dispositioned “later, when the suggestions file is triaged”, and no trigger, cadence or owner for that triage is defined anywhere — which is why twenty sat unread for a day.<br>**r40** nothing states what happens to a finding dispositioned `deferred-to-dec` when the deferred decision is later resolved. Live now: DEC-01 through DEC-05 have been resolved.
 
-#### `US-24` · M · **There is no route for a defect found while doing something else** · from `F-18`
+#### `US-24` · M · **There is no route for a defect found while doing something else** · [#90](https://dev.azure.com/MofonCode/ai-sdlc/_workitems/edit/90) · from `F-18`
 
 Four defects on 2026-09-25 were found mid-task and all blocked progress. Filing an intent for each means four gates; fixing inline bypasses the process. I chose inline, twice, on shipped code — while running the gate for an unrelated intent. `maintain` files intents and never fixes; the repair loop only works inside a cycle. Neither covers this, and until it does anyone will drift the same way.
 
-#### `US-25` · S · **A completed charter-review intent reads as queued forever** · from `observed 2026-09-25`
+#### `US-25` · S · **A completed charter-review intent reads as queued forever** · [#91](https://dev.azure.com/MofonCode/ai-sdlc/_workitems/edit/91) · from `observed 2026-09-25`
 
 The lifecycle derivation reads `done` from a retro, and a charter intent has no cycle to produce one — so `20260924-c4a1` and `20260925-1a7e` will read as `queued` permanently. Harmless today because `dispatchable` needs an approved plan, but the lifecycle model simply does not describe charter intents.
 
@@ -239,11 +240,28 @@ board, suggestions in a findings file, and loose observations in commit messages
 | | Holds | Authority for |
 |---|---|---|
 | this file | the resolved record **and the whole open backlog** | **what is true and what is left** |
-| the ADO board | eleven carried stories, `US-09` now closed | tracking and prioritising those eleven |
+| the ADO board | **every item in this file**, one work item each | tracking, prioritising, and what a teammate sees |
 | `.sdlc/intents/` | an intent per item once work starts | **what is authorised**, and the only route |
 
-**The board is behind by eight items** — `US-17` through `US-25` exist only here, and `US-09`
-is closed on this file while still open as [#75](https://dev.azure.com/MofonCode/ai-sdlc/_workitems/edit/75) on the board. Adding them
+**The board now matches this file**, asked for on 2026-09-25 and not before. Until then it was
+behind by ten items and carried four stories marked `New` that were finished — `US-03` released,
+`US-04` and `US-05` dissolved, `US-09` closed. `US-16` through `US-25` are now #82 through #91,
+each with its proposed fix on the work item.
+
+**What let it drift:** closing a board item is not part of any ceremony. `verify` checks the
+build, `land` checks the PR, `retro` reads the findings — nothing reads the board, so nothing
+failed while it was stale.
+
+**Now checkable:** `tools/Compare-SdlcBacklog.ps1` compares the two and exits non-zero on any
+disagreement, in either direction, including a story missing from the board entirely. It cannot
+be a CI test — the comparison needs `az` and a credentialled board connection, and CI has
+neither — so the gathering runs on a developer machine while the judgement underneath it is
+fixture-tested. Three mutations of the comparison fail the suite.
+
+**Still open, and it is a decision not a task:** which ceremony runs it. Putting *run the parity
+check* in a skill's prose is `US-10`'s weakness exactly — asserting the instruction is present
+rather than that it was obeyed. A promise is what just failed here, so the honest options are to
+have `land` refuse without a clean parity check, or to accept that this one runs by hand. Adding them
 is one call away; leaving the board as the subset is also defensible while it is only Peter
 working. What is not defensible is the state before this document existed, where nothing held
 the whole list.
