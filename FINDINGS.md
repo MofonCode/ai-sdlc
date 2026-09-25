@@ -10,11 +10,12 @@
 Two halves, and they answer different questions:
 
 - **[Resolved](#resolved)** — every defect found during the bootstrap and what fixed it. The
-  record. Eighteen entries, and the point of keeping them is that **sixteen of the eighteen
-  were found by running something rather than by reading it.** One, `F-18`, is a gap in the
-  process itself and is still open.
-- **[Open](#open)** — an index into the Azure Boards backlog, where the twelve remaining
-  stories live with their evidence, proposed fix and acceptance criteria.
+  record. Twenty-two entries, and the point of keeping them is that **twenty of the twenty-two
+  were found by running something rather than by reading it.** `F-18` is the exception that is
+  not closed: it is a gap in the process itself, now carried as `US-24`.
+- **[Open](#open)** — the twenty-one open stories, each with its evidence and proposed fix, and
+  each mirrored on the Azure Boards backlog. `Compare-SdlcBacklog.ps1` fails when the two
+  disagree.
 
 **Three places, three jobs, and they do not overlap:**
 
@@ -63,7 +64,7 @@ withdrawn.
 | F-20 | **A behavioural test of a function nothing calls.** I added the citation validation, then a test that executed `citationResolves` directly and proved it correct. Deleting the *call* — leaving the function sitting there, correct and unused — passed all fifteen structural tests **and** that new test. Proving a guard works is not proving anything consults it | mutation-testing `US-16` before committing it | `d2c6c38` — a second test executes the real assignment loop and reads the states it produces |
 | F-22 | **Backtick line continuation, which parses cleanly and fails only when run.** A backtick continues a line only when the very next character ends it; a blank line or a trailing space after it silently terminates the statement, so a call spread over three lines becomes a call with no arguments. `Compare-SdlcBacklog.ps1` shipped broken this way in the commit that introduced it, and two shipped scripts held latent instances — `Complete-SdlcCycle.ps1` would have written the suggestions file with wrong arguments, and `Invoke-SdlcRun.ps1` would have launched `claude` with no working directory and no `-PassThru`, making the next line throw. `ParsesUnderWindowsPowerShell` could never catch any of it: the broken form parses perfectly | reformatting `Compare-SdlcBacklog.ps1`, which then refused to run | `HasNoBacktickLineContinuation` and `HasNoDoubledLineEndings` over every shipped script; both continuations replaced with splatted hashtables |
 | F-21 | **The board and the backlog file drifted, and nothing could fail.** Ten stories existed only in `FINDINGS.md`; `US-03` was released and `US-04`/`US-05` dissolved while all three sat in `New`. Two representations of one list with no check between them — INV-03, in the repository that declares INV-03. Nothing caught it because closing a work item is not part of any ceremony: `verify` reads the build, `land` reads the PR, `retro` reads the findings, and nothing reads the board | being asked whether stories were being updated as they completed | `tools/Compare-SdlcBacklog.ps1` — reports every disagreement and exits non-zero; the comparison is fixture-tested, and three mutations of it fail |
-| F-18 | **The process has no route for a defect found while doing something else.** F-14 through F-17 were all found mid-task and all blocked progress. Filing an intent for each would mean five gates; fixing them inline bypasses the process. I chose inline, twice, on shipped code — while running the gate for an unrelated intent | doing the above, and being asked about it | **unresolved.** `maintain` files intents and never fixes; the repair loop only works inside a cycle. Neither covers this |
+| F-18 | **The process has no route for a defect found while doing something else.** F-14 through F-17 were all found mid-task and all blocked progress. Filing an intent for each would mean five gates; fixing them inline bypasses the process. I chose inline, twice, on shipped code — while running the gate for an unrelated intent | doing the above, and being asked about it | **open, and tracked as `US-24` [#90](https://dev.azure.com/MofonCode/ai-sdlc/_workitems/edit/90).** `maintain` files intents and never fixes; the repair loop only works inside a cycle. Neither covers this |
 
 Two entries were **my own errors of claim rather than code**, and they are the ones worth
 re-reading: F-01 (I reported the chain complete when nothing was invocable) and the audit that
@@ -86,11 +87,15 @@ dissolved once their content was resolved.
 | merged as duplicates | 1 pair (`US-13` and `r1`) |
 | **open** | **22** |
 | closed since | 2 — `US-16` and `US-09`, both by `d2c6c38` |
-| **left** | **20** |
+| added since | 1 — `US-26`, the decision `F-21` left behind |
+| **left** | **21** |
 
 Sizes: **S** under an hour, **M** a sitting, **L** its own cycle.
 
-### New — promoted from the suggestions, not previously tracked anywhere
+### New — not previously tracked anywhere
+
+Most came from the first interrogation's suggestions. Three did not: `US-24` from a resolved
+finding, `US-25` from an observation, and `US-26` from a decision that `F-21` left behind.
 
 | | Board | Size | Kind | Item | From |
 |---|---|---|---|---|---|
@@ -103,6 +108,7 @@ Sizes: **S** under an hour, **M** a sitting, **L** its own cycle.
 | **`US-23`** | [89](https://dev.azure.com/MofonCode/ai-sdlc/_workitems/edit/89) | M | charter | Disposition has two lifecycle gaps once time passes | `r37, r40` |
 | **`US-24`** | [90](https://dev.azure.com/MofonCode/ai-sdlc/_workitems/edit/90) | M | process | There is no route for a defect found while doing something else | `F-18` |
 | **`US-25`** | [91](https://dev.azure.com/MofonCode/ai-sdlc/_workitems/edit/91) | S | process | A completed charter-review intent reads as queued forever | `observed 2026-09-25` |
+| **`US-26`** | [92](https://dev.azure.com/MofonCode/ai-sdlc/_workitems/edit/92) | S | decide | Decide which ceremony runs the backlog parity check | `F-21` |
 
 ### Carried — already on the board
 
@@ -181,6 +187,16 @@ One amendment, seven defects, grouped because splitting one document edit seven 
 #### `US-24` · M · **There is no route for a defect found while doing something else** · [#90](https://dev.azure.com/MofonCode/ai-sdlc/_workitems/edit/90) · from `F-18`
 
 Four defects on 2026-09-25 were found mid-task and all blocked progress. Filing an intent for each means four gates; fixing inline bypasses the process. I chose inline, twice, on shipped code — while running the gate for an unrelated intent. `maintain` files intents and never fixes; the repair loop only works inside a cycle. Neither covers this, and until it does anyone will drift the same way.
+
+#### `US-26` · S · **Decide which ceremony runs the backlog parity check** · [#92](https://dev.azure.com/MofonCode/ai-sdlc/_workitems/edit/92)
+
+`Compare-SdlcBacklog.ps1` exists and exits non-zero on disagreement. Nothing runs it.
+
+Three options: `land` refuses while parity is dirty (strongest, and it already refuses without a
+retro, but it needs board credentials so it would gate the local half only); `retro` reports
+parity while reading the cycle's findings (weaker — a report nobody must act on); or accept that
+it runs by hand and say so rather than implying enforcement. **Recommend the first, scoped to the
+local `land`** — a check that only prints gets skimmed, which is `F-21` repeating one level up.
 
 #### `US-25` · S · **A completed charter-review intent reads as queued forever** · [#91](https://dev.azure.com/MofonCode/ai-sdlc/_workitems/edit/91) · from `observed 2026-09-25`
 
@@ -263,10 +279,8 @@ be a CI test — the comparison needs `az` and a credentialled board connection,
 neither — so the gathering runs on a developer machine while the judgement underneath it is
 fixture-tested. Three mutations of the comparison fail the suite.
 
-**Still open, and it is a decision not a task:** which ceremony runs it. Putting *run the parity
-check* in a skill's prose is `US-10`'s weakness exactly — asserting the instruction is present
-rather than that it was obeyed. A promise is what just failed here, so the honest options are to
-have `land` refuse without a clean parity check, or to accept that this one runs by hand. Adding them
+**Which ceremony runs it is `US-26` [#92](https://dev.azure.com/MofonCode/ai-sdlc/_workitems/edit/92)** — a decision, not a task, and it
+had been a paragraph here rather than a story until it was asked whether everything was tracked. Adding them
 is one call away; leaving the board as the subset is also defensible while it is only Peter
 working. What is not defensible is the state before this document existed, where nothing held
 the whole list.
