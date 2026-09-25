@@ -434,6 +434,53 @@ if ($charterPresent) {
 $invariantIds = $invariantIds | Select-Object -Unique
 $decIds = $decIds | Select-Object -Unique
 
+# --- the form rule, which the charter asserts twice and nothing performed --------
+#
+# "A missing or empty `Forbids:` fails the form check." "An empty `Applies-to:` governs
+# nothing and fails the form check for the same reason." The charter says this about itself
+# in two places, and there was no form check - so the one rule governing the shape of every
+# invariant could be violated with nothing to cite. That is the defect `r1` and `US-13`
+# found independently: not a missing feature, a claim the document makes and does not keep.
+#
+# `untestable` is the category, and the charter's own definition settles it: "marked
+# verifiable, but stated so that no test could verify it". An invariant compatible with
+# every possible implementation is exactly that - and Coverage already gives `untestable` a
+# failed-check route, so building this check creates the citation route without touching the
+# charter. INV-08 is not involved: the check makes the charter true rather than changing it.
+#
+# Read from the ARTIFACT rather than from $Charter. When a charter is interrogated they are
+# the same file, but the subject of a finding is the thing under interrogation - and a
+# proposed charter on a branch is precisely when this needs to fire.
+function Get-SdlcInvariantForm {
+    param([string] $Text)
+
+    $rows = @()
+    $matches = [regex]::Matches($Text, '(?m)^#{2,4}\s+((?:INV|LOC)-[0-9]{2})\s')
+
+    for ($i = 0; $i -lt $matches.Count; $i++) {
+        $start = $matches[$i].Index
+        $end = if ($i + 1 -lt $matches.Count) { $matches[$i + 1].Index } else { $Text.Length }
+        $body = $Text.Substring($start, $end - $start)
+
+        # Non-empty means something after the colon ON THE SAME LINE, and the character class
+        # is `[ \t]` rather than `\s` for exactly that reason: in .NET `\s` matches a newline,
+        # so `\s*(\S.*)` walked past the line break and matched the NEXT clause. An invariant
+        # whose `Applies-to:` was empty then read as satisfied because `Forbids:` sat under it,
+        # which is the precise case the charter calls out - "an empty `Applies-to:` governs
+        # nothing and fails the form check for the same reason an empty `Forbids:` does".
+        $forbids = [regex]::Match($body, '(?m)^[ \t]*Forbids:[ \t]*(\S.*)$')
+        $appliesTo = [regex]::Match($body, '(?m)^[ \t]*Applies-to:[ \t]*(\S.*)$')
+
+        $rows += [pscustomobject]@{
+            id            = $matches[$i].Groups[1].Value
+            'has-forbids' = $forbids.Success
+            'has-applies-to' = $appliesTo.Success
+        }
+    }
+
+    return $rows
+}
+
 # --- tree truth ---
 
 Push-Location $RepoRoot
@@ -707,6 +754,30 @@ if ($governed) {
 
     # --- kind-specific checks ---------------------------------------------
 
+    if ($kind -eq 'charter') {
+        # Parsed from $rawText, not $text: stripping struck-through spans is right for
+        # reference extraction and wrong here, because a struck-through invariant heading is
+        # a record of a vacated slot rather than a declaration that must carry clauses.
+        $formRows = @(Get-SdlcInvariantForm -Text $rawText)
+        $malformed = @($formRows | Where-Object { -not $_.'has-forbids' -or -not $_.'has-applies-to' })
+
+        if ($formRows.Count -eq 0) {
+            Add-Check 'invariant-form' $false 'no invariant headings found in a charter'
+        }
+        elseif ($malformed.Count -gt 0) {
+            $detail = ($malformed | ForEach-Object {
+                $missing = @()
+                if (-not $_.'has-forbids') { $missing += 'Forbids:' }
+                if (-not $_.'has-applies-to') { $missing += 'Applies-to:' }
+                "$($_.id) missing $($missing -join ' and ')"
+            }) -join '; '
+            Add-Check 'invariant-form' $false $detail
+        }
+        else {
+            Add-Check 'invariant-form' $true $null
+        }
+    }
+
     if ($kind -eq 'spec') {
         if ($criteria.Count -eq 0) {
             Add-Check 'acceptance-criteria-present' $false 'no parseable acceptance-criteria table'
@@ -817,6 +888,7 @@ $facts = [ordered]@{
         present       = $charterPresent
         version       = $charterVersion
         'invariant-ids' = @($invariantIds)
+        'invariant-form' = @(if ($kind -eq 'charter') { Get-SdlcInvariantForm -Text $rawText } else { @() })
         'dec-ids'     = @($decIds)
     }
     roles              = @($roles)

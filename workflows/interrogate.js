@@ -261,6 +261,13 @@ const CHECK_CATEGORY = {
 
   // Marked verifiable, but nothing proves it.
   'traceability-complete': 'untestable',
+  // An invariant with no Forbids: or no Applies-to: is compatible with every possible
+  // implementation, which is the charter's own definition of untestable: 'marked
+  // verifiable, but stated so that no test could verify it'. Coverage already gives
+  // untestable a failed-check route, so mapping it here is what makes the form rule
+  // citable - and until it was mapped the check fell through to unclassified, which can
+  // never block. The rule would have existed and still been unenforceable.
+  'invariant-form': 'untestable',
 
   // A gate stepped around without a written justification.
   'suppressions-justified': 'gate-bypass',

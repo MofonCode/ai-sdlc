@@ -62,6 +62,7 @@ withdrawn.
 | F-19 | **The only workflow in the framework was syntactically invalid for four commits.** Two errors, both from editing through layers that ate one level of escaping: a regex body that became a single backslash, and a `
 ` in a single-quoted string that became a real newline. `interrogate.js` would have thrown at launch the whole time. Every structural test passed, because they read the file as text | doing `US-16`, and only because node turned out to be installed | `d2c6c38` — `WorkflowSyntaxTests` parses each workflow the way the runtime loads it |
 | F-20 | **A behavioural test of a function nothing calls.** I added the citation validation, then a test that executed `citationResolves` directly and proved it correct. Deleting the *call* — leaving the function sitting there, correct and unused — passed all fifteen structural tests **and** that new test. Proving a guard works is not proving anything consults it | mutation-testing `US-16` before committing it | `d2c6c38` — a second test executes the real assignment loop and reads the states it produces |
+| F-25 | **An empty `Applies-to:` read as satisfied, because `\s` matches a newline.** The form check required something after the colon, written `\s*(\S.*)` — and in .NET `\s` crosses a line break, so the match walked past the empty clause and found `Forbids:` on the next line. The one case the charter calls out by name — "an empty `Applies-to:` governs nothing" — was the one case the check passed | the `US-13` test asserting the empty case fails | same-line class `[ \t]`; mutation W restores the bug and fails |
 | F-24 | **The charter's Coverage table was a fourth copy of the category list with nothing binding it.** Coverage maps every category to the invariant or check that can block on it. It agreed with the declaring table, by luck rather than by check. Either direction of drift is a live failure mode: a category in Axis 1 but not Coverage has no blocking route, and one in Coverage but not Axis 1 guards something nothing can be classified as | a mutation aimed at the declaring table landed on Coverage instead and every test still passed | bound in `TaxonomyBindingTests`; mutation R fails |
 | F-23 | **`in-progress` was decided by a directory name, not by the branch.** The lock scan collected each locked worktree's directory leaf and compared it to `cycle-<id>`, so the state held only while every worktree happened to be named after its branch — which `Invoke-SdlcRun.ps1` does, which is why it worked and why nothing noticed. A worktree for the same branch at any other path read as `dead`, and `dead` means relaunch or discard, so an unattended dispatcher could start a second agent on a branch someone was working in. The `locked` match was also unanchored, so a worktree whose PATH contained the word read as locked — the opposite error, and the one that makes a dispatcher skip work forever | writing the `US-11` test, which failed against a real locked worktree | `git worktree list --porcelain` states the branch outright, so the scan reads that; the directory leaf stays as a fallback for a detached HEAD |
 | F-22 | **Backtick line continuation, which parses cleanly and fails only when run.** A backtick continues a line only when the very next character ends it; a blank line or a trailing space after it silently terminates the statement, so a call spread over three lines becomes a call with no arguments. `Compare-SdlcBacklog.ps1` shipped broken this way in the commit that introduced it, and two shipped scripts held latent instances — `Complete-SdlcCycle.ps1` would have written the suggestions file with wrong arguments, and `Invoke-SdlcRun.ps1` would have launched `claude` with no working directory and no `-PassThru`, making the next line throw. `ParsesUnderWindowsPowerShell` could never catch any of it: the broken form parses perfectly | reformatting `Compare-SdlcBacklog.ps1`, which then refused to run | `HasNoBacktickLineContinuation` and `HasNoDoubledLineEndings` over every shipped script; both continuations replaced with splatted hashtables |
@@ -88,9 +89,9 @@ dissolved once their content was resolved.
 | dissolved | 2 stories |
 | merged as duplicates | 1 pair (`US-13` and `r1`) |
 | **open** | **22** |
-| closed since | 5 — `US-16`, `US-09`, `US-11`, `US-25` and `US-20` |
+| closed since | 6 — `US-16`, `US-09`, `US-11`, `US-25`, `US-20` and `US-13` |
 | added since | 1 — `US-26`, the decision `F-21` left behind |
-| **left** | **18** |
+| **left** | **17** |
 
 Sizes: **S** under an hour, **M** a sitting, **L** its own cycle.
 
@@ -121,7 +122,6 @@ Most came from the first interrogation's suggestions. Two of those still open di
 | **`US-08`** | [74](https://dev.azure.com/MofonCode/ai-sdlc/_workitems/edit/74) | S | charter | Remove DEC-08 from the register |
 | **`US-10`** | [76](https://dev.azure.com/MofonCode/ai-sdlc/_workitems/edit/76) | L | test | Prove a skill obeys its rules, not merely that it states them |
 | **`US-12`** | [78](https://dev.azure.com/MofonCode/ai-sdlc/_workitems/edit/78) | S | decide | The two intents that bypassed the gate |
-| **`US-13`** | [79](https://dev.azure.com/MofonCode/ai-sdlc/_workitems/edit/79) | M | mechanism | Make the charter's form rule mechanical |
 | **`US-14`** | [80](https://dev.azure.com/MofonCode/ai-sdlc/_workitems/edit/80) | S | decide | Confirm teammates have GitHub org access |
 | **`US-15`** | [81](https://dev.azure.com/MofonCode/ai-sdlc/_workitems/edit/81) | S | decide | Decide whether MarketSense code stays on Azure DevOps |
 
@@ -151,7 +151,7 @@ Most came from the first interrogation's suggestions. Two of those still open di
 | `decide` | needs a decision, not work |
 | `blocked` | blocked by agreement |
 
-**`mechanism` is the group that matters.** Four items where the code or the charter claims a check, a scope or a comparison that does not exist. Every one of them makes the framework look stronger than it is. The worst of them, `US-16`, is now closed — it was a hole in the anti-inflation guard, which is what everything else rests on. `US-17` inherits the position: three invariants claim scope over the charter, and interrogating the charter loads none of them.
+**`mechanism` is the group that matters.** Three items where the code or the charter claims a check, a scope or a comparison that does not exist. Every one of them makes the framework look stronger than it is. The worst of them, `US-16`, is now closed — it was a hole in the anti-inflation guard, which is what everything else rests on. `US-17` inherits the position: three invariants claim scope over the charter, and interrogating the charter loads none of them.
 
 ### The detail
 
@@ -236,10 +236,6 @@ Skill tests assert the instruction is present, not that it was followed.
 #### `US-12` · S · **The two intents that bypassed the gate** · [#78](https://dev.azure.com/MofonCode/ai-sdlc/_workitems/edit/78)
 
 Recommend annotating, not retrofitting a paper trail for approvals made in conversation.
-
-#### `US-13` · M · **Make the charter's form rule mechanical** · [#79](https://dev.azure.com/MofonCode/ai-sdlc/_workitems/edit/79)
-
-**Merged with `r1`**, which found the same thing independently: the rule has no citation route, so nothing can cite it even when it is violated.
 
 #### `US-14` · S · **Confirm teammates have GitHub org access** · [#80](https://dev.azure.com/MofonCode/ai-sdlc/_workitems/edit/80)
 
