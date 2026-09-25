@@ -217,12 +217,41 @@ for (const c of (parsedFacts && parsedFacts.checks) || []) {
   if (c && c.id) checkDetail[c.id] = c.detail
 }
 
+// EVERY check id the gatherer can emit must appear here. An unmapped id falls through to
+// `unclassified`, which can never block by construction — so a failed check would be
+// reported as advisory while the charter's Coverage table claims that category blocks
+// through exactly this route. Five of fourteen were mapped until an interrogation of the
+// charter found it; the nine missing included `suppressions-justified` and `plan-adherence`,
+// which is to say gate bypasses and scope drift were silently non-blocking.
+//
+// WorkflowScriptTests binds this map to the gatherer's emitted ids, so adding a check
+// without classifying it fails the build rather than quietly widening the hole.
 const CHECK_CATEGORY = {
+  // A reference that does not resolve: a path, an id, or an annotation naming nothing.
   'paths-resolve': 'unresolvable-reference',
   'invariant-ids-resolve': 'unresolvable-reference',
   'dec-ids-resolve': 'unresolvable-reference',
   'charter-present': 'unresolvable-reference',
+  'annotations-resolve': 'unresolvable-reference',
+  'plan-files-consistent': 'unresolvable-reference',
+
+  // Something required by the artifact's kind is absent.
   'frontmatter-present': 'missing-case',
+  'acceptance-criteria-present': 'missing-case',
+  'plan-declares-files': 'missing-case',
+
+  // Two representations of one fact, with nothing binding them.
+  'acceptance-criteria-unique': 'duplicated-truth',
+
+  // Marked verifiable, but nothing proves it.
+  'traceability-complete': 'untestable',
+
+  // A gate stepped around without a written justification.
+  'suppressions-justified': 'gate-bypass',
+
+  // The work did more than the upstream artifact authorised.
+  'plan-adherence': 'scope-drift',
+  'tier-not-escalated': 'scope-drift',
 }
 
 const mechanical = failedChecks.map((id, i) => ({

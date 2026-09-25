@@ -140,7 +140,41 @@ try {
         return
     }
 
-    # --- 3. squash-merge ---------------------------------------------------
+    # --- 3. unresolved suggestions become intake ---------------------------
+    #
+    # Written HERE, on the cycle branch, before the squash, so the file rides in with the
+    # merge exactly as the retro does. Written after re-verification rather than before,
+    # because a cycle that fails re-verify is not landing and its suggestions are not yet
+    # intake.
+    #
+    # ONE FILE PER CYCLE, never a shared backlog: a single file every cycle appends to
+    # conflicts the way plugin.json does under concurrent cycles, which is a guaranteed
+    # collision rather than a possible one.
+    $findingsPath = Join-Path $RepoRoot ".sdlc/cycles/$CycleId/findings.json"
+    if (Test-Path -LiteralPath $findingsPath) {
+        $formatScript = Join-Path $PSScriptRoot 'Format-SdlcFindings.ps1'
+        $suggestionsRel = ".sdlc/suggestions/$CycleId.md"
+
+        & $formatScript -Path $findingsPath -State 'suggested' `
+            -OutFile $suggestionsRel -RepoRoot $RepoRoot | Out-Null
+
+        git add -- $suggestionsRel 2>&1 | Out-Null
+        # --quiet so an empty suggestion set is not an error: a cycle with nothing
+        # suggested is a good cycle, not a failed landing.
+        git diff --cached --quiet
+        if ($LASTEXITCODE -ne 0) {
+            git commit -m "$CycleId`: unresolved suggestions" 2>&1 | Out-Null
+            Add-Step 'suggestions' $true "wrote $suggestionsRel"
+        }
+        else {
+            Add-Step 'suggestions' $true 'nothing suggested, nothing to record'
+        }
+    }
+    else {
+        Add-Step 'suggestions' $true 'no findings document for this cycle'
+    }
+
+    # --- 4. squash-merge ---------------------------------------------------
 
     $title = (git log -1 --format='%s' $branch).Trim()
 
@@ -161,6 +195,9 @@ try {
     Write-Host ''
     Write-Host "$CycleId landed." -ForegroundColor Green
     Write-Host 'The retro rode in with the squash, so this cycle now reads as done.'
+    Write-Host 'Unresolved suggestions landed as .sdlc/suggestions/' + "$CycleId.md" + ', for triage'
+    Write-Host 'on your own schedule. Promoting one means filing an ordinary intent with'
+    Write-Host '`source: suggestion`.'
     Write-Host ''
     Write-Host 'Note: plugin.json is bumped when the `release` ref moves, not here. Nobody'
     Write-Host 'consumes master, so a bump at merge would signal nothing.'

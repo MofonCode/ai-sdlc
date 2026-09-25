@@ -202,6 +202,76 @@ public sealed class WorkflowScriptTests
     }
 
     [TestMethod]
+    public void EveryCheckTheGathererEmitsIsClassified()
+    {
+        // THE BINDING CHECK, and it exists because the omission it prevents was real. An
+        // unmapped check id falls through to `unclassified`, which can never block by
+        // construction — so a failed check would be reported as advisory while the charter's
+        // Coverage table claims that category blocks through exactly this route.
+        //
+        // Five of fourteen were mapped for two days. The nine missing included
+        // `suppressions-justified` and `plan-adherence`, which is to say gate bypasses and
+        // scope drift were silently non-blocking. An interrogation of the charter found it;
+        // nothing in this suite would have.
+        Dictionary<string, string> mapped = InterrogateCheckCategories();
+        string[] emitted = GathererCheckIds();
+
+        List<string> unmapped = [.. emitted.Where(id => !mapped.ContainsKey(id))];
+        Assert.AreEqual(0, unmapped.Count,
+            "these checks fall through to `unclassified` and can never block: " +
+            string.Join(", ", unmapped));
+
+        // The reverse direction matters too, though less: a mapped id the gatherer never
+        // emits is dead weight that reads as coverage.
+        List<string> phantom = [.. mapped.Keys.Where(id => !emitted.Contains(id))];
+        Assert.AreEqual(0, phantom.Count,
+            "these are classified but never emitted, so the map overstates its coverage: " +
+            string.Join(", ", phantom));
+    }
+
+    [TestMethod]
+    public void NoCheckIsClassifiedAsUnclassified()
+    {
+        // Mapping a check to `unclassified` would satisfy the binding check above while
+        // reintroducing exactly the defect it exists to stop.
+        foreach ((string id, string category) in InterrogateCheckCategories())
+        {
+            Assert.AreNotEqual("unclassified", category,
+                $"check '{id}' is classified as unclassified, which can never block");
+        }
+    }
+
+    private static Dictionary<string, string> InterrogateCheckCategories()
+    {
+        Match block = Regex.Match(
+            ReadCode("interrogate.js"),
+            @"const\s+CHECK_CATEGORY\s*=\s*\{(?<body>.*?)
+\}",
+            RegexOptions.Singleline);
+
+        Assert.IsTrue(block.Success, "could not find CHECK_CATEGORY in interrogate.js");
+
+        Dictionary<string, string> map = new(StringComparer.Ordinal);
+        foreach (Match m in Regex.Matches(block.Groups["body"].Value, @"'(?<id>[a-z-]+)'\s*:\s*'(?<cat>[a-z-]+)'"))
+        {
+            map[m.Groups["id"].Value] = m.Groups["cat"].Value;
+        }
+
+        return map;
+    }
+
+    private static string[] GathererCheckIds()
+    {
+        // Read from the gatherer's source, which is the thing that decides what exists.
+        // Stripped, so a commented-out check does not count as emitted.
+        string code = SourceText.StripPowerShellComments(
+            File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "tools", "Get-SdlcFacts.ps1")));
+
+        return [.. Regex.Matches(code, @"Add-Check\s+'(?<id>[a-z-]+)'")
+            .Select(m => m.Groups["id"].Value).Distinct(StringComparer.Ordinal)];
+    }
+
+    [TestMethod]
     public void InterrogateIsTheOnlyWorkflowThatShips()
     {
         // Every other stage became a skill. A workflow is correct only when several agents
