@@ -62,6 +62,7 @@ withdrawn.
 | F-19 | **The only workflow in the framework was syntactically invalid for four commits.** Two errors, both from editing through layers that ate one level of escaping: a regex body that became a single backslash, and a `
 ` in a single-quoted string that became a real newline. `interrogate.js` would have thrown at launch the whole time. Every structural test passed, because they read the file as text | doing `US-16`, and only because node turned out to be installed | `d2c6c38` — `WorkflowSyntaxTests` parses each workflow the way the runtime loads it |
 | F-20 | **A behavioural test of a function nothing calls.** I added the citation validation, then a test that executed `citationResolves` directly and proved it correct. Deleting the *call* — leaving the function sitting there, correct and unused — passed all fifteen structural tests **and** that new test. Proving a guard works is not proving anything consults it | mutation-testing `US-16` before committing it | `d2c6c38` — a second test executes the real assignment loop and reads the states it produces |
+| F-26 | **A renamed hook script would have removed the protection silently.** `hooks/hooks.json` names the gate by path, and `powershell -File` on a missing script exits non-zero — which is not the exit code that blocks. So renaming the script would have left `hooks.json` looking correct and the charter unprotected, with nothing to say so | mutation-testing the hook wiring | `EveryHookCommandPointsAtAScriptThatExists` resolves `${CLAUDE_PLUGIN_ROOT}` and asserts the file is there; the matcher is bound to the tools it must cover |
 | F-25 | **An empty `Applies-to:` read as satisfied, because `\s` matches a newline.** The form check required something after the colon, written `\s*(\S.*)` — and in .NET `\s` crosses a line break, so the match walked past the empty clause and found `Forbids:` on the next line. The one case the charter calls out by name — "an empty `Applies-to:` governs nothing" — was the one case the check passed | the `US-13` test asserting the empty case fails | same-line class `[ \t]`; mutation W restores the bug and fails |
 | F-24 | **The charter's Coverage table was a fourth copy of the category list with nothing binding it.** Coverage maps every category to the invariant or check that can block on it. It agreed with the declaring table, by luck rather than by check. Either direction of drift is a live failure mode: a category in Axis 1 but not Coverage has no blocking route, and one in Coverage but not Axis 1 guards something nothing can be classified as | a mutation aimed at the declaring table landed on Coverage instead and every test still passed | bound in `TaxonomyBindingTests`; mutation R fails |
 | F-23 | **`in-progress` was decided by a directory name, not by the branch.** The lock scan collected each locked worktree's directory leaf and compared it to `cycle-<id>`, so the state held only while every worktree happened to be named after its branch — which `Invoke-SdlcRun.ps1` does, which is why it worked and why nothing noticed. A worktree for the same branch at any other path read as `dead`, and `dead` means relaunch or discard, so an unattended dispatcher could start a second agent on a branch someone was working in. The `locked` match was also unanchored, so a worktree whose PATH contained the word read as locked — the opposite error, and the one that makes a dispatcher skip work forever | writing the `US-11` test, which failed against a real locked worktree | `git worktree list --porcelain` states the branch outright, so the scan reads that; the directory leaf stays as a fallback for a detached HEAD |
@@ -89,9 +90,9 @@ dissolved once their content was resolved.
 | dissolved | 2 stories |
 | merged as duplicates | 1 pair (`US-13` and `r1`) |
 | **open** | **22** |
-| closed since | 6 — `US-16`, `US-09`, `US-11`, `US-25`, `US-20` and `US-13` |
+| closed since | 7 — `US-16`, `US-09`, `US-11`, `US-25`, `US-20`, `US-13` and `US-02` |
 | added since | 1 — `US-26`, the decision `F-21` left behind |
-| **left** | **17** |
+| **left** | **16** |
 
 Sizes: **S** under an hour, **M** a sitting, **L** its own cycle.
 
@@ -116,7 +117,6 @@ Most came from the first interrogation's suggestions. Two of those still open di
 | | # | Size | Kind | Item |
 |---|---|---|---|---|
 | **`US-01`** | [67](https://dev.azure.com/MofonCode/ai-sdlc/_workitems/edit/67) | L | blocked | Run one cycle end to end |
-| **`US-02`** | [68](https://dev.azure.com/MofonCode/ai-sdlc/_workitems/edit/68) | M | build | Make charter protection mechanical instead of prose |
 | **`US-06`** | [72](https://dev.azure.com/MofonCode/ai-sdlc/_workitems/edit/72) | M | blocked | Measure per-role yield before trusting the role set |
 | **`US-07`** | [73](https://dev.azure.com/MofonCode/ai-sdlc/_workitems/edit/73) | M | cost | Cut interrogation cost |
 | **`US-08`** | [74](https://dev.azure.com/MofonCode/ai-sdlc/_workitems/edit/74) | S | charter | Remove DEC-08 from the register |
@@ -196,10 +196,6 @@ local `land`** — a check that only prints gets skimmed, which is `F-21` repeat
 #### `US-01` · L · **Run one cycle end to end** · [#67](https://dev.azure.com/MofonCode/ai-sdlc/_workitems/edit/67)
 
 **Blocked by agreement**: no cycles until the concept is complete.
-
-#### `US-02` · M · **Make charter protection mechanical instead of prose** · [#68](https://dev.azure.com/MofonCode/ai-sdlc/_workitems/edit/68)
-
-Its design record is the abandoned intent `20260925-963e` — fail closed in every case, four protected paths. Build it as bootstrap work.
 
 #### `US-06` · M · **Measure per-role yield before trusting the role set** · [#72](https://dev.azure.com/MofonCode/ai-sdlc/_workitems/edit/72)
 
@@ -283,6 +279,14 @@ had been a paragraph here rather than a story until it was asked whether everyth
 is one call away; leaving the board as the subset is also defensible while it is only Peter
 working. What is not defensible is the state before this document existed, where nothing held
 the whole list.
+
+### The INV-08 gate is built and not yet enforcing
+
+`Assert-SdlcCharterGate.ps1` ships as a plugin component, so it takes effect when the **installed**
+plugin next updates — not when this work lands. The marketplace points at `#release`, so until the
+release tag moves the gate is present in the repository and inert on this machine. Recorded here so
+nobody concludes it is broken when it is merely not yet installed, and so nobody assumes the charter
+is protected locally before then.
 
 ### And no cycles
 
