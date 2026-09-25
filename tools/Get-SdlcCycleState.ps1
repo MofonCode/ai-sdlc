@@ -122,12 +122,29 @@ finally {
     Pop-Location
 }
 
+# THE BRANCH IS THE LINK, NOT THE DIRECTORY NAME. This collected only the worktree
+# directory's leaf and compared it to `cycle-<id>` below, so `in-progress` held only while
+# every worktree happened to be named after its branch. `Invoke-SdlcRun.ps1` does name them
+# that way, which is why it worked and why nothing noticed.
+#
+# The failure it hid is not cosmetic. A worktree for the same branch at any other path reads
+# as `dead` - and `dead` means "relaunch or discard", so an unattended dispatcher could start
+# a second agent on a branch someone is actively working in. That double launch is the exact
+# thing this state exists to prevent.
+#
+# `git worktree list --porcelain` states the branch outright, so use it. The directory leaf
+# stays as a fallback for a detached-HEAD worktree, which has no branch line at all.
 $lockedWorktrees = @()
 foreach ($block in ($worktreeBlocks -split "(`n`n|`r`n`r`n)")) {
-    if ($block -match 'locked') {
-        if ($block -match '(?m)^worktree\s+(.+)$') {
-            $lockedWorktrees += (Split-Path -Leaf $Matches[1].Trim())
-        }
+    # Anchored: an unanchored 'locked' also matches a worktree whose PATH contains the word.
+    if ($block -notmatch '(?m)^locked') { continue }
+
+    if ($block -match '(?m)^branch\s+refs/heads/(.+)$') {
+        $lockedWorktrees += $Matches[1].Trim()
+    }
+
+    if ($block -match '(?m)^worktree\s+(.+)$') {
+        $lockedWorktrees += (Split-Path -Leaf $Matches[1].Trim())
     }
 }
 

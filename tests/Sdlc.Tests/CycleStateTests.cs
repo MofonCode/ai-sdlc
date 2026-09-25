@@ -21,6 +21,12 @@ public sealed class CycleStateTests
 
     private static string? _repo;
 
+    /// <summary>A locked worktree, so `in-progress` has a fixture that is not a mock.</summary>
+    private static string? _worktree;
+
+    /// <summary>An UNLOCKED worktree whose path contains "locked", to catch a loose match.</summary>
+    private static string? _decoyWorktree;
+
     [ClassInitialize]
     public static void CreateFixtureRepo(TestContext context)
     {
@@ -121,11 +127,33 @@ public sealed class CycleStateTests
         Git("-c user.email=t@example.invalid -c user.name=Test commit -m fixture");
 
         // A branch with no lock and no verify.md reads as dead; with verify.md it reads as
-        // awaiting-landing. Both are created here, unlocked — a locked worktree needs a
-        // live agent holding it, which a test cannot honestly fake.
+        // awaiting-landing. Both are created here, unlocked.
         Git("branch cycle-20260924-3333");
         Git("branch cycle-20260924-7777");
         File.WriteAllText(Path.Combine(intents, "20260924-7777.md"), Intent("20260924-7777"));
+
+        // in-progress — a REAL locked worktree. An earlier version of this comment said a
+        // locked worktree "needs a live agent holding it, which a test cannot honestly fake",
+        // and left the one state nothing covered. That was wrong: `git worktree lock` writes a
+        // file, it needs no process holding anything, and the derivation reads exactly that
+        // file. The claim had talked the suite out of covering the state that decides whether
+        // an unattended dispatcher relaunches work already running.
+        File.WriteAllText(Path.Combine(intents, "20260924-8a01.md"), Intent("20260924-8a01"));
+        Git("branch cycle-20260924-8a01");
+        _worktree = _repo + "-wt";
+        Git($"worktree add \"{_worktree}\" cycle-20260924-8a01");
+        Git($"worktree lock \"{_worktree}\"");
+
+        // dead, NOT in-progress — an UNLOCKED worktree whose PATH contains "locked". The lock
+        // test reads `git worktree list --porcelain`, where `locked` is a line of its own; an
+        // unanchored match also finds the word inside the path on the `worktree` line, and
+        // would report an abandoned worktree as an agent actively running. That is the
+        // expensive direction: a dispatcher skips work it should relaunch, silently and
+        // forever.
+        File.WriteAllText(Path.Combine(intents, "20260924-8a02.md"), Intent("20260924-8a02"));
+        Git("branch cycle-20260924-8a02");
+        _decoyWorktree = _repo + "-locked-wt";
+        Git($"worktree add \"{_decoyWorktree}\" cycle-20260924-8a02");
     }
 
     [ClassCleanup]
@@ -134,6 +162,20 @@ public sealed class CycleStateTests
         if (_repo is null || !Directory.Exists(_repo))
         {
             return;
+        }
+
+        // Unlock and remove the worktree first. A locked worktree keeps its own
+        // administrative files, and deleting the repository under it leaves git metadata
+        // pointing at nothing — which breaks the NEXT run rather than this one.
+        if (_worktree is not null && Directory.Exists(_worktree))
+        {
+            TryGit($"worktree unlock \"{_worktree}\"");
+            TryGit($"worktree remove --force \"{_worktree}\"");
+        }
+
+        if (_decoyWorktree is not null && Directory.Exists(_decoyWorktree))
+        {
+            TryGit($"worktree remove --force \"{_decoyWorktree}\"");
         }
 
         try
@@ -154,6 +196,25 @@ public sealed class CycleStateTests
     }
 
     private static void Git(string args) => Run("git", args);
+
+    /// <summary>Cleanup git: a failure here must not mask the test result.</summary>
+    private static void TryGit(string args)
+    {
+        try
+        {
+            using Process p = Process.Start(new ProcessStartInfo("git", args)
+            {
+                WorkingDirectory = _repo!,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false,
+            })!;
+            p.WaitForExit();
+        }
+        catch (System.ComponentModel.Win32Exception)
+        {
+        }
+    }
 
     private static string Run(string exe, string args)
     {
@@ -237,6 +298,37 @@ public sealed class CycleStateTests
     {
         // The state worth surfacing: progress has stopped and only a person can restart it.
         Assert.AreEqual("awaiting-landing", StateOf(States(), "20260924-3333"));
+    }
+
+    [TestMethod]
+    public void ALockedWorktreeIsInProgressAndNotDispatchable()
+    {
+        // THE STATE THAT STOPS A DOUBLE LAUNCH. `in-progress` is how an unattended dispatcher
+        // knows work is already running; read as `planned` instead, a batch would start a
+        // second agent on the same branch. It was the one state with no coverage, excused by a
+        // claim about locks that turned out to be false.
+        Dictionary<string, JsonElement> states = States();
+
+        Assert.AreEqual("in-progress", StateOf(states, "20260924-8a01"),
+            "a branch with a locked worktree is being worked on right now");
+        Assert.IsTrue(states["20260924-8a01"].GetProperty("worktree-locked").GetBoolean(),
+            "the lock is the evidence, and it must be reported as such");
+        Assert.IsFalse(states["20260924-8a01"].GetProperty("dispatchable").GetBoolean(),
+            "dispatching this would put a second agent on a branch already in use");
+    }
+
+    [TestMethod]
+    public void AWorktreePathContainingLockedIsNotALock()
+    {
+        // The word "locked" in a PATH is not a lock. `git worktree list --porcelain` puts
+        // `locked` on a line of its own, so the match must be anchored; unanchored, this
+        // fixture reads as an agent running and a dispatcher would never relaunch it.
+        Dictionary<string, JsonElement> states = States();
+
+        Assert.AreEqual("dead", StateOf(states, "20260924-8a02"),
+            "an unlocked worktree is dead however its directory is spelled");
+        Assert.IsFalse(states["20260924-8a02"].GetProperty("worktree-locked").GetBoolean(),
+            "nothing here is locked");
     }
 
     [TestMethod]
