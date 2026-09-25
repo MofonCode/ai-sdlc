@@ -32,7 +32,7 @@ public sealed class SkillTests
     private static readonly string[] Expected =
     [
         "intent", "spec", "plan", "repair", "build", "verify", "retro",
-        "run", "init", "absorb-retro",
+        "run", "init", "absorb-retro", "grill", "maintain",
     ];
 
     public static IEnumerable<object[]> AllSkills() => Expected.Select(s => new object[] { s });
@@ -104,7 +104,7 @@ public sealed class SkillTests
         // `run` launches N unattended processes, `init` writes a charter, `absorb-retro`
         // proposes charter amendments. None should start because a model inferred it was a
         // good idea; each is a deliberate act by a person.
-        foreach (string skill in new[] { "run", "init", "absorb-retro" })
+        foreach (string skill in new[] { "run", "init", "absorb-retro", "grill", "maintain" })
         {
             Assert.IsTrue(Read(skill).Contains("disable-model-invocation: true", StringComparison.Ordinal),
                 $"{skill} has real side effects and must be user-invoked only");
@@ -316,6 +316,38 @@ public sealed class SkillTests
         }
 
         Assert.IsTrue(text.Contains("dotnet-library", StringComparison.Ordinal));
+    }
+
+    [TestMethod]
+    public void GrillIsDistinguishedFromInterrogationAndProducesNoArtifact()
+    {
+        // The two are opposites and confusing them wastes the expensive one. Interrogation
+        // works because roles cannot contaminate each other; grilling works because teammates
+        // argue directly, which orthogonal roles cannot do.
+        MustState("grill",
+            "This is not interrogation",
+            "No governed artifact",
+            "cannot spawn under `claude -p`",
+            "Do not act on the conclusion");
+    }
+
+    [TestMethod]
+    public void MaintainFilesIntentsAndNeverFixes()
+    {
+        // Maintenance that fixed things directly would be a second path into the codebase
+        // that skips every gate — and the path of least resistance, because the work looks
+        // trivial. A CVE bump is one line that can break a build.
+        MustState("maintain",
+            "It never fixes",
+            "Do not edit a version file",
+            "charter-review",
+            "telemetry");
+    }
+
+    [TestMethod]
+    public void AbsorbRetroComputesSignalsWithTheQueryRatherThanByHand()
+    {
+        MustState("absorb-retro", "Get-SdlcSignals.ps1", "read-only and it stores nothing");
     }
 
     [TestMethod]

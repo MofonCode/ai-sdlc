@@ -210,7 +210,7 @@ public sealed class PluginManifestTests
         foreach (string stage in new[]
                  {
                      "intent", "spec", "interrogate", "repair", "plan", "build", "verify",
-                     "retro", "run", "init", "absorb-retro",
+                     "retro", "run", "init", "absorb-retro", "grill", "maintain",
                  })
         {
             Assert.IsTrue(commands.Contains(stage),

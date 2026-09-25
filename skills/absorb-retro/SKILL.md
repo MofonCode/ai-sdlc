@@ -34,7 +34,14 @@ Every amendment signal is **derived from the corpus by a read-only query**. Neve
 to a committed file: that would be a second list beside the corpus, and the charter would
 grow with every cycle.
 
-Read the charter's amendment table and compute what it names:
+One command computes them all:
+
+```
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File tools/Get-SdlcSignals.ps1
+```
+
+It is read-only and it stores nothing, which is the point. Read the charter's amendment table
+alongside it, because the table is what says how to read each signal:
 
 | Signal | Reading |
 |---|---|
