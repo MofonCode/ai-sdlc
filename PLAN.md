@@ -27,17 +27,20 @@ Read this section first. It is the whole handoff.
 
 ```
 branch        bootstrap
-last commit   79aee85
-verify        dotnet test   → expect 149 passed, 0 failed
-plugin        claude plugin validate . --strict   → expect "Validation passed"
+last commit   a690f29
+verify        dotnet test   → expect 255 passed, 0 failed
+plugin        claude plugin validate . --strict                    → marketplace, passes
+              claude plugin validate .claude-plugin/plugin.json    → plugin, passes
+installed     sdlc@ai-sdlc, from the private GitHub marketplace
 ```
 
-**Next task:** the library exists and the charter has been through the process once. The
-open question is whether any of it works when invoked **by name** — every execution so far has
-been by file path. After that: item 12 (retro absorption), 13 (marketplace), 14 (the
-`dotnet-library` pack).
+**Next task: run a real cycle.** The concept is built — all eleven missing components, A
+through E, landed on 2026-09-25 — so the bootstrapping exemption has expired for the reason
+that was actually agreed: there is no longer a missing part for a ceremony to discover.
 
-If `dotnet test` does not report 149 passing, stop and diagnose before building anything:
+Nothing has yet gone intent → spec → plan → build → verify → land → retro. Start small.
+
+If `dotnet test` does not report 255 passing, stop and diagnose before building anything:
 the test suite is the only thing standing between "this looks right" and "this works".
 
 ---
@@ -104,12 +107,13 @@ proves too expensive on larger artifacts.
 
 > **Enough = every decision in `concept.raw.md` is built.**
 
-**Not reached.** An earlier version of this section said "a complete chain from a
-hand-written intent to a landed retro", declared it reached on 2026-09-24, and called the
-rest conveniences. All three were wrong: the chain was not invocable, and eleven concept
-decisions are unbuilt — including the **intent gate**, which is a gate, not a convenience.
+**Reached 2026-09-25.** All eleven missing components built, ordered A through E. The audit
+below is kept as the record of what was missing and why each piece exists.
 
-The audit is below. When it is empty, the ceremonies begin.
+An earlier version of this section said "a complete chain from a hand-written intent to a
+landed retro", declared it reached on 2026-09-24, and called the rest conveniences. All three
+were wrong: the chain was not invocable, and eleven decisions were unbuilt — including the
+**intent gate**, which is a gate rather than a convenience.
 
 ---
 
@@ -167,8 +171,30 @@ forbidden from writing that field.
 
 ## What the concept still asks for
 
-Audited 2026-09-25 against all 93 `DECIDED` entries in `concept.raw.md`. **Eleven
-components are missing outright.** Build order is A through E; ceremonies begin after E.
+Audited 2026-09-25 against all 93 `DECIDED` entries in `concept.raw.md`. Eleven components
+were missing; **all eleven are now built.** Kept as the record of what each piece is for.
+
+| | Built | What it is |
+|---|---|---|
+| **A1** | `855498c` | `Format-SdlcFindings.ps1` — one renderer, two audiences |
+| **A2** | `855498c` | the same renderer, unfiltered, uncommitted |
+| **B1** | `5fbcc49` | `Submit-SdlcIntent.ps1` — the intent gate |
+| **B2** | `5fbcc49` | `Find-SdlcCharterIntent.ps1` — dedup, and the already-refused case |
+| **C1-C3** | `2a2652a` | `packs/dotnet-library/` — facts, rules, charter, scaffolder |
+| **D1** | `c1a9731` | `Move-SdlcRelease.ps1` + `marketplace.json` |
+| **D2** | `c1a9731` | `.github/workflows/release-gate.yml` |
+| **E1** | `7fe1c9b` | `skills/grill/` |
+| **E2** | `7fe1c9b` | `skills/maintain/` |
+| **E3** | `1a68ee5` | landing deploys through a pull request |
+| **E4** | `7fe1c9b` | `Get-SdlcSignals.ps1` |
+| **E5** | `a690f29` | charter v3 — roles are data, `gaps` learns the artifact |
+
+**DEC-08 is answered.** A marketplace install authenticates against a private GitHub repo
+using ambient git credentials — no PAT, no token in the repo. Proven by installing
+`sdlc@ai-sdlc` from it. Removing the entry from the register is a charter change and needs
+its own intent.
+
+What follows is the original audit, unchanged.
 
 ### A — finish what is half-built
 
@@ -332,13 +358,18 @@ Answers DEC-08, and depends on the hosting contradiction below being settled.
   worth it, so a syntax error surfaces at first launch rather than at build. A real cost
   of the Node decision, not a defect in the tests. The PowerShell side has no equivalent
   gap — those are parsed by the real 5.1 parser in the suite.
-- **No `/sdlc:*` command has ever been invoked by name.** The interrogation ran by file
-  path, via the Workflow tool's `scriptPath`. So the plugin's command surface — the thing the
-  whole library is for — is still unproven. This is the cheapest remaining unknown and the one
-  everything else assumes.
-- **Nine of the ten skills have never run.** They are markdown; the tests assert each still
-  states its load-bearing rule, which is weaker than the workflow tests they replaced: a test
-  can show the instruction is present, not that it was obeyed.
+- ~~**No `/sdlc:*` command has ever been invoked by name.**~~ A fresh session resolves all
+  twelve skills and the workflow by name. The three with real side effects — `run`, `init`,
+  `absorb-retro` — are correctly hidden from the model and visible only to a person.
+- **Eleven of the twelve skills have never run.** They are markdown; the tests assert each
+  still states its load-bearing rule, which is weaker than the workflow tests they replaced:
+  a test can show the instruction is present, not that it was obeyed.
+- **No cycle has gone end to end.** No spec, plan, `verify.md` or retro has ever been
+  produced by its skill, and `Complete-SdlcCycle.ps1` has never landed anything. This is now
+  the only large unknown left.
+- **`bootstrap` has never merged to master.** `master` is still at the initial commit, so
+  `release` cannot be cut and the marketplace is pinned to `#bootstrap` rather than
+  `#release`.
 - **A locked worktree cannot be faked in a test**, so `in-progress` is the one lifecycle
   state asserted only by inspection of the derivation rather than end to end.
 - **Interrogator roles are hardcoded in `interrogate.js`** rather than read from the
@@ -369,6 +400,12 @@ against real input, not from reading the design.
 
 | Commit | Item | Correction it produced |
 |---|---|---|
+| `a690f29` | E5 · roles as data | **My charter parser reported twenty-five roles**, sweeping in the coverage table, the taxonomy, the state table and the disposition table. The charter is full of tables that look alike and only position distinguishes them |
+| `1a68ee5` | E3 · deploy | **The retro skill and landing deadlocked.** Landing refuses to open its PR without a retro; the retro skill refused to write one before the merge. The concept settles it: the retro is written on the cycle branch and rides in with the squash |
+| `c1a9731` | D · release | **The intent gate had the defect it exists to prevent.** It branched from HEAD while the PR targets master, so submitting from the 45-commit bootstrap branch would have proposed all 45 |
+| `2a2652a` | C · pack | **Two defects found by building the scaffolder's output**, neither visible from reading it: a reader that matched only column-zero keys, so every version was empty and restore failed; and a test project that inherited settings under which NO TEST COULD COMPILE |
+| `5fbcc49` | B · gates | **`2>&1` on a native command makes a successful git call throw** under `Stop`. Fourteen calls, eight in the landing script, which had never been run |
+| `855498c` | A · suggestions | **Nine of fourteen checks could not block.** Unmapped ids fell through to `unclassified`, so gate bypasses and scope drift were silently advisory. Found by an interrogation, not by this suite |
 | `79aee85` | — · outcome script | **My fixture was wrong and the parser was right.** Mnemonic cycle ids `cln1`/`unc1` are not valid: an id is eight digits plus four *hex* characters, so the criteria parser declined to read criteria keyed to a malformed id and every coverage assertion failed for an unrelated reason |
 | `c7021f0` | — · skills migration | **`Workflow` is stripped from every subagent**, so any stage a subagent or teammate might drive cannot be a workflow. And my own new test read raw text and matched the comment explaining an absence — the fifth instance of discipline 8 in this suite, committed by its author |
 | `f10a659` | — · first interrogation | **The workflow permits a mode the artifact model has no place for**: a standalone charter interrogation has no cycle, so it emits a `cycle-id` the schema requires and rejects. Also measured rather than guessed: 46 agents, because triage spends one agent per candidate. And the `locations` cite route carried 8 of 10 blocking findings, being much cheaper to earn than an invariant |
