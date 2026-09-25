@@ -62,6 +62,7 @@ withdrawn.
 | F-19 | **The only workflow in the framework was syntactically invalid for four commits.** Two errors, both from editing through layers that ate one level of escaping: a regex body that became a single backslash, and a `
 ` in a single-quoted string that became a real newline. `interrogate.js` would have thrown at launch the whole time. Every structural test passed, because they read the file as text | doing `US-16`, and only because node turned out to be installed | `d2c6c38` — `WorkflowSyntaxTests` parses each workflow the way the runtime loads it |
 | F-20 | **A behavioural test of a function nothing calls.** I added the citation validation, then a test that executed `citationResolves` directly and proved it correct. Deleting the *call* — leaving the function sitting there, correct and unused — passed all fifteen structural tests **and** that new test. Proving a guard works is not proving anything consults it | mutation-testing `US-16` before committing it | `d2c6c38` — a second test executes the real assignment loop and reads the states it produces |
+| F-23 | **`in-progress` was decided by a directory name, not by the branch.** The lock scan collected each locked worktree's directory leaf and compared it to `cycle-<id>`, so the state held only while every worktree happened to be named after its branch — which `Invoke-SdlcRun.ps1` does, which is why it worked and why nothing noticed. A worktree for the same branch at any other path read as `dead`, and `dead` means relaunch or discard, so an unattended dispatcher could start a second agent on a branch someone was working in. The `locked` match was also unanchored, so a worktree whose PATH contained the word read as locked — the opposite error, and the one that makes a dispatcher skip work forever | writing the `US-11` test, which failed against a real locked worktree | `git worktree list --porcelain` states the branch outright, so the scan reads that; the directory leaf stays as a fallback for a detached HEAD |
 | F-22 | **Backtick line continuation, which parses cleanly and fails only when run.** A backtick continues a line only when the very next character ends it; a blank line or a trailing space after it silently terminates the statement, so a call spread over three lines becomes a call with no arguments. `Compare-SdlcBacklog.ps1` shipped broken this way in the commit that introduced it, and two shipped scripts held latent instances — `Complete-SdlcCycle.ps1` would have written the suggestions file with wrong arguments, and `Invoke-SdlcRun.ps1` would have launched `claude` with no working directory and no `-PassThru`, making the next line throw. `ParsesUnderWindowsPowerShell` could never catch any of it: the broken form parses perfectly | reformatting `Compare-SdlcBacklog.ps1`, which then refused to run | `HasNoBacktickLineContinuation` and `HasNoDoubledLineEndings` over every shipped script; both continuations replaced with splatted hashtables |
 | F-21 | **The board and the backlog file drifted, and nothing could fail.** Ten stories existed only in `FINDINGS.md`; `US-03` was released and `US-04`/`US-05` dissolved while all three sat in `New`. Two representations of one list with no check between them — INV-03, in the repository that declares INV-03. Nothing caught it because closing a work item is not part of any ceremony: `verify` reads the build, `land` reads the PR, `retro` reads the findings, and nothing reads the board | being asked whether stories were being updated as they completed | `tools/Compare-SdlcBacklog.ps1` — reports every disagreement and exits non-zero; the comparison is fixture-tested, and three mutations of it fail |
 | F-18 | **The process has no route for a defect found while doing something else.** F-14 through F-17 were all found mid-task and all blocked progress. Filing an intent for each would mean five gates; fixing them inline bypasses the process. I chose inline, twice, on shipped code — while running the gate for an unrelated intent | doing the above, and being asked about it | **open, and tracked as `US-24` [#90](https://dev.azure.com/MofonCode/ai-sdlc/_workitems/edit/90).** `maintain` files intents and never fixes; the repair loop only works inside a cycle. Neither covers this |
@@ -86,16 +87,16 @@ dissolved once their content was resolved.
 | dissolved | 2 stories |
 | merged as duplicates | 1 pair (`US-13` and `r1`) |
 | **open** | **22** |
-| closed since | 2 — `US-16` and `US-09`, both by `d2c6c38` |
+| closed since | 4 — `US-16`, `US-09`, `US-11` and `US-25` |
 | added since | 1 — `US-26`, the decision `F-21` left behind |
-| **left** | **21** |
+| **left** | **19** |
 
 Sizes: **S** under an hour, **M** a sitting, **L** its own cycle.
 
 ### New — not previously tracked anywhere
 
-Most came from the first interrogation's suggestions. Three did not: `US-24` from a resolved
-finding, `US-25` from an observation, and `US-26` from a decision that `F-21` left behind.
+Most came from the first interrogation's suggestions. Two of those still open did not:
+`US-24` from a resolved finding and `US-26` from a decision that `F-21` left behind.
 
 | | Board | Size | Kind | Item | From |
 |---|---|---|---|---|---|
@@ -107,7 +108,6 @@ finding, `US-25` from an observation, and `US-26` from a decision that `F-21` le
 | **`US-22`** | [88](https://dev.azure.com/MofonCode/ai-sdlc/_workitems/edit/88) | S | charter | Three quantitative claims about v01 have no verifying source | `r28` |
 | **`US-23`** | [89](https://dev.azure.com/MofonCode/ai-sdlc/_workitems/edit/89) | M | charter | Disposition has two lifecycle gaps once time passes | `r37, r40` |
 | **`US-24`** | [90](https://dev.azure.com/MofonCode/ai-sdlc/_workitems/edit/90) | M | process | There is no route for a defect found while doing something else | `F-18` |
-| **`US-25`** | [91](https://dev.azure.com/MofonCode/ai-sdlc/_workitems/edit/91) | S | process | A completed charter-review intent reads as queued forever | `observed 2026-09-25` |
 | **`US-26`** | [92](https://dev.azure.com/MofonCode/ai-sdlc/_workitems/edit/92) | S | decide | Decide which ceremony runs the backlog parity check | `F-21` |
 
 ### Carried — already on the board
@@ -120,7 +120,6 @@ finding, `US-25` from an observation, and `US-26` from a decision that `F-21` le
 | **`US-07`** | [73](https://dev.azure.com/MofonCode/ai-sdlc/_workitems/edit/73) | M | cost | Cut interrogation cost |
 | **`US-08`** | [74](https://dev.azure.com/MofonCode/ai-sdlc/_workitems/edit/74) | S | charter | Remove DEC-08 from the register |
 | **`US-10`** | [76](https://dev.azure.com/MofonCode/ai-sdlc/_workitems/edit/76) | L | test | Prove a skill obeys its rules, not merely that it states them |
-| **`US-11`** | [77](https://dev.azure.com/MofonCode/ai-sdlc/_workitems/edit/77) | S | test | Cover the one lifecycle state a test cannot reach |
 | **`US-12`** | [78](https://dev.azure.com/MofonCode/ai-sdlc/_workitems/edit/78) | S | decide | The two intents that bypassed the gate |
 | **`US-13`** | [79](https://dev.azure.com/MofonCode/ai-sdlc/_workitems/edit/79) | M | mechanism | Make the charter's form rule mechanical |
 | **`US-14`** | [80](https://dev.azure.com/MofonCode/ai-sdlc/_workitems/edit/80) | S | decide | Confirm teammates have GitHub org access |
@@ -198,10 +197,6 @@ parity while reading the cycle's findings (weaker — a report nobody must act o
 it runs by hand and say so rather than implying enforcement. **Recommend the first, scoped to the
 local `land`** — a check that only prints gets skimmed, which is `F-21` repeating one level up.
 
-#### `US-25` · S · **A completed charter-review intent reads as queued forever** · [#91](https://dev.azure.com/MofonCode/ai-sdlc/_workitems/edit/91) · from `observed 2026-09-25`
-
-The lifecycle derivation reads `done` from a retro, and a charter intent has no cycle to produce one — so `20260924-c4a1` and `20260925-1a7e` will read as `queued` permanently. Harmless today because `dispatchable` needs an approved plan, but the lifecycle model simply does not describe charter intents.
-
 #### `US-01` · L · **Run one cycle end to end** · [#67](https://dev.azure.com/MofonCode/ai-sdlc/_workitems/edit/67)
 
 **Blocked by agreement**: no cycles until the concept is complete.
@@ -225,10 +220,6 @@ Answered 2026-09-25. Removing it is a charter amendment, not an edit.
 #### `US-10` · L · **Prove a skill obeys its rules, not merely that it states them** · [#76](https://dev.azure.com/MofonCode/ai-sdlc/_workitems/edit/76)
 
 Skill tests assert the instruction is present, not that it was followed.
-
-#### `US-11` · S · **Cover the one lifecycle state a test cannot reach** · [#77](https://dev.azure.com/MofonCode/ai-sdlc/_workitems/edit/77)
-
-`git worktree lock` needs no agent, so `in-progress` is testable after all.
 
 #### `US-12` · S · **The two intents that bypassed the gate** · [#78](https://dev.azure.com/MofonCode/ai-sdlc/_workitems/edit/78)
 

@@ -148,6 +148,28 @@ foreach ($block in ($worktreeBlocks -split "(`n`n|`r`n`r`n)")) {
     }
 }
 
+# A CHARTER INTENT HAS NO CYCLE, SO IT NEVER PRODUCES A RETRO. The derivation reads `done`
+# from a retro, so `20260924-c4a1` and `20260925-1a7e` would read as `queued` forever - work
+# long finished sitting at the head of the queue, permanently.
+#
+# The charter itself records the completion, in `amended: <date> by <id>`, so nothing needs
+# storing: the completion certificate for a charter intent is the amendment it produced, which
+# is the same shape of evidence as a retro and lives in the document it changed.
+#
+# Get-FrontmatterField returns the FIRST match only, and the charter carries one `amended:`
+# line per amendment, so this reads them all rather than reusing that helper.
+$charterAmendedBy = @()
+$charterPath = Join-Path $RepoRoot '.sdlc/CHARTER.md'
+if (Test-Path -LiteralPath $charterPath) {
+    $charterLines = @(Get-Content -LiteralPath $charterPath -Encoding UTF8)
+    for ($i = 1; $i -lt $charterLines.Count; $i++) {
+        if ($charterLines[$i].Trim() -eq '---') { break }
+        if ($charterLines[$i] -match '^amended:\s*\S+\s+by\s+(\S+)') {
+            $charterAmendedBy += $Matches[1].Trim()
+        }
+    }
+}
+
 $intentFiles = @()
 if (Test-Path -LiteralPath $intentDir) {
     $intentFiles += @(Get-ChildItem -LiteralPath $intentDir -Filter '*.md' -File)
@@ -185,6 +207,10 @@ foreach ($entry in @($intentFiles + $abandonedFiles)) {
         $planApproved = [bool]$approvedAt
     }
 
+    # `source: charter-review` is what an intent that amends the charter declares.
+    $source = Get-FrontmatterField -Path $entry.FullName -Field 'source'
+    $isCharterIntent = ($source -eq 'charter-review')
+
     $blockedBy = Get-FrontmatterField -Path $entry.FullName -Field 'blocked-by'
     $blockerUnresolved = $false
     if ($blockedBy) {
@@ -200,6 +226,9 @@ foreach ($entry in @($intentFiles + $abandonedFiles)) {
     # Order matters: the first matching condition wins, most-final first.
     $state = 'queued'
     $reason = 'no approved plan yet — the supervised phase owes this a spec and a plan'
+    if ($isCharterIntent) {
+        $reason = 'the charter does not record this amendment yet — awaiting an approved charter edit'
+    }
 
     if ($isAbandoned) {
         $state = 'abandoned'
@@ -208,6 +237,10 @@ foreach ($entry in @($intentFiles + $abandonedFiles)) {
     elseif ($hasRetro) {
         $state = 'done'
         $reason = 'a retro exists — the completion certificate'
+    }
+    elseif ($isCharterIntent -and ($charterAmendedBy -contains $id)) {
+        $state = 'done'
+        $reason = 'the charter records this amendment — a charter intent has no cycle, so no retro'
     }
     elseif ($blockerUnresolved) {
         $state = 'blocked'
@@ -244,6 +277,8 @@ foreach ($entry in @($intentFiles + $abandonedFiles)) {
         'has-verify'       = $hasVerify
         'has-retro'        = $hasRetro
         'blocked-by'       = $blockedBy
+        source             = $source
+        'charter-intent'   = $isCharterIntent
         dispatchable       = ($state -eq 'planned')
     })
 }

@@ -33,10 +33,14 @@ public sealed class CycleStateTests
         _repo = Path.Combine(Path.GetTempPath(), "sdlc-state-" + Guid.NewGuid().ToString("N")[..8]);
         Directory.CreateDirectory(Path.Combine(_repo, ".sdlc", "intents", "abandoned"));
 
-        static string Intent(string id, string? extra = null) => $"""
+        // `source` is a parameter rather than a constant because a charter intent declares
+        // `source: charter-review`, and adding a second `source:` line through `extra` would
+        // have produced two — with the frontmatter reader taking the first and the test
+        // silently exercising an ordinary intent.
+        static string Intent(string id, string? extra = null, string source = "authored") => $"""
             ---
             id: {id}
-            source: authored
+            source: {source}
             charter-version: 1
             {extra ?? string.Empty}
             ---
@@ -113,6 +117,37 @@ public sealed class CycleStateTests
             predicted-tier: 1
             ---
             """);
+
+        // A CHARTER, because a charter intent records its completion there rather than in a
+        // retro. TWO `amended:` lines, since the real charter has one per amendment and a
+        // single-value frontmatter reader would silently see only the first.
+        File.WriteAllText(Path.Combine(_repo!, ".sdlc", "CHARTER.md"), """
+            ---
+            version: 2
+            solution: fixture
+            amended: 2026-09-24 by 20260924-c001 - the first amendment
+            amended: 2026-09-25 by 20260924-c002 - the second, so the reader cannot stop at one
+            ---
+
+            # Charter - fixture
+            """);
+
+        // done - a charter intent the charter says amended it. It has no cycle and therefore
+        // no retro, so before this it read `queued` forever: finished work sitting at the
+        // head of the queue, permanently.
+        File.WriteAllText(
+            Path.Combine(intents, "20260924-c001.md"),
+            Intent("20260924-c001", source: "charter-review"));
+
+        // Also done, and it is the SECOND `amended:` line that says so.
+        File.WriteAllText(
+            Path.Combine(intents, "20260924-c002.md"),
+            Intent("20260924-c002", source: "charter-review"));
+
+        // queued - a charter intent the charter does not mention. Its edit has not landed.
+        File.WriteAllText(
+            Path.Combine(intents, "20260924-c003.md"),
+            Intent("20260924-c003", source: "charter-review"));
 
         Git("init --initial-branch=master");
 
@@ -315,6 +350,45 @@ public sealed class CycleStateTests
             "the lock is the evidence, and it must be reported as such");
         Assert.IsFalse(states["20260924-8a01"].GetProperty("dispatchable").GetBoolean(),
             "dispatching this would put a second agent on a branch already in use");
+    }
+
+    [TestMethod]
+    public void ACharterIntentIsDoneWhenTheCharterRecordsItsAmendment()
+    {
+        // A CHARTER INTENT HAS NO CYCLE, SO IT NEVER PRODUCES A RETRO. The derivation reads
+        // `done` from a retro, so both real charter intents read `queued` permanently -
+        // finished work sitting at the head of the queue forever.
+        //
+        // The charter itself records the completion, which keeps state derived rather than
+        // stored: the amendment IS the certificate, and it lives in the document it changed.
+        Dictionary<string, JsonElement> states = States();
+
+        Assert.AreEqual("done", StateOf(states, "20260924-c001"),
+            "the charter names this intent in an amended: line");
+        Assert.IsTrue(states["20260924-c001"].GetProperty("charter-intent").GetBoolean(),
+            "source: charter-review is what makes it one");
+
+        // The SECOND line specifically. Get-FrontmatterField returns only the first match, so
+        // reusing it here would have made every amendment after the first invisible.
+        Assert.AreEqual("done", StateOf(states, "20260924-c002"),
+            "the second amended: line must be read too");
+    }
+
+    [TestMethod]
+    public void ACharterIntentTheCharterDoesNotMentionIsStillQueued()
+    {
+        // The other half. Reading completion from the charter must not mark every charter
+        // intent done regardless of whether its edit landed.
+        Dictionary<string, JsonElement> states = States();
+
+        Assert.AreEqual("queued", StateOf(states, "20260924-c003"),
+            "no amended: line names it, so its edit has not landed");
+        StringAssert.Contains(
+            states["20260924-c003"].GetProperty("reason").GetString()!,
+            "does not record this amendment",
+            StringComparison.Ordinal);
+        Assert.IsFalse(states["20260924-c003"].GetProperty("dispatchable").GetBoolean(),
+            "a charter intent is never batched - the charter gate is human");
     }
 
     [TestMethod]
