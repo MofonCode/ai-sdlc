@@ -1,0 +1,14 @@
+{
+  "name": "ai-sdlc",
+  "description": "The ai-sdlc process framework: a charter-governed cycle from intent to landed retro.",
+  "owner": {
+    "name": "MofonCode"
+  },
+  "plugins": [
+    {
+      "name": "sdlc",
+      "source": "./",
+      "description": "A charter-governed SDLC. Supervised intent, spec and plan; batched build and verify; every landed cycle emits a retro that feeds back into the process."
+    }
+  ]
+}
