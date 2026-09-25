@@ -208,6 +208,21 @@ public sealed class SkillTests
     }
 
     [TestMethod]
+    public void VerifyDelegatesTheOutcomeRatherThanDecidingIt()
+    {
+        // The one rule here that is NOT merely instructed. The decision lives in
+        // Get-SdlcVerifyOutcome.ps1, which is exercised against a real repository by
+        // VerifyOutcomeTests and mutation-tested. If this skill ever stops calling it and
+        // starts applying the table itself, the guarantee silently degrades from "computed
+        // by code that did not do the work" to "a model following instructions" — and
+        // nothing else would notice.
+        MustState("verify",
+            "Get-SdlcVerifyOutcome.ps1",
+            "Transcribe what it returns",
+            "If the script disagrees with you, the script is right");
+    }
+
+    [TestMethod]
     public void RetroRefusesToCertifyACycleThatDidNotLand()
     {
         // A retro's PRESENCE is what makes a cycle read as done. Write one for a dead cycle

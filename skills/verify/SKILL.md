@@ -19,39 +19,47 @@ So: **do not compute any of these numbers yourself, and do not estimate one you 
 obtain.** A number you invented is an unfounded claim (INV-07), and it is worse than a
 missing one because it looks like evidence.
 
-## Gather the evidence
+## Gather the evidence and get the outcome
 
-Run the gatherer twice — once against the spec, which carries traceability and
-suppressions, once against the plan, which carries adherence and both tiers:
+One command does both. It runs the fact-gatherer against the spec and the plan, runs the
+gates, reads the findings, and **decides the outcome in code**:
 
 ```
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File tools/Get-SdlcFacts.ps1 -Artifact ".sdlc/cycles/$0/spec.md" -Charter ".sdlc/CHARTER.md"
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File tools/Get-SdlcFacts.ps1 -Artifact ".sdlc/cycles/$0/plan.md" -Charter ".sdlc/CHARTER.md"
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File tools/Get-SdlcVerifyOutcome.ps1 -CycleId $0
 ```
 
-Then run the gates: `dotnet build` and `dotnet test`.
+**Transcribe what it returns. Do not form a view about it.** That separation is the whole
+reason this is a script: an agent asked both to gather the evidence and to rule on what it
+means rounds in the direction of done — not from dishonesty, but because the work visibly
+succeeded ten minutes ago. So the decision is made by something that did not do the work.
 
-From that output take the criteria counts, which criteria have no test and which
-annotations point at no criterion, the suppression count and any unjustified ones, the
-undeclared files, and both tiers.
-
-## Decide the outcome — by rule, not by judgment
-
-Apply these in order. The first that matches wins:
+The rule it applies, in order, so you can explain the answer rather than merely repeat it:
 
 | Condition | Outcome |
 |---|---|
-| The actual tier exceeds the predicted tier | `halted-tier-escalated` |
-| The build fails, or any test fails | `blocked` |
-| Any verifiable criterion has no test proving it | `blocked` |
-| Any suppression lacks a written justification | `blocked` |
-| Any finding is still `open` or `blocking` and undispositioned | `blocked` |
+| The actual tier exceeds the approved tier | `halted-tier-escalated` |
+| The build failed, or a test failed | `blocked` |
+| A verifiable criterion has no annotated test | `blocked` |
+| An annotation names a criterion the spec does not declare | `blocked` |
+| A suppression has no written justification | `blocked` |
+| Any finding is still `open` or `blocking` with no disposition | `blocked` |
+| Spec or plan is missing entirely | `blocked` — absence is not a clean cycle |
 | Otherwise | `passed` |
 
-**`passed` requires zero undispositioned findings.** That is not a convention — the schema
-enforces it, so a verify document claiming otherwise will not validate.
+Tier escalation outranks a failing build deliberately. A failing build is an ordinary
+blocked cycle someone fixes; an escalation means the work turned out more dangerous than it
+was approved to be, and reporting that as an ordinary failure invites a fix-and-retry
+instead of a person looking.
 
-A gap between a derived artifact and its source is **corrected, never signed off**.
+**If the script disagrees with you, the script is right.** If you believe it is wrong, say so
+in your report and stop — do not write a different outcome into `verify.md`. A gap between a
+derived artifact and its source is **corrected, never signed off**.
+
+Every number in its output is derived: traceability from test annotations, adherence from
+the diff against the plan's declaration, both tiers from one function applied to two inputs.
+**Do not compute any of these numbers yourself**, and do not estimate one you could not
+obtain. A number you invented is an unfounded claim (INV-07), and it is worse than a missing
+one because it looks like evidence.
 
 ## Write it
 
