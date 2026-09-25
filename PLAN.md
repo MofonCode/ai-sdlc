@@ -12,7 +12,8 @@ decides:
 | Document | Authority for | Mutable? |
 |---|---|---|
 | **`PLAN.md`** (this) | **what remains, and what is done** | yes — updated per task |
-| `FINDINGS.md` | **what was found, and what is still open** — as stories with proposed fixes | yes — a triage list, not a second backlog |
+| `FINDINGS.md` | **what was found and fixed**, plus an index to the board | yes — per finding |
+| Azure Boards, project `ai-sdlc` | **the twelve open stories**, tracked and prioritised | yes — it is the working list |
 | `concept.raw.md` | **why** — every decision and the reasoning behind it | no, frozen |
 | `.sdlc/CHARTER.md` | **what the work must obey** | only by approved charter intent |
 
@@ -35,8 +36,9 @@ plugin        claude plugin validate . --strict                    → marketpla
 installed     sdlc@ai-sdlc, from the private GitHub marketplace
 ```
 
-**Read `FINDINGS.md` first.** It carries the thirteen resolved findings and twelve open
-stories with a proposed fix each, and it says which to do first.
+**Read `FINDINGS.md` first.** It carries the thirteen resolved findings, and indexes the
+twelve open stories now on the Azure Boards backlog (project `ai-sdlc`, Feature #66) with a
+proposed fix on each work item.
 
 **Next task: run a real cycle.** The concept is built — all eleven missing components, A
 through E, landed on 2026-09-25 — so the bootstrapping exemption has expired for the reason
