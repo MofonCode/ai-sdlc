@@ -1,10 +1,11 @@
 ---
-version: 1
+version: 2
 solution: ai-sdlc
 pack: none
 origin: hand-written — solution zero has no pack to copy a charter from
 since: 2026-09-22
-restored: 2026-09-24 from e36fc4b, with one resolved decision dropped from the register
+restored: 2026-09-24 from e36fc4b; five deferred decisions were resolved before the restore and are recorded below as gaps rather than entries
+amended: 2026-09-24 by 20260924-c4a1 — ten blocking findings from the first interrogation
 ---
 
 # Charter — ai-sdlc
@@ -55,17 +56,20 @@ governs. This is what tells `interrogate <artifact>` which invariants its `chart
 role should load. An empty `Applies-to:` governs nothing and fails the form check for
 the same reason an empty `Forbids:` does — it is decoration.
 
-It also makes coverage visible rather than something to be derived by hand:
+It is also what makes coverage visible: the invariants naming a given artifact kind
+**are** the coverage for that kind, read off the clauses themselves.
 
-| Invariant | intent | spec | plan | code | verify |
-|---|---|---|---|---|---|
-| INV-01 error paths | ✓ | ✓ | — | — | — |
-| INV-02 one reading | ✓ | ✓ | ✓ | — | — |
-| INV-03 no second list | ✓ | ✓ | ✓ | ✓ | ✓ |
-| INV-04 declared stack | ✓ | ✓ | ✓ | ✓ | — |
-| INV-05 plans declare files | — | — | ✓ | — | — |
-| INV-06 no unjustified bypass | — | — | — | ✓ | ✓ |
-| INV-07 claims are checked | ✓ | ✓ | ✓ | ✓ | ✓ |
+A summary matrix used to sit here. It was deleted in v2 because it restated the
+`Applies-to:` clauses with nothing binding the two, and it had already drifted three ways
+— a missing row for INV-08, no column for INV-06's declared `pack` scope, and a tick for
+INV-07 that contradicted its own clause. That is exactly what INV-03 forbids, and the fix
+for derived data in a hand-maintained document is to delete it rather than to promise to
+keep it in step.
+
+**`every artifact` includes code.** The `, and code` suffix on INV-03 and INV-08 is
+emphasis rather than extension, kept because both are invariants people try to scope to
+documents alone. The authoritative list of artifact kinds is the findings schema's
+`artifactKind`; this document does not restate it.
 
 INV-01 and INV-02 were deliberately widened to reach intents. Written for specs
 alone, an intent could be blocked by only two invariants, and everything else about
@@ -86,7 +90,7 @@ that requires an approved charter intent (INV-08).
 |---|---|---|
 | zero cites, and no violation can be constructed | decoration | delete |
 | zero cites, violations possible but undetectable | unenforceable | keep; make it checkable |
-| zero cites, prevented upstream by a template or check | working as designed | keep |
+| zero cites, and a verified `Prevented-by:` target still rejects violations | working as designed | keep |
 | repeated **rejected** charter intents against it | unclear, not wrong | keep; clarify its wording |
 | high override count — cited then dispositioned "accepted, won't fix" | too broad, or wrong | candidate for narrowing |
 | recurring suggestion clusters on one theme | a missing invariant | candidate for addition |
@@ -134,11 +138,17 @@ other reason, with a floor of every ten cycles.
 `charter` role is inapplicable to the charter and is substituted by `form`, which
 checks each invariant's shape rather than judging its content.
 
-**`Prevented-by:` is an optional invariant field.** When a template or mechanical
-check guarantees compliance, name it — `Prevented-by: the plan template`. Zero cites
-is then expected and correct rather than suspicious, and the health query can say
-"working as designed" instead of leaving you to work it out. Without the field, zero
-cites is a question.
+**`Prevented-by:` is an optional invariant field.** When a template or mechanical check
+guarantees compliance, name it — and name it as a **resolvable target**: a tracked path or
+a mechanical check id, never prose like "the plan template".
+
+The field alone is not the answer. Before the zero-cite query may report "working as
+designed" it must verify the named target: the path or check id still exists, **and** the
+mechanism still rejects an artifact that violates the invariant. Where that cannot be
+verified, the invariant is reported as zero cites with no demonstrated prevention — a
+question again, not an exemption. Without the verification the field would convert an
+unfalsifiable claim into a permanent pass, which is the failure it exists to prevent.
+Without the field at all, zero cites is a question.
 
 **Version stamping.** Every retro records the charter version in force when its
 cycle ran.
@@ -147,8 +157,17 @@ cycle ran.
 
 ## Invariants
 
-These seven were chosen by one criterion: **the minimum set that lets every
-finding category block.** Drop any one and a category goes permanently advisory.
+These seven were chosen by one criterion: **the minimum set that lets every blockable
+finding category block.** `unclassified` is excluded by construction rather than by
+omission — it can never block, so no invariant could unlock it.
+
+Three of the seven are the only route their category has: `missing-case` (INV-01),
+`ambiguity` (INV-02) and `duplicated-truth` (INV-03). Drop one of those and its category
+goes permanently advisory. For `scope-drift`, `gate-bypass`, `unfounded-claim` and
+`charter-violation` a mechanical check or another invariant can also carry the citation,
+so there the invariant is what keeps a **reasoning-detected** instance blockable rather
+than the only route at all.
+
 They are written solution-agnostically, so promotion into a shared
 `mofoncode-invariants` set is a rename rather than a rewrite.
 
@@ -192,7 +211,9 @@ They are written solution-agnostically, so promotion into a shared
               immutable, append-only artifact is not a second list, because
               divergence is impossible — provided the mechanism that makes the
               copy refuses to overwrite with different content. The retro corpus
-              is the standing instance: `absorb-retro` enforces it.
+              is the INTENDED instance, and the exemption holds only once such a
+              mechanism exists and refuses to overwrite. None is built yet, so
+              the retro corpus does not currently qualify.
     Unlocks:  duplicated-truth
     Since:    v1
 
@@ -226,12 +247,18 @@ They are written solution-agnostically, so promotion into a shared
 ### INV-06 · No unjustified gate bypass
 
     Applies-to: code, verify, pack
-    Forbids:  a NoWarn, a pragma disable, a skipped test, or an excluded path
-              without a written justification.
+    Forbids:  a warning suppression, a disabled diagnostic, a skipped test, or an
+              excluded path without a written justification.
     Evidence: a zero-warning build is a strong signal because it is binary. The
               failure mode is not warnings appearing — it is suppressions
               accumulating until the zero means nothing. The suppression count is
               tracked in every `verify.md`, and an increase is itself a finding.
+              Stated without tool syntax as of v2: the spellings belong to the
+              pack under INV-04, and naming them here made this invariant fail
+              the form rule's own exclusion of tool names. In this solution's
+              stack they are NoWarn, `#pragma warning disable`, `[Ignore]` and an
+              excluded path — illustrative only, and this solution consumes no
+              pack, so nothing else carries them yet.
     Unlocks:  gate-bypass
     Since:    v1
 
@@ -264,12 +291,13 @@ They are written solution-agnostically, so promotion into a shared
     Since:    v1
 
 INV-08 is not part of the seven above. Those seven were selected to make every
-finding category blockable; this one protects the mechanism itself. Different job,
+category except `unclassified` blockable; this one protects the mechanism itself. Different job,
 so it neither strengthens nor weakens the reasoning behind them.
 
 ### Coverage
 
-Every finding category can block, through one of three citation routes:
+Every finding category except `unclassified` can block, through one of three citation
+routes. A `DEC` id is a fourth kind of citation but never a blocking one — see State.
 
 | Category | Blocks via |
 |---|---|
@@ -350,12 +378,20 @@ guard, and it belongs at promotion: at discovery an interrogator is pattern-matc
 at triage it is investigating. Asking for a citation before it has looked is asking
 it to guess.
 
-`cites` accepts exactly one of: an invariant ID; a failed check ID; or a location
-pair of two or more conflicting positions in the artifact (`internal-contradiction`
-only).
+`cites` accepts exactly one of: an invariant ID; a failed check ID; a `DEC` id from the
+open-decision register; or a location pair of two or more conflicting positions in the
+artifact (`internal-contradiction` only).
 
-**An `open` finding that will not triage defaults to `blocking`** — two rounds with
-no progress and a person looks. When in doubt, escalate.
+**A `DEC` id is the one citation kind that never promotes.** It records that a finding was
+dismissed against a deliberately open decision — disposition `deferred-to-dec` — so it
+satisfies nothing in the guard above: a finding whose only citation is a `DEC` id cannot
+reach `blocking`. Without that restriction, pointing at an unsettled question could halt a
+cycle, which is the opposite of what the register is for.
+
+**An `open` finding that will not triage is escalated to a person** — two rounds with no
+progress and a person looks. They either supply a citation, which promotes it to
+`blocking`, or record it as `suggested`. **Nothing reaches `blocking` uncited**, so the
+escalation is an event rather than a state change. When in doubt, escalate.
 
 **Category never determines state.** Two rules governing state would fight,
 and the easier one would win.
@@ -408,7 +444,7 @@ When the artifact under interrogation **is this document**, `charter` is replace
 
 | Role | Its one question |
 |---|---|
-| `form` | Does each invariant carry a non-empty `Forbids:`, and does it forbid something an implementation could actually do? |
+| `form` | Does each invariant carry a non-empty `Applies-to:` and a non-empty `Forbids:`, and does the `Forbids:` forbid something an implementation could actually do? |
 
 Fact-gathering runs **once**, in the parent, and its results are passed to every
 role. Deduplication and state assignment belong to the merger, never to an
