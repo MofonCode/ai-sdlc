@@ -27,17 +27,17 @@ Read this section first. It is the whole handoff.
 
 ```
 branch        bootstrap
-last commit   f10a659
-verify        dotnet test   → expect 147 passed, 0 failed
+last commit   79aee85
+verify        dotnet test   → expect 149 passed, 0 failed
 plugin        claude plugin validate . --strict   → expect "Validation passed"
 ```
 
-**Next task:** the chain is complete *and invocable*. The next move is a **decision**, not
-a task: run `interrogate` on the charter — the first real workflow execution, and the
-first evidence about the process rather than about missing parts — or continue with
-items 11, 12, 14, 15.
+**Next task:** the library exists and the charter has been through the process once. The
+open question is whether any of it works when invoked **by name** — every execution so far has
+been by file path. After that: item 12 (retro absorption), 13 (marketplace), 14 (the
+`dotnet-library` pack).
 
-If `dotnet test` does not report 147 passing, stop and diagnose before building anything:
+If `dotnet test` does not report 149 passing, stop and diagnose before building anything:
 the test suite is the only thing standing between "this looks right" and "this works".
 
 ---
@@ -111,6 +111,58 @@ Items 11–15 are conveniences and distribution. None is needed to prove the cha
 
 ---
 
+## The shape: ten skills, one workflow, four scripts
+
+Settled 2026-09-24 after the migration. **A stage is a workflow only when BOTH clauses
+hold**, and only interrogation clears them:
+
+1. it needs several agents that must not see each other's conclusions — the *independence*
+   is the method, not merely parallelism; and
+2. it can never need to ask the user anything, because a workflow cannot ask, at all.
+
+```
+skills/      intent spec plan repair build verify retro run init absorb-retro
+workflows/   interrogate.js
+tools/       Get-SdlcFacts · Get-SdlcCycleState · Get-SdlcVerifyOutcome · Complete-SdlcCycle
+```
+
+Two facts forced it, and both were verified rather than assumed:
+
+- **The `Workflow` tool is removed from every subagent**, "even when listed in the `tools`
+  field", and teammates cannot launch one either. So anything a subagent or teammate might
+  drive cannot be a workflow. Skills run in every context; workflows only from a main session.
+- **spec, plan, repair and build can all need to ask.** An `ambiguity` finding says a
+  statement admits two readings leading to materially different work; when the two differ in
+  what the *user* wanted, no reasoning settles it. The charter already escalates such a
+  finding to a person, and an escalation **is** a question.
+
+`verify` and `retro` could have stayed workflows — neither needs to ask — but clause 1 fails,
+and a workflow with no fan-out inside it is a wrapper that pays with no filesystem access and
+no testability.
+
+**Where a rule must be mechanical rather than instructed, it goes in `tools/`.** That is why
+the blast-radius tier, the lifecycle derivation, the landing gate and now the verification
+outcome are PowerShell: a script can read files and be unit-tested, and a workflow script can
+do neither.
+
+### Supervised, then batched
+
+| Phase | Stages | Who |
+|---|---|---|
+| Supervised, one cycle at a time | `intent` → `spec` → `plan` | a person drives, and approves the plan |
+| Batched, unattended | `build` → `verify` | `run`, one worktree per cycle |
+
+The old dispatcher had this backwards: it ran spec and plan unattended and halted before
+build, reasoning that nothing irreversible happens before the plan. True, but it answers the
+wrong question — safety was never the constraint on spec and plan, **quality** is. An
+unsupervised spec is perfectly safe and probably wrong.
+
+The gate between the phases is `approved:` in a plan's frontmatter, and the lifecycle
+derivation enforces it: `dispatchable` tracks `planned`, never `queued`. The `plan` skill is
+forbidden from writing that field.
+
+---
+
 ## Discipline — agreed, and load-bearing
 
 1. **The whole first draft is disposable.** Written to be rewritten. Do not polish;
@@ -176,11 +228,11 @@ Items 11–15 are conveniences and distribution. None is needed to prove the cha
 
 | # | Item | Note |
 |---|---|---|
-| 11 | `intent` skill — the interview | A convenience, not a dependency: an intent was hand-written successfully |
-| 12 | Retro absorption into ai-sdlc | Needs retros to exist |
+| ~~11~~ | ~~`intent` skill~~ | **Done.** Shipped with the migration, along with nine others |
+| 12 | Retro absorption into ai-sdlc | `absorb-retro` ships, but has never run: no retro exists yet |
 | 13 | Packaging — ~~manifest~~, marketplace catalog, CI semver check | Manifest done (`45916c9`). What remains answers the one question outside our control: does a marketplace install authenticate against a private remote |
 | 14 | `dotnet-library` pack | The first real client is `MofonCode.Core`, which is a library |
-| 15 | `init` | Cannot precede 14 — it scaffolds *from* a pack |
+| ~~15~~ | ~~`init`~~ | **Ships**, but cannot be exercised before 14: it scaffolds *from* a pack |
 
 ---
 
@@ -214,9 +266,13 @@ Items 11–15 are conveniences and distribution. None is needed to prove the cha
   worth it, so a syntax error surfaces at first launch rather than at build. A real cost
   of the Node decision, not a defect in the tests. The PowerShell side has no equivalent
   gap — those are parsed by the real 5.1 parser in the suite.
-- **Six of the seven workflows have never been executed.** `interrogate` has now run once,
-  against the charter. Every workflow test is still structural — shape, forbidden
-  constructs and enum drift — so for the other six, nothing has run an agent.
+- **No `/sdlc:*` command has ever been invoked by name.** The interrogation ran by file
+  path, via the Workflow tool's `scriptPath`. So the plugin's command surface — the thing the
+  whole library is for — is still unproven. This is the cheapest remaining unknown and the one
+  everything else assumes.
+- **Nine of the ten skills have never run.** They are markdown; the tests assert each still
+  states its load-bearing rule, which is weaker than the workflow tests they replaced: a test
+  can show the instruction is present, not that it was obeyed.
 - **A locked worktree cannot be faked in a test**, so `in-progress` is the one lifecycle
   state asserted only by inspection of the derivation rather than end to end.
 - **Interrogator roles are hardcoded in `interrogate.js`** rather than read from the
@@ -247,6 +303,8 @@ against real input, not from reading the design.
 
 | Commit | Item | Correction it produced |
 |---|---|---|
+| `79aee85` | — · outcome script | **My fixture was wrong and the parser was right.** Mnemonic cycle ids `cln1`/`unc1` are not valid: an id is eight digits plus four *hex* characters, so the criteria parser declined to read criteria keyed to a malformed id and every coverage assertion failed for an unrelated reason |
+| `c7021f0` | — · skills migration | **`Workflow` is stripped from every subagent**, so any stage a subagent or teammate might drive cannot be a workflow. And my own new test read raw text and matched the comment explaining an absence — the fifth instance of discipline 8 in this suite, committed by its author |
 | `f10a659` | — · first interrogation | **The workflow permits a mode the artifact model has no place for**: a standalone charter interrogation has no cycle, so it emits a `cycle-id` the schema requires and rejects. Also measured rather than guessed: 46 agents, because triage spends one agent per candidate. And the `locations` cite route carried 8 of 10 blocking findings, being much cheaper to earn than an invariant |
 | `5766f9f` | — · encoding | **The fact gatherer emitted JSON that `JSON.parse` rejects**, for any artifact that is not pure ASCII — which is all of them. Reading a BOM-less file as ANSI turned an em-dash into three CP1252 characters, and the last, U+201D, best-fit on output to a plain `"` that terminated the string. `interrogate.js` responds to unparseable facts by continuing *without* mechanical findings, so the symptom was a clean-looking interrogation rather than an error. Found on the first attempt to run one |
 | `45916c9` | 13a · plugin manifest | **Six of the eight "dangling" references were never broken** — a plugin workflow is namespaced `/<plugin>:<meta.name>`, so they resolved the moment the manifest existed. One was real (`/sdlc:intent`, item 11). One was never a reference at all: `/sdlc:init` sits in a comment as an example of a non-path, and I read grep's hit as a claim |
