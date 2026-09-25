@@ -10,8 +10,9 @@
 Two halves, and they answer different questions:
 
 - **[Resolved](#resolved)** — every defect found during the bootstrap and what fixed it. The
-  record. Thirteen entries, and the point of keeping them is that **eleven of the thirteen
-  were found by running something rather than by reading it.**
+  record. Eighteen entries, and the point of keeping them is that **sixteen of the eighteen
+  were found by running something rather than by reading it.** One, `F-18`, is a gap in the
+  process itself and is still open.
 - **[Open](#open)** — an index into the Azure Boards backlog, where the twelve remaining
   stories live with their evidence, proposed fix and acceptance criteria.
 
@@ -32,8 +33,10 @@ Sizes are **S** (under an hour), **M** (a sitting), **L** (its own cycle, plausi
 
 ## Resolved
 
-Eleven of thirteen surfaced only when something ran. That ratio is the strongest argument in
-the project for the discipline of exercising each component against real input.
+Sixteen of eighteen surfaced only when something ran. That ratio is the strongest argument in
+the project for exercising each component against real input — and F-14 through F-17 all
+arrived **after** I had declared the concept complete, which is why that claim is now
+withdrawn.
 
 | # | Finding | How it surfaced | Fix |
 |---|---|---|---|
@@ -50,6 +53,12 @@ the project for the discipline of exercising each component against real input.
 | F-11 | **The charter role parser reported twenty-five roles**, sweeping in the coverage table, the taxonomy, the state table and the disposition table. The charter is full of tables that look alike and only position distinguishes them | running it | `a690f29` — scoped to the roles section |
 | F-12 | **The `Workflow` tool is stripped from every subagent and teammate**, so any stage a subagent might drive cannot be a workflow. Invalidated "each stage is its own dynamic workflow" | verifying a claim before building on it | `c7021f0` — ten skills, one workflow |
 | F-13 | **Two remotes, and the concept contradicted itself** on which was the home: a later "GitHub only, no mirror" decision reversed the Azure DevOps move, but the ADO distribution text was never cleaned up | auditing the concept | Peter settled it — GitHub only, ADO dropped |
+
+| F-14 | **The release script could not cut a first release.** It demanded a strictly greater version than the manifest, unconditionally — so releasing the 0.1.0 the manifest already declared was refused and the project could never reach v0.1.0. It also contradicted the CI gate written for the same rule | trying to cut v0.1.0 | `4c37944` — first release may match the manifest; only `v*` tags mark a previous one |
+| F-15 | **The release gate was hardcoded**, so a fixture with no .NET project could only report `refused-tests-fail` and every check after the gate was unreachable by a test. Also against INV-04: tool names belong to the pack | the same attempt | `421919a` — a `-TestCommand` parameter, matching `Get-SdlcVerifyOutcome` |
+| F-16 | **Six git writes discarded their result.** A CI runner has no git identity, so `git commit` failed there and `Submit-SdlcIntent` reported `branched` with an empty branch — a person would believe the gate had closed on nothing | CI, which had been red for four pushes and which I had never looked at | `f1e3849` — named failures on every write |
+| F-17 | **All three `ShouldProcess` scripts could not run non-interactively.** `ConfirmImpact = 'High'` prompts, and `powershell.exe -File` has no host that can ask. Interactively it throws a null-reference; from a test host it HANGS, waiting for a prompt that never arrives. Eight unattended cycles would have hung silently | cutting the release for real | `421919a` — the automatic prompt removed; `-WhatIf` kept |
+| F-18 | **The process has no route for a defect found while doing something else.** F-14 through F-17 were all found mid-task and all blocked progress. Filing an intent for each would mean five gates; fixing them inline bypasses the process. I chose inline, twice, on shipped code — while running the gate for an unrelated intent | doing the above, and being asked about it | **unresolved.** `maintain` files intents and never fixes; the repair loop only works inside a cycle. Neither covers this |
 
 Two entries were **my own errors of claim rather than code**, and they are the ones worth
 re-reading: F-01 (I reported the chain complete when nothing was invocable) and the audit that
