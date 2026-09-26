@@ -127,16 +127,20 @@ to loosen. Modifying one needs the gate.
 Amendments never rewrite history: a retro stamped `charter v1` stays interpretable
 against v1 forever.
 
-**Commencement. The rule is in force, and it is enforced mechanically.** A `PreToolUse` gate
-refuses any edit to this document, to a stack pack or to a pack's rules unless it is made on the
-branch of an intent declaring `charter-review` or `pack-review`, and it fails closed in every case
-it cannot judge — on master, on a detached HEAD, on a missing or sourceless intent, and if the gate
-itself throws.
+**Commencement. The rule is in force, unconditionally.** An amendment to this document requires an
+approved intent whose source is `charter-review`; the same requirement covers a stack pack and its
+rules under `pack-review`. Which of the two applies is decided by the path being changed.
 
 An earlier wording deferred commencement until the first cycle ran, on the grounds that until then
-the document was a draft with no process to protect it from. That condition was overtaken: the gate
-carries no commencement clause and has been refusing edits since it shipped, before any cycle ran.
-A dated carve-out in a rule needs an owner to retire it, so it is gone rather than restated.
+the document was a draft with no process to protect it from. That carve-out is removed rather than
+restated: a rule with a dated condition needs an owner to retire it, and this one outlived its own
+justification without anyone noticing.
+
+**This passage deliberately says nothing about how the requirement is enforced.** A mechanical gate
+exists and is the reason the rule is more than advice, but describing what it intercepts, when it
+began doing so, or how completely, puts a claim about the tree into a rule — and the first attempt
+at this paragraph did exactly that, three times over, in three sentences. Where enforcement is
+incomplete, that is a finding against the enforcing code, not a sentence to maintain here.
 
 **Finding an invariant nothing ever cites.** Four of the five amendment triggers
 announce themselves — a blocked cycle, a growing suggestions pile, a change you made,
@@ -271,14 +275,16 @@ They are written solution-agnostically, so promotion into a shared
     Evidence: a zero-warning build is a strong signal because it is binary. The
               failure mode is not warnings appearing — it is suppressions
               accumulating until the zero means nothing, one justified exception
-              at a time. So the count is recorded in every `verify.md` and carried
-              in the retro, which is what makes accumulation visible at all.
-              An earlier wording added that an increase in that count "is itself a
-              finding". Nothing compares a cycle's count against the previous
-              one, and a clause compatible with every implementation is decoration
-              by this document's own acceptance test. Making the comparison
-              mechanical is ordinary work; asserting it while nothing does it is
-              the unfounded claim INV-07 forbids.
+              at a time. A justification at the point of suppression is what keeps
+              each one answerable for itself.
+              Two earlier wordings claimed more than the tree did: first that an
+              increase in the suppression count "is itself a finding", then that
+              the count is recorded in every verify document and carried in the
+              retro. Detecting accumulation needs a comparison across cycles, and
+              a clause compatible with every implementation is decoration by this
+              document's own acceptance test. Building that comparison is ordinary
+              work; describing it here before it exists is the unfounded claim
+              INV-07 forbids, twice in a row.
               Stated without tool syntax as of v2: the spellings belong to the
               pack under INV-04, and naming them here made this invariant fail
               the form rule's own exclusion of tool names. In this solution's
@@ -488,11 +494,13 @@ and keeps no copy of any of them. Before v3 it hardcoded them, and the two disag
 charter v1's `form` question omitted `Applies-to:` while the shipped role asked for both clauses.
 That is INV-03, in the document that declares it, so the binding check ships with this table.
 
-**The role NAMES are restated, and bound rather than derived.** They appear in the findings schema's
-`role` enum and in the interrogator's own substitution logic, because a role must be selectable
-before its definition has been read. That is a second representation, so it takes INV-03's sanctioned
-route rather than an exemption: tests tie the schema's enum to this table and the interrogator's
-copies to the schema, in both directions. Claiming no copy existed at all was simply false.
+**The role NAMES are restated elsewhere**, because a role has to be selectable before its definition
+has been read. Those restatements are second representations of this table and INV-03 governs them
+like any other: each requires a check that fails when it and this table disagree.
+
+That states the obligation and claims nothing about which checks currently exist. The previous
+attempt asserted that tests bound every copy in both directions, which was not true of all of them —
+replacing a false claim about this document with a false claim about its tests.
 
 ### What `gaps` must cover, by artifact kind
 
