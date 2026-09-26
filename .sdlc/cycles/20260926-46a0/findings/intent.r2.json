@@ -1,0 +1,291 @@
+{
+    "cycle-id":  "20260926-46a0",
+    "target":  "intent",
+    "charter-version":  4,
+    "pack-version":  null,
+    "round":  2,
+    "failed-checks":  [
+
+                      ],
+    "rejected-citations":  [
+
+                           ],
+    "findings":  [
+                     {
+                         "id":  "intent-r2-reason4",
+                         "category":  "internal-contradiction",
+                         "state":  "blocking",
+                         "stage":  "intent",
+                         "detection":  "reasoning",
+                         "role":  "coherence",
+                         "summary":  "The result-comparing check is named the backstop for writes the prevention heuristic misses, yet its `master` baseline rule reads any committed difference as an already-granted merge, so a committed unlicensed write is invisible to the backstop.",
+                         "cites":  [
+                                       {
+                                           "kind":  "locations",
+                                           "locations":  [
+                                                             {
+                                                                 "file":  ".sdlc/intents/20260926-46a0.md",
+                                                                 "anchor":  "The result-comparing check is the backstop."
+                                                             },
+                                                             {
+                                                                 "file":  ".sdlc/intents/20260926-46a0.md",
+                                                                 "anchor":  "**On `master`, there is no merge target distinct from HEAD.**"
+                                                             }
+                                                         ]
+                                       }
+                                   ],
+                         "repair":  "Close the gap rather than the sentence: on master, make the baseline the last commit whose write to a protected path was licensed — the most recent merge commit, or the merge-base with the remote-tracking ref — instead of HEAD, so a direct non-merge commit touching a protected path is a difference the check can see, and when no such baseline resolves fall through to the skipped-with-reason outcome the artifact already prescribes at lines 130-133. That keeps the stated reason for the HEAD baseline (it neither never fires nor fires forever after every amendment) while making the backstop hold for the case Location A hands it. Add the matching acceptance criterion: a protected path committed directly on master with no licence produces a blocking finding. If instead the bound is accepted, it must be said where the backstop is promised — record on the line at 120 that on master the result-comparing check covers only uncommitted differences, drop the unqualified \"no choice of tool can route around\" at lines 50-52, and add the accepted failure mode that an unlicensed write committed directly to master is undetectable, with the reasoning for accepting it."
+                     },
+                     {
+                         "id":  "intent-r2-reason5",
+                         "category":  "internal-contradiction",
+                         "state":  "blocking",
+                         "stage":  "intent",
+                         "detection":  "reasoning",
+                         "role":  "coherence",
+                         "summary":  "The failure-mode list resolves an unclassifiable write toward allow and a thrown gate toward deny while resting both on the same notion of confusion, and never says which side a classifier failure on a malformed command falls on.",
+                         "cites":  [
+                                       {
+                                           "kind":  "locations",
+                                           "locations":  [
+                                                             {
+                                                                 "file":  ".sdlc/intents/20260926-46a0.md",
+                                                                 "anchor":  "Accepted, by decision: the gate allows a command it cannot classify as a write"
+                                                             },
+                                                             {
+                                                                 "file":  ".sdlc/intents/20260926-46a0.md",
+                                                                 "anchor":  "**The gate itself throws.**"
+                                                             }
+                                                         ]
+                                       }
+                                   ],
+                         "repair":  "Distinguish the two cases on the axis the artifact already uses elsewhere, rather than on \"confusion\":\n\n- In the throw entry (141-142), replace the general claim with the principle stated at 134-136: the gate denies when it throws because a gate that could not run has approved nothing — it reached no determination at all. Drop \"a protection that opens when confused is worse than none,\" since the artifact deliberately accepts opening under one kind of confusion.\n- In the unrecognised-write entry (118-120), say that the allowance covers only a payload the gate positively evaluated and did not determine to be a protected write, and name the backstop as the reason the residual leak is narrow.\n- Settle the boundary case explicitly: state which side a classifier failure on a malformed or unparseable command string falls on. Given the fail-closed stance at 68-70, the likely answer is that a classifier error is a throw, not a non-write — but it must be written down, because nothing in the current text decides it.\n- Reconcile the failure-direction ranking at 122-123 with the throw entry, so the artifact does not both prefer and disprefer a false refusal."
+                     },
+                     {
+                         "id":  "intent-r2-reason8",
+                         "category":  "unfounded-claim",
+                         "state":  "blocking",
+                         "stage":  "intent",
+                         "detection":  "reasoning",
+                         "role":  "facts",
+                         "summary":  "The out-of-scope line names cycle `20260926-bc24` as the owner of twelve outstanding blocking findings, while the tree\u0027s own cycle-state tool reports that cycle as `done`.",
+                         "cites":  [
+                                       {
+                                           "kind":  "invariant",
+                                           "id":  "INV-07"
+                                       }
+                                   ],
+                         "repair":  "Fix only the ownership half of the line at `.sdlc/intents/20260926-46a0.md` lines 157-158. Leave the number twelve alone — it is verified exact, and a repair that \"corrects\" it would be rewriting a true statement.\n\nReplace the assertion of an owner with a statement of this intent\u0027s scope plus the actual state. Something of this shape:\n\n- **The twelve blocking findings still outstanding on the charter** from cycle `20260926-bc24`\u0027s second round. They are real, and they are not this intent\u0027s to resolve — this one changes no invariant. They are also **not owned by that cycle any more**: it reads `done`, because the charter records its amendment, so the twelve are outstanding against no open cycle and need an intent of their own.\n\nTwo things that repair gets right and the current wording does not: it stops naming a closed cycle as the owner, and it records the orphaning as a known state rather than leaving a reader to assume someone is holding them.\n\nA weaker alternative — dropping the owner clause entirely, so the line reads only \"not this intent\u0027s business\" — also clears INV-07, because it then asserts nothing about the tree. It is worse, though: it makes the orphaning invisible rather than recorded, and the point of an out-of-scope line is to say what is not being done and why.\n\nDo not repair this by reopening or re-stating `20260926-bc24`. That cycle landed with twelve undispositioned `blocking` findings, which contradicts the charter\u0027s own rule that a blocking finding must be dispositioned before the cycle can land. That is a defect against that cycle\u0027s landing, and it deserves its own finding rather than being absorbed into a wording change here.",
+                         "disposition":  "fixed",
+                         "disposition-reason":  "Ownership claim deleted. The line now records that the twelve are owned by nothing because that cycle reads done, and that landing with them undispositioned is its own defect."
+                     },
+                     {
+                         "id":  "intent-r2-reason9",
+                         "category":  "unfounded-claim",
+                         "state":  "blocking",
+                         "stage":  "intent",
+                         "detection":  "reasoning",
+                         "role":  "facts",
+                         "summary":  "The \"ordinary shell command is unaffected\" criterion asserts that the fact-gatherer names the charter on its own command line on every run, while in-tree call sites pass no `-Charter` and rely on the script\u0027s default instead.",
+                         "cites":  [
+                                       {
+                                           "kind":  "invariant",
+                                           "id":  "INV-07"
+                                       }
+                                   ],
+                         "repair":  "In the \"An ordinary shell command is unaffected\" bullet (.sdlc/intents/20260926-46a0.md:103-107), replace \"the fact-gatherer names the charter on its own command line on every run\" with what the tree shows: several in-tree callers pass the charter path to the fact-gatherer explicitly — skills/build/SKILL.md:42 and :80, skills/plan/SKILL.md:39, skills/spec/SKILL.md:21, and workflows/interrogate.js:200 — while skills/repair/SKILL.md:35, tools/Invoke-SdlcRun.ps1:163 and tools/Get-SdlcVerifyOutcome.ps1:141 pass none and rely on the default at tools/Get-SdlcFacts.ps1:500, so the path never reaches their command lines. Drop the universal \"on every run\" and keep the point it was making: a protected path appearing in a command line is a normal, healthy occurrence on the paths that do name it, so the heuristic must distinguish a read from a write rather than matching the path alone. Alternatively, state the risk without any count — a command that merely reads a protected path must pass — which removes the tree claim entirely rather than correcting it; if the enumeration is wanted, it needs a fact-gathering check that reads the call sites, since by INV-07 the claim may not be written ahead of the check that verifies it.",
+                         "disposition":  "fixed",
+                         "disposition-reason":  "The universal claim about every run is deleted rather than replaced. The bullet now states only the requirement - a command that merely reads a protected path must pass - which asserts nothing about call sites."
+                     },
+                     {
+                         "id":  "intent-r2-reason10",
+                         "category":  "unfounded-claim",
+                         "state":  "blocking",
+                         "stage":  "intent",
+                         "detection":  "reasoning",
+                         "role":  "facts",
+                         "summary":  "The argument for accepting a self-minted intent rests on the intent file being tracked in git and visible in the diff, while the shipped gate tests only that the file exists on disk.",
+                         "cites":  [
+                                       {
+                                           "kind":  "invariant",
+                                           "id":  "INV-07"
+                                       }
+                                   ],
+                         "repair":  "Bring the sentence and the mechanism into agreement, in one of two directions, and say which was chosen. Either (a) make the claim true by making trackedness part of the licence: state in \"The licence is path-bound, and it is answered in one place\" that a licence requires the intent file to be tracked in git, not merely present on disk, add it to the fail-closed enumeration at lines 67-70 (\"an untracked intent file — each is a refusal\"), and add an acceptance criterion alongside the missing/unreadable/wrong-source one: \"a branch whose named intent file exists but is untracked is refused, and the refusal says the intent must be committed.\" Since one implementation answers the licence question, this lands in both halves at once. Or (b) weaken the argument to what the gate actually proves: replace \"a tracked file a person sees in the diff\" with \"a file on the branch, which becomes a reviewable proposal once committed\", and then state explicitly that an uncommitted intent satisfies the gate without being reviewable — which, if accepted, has to be accepted as a named failure mode in \"What should happen when it fails\" rather than left inside the argument for accepting self-minted intents. Direction (a) is preferable: the acceptance at lines 80-86 and the out-of-scope line at 148-150 both depend on the proposal actually being visible to a person, so removing the claim without adding the check leaves those two passages resting on nothing.",
+                         "disposition":  "fixed",
+                         "disposition-reason":  "The git-tracking argument is deleted. The acceptance now rests only on the merge being the grant, which is a statement about the process rather than about what the gate inspects."
+                     },
+                     {
+                         "id":  "intent-r2-reason12",
+                         "category":  "unfounded-claim",
+                         "state":  "blocking",
+                         "stage":  "intent",
+                         "detection":  "reasoning",
+                         "role":  "facts",
+                         "summary":  "The section on what a licence proves describes the shipped gate as requiring `source: charter-review`, when the shipped gate accepts either permitted source for any protected path.",
+                         "cites":  [
+                                       {
+                                           "kind":  "invariant",
+                                           "id":  "INV-07"
+                                       }
+                                   ],
+                         "repair":  "In the section \"What the licence proves, and what it deliberately does not\", replace the first sentence so it describes the shipped gate accurately and names the path-blindness as the defect being fixed. Suggested wording: \"On the shipped gate, a licence proves only that a file declaring `source: charter-review` **or** `source: pack-review` exists at `.sdlc/intents/\u003cid\u003e.md` on a branch named for it — the source is never matched against the path, so a `pack-review` branch is licensed to rewrite the charter today. That is the source-only binding the path-bound licence above replaces.\" Leave the rest of the section intact: its load-bearing point — that a licence proves declaration rather than approval, and that the merge is the human grant — holds unchanged, and the corrected sentence strengthens rather than weakens it.",
+                         "disposition":  "fixed",
+                         "disposition-reason":  "Corrected against the code: the shipped gate checks a flat list of permitted sources with no path pairing, so it accepts either source for any protected path. The path-binding is new behaviour this intent proposes, not existing behaviour."
+                     },
+                     {
+                         "id":  "intent-r2-reason16",
+                         "category":  "missing-case",
+                         "state":  "blocking",
+                         "stage":  "intent",
+                         "detection":  "reasoning",
+                         "role":  "gaps",
+                         "summary":  "Creation of a new pack — an ordinary cycle needing no licence under the charter — has no acceptance criterion and no failure mode, although the per-pack globs match a new pack\u0027s files and the shipped gate refuses them without a `pack-review` intent.",
+                         "cites":  [
+                                       {
+                                           "kind":  "invariant",
+                                           "id":  "INV-01"
+                                       }
+                                   ],
+                         "repair":  "Add one acceptance criterion and one failure mode covering a protected path that is absent from the baseline, and say which way it resolves.\n\nThe charter decides the direction: creating a pack is an ordinary cycle, modifying one needs the gate. So a protected path with no baseline version is a creation, not an amendment, and both halves must let it through — the shell-command gate must not refuse `packs/\u003cnew\u003e/pack.yaml` on an ordinary cycle branch, and the result-comparing check must not raise a blocking finding for a protected path that exists on the branch and not in the baseline. Note in passing that the shipped gate already refuses this (it matches the glob and then demands a `pack-review` intent), so the prevention half needs a change here rather than merely a new test.\n\nThe matching failure mode is the cost of that exemption and belongs stated rather than discovered: an unlicensed branch can add a whole new pack, and a delete-then-add of an existing pack\u0027s files reads as a creation. Say which of those is accepted and why, and if the second is not accepted, state the criterion that separates a path that never existed in the baseline from one that did — the \"differs from its baseline\" wording does not currently distinguish them.\n\nThis stays inside the intent\u0027s own scope: it changes no invariant, adds no protected path, and leaves the four patterns as they are."
+                     },
+                     {
+                         "id":  "intent-r2-reason17",
+                         "category":  "missing-case",
+                         "state":  "blocking",
+                         "stage":  "intent",
+                         "detection":  "reasoning",
+                         "role":  "gaps",
+                         "summary":  "The intent never states where the detection half runs or what invokes it, and records no failure mode for the check existing and never being invoked.",
+                         "cites":  [
+                                       {
+                                           "kind":  "invariant",
+                                           "id":  "INV-01"
+                                       }
+                                   ],
+                         "repair":  "In \"What should happen when it fails\", add the missing mode: **the check exists and is never invoked.** Say what that looks like (no skip, no failure, a clean run — indistinguishable from a healthy repository with nothing to report) and how it is made loud rather than silent, since this is the exact defect being repaired on the prevention side. Then make it observable in \"How we will know it worked\": name the stage that invokes the check and assert the wiring, the way the intent already asserts one shared licence implementation — a test that fails when the check is present but unreachable from the stage that files findings. Leave the concrete invocation mechanism to the spec; the intent needs the failure mode and the observable, not the design."
+                     },
+                     {
+                         "id":  "intent-r2-reason18",
+                         "category":  "missing-case",
+                         "state":  "blocking",
+                         "stage":  "intent",
+                         "detection":  "reasoning",
+                         "role":  "gaps",
+                         "summary":  "No success criterion asserts that the existing `Edit`, `Write`, `MultiEdit` and `NotebookEdit` refusals still fire after the tool matcher and the in-script tool check are both rewritten.",
+                         "cites":  [
+                                       {
+                                           "kind":  "invariant",
+                                           "id":  "INV-01"
+                                       }
+                                   ],
+                         "repair":  "Under \"How we will know it worked\", add a criterion covering the pre-existing tool route so the rewrite is observed in both directions, e.g.: \"**The tool route still refuses what it refused before.** An `Edit`, `Write`, `MultiEdit` or `NotebookEdit` payload targeting `.sdlc/CHARTER.md` is refused on `master` and permitted on a `charter-review` intent branch, exactly as today — and the path-bound licence now applies to it too, so a `pack-review` branch editing the charter with `Edit` is refused where the shipped gate permits it.\" Under \"What should happen when it fails\", add: \"**The rewritten tool check stops matching a writing tool.** Silent and total: the protected paths become editable by the very tools the gate was built for, while the charter still claims protection. Enumerated separately from the shell heuristic because the two checks are rewritten in one change and only one of them is what the gate already did.\" Note that the second half of the criterion is a deliberate behaviour change to the existing route, so state it as intended rather than as regression, or record it out of scope if the path-bound licence is meant to apply to shell commands only."
+                     },
+                     {
+                         "id":  "intent-r2-reason20",
+                         "category":  "missing-case",
+                         "state":  "blocking",
+                         "stage":  "intent",
+                         "detection":  "reasoning",
+                         "role":  "gaps",
+                         "summary":  "The no-baseline failure mode is enumerated only in git-shaped forms, omitting a repository that contains no protected paths at all and the first write of `.sdlc/CHARTER.md` into a repository that has none, though the gate ships as a plugin hook to such repositories.",
+                         "cites":  [
+                                       {
+                                           "kind":  "invariant",
+                                           "id":  "INV-01"
+                                       }
+                                   ],
+                         "repair":  "Add the missing case to \"What should happen when it fails\", distinct from the no-baseline entry, and settle its direction rather than leaving it to the implementer:\n\n- **A protected path does not exist in this repository at all** — a consumer solution with no `packs/` directory, or a repository before `/sdlc:init` has written a charter. State whether the result-comparing check reports this as *nothing to compare, with the reason* (the outcome it already demands for a missing baseline) or as an ordinary pass, and say which, because the two are indistinguishable in result and the intent\u0027s own rule is that an outcome must never read as approval. A pattern matching nothing must not be silently identical to a pattern matching something unchanged.\n\n- **The first write of `.sdlc/CHARTER.md` in a repository that has none.** `init` copies the pack charter to a protected path, on `master`, with no charter intent — so the prevention half refuses the one write that makes a repository governable, and widening the gate to shell commands extends that refusal to the pack scaffolder. Either enumerate it as a refusal the design accepts and say how `init` proceeds, or record it under \"What is out of scope\" as a defect in the shipped gate belonging to its own intent. Leaving it unstated is what the charter\u0027s gaps row for an intent calls a gap in both of its clauses at once.\n\nEither resolution clears the citation; what does not clear it is leaving the enumeration on one axis while the check ships to repositories that sit on the other. Nothing here requires building the mechanism — the repair is to the intent\u0027s enumeration and its scope line."
+                     },
+                     {
+                         "id":  "intent-r2-reason1",
+                         "category":  "charter-violation",
+                         "state":  "suggested",
+                         "stage":  "charter",
+                         "detection":  "reasoning",
+                         "role":  "charter",
+                         "summary":  "The intent builds enforcement it concedes is weaker than INV-08\u0027s text — a declared intent rather than an approved one — while placing reconciliation of that invariant wording out of scope.",
+                         "repair":  "Leave the finding as a suggestion and let it accumulate against INV-08\u0027s wording — that is the amendment signal the charter is built to read. If the next round wants it blocking, the honest route is not this intent but the charter intent it already defers to: one that either narrows INV-08\u0027s \"approved\" to match the merge-is-the-grant reading, or keeps \"approved\" and adds `.sdlc/intents/` as a protected path, at which point this intent\u0027s out-of-scope line on protected paths would have to go — the intent itself says so. Nothing in this intent needs editing to clear the finding."
+                     },
+                     {
+                         "id":  "intent-r2-reason2",
+                         "category":  "duplicated-truth",
+                         "state":  "suggested",
+                         "stage":  "intent",
+                         "detection":  "reasoning",
+                         "role":  "charter",
+                         "summary":  "The intent adds a second consumer of the protected-path set and of the charter\u0027s source-to-path mapping, but requires single-sourcing and a binding check only for the licence predicate, leaving the path set declared in more than one place.",
+                         "repair":  "Extend the single-implementation requirement and its construct check to cover the protected-path patterns and the source-to-path mapping, not just the licence predicate — today those four patterns live in `$protectedPatterns` in `tools/Assert-SdlcCharterGate.ps1`, and the detection half needs the same list. Add an acceptance criterion that both mechanisms read one declaration of the protected paths, and a check that fails when a second declaration appears or when the declaration and the charter\u0027s `| Source | Changes | Bumps |` table disagree."
+                     },
+                     {
+                         "id":  "intent-r2-reason3",
+                         "category":  "charter-violation",
+                         "state":  "suggested",
+                         "stage":  "charter",
+                         "detection":  "reasoning",
+                         "role":  "charter",
+                         "summary":  "The intent binds writes to a pack\u0027s charter template to a `pack-review` licence, a source-to-path mapping the charter\u0027s source table never declares for that path, which names only `pack.yaml` and `pack.rules.yaml`.",
+                         "repair":  "Merged with the facts-role reading of the same defect (formerly `intent-r2-reason11`), which reached it from the other end: the path-bound licence is grounded in the charter splitting the two sources by path, yet the source table names no source for the pack charter template.\n\nKeep as a suggestion, and do not repair the intent\u0027s criteria — they are right as written. Two options, both cheap:\n\n1. Preferred: leave the intent alone and let `charter-r2-reason22` in cycle `20260926-bc24` carry it. That finding already demands the `pack-review` row grow to `pack.yaml`, `pack.rules.yaml`, `packs/\u003cpack\u003e/CHARTER.md`, is still blocking with no disposition, and is the correct owner — the table is charter content and only a `charter-review` intent may touch it. The fix is one cell: the `pack-review` row listing the pack\u0027s charter template alongside `pack.yaml` and `pack.rules.yaml`.\n\n2. Optional one-line addition to `.sdlc/intents/20260926-46a0.md`, under \"What is out of scope\", if the dependency should be visible from this cycle: note that the pack charter template\u0027s assignment to `pack-review` is the gate\u0027s recorded reading of INV-08\u0027s \"the stack pack\" (`tools/Assert-SdlcCharterGate.ps1:62-72`), that the charter\u0027s source table omits it, and that widening that row is `20260926-bc24`\u0027s outstanding finding rather than this cycle\u0027s work. This records the dependency without pulling a charter amendment into scope.\n\nNothing is unresolved for the implementer either way: the intent already names `pack-review` for the template observably in its acceptance criteria."
+                     },
+                     {
+                         "id":  "intent-r2-reason6",
+                         "category":  "internal-contradiction",
+                         "state":  "suggested",
+                         "stage":  "intent",
+                         "detection":  "reasoning",
+                         "role":  "coherence",
+                         "summary":  "The intent claims detection closes the hole by construction and cannot be routed around by any choice of tool, while the same document specifies that the check reports skipped in ordinary repository states — detached HEAD, fresh worktree, shallow clone, no local `master`.",
+                         "repair":  "Not required for the contradiction, which does not hold. If the underlying concern is carried forward as a suggestion, the cheapest resolution is one added failure mode next to the no-baseline case: a skip that is self-induced — a shallow or detached checkout arranged so the comparison cannot run — is a defect in the enforcing environment rather than a healthy repository, with a criterion fixing the environment in which the check must never skip (a full checkout of master, where the baseline is HEAD). That also lets the first anchor keep its narrow wording honestly, since the sentence would then be scoped by something observable rather than by reading."
+                     },
+                     {
+                         "id":  "intent-r2-reason7",
+                         "category":  "internal-contradiction",
+                         "state":  "suggested",
+                         "stage":  "intent",
+                         "detection":  "reasoning",
+                         "role":  "coherence",
+                         "summary":  "The success criteria are written as end-to-end outcomes of real shell commands, while the out-of-scope section limits the tests to the gate\u0027s decision on a directly fed payload and calls delivery of such a payload unverified.",
+                         "repair":  "Phrase each criterion at the level that will actually be proven — the gate\u0027s decision on a shell-command payload naming the protected path — and add one separate criterion for the delivery half where it is verifiable, namely that the widened matcher routes a Bash payload end to end, leaving PowerShell delivery as the follow-up the out-of-scope bullet already names. That keeps the criteria observable while removing the gap between what they assert and what the declared tests establish."
+                     },
+                     {
+                         "id":  "intent-r2-reason13",
+                         "category":  "unfounded-claim",
+                         "state":  "suggested",
+                         "stage":  "intent",
+                         "detection":  "reasoning",
+                         "role":  "facts",
+                         "summary":  "The reality of the `Bash` tool name is grounded in an official plugin outside the repository, and the paired claim that nothing names a `PowerShell` tool is stated without bound, although in-tree skill declarations carry the evidence.",
+                         "repair":  "Re-ground the first half of the line in the tree instead of in an external plugin: \"Twelve skills declare `allowed-tools: Bash(powershell.exe *)`, so that name is real; nothing in this repository names a `PowerShell` tool, so its behaviour is unverified.\" That keeps the scope boundary intact, makes the supporting claim one a fact-gathering check over `skills/*/SKILL.md` can verify, and brings it inside INV-07\u0027s checkable surface rather than resting on an authority outside the repository. Bound the second half too — \"nothing anywhere\" is unbounded and uncheckable; \"nothing in this repository\" is what was actually established."
+                     },
+                     {
+                         "id":  "intent-r2-reason14",
+                         "category":  "unfounded-claim",
+                         "state":  "suggested",
+                         "stage":  "intent",
+                         "detection":  "reasoning",
+                         "role":  "facts",
+                         "summary":  "The account of where the gate extracts paths presents `file_path` and `notebook_path` as exhaustive, while the script also reads each `file_path` inside a `MultiEdit` `edits` list.",
+                         "repair":  "In .sdlc/intents/20260926-46a0.md, line 20, widen the parenthetical account so it is complete without changing the argument: \"it extracts paths from `file_path` and `notebook_path`, including each `file_path` inside a `MultiEdit` `edits` list, and a shell payload carries a `command` string instead.\" One clause; nothing else in the paragraph moves."
+                     },
+                     {
+                         "id":  "intent-r2-reason15",
+                         "category":  "missing-case",
+                         "state":  "suggested",
+                         "stage":  "intent",
+                         "detection":  "reasoning",
+                         "role":  "gaps",
+                         "summary":  "Both halves are specified only for a command that writes a protected path, with deletion, rename and move of a protected path addressed in neither the acceptance criteria nor the failure modes.",
+                         "repair":  "Broaden the verb in the prevention criteria from \"writes a protected path\" to the action class — modifies, deletes, renames or moves — in both the \"What is wanted\" description and the acceptance criteria, and state in the detection criterion that a path absent from the working tree while present in the baseline counts as differing. This is wording that removes a reading, not new scope: the accepted failure mode and the baseline comparison already cover these actions."
+                     },
+                     {
+                         "id":  "intent-r2-reason19",
+                         "category":  "missing-case",
+                         "state":  "suggested",
+                         "stage":  "intent",
+                         "detection":  "reasoning",
+                         "role":  "gaps",
+                         "summary":  "The requirement that a skipped detection check never read as approval appears only among the failure modes, with no acceptance criterion making skipped, failed and passed distinguishable outcomes.",
+                         "repair":  "Not required (uncited → suggestion). If acted on voluntarily, add one line to \"How we will know it worked\": the result-comparing check reports three distinguishable outcomes, and a repository with no local baseline yields `skipped` with its reason — a value distinct from both pass and fail, asserted by a test, in the same shape `Test-SdlcArtifact.ps1` already uses for a kind no schema governs."
+                     }
+                 ]
+}

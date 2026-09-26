@@ -1,0 +1,192 @@
+{
+    "cycle-id":  "20260926-46a0",
+    "target":  "intent",
+    "charter-version":  4,
+    "pack-version":  null,
+    "round":  1,
+    "failed-checks":  [
+
+                      ],
+    "rejected-citations":  [
+
+                           ],
+    "findings":  [
+                     {
+                         "id":  "intent-r1-reason1",
+                         "category":  "charter-violation",
+                         "state":  "blocking",
+                         "stage":  "intent",
+                         "detection":  "reasoning",
+                         "role":  "charter",
+                         "summary":  "The licence is defined as the mere presence of an intent declaring `source: charter-review` or `pack-review` on the branch — not an approved one, and writable by the same automated process the gate constrains since `.sdlc/intents/` matches none of the four protected patterns — and no failure mode covers an unlicensed branch being read as licensed.",
+                         "cites":  [
+                                       {
+                                           "kind":  "invariant",
+                                           "id":  "INV-01"
+                                       }
+                                   ],
+                         "repair":  "Three things have to land in `C:\\Repos\\ai-sdlc\\.sdlc\\intents\\20260926-46a0.md`.\n\n**1. Add the mirror failure mode, and make it fail closed.** Alongside \"A licensed branch is misread as unlicensed\" (line 83-84), add: **An unlicensed branch is misread as licensed.** The silent direction, and the worse one: because the branch-licence question is answered in one place, a wrong *yes* opens the gate and disables the result-comparing backstop in the same stroke, leaving the hole this intent exists to close exactly as it was. So the licence answer fails closed — anything it cannot positively establish as a licence is no licence: no intent file, unreadable or invalid frontmatter, a `source:` other than `charter-review` or `pack-review`, or an intent that is not approved. A licence is granted only on positive evidence, never as the default when a read fails.\n\n**2. State what the licence test actually proves, and choose.** On the shipped gate it proves only that a file with `source: charter-review` exists at `.sdlc/intents/\u003cid\u003e.md` on a branch named for it — satisfiable without a person ever seeing it. Pick one answer in the intent: (a) *accept it as a decision* — the licence stays presence-shaped because a process that mints its own intent leaves a tracked, reviewable file a human sees in the PR; if this is the answer, write it as an accepted consequence with its evidence, the way the intent already accepts an unclassifiable command getting through, not as silence. (b) *Make the licence carry a human signal* — the gate reads something an automated process cannot legitimately write (an approval field a person adds, a signature, an intent merged to `master` rather than branch-local); this is a design change with real cost and it is the human-approval question the charter reserves to a person, so the intent should pose it rather than settle it.\n\nThe approval half of the same choice has to be answered explicitly rather than left for declaration to imply: either declaration on an intent-/cycle- branch **is** the licence, because a pre-merge branch is a proposal and the human grant happens at the PR (then say so, say why an edit on an unmerged branch is not yet an amendment, and reword the amend-only-by-approved-intent phrasing that contradicts it), or approval is part of the licence (then name the signal the single licence answerer reads — merge of the intent to master, or the `cycle-\u003cid\u003e` branch which per Submit-SdlcIntent only follows approval — and note that the existing gate\u0027s `^(?:intent|cycle)-` match is wider than that). If approval is deliberately out of scope for this cycle, record that under \"What is out of scope\" rather than leaving it unstated.\n\n**3. Resolve the collision.** Adding `.sdlc/intents/` to the protected set is the obvious remedy and line 94-95 forbids it (\"Changing which paths are protected. The four patterns stay as they are\"). Either widen that exclusion with reasoning, or pick a licence test that needs no new protected path — leaving both sentences as they stand rules out the remedy and leaves the hole unaddressed. Add the matching acceptance criterion so the fail-closed direction is proven rather than assumed: a branch whose only intent is unreadable, or is not approved, is refused.\n\nTwo things stay out of bounds: do not repair this by amending INV-08\u0027s wording (correctly out of scope; it needs its own approved charter intent), and do not repair it by deleting the \"failure direction to prefer\" sentence — that sentence is sound, and removing the half that was written is not a way to cover the half that was not.\n\n*Merged: intent-r1-reason11 (mirror failure mode absent) and intent-r1-reason14 (no case for a declared-but-unapproved intent) were the same defect reached from the gaps role.*",
+                         "disposition":  "fixed",
+                         "disposition-reason":  "Licence now fails closed on any question it cannot positively establish, and the mirror failure mode is recorded. The presence-versus-approval question is answered explicitly as an accepted consequence - an edit on an unmerged branch is a proposal and the merge is the human grant - and the INV-08 wording mismatch is raised for its own charter intent rather than settled here. No new protected path is needed, so the out-of-scope line no longer rules out its own remedy."
+                     },
+                     {
+                         "id":  "intent-r1-reason5",
+                         "category":  "internal-contradiction",
+                         "state":  "blocking",
+                         "stage":  "intent",
+                         "detection":  "reasoning",
+                         "role":  "coherence",
+                         "summary":  "The acceptance criterion licenses the same protected-path write on the branch of an intent declaring either `charter-review` or `pack-review`, binding the licence to the intent\u0027s source alone, while the wanted behaviour binds it to the path being written (\"not licensed to change it\") as the charter\u0027s path-determined split does.",
+                         "cites":  [
+                                       {
+                                           "kind":  "locations",
+                                           "locations":  [
+                                                             {
+                                                                 "file":  ".sdlc/intents/20260926-46a0.md",
+                                                                 "anchor":  "from a branch not licensed to change it"
+                                                             },
+                                                             {
+                                                                 "file":  ".sdlc/intents/20260926-46a0.md",
+                                                                 "anchor":  "The same command on the branch of an intent declaring"
+                                                             }
+                                                         ]
+                                       }
+                                   ],
+                         "repair":  "Make the licence path-bound in the acceptance criteria, matching the charter\u0027s path-determined split, by replacing the single permissive bullet with two:\n\n- A shell command that writes `.sdlc/CHARTER.md` is permitted only on the branch of an intent whose source is `charter-review`.\n- A shell command that writes a pack\u0027s `pack.yaml`, `pack.rules.yaml` or charter template is permitted only on the branch of an intent whose source is `pack-review`.\n\nAnd add the cross case as a refusal, since it is the hole this wording opens: a `pack-review` branch writing the charter, or a `charter-review` branch writing pack files, is refused like an unlicensed branch. Then tighten line 49-51\u0027s one-place licence question to take the path as well as the branch — \"does this branch carry an intent licensing a write to THIS path\" — so the single implementation cannot be built source-only.\n\nSeparately, and out of scope for this intent (it lists \"Amending the charter\" as out of scope): INV-08\u0027s `Forbids:` clause shares the same loose \"charter or pack intent\" disjunction while the path split sits only in the prose around it. Worth raising against the charter in its own right rather than folding into this fix.",
+                         "disposition":  "fixed",
+                         "disposition-reason":  "The licence is path-bound throughout: charter path to charter-review, pack paths to pack-review, and both cross cases named as refusals. The single licence question takes the path as well as the branch."
+                     },
+                     {
+                         "id":  "intent-r1-reason8",
+                         "category":  "unfounded-claim",
+                         "state":  "blocking",
+                         "stage":  "intent",
+                         "detection":  "reasoning",
+                         "role":  "facts",
+                         "summary":  "The intent names the wrong cause for the bypass — it attributes the escape to a shell payload carrying no `file_path` (lines 12-15), when the hook registers only for `Edit|Write|MultiEdit|NotebookEdit` so a Bash call never reaches the gate at all, and a payload that does reach it with no recognised path is denied rather than passed.",
+                         "cites":  [
+                                       {
+                                           "kind":  "invariant",
+                                           "id":  "INV-07"
+                                       }
+                                   ],
+                         "repair":  "Replace the bolded cause sentence with the mechanism the tree actually has: the hook registers only for `Edit|Write|MultiEdit|NotebookEdit`, and the script re-checks the same tool names, so a Bash call never reaches the gate — and note that a payload which does reach it with no recognised path is denied, not passed, since the gate fails closed. Write the two layers sequentially rather than joined by one \"so\", so the account reads as one cause with a second barrier behind it: the matcher never routes the call, and were the matcher widened, the gate still extracts paths from `file_path`/`notebook_path`, which a `command` string does not carry — so both halves have to change.\n\nThen follow it through in \"What is wanted\": prevention means widening what the hook registers for (and the script\u0027s tool-name check) to include the shell tool, and classifying a write out of a `command` string — not extracting a path from a payload the gate is already reached by. Keep the rest of the intent as written; the detection-by-construction half and the acceptance criteria are unaffected.\n\n*Merged: intent-r1-reason6 read the same passage as two incompatible causes for one bypass; the wording fix above covers it.*",
+                         "disposition":  "fixed",
+                         "disposition-reason":  "Cause corrected to the mechanism the tree has: the matcher never routes a shell call, the script re-checks the four tool names itself, and a recognised tool yielding no recognised path is DENIED - so widening the matcher without teaching the gate to read a command would deny every shell command in the repository."
+                     },
+                     {
+                         "id":  "intent-r1-reason12",
+                         "category":  "missing-case",
+                         "state":  "blocking",
+                         "stage":  "intent",
+                         "detection":  "reasoning",
+                         "role":  "gaps",
+                         "summary":  "The detection half is defined against \"the branch\u0027s merge target\" (line 87), and no failure mode defines its behaviour on `master` itself, where HEAD has no merge target distinct from itself.",
+                         "cites":  [
+                                       {
+                                           "kind":  "invariant",
+                                           "id":  "INV-01"
+                                       }
+                                   ],
+                         "repair":  "Add a failure mode to \"What should happen when it fails\" in `C:\\Repos\\ai-sdlc\\.sdlc\\intents\\20260926-46a0.md` defining the detection half\u0027s behaviour when HEAD is the merge target itself (`master`), and reconcile it with the line 55 criterion and the line 92-93 out-of-scope claim. Two coherent resolutions, pick one explicitly rather than leaving it to the implementer:\n\n(a) Name a fixed baseline for master — the last release tag, or the tip as of the last approved charter/pack intent — so a protected path changed on master without a licence still differs from something and still produces the blocking finding. Then line 92-93\u0027s claim that detection is already covered stays true, and the failure mode should state what happens when that fixed reference is itself missing (fold into the existing skipped-with-reason case at line 77-80).\n\n(b) State that on master the comparison is against the working tree rather than a commit, accept that a change already committed to master is undetectable by this half, and say so — that prevention (the shell-command gate, line 55) is the sole cover there, and that the gate throwing or failing to classify a write on master is therefore unbacked rather than backstopped. This weakens the \"load-bearing half\" framing at line 45-47 and the out-of-scope reasoning at line 92-93, so both need amending in the same change.\n\nEither way the added failure mode must not read as approval of a silent no-op: the existing skipped-with-reason precedent at line 78-80 is the right shape for reporting a comparison that cannot say anything.",
+                         "disposition":  "fixed",
+                         "disposition-reason":  "The baseline on master is HEAD itself: an uncommitted difference fails, a committed one arrived through a merge, which is the grant."
+                     },
+                     {
+                         "id":  "intent-r1-reason13",
+                         "category":  "missing-case",
+                         "state":  "blocking",
+                         "stage":  "intent",
+                         "detection":  "reasoning",
+                         "role":  "gaps",
+                         "summary":  "The gate\u0027s own fault has a recorded outcome (it denies when it throws) but the result-comparing check\u0027s own fault has none — only the distinct \"no baseline exists\" case is covered, and that one is defined to skip.",
+                         "cites":  [
+                                       {
+                                           "kind":  "invariant",
+                                           "id":  "INV-01"
+                                       }
+                                   ],
+                         "repair":  "Add a seventh failure mode under \"What should happen when it fails\", giving the result-comparing check\u0027s own fault a recorded outcome distinct from the no-baseline skip. The document\u0027s existing reasoning already fixes the answer: since a skip \"must never read as approval\" and a protection that opens when confused is worse than none, a check that cannot complete must not report pass. State which it does — block, or a third non-pass outcome that names the fault — and say explicitly that it is not the skip, so the two are not conflated by an implementer reading the no-baseline bullet as the general error case. Also worth noting in the same bullet that this mode is what the first bullet\u0027s accepted heuristic leak depends on, which is why it cannot be left to inference.\n\nA matching acceptance criterion belongs under \"How we will know it worked\": a check that cannot complete does not report the protected path as unchanged.",
+                         "disposition":  "fixed",
+                         "disposition-reason":  "The check faulting is now distinct from having no baseline. No baseline skips with a reason; a fault fails, because a check that cannot run has approved nothing."
+                     },
+                     {
+                         "id":  "intent-r1-reason15",
+                         "category":  "missing-case",
+                         "state":  "blocking",
+                         "stage":  "intent",
+                         "detection":  "reasoning",
+                         "role":  "gaps",
+                         "summary":  "The \"answered in one place\" requirement for the branch-licence question appears in neither the success criteria nor the failure modes, so nothing observable distinguishes one shared answer from two copies that have begun to disagree.",
+                         "cites":  [
+                                       {
+                                           "kind":  "invariant",
+                                           "id":  "INV-01"
+                                       }
+                                   ],
+                         "repair":  "Make the single-source requirement observable in both sections of `.sdlc/intents/20260926-46a0.md`. Add a success criterion alongside the existing four, e.g.: \"The branch-licence decision has exactly one implementation, and both the shell gate and the baseline check reach it through that one path — a licensed branch and an unlicensed one are classified identically by both halves, on the same input.\" Add the matching failure mode, e.g.: \"**The two halves disagree about a branch.** The gate permits a write the baseline check then flags, or the reverse. This is the drift the single-source rule exists to prevent; it is a defect in the shared answer, not a reason to tune either caller, and it is what a test exercising both halves against the same branch state is for.\" Keep the framing conditional so no claim is made about what is currently built (INV-07).",
+                         "disposition":  "fixed",
+                         "disposition-reason":  "Added an observable criterion: a test asserts both mechanisms resolve the licence through the same shared function, and a construct check fails a second implementation."
+                     },
+                     {
+                         "id":  "intent-r1-reason2",
+                         "category":  "duplicated-truth",
+                         "state":  "suggested",
+                         "stage":  "intent",
+                         "detection":  "reasoning",
+                         "role":  "charter",
+                         "summary":  "The intent single-sources the branch-licence rule but leaves the four protected-path patterns to be represented separately in the prevention gate and in the new result-comparing check, with no single declaration both read and no check binding the two.",
+                         "repair":  "Cheap to absorb while the intent is still open: extend the existing single-source sentence so it covers both shared facts, e.g. \"The branch-licence question and the set of protected paths will each be answered in one place\" — or add an acceptance criterion under \"How we will know it worked\" of the form \"the protected-path patterns are declared once, and the result-comparing check reads them from the same declaration the gate does\". Either makes the duplication citable against INV-03 at plan and code stage instead of leaving it to be noticed after the drift window opens."
+                     },
+                     {
+                         "id":  "intent-r1-reason3",
+                         "category":  "internal-contradiction",
+                         "state":  "suggested",
+                         "stage":  "intent",
+                         "detection":  "reasoning",
+                         "role":  "coherence",
+                         "summary":  "The failure-mode section decides the gate allows a command it cannot classify as a write (line 70-73), and four bullets later states as a governing principle that a protection which opens when confused is worse than none (line 81-82).",
+                         "repair":  "Optional: state the fail direction once and derive both bullets from it — an unrecognised command fails open because the heuristic\u0027s misses are covered by the result-comparing check and the gate makes no completeness claim, while a gate in an unknown state fails closed because nothing else knows whether a write happened and a denial there is loud rather than silent. That makes explicit the distinction a reader currently has to infer across four bullets."
+                     },
+                     {
+                         "id":  "intent-r1-reason4",
+                         "category":  "internal-contradiction",
+                         "state":  "suggested",
+                         "stage":  "intent",
+                         "detection":  "reasoning",
+                         "role":  "coherence",
+                         "summary":  "Line 40 asserts the detection half is one \"no choice of tool can route around\", while lines 77-80 enumerate an environment class — no local `master`, shallow clone, detached HEAD, fresh worktree — in which it reports skipped rather than firing.",
+                         "repair":  "No repair is required to resolve a contradiction, because there is none: line 40\u0027s scope is tool choice, and the skip class is an environment. Two cheap moves would remove the reading, and only the second adds anything real: (1) make the scope of line 40 explicit on its face — \"which no choice of tool can route around, because it inspects the result rather than the action\" — so the claim carries its own qualifier and cannot be read as total coverage; and (2) close the genuine residual gap by saying, in the skip bullet, what the process does with a skip on an unlicensed branch — whether it is merely reported, or whether a skip on a branch with no licence is itself surfaced so that an induced-skip environment cannot be a silent pass. The second belongs in the spec regardless of this finding\u0027s disposition, and it is the suggestion\u0027s substance."
+                     },
+                     {
+                         "id":  "intent-r1-reason7",
+                         "category":  "internal-contradiction",
+                         "state":  "suggested",
+                         "stage":  "intent",
+                         "detection":  "reasoning",
+                         "role":  "coherence",
+                         "summary":  "The accepted fail-open decision is premised on a check that refuses healthy commands being switched off (line 71-72), while the adjacent failure mode rules out disabling the matcher as a response to a false refusal (line 74-76).",
+                         "repair":  "Carry as a suggestion. If the wording is ever tightened, separate the descriptive premise from the normative rule in the fail-open bullet — that a noisy check gets ignored in practice is why the matcher is built conservatively, and a false refusal that occurs is narrowed rather than switched off. No change is required for the artifact to be coherent."
+                     },
+                     {
+                         "id":  "intent-r1-reason9",
+                         "category":  "unfounded-claim",
+                         "state":  "suggested",
+                         "stage":  "intent",
+                         "detection":  "reasoning",
+                         "role":  "facts",
+                         "summary":  "The line 59-62 criterion requires a mechanical check to emit a blocking finding citing the amend-only-by-approved-intent invariant, a shape `workflows/interrogate.js` cannot produce — a failed check cites its own check id, never an invariant, and an unmapped check id is born `suggested`/`unclassified`.",
+                         "repair":  "Keep as a suggestion, and note for re-filing: the substance is an ambiguity, not an unfounded claim. The criterion asks for detection by construction (a mechanical check) AND an invariant citation, which the current machinery cannot deliver together, so it admits two materially different implementations — extend the citation core so a charter-violation-mapped check can carry INV-08, or let a reasoning role supply the citation, which makes blocking contingent on an agent and defeats \"no choice of tool can route around\". That shape has a live INV-02 route (Applies-to: intent, spec, plan). If instead the criterion is meant as written, the intent should say that `workflows/interrogate.js`\u0027s mechanical-finding shape must change, since nothing in it currently declares that."
+                     },
+                     {
+                         "id":  "intent-r1-reason10",
+                         "category":  "unfounded-claim",
+                         "state":  "suggested",
+                         "stage":  "intent",
+                         "detection":  "reasoning",
+                         "role":  "facts",
+                         "summary":  "Line 45-47 credits the charter\u0027s reasoning for protecting the pack alongside itself with an argument about closing holes by construction rather than by enumeration, when that reasoning is about coverage scope.",
+                         "repair":  "Make the sentence carry its own argument instead of borrowing the charter\u0027s. Replace \"the charter\u0027s own reasoning for protecting the pack alongside itself applies here — close the hole *by construction* rather than by enumerating the ways through it\" with the reasoning stated directly and the precedent named for what it actually says, e.g.: \"a protection that covers only part of the surface it defends is not a protection — the charter extends the same protection to the pack for that reason, since protecting this document while its substance sits in `pack.rules.yaml` leaves the rule in an unlocked drawer. The same holds for a gate that covers only the write spellings it anticipated.\" That keeps the analogy, drops the implied quotation, and leaves nothing for a later round to read as a claim about the charter\u0027s text."
+                     }
+                 ]
+}
