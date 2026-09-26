@@ -249,6 +249,55 @@ public sealed class WorkflowScriptTests
     }
 
     [TestMethod]
+    public void TheROUNDAndTheCYCLEIDComeFromTheFactsAndNotFromASecondDerivation()
+    {
+        // NOBODY INCREMENTED THE ROUND. It was an input defaulting to 1, so every interrogation was
+        // round 1, every filed document overwrote the last, and the no-progress rule — the only
+        // thing that makes the repair loop terminate — had no history to measure. The gatherer
+        // counts what is filed and names the next number.
+        //
+        // The cycle id had the opposite problem: it was derived HERE in JavaScript and also in the
+        // gatherer in PowerShell, which is two implementations of one path convention. They agree
+        // until a convention moves.
+        string code = ReadCode("interrogate.js");
+
+        Assert.IsTrue(code.Contains("PROGRESS['next-round']", StringComparison.Ordinal),
+            "the round must come from what is already filed, not from a default");
+        Assert.IsTrue(code.Contains("parsedFacts.artifact['cycle-id']", StringComparison.Ordinal),
+            "the cycle id must come from the facts, which is where the path convention lives");
+
+        // The removed second derivation, by name. Its absence is the assertion.
+        Assert.IsFalse(Regex.IsMatch(code, @"function\s+cycleIdFromPath"),
+            "a local path parser is the second implementation this change removed");
+
+        // And the stalled loop has to be said out loud, because the alternative is discovering it
+        // after paying for four role agents and one triage agent per candidate.
+        Assert.IsTrue(code.Contains("halted-no-progress", StringComparison.Ordinal),
+            "a stalled repair loop must be reported at the top of the run");
+    }
+
+    [TestMethod]
+    public void APackRuleIsNamedRatherThanCited()
+    {
+        // `cites` takes four kinds and a pack rule is none of them: the findings schema pins the
+        // invariant kind to `^(INV|LOC)-[0-9]{2}$`. Accepting `PR-01` there reached `blocking` and
+        // was then rejected by the schema — and a document is filed whole or not at all, so one such
+        // citation discarded every other finding in the run.
+        //
+        // One invariant makes every pack rule blockable: the finding cites the invariant that
+        // DELEGATES and names the rule. For that the role needs the rule's wording, which is why the
+        // pack's rules travel in the facts.
+        string code = ReadCode("interrogate.js");
+
+        Assert.IsFalse(code.Contains("declaredPackRules.indexOf(id) !== -1", StringComparison.Ordinal),
+            "a pack rule id must not resolve as an invariant citation; the schema rejects it");
+        Assert.IsTrue(code.Contains("packRuleText", StringComparison.Ordinal),
+            "the pack's rules must reach the role that checks against the charter");
+        Assert.IsTrue(code.Contains("NAMING the rule", StringComparison.Ordinal),
+            "the role has to be told the shape: cite the delegating invariant, name the rule");
+    }
+
+    [TestMethod]
     public void TheGapsRoleIsGivenTheCharterRowForTheArtifactKind()
     {
         // `gaps` is the one role whose evidence varies by artifact, and leaving that unstated
