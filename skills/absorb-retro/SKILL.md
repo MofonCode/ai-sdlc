@@ -14,19 +14,32 @@ process itself.
 
 ## Copy first, and never overwrite
 
-A retro is **immutable and append-only**. Copy each one in, keyed by cycle id. If a retro for
-that id already exists, **compare rather than replace**:
+**Do not copy retros by hand.** One script owns this, because the refusal is the whole reason
+the corpus is permitted to exist:
 
-- Identical → nothing to do. The copy is idempotent, which is what makes re-running safe.
-- **Different → stop and report it.** Do not overwrite and do not merge. A retro that changed
-  after landing means either the source was edited or two cycles share an id, and both are
-  worse problems than a missed absorption.
+```
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File tools/Import-SdlcRetro.ps1 -Path <a retro, or a solution repository>
+```
+
+A retro is **immutable and append-only**, and the script files each one by cycle id under
+`retros/<solution>/<cycle-id>.md`:
+
+- Identical → a no-op. That is what makes re-running safe, and it is deduplication enough.
+- **Different → refused, named, and the run exits non-zero.** It does not overwrite and it does
+  not merge. A retro that changed after landing means either the source was edited or two cycles
+  share an id, and both are worse problems than a missed absorption.
+- Not a valid retro → refused. A retro missing `landed-at` or `solution` cannot be interpreted once
+  it is here: the landing date lives in the solution repository's history, which this repository
+  does not have.
 
 That refusal is load-bearing. INV-03 forbids a second list without a check binding it, and
 exempts a copy of an immutable artifact **only** while the copying mechanism refuses to
-overwrite with differing content. This skill is that mechanism. Without the refusal the
-corpus is just a second list and the exemption does not hold — which is exactly why the
-charter currently says the retro corpus does not yet qualify.
+overwrite with differing content. The script is that mechanism — prose in this file was not, which
+is why the charter still says the retro corpus does not qualify. **Updating that sentence is a
+`charter-review` intent**, and it cannot be done by editing the charter here.
+
+Pointing it at a whole solution repository works: the directory form is a loop over the single-file
+case, finding every `retro.md` beneath it.
 
 ## Then compute the signals — and do not store them
 

@@ -67,6 +67,20 @@ In the body carry **every finding with its category, attributed stage, detection
 disposition**. That is what the signals are computed from. Do not summarise the findings into
 prose and drop the fields — a paraphrase is not aggregatable.
 
+**Generate that table. Do not transcribe it.**
+
+```
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File tools/Format-SdlcFindings.ps1 -CycleId $0 -For retro
+```
+
+The column shape is a contract, not a presentation: `Get-SdlcSignals.ps1` parses it back out of the
+corpus, so a table of your own design is a table no query can read — and the loop would fail
+silently at its last step, which is the step the whole framework exists for. Same reason the
+traceability table is generated from test annotations rather than written by hand.
+
+A generated copy inside the retro is not a second list in the INV-03 sense: a landed retro is
+immutable, so the two cannot diverge.
+
 ## Do not compute the signals here
 
 Report what happened. **Do not conclude what the charter should become.**

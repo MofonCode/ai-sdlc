@@ -36,6 +36,21 @@
 .PARAMETER OutFile
     Write here instead of to stdout.
 
+.PARAMETER For
+    `human` renders the reading view. `retro` renders THE table a retro carries into the corpus:
+    one row per finding with its category, attributed stage, detection, citation and disposition,
+    in a fixed shape that Get-SdlcSignals.ps1 parses back out.
+
+    That shape had to be declared somewhere. A retro is what TRAVELS between repositories — no
+    spec, plan or findings document follows it — so the amendment signals are computed from its
+    body, and nothing said what the body had to look like. An agent transcribing findings into a
+    table of its own design produces a retro no query can read, which is the whole loop failing
+    quietly at the last step.
+
+    So the retro's table is GENERATED from the findings documents rather than transcribed, for the
+    same reason the traceability table is generated from test annotations. The copy in the retro is
+    not a second list in the INV-03 sense: a landed retro is immutable, so the two cannot diverge.
+
 .PARAMETER RepoRoot
     Repository root. Defaults to the enclosing git repository.
 
@@ -59,6 +74,10 @@ param(
 
     [Parameter()]
     [string] $OutFile,
+
+    [Parameter()]
+    [ValidateSet('human', 'retro')]
+    [string] $For = 'human',
 
     [Parameter()]
     [string] $RepoRoot
@@ -181,6 +200,66 @@ if ($State) {
 
 $target = ($runs -join ', ')
 $round = $runs.Count
+
+# --- the retro's table, which is a CONTRACT rather than a presentation ------
+#
+# THE COLUMNS ARE PARSED BACK OUT by Get-SdlcSignals.ps1, so this shape is as fixed as a spec's
+# criteria table or a plan's file table. Every column is here because a signal is computed from it:
+#
+#   Category     the unclassified rate, which is a health metric for the taxonomy itself
+#   Stage        where the process leaks, attributed upstream — the high-value signal
+#   Detection    whether fact-gathering is absorbing more of the load over time
+#   Cites        the per-invariant cite count, and with it the override rate
+#   Disposition  every signal the charter amends on. `rejected` marks a noisy ROLE;
+#                `accepted-wont-fix` marks an invariant that may be too broad. Never merged
+#   Role         which lens produced it, so a lens can be dropped on evidence
+#
+# One row per finding, every state included. A suggestion that was never dispositioned still
+# belongs here: the count of those IS the evidence that suggestions go untriaged.
+if ($For -eq 'retro') {
+    $rows = New-Object System.Collections.ArrayList
+    $null = $rows.Add('| Finding | State | Category | Stage | Detection | Role | Cites | Disposition | Why |')
+    $null = $rows.Add('|---|---|---|---|---|---|---|---|---|')
+
+    foreach ($f in $findings) {
+        $cites = @()
+        if (Test-Field $f 'cites') {
+            foreach ($c in @($f.cites)) {
+                $kind = Get-Field $c 'kind' '?'
+                if ($kind -eq 'locations') { $cites += 'locations' }
+                else { $cites += ($kind + ' ' + (Get-Field $c 'id')) }
+            }
+        }
+
+        $citeText = '—'
+        if ($cites.Count -gt 0) { $citeText = ($cites -join '; ') }
+
+        $null = $rows.Add(
+            '| `' + (Get-Field $f 'id') + '` | ' +
+            (Get-Field $f 'state') + ' | ' +
+            (Get-Field $f 'category') + ' | ' +
+            (Get-Field $f 'stage') + ' | ' +
+            (Get-Field $f 'detection') + ' | ' +
+            (Get-Field $f 'role' '—') + ' | ' +
+            (Format-Cell $citeText) + ' | ' +
+            (Get-Field $f 'disposition' '—') + ' | ' +
+            (Format-Cell (Get-Field $f 'disposition-reason' '')) + ' |')
+    }
+
+    $table = ($rows -join "`n")
+
+    if ($OutFile) {
+        $full = $OutFile
+        if (-not [System.IO.Path]::IsPathRooted($full)) { $full = Join-Path $RepoRoot $OutFile }
+        [System.IO.File]::WriteAllText($full, $table, (New-Object System.Text.UTF8Encoding $false))
+        Write-Host "wrote $OutFile ($($findings.Count) finding(s))"
+    }
+    else {
+        $table
+    }
+
+    return
+}
 
 $relativeSources = @()
 foreach ($source in $sources) {

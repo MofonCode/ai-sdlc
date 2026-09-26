@@ -153,6 +153,7 @@ files and be unit-tested; prose in a skill is something a model is asked to foll
 | `Format-SdlcFindings.ps1` | Renders findings for a person: the committed suggestions file, or a regenerable full view |
 | `Submit-SdlcIntent.ps1` | The intent gate: a branch off master, a commit, a pull request |
 | `Find-SdlcCharterIntent.ps1` | Whether a charter change has already been requested — or already refused, with the reason |
+| `Import-SdlcRetro.ps1` | Copies landed retros into the corpus by cycle id, and **refuses to overwrite one that differs** |
 | `Get-SdlcSignals.ps1` | The charter amendment signals, computed on demand and never stored |
 | `Invoke-SdlcRun.ps1` | Dispatch: the launch confirmation, then one worktree per cycle |
 | `Complete-SdlcCycle.ps1` | Landing: rebase, re-verify, suggestions, pull request |
@@ -181,9 +182,17 @@ This is the path that makes the retro loop countable rather than prose to be par
    disposition.
 6. Unresolved suggestions land in `.sdlc/suggestions/<id>.md` at landing. They are intake, not a
    courtesy bin: a recurring cluster on one theme is the signal that an invariant is missing.
-7. The **retro** carries every finding with its category, attributed stage, detection and
-   disposition. It is what travels between repositories, so it is what the amendment signals are
-   computed from.
+7. The **retro** carries every finding with its category, attributed stage, detection, citation and
+   disposition, in a table **generated** by `Format-SdlcFindings.ps1 -For retro`. The shape is a
+   contract rather than a presentation: `Get-SdlcSignals.ps1` parses it back out, so a table of an
+   agent's own design is a table no query can read.
+8. `Import-SdlcRetro.ps1` copies each retro into `retros/<solution>/<cycle-id>.md`. An identical
+   copy is a no-op; **a differing one is refused**, and that refusal is the only reason the corpus
+   is permitted to exist — a copy of an immutable artifact is not a second list precisely because
+   divergence is impossible.
+9. `Get-SdlcSignals.ps1` computes the amendment signals across the whole corpus, partitioned by
+   solution, and **stores nothing**. A signal is a prompt to investigate, not a verdict: acting on
+   one means changing the charter, and only a person can grant that.
 
 ---
 
@@ -197,6 +206,7 @@ tools/             the scripts, the hook, and the schema validator
 schemas/           one schema per artifact kind, plus the findings schema
 packs/             stack packs. dotnet-library is the first
 hooks/             hooks.json, which registers the charter gate
+retros/            the corpus: one directory per solution, filled by absorption
 .sdlc/             this solution's own charter and its cycles
 tests/             MSTest, driving the shipped scripts as external processes
 ```

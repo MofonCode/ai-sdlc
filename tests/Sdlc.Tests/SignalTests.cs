@@ -313,4 +313,110 @@ public sealed class SignalTests
         Assert.IsTrue(Signals().TryGetProperty("unclassified-rate", out JsonElement rate));
         Assert.AreEqual(0.0, rate.GetDouble(), "this fixture classifies everything");
     }
+
+    /// <summary>
+    /// Writes an absorbed retro into the fixture corpus, carrying the findings table that
+    /// <c>Format-SdlcFindings.ps1 -For retro</c> generates.
+    /// </summary>
+    private static string WriteAbsorbedRetro(string solution, string cycleId, string rows)
+    {
+        string dir = Path.Combine(_repo!, "retros", solution);
+        Directory.CreateDirectory(dir);
+        string path = Path.Combine(dir, cycleId + ".md");
+
+        File.WriteAllText(path,
+            $"""
+            ---
+            cycle-id: {cycleId}
+            solution: {solution}
+            landed-at: 2026-09-25
+            charter-version: 1
+            ---
+
+            # Retro — {cycleId}
+
+            ## Findings
+
+            | Finding | State | Category | Stage | Detection | Role | Cites | Disposition | Why |
+            |---|---|---|---|---|---|---|---|---|
+            {rows}
+            """);
+
+        return path;
+    }
+
+    [TestMethod]
+    public void TheCORPUSIsReadAndNotJustThisSolutionsOwnFindings()
+    {
+        // THE HEADER DESCRIBED A BEHAVIOUR THE CODE DID NOT HAVE. This script's own documentation
+        // says retros are what travel between repositories and are therefore what the signals are
+        // computed from — while it read only local findings documents. So cross-solution
+        // aggregation, the thing this framework exists for, had no input path at all.
+        string retro = WriteAbsorbedRetro("MofonCode.Core", "20260925-ff01",
+            "| `spec-r1-reason1` | blocking | ambiguity | spec | reasoning | coherence | " +
+            "invariant INV-03 | accepted-wont-fix | Both readings cost the same. |");
+
+        try
+        {
+            JsonElement signals = Signals();
+
+            // INV-03 has no local cites in this fixture, so a cite for it can only have come from
+            // the absorbed retro's table.
+            JsonElement inv03 = Invariant("INV-03");
+            Assert.AreEqual(1, inv03.GetProperty("cites").GetInt32(),
+                "the retro's findings table was not parsed back out");
+
+            // And the disposition came with it, which is what every amendment signal is computed
+            // from: an override is an invariant that may be too broad.
+            Assert.AreEqual(1, inv03.GetProperty("overridden").GetInt32());
+
+            // Partitioned, not pooled. Pooling a library with a competition hides the difference
+            // rather than revealing it.
+            List<string> solutions = [.. signals.GetProperty("by-solution").EnumerateArray()
+                .Select(s => s.GetProperty("solution").GetString() ?? string.Empty)];
+
+            Assert.IsTrue(solutions.Contains("MofonCode.Core"),
+                "the absorbed solution must appear in its own partition: " + string.Join(", ", solutions));
+        }
+        finally
+        {
+            File.Delete(retro);
+        }
+    }
+
+    [TestMethod]
+    public void AnAbsorbedRetroIsCountedWithoutItsSolutionsFindingsDocuments()
+    {
+        // A retro travels ALONE: no spec, no plan, no findings document follows it. So every field a
+        // signal needs has to be in the retro itself, and this asserts the corpus grows from the
+        // retro's own body rather than from anything left behind in the solution.
+        int before = Signals().GetProperty("corpus-size").GetInt32();
+
+        string retro = WriteAbsorbedRetro("Other.Solution", "20260925-ff02",
+            "| `plan-r1-check1` | blocking | scope-drift | plan | check | facts | " +
+            "check plan-adherence | fixed |  |");
+
+        try
+        {
+            Assert.AreEqual(before + 1, Signals().GetProperty("corpus-size").GetInt32(),
+                "one row in one absorbed retro is one finding in the corpus");
+        }
+        finally
+        {
+            File.Delete(retro);
+        }
+    }
+
+    [TestMethod]
+    public void PackGroupingIsReportedAsUnavailableRatherThanApproximated()
+    {
+        // The design asks for aggregation by (pack, invariant), and a retro records its pack
+        // VERSION but not the pack's NAME — so that grouping needs a schema field that does not
+        // exist. Saying so is the honest answer; grouping by version alone would silently pool two
+        // different packs that happen to be at v1.
+        JsonElement signals = Signals();
+
+        Assert.IsTrue(signals.TryGetProperty("pack-grouping", out JsonElement note));
+        StringAssert.Contains(note.GetString(), "not available", StringComparison.Ordinal);
+    }
 }
