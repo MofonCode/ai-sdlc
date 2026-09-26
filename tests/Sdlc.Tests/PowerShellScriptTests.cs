@@ -61,9 +61,12 @@ public sealed class PowerShellScriptTests
         // spread over three lines becomes a call with no arguments, and PowerShell reports
         // missing mandatory parameters from a script that looks correct.
         //
-        // `Compare-SdlcBacklog.ps1` shipped broken this way in the commit that introduced it.
-        // Reformatting the file left a blank line after the backtick, and the script was
-        // committed, because the test suite only ever read these scripts as text.
+        // A script shipped broken this way in the commit that introduced it: reformatting left a
+        // blank line after the backtick, and it was committed because the suite only ever read
+        // these scripts as text. Two shipped scripts held latent instances -
+        // `Complete-SdlcCycle.ps1` would have written the suggestions file with wrong arguments,
+        // and `Invoke-SdlcRun.ps1` would have launched `claude` with no working directory and
+        // without -PassThru, making the next line throw on a null process.
         //
         // Intermediate variables cost one line and cannot break.
         // Stripped code, line numbers preserved. Reading the raw file reports every backtick
