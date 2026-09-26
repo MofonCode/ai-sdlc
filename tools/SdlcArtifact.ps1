@@ -46,6 +46,29 @@ function Get-SdlcArtifactKind {
     return 'unknown'
 }
 
+function Get-SdlcCycleIdFromPath {
+    <#
+    .SYNOPSIS
+        The cycle an artifact belongs to, read from its path. $null when none is derivable.
+    .DESCRIPTION
+        Every governed artifact carries its cycle in its path -- an intent IS the id, and
+        everything else sits under cycles/<id>/. The exception is a charter, which belongs to the
+        charter-review intent proposing to change it and therefore has to be told.
+
+        Here rather than in each caller for the same reason the artifact kind is: the interrogation
+        workflow derived this independently in JavaScript, and two answers to "which cycle is this"
+        disagree the first time a path convention moves.
+    #>
+    param([string] $RelativePath)
+
+    $posix = $RelativePath -replace '\\', '/'
+
+    if ($posix -match '(?:^|/)intents/([0-9]{8}-[0-9a-f]{4})\.md$') { return $Matches[1] }
+    if ($posix -match '(?:^|/)cycles/([0-9]{8}-[0-9a-f]{4})(?:/|$)') { return $Matches[1] }
+
+    return $null
+}
+
 function Get-SdlcSchemaPath {
     <#
     .SYNOPSIS

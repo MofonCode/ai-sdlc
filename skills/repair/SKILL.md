@@ -27,9 +27,29 @@ So after each repair, ask two questions, not one:
 **2. Halt on no progress. Never "repair until clean".**
 
 The finding rate does not decay — that was measured, not assumed, which is why "until clean"
-never fires and would loop forever. So track the count of unresolved blocking findings across
-rounds. **Two consecutive rounds with no net reduction means stop.** Report
-`halted-no-progress` with what remains.
+never fires and would loop forever.
+
+**Do not count the rounds yourself.** Ask:
+
+```
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File tools/Get-SdlcFacts.ps1 -Artifact $0
+```
+
+Read `interrogation`. It reports the rounds already filed for this artifact, the number the next
+one is, and one of five verdicts:
+
+| `progress` | What it means |
+|---|---|
+| `first-round` | nothing to compare against yet |
+| `reducing` | blocking findings are still falling round over round |
+| `stalled-once` | one round with no net reduction. Another and the loop is done |
+| `halted-no-progress` | **two consecutive rounds with no net reduction. Stop and escalate** |
+| `converged` | the last round found nothing blocking |
+
+This is a measurement, not a judgment, which is exactly why it is not yours to make. A rule an
+agent is asked to remember across rounds is a rule it can talk itself past — and this is the one
+rule that makes the loop terminate at all. It also means `round` is no longer something to pass:
+the next number comes from what is already filed, so round 2 no longer overwrites round 1.
 
 Halting is a success. A loop that runs forever burning tokens is not.
 
@@ -69,6 +89,33 @@ requests and a person answers the same question eight times.
 
 Record the rule in the intent's `targets` field, or the next cycle cannot find your request
 and files a duplicate.
+
+## Then block the cycle, which is a mechanism and not a note
+
+```
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File tools/Block-SdlcCycle.ps1 -CycleId <cycle> -BlockedBy <charter intent id>
+```
+
+Pass `-WhatIf` first if you want to see what it will discard. It does three things, and each is
+load-bearing:
+
+- **Writes `blocked-by:`** into the cycle's intent. That link is the derivation's only input for
+  the blocked state — without it the cycle reads as `dead`, and `dead` means *relaunch or discard*,
+  so a dispatcher would start the work again into the same wall.
+- **Discards the worktree and the cycle branch.** The spec and the plan live on that branch, so
+  deleting it *is* re-running from spec — which is the point, because the work was built under rules
+  that are about to change. A locked worktree is refused: a lock means an agent is still running
+  there, and stopping someone else's agent is not this script's business.
+- **Refuses if a retro exists.** A blocked cycle writes none, because a retro is the completion
+  certificate and one here would make work that never landed read as done.
+
+**It self-clears.** The moment the charter intent merges — approved into `intents/` or refused into
+`intents/abandoned/` — the link resolves and the cycle is picked up again. There is no unblock step
+and nothing to remember. The script reports `blocker-state`, and `already-refused` is worth reading
+out loud: the decision has been made and this work needs re-scoping by a person, not another round.
+
+Then commit the intent edit to master. The dispatcher reads the link from there, and it is a
+semantic link rather than work, so it carries no diff of its own.
 
 ## Escalate rather than guess
 

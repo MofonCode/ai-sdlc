@@ -18,40 +18,9 @@ export const meta = {
 const input = typeof args === 'string' ? { artifact: args } : (args || {})
 const ARTIFACT = input.artifact
 const CHARTER = input.charter || '.sdlc/CHARTER.md'
-const ROUND = input.round || 1
 
 if (!ARTIFACT) {
   throw new Error('interrogate needs an artifact path: pass it as args, e.g. ".sdlc/intents/20260924-aaaa.md"')
-}
-
-// THE CYCLE ID IS REQUIRED, AND IT IS DERIVED RATHER THAN ASKED FOR. The findings schema
-// requires a non-null `cycle-id`, and the first real interrogation emitted null and was
-// rejected by the schema its own output is supposed to satisfy — every artifact validated
-// except the one describing the run.
-//
-// The schema was right. An interrogation belongs to a cycle: a charter changes only through a
-// charter intent, which has a cycle id like any other, so there is no artifact this framework
-// governs that is interrogated outside one. Every path except the charter's carries the id
-// already, so it is read from the path and only the charter case has to say it out loud.
-function cycleIdFromPath(path) {
-  const posix = path.split(String.fromCharCode(92)).join('/')
-
-  const asIntent = posix.match(/(?:^|\/)intents\/([0-9]{8}-[0-9a-f]{4})\.md$/)
-  if (asIntent) return asIntent[1]
-
-  const inCycle = posix.match(/(?:^|\/)cycles\/([0-9]{8}-[0-9a-f]{4})(?:\/|$)/)
-  if (inCycle) return inCycle[1]
-
-  return null
-}
-
-const CYCLE_ID = input.cycleId || cycleIdFromPath(ARTIFACT)
-
-if (!CYCLE_ID) {
-  throw new Error(
-    'interrogate needs a cycle id, and none is derivable from "' + ARTIFACT + '". Pass it as ' +
-    '{ artifact, cycleId }. Interrogating the charter means a charter-review intent is ' +
-    'proposing a change to it, so the cycle id is that intent\'s.')
 }
 
 // ---------------------------------------------------------------------------
@@ -337,6 +306,39 @@ const STAGE_FOR_KIND = {
 const ARTIFACT_KIND = (parsedFacts && parsedFacts.artifact && parsedFacts.artifact.kind) || null
 const TARGET = input.target || (ARTIFACT_KIND && STAGE_FOR_KIND[ARTIFACT_KIND] ? ARTIFACT_KIND : (isCharter ? 'charter' : 'intent'))
 const ATTRIBUTED_STAGE = STAGE_FOR_KIND[TARGET] || 'intent'
+
+// THE CYCLE ID AND THE ROUND COME FROM THE FACTS, not from a second derivation here. Both are
+// properties of the tree: which cycle a path belongs to, and how many documents have already been
+// filed for this artifact. This file used to work the cycle id out of the path in JavaScript while
+// the gatherer worked it out in PowerShell — two implementations of one path convention, which
+// disagree the first time a convention moves.
+//
+// The findings schema requires a non-null cycle id, and the first real interrogation emitted null
+// and was rejected by the schema its own output is supposed to satisfy. The schema was right: an
+// interrogation belongs to a cycle, because a charter changes only through a charter intent and
+// that intent has an id like any other. Only the charter case has to say it out loud.
+const CYCLE_ID = input.cycleId ||
+  (parsedFacts && parsedFacts.artifact && parsedFacts.artifact['cycle-id']) || null
+
+if (!CYCLE_ID) {
+  throw new Error(
+    'interrogate needs a cycle id, and none is derivable from "' + ARTIFACT + '". Pass it as ' +
+    '{ artifact, cycleId }. Interrogating the charter means a charter-review intent is ' +
+    'proposing a change to it, so the cycle id is that intent\'s.')
+}
+
+// NOBODY INCREMENTED THE ROUND. It defaulted to 1 on every run, so round 2 overwrote round 1 and
+// the no-progress rule — the one rule that makes the repair loop terminate — had no state to
+// measure. The gatherer counts what is already filed and names the next one.
+const PROGRESS = (parsedFacts && parsedFacts.interrogation) || {}
+const ROUND = input.round || PROGRESS['next-round'] || 1
+
+if (PROGRESS.progress === 'halted-no-progress') {
+  // Said out loud, at the top of the run, because the alternative is discovering it after paying
+  // for four role agents and a triage agent per candidate. It does not refuse: the response to a
+  // stalled loop is an escalation to a person, and a person may well want this round.
+  log(`NO PROGRESS: ${PROGRESS.detail}. A person should look rather than another round running.`)
+}
 
 // IDS ARE UNIQUE WITHIN A CYCLE, not within a run. A cycle interrogates its intent, its spec,
 // its plan and its verify document, each possibly over several rounds, and every one of those

@@ -153,6 +153,7 @@ files and be unit-tested; prose in a skill is something a model is asked to foll
 | `Format-SdlcFindings.ps1` | Renders findings for a person: the committed suggestions file, or a regenerable full view |
 | `Submit-SdlcIntent.ps1` | The intent gate: a branch off master, a commit, a pull request |
 | `Find-SdlcCharterIntent.ps1` | Whether a charter change has already been requested — or already refused, with the reason |
+| `Block-SdlcCycle.ps1` | Blocks a cycle on a charter intent: records the link, then discards the work built under the old rules |
 | `Import-SdlcRetro.ps1` | Copies landed retros into the corpus by cycle id, and **refuses to overwrite one that differs** |
 | `Get-SdlcSignals.ps1` | The charter amendment signals, computed on demand and never stored |
 | `Invoke-SdlcRun.ps1` | Dispatch: the launch confirmation, then one worktree per cycle |

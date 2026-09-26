@@ -339,6 +339,121 @@ function Get-AcceptanceCriteria {
     return $results
 }
 
+function Get-SdlcInterrogationProgress {
+    <#
+    .SYNOPSIS
+        The rounds already filed for one artifact, the next round's number, and whether the repair
+        loop is still making progress.
+    .DESCRIPTION
+        STOP ON NO-PROGRESS, NEVER "UNTIL CLEAN". That was measured rather than assumed: the
+        finding rate does not decay -- round 2 found three of five blocking items inside round 1's
+        repairs, round 3 found four of five inside round 2's, and this project replicated it at
+        three of four. "Until clean" therefore never fires, and a fixed round cap ships
+        known-broken artifacts wearing a clean label.
+
+        So the rule is two consecutive rounds with no net reduction. NOTHING COULD APPLY IT: the
+        workflow took a round number nobody incremented, so every interrogation was round 1, every
+        document overwrote the last, and the one rule that makes the loop terminate had no state to
+        measure. A rule an agent is asked to remember across rounds is a rule it can talk itself
+        past, which is the exact failure mode the no-progress detector exists to replace.
+
+        The MEASUREMENT is mechanical and lives here. The RESPONSE is an escalation to a person,
+        which is why this reports rather than refuses -- once someone is looking, they decide
+        whether the next round is worth running.
+    #>
+    param([string] $Root, [string] $CycleId, [string] $Target)
+
+    $result = [ordered]@{
+        rounds       = @()
+        'next-round' = 1
+        progress     = 'first-round'
+        detail       = 'nothing has been interrogated for this artifact yet'
+    }
+
+    if (-not $CycleId -or -not $Target) { return $result }
+
+    $dir = Join-Path $Root ".sdlc/cycles/$CycleId/findings"
+    if (-not (Test-Path -LiteralPath $dir)) { return $result }
+
+    $rounds = New-Object System.Collections.ArrayList
+
+    foreach ($file in @(Get-ChildItem -LiteralPath $dir -Filter "$Target.r*.json" -File)) {
+        if ($file.Name -notmatch "^$([regex]::Escape($Target))\.r([0-9]+)\.json$") { continue }
+        $round = [int] $Matches[1]
+
+        $raw = [string] (Get-Content -LiteralPath $file.FullName -Raw -Encoding UTF8)
+        if (-not $raw.Trim()) { continue }
+
+        $doc = ConvertFrom-Json $raw
+        $blocking = 0
+        $unresolved = 0
+
+        if ($doc.PSObject.Properties.Name -contains 'findings') {
+            foreach ($f in @($doc.findings)) {
+                $state = ''
+                if ($f.PSObject.Properties.Name -contains 'state') { $state = [string] $f.state }
+                if ($state -ne 'blocking') { continue }
+                $blocking++
+
+                $hasDisposition = $false
+                if ($f.PSObject.Properties.Name -contains 'disposition') {
+                    $hasDisposition = [bool] $f.disposition
+                }
+                if (-not $hasDisposition) { $unresolved++ }
+            }
+        }
+
+        $null = $rounds.Add([pscustomobject]@{
+            round      = $round
+            blocking   = $blocking
+            unresolved = $unresolved
+        })
+    }
+
+    $ordered = @($rounds | Sort-Object -Property round)
+    $result['rounds'] = $ordered
+
+    if ($ordered.Count -eq 0) { return $result }
+
+    $result['next-round'] = ([int] $ordered[$ordered.Count - 1].round) + 1
+
+    if ([int] $ordered[$ordered.Count - 1].blocking -eq 0) {
+        $result['progress'] = 'converged'
+        $result['detail'] = "round $($ordered[$ordered.Count - 1].round) found nothing blocking"
+        return $result
+    }
+
+    if ($ordered.Count -eq 1) {
+        $result['progress'] = 'first-round'
+        $result['detail'] = "round 1 found $($ordered[0].blocking) blocking; there is nothing to compare against yet"
+        return $result
+    }
+
+    # Counted from the END, because the rule is about CONSECUTIVE rounds. A loop that stalled, then
+    # reduced, then stalled again has not stalled twice in a row and is still making progress.
+    $stalled = 0
+    for ($i = $ordered.Count - 1; $i -ge 1; $i--) {
+        $delta = [int] $ordered[$i].blocking - [int] $ordered[$i - 1].blocking
+        if ($delta -ge 0) { $stalled++ } else { break }
+    }
+
+    if ($stalled -ge 2) {
+        $result['progress'] = 'halted-no-progress'
+        $result['detail'] = "$stalled consecutive rounds with no net reduction in blocking findings: " +
+            (($ordered | ForEach-Object { "r$($_.round)=$($_.blocking)" }) -join ' ')
+    }
+    elseif ($stalled -eq 1) {
+        $result['progress'] = 'stalled-once'
+        $result['detail'] = 'one round with no net reduction. Another and the loop halts for a person'
+    }
+    else {
+        $result['progress'] = 'reducing'
+        $result['detail'] = 'blocking findings are still falling round over round'
+    }
+
+    return $result
+}
+
 function Get-DeclaredFiles {
     param([string] $Text, [string] $Root)
 
@@ -393,6 +508,15 @@ $charterPresent = Test-Path -LiteralPath $Charter
 $invariantIds = @()
 $decIds = @()
 $charterVersion = $null
+
+# DECLARED BEFORE THE BRANCH, because an ungoverned repository is a case this has to survive
+# rather than a broken one. A repository with no charter is exactly the state the precondition
+# rule exists for -- "does a charter exist? no: offer /sdlc:init" -- and under strict mode reading
+# a variable that was only ever assigned inside `if ($charterPresent)` throws. So the gatherer
+# died with "The variable '$charterFm' cannot be retrieved" on what may be a person's first use,
+# naming an internal variable instead of the missing charter it actually found.
+$charterFm = $null
+$charterLines = @()
 
 if ($charterPresent) {
     $charterLines = Get-Content -LiteralPath $Charter -Encoding UTF8
@@ -475,8 +599,19 @@ function Get-SdlcInvariantForm {
 Push-Location $RepoRoot
 try {
     $trackedFiles = @(git ls-files)
-    $headSha = (git rev-parse --short HEAD).Trim()
-    $branch = (git rev-parse --abbrev-ref HEAD).Trim()
+
+    # A REPOSITORY WITH NO COMMITS IS A REAL CASE, not a broken one: `init` scaffolds a solution
+    # and the first intent can be written before anything is committed. `git rev-parse HEAD` fails
+    # there with "Needed a single revision", and taking .Trim() of the nothing it returns died with
+    # "You cannot call a method on a null-valued expression" — an error naming neither the cause nor
+    # the artifact, on what may be a person's first ever use of this.
+    $headSha = $null
+    $rawSha = (git rev-parse --short HEAD)
+    if ($LASTEXITCODE -eq 0 -and $rawSha) { $headSha = ([string] $rawSha).Trim() }
+
+    $branch = $null
+    $rawBranch = (git rev-parse --abbrev-ref HEAD)
+    if ($LASTEXITCODE -eq 0 -and $rawBranch) { $branch = ([string] $rawBranch).Trim() }
 }
 finally {
     Pop-Location
@@ -510,6 +645,17 @@ $decRefs = @(Get-MentionedIds -Text $text -Pattern '\bDEC-[0-9]{2}\b' -Known $de
 $relative = ($artifactPath.Substring($RepoRoot.Length).TrimStart('\', '/') -replace '\\', '/')
 $governed = $relative.StartsWith('.sdlc/', [System.StringComparison]::Ordinal)
 $kind = Get-SdlcArtifactKind -RelativePath $relative
+
+# The cycle this artifact belongs to, derived here so there is ONE answer to it. The interrogation
+# workflow derived it independently in JavaScript, which is two implementations of one path
+# convention; it reads this instead.
+$cycleId = Get-SdlcCycleIdFromPath -RelativePath $relative
+
+# Which round the next interrogation of this artifact is, and whether the repair loop is still
+# getting anywhere. Both are facts about the tree, which is why they are gathered here rather than
+# remembered by an agent across rounds.
+$interrogation = Get-SdlcInterrogationProgress -Root $RepoRoot -CycleId $cycleId -Target $kind
+
 $criteria = @(Get-AcceptanceCriteria -Text $text)
 
 # A verify document's criteria come from its sibling spec: verify reports on the spec's
@@ -902,9 +1048,11 @@ $facts = [ordered]@{
     'artifact'         = [ordered]@{
         path        = $relative
         kind        = $kind
+        'cycle-id'  = $cycleId
         governed    = $governed
         frontmatter = $frontmatter.fields
     }
+    'interrogation'       = $interrogation
     'acceptance-criteria' = @($criteria)
     'declared-files'      = @($declaredFiles)
     'traceability'        = $traceability
