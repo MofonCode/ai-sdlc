@@ -1225,4 +1225,143 @@ public sealed class FactGatheringTests
             Discard(root);
         }
     }
+
+    // --- an annotation is judged against its own cycle's spec ---------------
+    //
+    // `orphan-annotations` compared every annotation in the suite against ONE spec's criteria. That
+    // was correct while the suite held one cycle's annotations and blocked every verification from
+    // the moment a second cycle annotated a test. It did exactly that, which is how it was found.
+
+    /// <summary>
+    /// A repository with two cycles, each declaring one criterion, and a test file annotated with
+    /// whichever ids the caller asks for.
+    /// </summary>
+    private static string MakeTwoCycleRepo(string[] annotatedIds, bool writeSecondSpec = true)
+    {
+        string root = Path.Combine(Path.GetTempPath(), "sdlc-orph-" + Guid.NewGuid().ToString("N")[..8]);
+        Directory.CreateDirectory(Path.Combine(root, ".sdlc", "intents"));
+
+        static string Spec(string id) => $"""
+            ---
+            cycle-id: {id}
+            intent: {id}
+            charter-version: 1
+            ---
+
+            # Spec {id}
+
+            | ID | Verifiable | Criterion |
+            |---|---|---|
+            | AC-{id}-1 | yes | the one criterion this cycle declares |
+            """;
+
+        foreach (string id in new[] { "20260926-d001", "20260926-d002" })
+        {
+            File.WriteAllText(Path.Combine(root, ".sdlc", "intents", id + ".md"),
+                $"---\nid: {id}\nsource: authored\ncharter-version: 1\n---\n\n# Intent\n");
+        }
+
+        Directory.CreateDirectory(Path.Combine(root, ".sdlc", "cycles", "20260926-d001"));
+        File.WriteAllText(Path.Combine(root, ".sdlc", "cycles", "20260926-d001", "spec.md"),
+            Spec("20260926-d001"));
+
+        Directory.CreateDirectory(Path.Combine(root, ".sdlc", "cycles", "20260926-d002"));
+        if (writeSecondSpec)
+        {
+            File.WriteAllText(Path.Combine(root, ".sdlc", "cycles", "20260926-d002", "spec.md"),
+                Spec("20260926-d002"));
+        }
+        else
+        {
+            // A cycle directory with no spec: the annotation names criteria of a document that does
+            // not exist, which is the renumbering case the check exists to catch.
+            File.WriteAllText(Path.Combine(root, ".sdlc", "cycles", "20260926-d002", "notes.md"), "# no spec\n");
+        }
+
+        string annotations = string.Join("\n", annotatedIds.Select(id =>
+            $"    [TestProperty(\"AC\", \"{id}\")]\n    public void T_{id.Replace('-', '_')}() {{ }}\n"));
+
+        File.WriteAllText(Path.Combine(root, "Annotated.cs"),
+            "public sealed class Annotated\n{\n" + annotations + "}\n");
+
+        GitIn(root, "init --initial-branch=master");
+        GitIn(root, "add -A");
+        GitIn(root, "-c user.email=t@example.invalid -c user.name=Test commit -m fixture");
+
+        return root;
+    }
+
+    [TestMethod]
+    [TestProperty("AC", "AC-20260926-26a1-14")]
+    public void AnAnnotationNamingAnotherCyclesCriterionIsNotAnOrphan()
+    {
+        // The blocker. Gathering for d001 must not report d002's annotation as an orphan just because
+        // d001's spec does not declare it - d002's spec does, and the id says so.
+        string root = MakeTwoCycleRepo(["AC-20260926-d001-1", "AC-20260926-d002-1"]);
+
+        try
+        {
+            using JsonDocument facts = GatherIn(root, ".sdlc/cycles/20260926-d001/spec.md");
+
+            string[] orphans = [.. facts.RootElement.GetProperty("traceability")
+                .GetProperty("orphan-annotations").EnumerateArray().Select(e => e.GetString()!)];
+
+            Assert.AreEqual(0, orphans.Length,
+                "each annotation resolves against its own cycle's spec: " + string.Join(", ", orphans));
+
+            Assert.IsFalse(FailedChecks(facts).Contains("annotations-resolve"),
+                "a second cycle's annotations must not block the first cycle's verification");
+        }
+        finally
+        {
+            Discard(root);
+        }
+    }
+
+    [TestMethod]
+    [TestProperty("AC", "AC-20260926-26a1-15")]
+    public void AnAnnotationNamingACycleWithNoSpecIsStillAnOrphan()
+    {
+        // THE CHECK'S PURPOSE, PRESERVED. Loosening it so that nothing is ever an orphan would pass
+        // the blocker test above and remove the only thing that catches a renumbering.
+        string root = MakeTwoCycleRepo(["AC-20260926-d001-1", "AC-20260926-d002-1"], writeSecondSpec: false);
+
+        try
+        {
+            using JsonDocument facts = GatherIn(root, ".sdlc/cycles/20260926-d001/spec.md");
+
+            string[] orphans = [.. facts.RootElement.GetProperty("traceability")
+                .GetProperty("orphan-annotations").EnumerateArray().Select(e => e.GetString()!)];
+
+            CollectionAssert.Contains(orphans, "AC-20260926-d002-1",
+                "an id naming a cycle with no spec resolves to nothing and is an orphan");
+        }
+        finally
+        {
+            Discard(root);
+        }
+    }
+
+    [TestMethod]
+    [TestProperty("AC", "AC-20260926-26a1-15")]
+    public void AnAnnotationNamingAnUndeclaredCriterionOfItsOwnCycleIsStillAnOrphan()
+    {
+        // The other half of the same purpose: the cycle is right and the number is wrong.
+        string root = MakeTwoCycleRepo(["AC-20260926-d001-1", "AC-20260926-d001-99"]);
+
+        try
+        {
+            using JsonDocument facts = GatherIn(root, ".sdlc/cycles/20260926-d001/spec.md");
+
+            string[] orphans = [.. facts.RootElement.GetProperty("traceability")
+                .GetProperty("orphan-annotations").EnumerateArray().Select(e => e.GetString()!)];
+
+            CollectionAssert.Contains(orphans, "AC-20260926-d001-99",
+                "a criterion its own spec does not declare is the typo case and must stay caught");
+        }
+        finally
+        {
+            Discard(root);
+        }
+    }
 }

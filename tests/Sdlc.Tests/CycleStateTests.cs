@@ -1,4 +1,5 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
+using System.Text;
 using System.Text.Json;
 
 namespace Sdlc.Tests;
@@ -479,5 +480,202 @@ public sealed class CycleStateTests
                 $"{id}: dispatchable must track planned exactly — anything looser either " +
                 "relaunches work in flight or builds a plan nobody approved");
         }
+    }
+
+    // --- done means landed, not written -------------------------------------
+    //
+    // The defect these cover made `Complete-SdlcCycle.ps1` unreachable: a retro on an unmerged
+    // branch read `done`, and the landing script refuses anything but `awaiting-landing` while also
+    // refusing a cycle with no retro. Both directions are asserted, because the mirror error is the
+    // dangerous one — a finished cycle reading as unfinished would have a dispatcher re-land it.
+
+    /// <summary>
+    /// A repository with one verified cycle. The retro, when asked for, is committed on the cycle
+    /// branch only, which is what makes it present on the branch and absent from master.
+    /// </summary>
+    private static string MakeRetroRepo(string cycleId, bool retroOnBranch, string initialBranch = "master")
+    {
+        string root = Path.Combine(Path.GetTempPath(), "sdlc-landed-" + Guid.NewGuid().ToString("N")[..8]);
+        string cycleDir = Path.Combine(root, ".sdlc", "cycles", cycleId);
+        Directory.CreateDirectory(Path.Combine(root, ".sdlc", "intents"));
+        Directory.CreateDirectory(cycleDir);
+
+        File.WriteAllText(Path.Combine(root, ".sdlc", "intents", cycleId + ".md"),
+            $"---\nid: {cycleId}\nsource: authored\ncharter-version: 1\n---\n\n# Intent\n");
+
+        File.WriteAllText(Path.Combine(cycleDir, "verify.md"),
+            $"---\ncycle-id: {cycleId}\nplan: {cycleId}\ncharter-version: 1\noutcome: passed\n---\n");
+
+        string retro =
+            $"---\ncycle-id: {cycleId}\nsolution: fixture\nlanded-at: 2026-09-26\ncharter-version: 1\n---\n";
+
+        GitAt(root, "init --initial-branch=" + initialBranch);
+
+        if (!retroOnBranch)
+        {
+            // Landed: the retro is part of the merge target's history.
+            File.WriteAllText(Path.Combine(cycleDir, "retro.md"), retro);
+        }
+
+        GitAt(root, "add -A");
+        GitAt(root, "-c user.email=t@example.invalid -c user.name=Test commit -m base");
+
+        GitAt(root, "checkout -b cycle-" + cycleId);
+
+        if (retroOnBranch)
+        {
+            // Written for landing, not landed: present on the branch, absent from the target.
+            File.WriteAllText(Path.Combine(cycleDir, "retro.md"), retro);
+            GitAt(root, "add -A");
+            GitAt(root, "-c user.email=t@example.invalid -c user.name=Test commit -m retro");
+        }
+
+        return root;
+    }
+
+    private static void GitAt(string root, string args)
+    {
+        using Process p = Process.Start(new ProcessStartInfo("git", args)
+        {
+            WorkingDirectory = root,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            UseShellExecute = false,
+        })!;
+
+        p.StandardOutput.ReadToEnd();
+        p.StandardError.ReadToEnd();
+        p.WaitForExit();
+    }
+
+    private static JsonElement StateAt(string root, string cycleId)
+    {
+        using Process p = Process.Start(new ProcessStartInfo("powershell.exe")
+        {
+            ArgumentList =
+            {
+                "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass",
+                "-File", ScriptPath, "-CycleId", cycleId, "-RepoRoot", root,
+            },
+            WorkingDirectory = root,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            UseShellExecute = false,
+            StandardOutputEncoding = Encoding.UTF8,
+            StandardErrorEncoding = Encoding.UTF8,
+        })!;
+
+        string stdout = p.StandardOutput.ReadToEnd();
+        string stderr = p.StandardError.ReadToEnd();
+        p.WaitForExit();
+
+        Assert.AreEqual(0, p.ExitCode, "the state script failed: " + stderr);
+        return JsonDocument.Parse(stdout).RootElement[0].Clone();
+    }
+
+    private static void DiscardRepo(string dir)
+    {
+        try
+        {
+            foreach (string f in Directory.EnumerateFiles(dir, "*", SearchOption.AllDirectories))
+            {
+                File.SetAttributes(f, FileAttributes.Normal);
+            }
+
+            Directory.Delete(dir, recursive: true);
+        }
+        catch (IOException)
+        {
+        }
+        catch (UnauthorizedAccessException)
+        {
+        }
+    }
+
+    [TestMethod]
+    [TestProperty("AC", "AC-20260926-26a1-1")]
+    public void ARetroOnTheBranchAndNotOnMasterIsAwaitingLanding()
+    {
+        // The case that was impossible to reach. `Test-Path` cannot tell this from a landed cycle,
+        // because in both the retro is simply present in the working tree.
+        string root = MakeRetroRepo("20260926-c001", retroOnBranch: true);
+
+        try
+        {
+            JsonElement s = StateAt(root, "20260926-c001");
+
+            Assert.AreEqual("awaiting-landing", s.GetProperty("state").GetString(),
+                "a verified cycle whose retro has not merged is ready to land, not finished");
+            Assert.IsTrue(s.GetProperty("has-retro").GetBoolean(),
+                "the retro is present — presence is exactly what must stop being the answer");
+        }
+        finally
+        {
+            DiscardRepo(root);
+        }
+    }
+
+    [TestMethod]
+    [TestProperty("AC", "AC-20260926-26a1-2")]
+    [TestProperty("AC", "AC-20260926-26a1-3")]
+    public void ARetroPresentOnMasterIsDoneAndTheReasonSaysWhy()
+    {
+        // The mirror, and the one that must not regress: reading a finished cycle as unfinished
+        // would have an unsupervised dispatcher offer to land what is already on master.
+        string root = MakeRetroRepo("20260926-c002", retroOnBranch: false);
+
+        try
+        {
+            JsonElement s = StateAt(root, "20260926-c002");
+
+            Assert.AreEqual("done", s.GetProperty("state").GetString(),
+                "the retro is in the merge target's history, so the cycle landed");
+
+            string reason = s.GetProperty("reason").GetString()!;
+            StringAssert.Contains(reason, "master", StringComparison.Ordinal,
+                "the reason has to say what decided it, not that a file exists: " + reason);
+        }
+        finally
+        {
+            DiscardRepo(root);
+        }
+    }
+
+    [TestMethod]
+    [TestProperty("AC", "AC-20260926-26a1-4")]
+    public void ARepositoryWithNoMasterFallsBackToThePresenceOfTheRetro()
+    {
+        // No master means no merge target, so there is no landing to be before or after, and the
+        // predicate degrades to the answer it gave before this change. It must not throw: a
+        // repository on a differently-named default branch is ordinary, not broken.
+        string root = MakeRetroRepo("20260926-c003", retroOnBranch: true, initialBranch: "trunk");
+
+        try
+        {
+            JsonElement s = StateAt(root, "20260926-c003");
+
+            Assert.AreEqual("done", s.GetProperty("state").GetString(),
+                "with no merge target the retro's presence is the only answer available");
+        }
+        finally
+        {
+            DiscardRepo(root);
+        }
+    }
+
+    [TestMethod]
+    [TestProperty("AC", "AC-20260926-26a1-11")]
+    public void TheHeaderNoLongerClaimsTheRetroIsWrittenOnlyAtLanding()
+    {
+        // That sentence is what licensed the wrong predicate. A comment which misdescribes the code
+        // beside it is how this survived two readings of two files, so correcting the code without
+        // correcting the claim would leave the next reader the same trap.
+        string code = File.ReadAllText(ScriptPath);
+
+        Assert.IsFalse(code.Contains("written only at landing", StringComparison.Ordinal),
+            "the retro is written BEFORE the merge, by the landing script's own design");
+
+        StringAssert.Contains(code, "ls-tree", StringComparison.Ordinal,
+            "the header should name the mechanism that decides done");
     }
 }

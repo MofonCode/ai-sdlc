@@ -35,6 +35,18 @@
 
 .EXAMPLE
     .\Complete-SdlcCycle.ps1 -CycleId 20260924-a1b2 -WhatIf
+    THE STATE THIS REQUIRES IS THE STATE A RETRO ON AN UNMERGED BRANCH PRODUCES. Said here
+    because it was not true for the life of this script, and the consequence was that it never
+    ran once. It refuses anything but `awaiting-landing` and it also refuses a cycle with no
+    retro on the branch - and the lifecycle derivation used to call a cycle `done` the moment a
+    retro existed anywhere. Without a retro this failed step 4; with one it failed the check
+    below. No input satisfied both.
+
+    The derivation was what was wrong, and it is fixed there rather than here: `done` now means
+    the retro is reachable from the merge target, so a retro written for a landing that has not
+    happened reads `awaiting-landing`. Nothing in this file widened to accommodate it, and
+    nothing in this file should - two places that know which states may land is how the next
+    version of this bug gets written.
 #>
 # Deliberately NOT ConfirmImpact = 'High'.
 #
