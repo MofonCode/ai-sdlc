@@ -1,5 +1,5 @@
 ---
-version: 3
+version: 4
 solution: ai-sdlc
 pack: none
 origin: hand-written — solution zero has no pack to copy a charter from
@@ -7,6 +7,7 @@ since: 2026-09-22
 restored: 2026-09-24 from e36fc4b; five deferred decisions were resolved before the restore and are recorded below as gaps rather than entries
 amended: 2026-09-24 by 20260924-c4a1 — ten blocking findings from the first interrogation
 amended: 2026-09-25 by 20260925-1a7e — interrogator roles become data, and gaps learns the artifact
+amended: 2026-09-26 by 20260926-bc24 — seven blocking findings from the second interrogation; three expired status claims deleted rather than updated, and INV-08's commencement carve-out removed
 ---
 
 # Charter — ai-sdlc
@@ -81,11 +82,16 @@ The intent is the cheapest place to catch both.
 failed mechanical check, or a location pair is capped at `suggested` and cannot
 halt a cycle.
 
-**Amendment is by counts, not opinion.** Every signal below is derived from the
-findings corpus by a read-only query — never stored in a committed file, which would
-be a second list beside the corpus. A signal is a **prompt to investigate, not a
-verdict**: no process may act on one, because acting means changing this document and
-that requires an approved charter intent (INV-08).
+**Amendment is by counts, not opinion.** Every signal below is **computed on demand and never
+stored** — a stored count would be a second list beside the source it was counted from.
+
+Two sources, because one of the signals cannot come from the first. Five are read from the findings
+corpus, which is what a landed retro carries here. The sixth — repeated refusals of a request to
+change a rule — is read from the charter intents themselves, because **a refused request leaves no
+finding behind**; the abandoned intent and its `reason:` are the only record it happened.
+
+A signal is a **prompt to investigate, not a verdict**: no process may act on one, because acting
+means changing this document and that requires an approved charter intent (INV-08).
 
 | Signal | Reading | Action |
 |---|---|---|
@@ -121,9 +127,16 @@ to loosen. Modifying one needs the gate.
 Amendments never rewrite history: a retro stamped `charter v1` stays interpretable
 against v1 forever.
 
-**Commencement.** This rule takes effect **when the first cycle runs against this
-charter.** Until then the document is a draft being written by hand, and there is no
-process to protect it from. The rule is enforced by INV-08 from that moment on.
+**Commencement. The rule is in force, and it is enforced mechanically.** A `PreToolUse` gate
+refuses any edit to this document, to a stack pack or to a pack's rules unless it is made on the
+branch of an intent declaring `charter-review` or `pack-review`, and it fails closed in every case
+it cannot judge — on master, on a detached HEAD, on a missing or sourceless intent, and if the gate
+itself throws.
+
+An earlier wording deferred commencement until the first cycle ran, on the grounds that until then
+the document was a draft with no process to protect it from. That condition was overtaken: the gate
+carries no commencement clause and has been refusing edits since it shipped, before any cycle ran.
+A dated carve-out in a rule needs an owner to retire it, so it is gone rather than restated.
 
 **Finding an invariant nothing ever cites.** Four of the five amendment triggers
 announce themselves — a blocked cycle, a growing suggestions pile, a change you made,
@@ -212,9 +225,14 @@ They are written solution-agnostically, so promotion into a shared
               immutable, append-only artifact is not a second list, because
               divergence is impossible — provided the mechanism that makes the
               copy refuses to overwrite with different content. The retro corpus
-              is the INTENDED instance, and the exemption holds only once such a
-              mechanism exists and refuses to overwrite. None is built yet, so
-              the retro corpus does not currently qualify.
+              is the standing instance: it exists to be aggregated across
+              solutions, and the copy is what travels.
+              The clause states a CONDITION and asserts nothing about what is
+              currently built. An earlier wording appended a status report — that
+              no such mechanism existed yet — which made this document require a
+              copy it also forbade, and which needed an owner to retire it once
+              the mechanism arrived. A rule that states its condition evaluates
+              itself.
     Unlocks:  duplicated-truth
     Since:    v1
 
@@ -252,8 +270,15 @@ They are written solution-agnostically, so promotion into a shared
               excluded path without a written justification.
     Evidence: a zero-warning build is a strong signal because it is binary. The
               failure mode is not warnings appearing — it is suppressions
-              accumulating until the zero means nothing. The suppression count is
-              tracked in every `verify.md`, and an increase is itself a finding.
+              accumulating until the zero means nothing, one justified exception
+              at a time. So the count is recorded in every `verify.md` and carried
+              in the retro, which is what makes accumulation visible at all.
+              An earlier wording added that an increase in that count "is itself a
+              finding". Nothing compares a cycle's count against the previous
+              one, and a clause compatible with every implementation is decoration
+              by this document's own acceptance test. Making the comparison
+              mechanical is ordinary work; asserting it while nothing does it is
+              the unfounded claim INV-07 forbids.
               Stated without tool syntax as of v2: the spellings belong to the
               pack under INV-04, and naming them here made this invariant fail
               the form rule's own exclusion of tool names. In this solution's
@@ -300,18 +325,28 @@ so it neither strengthens nor weakens the reasoning behind them.
 Every finding category except `unclassified` can block, through one of three citation
 routes. A `DEC` id is a fourth kind of citation but never a blocking one — see State.
 
+**Which route, not which invariant.** The table names the KIND of citation each category can earn,
+because that is the claim being made. **Which invariant unlocks a category is read off the
+invariants themselves**: each one's `Unlocks:` clause names it, exactly as its `Applies-to:` clause
+names the artifacts it governs and is therefore the coverage for them.
+
+An earlier version of this table carried the invariant ids as a second column, derived from those
+clauses with nothing binding the two. That is the defect v2 deleted the `Applies-to:` summary matrix
+for, surviving in the next column along — and this document's own rule for derived data in a
+hand-maintained file is to delete it rather than promise to keep it in step.
+
 | Category | Blocks via |
 |---|---|
-| `unresolvable-reference` | failed check — no invariant needed |
-| `internal-contradiction` | location pair — no invariant needed |
-| `untestable` | failed check: marked verifiable, no test annotation |
-| `unfounded-claim` | failed check, or INV-07 |
-| `scope-drift` | failed check (plan vs diff), or INV-05 |
-| `gate-bypass` | failed check (grep and count), or INV-06 |
-| `duplicated-truth` | INV-03 |
-| `ambiguity` | INV-02 |
-| `missing-case` | INV-01 |
-| `charter-violation` | any invariant, INV-04 among them |
+| `unresolvable-reference` | a failed check — no invariant needed |
+| `internal-contradiction` | a location pair — no invariant needed |
+| `untestable` | a failed check: marked verifiable, no test annotation |
+| `unfounded-claim` | a failed check, or an invariant |
+| `scope-drift` | a failed check (plan vs diff), or an invariant |
+| `gate-bypass` | a failed check (grep and count), or an invariant |
+| `duplicated-truth` | an invariant |
+| `ambiguity` | an invariant |
+| `missing-case` | an invariant |
+| `charter-violation` | any invariant |
 | `unclassified` | never blocks, by construction |
 
 ---
@@ -447,11 +482,17 @@ When the artifact under interrogation **is this document**, `charter` is replace
 |---|---|
 | `form` | Does each invariant carry a non-empty `Applies-to:` and a non-empty `Forbids:`, and does the `Forbids:` forbid something an implementation could actually do? |
 
-**These tables are DATA, not documentation.** The interrogator reads the roles from this
-document through fact-gathering rather than carrying its own copy. Before v3 it hardcoded
-them, and the two disagreed within a day: charter v1's `form` question omitted `Applies-to:`
-while the shipped role asked for both clauses. That is INV-03, in the document that declares
-it, so the binding check ships with this table.
+**These tables are DATA, not documentation.** The interrogator reads each role's **definition** —
+its question, its evidence, its characteristic failure — from this document through fact-gathering,
+and keeps no copy of any of them. Before v3 it hardcoded them, and the two disagreed within a day:
+charter v1's `form` question omitted `Applies-to:` while the shipped role asked for both clauses.
+That is INV-03, in the document that declares it, so the binding check ships with this table.
+
+**The role NAMES are restated, and bound rather than derived.** They appear in the findings schema's
+`role` enum and in the interrogator's own substitution logic, because a role must be selectable
+before its definition has been read. That is a second representation, so it takes INV-03's sanctioned
+route rather than an exemption: tests tie the schema's enum to this table and the interrogator's
+copies to the schema, in both directions. Claiming no copy existed at all was simply false.
 
 ### What `gaps` must cover, by artifact kind
 
@@ -484,9 +525,15 @@ individual role.
 
 ## Open-decision register
 
-**Interrogation must not report anything in this register as a violation.** These
-are deliberately unsettled. An interrogator that raises one is producing noise, and
-may cite the `DEC` id when dismissing such a finding.
+**Nothing in this register may halt a cycle.** These are deliberately unsettled, so a finding
+whose subject is one of them cannot reach `blocking`: it is dismissed with disposition
+`deferred-to-dec`, citing the `DEC` id.
+
+**Raising one is expected, not an error.** The accumulating cite count is how a subject that keeps
+drawing findings is identified as ready to be decided — twenty cycles citing the same entry is the
+strongest evidence it needs an answer. An earlier wording called such a finding noise, which
+contradicted both the disposition table and the rule that a `DEC` citation never promotes: a
+finding cannot be worthless and also be the evidence that a question is ripe.
 
 | ID | Deliberately open |
 |---|---|

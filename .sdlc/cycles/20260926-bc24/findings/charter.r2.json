@@ -1,0 +1,511 @@
+{
+    "cycle-id":  "20260926-bc24",
+    "target":  "charter",
+    "charter-version":  4,
+    "pack-version":  null,
+    "round":  2,
+    "failed-checks":  [
+
+                      ],
+    "rejected-citations":  [
+
+                           ],
+    "findings":  [
+                     {
+                         "id":  "charter-r2-reason3",
+                         "category":  "duplicated-truth",
+                         "state":  "blocking",
+                         "stage":  "charter",
+                         "detection":  "reasoning",
+                         "role":  "form",
+                         "summary":  "INV-01 and INV-05 restate their governed artifact kinds inside their `Forbids:` clauses, duplicating the scope `Applies-to:` already carries with no check binding the two.",
+                         "cites":  [
+                                       {
+                                           "kind":  "invariant",
+                                           "id":  "INV-03"
+                                       }
+                                   ],
+                         "repair":  "Reword both `Forbids:` clauses so the prohibited behaviour is the subject and the artifact kind appears only in `Applies-to:`, matching the five invariants that already read this way. INV-01 line 191: \"describing behaviour without its failure modes.\" INV-05 line 259: \"not enumerating the files that will be touched.\" Neither loses anything — the interrogator already loads an invariant only for the kinds its `Applies-to:` names, so the kind in the `Forbids:` subject narrows nothing and is read by nothing.\n\nPreferred over the alternative repair (add a check binding the `Forbids:` subject to `Applies-to:`), which would need to parse English noun phrases into artifact kinds — INV-03\u0027s sanctioned route is available in principle but not mechanically sound here, and the document\u0027s stated fix for derived data in a hand-maintained file is deletion.\n\nNote for scope, not for this finding: packs/dotnet-library/CHARTER.md lines 72-73 and 124-125 carry the identical wording, so the same repair belongs there. That is a separate artifact under the `pack-review` gate, so it needs its own intent rather than riding along on a `charter-review` branch."
+                     },
+                     {
+                         "id":  "charter-r2-reason4",
+                         "category":  "internal-contradiction",
+                         "state":  "blocking",
+                         "stage":  "charter",
+                         "detection":  "reasoning",
+                         "role":  "coherence",
+                         "summary":  "The State section says category never determines state, while RULE 2 and the taxonomy and coverage tables make `unclassified` non-blocking on the strength of its category alone.",
+                         "cites":  [
+                                       {
+                                           "kind":  "locations",
+                                           "locations":  [
+                                                             {
+                                                                 "file":  ".sdlc/CHARTER.md",
+                                                                 "anchor":  "Category never determines state"
+                                                             },
+                                                             {
+                                                                 "file":  ".sdlc/CHARTER.md",
+                                                                 "anchor":  "never blocks, by construction"
+                                                             }
+                                                         ]
+                                       }
+                                   ],
+                         "repair":  "Pick which rule is true and make the other consistent with it, in .sdlc/CHARTER.md.\n\nPreferred: keep the mechanism (RULE 2 is shipped, tested, and the charter is its authority) and narrow the absolute at line 432. Something like: \"Category determines state in exactly one place: `unclassified` is pinned to `suggested`, because its rate is a health metric and a metric that can halt a cycle stops being measured. No other category may be consulted when assigning state — two general rules governing state would fight, and the easier one would win.\" Then fix line 176 to stop presenting the block-ban as derived from the invariant set (\"no invariant unlocks it, and RULE 2 pins it to `suggested` regardless\"), and drop \"by construction\" at line 350 in favour of naming the rule, since \"by construction\" is what asserts the derivation that does not exist.\n\nAlso settle `open`: RULE 2 forbids an unclassified finding from sitting at `open`, which the State section\u0027s two-step discovery allows for any `detection: reasoning` finding. Either the State section records that unclassified skips triage too, or the schema\u0027s `then` becomes an enum of `suggested` and `open` rather than a const.\n\nThe alternative repair — deleting RULE 2 so unclassified genuinely blocks whenever it earns a citation — is a behaviour change to a shipped, tested gate and needs a decision, not a wording fix."
+                     },
+                     {
+                         "id":  "charter-r2-reason7",
+                         "category":  "internal-contradiction",
+                         "state":  "blocking",
+                         "stage":  "charter",
+                         "detection":  "reasoning",
+                         "role":  "coherence",
+                         "summary":  "The seven invariants are claimed to be the minimum set that gives every blockable category a route, while INV-08 also unlocks `charter-violation` and the passage introducing it denies changing that reasoning at all.",
+                         "cites":  [
+                                       {
+                                           "kind":  "locations",
+                                           "locations":  [
+                                                             {
+                                                                 "file":  ".sdlc/CHARTER.md",
+                                                                 "anchor":  "the minimum set that lets every blockable"
+                                                             },
+                                                             {
+                                                                 "file":  ".sdlc/CHARTER.md",
+                                                                 "anchor":  "it neither strengthens nor weakens"
+                                                             }
+                                                         ]
+                                       }
+                                   ],
+                         "repair":  "Stop claiming minimality and state the criterion the seven actually meet, then say why INV-04 is among them on its own merits. Replace lines 174-176 with: \"These seven were chosen by one criterion: **every blockable finding category has an invariant route, so a reasoning-detected instance can block even where no mechanical check exists.** `unclassified` is excluded by construction rather than by omission -- it can never block, so no invariant could unlock it. This is coverage, not minimality: because `charter-violation` is unlocked by any invariant, a strictly minimal set would be smaller, and INV-04 is here for a different reason -- it is what makes a stack deviation forbidden at all, and without it the pack rules are advisory no matter how many other invariants exist.\" Then rewrite lines 319-321 so it does not deny a relationship that INV-08\u0027s own `Unlocks:` clause creates: \"INV-08 is not part of the seven above. Those seven give every blockable category an invariant route; this one protects the mechanism itself. It does share their `charter-violation` route -- like every invariant here, violating it is citable -- but it was not selected to unlock a category, so it neither adds to nor subtracts from that coverage.\" That leaves one consistent story: the seven are a coverage set with a stated per-invariant justification, and INV-08\u0027s routing is acknowledged rather than waved off."
+                     },
+                     {
+                         "id":  "charter-r2-reason8",
+                         "category":  "internal-contradiction",
+                         "state":  "blocking",
+                         "stage":  "charter",
+                         "detection":  "reasoning",
+                         "role":  "coherence",
+                         "summary":  "INV-04\u0027s Evidence says tool names stay out of the charter and the form rule excludes them from invariants, yet INV-04\u0027s own scope names Python and C# and INV-06\u0027s Evidence spells out NoWarn, `#pragma warning disable` and `[Ignore]`.",
+                         "cites":  [
+                                       {
+                                           "kind":  "locations",
+                                           "locations":  [
+                                                             {
+                                                                 "file":  ".sdlc/CHARTER.md",
+                                                                 "anchor":  "tool names stay out of the charter"
+                                                             },
+                                                             {
+                                                                 "file":  ".sdlc/CHARTER.md",
+                                                                 "anchor":  "they are NoWarn"
+                                                             }
+                                                         ]
+                                       }
+                                   ],
+                         "repair":  "Pick one side and make the document say it. This is an edit to the charter, so it requires an approved charter intent under the amend-only-by-intent invariant; the current branch intent-20260926-bc24 is one.\n\nPreferred, minimal, and the side the text is already trying to occupy: scope the exclusion to what a rule is about rather than to every word of an invariant. At lines 51-53 replace \"Excluded from invariants: tool names, ...\" with wording that excludes rules whose substance is a tool name, package version, framework preference or style, and that explicitly permits a named example in an Evidence: or Scope: clause when it is marked illustrative and the Forbids: clause stays tool-agnostic. Then delete the now-false self-narration at lines 283-284 (\"naming them here made this invariant fail the form rule\u0027s own exclusion of tool names\") — under the amended rule it did not, and a sentence that argues against the text beside it is what produced this finding. Keep the four spellings, keep \"illustrative only\". Finally, soften line 247 from \"tool names stay out of the charter\" to a claim that is actually true of the document, e.g. \"no invariant is written per tool choice\".\n\nThe alternative, if the exclusion is meant literally: strip NoWarn, `#pragma warning disable` and `[Ignore]` from lines 285-287 entirely, leaving \"the spellings belong to the pack under INV-04\" with no list, and leave line 247 as it stands. That costs the reader the concrete illustration and pushes it into a pack this solution does not consume — which is presumably why the names were restored in the first place.\n\nDo not fix this by adding a sentence that says both readings are fine. Two rules governing the same text would fight, and the document already says the easier one wins."
+                     },
+                     {
+                         "id":  "charter-r2-reason9",
+                         "category":  "internal-contradiction",
+                         "state":  "blocking",
+                         "stage":  "charter",
+                         "detection":  "reasoning",
+                         "role":  "coherence",
+                         "summary":  "The commencement passage lets an intent declaring either `charter-review` or `pack-review` edit this document, while the two-source table binds this document to `charter-review` and says path alone determines which source applies.",
+                         "cites":  [
+                                       {
+                                           "kind":  "locations",
+                                           "locations":  [
+                                                             {
+                                                                 "file":  ".sdlc/CHARTER.md",
+                                                                 "anchor":  "branch of an intent declaring"
+                                                             },
+                                                             {
+                                                                 "file":  ".sdlc/CHARTER.md",
+                                                                 "anchor":  "which applies is determined by path"
+                                                             }
+                                                         ]
+                                       }
+                                   ],
+                         "repair":  "Pair source to path in both places, keeping the table\u0027s rule as the authority.\n\nIn the charter, rewrite the commencement sentence so the disjunction is distributed rather than floating: \"...refuses any edit to this document, to a stack pack or to a pack\u0027s rules unless it is made on the branch of an intent whose declared source matches the path — `charter-review` for this document, `pack-review` for a pack\u0027s `pack.yaml`, `pack.rules.yaml` or its charter template.\" Leave the fail-closed list that follows unchanged.\n\nDo not repair it the other way — deleting \"which applies is determined by path\" and letting either source open any protected path — without deciding the version-bump question first: that direction lets a charter amendment land under a pack-review intent and bump the pack version instead of the charter\u0027s, which is the interpretability guarantee two paragraphs above.\n\nThe wording change alone would then assert a pairing nothing performs, so it must land with the gate: in `tools/Assert-SdlcCharterGate.ps1`, replace the flat `$permittedSources` membership test with a map from each entry of `$protectedPatterns` to its required source (`^\\.sdlc/CHARTER\\.md$` → `charter-review`; the three `packs/...` patterns → `pack-review`) and deny when the declared source is not the one the hit path requires, naming both in the refusal.\n\nAdjacent, and worth folding into the same amendment rather than filing twice: the gate also protects `packs/\u003cname\u003e/CHARTER.md`, which appears in neither table row, so the \"determined by path\" map is not total even after the pairing. Add the pack charter template to the `pack-review` row\u0027s Changes column — the gate\u0027s own comment already records why it is in scope."
+                     },
+                     {
+                         "id":  "charter-r2-reason10",
+                         "category":  "internal-contradiction",
+                         "state":  "blocking",
+                         "stage":  "charter",
+                         "detection":  "reasoning",
+                         "role":  "coherence",
+                         "summary":  "The State table says a `blocking` finding must resolve before landing, while the disposition table and the Timing rule let one land dispositioned `accepted-wont-fix`.",
+                         "cites":  [
+                                       {
+                                           "kind":  "locations",
+                                           "locations":  [
+                                                             {
+                                                                 "file":  ".sdlc/CHARTER.md",
+                                                                 "anchor":  "must resolve before landing"
+                                                             },
+                                                             {
+                                                                 "file":  ".sdlc/CHARTER.md",
+                                                                 "anchor":  "we knowingly are not acting"
+                                                             }
+                                                         ]
+                                       }
+                                   ],
+                         "repair":  "Reword the `blocking` row\u0027s Meaning in the State table (line 403) so it states the halt, not a fix: \"halts the cycle until dispositioned; it cannot land `open`. Carries a `repair` → self-heal attempts it under no-progress termination; no repair, or repair fails → escalate to a person\". That leaves the Timing rule (line 454) as the single statement of the landing condition, keeps `accepted-wont-fix` a legal outcome for a cited finding — which the override-count signal needs — and does not weaken blocking, since the schema already requires a written reason for `accepted-wont-fix`. Do not repair in the other direction (forbidding `accepted-wont-fix` on a blocking finding): that would delete the override-count signal at line 102 and contradict the shipped gate and golden example."
+                     },
+                     {
+                         "id":  "charter-r2-reason11",
+                         "category":  "internal-contradiction",
+                         "state":  "blocking",
+                         "stage":  "charter",
+                         "detection":  "reasoning",
+                         "role":  "coherence",
+                         "summary":  "The DEC-02 register row counts the zero-cite query as additional to five amendment triggers, while the body counts it as the fifth of the five.",
+                         "cites":  [
+                                       {
+                                           "kind":  "locations",
+                                           "locations":  [
+                                                             {
+                                                                 "file":  ".sdlc/CHARTER.md",
+                                                                 "anchor":  "five triggers, plus a zero-cite query"
+                                                             },
+                                                             {
+                                                                 "file":  ".sdlc/CHARTER.md",
+                                                                 "anchor":  "Four of the five amendment triggers"
+                                                             }
+                                                         ]
+                                       }
+                                   ],
+                         "repair":  "In .sdlc/CHARTER.md line 554, make the register row agree with the body it summarises: change the DEC-02 resolution to \"five triggers, the fifth of them a zero-cite query with a ten-cycle floor\". This keeps the substance both positions already share — event-driven triggers alongside a periodic zero-cite query floored at ten cycles — and removes the additive \"plus\" that raises the count to six. Do not renumber or rewrite the body passage at 141: it is internally coherent and is the substantive statement of the mechanism. (Separately and outside this finding: the charter asserts \"the five amendment triggers\" without ever enumerating the five as a list, so the count has no single authority to check against. That is a gap, not this contradiction, and belongs in its own finding.)"
+                     },
+                     {
+                         "id":  "charter-r2-reason14",
+                         "category":  "unfounded-claim",
+                         "state":  "blocking",
+                         "stage":  "charter",
+                         "detection":  "reasoning",
+                         "role":  "facts",
+                         "summary":  "The commencement passage states the gate has been refusing edits since it shipped, before any cycle ran, though the gate first appears at commit 54f7dc6 while this charter\u0027s frontmatter records amendments by two earlier cycles and the first interrogation\u0027s findings document was committed at 91b7958.",
+                         "cites":  [
+                                       {
+                                           "kind":  "invariant",
+                                           "id":  "INV-07"
+                                       }
+                                   ],
+                         "repair":  "Delete the retrospective paragraph rather than correct it. The preceding commencement paragraph already states the rule mechanically — the gate refuses edits outside a charter-review or pack-review branch and fails closed — and needs no history to evaluate itself. That is this document\u0027s own established pattern in two places: INV-03\u0027s Scope note (\"A rule that states its condition evaluates itself\", after an appended status report made the document require a copy it forbade) and INV-06\u0027s Evidence (a clause deleted because nothing implemented it). If the reason the carve-out was dropped must be kept, keep only the reason that needs no tree fact: \"An earlier wording deferred commencement until the first cycle ran. A dated carve-out in a rule needs an owner to retire it, so it is gone rather than restated.\" — dropping \"the gate carries no commencement clause and has been refusing edits since it shipped, before any cycle ran\" in full. Do not replace it with a corrected date; that reintroduces a status claim the next amendment has to maintain."
+                     },
+                     {
+                         "id":  "charter-r2-reason15",
+                         "category":  "unfounded-claim",
+                         "state":  "blocking",
+                         "stage":  "charter",
+                         "detection":  "reasoning",
+                         "role":  "facts",
+                         "summary":  "The commencement passage says the gate refuses any edit to a protected path and fails closed in every case it cannot judge, though hooks/hooks.json registers it only for matcher \"Edit|Write|MultiEdit|NotebookEdit\" and no Bash matcher exists anywhere in the tree.",
+                         "cites":  [
+                                       {
+                                           "kind":  "invariant",
+                                           "id":  "INV-07"
+                                       }
+                                   ],
+                         "repair":  "Fix the claim, and consider fixing the gap — but keep them separable, because only the first is what INV-07 blocks on.\n\n1. Narrow the wording (the charter edit, under an approved charter-review intent per INV-08). Replace the absolute quantifiers at .sdlc/CHARTER.md:130-134 with what hooks/hooks.json actually installs, e.g.: \"A `PreToolUse` gate refuses a file-writing tool call — `Edit`, `Write`, `MultiEdit`, `NotebookEdit` — against this document, a stack pack or a pack\u0027s rules unless it is made on the branch of an intent declaring `charter-review` or `pack-review`, and it fails closed in every case it can see but cannot judge: on master, on a detached HEAD, on a missing or sourceless intent, and if the gate itself throws. It does not see a shell write; that is a hole, not a carve-out.\" This is the precedent the document sets for itself at lines 65-68 — for a claim a hand-maintained document cannot keep true, narrow or delete it rather than promise to keep it in step.\n\n2. If the coverage gap is to be closed rather than merely disclosed, that is a separate intent and a code change, not a wording change: add a `Bash` matcher to hooks/hooks.json and teach Assert-SdlcCharterGate.ps1 to read `tool_input.command`, deciding deliberately how to fail on a command it cannot parse (fail closed on any command mentioning a protected path is the reading consistent with the script\u0027s stated posture). Note the honest limit — command-string inspection is best-effort, so whatever ships must be described as such rather than restoring the word \"any\". Do not fold this into the wording repair: shipping only half of it while the charter still claims total coverage is the same defect again."
+                     },
+                     {
+                         "id":  "charter-r2-reason16",
+                         "category":  "unfounded-claim",
+                         "state":  "blocking",
+                         "stage":  "charter",
+                         "detection":  "reasoning",
+                         "role":  "facts",
+                         "summary":  "The roles passage says tests tie the role names to this table and the interrogator\u0027s copies to the schema in both directions, though no test compares interrogate.js\u0027s three role lists — its merge-schema `role` enum and both `wanted` arrays in rolesFromFacts — against the schema\u0027s `role` enum.",
+                         "cites":  [
+                                       {
+                                           "kind":  "invariant",
+                                           "id":  "INV-07"
+                                       }
+                                   ],
+                         "repair":  "Make the passage say what the tests do, and close the gap it was papering over. Preferred: add a binding test that extracts the `role:` enum from interrogate.js\u0027s merge schema and both `wanted` arrays in rolesFromFacts, and asserts their union equals SchemaEnum(\"role\") — modelled on InterrogateStatesMatchTheSchema, which already does exactly this for `state` — after which the sentence at .sdlc/CHARTER.md:494 becomes true as written. If that test is out of scope for this amendment, instead narrow the sentence to the binding that exists (\"tests tie the schema\u0027s enum to this table in both directions\") and record the interrogator\u0027s three copies as a known unbound representation, so the INV-03 gap is visible rather than claimed closed."
+                     },
+                     {
+                         "id":  "charter-r2-reason17",
+                         "category":  "unfounded-claim",
+                         "state":  "blocking",
+                         "stage":  "charter",
+                         "detection":  "reasoning",
+                         "role":  "facts",
+                         "summary":  "INV-06\u0027s Evidence says the suppression count is recorded in every `verify.md` and carried in the retro, though `suppression-count` is optional in both schemas/verify.schema.json and schemas/retro.schema.json, absent from the retro skill\u0027s frontmatter template, and emitted by nothing in the retro table generator.",
+                         "cites":  [
+                                       {
+                                           "kind":  "invariant",
+                                           "id":  "INV-07"
+                                       }
+                                   ],
+                         "repair":  "Delete the unfounded half rather than promising to mechanize it — the same move this block already made one clause later, and the move INV-03 prescribes for derived claims in a hand-maintained document. Replace \"So the count is recorded in every `verify.md` and carried in the retro, which is what makes accumulation visible at all.\" with a statement bounded by what the tree does, e.g. \"So the count is computed by the fact-gatherer and recorded in the verify document.\" Then let the existing next sentence stand unchanged: it already says nothing compares a cycle\u0027s count against the previous one, and with the visibility claim gone that admission no longer contradicts the sentence above it.\n\nIf instead the intent is to make the claim true, that is ordinary work in two other artifacts and belongs in a cycle, not in this amendment: add `suppression-count` to the retro frontmatter template at skills\\retro\\SKILL.md:49-54, and have Import-SdlcRetro.ps1 / Get-SdlcSignals.ps1 read and compare it. Do not restore the charter wording ahead of that work — asserting it while nothing does it is what earns this citation."
+                     },
+                     {
+                         "id":  "charter-r2-reason18",
+                         "category":  "unfounded-claim",
+                         "state":  "blocking",
+                         "stage":  "charter",
+                         "detection":  "reasoning",
+                         "role":  "facts",
+                         "summary":  "`Prevented-by:` is declared to accept a tracked path or a mechanical check id as a resolvable target, though the only code that resolves it (tools/Get-SdlcSignals.ps1) tests the value with Test-Path against the repo root, which no check id can satisfy.",
+                         "cites":  [
+                                       {
+                                           "kind":  "invariant",
+                                           "id":  "INV-07"
+                                       }
+                                   ],
+                         "repair":  "Pick one of two, not both. (a) Narrow the charter to what resolves: change `.sdlc/CHARTER.md:156-157` to name only a tracked path, and drop \"or a mechanical check id\". (b) Make the claim true: in `tools/Get-SdlcSignals.ps1`, before the `Test-Path` branch, resolve the value against the fact-gathering check ids and treat a known check id as resolved, so `zero-cites-prevented` can be reached by a check id as the charter says. (a) is the smaller change and keeps the field\u0027s meaning honest today; (b) is the one to take only if a check id is actually wanted as a preventer. Either way the fix is in scope for cycle 20260926-bc24, which is an approved charter intent (INV-08)."
+                     },
+                     {
+                         "id":  "charter-r2-reason19",
+                         "category":  "unfounded-claim",
+                         "state":  "blocking",
+                         "stage":  "charter",
+                         "detection":  "reasoning",
+                         "role":  "facts",
+                         "summary":  "The rule that a DEC-only citation cannot reach `blocking` is enforced nowhere: workflows/interrogate.js citationResolves() returns true for kind \u0027deferred\u0027 whose id is in the register and then sets `blocking` for any resolving citation, while findings.schema.json RULE 1 requires only that `cites` be non-empty.",
+                         "cites":  [
+                                       {
+                                           "kind":  "invariant",
+                                           "id":  "INV-07"
+                                       }
+                                   ],
+                         "repair":  "In .sdlc/CHARTER.md, rewrite the DEC promotion passage so it states a condition instead of asserting the built state, following INV-03\u0027s Scope pattern (\"A rule that states its condition evaluates itself\"):\n\n1. At :417-419, drop `DEC` from the list of kinds that `cites` accepts for promotion, or mark it explicitly as dismissal-only, so the guard text no longer accepts what the next paragraph says it rejects.\n\n2. At :421-423, replace \"It records that a finding was dismissed... so it satisfies nothing in the guard above: a finding whose only citation is a `DEC` id cannot reach `blocking`\" with the requirement form: \"A finding whose only citation is a `DEC` id MUST NOT reach `blocking`; it records a dismissal against a deliberately open decision — disposition `deferred-to-dec`.\" Same treatment for :326 (\"never a blocking one\") and :528 (\"cannot reach `blocking`\" → \"must not reach `blocking`\").\n\n3. Because the rule then has two representations — the charter sentence and the state assignment in workflows/interrogate.js plus findings.schema.json RULE 1 — INV-03 requires the binding check in the same change. Add the check that fails when they disagree: in findings.schema.json, extend RULE 1 so state `blocking` requires at least one cite whose kind is not `deferred`; and in workflows/interrogate.js, exclude a DEC-only cite set from `citesOk` alongside the existing `locations` exclusion at :590-591. Cover it with a test beside the existing RULE-1 examples (tests/Sdlc.Tests/examples/findings.invalid-01-uncited-blocking.json is the pattern — add a DEC-only-blocking invalid example).\n\nNote for the run: step 3 touches code and schema, not the artifact under interrogation. If this repair is scoped to the charter alone, do steps 1-2 and file the enforcement gap as its own finding against workflows/interrogate.js — but do not do step 2 without either step 3 or that filed finding, or the charter states a rule the shipped mechanism breaks."
+                     },
+                     {
+                         "id":  "charter-r2-reason20",
+                         "category":  "unfounded-claim",
+                         "state":  "blocking",
+                         "stage":  "charter",
+                         "detection":  "reasoning",
+                         "role":  "facts",
+                         "summary":  "The `Applies-to:` paragraph says the clause is what tells `interrogate \u003cartifact\u003e` which invariants its `charter` role loads, though no code reads the clause\u0027s value — tools/Get-SdlcFacts.ps1 emits only a `has-applies-to` boolean, interrogate.js hands the whole flat invariant list to every role, and citationResolves() accepts any declared invariant id.",
+                         "cites":  [
+                                       {
+                                           "kind":  "invariant",
+                                           "id":  "INV-07"
+                                       }
+                                   ],
+                         "repair":  "In the `Applies-to:` paragraph (.sdlc/CHARTER.md:56-59), delete the sentence \"This is what tells `interrogate \u003cartifact\u003e` which invariants its `charter` role should load\" and state instead what holds: the clause is read by the interrogating role and by the triage step, which are instructed to cite an invariant only where its `Applies-to:` covers the artifact kind; the mechanical form check verifies only that a non-empty clause is present, and the gatherer emits presence rather than the clause\u0027s value. Keep the following sentence about an empty clause failing the form check — that one is verified by the `invariant-form` check. If the mechanism is wanted rather than the correction, it is ordinary work: have Get-SdlcFacts.ps1 emit the parsed `applies-to` list per invariant and have citationResolves reject an invariant whose list does not cover `artifact.kind` — but by this document\u0027s own INV-06 precedent the claim may not be written before the code exists."
+                     },
+                     {
+                         "id":  "charter-r2-reason22",
+                         "category":  "unfounded-claim",
+                         "state":  "blocking",
+                         "stage":  "charter",
+                         "detection":  "reasoning",
+                         "role":  "facts",
+                         "summary":  "The amendment-source table enumerates `pack.yaml` and `pack.rules.yaml` as the pack-review surface and says which source applies is determined by path, while the enforcing gate also protects `packs/\u003cpack\u003e/CHARTER.md` and accepts either declared source for all four protected paths.",
+                         "cites":  [
+                                       {
+                                           "kind":  "invariant",
+                                           "id":  "INV-07"
+                                       }
+                                   ],
+                         "repair":  "In .sdlc/CHARTER.md, make the amendment-source passage say what tools/Assert-SdlcCharterGate.ps1 does. Widen the `pack-review` row\u0027s Changes column to the three pack paths the gate protects — `pack.yaml`, `pack.rules.yaml`, `packs/\u003cpack\u003e/CHARTER.md` — with the reason the gate and its test already record (a pack\u0027s charter template is inherited by every solution scaffolded from that pack, so an ungated edit changes the rules future solutions are judged by). Then delete \"which applies is determined by path, so neither needs a judgment call\" and state the mechanism instead: either source satisfies the gate for any protected path, and the path determines only which version is bumped — the two-source split exists so routine pack maintenance does not dilute this document\u0027s version, not as an access control. If the per-path binding is wanted rather than the prose, the alternative repair is the reverse: keep the sentence and make the gate map each protected pattern to its permitted source (`^\\.sdlc/CHARTER\\.md$` → `charter-review` only; `^packs/[^/]+/pack\\.(yaml|rules\\.yaml)$` → `pack-review` only), with a deny test per crossed pair — CharterGateTests.cs has neither today — and an explicit owner row for `packs/\u003cpack\u003e/CHARTER.md`, which the table assigns to no source. Either way the enumeration and the enforcement must be one claim, since a third statement of the protected surface without a binding check is INV-03 territory. (Merged: charter-r2-reason23, which reported the same flat `$permittedSources` union against the same sentence without a citation.)"
+                     },
+                     {
+                         "id":  "charter-r2-reason26",
+                         "category":  "unresolvable-reference",
+                         "state":  "blocking",
+                         "stage":  "charter",
+                         "detection":  "reasoning",
+                         "role":  "facts",
+                         "summary":  "The `charter-review` row names \"the `Inherits:` line\" as something charter review changes, though no charter in the tree carries that line — the provenance line this document defines is `Origin:` — and the only occurrences in the repository are inside the frozen v1 charter appendix in concept.raw.md.",
+                         "cites":  [
+                                       {
+                                           "kind":  "invariant",
+                                           "id":  "INV-07"
+                                       }
+                                   ],
+                         "repair":  "In .sdlc/CHARTER.md line 120, drop \"the `Inherits:` line\" from the charter-review row. Preferred replacement, if the intent was the provenance line: \"the `Origin:` line\", matching the definition at line 39 and the `origin:` frontmatter field at line 5. If the intent was instead the line that records pack identity, replace it with the `Stack pack:` line, which the pack charter already declares to be charter content needing a charter-review intent — and note that this solution has none, since `pack: none`. Leave concept.raw.md:2379 untouched; it is inside the frozen v1 appendix, which is a record rather than a rule — but concept.raw.md:2475 carries the same stale row in the concept body, so the amending charter intent should state whether the concept is corrected in step or deliberately left as historical text. The durable fix beyond the wording is a fact-gathering check that resolves the charter\u0027s own self-references — every frontmatter field and line name the prose claims the document carries — which would have caught this mechanically. (Merged: charter-r2-reason12, which reported the same row as an `Origin:`/`Inherits:` naming contradiction.)"
+                     },
+                     {
+                         "id":  "charter-r2-reason28",
+                         "category":  "unfounded-claim",
+                         "state":  "blocking",
+                         "stage":  "charter",
+                         "detection":  "reasoning",
+                         "role":  "facts",
+                         "summary":  "The account of the deleted `Applies-to:` summary matrix lists three drifts, and the third does not hold: at the last version carrying the matrix every tick agrees with its invariant\u0027s `Applies-to:` clause, INV-07\u0027s clause being \"every artifact\" and its row ticking all five columns.",
+                         "cites":  [
+                                       {
+                                           "kind":  "invariant",
+                                           "id":  "INV-07"
+                                       }
+                                   ],
+                         "repair":  "Amend the deleted-matrix passage in .sdlc/CHARTER.md (lines 63-69) by an approved charter intent, since INV-08 forbids editing this document outside one. Replace \"it had already drifted three ways — a missing row for INV-08, no column for INV-06\u0027s declared `pack` scope, and a tick for INV-07 that contradicted its own clause\" with the two drifts that hold: \"it had already drifted two ways — no row for INV-08, and no column for INV-06\u0027s declared `pack` scope.\" Do not drop the passage; the deletion rationale it carries is what the next reader needs, and it is correct. Since no fact-gathering check verifies an account of a passage that no longer exists, also make the remaining claim traceable where the reader meets it — name where the matrix can still be read (the charter at 8346a43^, preserved verbatim in concept.raw.md Appendix A) — so the two surviving specifics are checkable by hand instead of asserted. Do not resolve this by softening the third drift into a claim about an ambiguous clause: the same document states nine lines later that `every artifact` includes code, so under its own rule the tick agreed, and a hedged version would leave the contradiction with that rule in place."
+                     },
+                     {
+                         "id":  "charter-r2-reason1",
+                         "category":  "untestable",
+                         "state":  "suggested",
+                         "stage":  "charter",
+                         "detection":  "reasoning",
+                         "role":  "form",
+                         "summary":  "INV-04\u0027s `Forbids:` measures deviation against a declared stack pack, which this solution does not have (`pack: none`), so the clause is compatible with every possible implementation of ai-sdlc.",
+                         "repair":  "None to apply as a blocking repair. As a suggestion for the zero-cite query: if the declared stack governs (INV-04) still has zero cites at the ten-cycle floor, the reading to test is whether solution zero should declare a pack of its own (which would give the clause an antecedent here) rather than whether the invariant is decoration — it is citable in any solution on a pack, so deletion would be the wrong action on this evidence."
+                     },
+                     {
+                         "id":  "charter-r2-reason2",
+                         "category":  "ambiguity",
+                         "state":  "suggested",
+                         "stage":  "charter",
+                         "detection":  "reasoning",
+                         "role":  "form",
+                         "summary":  "INV-08\u0027s `Applies-to:` names artifact kinds (\"every artifact, and code\") while its `Forbids:` prohibits an editing act rather than a property of an artifact\u0027s content, so the clause does not say where a violation of it is expressible.",
+                         "repair":  "Carry as a suggestion, not a repair. If the asymmetry is later judged worth fixing, the honest form is to state INV-08\u0027s forbidden act as a property of an artifact\u0027s content — \"an artifact that proposes, declares, or performs a change to this document, the stack pack, or the pack rules outside an approved charter or pack intent\" — which keeps `every artifact, and code` meaningful for the `charter` role without narrowing what the `PreToolUse` gate refuses. That is itself a charter amendment and so needs its own approved charter intent; nothing in this cycle may make it."
+                     },
+                     {
+                         "id":  "charter-r2-reason5",
+                         "category":  "internal-contradiction",
+                         "state":  "suggested",
+                         "stage":  "charter",
+                         "detection":  "reasoning",
+                         "role":  "coherence",
+                         "summary":  "The document calls invariants immutable and append-only with a changed conclusion requiring a new ID plus `Superseded-by`, while its own amendment record describes clauses deleted in place from INV-03, INV-06 and INV-08, each still `Since: v1` and none carrying `Superseded-by` or a successor.",
+                         "repair":  "Carry as a suggestion, not a blocking finding. The residual defect is a gap rather than a contradiction: \"immutable\" is a stronger word than the mechanism the following two sentences describe, and the permission the amendment record actually relies on is never stated. Add one clause to \"How this document works\" making it explicit — an invariant\u0027s ID and its conclusion (`Forbids:`, and any condition in `Scope:`) are immutable and change only by a successor ID with `Superseded-by`, while non-normative `Evidence:`/`Scope:` prose may be amended in place provided the prior wording is quoted at the site, which is what keeps a version-stamped retro interpretable. Three amendments have now leaned on that rule unwritten."
+                     },
+                     {
+                         "id":  "charter-r2-reason6",
+                         "category":  "internal-contradiction",
+                         "state":  "suggested",
+                         "stage":  "charter",
+                         "detection":  "reasoning",
+                         "role":  "coherence",
+                         "summary":  "The invariants preamble groups `charter-violation` with the categories where a mechanical check can also carry the citation, while the coverage table gives `charter-violation` the invariant route only.",
+                         "repair":  "Optional, non-blocking wording tightening at C:\\Repos\\ai-sdlc\\.sdlc\\CHARTER.md:180-182 — make the two branches of the disjunction explicit so the sentence cannot be read as promising a check route for all four: \"For `scope-drift`, `gate-bypass` and `unfounded-claim` a mechanical check can also carry the citation, and `charter-violation` is unlocked by more than one invariant; so in all four cases the invariant is what keeps a reasoning-detected instance blockable rather than being the category\u0027s only route.\""
+                     },
+                     {
+                         "id":  "charter-r2-reason21",
+                         "category":  "unfounded-claim",
+                         "state":  "suggested",
+                         "stage":  "charter",
+                         "detection":  "reasoning",
+                         "role":  "facts",
+                         "summary":  "The taxonomy section says the findings schema validates against these values and nothing else may restate them, while workflows/interrogate.js restates the categories, the stages, the states and the role names as JavaScript literals.",
+                         "repair":  "In `.sdlc/CHARTER.md` lines 356–357, replace the absolute ban with the route the repository already uses. Current text: \"This charter is the authority for these values. The findings schema validates against them; nothing else may restate them.\" Proposed: \"This charter is the authority for these values. The findings schema validates against them, and any further representation takes INV-03\u0027s bound-copy route — a check that fails when the two disagree, in the same change. `workflows/interrogate.js` restates the categories, the stages and the states on that route; `TaxonomyBindingTests` binds this table to the schema and `WorkflowScriptTests` binds the workflow\u0027s copies to the schema.\" That removes the false absolute, states the condition instead of a status report (the form INV-03\u0027s Scope argues for), and keeps the invariant scheme uniform — no local rule stricter than INV-03 that nothing enforces. Also worth a line in `tests/Sdlc.Tests/TaxonomyBindingTests.cs`\u0027s remarks, which still paraphrase the old absolute wording."
+                     },
+                     {
+                         "id":  "charter-r2-reason24",
+                         "category":  "unfounded-claim",
+                         "state":  "suggested",
+                         "stage":  "charter",
+                         "detection":  "reasoning",
+                         "role":  "facts",
+                         "summary":  "The zero-cite query is described as running on every charter intent with a floor of every ten cycles, though nothing in the tree counts cycles and no charter-intent path invokes tools/Get-SdlcSignals.ps1 — its only invocation is a prose instruction in skills/absorb-retro/SKILL.md.",
+                         "repair":  "Carry as a suggestion attributed to the plan/build stage: the gap is in the tree, not the charter. Wire the zero-cite query into the charter-intent path — have `tools/Submit-SdlcIntent.ps1` (or `tools/Find-SdlcCharterIntent.ps1`) run `tools/Get-SdlcSignals.ps1` and surface its rows when the intent\u0027s source is `charter-review`, which is what \"runs whenever a charter intent happens for any other reason\" asks for — and give the ten-cycle floor something that can count: a cycle count derivable from `.sdlc/cycles/` plus the last-absorption marker, exposed by `Get-SdlcSignals.ps1` so a skill can say \"ten cycles since the last zero-cite read\". Note that `Get-SdlcSignals.ps1` currently has no age to read for the deferred-decision half of the query either — the register carries no `Deferred:` date (that is `charter-r1-reason29`\u0027s subject). If instead the cadence is meant to stay a human-followed rule with no mechanism, narrowing the wording at `.sdlc/CHARTER.md:141-149` requires a human-approved charter intent under INV-08 and cannot be done inside a cycle."
+                     },
+                     {
+                         "id":  "charter-r2-reason25",
+                         "category":  "unresolvable-reference",
+                         "state":  "suggested",
+                         "stage":  "charter",
+                         "detection":  "reasoning",
+                         "role":  "facts",
+                         "summary":  "The State table gives the accumulation path for `suggested` findings as `suggestions/\u003ccycle-id\u003e.md`, while every producer and consumer in the tree writes and reads `.sdlc/suggestions/\u003ccycle-id\u003e.md`.",
+                         "repair":  "Write the state table cell as `` .sdlc/suggestions/\u003ccycle-id\u003e.md `` so it matches every producer and consumer verbatim (tools/Complete-SdlcCycle.ps1, tools/Format-SdlcFindings.ps1\u0027s example, README.md\u0027s layout) and no longer depends on the reader inferring that the path is relative to the charter\u0027s own directory."
+                     },
+                     {
+                         "id":  "charter-r2-reason27",
+                         "category":  "unresolvable-reference",
+                         "state":  "suggested",
+                         "stage":  "charter",
+                         "detection":  "reasoning",
+                         "role":  "facts",
+                         "summary":  "The `Origin:` paragraph illustrates the scaffolded form as `scaffolded from dotnet-library@v3`, naming a pack version that does not exist — packs/dotnet-library/pack.yaml declares `version: 1`.",
+                         "repair":  "In .sdlc/CHARTER.md line 39, make the illustrative Origin: value a placeholder so it matches the `\u003csha\u003e` form in the same sentence and cannot go stale as the pack increments: `scaffolded from \u003cpack\u003e@v\u003cn\u003e` (or, if a concrete example reads better, `dotnet-library@v1`, matching packs/dotnet-library/pack.yaml\u0027s `version: 1` and packs/dotnet-library/CHARTER.md:19). The three `@v3` spellings in concept.raw.md are prior-art narrative and need no change."
+                     },
+                     {
+                         "id":  "charter-r2-reason29",
+                         "category":  "unfounded-claim",
+                         "state":  "suggested",
+                         "stage":  "charter",
+                         "detection":  "reasoning",
+                         "role":  "facts",
+                         "summary":  "The `gaps` section\u0027s per-role counts from the first interrogation are measurable only against .sdlc/cycles/20260924-c4a1/findings.json, which was removed at 114b05d and is not tracked at HEAD.",
+                         "repair":  "No repair required for citation purposes. If the provenance concern is addressed voluntarily, the cheapest fix keeps the sentence and makes its source reachable — name the commit the numbers were measured at, e.g. \"The first interrogation bears that out (20260924-c4a1, findings at 114b05d^): `gaps` produced five findings where `coherence` and `facts` produced ten each, and four of its five were capped at `suggested`.\" That leaves the claim checkable by hand without restoring the deleted corpus. Deleting the counts instead would cost the `gaps` table the only measurement that motivates it."
+                     },
+                     {
+                         "id":  "charter-r2-reason30",
+                         "category":  "missing-case",
+                         "state":  "suggested",
+                         "stage":  "charter",
+                         "detection":  "reasoning",
+                         "role":  "gaps",
+                         "summary":  "No role loads invariants when the charter itself is the artifact under interrogation, leaving `duplicated-truth`, `ambiguity` and `missing-case` — whose only route is an invariant — with no citation route against this document.",
+                         "repair":  "None applies at this stage — the finding stays `suggested` and accumulates, which is the route the charter itself prescribes for this class (\"recurring suggestion clusters on one theme | a missing invariant | candidate for addition\"). If the narrowed residue is to be fixed, the fix is a charter change — widening the Applies-to of error paths are enumerated (INV-01) and one reading per statement (INV-02) to include `charter`, or adding LOC invariants carrying those two categories for this document — and under the charter changes only by approved intent (INV-08) that needs an approved charter-review intent on its own branch, not a repair inside this cycle."
+                     },
+                     {
+                         "id":  "charter-r2-reason31",
+                         "category":  "missing-case",
+                         "state":  "suggested",
+                         "stage":  "charter",
+                         "detection":  "reasoning",
+                         "role":  "gaps",
+                         "summary":  "`Unlocks:` is not a required clause — only `Applies-to:` and `Forbids:` are — so an invariant that unlocks a category can pass the form check without declaring it, and the derived coverage is read off a clause nothing requires.",
+                         "repair":  "As a suggestion, not a blocking repair: extend the form rule and the `form` role\u0027s question to require a non-empty `Unlocks:` on every invariant that unlocks a category (or state explicitly that `Unlocks:` is optional and that coverage for a category is therefore established by the Coverage table\u0027s route column alone), and extend the `invariant-form` fact to record `has-unlocks` so the choice is mechanical either way. Worth noting alongside it, for a future charter intent: `missing-case` findings against the charter itself can never block, because INV-01 — the category\u0027s only route — is scoped to `intent, spec`. That gap is structural and larger than this finding."
+                     },
+                     {
+                         "id":  "charter-r2-reason32",
+                         "category":  "missing-case",
+                         "state":  "suggested",
+                         "stage":  "charter",
+                         "detection":  "reasoning",
+                         "role":  "gaps",
+                         "summary":  "`Superseded-by` is defined as the mechanism for a changed conclusion, but nothing states what a superseded invariant is afterwards — whether it remains citable to `blocking`, whether it still counts in the zero-cite query, or whether its `Unlocks:` still carries its category\u0027s route.",
+                         "repair":  "Not required at blocking severity. If addressed later in a charter intent, the \"How this document works\" supersession paragraph should state three things about a superseded invariant: whether it may still be cited to reach `blocking`, whether it still counts in the zero-cite query, and whether its `Unlocks:` still carries its category\u0027s route. The likely coherent answer — a superseded invariant stops being citable and drops out of the zero-cite query, with its `Unlocks:` transferring to the superseding invariant so no category silently loses its only route — but that is a decision for the human approving the intent, not something to settle at triage."
+                     },
+                     {
+                         "id":  "charter-r2-reason33",
+                         "category":  "missing-case",
+                         "state":  "suggested",
+                         "stage":  "charter",
+                         "detection":  "reasoning",
+                         "role":  "gaps",
+                         "summary":  "The `form` role is given only its one question, with no evidence and no characteristic failure, though the document states that the interrogator reads all three parts of every role\u0027s definition from these tables and keeps no copy.",
+                         "repair":  "Give the substitution table the same four columns as the main roles table, so the parse the document claims is possible actually returns three parts for `form`: `| Role | Its one question | Evidence | Fails by |`, with the `form` row filled — question unchanged; evidence `this document\u0027s invariant blocks` (it judges shape, so the invariant text is its whole evidence, not the tree and not the artifact under interrogation); fails-by `passing a well-shaped rule that forbids nothing an implementation could do` (the form rule\u0027s stated failure: a `Forbids:` clause compatible with every implementation, which its own question already asks about). Alternatively, narrow the claim at lines 486-487 to the parts the tables actually carry — but that weakens the no-copy guarantee the paragraph exists to state, so completing the row is the better fix. Whichever is chosen, extend the binding check that paragraph promises (tests/Sdlc.Tests/TaxonomyBindingTests.cs) to assert that every role row parsed from this document yields a non-empty question, evidence and fails-by, so the next omission fails a check instead of needing an interrogation to notice it. Both edits touch .sdlc/CHARTER.md and so require an approved charter intent under the-charter-changes-only-by-approved-intent (INV-08); the current branch intent-20260926-bc24 is a charter-review intent, so this sits inside that gate rather than needing a new one."
+                     },
+                     {
+                         "id":  "charter-r2-reason34",
+                         "category":  "missing-case",
+                         "state":  "suggested",
+                         "stage":  "charter",
+                         "detection":  "reasoning",
+                         "role":  "gaps",
+                         "summary":  "Nothing determines how a pack\u0027s own charter is interrogated: the `form` substitution is keyed to \"this document\" and no gaps row names a charter file inside a pack, so neither its role set nor its applicable row is fixed.",
+                         "repair":  "Leave as `suggested`. If a person later wants it blockable, the honest route is a charter intent that either widens a gaps row to name a pack\u0027s charter explicitly, or adds a local invariant (LOC-nn) whose `Applies-to:` covers `charter, pack` and whose `Forbids:` bars a governed artifact kind with no determined role set — not a stretched cite against INV-01 or `charter-violation`."
+                     },
+                     {
+                         "id":  "charter-r2-reason35",
+                         "category":  "missing-case",
+                         "state":  "suggested",
+                         "stage":  "charter",
+                         "detection":  "reasoning",
+                         "role":  "gaps",
+                         "summary":  "Version stamping is specified for the charter version alone, while the document maintains two independently bumped sources and delegates half the rules to the pack under INV-04.",
+                         "repair":  "In the Version stamping paragraph of .sdlc/CHARTER.md, widen the sentence to both axes the two-source table bumps — \"Every retro records the charter version and the pack version in force when its cycle ran (pack version null for a solution consuming none)\" — matching what schemas/retro.schema.json already requires and permits, so the rule and the schema state the same scope."
+                     },
+                     {
+                         "id":  "charter-r2-reason36",
+                         "category":  "missing-case",
+                         "state":  "suggested",
+                         "stage":  "charter",
+                         "detection":  "reasoning",
+                         "role":  "gaps",
+                         "summary":  "The calibration period names no observable exit condition, no owner and no mechanism — \"until this charter can halt on something\" identifies no event, and two interrogations have already produced blocking findings under one reading of it.",
+                         "repair":  "Record as a suggestion against the `## Calibration period` section. Two candidate shapes for a later charter intent to weigh: (a) make the exit observable and owned — replace \"until this charter can halt on something\" with a countable condition (for example, the first landed cycle carrying a finding that reaches `blocking` on an invariant citation, which also settles whether a locations pair suffices) and name the person who declares calibration over, following the pattern the commencement paragraph now sets; or (b) if the intent is that this state has no scheduled end and is simply the standing posture, say so and drop the temporal framing (\"Early cycles\", \"earns its way in\", \"as the charter thickens\"), since that framing is what makes it read as a dated carve-out with no retirement owner. Do not delete the clause; it is sound as a posture. Either way the change touches the charter and so needs an approved `charter-review` intent under INV-08; it must not be folded into this cycle. (Merged: charter-r2-reason13, which reported the same unobservable exit condition as a contradiction with the two interrogations\u0027 blocking counts.)"
+                     },
+                     {
+                         "id":  "charter-r2-reason37",
+                         "category":  "missing-case",
+                         "state":  "suggested",
+                         "stage":  "charter",
+                         "detection":  "reasoning",
+                         "role":  "gaps",
+                         "summary":  "The finding taxonomy heading carries its own version marker with no rule for when it bumps or who reads it, while the amendment table routes taxonomy changes to the charter version.",
+                         "repair":  "Keep as a suggestion. Two honest closes, both requiring an approved charter intent under INV-08: (a) delete the `· v1` from the heading, since the amendment table already makes the charter version the version of the taxonomy and nothing reads a separate one — the same treatment v2 gave the Applies-to summary matrix and v3 gave Coverage\u0027s second column; or (b) keep the marker and state its meaning explicitly as an introduction stamp (\"unchanged since charter v1\", matching each invariant\u0027s `Since:` field), which removes the implication that it bumps on its own. If someone wants this to block, the shape to refile is internal-contradiction with a locations pair — but that needs a genuine conflict between two positions, and on the since-stamp reading there is none."
+                     }
+                 ]
+}
