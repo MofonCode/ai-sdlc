@@ -68,6 +68,12 @@ $OutputEncoding = New-Object System.Text.UTF8Encoding $false
 # commands a verification runs -- asks here.
 . (Join-Path $PSScriptRoot 'SdlcPack.ps1')
 
+# And one home for the INV-08 licence answer, shared with the PreToolUse gate. THE PREVENTION AND
+# THE DETECTION MUST AGREE ABOUT WHAT IS PROTECTED. If they each kept their own list, the gate
+# would look stricter than it is and this check would report paths nobody guards -- and the
+# disagreement would surface as a false accusation rather than as a missing guard.
+. (Join-Path $PSScriptRoot 'SdlcProtectedPaths.ps1')
+
 function Resolve-RepoRoot {
     param([string] $Start)
 
@@ -229,6 +235,301 @@ function Get-BlastRadius {
     }
 }
 
+function Get-ProtectedPathStatus {
+    <#
+    .SYNOPSIS
+        Which protected paths differ from the merge-target baseline without a licence for them.
+
+    .DESCRIPTION
+        THE DETECTION HALF OF INV-08. The PreToolUse gate prevents a write it can see; this reports
+        one that already happened - a person editing in an editor, a tool the matcher does not
+        cover, a hook switched off. The gate's own header says it constrains the automated process
+        and nothing else, so without this the rule has no answer for anything outside that.
+
+        IT EMITS BOTH A CHECK AND A FACT FIELD, AND THAT IS NOT REDUNDANT. The check makes the
+        finding citable in an interrogation. The FACT FIELD is what gates verification, because the
+        verification outcome consumes no checks at all - it reads specific fact fields, which is how
+        unjustified suppressions already block. A detection that emitted only a check would report
+        and gate nothing.
+
+        THE BASELINE IS THE MERGE TARGET, DEGRADING EXPLICITLY. The remote-tracking ref for master
+        when it resolves, else a local master when HEAD is not on it, else HEAD. Each fallback is
+        named in the output, because which comparison was actually made changes what the result
+        means: against a remote-tracking ref this sees a protected path committed directly to
+        master, while against HEAD it sees only an uncommitted change.
+
+        WHAT IT CANNOT SEE, stated rather than implied. Once an amendment is merged AND pushed the
+        baseline contains it, so the difference disappears and the check goes quiet - which is
+        correct. In the window where an amendment is merged locally and not yet pushed, a difference
+        against the remote-tracking ref is indistinguishable from an unlicensed direct commit, and
+        this reports it. The detail names the baseline so a reader can tell which case they are
+        looking at; narrowing it further needs per-commit licence attribution, which is a larger
+        mechanism than this cycle has room for.
+
+        SKIPPING AND FAILING ARE DIFFERENT ANSWERS. No baseline resolves at all - a repository with
+        no commit - is a skip, because no comparison was owed. Git failing when a baseline DID
+        resolve is a failure, because a comparison was owed and could not be made.
+    #>
+    param([string] $Root, [string] $Branch, [string[]] $TrackedFiles)
+
+    $status = [ordered]@{
+        baseline        = $null
+        'baseline-kind' = 'none'
+        skipped         = $false
+        'could-not-run' = $false
+        reason          = $null
+        unlicensed      = @()
+    }
+
+    # --- resolve the baseline ------------------------------------------------
+    $baseline = $null
+    $kind = 'none'
+
+    $null = git -C $Root rev-parse --verify --quiet 'refs/remotes/origin/master'
+    if ($LASTEXITCODE -eq 0) {
+        $baseline = 'refs/remotes/origin/master'
+        $kind = 'remote-tracking'
+    }
+    else {
+        $null = git -C $Root rev-parse --verify --quiet 'refs/heads/master'
+        if ($LASTEXITCODE -eq 0 -and $Branch -ne 'master') {
+            $baseline = 'refs/heads/master'
+            $kind = 'local-master'
+        }
+        else {
+            $null = git -C $Root rev-parse --verify --quiet 'HEAD'
+            if ($LASTEXITCODE -eq 0) {
+                $baseline = 'HEAD'
+                $kind = 'head'
+            }
+        }
+    }
+
+    if (-not $baseline) {
+        $status.skipped = $true
+        $status.reason = 'no baseline resolves: the repository has no remote-tracking master, no local master and no commit'
+        return [pscustomobject] $status
+    }
+
+    $status.baseline = $baseline
+    $status.'baseline-kind' = $kind
+
+    # --- which protected paths exist here ------------------------------------
+    #
+    # From the tracked list and from disk both: a path that is protected and untracked is exactly
+    # the case a detection should not miss.
+    $candidates = New-Object System.Collections.ArrayList
+    foreach ($rel in $TrackedFiles) {
+        $normal = ($rel -replace '\\', '/')
+        if (Get-SdlcProtectedPathRule -RelativePath $normal) {
+            if ($candidates -notcontains $normal) { $null = $candidates.Add($normal) }
+        }
+    }
+
+    $onDisk = @('.sdlc/CHARTER.md')
+    $packsDir = Join-Path $Root 'packs'
+    if (Test-Path -LiteralPath $packsDir) {
+        foreach ($packDir in @(Get-ChildItem -LiteralPath $packsDir -Directory -ErrorAction SilentlyContinue)) {
+            foreach ($leaf in @('pack.yaml', 'pack.rules.yaml', 'CHARTER.md')) {
+                $onDisk += "packs/$($packDir.Name)/$leaf"
+            }
+        }
+    }
+    foreach ($rel in $onDisk) {
+        if (Test-SdlcProtectedPathExists -Root $Root -RelativePath $rel) {
+            if ($candidates -notcontains $rel) { $null = $candidates.Add($rel) }
+        }
+    }
+
+    if ($candidates.Count -eq 0) {
+        # NOT a skip. There is nothing to compare and nothing to violate, and skipping would imply
+        # a check was owed and not made.
+        $status.reason = 'this repository carries no protected paths'
+        return [pscustomobject] $status
+    }
+
+    # --- compare, then ask whether the branch may have done it ---------------
+    $unlicensed = New-Object System.Collections.ArrayList
+
+    foreach ($rel in $candidates) {
+        $null = git -C $Root diff --quiet $baseline '--' $rel
+        $code = $LASTEXITCODE
+
+        if ($code -eq 0) { continue }
+
+        if ($code -ne 1) {
+            # A comparison was owed and could not be made. Distinct from skipping, and a failure.
+            $status.reason = "git could not compare $rel against $baseline (exit $code)"
+            $status.'could-not-run' = $true
+            $status.unlicensed = @()
+            return [pscustomobject] $status
+        }
+
+        $decision = Test-SdlcWriteLicensed -Root $Root -Branch $Branch -RelativePath $rel
+        if (-not $decision.allowed) {
+            $null = $unlicensed.Add([pscustomobject]@{
+                path   = $rel
+                reason = $decision.reason
+            })
+        }
+    }
+
+    $status.unlicensed = @($unlicensed)
+    return [pscustomobject] $status
+}
+
+function Hide-CSharpStringLiterals {
+    <#
+    .SYNOPSIS
+        The same C# source with the INTERIOR of every string and char literal blanked.
+
+    .DESCRIPTION
+        A MATCH INSIDE A STRING LITERAL IS DATA, NOT CODE. That one sentence is the whole
+        diagnosis behind two mechanical checks that report false positives on this repository, and
+        both false positives have to be answered here rather than in either scanner, because they
+        are the same defect in two shapes:
+
+          `tests/Sdlc.Tests/PackTests.cs` asserts that a pack carries no suppression spellings, and
+          therefore NAMES those spellings inside quoted strings. The suppression scan matched the
+          text, found no comment beside it, and called the assertion an unjustified suppression.
+
+          `PackTests.cs` and `VerifyOutcomeTests.cs` hold annotated test methods inside C# RAW
+          string literals, as the source of generated fixture projects. The annotation scan read
+          those ids as real traceability and reported them as criteria no spec declares.
+
+        LENGTH AND LINE STRUCTURE ARE PRESERVED EXACTLY. Interiors are replaced character for
+        character with spaces and newlines are left alone, so every line number and column the
+        callers report still refers to the real file. A masking pass that collapsed literals would
+        silently renumber every suppression this repository has.
+
+        COMMENTS ARE LEFT INTACT, deliberately. The suppression scan decides whether a suppression
+        is justified by looking for a comment beside it, so blanking comments would convert one
+        false positive into another. They are still TRACKED, because a quote inside a comment must
+        not open a string and a `//` inside a string must not open a comment.
+
+        IT IS NOT A C# PARSER, AND MUST NOT BE MISTAKEN FOR ONE. It handles regular, verbatim,
+        interpolated and raw strings and char literals. An unterminated literal ends at the line
+        break rather than consuming the rest of the file, which keeps a malformed source from
+        blanking everything after it.
+    #>
+    param([string] $Text)
+
+    if ([string]::IsNullOrEmpty($Text)) { return $Text }
+
+    $chars = $Text.ToCharArray()
+    $n = $chars.Length
+    $i = 0
+
+    # Blanks one position unless it carries the line structure.
+    function Set-Blank {
+        param($Buffer, [int] $At)
+        if ($Buffer[$At] -ne "`n" -and $Buffer[$At] -ne "`r") { $Buffer[$At] = ' ' }
+    }
+
+    while ($i -lt $n) {
+        $c = $chars[$i]
+
+        # --- comments: tracked so they cannot open a literal, but not blanked ---
+        if ($c -eq '/' -and ($i + 1) -lt $n -and $chars[$i + 1] -eq '/') {
+            while ($i -lt $n -and $chars[$i] -ne "`n") { $i++ }
+            continue
+        }
+        if ($c -eq '/' -and ($i + 1) -lt $n -and $chars[$i + 1] -eq '*') {
+            $i += 2
+            while (($i + 1) -lt $n -and -not ($chars[$i] -eq '*' -and $chars[$i + 1] -eq '/')) { $i++ }
+            $i += 2
+            continue
+        }
+
+        # --- verbatim string: @"..." with "" as the escape ---
+        if ($c -eq '@' -and ($i + 1) -lt $n -and $chars[$i + 1] -eq '"') {
+            $i += 2
+            while ($i -lt $n) {
+                if ($chars[$i] -eq '"') {
+                    if (($i + 1) -lt $n -and $chars[$i + 1] -eq '"') {
+                        Set-Blank $chars $i
+                        Set-Blank $chars ($i + 1)
+                        $i += 2
+                        continue
+                    }
+                    break
+                }
+                Set-Blank $chars $i
+                $i++
+            }
+            $i++
+            continue
+        }
+
+        if ($c -eq '"') {
+            # How many quotes open this literal. Three or more is a raw string, whose interior may
+            # span lines and whose closing run has to match the opening run.
+            $quotes = 0
+            while (($i + $quotes) -lt $n -and $chars[$i + $quotes] -eq '"') { $quotes++ }
+
+            if ($quotes -ge 3) {
+                $i += $quotes
+                $closed = $false
+                while ($i -lt $n) {
+                    if ($chars[$i] -eq '"') {
+                        $run = 0
+                        while (($i + $run) -lt $n -and $chars[$i + $run] -eq '"') { $run++ }
+                        if ($run -ge $quotes) { $i += $run; $closed = $true; break }
+                        for ($k = 0; $k -lt $run; $k++) { Set-Blank $chars ($i + $k) }
+                        $i += $run
+                        continue
+                    }
+                    Set-Blank $chars $i
+                    $i++
+                }
+                if (-not $closed) { break }
+                continue
+            }
+
+            # An empty string carries no interior to blank.
+            if ($quotes -eq 2) { $i += 2; continue }
+
+            $i++
+            while ($i -lt $n) {
+                if ($chars[$i] -eq "`n") { break }
+                if ($chars[$i] -eq '\' -and ($i + 1) -lt $n) {
+                    Set-Blank $chars $i
+                    Set-Blank $chars ($i + 1)
+                    $i += 2
+                    continue
+                }
+                if ($chars[$i] -eq '"') { break }
+                Set-Blank $chars $i
+                $i++
+            }
+            $i++
+            continue
+        }
+
+        if ($c -eq "'") {
+            $i++
+            while ($i -lt $n) {
+                if ($chars[$i] -eq "`n") { break }
+                if ($chars[$i] -eq '\' -and ($i + 1) -lt $n) {
+                    Set-Blank $chars $i
+                    Set-Blank $chars ($i + 1)
+                    $i += 2
+                    continue
+                }
+                if ($chars[$i] -eq "'") { break }
+                Set-Blank $chars $i
+                $i++
+            }
+            $i++
+            continue
+        }
+
+        $i++
+    }
+
+    return (-join $chars)
+}
+
 function Get-TestAnnotations {
     param([string] $Root, [string[]] $TrackedFiles)
 
@@ -243,7 +544,21 @@ function Get-TestAnnotations {
         if (-not (Test-Path -LiteralPath $full)) { continue }
 
         $content = Get-Content -LiteralPath $full -Raw -Encoding UTF8
+
+        # An annotated test method inside a raw string literal is the SOURCE of a generated fixture
+        # project, not traceability for this repository. Read literally it makes every fixture id an
+        # orphan annotation, which is what blocked verification here.
+        #
+        # POSITIONAL, NOT SUBSTITUTED. The criterion id is itself the interior of a literal, so
+        # matching against masked text would find nothing at all - the mask would blank the very ids
+        # this is looking for. So the match is made on the real source and its POSITION is tested
+        # against the mask: an annotation written in code keeps its first character, and one inside
+        # a literal has been blanked to a space.
+        $masked = Hide-CSharpStringLiterals -Text $content
+
         foreach ($m in [regex]::Matches($content, 'TestProperty\s*\(\s*"AC"\s*,\s*"([^"]+)"\s*\)')) {
+            if ($m.Index -lt $masked.Length -and $masked[$m.Index] -ne $content[$m.Index]) { continue }
+
             $id = $m.Groups[1].Value
             if (-not $covered.Contains($id)) { $covered[$id] = New-Object System.Collections.ArrayList }
             $null = $covered[$id].Add($rel)
@@ -278,11 +593,33 @@ function Get-Suppressions {
         if (-not (Test-Path -LiteralPath $full)) { continue }
 
         $lines = @(Get-Content -LiteralPath $full -Encoding UTF8)
+
+        # A SUPPRESSION SPELLING INSIDE A QUOTED STRING IS AN ASSERTION ABOUT SUPPRESSIONS, NOT A
+        # SUPPRESSION. This repository's own tests assert that a pack carries no such spellings, and
+        # therefore name them - so reading the source literally reported the assertions as
+        # unjustified suppressions and blocked verification for every cycle here.
+        #
+        # Masking is the right instrument for this scan, where it was the wrong one for annotations:
+        # a real `#pragma` or `SuppressMessage` sits OUTSIDE any literal and survives the mask
+        # untouched, so what disappears is exactly the false positives.
+        #
+        # C# only. The project and property files this scan also reads are XML, where `<NoWarn>` is
+        # element text and quoting means something else entirely.
+        $matchLines = $lines
+        if ($rel -match '\.cs$') {
+            $masked = Hide-CSharpStringLiterals -Text ((Get-Content -LiteralPath $full -Raw -Encoding UTF8))
+            $matchLines = @($masked -split '\r?\n')
+        }
+
         for ($i = 0; $i -lt $lines.Count; $i++) {
             $line = $lines[$i]
-            $isSuppression = ($line -match '#pragma\s+warning\s+disable') -or
-                             ($line -match '<NoWarn>') -or
-                             ($line -match 'SuppressMessage')
+
+            # Matched against the masked line, reported from the real one.
+            $probe = if ($i -lt $matchLines.Count) { $matchLines[$i] } else { $line }
+
+            $isSuppression = ($probe -match '#pragma\s+warning\s+disable') -or
+                             ($probe -match '<NoWarn>') -or
+                             ($probe -match 'SuppressMessage')
             if (-not $isSuppression) { continue }
 
             # A justification is a comment on the line itself, or immediately above it.
@@ -672,6 +1009,11 @@ if ($kind -eq 'verify' -and $criteria.Count -eq 0) {
     }
 }
 
+# UNCONDITIONALLY, for every artifact kind. INV-08 does not become relevant at one stage: an
+# unlicensed charter change is as much a fact during a spec interrogation as during a verification,
+# and gating it only where it happened to be convenient is how a protection acquires a hole.
+$protectedPaths = Get-ProtectedPathStatus -Root $RepoRoot -Branch $branch -TrackedFiles $trackedFiles
+
 $annotations = @()
 $suppressions = @()
 $traceability = $null
@@ -851,6 +1193,26 @@ function Add-Check {
 }
 
 if ($governed) {
+    # --- INV-08, detected rather than only prevented -------------------------
+    #
+    # Three outcomes, kept distinct on purpose. Skipping says no comparison was owed; failing to run
+    # says one was owed and could not be made; and a clean pass says one was made and found nothing.
+    # Collapsing the first two would let a broken git report as a clean charter.
+    if ($protectedPaths.skipped) {
+        Add-Check 'protected-paths-licensed' $true "skipped: $($protectedPaths.reason)"
+    }
+    elseif ($protectedPaths.'could-not-run') {
+        Add-Check 'protected-paths-licensed' $false "could not run: $($protectedPaths.reason)"
+    }
+    elseif (@($protectedPaths.unlicensed).Count -gt 0) {
+        Add-Check 'protected-paths-licensed' $false (
+            "changed against $($protectedPaths.baseline) with no licence on this branch: " +
+            ((@($protectedPaths.unlicensed) | ForEach-Object { $_.path }) -join ', '))
+    }
+    else {
+        Add-Check 'protected-paths-licensed' $true $null
+    }
+
     $badPaths = @($paths | Where-Object { -not $_.exists })
     if ($badPaths.Count -gt 0) {
         Add-Check 'paths-resolve' $false (
@@ -1057,6 +1419,7 @@ $facts = [ordered]@{
     'traceability'        = $traceability
     'test-annotations'    = @($annotations)
     'suppressions'        = @($suppressions)
+    'protected-paths'     = $protectedPaths
     'blast-radius'        = $blastRadius
     'actual-blast-radius' = $actualRadius
     'plan-adherence'      = $adherence

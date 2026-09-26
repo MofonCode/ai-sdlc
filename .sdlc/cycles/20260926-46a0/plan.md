@@ -26,8 +26,20 @@ into a total block on shell commands.
 | tests/Sdlc.Tests/CharterGateTests.cs | modify |
 | tests/Sdlc.Tests/FactGatheringTests.cs | modify |
 | tests/Sdlc.Tests/VerifyOutcomeTests.cs | modify |
-| tests/Sdlc.Tests/PowerShellScriptTests.cs | modify |
+| tests/Sdlc.Tests/WorkflowScriptTests.cs | modify |
 | README.md | modify |
+
+**Corrected during build, and the correction is in the table above rather than only in prose.** The
+plan declared `PowerShellScriptTests.cs` and it needed no edit: its construct check is data-driven
+over every shipped script, so `SdlcProtectedPaths.ps1` came under it the moment the file existed —
+and it immediately failed the build over a literal `&&` inside a regex, which is the check working
+as designed. What did need an edit was `WorkflowScriptTests.cs`, because the criterion requiring the
+new check id to be classified is satisfied by the binding test that already lives there, and a
+criterion covered by an existing test needs that test to say so or traceability reads it as unproven.
+
+Same count, one file swapped. Recorded here because the alternative is a plan that says something
+untrue about the change it describes, and `plan-adherence` reports both halves — an undeclared file
+and a declared one untouched — so hiding it was never available.
 
 ## What each file carries
 

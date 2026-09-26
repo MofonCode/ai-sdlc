@@ -34,6 +34,22 @@
     untouched. That is not a gap to close: it constrains the automated process, which is what
     INV-08 is about.
 
+    THE SHELL ROUTE, AND WHY IT IS THE SAME GATE. This gate once watched four file-writing tools,
+    so `sed -i` on the charter through a shell walked straight past it - the rule was enforced
+    against the tools that announce a path and not against the one that hides it in a string. Two
+    layers had to change together: the hook matcher, which decides whether this script runs at
+    all, and the path extraction, which decides whether it has an opinion. Either alone is worse
+    than neither: a matcher that admits shell commands while the extraction only reads `file_path`
+    turns every shell command into "a recognised tool that yielded no recognised path", which this
+    gate denies. That is a total block on the shell.
+
+    THE LICENCE ANSWER LIVES IN ONE PLACE, LOADED INSIDE THE TRY/CATCH. `SdlcProtectedPaths.ps1`
+    holds what is protected, what licenses a write to each path, and whether a command string
+    writes one - shared with the detection half in `Get-SdlcFacts.ps1`, because a prevention and a
+    detection that disagree are worse than either alone. It is dot-sourced INSIDE the try below
+    and not above it: a load failure above the try is an error this script never sees, which Claude
+    Code reads as no opinion, which is a fail-open in the one component that must fail closed.
+
 .PARAMETER PayloadPath
     Read the hook payload from this file instead of stdin. For tests only - a hook is always
     invoked with the payload on stdin.
@@ -57,20 +73,15 @@ $ErrorActionPreference = 'Continue'
 $OutputEncoding = New-Object System.Text.UTF8Encoding $false
 [Console]::OutputEncoding = $OutputEncoding
 
-# The four protected paths. The last is a judgement worth recording: INV-08's wording is "this
-# document, the stack pack, or the pack rules", and a pack's charter TEMPLATE governs nothing
-# until a solution copies it - so a narrow reading would leave it out. It is in scope because it
-# is the most consequential file in a pack: every solution created from that pack inherits it,
-# and an ungated edit changes the rules every future solution is judged by.
-$protectedPatterns = @(
-    '^\.sdlc/CHARTER\.md$',
-    '^packs/[^/]+/pack\.yaml$',
-    '^packs/[^/]+/pack\.rules\.yaml$',
-    '^packs/[^/]+/CHARTER\.md$'
-)
+# The tools that can change a file. The first four announce a path in a field; the last two carry
+# a command string that may name one. Both groups are checked, by different routes, against the
+# same licence answer.
+$fileWritingTools = @('Edit', 'Write', 'MultiEdit', 'NotebookEdit')
 
-# The sources that may amend them. Anything else on the branch is not an approved charter intent.
-$permittedSources = @('charter-review', 'pack-review')
+# `Bash` is a name an official plugin already matches. `PowerShell` is included because it can
+# write files and is this stack's preferred shell - whether the harness delivers PreToolUse for it
+# is unverified, and a gate that is ready for a payload it may never receive costs nothing.
+$shellTools = @('Bash', 'PowerShell')
 
 function Write-Deny {
     param([string] $Reason)
@@ -92,31 +103,6 @@ function Write-Deny {
 function Write-NoOpinion {
     # Nothing printed, exit 0. See the note above on why this is not `allow`.
     exit 0
-}
-
-function Get-RelativePosixPath {
-    param([string] $Path, [string] $Root)
-
-    if ([string]::IsNullOrWhiteSpace($Path)) { return $null }
-
-    $candidate = $Path
-    if (-not [System.IO.Path]::IsPathRooted($candidate)) {
-        $candidate = Join-Path $Root $candidate
-    }
-
-    # GetFullPath rather than Resolve-Path: the target of a Write may not exist yet, and
-    # Resolve-Path fails on a path that is not there - which would deny every new file.
-    try { $full = [System.IO.Path]::GetFullPath($candidate) } catch { return $null }
-    try { $rootFull = [System.IO.Path]::GetFullPath($Root) } catch { return $null }
-
-    $rootFull = $rootFull.TrimEnd('\', '/')
-    if (-not $full.StartsWith($rootFull, [System.StringComparison]::OrdinalIgnoreCase)) {
-        # Outside the project. Not this gate's business.
-        return $null
-    }
-
-    $relative = $full.Substring($rootFull.Length).TrimStart('\', '/')
-    return ($relative -replace '\\', '/')
 }
 
 function Get-TargetPaths {
@@ -151,21 +137,23 @@ function Get-TargetPaths {
     return $paths
 }
 
-function Get-FrontmatterSource {
-    param([string] $Path)
+function Get-CommandString {
+    param($ToolInput)
 
-    $lines = @(Get-Content -LiteralPath $Path -Encoding UTF8 -ErrorAction Stop)
-    if ($lines.Count -eq 0 -or $lines[0].Trim() -ne '---') { return $null }
+    if ($null -eq $ToolInput) { return $null }
+    $names = @($ToolInput.PSObject.Properties.Name)
+    if ($names -notcontains 'command') { return $null }
 
-    for ($i = 1; $i -lt $lines.Count; $i++) {
-        if ($lines[$i].Trim() -eq '---') { break }
-        if ($lines[$i] -match '^source:\s*(\S+)') { return $Matches[1].Trim() }
-    }
-
-    return $null
+    $value = $ToolInput.command
+    if ($null -eq $value) { return $null }
+    return [string] $value
 }
 
 try {
+    # INSIDE the try, deliberately. See the header: a load failure above it is an error this
+    # script never sees, which Claude Code reads as no opinion.
+    . (Join-Path $PSScriptRoot 'SdlcProtectedPaths.ps1')
+
     if ($PayloadPath) {
         $raw = Get-Content -LiteralPath $PayloadPath -Raw -Encoding UTF8
     }
@@ -184,10 +172,12 @@ try {
     $toolInput = if ($payloadNames -contains 'tool_input') { $payload.tool_input } else { $null }
     $cwd = if ($payloadNames -contains 'cwd') { [string] $payload.cwd } else { '' }
 
-    # Only file-writing tools are in scope. The matcher should already have narrowed this, but a
-    # gate that depends on its own configuration being right is a gate with a second failure
-    # mode nobody tests.
-    if ($toolName -notmatch '^(Edit|Write|MultiEdit|NotebookEdit)$') {
+    # Only tools that can change a file are in scope. The matcher should already have narrowed
+    # this, but a gate that depends on its own configuration being right is a gate with a second
+    # failure mode nobody tests.
+    $isFileTool = $fileWritingTools -contains $toolName
+    $isShellTool = $shellTools -contains $toolName
+    if (-not $isFileTool -and -not $isShellTool) {
         Write-NoOpinion
     }
 
@@ -195,75 +185,114 @@ try {
         Write-Deny 'INV-08 gate: the payload carried no working directory, so no repository could be established. Failing closed.'
     }
 
-    $targets = @(Get-TargetPaths -ToolInput $toolInput)
-    if ($targets.Count -eq 0) {
-        # A writing tool with no path this gate recognises. It cannot show the edit is safe, so
-        # it does not pretend to.
-        Write-Deny "INV-08 gate: $toolName gave no file path this gate recognises, so it could not be checked against the protected paths. Failing closed."
+    # --- which protected paths does this call touch, and how ------------------
+    #
+    # The two routes differ only here. A file tool names its target in a field, so a protected hit
+    # is a write by definition. A shell tool carries a string, so a hit has to be classified: a
+    # read is permitted, a write or a destruction has to earn a licence, and a command that cannot
+    # be read statically is denied.
+    #
+    # THE EXISTENCE TEST RUNS HERE, BEFORE THE BRANCH IS EVER RESOLVED, and the ordering is the
+    # whole point rather than an optimisation. Creating a protected path needs no licence - you
+    # cannot loosen a rule that has not been written - and `init` writes a first charter into a
+    # repository with NO COMMIT, where `git rev-parse` fails and this gate would deny on "the
+    # current branch could not be determined". Asking about the branch first denies the one case
+    # that must always work. Found by testing it.
+
+    # Each entry: path, and the construct that makes it a write, for the refusal to quote.
+    $writes = @()
+
+    if ($isFileTool) {
+        $targets = @(Get-TargetPaths -ToolInput $toolInput)
+        if ($targets.Count -eq 0) {
+            # A writing tool with no path this gate recognises. It cannot show the edit is safe,
+            # so it does not pretend to.
+            Write-Deny "INV-08 gate: $toolName gave no file path this gate recognises, so it could not be checked against the protected paths. Failing closed."
+        }
+
+        foreach ($target in $targets) {
+            $relative = Get-SdlcRelativePosixPath -Path $target -Root $cwd
+            if (-not $relative) { continue }
+            if (-not (Get-SdlcProtectedPathRule -RelativePath $relative)) { continue }
+            if (-not (Test-SdlcProtectedPathExists -Root $cwd -RelativePath $relative)) { continue }
+            $writes += [pscustomobject]@{ path = $relative; how = "an edit by $toolName" }
+        }
     }
+    else {
+        $command = Get-CommandString -ToolInput $toolInput
+        if ([string]::IsNullOrWhiteSpace($command)) {
+            Write-Deny "INV-08 gate: $toolName carried no command string, so it could not be checked against the protected paths. Failing closed."
+        }
 
-    $hits = @()
-    foreach ($target in $targets) {
-        $relative = Get-RelativePosixPath -Path $target -Root $cwd
-        if (-not $relative) { continue }
+        $named = @(Get-SdlcProtectedPathsInText -Text $command -Root $cwd)
 
-        foreach ($pattern in $protectedPatterns) {
-            if ($relative -match $pattern) {
-                $hits += $relative
-                break
+        # A command naming no protected path is not this gate's business, whatever else it does.
+        if ($named.Count -eq 0) {
+            Write-NoOpinion
+        }
+
+        foreach ($path in $named) {
+            if (-not (Test-SdlcProtectedPathExists -Root $cwd -RelativePath $path)) { continue }
+
+            $shape = Get-SdlcCommandShape -Command $command -RelativePath $path -Root $cwd
+
+            # UNEVALUABLE IS TREATED AS A WRITE, NOT AS AN IMMEDIATE REFUSAL, and the distinction
+            # matters on exactly one branch: the licensed one. Fail-closed means denying when
+            # permission cannot be ESTABLISHED - but on a charter-review branch it has been, for
+            # this path, so refusing an unreadable command there is friction with no safety behind
+            # it. The author could make the same edit with Edit and the gate would permit it.
+            #
+            # So it joins the write list and the licence decides, which keeps the deny for every
+            # branch that has no licence and drops it for the one that does.
+            if ($shape.verdict -eq 'unevaluable') {
+                $writes += [pscustomobject]@{
+                    path = $path
+                    how  = "a command the gate could not evaluate - $($shape.detail)"
+                }
+                continue
             }
+
+            # A read is not a change, and a parsed command with no write shape is a determination
+            # rather than a guess. Both pass; the second is the accepted leak the intent records.
+            if ($shape.verdict -eq 'read' -or $shape.verdict -eq 'none') { continue }
+
+            $writes += [pscustomobject]@{ path = $path; how = $shape.detail }
         }
     }
 
-    if ($hits.Count -eq 0) {
+    if ($writes.Count -eq 0) {
         Write-NoOpinion
     }
 
-    $protectedList = ($hits | Select-Object -Unique) -join ', '
-
-    # --- the edit is to a protected path, so the branch has to earn it -------
+    # --- the call writes a protected path, so the branch has to earn it -------
 
     # No `2>&1`: redirecting a native command's stderr in PowerShell wraps each line in an
     # ErrorRecord, which has already turned successful git calls into failures in this
     # repository. stderr is left where it is.
+    $protectedList = (@($writes | ForEach-Object { $_.path }) | Select-Object -Unique) -join ', '
+
     $branch = & git -C $cwd rev-parse --abbrev-ref HEAD
     if ($LASTEXITCODE -ne 0) {
         Write-Deny "INV-08 gate: $protectedList is protected, and the current branch could not be determined (git failed). Failing closed."
     }
 
     $branch = ([string] ($branch | Out-String)).Trim()
-
-    # A detached HEAD reports the literal string HEAD.
-    if ([string]::IsNullOrWhiteSpace($branch) -or $branch -eq 'HEAD') {
-        Write-Deny "INV-08 gate: $protectedList is protected, and HEAD is detached, so no intent governs this edit. Failing closed."
+    if ([string]::IsNullOrWhiteSpace($branch)) {
+        Write-Deny "INV-08 gate: $protectedList is protected, and the current branch could not be determined. Failing closed."
     }
 
-    if ($branch -notmatch '^(?:intent|cycle)-(.+)$') {
-        Write-Deny "INV-08 gate: $protectedList may only be amended on a charter-review or pack-review intent branch. You are on '$branch'. File a charter intent and work on its branch."
+    # PATH BY PATH, not once for the branch. The licence is bound to the path: a pack-review intent
+    # does not license the solution charter and a charter-review intent does not license the rules
+    # every future solution inherits.
+    foreach ($write in $writes) {
+        $decision = Test-SdlcWriteLicensed -Root $cwd -Branch $branch -RelativePath $write.path
+        if (-not $decision.allowed) {
+            Write-Deny ("INV-08 gate: $($decision.reason) This call would change it by " +
+                "$($write.how). Use Edit or Write, which name their target explicitly.")
+        }
     }
 
-    $intentId = $Matches[1]
-    $intentPath = Join-Path $cwd ".sdlc/intents/$intentId.md"
-
-    if (-not (Test-Path -LiteralPath $intentPath)) {
-        Write-Deny "INV-08 gate: $protectedList is protected, and no intent file was found at .sdlc/intents/$intentId.md for branch '$branch'. Failing closed."
-    }
-
-    $source = $null
-    try { $source = Get-FrontmatterSource -Path $intentPath }
-    catch {
-        Write-Deny "INV-08 gate: $protectedList is protected, and the intent at .sdlc/intents/$intentId.md could not be read. Failing closed."
-    }
-
-    if (-not $source) {
-        Write-Deny "INV-08 gate: $protectedList is protected, and the intent at .sdlc/intents/$intentId.md declares no source. Failing closed."
-    }
-
-    if ($permittedSources -notcontains $source) {
-        Write-Deny "INV-08 gate: $protectedList may only be amended by a charter-review or pack-review intent. Intent $intentId declares source '$source'."
-    }
-
-    # An approved charter intent, on its own branch. INV-08 is satisfied.
+    # Every protected path this call writes is licensed by the branch's intent. INV-08 is satisfied.
     Write-NoOpinion
 }
 catch {

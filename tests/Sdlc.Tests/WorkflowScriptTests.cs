@@ -352,8 +352,15 @@ public sealed class WorkflowScriptTests
     }
 
     [TestMethod]
+    [TestProperty("AC", "AC-20260926-46a0-15")]
     public void EveryCheckTheGathererEmitsIsClassified()
     {
+        // Annotated for this cycle's criterion as well as standing on its own: the new
+        // `protected-paths-licensed` check has to be classified as a category that can block, and
+        // the requirement is identical to the one this test already enforces for every other check.
+        // A criterion satisfied by an existing binding needs no second test - it needs this one to
+        // say so, or traceability reads it as unproven.
+        //
         // THE BINDING CHECK, and it exists because the omission it prevents was real. An
         // unmapped check id falls through to `unclassified`, which can never block by
         // construction — so a failed check would be reported as advisory while the charter's
