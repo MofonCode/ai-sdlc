@@ -44,7 +44,10 @@
     <None Include="$(MSBuildThisFileDirectory)..\..\hooks\*.json" LinkBase="hooks" CopyToOutputDirectory="PreserveNewest" />
     <None Include="$(MSBuildThisFileDirectory)..\..\.github\workflows\*.yml" LinkBase="workflows-ci" CopyToOutputDirectory="PreserveNewest" />
 
-    <!-- README_COPY_PLACEHOLDER -->
+    <!-- The README names every skill, workflow and script. That is a second representation of
+         what ships, so it needs the check that fails when the two disagree — which is what
+         ReadmeTests is. Copied here so the check reads the file that is committed. -->
+    <None Include="$(MSBuildThisFileDirectory)..\..\README.md" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>
