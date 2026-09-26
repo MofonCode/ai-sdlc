@@ -36,6 +36,24 @@ already recorded:
   actual exit codes before relying on them caught it.
 - **`$home` is read-only in PowerShell**, and variable names are case-insensitive.
 
+## Running it found three more defects, all in the script being repaired
+
+The strongest argument in this cycle for executing a thing rather than reading it. None of these was
+visible in four readings of the file; all three appeared in its first two runs.
+
+1. **Its success message announced a suggestions intake that does not exist.** Printed
+   unconditionally, for a cycle that filed no interrogation. And the path was rendered
+   `.sdlc/suggestions/ + 20260926-26a1.md + ,` because `'a' + "$b" + 'c'` passes three positional
+   arguments to `Write-Host`, which joins them with spaces.
+2. **The first pull request it ever opened was titled `<id>: <id>: done means landed`.** The script
+   prefixes the cycle id to a commit subject that house convention already prefixes, so the doubled
+   form was the normal case rather than an edge one.
+3. **The retro schema refuses `rounds: 0`** — see below.
+
+All three are fixed here. Worth stating why they belong in this cycle rather than a follow-up: a
+landing step whose output misreports what it did is a landing step that misreports, and this cycle's
+subject is that step working.
+
 ## The pattern that has now appeared twice
 
 **When the instrument that measures a cycle is broken, the cycle cannot decline to fix it.**

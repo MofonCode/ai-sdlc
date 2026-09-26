@@ -271,6 +271,15 @@ try {
     $log = Invoke-SdlcGit log -1 --format=%s $branch
     $title = $log.stdout.Trim()
 
+    # The cycle id is prefixed below, so a subject that already carries it must not be prefixed
+    # twice. House convention puts it there, so the doubled form was the NORMAL case rather than an
+    # edge one - the first pull request this script ever opened was titled
+    # `<id>: <id>: done means landed`. Stripped rather than stopping the prefix, because a subject
+    # that omits the id still needs one.
+    if ($title -match "^$([regex]::Escape($CycleId))\s*:\s*(.+)$") {
+        $title = $Matches[1].Trim()
+    }
+
     $remotes = @((Invoke-SdlcGit remote).stdout -split "`n" | ForEach-Object { $_.Trim() } | Where-Object { $_ })
     if ($remotes.Count -eq 0) {
         $result['outcome'] = 'verified-no-remote'

@@ -368,6 +368,27 @@ public sealed class CycleLandingTests
     }
 
     [TestMethod]
+    [TestProperty("AC", "AC-20260926-26a1-17")]
+    public void ThePullRequestTitleNamesTheCycleOnce()
+    {
+        // ALSO FOUND BY RUNNING IT. The first pull request this script ever opened was titled
+        // `20260926-26a1: 20260926-26a1: done means landed, not written`, because the script prefixes
+        // the cycle id to a commit subject that house convention already prefixes. The doubled form
+        // was the normal case, not an edge one.
+        //
+        // Asserted on the source, because the title is only ever built on the path that calls GitHub
+        // and no test can call GitHub. Both directions: the prefix is stripped when present and the
+        // prefix is still added.
+        string code = File.ReadAllText(ScriptPath);
+
+        StringAssert.Contains(code, "$CycleId`: $title", StringComparison.Ordinal,
+            "a subject with no cycle id still needs one, so the prefix must stay");
+
+        StringAssert.Contains(code, "[regex]::Escape($CycleId)", StringComparison.Ordinal,
+            "a subject that already names the cycle must not be prefixed twice");
+    }
+
+    [TestMethod]
     [TestProperty("AC", "AC-20260926-26a1-12")]
     public void NoTestInTheSuiteIsSkippedOrInconclusive()
     {
