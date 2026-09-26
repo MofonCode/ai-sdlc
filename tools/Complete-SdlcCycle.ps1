@@ -330,9 +330,16 @@ try {
     Write-Host ''
     Write-Host 'Squash-merge it. The retro rides in with the squash, and only then does this'
     Write-Host 'cycle read as done.'
-    Write-Host 'Unresolved suggestions landed as .sdlc/suggestions/' + "$CycleId.md" + ', for triage'
-    Write-Host 'on your own schedule. Promoting one means filing an ordinary intent with'
-    Write-Host '`source: suggestion`.'
+    # ONE STRING, AND CONDITIONAL. Both halves were wrong and its own first execution showed it:
+    # `'literal' + "$var" + 'literal'` passes three positional arguments to Write-Host, which joins
+    # them with spaces, so the `+` signs were printed. And it was unconditional, so it announced an
+    # intake file for a cycle that filed no interrogation and therefore has none.
+    $intakeRel = ".sdlc/suggestions/$CycleId.md"
+    if (Test-Path -LiteralPath (Join-Path $RepoRoot $intakeRel)) {
+        Write-Host "Unresolved suggestions landed as $intakeRel, for triage"
+        Write-Host 'on your own schedule. Promoting one means filing an ordinary intent with'
+        Write-Host '`source: suggestion`.'
+    }
     Write-Host ''
     Write-Host 'Note: plugin.json is bumped when the `release` ref moves, not here. Nobody'
     Write-Host 'consumes master, so a bump at merge would signal nothing.'

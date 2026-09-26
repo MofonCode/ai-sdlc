@@ -149,6 +149,30 @@ public sealed class CycleLandingTests
         p.WaitForExit();
     }
 
+    /// <summary>Runs the landing script and returns everything it printed, JSON included.</summary>
+    private static string LandRaw(string root, string cycleId)
+    {
+        using Process p = Process.Start(new ProcessStartInfo("powershell.exe")
+        {
+            ArgumentList =
+            {
+                "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass",
+                "-File", ScriptPath, "-CycleId", cycleId, "-RepoRoot", root,
+            },
+            WorkingDirectory = root,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            UseShellExecute = false,
+            StandardOutputEncoding = Encoding.UTF8,
+            StandardErrorEncoding = Encoding.UTF8,
+        })!;
+
+        string stdout = p.StandardOutput.ReadToEnd();
+        p.StandardError.ReadToEnd();
+        p.WaitForExit();
+        return stdout;
+    }
+
     /// <summary>Runs the landing script and returns its JSON result, or the error it threw.</summary>
     private static (JsonElement? Result, string Error) Land(string root, string cycleId)
     {
@@ -304,6 +328,38 @@ public sealed class CycleLandingTests
                 "a cycle that is not awaiting-landing must throw rather than report an outcome");
             StringAssert.Contains(error, "awaiting-landing", StringComparison.Ordinal,
                 "the refusal has to name the state it required: " + error);
+        }
+        finally
+        {
+            Discard(root);
+        }
+    }
+
+    [TestMethod]
+    [TestProperty("AC", "AC-20260926-26a1-16")]
+    public void ACycleWithNoInterrogationDoesNotClaimASuggestionsIntake()
+    {
+        // FOUND BY RUNNING IT. The first real execution of this script printed
+        // "landed as .sdlc/suggestions/ + 20260926-26a1.md + , for triage" for a cycle that had filed
+        // no interrogation at all. Two defects in one line: `'a' + "$b" + 'c'` passes three positional
+        // arguments to Write-Host, which joins them with spaces, and the line was unconditional.
+        //
+        // A landing step whose success message misreports what it did is a landing step that
+        // misreports, which is the thing this cycle exists to stop.
+        string root = MakeLandableRepo("20260926-b004", withRetro: true, withFindings: false);
+
+        try
+        {
+            string output = LandRaw(root, "20260926-b004");
+
+            Assert.IsFalse(output.Contains("Unresolved suggestions landed", StringComparison.Ordinal),
+                "no interrogation was filed, so there is no intake to announce: " + output);
+
+            Assert.IsFalse(output.Contains("suggestions/ +", StringComparison.Ordinal),
+                "the path must be a path, not a concatenation expression: " + output);
+
+            Assert.IsFalse(File.Exists(Path.Combine(root, ".sdlc", "suggestions", "20260926-b004.md")),
+                "nothing was suggested, so nothing should have been written");
         }
         finally
         {

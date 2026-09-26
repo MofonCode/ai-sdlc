@@ -70,6 +70,7 @@ the mechanism beside it is how this defect survived two readings.
 | AC-20260926-26a1-12 | yes | No test in the suite is skipped, and none is marked inconclusive. |
 | AC-20260926-26a1-14 | yes | An annotation naming a criterion of a **different** cycle is judged against that cycle's spec, not against the spec under interrogation, so a second cycle's annotations are not orphans of the first's. |
 | AC-20260926-26a1-15 | yes | An annotation naming a cycle with no spec on disk is still reported as an orphan, and so is one naming a criterion its own cycle's spec does not declare. |
+| AC-20260926-26a1-16 | yes | A cycle that filed no interrogation lands without its output claiming a suggestions intake exists, and the intake path is printed as a path rather than as a concatenation expression. |
 | AC-20260926-26a1-13 | no | Whether `Complete-SdlcCycle.ps1` behaves correctly against a real remote and a real pull request. A throwaway repository can drive it to the push, and no test can prove the GitHub half without calling GitHub. A person dispositions this from the first real landing. |
 
 ## The orphan-annotation check came into scope, and the intent was wrong to exclude it
