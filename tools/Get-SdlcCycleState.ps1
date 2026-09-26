@@ -32,11 +32,30 @@
     forever while the dispatcher refuses to touch it — and with no concurrency cap,
     exhaustion is the likelier failure.
 
-    DONE, from the retro. The retro is the completion certificate: it is written only at
-    landing, and the retro workflow refuses to write one for a cycle that did not pass.
-    A naive derivation — "on master with no branch" — also matches a FINISHED intent,
-    because the branch is gone once it merges, so an unsupervised dispatcher reading that
-    queue would relaunch every completed cycle forever.
+    DONE, FROM THE RETRO BEING ON THE MERGE TARGET — not from the retro existing. The retro
+    is the completion certificate and the retro workflow refuses to write one for a cycle
+    that did not pass, but the certificate is written BEFORE the merge: `Complete-SdlcCycle.ps1`
+    requires it on the branch, because it rides in with the squash so that one cycle is one
+    commit and reverting a cycle is one operation.
+
+    So `written for landing` and `landed` are different states and only the second is done.
+    This header used to claim the retro was written at landing and not before, and that sentence
+    licensed a predicate that read mere presence — which made every cycle carrying a retro `done`
+    the moment it was written, so `Complete-SdlcCycle.ps1` could never run: it refuses anything
+    but `awaiting-landing`, and it also refuses a cycle with no retro. No input satisfied both.
+    The script had never executed once.
+
+    `Test-Path` cannot tell the two apart, because a retro on an unmerged branch and a retro
+    that merged are both simply present in the working tree. So the question is asked of git:
+    is this cycle's retro in local master's tree. Local master rather than a remote-tracking
+    ref, because landing is a local operation and a cycle merged but not yet pushed has landed.
+
+    Where no master resolves there is no merge target, so there is no landing to be before or
+    after, and the predicate degrades to presence — today's answer, deliberately. It degrades
+    the same way if the lookup itself cannot run, because the mirror failure is the dangerous
+    one: a derivation that reads a FINISHED cycle as unfinished would have an unsupervised
+    dispatcher relaunch or re-land it. A naive derivation — "on master with no branch" — has
+    the same defect, because the branch is gone once it merges.
 
 .PARAMETER CycleId
     One cycle id. Omit to report every intent.
@@ -113,6 +132,11 @@ Push-Location $RepoRoot
 try {
     $branches = @(git for-each-ref --format='%(refname:short)' refs/heads)
     $mergedBranches = @(git branch --format='%(refname:short)' --merged HEAD)
+
+    # The merge target, for deciding whether a retro has LANDED rather than merely been written.
+    # A repository with no master has no target, so there is no landing to be before or after.
+    $null = git rev-parse --verify --quiet 'refs/heads/master'
+    $masterExists = ($LASTEXITCODE -eq 0)
 
     # `git worktree list --porcelain` emits a `locked` line for a locked worktree. Claude
     # Code holds that lock for the lifetime of the agent using the worktree.
@@ -197,6 +221,31 @@ foreach ($entry in @($intentFiles + $abandonedFiles)) {
     $hasVerify = Test-Path -LiteralPath $verifyPath
     $hasRetro = Test-Path -LiteralPath $retroPath
 
+    # Is the completion certificate on the merge target. See the header: presence says the retro was
+    # WRITTEN, and only this says the cycle LANDED.
+    #
+    # Degrades to presence in both directions that cannot answer -- no master to compare against, or
+    # a lookup that could not run -- because reading a finished cycle as unfinished is the dangerous
+    # error, not the reverse.
+    # `ls-tree` RATHER THAN `cat-file -e`, and the choice is load-bearing rather than stylistic.
+    # `cat-file -e` exits 128 both for a path that is not in the tree and for a ref that does not
+    # resolve, so it cannot tell an unlanded retro from a failed lookup - and degrading on that
+    # confusion would read every unlanded cycle as landed, leaving this defect exactly where it
+    # was. `ls-tree` answers in the output instead: exit 0 with a line means present, exit 0 with
+    # nothing means absent, and non-zero means the lookup could not be made.
+    #
+    # It is also silent on stderr for a resolvable ref, which matters under this script's
+    # `ErrorActionPreference = 'Stop'`: `cat-file -e` prints `fatal:` for an absent path, and a
+    # native command's stderr there can become a terminating error.
+    $retroLanded = $hasRetro
+    if ($hasRetro -and $masterExists) {
+        $listed = @(git -C $RepoRoot ls-tree master '--' ".sdlc/cycles/$id/retro.md")
+        if ($LASTEXITCODE -eq 0) {
+            $retroLanded = [bool] (@($listed | Where-Object { $_ -and $_.Trim() }).Count)
+        }
+        # A non-zero exit is a lookup that could not be made, so this stays at presence.
+    }
+
     $planPath = Join-Path $cycleDir 'plan.md'
     $hasPlan = Test-Path -LiteralPath $planPath
     # Presence is the gate, so the value must be non-empty to count: a plan whose
@@ -234,9 +283,9 @@ foreach ($entry in @($intentFiles + $abandonedFiles)) {
         $state = 'abandoned'
         $reason = 'the intent file sits under intents/abandoned/'
     }
-    elseif ($hasRetro) {
+    elseif ($retroLanded) {
         $state = 'done'
-        $reason = 'a retro exists — the completion certificate'
+        $reason = 'the retro is on master — the completion certificate landed'
     }
     elseif ($isCharterIntent -and ($charterAmendedBy -contains $id)) {
         $state = 'done'

@@ -35,6 +35,18 @@
 
 .EXAMPLE
     .\Complete-SdlcCycle.ps1 -CycleId 20260924-a1b2 -WhatIf
+    THE STATE THIS REQUIRES IS THE STATE A RETRO ON AN UNMERGED BRANCH PRODUCES. Said here
+    because it was not true for the life of this script, and the consequence was that it never
+    ran once. It refuses anything but `awaiting-landing` and it also refuses a cycle with no
+    retro on the branch - and the lifecycle derivation used to call a cycle `done` the moment a
+    retro existed anywhere. Without a retro this failed step 4; with one it failed the check
+    below. No input satisfied both.
+
+    The derivation was what was wrong, and it is fixed there rather than here: `done` now means
+    the retro is reachable from the merge target, so a retro written for a landing that has not
+    happened reads `awaiting-landing`. Nothing in this file widened to accommodate it, and
+    nothing in this file should - two places that know which states may land is how the next
+    version of this bug gets written.
 #>
 # Deliberately NOT ConfirmImpact = 'High'.
 #
@@ -259,6 +271,15 @@ try {
     $log = Invoke-SdlcGit log -1 --format=%s $branch
     $title = $log.stdout.Trim()
 
+    # The cycle id is prefixed below, so a subject that already carries it must not be prefixed
+    # twice. House convention puts it there, so the doubled form was the NORMAL case rather than an
+    # edge one - the first pull request this script ever opened was titled
+    # `<id>: <id>: done means landed`. Stripped rather than stopping the prefix, because a subject
+    # that omits the id still needs one.
+    if ($title -match "^$([regex]::Escape($CycleId))\s*:\s*(.+)$") {
+        $title = $Matches[1].Trim()
+    }
+
     $remotes = @((Invoke-SdlcGit remote).stdout -split "`n" | ForEach-Object { $_.Trim() } | Where-Object { $_ })
     if ($remotes.Count -eq 0) {
         $result['outcome'] = 'verified-no-remote'
@@ -318,9 +339,16 @@ try {
     Write-Host ''
     Write-Host 'Squash-merge it. The retro rides in with the squash, and only then does this'
     Write-Host 'cycle read as done.'
-    Write-Host 'Unresolved suggestions landed as .sdlc/suggestions/' + "$CycleId.md" + ', for triage'
-    Write-Host 'on your own schedule. Promoting one means filing an ordinary intent with'
-    Write-Host '`source: suggestion`.'
+    # ONE STRING, AND CONDITIONAL. Both halves were wrong and its own first execution showed it:
+    # `'literal' + "$var" + 'literal'` passes three positional arguments to Write-Host, which joins
+    # them with spaces, so the `+` signs were printed. And it was unconditional, so it announced an
+    # intake file for a cycle that filed no interrogation and therefore has none.
+    $intakeRel = ".sdlc/suggestions/$CycleId.md"
+    if (Test-Path -LiteralPath (Join-Path $RepoRoot $intakeRel)) {
+        Write-Host "Unresolved suggestions landed as $intakeRel, for triage"
+        Write-Host 'on your own schedule. Promoting one means filing an ordinary intent with'
+        Write-Host '`source: suggestion`.'
+    }
     Write-Host ''
     Write-Host 'Note: plugin.json is bumped when the `release` ref moves, not here. Nobody'
     Write-Host 'consumes master, so a bump at merge would signal nothing.'

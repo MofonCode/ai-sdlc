@@ -1050,10 +1050,45 @@ if ($kind -eq 'spec' -or $kind -eq 'verify') {
 
     # An annotation naming a criterion the spec does not declare points at a renumbering
     # or a typo, and it silently reports coverage for nothing.
+    #
+    # EACH ANNOTATION IS JUDGED AGAINST ITS OWN CYCLE'S SPEC, not against whichever spec happens to
+    # be under interrogation. Comparing every annotation in the suite to one spec's criteria was
+    # correct only while the suite held one cycle's annotations: the moment a second cycle annotated
+    # a test, each cycle's annotations read as orphans of the other's spec and the check blocked
+    # every verification from then on. It did exactly that on the first cycle after the one that
+    # introduced it, which is how this was found.
+    #
+    # A criterion id carries its cycle - `AC-<yyyymmdd>-<hhhh>-<n>` - so the spec that governs it is
+    # named by the annotation itself. An id naming a cycle with no spec on disk IS an orphan: that is
+    # the renumbering-and-typo case the check exists for, and it stays caught.
     $criterionIds = @()
     foreach ($c in $criteria) { $criterionIds += $c.id }
+
+    $criteriaByCycle = @{}
     $orphanAnnotations = @()
-    foreach ($id in $coveredIds) { if ($criterionIds -notcontains $id) { $orphanAnnotations += $id } }
+    foreach ($id in $coveredIds) {
+        $governingIds = $criterionIds
+
+        if ($id -match '^AC-(\d{8}-[0-9a-f]{4})-') {
+            $annotatedCycle = $Matches[1]
+
+            if ($annotatedCycle -ne $cycleId) {
+                if (-not $criteriaByCycle.ContainsKey($annotatedCycle)) {
+                    $otherIds = @()
+                    $otherSpec = Join-Path $RepoRoot ".sdlc/cycles/$annotatedCycle/spec.md"
+                    if (Test-Path -LiteralPath $otherSpec) {
+                        $otherText = (Get-Content -LiteralPath $otherSpec -Encoding UTF8) -join "`n"
+                        foreach ($c in @(Get-AcceptanceCriteria -Text $otherText)) { $otherIds += $c.id }
+                    }
+                    $criteriaByCycle[$annotatedCycle] = $otherIds
+                }
+
+                $governingIds = $criteriaByCycle[$annotatedCycle]
+            }
+        }
+
+        if ($governingIds -notcontains $id) { $orphanAnnotations += $id }
+    }
 
     $traceability = [ordered]@{
         rows              = @($rows)
