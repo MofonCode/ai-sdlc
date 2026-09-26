@@ -224,6 +224,14 @@ try {
 const activeRoles = rolesFromFacts(parsedFacts)
 const gapsRow = gapsGuidance(parsedFacts)
 
+// The declared pack's rules, rendered once for the charter role. Empty for a solution that consumes
+// no pack — solution zero builds the framework and has none — and an empty string then removes the
+// whole passage rather than telling a role about rules that do not exist.
+const packRuleText = (((parsedFacts && parsedFacts.pack && parsedFacts.pack.rules) || [])
+  .filter(r => r && r.id)
+  .map(r => '  ' + r.id + (r.title ? ' · ' + r.title : '') + (r.forbids ? '\n      forbids: ' + r.forbids : ''))
+  .join('\n'))
+
 log(`${activeRoles.length} role(s) from the charter: ${activeRoles.map(r => r.name).join(', ')}`)
 
 const failedChecks = (parsedFacts && parsedFacts['failed-checks']) || []
@@ -375,6 +383,26 @@ const discovered = await parallel(
         '',
         `Your evidence is ${role.evidence}.`,
         `Your characteristic failure is ${role['fails-by']} — guard against it.`,
+
+        // THE PACK RULES REACH THE ROLE THAT CAN USE THEM. The charter keeps tool names out of its
+        // invariants and delegates them to the declared pack, which means a pack rule is only
+        // blockable if the role checking against the charter knows what the rules SAY. It was given
+        // bare ids, and an id alone cannot demonstrate that the forbidden thing happened — nor could
+        // the role go looking, since the pack ships in the plugin rather than in the solution.
+        role.name === 'charter' && packRuleText ? '' : '',
+        role.name === 'charter' && packRuleText
+          ? 'The charter delegates runtime, framework and package choices to the declared stack ' +
+            'pack, so these pack rules are in force here:'
+          : '',
+        role.name === 'charter' && packRuleText ? packRuleText : '',
+        role.name === 'charter' && packRuleText
+          ? 'A violation of one of those is reported by CITING THE INVARIANT THAT DELEGATES — the ' +
+            'one forbidding a choice that contradicts the declared pack — and NAMING the rule in ' +
+            'your summary. Do not cite a pack rule id as the citation itself: a citation is an ' +
+            'invariant, a failed check, a deferred-decision id or a location pair, and a pack rule ' +
+            'is none of those.'
+          : '',
+
         role.name === 'gaps' && gapsRow ? '' : '',
         role.name === 'gaps' && gapsRow
           ? 'For this kind of artifact the charter says a gap is: ' + gapsRow
@@ -497,9 +525,18 @@ const declaredPackRules = (parsedFacts && parsedFacts.pack && parsedFacts.pack['
 
 function citationResolves(kind, id) {
   if (kind === 'invariant') {
-    // Pack rules count: INV-04 delegates its substance to them, which is what makes every
-    // pack rule citable through one invariant.
-    return declaredInvariants.indexOf(id) !== -1 || declaredPackRules.indexOf(id) !== -1
+    // A PACK RULE IS NOT AN INVARIANT, and accepting one here produced a document nothing could
+    // file. `cites` takes exactly four kinds — an invariant, a failed check, a DEC id, or a
+    // location pair — and the findings schema enforces that with the pattern `^(INV|LOC)-[0-9]{2}$`.
+    // So `{kind:'invariant', id:'PR-03'}` reached `blocking` here and was then REJECTED by the
+    // schema, which means the whole interrogation was unfileable: one bad citation and every other
+    // finding in the run went with it.
+    //
+    // The charter already says what the right shape is, and it is why `cites` stays at three kinds:
+    // one invariant makes every pack rule blockable, so a finding cites THE INVARIANT THAT
+    // DELEGATES — INV-04 — and NAMES the rule it broke. The rules and their wording reach the
+    // charter role through the facts for exactly that purpose.
+    return declaredInvariants.indexOf(id) !== -1
   }
   if (kind === 'deferred') {
     return declaredDecisions.indexOf(id) !== -1

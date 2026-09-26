@@ -63,6 +63,11 @@ $OutputEncoding = New-Object System.Text.UTF8Encoding $false
 # functions answering that would disagree the first time a kind was added, silently.
 . (Join-Path $PSScriptRoot 'SdlcArtifact.ps1')
 
+# And one home for what the declared pack says, for the same reason. The charter delegates tool
+# names to the pack, so anything that needs them -- the rules an interrogation can name, the gate
+# commands a verification runs -- asks here.
+. (Join-Path $PSScriptRoot 'SdlcPack.ps1')
+
 function Resolve-RepoRoot {
     param([string] $Start)
 
@@ -765,32 +770,26 @@ if ($charterPresent) {
     }
 }
 
-# --- the declared stack pack, and the rule ids INV-04 makes citable --------
+# --- the declared stack pack, and the rules INV-04 makes blockable ----------
 #
-# Resolved from the PLUGIN, not the solution. A pack is a shared versioned artifact
-# reachable at ../packs/ from this script; only the CHARTER is copied into a solution at
-# init time. So a solution consuming dotnet-library@v1 has no local pack.rules.yaml, and
-# without this the id in `cites: PR-04` could never be checked against anything.
+# THE RULES ARRIVE WITH THEIR TEXT, not as bare ids. A role handed `PR-03` and nothing else cannot
+# show that the forbidden thing happened, and it cannot go looking either: the pack lives in the
+# plugin rather than in the solution, so the role has no path to read. One invariant made every
+# pack rule blockable in principle and none of them citable in practice.
 #
-# Rule ids are extracted by pattern rather than parsed: 5.1 ships no YAML reader, and every
-# other extractor in this script works the same way.
+# Resolved from the PLUGIN for that same reason -- only the pack's CHARTER is copied into a solution
+# at init time, so a solution consuming dotnet-library@v1 has no local pack.rules.yaml.
 $packName = $null
-$packRuleIds = @()
-$packPresent = $false
-
 if ($null -ne $charterFm -and $charterFm.fields.Contains('pack')) {
     $packName = [string] $charterFm.fields['pack']
+    if ($packName -eq 'none') { $packName = $null }
 }
 
-if ($packName -and $packName -ne 'none') {
-    $packRulesPath = Join-Path (Split-Path -Parent $PSScriptRoot) "packs/$packName/pack.rules.yaml"
-    if (Test-Path -LiteralPath $packRulesPath) {
-        $packPresent = $true
-        foreach ($packLine in (Get-Content -LiteralPath $packRulesPath -Encoding UTF8)) {
-            if ($packLine -match '^\s*-\s+id:\s*([A-Z]{2}-[0-9]{2})\s*$') { $packRuleIds += $Matches[1] }
-        }
-    }
-}
+$packRules = @(Get-SdlcPackRules -Name $packName)
+$packPresent = ($packRules.Count -gt 0)
+
+$packRuleIds = @()
+foreach ($rule in $packRules) { $packRuleIds += $rule.id }
 
 $declaredFiles = @(Get-DeclaredFiles -Text $text -Root $RepoRoot)
 $blastRadius = $null
@@ -1075,6 +1074,7 @@ $facts = [ordered]@{
         name       = $packName
         present    = $packPresent
         'rule-ids' = @($packRuleIds)
+        rules      = @($packRules)
     }
     'tree'             = [ordered]@{
         'tracked-file-count' = $trackedFiles.Count

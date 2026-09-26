@@ -148,7 +148,7 @@ public sealed class WorkflowSyntaxTests
             "  invariantDeclared:      citationResolves('invariant', 'INV-01'),",
             "  invariantUndeclared:    citationResolves('invariant', 'INV-99'),",
             "  localInvariant:         citationResolves('invariant', 'LOC-01'),",
-            "  packRuleViaInvFour:     citationResolves('invariant', 'PR-01'),",
+            "  packRuleAsAnInvariant:  citationResolves('invariant', 'PR-01'),",
             "  decisionDeclared:       citationResolves('deferred', 'DEC-06'),",
             "  decisionUndeclared:     citationResolves('deferred', 'DEC-99'),",
             "  checkThatFailed:        citationResolves('check', 'paths-resolve'),",
@@ -166,7 +166,16 @@ public sealed class WorkflowSyntaxTests
             ("invariantDeclared", true),
             ("invariantUndeclared", false),
             ("localInvariant", true),
-            ("packRuleViaInvFour", true),
+            // A PACK RULE IS NOT AN INVARIANT, and accepting one here produced a document nothing
+            // could file. `cites` takes four kinds and the findings schema pins the invariant one to
+            // `^(INV|LOC)-[0-9]{2}$`, so `{kind:'invariant', id:'PR-01'}` reached `blocking` and was
+            // then rejected by the schema — taking every other finding in the run with it, because a
+            // document is filed whole or not at all.
+            //
+            // The charter says what the right shape is, and it is why `cites` stays at three kinds:
+            // one invariant makes every pack rule blockable, so a finding cites the invariant that
+            // DELEGATES and names the rule it broke in its summary.
+            ("packRuleAsAnInvariant", false),
             ("decisionDeclared", true),
             ("decisionUndeclared", false),
             ("checkThatFailed", true),

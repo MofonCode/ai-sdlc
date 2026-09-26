@@ -42,12 +42,17 @@
     Repository root. Defaults to the enclosing git repository.
 
 .PARAMETER BuildCommand
-    The build gate. Defaults to the .NET one because this solution consumes no pack; a
-    solution with a pack takes its gate commands from there, since INV-04 delegates the
-    stack and tool names stay out of the charter.
+    The build gate. Resolved in this order: what a caller passes, then what the DECLARED PACK
+    declares, then the .NET default for a solution that consumes no pack.
+
+    The middle step was missing. pack.yaml declared its gates so that tool names would stay out of
+    the charter — the charter excludes them and INV-04 delegates them to the pack — and nothing read
+    the declaration. A solution on a pack that builds with anything other than `dotnet` would have
+    had its gates run against a toolchain it does not use, while the pack sat there being correct
+    and ignored.
 
 .PARAMETER TestCommand
-    The test gate. Same reasoning.
+    The test gate. Same resolution, same reason.
 
 .EXAMPLE
     .\Get-SdlcVerifyOutcome.ps1 -CycleId 20260924-a1b2
@@ -61,10 +66,10 @@ param(
     [string] $RepoRoot,
 
     [Parameter()]
-    [string] $BuildCommand = 'dotnet build',
+    [string] $BuildCommand,
 
     [Parameter()]
-    [string] $TestCommand = 'dotnet test'
+    [string] $TestCommand
 )
 
 Set-StrictMode -Version Latest
@@ -82,6 +87,9 @@ $OutputEncoding = New-Object System.Text.UTF8Encoding $false
 # Dot-sourced, not duplicated: git writes ordinary progress to stderr, and `2>&1` on a
 # native command turns that into a terminating error under `Stop`. See SdlcGit.ps1.
 . (Join-Path $PSScriptRoot 'SdlcGit.ps1')
+
+# The pack owns the gate commands, because the charter is not allowed to name a tool.
+. (Join-Path $PSScriptRoot 'SdlcPack.ps1')
 
 function Resolve-RepoRoot {
     param([string] $Start)
@@ -104,6 +112,21 @@ $factsScript = Join-Path $PSScriptRoot 'Get-SdlcFacts.ps1'
 if (-not (Test-Path -LiteralPath $factsScript)) {
     throw "Missing $factsScript — the outcome cannot be derived without the gatherer."
 }
+
+# --- the gates, from whoever is entitled to name them -----------------------
+#
+# A caller wins, then the declared pack, then the .NET default. The pack step is the one that was
+# missing: the charter excludes tool names and delegates them, so the pack IS the authority here,
+# and hardcoding `dotnet` made that delegation decorative.
+$declaredPack = Get-SdlcDeclaredPack -CharterPath (Join-Path $RepoRoot '.sdlc/CHARTER.md')
+
+if (-not $BuildCommand) { $BuildCommand = Get-SdlcPackGate -Name $declaredPack -Gate 'build' }
+if (-not $TestCommand) { $TestCommand = Get-SdlcPackGate -Name $declaredPack -Gate 'test' }
+
+# Solution zero consumes no pack, so a default has to exist somewhere. It lives here rather than in
+# the charter, which is not allowed to name a tool.
+if (-not $BuildCommand) { $BuildCommand = 'dotnet build' }
+if (-not $TestCommand) { $TestCommand = 'dotnet test' }
 
 $cycleDir = Join-Path $RepoRoot ".sdlc/cycles/$CycleId"
 $specPath = ".sdlc/cycles/$CycleId/spec.md"
