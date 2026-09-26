@@ -1,0 +1,429 @@
+{
+    "cycle-id":  "20260926-46a0",
+    "target":  "spec",
+    "charter-version":  4,
+    "pack-version":  null,
+    "round":  2,
+    "failed-checks":  [
+                          "traceability-complete",
+                          "annotations-resolve",
+                          "suppressions-justified"
+                      ],
+    "rejected-citations":  [
+
+                           ],
+    "findings":  [
+                     {
+                         "id":  "spec-r2-check1",
+                         "category":  "untestable",
+                         "state":  "blocking",
+                         "stage":  "spec",
+                         "detection":  "check",
+                         "role":  "facts",
+                         "summary":  "Check `traceability-complete` failed: twenty-seven verifiable criteria — AC-20260926-46a0-1 through -15 and -17 through -28 — carry no annotated test.",
+                         "cites":  [
+                                       {
+                                           "kind":  "check",
+                                           "id":  "traceability-complete"
+                                       }
+                                   ]
+                     },
+                     {
+                         "id":  "spec-r2-check2",
+                         "category":  "unresolvable-reference",
+                         "state":  "blocking",
+                         "stage":  "spec",
+                         "detection":  "check",
+                         "role":  "facts",
+                         "summary":  "Check `annotations-resolve` failed: the annotations name two criteria the spec does not declare, AC-20260925-aa01-1 and AC-{{id}}-1.",
+                         "cites":  [
+                                       {
+                                           "kind":  "check",
+                                           "id":  "annotations-resolve"
+                                       }
+                                   ]
+                     },
+                     {
+                         "id":  "spec-r2-check3",
+                         "category":  "gate-bypass",
+                         "state":  "blocking",
+                         "stage":  "spec",
+                         "detection":  "check",
+                         "role":  "facts",
+                         "summary":  "Check `suppressions-justified` failed: the suppression at tests/Sdlc.Tests/PackTests.cs:171 carries no written justification.",
+                         "cites":  [
+                                       {
+                                           "kind":  "check",
+                                           "id":  "suppressions-justified"
+                                       }
+                                   ]
+                     },
+                     {
+                         "id":  "spec-r2-reason2",
+                         "category":  "charter-violation",
+                         "state":  "blocking",
+                         "stage":  "spec",
+                         "detection":  "reasoning",
+                         "role":  "charter",
+                         "summary":  "The no-licence creation exemption is decided by whether the path currently exists on disk, so a protected path absent from disk but present in the baseline is treated as a creation rather than as an amendment.",
+                         "cites":  [
+                                       {
+                                           "kind":  "invariant",
+                                           "id":  "INV-08"
+                                       }
+                                   ],
+                         "repair":  "Make the creation exemption a question about history rather than about the current filesystem, and keep the ordering. Permit an unlicensed write to a protected path only when the path is absent from the resolved baseline as well as from disk, or when no baseline exists at all because the repository has no commit. Both cases AC-8 names survive: a new pack file is absent from the baseline, and `init` writing a first charter runs where there is no baseline to be absent from. A path absent from disk but present in the baseline is a modification and requires a licence — state that in the answers section beside \"Destruction is a write shape\", since delete-then-recreate is the same change as truncate-then-write and the spec already denies the latter. Split AC-8 into the two permitted cases and add a criterion for the denial: a write to a protected path that is absent from disk but present in the baseline, from a branch with no licence for it, is denied, and the refusal names the path. That criterion is what makes the closure testable rather than asserted."
+                     },
+                     {
+                         "id":  "spec-r2-reason5",
+                         "category":  "ambiguity",
+                         "state":  "blocking",
+                         "stage":  "spec",
+                         "detection":  "reasoning",
+                         "role":  "charter",
+                         "summary":  "AC-20260926-46a0-9\u0027s \"the shipped gate test file\" resolves uniquely to neither of the two gate test files the tree ships — tests/Sdlc.Tests/CharterGateTests.cs (19 cases, the PreToolUse charter gate) and tests/Sdlc.Tests/GateTests.cs (12 cases, the intent gate and charter-intent dedup) — and the two readings put different suites under the regression criterion.",
+                         "cites":  [
+                                       {
+                                           "kind":  "invariant",
+                                           "id":  "INV-02"
+                                       }
+                                   ],
+                         "repair":  "Name the file in AC-20260926-46a0-9 instead of referring to it by a definite description that two tracked files satisfy: \"Every existing refusal for `Edit`, `Write`, `MultiEdit` and `NotebookEdit` still fires, and every case in `tests/Sdlc.Tests/CharterGateTests.cs` passes unchanged with none deleted or skipped.\" If both gate suites are meant to be the regression criterion, name `tests/Sdlc.Tests/GateTests.cs` as a separate criterion rather than folding both into one unnamed file — but note that it covers Submit-SdlcIntent.ps1 and Find-SdlcCharterIntent.ps1, which no declared work in this cycle touches, so including it adds no protection and the single-path wording is likely correct."
+                     },
+                     {
+                         "id":  "spec-r2-reason9",
+                         "category":  "internal-contradiction",
+                         "state":  "blocking",
+                         "stage":  "spec",
+                         "detection":  "reasoning",
+                         "role":  "coherence",
+                         "summary":  "A repository with no protected paths and no resolvable baseline — the fresh ungoverned repository the creation passage names as where `init` runs — is required both to pass without skipping and to report skipped.",
+                         "cites":  [
+                                       {
+                                           "kind":  "locations",
+                                           "locations":  [
+                                                             {
+                                                                 "file":  ".sdlc/cycles/20260926-46a0/spec.md",
+                                                                 "anchor":  "**A repository with no protected paths passes**, and does not skip."
+                                                             },
+                                                             {
+                                                                 "file":  ".sdlc/cycles/20260926-46a0/spec.md",
+                                                                 "anchor":  "AC-20260926-46a0-11"
+                                                             }
+                                                         ]
+                                       }
+                                   ],
+                         "repair":  "State the precedence explicitly, in one of two directions. Either narrow line 81 so the no-protected-paths pass is conditional on a baseline having resolved — \"a repository with no protected paths, where a baseline resolves, passes and does not skip\" — and let AC-11\u0027s skip govern the no-baseline case outright; or invert it, making the empty-protected-set test run first so the check passes before baseline resolution is attempted, and narrow AC-11 to \"when no baseline resolves and a protected path exists\". Whichever is chosen, say which test runs first, the way line 45 already does for the gate\u0027s existence-before-licence ordering, and add a criterion covering the repository with no commit and no protected paths so the intended outcome for that state is pinned by a test rather than inferred."
+                     },
+                     {
+                         "id":  "spec-r2-reason13",
+                         "category":  "unfounded-claim",
+                         "state":  "blocking",
+                         "stage":  "spec",
+                         "detection":  "reasoning",
+                         "role":  "facts",
+                         "summary":  "The diagnosis names `NoWarn` as one of the spellings the suppression scan matches inside a quoted string in PackTests.cs, but the scan\u0027s pattern is the XML element form `\u003cNoWarn\u003e`, which that line does not contain.",
+                         "cites":  [
+                                       {
+                                           "kind":  "invariant",
+                                           "id":  "INV-07"
+                                       }
+                                   ],
+                         "repair":  "Narrow the first bullet to the spelling the scan actually matches. Replace \"names `NoWarn` and a pragma spelling **inside quoted strings on code lines**, in assertions about whether a pack carries those spellings. The suppression scan matches the text and, finding no comment beside it, calls it unjustified.\" with a statement bounded by the gathered facts, e.g.: \"names a pragma spelling inside a quoted string on a code line (`PackTests.cs:171`), in an assertion that a pack\u0027s charter does not carry it. The suppression scan matches that text and, finding no comment beside it, reports the line as unjustified — the one unjustified suppression in the tree. The same file names `NoWarn` in a string at line 167, which the scan does not match because its pattern is the XML element form `\u003cNoWarn\u003e`; only the repository\u0027s genuine, justified `\u003cNoWarn\u003e` in `Sdlc.Tests.csproj` matches that form.\" AC-20260926-46a0-17 can stay as written — \"no line of PackTests.cs is reported\" remains the right criterion — but the diagnosis above it must stop claiming a match that does not occur."
+                     },
+                     {
+                         "id":  "spec-r2-reason16",
+                         "category":  "unfounded-claim",
+                         "state":  "blocking",
+                         "stage":  "spec",
+                         "detection":  "reasoning",
+                         "role":  "facts",
+                         "summary":  "The claim that a remote-tracking baseline sees a protected path committed directly to master holds only while that commit is unpushed, since the tracking ref advances with the push and the difference disappears — and in this tree master and origin/master are the same commit.",
+                         "cites":  [
+                                       {
+                                           "kind":  "invariant",
+                                           "id":  "INV-07"
+                                       }
+                                   ],
+                         "repair":  "Qualify the claim to the case it actually covers and say what the uncovered case is. In the design record, replace the unqualified sentence with one stating that on master with a remote the comparison sees a protected path committed directly only while that commit is unpushed, because once it is pushed the remote-tracking ref advances with it and the difference disappears. Then either restate AC-20260926-46a0-13 to name the unpushed condition it can actually prove (\"a protected path committed directly to master and not yet pushed is reported when a remote-tracking baseline resolves\"), or, if detection of a pushed direct commit is intended, replace the baseline rule with one that survives the push — comparing against the merge-base with the last cycle branch, or against the commit\u0027s own parent — and give that its own criterion. Record the residual limitation in Out of scope, alongside the path-heuristic entry, so the gap is stated rather than implied. Note also that the check\u0027s degrading-baseline detail (AC-11) should name which fallback was used, which already exists and can carry the unpushed qualification for a reader."
+                     },
+                     {
+                         "id":  "spec-r2-reason17",
+                         "category":  "internal-contradiction",
+                         "state":  "blocking",
+                         "stage":  "spec",
+                         "detection":  "reasoning",
+                         "role":  "facts",
+                         "summary":  "Under the baseline the spec chooses — the remote-tracking ref for master — a licensed amendment merged into master but not yet pushed does differ from the baseline, which the merged-amendment criterion says must not fail the check.",
+                         "cites":  [
+                                       {
+                                           "kind":  "locations",
+                                           "locations":  [
+                                                             {
+                                                                 "file":  ".sdlc/cycles/20260926-46a0/spec.md",
+                                                                 "anchor":  "A protected path whose difference from the baseline arrived by a merged amendment does not fail the check."
+                                                             },
+                                                             {
+                                                                 "file":  ".sdlc/cycles/20260926-46a0/spec.md",
+                                                                 "anchor":  "The remote-tracking ref for master when it resolves, else a local master when HEAD is not on it, else HEAD."
+                                                             }
+                                                         ]
+                                       }
+                                   ],
+                         "repair":  "Decide which of the two the mechanism actually promises, and make the other say so.\n\nCheapest: narrow AC-27 to the state the chosen baseline genuinely produces — \"a protected path whose difference from the baseline arrived by an amendment already contained in the baseline does not fail the check\" — which is true by construction once the merge is pushed, and drop the claim about the unpushed window. That keeps AC-13 intact, since a direct unlicensed commit to master still differs from the remote-tracking ref.\n\nIf AC-27 is meant to cover the unpushed merge, then the licence half has to stop being purely branch-shaped, and the spec must say how: resolve the licence for a gatherer difference from the commits that introduced it — the licensed cycle branch\u0027s intent reachable through the merge — while AC-13\u0027s direct commit has no such intent. That is a real widening of the shared function in AC-14 and of AC-10\u0027s wording, and it needs its own criterion plus a statement of what happens when the introducing commits cannot be attributed. Note that this is the more expensive repair and that AC-13 is the criterion it must not break.\n\nEither way, say explicitly in the baseline paragraph at lines 68-71 that a difference which the baseline does not yet contain is indistinguishable from an unlicensed direct commit, so a reader does not have to rediscover it."
+                     },
+                     {
+                         "id":  "spec-r2-reason6",
+                         "category":  "internal-contradiction",
+                         "state":  "blocking",
+                         "stage":  "spec",
+                         "detection":  "reasoning",
+                         "role":  "coherence",
+                         "summary":  "The opening\u0027s count of four first-version answers that were wrong about the tree matches neither the document\u0027s own five \"*Corrected here:*\" markers nor the round-1 record, which holds nine blocking unfounded-claim findings.",
+                         "cites":  [
+                                       {
+                                           "kind":  "locations",
+                                           "locations":  [
+                                                             {
+                                                                 "file":  ".sdlc/cycles/20260926-46a0/spec.md",
+                                                                 "anchor":  "four of its answers were wrong about the tree, in ways that would have reached the build. Those"
+                                                             },
+                                                             {
+                                                                 "file":  ".sdlc/cycles/20260926-46a0/spec.md",
+                                                                 "anchor":  "*Corrected here:* the first version required the shared function without saying where it loads."
+                                                             }
+                                                         ]
+                                       }
+                                   ],
+                         "repair":  "Repair the citation\u0027s second location before filing: the given second anchor (\"*Corrected here:* the first version required the shared function without saying where it loads\", line 77) is the FOURTH marker in document order (31, 43, 64, 77, 88), and on its own it is consistent with a stated count of four. Point the second location at the fifth marker instead: line 88, \"*Corrected here:* the first version made a test count the criterion, asserting a number no check verifies\" — the passage that overruns the stated four.\n\nRepair of the artifact is the author\u0027s choice: either drop the count from the opening and let the markers carry it, or state the number the record supports — the round-1 findings file holds nine blocking findings and the document marks six places (five \"*Corrected here:*\" plus one \"Added here\"), so e.g. \"the first was interrogated and nine of its claims blocked, six of them about the tree\". Dropping the count is the more durable fix, because a hand-written count in this position falls out of step again next round; if a count stays, it must be one a check can recompute from `.sdlc/cycles/20260926-46a0/findings/spec.r1.json`. If \"about the tree\" is meant strictly, drop or widen that qualifier too, since at least the unspecified-load and test-count corrections are not claims about the tree."
+                     },
+                     {
+                         "id":  "spec-r2-reason20",
+                         "category":  "unfounded-claim",
+                         "state":  "blocking",
+                         "stage":  "spec",
+                         "detection":  "reasoning",
+                         "role":  "facts",
+                         "summary":  "The justification for testing existence rather than the baseline asserts that a repository with no commit is exactly where `init` runs, which skills/init/SKILL.md does not support — its stated precondition is an absent `.sdlc/CHARTER.md`, and its adoption path stamps `adopted, inferred at \u003csha\u003e`, which requires a commit.",
+                         "cites":  [
+                                       {
+                                           "kind":  "invariant",
+                                           "id":  "INV-07"
+                                       }
+                                   ],
+                         "repair":  "Stop resting the argument on where `init` runs, and rest it on what the existence test does not need. Replace the clause at `.sdlc/cycles/20260926-46a0/spec.md:44` so it no longer claims init\u0027s precondition. For example: \"the first version tested creation against the baseline, which cannot be consulted when no baseline resolves — including a repository with no commit, which the `scaffolded` path of `init` must survive. Existence on disk needs no git, so it settles the ordering: the existence test runs before the licence test.\" That keeps the two facts the spec actually needs (a baseline can fail to resolve; existence on disk is git-free), both of which AC-20260926-46a0-11 already makes testable, and it drops the unverified assertion about init\u0027s precondition. If the spec wants to keep citing `init` at all, state the precondition as `skills/init/SKILL.md` states it — an absent `.sdlc/CHARTER.md` — and note that the `adopted` path stamps `adopted, inferred at \u003csha\u003e` and therefore does have a commit, so the commit-less case belongs to `scaffolded` only. Leave AC-20260926-46a0-8 as written; \"a first charter in a repository with no commit\" is a legitimate case to require, and it is the prose rationale above it, not the criterion, that overclaims."
+                     },
+                     {
+                         "id":  "spec-r2-reason28",
+                         "category":  "missing-case",
+                         "state":  "blocking",
+                         "stage":  "spec",
+                         "detection":  "reasoning",
+                         "role":  "gaps",
+                         "summary":  "Only the remote-tracking baseline has a criterion (AC-13); the two declared fallbacks — local master, then HEAD — have none, including the intent\u0027s stated master case where an uncommitted unlicensed edit against a HEAD baseline must fail.",
+                         "cites":  [
+                                       {
+                                           "kind":  "invariant",
+                                           "id":  "INV-01"
+                                       }
+                                   ],
+                         "repair":  "Add criteria for the two uncriterioned branches and the detail they must report: (a) when no remote-tracking master resolves and HEAD is not on master, the baseline is the local master and an unlicensed protected-path difference against it is reported; (b) when the baseline is HEAD on master, an uncommitted unlicensed protected-path edit is reported; (c) the check\u0027s detail names which of the three baselines was actually used. Then state, as an enumerated limitation in the answers section, that with a HEAD baseline a protected path already committed to master is not visible to this check — so AC-13\u0027s \"when a remote-tracking baseline resolves\" reads as a scoped guarantee rather than an unexplained condition."
+                     },
+                     {
+                         "id":  "spec-r2-reason30",
+                         "category":  "missing-case",
+                         "state":  "blocking",
+                         "stage":  "spec",
+                         "detection":  "reasoning",
+                         "role":  "gaps",
+                         "summary":  "Creation without a licence is criterioned for the gate half (existence on disk) but not for the detection half, whose baseline comparison would see a newly created protected path as a difference on an unlicensed branch.",
+                         "cites":  [
+                                       {
+                                           "kind":  "invariant",
+                                           "id":  "INV-01"
+                                       }
+                                   ],
+                         "repair":  "Give the detection half the same existence answer the gate half has, and criterion it. Either add a criterion that the baseline check does not fail on a protected path that is absent from the baseline and newly created on the branch — creation is not modification for detection either, so the existence question precedes the licence question in both mechanisms — or, if a creation genuinely should be reported, say so explicitly and reconcile it with AC-8 so the two halves give the same answer to the same write. Mirror the wording of AC-27 (a difference that does not fail the check) so the carve-out is a named, testable case rather than an implied one, and keep it distinct from the no-baseline skip of AC-11, which covers only the fresh-repository variant."
+                     },
+                     {
+                         "id":  "spec-r2-reason1",
+                         "category":  "charter-violation",
+                         "state":  "suggested",
+                         "stage":  "spec",
+                         "detection":  "reasoning",
+                         "role":  "charter",
+                         "summary":  "The licence that permits a protected write is resolved from an intent\u0027s declared `source:` alone, while the invariant protecting the charter forbids amendment outside an *approved* charter or pack intent, and nothing in this spec requires or records approval.",
+                         "repair":  "Keep as a suggestion, and note it as evidence toward the charter intent the spec\u0027s own out-of-scope already points at (reconciling INV-08\u0027s \"approved\" wording with an enforcement that can only observe \"declared\").\n\nAs a non-blocking improvement to this spec: the proposal-is-not-amendment reasoning currently lives only in the intent. The spec\u0027s \"The answers\" section states each other decision in its own voice, and a reader of the spec alone can read the licence as approval. One answer paragraph carrying it — that a licence establishes a write as a *proposal* rather than an approval, that the human grant is the merge to master, and that this is why no new protected path (notably .sdlc/intents/) is needed — would close that gap without adding a criterion or changing scope."
+                     },
+                     {
+                         "id":  "spec-r2-reason3",
+                         "category":  "duplicated-truth",
+                         "state":  "suggested",
+                         "stage":  "spec",
+                         "detection":  "reasoning",
+                         "role":  "charter",
+                         "summary":  "One detection condition is specified to be reported twice — as a named check and as a fact field the outcome blocks on — with no criterion binding the two together.",
+                         "repair":  "As a suggestion, not a blocking repair: make the derivation explicit rather than implicit, so no implementer can read \"emits both\" as two computations. Either state in the answer that the check is computed from the fact field (as suppressions-justified already is), or add a criterion that the check fails exactly when the fact field is non-empty. One sentence closes the ambiguity and costs nothing."
+                     },
+                     {
+                         "id":  "spec-r2-reason4",
+                         "category":  "unfounded-claim",
+                         "state":  "suggested",
+                         "stage":  "spec",
+                         "detection":  "reasoning",
+                         "role":  "charter",
+                         "summary":  "The spec\u0027s load-bearing corrections rest on assertions about the behaviour of existing scripts that no fact-gathering check verifies.",
+                         "repair":  "As a suggestion rather than a blocker: the residual worry is real but belongs to the mechanism, not this artifact — behavioural claims about scripts are currently only covered transitively, by paths-resolve confirming the named file exists. If the author wants that closed, the durable fix is a gatherer check that verifies a spec\u0027s behavioural assertions are anchored to a resolvable path AND a named symbol in it, so \"SourceText.cs strips PowerShell comments\" resolves to StripPowerShellComments rather than only to the file. That is new work on tools/Get-SdlcFacts.ps1 and a criterion of its own, not an edit to .sdlc/cycles/20260926-46a0/spec.md. No change to the anchored sentence is warranted: altering it would reintroduce the claim round 1 blocked on."
+                     },
+                     {
+                         "id":  "spec-r2-reason7",
+                         "category":  "internal-contradiction",
+                         "state":  "suggested",
+                         "stage":  "spec",
+                         "detection":  "reasoning",
+                         "role":  "coherence",
+                         "summary":  "One passage justifies denying on could-not-evaluate by analogy to \"a thrown gate denies\", while a later passage states the gate reads a failure as no opinion.",
+                         "repair":  "No repair owed. As an uncited suggestion only: anchor 1\u0027s shorthand \"a thrown gate denies\" reads as unconditional on its own, ~20 lines before the passage that supplies the \"inside its own try/catch\" qualifier. Tightening it to \"the same reason a throw inside the gate\u0027s try/catch denies\" would remove the apparent tension at the cost of a clause; carry it as a wording suggestion, not a blocking finding."
+                     },
+                     {
+                         "id":  "spec-r2-reason15",
+                         "category":  "unfounded-claim",
+                         "state":  "suggested",
+                         "stage":  "spec",
+                         "detection":  "reasoning",
+                         "role":  "facts",
+                         "summary":  "The baseline chain terminates in `else HEAD`, so no baseline fails to resolve in any repository that has a commit, leaving the skipped outcome the spec and intent both require unreachable for every case the intent enumerates.",
+                         "repair":  "Name the condition under which the check actually skips, rather than leaving \"no baseline resolves\" to a chain that cannot produce it. Two coherent options, and the spec should pick one:\n\n1. Keep `else HEAD` and narrow AC-11 to the only case it fits — the check reports skipped, with the reason, when HEAD itself does not resolve, i.e. a repository with no commit — then state that a shallow clone, a detached HEAD and a fresh worktree compare against HEAD and report which comparison was made. This aligns the criterion with the mechanism and keeps the intent\u0027s \"must never read as approval\" property, since a HEAD comparison is a real comparison.\n\n2. Drop `else HEAD` as a universal terminator and make it conditional on being on master (which is what the intent\u0027s \"on master the baseline is HEAD itself\" paragraph actually asks for), so that off-master with no resolvable merge target genuinely yields no baseline and skips. This keeps all four enumerated cases reachable, at the cost of skipping where option 1 would compare.\n\nEither way the correction belongs in the prose paragraph at spec.md:68-71 and in AC-11 together, since it is their pairing that is wrong. Two smaller points for the same paragraph: name the unborn-HEAD case where the chain is defined (\"else HEAD, and no baseline at all in a repository with no commit, which skips\") so AC-11\u0027s relationship to the chain is local instead of inferred; and note that criteria 10, 27 and 28 say a protected path \"differs from its baseline\" without naming the other side of the comparison, so whether HEAD-as-baseline means working tree against HEAD is inferred rather than stated."
+                     },
+                     {
+                         "id":  "spec-r2-reason10",
+                         "category":  "internal-contradiction",
+                         "state":  "suggested",
+                         "stage":  "spec",
+                         "detection":  "reasoning",
+                         "role":  "coherence",
+                         "summary":  "The regression passage states as the gate\u0027s rule that a recognised tool yielding no recognised path is denied, while two criteria require a recognised shell payload naming no protected path to be permitted.",
+                         "repair":  "Keep it as a suggestion, wording only. Line 86 leans on \"recognised\" doing two jobs in one sentence, and a reader who takes it for the gate\u0027s general rule will read a conflict with AC-6 that the classifier passage has already resolved. Sharpen it to name extraction rather than recognition — for instance \"the gate denies a recognised tool when it can extract no path at all\" — and, if the passage is touched, say that the new shell route reaches that deny only through could-not-evaluate. No criterion changes."
+                     },
+                     {
+                         "id":  "spec-r2-reason11",
+                         "category":  "internal-contradiction",
+                         "state":  "suggested",
+                         "stage":  "spec",
+                         "detection":  "reasoning",
+                         "role":  "coherence",
+                         "summary":  "The denial criteria for protected writes state no existence precondition, so they collide with the criterion permitting an unlicensed write to a protected path that does not exist.",
+                         "repair":  "Add the precondition to each denial criterion so it is self-sufficient as a test fixture rather than depending on the ordering rule stated in prose: in AC-20260926-46a0-1 write \"a payload writing an existing `.sdlc/CHARTER.md`\", and likewise qualify AC-24, AC-25 and AC-26 as \"A protected write to an existing path ...\". Nothing about the intended behaviour changes; the criteria stop needing the reader to carry the existence-before-licence ordering across the document."
+                     },
+                     {
+                         "id":  "spec-r2-reason12",
+                         "category":  "internal-contradiction",
+                         "state":  "suggested",
+                         "stage":  "spec",
+                         "detection":  "reasoning",
+                         "role":  "coherence",
+                         "summary":  "The out-of-scope entry claims the path-heuristic false positive was avoided and in the same sentence says this document does the thing that triggers it.",
+                         "repair":  "Optional, as a suggestion only: make the mechanism explicit rather than implied — \"Avoided rather than fixed: this document names that ref in prose rather than as a backticked path token, which is the only shape the heuristic reads.\" No change is required; the entry is accurate as written."
+                     },
+                     {
+                         "id":  "spec-r2-reason14",
+                         "category":  "unfounded-claim",
+                         "state":  "suggested",
+                         "stage":  "spec",
+                         "detection":  "reasoning",
+                         "role":  "facts",
+                         "summary":  "AC-20260926-46a0-12 requires the new check to report a `skipped` state, but the gatherer\u0027s check record has no third state — `Add-Check` in tools/Get-SdlcFacts.ps1 takes a `[bool] $Passed` and emits `{id, passed, detail}` only.",
+                         "repair":  "Say in the spec what `skipped` means for the new check\u0027s record, since the gatherer has only `{id, passed, detail}` today and its one existing use of the word (tools/Get-SdlcFacts.ps1:894) folds `skipped` into `passed = $true`. Either: (a) the check reports `passed = $true` with the baseline-resolution reason in `detail`, matching the `frontmatter-valid` precedent and leaving the fact contract unchanged; or (b) the check record gains a third state, in which case the spec should name that as a contract change and add a criterion for the consumers that read `passed` — workflows/interrogate.js and the gatherer tests. Then reconcile AC-20260926-46a0-12 with whichever is chosen, so \"distinctly from skipping\" names the actual distinction in the emitted record."
+                     },
+                     {
+                         "id":  "spec-r2-reason21",
+                         "category":  "missing-case",
+                         "state":  "suggested",
+                         "stage":  "spec",
+                         "detection":  "reasoning",
+                         "role":  "facts",
+                         "summary":  "A shell-command classifier that recognises compound commands cannot spell `\u0026\u0026` literally, because PowerShellScriptTests.AvoidsConstructsWindowsPowerShellLacks asserts no tools/*.ps1 source contains it, and the spec names no exemption or alternative spelling.",
+                         "repair":  "No spec change. Carry it to the plan instead: whichever `tools/*.ps1` classifies command strings must spell the compound-command separator without the two literal characters (a regex quantifier such as `\u0026{2}`, `\u0027\u0026\u0027 + \u0027\u0026\u0027`, or `[char]38`), because `PowerShellScriptTests.AvoidsConstructsWindowsPowerShellLacks` scans `tools/*.ps1` with comments stripped and string literals intact. If the builder would rather relax the scan than spell around it, that is a change to a shipped test\u0027s meaning and wants its own criterion — but the spelling workaround is cheap and keeps the 5.1 guard blunt, which is why it works."
+                     },
+                     {
+                         "id":  "spec-r2-reason22",
+                         "category":  "unfounded-claim",
+                         "state":  "suggested",
+                         "stage":  "spec",
+                         "detection":  "reasoning",
+                         "role":  "facts",
+                         "summary":  "A pack\u0027s charter template is licensed to `pack-review`, but the charter\u0027s source-to-path table assigns only `pack.yaml` and `pack.rules.yaml` to that source, so the path-to-source mapping is the gate\u0027s recorded judgement rather than anything the charter states.",
+                         "repair":  "Optional, as a suggestion rather than a blocking repair: have AC-3 and AC-4 name the protected paths and their licensing source explicitly (`.sdlc/CHARTER.md` → `charter-review`; `packs/*/pack.yaml`, `packs/*/pack.rules.yaml`, `packs/*/CHARTER.md` → `pack-review`) and point at the charter sentence that covers \"a stack pack and its rules\" under `pack-review`, so the split the gate will enforce is traceable to the charter rather than only to the gate. If the team would rather the table be the single authority, that is a charter intent adding the template row — out of scope for this cycle by its own Out of scope section."
+                     },
+                     {
+                         "id":  "spec-r2-reason23",
+                         "category":  "missing-case",
+                         "state":  "suggested",
+                         "stage":  "spec",
+                         "detection":  "reasoning",
+                         "role":  "gaps",
+                         "summary":  "No criterion covers the first of the intent\u0027s three inseparable changes — widening the `PreToolUse` matcher in `hooks/hooks.json` so a shell tool is routed to the gate at all.",
+                         "repair":  "Add a verifiable criterion covering the routing half of the change, for example: \"`hooks/hooks.json` registers the gate for the shell tool, and a test reads the `PreToolUse` matcher and fails if a shell tool name is absent.\" Keep it distinct from AC-16 in wording — AC-16 is about whether the harness delivers such a payload, this is about whether the repository asks it to. Also worth a companion criterion for the second layer the intent names: that the gate script\u0027s own tool-name check accepts the shell tool, since the intent notes widening the matcher alone changes nothing. As a suggestion, this goes to `suggestions/20260926-46a0.md`; if the spec author agrees, it is a cheap fix. Separately, the citation gap for \"an intent goal with no criterion\" is a candidate charter-review subject — a recurring cluster here is the evidence for it."
+                     },
+                     {
+                         "id":  "spec-r2-reason24",
+                         "category":  "missing-case",
+                         "state":  "suggested",
+                         "stage":  "spec",
+                         "detection":  "reasoning",
+                         "role":  "gaps",
+                         "summary":  "AC-15 requires only that the new check id map to some category that can block, not that it map to `charter-violation`, which is the route the intent requires for the detection finding.",
+                         "repair":  "Strengthen AC-15 to name the classification rather than a property of it — e.g. \"The new check id is classified in the interrogator\u0027s check-to-category map as `charter-violation`\" — and, if the intent\u0027s \"citing the amend-only-by-approved-intent invariant\" is meant literally, reconcile it in the spec: a check-detected finding cites the failed check id by the charter\u0027s own State rule, not the invariant, so either the intent\u0027s phrasing is loose or a second criterion is owed. Carry this as a suggestion; no citation supports blocking it."
+                     },
+                     {
+                         "id":  "spec-r2-reason25",
+                         "category":  "missing-case",
+                         "state":  "suggested",
+                         "stage":  "spec",
+                         "detection":  "reasoning",
+                         "role":  "gaps",
+                         "summary":  "The intent demands two things to prove one licence answer — a test that both mechanisms call the shared function, and a construct check that fails a second implementation of it — and only the first has a criterion.",
+                         "repair":  "Add a criterion for the second half of the intent\u0027s demand, e.g. \"AC-29 | yes | A mechanical check fails when the licence rule is implemented in more than one place — the gate and the gatherer each reach it only through the shared module.\" Alternatively, if the construct check is being deliberately dropped, record it in the Out of scope section with the reasoning, so the intent goal is answered either way rather than left silent. Strengthening AC-14 alone is not sufficient: a test that both mechanisms call the shared function can pass while a second copy of the rule exists beside it, which is the gap the intent\u0027s second clause exists to close."
+                     },
+                     {
+                         "id":  "spec-r2-reason26",
+                         "category":  "missing-case",
+                         "state":  "suggested",
+                         "stage":  "spec",
+                         "detection":  "reasoning",
+                         "role":  "gaps",
+                         "summary":  "No criterion asserts the stated outcome that the detection check passes, rather than skips, in a repository containing no protected path.",
+                         "repair":  "As a suggestion rather than a blocking repair: add a verifiable criterion asserting that the new detection check reports passed — not skipped — in a repository that contains no protected path, so an implementation that skips in that case fails a criterion rather than satisfying all of them."
+                     },
+                     {
+                         "id":  "spec-r2-reason27",
+                         "category":  "missing-case",
+                         "state":  "suggested",
+                         "stage":  "spec",
+                         "detection":  "reasoning",
+                         "role":  "gaps",
+                         "summary":  "The spec requires the check\u0027s detail to name which baseline fallback was used, but only the skip case has a criterion mentioning a reason, so the passing and failing details could name nothing.",
+                         "repair":  "Keep as a suggestion. The observation has real substance — when the baseline degrades to HEAD the comparison is against the path itself and can never differ, so which fallback ran determines whether a pass means anything — and the fix is one criterion: the check\u0027s detail names which baseline was used on every outcome, not only when it skips. It would become citable under INV-01 if the finding were reframed around the failure mode actually left unenumerated: a vacuous HEAD-baseline comparison reporting a pass indistinguishable from a real one."
+                     },
+                     {
+                         "id":  "spec-r2-reason29",
+                         "category":  "missing-case",
+                         "state":  "suggested",
+                         "stage":  "spec",
+                         "detection":  "reasoning",
+                         "role":  "gaps",
+                         "summary":  "The accepted leak — a command the classifier evaluates that names a protected path in no recognised write shape, and is permitted — has no criterion, while only its deny-side twin (cannot evaluate, AC-7) does.",
+                         "repair":  "Keep as a suggestion, not a blocker. If taken up, the tightening is one criterion making the permit branch explicit rather than incidental to the read case: \"A shell payload naming a protected path in a shape the classifier evaluates and finds no write in is permitted, and the determination is recorded\" — sitting beside AC-7 as its stated twin. That would also make AC-5 a special case of a general rule rather than the rule\u0027s only witness."
+                     },
+                     {
+                         "id":  "spec-r2-reason31",
+                         "category":  "untestable",
+                         "state":  "suggested",
+                         "stage":  "spec",
+                         "detection":  "reasoning",
+                         "role":  "gaps",
+                         "summary":  "AC-9\u0027s second half — every case in the shipped gate test file passes unchanged with none deleted or skipped — is marked verifiable, yet no test can prove a sibling case was not deleted, since a deleted case cannot fail.",
+                         "repair":  "Keep AC-20260926-46a0-9 but make its second half observable from outside the suite: state it as the gate test file\u0027s case-name inventory compared against the list recorded before the change, with no name absent and none marked skipped, rather than as \"every case passes unchanged with none deleted or skipped\" — a property the file cannot assert about itself. That answers the objection without reintroducing the bare test count the spec deliberately dropped (\"the first version made a test count the criterion, asserting a number no check verifies\"), because the inventory is a comparison against a baseline rather than an asserted number."
+                     }
+                 ]
+}

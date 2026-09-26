@@ -1,0 +1,463 @@
+{
+    "cycle-id":  "20260926-46a0",
+    "target":  "spec",
+    "charter-version":  4,
+    "pack-version":  null,
+    "round":  1,
+    "failed-checks":  [
+                          "traceability-complete",
+                          "annotations-resolve",
+                          "suppressions-justified"
+                      ],
+    "rejected-citations":  [
+
+                           ],
+    "findings":  [
+                     {
+                         "id":  "spec-r1-check1",
+                         "category":  "untestable",
+                         "state":  "blocking",
+                         "stage":  "spec",
+                         "detection":  "check",
+                         "role":  "facts",
+                         "summary":  "Twenty acceptance criteria are marked verifiable but carry no annotated test, so the `traceability-complete` check fails: AC-20260926-46a0-1 through -15 and -17 through -21.",
+                         "cites":  [
+                                       {
+                                           "kind":  "check",
+                                           "id":  "traceability-complete"
+                                       }
+                                   ]
+                     },
+                     {
+                         "id":  "spec-r1-check2",
+                         "category":  "unresolvable-reference",
+                         "state":  "blocking",
+                         "stage":  "spec",
+                         "detection":  "check",
+                         "role":  "facts",
+                         "summary":  "Two annotated criterion ids no spec declares — AC-20260925-aa01-1 and AC-{{id}}-1 — fail the `annotations-resolve` check.",
+                         "cites":  [
+                                       {
+                                           "kind":  "check",
+                                           "id":  "annotations-resolve"
+                                       }
+                                   ]
+                     },
+                     {
+                         "id":  "spec-r1-check3",
+                         "category":  "gate-bypass",
+                         "state":  "blocking",
+                         "stage":  "spec",
+                         "detection":  "check",
+                         "role":  "facts",
+                         "summary":  "A suppression at tests/Sdlc.Tests/PackTests.cs:171 carries no written justification, failing the `suppressions-justified` check.",
+                         "cites":  [
+                                       {
+                                           "kind":  "check",
+                                           "id":  "suppressions-justified"
+                                       }
+                                   ]
+                     },
+                     {
+                         "id":  "spec-r1-reason2",
+                         "category":  "missing-case",
+                         "state":  "blocking",
+                         "stage":  "intent",
+                         "detection":  "reasoning",
+                         "role":  "charter",
+                         "summary":  "Removal, rename, move and truncation of a protected path are not among the spec\u0027s recognised write shapes, so a shell command that destroys the charter is permitted on a branch with no licence.",
+                         "cites":  [
+                                       {
+                                           "kind":  "invariant",
+                                           "id":  "INV-01"
+                                       }
+                                   ],
+                         "repair":  "State what a write shape is, and add a criterion for destruction. Extend the \"could-not-evaluate is not no-write-found\" answer to say that removal, rename, move and truncation of a protected path are write shapes on the deny side, not absences of one — the licence question is whether the branch may change that path, and deleting it is the largest change available. Then add a criterion alongside 1-8: a shell payload that removes, renames or truncates `.sdlc/CHARTER.md`, a `pack.yaml`, a `pack.rules.yaml` or a pack charter template from a branch with no licence for that path is denied, and the refusal names the path. Narrow criterion 6 so it reads \"a shell payload naming no protected path, in any shape,\" so it cannot be read as licensing the destructive case. If removal is instead to be left to the baseline check on purpose, say so in Out of scope and say that the check treats an absent path as differing from its baseline — silence is what makes this a gap rather than a decision.",
+                         "disposition":  "fixed",
+                         "disposition-reason":  "Destruction is now a write shape: removal, rename, move and truncation deny, with AC-22 pinning it, and AC-6 narrowed to name no protected path in any shape, so it cannot be read as licensing the destructive case."
+                     },
+                     {
+                         "id":  "spec-r1-reason4",
+                         "category":  "unfounded-claim",
+                         "state":  "blocking",
+                         "stage":  "spec",
+                         "detection":  "reasoning",
+                         "role":  "facts",
+                         "summary":  "The count of shipped gate tests is asserted with no fact-gathering check behind it, and AC-20260926-46a0-9 makes that integer the criterion.",
+                         "cites":  [
+                                       {
+                                           "kind":  "invariant",
+                                           "id":  "INV-07"
+                                       }
+                                   ],
+                         "repair":  "Stop the count being the criterion, and either drop it or have the gatherer produce it. Minimal, inside the spec: rewrite AC-20260926-46a0-9 so the assertion is about the suite rather than an integer — \"Every existing refusal for `Edit`, `Write`, `MultiEdit` and `NotebookEdit` still fires, and every shipped gate test in `tests/Sdlc.Tests/CharterGateTests.cs` passes unchanged with no case deleted or skipped\" — and delete \"twenty-two\" from the prose in \"The existing four refusals are a regression criterion\", since the regression argument does not depend on the number. That leaves nothing asserted about the tree that a check has not verified, and it is more robust anyway: it still fails if a case is removed, and it does not falsify itself when a case is added. If the figure is wanted, the alternative is to earn it: add a criterion requiring the fact-gatherer to emit the shipped gate-test case count as a named check, then cite that check id where the spec uses the number. That is a larger change and pulls work into a cycle already widened by the three crying-wolf checks, so prefer the first unless the count is wanted as a standing fact.",
+                         "disposition":  "fixed",
+                         "disposition-reason":  "The integer is gone. AC-9 now asserts the suite passes unchanged with no case deleted or skipped, which is more robust and asserts nothing a check has not verified."
+                     },
+                     {
+                         "id":  "spec-r1-reason5",
+                         "category":  "internal-contradiction",
+                         "state":  "blocking",
+                         "stage":  "spec",
+                         "detection":  "reasoning",
+                         "role":  "coherence",
+                         "summary":  "The title says three checks stop crying wolf while the body identifies two and places the only third candidate out of scope.",
+                         "cites":  [
+                                       {
+                                           "kind":  "locations",
+                                           "locations":  [
+                                                             {
+                                                                 "file":  ".sdlc/cycles/20260926-46a0/spec.md",
+                                                                 "anchor":  "# Spec — close the shell route, and make three checks stop crying wolf"
+                                                             },
+                                                             {
+                                                                 "file":  ".sdlc/cycles/20260926-46a0/spec.md",
+                                                                 "anchor":  "Two mechanical checks report false positives on this repository as it stands"
+                                                             }
+                                                         ]
+                                       }
+                                   ],
+                         "repair":  "Change the title to name two: \"# Spec — close the shell route, and make two checks stop crying wolf\". The scope is already correct and coherent throughout the body and the criteria table; only the numeral in the heading is wrong. Bringing the traceability check into scope to make \"three\" true is the wrong direction — the document gives a reason for excluding it, and the exclusion is the better decision.",
+                         "disposition":  "fixed",
+                         "disposition-reason":  "Title says two, matching the body and the criteria."
+                     },
+                     {
+                         "id":  "spec-r1-reason13",
+                         "category":  "unfounded-claim",
+                         "state":  "blocking",
+                         "stage":  "spec",
+                         "detection":  "reasoning",
+                         "role":  "facts",
+                         "summary":  "The spec calls both new false positives \"the fifth instance\" — one ordinal assigned to two occurrences, and one short of the four prior instances the tree\u0027s own record documents.",
+                         "cites":  [
+                                       {
+                                           "kind":  "invariant",
+                                           "id":  "INV-07"
+                                       }
+                                   ],
+                         "repair":  "Rewrite the sentence at .sdlc/cycles/20260926-46a0/spec.md:22-25 so the count matches the record it depends on and names that record, making it checkable rather than asserted: \"Both are the same defect as the gate: **a mechanism that does not do what it claims.** They are also the fifth and sixth instances in this project of a construct check matching the text that discusses the construct — the remarks on `tests/Sdlc.Tests/SourceText.cs` record the first four — and that discipline\u0027s comment-stripping helper exists for exactly this, but neither scanner uses it.\" If the spec would rather not carry a running tally that goes stale on the next occurrence, the alternative is to drop the ordinal entirely and keep only the load-bearing part: \"Both are further instances of a construct check matching the text that discusses the construct, which `tests/Sdlc.Tests/SourceText.cs` already states as a discipline.\" Either wording removes the impossible \"both are the fifth\"; the first keeps the count and sources it, the second removes the unverified fact rather than correcting it. Note that neither scanner\u0027s fix (AC-20260926-46a0-17 and -19) depends on the number, so nothing downstream moves. (Merged: the same sentence was also raised as one ordinal covering two distinct scanner defects.)",
+                         "disposition":  "fixed",
+                         "disposition-reason":  "The running tally is dropped rather than corrected. The sentence keeps only the load-bearing part - a match inside a string literal is data, not code."
+                     },
+                     {
+                         "id":  "spec-r1-reason14",
+                         "category":  "unfounded-claim",
+                         "state":  "blocking",
+                         "stage":  "spec",
+                         "detection":  "reasoning",
+                         "role":  "facts",
+                         "summary":  "The paragraph\u0027s diagnosis rests on facts no check verifies and the tree contradicts: the comment-stripping helper it credits is named in prose rather than as a resolvable path, strips only PowerShell and JavaScript comments, is a C# test-assembly class the PowerShell scanners cannot call, and so addresses neither false positive, both of which sit in C# string literals.",
+                         "cites":  [
+                                       {
+                                           "kind":  "invariant",
+                                           "id":  "INV-07"
+                                       }
+                                   ],
+                         "repair":  "Replace the diagnosis with what the tree supports, and make the resulting claim checkable. Specifically, in `.sdlc/cycles/20260926-46a0/spec.md`, cut \"and a comment-stripping helper for that neither scanner uses\" and say instead that both matches are inside C# string literals; that the existing discipline is written in `tests/Sdlc.Tests/SourceText.cs`, which covers PowerShell and JavaScript comments only, is a C# test-assembly class the PowerShell scanners in `tools/Get-SdlcFacts.ps1` cannot call, and therefore addresses neither false positive; and that the work is consequently a new literal-and-comment-aware scan on the PowerShell side rather than adopting an existing helper. Cut the other unverified assertions in the same paragraph too — the historical false-positive count and \"a written discipline about\" — or ground each in a resolvable path so `paths-resolve` covers it. Note that the same prose-instead-of-path move is the one the out-of-scope section at spec.md:99-100 presents as a deliberate avoidance, so fixing this paragraph should not leave that sentence recommending it.",
+                         "disposition":  "fixed",
+                         "disposition-reason":  "Diagnosis replaced with what the tree supports: SourceText is a C# test-assembly class the PowerShell scans cannot call, it strips PowerShell and JavaScript comments only, and both false positives sit in C# string literals. The work is new literal-aware scanning on the PowerShell side."
+                     },
+                     {
+                         "id":  "spec-r1-reason15",
+                         "category":  "unfounded-claim",
+                         "state":  "blocking",
+                         "stage":  "spec",
+                         "detection":  "reasoning",
+                         "role":  "facts",
+                         "summary":  "The spec justifies siting detection in the fact-gatherer on the ground that verification runs the gatherer, but tools/Get-SdlcVerifyOutcome.ps1 consumes none of the gatherer\u0027s checks and its documented blocked list has no \"a check failed\" entry.",
+                         "cites":  [
+                                       {
+                                           "kind":  "invariant",
+                                           "id":  "INV-07"
+                                       }
+                                   ],
+                         "repair":  "Rewrite the fourth answer\u0027s acceptance so it names the mechanism that actually carries the check, or stops claiming the gate carries it. Two honest options:\n\n(a) Correct the route. Replace \"because verification runs the gatherer, so any cycle that reaches its own gate is checked\" with the real chain: the check is reached when a governed artifact is interrogated, where a failed check is minted as a `blocking` finding and the verification outcome then blocks on the undispositioned-findings condition. State the residual hole plainly — a cycle that interrogates nothing is not caught, because `tools/Get-SdlcVerifyOutcome.ps1` consumes none of the gatherer\u0027s checks. This is consistent with AC-20260926-46a0-15, which is already the classification step that route depends on.\n\n(b) Make the claim true. Keep the sentence and add an acceptance criterion that the verification outcome blocks when a gatherer check fails — i.e. `Get-SdlcVerifyOutcome.ps1` reads `failed-checks` and adds a blocker, with `skills/verify/SKILL.md`\u0027s blocked table gaining the matching row. Note this widens the cycle and would block every cycle in this repository on the three currently-failing checks until they are fixed, including the spec-stage traceability check this spec has already put out of scope — so (a) is the smaller and more defensible repair.\n\nEither way, do not leave the justification asserting a gate behaviour no check verifies: that is the same defect the spec is written to fix, in the document fixing it.",
+                         "disposition":  "fixed",
+                         "disposition-reason":  "Corrected: the verification outcome consumes no check at all. Detection now emits both a named check for citability and a fact field the outcome reads, which is the pattern unjustified suppressions already use. AC-28 pins the gating."
+                     },
+                     {
+                         "id":  "spec-r1-reason16",
+                         "category":  "unfounded-claim",
+                         "state":  "blocking",
+                         "stage":  "spec",
+                         "detection":  "reasoning",
+                         "role":  "facts",
+                         "summary":  "The spec says the verification outcome reads the checks rather than their dispositions, but the outcome consumes no check at all — it reads the gatherer\u0027s `orphan-annotations` and `unjustified-suppressions` fact fields directly — which is also why that sentence contradicts the out-of-scope entry saying a failed path check does not gate.",
+                         "cites":  [
+                                       {
+                                           "kind":  "invariant",
+                                           "id":  "INV-07"
+                                       }
+                                   ],
+                         "repair":  "In the widening paragraph, replace \"while reading the checks rather than their dispositions\" with the mechanism as it stands: the verification outcome reads the fact-gatherer\u0027s `orphan-annotations` and `unjustified-suppressions` fact fields directly and blocks on a non-empty list, consuming neither the `annotations-resolve`/`suppressions-justified` checks nor any disposition of them — so a false positive from either scan is an unconditional block with no route around it. Keep the conclusion unchanged: no cycle in this repository can currently pass verification. Then confirm the \"Out of scope\" note about the path heuristic still reads correctly under that wording (it does, and for the same reason: the outcome reads only those fact fields, so a failed `paths-resolve` check does not gate) — under the old wording the two statements contradicted each other. (Merged: the apparent contradiction between the widening rationale and that out-of-scope entry is the same defect, and is resolved by naming the two fact fields.)",
+                         "disposition":  "fixed",
+                         "disposition-reason":  "Same correction. The spec no longer claims the outcome reads checks; it states that the outcome reads specific fact fields, and the out-of-scope entry about dispositions clearing a check is now explicit."
+                     },
+                     {
+                         "id":  "spec-r1-reason18",
+                         "category":  "unfounded-claim",
+                         "state":  "blocking",
+                         "stage":  "spec",
+                         "detection":  "reasoning",
+                         "role":  "facts",
+                         "summary":  "AC-20260926-46a0-19 states the rule as ignoring any criterion id inside a string literal, but the annotation form the scan matches always quotes its id, so the rule as written suppresses every genuine annotation.",
+                         "cites":  [
+                                       {
+                                           "kind":  "invariant",
+                                           "id":  "INV-02"
+                                       }
+                                   ],
+                         "repair":  "Reword AC-19 so the discriminator is nesting rather than quoting, and keep AC-20 as the counterweight it was meant to be:\n\n\"AC-20260926-46a0-19 | yes | The annotation scan does not report an annotation that itself occurs inside an enclosing string literal or a comment, and neither fixture id is reported — the quoted id inside a genuine annotation\u0027s own argument is not what makes it a fixture.\"\n\nTwo consequences worth stating in the prose above the table, since the spec currently treats the two scans as one defect: the suppression scan\u0027s rule (AC-17) and the annotation scan\u0027s rule are not the same rule, because `#pragma warning disable` occurs as bare text in real code while `TestProperty(\"AC\", \"...\")` never does. The shared comment-stripping helper the spec names covers AC-17 but is not sufficient for AC-19, which needs raw-string-literal awareness. Also refile the finding\u0027s category as `ambiguity` citing INV-02.",
+                         "disposition":  "fixed",
+                         "disposition-reason":  "AC-19 reworded. The rule is not to ignore a quoted id - the annotation form always quotes its id. It is to ignore an annotation occurring inside a C# raw string literal, which is the shape both fixtures have, so a genuine annotation in code is untouched."
+                     },
+                     {
+                         "id":  "spec-r1-reason19",
+                         "category":  "unfounded-claim",
+                         "state":  "blocking",
+                         "stage":  "spec",
+                         "detection":  "reasoning",
+                         "role":  "facts",
+                         "summary":  "AC-20260926-46a0-8\u0027s first-charter half assumes a baseline can be consulted in an ungoverned repository that has no commit, where no baseline resolves and the shipped gate denies, and the spec fixes no ordering between the absent-from-baseline and branch-licence tests.",
+                         "cites":  [
+                                       {
+                                           "kind":  "invariant",
+                                           "id":  "INV-01"
+                                       }
+                                   ],
+                         "repair":  "Two things, in `.sdlc/cycles/20260926-46a0/spec.md`.\n\nFirst, refile the finding as `missing-case` citing INV-01, not `unfounded-claim` citing INV-07.\n\nSecond, state the gate\u0027s answer when the baseline cannot be resolved, and order the tests. The \"Creation is not modification\" paragraph needs the companion sentence its sibling already has at AC-11 and AC-12: when no baseline resolves, the gate does X. Both candidate answers need a criterion, because the choice is the whole finding:\n\n- If fail-closed wins, AC-8\u0027s first-charter half is false as written and must go, with the consequence stated out loud: `init` cannot write the first `.sdlc/CHARTER.md` while the gate is active in an uncommitted repository, so init needs its own route (an initial commit before the charter write, a `charter-review` intent branch, or an explicit carve-out). Silence here ships a framework whose first command its own protection blocks.\n- If permit-when-unresolvable wins, say so and bound it — a repository with no commits at all is not the same condition as a repository whose git invocation failed — and add the criterion that the wider case still denies.\n\nEither way, add the ordering: where the absent-from-baseline test sits relative to the branch-licence test. The shipped gate reaches the branch first and would deny a brand-new pack file on `master` before ever asking whether it exists in the baseline, so AC-8\u0027s new-pack half is also unproven without that ordering fixed.\n\nA criterion for the uncommitted case belongs next to AC-8 and should name the state, so the test is forced to build the fixture that `UngovernedRepositoryTests` already proves finds bugs the committing fixtures cannot: a protected-path write in a repository with no commit is \u003cpermitted|denied\u003e, and the decision says which.",
+                         "disposition":  "fixed",
+                         "disposition-reason":  "Creation is now a filesystem question - the path does not currently exist - so no baseline is consulted, it works in a repository with no commit, and the ordering is fixed: existence before licence."
+                     },
+                     {
+                         "id":  "spec-r1-reason21",
+                         "category":  "unfounded-claim",
+                         "state":  "blocking",
+                         "stage":  "spec",
+                         "detection":  "reasoning",
+                         "role":  "facts",
+                         "summary":  "AC-20260926-46a0-14 requires both mechanisms to resolve the licence through one shared function, but the gate deliberately dot-sources nothing and reads a failure above its try/catch as no opinion, so the shared module\u0027s load is an unspecified fail-open path.",
+                         "cites":  [
+                                       {
+                                           "kind":  "invariant",
+                                           "id":  "INV-01"
+                                       }
+                                   ],
+                         "repair":  "Recategorise from `unfounded-claim` to `missing-case`, citing INV-01, and add a criterion that pins the new failure mode closed: the gate denies, with an explanation, when the shared licence resolver cannot be loaded or reached — i.e. the shared code is loaded inside the gate\u0027s existing try/catch (not above it, against house convention), and a test feeds the gate a broken or absent shared file on an unlicensed branch and asserts a deny rather than silence. Optionally note in the six answers that fail-closed extends over the shared module\u0027s load, since the gate\u0027s no-opinion exit is what makes silence equal permission.",
+                         "disposition":  "fixed",
+                         "disposition-reason":  "AC-23 added: the gate loads the shared module inside its own try/catch, so a load failure is caught and denied rather than leaving a fail-open path."
+                     },
+                     {
+                         "id":  "spec-r1-reason22",
+                         "category":  "unfounded-claim",
+                         "state":  "blocking",
+                         "stage":  "spec",
+                         "detection":  "reasoning",
+                         "role":  "facts",
+                         "summary":  "AC-20260926-46a0-21 infers that fixing the two scans lets a cycle here reach a passing verdict, while the verification outcome also blocks on undispositioned findings and this cycle carries six with no disposition.",
+                         "cites":  [
+                                       {
+                                           "kind":  "invariant",
+                                           "id":  "INV-07"
+                                       }
+                                   ],
+                         "repair":  "Cut the inference and keep the checkable part: \"AC-21 — The verification outcome for this cycle reports no unjustified suppressions and no orphan annotations.\" If the wider claim is wanted, state it as what it is and bound it — the two scans stop being blockers, leaving the outcome\u0027s remaining conditions (build, tests, traceability, findings disposition) to decide the verdict — and drop the implication that fixing the scans alone makes a passing verdict reachable, since this cycle must still disposition its six outstanding blocking findings.",
+                         "disposition":  "fixed",
+                         "disposition-reason":  "AC-21 narrowed to the two scan-derived blockers being absent, rather than inferring a passing verdict the undispositioned findings would prevent."
+                     },
+                     {
+                         "id":  "spec-r1-reason27",
+                         "category":  "missing-case",
+                         "state":  "blocking",
+                         "stage":  "spec",
+                         "detection":  "reasoning",
+                         "role":  "gaps",
+                         "summary":  "Only the firing direction of the master error path has a criterion (AC-13); nothing pins that a charter amendment arriving by merge stops firing, which the new remote-tracking baseline makes reachable on merged-but-unpushed master.",
+                         "cites":  [
+                                       {
+                                           "kind":  "invariant",
+                                           "id":  "INV-01"
+                                       }
+                                   ],
+                         "repair":  "Give the master direction that the new baseline re-opens an explicit outcome in the spec, and a criterion, in `.sdlc/cycles/20260926-46a0/spec.md` under **The baseline is the merge target, degrading explicitly.**\n\nThe spec must pick one of these two on its face rather than leave it to the implementer:\n\n(a) **The merge is still the grant, so the check must not fire on it.** State that a difference whose introducing commit is already reachable on master — an amendment that arrived by merge — is not reported, and that only a difference not carried by a commit on the branch\u0027s own history (a working-tree or index edit, or a commit absent from the remote-tracking ref *and* unlicensed) fires. This keeps the intent\u0027s reasoning intact and keeps AC-13\u0027s catch, since a path committed directly to master with no licence is still a commit the amendment route never produced; say how the two are distinguished, because \"committed directly\" and \"committed by a merge\" are both commits and the distinction is the whole content of the answer.\n\n(b) **Accept the false fire as the preferred direction, and say so.** The intent already prefers loud over silent — \"A licensed branch is read as unlicensed. Then a legitimate amendment cannot be made, which is loud and immediate rather than silent — the failure direction to prefer.\" If that is the answer here, write it as an accepted consequence with its bound: on master, a merged amendment is reported until it is pushed, the check\u0027s detail names the remote-tracking baseline so the reader can tell this case from a real violation, and pushing clears it. Then also amend the sentence that credits this baseline with strictly catching more than the intent\u0027s rule could see, because it trades a new false positive for that reach and the spec currently records only the gain.\n\nEither way, add one acceptance criterion pinning the non-firing direction, alongside AC-13 rather than instead of it — for (a): a charter amendment merged to master with no licence on the branch is **not** reported by the check; for (b): that case **is** reported, and the check\u0027s detail names the remote-tracking baseline as the comparison made. Without a criterion on this direction, nothing distinguishes the intended behaviour from a regression, which is the same reason AC-13 exists for the other one.\n\nOut of bounds: do not repair this by reverting to the intent\u0027s HEAD-only baseline without saying so — that discards the direct-commit catch this spec\u0027s widening exists for, and it is a decision to state, not a silent revert. Do not repair it by amending INV-08 or its wording; the spec\u0027s own out-of-scope line keeps that for its own charter intent.",
+                         "disposition":  "fixed",
+                         "disposition-reason":  "AC-27 added for the non-firing direction: a difference that arrived by a merged amendment does not fail the check."
+                     },
+                     {
+                         "id":  "spec-r1-reason28",
+                         "category":  "missing-case",
+                         "state":  "blocking",
+                         "stage":  "spec",
+                         "detection":  "reasoning",
+                         "role":  "gaps",
+                         "summary":  "Of the intent\u0027s four fail-closed licence cases, only the source-not-matching-the-path case has a criterion (AC-4); a missing intent file, unreadable or invalid frontmatter, and a source that is neither permitted value are pinned for neither the shell route nor the new check.",
+                         "cites":  [
+                                       {
+                                           "kind":  "invariant",
+                                           "id":  "INV-01"
+                                       }
+                                   ],
+                         "repair":  "Add criteria pinning the three unpinned refusals, each for the shared licence function so both mechanisms inherit them: (a) a branch named for an intent whose file at .sdlc/intents/\u003cid\u003e.md does not exist is refused; (b) a branch whose intent file has unreadable or invalid frontmatter is refused, and the refusal distinguishes this from an absent file; (c) a branch whose intent declares a source that is neither charter-review nor pack-review is refused. Alternatively, one criterion asserting that the shared function returns no licence for every input that is not positive evidence, with the three cases named as its cases — which keeps the criterion count down while still making the fail-closed rule observable rather than asserted.",
+                         "disposition":  "fixed",
+                         "disposition-reason":  "AC-24, AC-25 and AC-26 added for the three unpinned fail-closed cases: absent intent file, unreadable or invalid frontmatter, and a source that is neither permitted value."
+                     },
+                     {
+                         "id":  "spec-r1-reason29",
+                         "category":  "missing-case",
+                         "state":  "blocking",
+                         "stage":  "spec",
+                         "detection":  "reasoning",
+                         "role":  "gaps",
+                         "summary":  "The spec names a third defect — the verification outcome blocking on the two scans\u0027 raw results rather than on dispositions — and gives it neither a criterion nor an out-of-scope line.",
+                         "cites":  [
+                                       {
+                                           "kind":  "invariant",
+                                           "id":  "INV-01"
+                                       }
+                                   ],
+                         "repair":  "Either specify it or scope it out, in the spec, and say which. Specify it: add a criterion that the outcome\u0027s suppression and annotation blockers read the cycle\u0027s recorded dispositions, so a check-born finding dispositioned `rejected` or `accepted-wont-fix` no longer blocks while an undispositioned one still does — and expect the plan to declare tools/Get-SdlcVerifyOutcome.ps1. Scope it out: add a fourth \"added here\" line naming the outcome\u0027s disposition-blindness, stating that the two scan fixes remove every present instance so this cycle can pass without it, that any future false positive in these two checks is undispositionable until it is fixed, and that it belongs to its own intent — the same treatment the path heuristic, the spec-stage traceability check and the lifecycle derivation already got.",
+                         "disposition":  "fixed",
+                         "disposition-reason":  "The third defect now has an explicit out-of-scope entry with its reasoning, and it is why the two false positives had to be fixed rather than dismissed."
+                     },
+                     {
+                         "id":  "spec-r1-reason1",
+                         "category":  "duplicated-truth",
+                         "state":  "suggested",
+                         "stage":  "spec",
+                         "detection":  "reasoning",
+                         "role":  "charter",
+                         "summary":  "The spec adds a second mechanism that must know which paths are protected but mandates a single shared implementation only for the licence answer, leaving the protected-path pattern set as a second representation with no binding check.",
+                         "repair":  "Not a repair to the spec as cited work. If the concern is to be closed at spec stage, the minimal edit is to widen AC-20260926-46a0-14 from \"the licence\" to the licence answer and the protected-path set it classifies against — i.e. one shared implementation of both, with the existing construct check covering it. Otherwise carry it as a suggestion to be checked at plan, where the declared files reveal whether the pattern set was shared or copied."
+                     },
+                     {
+                         "id":  "spec-r1-reason7",
+                         "category":  "ambiguity",
+                         "state":  "suggested",
+                         "stage":  "spec",
+                         "detection":  "reasoning",
+                         "role":  "coherence",
+                         "summary":  "The two scans are declared one defect, yet AC-20260926-46a0-17 scopes the suppression fix to string literals and comments while AC-20260926-46a0-19 scopes the annotation fix to string literals only, with no stated reason for the difference.",
+                         "repair":  "Make the annotation scan\u0027s scope explicit rather than inferred: either widen AC-20260926-46a0-19 to \"inside a string literal or a comment\", matching AC-20260926-46a0-17, or add one prose sentence saying why the annotation scan\u0027s fix is narrower — the annotation form is a TestProperty attribute and every observed false positive is a string literal, so comment stripping buys nothing there. Either resolution removes the decision a builder would otherwise make silently, and the second also records the reasoning for the next reader."
+                     },
+                     {
+                         "id":  "spec-r1-reason8",
+                         "category":  "internal-contradiction",
+                         "state":  "suggested",
+                         "stage":  "spec",
+                         "detection":  "reasoning",
+                         "role":  "coherence",
+                         "summary":  "The baseline fallback chain ends at HEAD, which always resolves, so the skip path the spec specifies for \"no baseline resolves\" is unreachable.",
+                         "repair":  "Name the condition that actually yields no baseline (a repository with no commits, so HEAD does not resolve either), or remove HEAD from the chain so the skip case is reachable; then say how that case differs from AC-12\u0027s \"cannot run\", which currently reads as the same situation with the opposite verdict."
+                     },
+                     {
+                         "id":  "spec-r1-reason9",
+                         "category":  "internal-contradiction",
+                         "state":  "suggested",
+                         "stage":  "spec",
+                         "detection":  "reasoning",
+                         "role":  "coherence",
+                         "summary":  "The accepted-leak paragraph describes a command whose write shape goes unrecognised as permitted, while AC-20260926-46a0-7 denies a payload the classifier could not evaluate — the same words are used for both sides.",
+                         "repair":  "Worth keeping as a suggestion, not a blocker: the premise clause borrows the word the paragraph is trying to reserve for the deny side. Change \"a command whose write shape goes unrecognised is allowed\" to \"a command that is evaluated and found to contain no recognised write shape is allowed\", so the sentence cannot be read against AC-7 without the following two sentences to rescue it. Wording only — no change to either criterion or to the behaviour."
+                     },
+                     {
+                         "id":  "spec-r1-reason10",
+                         "category":  "internal-contradiction",
+                         "state":  "suggested",
+                         "stage":  "spec",
+                         "detection":  "reasoning",
+                         "role":  "coherence",
+                         "summary":  "Neither the prose nor any criterion says which side a shell payload takes when the classifier evaluates it successfully and extracts no path at all, as distinct from extracting paths of which none are protected.",
+                         "repair":  "No repair is owed for a contradiction, because there is none. Carried as a suggestion for the gaps role: the shell half never says which side a command takes when the classifier evaluates it successfully and extracts no path at all, as against extracting paths of which none are protected. Both currently read as permitted under the criterion for a payload naming no protected path, while the same emptiness from a writing tool denies. One clause in \"Could-not-evaluate is not no-write-found\" naming the empty-extraction case, and a criterion pinning it, would close the boundary without weakening the accepted leak."
+                     },
+                     {
+                         "id":  "spec-r1-reason11",
+                         "category":  "internal-contradiction",
+                         "state":  "suggested",
+                         "stage":  "spec",
+                         "detection":  "reasoning",
+                         "role":  "coherence",
+                         "summary":  "The baseline answer says the check catches a protected path committed directly to master while the placement answer accepts the check runs only when something is interrogated, conflating what the comparison reaches with when it runs.",
+                         "repair":  "Optional wording clarification only, no blocking repair: in the baseline answer at line 45, say the comparison reaches such a commit *whenever the check next runs* rather than leaving \"this catches\" ambiguous between reach and timing; and in the placement answer at line 52, name the trigger gap as \"no interrogation is provoked by a commit landing on master\" alongside the existing \"a cycle that never interrogates anything.\" Both sentences would then state their axis explicitly and the apparent tension disappears without changing any behaviour or criterion."
+                     },
+                     {
+                         "id":  "spec-r1-reason17",
+                         "category":  "unfounded-claim",
+                         "state":  "suggested",
+                         "stage":  "spec",
+                         "detection":  "reasoning",
+                         "role":  "facts",
+                         "summary":  "Two criteria require the new check to report \"skipped\" distinctly from failing, while the gatherer\u0027s check record is binary by construction, no consumer has a third state, and the spec names no change to that contract.",
+                         "repair":  "Nothing is required. If the wording is worth hardening at all, it is one clause in the third answer rather than a contract change: say that a skip is reported as a pass whose detail carries the reason, as the frontmatter validity check already does, and that could-not-run is reported as a failure with its own reason. That removes any invitation for a builder to add a third state to the check record, which would be the real defect."
+                     },
+                     {
+                         "id":  "spec-r1-reason20",
+                         "category":  "unfounded-claim",
+                         "state":  "suggested",
+                         "stage":  "spec",
+                         "detection":  "reasoning",
+                         "role":  "facts",
+                         "summary":  "The claim that a remote-tracking baseline catches a protected path committed directly to master is stated unqualified, though it holds only while that commit is unpushed, and in the current tree master and origin/master are the same commit.",
+                         "repair":  "Tighten the qualifier in both places rather than change the design. In the baseline paragraph (spec.md:45-46), say that on master with a remote this catches a protected path committed directly but not yet pushed — naming the window explicitly, alongside the fallbacks already named. In AC-20260926-46a0-13, make the fixture condition part of the criterion: \"A protected path committed directly to master and not yet pushed, with no licence, is reported by the check when a remote-tracking baseline resolves.\" Optionally record the limit where the spec already records its other accepted leak (could-not-evaluate): once origin/master has advanced past the commit, no local baseline can see it, and that is accepted rather than fixed."
+                     },
+                     {
+                         "id":  "spec-r1-reason23",
+                         "category":  "missing-case",
+                         "state":  "suggested",
+                         "stage":  "spec",
+                         "detection":  "reasoning",
+                         "role":  "gaps",
+                         "summary":  "No acceptance criterion pins either half of the spec\u0027s answer that a repository with no protected paths passes rather than skips.",
+                         "repair":  "Add one verifiable criterion pinning both halves, mirroring AC-6 on the gate side: \"In a repository with no protected paths the check reports passed, not skipped.\" Worth doing even as a suggestion, since the spec argues the distinction is load-bearing (skipping would imply a check was owed and not made) and the ungoverned-repository case is already exercised in tests/Sdlc.Tests/UngovernedRepositoryTests.cs."
+                     },
+                     {
+                         "id":  "spec-r1-reason24",
+                         "category":  "missing-case",
+                         "state":  "suggested",
+                         "stage":  "spec",
+                         "detection":  "reasoning",
+                         "role":  "gaps",
+                         "summary":  "The prose requires the check\u0027s detail to name which baseline fallback was used, but no criterion asserts it — only the skip reason is pinned, by AC-20260926-46a0-11.",
+                         "repair":  "Either add a verifiable criterion pinning the requirement — e.g. \"The check\u0027s detail names which baseline was compared against (remote-tracking `master`, local `master`, or HEAD)\" — or delete the sentence from the prose so the spec stops requiring a behaviour it does not pin. If the intent for AC-13 was to cover this, extend it to assert the detail names the remote-tracking baseline rather than only that the path is reported."
+                     },
+                     {
+                         "id":  "spec-r1-reason25",
+                         "category":  "missing-case",
+                         "state":  "suggested",
+                         "stage":  "spec",
+                         "detection":  "reasoning",
+                         "role":  "gaps",
+                         "summary":  "No criterion pins the intent\u0027s first layer — `hooks/hooks.json` registering the gate for the shell tool — so every gate criterion is satisfiable by a script the harness never routes shell commands to.",
+                         "repair":  "Add a verifiable criterion pinning the registration, and narrow AC-16 to the part that is genuinely unverifiable. Something of the shape: \"`hooks/hooks.json` registers the gate for the shell tool, and a test reads the manifest and fails if the matcher omits it\" — the manifest is a tracked file and `tests/Sdlc.Tests/PluginManifestTests.cs` already reads that kind of thing, so this costs one assertion. Then reword AC-16 so it covers only what the debug log can answer: the harness *delivering* a `PreToolUse` payload for the PowerShell tool, given a matcher that names it. Registration and delivery then sit on opposite sides of the verifiable line, where they belong, instead of both resting on the person.\n\nCheap enough to fold into the spec on this pass. It is not a blocker as cited, so it does not halt the cycle either way — but implementing the spec as written leaves the defect the intent was raised for."
+                     },
+                     {
+                         "id":  "spec-r1-reason26",
+                         "category":  "missing-case",
+                         "state":  "suggested",
+                         "stage":  "spec",
+                         "detection":  "reasoning",
+                         "role":  "gaps",
+                         "summary":  "AC-20260926-46a0-1 pins only that the shell refusal names the path, leaving the intent\u0027s second requirement — that it say what would permit the write — uncovered.",
+                         "repair":  "Amend AC-20260926-46a0-1 to cover both halves the intent requires, mirroring the shape AC-20260926-46a0-7 already uses for message content: \"A shell payload writing `.sdlc/CHARTER.md` from a branch with no licence is denied; the refusal names the path and says what would permit a write to it.\" No other criterion needs to change, and this keeps the remedial half of the message testable rather than leaving it to the build\u0027s discretion."
+                     },
+                     {
+                         "id":  "spec-r1-reason30",
+                         "category":  "missing-case",
+                         "state":  "suggested",
+                         "stage":  "spec",
+                         "detection":  "reasoning",
+                         "role":  "gaps",
+                         "summary":  "AC-20260926-46a0-15 requires only that the check id be classified as something other than `unclassified`, so an advisory category satisfies it where the intent requires the blocking charter-violation route.",
+                         "repair":  "No repair owed as a blocker. As a suggestion worth keeping: AC-15 could name the intended category outright (\"classified as `charter-violation`\") so the classification\u0027s *correctness*, not merely its presence, is pinned — a wrong-but-blocking category would pass AC-15 as written and would mis-attribute the finding in the retro corpus the amendment signals are computed from. Note while doing so that the intent\u0027s \"citing the amend-only-by-approved-intent invariant\" cannot be honoured literally for a gatherer check, whose citation is the check id; that mismatch belongs to the intent\u0027s wording, not to this criterion."
+                     },
+                     {
+                         "id":  "spec-r1-reason31",
+                         "category":  "missing-case",
+                         "state":  "suggested",
+                         "stage":  "spec",
+                         "detection":  "reasoning",
+                         "role":  "gaps",
+                         "summary":  "No criterion requires the two scanners to read through one shared stripping function, though the spec treats single-implementation as a testable property for the licence in AC-20260926-46a0-14.",
+                         "repair":  "If the author wants this pinned in the spec rather than left to the plan, the shape that would be testable: a criterion that both scanners read their input through one shared stripping function and that a construct check fails a second implementation of it — the same form as AC-14, and the form the PowerShell tooling can actually satisfy (a shared function in `tools/`, not the C# `SourceText` class)."
+                     }
+                 ]
+}
