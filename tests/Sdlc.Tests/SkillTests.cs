@@ -195,6 +195,48 @@ public sealed class SkillTests
     }
 
     [TestMethod]
+    public void TheTierIsSignedOffOnceAndBothHalvesSayTheSameThing()
+    {
+        // TWO GATES DISAGREEING PRODUCED A THIRD OUTCOME NEITHER INTENDED. `build` refused every
+        // unattended cycle above tier 1 while the dispatcher launched them anyway, because the
+        // tier was signed off when the plan was approved. So an approved tier-2 plan created a
+        // fresh worktree, refused at its first step, and left that worktree unlocked with no
+        // verify.md — which the lifecycle derivation reads as `dead`, meaning relaunch or discard.
+        //
+        // One question, one gate: approving the plan is the sign-off, and what still halts is the
+        // finished diff turning out to be a higher tier than the plan declared.
+        MustState("build", "Approving the plan **is** the sign-off the tier asks for");
+        MustState("build", "A tier escalation halts. It does not report.");
+
+        // And the confirmation has to carry the number, because that is where consent happens.
+        string runner = File.ReadAllText(
+            Path.Combine(AppContext.BaseDirectory, "tools", "Invoke-SdlcRun.ps1"));
+
+        Assert.IsTrue(runner.Contains("tier $tier", StringComparison.Ordinal),
+            "the launch confirmation must state each cycle's tier: nothing downstream asks again");
+    }
+
+    [TestMethod]
+    public void EveryGateFilesWhatItsInterrogationFound()
+    {
+        // FOUR CONSUMERS READ A FILE NOTHING WROTE. Verify counts findings that are still
+        // undispositioned, found none because none were on disk, and passed cycles carrying
+        // blocking findings. A workflow has no filesystem access, so the calling stage persists
+        // the document — and every stage that interrogates has to do it, or the gap just moves.
+        foreach (string skill in new[] { "intent", "spec", "plan", "verify" })
+        {
+            MustState(skill, "/sdlc:interrogate", "Add-SdlcFindings.ps1");
+        }
+
+        // And a resolved finding has to be recorded, because the disposition is what the retro
+        // carries into the corpus and what every amendment signal is computed from.
+        foreach (string skill in new[] { "spec", "plan", "repair" })
+        {
+            MustState(skill, "Set-SdlcDisposition.ps1");
+        }
+    }
+
+    [TestMethod]
     public void RepairHaltsOnNoProgressAndLooksForWhatItIntroduced()
     {
         // Measured, not assumed: three of five blocking findings in a v01 repair round were

@@ -166,8 +166,19 @@ try {
     # ONE FILE PER CYCLE, never a shared backlog: a single file every cycle appends to
     # conflicts the way plugin.json does under concurrent cycles, which is a guaranteed
     # collision rather than a possible one.
-    $findingsPath = Join-Path $RepoRoot ".sdlc/cycles/$CycleId/findings.json"
-    if (Test-Path -LiteralPath $findingsPath) {
+    #
+    # EVERY INTERROGATION THE CYCLE RAN, not one file. Rendered by -CycleId rather than by path,
+    # because one interrogation is one document and a cycle has several — its intent, its spec,
+    # its plan, its verification, plus a document per repair round. Naming a single findings.json
+    # here would have carried only the last stage's suggestions into the intake file and silently
+    # dropped every earlier one, which is the evidence a missing invariant is inferred from.
+    $findingsDir = Join-Path $RepoRoot ".sdlc/cycles/$CycleId/findings"
+    $hasFindings = $false
+    if (Test-Path -LiteralPath $findingsDir) {
+        $hasFindings = @(Get-ChildItem -LiteralPath $findingsDir -Filter '*.json' -File).Count -gt 0
+    }
+
+    if ($hasFindings) {
         $formatScript = Join-Path $PSScriptRoot 'Format-SdlcFindings.ps1'
         $suggestionsRel = ".sdlc/suggestions/$CycleId.md"
 
@@ -175,14 +186,14 @@ try {
         # after a backtick silently ends the statement, and the call then runs with the wrong
         # arguments while still parsing cleanly.
         $formatArgs = @{
-            Path     = $findingsPath
+            CycleId  = $CycleId
             State    = 'suggested'
             OutFile  = $suggestionsRel
             RepoRoot = $RepoRoot
         }
         & $formatScript @formatArgs | Out-Null
 
-        $staged = Invoke-SdlcGit add -- $suggestionsRel
+        $staged = Invoke-SdlcGit add '--' $suggestionsRel
         if (-not $staged.ok) {
             Add-Step 'suggestions' $false $staged.stderr
             $result['outcome'] = 'failed-suggestions'
@@ -211,7 +222,10 @@ try {
         }
     }
     else {
-        Add-Step 'suggestions' $true 'no findings document for this cycle'
+        # A cycle that was never interrogated reaches here too, and that is not the same thing as
+        # a cycle with nothing to suggest. Said plainly rather than as an absence, because for
+        # weeks this line was printed by every cycle: nothing wrote a findings document at all.
+        Add-Step 'suggestions' $true 'no interrogation was filed for this cycle'
     }
 
     # --- 4. the retro must be on the branch before anything merges ---------

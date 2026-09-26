@@ -239,7 +239,7 @@ try {
         1)
 
     [System.IO.File]::WriteAllText($manifestPath, $updated, (New-Object System.Text.UTF8Encoding $false))
-    $staged = Invoke-SdlcGit add -- $manifestRel
+    $staged = Invoke-SdlcGit add '--' $manifestRel
 
     # On a first release at the manifest's own version there is nothing to rewrite, so `commit`
     # would fail with "nothing to commit" - which is success here, not failure. Reads .code

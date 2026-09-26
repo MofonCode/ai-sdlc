@@ -1,7 +1,7 @@
 ---
 name: intent
 description: Interview the user to author a governed intent, the first artifact of a cycle. Use when someone wants to start new work, reports a problem to fix, or asks to turn an idea into something the SDLC can process.
-argument-hint: [a sentence describing the work, optional]
+argument-hint: "[a sentence describing the work, optional]"
 allowed-tools: Bash(powershell.exe *) Bash(git *)
 ---
 
@@ -23,8 +23,8 @@ Read `.sdlc/CHARTER.md`. Two invariants apply to intents and shape every questio
 - **INV-02** forbids a statement admitting two readings that lead to materially different
   downstream work.
 
-You are not interrogating the intent — that happens later, against the charter. You are
-trying to make an interrogation find nothing.
+You are not interrogating the intent while you interview — that comes after it is written. You
+are trying to make that interrogation find nothing.
 
 ## The interview
 
@@ -78,6 +78,33 @@ charter itself — that one is human-approved and one-way under INV-08.
 Structure the body around what you elicited: what is wrong, how we will know it worked,
 what happens when it fails, what is out of scope. Prose, not a form. Lead with what each
 thing says and keep identifiers as trailing detail, per the charter's Communication rule.
+
+## Interrogate it before it goes behind its gate
+
+**The intent is the cheapest place in the whole cycle to catch a defect**, and it is why two
+invariants were deliberately widened to reach intents: a missing error path here propagates into
+the spec, the plan, the code and the tests. Interrogating only the spec and the plan left the one
+artifact with the most leverage unchecked.
+
+```
+/sdlc:interrogate .sdlc/intents/$0.md
+```
+
+Write the returned JSON to `.sdlc/cycles/$0/interrogation.json` — gitignored and regenerable —
+and file it:
+
+```
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File tools/Add-SdlcFindings.ps1 -CycleId $0 -Path ".sdlc/cycles/$0/interrogation.json"
+```
+
+Then act on it. A `blocking` finding here is cheap to fix — you are still in the interview, the
+user is still present, and nothing downstream exists yet. **Where the finding turns on what they
+wanted, ask them**; that is the whole reason this stage is an interview. Record a disposition for
+each with `tools/Set-SdlcDisposition.ps1`, and re-interrogate after repairs: in every measurement
+this project has taken, repairs introduce findings of their own.
+
+Findings stay with the cycle, so the intent's pull request carries the interrogation that was run
+on it. That is the review seeing what the artifact survived rather than only the artifact.
 
 ## Put it behind its gate — this is not optional
 

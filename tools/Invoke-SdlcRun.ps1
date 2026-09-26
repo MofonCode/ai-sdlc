@@ -147,8 +147,37 @@ if ($selected.Count -eq 0) {
 
 Write-Host ''
 Write-Host "$($selected.Count) intent(s) will run unattended, each in its own worktree:" -ForegroundColor Cyan
+
+# THE TIER IS STATED HERE BECAUSE THIS IS WHERE CONSENT HAPPENS. Approving a plan is the sign-off
+# the tier asks for, so `build` carries no tier refusal of its own — an earlier version did, while
+# this script dispatched those cycles regardless, and the collision left every approved tier-2
+# cycle in a worktree that read as dead. One gate per question: risk was answered at the approval,
+# and this restates the answer rather than re-asking it.
+$factsScript = Join-Path $PSScriptRoot 'Get-SdlcFacts.ps1'
+
 foreach ($s in $selected) {
-    Write-Host "  $($s.'cycle-id')  →  branch $($s.branch)"
+    $tier = '?'
+    $planRel = ".sdlc/cycles/$($s.'cycle-id')/plan.md"
+    if ((Test-Path -LiteralPath $factsScript) -and (Test-Path -LiteralPath (Join-Path $RepoRoot $planRel))) {
+        try {
+            $planFactsJson = (& $factsScript -Artifact $planRel -RepoRoot $RepoRoot) -join "`n"
+            if ($planFactsJson.Trim()) {
+                $planFacts = ConvertFrom-Json $planFactsJson
+                if (($planFacts.PSObject.Properties.Name -contains 'blast-radius') -and
+                    ($null -ne $planFacts.'blast-radius')) {
+                    $tier = [string] $planFacts.'blast-radius'.tier
+                }
+            }
+        }
+        catch {
+            # A tier that cannot be read is reported as unknown rather than as 1. Printing the
+            # safest-looking number for a plan nobody could measure is how consent stops being
+            # informed.
+            $tier = 'unreadable'
+        }
+    }
+
+    Write-Host "  $($s.'cycle-id')  →  branch $($s.branch)   tier $tier"
 }
 Write-Host ''
 Write-Host "$($selected.Count) worktree(s) will be created under .claude/worktrees/." -ForegroundColor Yellow

@@ -1,7 +1,7 @@
 ---
 name: init
 description: Adopt the SDLC into a solution by scaffolding .sdlc/ and a charter from a stack pack. Use when a repository has no .sdlc/ directory and the user wants to start using this process there.
-argument-hint: [pack name, optional]
+argument-hint: "[pack name, optional]"
 disable-model-invocation: true
 allowed-tools: Bash(git *) Bash(powershell.exe *)
 ---

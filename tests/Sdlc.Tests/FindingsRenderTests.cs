@@ -29,13 +29,16 @@ public sealed class FindingsRenderTests
     public static void CreateFixtureRepo(TestContext context)
     {
         _repo = Path.Combine(Path.GetTempPath(), "sdlc-render-" + Guid.NewGuid().ToString("N")[..8]);
-        Directory.CreateDirectory(Path.Combine(_repo, ".sdlc", "cycles", "20260925-aa01"));
+        // ONE DOCUMENT PER INTERROGATION, under the cycle's findings directory. The findings
+        // schema carries a single target and round per document, which is what one interrogation
+        // is; a cycle accumulates one per stage and one per repair round.
+        Directory.CreateDirectory(Path.Combine(_repo, ".sdlc", "cycles", "20260925-aa01", "findings"));
 
         // A pipe inside a summary is the case worth fixturing. Markdown would read it as a
         // cell boundary and everything after it would land in the wrong column or vanish,
         // which loses the half of the sentence that says what is actually wrong.
         File.WriteAllText(
-            Path.Combine(_repo, ".sdlc", "cycles", "20260925-aa01", "findings.json"),
+            Path.Combine(_repo, ".sdlc", "cycles", "20260925-aa01", "findings", "spec.r1.json"),
             """
             {
               "cycle-id": "20260925-aa01",

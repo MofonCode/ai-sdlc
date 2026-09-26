@@ -203,21 +203,29 @@ if ($null -ne $planFacts) {
 
 # Findings: anything still open or blocking without a recorded disposition. Every finding,
 # from adversary or tool, at any severity, is dispositioned before a cycle may land.
+#
+# EVERY DOCUMENT IN THE CYCLE, not one file. A cycle interrogates its intent, its spec, its plan
+# and its verification, each possibly over several rounds, and each run files its own document —
+# the findings schema carries one target and one round per document, which is what says so.
+# Reading a single findings.json would count the last interrogation only, so a blocking finding
+# left undispositioned on the spec would vanish the moment the plan was interrogated.
 $undispositioned = 0
-$findingsPath = Join-Path $cycleDir 'findings.json'
-if (Test-Path -LiteralPath $findingsPath) {
-    $raw = (Get-Content -LiteralPath $findingsPath -Raw -Encoding UTF8)
-    if ($raw.Trim()) {
+$findingsDir = Join-Path $cycleDir 'findings'
+if (Test-Path -LiteralPath $findingsDir) {
+    foreach ($file in @(Get-ChildItem -LiteralPath $findingsDir -Filter '*.json' -File)) {
+        $raw = (Get-Content -LiteralPath $file.FullName -Raw -Encoding UTF8)
+        if (-not $raw.Trim()) { continue }
+
         $doc = ConvertFrom-Json $raw
-        if (Test-Field $doc 'findings') {
-            foreach ($f in @($doc.findings)) {
-                $state = ''
-                if (Test-Field $f 'state') { $state = [string] $f.state }
-                $hasDisposition = $false
-                if (Test-Field $f 'disposition') { $hasDisposition = [bool] $f.disposition }
-                if (($state -eq 'open' -or $state -eq 'blocking') -and -not $hasDisposition) {
-                    $undispositioned++
-                }
+        if (-not (Test-Field $doc 'findings')) { continue }
+
+        foreach ($f in @($doc.findings)) {
+            $state = ''
+            if (Test-Field $f 'state') { $state = [string] $f.state }
+            $hasDisposition = $false
+            if (Test-Field $f 'disposition') { $hasDisposition = [bool] $f.disposition }
+            if (($state -eq 'open' -or $state -eq 'blocking') -and -not $hasDisposition) {
+                $undispositioned++
             }
         }
     }

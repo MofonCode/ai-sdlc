@@ -1,7 +1,7 @@
 ---
 name: spec
 description: Turn an approved intent into a spec with verifiable acceptance criteria, interrogate it, and resolve what only the user can resolve. Use after an intent exists and before planning.
-argument-hint: [cycle-id]
+argument-hint: "[cycle-id]"
 allowed-tools: Bash(powershell.exe *) Bash(git *)
 ---
 
@@ -64,6 +64,24 @@ charter-version: <from the charter frontmatter>
 /sdlc:interrogate .sdlc/cycles/$0/spec.md
 ```
 
+**File what comes back. This is not optional and it is not bookkeeping.** The workflow has no
+filesystem access, so it hands you the document and you persist it — and until something did,
+four things read a findings file nothing wrote. Verification counts findings that are still
+undispositioned, found none because there were none on disk, and passed cycles carrying blocking
+findings.
+
+Write the returned JSON to `.sdlc/cycles/$0/interrogation.json` — gitignored, regenerable, not
+the authority — and file it:
+
+```
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File tools/Add-SdlcFindings.ps1 -CycleId $0 -Path ".sdlc/cycles/$0/interrogation.json"
+```
+
+That validates the document against `schemas/findings.schema.json` before writing anything, so a
+blocking finding with no citation is refused outright. **If it refuses, do not edit the document
+to get past it** — a refusal is the anti-inflation guard working, and the thing to fix is
+whatever produced the document.
+
 Then act on what comes back, by state:
 
 - **`suggested`** — accumulates as evidence. Do not halt for it.
@@ -79,6 +97,24 @@ know. A `missing-case` finding about a failure mode nobody has decided on is the
 **Do not pick a reading to keep things moving.** An ambiguity resolved silently by an agent
 is a decision nobody made, and it propagates into the plan, the code and the tests. Ask,
 name both readings, and say what each would cost.
+
+## Record what was done about each one
+
+State says whether a finding halts the cycle. **Disposition says what was done**, and every
+finding carries both — nothing is left without a recorded outcome, which is why verification
+refuses to pass a cycle with an open or blocking finding that has none.
+
+```
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File tools/Set-SdlcDisposition.ps1 -CycleId $0 -Finding <id> -Disposition fixed
+```
+
+`rejected` and `accepted-wont-fix` each need `-Reason`, and the schema enforces it. They are
+**never** the same answer: `rejected` means the finding was wrong and says nothing about the
+invariant it cited, while `accepted-wont-fix` means it was right and we knowingly did not act —
+which is the override count, and the evidence that an invariant may be too broad. Merging them
+corrupts the only signal the charter improves from.
+
+A `suggested` finding needs no disposition now. It is triaged later, from the suggestions file.
 
 ## When you are done
 

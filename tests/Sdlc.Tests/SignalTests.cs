@@ -34,7 +34,7 @@ public sealed class SignalTests
     public static void CreateFixtureRepo(TestContext context)
     {
         _repo = Path.Combine(Path.GetTempPath(), "sdlc-signals-" + Guid.NewGuid().ToString("N")[..8]);
-        Directory.CreateDirectory(Path.Combine(_repo, ".sdlc", "cycles", "20260925-aa01"));
+        Directory.CreateDirectory(Path.Combine(_repo, ".sdlc", "cycles", "20260925-aa01", "findings"));
 
         // A real preventer for INV-04 to name. The fixture repo has no tools/ directory, so
         // an earlier draft pointed at one and the target correctly failed to resolve — which
@@ -120,7 +120,7 @@ public sealed class SignalTests
         }
 
         File.WriteAllText(
-            Path.Combine(_repo, ".sdlc", "cycles", "20260925-aa01", "findings.json"),
+            Path.Combine(_repo, ".sdlc", "cycles", "20260925-aa01", "findings", "spec.r1.json"),
             "{\n  \"cycle-id\": \"20260925-aa01\",\n  \"target\": \"spec\",\n  \"charter-version\": 1,\n"
             + "  \"findings\": [\n" + string.Join(",\n", findings) + "\n  ]\n}");
 

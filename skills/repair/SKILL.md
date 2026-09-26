@@ -1,7 +1,7 @@
 ---
 name: repair
 description: Work through blocking interrogation findings, re-checking after each repair and halting when progress stops. Use when an interrogation returned blocking findings with repairs.
-argument-hint: [artifact path]
+argument-hint: "[artifact path]"
 allowed-tools: Bash(powershell.exe *) Bash(git *)
 ---
 
@@ -81,6 +81,27 @@ A finding is an escalation, not a repair, when:
 For the second case, **ask the user**. Name both readings and what each costs downstream. An
 ambiguity resolved silently by an agent is a decision nobody made — and this stage is where
 that temptation is strongest, because asking feels like failing to repair.
+
+## Record a disposition for every finding you touch
+
+A repair that is not recorded did not happen as far as anything downstream can tell. Verification
+refuses to pass a cycle carrying an open or blocking finding with no disposition, and the retro
+carries the dispositions into the corpus, which is what every charter amendment signal is computed
+from.
+
+```
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File tools/Set-SdlcDisposition.ps1 -CycleId <cycle> -Finding <id> -Disposition fixed
+```
+
+`rejected` and `accepted-wont-fix` each require `-Reason`, and the schema refuses them without
+one. Use them for what they mean and never interchangeably: **`rejected` says the finding was
+wrong**, which is evidence about the role that raised it; **`accepted-wont-fix` says the finding
+was right and we are knowingly not acting**, which is evidence the invariant it cited may be too
+broad. Dismissing a bogus finding as `accepted-wont-fix` narrows a perfectly sound invariant on
+your behalf.
+
+Note what this script will not let you do: **change a finding's state.** That was assigned in code
+from the citation, and re-deciding it here is the inflation the guard exists to prevent.
 
 ## Report
 

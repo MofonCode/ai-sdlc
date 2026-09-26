@@ -116,23 +116,29 @@ $cyclesDir = Join-Path $RepoRoot '.sdlc/cycles'
 
 if (Test-Path -LiteralPath $cyclesDir) {
     foreach ($dir in @(Get-ChildItem -LiteralPath $cyclesDir -Directory)) {
-        $findingsPath = Join-Path $dir.FullName 'findings.json'
-        if (-not (Test-Path -LiteralPath $findingsPath)) { continue }
+        # EVERY DOCUMENT, because one interrogation is one document: the schema carries a single
+        # target and round per file, so a cycle that interrogated its intent, spec, plan and
+        # verification has four. Reading one findings.json surveyed a quarter of the evidence and
+        # reported the total with confidence.
+        $findingsDir = Join-Path $dir.FullName 'findings'
+        if (-not (Test-Path -LiteralPath $findingsDir)) { continue }
 
-        $raw = [string] (Get-Content -LiteralPath $findingsPath -Raw -Encoding UTF8)
-        if (-not $raw.Trim()) { continue }
+        foreach ($file in @(Get-ChildItem -LiteralPath $findingsDir -Filter '*.json' -File)) {
+            $raw = [string] (Get-Content -LiteralPath $file.FullName -Raw -Encoding UTF8)
+            if (-not $raw.Trim()) { continue }
 
-        $doc = ConvertFrom-Json $raw
-        if (-not (Test-Field $doc 'findings')) { continue }
+            $doc = ConvertFrom-Json $raw
+            if (-not (Test-Field $doc 'findings')) { continue }
 
-        foreach ($f in @($doc.findings)) {
-            $null = $corpus.Add([pscustomobject]@{
-                cycle       = $dir.Name
-                category    = $(if (Test-Field $f 'category') { $f.category } else { 'unclassified' })
-                state       = $(if (Test-Field $f 'state') { $f.state } else { 'suggested' })
-                disposition = $(if (Test-Field $f 'disposition') { $f.disposition } else { $null })
-                cites       = $(if (Test-Field $f 'cites') { @($f.cites) } else { @() })
-            })
+            foreach ($f in @($doc.findings)) {
+                $null = $corpus.Add([pscustomobject]@{
+                    cycle       = $dir.Name
+                    category    = $(if (Test-Field $f 'category') { $f.category } else { 'unclassified' })
+                    state       = $(if (Test-Field $f 'state') { $f.state } else { 'suggested' })
+                    disposition = $(if (Test-Field $f 'disposition') { $f.disposition } else { $null })
+                    cites       = $(if (Test-Field $f 'cites') { @($f.cites) } else { @() })
+                })
+            }
         }
     }
 }

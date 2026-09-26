@@ -121,40 +121,81 @@ function Format-Cell {
 if (-not $RepoRoot) { $RepoRoot = Resolve-RepoRoot -Start (Get-Location).Path }
 $RepoRoot = (Resolve-Path -LiteralPath $RepoRoot).Path
 
-if (-not $Path) {
+# A CYCLE HAS SEVERAL DOCUMENTS, ONE PER INTERROGATION. The schema carries a single target and
+# round per document, which is what one interrogation is; a cycle interrogates its intent, its
+# spec, its plan and its verification, and repairs add rounds. So -CycleId renders every document
+# the cycle has filed, and -Path renders exactly the one named.
+#
+# That matters most for the suggestions file. It is written once at landing and is the cycle's
+# intake, so rendering only the last interrogation would drop the suggestions from every earlier
+# stage — the evidence a missing invariant is inferred from.
+$sources = New-Object System.Collections.ArrayList
+
+if ($Path) {
+    if (-not (Test-Path -LiteralPath $Path)) {
+        throw "No findings document at '$Path'."
+    }
+    $null = $sources.Add((Resolve-Path -LiteralPath $Path).Path)
+}
+else {
     if (-not $CycleId) {
         throw 'Give -Path or -CycleId.'
     }
-    $Path = Join-Path $RepoRoot ".sdlc/cycles/$CycleId/findings.json"
-}
 
-if (-not (Test-Path -LiteralPath $Path)) {
-    throw "No findings document at '$Path'."
-}
+    $findingsDir = Join-Path $RepoRoot ".sdlc/cycles/$CycleId/findings"
+    if (-not (Test-Path -LiteralPath $findingsDir)) {
+        throw "No findings have been filed for '$CycleId'."
+    }
 
-$doc = ConvertFrom-Json ((Get-Content -LiteralPath $Path -Raw -Encoding UTF8))
+    foreach ($file in @(Get-ChildItem -LiteralPath $findingsDir -Filter '*.json' -File | Sort-Object Name)) {
+        $null = $sources.Add($file.FullName)
+    }
+
+    if ($sources.Count -eq 0) {
+        throw "No findings documents under '$findingsDir'."
+    }
+}
 
 $findings = @()
-if (Test-Field $doc 'findings') { $findings = @($doc.findings) }
+$runs = @()
+$cycle = $CycleId
+$charterVersion = 'unknown'
+
+foreach ($source in $sources) {
+    $doc = ConvertFrom-Json ((Get-Content -LiteralPath $source -Raw -Encoding UTF8))
+
+    if (Test-Field $doc 'findings') { $findings += @($doc.findings) }
+
+    $docCycle = Get-Field $doc 'cycle-id' ''
+    if ($docCycle) { $cycle = $docCycle }
+
+    $docVersion = Get-Field $doc 'charter-version' ''
+    if ($docVersion) { $charterVersion = $docVersion }
+
+    $runs += ((Get-Field $doc 'target' 'artifact') + ' r' + (Get-Field $doc 'round' 1))
+}
 
 if ($State) {
     $findings = @($findings | Where-Object { (Get-Field $_ 'state') -eq $State })
 }
 
-$cycle = Get-Field $doc 'cycle-id' $CycleId
-$target = Get-Field $doc 'target' 'artifact'
-$charterVersion = Get-Field $doc 'charter-version' 'unknown'
-$round = Get-Field $doc 'round' 1
+$target = ($runs -join ', ')
+$round = $runs.Count
+
+$relativeSources = @()
+foreach ($source in $sources) {
+    $relativeSources += ((($source.Substring($RepoRoot.Length)).TrimStart('\', '/')) -replace '\\', '/')
+}
 
 $out = New-Object System.Collections.ArrayList
-$null = $out.Add('<!-- GENERATED from ' + (($Path.Substring($RepoRoot.Length).TrimStart('\', '/')) -replace '\\', '/') + ' -->')
+$null = $out.Add('<!-- GENERATED from ' + ($relativeSources -join ', ') + ' -->')
 $null = $out.Add('<!-- The JSON is authoritative. Edits here are lost on the next render. -->')
 $null = $out.Add('')
 
 if ($State -eq 'suggested') {
     $null = $out.Add("# Suggestions from cycle $cycle")
     $null = $out.Add('')
-    $null = $out.Add("Interrogation of the **$target** at charter v$charterVersion, round $round.")
+    $null = $out.Add("$round interrogation(s) at charter v$charterVersion, on: $target.")
     $null = $out.Add('')
     $null = $out.Add('These did not halt the cycle. They accumulate as evidence: a recurring cluster on')
     $null = $out.Add('one theme is the signal that an invariant is missing. Triage on your own schedule,')
@@ -163,7 +204,7 @@ if ($State -eq 'suggested') {
 else {
     $null = $out.Add("# Findings for cycle $cycle")
     $null = $out.Add('')
-    $null = $out.Add("Interrogation of the **$target** at charter v$charterVersion, round $round.")
+    $null = $out.Add("$round interrogation(s) at charter v$charterVersion, on: $target.")
 }
 
 $null = $out.Add('')

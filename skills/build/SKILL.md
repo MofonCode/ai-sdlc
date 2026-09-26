@@ -1,7 +1,7 @@
 ---
 name: build
 description: Implement an approved plan, then check the work against what the plan declared. Use after a plan is approved, including inside an unattended batch run.
-argument-hint: [cycle-id]
+argument-hint: "[cycle-id]"
 allowed-tools: Bash(powershell.exe *) Bash(dotnet *) Bash(git *)
 ---
 
@@ -21,10 +21,20 @@ Read `.sdlc/cycles/$0/plan.md`.
   built against, because there is nothing to check the result for drift.
 - **No `approved:` in the plan frontmatter** → stop. An unapproved plan has not passed its
   gate, and the gate is a person.
-- **`predicted-tier` is not 1 and you are running unattended** → stop and report. A person
-  signs off above tier 1 before code is written. Say the tier and say you are stopping.
 
 Refusing is a success. Report the reason and exit.
+
+**There is no separate tier refusal here, and that is deliberate.** An earlier version stopped
+whenever the predicted tier was above 1 and the run was unattended — while the dispatcher launched
+those cycles anyway, because the tier was seen and signed off when the plan was approved. Both
+rules shipped, so every approved tier-2 plan created a fresh worktree, refused at its first step,
+and left that worktree unlocked with no `verify.md`: a state the derivation reads as **dead**,
+meaning relaunch or discard. Two gates disagreeing produced a third outcome neither intended.
+
+Approving the plan **is** the sign-off the tier asks for: the tier was computed from the declared
+files and printed in front of whoever approved it, and the launch confirmation states it again
+before any worktree is created. What still halts is the thing approval cannot cover — the work
+turning out more dangerous than the plan predicted, which is checked below against the real diff.
 
 ## Gather the contract
 

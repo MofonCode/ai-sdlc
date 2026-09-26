@@ -242,7 +242,12 @@ public sealed class VerifyOutcomeTests
     public void AnUndispositionedFindingBlocks()
     {
         // Every finding, from adversary or tool, at any severity, is dispositioned.
-        string path = Path.Combine(_repo!, ".sdlc", "cycles", "20260924-aa01", "findings.json");
+        // Filed as one document per interrogation, which is the layout every consumer now reads:
+        // a cycle interrogates several artifacts over several rounds, and the schema carries one
+        // target and round per document.
+        string dir = Path.Combine(_repo!, ".sdlc", "cycles", "20260924-aa01", "findings");
+        Directory.CreateDirectory(dir);
+        string path = Path.Combine(dir, "spec.r1.json");
         File.WriteAllText(path, """
             {
               "cycle-id": "20260924-aa01",
@@ -272,7 +277,12 @@ public sealed class VerifyOutcomeTests
     [TestMethod]
     public void ADispositionedFindingDoesNotBlock()
     {
-        string path = Path.Combine(_repo!, ".sdlc", "cycles", "20260924-aa01", "findings.json");
+        // Filed as one document per interrogation, which is the layout every consumer now reads:
+        // a cycle interrogates several artifacts over several rounds, and the schema carries one
+        // target and round per document.
+        string dir = Path.Combine(_repo!, ".sdlc", "cycles", "20260924-aa01", "findings");
+        Directory.CreateDirectory(dir);
+        string path = Path.Combine(dir, "spec.r1.json");
         File.WriteAllText(path, """
             {
               "cycle-id": "20260924-aa01",

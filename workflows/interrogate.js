@@ -24,6 +24,36 @@ if (!ARTIFACT) {
   throw new Error('interrogate needs an artifact path: pass it as args, e.g. ".sdlc/intents/20260924-aaaa.md"')
 }
 
+// THE CYCLE ID IS REQUIRED, AND IT IS DERIVED RATHER THAN ASKED FOR. The findings schema
+// requires a non-null `cycle-id`, and the first real interrogation emitted null and was
+// rejected by the schema its own output is supposed to satisfy — every artifact validated
+// except the one describing the run.
+//
+// The schema was right. An interrogation belongs to a cycle: a charter changes only through a
+// charter intent, which has a cycle id like any other, so there is no artifact this framework
+// governs that is interrogated outside one. Every path except the charter's carries the id
+// already, so it is read from the path and only the charter case has to say it out loud.
+function cycleIdFromPath(path) {
+  const posix = path.split(String.fromCharCode(92)).join('/')
+
+  const asIntent = posix.match(/(?:^|\/)intents\/([0-9]{8}-[0-9a-f]{4})\.md$/)
+  if (asIntent) return asIntent[1]
+
+  const inCycle = posix.match(/(?:^|\/)cycles\/([0-9]{8}-[0-9a-f]{4})(?:\/|$)/)
+  if (inCycle) return inCycle[1]
+
+  return null
+}
+
+const CYCLE_ID = input.cycleId || cycleIdFromPath(ARTIFACT)
+
+if (!CYCLE_ID) {
+  throw new Error(
+    'interrogate needs a cycle id, and none is derivable from "' + ARTIFACT + '". Pass it as ' +
+    '{ artifact, cycleId }. Interrogating the charter means a charter-review intent is ' +
+    'proposing a change to it, so the cycle id is that intent\'s.')
+}
+
 // ---------------------------------------------------------------------------
 // Schemas. The findings schema in schemas/findings.schema.json is the authority
 // for the final document; these are the narrower per-stage contracts.
@@ -253,6 +283,12 @@ const CHECK_CATEGORY = {
 
   // Something required by the artifact's kind is absent.
   'frontmatter-present': 'missing-case',
+  // The commonest schema violation by far is an absent required field, which is literally a
+  // requirement that should be covered and is not. A malformed value — an id that does not
+  // match its pattern — is a poorer fit, and that imprecision is deliberate rather than
+  // hidden: if pattern violations come to dominate, their rate IS the evidence for a category
+  // the taxonomy is missing, which is the growth mechanism the charter already describes.
+  'frontmatter-valid': 'missing-case',
   'acceptance-criteria-present': 'missing-case',
   'plan-declares-files': 'missing-case',
 
@@ -277,11 +313,42 @@ const CHECK_CATEGORY = {
   'tier-not-escalated': 'scope-drift',
 }
 
+// WHICH ARTIFACT SHOULD HAVE PREVENTED THIS. Every check-derived finding used to be
+// attributed to `intent`, hardcoded — so a failed check on a plan claimed the intent should
+// have caught it. Attributed stage is the axis the whole retro loop turns on: "where does our
+// process leak" is answered by aggregating this field, and a constant answer makes the only
+// unbiased signal available say the same thing forever.
+//
+// Two of these are judgements rather than identities, so they are stated rather than implied.
+// A retro is assembled from what verify recorded, so a defect in one should have been caught
+// there. A pack is charter-adjacent: INV-04 delegates the substance of its rule to the pack and
+// INV-08 protects both under one gate, so a pack defect attributes where that gate is.
+const STAGE_FOR_KIND = {
+  charter: 'charter',
+  intent: 'intent',
+  spec: 'spec',
+  plan: 'plan',
+  code: 'build',
+  verify: 'verify',
+  retro: 'verify',
+  pack: 'charter',
+}
+
+const ARTIFACT_KIND = (parsedFacts && parsedFacts.artifact && parsedFacts.artifact.kind) || null
+const TARGET = input.target || (ARTIFACT_KIND && STAGE_FOR_KIND[ARTIFACT_KIND] ? ARTIFACT_KIND : (isCharter ? 'charter' : 'intent'))
+const ATTRIBUTED_STAGE = STAGE_FOR_KIND[TARGET] || 'intent'
+
+// IDS ARE UNIQUE WITHIN A CYCLE, not within a run. A cycle interrogates its intent, its spec,
+// its plan and its verify document, each possibly over several rounds, and every one of those
+// runs used to emit `m1` and `r1`. Dispositioning a finding by id would then be ambiguous
+// across the cycle's own record, which is the one thing an id has to not be.
+const RUN = TARGET + '-r' + ROUND
+
 const mechanical = failedChecks.map((id, i) => ({
-  id: 'm' + (i + 1),
+  id: RUN + '-check' + (i + 1),
   category: CHECK_CATEGORY[id] || 'unclassified',
   state: CHECK_CATEGORY[id] ? 'blocking' : 'suggested',
-  stage: 'intent',
+  stage: ATTRIBUTED_STAGE,
   detection: 'check',
   role: 'facts',
   summary: 'Check `' + id + '` failed: ' + (checkDetail[id] || 'see facts'),
@@ -487,7 +554,7 @@ for (const row of triaged) {
   const state = (c.category === 'unclassified' || !citesOk) ? 'suggested' : 'blocking'
 
   assembled.push({
-    id: 'r' + n,
+    id: RUN + '-reason' + n,
     category: c.category,
     state: state,
     stage: c.stage,
@@ -545,11 +612,15 @@ if (rejectedCitations.length > 0) {
   log(`${rejectedCitations.length} citation(s) rejected as unresolvable: ${rejectedCitations.join('; ')}`)
 }
 
-// The script has no filesystem access, so the caller persists this. It is shaped to
-// validate against schemas/findings.schema.json.
+// THE CALLER PERSISTS THIS, and until something did, four consumers read a file nothing wrote:
+// verify counted undispositioned findings and always found none, landing reported "no findings
+// document for this cycle", the signals query surveyed an empty corpus, and a disposition had
+// nowhere to be recorded. A workflow script has no filesystem access by design, so the caller
+// writes this document out and hands it to tools/Add-SdlcFindings.ps1, which validates it
+// against schemas/findings.schema.json and files it under the cycle.
 return {
-  'cycle-id': input.cycleId || null,
-  target: input.target || (isCharter ? 'charter' : 'intent'),
+  'cycle-id': CYCLE_ID,
+  target: TARGET,
   'charter-version': (parsedFacts && parsedFacts.charter && parsedFacts.charter.version) || null,
   'pack-version': null,
   round: ROUND,

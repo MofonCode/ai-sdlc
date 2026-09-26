@@ -7,5 +7,9 @@ obj/
 facts.md
 *.findings.md
 
+# the scratch copy of an interrogation's result, on its way to Add-SdlcFindings.ps1, which files
+# the validated document under .sdlc/cycles/<id>/findings/ — that IS the committed record
+interrogation.json
+
 # worktrees
 .claude/worktrees/

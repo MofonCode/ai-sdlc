@@ -14,6 +14,15 @@
          System.Text.Json does not validate schemas — so this is not an INV-04
          deviation, it is the absence of an on-stack option. -->
     <PackageVersion Include="JsonSchema.Net" Version="9.4.0" />
+
+    <!-- YAML, for the same reason and with the same standing: .NET ships no YAML reader, so
+         this is the absence of an on-stack option rather than a deviation. It exists because
+         a hand-rolled frontmatter regex told the suite that `run` declared
+         disable-model-invocation while the REAL parser dropped every field in that file —
+         the skill was model-invocable at runtime and 333 tests said otherwise. A check on
+         markup is only worth what the parser behind it is.
+         Version checked against nuget.org on 2026-09-25, not assumed. -->
+    <PackageVersion Include="YamlDotNet" Version="18.1.0" />
   </ItemGroup>
 
 </Project>

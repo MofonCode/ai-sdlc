@@ -1,7 +1,7 @@
 ---
 name: absorb-retro
 description: Copy landed retros into the ai-sdlc corpus and propose charter amendments from what they show. Use when cycles have landed since the last absorption, or when the user asks what the retros are saying.
-argument-hint: [solution path or retro path, optional]
+argument-hint: "[solution path or retro path, optional]"
 disable-model-invocation: true
 allowed-tools: Bash(git *) Bash(powershell.exe *)
 ---

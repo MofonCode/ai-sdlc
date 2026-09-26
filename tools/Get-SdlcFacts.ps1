@@ -58,6 +58,11 @@ $ErrorActionPreference = 'Stop'
 $OutputEncoding = New-Object System.Text.UTF8Encoding $false
 [Console]::OutputEncoding = $OutputEncoding
 
+# Dot-sourced, not duplicated: the artifact kind decides which invariants apply, which checks
+# run, which row of the gaps table a role reads and which schema validates the document. Two
+# functions answering that would disagree the first time a kind was added, silently.
+. (Join-Path $PSScriptRoot 'SdlcArtifact.ps1')
+
 function Resolve-RepoRoot {
     param([string] $Start)
 
@@ -308,22 +313,6 @@ function Get-Suppressions {
     return $results
 }
 
-function Get-ArtifactKind {
-    param([string] $RelativePath)
-
-    $leaf = Split-Path -Leaf $RelativePath
-    switch -Regex ($leaf) {
-        '^CHARTER\.md$' { return 'charter' }
-        '^spec\.md$'    { return 'spec' }
-        '^plan\.md$'    { return 'plan' }
-        '^verify\.md$'  { return 'verify' }
-        '^retro\.md$'   { return 'retro' }
-    }
-
-    if ($RelativePath -match '(?i)/intents/') { return 'intent' }
-    return 'unknown'
-}
-
 function Get-AcceptanceCriteria {
     param([string] $Text)
 
@@ -520,7 +509,7 @@ $decRefs = @(Get-MentionedIds -Text $text -Pattern '\bDEC-[0-9]{2}\b' -Known $de
 
 $relative = ($artifactPath.Substring($RepoRoot.Length).TrimStart('\', '/') -replace '\\', '/')
 $governed = $relative.StartsWith('.sdlc/', [System.StringComparison]::Ordinal)
-$kind = Get-ArtifactKind -RelativePath $relative
+$kind = Get-SdlcArtifactKind -RelativePath $relative
 $criteria = @(Get-AcceptanceCriteria -Text $text)
 
 # A verify document's criteria come from its sibling spec: verify reports on the spec's
@@ -751,6 +740,47 @@ if ($governed) {
     # .sdlc/ without it cannot be schema-validated at all.
     Add-Check 'frontmatter-present' $frontmatter.present $(
         if ($frontmatter.present) { $null } else { 'no YAML frontmatter block' })
+
+    # THE SCHEMAS WERE EXERCISED ONLY BY TEST FIXTURES until this check existed, so a real
+    # artifact's frontmatter was never validated at the moment it was written. Run through
+    # Test-SdlcArtifact.ps1 rather than reimplemented here: the schema files are the authority
+    # for these rules, and restating them in PowerShell would be the duplication INV-03 forbids.
+    #
+    # A kind with no schema reports `skipped`, which is a pass here — the charter's shape is
+    # checked by the invariant-form check below instead, and treating "nothing governs this" as
+    # a failure would make the check fire on the one document it cannot judge.
+    #
+    # FAILS CLOSED WHEN IT CANNOT RUN, and the condition is deliberately only "is there
+    # frontmatter to check". Guarding on the validator's existence instead would mean a renamed
+    # or missing validator makes the check DISAPPEAR rather than fail — the same silent-removal
+    # shape the hook test calls out, where protection stops existing and everything still looks
+    # correct. A missing validator is a broken installation, not a clean artifact.
+    $validator = Join-Path $PSScriptRoot 'Test-SdlcArtifact.ps1'
+    if ($frontmatter.present) {
+        $verdict = $null
+        try {
+            if (Test-Path -LiteralPath $validator) {
+                $verdictJson = (& $validator -Path $artifactPath -RepoRoot $RepoRoot) -join "`n"
+                if ($verdictJson.Trim()) { $verdict = ConvertFrom-Json $verdictJson }
+            }
+        }
+        catch {
+            $verdict = $null
+        }
+
+        if ($null -eq $verdict) {
+            # Fails closed, and says which way. An unavailable validator is not an approval,
+            # but neither is it the artifact's fault, so the detail distinguishes them.
+            Add-Check 'frontmatter-valid' $false 'the schema validator could not be run'
+        }
+        elseif ($verdict.skipped) {
+            Add-Check 'frontmatter-valid' $true "no schema governs a '$kind'"
+        }
+        else {
+            Add-Check 'frontmatter-valid' ([bool] $verdict.ok) $(
+                if ($verdict.ok) { $null } else { ($verdict.errors -join '; ') })
+        }
+    }
 
     # --- kind-specific checks ---------------------------------------------
 

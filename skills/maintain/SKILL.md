@@ -1,7 +1,7 @@
 ---
 name: maintain
 description: Survey a solution for dependency drift, CVEs and stack-pack staleness, and file intents for what it finds. Use for routine upkeep, or when someone asks what maintenance this repository is owed.
-argument-hint: [solution path, optional]
+argument-hint: "[solution path, optional]"
 disable-model-invocation: true
 allowed-tools: Bash(git *) Bash(dotnet *) Bash(powershell.exe *)
 ---

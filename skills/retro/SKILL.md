@@ -1,7 +1,7 @@
 ---
 name: retro
 description: Write the retro for a landed cycle, the completion certificate that carries evidence back to ai-sdlc. Use only at landing, after a cycle has verified and merged.
-argument-hint: [cycle-id]
+argument-hint: "[cycle-id]"
 allowed-tools: Bash(git *) Bash(powershell.exe *)
 ---
 

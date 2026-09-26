@@ -556,4 +556,55 @@ public sealed class FactGatheringTests
         Assert.IsTrue(facts.RootElement.GetProperty("artifact").GetProperty("governed").GetBoolean());
         Assert.IsTrue(facts.RootElement.GetProperty("checks").GetArrayLength() > 0);
     }
+
+    private static string DetailOf(JsonDocument facts, string checkId) =>
+        facts.RootElement.GetProperty("checks").EnumerateArray()
+            .First(c => c.GetProperty("id").GetString() == checkId)
+            .GetProperty("detail").GetString() ?? string.Empty;
+
+    [TestMethod]
+    public void AnArtifactWhoseFrontmatterBreaksItsSchemaFailsACheck()
+    {
+        // THE SIX SCHEMAS WERE EXERCISED ONLY BY FIXTURES. Nothing validated a real artifact at
+        // the moment one was written, so a spec with no charter version or a plan with a
+        // malformed cycle id passed every gate there was.
+        //
+        // This fixture intent declares `id` and `source` and no `charter-version`, which the
+        // intent schema requires — a retro stamped against no charter version is uninterpretable,
+        // which is exactly why the field is required.
+        using JsonDocument facts = Gather(".sdlc/intents/20260924-aaaa.md");
+
+        Assert.IsTrue(FailedChecks(facts).Contains("frontmatter-valid"),
+            "an intent missing a required frontmatter field must fail schema validation");
+
+        StringAssert.Contains(DetailOf(facts, "frontmatter-valid"), "charter-version",
+            StringComparison.Ordinal);
+    }
+
+    [TestMethod]
+    public void AConformingArtifactPassesSchemaValidation()
+    {
+        // The other direction, and the one that decides whether the check survives: a check that
+        // reports healthy artifacts as broken gets switched off, which is the erosion failure
+        // one layer up.
+        using JsonDocument facts = Gather(".sdlc/cycles/20260924-bbbb/spec.md");
+
+        Assert.IsFalse(FailedChecks(facts).Contains("frontmatter-valid"),
+            "this spec carries every field its schema requires");
+    }
+
+    [TestMethod]
+    public void AKindWithNoSchemaPassesAndSaysWhy()
+    {
+        // No charter.schema.json ships — a charter's shape is governed by the form rule instead.
+        // That has to read as "nothing governs this" rather than as either a pass or a failure,
+        // because a caller told nothing will eventually call it approval.
+        using JsonDocument facts = Gather(".sdlc/CHARTER.md");
+
+        Assert.IsFalse(FailedChecks(facts).Contains("frontmatter-valid"),
+            "an unvalidatable kind is not a failing artifact");
+
+        StringAssert.Contains(DetailOf(facts, "frontmatter-valid"), "no schema",
+            StringComparison.Ordinal);
+    }
 }
