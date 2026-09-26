@@ -8,8 +8,13 @@ pack-version: null
 # Spec — close the shell route, and make two checks stop crying wolf
 
 Two mechanisms, one shared licence answer. This is the second version: the first was interrogated and
-four of its answers were wrong about the tree, in ways that would have reached the build. Those
-corrections are the substance below, marked where they land.
+**five** of its answers were wrong about the tree, in ways that would have reached the build, and one
+case it did not cover at all. Those corrections are the substance below, marked where they land — five
+*corrected here* and one *added here*, which is the count this sentence now matches.
+
+*The number was four until an interrogation of this document counted the markers.* It is corrected
+rather than left standing because a document that miscounts its own corrections is the shape of
+defect it exists to catch.
 
 ## Why this widened
 
@@ -21,9 +26,14 @@ not do what it claims.
 **A match inside a string literal is data, not code.** That is the whole diagnosis, and it needs two
 mechanics because the two false positives have two shapes:
 
-- `tests/Sdlc.Tests/PackTests.cs` names `NoWarn` and a pragma spelling **inside quoted strings on
-  code lines**, in assertions about whether a pack carries those spellings. The suppression scan
-  matches the text and, finding no comment beside it, calls it unjustified.
+- `tests/Sdlc.Tests/PackTests.cs` names a pragma spelling **inside a quoted string on a code line**,
+  in an assertion about whether a pack carries that spelling. The suppression scan matches the text
+  and, finding no comment beside it, calls it unjustified.
+
+  *Corrected here:* the first version also named `NoWarn` as a matched spelling in that file. The
+  scan matches `<NoWarn>` **with its angle brackets**, and the assertion names the bare word, so that
+  line never matched and was never part of the false positive. One spelling in one file, not two —
+  and the fix is unchanged either way, since masking answers both shapes.
 - `tests/Sdlc.Tests/PackTests.cs` and `tests/Sdlc.Tests/VerifyOutcomeTests.cs` contain annotated test
   methods **inside C# raw string literals**, as the source of generated test projects. The annotation
   scan reads those ids as real traceability and reports them as naming criteria no spec declares.

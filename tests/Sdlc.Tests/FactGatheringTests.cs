@@ -1149,4 +1149,80 @@ public sealed class FactGatheringTests
             Discard(root);
         }
     }
+
+    [TestMethod]
+    [TestProperty("AC", "AC-20260926-46a0-11")]
+    public void TheBaselineDegradesToLocalMasterWhenThereIsNoRemote()
+    {
+        // The spec declares three baselines and the criteria named only the first. Which comparison
+        // was actually made changes what the result MEANS, so each fallback has to be reachable and
+        // reported - an untested fallback is a silent change of subject.
+        string root = MakeProtectedRepo("20260926-a010", "authored");
+
+        try
+        {
+            GitIn(root, "checkout -b cycle-20260926-a010");
+
+            using JsonDocument facts = GatherIn(root, ".sdlc/cycles/20260926-a010/spec.md");
+            JsonElement pp = facts.RootElement.GetProperty("protected-paths");
+
+            Assert.AreEqual("local-master", pp.GetProperty("baseline-kind").GetString(),
+                "with no remote and HEAD off master, local master is the merge target");
+        }
+        finally
+        {
+            Discard(root);
+        }
+    }
+
+    [TestMethod]
+    [TestProperty("AC", "AC-20260926-46a0-11")]
+    public void TheBaselineDegradesToHeadOnMasterWithNoRemote()
+    {
+        // The last fallback. Against HEAD the check sees only an UNCOMMITTED change, which is a
+        // weaker claim than the other two make - hence reporting the kind rather than only the
+        // result.
+        string root = MakeProtectedRepo("20260926-a011", "authored");
+
+        try
+        {
+            using JsonDocument facts = GatherIn(root, ".sdlc/cycles/20260926-a011/spec.md");
+            JsonElement pp = facts.RootElement.GetProperty("protected-paths");
+
+            Assert.AreEqual("head", pp.GetProperty("baseline-kind").GetString(),
+                "on master with no remote there is nothing to compare against but HEAD");
+        }
+        finally
+        {
+            Discard(root);
+        }
+    }
+
+    [TestMethod]
+    [TestProperty("AC", "AC-20260926-46a0-8")]
+    public void TheDetectionHalfDoesNotReportAProtectedPathThatIsMerelyBeingCreated()
+    {
+        // Creation needs no licence in BOTH mechanisms, and only the gate half had a criterion for
+        // it. The two must agree: a gate that permits a first charter while the check reports it as
+        // an unlicensed change would block the very cycle the gate just allowed.
+        string root = MakeProtectedRepo("20260926-a012", "authored");
+
+        try
+        {
+            // A pack file that exists on disk and in no commit - created, not amended.
+            Directory.CreateDirectory(Path.Combine(root, "packs", "fresh"));
+            File.WriteAllText(Path.Combine(root, "packs", "fresh", "pack.yaml"), "name: fresh\n");
+
+            GitIn(root, "checkout -b cycle-20260926-a012");
+
+            using JsonDocument facts = GatherIn(root, ".sdlc/cycles/20260926-a012/spec.md");
+
+            Assert.IsFalse(FailedChecks(facts).Contains("protected-paths-licensed"),
+                "a protected path being created is not a protected path being loosened");
+        }
+        finally
+        {
+            Discard(root);
+        }
+    }
 }

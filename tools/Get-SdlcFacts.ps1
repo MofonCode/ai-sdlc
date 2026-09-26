@@ -281,39 +281,6 @@ function Get-ProtectedPathStatus {
         unlicensed      = @()
     }
 
-    # --- resolve the baseline ------------------------------------------------
-    $baseline = $null
-    $kind = 'none'
-
-    $null = git -C $Root rev-parse --verify --quiet 'refs/remotes/origin/master'
-    if ($LASTEXITCODE -eq 0) {
-        $baseline = 'refs/remotes/origin/master'
-        $kind = 'remote-tracking'
-    }
-    else {
-        $null = git -C $Root rev-parse --verify --quiet 'refs/heads/master'
-        if ($LASTEXITCODE -eq 0 -and $Branch -ne 'master') {
-            $baseline = 'refs/heads/master'
-            $kind = 'local-master'
-        }
-        else {
-            $null = git -C $Root rev-parse --verify --quiet 'HEAD'
-            if ($LASTEXITCODE -eq 0) {
-                $baseline = 'HEAD'
-                $kind = 'head'
-            }
-        }
-    }
-
-    if (-not $baseline) {
-        $status.skipped = $true
-        $status.reason = 'no baseline resolves: the repository has no remote-tracking master, no local master and no commit'
-        return [pscustomobject] $status
-    }
-
-    $status.baseline = $baseline
-    $status.'baseline-kind' = $kind
-
     # --- which protected paths exist here ------------------------------------
     #
     # From the tracked list and from disk both: a path that is protected and untracked is exactly
@@ -347,6 +314,45 @@ function Get-ProtectedPathStatus {
         $status.reason = 'this repository carries no protected paths'
         return [pscustomobject] $status
     }
+
+    # --- resolve the baseline, now that there is something to compare --------
+    #
+    # AFTER the candidate enumeration, and the order is the answer to a contradiction the spec
+    # carried: it says a repository with no protected paths PASSES and does not skip, and also that
+    # no resolvable baseline SKIPS. A fresh ungoverned repository is both at once, and resolving the
+    # baseline first made it skip - reporting that a comparison was owed and not made, when none was
+    # owed at all. Nothing to protect is decided before anything to compare against.
+    $baseline = $null
+    $kind = 'none'
+
+    $null = git -C $Root rev-parse --verify --quiet 'refs/remotes/origin/master'
+    if ($LASTEXITCODE -eq 0) {
+        $baseline = 'refs/remotes/origin/master'
+        $kind = 'remote-tracking'
+    }
+    else {
+        $null = git -C $Root rev-parse --verify --quiet 'refs/heads/master'
+        if ($LASTEXITCODE -eq 0 -and $Branch -ne 'master') {
+            $baseline = 'refs/heads/master'
+            $kind = 'local-master'
+        }
+        else {
+            $null = git -C $Root rev-parse --verify --quiet 'HEAD'
+            if ($LASTEXITCODE -eq 0) {
+                $baseline = 'HEAD'
+                $kind = 'head'
+            }
+        }
+    }
+
+    if (-not $baseline) {
+        $status.skipped = $true
+        $status.reason = 'no baseline resolves: the repository has no remote-tracking master, no local master and no commit'
+        return [pscustomobject] $status
+    }
+
+    $status.baseline = $baseline
+    $status.'baseline-kind' = $kind
 
     # --- compare, then ask whether the branch may have done it ---------------
     $unlicensed = New-Object System.Collections.ArrayList
