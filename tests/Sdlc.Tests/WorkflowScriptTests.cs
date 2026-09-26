@@ -277,6 +277,46 @@ public sealed class WorkflowScriptTests
     }
 
     [TestMethod]
+    public void EVERYFieldTheWorkflowEmitsIsAFieldTheSchemaAllows()
+    {
+        // THE FIRST REAL INTERROGATION WAS REFUSED BY ITS OWN SCHEMA. The workflow gained
+        // `failed-checks` and `rejected-citations` as provenance — the record of which checks
+        // actually failed in a run, without which a check citation cannot be audited afterwards —
+        // and the schema, which sets `additionalProperties: false`, was never widened to allow them.
+        //
+        // So every document the workflow produced was invalid for weeks, and NOTHING NOTICED,
+        // because nothing validated a real interrogation: the schema was exercised only by fixtures
+        // that this file's author wrote to match the schema. The validator caught it on its first
+        // real document, which is the whole argument for having one.
+        //
+        // This binds the two so the next field cannot arrive the same way.
+        string code = ReadCode("interrogate.js");
+
+        Match returned = Regex.Match(code, @"return\s*\{(?<body>[^}]*)\}\s*$", RegexOptions.Singleline);
+        Assert.IsTrue(returned.Success, "interrogate.js must end by returning the findings document");
+
+        List<string> emitted = [.. Regex.Matches(returned.Groups["body"].Value, @"(?m)^\s*'?(?<key>[a-z][a-z-]*)'?\s*:")
+            .Select(m => m.Groups["key"].Value)
+            .Distinct(StringComparer.Ordinal)];
+
+        Assert.IsTrue(emitted.Count >= 5,
+            "found almost no emitted fields, so the scan is broken rather than the document clean: "
+            + string.Join(", ", emitted));
+
+        using JsonDocument schema = JsonDocument.Parse(
+            File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "schemas", "findings.schema.json")));
+
+        HashSet<string> allowed = [.. schema.RootElement.GetProperty("properties").EnumerateObject()
+            .Select(p => p.Name)];
+
+        List<string> forbidden = [.. emitted.Where(f => !allowed.Contains(f))];
+
+        Assert.AreEqual(0, forbidden.Count,
+            "the workflow emits fields the findings schema forbids, so every document it produces " +
+            "is refused whole: " + string.Join(", ", forbidden));
+    }
+
+    [TestMethod]
     public void APackRuleIsNamedRatherThanCited()
     {
         // `cites` takes four kinds and a pack rule is none of them: the findings schema pins the

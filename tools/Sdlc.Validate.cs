@@ -107,7 +107,24 @@ EvaluationResults results = schema.Evaluate(
 List<string> errors = [];
 if (!results.IsValid)
 {
-    Collect(results, errors);
+    // TWO PASSES, BECAUSE THE FIRST REAL DOCUMENT DROWNED THE ANSWER. A 28-finding interrogation
+    // was refused with 130-odd errors of which TWO were the cause; the rest came from branches the
+    // instance was never required to satisfy — each `oneOf` alternative a citation is not, and each
+    // `if` whose condition simply did not hold. "Required properties [disposition] are not present"
+    // was reported for every finding, from the `if` of a rule that only fires WHEN a disposition
+    // exists.
+    //
+    // A check that buries its cause is the erosion this project keeps warning about: it is not
+    // ignored because it is wrong, it is ignored because reading it costs more than trusting it.
+    Collect(results, errors, skipBranchNoise: true);
+
+    if (errors.Count == 0)
+    {
+        // Never "invalid, and here is nothing". If the filter leaves nothing, the unfiltered list is
+        // worse to read but it is still the truth.
+        Collect(results, errors, skipBranchNoise: false);
+    }
+
     if (errors.Count == 0)
     {
         errors.Add("the document does not satisfy the schema, which reported no detail");
@@ -119,21 +136,49 @@ return results.IsValid ? 0 : 1;
 
 // Walks the evaluation tree and keeps only nodes that actually carry a complaint. The list
 // output is a tree of every subschema visited, most of which passed.
-static void Collect(EvaluationResults node, List<string> into)
+static void Collect(EvaluationResults node, List<string> into, bool skipBranchNoise)
 {
-    if (node.Errors is { Count: > 0 } complaints)
+    if (node.Errors is { Count: > 0 } complaints && !(skipBranchNoise && IsBranchNoise(node)))
     {
         foreach (KeyValuePair<string, string> error in complaints)
         {
             string where = node.InstanceLocation.ToString();
-            into.Add(string.IsNullOrEmpty(where) ? error.Value : $"{where}: {error.Value}");
+            string message = string.IsNullOrEmpty(where) ? error.Value : $"{where}: {error.Value}";
+
+            // Deduplicated: one cause reported once. The same complaint arrives from several
+            // subschemas for the same instance location, and repeating it adds no information.
+            if (!into.Contains(message))
+            {
+                into.Add(message);
+            }
         }
     }
 
+    // Recursion continues regardless: a real violation can sit beneath a branch node, and each
+    // child is judged on its own path.
     foreach (EvaluationResults child in node.Details ?? [])
     {
-        Collect(child, into);
+        Collect(child, into, skipBranchNoise);
     }
+}
+
+// An error is noise when it comes from a subschema the instance was never obliged to satisfy.
+//
+// `oneOf` and `anyOf`: a citation is exactly one of four kinds, so THREE alternatives always fail
+// and always complain. `if`: its whole job is to not match, and a failed condition is how a
+// conditional rule declines to apply rather than a defect.
+//
+// `then` is deliberately NOT here. Everything under it is a rule that fired and was broken —
+// blocking without a citation, a location pair on the wrong category, a dismissal with no reason —
+// which is the half of the output worth reading.
+static bool IsBranchNoise(EvaluationResults node)
+{
+    string path = node.EvaluationPath.ToString();
+
+    return path.Contains("/oneOf/", StringComparison.Ordinal)
+        || path.Contains("/anyOf/", StringComparison.Ordinal)
+        || path.Contains("/if/", StringComparison.Ordinal)
+        || path.EndsWith("/if", StringComparison.Ordinal);
 }
 
 // Reads the YAML frontmatter block and converts it to JSON with YAML'S OWN type rules, rather

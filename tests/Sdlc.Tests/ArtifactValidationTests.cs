@@ -154,6 +154,34 @@ public sealed class ArtifactValidationTests
     }
 
     [TestMethod]
+    public void AREFUSALNAMESITSCAUSEWithoutBuryingIt()
+    {
+        // THE FIRST REAL REFUSAL PRODUCED 130 ERRORS OF WHICH TWO WERE THE CAUSE. The rest came
+        // from subschemas the instance was never obliged to satisfy: three of the four `oneOf`
+        // alternatives a citation is not, and every `if` whose condition simply did not hold —
+        // which reported "Required properties [disposition] are not present" for every finding, from
+        // the condition of a rule that only fires WHEN a disposition exists.
+        //
+        // That is the erosion this project keeps warning about, arriving one layer up: a check is
+        // not ignored because it is wrong, it is ignored because reading it costs more than trusting
+        // it. So the list is filtered to the rules that actually fired, and deduplicated.
+        Verdict v = Validate(
+            Path.Combine("examples", "findings.invalid-01-uncited-blocking.json"), "findings");
+
+        Assert.IsFalse(v.Ok);
+
+        Assert.IsTrue(v.Errors.Length <= 8,
+            $"a refusal must be readable; this one has {v.Errors.Length} lines:{Environment.NewLine}"
+            + string.Join(Environment.NewLine, v.Errors));
+
+        // And the cause has to survive the filtering, which is the half that matters: the rule that
+        // fired is the anti-inflation guard, and it fired because a blocking finding had no citation.
+        Assert.IsTrue(v.Errors.Any(e => e.Contains("cites", StringComparison.Ordinal)),
+            "the surviving errors must name the rule that was broken: "
+            + string.Join(" | ", v.Errors));
+    }
+
+    [TestMethod]
     public void AMissingInputFailsClosed()
     {
         // A validator that cannot find its input has not approved anything. Exit 2 rather than
