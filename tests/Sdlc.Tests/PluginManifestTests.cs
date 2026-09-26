@@ -179,6 +179,89 @@ public sealed class PluginManifestTests
     }
 
     [TestMethod]
+    public void TheHookConfigLivesWhereAnUndeclaredPluginLooks()
+    {
+        // Same reasoning as workflows below: `hooks/hooks.json` at the plugin root is loaded
+        // automatically, so the manifest declares no `hooks` field and there is one place for
+        // the path to be rather than two.
+        string hooks = Path.Combine(Root, "hooks", "hooks.json");
+        Assert.IsTrue(File.Exists(hooks),
+            "no hooks/hooks.json, so the INV-08 gate is configured nowhere and never runs");
+
+        using JsonDocument doc = JsonDocument.Parse(File.ReadAllText(hooks));
+        Assert.IsTrue(doc.RootElement.TryGetProperty("PreToolUse", out JsonElement pre),
+            "the gate must run BEFORE the edit; PostToolUse would report a charter already changed");
+
+        Assert.IsTrue(pre.GetArrayLength() > 0, "PreToolUse declares no handler");
+
+        string matcher = pre[0].GetProperty("matcher").GetString()!;
+        foreach (string tool in new[] { "Edit", "Write" })
+        {
+            Assert.IsTrue(matcher.Contains(tool, StringComparison.Ordinal),
+                $"the matcher must cover {tool}, or that tool can amend the charter unchecked: {matcher}");
+        }
+
+        if (m_ManifestHasHooksField(Manifest()))
+        {
+            Assert.Fail("the manifest declares a hooks field as well as hooks/hooks.json, " +
+                "which is a second place for the path to drift");
+        }
+    }
+
+    private static bool m_ManifestHasHooksField(JsonElement manifest) =>
+        manifest.TryGetProperty("hooks", out _);
+
+    [TestMethod]
+    public void EveryHookCommandPointsAtAScriptThatExists()
+    {
+        // THE SILENT-FAILURE CASE. A hook whose script has been renamed does not fail closed:
+        // powershell exits non-zero on a missing file, which is not the exit code that blocks,
+        // so the protection would simply stop existing while hooks.json still looked correct.
+        //
+        // ${CLAUDE_PLUGIN_ROOT} resolves to the plugin root at runtime, so it resolves to Root
+        // here — which is exactly the substitution being verified.
+        string hooks = Path.Combine(Root, "hooks", "hooks.json");
+        using JsonDocument doc = JsonDocument.Parse(File.ReadAllText(hooks));
+
+        int checked_ = 0;
+        foreach (JsonProperty evt in doc.RootElement.EnumerateObject())
+        {
+            foreach (JsonElement matcher in evt.Value.EnumerateArray())
+            {
+                foreach (JsonElement handler in matcher.GetProperty("hooks").EnumerateArray())
+                {
+                    if (!handler.TryGetProperty("args", out JsonElement args))
+                    {
+                        continue;
+                    }
+
+                    foreach (JsonElement arg in args.EnumerateArray())
+                    {
+                        string value = arg.GetString() ?? string.Empty;
+                        if (!value.Contains("CLAUDE_PLUGIN_ROOT", StringComparison.Ordinal))
+                        {
+                            continue;
+                        }
+
+                        string relative = value
+                            .Replace("${CLAUDE_PLUGIN_ROOT}", string.Empty, StringComparison.Ordinal)
+                            .TrimStart('/');
+
+                        string resolved = Path.Combine(Root, relative);
+                        Assert.IsTrue(File.Exists(resolved),
+                            $"{evt.Name} references '{value}', which resolves to a file that does " +
+                            "not exist. The hook would not run and nothing would say so.");
+                        checked_++;
+                    }
+                }
+            }
+        }
+
+        Assert.IsTrue(checked_ > 0,
+            "no hook command referenced a bundled script, so this test verified nothing");
+    }
+
+    [TestMethod]
     public void WorkflowsLiveWhereTheManifestSaysTheyDo()
     {
         // The manifest deliberately omits the `workflows` field because Claude Code already

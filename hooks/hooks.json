@@ -1,0 +1,21 @@
+{
+  "PreToolUse": [
+    {
+      "matcher": "Edit|Write|MultiEdit|NotebookEdit",
+      "hooks": [
+        {
+          "type": "command",
+          "command": "powershell.exe",
+          "args": [
+            "-NoProfile",
+            "-NonInteractive",
+            "-ExecutionPolicy",
+            "Bypass",
+            "-File",
+            "${CLAUDE_PLUGIN_ROOT}/tools/Assert-SdlcCharterGate.ps1"
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -51,6 +51,47 @@ public sealed class FactGatheringTests
             | ~~DEC-02~~ | removed, and the gap is the record |
             """);
 
+        // THE FORM RULE, which the charter asserts about itself twice. The fixture charter
+        // above carries `Forbids:` and no `Applies-to:`, so it FAILS the rule - true of it,
+        // and useful. These two make the pass and the both-ways-broken cases explicit.
+        //
+        // Artifact kind comes from the leaf filename, so a charter in its own directory is
+        // still a charter.
+        Directory.CreateDirectory(Path.Combine(_repo, ".sdlc", "well-formed"));
+        File.WriteAllText(Path.Combine(_repo, ".sdlc", "well-formed", "CHARTER.md"), """
+            ---
+            version: 1
+            solution: fixture
+            ---
+
+            # Charter - well formed
+
+            ### INV-01 - Carries both clauses
+
+                Applies-to: intent, spec
+                Forbids:  something an implementation could actually do.
+            """);
+
+        Directory.CreateDirectory(Path.Combine(_repo, ".sdlc", "malformed"));
+        File.WriteAllText(Path.Combine(_repo, ".sdlc", "malformed", "CHARTER.md"), """
+            ---
+            version: 1
+            solution: fixture
+            ---
+
+            # Charter - broken both ways
+
+            ### INV-01 - No Forbids at all
+
+                Applies-to: intent
+                Evidence: a clause that is not the one the rule requires.
+
+            ### INV-02 - An EMPTY Applies-to, which the charter names explicitly
+
+                Applies-to:
+                Forbids:  something specific.
+            """);
+
         // Governed, and broken in three distinct ways so each check can be named.
         File.WriteAllText(Path.Combine(_repo, ".sdlc", "intents", "20260924-aaaa.md"), """
             ---
@@ -240,6 +281,81 @@ public sealed class FactGatheringTests
     private static string[] FailedChecks(JsonDocument facts) =>
         [.. facts.RootElement.GetProperty("failed-checks").EnumerateArray()
             .Select(e => e.GetString()!)];
+
+    [TestMethod]
+    public void AWellFormedCharterPassesTheFormRule()
+    {
+        // The charter says twice that a missing or empty clause "fails the form check", and
+        // there was no form check. The rule governing the shape of every invariant could be
+        // violated with nothing to cite — not a missing feature, a claim the document makes
+        // and did not keep.
+        using JsonDocument facts = Gather(".sdlc/well-formed/CHARTER.md");
+
+        Assert.IsFalse(FailedChecks(facts).Contains("invariant-form"),
+            "an invariant carrying both clauses satisfies the rule");
+    }
+
+    [TestMethod]
+    public void AMissingForbidsAndAnEmptyAppliesToBothFailTheFormRule()
+    {
+        // Both halves, because the charter states them as separate sentences and an empty
+        // `Applies-to:` is called out by name: it "governs nothing and fails the form check
+        // for the same reason an empty `Forbids:` does".
+        //
+        // The EMPTY case is the one a looser parser misses. `Applies-to:` with nothing after
+        // it still matches a search for the label, so the check has to require something
+        // after the colon rather than merely the clause being present.
+        using JsonDocument facts = Gather(".sdlc/malformed/CHARTER.md");
+
+        Assert.IsTrue(FailedChecks(facts).Contains("invariant-form"),
+            "one invariant has no Forbids: and another has an empty Applies-to:");
+
+        string detail = facts.RootElement.GetProperty("checks").EnumerateArray()
+            .First(c => c.GetProperty("id").GetString() == "invariant-form")
+            .GetProperty("detail").GetString()!;
+
+        StringAssert.Contains(detail, "INV-01", StringComparison.Ordinal);
+        StringAssert.Contains(detail, "Forbids:", StringComparison.Ordinal);
+        StringAssert.Contains(detail, "INV-02", StringComparison.Ordinal);
+        StringAssert.Contains(detail, "Applies-to:", StringComparison.Ordinal);
+    }
+
+    [TestMethod]
+    public void TheFormRuleRunsOnlyForACharter()
+    {
+        // An intent has no invariants, and reporting a form failure against one would be a
+        // check firing on an artifact it says nothing about — the noise that gets a check
+        // switched off, which is the INV-06 erosion failure one layer up.
+        using JsonDocument facts = Gather(".sdlc/intents/20260924-aaaa.md");
+
+        bool present = facts.RootElement.GetProperty("checks").EnumerateArray()
+            .Any(c => c.GetProperty("id").GetString() == "invariant-form");
+
+        Assert.IsFalse(present, "the form rule is about a charter's shape and nothing else");
+    }
+
+    [TestMethod]
+    public void TheFormRuleReportsEachInvariantSoARoleCanReadIt()
+    {
+        // The `form` role asks the same question in prose. Emitting the per-invariant answer
+        // means the role reads a fact instead of re-deriving it — and INV-03 wants the two
+        // bound rather than merely similar.
+        using JsonDocument facts = Gather(".sdlc/malformed/CHARTER.md");
+
+        JsonElement rows = facts.RootElement.GetProperty("charter").GetProperty("invariant-form");
+        Assert.AreEqual(2, rows.GetArrayLength());
+
+        JsonElement first = rows[0];
+        Assert.AreEqual("INV-01", first.GetProperty("id").GetString());
+        Assert.IsFalse(first.GetProperty("has-forbids").GetBoolean());
+        Assert.IsTrue(first.GetProperty("has-applies-to").GetBoolean());
+
+        JsonElement second = rows[1];
+        Assert.AreEqual("INV-02", second.GetProperty("id").GetString());
+        Assert.IsTrue(second.GetProperty("has-forbids").GetBoolean());
+        Assert.IsFalse(second.GetProperty("has-applies-to").GetBoolean(),
+            "an Applies-to: label with nothing after it governs nothing");
+    }
 
     [TestMethod]
     public void TheScriptShips()
