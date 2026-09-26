@@ -285,6 +285,12 @@ const CHECK_CATEGORY = {
   // A gate stepped around without a written justification.
   'suppressions-justified': 'gate-bypass',
 
+  // INV-08's own gate, stepped around. The same category as an unjustified suppression because it
+  // is the same shape of defect: a protection that was supposed to hold and did not. Mapped here
+  // for the reason the comment above gives - an unmapped check falls through to `unclassified`,
+  // which can never block, so the detection would report and be unable to halt anything.
+  'protected-paths-licensed': 'gate-bypass',
+
   // The work did more than the upstream artifact authorised.
   'plan-adherence': 'scope-drift',
   'tier-not-escalated': 'scope-drift',

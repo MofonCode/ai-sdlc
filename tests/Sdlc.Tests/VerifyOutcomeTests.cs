@@ -1,4 +1,4 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.Text;
 using System.Text.Json;
 
@@ -363,5 +363,144 @@ public sealed class VerifyOutcomeTests
             "solution zero consumes no pack, so a last-resort default still has to exist");
         Assert.IsTrue(text.Contains("INV-04", StringComparison.Ordinal),
             "the reason the default is only a default must be stated where someone would hardcode it");
+    }
+
+    // --- INV-08's detection half gates, rather than only reporting ----------
+
+    [TestMethod]
+    [TestProperty("AC", "AC-20260926-46a0-28")]
+    public void BlocksWhenAProtectedPathChangedWithNoLicence()
+    {
+        // THE CORRECTION THE SPEC'S SECOND VERSION RESTS ON. This script consumes no checks at all -
+        // it reads specific fact fields - so a detection that emitted only a named check would have
+        // gated nothing at all. The check makes the finding citable; this makes it binding.
+        string charter = Path.Combine(_repo!, ".sdlc", "CHARTER.md");
+        string original = File.ReadAllText(charter);
+
+        try
+        {
+            // On master, which carries no intent and therefore no licence for anything.
+            File.WriteAllText(charter, original + "\nan amendment nothing authorised\n");
+
+            JsonElement d = Decide("20260924-aa01");
+
+            Assert.AreEqual("blocked", OutcomeOf(d),
+                "an unlicensed charter change has to stop a landing, or INV-08 is advisory again");
+
+            string[] blockers = [.. d.GetProperty("blockers").EnumerateArray()
+                .Select(e => e.GetString()!)];
+
+            Assert.IsTrue(blockers.Any(b => b.Contains("INV-08", StringComparison.Ordinal)),
+                "the blocker has to name the rule: " + string.Join(" | ", blockers));
+
+            Assert.AreEqual(1, d.GetProperty("unlicensed-protected-paths").GetArrayLength(),
+                "the outcome reports what it blocked on, not only that it blocked");
+        }
+        finally
+        {
+            File.WriteAllText(charter, original);
+        }
+    }
+
+    [TestMethod]
+    [TestProperty("AC", "AC-20260926-46a0-21")]
+    public void ThisRepositoryReportsNoUnjustifiedSuppressionsAndNoOrphanAnnotations()
+    {
+        // The criterion that says the fix actually unblocked THIS repository rather than only
+        // working on a fixture. Both checks reported false positives here and the verification
+        // outcome blocks on both, so no cycle in this tree could pass verification - including any
+        // cycle that tried to fix something else.
+        //
+        // Run against the real checkout, found by walking up from the test output, because the
+        // false positives live in this repository's own sources and a temporary fixture cannot
+        // reproduce them. A missing checkout FAILS rather than skips: a claim about this repository
+        // that quietly went unverified is the shape of defect this whole criterion is about.
+        string? root = FindCheckout(AppContext.BaseDirectory);
+        Assert.IsNotNull(root, "no git checkout found above the test output, so the claim is unverified");
+
+        string[] specs = [.. Directory
+            .EnumerateFiles(Path.Combine(root!, ".sdlc", "cycles"), "spec.md", SearchOption.AllDirectories)
+            .OrderBy(s => s, StringComparer.Ordinal)];
+
+        Assert.IsTrue(specs.Length > 0, "no spec in this repository to gather facts for");
+
+        // ORPHANS ARE COUNTED PER CYCLE, AGAINST THAT CYCLE'S OWN SPEC, and the narrowing is
+        // deliberate rather than convenient. `orphan-annotations` compares every annotation in the
+        // suite against ONE spec's criteria, so once a second cycle annotates a test, each cycle's
+        // annotations read as orphans of the other's spec. That is a real defect in the check and it
+        // is not this cycle's to fix - but it means the only stable form of this claim is the one
+        // that matters: no annotation names a criterion ITS OWN spec fails to declare.
+        List<string> offenders = [];
+        List<string> unjustifiedAnywhere = [];
+
+        foreach (string spec in specs)
+        {
+            string cycleId = Path.GetFileName(Path.GetDirectoryName(spec)!);
+            using JsonDocument facts = GatherFor(root!, spec);
+            JsonElement t = facts.RootElement.GetProperty("traceability");
+
+            offenders.AddRange(t.GetProperty("orphan-annotations")
+                .EnumerateArray()
+                .Select(e => e.GetString()!)
+                .Where(id => id.StartsWith("AC-" + cycleId + "-", StringComparison.Ordinal)));
+
+            // Spec-independent, so reading it from the first gather is enough - but read from every
+            // one anyway, because a scan that depended on which artifact asked would be its own bug.
+            unjustifiedAnywhere.AddRange(t.GetProperty("unjustified-suppressions")
+                .EnumerateArray().Select(e => e.GetString()!));
+        }
+
+        Assert.AreEqual(0, unjustifiedAnywhere.Distinct().Count(),
+            "unjustified suppressions in this repository: "
+            + string.Join(", ", unjustifiedAnywhere.Distinct()));
+
+        Assert.AreEqual(0, offenders.Count,
+            "annotations naming a criterion their own spec does not declare: "
+            + string.Join(", ", offenders));
+    }
+
+    private static JsonDocument GatherFor(string root, string specPath)
+    {
+        string factsScript = Path.Combine(root, "tools", "Get-SdlcFacts.ps1");
+        string relative = Path.GetRelativePath(root, specPath).Replace('\\', '/');
+
+        using Process p = Process.Start(new ProcessStartInfo("powershell.exe")
+        {
+            ArgumentList =
+            {
+                "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass",
+                "-File", factsScript, "-Artifact", relative,
+            },
+            WorkingDirectory = root,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            UseShellExecute = false,
+            StandardOutputEncoding = Encoding.UTF8,
+            StandardErrorEncoding = Encoding.UTF8,
+        })!;
+
+        string json = p.StandardOutput.ReadToEnd();
+        string stderr = p.StandardError.ReadToEnd();
+        p.WaitForExit();
+        Assert.AreEqual(0, p.ExitCode, $"the fact-gatherer failed on {relative}: {stderr}");
+
+        return JsonDocument.Parse(json);
+    }
+
+    private static string? FindCheckout(string start)
+    {
+        string? dir = start;
+        while (!string.IsNullOrEmpty(dir))
+        {
+            if (Directory.Exists(Path.Combine(dir, ".git"))
+                && Directory.Exists(Path.Combine(dir, ".sdlc")))
+            {
+                return dir;
+            }
+
+            dir = Path.GetDirectoryName(dir);
+        }
+
+        return null;
     }
 }

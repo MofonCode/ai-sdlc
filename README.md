@@ -160,7 +160,7 @@ files and be unit-tested; prose in a skill is something a model is asked to foll
 | `Complete-SdlcCycle.ps1` | Landing: rebase, re-verify, suggestions, pull request |
 | `Move-SdlcRelease.ps1` | Moves the `release` ref, bumps the plugin version, tags it |
 | `Assert-SdlcCharterGate.ps1` | The `PreToolUse` hook that refuses an edit to the charter or a pack outside an approved charter intent |
-| `SdlcGit.ps1` · `SdlcArtifact.ps1` · `SdlcPack.ps1` | Dot-sourced helpers: git without PowerShell turning success into failure, one answer to what kind of artifact a path is, and one home for what the declared pack says |
+| `SdlcGit.ps1` · `SdlcArtifact.ps1` · `SdlcPack.ps1` · `SdlcProtectedPaths.ps1` | Dot-sourced helpers: git without PowerShell turning success into failure, one answer to what kind of artifact a path is, one home for what the declared pack says, and the single INV-08 licence answer shared by the gate that prevents a protected write and the check that detects one |
 
 ---
 

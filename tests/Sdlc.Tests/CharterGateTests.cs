@@ -1,4 +1,4 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.Text;
 using System.Text.Json;
 
@@ -205,6 +205,7 @@ public sealed class CharterGateTests
     [DataRow("packs/dotnet-library/pack.yaml")]
     [DataRow("packs/dotnet-library/pack.rules.yaml")]
     [DataRow("packs/dotnet-library/CHARTER.md")]
+    [TestProperty("AC", "AC-20260926-46a0-9")]
     public void EachProtectedPathIsRefusedOnMaster(string path)
     {
         // The fourth is a judgement worth recording. INV-08's wording is "this document, the
@@ -245,6 +246,7 @@ public sealed class CharterGateTests
     }
 
     [TestMethod]
+    [TestProperty("AC", "AC-20260926-46a0-9")]
     public void ANotebookPathIsCheckedToo()
     {
         // NotebookEdit carries `notebook_path`, not `file_path`. A gate that reads one field name
@@ -278,6 +280,7 @@ public sealed class CharterGateTests
     }
 
     [TestMethod]
+    [TestProperty("AC", "AC-20260926-46a0-26")]
     public void AnOrdinaryCycleBranchMayNot()
     {
         // The case the invariant exists for: a cycle that edits its way around an invariant
@@ -308,6 +311,7 @@ public sealed class CharterGateTests
     }
 
     [TestMethod]
+    [TestProperty("AC", "AC-20260926-46a0-24")]
     public void AMissingIntentFileIsRefused()
     {
         // The branch looks right and there is nothing behind it. Reading a well-formed branch
@@ -361,6 +365,7 @@ public sealed class CharterGateTests
     }
 
     [TestMethod]
+    [TestProperty("AC", "AC-20260926-46a0-9")]
     public void AWritingToolWithNoRecognisedPathIsRefused()
     {
         // A writing tool whose shape this gate does not know. It cannot check the edit, so it
@@ -433,6 +438,351 @@ public sealed class CharterGateTests
         });
 
         AssertNoObjection(RunGateRaw(payload));
+    }
+
+    // --- the shell route ----------------------------------------------------
+    //
+    // The hole this cycle closes. The gate once watched four file-writing tools, so a shell
+    // command walked past it - the rule was enforced against the tools that announce a path and
+    // not against the one that hides it in a string.
+    //
+    // Every case here feeds the gate a payload directly, which is how this whole file already
+    // works and why it can test a decision the harness may never deliver for PowerShell.
+
+    private static string ShellPayload(string toolName, string command) =>
+        JsonSerializer.Serialize(new Dictionary<string, object>
+        {
+            ["hook_event_name"] = "PreToolUse",
+            ["tool_name"] = toolName,
+            ["cwd"] = RepoCwd,
+            ["tool_input"] = new Dictionary<string, object> { ["command"] = command },
+        });
+
+    [TestMethod]
+    [TestProperty("AC", "AC-20260926-46a0-1")]
+    [DataRow("Bash")]
+    [DataRow("PowerShell")]
+    public void AShellWriteToTheCharterIsRefusedWithoutALicence(string tool)
+    {
+        Checkout("master");
+        string reason = AssertDenied(RunGateRaw(ShellPayload(tool, "echo x > .sdlc/CHARTER.md")));
+
+        StringAssert.Contains(reason, ".sdlc/CHARTER.md", StringComparison.Ordinal,
+            "a refusal has to name the path, or nobody can act on it");
+        StringAssert.Contains(reason, "charter-review", StringComparison.Ordinal,
+            "a refusal has to say what would permit the write");
+    }
+
+    [TestMethod]
+    [TestProperty("AC", "AC-20260926-46a0-2")]
+    public void AShellWriteToTheCharterIsPermittedOnACharterReviewBranch()
+    {
+        Checkout("intent-20260925-c001");
+        AssertNoObjection(RunGateRaw(ShellPayload("Bash", "echo x > .sdlc/CHARTER.md")));
+    }
+
+    [TestMethod]
+    [TestProperty("AC", "AC-20260926-46a0-3")]
+    [DataRow("packs/dotnet-library/pack.yaml")]
+    [DataRow("packs/dotnet-library/pack.rules.yaml")]
+    [DataRow("packs/dotnet-library/CHARTER.md")]
+    public void AShellWriteToAPackFileIsPermittedOnAPackReviewBranch(string path)
+    {
+        Checkout("intent-20260925-p001");
+        AssertNoObjection(RunGateRaw(ShellPayload("Bash", $"echo x > {path}")));
+    }
+
+    [TestMethod]
+    [TestProperty("AC", "AC-20260926-46a0-4")]
+    public void ALicenceIsBoundToItsPathAndDoesNotCrossOver()
+    {
+        // Before the shared module the gate held ONE flat list of permitted sources, so either
+        // source licensed every protected path. A pack-review intent has no business rewriting a
+        // solution's charter, and a charter-review intent has none rewriting the rules every
+        // future solution inherits.
+        Checkout("intent-20260925-p001");
+        string charterReason = AssertDenied(RunGateRaw(Payload("Edit", "file_path", ".sdlc/CHARTER.md")));
+        StringAssert.Contains(charterReason, "charter-review", StringComparison.Ordinal);
+
+        Checkout("intent-20260925-c001");
+        string packReason = AssertDenied(RunGateRaw(Payload("Edit", "file_path", "packs/dotnet-library/pack.yaml")));
+        StringAssert.Contains(packReason, "pack-review", StringComparison.Ordinal);
+    }
+
+    [TestMethod]
+    [TestProperty("AC", "AC-20260926-46a0-5")]
+    [DataRow("cat .sdlc/CHARTER.md")]
+    [DataRow("grep -n \"INV-08\" .sdlc/CHARTER.md")]
+    [DataRow("grep -n \"INV\" .sdlc/CHARTER.md > notes.txt")]
+    public void AShellCommandThatOnlyReadsAProtectedPathIsPermitted(string command)
+    {
+        // Reading is not changing. The third case matters most: a redirection is present, but its
+        // TARGET is not the protected path, and an earlier version of the classifier denied it.
+        Checkout("master");
+        AssertNoObjection(RunGateRaw(ShellPayload("Bash", command)));
+    }
+
+    [TestMethod]
+    [TestProperty("AC", "AC-20260926-46a0-6")]
+    [DataRow("echo hello > src/Program.cs")]
+    [DataRow("rm -rf build")]
+    [DataRow("dotnet test")]
+    [DataRow("git commit -m \"a message mentioning the charter\"")]
+    public void AShellCommandNamingNoProtectedPathIsPermitted(string command)
+    {
+        // This gate has an opinion about four files. A command touching none of them is not its
+        // business, whatever else it does - otherwise widening the matcher would turn the gate
+        // into a block on the shell.
+        Checkout("master");
+        AssertNoObjection(RunGateRaw(ShellPayload("Bash", command)));
+    }
+
+    [TestMethod]
+    [TestProperty("AC", "AC-20260926-46a0-7")]
+    [DataRow("X=.sdlc/CHARTER.md; echo hi > $X")]
+    [DataRow("echo \"unbalanced > .sdlc/CHARTER.md")]
+    [DataRow("eval \"cat .sdlc/CHARTER.md > /dev/null\"")]
+    public void AShellCommandTheGateCannotEvaluateIsRefused(string command)
+    {
+        // COULD-NOT-EVALUATE IS NOT NO-WRITE-FOUND. Evaluating a command and finding no write is a
+        // determination, and permitting it is the accepted leak. Failing to evaluate it at all is
+        // no determination, so it denies - the same reason a thrown gate denies.
+        Checkout("master");
+        string reason = AssertDenied(RunGateRaw(ShellPayload("Bash", command)));
+        StringAssert.Contains(reason, "could not evaluate", StringComparison.Ordinal,
+            "the refusal has to say it could not evaluate, not imply a write was found: " + reason);
+    }
+
+    [TestMethod]
+    [TestProperty("AC", "AC-20260926-46a0-7")]
+    public void AnUnreadableCommandIsPermittedOnTheBranchThatHoldsTheLicence()
+    {
+        // Fail closed means denying when permission cannot be ESTABLISHED. On a charter-review
+        // branch it has been, for this path - so refusing a command the gate cannot parse there is
+        // friction with no safety behind it, since the same author could make the same edit with
+        // Edit and be permitted. The deny stays for every branch with no licence.
+        Checkout("intent-20260925-c001");
+        AssertNoObjection(RunGateRaw(ShellPayload("Bash", "sed -i \"s/$OLD/new/\" .sdlc/CHARTER.md")));
+    }
+
+    [TestMethod]
+    [TestProperty("AC", "AC-20260926-46a0-22")]
+    [DataRow("rm .sdlc/CHARTER.md")]
+    [DataRow("mv .sdlc/CHARTER.md .sdlc/CHARTER.old.md")]
+    [DataRow("Remove-Item .sdlc/CHARTER.md")]
+    [DataRow("truncate -s 0 .sdlc/CHARTER.md")]
+    public void DestroyingAProtectedPathIsRefusedLikeAnyOtherWrite(string command)
+    {
+        // DESTRUCTION IS A WRITE SHAPE, NOT THE ABSENCE OF ONE. Removing, renaming, moving or
+        // truncating a protected path is the largest change available to it, and the first version
+        // of the classifier recognised only writes that produce content - so a command deleting
+        // the charter would have been permitted on an unlicensed branch.
+        Checkout("master");
+        string reason = AssertDenied(RunGateRaw(ShellPayload("Bash", command)));
+        StringAssert.Contains(reason, ".sdlc/CHARTER.md", StringComparison.Ordinal);
+    }
+
+    // --- creation is not modification ---------------------------------------
+
+    [TestMethod]
+    [TestProperty("AC", "AC-20260926-46a0-8")]
+    public void CreatingAProtectedPathThatDoesNotExistYetNeedsNoLicence()
+    {
+        // You cannot loosen a rule that has not been written. Creating a new pack is an ordinary
+        // cycle, and `init` writing a first charter into an ungoverned repository is the same
+        // shape.
+        Checkout("master");
+        AssertNoObjection(RunGateRaw(Payload("Write", "file_path", "packs/brand-new/pack.yaml")));
+        AssertNoObjection(RunGateRaw(ShellPayload("Bash", "echo 'name: new' > packs/brand-new/pack.yaml")));
+    }
+
+    [TestMethod]
+    [TestProperty("AC", "AC-20260926-46a0-8")]
+    public void AFirstCharterInARepositoryWithNoCommitIsPermitted()
+    {
+        // The case that decided the mechanic: existence is tested ON DISK rather than against a
+        // git baseline, because this repository has no commit to compare against - which is
+        // exactly where `init` runs. An earlier version tested the baseline and denied it.
+        string fresh = Path.Combine(Path.GetTempPath(), "sdlc-fresh-" + Guid.NewGuid().ToString("N")[..8]);
+        Directory.CreateDirectory(Path.Combine(fresh, ".sdlc"));
+
+        try
+        {
+            RunGitIn(fresh, "init --initial-branch=master");
+
+            string payload = JsonSerializer.Serialize(new Dictionary<string, object>
+            {
+                ["hook_event_name"] = "PreToolUse",
+                ["tool_name"] = "Write",
+                ["cwd"] = fresh.Replace('\\', '/'),
+                ["tool_input"] = new Dictionary<string, object> { ["file_path"] = ".sdlc/CHARTER.md" },
+            });
+
+            AssertNoObjection(RunGateInRaw(fresh, payload));
+        }
+        finally
+        {
+            TryDelete(fresh);
+        }
+    }
+
+    // --- the shared licence answer ------------------------------------------
+
+    [TestMethod]
+    [TestProperty("AC", "AC-20260926-46a0-14")]
+    public void BothMechanismsResolveTheLicenceThroughOneSharedFunction()
+    {
+        // A PREVENTION AND A DETECTION THAT DISAGREE ARE WORSE THAN EITHER ALONE: the gate looks
+        // stricter than it is and the check reports paths nobody guards. Asserted on the source
+        // because the alternative - comparing two behaviours across every case - is the drift
+        // this is meant to prevent, discovered late.
+        string gate = File.ReadAllText(ScriptPath);
+        string facts = File.ReadAllText(
+            Path.Combine(AppContext.BaseDirectory, "tools", "Get-SdlcFacts.ps1"));
+
+        foreach ((string name, string code) in new[] { ("the gate", gate), ("the fact-gatherer", facts) })
+        {
+            StringAssert.Contains(code, "SdlcProtectedPaths.ps1", StringComparison.Ordinal,
+                $"{name} must resolve the licence through the shared module");
+            StringAssert.Contains(code, "Test-SdlcWriteLicensed", StringComparison.Ordinal,
+                $"{name} must ask the shared function, not its own copy of the rule");
+        }
+
+        Assert.IsFalse(gate.Contains("$permittedSources", StringComparison.Ordinal),
+            "the gate's own flat list of permitted sources is what path-binding replaced");
+    }
+
+    [TestMethod]
+    [TestProperty("AC", "AC-20260926-46a0-23")]
+    public void WhenTheSharedModuleCannotBeLoadedTheGateDenies()
+    {
+        // The reason the module is dot-sourced INSIDE the gate's try/catch. A load failure above
+        // it is an error the script never sees, which Claude Code reads as no opinion - a
+        // fail-open in the one component that must fail closed.
+        string sandbox = Path.Combine(Path.GetTempPath(), "sdlc-noload-" + Guid.NewGuid().ToString("N")[..8]);
+        Directory.CreateDirectory(sandbox);
+
+        try
+        {
+            string gateCopy = Path.Combine(sandbox, "Assert-SdlcCharterGate.ps1");
+            File.Copy(ScriptPath, gateCopy);
+
+            // Everything the gate needs EXCEPT the licence module, which is the condition under
+            // test. A sandbox missing every helper would prove only that a broken install denies.
+            string moduleName = "SdlcProtectedPaths.ps1";
+            foreach (string helper in Directory.EnumerateFiles(
+                Path.Combine(AppContext.BaseDirectory, "tools"), "Sdlc*.ps1"))
+            {
+                if (Path.GetFileName(helper).Equals(moduleName, StringComparison.Ordinal))
+                {
+                    continue;
+                }
+
+                File.Copy(helper, Path.Combine(sandbox, Path.GetFileName(helper)), overwrite: true);
+            }
+
+            string payloadFile = Path.Combine(sandbox, "payload.json");
+            File.WriteAllText(payloadFile, Payload("Edit", "file_path", ".sdlc/CHARTER.md"), new UTF8Encoding(false));
+
+            using Process p = Process.Start(new ProcessStartInfo("powershell.exe")
+            {
+                ArgumentList =
+                {
+                    "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass",
+                    "-File", gateCopy, "-PayloadPath", payloadFile,
+                },
+                WorkingDirectory = _repo!,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false,
+                StandardOutputEncoding = Encoding.UTF8,
+                StandardErrorEncoding = Encoding.UTF8,
+            })!;
+
+            string stdout = p.StandardOutput.ReadToEnd().Trim();
+            p.WaitForExit();
+
+            Assert.AreEqual(0, p.ExitCode, "even a broken gate must exit 0 and express itself in JSON");
+            AssertDenied(stdout);
+        }
+        finally
+        {
+            TryDelete(sandbox);
+        }
+    }
+
+    [TestMethod]
+    [TestProperty("AC", "AC-20260926-46a0-25")]
+    public void AnIntentWithUnreadableFrontmatterIsRefused()
+    {
+        // An intent file with no frontmatter at all declares nothing, and nothing is not a
+        // licence.
+        string intents = Path.Combine(_repo!, ".sdlc", "intents");
+        File.WriteAllText(Path.Combine(intents, "20260925-b001.md"), "# no frontmatter here\n");
+        Git("branch --force intent-20260925-b001 master");
+        Checkout("intent-20260925-b001");
+
+        string reason = AssertDenied(RunGateRaw(Payload("Edit", "file_path", ".sdlc/CHARTER.md")));
+        StringAssert.Contains(reason, "frontmatter", StringComparison.Ordinal);
+    }
+
+    private static void RunGitIn(string root, string args)
+    {
+        using Process p = Process.Start(new ProcessStartInfo("git", args)
+        {
+            WorkingDirectory = root,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            UseShellExecute = false,
+        })!;
+
+        p.StandardError.ReadToEnd();
+        p.WaitForExit();
+    }
+
+    private static string RunGateInRaw(string root, string payloadJson)
+    {
+        string payloadFile = Path.Combine(root, "payload.json");
+        File.WriteAllText(payloadFile, payloadJson, new UTF8Encoding(false));
+
+        using Process p = Process.Start(new ProcessStartInfo("powershell.exe")
+        {
+            ArgumentList =
+            {
+                "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass",
+                "-File", ScriptPath, "-PayloadPath", payloadFile,
+            },
+            WorkingDirectory = root,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            UseShellExecute = false,
+            StandardOutputEncoding = Encoding.UTF8,
+            StandardErrorEncoding = Encoding.UTF8,
+        })!;
+
+        string stdout = p.StandardOutput.ReadToEnd();
+        p.WaitForExit();
+        Assert.AreEqual(0, p.ExitCode, "the gate must always exit 0 and express itself in JSON");
+        return stdout.Trim();
+    }
+
+    private static void TryDelete(string dir)
+    {
+        try
+        {
+            foreach (string f in Directory.EnumerateFiles(dir, "*", SearchOption.AllDirectories))
+            {
+                File.SetAttributes(f, FileAttributes.Normal);
+            }
+
+            Directory.Delete(dir, recursive: true);
+        }
+        catch (IOException)
+        {
+        }
+        catch (UnauthorizedAccessException)
+        {
+        }
     }
 
     [TestMethod]

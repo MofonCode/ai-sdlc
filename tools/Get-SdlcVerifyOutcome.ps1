@@ -181,6 +181,7 @@ $uncovered = @()
 $orphanAnnotations = @()
 $suppressionCount = 0
 $unjustified = @()
+$unlicensedProtected = @()
 
 if ($null -ne $specFacts) {
     if (Test-Field $specFacts 'acceptance-criteria') {
@@ -188,6 +189,22 @@ if ($null -ne $specFacts) {
         $criteriaTotal = $criteria.Count
         foreach ($c in $criteria) {
             if ((Test-Field $c 'verifiable') -and $c.verifiable) { $criteriaVerifiable++ }
+        }
+    }
+
+    # INV-08's detection half. READ AS A FACT FIELD, not as a check: this script consumes no
+    # checks at all, so a detection that emitted only a named check would gate nothing. That is
+    # the correction the spec's second version rests on.
+    if ((Test-Field $specFacts 'protected-paths') -and $null -ne $specFacts.'protected-paths') {
+        $pp = $specFacts.'protected-paths'
+        if ((Test-Field $pp 'unlicensed') -and $null -ne $pp.unlicensed) {
+            $unlicensedProtected = @($pp.unlicensed | Where-Object { $_ })
+        }
+        if ((Test-Field $pp 'could-not-run') -and $pp.'could-not-run') {
+            $reasonText = 'unknown reason'
+            if (Test-Field $pp 'reason') { $reasonText = [string] $pp.reason }
+            $unlicensedProtected = @($unlicensedProtected) + @(
+                [pscustomobject]@{ path = '(the check could not run)'; reason = $reasonText })
         }
     }
 
@@ -288,6 +305,10 @@ else {
     if ($unjustified.Count -gt 0) {
         $null = $blockers.Add('suppressions with no written justification: ' + ($unjustified -join ', '))
     }
+    if (@($unlicensedProtected).Count -gt 0) {
+        $null = $blockers.Add('protected paths changed with no licence under INV-08: ' +
+            ((@($unlicensedProtected) | ForEach-Object { $_.path }) -join ', '))
+    }
     if ($undispositioned -gt 0) {
         $null = $blockers.Add("$undispositioned finding(s) still undispositioned")
     }
@@ -314,6 +335,7 @@ $result = [ordered]@{
     'orphan-annotations'       = @($orphanAnnotations)
     'suppression-count'        = $suppressionCount
     'unjustified-suppressions' = @($unjustified)
+    'unlicensed-protected-paths' = @($unlicensedProtected)
     undispositioned            = $undispositioned
     'build-passed'             = $buildPassed
     'tests-passed'             = $testsPassed

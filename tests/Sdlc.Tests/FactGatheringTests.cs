@@ -1,4 +1,4 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.Text;
 using System.Text.Json;
 
@@ -756,5 +756,473 @@ public sealed class FactGatheringTests
 
         StringAssert.Contains(DetailOf(facts, "frontmatter-valid"), "no schema",
             StringComparison.Ordinal);
+    }
+
+    // --- INV-08's detection half --------------------------------------------
+    //
+    // Each case builds its own throwaway repository rather than sharing the class fixture, because
+    // every one of them needs a different branch, a different intent source, or a deliberately
+    // broken git.
+
+    /// <summary>
+    /// A repository with a charter, one intent of the given source, and a spec under that cycle.
+    /// Committed on master unless <paramref name="commit"/> says otherwise.
+    /// </summary>
+    private static string MakeProtectedRepo(string intentId, string source, bool commit = true)
+    {
+        string root = Path.Combine(Path.GetTempPath(), "sdlc-pp-" + Guid.NewGuid().ToString("N")[..8]);
+        Directory.CreateDirectory(Path.Combine(root, ".sdlc", "intents"));
+        Directory.CreateDirectory(Path.Combine(root, ".sdlc", "cycles", intentId));
+
+        File.WriteAllText(Path.Combine(root, ".sdlc", "CHARTER.md"),
+            "---\nversion: 1\nsolution: fixture\n---\n\n# Charter\n");
+
+        File.WriteAllText(Path.Combine(root, ".sdlc", "intents", intentId + ".md"),
+            $"---\nid: {intentId}\nsource: {source}\ncharter-version: 1\n---\n\n# Intent\n");
+
+        File.WriteAllText(Path.Combine(root, ".sdlc", "cycles", intentId, "spec.md"),
+            $"---\ncycle-id: {intentId}\nintent: {intentId}\ncharter-version: 1\n---\n\n# Spec\n");
+
+        GitIn(root, "init --initial-branch=master");
+        if (commit)
+        {
+            GitIn(root, "add -A");
+            GitIn(root, "-c user.email=t@example.invalid -c user.name=Test commit -m fixture");
+        }
+
+        return root;
+    }
+
+    private static void GitIn(string root, string args)
+    {
+        using Process p = Process.Start(new ProcessStartInfo("git", args)
+        {
+            WorkingDirectory = root,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            UseShellExecute = false,
+        })!;
+
+        p.StandardOutput.ReadToEnd();
+        p.StandardError.ReadToEnd();
+        p.WaitForExit();
+    }
+
+    private static JsonDocument GatherIn(string root, string artifactRelativePath)
+    {
+        string json = Run(
+            "powershell.exe",
+            $"-NoProfile -ExecutionPolicy Bypass -File \"{ScriptPath}\" -Artifact \"{artifactRelativePath}\"",
+            root);
+
+        return JsonDocument.Parse(json);
+    }
+
+    private static void Discard(string dir)
+    {
+        try
+        {
+            foreach (string f in Directory.EnumerateFiles(dir, "*", SearchOption.AllDirectories))
+            {
+                File.SetAttributes(f, FileAttributes.Normal);
+            }
+
+            Directory.Delete(dir, recursive: true);
+        }
+        catch (IOException)
+        {
+        }
+        catch (UnauthorizedAccessException)
+        {
+        }
+    }
+
+    [TestMethod]
+    [TestProperty("AC", "AC-20260926-46a0-10")]
+    public void AnUnlicensedProtectedChangeFailsTheCheck()
+    {
+        // The whole point of the detection half. The gate prevents a write it can SEE; this reports
+        // one that already happened - a person in an editor, a tool the matcher does not cover, a
+        // hook switched off.
+        string root = MakeProtectedRepo("20260926-a001", "authored");
+
+        try
+        {
+            GitIn(root, "checkout -b cycle-20260926-a001");
+            File.AppendAllText(Path.Combine(root, ".sdlc", "CHARTER.md"), "\nan unlicensed amendment\n");
+
+            using JsonDocument facts = GatherIn(root, ".sdlc/cycles/20260926-a001/spec.md");
+
+            Assert.IsTrue(FailedChecks(facts).Contains("protected-paths-licensed"),
+                "a charter changed on a branch whose intent is `authored` is exactly INV-08's case");
+
+            JsonElement pp = facts.RootElement.GetProperty("protected-paths");
+            Assert.AreEqual(1, pp.GetProperty("unlicensed").GetArrayLength());
+            Assert.AreEqual(".sdlc/CHARTER.md",
+                pp.GetProperty("unlicensed")[0].GetProperty("path").GetString());
+        }
+        finally
+        {
+            Discard(root);
+        }
+    }
+
+    [TestMethod]
+    [TestProperty("AC", "AC-20260926-46a0-10")]
+    public void ALicensedProtectedChangeDoesNotFailTheCheck()
+    {
+        // The other direction, and the one that decides whether the check is usable: a charter
+        // amendment on its own charter-review branch is the PERMITTED case, and a check that fired
+        // on it would make every amendment unlandable.
+        string root = MakeProtectedRepo("20260926-c002", "charter-review");
+
+        try
+        {
+            GitIn(root, "checkout -b intent-20260926-c002");
+            File.AppendAllText(Path.Combine(root, ".sdlc", "CHARTER.md"), "\na licensed amendment\n");
+
+            using JsonDocument facts = GatherIn(root, ".sdlc/cycles/20260926-c002/spec.md");
+
+            Assert.IsFalse(FailedChecks(facts).Contains("protected-paths-licensed"),
+                "an amendment on its own charter-review branch is what INV-08 permits");
+        }
+        finally
+        {
+            Discard(root);
+        }
+    }
+
+    [TestMethod]
+    [TestProperty("AC", "AC-20260926-46a0-11")]
+    public void TheCheckSkipsWithAReasonWhenNoBaselineResolves()
+    {
+        // A repository with no commit, which is where `init` runs. Nothing to compare against, so
+        // no comparison was owed - and reporting a failure would make an ungoverned repository look
+        // like a violated one.
+        string root = MakeProtectedRepo("20260926-a003", "authored", commit: false);
+
+        try
+        {
+            using JsonDocument facts = GatherIn(root, ".sdlc/cycles/20260926-a003/spec.md");
+
+            Assert.IsFalse(FailedChecks(facts).Contains("protected-paths-licensed"),
+                "a skip is not a failure");
+
+            JsonElement pp = facts.RootElement.GetProperty("protected-paths");
+            Assert.IsTrue(pp.GetProperty("skipped").GetBoolean());
+            Assert.IsFalse(string.IsNullOrWhiteSpace(pp.GetProperty("reason").GetString()),
+                "a skip without a reason is indistinguishable from a pass to whoever reads it");
+            StringAssert.Contains(DetailOf(facts, "protected-paths-licensed"), "skipped",
+                StringComparison.Ordinal);
+        }
+        finally
+        {
+            Discard(root);
+        }
+    }
+
+    [TestMethod]
+    [TestProperty("AC", "AC-20260926-46a0-12")]
+    public void TheCheckFailsWhenItCannotRunAndSaysSoDistinctlyFromSkipping()
+    {
+        // COULD-NOT-RUN IS NOT A SKIP. A baseline resolved, so a comparison WAS owed - and a git
+        // that cannot make it must not read as a clean charter. Provoked by breaking the index,
+        // which leaves `rev-parse` working and `diff` failing, so the two answers are genuinely
+        // reached by different conditions rather than by a flag a test set.
+        string root = MakeProtectedRepo("20260926-a004", "authored");
+
+        try
+        {
+            string index = Path.Combine(root, ".git", "index");
+            File.Delete(index);
+            Directory.CreateDirectory(index);
+
+            using JsonDocument facts = GatherIn(root, ".sdlc/cycles/20260926-a004/spec.md");
+
+            Assert.IsTrue(FailedChecks(facts).Contains("protected-paths-licensed"),
+                "a comparison that was owed and could not be made is a failure");
+
+            JsonElement pp = facts.RootElement.GetProperty("protected-paths");
+            Assert.IsTrue(pp.GetProperty("could-not-run").GetBoolean());
+            Assert.IsFalse(pp.GetProperty("skipped").GetBoolean(),
+                "could-not-run and skipped are different answers and must not collapse");
+            StringAssert.Contains(DetailOf(facts, "protected-paths-licensed"), "could not run",
+                StringComparison.Ordinal);
+        }
+        finally
+        {
+            Discard(root);
+        }
+    }
+
+    [TestMethod]
+    [TestProperty("AC", "AC-20260926-46a0-13")]
+    public void AProtectedPathCommittedDirectlyToMasterIsReportedAgainstARemoteBaseline()
+    {
+        // The case a local-only baseline cannot see. On master the branch carries no intent at all,
+        // so a charter commit there is unlicensed by construction - but only a remote-tracking
+        // baseline reveals it, because comparing master against itself finds nothing.
+        string root = MakeProtectedRepo("20260926-a005", "authored");
+        string remote = root + "-remote";
+
+        try
+        {
+            GitIn(root, $"init --bare \"{remote}\"");
+            GitIn(root, $"remote add origin \"{remote}\"");
+            GitIn(root, "push -u origin master");
+
+            File.AppendAllText(Path.Combine(root, ".sdlc", "CHARTER.md"), "\nstraight to master\n");
+            GitIn(root, "add -A");
+            GitIn(root, "-c user.email=t@example.invalid -c user.name=Test commit -m sneaky");
+
+            using JsonDocument facts = GatherIn(root, ".sdlc/cycles/20260926-a005/spec.md");
+
+            JsonElement pp = facts.RootElement.GetProperty("protected-paths");
+            Assert.AreEqual("remote-tracking", pp.GetProperty("baseline-kind").GetString(),
+                "the baseline actually used decides what the result means, so it is reported");
+            Assert.IsTrue(FailedChecks(facts).Contains("protected-paths-licensed"),
+                "a charter committed directly to master carries no intent and no licence");
+        }
+        finally
+        {
+            Discard(root);
+            Discard(remote);
+        }
+    }
+
+    [TestMethod]
+    [TestProperty("AC", "AC-20260926-46a0-27")]
+    public void AnAmendmentAlreadyInTheBaselineDoesNotFailTheCheck()
+    {
+        // Once an amendment is merged and pushed the baseline CONTAINS it, so the difference
+        // disappears and the check goes quiet. Without this the first landed amendment would leave
+        // every later cycle permanently blocked.
+        string root = MakeProtectedRepo("20260926-c006", "charter-review");
+        string remote = root + "-remote";
+
+        try
+        {
+            File.AppendAllText(Path.Combine(root, ".sdlc", "CHARTER.md"), "\na landed amendment\n");
+            GitIn(root, "add -A");
+            GitIn(root, "-c user.email=t@example.invalid -c user.name=Test commit -m amend");
+
+            GitIn(root, $"init --bare \"{remote}\"");
+            GitIn(root, $"remote add origin \"{remote}\"");
+            GitIn(root, "push -u origin master");
+
+            using JsonDocument facts = GatherIn(root, ".sdlc/cycles/20260926-c006/spec.md");
+
+            Assert.IsFalse(FailedChecks(facts).Contains("protected-paths-licensed"),
+                "an amendment present in the baseline is not a difference from it");
+        }
+        finally
+        {
+            Discard(root);
+            Discard(remote);
+        }
+    }
+
+    [TestMethod]
+    public void ARepositoryWithNoProtectedPathsPassesRatherThanSkipping()
+    {
+        // There is nothing to compare and nothing to violate. Skipping would imply a check was owed
+        // and not made, which is a different claim about the same repository.
+        string root = MakeProtectedRepo("20260926-a007", "authored");
+
+        try
+        {
+            File.Delete(Path.Combine(root, ".sdlc", "CHARTER.md"));
+            GitIn(root, "add -A");
+            GitIn(root, "-c user.email=t@example.invalid -c user.name=Test commit -m ungoverned");
+
+            using JsonDocument facts = GatherIn(root, ".sdlc/cycles/20260926-a007/spec.md");
+
+            JsonElement pp = facts.RootElement.GetProperty("protected-paths");
+            Assert.IsFalse(pp.GetProperty("skipped").GetBoolean(),
+                "no protected paths is an answer, not an absence of one");
+            Assert.IsFalse(FailedChecks(facts).Contains("protected-paths-licensed"));
+        }
+        finally
+        {
+            Discard(root);
+        }
+    }
+
+    // --- the two scanners, in both directions -------------------------------
+    //
+    // BOTH DIRECTIONS FOR EACH, because a scanner that reports nothing passes the false-positive
+    // half and is useless. These two checks blocked verification for every cycle in this
+    // repository, and the fix that silences them must not silence them everywhere.
+
+    [TestMethod]
+    [TestProperty("AC", "AC-20260926-46a0-17")]
+    [TestProperty("AC", "AC-20260926-46a0-18")]
+    public void TheSuppressionScanIgnoresASpellingInsideAStringAndStillReportsARealOne()
+    {
+        string root = MakeProtectedRepo("20260926-a008", "authored");
+
+        try
+        {
+            // The false positive's exact shape: an assertion ABOUT suppressions, which therefore
+            // names one inside a quoted string on a code line with no comment beside it.
+            File.WriteAllText(Path.Combine(root, "Asserts.cs"), """
+                public static class Asserts
+                {
+                    public static bool Check(string text) =>
+                        text.Contains("#pragma warning disable", System.StringComparison.Ordinal)
+                        || text.Contains("<NoWarn>", System.StringComparison.Ordinal);
+                }
+                """);
+
+            // And a genuine one, in code, with nothing justifying it.
+            File.WriteAllText(Path.Combine(root, "Real.cs"), """
+                public static class Real
+                {
+                #pragma warning disable CS1591
+                    public static int Value => 1;
+                }
+                """);
+
+            GitIn(root, "add -A");
+            GitIn(root, "-c user.email=t@example.invalid -c user.name=Test commit -m scanners");
+
+            using JsonDocument facts = GatherIn(root, ".sdlc/cycles/20260926-a008/spec.md");
+
+            string[] unjustified = [.. facts.RootElement
+                .GetProperty("traceability").GetProperty("unjustified-suppressions")
+                .EnumerateArray().Select(e => e.GetString()!)];
+
+            Assert.IsFalse(unjustified.Any(u => u.StartsWith("Asserts.cs", StringComparison.Ordinal)),
+                "a suppression spelling inside a quoted string is an assertion about suppressions, "
+                + "not a suppression: " + string.Join(", ", unjustified));
+
+            Assert.IsTrue(unjustified.Any(u => u.StartsWith("Real.cs", StringComparison.Ordinal)),
+                "a scanner that reports nothing is useless: " + string.Join(", ", unjustified));
+        }
+        finally
+        {
+            Discard(root);
+        }
+    }
+
+    [TestMethod]
+    [TestProperty("AC", "AC-20260926-46a0-19")]
+    [TestProperty("AC", "AC-20260926-46a0-20")]
+    public void TheAnnotationScanIgnoresAnAnnotationInARawStringAndStillReadsARealOne()
+    {
+        string root = MakeProtectedRepo("20260926-a009", "authored");
+
+        try
+        {
+            // A real annotation, and one that is the SOURCE TEXT of a generated fixture project.
+            // Read literally the second is traceability this repository never declared.
+            string quote = "\"\"\"";
+            File.WriteAllText(Path.Combine(root, "Tests.cs"),
+                "public sealed class Tests\n"
+                + "{\n"
+                + "    [TestProperty(\"AC\", \"AC-20260926-a009-1\")]\n"
+                + "    public void Real() { }\n"
+                + "\n"
+                + "    public string Fixture => " + quote + "\n"
+                + "        [TestProperty(\"AC\", \"AC-generated-fixture-42\")]\n"
+                + "        public void Inside() { }\n"
+                + "        " + quote + ";\n"
+                + "}\n");
+
+            GitIn(root, "add -A");
+            GitIn(root, "-c user.email=t@example.invalid -c user.name=Test commit -m annotations");
+
+            using JsonDocument facts = GatherIn(root, ".sdlc/cycles/20260926-a009/spec.md");
+
+            string[] annotated = [.. facts.RootElement.GetProperty("test-annotations")
+                .EnumerateArray().Select(e => e.GetProperty("criterion").GetString()!)];
+
+            Assert.IsFalse(annotated.Contains("AC-generated-fixture-42"),
+                "an annotation inside a raw string literal is fixture source, not traceability: "
+                + string.Join(", ", annotated));
+
+            Assert.IsTrue(annotated.Contains("AC-20260926-a009-1"),
+                "the real annotation must survive the fix: " + string.Join(", ", annotated));
+        }
+        finally
+        {
+            Discard(root);
+        }
+    }
+
+    [TestMethod]
+    [TestProperty("AC", "AC-20260926-46a0-11")]
+    public void TheBaselineDegradesToLocalMasterWhenThereIsNoRemote()
+    {
+        // The spec declares three baselines and the criteria named only the first. Which comparison
+        // was actually made changes what the result MEANS, so each fallback has to be reachable and
+        // reported - an untested fallback is a silent change of subject.
+        string root = MakeProtectedRepo("20260926-a010", "authored");
+
+        try
+        {
+            GitIn(root, "checkout -b cycle-20260926-a010");
+
+            using JsonDocument facts = GatherIn(root, ".sdlc/cycles/20260926-a010/spec.md");
+            JsonElement pp = facts.RootElement.GetProperty("protected-paths");
+
+            Assert.AreEqual("local-master", pp.GetProperty("baseline-kind").GetString(),
+                "with no remote and HEAD off master, local master is the merge target");
+        }
+        finally
+        {
+            Discard(root);
+        }
+    }
+
+    [TestMethod]
+    [TestProperty("AC", "AC-20260926-46a0-11")]
+    public void TheBaselineDegradesToHeadOnMasterWithNoRemote()
+    {
+        // The last fallback. Against HEAD the check sees only an UNCOMMITTED change, which is a
+        // weaker claim than the other two make - hence reporting the kind rather than only the
+        // result.
+        string root = MakeProtectedRepo("20260926-a011", "authored");
+
+        try
+        {
+            using JsonDocument facts = GatherIn(root, ".sdlc/cycles/20260926-a011/spec.md");
+            JsonElement pp = facts.RootElement.GetProperty("protected-paths");
+
+            Assert.AreEqual("head", pp.GetProperty("baseline-kind").GetString(),
+                "on master with no remote there is nothing to compare against but HEAD");
+        }
+        finally
+        {
+            Discard(root);
+        }
+    }
+
+    [TestMethod]
+    [TestProperty("AC", "AC-20260926-46a0-8")]
+    public void TheDetectionHalfDoesNotReportAProtectedPathThatIsMerelyBeingCreated()
+    {
+        // Creation needs no licence in BOTH mechanisms, and only the gate half had a criterion for
+        // it. The two must agree: a gate that permits a first charter while the check reports it as
+        // an unlicensed change would block the very cycle the gate just allowed.
+        string root = MakeProtectedRepo("20260926-a012", "authored");
+
+        try
+        {
+            // A pack file that exists on disk and in no commit - created, not amended.
+            Directory.CreateDirectory(Path.Combine(root, "packs", "fresh"));
+            File.WriteAllText(Path.Combine(root, "packs", "fresh", "pack.yaml"), "name: fresh\n");
+
+            GitIn(root, "checkout -b cycle-20260926-a012");
+
+            using JsonDocument facts = GatherIn(root, ".sdlc/cycles/20260926-a012/spec.md");
+
+            Assert.IsFalse(FailedChecks(facts).Contains("protected-paths-licensed"),
+                "a protected path being created is not a protected path being loosened");
+        }
+        finally
+        {
+            Discard(root);
+        }
     }
 }
