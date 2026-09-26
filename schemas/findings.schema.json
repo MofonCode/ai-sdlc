@@ -26,6 +26,16 @@
       "minimum": 1,
       "description": "Interrogation round. Round 2+ interrogates repair diffs, not the whole artifact."
     },
+    "failed-checks": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 },
+      "description": "Every check that failed in this run. PROVENANCE, and the reason a check citation stays auditable: `{kind:'check', id:'x'}` asserts that x FAILED, which is a property of the run rather than of the artifact — so without this list nothing downstream can tell a real citation from a plausible-looking one. The workflow emitted this field before the schema allowed it, which made every real interrogation document invalid; nothing noticed because nothing validated one."
+    },
+    "rejected-citations": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 },
+      "description": "Citations an agent named that did not resolve, and were therefore dropped — leaving the finding at `suggested`. Recorded rather than swallowed: a role that keeps naming checks which did not fail is producing plausible noise, which is exactly what the amendment signals want to know."
+    },
     "findings": {
       "type": "array",
       "items": { "$ref": "#/$defs/finding" }

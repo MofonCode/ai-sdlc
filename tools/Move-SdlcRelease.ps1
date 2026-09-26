@@ -37,9 +37,9 @@
     Do everything locally and push nothing.
 
 .PARAMETER TestCommand
-    The release gate. Defaults to the .NET one because this solution consumes no pack; a
-    solution with a pack takes its gate commands from there, since INV-04 delegates the stack
-    and tool names stay out of the charter.
+    The release gate. Resolved as a caller's value, then the DECLARED PACK's, then the .NET default
+    for a solution that consumes none. The pack step is the one that was missing: its gates were
+    declared precisely so tool names would stay out of the charter, and nothing read them.
 
 .EXAMPLE
     .\Move-SdlcRelease.ps1 -Version 0.2.0
@@ -72,7 +72,7 @@ param(
     # gate untestable - a fixture repository with no .NET project could only ever report
     # `refused-tests-fail`, so nothing past that point was reachable by a test.
     [Parameter()]
-    [string] $TestCommand = 'dotnet test'
+    [string] $TestCommand
 )
 
 Set-StrictMode -Version Latest
@@ -87,6 +87,9 @@ $OutputEncoding = New-Object System.Text.UTF8Encoding $false
 # Dot-sourced, not duplicated: git writes ordinary progress to stderr, and `2>&1` on a
 # native command turns that into a terminating error under `Stop`. See SdlcGit.ps1.
 . (Join-Path $PSScriptRoot 'SdlcGit.ps1')
+
+# The pack owns the gate command, because the charter is not allowed to name a tool.
+. (Join-Path $PSScriptRoot 'SdlcPack.ps1')
 
 function Resolve-RepoRoot {
     param([string] $Start)
@@ -108,6 +111,14 @@ if ($Version -notmatch '^[0-9]+\.[0-9]+\.[0-9]+$') {
 
 if (-not $RepoRoot) { $RepoRoot = Resolve-RepoRoot -Start (Get-Location).Path }
 $RepoRoot = (Resolve-Path -LiteralPath $RepoRoot).Path
+
+# A caller wins, then the declared pack, then the .NET default. The pack owns tool names because the
+# charter is forbidden from naming one, and until this existed the declaration was decorative.
+if (-not $TestCommand) {
+    $declaredPack = Get-SdlcDeclaredPack -CharterPath (Join-Path $RepoRoot '.sdlc/CHARTER.md')
+    $TestCommand = Get-SdlcPackGate -Name $declaredPack -Gate 'test'
+}
+if (-not $TestCommand) { $TestCommand = 'dotnet test' }
 
 $manifestRel = '.claude-plugin/plugin.json'
 $manifestPath = Join-Path $RepoRoot $manifestRel
@@ -239,7 +250,7 @@ try {
         1)
 
     [System.IO.File]::WriteAllText($manifestPath, $updated, (New-Object System.Text.UTF8Encoding $false))
-    $staged = Invoke-SdlcGit add -- $manifestRel
+    $staged = Invoke-SdlcGit add '--' $manifestRel
 
     # On a first release at the manifest's own version there is nothing to rewrite, so `commit`
     # would fail with "nothing to commit" - which is success here, not failure. Reads .code

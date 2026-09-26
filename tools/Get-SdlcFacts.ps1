@@ -58,6 +58,16 @@ $ErrorActionPreference = 'Stop'
 $OutputEncoding = New-Object System.Text.UTF8Encoding $false
 [Console]::OutputEncoding = $OutputEncoding
 
+# Dot-sourced, not duplicated: the artifact kind decides which invariants apply, which checks
+# run, which row of the gaps table a role reads and which schema validates the document. Two
+# functions answering that would disagree the first time a kind was added, silently.
+. (Join-Path $PSScriptRoot 'SdlcArtifact.ps1')
+
+# And one home for what the declared pack says, for the same reason. The charter delegates tool
+# names to the pack, so anything that needs them -- the rules an interrogation can name, the gate
+# commands a verification runs -- asks here.
+. (Join-Path $PSScriptRoot 'SdlcPack.ps1')
+
 function Resolve-RepoRoot {
     param([string] $Start)
 
@@ -308,22 +318,6 @@ function Get-Suppressions {
     return $results
 }
 
-function Get-ArtifactKind {
-    param([string] $RelativePath)
-
-    $leaf = Split-Path -Leaf $RelativePath
-    switch -Regex ($leaf) {
-        '^CHARTER\.md$' { return 'charter' }
-        '^spec\.md$'    { return 'spec' }
-        '^plan\.md$'    { return 'plan' }
-        '^verify\.md$'  { return 'verify' }
-        '^retro\.md$'   { return 'retro' }
-    }
-
-    if ($RelativePath -match '(?i)/intents/') { return 'intent' }
-    return 'unknown'
-}
-
 function Get-AcceptanceCriteria {
     param([string] $Text)
 
@@ -348,6 +342,121 @@ function Get-AcceptanceCriteria {
     }
 
     return $results
+}
+
+function Get-SdlcInterrogationProgress {
+    <#
+    .SYNOPSIS
+        The rounds already filed for one artifact, the next round's number, and whether the repair
+        loop is still making progress.
+    .DESCRIPTION
+        STOP ON NO-PROGRESS, NEVER "UNTIL CLEAN". That was measured rather than assumed: the
+        finding rate does not decay -- round 2 found three of five blocking items inside round 1's
+        repairs, round 3 found four of five inside round 2's, and this project replicated it at
+        three of four. "Until clean" therefore never fires, and a fixed round cap ships
+        known-broken artifacts wearing a clean label.
+
+        So the rule is two consecutive rounds with no net reduction. NOTHING COULD APPLY IT: the
+        workflow took a round number nobody incremented, so every interrogation was round 1, every
+        document overwrote the last, and the one rule that makes the loop terminate had no state to
+        measure. A rule an agent is asked to remember across rounds is a rule it can talk itself
+        past, which is the exact failure mode the no-progress detector exists to replace.
+
+        The MEASUREMENT is mechanical and lives here. The RESPONSE is an escalation to a person,
+        which is why this reports rather than refuses -- once someone is looking, they decide
+        whether the next round is worth running.
+    #>
+    param([string] $Root, [string] $CycleId, [string] $Target)
+
+    $result = [ordered]@{
+        rounds       = @()
+        'next-round' = 1
+        progress     = 'first-round'
+        detail       = 'nothing has been interrogated for this artifact yet'
+    }
+
+    if (-not $CycleId -or -not $Target) { return $result }
+
+    $dir = Join-Path $Root ".sdlc/cycles/$CycleId/findings"
+    if (-not (Test-Path -LiteralPath $dir)) { return $result }
+
+    $rounds = New-Object System.Collections.ArrayList
+
+    foreach ($file in @(Get-ChildItem -LiteralPath $dir -Filter "$Target.r*.json" -File)) {
+        if ($file.Name -notmatch "^$([regex]::Escape($Target))\.r([0-9]+)\.json$") { continue }
+        $round = [int] $Matches[1]
+
+        $raw = [string] (Get-Content -LiteralPath $file.FullName -Raw -Encoding UTF8)
+        if (-not $raw.Trim()) { continue }
+
+        $doc = ConvertFrom-Json $raw
+        $blocking = 0
+        $unresolved = 0
+
+        if ($doc.PSObject.Properties.Name -contains 'findings') {
+            foreach ($f in @($doc.findings)) {
+                $state = ''
+                if ($f.PSObject.Properties.Name -contains 'state') { $state = [string] $f.state }
+                if ($state -ne 'blocking') { continue }
+                $blocking++
+
+                $hasDisposition = $false
+                if ($f.PSObject.Properties.Name -contains 'disposition') {
+                    $hasDisposition = [bool] $f.disposition
+                }
+                if (-not $hasDisposition) { $unresolved++ }
+            }
+        }
+
+        $null = $rounds.Add([pscustomobject]@{
+            round      = $round
+            blocking   = $blocking
+            unresolved = $unresolved
+        })
+    }
+
+    $ordered = @($rounds | Sort-Object -Property round)
+    $result['rounds'] = $ordered
+
+    if ($ordered.Count -eq 0) { return $result }
+
+    $result['next-round'] = ([int] $ordered[$ordered.Count - 1].round) + 1
+
+    if ([int] $ordered[$ordered.Count - 1].blocking -eq 0) {
+        $result['progress'] = 'converged'
+        $result['detail'] = "round $($ordered[$ordered.Count - 1].round) found nothing blocking"
+        return $result
+    }
+
+    if ($ordered.Count -eq 1) {
+        $result['progress'] = 'first-round'
+        $result['detail'] = "round 1 found $($ordered[0].blocking) blocking; there is nothing to compare against yet"
+        return $result
+    }
+
+    # Counted from the END, because the rule is about CONSECUTIVE rounds. A loop that stalled, then
+    # reduced, then stalled again has not stalled twice in a row and is still making progress.
+    $stalled = 0
+    for ($i = $ordered.Count - 1; $i -ge 1; $i--) {
+        $delta = [int] $ordered[$i].blocking - [int] $ordered[$i - 1].blocking
+        if ($delta -ge 0) { $stalled++ } else { break }
+    }
+
+    if ($stalled -ge 2) {
+        $result['progress'] = 'halted-no-progress'
+        $result['detail'] = "$stalled consecutive rounds with no net reduction in blocking findings: " +
+            (($ordered | ForEach-Object { "r$($_.round)=$($_.blocking)" }) -join ' ')
+    }
+    elseif ($stalled -eq 1) {
+        $result['progress'] = 'stalled-once'
+        $result['detail'] = 'one round with no net reduction. Another and the loop halts for a person'
+    }
+    else {
+        $result['progress'] = 'reducing'
+        $result['detail'] = 'blocking findings are still falling round over round'
+    }
+
+    return $result
 }
 
 function Get-DeclaredFiles {
@@ -404,6 +513,15 @@ $charterPresent = Test-Path -LiteralPath $Charter
 $invariantIds = @()
 $decIds = @()
 $charterVersion = $null
+
+# DECLARED BEFORE THE BRANCH, because an ungoverned repository is a case this has to survive
+# rather than a broken one. A repository with no charter is exactly the state the precondition
+# rule exists for -- "does a charter exist? no: offer /sdlc:init" -- and under strict mode reading
+# a variable that was only ever assigned inside `if ($charterPresent)` throws. So the gatherer
+# died with "The variable '$charterFm' cannot be retrieved" on what may be a person's first use,
+# naming an internal variable instead of the missing charter it actually found.
+$charterFm = $null
+$charterLines = @()
 
 if ($charterPresent) {
     $charterLines = Get-Content -LiteralPath $Charter -Encoding UTF8
@@ -486,8 +604,19 @@ function Get-SdlcInvariantForm {
 Push-Location $RepoRoot
 try {
     $trackedFiles = @(git ls-files)
-    $headSha = (git rev-parse --short HEAD).Trim()
-    $branch = (git rev-parse --abbrev-ref HEAD).Trim()
+
+    # A REPOSITORY WITH NO COMMITS IS A REAL CASE, not a broken one: `init` scaffolds a solution
+    # and the first intent can be written before anything is committed. `git rev-parse HEAD` fails
+    # there with "Needed a single revision", and taking .Trim() of the nothing it returns died with
+    # "You cannot call a method on a null-valued expression" — an error naming neither the cause nor
+    # the artifact, on what may be a person's first ever use of this.
+    $headSha = $null
+    $rawSha = (git rev-parse --short HEAD)
+    if ($LASTEXITCODE -eq 0 -and $rawSha) { $headSha = ([string] $rawSha).Trim() }
+
+    $branch = $null
+    $rawBranch = (git rev-parse --abbrev-ref HEAD)
+    if ($LASTEXITCODE -eq 0 -and $rawBranch) { $branch = ([string] $rawBranch).Trim() }
 }
 finally {
     Pop-Location
@@ -520,7 +649,18 @@ $decRefs = @(Get-MentionedIds -Text $text -Pattern '\bDEC-[0-9]{2}\b' -Known $de
 
 $relative = ($artifactPath.Substring($RepoRoot.Length).TrimStart('\', '/') -replace '\\', '/')
 $governed = $relative.StartsWith('.sdlc/', [System.StringComparison]::Ordinal)
-$kind = Get-ArtifactKind -RelativePath $relative
+$kind = Get-SdlcArtifactKind -RelativePath $relative
+
+# The cycle this artifact belongs to, derived here so there is ONE answer to it. The interrogation
+# workflow derived it independently in JavaScript, which is two implementations of one path
+# convention; it reads this instead.
+$cycleId = Get-SdlcCycleIdFromPath -RelativePath $relative
+
+# Which round the next interrogation of this artifact is, and whether the repair loop is still
+# getting anywhere. Both are facts about the tree, which is why they are gathered here rather than
+# remembered by an agent across rounds.
+$interrogation = Get-SdlcInterrogationProgress -Root $RepoRoot -CycleId $cycleId -Target $kind
+
 $criteria = @(Get-AcceptanceCriteria -Text $text)
 
 # A verify document's criteria come from its sibling spec: verify reports on the spec's
@@ -630,32 +770,26 @@ if ($charterPresent) {
     }
 }
 
-# --- the declared stack pack, and the rule ids INV-04 makes citable --------
+# --- the declared stack pack, and the rules INV-04 makes blockable ----------
 #
-# Resolved from the PLUGIN, not the solution. A pack is a shared versioned artifact
-# reachable at ../packs/ from this script; only the CHARTER is copied into a solution at
-# init time. So a solution consuming dotnet-library@v1 has no local pack.rules.yaml, and
-# without this the id in `cites: PR-04` could never be checked against anything.
+# THE RULES ARRIVE WITH THEIR TEXT, not as bare ids. A role handed `PR-03` and nothing else cannot
+# show that the forbidden thing happened, and it cannot go looking either: the pack lives in the
+# plugin rather than in the solution, so the role has no path to read. One invariant made every
+# pack rule blockable in principle and none of them citable in practice.
 #
-# Rule ids are extracted by pattern rather than parsed: 5.1 ships no YAML reader, and every
-# other extractor in this script works the same way.
+# Resolved from the PLUGIN for that same reason -- only the pack's CHARTER is copied into a solution
+# at init time, so a solution consuming dotnet-library@v1 has no local pack.rules.yaml.
 $packName = $null
-$packRuleIds = @()
-$packPresent = $false
-
 if ($null -ne $charterFm -and $charterFm.fields.Contains('pack')) {
     $packName = [string] $charterFm.fields['pack']
+    if ($packName -eq 'none') { $packName = $null }
 }
 
-if ($packName -and $packName -ne 'none') {
-    $packRulesPath = Join-Path (Split-Path -Parent $PSScriptRoot) "packs/$packName/pack.rules.yaml"
-    if (Test-Path -LiteralPath $packRulesPath) {
-        $packPresent = $true
-        foreach ($packLine in (Get-Content -LiteralPath $packRulesPath -Encoding UTF8)) {
-            if ($packLine -match '^\s*-\s+id:\s*([A-Z]{2}-[0-9]{2})\s*$') { $packRuleIds += $Matches[1] }
-        }
-    }
-}
+$packRules = @(Get-SdlcPackRules -Name $packName)
+$packPresent = ($packRules.Count -gt 0)
+
+$packRuleIds = @()
+foreach ($rule in $packRules) { $packRuleIds += $rule.id }
 
 $declaredFiles = @(Get-DeclaredFiles -Text $text -Root $RepoRoot)
 $blastRadius = $null
@@ -751,6 +885,47 @@ if ($governed) {
     # .sdlc/ without it cannot be schema-validated at all.
     Add-Check 'frontmatter-present' $frontmatter.present $(
         if ($frontmatter.present) { $null } else { 'no YAML frontmatter block' })
+
+    # THE SCHEMAS WERE EXERCISED ONLY BY TEST FIXTURES until this check existed, so a real
+    # artifact's frontmatter was never validated at the moment it was written. Run through
+    # Test-SdlcArtifact.ps1 rather than reimplemented here: the schema files are the authority
+    # for these rules, and restating them in PowerShell would be the duplication INV-03 forbids.
+    #
+    # A kind with no schema reports `skipped`, which is a pass here — the charter's shape is
+    # checked by the invariant-form check below instead, and treating "nothing governs this" as
+    # a failure would make the check fire on the one document it cannot judge.
+    #
+    # FAILS CLOSED WHEN IT CANNOT RUN, and the condition is deliberately only "is there
+    # frontmatter to check". Guarding on the validator's existence instead would mean a renamed
+    # or missing validator makes the check DISAPPEAR rather than fail — the same silent-removal
+    # shape the hook test calls out, where protection stops existing and everything still looks
+    # correct. A missing validator is a broken installation, not a clean artifact.
+    $validator = Join-Path $PSScriptRoot 'Test-SdlcArtifact.ps1'
+    if ($frontmatter.present) {
+        $verdict = $null
+        try {
+            if (Test-Path -LiteralPath $validator) {
+                $verdictJson = (& $validator -Path $artifactPath -RepoRoot $RepoRoot) -join "`n"
+                if ($verdictJson.Trim()) { $verdict = ConvertFrom-Json $verdictJson }
+            }
+        }
+        catch {
+            $verdict = $null
+        }
+
+        if ($null -eq $verdict) {
+            # Fails closed, and says which way. An unavailable validator is not an approval,
+            # but neither is it the artifact's fault, so the detail distinguishes them.
+            Add-Check 'frontmatter-valid' $false 'the schema validator could not be run'
+        }
+        elseif ($verdict.skipped) {
+            Add-Check 'frontmatter-valid' $true "no schema governs a '$kind'"
+        }
+        else {
+            Add-Check 'frontmatter-valid' ([bool] $verdict.ok) $(
+                if ($verdict.ok) { $null } else { ($verdict.errors -join '; ') })
+        }
+    }
 
     # --- kind-specific checks ---------------------------------------------
 
@@ -872,9 +1047,11 @@ $facts = [ordered]@{
     'artifact'         = [ordered]@{
         path        = $relative
         kind        = $kind
+        'cycle-id'  = $cycleId
         governed    = $governed
         frontmatter = $frontmatter.fields
     }
+    'interrogation'       = $interrogation
     'acceptance-criteria' = @($criteria)
     'declared-files'      = @($declaredFiles)
     'traceability'        = $traceability
@@ -897,6 +1074,7 @@ $facts = [ordered]@{
         name       = $packName
         present    = $packPresent
         'rule-ids' = @($packRuleIds)
+        rules      = @($packRules)
     }
     'tree'             = [ordered]@{
         'tracked-file-count' = $trackedFiles.Count

@@ -19,6 +19,7 @@
   <ItemGroup>
     <PackageReference Include="MSTest" />
     <PackageReference Include="JsonSchema.Net" />
+    <PackageReference Include="YamlDotNet" />
     <PackageReference Include="coverlet.collector" />
   </ItemGroup>
 
@@ -26,12 +27,27 @@
     <None Include="examples\**\*.json" CopyToOutputDirectory="PreserveNewest" />
     <None Include="$(MSBuildThisFileDirectory)..\..\schemas\*.json" LinkBase="schemas" CopyToOutputDirectory="PreserveNewest" />
     <None Include="$(MSBuildThisFileDirectory)..\..\tools\*.ps1" LinkBase="tools" CopyToOutputDirectory="PreserveNewest" />
+
+    <!-- The validator ships beside the scripts and is invoked by one of them, so the output
+         tree has to mirror that. Copying only *.ps1 left Test-SdlcArtifact.ps1 in the output
+         with nothing to call, and the schema check it feeds then reported nothing at all —
+         a check that silently does not run, which is the failure this suite exists to catch.
+
+         Compile="false" because a file-based app is its own program with its own #:package
+         directives; compiling it into the test assembly would give it two contradictory sets
+         of references. -->
+    <None Include="$(MSBuildThisFileDirectory)..\..\tools\*.cs" LinkBase="tools" CopyToOutputDirectory="PreserveNewest" />
     <None Include="$(MSBuildThisFileDirectory)..\..\workflows\*.js" LinkBase="workflows" CopyToOutputDirectory="PreserveNewest" />
     <None Include="$(MSBuildThisFileDirectory)..\..\.claude-plugin\plugin.json" LinkBase=".claude-plugin" CopyToOutputDirectory="PreserveNewest" />
     <None Include="$(MSBuildThisFileDirectory)..\..\skills\**\*.md" LinkBase="skills" CopyToOutputDirectory="PreserveNewest" />
     <None Include="$(MSBuildThisFileDirectory)..\..\packs\**\*.*" LinkBase="packs" CopyToOutputDirectory="PreserveNewest" />
     <None Include="$(MSBuildThisFileDirectory)..\..\hooks\*.json" LinkBase="hooks" CopyToOutputDirectory="PreserveNewest" />
     <None Include="$(MSBuildThisFileDirectory)..\..\.github\workflows\*.yml" LinkBase="workflows-ci" CopyToOutputDirectory="PreserveNewest" />
+
+    <!-- The README names every skill, workflow and script. That is a second representation of
+         what ships, so it needs the check that fails when the two disagree — which is what
+         ReadmeTests is. Copied here so the check reads the file that is committed. -->
+    <None Include="$(MSBuildThisFileDirectory)..\..\README.md" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>

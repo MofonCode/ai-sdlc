@@ -148,7 +148,7 @@ public sealed class WorkflowSyntaxTests
             "  invariantDeclared:      citationResolves('invariant', 'INV-01'),",
             "  invariantUndeclared:    citationResolves('invariant', 'INV-99'),",
             "  localInvariant:         citationResolves('invariant', 'LOC-01'),",
-            "  packRuleViaInvFour:     citationResolves('invariant', 'PR-01'),",
+            "  packRuleAsAnInvariant:  citationResolves('invariant', 'PR-01'),",
             "  decisionDeclared:       citationResolves('deferred', 'DEC-06'),",
             "  decisionUndeclared:     citationResolves('deferred', 'DEC-99'),",
             "  checkThatFailed:        citationResolves('check', 'paths-resolve'),",
@@ -166,7 +166,16 @@ public sealed class WorkflowSyntaxTests
             ("invariantDeclared", true),
             ("invariantUndeclared", false),
             ("localInvariant", true),
-            ("packRuleViaInvFour", true),
+            // A PACK RULE IS NOT AN INVARIANT, and accepting one here produced a document nothing
+            // could file. `cites` takes four kinds and the findings schema pins the invariant one to
+            // `^(INV|LOC)-[0-9]{2}$`, so `{kind:'invariant', id:'PR-01'}` reached `blocking` and was
+            // then rejected by the schema — taking every other finding in the run with it, because a
+            // document is filed whole or not at all.
+            //
+            // The charter says what the right shape is, and it is why `cites` stays at three kinds:
+            // one invariant makes every pack rule blockable, so a finding cites the invariant that
+            // DELEGATES and names the rule it broke in its summary.
+            ("packRuleAsAnInvariant", false),
             ("decisionDeclared", true),
             ("decisionUndeclared", false),
             ("checkThatFailed", true),
@@ -200,6 +209,10 @@ public sealed class WorkflowSyntaxTests
 
         string harness = string.Join(Environment.NewLine,
             "const ARTIFACT = 'a.md'",
+            // The run prefix that makes a finding id unique within a CYCLE rather than within
+            // one interrogation. A cycle interrogates its intent, spec, plan and verification,
+            // and every one of those runs used to emit `r1`.
+            "const RUN = 'spec-r1'",
             "const declaredInvariants = ['INV-01', 'LOC-01']",
             "const declaredDecisions = ['DEC-06']",
             "const declaredPackRules = ['PR-01']",
@@ -230,6 +243,7 @@ public sealed class WorkflowSyntaxTests
             ExtractBlock(source, "for (const row of triaged)"),
             "console.log(JSON.stringify({",
             "  states: assembled.map(f => f.state),",
+            "  ids: assembled.map(f => f.id),",
             "  rejected: rejectedCitations.length,",
             "}))");
 
@@ -264,6 +278,15 @@ public sealed class WorkflowSyntaxTests
         // show what an agent tried to claim.
         Assert.AreEqual(2, doc.RootElement.GetProperty("rejected").GetInt32(),
             "unresolvable citations must be reported, not discarded quietly");
+
+        // EVERY ID CARRIES ITS RUN. Ids have to be unique within a cycle, not within one
+        // interrogation, because a disposition is recorded against an id and a cycle files a
+        // document per stage and per repair round. Unprefixed, `reason1` would name a different
+        // finding in each of them and dispositioning one would be ambiguous.
+        foreach (System.Text.Json.JsonElement id in doc.RootElement.GetProperty("ids").EnumerateArray())
+        {
+            StringAssert.StartsWith(id.GetString(), "spec-r1-", StringComparison.Ordinal);
+        }
     }
 
     /// <summary>

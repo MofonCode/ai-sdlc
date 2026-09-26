@@ -1,7 +1,7 @@
 ---
 name: grill
 description: Convene an agent team to argue a design question to a conclusion, outside the cycle. Use when a decision is genuinely ambiguous, a root cause is contested, or the charter itself needs challenging — not for checking an artifact.
-argument-hint: [the question to grill]
+argument-hint: "[the question to grill]"
 disable-model-invocation: true
 allowed-tools: Bash(git *) Bash(powershell.exe *)
 ---

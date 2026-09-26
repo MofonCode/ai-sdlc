@@ -189,7 +189,18 @@ public sealed class PluginManifestTests
             "no hooks/hooks.json, so the INV-08 gate is configured nowhere and never runs");
 
         using JsonDocument doc = JsonDocument.Parse(File.ReadAllText(hooks));
-        Assert.IsTrue(doc.RootElement.TryGetProperty("PreToolUse", out JsonElement pre),
+
+        // THE EVENTS LIVE UNDER A `hooks` OBJECT, and this test used to look for them at the
+        // top level — so it asserted the shape the file happened to have rather than the shape
+        // the loader accepts. Installing the plugin was what said so: `PreToolUse is declared
+        // at the top level, outside the "hooks" object`, and the WHOLE PLUGIN failed to load,
+        // every skill with it. A hook that cannot load is worse than a hook that denies, and
+        // the suite was green throughout.
+        Assert.IsTrue(doc.RootElement.TryGetProperty("hooks", out JsonElement events),
+            "the events must sit under a `hooks` object; declared at the top level the plugin " +
+            "does not load at all, and every skill goes with it");
+
+        Assert.IsTrue(events.TryGetProperty("PreToolUse", out JsonElement pre),
             "the gate must run BEFORE the edit; PostToolUse would report a charter already changed");
 
         Assert.IsTrue(pre.GetArrayLength() > 0, "PreToolUse declares no handler");
@@ -220,39 +231,43 @@ public sealed class PluginManifestTests
         //
         // ${CLAUDE_PLUGIN_ROOT} resolves to the plugin root at runtime, so it resolves to Root
         // here — which is exactly the substitution being verified.
+        // A HANDLER CARRIES ONE `command` STRING, not a command plus an `args` array. The
+        // array form is what shipped, and this test skipped any handler without `args` — so
+        // rewriting the file in the loadable single-string shape would have left the test
+        // silently verifying nothing, which is why the guard at the bottom counts.
         string hooks = Path.Combine(Root, "hooks", "hooks.json");
         using JsonDocument doc = JsonDocument.Parse(File.ReadAllText(hooks));
 
         int checked_ = 0;
-        foreach (JsonProperty evt in doc.RootElement.EnumerateObject())
+        foreach (JsonProperty evt in doc.RootElement.GetProperty("hooks").EnumerateObject())
         {
             foreach (JsonElement matcher in evt.Value.EnumerateArray())
             {
                 foreach (JsonElement handler in matcher.GetProperty("hooks").EnumerateArray())
                 {
-                    if (!handler.TryGetProperty("args", out JsonElement args))
+                    Assert.IsFalse(handler.TryGetProperty("args", out _),
+                        $"{evt.Name} declares an `args` array; a handler takes one `command` " +
+                        "string, so the arguments would be dropped and the gate would run with none");
+
+                    string command = handler.GetProperty("command").GetString() ?? string.Empty;
+                    if (!command.Contains("CLAUDE_PLUGIN_ROOT", StringComparison.Ordinal))
                     {
                         continue;
                     }
 
-                    foreach (JsonElement arg in args.EnumerateArray())
-                    {
-                        string value = arg.GetString() ?? string.Empty;
-                        if (!value.Contains("CLAUDE_PLUGIN_ROOT", StringComparison.Ordinal))
-                        {
-                            continue;
-                        }
+                    // ${CLAUDE_PLUGIN_ROOT} resolves to the plugin root at runtime, so it
+                    // resolves to Root here — which is exactly the substitution being verified.
+                    Match reference = Regex.Match(
+                        command, @"\$\{CLAUDE_PLUGIN_ROOT\}(?<relative>[^""']+)");
+                    Assert.IsTrue(reference.Success,
+                        $"{evt.Name} names ${{CLAUDE_PLUGIN_ROOT}} but no path after it: {command}");
 
-                        string relative = value
-                            .Replace("${CLAUDE_PLUGIN_ROOT}", string.Empty, StringComparison.Ordinal)
-                            .TrimStart('/');
-
-                        string resolved = Path.Combine(Root, relative);
-                        Assert.IsTrue(File.Exists(resolved),
-                            $"{evt.Name} references '{value}', which resolves to a file that does " +
-                            "not exist. The hook would not run and nothing would say so.");
-                        checked_++;
-                    }
+                    string relative = reference.Groups["relative"].Value.Trim().TrimStart('/');
+                    string resolved = Path.Combine(Root, relative);
+                    Assert.IsTrue(File.Exists(resolved),
+                        $"{evt.Name} references '{relative}', which resolves to a file that does " +
+                        "not exist. The hook would not run and nothing would say so.");
+                    checked_++;
                 }
             }
         }

@@ -26,6 +26,19 @@ jobs:
       - name: Build and test
         run: dotnet test --configuration Debug
 
+      # JUSTIFIED BYPASS (INV-06). These two steps are advisory because `claude` is not
+      # guaranteed on a hosted runner, and a step that fails because a tool is absent teaches
+      # everyone to ignore the step. What they must not become is the reason a defect survives:
+      # both manifest defects they would have caught locally — a hooks.json whose events sat
+      # outside the `hooks` object, so the whole plugin failed to load, and a skill whose
+      # unquoted argument-hint made the real YAML parser drop every field including
+      # disable-model-invocation — shipped green through this file for exactly that reason.
+      #
+      # So the suite now covers both classes itself, with the real parsers: SkillFrontmatterTests
+      # reads every skill's frontmatter through YamlDotNet, and PluginManifestTests asserts the
+      # hook manifest's shape. Those fail the build. These stay advisory, and remain worth running
+      # because the loader's own validator sees things no test of ours anticipates.
+      # Reviewed 2026-09-25.
       - name: Validate the plugin manifest
         run: claude plugin validate .claude-plugin/plugin.json --strict
         continue-on-error: true

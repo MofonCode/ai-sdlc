@@ -96,15 +96,31 @@ function Invoke-SdlcGit {
     <#
     .SYNOPSIS
         Runs git. Returns an object; never throws on a non-zero exit code.
+    .DESCRIPTION
+        NO PARAMETER BLOCK, AND THAT IS THE WHOLE POINT. It had `[CmdletBinding()]` with a
+        ValueFromRemainingArguments parameter, which makes this an ADVANCED function -- and an
+        advanced function gets PowerShell's common parameters, which then compete with git's own
+        flags for every token passed.
+
+        `Invoke-SdlcGit branch -D $branch` was the one that surfaced it: `-D` is an unambiguous
+        abbreviation of `-Debug`, so binding consumed it and git received `branch <name>`, which
+        CREATES a branch. The observed failure was "fatal: a branch named 'cycle-...' already
+        exists" from a call whose only job was to delete it -- a delete that silently became a
+        create.
+
+        Probed rather than reasoned about, because the rule is not obvious: `-b`, `-u`, `-1`,
+        `--force` and `--cached` all arrive intact, since none of them abbreviates a parameter name.
+        Only flags that prefix a common parameter are stolen, which means the hazard is invisible
+        until one of them happens to be the flag you need. git uses `-v` (Verbose), `-o`
+        (OutVariable), `-e` (ErrorAction) and `-D` among others.
+
+        A simple function has no parameters to bind against, so every token lands in `$args`
+        verbatim. That removes the class rather than the instance -- the alternative was quoting
+        every flag at every call site and remembering to keep doing it.
     .EXAMPLE
         $r = Invoke-SdlcGit checkout -b $branch
         if (-not $r.ok) { ... $r.stderr ... }
     #>
-    [CmdletBinding()]
-    param(
-        [Parameter(ValueFromRemainingArguments = $true)]
-        [string[]] $Arguments
-    )
 
-    return Invoke-SdlcNative -Command 'git' -Arguments @($Arguments)
+    return Invoke-SdlcNative -Command 'git' -Arguments @($args)
 }

@@ -1,0 +1,21 @@
+{
+  "cycle-id": "20260926-bc24",
+  "target": "charter",
+  "charter-version": 3,
+  "pack-version": null,
+  "round": 1,
+  "failed-checks": ["paths-resolve"],
+  "rejected-citations": ["ambiguity cited check invented-check"],
+  "findings": [
+    {
+      "id": "charter-r1-check1",
+      "category": "unresolvable-reference",
+      "state": "blocking",
+      "stage": "charter",
+      "detection": "check",
+      "role": "facts",
+      "summary": "Check `paths-resolve` failed: does not exist: src/absent.cs",
+      "cites": [{ "kind": "check", "id": "paths-resolve" }]
+    }
+  ]
+}

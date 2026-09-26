@@ -181,13 +181,26 @@ try {
     }
     Add-Step 'branch' $true "created $branch from master (was on $current)"
 
-    # Only the intent file. A submission that swept up unrelated working-tree changes would
-    # put them behind the intent gate, where nobody is looking for them.
+    # The intent, and the interrogation that was run on it. Nothing else: a submission that
+    # swept up unrelated working-tree changes would put them behind the intent gate, where
+    # nobody is looking for them.
+    #
+    # The findings go in because the gate is a REVIEW, and a reviewer who can see what the
+    # artifact survived is reading better evidence than one who can only see the artifact. They
+    # are also the cycle's own record from its first stage, so leaving them out of this commit
+    # would strand them in the working tree until the cycle branch happened to pick them up.
+    #
     # CHECKED, not discarded. A failed commit used to be reported as `branched`, so a
     # person would believe the intent was behind its gate while the branch held nothing.
     # CI found this: a runner has no git identity, so `git commit` fails there and passed
     # locally only because a global identity happened to exist.
-    $staged = Invoke-SdlcGit add -- $intentRel
+    $toStage = @($intentRel)
+    $findingsRel = ".sdlc/cycles/$CycleId/findings"
+    if (Test-Path -LiteralPath (Join-Path $RepoRoot $findingsRel)) {
+        $toStage += $findingsRel
+    }
+
+    $staged = Invoke-SdlcGit add '--' @toStage
     if (-not $staged.ok) {
         Add-Step 'stage' $false $staged.stderr
         $result['outcome'] = 'failed-stage'

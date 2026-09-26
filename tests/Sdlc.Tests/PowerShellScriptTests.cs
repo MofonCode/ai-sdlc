@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Text;
+using System.Text.RegularExpressions;
 
 namespace Sdlc.Tests;
 
@@ -226,6 +227,28 @@ public sealed class PowerShellScriptTests
             Assert.IsTrue(code.Contains("Invoke-SdlcGit", StringComparison.Ordinal),
                 $"{name} must call git through Invoke-SdlcGit");
         }
+    }
+
+    [TestMethod]
+    [DynamicData(nameof(AllScripts))]
+    public void GitsEndOfOptionsMarkerIsQuotedOrItNeverArrives(string name)
+    {
+        ArgumentNullException.ThrowIfNull(name);
+
+        // PARSES, RUNS, AND SILENTLY DOES SOMETHING ELSE. `--` is PowerShell's own
+        // end-of-parameters marker, so in `Invoke-SdlcGit add -- $path` the parser consumes it
+        // and git receives `add <path>` with no marker at all. Proven by probe: the bare form
+        // arrives as `add|a.md`, the quoted form as `add|--|a.md`.
+        //
+        // The protection `--` exists to give is that a path can never be read as an option. Three
+        // call sites were written with it and none of them had it, so a path beginning with a
+        // dash would have been interpreted rather than staged — and the code read as though that
+        // case was already handled, which is worse than not having written it.
+        string code = CodeOf(name);
+
+        Assert.IsFalse(Regex.IsMatch(code, @"Invoke-Sdlc\w+[^\r\n]*\s--\s"),
+            $"{name}: quote it as '--'. PowerShell eats a bare -- before git ever sees it, so " +
+            "the end-of-options protection is not there even though the line says it is.");
     }
 
     [TestMethod]

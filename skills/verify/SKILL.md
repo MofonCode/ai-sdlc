@@ -1,7 +1,7 @@
 ---
 name: verify
 description: Assemble verify.md from generated evidence and decide the cycle's outcome. Use after build, including inside an unattended batch run.
-argument-hint: [cycle-id]
+argument-hint: "[cycle-id]"
 allowed-tools: Bash(powershell.exe *) Bash(dotnet *) Bash(git *)
 ---
 
@@ -85,6 +85,29 @@ undispositioned: <n>
 In the body put the traceability table (criterion → the test proving it), the adherence
 result, the gate results, and every finding with its disposition. Each of those is
 transcribed from the evidence above, not composed.
+
+## Interrogate the document you just wrote
+
+A verify document is an artifact like any other, and the charter points invariants at it and
+defines what a gap in one looks like — a criterion with no traceability row, a suppression with no
+justification, a finding with no disposition. None of that was ever checked, because nothing
+interrogated this stage's output.
+
+```
+/sdlc:interrogate .sdlc/cycles/$0/verify.md
+```
+
+```
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File tools/Add-SdlcFindings.ps1 -CycleId $0 -Path ".sdlc/cycles/$0/interrogation.json"
+```
+
+**A finding here is not a reason to soften the outcome.** If the interrogation shows the document
+claims something the evidence does not support, the document is wrong and the fix is the document
+— a gap between a derived artifact and its source is corrected, never signed off. If it shows the
+cycle is worse than the outcome says, re-run the outcome script and transcribe the new answer.
+
+Then re-run the outcome script one last time: its own rule counts undispositioned findings, so
+findings filed after it ran are findings it did not see.
 
 ## Report
 

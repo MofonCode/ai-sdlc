@@ -242,7 +242,12 @@ public sealed class VerifyOutcomeTests
     public void AnUndispositionedFindingBlocks()
     {
         // Every finding, from adversary or tool, at any severity, is dispositioned.
-        string path = Path.Combine(_repo!, ".sdlc", "cycles", "20260924-aa01", "findings.json");
+        // Filed as one document per interrogation, which is the layout every consumer now reads:
+        // a cycle interrogates several artifacts over several rounds, and the schema carries one
+        // target and round per document.
+        string dir = Path.Combine(_repo!, ".sdlc", "cycles", "20260924-aa01", "findings");
+        Directory.CreateDirectory(dir);
+        string path = Path.Combine(dir, "spec.r1.json");
         File.WriteAllText(path, """
             {
               "cycle-id": "20260924-aa01",
@@ -272,7 +277,12 @@ public sealed class VerifyOutcomeTests
     [TestMethod]
     public void ADispositionedFindingDoesNotBlock()
     {
-        string path = Path.Combine(_repo!, ".sdlc", "cycles", "20260924-aa01", "findings.json");
+        // Filed as one document per interrogation, which is the layout every consumer now reads:
+        // a cycle interrogates several artifacts over several rounds, and the schema carries one
+        // target and round per document.
+        string dir = Path.Combine(_repo!, ".sdlc", "cycles", "20260924-aa01", "findings");
+        Directory.CreateDirectory(dir);
+        string path = Path.Combine(dir, "spec.r1.json");
         File.WriteAllText(path, """
             {
               "cycle-id": "20260924-aa01",
@@ -335,12 +345,22 @@ public sealed class VerifyOutcomeTests
     public void TheGateCommandsAreParametersSoAPackCanOverrideThem()
     {
         // INV-04 delegates the stack to the pack, and tool names stay out of the charter.
-        // A hardcoded `dotnet build` would make this script the second place a stack choice
-        // lives, with nothing binding it to the pack that owns the decision.
+        //
+        // THE PARAMETER DEFAULT WAS NOT ENOUGH, and this test used to assert exactly that: it
+        // required the literal `= 'dotnet build'` in the param block, which is a default a caller can
+        // override and NOTHING ELSE. pack.yaml declared its gates and nothing read them, so the
+        // delegation the charter depends on stopped one step short of the script that runs the gate.
+        //
+        // Resolution order now, and the middle step is the one that was missing: a caller's value,
+        // then the declared pack's, then the .NET default for a solution consuming none.
         string text = File.ReadAllText(ScriptPath);
 
-        Assert.IsTrue(text.Contains("[string] $BuildCommand = 'dotnet build'", StringComparison.Ordinal));
-        Assert.IsTrue(text.Contains("[string] $TestCommand = 'dotnet test'", StringComparison.Ordinal));
+        Assert.IsTrue(text.Contains("Get-SdlcPackGate", StringComparison.Ordinal),
+            "the pack declares the gates, so this must ask it rather than assuming a toolchain");
+        Assert.IsTrue(text.Contains("[string] $BuildCommand,", StringComparison.Ordinal),
+            "a parameter with a hardcoded default cannot tell a caller's choice from an assumption");
+        Assert.IsTrue(text.Contains("if (-not $BuildCommand) { $BuildCommand = 'dotnet build' }", StringComparison.Ordinal),
+            "solution zero consumes no pack, so a last-resort default still has to exist");
         Assert.IsTrue(text.Contains("INV-04", StringComparison.Ordinal),
             "the reason the default is only a default must be stated where someone would hardcode it");
     }

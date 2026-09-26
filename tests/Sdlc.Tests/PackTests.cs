@@ -352,6 +352,98 @@ public sealed class PackTests
 
     // --- plumbing ----------------------------------------------------------
 
+    /// <summary>
+    /// Asks the shipped pack reader something, through Windows PowerShell 5.1 because that is what
+    /// ships. Returns whatever the expression printed.
+    /// </summary>
+    private static string AskThePackReader(string expression)
+    {
+        string helper = Path.Combine(AppContext.BaseDirectory, "tools", "SdlcPack.ps1");
+        string script = Path.Combine(Path.GetTempPath(), "packask-" + Guid.NewGuid().ToString("N")[..8] + ".ps1");
+
+        File.WriteAllText(script,
+            "Set-StrictMode -Version Latest" + Environment.NewLine
+            + ". \"" + helper + "\"" + Environment.NewLine
+            + expression + Environment.NewLine,
+            new UTF8Encoding(true));
+
+        try
+        {
+            return Run("powershell.exe",
+                $"-NoProfile -ExecutionPolicy Bypass -File \"{script}\"",
+                AppContext.BaseDirectory).Trim();
+        }
+        finally
+        {
+            File.Delete(script);
+        }
+    }
+
+    [TestMethod]
+    public void EveryRuleReachesAnInterrogationWithTheTextThatSaysWhatItForbids()
+    {
+        // ONE INVARIANT MAKES EVERY PACK RULE BLOCKABLE — that is why the charter can delegate tool
+        // names and keep them out of its own invariants. It only works if the role checking against
+        // the charter knows what the rules SAY: a role handed the bare id `PR-03` cannot demonstrate
+        // that the forbidden thing happened, and it cannot go looking either, because the pack ships
+        // in the plugin rather than in the solution. Every rule was exposed as an id and nothing else.
+        string ids = AskThePackReader(
+            "@(Get-SdlcPackRules -Name 'dotnet-library') | ForEach-Object { $_.id }");
+
+        MatchCollection declared = Regex.Matches(RulesYaml, @"(?m)^\s*-\s+id:\s*([A-Z]{2}-[0-9]{2})\s*$");
+        Assert.IsTrue(declared.Count > 0, "the pack declares no rules, so this test verified nothing");
+
+        foreach (Match m in declared)
+        {
+            string id = m.Groups[1].Value;
+            StringAssert.Contains(ids, id, StringComparison.Ordinal);
+
+            // The wording, which is the part a finding quotes to show what was broken.
+            string forbids = AskThePackReader(
+                $"(@(Get-SdlcPackRules -Name 'dotnet-library') | Where-Object {{ $_.id -eq '{id}' }}).forbids");
+
+            Assert.IsFalse(string.IsNullOrWhiteSpace(forbids),
+                $"{id} arrives with no `forbids` text, so a finding could name it and not say why");
+        }
+    }
+
+    [TestMethod]
+    public void TheGateCommandsAreReadFromThePackThatDeclaresThem()
+    {
+        // The charter excludes tool names and delegates them here, and two scripts then hardcoded
+        // `dotnet`. The declaration sat in pack.yaml being correct and unread.
+        foreach (string gate in new[] { "build", "test" })
+        {
+            Match declared = Regex.Match(PackYaml, @"(?m)^\s+" + gate + @":\s*(\S.*)$");
+            Assert.IsTrue(declared.Success, $"the pack declares no {gate} gate");
+
+            string resolved = AskThePackReader($"Get-SdlcPackGate -Name 'dotnet-library' -Gate '{gate}'");
+            Assert.AreEqual(declared.Groups[1].Value.Trim(), resolved,
+                $"the resolved {gate} gate must be the one the pack declares");
+        }
+
+        // AND IT MUST BE READING THE FILE, not answering from a constant. A gate the pack does not
+        // declare has no value, and a resolver that returned a plausible default here would look
+        // correct on every assertion above while ignoring the pack entirely.
+        Assert.AreEqual(string.Empty,
+            AskThePackReader("Get-SdlcPackGate -Name 'dotnet-library' -Gate 'lint'"),
+            "an undeclared gate must come back empty rather than as an assumption");
+    }
+
+    [TestMethod]
+    public void ASolutionConsumingNoPackIsNotAnError()
+    {
+        // Solution zero builds the framework and consumes no pack, so `none` and a missing charter
+        // both have to mean "nothing declared" rather than throwing.
+        Assert.AreEqual(string.Empty,
+            AskThePackReader("Get-SdlcDeclaredPack -CharterPath '" +
+                Path.Combine(AppContext.BaseDirectory, "does-not-exist.md") + "'"));
+
+        Assert.AreEqual("0",
+            AskThePackReader("@(Get-SdlcPackRules -Name 'none').Count"),
+            "a solution with no pack has no rules, and asking must not throw");
+    }
+
     private static string Run(string exe, string args, string cwd, bool allowFailure = false)
     {
         using Process p = Process.Start(new ProcessStartInfo(exe, args)

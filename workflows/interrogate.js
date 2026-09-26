@@ -18,7 +18,6 @@ export const meta = {
 const input = typeof args === 'string' ? { artifact: args } : (args || {})
 const ARTIFACT = input.artifact
 const CHARTER = input.charter || '.sdlc/CHARTER.md'
-const ROUND = input.round || 1
 
 if (!ARTIFACT) {
   throw new Error('interrogate needs an artifact path: pass it as args, e.g. ".sdlc/intents/20260924-aaaa.md"')
@@ -225,6 +224,14 @@ try {
 const activeRoles = rolesFromFacts(parsedFacts)
 const gapsRow = gapsGuidance(parsedFacts)
 
+// The declared pack's rules, rendered once for the charter role. Empty for a solution that consumes
+// no pack — solution zero builds the framework and has none — and an empty string then removes the
+// whole passage rather than telling a role about rules that do not exist.
+const packRuleText = (((parsedFacts && parsedFacts.pack && parsedFacts.pack.rules) || [])
+  .filter(r => r && r.id)
+  .map(r => '  ' + r.id + (r.title ? ' · ' + r.title : '') + (r.forbids ? '\n      forbids: ' + r.forbids : ''))
+  .join('\n'))
+
 log(`${activeRoles.length} role(s) from the charter: ${activeRoles.map(r => r.name).join(', ')}`)
 
 const failedChecks = (parsedFacts && parsedFacts['failed-checks']) || []
@@ -253,6 +260,12 @@ const CHECK_CATEGORY = {
 
   // Something required by the artifact's kind is absent.
   'frontmatter-present': 'missing-case',
+  // The commonest schema violation by far is an absent required field, which is literally a
+  // requirement that should be covered and is not. A malformed value — an id that does not
+  // match its pattern — is a poorer fit, and that imprecision is deliberate rather than
+  // hidden: if pattern violations come to dominate, their rate IS the evidence for a category
+  // the taxonomy is missing, which is the growth mechanism the charter already describes.
+  'frontmatter-valid': 'missing-case',
   'acceptance-criteria-present': 'missing-case',
   'plan-declares-files': 'missing-case',
 
@@ -277,11 +290,75 @@ const CHECK_CATEGORY = {
   'tier-not-escalated': 'scope-drift',
 }
 
+// WHICH ARTIFACT SHOULD HAVE PREVENTED THIS. Every check-derived finding used to be
+// attributed to `intent`, hardcoded — so a failed check on a plan claimed the intent should
+// have caught it. Attributed stage is the axis the whole retro loop turns on: "where does our
+// process leak" is answered by aggregating this field, and a constant answer makes the only
+// unbiased signal available say the same thing forever.
+//
+// Two of these are judgements rather than identities, so they are stated rather than implied.
+// A retro is assembled from what verify recorded, so a defect in one should have been caught
+// there. A pack is charter-adjacent: INV-04 delegates the substance of its rule to the pack and
+// INV-08 protects both under one gate, so a pack defect attributes where that gate is.
+const STAGE_FOR_KIND = {
+  charter: 'charter',
+  intent: 'intent',
+  spec: 'spec',
+  plan: 'plan',
+  code: 'build',
+  verify: 'verify',
+  retro: 'verify',
+  pack: 'charter',
+}
+
+const ARTIFACT_KIND = (parsedFacts && parsedFacts.artifact && parsedFacts.artifact.kind) || null
+const TARGET = input.target || (ARTIFACT_KIND && STAGE_FOR_KIND[ARTIFACT_KIND] ? ARTIFACT_KIND : (isCharter ? 'charter' : 'intent'))
+const ATTRIBUTED_STAGE = STAGE_FOR_KIND[TARGET] || 'intent'
+
+// THE CYCLE ID AND THE ROUND COME FROM THE FACTS, not from a second derivation here. Both are
+// properties of the tree: which cycle a path belongs to, and how many documents have already been
+// filed for this artifact. This file used to work the cycle id out of the path in JavaScript while
+// the gatherer worked it out in PowerShell — two implementations of one path convention, which
+// disagree the first time a convention moves.
+//
+// The findings schema requires a non-null cycle id, and the first real interrogation emitted null
+// and was rejected by the schema its own output is supposed to satisfy. The schema was right: an
+// interrogation belongs to a cycle, because a charter changes only through a charter intent and
+// that intent has an id like any other. Only the charter case has to say it out loud.
+const CYCLE_ID = input.cycleId ||
+  (parsedFacts && parsedFacts.artifact && parsedFacts.artifact['cycle-id']) || null
+
+if (!CYCLE_ID) {
+  throw new Error(
+    'interrogate needs a cycle id, and none is derivable from "' + ARTIFACT + '". Pass it as ' +
+    '{ artifact, cycleId }. Interrogating the charter means a charter-review intent is ' +
+    'proposing a change to it, so the cycle id is that intent\'s.')
+}
+
+// NOBODY INCREMENTED THE ROUND. It defaulted to 1 on every run, so round 2 overwrote round 1 and
+// the no-progress rule — the one rule that makes the repair loop terminate — had no state to
+// measure. The gatherer counts what is already filed and names the next one.
+const PROGRESS = (parsedFacts && parsedFacts.interrogation) || {}
+const ROUND = input.round || PROGRESS['next-round'] || 1
+
+if (PROGRESS.progress === 'halted-no-progress') {
+  // Said out loud, at the top of the run, because the alternative is discovering it after paying
+  // for four role agents and a triage agent per candidate. It does not refuse: the response to a
+  // stalled loop is an escalation to a person, and a person may well want this round.
+  log(`NO PROGRESS: ${PROGRESS.detail}. A person should look rather than another round running.`)
+}
+
+// IDS ARE UNIQUE WITHIN A CYCLE, not within a run. A cycle interrogates its intent, its spec,
+// its plan and its verify document, each possibly over several rounds, and every one of those
+// runs used to emit `m1` and `r1`. Dispositioning a finding by id would then be ambiguous
+// across the cycle's own record, which is the one thing an id has to not be.
+const RUN = TARGET + '-r' + ROUND
+
 const mechanical = failedChecks.map((id, i) => ({
-  id: 'm' + (i + 1),
+  id: RUN + '-check' + (i + 1),
   category: CHECK_CATEGORY[id] || 'unclassified',
   state: CHECK_CATEGORY[id] ? 'blocking' : 'suggested',
-  stage: 'intent',
+  stage: ATTRIBUTED_STAGE,
   detection: 'check',
   role: 'facts',
   summary: 'Check `' + id + '` failed: ' + (checkDetail[id] || 'see facts'),
@@ -306,6 +383,26 @@ const discovered = await parallel(
         '',
         `Your evidence is ${role.evidence}.`,
         `Your characteristic failure is ${role['fails-by']} — guard against it.`,
+
+        // THE PACK RULES REACH THE ROLE THAT CAN USE THEM. The charter keeps tool names out of its
+        // invariants and delegates them to the declared pack, which means a pack rule is only
+        // blockable if the role checking against the charter knows what the rules SAY. It was given
+        // bare ids, and an id alone cannot demonstrate that the forbidden thing happened — nor could
+        // the role go looking, since the pack ships in the plugin rather than in the solution.
+        role.name === 'charter' && packRuleText ? '' : '',
+        role.name === 'charter' && packRuleText
+          ? 'The charter delegates runtime, framework and package choices to the declared stack ' +
+            'pack, so these pack rules are in force here:'
+          : '',
+        role.name === 'charter' && packRuleText ? packRuleText : '',
+        role.name === 'charter' && packRuleText
+          ? 'A violation of one of those is reported by CITING THE INVARIANT THAT DELEGATES — the ' +
+            'one forbidding a choice that contradicts the declared pack — and NAMING the rule in ' +
+            'your summary. Do not cite a pack rule id as the citation itself: a citation is an ' +
+            'invariant, a failed check, a deferred-decision id or a location pair, and a pack rule ' +
+            'is none of those.'
+          : '',
+
         role.name === 'gaps' && gapsRow ? '' : '',
         role.name === 'gaps' && gapsRow
           ? 'For this kind of artifact the charter says a gap is: ' + gapsRow
@@ -428,9 +525,18 @@ const declaredPackRules = (parsedFacts && parsedFacts.pack && parsedFacts.pack['
 
 function citationResolves(kind, id) {
   if (kind === 'invariant') {
-    // Pack rules count: INV-04 delegates its substance to them, which is what makes every
-    // pack rule citable through one invariant.
-    return declaredInvariants.indexOf(id) !== -1 || declaredPackRules.indexOf(id) !== -1
+    // A PACK RULE IS NOT AN INVARIANT, and accepting one here produced a document nothing could
+    // file. `cites` takes exactly four kinds — an invariant, a failed check, a DEC id, or a
+    // location pair — and the findings schema enforces that with the pattern `^(INV|LOC)-[0-9]{2}$`.
+    // So `{kind:'invariant', id:'PR-03'}` reached `blocking` here and was then REJECTED by the
+    // schema, which means the whole interrogation was unfileable: one bad citation and every other
+    // finding in the run went with it.
+    //
+    // The charter already says what the right shape is, and it is why `cites` stays at three kinds:
+    // one invariant makes every pack rule blockable, so a finding cites THE INVARIANT THAT
+    // DELEGATES — INV-04 — and NAMES the rule it broke. The rules and their wording reach the
+    // charter role through the facts for exactly that purpose.
+    return declaredInvariants.indexOf(id) !== -1
   }
   if (kind === 'deferred') {
     return declaredDecisions.indexOf(id) !== -1
@@ -487,7 +593,7 @@ for (const row of triaged) {
   const state = (c.category === 'unclassified' || !citesOk) ? 'suggested' : 'blocking'
 
   assembled.push({
-    id: 'r' + n,
+    id: RUN + '-reason' + n,
     category: c.category,
     state: state,
     stage: c.stage,
@@ -545,11 +651,15 @@ if (rejectedCitations.length > 0) {
   log(`${rejectedCitations.length} citation(s) rejected as unresolvable: ${rejectedCitations.join('; ')}`)
 }
 
-// The script has no filesystem access, so the caller persists this. It is shaped to
-// validate against schemas/findings.schema.json.
+// THE CALLER PERSISTS THIS, and until something did, four consumers read a file nothing wrote:
+// verify counted undispositioned findings and always found none, landing reported "no findings
+// document for this cycle", the signals query surveyed an empty corpus, and a disposition had
+// nowhere to be recorded. A workflow script has no filesystem access by design, so the caller
+// writes this document out and hands it to tools/Add-SdlcFindings.ps1, which validates it
+// against schemas/findings.schema.json and files it under the cycle.
 return {
-  'cycle-id': input.cycleId || null,
-  target: input.target || (isCharter ? 'charter' : 'intent'),
+  'cycle-id': CYCLE_ID,
+  target: TARGET,
   'charter-version': (parsedFacts && parsedFacts.charter && parsedFacts.charter.version) || null,
   'pack-version': null,
   round: ROUND,

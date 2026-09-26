@@ -1,7 +1,7 @@
 ---
 name: run
 description: Batch-build approved plans unattended, one worktree per cycle. Use when several cycles have approved plans and the user wants them built without supervision.
-argument-hint: [cycle-id ...] or --all
+argument-hint: "[cycle-id ...] or --all"
 disable-model-invocation: true
 allowed-tools: Bash(powershell.exe *) Bash(git *)
 ---

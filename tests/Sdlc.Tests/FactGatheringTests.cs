@@ -556,4 +556,205 @@ public sealed class FactGatheringTests
         Assert.IsTrue(facts.RootElement.GetProperty("artifact").GetProperty("governed").GetBoolean());
         Assert.IsTrue(facts.RootElement.GetProperty("checks").GetArrayLength() > 0);
     }
+
+    /// <summary>Files N blocking findings as one round's document for the plan fixture.</summary>
+    private static void FileRound(string cycleId, int round, int blocking)
+    {
+        string dir = Path.Combine(_repo!, ".sdlc", "cycles", cycleId, "findings");
+        Directory.CreateDirectory(dir);
+
+        IEnumerable<string> items = Enumerable.Range(1, blocking).Select(i =>
+            $$"""
+            { "id": "plan-r{{round}}-reason{{i}}", "category": "ambiguity", "state": "blocking",
+              "stage": "plan", "detection": "reasoning", "summary": "s",
+              "cites": [{ "kind": "invariant", "id": "INV-02" }] }
+            """);
+
+        File.WriteAllText(Path.Combine(dir, $"plan.r{round}.json"),
+            $$"""
+            { "cycle-id": "{{cycleId}}", "target": "plan", "charter-version": 3, "round": {{round}},
+              "findings": [{{string.Join(",", items)}}] }
+            """);
+    }
+
+    private static JsonElement ProgressFor(string cycleId)
+    {
+        using JsonDocument facts = Gather($".sdlc/cycles/{cycleId}/plan.md");
+        return facts.RootElement.GetProperty("interrogation").Clone();
+    }
+
+    private static string Verdict(JsonElement progress) =>
+        progress.GetProperty("progress").GetString()!;
+
+    [TestMethod]
+    public void TheROUNDNUMBERCOMESFROMWHATIsAlreadyFiled()
+    {
+        // NOBODY INCREMENTED THE ROUND. The workflow took one as an input that defaulted to 1, so
+        // every interrogation was round 1, every document overwrote the last, and the no-progress
+        // rule — the only thing that makes the repair loop terminate — had no state to measure.
+        const string cycle = "20260924-cccc";
+        string dir = Path.Combine(_repo!, ".sdlc", "cycles", cycle, "findings");
+
+        try
+        {
+            Assert.AreEqual(1, ProgressFor(cycle).GetProperty("next-round").GetInt32(),
+                "with nothing filed the next round is the first");
+
+            FileRound(cycle, 1, 5);
+            Assert.AreEqual(2, ProgressFor(cycle).GetProperty("next-round").GetInt32());
+
+            FileRound(cycle, 2, 4);
+            Assert.AreEqual(3, ProgressFor(cycle).GetProperty("next-round").GetInt32());
+        }
+        finally
+        {
+            if (Directory.Exists(dir))
+            {
+                Directory.Delete(dir, recursive: true);
+            }
+        }
+    }
+
+    [TestMethod]
+    public void TwoConsecutiveRoundsWithNoReductionHaltTheLoop()
+    {
+        // The rule, and every state on the way to it. Measured rather than assumed: round 2 found
+        // three of five blocking items inside round 1's repairs, round 3 four of five inside
+        // round 2's, replicated here at three of four. So "until clean" never fires, and a fixed
+        // round cap ships known-broken artifacts wearing a clean label.
+        const string cycle = "20260924-cccc";
+        string dir = Path.Combine(_repo!, ".sdlc", "cycles", cycle, "findings");
+
+        try
+        {
+            FileRound(cycle, 1, 5);
+            Assert.AreEqual("first-round", Verdict(ProgressFor(cycle)),
+                "one round has nothing to compare against");
+
+            FileRound(cycle, 2, 4);
+            Assert.AreEqual("reducing", Verdict(ProgressFor(cycle)));
+
+            FileRound(cycle, 3, 4);
+            Assert.AreEqual("stalled-once", Verdict(ProgressFor(cycle)),
+                "one stalled round is not yet the rule firing");
+
+            // Worse, not merely equal: repairs INTRODUCING findings is the measured behaviour, and
+            // it must count as no reduction rather than as something other than a stall.
+            FileRound(cycle, 4, 6);
+            JsonElement halted = ProgressFor(cycle);
+            Assert.AreEqual("halted-no-progress", Verdict(halted));
+            StringAssert.Contains(halted.GetProperty("detail").GetString(), "r4=6",
+                StringComparison.Ordinal);
+
+            FileRound(cycle, 5, 0);
+            Assert.AreEqual("converged", Verdict(ProgressFor(cycle)),
+                "a round that finds nothing blocking is the loop finishing, not stalling");
+        }
+        finally
+        {
+            if (Directory.Exists(dir))
+            {
+                Directory.Delete(dir, recursive: true);
+            }
+        }
+    }
+
+    [TestMethod]
+    public void AStallThatRecoversIsNotAHalt()
+    {
+        // CONSECUTIVE is the word doing the work. A loop that stalled, reduced, then stalled again
+        // has not stalled twice in a row, and halting it would stop a repair that was working.
+        const string cycle = "20260924-cccc";
+        string dir = Path.Combine(_repo!, ".sdlc", "cycles", cycle, "findings");
+
+        try
+        {
+            FileRound(cycle, 1, 5);
+            FileRound(cycle, 2, 5);
+            FileRound(cycle, 3, 3);
+            FileRound(cycle, 4, 3);
+
+            Assert.AreEqual("stalled-once", Verdict(ProgressFor(cycle)),
+                "the stall at r2 is not consecutive with the one at r4");
+        }
+        finally
+        {
+            if (Directory.Exists(dir))
+            {
+                Directory.Delete(dir, recursive: true);
+            }
+        }
+    }
+
+    [TestMethod]
+    public void TheCycleIdComesFromThePathSoNothingElseHasToDeriveIt()
+    {
+        // One answer to "which cycle is this". The interrogation workflow derived it in JavaScript
+        // while this derived it in PowerShell: two implementations of one path convention, which
+        // disagree the first time a convention moves.
+        using JsonDocument intent = Gather(".sdlc/intents/20260924-aaaa.md");
+        Assert.AreEqual("20260924-aaaa",
+            intent.RootElement.GetProperty("artifact").GetProperty("cycle-id").GetString());
+
+        using JsonDocument plan = Gather(".sdlc/cycles/20260924-cccc/plan.md");
+        Assert.AreEqual("20260924-cccc",
+            plan.RootElement.GetProperty("artifact").GetProperty("cycle-id").GetString());
+
+        // A charter belongs to the charter-review intent proposing to change it, so it has to be
+        // told rather than guessed.
+        using JsonDocument charter = Gather(".sdlc/CHARTER.md");
+        Assert.AreEqual(JsonValueKind.Null,
+            charter.RootElement.GetProperty("artifact").GetProperty("cycle-id").ValueKind);
+    }
+
+    private static string DetailOf(JsonDocument facts, string checkId) =>
+        facts.RootElement.GetProperty("checks").EnumerateArray()
+            .First(c => c.GetProperty("id").GetString() == checkId)
+            .GetProperty("detail").GetString() ?? string.Empty;
+
+    [TestMethod]
+    public void AnArtifactWhoseFrontmatterBreaksItsSchemaFailsACheck()
+    {
+        // THE SIX SCHEMAS WERE EXERCISED ONLY BY FIXTURES. Nothing validated a real artifact at
+        // the moment one was written, so a spec with no charter version or a plan with a
+        // malformed cycle id passed every gate there was.
+        //
+        // This fixture intent declares `id` and `source` and no `charter-version`, which the
+        // intent schema requires — a retro stamped against no charter version is uninterpretable,
+        // which is exactly why the field is required.
+        using JsonDocument facts = Gather(".sdlc/intents/20260924-aaaa.md");
+
+        Assert.IsTrue(FailedChecks(facts).Contains("frontmatter-valid"),
+            "an intent missing a required frontmatter field must fail schema validation");
+
+        StringAssert.Contains(DetailOf(facts, "frontmatter-valid"), "charter-version",
+            StringComparison.Ordinal);
+    }
+
+    [TestMethod]
+    public void AConformingArtifactPassesSchemaValidation()
+    {
+        // The other direction, and the one that decides whether the check survives: a check that
+        // reports healthy artifacts as broken gets switched off, which is the erosion failure
+        // one layer up.
+        using JsonDocument facts = Gather(".sdlc/cycles/20260924-bbbb/spec.md");
+
+        Assert.IsFalse(FailedChecks(facts).Contains("frontmatter-valid"),
+            "this spec carries every field its schema requires");
+    }
+
+    [TestMethod]
+    public void AKindWithNoSchemaPassesAndSaysWhy()
+    {
+        // No charter.schema.json ships — a charter's shape is governed by the form rule instead.
+        // That has to read as "nothing governs this" rather than as either a pass or a failure,
+        // because a caller told nothing will eventually call it approval.
+        using JsonDocument facts = Gather(".sdlc/CHARTER.md");
+
+        Assert.IsFalse(FailedChecks(facts).Contains("frontmatter-valid"),
+            "an unvalidatable kind is not a failing artifact");
+
+        StringAssert.Contains(DetailOf(facts, "frontmatter-valid"), "no schema",
+            StringComparison.Ordinal);
+    }
 }

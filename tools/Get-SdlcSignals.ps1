@@ -85,6 +85,13 @@ if (-not (Test-Path -LiteralPath $charterPath)) {
 
 $charterText = [string] (Get-Content -LiteralPath $charterPath -Raw -Encoding UTF8)
 
+# This solution's own name, so its unlanded findings partition alongside the absorbed retros
+# rather than sitting in a nameless bucket.
+$localSolution = 'this solution'
+foreach ($line in ($charterText -split "`r?`n")) {
+    if ($line -match '^solution:\s*(\S.*)$') { $localSolution = $Matches[1].Trim(); break }
+}
+
 # Struck-through ids are records of ABSENCE, not declarations. Reading one as declared would
 # report a removed invariant as having zero cites, which is true and meaningless.
 $declared = New-Object System.Collections.ArrayList
@@ -106,33 +113,112 @@ foreach ($line in ($charterText -split "`r?`n")) {
 
 # --- the corpus -------------------------------------------------------------
 #
-# Retros first, because the retro is what TRAVELS between repos and is therefore what the
-# signals are computed from. verify.md files stay in their solution and ai-sdlc never sees
-# them. Findings documents are read too, for a solution surveying itself before anything has
-# landed.
+# Two sources, and the order is the point. Absorbed RETROS are the corpus proper: a retro is what
+# travels between repositories, so it is what the signals are computed from. This solution's own
+# findings documents are read as well, so a solution can survey itself before anything has landed —
+# which is the only reason there was ever anything to survey here.
 
 $corpus = New-Object System.Collections.ArrayList
 $cyclesDir = Join-Path $RepoRoot '.sdlc/cycles'
 
+#
+# THE RETRO IS WHAT TRAVELS. A `verify.md` stays in its solution and this repository never sees
+# one; the retro is copied here by Import-SdlcRetro.ps1 and carries every finding with its
+# category, attributed stage, detection, citation and disposition. So this is the corpus the
+# amendment signals are actually computed from, and until it was read the header above described
+# a behaviour the code did not have.
+#
+# The table shape is the one Format-SdlcFindings.ps1 -For retro emits, which is why the retro's
+# table is generated rather than transcribed: a table of an agent's own design is a table no query
+# can read, and the loop would fail silently at its last step.
+function Get-SdlcRetroFindings {
+    param([string] $File, [string] $Solution, [string] $CycleId)
+
+    $rows = New-Object System.Collections.ArrayList
+
+    foreach ($line in (Get-Content -LiteralPath $File -Encoding UTF8)) {
+        if ($line -notmatch '^\s*\|') { continue }
+
+        $cells = @($line.Trim().Trim('|') -split '\|' | ForEach-Object { $_.Trim() })
+        if ($cells.Count -lt 8) { continue }
+
+        # The header and the separator, skipped by shape rather than by position: a table that
+        # gained a leading blank line would still parse.
+        if ($cells[0] -eq 'Finding' -or $cells[0] -match '^-{2,}$') { continue }
+
+        $id = $cells[0].Trim('`')
+        if (-not $id) { continue }
+
+        # Back into the same shape a findings document carries, so everything downstream counts
+        # both sources with one piece of logic.
+        $cites = New-Object System.Collections.ArrayList
+        foreach ($part in ($cells[6] -split ';')) {
+            $token = $part.Trim()
+            if (-not $token -or $token -eq '—') { continue }
+            if ($token -match '^(invariant|check|deferred)\s+(\S+)$') {
+                $null = $cites.Add([pscustomobject]@{ kind = $Matches[1]; id = $Matches[2] })
+            }
+            elseif ($token -eq 'locations') {
+                $null = $cites.Add([pscustomobject]@{ kind = 'locations'; id = $null })
+            }
+        }
+
+        $disposition = $cells[7]
+        if ($disposition -eq '—' -or -not $disposition) { $disposition = $null }
+
+        $null = $rows.Add([pscustomobject]@{
+            cycle       = $CycleId
+            solution    = $Solution
+            category    = $cells[2]
+            state       = $cells[1]
+            disposition = $disposition
+            cites       = @($cites)
+        })
+    }
+
+    return $rows
+}
+
+$corpusDir = Join-Path $RepoRoot 'retros'
+if (Test-Path -LiteralPath $corpusDir) {
+    foreach ($solutionDir in @(Get-ChildItem -LiteralPath $corpusDir -Directory)) {
+        foreach ($retro in @(Get-ChildItem -LiteralPath $solutionDir.FullName -Filter '*.md' -File)) {
+            $cycleId = [System.IO.Path]::GetFileNameWithoutExtension($retro.Name)
+            foreach ($row in @(Get-SdlcRetroFindings -File $retro.FullName -Solution $solutionDir.Name -CycleId $cycleId)) {
+                $null = $corpus.Add($row)
+            }
+        }
+    }
+}
+
 if (Test-Path -LiteralPath $cyclesDir) {
     foreach ($dir in @(Get-ChildItem -LiteralPath $cyclesDir -Directory)) {
-        $findingsPath = Join-Path $dir.FullName 'findings.json'
-        if (-not (Test-Path -LiteralPath $findingsPath)) { continue }
+        # EVERY DOCUMENT, because one interrogation is one document: the schema carries a single
+        # target and round per file, so a cycle that interrogated its intent, spec, plan and
+        # verification has four. Reading one findings.json surveyed a quarter of the evidence and
+        # reported the total with confidence.
+        $findingsDir = Join-Path $dir.FullName 'findings'
+        if (-not (Test-Path -LiteralPath $findingsDir)) { continue }
 
-        $raw = [string] (Get-Content -LiteralPath $findingsPath -Raw -Encoding UTF8)
-        if (-not $raw.Trim()) { continue }
+        foreach ($file in @(Get-ChildItem -LiteralPath $findingsDir -Filter '*.json' -File)) {
+            $raw = [string] (Get-Content -LiteralPath $file.FullName -Raw -Encoding UTF8)
+            if (-not $raw.Trim()) { continue }
 
-        $doc = ConvertFrom-Json $raw
-        if (-not (Test-Field $doc 'findings')) { continue }
+            $doc = ConvertFrom-Json $raw
+            if (-not (Test-Field $doc 'findings')) { continue }
 
-        foreach ($f in @($doc.findings)) {
-            $null = $corpus.Add([pscustomobject]@{
-                cycle       = $dir.Name
-                category    = $(if (Test-Field $f 'category') { $f.category } else { 'unclassified' })
-                state       = $(if (Test-Field $f 'state') { $f.state } else { 'suggested' })
-                disposition = $(if (Test-Field $f 'disposition') { $f.disposition } else { $null })
-                cites       = $(if (Test-Field $f 'cites') { @($f.cites) } else { @() })
-            })
+            foreach ($f in @($doc.findings)) {
+                $null = $corpus.Add([pscustomobject]@{
+                    cycle       = $dir.Name
+                    # This solution's own name, so the two sources partition the same way. A local
+                    # finding and an absorbed one are the same evidence about the same charter.
+                    solution    = $localSolution
+                    category    = $(if (Test-Field $f 'category') { $f.category } else { 'unclassified' })
+                    state       = $(if (Test-Field $f 'state') { $f.state } else { 'suggested' })
+                    disposition = $(if (Test-Field $f 'disposition') { $f.disposition } else { $null })
+                    cites       = $(if (Test-Field $f 'cites') { @($f.cites) } else { @() })
+                })
+            }
         }
     }
 }
@@ -235,10 +321,29 @@ foreach ($category in @($byCategory.Keys | Sort-Object)) {
 $total = $corpus.Count
 $unclassified = @($corpus | Where-Object { $_.category -eq 'unclassified' }).Count
 
+# PARTITIONED BY SOLUTION, NOT POOLED. "Where does our process leak" may have a genuinely
+# different answer for a library than for a competition, so pooling them hides that rather than
+# revealing it. Per-solution counts are as far as the evidence currently goes: grouping by (pack,
+# invariant) is what the design asks for, and a retro records its pack VERSION but not the pack's
+# name — so that grouping needs a field the retro schema does not have, which is a decision rather
+# than a line of code. Stated here rather than approximated.
+$bySolution = New-Object System.Collections.ArrayList
+$solutionNames = @($corpus | ForEach-Object { $_.solution } | Where-Object { $_ } | Select-Object -Unique | Sort-Object)
+foreach ($name in $solutionNames) {
+    $rowsFor = @($corpus | Where-Object { $_.solution -eq $name })
+    $null = $bySolution.Add([pscustomobject]@{
+        solution = $name
+        findings = $rowsFor.Count
+        cycles   = @($rowsFor | ForEach-Object { $_.cycle } | Select-Object -Unique).Count
+    })
+}
+
 $result = [ordered]@{
     'generated-at'      = $null
     'charter'           = ($Charter -replace '\\', '/')
     'corpus-size'       = $total
+    'by-solution'       = @($bySolution)
+    'pack-grouping'     = 'not available: a retro records its pack version but not the pack name, so (pack, invariant) grouping needs a schema field that does not exist yet'
     'cycles-surveyed'   = @($corpus | ForEach-Object { $_.cycle } | Select-Object -Unique).Count
     'unclassified-rate' = $(if ($total -gt 0) { [math]::Round($unclassified / $total, 3) } else { 0 })
     invariants          = @($rows)
