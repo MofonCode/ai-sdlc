@@ -1,0 +1,156 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/MofonCode/ai-sdlc/schemas/verify.schema.json",
+  "title": "Verify",
+  "description": "The frontmatter of a cycle's verify.md. Everything in it is derived: the outcome from the findings, the findings from the diff and the spec, the evidence from build and test output that already exists. The rules below are the state machine, enforced mechanically so no prose has to be trusted for it.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["framework_version", "cycle", "spec", "plan", "verified_at", "outcome", "remediation", "evidence", "findings"],
+  "properties": {
+    "framework_version": { "$ref": "findings.schema.json#/$defs/semver" },
+    "cycle": { "$ref": "findings.schema.json#/$defs/cycleId" },
+    "spec": { "type": "string", "minLength": 1 },
+    "plan": { "type": "string", "minLength": 1 },
+    "verified_at": { "type": "string", "format": "date-time" },
+    "outcome": {
+      "enum": ["pass", "blocked", "escalated"],
+      "description": "pass: landable. blocked: open blocking findings and budget remains. escalated: the budget is spent and a person owns it; landing refuses."
+    },
+    "remediation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["passes_spent"],
+      "properties": {
+        "passes_spent": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 3,
+          "description": "Consecutive remediation passes with no change to verify's inputs. Reset to zero when a person changes the code, the spec, or the waivers."
+        },
+        "reset_by": {
+          "enum": ["code", "spec", "waiver"],
+          "description": "Which human change last reset the counter. Absent until one has."
+        }
+      }
+    },
+    "evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["build", "tests", "diff"],
+      "properties": {
+        "build": { "$ref": "#/$defs/evidenceRef" },
+        "tests": { "$ref": "#/$defs/evidenceRef" },
+        "diff": { "$ref": "#/$defs/evidenceRef" }
+      }
+    },
+    "waivers": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Path to the cycle's waivers document. Required when any finding is waived: a waived disposition with no document to justify it is unverifiable."
+    },
+    "findings": {
+      "type": "array",
+      "items": { "$ref": "findings.schema.json#/$defs/finding" }
+    }
+  },
+  "allOf": [
+    {
+      "description": "pass requires that no blocking finding is still open.",
+      "if": {
+        "properties": { "outcome": { "const": "pass" } },
+        "required": ["outcome"]
+      },
+      "then": {
+        "properties": {
+          "findings": {
+            "type": "array",
+            "not": { "type": "array", "contains": { "$ref": "#/$defs/openBlocking" } }
+          }
+        }
+      }
+    },
+    {
+      "description": "blocked requires at least one open blocking finding and unspent budget.",
+      "if": {
+        "properties": { "outcome": { "const": "blocked" } },
+        "required": ["outcome"]
+      },
+      "then": {
+        "properties": {
+          "findings": {
+            "type": "array",
+            "contains": { "$ref": "#/$defs/openBlocking" }
+          },
+          "remediation": {
+            "type": "object",
+            "properties": { "passes_spent": { "type": "integer", "maximum": 2 } }
+          }
+        }
+      }
+    },
+    {
+      "description": "escalated requires a spent budget and at least one open blocking finding. Escalating with budget left, or with nothing blocking, is a contradiction.",
+      "if": {
+        "properties": { "outcome": { "const": "escalated" } },
+        "required": ["outcome"]
+      },
+      "then": {
+        "properties": {
+          "findings": {
+            "type": "array",
+            "contains": { "$ref": "#/$defs/openBlocking" }
+          },
+          "remediation": {
+            "type": "object",
+            "properties": { "passes_spent": { "type": "integer", "const": 3 } }
+          }
+        }
+      }
+    },
+    {
+      "description": "A waived finding requires a waivers document to justify it.",
+      "if": {
+        "properties": {
+          "findings": {
+            "type": "array",
+            "contains": { "$ref": "#/$defs/waived" }
+          }
+        },
+        "required": ["findings"]
+      },
+      "then": {
+        "required": ["waivers"],
+        "properties": { "waivers": { "type": "string", "minLength": 1 } }
+      }
+    }
+  ],
+  "$defs": {
+    "evidenceRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path"],
+      "properties": {
+        "path": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Where the recorded output lives. A claim citing evidence that is not here cannot be checked."
+        },
+        "sha": { "type": "string", "pattern": "^[0-9a-f]{7,40}$" },
+        "summary": { "type": "string", "minLength": 1 }
+      }
+    },
+    "openBlocking": {
+      "type": "object",
+      "properties": {
+        "severity": { "const": "blocking" },
+        "disposition": { "const": "open" }
+      },
+      "required": ["severity", "disposition"]
+    },
+    "waived": {
+      "type": "object",
+      "properties": { "disposition": { "const": "waived" } },
+      "required": ["disposition"]
+    }
+  }
+}

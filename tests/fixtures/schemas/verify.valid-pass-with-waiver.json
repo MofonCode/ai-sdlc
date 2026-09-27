@@ -1,0 +1,38 @@
+{
+  "framework_version": "0.0.1",
+  "cycle": "20260927-a3f1",
+  "spec": ".sdlc/cycles/20260927-a3f1/spec.md",
+  "plan": ".sdlc/cycles/20260927-a3f1/plan.md",
+  "verified_at": "2026-09-27T15:40:02Z",
+  "evidence": {
+    "build": {
+      "path": ".sdlc/cycles/20260927-a3f1/evidence/build.log",
+      "summary": "0 warnings, 0 errors"
+    },
+    "tests": {
+      "path": ".sdlc/cycles/20260927-a3f1/evidence/tests.trx",
+      "summary": "94 passed, 0 failed"
+    },
+    "diff": {
+      "path": ".sdlc/cycles/20260927-a3f1/evidence/diff.patch",
+      "sha": "f1ab05d"
+    }
+  },
+  "outcome": "pass",
+  "remediation": {
+    "passes_spent": 1,
+    "reset_by": "waiver"
+  },
+  "waivers": ".sdlc/cycles/20260927-a3f1/waivers.md",
+  "findings": [
+    {
+      "id": "F-01",
+      "severity": "blocking",
+      "disposition": "waived",
+      "cites": "CON-07",
+      "statement": "The diff touches a generated file the plan did not describe.",
+      "locus": "src/Api/Generated/Client.cs",
+      "remedy": "Regenerate from source, or declare the file in the plan."
+    }
+  ]
+}

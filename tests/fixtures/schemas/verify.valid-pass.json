@@ -1,0 +1,35 @@
+{
+  "framework_version": "0.0.1",
+  "cycle": "20260927-a3f1",
+  "spec": ".sdlc/cycles/20260927-a3f1/spec.md",
+  "plan": ".sdlc/cycles/20260927-a3f1/plan.md",
+  "verified_at": "2026-09-27T15:40:02Z",
+  "evidence": {
+    "build": {
+      "path": ".sdlc/cycles/20260927-a3f1/evidence/build.log",
+      "summary": "0 warnings, 0 errors"
+    },
+    "tests": {
+      "path": ".sdlc/cycles/20260927-a3f1/evidence/tests.trx",
+      "summary": "94 passed, 0 failed"
+    },
+    "diff": {
+      "path": ".sdlc/cycles/20260927-a3f1/evidence/diff.patch",
+      "sha": "f1ab05d"
+    }
+  },
+  "outcome": "pass",
+  "remediation": {
+    "passes_spent": 0
+  },
+  "findings": [
+    {
+      "id": "F-01",
+      "severity": "suggestion",
+      "disposition": "open",
+      "cites": "CON-06",
+      "statement": "The proof for criterion 2 is a unit test where an integration test would observe more.",
+      "locus": "plan.md, 'Proof' for criterion 2"
+    }
+  ]
+}

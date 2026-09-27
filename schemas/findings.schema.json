@@ -1,0 +1,97 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/MofonCode/ai-sdlc/schemas/findings.schema.json",
+  "title": "Findings",
+  "description": "The result of one interrogation. Machine-produced and machine-consumed. The severity enum here is the single definition of the taxonomy: verify, remediate, land and CI all branch on it.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["framework_version", "cycle", "artifact", "interrogated_at", "round", "findings"],
+  "properties": {
+    "framework_version": {
+      "$ref": "#/$defs/semver",
+      "description": "Global constraints live in the library, so an upgrade can change the rules an artifact is judged against with no commit in the solution. Without this, a verdict is not reproducible."
+    },
+    "cycle": { "$ref": "#/$defs/cycleId" },
+    "artifact": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Repository-relative path of the artifact interrogated."
+    },
+    "interrogated_at": { "type": "string", "format": "date-time" },
+    "round": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Interrogations of the same artifact are numbered; each is kept, none overwritten."
+    },
+    "findings": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/finding" }
+    }
+  },
+  "$defs": {
+    "semver": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+    },
+    "cycleId": {
+      "type": "string",
+      "pattern": "^[0-9]{8}-[0-9a-f]{4}$"
+    },
+    "findingId": {
+      "type": "string",
+      "pattern": "^F-[0-9]{2,}$"
+    },
+    "severity": {
+      "enum": ["blocking", "suggestion"],
+      "description": "blocking stops the cycle and is worked by remediation. suggestion never blocks and is never remediated."
+    },
+    "disposition": {
+      "enum": ["open", "waived"],
+      "description": "waived is derived from the cycle's waivers document, never asserted here."
+    },
+    "constraintId": {
+      "type": "string",
+      "pattern": "^(CON|LOC)-[0-9]{2,}$",
+      "description": "CON resolves in the library's constraints.md, LOC in the solution's."
+    },
+    "finding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "severity", "disposition", "cites", "statement", "locus"],
+      "properties": {
+        "id": { "$ref": "#/$defs/findingId" },
+        "severity": { "$ref": "#/$defs/severity" },
+        "disposition": { "$ref": "#/$defs/disposition" },
+        "cites": { "$ref": "#/$defs/constraintId" },
+        "statement": {
+          "type": "string",
+          "minLength": 1,
+          "description": "What is wrong, in one sentence."
+        },
+        "locus": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Where in the artifact — a quoted phrase, a heading, or a path and line. A finding with no locus cannot be acted on."
+        },
+        "remedy": {
+          "type": "string",
+          "minLength": 1,
+          "description": "What would resolve it. Required for blocking: remediation cannot work a finding that does not say what would fix it."
+        }
+      },
+      "allOf": [
+        {
+          "description": "A blocking finding must say what would resolve it: remediation cannot work a finding that names no remedy.",
+          "if": {
+            "properties": { "severity": { "const": "blocking" } },
+            "required": ["severity"]
+          },
+          "then": {
+            "required": ["remedy"],
+            "properties": { "remedy": { "type": "string", "minLength": 1 } }
+          }
+        }
+      ]
+    }
+  }
+}

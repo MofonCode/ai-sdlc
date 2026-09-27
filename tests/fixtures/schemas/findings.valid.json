@@ -1,0 +1,26 @@
+{
+  "framework_version": "0.0.1",
+  "cycle": "20260927-a3f1",
+  "artifact": ".sdlc/cycles/20260927-a3f1/spec.md",
+  "interrogated_at": "2026-09-27T14:02:11Z",
+  "round": 1,
+  "findings": [
+    {
+      "id": "F-01",
+      "severity": "blocking",
+      "disposition": "open",
+      "cites": "CON-03",
+      "statement": "Criterion 3 cannot fail: 'the export performs well' names no threshold and no check.",
+      "locus": "\"the export performs well\"",
+      "remedy": "State a measurable bound and the check that observes it, or drop the criterion."
+    },
+    {
+      "id": "F-02",
+      "severity": "suggestion",
+      "disposition": "open",
+      "cites": "CON-05",
+      "statement": "Criterion 5 covers retry behaviour, which the intent never mentions.",
+      "locus": "heading 'Retries'"
+    }
+  ]
+}
