@@ -1,3 +1,8 @@
+---
+freshness: exempt
+reason: design record — records decisions rather than documenting source
+---
+
 # ai-sdlc — concept
 
     Status: DRAFT — open for refinement
@@ -15,12 +20,23 @@ resolve it with a person. Tables of versions are evidence, never authority.
 
 ## 1. What this is
 
-A process framework that defines how a change moves from idea to landed code, and that is
-built by its own process.
+A process framework that defines how a change moves from idea to landed code in the solutions
+that adopt it.
 
 **The single idea:** every phase ends by committing an artifact the next phase reads, and
 each artifact is interrogated against a set of constraints before it may advance. Nothing
 advances on assertion; it advances on evidence that survived a challenge.
+
+**DECIDED:** the framework is developed as an ordinary product — branch, review, merge — and
+does not run its own cycles. There is no `.sdlc/` directory in this repository and there never
+will be. Skills are validated against checked-in fixture solutions: deterministic, disposable,
+and reviewable. A framework that governed itself would couple its own history to its test
+data, make every failure a two-layer debugging problem, and block work on the process behind
+the very process being built.
+
+Following the framework's own documentation conventions here — a lean `AGENTS.md`, described
+pointers, checked freshness — is not self-governance. Those are good practice for any
+repository. The line is the cycle: this one does not run them.
 
 **DECIDED:** it ships as one Claude Code plugin. There are no stack packs. A single set of
 stack defaults (§8) serves every solution, and a solution that needs something else says so

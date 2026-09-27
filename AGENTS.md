@@ -1,20 +1,24 @@
 # ai-sdlc
 
-A Claude Code plugin that defines how a change moves from idea to landed code, and that is
-built by its own process. A cycle runs **intent → spec → plan → build → verify → land**. Each
-phase commits an artifact the next phase reads, and each artifact is interrogated against a
-set of constraints before it may advance. Nothing advances on assertion.
+A Claude Code plugin that defines how a change moves from idea to landed code in the solutions
+that adopt it. A cycle runs **intent → spec → plan → build → verify → land**. Each phase commits
+an artifact the next phase reads, and each artifact is interrogated against a set of constraints
+before it may advance. Nothing advances on assertion.
 
-`concept.md` is the design record and the current authority on every design question. Read it
+**This repository does not run cycles on itself.** There is no `.sdlc/` directory here, and
+adding one is wrong. The framework is built as an ordinary product — branch, review, merge — and
+its skills are validated against fixture solutions under `tests/fixtures/`.
+
+`docs/concept.md` is the design record and the current authority on every design question. Read it
 before proposing a change to how the framework works.
 
 ## State of this repository
 
-Clean slate, rebuilt from `archive/v02`. `concept.md` is the only artifact.
+Clean slate, rebuilt from `archive/v02`. The design is written; nothing is built yet.
 
-There is **no build, no test suite, no plugin manifest and no skills yet**. Do not go looking
-for them and do not invent commands — if a task needs one, that is a gap to raise, not a
-guess to make.
+There is **no build, no test suite, no plugin manifest, no fixtures and no skills**. Do not go
+looking for them and do not invent commands — if a task needs one, that is a gap to raise, not a
+guess to make. `docs/buildout.md` says what comes next and what "done" means for each phase.
 
 Earlier versions live on `archive/v01` and `archive/v02`. They are evidence, not a starting
 point: read from them only when pointed at a specific file, and never copy forward without
@@ -34,7 +38,7 @@ solution. If a request could mean either, ask.
 
 ## Vocabulary
 
-Short glosses for orientation. `concept.md` §2 carries the reasoning, including why criteria
+Short glosses for orientation. `docs/concept.md` §2 carries the reasoning, including why criteria
 and constraints are deliberately different words.
 
 | Term | Gloss |
@@ -62,12 +66,11 @@ None yet. This section names them when a build exists.
 
 ## What makes a change landable
 
-Until constraints and CI exist, a change lands when it is consistent with `concept.md` and a
-person has reviewed it. When `concept.md` disagrees with a change, the concept wins — or the
-change includes the amendment that makes it agree, argued explicitly.
+A change lands when CI is green, it is consistent with `docs/concept.md`, and a person has
+reviewed it. When `docs/concept.md` disagrees with a change, the concept wins — or the change
+includes the amendment that makes it agree, argued explicitly in the same pull request.
 
-`concept.md` freezes once the framework's own artifacts exist. From that point design
-disagreements are settled by the constraints and the skills, not by amending the concept.
+Until CI exists, the first two conditions collapse into the third.
 
 ## Do not touch
 
@@ -82,7 +85,12 @@ Open one of these only when its trigger applies; do not read them speculatively.
 
 | Doc | Open it when |
 |---|---|
-| `concept.md` | proposing or questioning how the framework works — phases, gates, artifacts, governance |
+| `docs/concept.md` | proposing or questioning how the framework works — phases, gates, artifacts, governance |
+| `docs/buildout.md` | asking what to build next, or whether a phase is finished |
 
 Rows are added as the documents are written. Every document under `docs/` appears here exactly
 once, and every row points at a file that exists.
+
+A doc that documents source declares a `covers:` glob and is checked for staleness against it.
+A doc that records decisions declares `freshness: exempt` with a reason — a design record is
+measured against the decisions it captures, not against source it was never describing.
