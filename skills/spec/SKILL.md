@@ -50,6 +50,10 @@ Honour **Fixed decisions** as given. They are a person's choice, not yours to re
 
 Sections:
 
+Frontmatter carries `id` and `intent`, and `intent` is the **repository-relative path** of the
+intent on disk — `.sdlc/intents/<id>.md`, never a bare filename. Every later phase binds the spec to
+its intent through that field, and an interrogation that cannot resolve it cannot judge coverage.
+
 ```markdown
 # Spec - <what done means, in a line>
 

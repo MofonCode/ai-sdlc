@@ -66,7 +66,8 @@ phrasings and belongs in a hook; this covers the general case, which no word lis
 **Applies to:** a spec, at acceptance.
 
 **Forbids:** a spec whose criteria satisfy some of the intent's stated outcomes while leaving
-others with no criterion at all.
+others with no criterion at all. An intent's **must not change** items are among those outcomes,
+and they are the ones most often dropped - dropping one is how a compatibility break lands green.
 
 **Why:** a gap here is invisible downstream. Build implements the spec and verify checks the
 spec, so an omitted outcome is never mentioned again and the cycle lands green having done part

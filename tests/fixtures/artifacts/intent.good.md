@@ -19,5 +19,5 @@ A caller can hand `Totals.Sum` whatever collection it has, empty or not, and del
 The signature. Both callers pass `IEnumerable<decimal>` and are compiled against it.
 
 ## Open
-- Should an empty sum be zero, or is a null result meaningful to some caller? Nobody has asked the
-  two callers.
+- Do the two callers want their guards removed in the same change, or left in place until they next
+  touch those methods? Nobody has asked them.

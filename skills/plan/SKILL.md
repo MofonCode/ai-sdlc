@@ -55,6 +55,9 @@ sentence why the tier is what it is — that sentence is what a reviewer checks.
 
 ## Write it
 
+Frontmatter carries `id`, `spec` and `tier`, and `spec` is the **repository-relative path** of the
+spec on disk — `.sdlc/cycles/<id>/spec.md`, never a bare filename.
+
 ```markdown
 # Plan - <the spec's subject>
 

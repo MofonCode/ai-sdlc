@@ -1,0 +1,6 @@
+#nullable enable
+Greenfield.Core.Invoicing
+static Greenfield.Core.Invoicing.CreditTotal(System.Collections.Generic.IReadOnlyCollection<decimal>! credits) -> decimal
+static Greenfield.Core.Invoicing.LineTotal(System.Collections.Generic.IReadOnlyCollection<decimal>! lines) -> decimal
+Greenfield.Core.Totals
+static Greenfield.Core.Totals.Sum(System.Collections.Generic.IEnumerable<decimal>! amounts) -> decimal

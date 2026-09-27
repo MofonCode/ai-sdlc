@@ -1,6 +1,6 @@
 ---
 id: 20260927-0001
-spec: spec.good.md
+spec: .sdlc/cycles/20260927-0001/spec.md
 tier: local
 ---
 

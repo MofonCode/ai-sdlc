@@ -27,11 +27,27 @@ and not a problem to report.
 
 # What to do
 
-## 1. Judge
+## 1. Resolve what the artifact answers to
+
+A spec is judged against its intent and a plan against its spec, so several constraints are
+relational. Read the artifact's frontmatter and open the predecessor it names.
+
+**If you cannot resolve it, stop and report that as the blocking problem.** Do not judge the
+constraints you can reach and stay quiet about the rest: that produces a document saying the artifact
+is sound when the relational rules were never applied, which is the most expensive kind of wrong
+answer this process can give. A bare filename where a repository-relative path belongs is the common
+cause.
+
+## 2. Judge
 
 Each constraint above states what it **Applies to**. Check only the ones that apply to this
 artifact's kind — a spec is not judged by a rule about waivers.
 
+- **Judge against the `Forbids:` clause, never the heading.** The heading names a concern; the
+  clause is what makes a breach, and it is deliberately narrower. A spec with a criterion for every
+  outcome does not breach a clause about outcomes left "with no criterion at all", however vague
+  those criteria are — that is a different constraint's breach. If the clause does not cover what
+  you are looking at, there is no finding, however wrong it seems
 - **Cite exactly one constraint per finding.** A problem breaching two constraints is two findings
 - **Never invent a constraint.** If something is wrong and no constraint forbids it, keep it out of
   the document and mention it in your closing summary as an observation. Do not manufacture an ID
@@ -40,7 +56,7 @@ artifact's kind — a spec is not judged by a rule about waivers.
 - **Severity is not a feeling.** `blocking` means the artifact must not advance as written.
   `suggestion` means it may advance and would be better changed
 
-## 2. Work out the path, then write the file
+## 3. Work out the path, then write the file
 
 This step is the deliverable. **Printing the document into your reply is not doing it** — nothing
 downstream reads your reply, and remediation, verify and landing all read the file.
@@ -94,7 +110,7 @@ Every field is required for a reason:
 }
 ```
 
-## 3. Report
+## 4. Report
 
 Confirm the path you wrote, then the count at each severity, then each blocking finding as one line
 naming its constraint and its locus. Do not restate the document in prose — it is the record, and

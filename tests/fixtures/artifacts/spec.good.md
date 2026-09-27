@@ -1,6 +1,6 @@
 ---
 id: 20260927-0001
-intent: intent.good.md
+intent: .sdlc/intents/20260927-0001.md
 ---
 
 # Spec - Totals.Sum accepts an empty sequence

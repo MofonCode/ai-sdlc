@@ -123,7 +123,7 @@ artifact has its expected findings recorded beside it.
 
 ## Phase 3 — interrogation and intent
 
-**Status: interrogate verified against one fixture; intent unverified.** Walking the flow found four
+**Status: interrogate verified — 9/9 fixtures. intent unverified.** Walking the flow found seven
 defects that reading it never would, all now fixed:
 
 1. **A solution session cannot read the plugin root.** Every skill that needed the global constraints
@@ -139,10 +139,25 @@ defects that reading it never would, all now fixed:
    so it now keys on what does distinguish them: Edit versus Write for a verify document, creation
    versus overwrite for findings and evidence.
 4. **A model cannot read a clock** and writes a plausible midnight. The injector states the time.
+5. **Judging on a constraint's heading rather than its `Forbids:` clause.** CON-04 fired on a spec
+   that had a criterion for every outcome, because one was vague — which is CON-03's breach. The
+   clause is the operative text and is deliberately narrower than the heading.
+6. **An unresolvable cross-reference degrades silently.** A spec naming `intent: intent.good.md`
+   instead of a repository-relative path could not be bound to its intent, so the relational
+   constraints were skipped and the verdict came back *sound*. Interrogation now refuses rather than
+   judging what it can reach, and the spec and plan skills state that the reference is a path.
+7. **CON-04 did not say that must-not-change items are outcomes**, so a spec dropping a
+   compatibility requirement passed. Clarified in the clause.
 
-The golden artifacts were also rewritten: they described a dashboard that the fixture solution does
-not have, so interrogation correctly reported incoherence rather than the defect under test. Each now
-isolates one constraint, because a fixture tripping two makes a failure ambiguous.
+The golden artifacts were also rewritten twice, for the same reason both times. **An interrogation
+reads the code, so a golden artifact must be true of the fixture solution it is placed in.** The first
+set described a dashboard the fixture does not have; the replacement claimed two guarded call sites
+that did not exist, and CON-02 correctly fired on the artifact meant to be sound. Each artifact now
+isolates one constraint — a fixture tripping two makes a failure ambiguous — and the fixture carries
+the callers its artifacts refer to.
+
+No test can check that coherence: it is semantic, and the only thing that catches it is running the
+flow. So a new fixture is not finished until it has been interrogated once and the result read.
 
 - `skills/interrogate/SKILL.md` — challenge an artifact against the effective constraint set and
   emit findings that validate against the schema

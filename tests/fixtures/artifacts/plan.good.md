@@ -1,6 +1,6 @@
 ---
 id: 20260927-0001
-spec: spec.good.md
+spec: .sdlc/cycles/20260927-0001/spec.md
 tier: local
 ---
 
@@ -21,8 +21,12 @@ tier: local
   the result is `0m`. It fails before the change, because the current body throws.
 - Criterion 2 - `TotalsTests.KnownSequenceTotalsToItsSum` passes three known amounts and asserts
   their exact total, so a change that silently returned zero for everything would fail it.
-- Criterion 3 - the test project compiles against `IEnumerable<decimal>` and is built by the same
-  `dotnet test` run, so a signature change breaks the build rather than passing quietly.
+- Criterion 3 - `PublicAPI.Shipped.txt` records `Totals.Sum(IEnumerable<decimal>) -> decimal`, and
+  `Microsoft.CodeAnalysis.PublicApiAnalyzers` fails the build on any difference between it and the
+  compiled surface. That file is not in this plan's file list, so the build fails if the signature
+  moves at all. Neither a new test nor an existing caller would prove this: a test written in this
+  change compiles against whatever the signature became, and a caller passing a narrower type keeps
+  compiling when the parameter is narrowed.
 
 ## Risk
 Seeding changes behaviour for null input from a null-reference throw to something else. The spec
