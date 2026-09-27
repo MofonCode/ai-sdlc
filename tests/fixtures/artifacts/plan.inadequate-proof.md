@@ -4,21 +4,22 @@ spec: spec.good.md
 tier: local
 ---
 
-# Plan - the ops dashboard opens fast enough to use
+# Plan - Totals.Sum accepts an empty sequence
 
 ## Files
 
 | File | Change |
 |---|---|
-| `src/Ops.Dashboard/PanelQueries.cs` | replace per-panel round trips with one batched query |
-| `src/Ops.Dashboard/DashboardPage.razor` | render panels from the batched result |
-| `tests/Ops.Dashboard.Tests/PanelQueryTests.cs` | new: unit test for the batched query |
+| `src/Greenfield.Core/Totals.cs` | seed the accumulation so an empty sequence totals to zero |
+| `tests/Greenfield.Core.Tests/TotalsTests.cs` | new: a test for the change |
+| `tests/Greenfield.Core.Tests/Greenfield.Core.Tests.csproj` | new: test project referencing Greenfield.Core |
+| `Greenfield.slnx` | add the test project |
 
 ## Proof
 
-- Criterion 1 - a unit test on `PanelQueries` asserts the batched query is issued once.
-- Criterion 2 - manual check that the URL still works.
-- Criterion 3 - covered by criterion 1.
+- Criterion 1 - a test asserts `Totals.Sum` does not throw for an empty sequence.
+- Criterion 2 - covered by criterion 1.
+- Criterion 3 - manual check that callers still compile.
 
 ## Risk
 Low.

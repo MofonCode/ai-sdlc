@@ -1,8 +1,8 @@
 {
   "artifact": "spec.good.md",
   "kind": "spec",
-  "against": "intent.good.md",
   "must_cite_blocking": [],
   "allow_other_blocking": false,
-  "note": "Every criterion can fail, the intent is covered, nothing is added."
+  "note": "Every criterion can fail, the intent is covered, nothing is added.",
+  "against": "intent.good.md"
 }

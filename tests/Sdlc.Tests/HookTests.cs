@@ -66,10 +66,10 @@ public sealed class HookTests
             output?["permissionDecisionReason"]?.GetValue<string>() ?? string.Empty);
     }
 
-    private static object EditEvent(string filePath, string cwd) => new
+    private static object EditEvent(string filePath, string cwd, string toolName = "Write") => new
     {
         hook_event_name = "PreToolUse",
-        tool_name = "Write",
+        tool_name = toolName,
         cwd,
         tool_input = new { file_path = filePath },
     };
@@ -85,28 +85,86 @@ public sealed class HookTests
     // ------------------------------------------------------------------ derived artifacts
 
     [TestMethod]
-    [DataRow($"C:/repo/.sdlc/cycles/{CycleId}/verify.md", "verify document")]
-    [DataRow($"C:/repo/.sdlc/cycles/{CycleId}/findings/spec.md.r1.json", "findings")]
-    [DataRow($"C:/repo/.sdlc/cycles/{CycleId}/evidence/tests.trx", "evidence")]
-    public void EditingADerivedArtifactIsRefused(string path, string what)
+    public void TargetedEditOfAVerifyDocumentIsRefused()
     {
-        Decision decision = Invoke(Tool("Assert-DerivedArtifact.ps1"), EditEvent(path, "C:/repo"));
+        Decision decision = Invoke(
+            Tool("Assert-DerivedArtifact.ps1"),
+            EditEvent($"C:/repo/.sdlc/cycles/{CycleId}/verify.md", "C:/repo", toolName: "Edit"));
 
-        Assert.IsTrue(decision.Denied, $"Editing a {what} must be refused: it is derived.");
+        Assert.IsTrue(decision.Denied, "Changing an outcome by hand must be refused.");
         Assert.IsTrue(decision.Reason.Length > 40, "A refusal must say what to do instead.");
     }
 
     [TestMethod]
-    [DataRow("C:/repo/src/Api/OrderController.cs")]
-    [DataRow($"C:/repo/.sdlc/cycles/{CycleId}/plan.md")]
-    [DataRow($"C:/repo/.sdlc/intents/{CycleId}.md")]
-    public void EditingAnAuthoredArtifactIsAllowed(string path)
+    public void RederivingAVerifyDocumentIsAllowed()
     {
-        // A plan and an intent are written by hand. A hook that blocked them would make the process
-        // unusable, and an over-refusing hook gets switched off.
-        Decision decision = Invoke(Tool("Assert-DerivedArtifact.ps1"), EditEvent(path, "C:/repo"));
+        // Re-deriving replaces the file whole, which is indistinguishable from a hand rewrite at the
+        // call - so this layer allows it and CI validates the result. A hook that blocked it would
+        // stop /sdlc:verify from doing its job.
+        Decision decision = Invoke(
+            Tool("Assert-DerivedArtifact.ps1"),
+            EditEvent($"C:/repo/.sdlc/cycles/{CycleId}/verify.md", "C:/repo", toolName: "Write"));
 
-        Assert.IsFalse(decision.Denied, $"{path} is authored, not derived: {decision.Reason}");
+        Assert.IsFalse(decision.Denied, $"Verify must be able to write its own document: {decision.Reason}");
+    }
+
+    [TestMethod]
+    public void WritingANewFindingsRoundIsAllowed()
+    {
+        // The first version of this hook denied every write under findings/ and blocked
+        // /sdlc:interrogate from writing its own output. Found by running the flow, not by reading it.
+        using FixtureWorkspace workspace = FixtureWorkspace.Materialize("greenfield");
+
+        string target = Path.Combine(workspace.Path, ".sdlc", "intents", "findings", $"{CycleId}.r1.json");
+
+        Decision decision = Invoke(Tool("Assert-DerivedArtifact.ps1"), EditEvent(target, workspace.Path));
+
+        Assert.IsFalse(decision.Denied, $"Interrogation must be able to write its findings: {decision.Reason}");
+    }
+
+    [TestMethod]
+    public void OverwritingAnExistingFindingsRoundIsRefused()
+    {
+        using FixtureWorkspace workspace = FixtureWorkspace.Materialize("greenfield");
+
+        string dir = Path.Combine(workspace.Path, ".sdlc", "intents", "findings");
+        Directory.CreateDirectory(dir);
+        string target = Path.Combine(dir, $"{CycleId}.r1.json");
+        File.WriteAllText(target, "{}");
+
+        Decision decision = Invoke(Tool("Assert-DerivedArtifact.ps1"), EditEvent(target, workspace.Path));
+
+        Assert.IsTrue(decision.Denied, "Rounds are kept: the sequence is the evidence a repair worked.");
+        StringAssert.Contains(decision.Reason, "round", StringComparison.OrdinalIgnoreCase);
+    }
+
+    [TestMethod]
+    public void OverwritingExistingEvidenceIsRefused()
+    {
+        using FixtureWorkspace workspace = FixtureWorkspace.Materialize("greenfield");
+
+        string dir = Path.Combine(workspace.Path, ".sdlc", "cycles", CycleId, "evidence");
+        Directory.CreateDirectory(dir);
+        string target = Path.Combine(dir, "tests.trx");
+        File.WriteAllText(target, "<TestRun />");
+
+        Decision decision = Invoke(Tool("Assert-DerivedArtifact.ps1"), EditEvent(target, workspace.Path));
+
+        Assert.IsTrue(decision.Denied, "Replacing evidence makes every claim that cited it unfalsifiable.");
+    }
+
+    [TestMethod]
+    [DataRow("src/Api/OrderController.cs")]
+    [DataRow("plan.md")]
+    public void EditingAnAuthoredArtifactIsAllowed(string relative)
+    {
+        // A plan is written by hand. A hook that blocked authored artifacts would make the process
+        // unusable, and an over-refusing hook gets switched off - after which it protects nothing.
+        Decision decision = Invoke(
+            Tool("Assert-DerivedArtifact.ps1"),
+            EditEvent($"C:/repo/{relative}", "C:/repo"));
+
+        Assert.IsFalse(decision.Denied, $"{relative} is authored, not derived: {decision.Reason}");
     }
 
     // ------------------------------------------------------------------ landing

@@ -1,62 +1,104 @@
 ---
 name: interrogate
-description: Challenge one artifact against the effective constraint set and write the findings. Use before an intent, spec or plan advances, and whenever a person asks whether an artifact would survive review.
+description: Challenge one artifact against the effective constraint set and write the findings document. Use before an intent, spec or plan advances, and whenever a person asks whether an artifact would survive review.
 argument-hint: "[path to the artifact]"
-allowed-tools: Bash(powershell.exe *) Bash(git *)
+allowed-tools: Bash(powershell.exe *) Bash(git *) Write
 ---
 
 # Interrogate `$0`
 
-Challenge the artifact at **$0** against every constraint that applies to it, and write what you
-find. You are an adversary, not an editor: you do not fix the artifact, you report on it.
+Challenge the artifact at **$0** against every constraint that applies to it, and **write a findings
+document to disk**. You are an adversary, not an editor: you do not fix the artifact, and you do not
+merely describe what you found.
 
-## Assemble the effective constraint set
+## The constraint set
 
-Two sources, neither copied into the other:
+Injected below at load time, and the only copy. Do not read it from disk and do not invoke another
+skill to fetch it: a session working in a governed solution is sandboxed to that solution and cannot
+reach the plugin root. If you find yourself asking for directory access you have taken a path that
+does not exist.
 
-1. `${CLAUDE_PLUGIN_ROOT}/constraints.md` — global, `CON-nn`
-2. `.sdlc/constraints.md` in this solution — local, `LOC-nn`. Often absent; that is normal
+Also read `.sdlc/constraints.md` for this solution's own `LOC-nn`. It is often absent; that is normal
+and not a problem to report.
 
-Read both. Each constraint states what it **Applies to**. Check only the ones that apply to this
+!`powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "${CLAUDE_PLUGIN_ROOT}/tools/Get-Constraints.ps1"`
+
+---
+
+# What to do
+
+## 1. Judge
+
+Each constraint above states what it **Applies to**. Check only the ones that apply to this
 artifact's kind — a spec is not judged by a rule about waivers.
 
-## Judge
-
-For each applicable constraint, decide whether the artifact breaches its `Forbids:` clause.
-
-- **Cite exactly one constraint per finding.** A problem that breaches two constraints is two
-  findings
-- **Never invent a constraint.** If something is wrong and no constraint forbids it, say so in
-  your closing summary as an observation. Do not manufacture an ID
-- **Report nothing when nothing is wrong.** An empty findings array is a legitimate and common
-  result. Over-reporting is as damaging as under-reporting: it teaches everyone to skim findings
+- **Cite exactly one constraint per finding.** A problem breaching two constraints is two findings
+- **Never invent a constraint.** If something is wrong and no constraint forbids it, keep it out of
+  the document and mention it in your closing summary as an observation. Do not manufacture an ID
+- **Report nothing when nothing is wrong.** An empty findings array is legitimate and common.
+  Over-reporting is as damaging as under-reporting: it teaches everyone to skim
 - **Severity is not a feeling.** `blocking` means the artifact must not advance as written.
   `suggestion` means it may advance and would be better changed
 
-## Write the findings
+## 2. Work out the path, then write the file
 
-Write `.sdlc/cycles/<cycle-id>/findings/<artifact-name>.r<round>.json`, where round starts at 1
-and increments — never overwrite an earlier round, because the sequence is the record of whether
-repair worked. For an intent, which has no cycle directory yet, write
-`.sdlc/intents/findings/<id>.r<round>.json`.
+This step is the deliverable. **Printing the document into your reply is not doing it** — nothing
+downstream reads your reply, and remediation, verify and landing all read the file.
 
-The document must validate against `${CLAUDE_PLUGIN_ROOT}/schemas/findings.schema.json`. Every
-field is required for a reason:
+| Artifact | Path |
+|---|---|
+| `.sdlc/intents/<id>.md` | `.sdlc/intents/findings/<id>.r<round>.json` |
+| `.sdlc/cycles/<id>/spec.md` | `.sdlc/cycles/<id>/findings/spec.r<round>.json` |
+| `.sdlc/cycles/<id>/plan.md` | `.sdlc/cycles/<id>/findings/plan.r<round>.json` |
 
-- `framework_version` — read it from `${CLAUDE_PLUGIN_ROOT}/.claude-plugin/plugin.json`. Global
-  constraints live in the library, so an upgrade changes the rules with no commit here; without
-  the version a verdict cannot be reproduced
-- `locus` — a quoted phrase, a heading, or a path and line. A finding nobody can locate cannot
-  be acted on
-- `remedy` — required on every `blocking` finding. Remediation cannot work a finding that does
-  not say what would resolve it
-- `disposition` — always `open` here. Only a waiver makes it `waived`, and waivers are not yours
-  to write
+`<round>` starts at 1 and increments: list the target directory first and take one higher than the
+highest already there. Never overwrite an earlier round — the sequence is the record of whether a
+repair worked. Create the directory if it does not exist.
 
-## Then report
+So interrogating `.sdlc/intents/20260927-0002.md` with no earlier rounds writes
+`.sdlc/intents/findings/20260927-0002.r1.json`.
 
-Print a short summary: the count at each severity, and each blocking finding as one line naming
-its constraint and its locus. Do not restate the findings document in prose — it is the record,
-and the summary is a pointer to it.
+Every field is required for a reason:
 
-If the artifact is sound, say so plainly in one line. Resist the urge to add advice.
+- `framework_version` — the `Framework version` stated with the injected constraints above
+- `cycle` — the artifact's id, `YYYYMMDD-xxxx`
+- `artifact` — the path you were given, repository-relative
+- `interrogated_at` — the `Now (UTC)` value stated with the injected constraints above, verbatim.
+  You cannot read a clock, and a guessed timestamp orders the rounds wrongly
+- `round` — as derived above
+- `locus` — a quoted phrase, a heading, or a path and line. A finding nobody can locate cannot be
+  acted on
+- `remedy` — required on every `blocking` finding. Remediation cannot work a finding that does not
+  say what would resolve it
+- `disposition` — always `open` here. Only a waiver makes it `waived`, and waivers are not yours to
+  write
+
+```json
+{
+  "framework_version": "0.0.1",
+  "cycle": "20260927-0002",
+  "artifact": ".sdlc/intents/20260927-0002.md",
+  "interrogated_at": "2026-09-27T22:40:00Z",
+  "round": 1,
+  "findings": [
+    {
+      "id": "F-01",
+      "severity": "blocking",
+      "disposition": "open",
+      "cites": "CON-01",
+      "statement": "...",
+      "locus": "...",
+      "remedy": "..."
+    }
+  ]
+}
+```
+
+## 3. Report
+
+Confirm the path you wrote, then the count at each severity, then each blocking finding as one line
+naming its constraint and its locus. Do not restate the document in prose — it is the record, and
+your summary is a pointer to it.
+
+If the artifact is sound, say so plainly in one line, having still written the document with an empty
+findings array. Resist the urge to add advice.

@@ -3,13 +3,19 @@ id: 20260927-0001
 intent: intent.good.md
 ---
 
-# Spec - the ops dashboard opens fast enough to use
+# Spec - Totals.Sum accepts an empty sequence
 
 ## Acceptance criteria
 
-1. At the production data volume of 2026-09, first meaningful paint occurs within 2 seconds,
-   measured by the existing browser timing harness over 20 consecutive loads, worst case.
-2. The dashboard is served from the same URL as before: a request to the runbook URL returns 200
-   and renders the dashboard.
-3. Each panel exposes a CSV export button that downloads the panel's current data set.
-4. Dashboard layout is user-configurable and the arrangement persists per user.
+1. `Totals.Sum` returns `0m` when given an empty `IEnumerable<decimal>`, asserted by a test that
+   passes `Array.Empty<decimal>()`.
+2. `Totals.Sum` returns the arithmetic total for a non-empty sequence, asserted by a test over a
+   known sequence with a known total.
+3. The public signature is unchanged: a test project compiled against the previous signature still
+   builds without modification.
+4. `Totals.Sum` throws `ArgumentNullException` with the parameter name when given null, asserted by
+   a test.
+5. A new `Totals.Average` returns the mean of a sequence, or zero when it is empty.
+
+## Out of scope
+Performance.

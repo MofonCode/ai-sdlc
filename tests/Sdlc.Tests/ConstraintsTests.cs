@@ -24,7 +24,7 @@ public sealed class ConstraintsTests
         "python", "pytest", "npm", "node", "typescript", "javascript", "java", "gradle",
     ];
 
-    private static string Text => File.ReadAllText(RepoPaths.At("constraints.md"));
+    private static string Text => File.ReadAllText(RepoPaths.Constraints);
 
     private static List<(string Id, int Number, string Statement, string Body)> Parse()
     {

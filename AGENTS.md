@@ -25,7 +25,7 @@ read from them only when pointed at a specific file, and never copy forward with
 
 | Path | Holds |
 |---|---|
-| `constraints.md` | the global constraints, `CON-nn`. The framework's product |
+|  the global constraints, `CON-nn`. The framework.s product | the global constraints, `CON-nn`. The framework's product |
 | `schemas/` | JSON Schema for every artifact. They own the vocabularies and the verify state machine |
 | `skills/<name>/SKILL.md` | one skill per phase, plus `init`, `run` and two read-only views |
 | `hooks/hooks.json` | the deterministic layer: what may not happen, whatever a model concludes |
@@ -66,7 +66,7 @@ the word both ways; this repository does not.
 
 ## Constraints
 
-Not in this file. Global constraints will live in `constraints.md` at the plugin root; a
+Not in this file. Global constraints will live in  the global constraints, `CON-nn`. The framework.s product at the plugin root; a
 solution's own in its `.sdlc/constraints.md`. This file never restates them — an artifact that
 restates another's content as its own authority creates two sources that will disagree.
 

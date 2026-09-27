@@ -61,8 +61,7 @@ Read `.sdlc/cycles/$0/waivers.md` if it exists; a finding it covers gets `dispos
 person changed the code, the spec, or the waivers since the last verify, reset it to zero and
 record `reset_by`. In an unattended run nothing human changes, so the ceiling holds absolutely.
 
-The frontmatter must validate against `${CLAUDE_PLUGIN_ROOT}/schemas/verify.schema.json`, which
-enforces these combinations — a `pass` over an open blocker, or an `escalated` with budget left,
+The frontmatter is validated against the verify schema, which enforces these combinations — a `pass` over an open blocker, or an `escalated` with budget left,
 will be rejected as the contradiction it is.
 
 ## Write it

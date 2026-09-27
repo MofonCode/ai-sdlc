@@ -5,5 +5,5 @@
     "CON-01"
   ],
   "allow_other_blocking": false,
-  "note": "Names an implementation with no statement of what is wrong today."
+  "note": "Names an implementation and asks only that the implementation exist."
 }

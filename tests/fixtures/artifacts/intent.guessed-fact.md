@@ -3,14 +3,14 @@ id: 20260927-0003
 type: bug
 ---
 
-# Export times out for large accounts
+# Totalling large sets is too slow
 
 ## Problem
-The CSV export takes 34 seconds for accounts over 50,000 rows, which is past the 30 second
-gateway timeout. The cause is the N+1 query in the line-item loader.
+`Totals.Sum` takes 40 milliseconds for a 10,000 element sequence, because LINQ's `Sum` boxes each
+decimal on the way through the enumerator.
 
 ## Who
-Enterprise accounts. Four of them are large enough to hit it.
+The nightly rollup, which totals about 200 sequences of that size.
 
 ## Done looks like
-The export completes for a 50,000 row account without hitting the gateway timeout.
+The rollup finishes in the window it has.

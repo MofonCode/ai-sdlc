@@ -65,8 +65,7 @@ three invented answers is a liability.
 ## Write it
 
 Write `.sdlc/intents/<id>.md` where `<id>` is `YYYYMMDD-xxxx` — today's date and four random hex
-characters. Frontmatter must validate against
-`${CLAUDE_PLUGIN_ROOT}/schemas/intent.schema.json`. Sections, in order:
+characters. Sections, in order:
 
 ```markdown
 # <one line naming the problem, not the solution>

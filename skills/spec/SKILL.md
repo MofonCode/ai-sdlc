@@ -48,7 +48,7 @@ Honour **Fixed decisions** as given. They are a person's choice, not yours to re
 
 ## Write it
 
-Frontmatter validates against `${CLAUDE_PLUGIN_ROOT}/schemas/spec.schema.json`. Sections:
+Sections:
 
 ```markdown
 # Spec - <what done means, in a line>

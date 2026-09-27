@@ -5,5 +5,5 @@
     "CON-02"
   ],
   "allow_other_blocking": false,
-  "note": "Asserts a measured duration and a root cause nobody verified, and records no open questions."
+  "note": "Asserts a measured duration and a boxing cause nobody verified, and records no open questions."
 }

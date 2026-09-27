@@ -1,23 +1,23 @@
 ---
 id: 20260927-0001
-type: feature
+type: bug
 ---
 
-# The ops dashboard is too slow to use during an incident
+# Totalling an empty set of amounts throws instead of returning zero
 
 ## Problem
-The dashboard takes long enough to load that the on-call engineer gives up and reads raw logs
-instead. It has been abandoned in the last four incidents.
+`Totals.Sum` throws when given an empty sequence, and two callers now guard the call site with a
+count check before using it. The guard has been copied twice and will be copied again.
 
 ## Who
-The on-call rotation, during every incident. Roughly twice a week.
+Anyone calling `Totals.Sum`. Both existing callers already work around it.
 
 ## Done looks like
-Someone opens it mid-incident and stays in it rather than switching to logs.
+A caller can hand `Totals.Sum` whatever collection it has, empty or not, and delete its guard.
 
 ## Must not change
-The dashboard URL. It is printed in the runbook.
+The signature. Both callers pass `IEnumerable<decimal>` and are compiled against it.
 
 ## Open
-- Is the delay in the query or the render? Nobody has measured.
-- Which panel is slowest? Unknown until the above is answered.
+- Should an empty sum be zero, or is a null result meaningful to some caller? Nobody has asked the
+  two callers.

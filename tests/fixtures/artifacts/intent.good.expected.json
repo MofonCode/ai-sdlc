@@ -3,5 +3,5 @@
   "kind": "intent",
   "must_cite_blocking": [],
   "allow_other_blocking": false,
-  "note": "Sound: states a problem, and keeps its unknowns as open questions."
+  "note": "Sound: a problem, an observable done condition, and its unknown left open."
 }

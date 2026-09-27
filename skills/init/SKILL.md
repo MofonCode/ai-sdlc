@@ -31,8 +31,7 @@ refactoring work with its own tooling, and it is not this framework's business.
 .sdlc/cycles/          empty
 ```
 
-`solution.md` is markdown with YAML frontmatter validating against
-`${CLAUDE_PLUGIN_ROOT}/schemas/solution.schema.json`:
+`solution.md` is markdown with YAML frontmatter carrying:
 
 - `stack` — `$0` if given, otherwise `dotnet`. It decides which analyzers and plan defaults apply
 - `origin` — `scaffolded` for an empty repository, `adopted` for one with history. Look, do not ask

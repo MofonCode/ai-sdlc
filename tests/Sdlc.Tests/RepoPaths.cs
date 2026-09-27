@@ -16,6 +16,13 @@ internal static class RepoPaths
 
     public static string Schemas => At("schemas");
 
+    /// <summary>
+    /// The global constraints, at the plugin root. A solution session cannot read this path - it is
+    /// sandboxed to the solution - so skills receive the contents through a load-time injection
+    /// running with the harness's privileges instead. See tools/Get-Constraints.ps1.
+    /// </summary>
+    public static string Constraints => At("constraints.md");
+
     public static string Fixtures => At("tests", "fixtures");
 
     public static string Skills => At("skills");
@@ -28,10 +35,10 @@ internal static class RepoPaths
 
         while (dir is not null)
         {
-            // constraints.md and the plugin manifest together identify this repository's root
-            // and nothing else on the path to it.
-            bool isRoot = File.Exists(Path.Combine(dir.FullName, "constraints.md"))
-                && File.Exists(Path.Combine(dir.FullName, ".claude-plugin", "plugin.json"));
+            // The plugin manifest and the skills directory together identify this repository's
+            // root and nothing else on the path to it.
+            bool isRoot = File.Exists(Path.Combine(dir.FullName, ".claude-plugin", "plugin.json"))
+                && Directory.Exists(Path.Combine(dir.FullName, "skills"));
 
             if (isRoot)
             {
@@ -43,6 +50,6 @@ internal static class RepoPaths
 
         throw new InvalidOperationException(
             $"Could not find the repository root above '{AppContext.BaseDirectory}'. " +
-            "Expected an ancestor holding both constraints.md and .claude-plugin/plugin.json.");
+            "Expected an ancestor holding both .claude-plugin/plugin.json and skills/.");
     }
 }

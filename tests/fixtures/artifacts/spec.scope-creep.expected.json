@@ -1,10 +1,10 @@
 {
   "artifact": "spec.scope-creep.md",
   "kind": "spec",
-  "against": "intent.good.md",
   "must_cite_blocking": [
     "CON-05"
   ],
   "allow_other_blocking": false,
-  "note": "CSV export and layout persistence appear nowhere in the intent."
+  "note": "Null handling and a new Average method appear nowhere in the intent.",
+  "against": "intent.good.md"
 }

@@ -3,11 +3,10 @@ id: 20260927-0002
 type: feature
 ---
 
-# Add a Redis cache to the dashboard
+# Change Totals.Sum to use Aggregate with a seed
 
 ## What to build
-Put Redis in front of the dashboard queries. Cache each panel for 60 seconds and invalidate on
-write. Use the existing connection multiplexer.
+Replace the body of `Totals.Sum` with `amounts.Aggregate(0m, (a, b) => a + b)`. Keep the signature.
 
 ## Done looks like
-Redis is deployed and the dashboard reads through it.
+`Totals.Sum` calls `Aggregate` with a seed of zero.

@@ -1,10 +1,10 @@
 {
   "artifact": "spec.untestable.md",
   "kind": "spec",
-  "against": "intent.good.md",
   "must_cite_blocking": [
     "CON-03"
   ],
   "allow_other_blocking": false,
-  "note": "performs well and render correctly cannot fail."
+  "note": "handles empty input correctly cannot fail.",
+  "against": "intent.good.md"
 }

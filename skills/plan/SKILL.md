@@ -42,7 +42,7 @@ a check. That is an honest plan; the other kind is a trap.
 
 ## Declare the blast radius
 
-One tier, in frontmatter, from `${CLAUDE_PLUGIN_ROOT}/schemas/plan.schema.json`:
+One tier, in frontmatter:
 
 | Tier | When |
 |---|---|

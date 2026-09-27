@@ -104,19 +104,52 @@ public sealed class PluginTests
     }
 
     [TestMethod]
-    public void EveryToolScriptIsReachedByAHook()
+    public void EveryToolScriptIsReachedFromSomewhere()
     {
-        // A script nothing invokes is either dead or a guardrail somebody forgot to wire up, and
-        // the second is indistinguishable from protection that works.
+        // A script nothing invokes is either dead or a guardrail somebody forgot to wire up, and the
+        // second is indistinguishable from protection that works. Two things reach a script: the
+        // hook manifest, and a skill that injects its output at load time.
         string manifest = File.ReadAllText(RepoPaths.At("hooks", "hooks.json"));
+
+        string[] skillBodies = [.. Directory
+            .EnumerateFiles(RepoPaths.Skills, "SKILL.md", SearchOption.AllDirectories)
+            .Select(File.ReadAllText)];
 
         foreach (string script in Directory.EnumerateFiles(RepoPaths.At("tools"), "*.ps1"))
         {
             string name = Path.GetFileName(script);
 
+            bool reached = manifest.Contains(name, StringComparison.Ordinal)
+                || skillBodies.Any(b => b.Contains(name, StringComparison.Ordinal));
+
             Assert.IsTrue(
-                manifest.Contains(name, StringComparison.Ordinal),
-                $"tools/{name} is never named by hooks.json.");
+                reached,
+                $"tools/{name} is named by neither hooks.json nor any skill. Nothing runs it.");
+        }
+    }
+
+    [TestMethod]
+    public void EveryInjectedScriptASkillNamesExists()
+    {
+        // A load-time injection that cannot run abandons the whole skill invocation. That is the
+        // behaviour we want when rules are missing, and a disaster when the cause is a typo.
+        foreach (string file in Directory.EnumerateFiles(RepoPaths.Skills, "SKILL.md", SearchOption.AllDirectories))
+        {
+            string body = File.ReadAllText(file);
+
+            foreach (System.Text.RegularExpressions.Match match in System.Text.RegularExpressions.Regex.Matches(
+                body,
+                @"\$\{CLAUDE_PLUGIN_ROOT\}/(?<path>[^\s""`]+)",
+                System.Text.RegularExpressions.RegexOptions.ExplicitCapture,
+                TimeSpan.FromSeconds(2)))
+            {
+                string relative = match.Groups["path"].Value;
+
+                Assert.IsTrue(
+                    File.Exists(RepoPaths.At(relative.Split('/'))),
+                    $"{Path.GetFileName(Path.GetDirectoryName(file))} references {relative}, which " +
+                    "does not exist. A failed injection abandons the skill.");
+            }
         }
     }
 }

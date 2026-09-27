@@ -2,5 +2,9 @@ namespace Greenfield.Core;
 
 public static class Totals
 {
-    public static decimal Sum(IEnumerable<decimal> amounts) => amounts.Sum();
+    /// <summary>
+    /// Totals a sequence of amounts. Throws on an empty sequence, which is the defect the fixture
+    /// artifacts describe: callers guard the call site instead, and the guard has been copied twice.
+    /// </summary>
+    public static decimal Sum(IEnumerable<decimal> amounts) => amounts.Aggregate((a, b) => a + b);
 }

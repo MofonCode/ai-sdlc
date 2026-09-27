@@ -57,7 +57,7 @@ public sealed class FixtureTests
     public void ExpectationsCiteConstraintsThatExist()
     {
         HashSet<string> globalIds = [.. System.Text.RegularExpressions.Regex
-            .Matches(File.ReadAllText(RepoPaths.At("constraints.md")), @"^## (CON-\d{2,})",
+            .Matches(File.ReadAllText(RepoPaths.Constraints), @"^## (CON-\d{2,})",
                 System.Text.RegularExpressions.RegexOptions.Multiline,
                 TimeSpan.FromSeconds(2))
             .Select(m => m.Groups[1].Value)];
@@ -72,7 +72,7 @@ public sealed class FixtureTests
 
                 Assert.IsTrue(
                     globalIds.Contains(id),
-                    $"{Path.GetFileName(file)} expects a finding citing {id}, which is not in constraints.md.");
+                    $"{Path.GetFileName(file)} expects a finding citing {id}, which constraints.md does not define.");
             }
         }
     }

@@ -1,26 +1,26 @@
 # Global constraints
 
 The rules every solution governed by this framework is judged against. They live here, in the
-library, and are never copied into a solution — an interrogation assembles the effective set at
-run time from these plus the solution's own `.sdlc/constraints.md`.
+library, and are never copied into a solution - an interrogation assembles the effective set at run
+time from these plus the solution's own `.sdlc/constraints.md`.
 
 **Citation.** `CON-nn` resolves in this file. `LOC-nn` resolves in the solution being worked on.
 Every blocking finding cites exactly one.
 
-**IDs are a monotonic sequence.** Assigned once, never reused, never backfilled. A removed
-constraint leaves a gap, and the gap plus the commit that made it is the record. A changed
-conclusion is a new constraint; the old one keeps its ID and gains `Superseded-by`.
+**IDs are a monotonic sequence.** Assigned once, never reused, never backfilled. A removed constraint
+leaves a gap, and the gap plus the commit that made it is the record. A changed conclusion is a new
+constraint; the old one keeps its ID and gains `Superseded-by`.
 
-**What belongs here.** A constraint is a rule about an **artifact** that needs reading
-comprehension to apply. Three tests, all of which must pass:
+**What belongs here.** A constraint is a rule about an **artifact** that needs reading comprehension
+to apply. Three tests, all of which must pass:
 
 1. Its `Forbids:` clause names something that becomes illegal
 2. No hook, schema or analyzer could decide it
 3. It is incompatible with at least one plausible implementation
 
-Rules about code go to analyzers. Mechanical rules about artifacts go to hooks or schemas. A
-rule that survives every implementation is decoration, however true it sounds — see CON-11,
-which exists to keep this list from becoming that.
+Rules about code go to analyzers. Mechanical rules about artifacts go to hooks or schemas. A rule
+that survives every implementation is decoration, however true it sounds - see CON-11, which exists
+to keep this list from becoming that.
 
 **Stack neutrality.** These bind solutions on any stack, so none of them may name a language,
 framework or package. Stack specifics live in `docs/techstack.md` and in analyzers.

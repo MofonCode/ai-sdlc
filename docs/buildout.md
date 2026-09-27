@@ -123,7 +123,26 @@ artifact has its expected findings recorded beside it.
 
 ## Phase 3 — interrogation and intent
 
-**Status: written, unverified.** The skills exist; their behavioural exit criteria need a real run.
+**Status: interrogate verified against one fixture; intent unverified.** Walking the flow found four
+defects that reading it never would, all now fixed:
+
+1. **A solution session cannot read the plugin root.** Every skill that needed the global constraints
+   failed outright — and would fail hardest unattended, where nobody can approve a directory. The fix
+   is a load-time shell injection: `tools/Get-Constraints.ps1` runs with the harness's privileges and
+   the rules are in the skill body before the model is asked anything. Asking one skill to invoke
+   another was tried first and does not work.
+2. **Reference data last buries the instruction.** With the constraints injected at the end,
+   interrogate reached the right verdict and printed it instead of writing the file. Reference data
+   first, procedure last.
+3. **The integrity hook blocked the artifact's own producer.** Denying every write under `findings/`
+   stopped interrogate writing its findings. A hook cannot tell a producer from a person by the call,
+   so it now keys on what does distinguish them: Edit versus Write for a verify document, creation
+   versus overwrite for findings and evidence.
+4. **A model cannot read a clock** and writes a plausible midnight. The injector states the time.
+
+The golden artifacts were also rewritten: they described a dashboard that the fixture solution does
+not have, so interrogation correctly reported incoherence rather than the defect under test. Each now
+isolates one constraint, because a fixture tripping two makes a failure ambiguous.
 
 - `skills/interrogate/SKILL.md` — challenge an artifact against the effective constraint set and
   emit findings that validate against the schema
