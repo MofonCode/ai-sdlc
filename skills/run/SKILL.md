@@ -32,8 +32,23 @@ the outcome.
 
 ## The loop
 
-For each cycle: `build` → `verify` → while `blocked`, `remediate` → `verify` → then `land` on
-`pass`.
+For each cycle: build → verify → while `blocked`, remediate → verify → then land on `pass`.
+
+**Drive each step as its own headless session**, one command per step:
+
+```
+claude -p "/sdlc:build <id>"      --permission-mode acceptEdits
+claude -p "/sdlc:verify <id>"     --permission-mode acceptEdits
+claude -p "/sdlc:remediate <id>"  --permission-mode acceptEdits
+```
+
+Not by invoking the skills yourself. A skill cannot reliably call another skill — the call errors,
+and what follows is an artifact nobody challenged that looks like one that was. Separate sessions also
+keep each step's context clean, and make a failure attributable to one step rather than to a long
+conversation.
+
+Read the outcome from `.sdlc/cycles/<id>/verify.md` between steps to decide what runs next. That file
+is the state machine; your own memory of what happened is not.
 
 Both endings are legitimate:
 

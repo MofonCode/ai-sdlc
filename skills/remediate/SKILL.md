@@ -33,15 +33,17 @@ The build's rules still hold while you work: no file the plan did not declare, n
 declared file the plan did not describe, no test weakened to pass, no warning suppressed to clear
 a build.
 
-## Re-verify, always
+## Verification is the next step, and it is not yours
 
-When the pass is done, run `/sdlc:verify $0`. Nothing else can tell whether the fix worked, and a
-remediation that reports its own success is the same failure as an auditor producing its own
-evidence.
+When the pass is done, **name `/sdlc:verify $0` as the next command** and stop. Do not invoke it: a
+skill cannot reliably call another one. Do not report the findings as fixed either — nothing but a
+fresh verification can tell whether a fix worked, and a remediation that certifies itself is the
+same failure as an auditor producing its own evidence.
 
 Verify increments `passes_spent`. Never write that number yourself.
 
 ## Then stop
 
-Report which findings you worked, what you changed, and what verify said afterwards. If the new
-outcome is `escalated`, say plainly that the budget is spent and what a person now has to decide.
+Report which findings you worked, what you changed, and how many passes had been spent before this
+one. Say that the outcome is unknown until `/sdlc:verify $0` runs, and that if it comes back
+`escalated` the budget is spent and a person owns the cycle.

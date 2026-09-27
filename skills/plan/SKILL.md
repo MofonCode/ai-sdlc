@@ -15,8 +15,9 @@ the thing someone reads to decide whether to let the change happen.
 
 ## Refuse if the spec is not accepted
 
-Same rule as the spec's: no plan against an unaccepted spec, and none against a spec with
-unresolved blocking findings.
+Same rule as the spec's: no plan against a spec with unresolved blocking findings, and none against a
+spec whose frontmatter carries no `accepted_by` and `accepted_at`. That pair is how a person records
+acceptance, and they write it — never you.
 
 ## Declare every file
 
@@ -78,5 +79,28 @@ spec on disk — `.sdlc/cycles/<id>/spec.md`, never a bare filename.
 
 ## Then stop
 
-Run `/sdlc:interrogate .sdlc/cycles/$0/plan.md` and report. **Do not begin building.** A person
-approves this plan first, and saying so is the last thing you do.
+**Do not invoke another skill.** A skill cannot reliably call another one, and a chain that only
+sometimes fires is worse than none: it produces artifacts nobody challenged while appearing to have
+challenged them. Report what you produced and name the next command for whoever is driving — a person
+in an interactive session, or the batch runner in an unattended one.
+
+Say: the plan is at `.sdlc/cycles/$0/plan.md`, the next step is
+`/sdlc:interrogate .sdlc/cycles/$0/plan.md`, and after that a person approves it by adding
+`approved_by` and `approved_at` to its frontmatter.
+
+**Do not begin building.** A hook refuses source edits until that approval exists, so an attempt
+wastes the turn.
+
+---
+
+# Reference
+
+The framework version, the current UTC time, and the global constraints, injected at load time. They
+are here so that what you write is written to them. **Do not try to read them from disk** — a session
+working in a governed solution is sandboxed to that solution and the attempt is denied, which wastes a
+turn and looks like a failure to anyone watching.
+
+Interrogation is still the gate. Writing to the constraints does not mean judging your own work
+against them.
+
+!`powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "${CLAUDE_PLUGIN_ROOT}/tools/Get-Constraints.ps1"`

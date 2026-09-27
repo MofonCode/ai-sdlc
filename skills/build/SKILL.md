@@ -59,5 +59,25 @@ corresponding verify claim unprovable, and verify will report that rather than a
 
 ## Then stop
 
-Report: what you changed, what the final build and test run said, and anything you noticed and
-deliberately left alone. Then run `/sdlc:verify $0`. Do not open a pull request.
+**Do not invoke another skill.** A skill cannot reliably call another one, and a chain that only
+sometimes fires is worse than none: it produces artifacts nobody challenged while appearing to have
+challenged them. Report what you produced and name the next command for whoever is driving — a person
+in an interactive session, or the batch runner in an unattended one.
+
+Report: what you changed, what the final build and test run said, and anything you
+noticed and deliberately left alone. Then name `/sdlc:verify $0` as the next step. Do not open a pull
+request, and do not verify your own work — an auditor that produced the evidence is not an auditor.
+
+---
+
+# Reference
+
+The framework version, the current UTC time, and the global constraints, injected at load time. They
+are here so that what you write is written to them. **Do not try to read them from disk** — a session
+working in a governed solution is sandboxed to that solution and the attempt is denied, which wastes a
+turn and looks like a failure to anyone watching.
+
+Interrogation is still the gate. Writing to the constraints does not mean judging your own work
+against them.
+
+!`powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "${CLAUDE_PLUGIN_ROOT}/tools/Get-Constraints.ps1"`

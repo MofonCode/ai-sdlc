@@ -16,6 +16,37 @@
       "type": "string",
       "minLength": 1,
       "description": "Path to the intent this spec answers to. CON-04 and CON-05 are both judged against it, so it is required."
+    },
+    "accepted_by": {
+      "type": "string",
+      "minLength": 1,
+      "description": "The person who accepted this artifact. Written by them, not by a skill: it is the gate."
+    },
+    "accepted_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When it was accepted. Required alongside accepted_by - a name with no date says nothing about which version was accepted."
     }
-  }
+  },
+  "allOf": [
+    {
+      "description": "Acceptance is both fields or neither.",
+      "if": {
+        "required": [
+          "accepted_by"
+        ]
+      },
+      "then": {
+        "required": [
+          "accepted_at"
+        ],
+        "properties": {
+          "accepted_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      }
+    }
+  ]
 }

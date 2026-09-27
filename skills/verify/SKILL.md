@@ -89,3 +89,17 @@ derived from the same evidence and adding nothing.
 
 Report the outcome and the counts. On `blocked`, say that `/sdlc:remediate $0` is next. On
 `escalated`, say plainly that landing will refuse this cycle and a person owns it now.
+
+---
+
+# Reference
+
+The framework version, the current UTC time, and the global constraints, injected at load time. They
+are here so that what you write is written to them. **Do not try to read them from disk** — a session
+working in a governed solution is sandboxed to that solution and the attempt is denied, which wastes a
+turn and looks like a failure to anyone watching.
+
+Interrogation is still the gate. Writing to the constraints does not mean judging your own work
+against them.
+
+!`powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "${CLAUDE_PLUGIN_ROOT}/tools/Get-Constraints.ps1"`

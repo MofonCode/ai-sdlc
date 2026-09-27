@@ -64,10 +64,24 @@ three invented answers is a liability.
 
 ## Write it
 
-Write `.sdlc/intents/<id>.md` where `<id>` is `YYYYMMDD-xxxx` — today's date and four random hex
-characters. Sections, in order:
+Write `.sdlc/intents/<id>.md` where `<id>` is `YYYYMMDD-xxxx` — the date from the injected `Now (UTC)`
+value below, and four random hex characters.
+
+Frontmatter first, and it is not optional — every later phase routes on it:
+
+- `id` — the same `YYYYMMDD-xxxx`
+- `type` — one of `solution`, `feature`, `bug`, `suggestion`
+- `stack` — only when this intent departs from the solution's declared stack
+- `source` — only for `type: suggestion`: the verify document it came from
+
+Then the sections, in order:
 
 ```markdown
+---
+id: 20260927-7b3c
+type: bug
+---
+
 # <one line naming the problem, not the solution>
 
 ## Problem
@@ -80,5 +94,25 @@ characters. Sections, in order:
 
 ## Then stop
 
-Run `/sdlc:interrogate .sdlc/intents/<id>.md` and report what it says. Do not accept the intent
-yourself — a person accepts it. Say plainly that it is waiting on them.
+**Do not invoke another skill.** A skill cannot reliably call another one, and a chain that only
+sometimes fires is worse than none: it produces artifacts nobody challenged while appearing to have
+challenged them. Report what you produced and name the next command for whoever is driving — a person
+in an interactive session, or the batch runner in an unattended one.
+
+Say: the intent is at `.sdlc/intents/<id>.md`, the next step is
+`/sdlc:interrogate .sdlc/intents/<id>.md`, and after that a person accepts it by adding `accepted_by`
+and `accepted_at` to its frontmatter. Do not write that pair yourself — it is the gate, not a
+formality.
+
+If the interview left many open questions because nobody was there to answer them, say so plainly.
+An intent with seven open questions is honest, and it is also not ready for a spec — the person
+reading this needs to know which of the two situations they are in.
+
+---
+
+# Reference
+
+The framework version and the current UTC time, injected at load time. You cannot read a clock, and a
+guessed date puts the cycle id in the wrong day.
+
+!`powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "${CLAUDE_PLUGIN_ROOT}/tools/Get-Constraints.ps1"`

@@ -123,8 +123,8 @@ artifact has its expected findings recorded beside it.
 
 ## Phase 3 — interrogation and intent
 
-**Status: interrogate verified — 9/9 fixtures. intent unverified.** Walking the flow found seven
-defects that reading it never would, all now fixed:
+**Status: done.** interrogate verified 9/9 against the golden artifacts; intent verified end to end.
+Walking the flow found eleven defects that reading it never would, all now fixed:
 
 1. **A solution session cannot read the plugin root.** Every skill that needed the global constraints
    failed outright — and would fail hardest unattended, where nobody can approve a directory. The fix
@@ -148,6 +148,20 @@ defects that reading it never would, all now fixed:
    judging what it can reach, and the spec and plan skills state that the reference is a path.
 7. **CON-04 did not say that must-not-change items are outcomes**, so a spec dropping a
    compatibility requirement passed. Clarified in the clause.
+8. **A skill cannot invoke another skill.** Every skill ended with "then run `/sdlc:X`" and every one
+   of those calls errored. A chain that only sometimes fires is worse than none: it produces artifacts
+   nobody challenged while appearing to have challenged them. Skills are now single-purpose and name
+   the next command; chaining belongs to whoever is driving, and `run` drives it as one headless
+   session per step.
+9. **Nothing recorded acceptance.** The spec skill refused unless a person had accepted the intent,
+   and no field existed to say so — only the plan had `approved_by`. `accepted_by` and `accepted_at`
+   now mirror it on intents and specs, both fields or neither.
+10. **The intent skill stopped stating its own frontmatter**, lost while stripping unreachable paths,
+    and produced intents with none at all. A test now asserts that each skill mentions every field its
+    artifact's schema requires.
+11. **The generative skills could not see the constraints** and were visibly trying and failing to read
+    them. spec, plan, build and verify now receive the same injection interrogate does, so what they
+    write is written to the rules — interrogation is still the gate.
 
 The golden artifacts were also rewritten twice, for the same reason both times. **An interrogation
 reads the code, so a golden artifact must be true of the fixture solution it is placed in.** The first
@@ -171,7 +185,11 @@ and no findings on the good ones.
 
 ## Phase 4 — the artifact chain
 
-**Status: written, unverified.** Tiers settled as `local` / `contract` / `data` in `plan.schema.json`.
+**Status: verified on the happy path.** A one-line problem description became a sound intent, a sound
+six-criterion spec, and a sound plan that chose `tier: contract` on its own because the change moves a
+public signature — each surviving interrogation with no findings, and each refusing to accept or
+approve its own output. Not yet tested: a deliberately vague intent, where the spec must block on an
+open question rather than invent a criterion.
 
 - `skills/spec/SKILL.md` — accepted intent to testable acceptance criteria, answerable to the
   intent in both directions: covering every outcome it asks for and introducing none it does not

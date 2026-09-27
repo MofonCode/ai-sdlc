@@ -113,6 +113,31 @@ public sealed class SkillTests
     }
 
     [TestMethod]
+    [DataRow("intent", "intent.schema.json")]
+    [DataRow("spec", "spec.schema.json")]
+    [DataRow("plan", "plan.schema.json")]
+    public void ASkillNamesEveryFrontmatterFieldItsArtifactRequires(string skill, string schemaName)
+    {
+        // A skill cannot read its schema - a solution session cannot reach the plugin root - so the
+        // required fields have to be stated in the body. The intent skill once had that text removed
+        // while stripping unreachable paths, and produced intents with no frontmatter at all.
+        using System.Text.Json.JsonDocument schema = System.Text.Json.JsonDocument.Parse(
+            File.ReadAllText(Path.Combine(RepoPaths.Schemas, schemaName)));
+
+        string body = File.ReadAllText(Path.Combine(RepoPaths.Skills, skill, "SKILL.md"));
+
+        foreach (System.Text.Json.JsonElement required in schema.RootElement.GetProperty("required").EnumerateArray())
+        {
+            string field = required.GetString()!;
+
+            Assert.IsTrue(
+                body.Contains(field, StringComparison.Ordinal),
+                $"{schemaName} requires '{field}' but the {skill} skill never mentions it, so the " +
+                "artifact it writes will be missing a field nothing downstream can supply.");
+        }
+    }
+
+    [TestMethod]
     public void NoSkillRestatesAConstraint()
     {
         // CON-09: an artifact that reproduces what another owns creates two sources that diverge.

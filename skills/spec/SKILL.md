@@ -19,7 +19,8 @@ Read the intent first. Stop and say so if:
 
 - it does not exist, or names a problem you cannot find
 - its own interrogation left blocking findings unresolved
-- a person has not accepted it
+- it carries no `accepted_by` and `accepted_at` in its frontmatter. That pair is how a person records
+  acceptance, and they write it — never you
 
 Do not write a spec against an intent nobody approved. The spec inherits the intent's authority,
 and an unapproved intent has none to give.
@@ -72,4 +73,25 @@ an interface: never renumber a criterion once the spec is accepted.
 
 ## Then stop
 
-Run `/sdlc:interrogate .sdlc/cycles/$0/spec.md` and report. A person accepts the spec, not you.
+**Do not invoke another skill.** A skill cannot reliably call another one, and a chain that only
+sometimes fires is worse than none: it produces artifacts nobody challenged while appearing to have
+challenged them. Report what you produced and name the next command for whoever is driving — a person
+in an interactive session, or the batch runner in an unattended one.
+
+Say: the spec is at `.sdlc/cycles/$0/spec.md`, the next step is
+`/sdlc:interrogate .sdlc/cycles/$0/spec.md`, and after that a person accepts it by adding
+`accepted_by` and `accepted_at` to its frontmatter.
+
+---
+
+# Reference
+
+The framework version, the current UTC time, and the global constraints, injected at load time. They
+are here so that what you write is written to them. **Do not try to read them from disk** — a session
+working in a governed solution is sandboxed to that solution and the attempt is denied, which wastes a
+turn and looks like a failure to anyone watching.
+
+Interrogation is still the gate. Writing to the constraints does not mean judging your own work
+against them.
+
+!`powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "${CLAUDE_PLUGIN_ROOT}/tools/Get-Constraints.ps1"`
