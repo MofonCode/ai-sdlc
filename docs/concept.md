@@ -285,9 +285,21 @@ than syntax.
 
 ### 4.3 A solution declares three things
 
-**DECIDED:** `.sdlc/solution.md` carries facts an interrogation needs that are not rules —
-which stack, how the solution was adopted, and what pre-existing violations were accepted. It
-is created by `init` and always exists.
+**DECIDED:** a constraint is evaluated against **the change under consideration**, never against
+code that predates it. This was found while building the first adoption fixture: the earlier
+design had `solution.md` record a baseline of accepted pre-existing violations, and there is
+nothing for it to record. Every constraint governs an artifact — an intent, a spec, a plan, a
+diff, a verify document, a waiver — and a repository adopting the framework has none of those
+yet. The example written here cited CON-04, a rule about whether a spec covers its intent, as
+something a codebase could violate forty-seven times.
+
+So there is no baseline and no ratchet. Adoption is free: existing code is not interrogated,
+because interrogation has nothing to read until the first cycle produces an artifact. Wholesale
+cleanup of existing code is an analyzer and refactoring concern, with its own tooling and its own
+suppression story, and it does not belong to this framework.
+
+**DECIDED:** `.sdlc/solution.md` carries facts an interrogation needs that are not rules — which
+stack, and how the solution came to be governed. It is created by `init` and always exists.
 
 **DECIDED:** it is markdown with YAML frontmatter, not a bare `.yml`. The frontmatter carries
 the values a skill or hook looks up; the prose below carries the reasoning a reviewer needs,
@@ -298,31 +310,14 @@ the docs `covers:` check, so this adds no new format.
 ---
 stack: dotnet            # drives analyzers and plan defaults
 origin: adopted          # or: scaffolded
-adopted_at: 3932166      # the sha the baseline was taken against
-baseline:
-  - constraint: CON-04
-    accepted: 47
+adopted_at: 3932166      # the sha the framework was adopted at
 ---
 
 # Solution profile — acme-billing
 
-Adopted into an existing repository on 2026-09-27 at `3932166`.
-
-## Baseline
-
-47 API handlers predate the framework and have no input validation (CON-04). They are
-accepted as they stand; a new handler without validation is blocking. The count is a
-ceiling — it may fall, never rise.
+Adopted into an existing repository on 2026-09-27 at `3932166`. Code written before that
+commit is not interrogated: constraints govern each change as it is made.
 ```
-
-**DECIDED:** the baseline is what makes adoption into an existing codebase viable. Without it
-a brownfield repo violates constraints on day one and every cycle escalates. A baseline is not
-a waiver: waivers are per-finding and per-cycle, a baseline says these conditions predate us
-and new instances are blocking.
-
-**DECIDED:** a baseline count is a ratchet — CI fails if it rises. A static allowance decays
-into permanent permission, while a count that can only fall turns adoption debt into something
-that visibly pays down and makes progress checkable.
 
 **DECIDED:** `solution.md` and `docs/techstack.md` are not the same document and never merge.
 The first declares *which* stack a solution is and how it came to be governed — looked up by
@@ -366,7 +361,7 @@ cannot be a hook.
 CLAUDE.md            # thin: @AGENTS.md, plus anything Claude-specific
 AGENTS.md            # under 200 lines, loaded every session
 docs/*.md            # opened only when its trigger applies
-.sdlc/solution.md    # declarations — stack, origin, baseline; looked up, not read
+.sdlc/solution.md    # declarations — stack and origin; looked up, not read
 .sdlc/constraints.md # this solution's constraints; read at interrogation, never ambiently
 ```
 

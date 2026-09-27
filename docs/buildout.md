@@ -95,8 +95,8 @@ The test substrate. Without it every later phase is validated by eye.
 
 - `tests/fixtures/solutions/greenfield/` — a minimal .NET solution with a `.sdlc/solution.md`
   and no history
-- `tests/fixtures/solutions/brownfield/` — a solution carrying known pre-existing constraint
-  violations, for baseline and adoption work
+- `tests/fixtures/solutions/brownfield/` — a solution with existing code and history, to prove
+  that adoption is free and that pre-existing code does not block a first cycle
 - `tests/fixtures/artifacts/` — golden artifacts, good and bad, each paired with the findings it
   must produce: a solution-shaped intent, a spec with an untestable criterion, a spec that
   introduces scope the intent never asked for, a plan that names no proof for a criterion
@@ -168,11 +168,10 @@ has run end to end on it. Building it earlier means scaffolding a guess.
 - `skills/init/SKILL.md` — scaffold `.sdlc/`, `solution.md` and a lean `AGENTS.md` into a
   repository
 - `docs/techstack.md` — the default stack as reference: project shapes, pins, layout
-- The baseline: recorded in `solution.md`, with a check that its counts never rise
 
-**Done when** `init` run against an empty repository produces the greenfield fixture's shape,
-and run against the brownfield fixture produces a baseline whose first cycle does not escalate
-on violations that predate it.
+**Done when** `init` run against an empty repository produces the greenfield fixture's shape, and
+run against the brownfield fixture leaves its existing code untouched and its first cycle
+unblocked by anything that predates adoption.
 
 ## Phase 8 — scale
 
@@ -194,8 +193,8 @@ least one escalates cleanly, and no cycle leaves debris in the workspace it ran 
   reused
 - Tests for the PowerShell in `tools/`
 
-**Done when** a stale doc, an orphaned doc, a dangling supersession, and a raised baseline each
-fail CI.
+**Done when** a stale doc, an orphaned doc, a dangling supersession, and a reused constraint ID
+each fail CI.
 
 ---
 

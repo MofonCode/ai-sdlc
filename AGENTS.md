@@ -31,7 +31,7 @@ before acting.
 
 - **This repository is the framework.** A change here changes how every solution is governed.
 - **A solution is a repository that adopted the framework.** It has a `.sdlc/` directory, a
-  `solution.md` declaring its stack and baseline, and possibly its own `constraints.md`.
+  `solution.md` declaring its stack and origin, and possibly its own `constraints.md`.
 
 A constraint added here binds everyone. A constraint added in a solution binds only that
 solution. If a request could mean either, ask.

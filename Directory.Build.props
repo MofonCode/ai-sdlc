@@ -1,0 +1,22 @@
+<Project>
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+
+    <!-- A cycle cannot pass verification with a build warning, a failed analyzer, or an
+         unjustified suppression. WarningsNotAsErrors is deliberately empty so that an
+         exception is one visible line here rather than a pragma buried in code. -->
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <WarningsNotAsErrors></WarningsNotAsErrors>
+    <AnalysisLevel>latest-all</AnalysisLevel>
+    <AnalysisModeSecurity>All</AnalysisModeSecurity>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    <NuGetAudit>true</NuGetAudit>
+    <NuGetAuditMode>all</NuGetAuditMode>
+    <NuGetAuditLevel>moderate</NuGetAuditLevel>
+  </PropertyGroup>
+
+</Project>

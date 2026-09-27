@@ -1,0 +1,27 @@
+<Project>
+
+  <PropertyGroup>
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+    <CentralPackageTransitivePinningEnabled>true</CentralPackageTransitivePinningEnabled>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Carried from archive/v02, where they were checked against nuget.org on 2026-09-25.
+         Not re-verified here: a failed restore is the check. -->
+    <PackageVersion Include="MSTest" Version="4.4.1" />
+    <PackageVersion Include="coverlet.collector" Version="10.0.1" />
+
+    <!-- JSON Schema 2020-12 validation. System.Text.Json does not validate schemas and
+         Microsoft publishes no validator, so this is the absence of an on-stack option
+         rather than a departure from the default stack. -->
+    <PackageVersion Include="JsonSchema.Net" Version="9.4.0" />
+
+    <!-- YAML, on the same standing: .NET ships no YAML reader. It exists because a
+         hand-rolled frontmatter regex in v02 reported that a skill declared
+         disable-model-invocation while the real parser had dropped every field in the
+         file — the skill was model-invocable at runtime and the suite said otherwise.
+         A check on markup is worth only what the parser behind it is. -->
+    <PackageVersion Include="YamlDotNet" Version="18.1.0" />
+  </ItemGroup>
+
+</Project>

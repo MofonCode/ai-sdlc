@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <IsPackable>false</IsPackable>
+    <OutputType>Exe</OutputType>
+
+    <!-- JUSTIFIED SUPPRESSION. CA1515 wants types in a non-library assembly to be internal.
+         MSTest requires test classes and methods to be public (MSTEST0002, MSTEST0003), and
+         internal plus [DiscoverInternals] trades CA1515 for CA1812, which fires because
+         MSTest instantiates test classes by reflection and the analyzer cannot see it. One of
+         the pair must be suppressed; this is the narrower one and it is scoped to this
+         project. Remove if MSTest supports internal discovery without the CA1812 cost. -->
+    <NoWarn>CA1515</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="MSTest" />
+    <PackageReference Include="JsonSchema.Net" />
+    <PackageReference Include="YamlDotNet" />
+    <PackageReference Include="coverlet.collector" />
+  </ItemGroup>
+
+</Project>

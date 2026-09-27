@@ -1,0 +1,7 @@
+<Project>
+
+  <!-- Intentionally empty. Its presence stops fixtures inheriting the repository's
+       Directory.Build.props: a fixture is sample input, not code this repository ships, and
+       some fixtures are deliberately flawed. -->
+
+</Project>
