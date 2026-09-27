@@ -23,8 +23,14 @@ result to be graded on. Those are checked-in, hand-written, and disposable — n
 the framework, because test data produced by the thing under test proves nothing. Fixtures come
 before the first skill for that reason.
 
-**Evals are not a phase.** Every skill ships with its eval cases in the same pull request. CI
-runs them from phase 0, when the suite is empty. A skill without cases is not done.
+**Skill tests are not a phase.** Every skill ships with its cases in the same pull request. A
+skill without cases is not done.
+
+A case runs Claude headlessly against a materialized fixture and asserts on the artifacts it
+produced — `claude -p "/sdlc:<skill> …"`, then check the files. Not `claude plugin eval`: it is
+early access and unavailable on this account, so building on it would block the whole plan on
+something outside our control. Reconsider when it reaches general availability; the fixtures and
+expected results transfer either way.
 
 **Nothing operating across many cycles is built until one cycle works.** Batch mode, the
 suggestions view and adoption all wait for phase 6. One working chain teaches more than eleven
@@ -41,13 +47,22 @@ GitHub path works.
 - `.claude-plugin/marketplace.json` — so both a directory source and the GitHub source resolve
 - `.gitignore` — build output must not reach a directory-marketplace install, which copies the
   working tree rather than the committed one
-- `.github/workflows/ci.yml` — runs `claude plugin validate .` and `claude plugin eval`, both
-  passing on an empty suite
+- `.gitattributes` — normalize line endings in the repository, so contributors on different
+  machines do not see whole-file diffs
+- `.github/workflows/ci.yml` — `windows-latest`, installs the CLI, and validates both manifests
+  as **hard gates**. v02 ran these advisory because the CLI was not guaranteed on a runner, and
+  two manifest defects shipped green through exactly that gap
 - Tooling lives in `tools/`. Never a top-level `bin/`: files there join the Bash `PATH`, and
   claude.ai and Cowork refuse to install a plugin that has one
 
-**Done when** `claude plugin validate .` passes, the plugin installs from the GitHub marketplace
-on a machine that is not this one, and CI is green.
+**Done when** both manifests validate, the plugin installs from the GitHub marketplace on a
+machine that is not this one, and CI is green.
+
+**Known warning:** a `CLAUDE.md` at the plugin root is not loaded as plugin context, and the
+validator reports it. It exists for people working in this repository, because Claude Code reads
+`AGENTS.md` directly only from v2.1.277. The plugin manifest is therefore validated without
+`--strict` until that version floor is acceptable for every contributor, at which point
+`CLAUDE.md` is deleted, its content folds into `AGENTS.md`, and `--strict` returns.
 
 ## Phase 1 — the rules and the vocabularies
 

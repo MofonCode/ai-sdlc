@@ -1,0 +1,9 @@
+# Normalize in the repository so teammates on different machines do not see spurious
+# whole-file diffs. Checkout is native: PowerShell scripts land CRLF on Windows.
+* text=auto
+
+*.md   text eol=lf
+*.json text eol=lf
+*.yml  text eol=lf
+*.yaml text eol=lf
+*.ps1  text eol=crlf

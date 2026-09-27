@@ -1,0 +1,44 @@
+name: ci
+
+# windows-latest is not a preference. The shipped tooling is PowerShell and the solutions this
+# framework scaffolds are .NET, so the runner has to be the platform the framework is used on —
+# path separators, line endings and native-command stderr handling all differ elsewhere, and a
+# green build on Linux would hide every one of them.
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+jobs:
+  validate:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      # v02 ran these with continue-on-error because `claude` was not guaranteed on a runner.
+      # Two manifest defects shipped green through exactly that: a hooks.json whose events sat
+      # outside the `hooks` object, so the plugin never loaded, and a skill whose unquoted
+      # argument-hint made the YAML parser drop every field. An advisory gate teaches everyone
+      # to ignore it. So the CLI is installed and the validation below is a hard gate.
+      - name: Install Claude Code
+        run: npm install -g @anthropic-ai/claude-code
+
+      # Not --strict, for one known warning: a CLAUDE.md at the plugin root is not loaded as
+      # plugin context, and the validator says so. It is here for people working in this
+      # repository, because Claude Code reads AGENTS.md directly only from v2.1.277. When that
+      # floor is acceptable for every contributor, CLAUDE.md goes away and this regains --strict.
+      - name: Validate the plugin manifest
+        run: claude plugin validate .claude-plugin/plugin.json
+
+      - name: Validate the marketplace manifest
+        run: claude plugin validate . --strict
+
+# A `test` job joins this file at buildout phase 2, when the fixture harness exists. Skill
+# behaviour is asserted by running Claude headlessly against a fixture and checking the
+# artifacts it produced — not by `claude plugin eval`, which is early access and unavailable
+# on this account. Revisit that when it reaches general availability.
