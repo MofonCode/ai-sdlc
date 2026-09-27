@@ -1,0 +1,9 @@
+{
+  "artifact": "intent.solution-shaped.md",
+  "kind": "intent",
+  "must_cite_blocking": [
+    "CON-01"
+  ],
+  "allow_other_blocking": false,
+  "note": "Names an implementation with no statement of what is wrong today."
+}

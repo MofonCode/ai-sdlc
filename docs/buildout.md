@@ -89,7 +89,11 @@ answer and supports draft 2020-12. Decide it with the phase 2 harness, not befor
 
 ## Phase 2 — fixtures and the harness
 
-**Status: next.**
+**Status: done** — two fixture solutions, nine golden artifacts with expectations, the
+`FixtureWorkspace` harness, and 27 tests. Both deferred decisions are settled: the harness is a
+.NET MSTest project, schema validation uses `JsonSchema.Net`, and frontmatter is read with
+`YamlDotNet` rather than a regex. Which PowerShell edition hooks target is still open and now
+binds at phase 5.
 
 The test substrate. Without it every later phase is validated by eye.
 
@@ -100,11 +104,17 @@ The test substrate. Without it every later phase is validated by eye.
 - `tests/fixtures/artifacts/` — golden artifacts, good and bad, each paired with the findings it
   must produce: a solution-shaped intent, a spec with an untestable criterion, a spec that
   introduces scope the intent never asked for, a plan that names no proof for a criterion
-- `tools/New-FixtureWorkspace.ps1` — materialize a fixture into a scratch directory as a git
-  repository, so a skill runs against a disposable copy and never mutates the checked-in one
+- `tests/Sdlc.Tests/FixtureWorkspace.cs` — materialize a fixture into a scratch directory as a
+  git repository, so a skill runs against a disposable copy and never mutates the checked-in one.
+  C# rather than PowerShell: the harness is test code, and the test project already exists for
+  schema validation
 
-**Done when** a fixture can be materialized, mutated, and discarded in one command, and every
-bad artifact has its expected findings recorded beside it.
+- `schemas/expectation.schema.json` — what an interrogation of a golden artifact must conclude.
+  Assertions are on which constraints are cited at which severity, never on wording: wording is
+  model output, and asserting on it would make every case brittle
+
+**Done when** a fixture can be materialized, mutated, and discarded in one command, and every bad
+artifact has its expected findings recorded beside it.
 
 ## Phase 3 — interrogation and intent
 

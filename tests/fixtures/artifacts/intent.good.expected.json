@@ -1,0 +1,7 @@
+{
+  "artifact": "intent.good.md",
+  "kind": "intent",
+  "must_cite_blocking": [],
+  "allow_other_blocking": false,
+  "note": "Sound: states a problem, and keeps its unknowns as open questions."
+}

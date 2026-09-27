@@ -1,0 +1,10 @@
+{
+  "artifact": "plan.inadequate-proof.md",
+  "kind": "plan",
+  "against": "spec.good.md",
+  "must_cite_blocking": [
+    "CON-06"
+  ],
+  "allow_other_blocking": false,
+  "note": "A once-only assertion cannot prove a 2 second budget, and manual check proves nothing."
+}

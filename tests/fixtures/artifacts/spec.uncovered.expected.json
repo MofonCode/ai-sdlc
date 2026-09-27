@@ -1,0 +1,10 @@
+{
+  "artifact": "spec.uncovered.md",
+  "kind": "spec",
+  "against": "intent.good.md",
+  "must_cite_blocking": [
+    "CON-04"
+  ],
+  "allow_other_blocking": false,
+  "note": "Drops the intent's must-not-change URL outcome entirely."
+}

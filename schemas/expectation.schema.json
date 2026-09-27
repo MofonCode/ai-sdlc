@@ -1,0 +1,49 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/MofonCode/ai-sdlc/schemas/expectation.schema.json",
+  "title": "Fixture expectation",
+  "description": "What an interrogation of one golden artifact must conclude. Assertions are on structure - which constraints are cited at which severity - never on wording, because wording is model output and asserting on it would make every test brittle.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "artifact",
+    "kind",
+    "must_cite_blocking",
+    "allow_other_blocking"
+  ],
+  "properties": {
+    "artifact": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Filename of the golden artifact, in this directory."
+    },
+    "kind": {
+      "enum": [
+        "intent",
+        "spec",
+        "plan"
+      ]
+    },
+    "against": {
+      "type": "string",
+      "minLength": 1,
+      "description": "The predecessor this artifact is judged against. A spec is judged against its intent, a plan against its spec."
+    },
+    "must_cite_blocking": {
+      "type": "array",
+      "items": {
+        "$ref": "findings.schema.json#/$defs/constraintId"
+      },
+      "uniqueItems": true,
+      "description": "Every constraint listed must appear as a blocking finding. Empty means the artifact is sound."
+    },
+    "allow_other_blocking": {
+      "type": "boolean",
+      "description": "false means blocking findings must be exactly must_cite_blocking. A fixture that tolerates extra blockers cannot detect over-reporting, which is as damaging as under-reporting."
+    },
+    "note": {
+      "type": "string",
+      "minLength": 1
+    }
+  }
+}

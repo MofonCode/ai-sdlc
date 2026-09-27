@@ -11,28 +11,8 @@ namespace Sdlc.Tests;
 [TestClass]
 public sealed class SchemaTests
 {
-    private static readonly EvaluationOptions Options = new()
-    {
-        OutputFormat = OutputFormat.List,
-        RequireFormatValidation = true,
-    };
-
     private static readonly string[] ExpectedSeverities = ["blocking", "suggestion"];
     private static readonly string[] ExpectedOutcomes = ["pass", "blocked", "escalated"];
-
-    private static readonly Dictionary<string, JsonSchema> Loaded = new(StringComparer.Ordinal);
-
-    [ClassInitialize]
-    public static void LoadSchemas(TestContext _)
-    {
-        // FromFile registers each schema in the global registry under its own $id, which is how
-        // verify.schema.json's relative $ref to findings.schema.json resolves. It also means
-        // loading the same file twice throws, so every schema is loaded exactly once here.
-        foreach (string path in Directory.EnumerateFiles(RepoPaths.Schemas, "*.schema.json"))
-        {
-            Loaded[Path.GetFileName(path)] = JsonSchema.FromFile(path);
-        }
-    }
 
     [TestMethod]
     [DataRow("findings.schema.json", "findings.valid.json", true)]
@@ -46,16 +26,15 @@ public sealed class SchemaTests
     [DataRow("verify.schema.json", "verify.invalid-waived-without-document.json", false)]
     public void FixtureMatchesItsSchema(string schemaName, string fixtureName, bool expectedValid)
     {
-        JsonSchema schema = Loaded[schemaName];
         using JsonDocument instance = JsonDocument.Parse(
             File.ReadAllText(Path.Combine(RepoPaths.Fixtures, "schemas", fixtureName)));
 
-        EvaluationResults results = schema.Evaluate(instance.RootElement, Options);
+        EvaluationResults results = Schemas.Get(schemaName).Evaluate(instance.RootElement, Schemas.Options);
 
         Assert.AreEqual(
             expectedValid,
             results.IsValid,
-            $"{fixtureName} against {schemaName}: {Describe(results)}");
+            $"{fixtureName} against {schemaName}: {Schemas.Describe(results)}");
     }
 
     [TestMethod]
@@ -111,20 +90,5 @@ public sealed class SchemaTests
         string[] values = [.. outcome.EnumerateArray().Select(v => v.GetString()!)];
 
         CollectionAssert.AreEqual(ExpectedOutcomes, values);
-    }
-
-    private static string Describe(EvaluationResults results)
-    {
-        if (results.IsValid)
-        {
-            return "valid";
-        }
-
-        IEnumerable<string> messages = (results.Details ?? [])
-            .Where(d => d.Errors is { Count: > 0 })
-            .SelectMany(d => d.Errors!.Select(e => $"{d.InstanceLocation}: {e.Value}"))
-            .Take(6);
-
-        return string.Join(" | ", messages);
     }
 }

@@ -1,0 +1,8 @@
+{
+  "artifact": "plan.good.md",
+  "kind": "plan",
+  "against": "spec.good.md",
+  "must_cite_blocking": [],
+  "allow_other_blocking": false,
+  "note": "Each proof could actually fail if its criterion were unmet."
+}
