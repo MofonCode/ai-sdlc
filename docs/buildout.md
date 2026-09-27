@@ -40,6 +40,9 @@ half-built skills.
 
 ## Phase 0 — an installable, checkable shell
 
+**Status: done** — `f1ab05d`. One exit criterion outstanding: installing from the GitHub
+marketplace on a second machine, which needs a second machine.
+
 Nothing can be validated until the plugin loads, and nobody else can install it until the
 GitHub path works.
 
@@ -66,6 +69,8 @@ validator reports it. It exists for people working in this repository, because C
 
 ## Phase 1 — the rules and the vocabularies
 
+**Status: done** — `7dd8b19`. Eleven constraints, two schemas, nine fixtures.
+
 Skills enforce constraints and branch on schema enums, so both precede the first skill.
 
 - `constraints.md` at the plugin root — the global constraints, `CON-nn`, each with a non-empty
@@ -77,7 +82,14 @@ Skills enforce constraints and branch on schema enums, so both precede the first
 **Done when** a hand-written findings document and verify document both validate against their
 schemas, and no constraint in the file would be satisfied by every possible implementation.
 
+**Open: where schema validation permanently lives.** Phase 1 validated with `ajv` installed in a
+scratch directory, which proves the schemas and nothing else. The durable validator belongs in
+the repository and in CI — `JsonSchema.Net` from a .NET test project is the Microsoft-first
+answer and supports draft 2020-12. Decide it with the phase 2 harness, not before.
+
 ## Phase 2 — fixtures and the harness
+
+**Status: next.**
 
 The test substrate. Without it every later phase is validated by eye.
 
