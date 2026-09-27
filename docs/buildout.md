@@ -23,6 +23,11 @@ result to be graded on. Those are checked-in, hand-written, and disposable — n
 the framework, because test data produced by the thing under test proves nothing. Fixtures come
 before the first skill for that reason.
 
+**Verification is integration-first.** All twelve skills are written, then the cycle is walked from
+intent to landing against a fixture and fixed where it breaks. Polishing each skill alone would find
+the wrong class of defect: the risk is in the handoffs — what one phase writes and the next cannot
+read — not in any single skill's prose.
+
 **Skill tests are not a phase.** Every skill ships with its cases in the same pull request. A
 skill without cases is not done.
 
@@ -118,6 +123,8 @@ artifact has its expected findings recorded beside it.
 
 ## Phase 3 — interrogation and intent
 
+**Status: written, unverified.** The skills exist; their behavioural exit criteria need a real run.
+
 - `skills/interrogate/SKILL.md` — challenge an artifact against the effective constraint set and
   emit findings that validate against the schema
 - `skills/intent/SKILL.md` — the interview. Elicit rather than draft; convert a solution-shaped
@@ -130,6 +137,8 @@ and no findings on the good ones.
 
 ## Phase 4 — the artifact chain
 
+**Status: written, unverified.** Tiers settled as `local` / `contract` / `data` in `plan.schema.json`.
+
 - `skills/spec/SKILL.md` — accepted intent to testable acceptance criteria, answerable to the
   intent in both directions: covering every outcome it asks for and introducing none it does not
 - `skills/plan/SKILL.md` — spec to a plan that declares every file it will touch, a
@@ -140,6 +149,8 @@ and a spec written against a deliberately vague intent produces blocking finding
 inventing criteria.
 
 ## Phase 5 — execution and audit
+
+**Status: written, unverified.** Hooks target Windows PowerShell 5.1: a hook that cannot start because an edition is missing protects nothing while appearing to.
 
 - `skills/build/SKILL.md` — implement an approved plan and self-heal build and test failures.
   Nothing leaves build that does not compile and pass
@@ -154,6 +165,8 @@ inventing criteria.
 derived from real build and test output, and an attempt to edit `verify.md` by hand is refused.
 
 ## Phase 6 — the first complete cycle
+
+**Status: written, unverified.** This is the milestone — the flow walked end to end, and a deliberately unfixable fixture escalating.
 
 - `skills/remediate/SKILL.md` — work the blocking findings, bounded at three passes, each
   followed by a full verify. The counter resets only when a human changes an input
@@ -172,6 +185,8 @@ Everything below is leverage. Its order can change.
 
 ## Phase 7 — adoption
 
+**Status: written, unverified.**
+
 Deliberately after phase 6: `init` scaffolds a shape, and the shape is only proven once a cycle
 has run end to end on it. Building it earlier means scaffolding a guess.
 
@@ -185,6 +200,8 @@ unblocked by anything that predates adoption.
 
 ## Phase 8 — scale
 
+**Status: written, unverified.**
+
 - `skills/run/SKILL.md` — batch approved plans, one worktree per cycle
 - `skills/constraints/SKILL.md` — render the effective set, library globals merged with solution
   locals
@@ -194,6 +211,8 @@ unblocked by anything that predates adoption.
 least one escalates cleanly, and no cycle leaves debris in the workspace it ran in.
 
 ## Phase 9 — the checks that keep it honest
+
+**Status: partly done.** 41 tests cover the docs index and freshness, constraint integrity and stack neutrality, manifest shape, hook-script existence, and skill frontmatter read by a real YAML parser. Outstanding: validating the verify documents a real cycle produces.
 
 - The docs freshness check: `covers:` globs compared against source commit dates, with
   `freshness: exempt` honoured

@@ -14,15 +14,25 @@ before proposing a change to how the framework works.
 
 ## State of this repository
 
-Clean slate, rebuilt from `archive/v02`. The design is written; nothing is built yet.
+Rebuilt from `archive/v02`. The twelve skills, the constraints, the schemas and the hooks are
+written; the cycle has not yet been walked end to end against a fixture, so treat skill behaviour
+as unproven until `docs/buildout.md` says otherwise.
 
-There is **no build, no test suite, no plugin manifest, no fixtures and no skills**. Do not go
-looking for them and do not invent commands — if a task needs one, that is a gap to raise, not a
-guess to make. `docs/buildout.md` says what comes next and what "done" means for each phase.
+Earlier versions live on `archive/v01` and `archive/v02`. They are evidence, not a starting point:
+read from them only when pointed at a specific file, and never copy forward without saying why.
 
-Earlier versions live on `archive/v01` and `archive/v02`. They are evidence, not a starting
-point: read from them only when pointed at a specific file, and never copy forward without
-saying why.
+## Layout
+
+| Path | Holds |
+|---|---|
+| `constraints.md` | the global constraints, `CON-nn`. The framework's product |
+| `schemas/` | JSON Schema for every artifact. They own the vocabularies and the verify state machine |
+| `skills/<name>/SKILL.md` | one skill per phase, plus `init`, `run` and two read-only views |
+| `hooks/hooks.json` | the deterministic layer: what may not happen, whatever a model concludes |
+| `tools/*.ps1` | what the hooks run. Windows PowerShell 5.1 |
+| `tests/Sdlc.Tests/` | asserts the properties the design claims |
+| `tests/fixtures/` | fixture solutions and golden artifacts. Never mutated — skills run on copies |
+| `docs/` | the design record, the delivery plan, the stack reference |
 
 ## Framework or consumer
 
@@ -62,7 +72,15 @@ restates another's content as its own authority creates two sources that will di
 
 ## Commands
 
-None yet. This section names them when a build exists.
+```
+dotnet test                              # the whole suite
+claude plugin validate .                 # the marketplace manifest, strict
+claude plugin validate .claude-plugin/plugin.json   # the plugin manifest
+```
+
+There is no application to run. This repository ships a plugin, and the fixtures under
+`tests/fixtures/solutions/` are the only things that build like a solution — they are materialized
+into a scratch copy by the test harness, never built in place.
 
 ## What makes a change landable
 
@@ -78,6 +96,7 @@ Until CI exists, the first two conditions collapse into the third.
 - Anything under `.sdlc/` in a consumer solution that is a generated artifact: a verify
   document is derived from evidence and is never hand-edited
 - Constraint IDs, once assigned. They are a monotonic sequence, never reused or backfilled
+- Anything under `tests/fixtures/` while running a skill. Materialize a workspace and use the copy
 
 ## Where the detail lives
 
@@ -87,6 +106,7 @@ Open one of these only when its trigger applies; do not read them speculatively.
 |---|---|
 | `docs/concept.md` | proposing or questioning how the framework works — phases, gates, artifacts, governance |
 | `docs/buildout.md` | asking what to build next, or whether a phase is finished |
+| `docs/techstack.md` | choosing a project shape, changing a package pin, or writing a PowerShell tool |
 
 Rows are added as the documents are written. Every document under `docs/` appears here exactly
 once, and every row points at a file that exists.

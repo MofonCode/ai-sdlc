@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/MofonCode/ai-sdlc/schemas/intent.schema.json",
+  "title": "Intent frontmatter",
+  "description": "The frontmatter of .sdlc/intents/<id>.md. The body carries the problem; this carries only what a machine routes on.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id",
+    "type"
+  ],
+  "properties": {
+    "id": {
+      "$ref": "findings.schema.json#/$defs/cycleId"
+    },
+    "type": {
+      "enum": [
+        "solution",
+        "feature",
+        "bug",
+        "suggestion"
+      ],
+      "description": "solution starts a new codebase; suggestion originates from a verify document."
+    },
+    "stack": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Present only when this intent departs from the solution's declared stack."
+    },
+    "source": {
+      "type": "string",
+      "minLength": 1,
+      "description": "For type suggestion: the verify document this came from."
+    }
+  }
+}

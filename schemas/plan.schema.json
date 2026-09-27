@@ -1,0 +1,60 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/MofonCode/ai-sdlc/schemas/plan.schema.json",
+  "title": "Plan frontmatter",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id",
+    "spec",
+    "tier"
+  ],
+  "properties": {
+    "id": {
+      "$ref": "findings.schema.json#/$defs/cycleId"
+    },
+    "spec": {
+      "type": "string",
+      "minLength": 1
+    },
+    "tier": {
+      "enum": [
+        "local",
+        "contract",
+        "data"
+      ],
+      "description": "Blast radius, chosen by reversibility rather than size. local: nothing outside this repository depends on it. contract: a published API, event shape or schema something else consumes. data: a migration, or anything reverting the code does not undo."
+    },
+    "approved_by": {
+      "type": "string",
+      "minLength": 1,
+      "description": "The person who approved this plan. Written by them, not by a skill: it is the gate."
+    },
+    "approved_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When it was approved. Required alongside approved_by - a name with no date says nothing about which version of the plan was approved."
+    }
+  },
+  "allOf": [
+    {
+      "description": "Approval is both fields or neither.",
+      "if": {
+        "required": [
+          "approved_by"
+        ]
+      },
+      "then": {
+        "required": [
+          "approved_at"
+        ],
+        "properties": {
+          "approved_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      }
+    }
+  ]
+}

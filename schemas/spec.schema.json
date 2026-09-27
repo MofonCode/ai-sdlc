@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/MofonCode/ai-sdlc/schemas/spec.schema.json",
+  "title": "Spec frontmatter",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id",
+    "intent"
+  ],
+  "properties": {
+    "id": {
+      "$ref": "findings.schema.json#/$defs/cycleId"
+    },
+    "intent": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Path to the intent this spec answers to. CON-04 and CON-05 are both judged against it, so it is required."
+    }
+  }
+}

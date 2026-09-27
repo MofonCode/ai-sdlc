@@ -1,0 +1,55 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/MofonCode/ai-sdlc/schemas/solution.schema.json",
+  "title": "Solution profile frontmatter",
+  "description": "The frontmatter of .sdlc/solution.md. Facts an interrogation needs that are not rules. There is no baseline field: constraints govern the change, never code that predates adoption.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "stack",
+    "origin"
+  ],
+  "properties": {
+    "stack": {
+      "type": "string",
+      "minLength": 1
+    },
+    "origin": {
+      "enum": [
+        "scaffolded",
+        "adopted"
+      ]
+    },
+    "adopted_at": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{7,40}$",
+      "description": "The HEAD sha at adoption. Marks what predates governance; required when origin is adopted."
+    }
+  },
+  "allOf": [
+    {
+      "description": "An adopted solution must say what it was adopted at, or nothing distinguishes pre-existing code.",
+      "if": {
+        "properties": {
+          "origin": {
+            "const": "adopted"
+          }
+        },
+        "required": [
+          "origin"
+        ]
+      },
+      "then": {
+        "required": [
+          "adopted_at"
+        ],
+        "properties": {
+          "adopted_at": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{7,40}$"
+          }
+        }
+      }
+    }
+  ]
+}
