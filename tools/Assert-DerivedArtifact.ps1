@@ -63,7 +63,7 @@ if ($normalized -match '/\.sdlc/cycles/[^/]+/verify\.md$') {
     exit 0
 }
 
-if ($normalized -match '/\.sdlc/(cycles/[^/]+|intents)/findings/') {
+if ($normalized -match '/\.sdlc/cycles/[^/]+/findings/') {
     if ($exists) {
         Deny (
             'That findings document already exists. Interrogation rounds are numbered and kept, ' +

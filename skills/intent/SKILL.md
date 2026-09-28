@@ -64,8 +64,9 @@ three invented answers is a liability.
 
 ## Write it
 
-Write `.sdlc/intents/<id>.md` where `<id>` is `YYYYMMDD_xxxx` — the date from the injected `Now (UTC)`
-value below, and four random hex characters.
+Write `.sdlc/cycles/<id>/intent.md`, where `<id>` is `YYYYMMDD_xxxx` — the date from the injected
+`Now (UTC)` value below, and four random hex characters. Create the directory; everything else this
+cycle produces will sit beside it.
 
 Frontmatter first, and it is not optional — every later phase routes on it:
 
@@ -99,9 +100,9 @@ sometimes fires is worse than none: it produces artifacts nobody challenged whil
 challenged them. Report what you produced and name the next command for whoever is driving — a person
 in an interactive session, or the batch runner in an unattended one.
 
-Say: the intent is at `.sdlc/intents/<id>.md`, the next step is
-`/sdlc:interrogate .sdlc/intents/<id>.md`, and after that a person accepts it by adding `accepted_by`
-and `accepted_at` to its frontmatter. Do not write that pair yourself — it is the gate, not a
+Say: the intent is at `.sdlc/cycles/<id>/intent.md`, the next step is
+`/sdlc:interrogate .sdlc/cycles/<id>/intent.md`, and after that a person accepts it by adding
+`accepted_by` and `accepted_at` to its frontmatter. Do not write that pair yourself — it is the gate, not a
 formality.
 
 If the interview left many open questions because nobody was there to answer them, say so plainly.

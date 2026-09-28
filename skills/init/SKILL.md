@@ -44,10 +44,13 @@ refactoring work with its own tooling, and it is not this framework's business.
 ## What to create
 
 ```
-.sdlc/solution.md      declarations: stack, origin, and when
-.sdlc/intents/         empty; the first cycle fills it
-.sdlc/cycles/          empty
+.sdlc/solution.md      declarations: stack and origin
+.sdlc/README.md        terminology, flow and commands for whoever works here
 ```
+
+**Create no empty directories.** `.sdlc/cycles/<id>/` is created by the skill that writes the first
+artifact into it. An empty directory needs a placeholder file to survive git, and nothing ever removes
+that placeholder once real files arrive.
 
 `solution.md` is markdown with YAML frontmatter carrying:
 

@@ -102,8 +102,10 @@ Then, inside that session:
 /sdlc:init
 ```
 
-*Never run end to end.* It should create `.sdlc/solution.md` with your stack and origin, plus empty
-`intents/` and `cycles/` directories, and leave any existing `AGENTS.md` alone.
+*Never run end to end.* It should create `.sdlc/solution.md` with your stack and origin, and a
+`.sdlc/README.md` explaining the terminology, the flow and the commands. It creates no empty
+directories — a cycle's directory is made by the skill that writes the first artifact into it. It
+should leave any existing `AGENTS.md` alone.
 
 Adoption is free. Your existing code is not judged — constraints govern each change as it is made, never
 code that predates them, so there is nothing to baseline.
@@ -125,7 +127,7 @@ liability, because every later phase treats an accepted intent as settled.
 **A deliberate choice:** saying "1 to 6" hands the spec a fact. Leaving it out is the sharper test — if the
 spec invents a range, CON_02 should have caught it here. Pick knowingly.
 
-It writes `.sdlc/intents/<id>.md`. **Note that id** — every command after this takes it.
+It writes `.sdlc/cycles/<id>/intent.md`. **Note that id** — every command after this takes it.
 
 ## 5. Put the cycle on a branch
 
@@ -142,10 +144,10 @@ If the intent is rejected, delete the branch.
 ## 6. Interrogate the intent
 
 ```
-/sdlc:interrogate .sdlc/intents/20260928_a1b2.md
+/sdlc:interrogate .sdlc/cycles/20260928_a1b2/intent.md
 ```
 
-Writes `.sdlc/intents/findings/20260928_a1b2.r1.json`. Read the findings, not just the count.
+Writes `.sdlc/cycles/20260928_a1b2/findings/intent.r1.json`. Read the findings, not just the count.
 
 Blocking findings mean the intent must change first. Fix it and run this again — it writes `r2` and keeps
 `r1`, because the sequence is the record of whether your repair worked.

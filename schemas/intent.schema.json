@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/MofonCode/ai-sdlc/schemas/intent.schema.json",
   "title": "Intent frontmatter",
-  "description": "The frontmatter of .sdlc/intents/<id>.md. The body carries the problem; this carries only what a machine routes on.",
+  "description": "The frontmatter of .sdlc/cycles/<id>/intent.md. The body carries the problem; this carries only what a machine routes on.",
   "type": "object",
   "additionalProperties": false,
   "required": [

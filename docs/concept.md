@@ -100,7 +100,7 @@ intent -> spec -> plan -> build -> verify -> land
 
 | Phase | Question it answers | Artifact | Gate to pass |
 |---|---|---|---|
-| **intent** | why — what is wrong, for whom, under what constraints | `.sdlc/intents/<id>.md` | a person accepts it |
+| **intent** | why — what is wrong, for whom, under what constraints | `.sdlc/cycles/<id>/intent.md` | a person accepts it |
 | **spec** | what — testable acceptance criteria | `.sdlc/cycles/<id>/spec.md` | a person accepts it |
 | **plan** | how — files touched, order, blast-radius tier, proof | `.sdlc/cycles/<id>/plan.md` | **a person approves — the last gate before anything becomes irreversible** |
 | **build** | the change itself | code diff, plus build and test evidence | it builds and its tests pass; machine-decided |

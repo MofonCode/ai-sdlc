@@ -7,7 +7,7 @@ allowed-tools: Bash(powershell.exe *) Bash(git *)
 
 # Write the spec for cycle `$0`
 
-Turn `.sdlc/intents/$0.md` into `.sdlc/cycles/$0/spec.md`.
+Turn `.sdlc/cycles/$0/intent.md` into `.sdlc/cycles/$0/spec.md`.
 
 A spec says **what done means** for this cycle, in criteria a test could check. It answers to the
 intent in both directions, and those two failures are different constraints because they are fixed
@@ -52,7 +52,7 @@ Honour **Fixed decisions** as given. They are a person's choice, not yours to re
 Sections:
 
 Frontmatter carries `id` and `intent`, and `intent` is the **repository-relative path** of the
-intent on disk — `.sdlc/intents/<id>.md`, never a bare filename. Every later phase binds the spec to
+intent on disk — `.sdlc/cycles/<id>/intent.md`, never a bare filename. Every later phase binds the spec to
 its intent through that field, and an interrogation that cannot resolve it cannot judge coverage.
 
 ```markdown

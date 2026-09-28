@@ -115,7 +115,7 @@ public sealed class HookTests
         // /sdlc:interrogate from writing its own output. Found by running the flow, not by reading it.
         using FixtureWorkspace workspace = FixtureWorkspace.Materialize("greenfield");
 
-        string target = Path.Combine(workspace.Path, ".sdlc", "intents", "findings", $"{CycleId}.r1.json");
+        string target = Path.Combine(workspace.Path, ".sdlc", "cycles", CycleId, "findings", "intent.r1.json");
 
         Decision decision = Invoke(Tool("Assert-DerivedArtifact.ps1"), EditEvent(target, workspace.Path));
 
@@ -127,9 +127,9 @@ public sealed class HookTests
     {
         using FixtureWorkspace workspace = FixtureWorkspace.Materialize("greenfield");
 
-        string dir = Path.Combine(workspace.Path, ".sdlc", "intents", "findings");
+        string dir = Path.Combine(workspace.Path, ".sdlc", "cycles", CycleId, "findings");
         Directory.CreateDirectory(dir);
-        string target = Path.Combine(dir, $"{CycleId}.r1.json");
+        string target = Path.Combine(dir, "intent.r1.json");
         File.WriteAllText(target, "{}");
 
         Decision decision = Invoke(Tool("Assert-DerivedArtifact.ps1"), EditEvent(target, workspace.Path));

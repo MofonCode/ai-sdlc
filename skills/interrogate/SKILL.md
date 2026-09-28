@@ -62,9 +62,12 @@ artifact's kind — a spec is not judged by a rule about waivers.
 This step is the deliverable. **Printing the document into your reply is not doing it** — nothing
 downstream reads your reply, and remediation, verify and landing all read the file.
 
-| Artifact | Path |
+Everything for one cycle lives in `.sdlc/cycles/<id>/`, and every round of every interrogation for
+that cycle lives in its `findings/` folder, named after the artifact it judged:
+
+| Artifact | Findings |
 |---|---|
-| `.sdlc/intents/<id>.md` | `.sdlc/intents/findings/<id>.r<round>.json` |
+| `.sdlc/cycles/<id>/intent.md` | `.sdlc/cycles/<id>/findings/intent.r<round>.json` |
 | `.sdlc/cycles/<id>/spec.md` | `.sdlc/cycles/<id>/findings/spec.r<round>.json` |
 | `.sdlc/cycles/<id>/plan.md` | `.sdlc/cycles/<id>/findings/plan.r<round>.json` |
 
@@ -72,8 +75,8 @@ downstream reads your reply, and remediation, verify and landing all read the fi
 highest already there. Never overwrite an earlier round — the sequence is the record of whether a
 repair worked. Create the directory if it does not exist.
 
-So interrogating `.sdlc/intents/20260927_0002.md` with no earlier rounds writes
-`.sdlc/intents/findings/20260927_0002.r1.json`.
+So interrogating `.sdlc/cycles/20260927_0002/intent.md` with no earlier rounds writes
+`.sdlc/cycles/20260927_0002/findings/intent.r1.json`.
 
 Every field is required for a reason:
 
@@ -94,7 +97,7 @@ Every field is required for a reason:
 {
   "framework_version": "0.0.1",
   "cycle": "20260927_0002",
-  "artifact": ".sdlc/intents/20260927_0002.md",
+  "artifact": ".sdlc/cycles/20260927_0002/intent.md",
   "interrogated_at": "2026-09-27T22:40:00Z",
   "round": 1,
   "findings": [
