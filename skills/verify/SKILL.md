@@ -149,12 +149,46 @@ Add `waivers: <path>` only when a finding's disposition is `waived`.
 
 ## Then stop
 
-Report the outcome and the counts, then each blocking finding in one line: the constraint **and a
-short description of what it forbids**, not the bare id. A reader should not have to look up `CON_07`
-to know what went wrong.
+Report in the same shape an interrogation uses, because this is one: counts first, then the findings, then
+one command to copy. The outcome line sits between the counts and the findings, since it is the thing that
+decides what happens next.
 
-On `blocked`, say that `/sdlc:remediate $0` is next. On `escalated`, say plainly that landing will
-refuse this cycle and a person owns it now.
+```
+blocking: 1 · suggestions: 2
+
+**outcome: blocked** — 0 of 3 remediation passes spent
+
+**blocking**
+
+- `F_01` · **CON_07** — a change does only what its plan declared
+  at `diff.patch`, the `AGENTS.md` hunk — adds a section the plan describes no change to
+  remedy: amend the plan to describe it, have it re-approved, and rebuild
+
+**suggestions**
+
+- `F_02` · **CON_06** — a plan's proof is adequate to its criterion
+  at criterion 3 — the check would pass with the signature narrowed
+
+verify → `.sdlc/cycles/20260928_a43a/verify.md`
+
+next → work the blocking findings:
+
+/sdlc:remediate 20260928_a43a
+```
+
+The outcome decides the command, and nothing else does:
+
+| Outcome | next |
+|---|---|
+| `pass` | a code owner merges what `/sdlc:land <id>` opens |
+| `blocked` | `/sdlc:remediate <id>` |
+| `escalated` | **no command.** Say the budget is spent, that landing will refuse this cycle, and that the four ways out are a person's: fix by hand, amend the spec and re-approve it, waive with a recorded reason, or abandon |
+
+Name every constraint with what it forbids, never the bare id.
+
+If a finding's cause lies in the framework rather than in this cycle — adoption left something
+uncommitted, a skill wrote a malformed artifact — say so in the report. None of the four exits fits that
+case, and quietly proposing a plan amendment for it sends a person to fix the wrong thing.
 
 If a finding's cause lies in the framework rather than in this cycle — adoption left something
 uncommitted, a skill wrote a malformed artifact — say so in the report. None of the four exits fits

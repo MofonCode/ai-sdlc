@@ -83,6 +83,22 @@ exactly this.
 
 Enforced by: `SkillTests.NoSkillRestatesAConstraint`
 
+### A report that repeats has one fixed shape
+
+Counts first, then findings, then one command alone in a fence. `interrogate` and `verify` both use it,
+because verify is an interrogation of a diff.
+
+The reason is what a reader does with a stack of these: they read the first line. `blocking: 0 ·
+suggestions: 2` answers the only urgent question, and a shape that moves around forces them to read the
+whole thing to find it. A command wrapped in prose has to be trimmed before it can be pasted, which is
+friction on the most repeated action in the process.
+
+Both skills carry the shape as a literal example rather than a description, for the same reason every
+artifact-writing skill does — a worked example is what makes output match, and prose about a format does
+not.
+
+Unenforced. A test cannot judge whether output matched a template; the calibration is the trial run.
+
 ### Anything open-ended in a report needs a cap and a stopping rule
 
 `interrogate` was licensed to raise "observations that no constraint forbids" with no limit. A trial run
@@ -416,6 +432,8 @@ claude plugin uninstall sdlc@ai-sdlc
 ```pwsh
 claude plugin install sdlc@ai-sdlc
 ```
+
+---
 
 ---
 

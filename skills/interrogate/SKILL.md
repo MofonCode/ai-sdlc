@@ -166,29 +166,87 @@ Every field is required for a reason:
 }
 ```
 
-## 4. Report the verdict, and make the next step unambiguous
+## 4. Report, in this shape every time
 
-Start with the path you wrote. Then exactly one of two verdicts, and say which in the first line.
+The counts come first, then the findings, then one command to copy. Same order, same shape, every
+interrogation — a reader should not have to work out where the answer is, and the shape is what lets them
+skim a stack of these and see only what changed.
 
-**No blocking findings — the artifact is ready to advance.** Say that, in those words, and name what
-happens next: that a person accepts or approves it, and the command that follows. A reader who has to
-infer whether they may proceed will assume they may not, and will re-interrogate an artifact that was
-already sound. That costs a round every time and teaches everyone to distrust a clean result.
+### When something is blocking
 
-**Blocking findings — the artifact must change first.** Give the count at each severity, then each
-blocking finding as one line naming its constraint and its locus. Then the remedy path: change the
-artifact and interrogate again, which writes the next round and keeps this one.
+```
+blocking: 1 · suggestions: 1
 
-Never restate the findings document in prose. It is the record; your summary is a pointer to it.
+**blocking**
+
+- `F_01` · **CON_01** — the problem, not the solution
+  at `## What to build` — prescribes the expression to write and states no problem at all
+  remedy: state what is wrong with Totals.Sum today; move the chosen fix into fixed decisions
+
+**suggestions**
+
+- `F_02` · **CON_03** — a criterion can fail
+  at criterion 2 — "renders correctly" names no check
+
+findings → `.sdlc/cycles/20260928_a43a/findings/intent.r1.json`
+
+next → fix the blocking findings, then interrogate again:
+
+/sdlc:interrogate 20260928_a43a intent
+```
+
+### When nothing is blocking
+
+```
+blocking: 0 · suggestions: 0
+
+**No blocking findings — the artifact is ready to advance.**
+
+findings → `.sdlc/cycles/20260928_a43a/findings/intent.r1.json`
+
+next → a person accepts it by adding `accepted_by` and `accepted_at` to its frontmatter, then:
+
+/sdlc:spec 20260928_a43a
+```
+
+### The rules that shape it
+
+**Counts on the first line**, as `blocking: n · suggestions: n`, before anything else. Even when both are
+zero — a reader scanning three of these in a row is reading that line and nothing more.
+
+**Name the constraint and what it forbids**, never the bare id. `CON_01` alone sends someone to look it
+up; `CON_01 — the problem, not the solution` does not. Keep the description to a handful of words.
+
+**One finding, three lines**: the id and constraint, then where it is, then what would fix it. A remedy on
+every blocking finding, because remediation cannot work one that does not say what would resolve it.
+Suggestions get two lines — they have no remedy to act on.
+
+**The command on its own line, alone in a fence**, so it can be copied without trimming anything. Never
+wrap it in prose.
+
+**Where the next command comes from:**
+
+| This artifact | Nothing blocking, so next is | Something blocking, so next is |
+|---|---|---|
+| intent | a person accepts, then `/sdlc:spec <id>` | `/sdlc:interrogate <id> intent` |
+| spec | a person accepts, then `/sdlc:plan <id>` | `/sdlc:interrogate <id> spec` |
+| plan | a person approves, then `/sdlc:build <id>` | `/sdlc:interrogate <id> plan` |
+
+Say who acts, not only what runs. "A person accepts it" is the gate; omitting it implies the next command
+is yours to run, and it is not.
+
+**Never restate the findings document in prose.** It is the record; this is a pointer to it, and the
+summary exists so nobody has to open the JSON to know whether they are blocked.
 
 ### Observations are capped at one, and never read as work
 
 Raise at most **one** thing no constraint forbids, and only if it would change what a person actually
-does. Put it after the verdict, under a line saying plainly that it is not required and not a reason
-to delay.
+does. Put it after the command, under a line saying plainly that it is not required and not a reason to
+delay.
 
-The cap is the point. There is always one more thing a careful reader could notice, so an uncapped
-list has no terminal state — the artifact comes back sound, the observations read as a queue, the
-queue gets worked, and the next run produces a fresh queue. Constraints converge, because there is a
-fixed number of them and an artifact either breaches one or does not. Taste does not converge. If you
-have several observations, keep the one that matters and drop the rest.
+The cap is the point. There is always one more thing a careful reader could notice, so an uncapped list
+has no terminal state — the artifact comes back sound, the observations read as a queue, the queue gets
+worked, and the next run produces a fresh queue. Constraints converge, because there is a fixed number of
+them and an artifact either breaches one or does not. Taste does not converge. If you have several
+observations, keep the one that matters and drop the rest.
+
