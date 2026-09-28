@@ -211,6 +211,14 @@ schema forbids. It chose `origin: adopted` for a repository holding one empty co
 "has history" as "has commits" rather than "has code". It created `.gitkeep` files nothing removes. And
 it wrote no guide for whoever has to work in the adopted solution.
 
+**A fixture asserting a judgement will flake.** After the refactor `plan.good.md` drew a CON_06 finding
+on one run and none on the next, with nothing in between. CON_06 asks whether a proof is *adequate* to
+its criterion, which is the constraint that most needs reading comprehension and therefore the one with
+real variance. The expectation framework treats any unexpected blocking finding as a failure, which is
+right for CON_01 through CON_05 and too strict here. A disagreeing case should be re-run and reported as
+flaky rather than either retried silently or recorded as a defect — hiding the variance is the same
+mistake as an advisory gate.
+
 **Identifiers and layout changed on usability grounds.** Ids are underscore-separated so a double-click
 selects the whole of one, and everything about a cycle now lives in one directory with a single
 `findings/` folder beside the artifacts. The old split put an intent somewhere else with findings of its
