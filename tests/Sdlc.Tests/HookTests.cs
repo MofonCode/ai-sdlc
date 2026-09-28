@@ -167,6 +167,59 @@ public sealed class HookTests
         Assert.IsFalse(decision.Denied, $"{relative} is authored, not derived: {decision.Reason}");
     }
 
+    // ------------------------------------------------------ settled artifacts
+
+    [TestMethod]
+    [DataRow("spec", "accepted")]
+    [DataRow("plan", "approved")]
+    public void FindingsAgainstASettledArtifactAreRefused(string kind, string gate)
+    {
+        // A person has passed the gate, so a finding has nothing left to act on it - and producing one
+        // anyway is how the review loop restarts on work that was already finished.
+        using FixtureWorkspace workspace = FixtureWorkspace.Materialize("greenfield");
+
+        string cycleDir = Path.Combine(workspace.Path, ".sdlc", "cycles", CycleId);
+        Directory.CreateDirectory(Path.Combine(cycleDir, "findings"));
+
+        string[] frontmatter =
+        [
+            "---",
+            $"id: {CycleId}",
+            $"{gate}_by: Peter Almanzar",
+            $"{gate}_at: 2026-09-28T09:15:00Z",
+            "---",
+            "",
+            $"# {kind}",
+        ];
+        File.WriteAllLines(Path.Combine(cycleDir, $"{kind}.md"), frontmatter);
+
+        Decision decision = Invoke(
+            Tool("Assert-DerivedArtifact.ps1"),
+            EditEvent(Path.Combine(cycleDir, "findings", $"{kind}.r1.json"), workspace.Path));
+
+        Assert.IsTrue(decision.Denied, $"A settled {kind} must not be interrogated again.");
+        StringAssert.Contains(decision.Reason, gate, StringComparison.Ordinal);
+        StringAssert.Contains(decision.Reason, "stale", StringComparison.Ordinal);
+    }
+
+    [TestMethod]
+    public void FindingsAgainstAnUnsettledArtifactAreAllowed()
+    {
+        // The happy path: acceptance always comes after interrogation, so this guard must never fire
+        // during a normal cycle.
+        using FixtureWorkspace workspace = FixtureWorkspace.Materialize("greenfield");
+
+        string cycleDir = Path.Combine(workspace.Path, ".sdlc", "cycles", CycleId);
+        Directory.CreateDirectory(Path.Combine(cycleDir, "findings"));
+        File.WriteAllLines(Path.Combine(cycleDir, "spec.md"), ["---", $"id: {CycleId}", "---", "", "# spec"]);
+
+        Decision decision = Invoke(
+            Tool("Assert-DerivedArtifact.ps1"),
+            EditEvent(Path.Combine(cycleDir, "findings", "spec.r1.json"), workspace.Path));
+
+        Assert.IsFalse(decision.Denied, $"Interrogation before acceptance is the normal flow: {decision.Reason}");
+    }
+
     // ------------------------------------------------------------------ artifact shape
 
     private static object WriteEvent(string filePath, string content, string cwd) => new

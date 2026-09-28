@@ -1,7 +1,7 @@
 ---
 name: interrogate
 description: Challenge one artifact against the effective constraint set and write the findings document. Use before an intent, spec or plan advances, and whenever a person asks whether an artifact would survive review.
-argument-hint: "[cycle-id, or a path to one artifact]"
+argument-hint: "[cycle-id] [intent|spec|plan, optional]"
 allowed-tools: Bash(powershell.exe *) Bash(git *) Write
 ---
 
@@ -13,25 +13,55 @@ what you found.
 
 ## 0. Work out which artifact you were given
 
-`$0` is either a path or a cycle id, and the two are easy to tell apart:
+Three forms, and the first argument is a cycle id in the two that matter — the same as every other
+command in this process.
 
-- It contains a `/` or ends in `.md` — **a path.** Interrogate that artifact, and nothing else
-- It matches `YYYYMMDD_xxxx` — **a cycle id.** Interrogate the furthest-advanced artifact that exists
-  in `.sdlc/cycles/$0/`, in flow order: `plan.md` if it is there, otherwise `spec.md`, otherwise
-  `intent.md`
-- Neither, or empty — stop and say what you expected. Do not scan for a likely cycle
+**`$0` is a cycle id and `$1` names a kind.** `intent`, `spec` or `plan`. Interrogate
+`.sdlc/cycles/$0/$1.md`. Nothing is inferred, so nothing can be inferred wrongly. Prefer this form.
 
-**When you resolved an id, say which artifact you chose and why, in the first line of your report.**
-Something like *"interrogating plan.md, the furthest-advanced artifact in this cycle."* The reason is the
-one case where the rule picks wrongly: a person amending an accepted spec after a verification failure
-still has a plan on disk, so flow order lands on the plan when they meant the spec. That is a legitimate
-thing to do, and the only protection against it is that you said out loud what you were judging. Add one
-line naming the path form, so overriding takes no thinking:
+**`$0` is a cycle id and `$1` is empty.** Interrogate the furthest-advanced artifact that exists in
+`.sdlc/cycles/$0/`, in flow order: `plan.md` if it is there, otherwise `spec.md`, otherwise `intent.md`.
+Convenient while a cycle moves forward one artifact at a time.
 
-> To interrogate a different artifact, pass its path.
+Say which artifact you chose, in the first line of your report — *"interrogating plan.md, the
+furthest-advanced artifact in this cycle"* — and name the explicit form once:
+
+> To judge a different one, pass its kind: `/sdlc:interrogate $0 spec`.
+
+That matters because flow order picks wrongly in one real case. Amending an accepted spec after a
+verification failure is a legitimate way out of an escalated cycle, and it leaves a plan on disk, so the
+rule lands on the plan when the spec was meant. Naming your choice is the only thing standing between
+that and a confident verdict on the wrong document.
+
+**`$0` contains a `/` or ends in `.md`.** A path. Interrogate that file and nothing else. This is the
+escape hatch for an artifact that does not live in a cycle directory.
+
+Anything else — an unrecognisable argument, or none — stop and say what you expected. Do not scan for a
+likely cycle.
 
 If the cycle directory does not exist, or holds none of the three, say so and name `/sdlc:intent` as the
-step that starts one.
+step that starts one. If `$1` is `verify`, say that a verify document is not interrogated: it is itself
+the adjudication of a diff, and `/sdlc:verify` is what produces it.
+
+## 0b. Refuse an artifact that is already settled
+
+Read the artifact's frontmatter before judging it. If it carries `accepted_by` and `accepted_at`, or
+`approved_by` and `approved_at`, **stop.**
+
+A person has passed that gate. A finding raised now has no consumer: the artifact it would change is
+already the basis of everything downstream, and the phase that would have acted on the finding is behind
+you. Producing one anyway invites exactly the loop this process exists to avoid — an artifact that comes
+back sound, an observation that reads as work, a round that changes nothing.
+
+Say which gate was passed and by whom, then where the cycle actually is: after an accepted spec the step
+is `/sdlc:plan`, after an approved plan it is `/sdlc:build`. If every artifact in the cycle is settled,
+say so plainly — that is a useful answer, not a failure.
+
+**The one legitimate reason to interrogate a settled artifact is that it changed.** Amending an accepted
+spec is a way out of an escalated cycle, and an amendment makes the old acceptance stale. The order is:
+amend it, remove the acceptance fields, interrogate, then have a person accept it again. Say that, so the
+route is obvious. Never clear those fields yourself — they are the gate, and clearing one is a person's
+act.
 
 ## The constraint set
 

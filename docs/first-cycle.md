@@ -144,11 +144,11 @@ If the intent is rejected, delete the branch.
 ## 6. Interrogate the intent
 
 ```
-/sdlc:interrogate 20260928_a1b2
+/sdlc:interrogate 20260928_a1b2 intent
 ```
 
-Given a cycle id it interrogates the furthest-advanced artifact that exists — here the intent, since
-it is the only one — and says which it chose. Pass a path instead when you need a specific one.
+The second argument names which artifact to judge — `intent`, `spec` or `plan`. Leave it off and it
+takes the furthest-advanced one that exists, saying which it chose.
 
 Writes `.sdlc/cycles/20260928_a1b2/findings/intent.r1.json`. Read the findings, not just the count.
 
@@ -179,7 +179,7 @@ checked. It refuses if the intent is not accepted.
 ## 9. Interrogate the spec
 
 ```
-/sdlc:interrogate 20260928_a1b2
+/sdlc:interrogate 20260928_a1b2 spec
 ```
 
 ## 10. Accept the spec
@@ -204,7 +204,7 @@ Declares every file it will touch, a blast-radius tier, and how each criterion w
 ## 12. Interrogate the plan
 
 ```
-/sdlc:interrogate 20260928_a1b2
+/sdlc:interrogate 20260928_a1b2 plan
 ```
 
 ## 13. Approve the plan
