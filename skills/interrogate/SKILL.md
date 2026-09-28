@@ -50,7 +50,8 @@ artifact's kind — a spec is not judged by a rule about waivers.
   you are looking at, there is no finding, however wrong it seems
 - **Cite exactly one constraint per finding.** A problem breaching two constraints is two findings
 - **Never invent a constraint.** If something is wrong and no constraint forbids it, keep it out of
-  the document and mention it in your closing summary as an observation. Do not manufacture an ID
+  the document, and do not manufacture an ID. You may raise it afterwards as a single observation,
+  under the cap in step 4 — which exists because an uncapped list of them has no stopping point
 - **Report nothing when nothing is wrong.** An empty findings array is legitimate and common.
   Over-reporting is as damaging as under-reporting: it teaches everyone to skim
 - **Severity is not a feeling.** `blocking` means the artifact must not advance as written.
@@ -110,11 +111,29 @@ Every field is required for a reason:
 }
 ```
 
-## 4. Report
+## 4. Report the verdict, and make the next step unambiguous
 
-Confirm the path you wrote, then the count at each severity, then each blocking finding as one line
-naming its constraint and its locus. Do not restate the document in prose — it is the record, and
-your summary is a pointer to it.
+Start with the path you wrote. Then exactly one of two verdicts, and say which in the first line.
 
-If the artifact is sound, say so plainly in one line, having still written the document with an empty
-findings array. Resist the urge to add advice.
+**No blocking findings — the artifact is ready to advance.** Say that, in those words, and name what
+happens next: that a person accepts or approves it, and the command that follows. A reader who has to
+infer whether they may proceed will assume they may not, and will re-interrogate an artifact that was
+already sound. That costs a round every time and teaches everyone to distrust a clean result.
+
+**Blocking findings — the artifact must change first.** Give the count at each severity, then each
+blocking finding as one line naming its constraint and its locus. Then the remedy path: change the
+artifact and interrogate again, which writes the next round and keeps this one.
+
+Never restate the findings document in prose. It is the record; your summary is a pointer to it.
+
+### Observations are capped at one, and never read as work
+
+Raise at most **one** thing no constraint forbids, and only if it would change what a person actually
+does. Put it after the verdict, under a line saying plainly that it is not required and not a reason
+to delay.
+
+The cap is the point. There is always one more thing a careful reader could notice, so an uncapped
+list has no terminal state — the artifact comes back sound, the observations read as a queue, the
+queue gets worked, and the next run produces a fresh queue. Constraints converge, because there is a
+fixed number of them and an artifact either breaches one or does not. Taste does not converge. If you
+have several observations, keep the one that matters and drop the rest.
