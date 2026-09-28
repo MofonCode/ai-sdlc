@@ -363,6 +363,8 @@ Every defect worth fixing so far came from watching the flow run, not from readi
 
 ---
 
+---
+
 ## Constraints cited here
 
 Short descriptions, so nothing here sends you to look one up. `constraints.md` carries the full

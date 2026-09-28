@@ -45,8 +45,10 @@ half-built skills.
 
 ## Phase 0 — an installable, checkable shell
 
-**Status: done** — `f1ab05d`. One exit criterion outstanding: installing from the GitHub
-marketplace on a second machine, which needs a second machine.
+**Status: done** — `f1ab05d`. The GitHub path is verified: `claude plugin marketplace add
+MofonCode/ai-sdlc` clones and installs with 12 skills and the hook loaded. Still unverified on a second
+machine, which needs a second machine — what that would add is whether anything here depends on this
+one's state.
 
 Nothing can be validated until the plugin loads, and nobody else can install it until the
 GitHub path works.
@@ -337,6 +339,8 @@ unattended mode safe to trust, and it is the one nobody demonstrates.
 **A second contributor can start at phase 0.** Because the framework is built as an ordinary
 product, contributing means writing markdown, PowerShell and eval cases behind a normal pull
 request — there is no process to learn first, and no dependency on any phase being finished.
+
+---
 
 ---
 
