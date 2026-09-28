@@ -13,8 +13,26 @@ decision about how a team works, not something a model concludes mid-task.
 
 ## Refuse if it is already adopted
 
-If `.sdlc/` exists, stop and say so. Re-scaffolding would overwrite a solution's own declarations
-and its local constraints, which are the two things here that are nobody else's to write.
+If `.sdlc/` exists, stop and say so. Re-scaffolding would overwrite a solution's own declarations and
+its local constraints, which are the two things here that are nobody else's to write.
+
+## Refuse if this is not a git repository
+
+Run `git rev-parse --git-dir`. If it fails, stop and say that the framework needs a repository, then
+name the two commands that make one:
+
+```
+git init
+git commit --allow-empty -m "before adoption"
+```
+
+This is not bureaucracy. Without git, `build` cannot record the diff that is the only evidence verify
+derives its claims from, and the gates key on a `cycle/<id>` branch that cannot exist — so every hook
+permits everything while the artifacts still look governed. A directory that appears enforced and is
+not is worse than one that never pretended.
+
+A repository with no commits is also not enough: `origin: adopted` records the sha that marks what
+predates governance, so ask for that empty commit rather than guessing.
 
 ## Adoption is free
 

@@ -167,6 +167,58 @@ public sealed class HookTests
         Assert.IsFalse(decision.Denied, $"{relative} is authored, not derived: {decision.Reason}");
     }
 
+    // ------------------------------------------------- a governed directory without git
+
+    [TestMethod]
+    [DataRow("Assert-DeclaredFile.ps1")]
+    [DataRow("Assert-Landable.ps1")]
+    public void AGovernedDirectoryWithoutGitIsRefused(string script)
+    {
+        // The gates key on a cycle/<id> branch, and build's only evidence of what changed is a diff.
+        // Without git a governed directory enforces nothing while still producing artifacts that look
+        // governed, so the hooks fail closed here rather than permitting everything.
+        string bare = Path.Combine(Path.GetTempPath(), "ai-sdlc-nogit", Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(Path.Combine(bare, ".sdlc"));
+
+        try
+        {
+            Decision decision = script == "Assert-Landable.ps1"
+                ? Invoke(Tool(script), BashEvent("gh pr create --fill", bare))
+                : Invoke(Tool(script), EditEvent(Path.Combine(bare, "src", "Thing.cs"), bare));
+
+            Assert.IsTrue(decision.Denied, $"{script} permitted everything in a governed directory with no git.");
+            StringAssert.Contains(decision.Reason, "git init", StringComparison.Ordinal);
+        }
+        finally
+        {
+            Directory.Delete(bare, recursive: true);
+        }
+    }
+
+    [TestMethod]
+    [DataRow("Assert-DeclaredFile.ps1")]
+    [DataRow("Assert-Landable.ps1")]
+    public void AnUngovernedDirectoryWithoutGitIsLeftAlone(string script)
+    {
+        // These hooks run on every edit everywhere. Refusing in an ordinary folder would get them
+        // switched off, after which they protect nothing at all.
+        string bare = Path.Combine(Path.GetTempPath(), "ai-sdlc-nogit", Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(bare);
+
+        try
+        {
+            Decision decision = script == "Assert-Landable.ps1"
+                ? Invoke(Tool(script), BashEvent("gh pr create --fill", bare))
+                : Invoke(Tool(script), EditEvent(Path.Combine(bare, "notes.txt"), bare));
+
+            Assert.IsFalse(decision.Denied, $"{script} interfered with a directory it does not govern: {decision.Reason}");
+        }
+        finally
+        {
+            Directory.Delete(bare, recursive: true);
+        }
+    }
+
     // ------------------------------------------------------------------ landing
 
     [TestMethod]

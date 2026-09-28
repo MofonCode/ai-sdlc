@@ -38,14 +38,39 @@ if ($command -notmatch 'gh\s+pr\s+create') { exit 0 }
 $cwd = $event.cwd
 if ([string]::IsNullOrWhiteSpace($cwd)) { $cwd = (Get-Location).Path }
 
+# Windows PowerShell 5.1 turns a native command's stderr into an ErrorRecord, and with
+# $ErrorActionPreference = 'Stop' that terminates the script. Outside a repository git writes to
+# stderr, so without this the hook CRASHES instead of deciding - and a crashed hook is a hook that
+# enforces nothing. It stayed latent until a test ran the script outside a repository.
 Push-Location $cwd
+$previousPreference = $ErrorActionPreference
+$ErrorActionPreference = 'Continue'
 try {
     $branch = (& git rev-parse --abbrev-ref HEAD 2>$null)
-    if ($LASTEXITCODE -ne 0) { exit 0 }
+    $gitFailed = $LASTEXITCODE -ne 0
     $branch = "$branch".Trim()
 }
 finally {
+    $ErrorActionPreference = $previousPreference
     Pop-Location
+}
+
+if ($gitFailed) {
+    # Staying quiet here is correct for a directory that is not governed: this hook runs on every
+    # edit everywhere, and refusing in an ordinary folder would get it switched off. But a directory
+    # holding .sdlc/ IS governed, and without git nothing works - no diff for build to record, no
+    # evidence for verify to derive from, and no branch for this hook to key on. Silently permitting
+    # everything there is the worst outcome available: the process looks enforced and is not.
+    if (Test-Path -LiteralPath (Join-Path $cwd '.sdlc')) {
+        Deny (
+            'This directory has a .sdlc/ directory but is not a git repository, so nothing here is ' +
+            'enforced: build cannot record a diff, verify has no evidence to derive from, and the ' +
+            'gates key on a cycle/<id> branch that cannot exist. Run git init and commit the current ' +
+            'state before starting a cycle.'
+        )
+    }
+
+    exit 0
 }
 
 if ($branch -notmatch '^cycle/(?<id>[0-9]{8}-[0-9a-f]{4})$') { exit 0 }
