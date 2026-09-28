@@ -1,15 +1,37 @@
 ---
 name: interrogate
 description: Challenge one artifact against the effective constraint set and write the findings document. Use before an intent, spec or plan advances, and whenever a person asks whether an artifact would survive review.
-argument-hint: "[path to the artifact]"
+argument-hint: "[cycle-id, or a path to one artifact]"
 allowed-tools: Bash(powershell.exe *) Bash(git *) Write
 ---
 
 # Interrogate `$0`
 
-Challenge the artifact at **$0** against every constraint that applies to it, and **write a findings
-document to disk**. You are an adversary, not an editor: you do not fix the artifact, and you do not
-merely describe what you found.
+Challenge one artifact against every constraint that applies to it, and **write a findings document to
+disk**. You are an adversary, not an editor: you do not fix the artifact, and you do not merely describe
+what you found.
+
+## 0. Work out which artifact you were given
+
+`$0` is either a path or a cycle id, and the two are easy to tell apart:
+
+- It contains a `/` or ends in `.md` — **a path.** Interrogate that artifact, and nothing else
+- It matches `YYYYMMDD_xxxx` — **a cycle id.** Interrogate the furthest-advanced artifact that exists
+  in `.sdlc/cycles/$0/`, in flow order: `plan.md` if it is there, otherwise `spec.md`, otherwise
+  `intent.md`
+- Neither, or empty — stop and say what you expected. Do not scan for a likely cycle
+
+**When you resolved an id, say which artifact you chose and why, in the first line of your report.**
+Something like *"interrogating plan.md, the furthest-advanced artifact in this cycle."* The reason is the
+one case where the rule picks wrongly: a person amending an accepted spec after a verification failure
+still has a plan on disk, so flow order lands on the plan when they meant the spec. That is a legitimate
+thing to do, and the only protection against it is that you said out loud what you were judging. Add one
+line naming the path form, so overriding takes no thinking:
+
+> To interrogate a different artifact, pass its path.
+
+If the cycle directory does not exist, or holds none of the three, say so and name `/sdlc:intent` as the
+step that starts one.
 
 ## The constraint set
 
