@@ -321,6 +321,22 @@ Enforced by: `DocsTests.EveryDocIsIndexedExactlyOnce`, `DocsTests.EveryDocDeclar
 `DocsTests.EveryCoversGlobPointsSomewhere` — a glob matching nothing can never be stale, which makes the
 check decoration
 
+### A document that cites a constraint footnotes it
+
+A reader should never be sent elsewhere to find out what `CON_07` says. Each document ends with a table
+of the constraints it cites and a short description of each.
+
+Inline glosses were tried first and are worse: they bloat a line, they read badly where an id repeats,
+and they corrupt an id used as a **value** rather than a reference — the first attempt rewrote
+`cites: CON_07` inside a worked example, which would have taught a skill to write a malformed field.
+
+Skills are deliberately exempt. `interrogate`, `spec`, `plan`, `build` and `verify` receive the full
+constraint text injected at load time, so a footnote there would restate what the reader already has.
+
+Enforced by: `DocsTests.EveryCitedConstraintExistsAndIsFootnoted`, which also catches a citation naming a
+constraint that no longer exists. It found a real gap on its first run: a possessive — `CON_03's breach` —
+that the generator's own regex had excluded
+
 ### A guide is a view, and every skill appears in one
 
 `docs/guides/` is where a person looks. A skill named in none of them has shipped invisible, however good
@@ -375,3 +391,25 @@ claude plugin uninstall sdlc@ai-sdlc
 ```pwsh
 claude plugin install sdlc@ai-sdlc
 ```
+
+---
+
+---
+
+---
+
+---
+
+## Constraints cited here
+
+Short descriptions, so nothing here sends you to look one up. `constraints.md` carries the full
+statement, its `Forbids:` clause and the reasoning; `/sdlc:constraints` renders the effective set for
+a solution, this list plus any `LOC_` of its own.
+
+| | |
+|---|---|
+| `CON_02` | an intent's unknowns stay open questions |
+| `CON_03` | a criterion can fail |
+| `CON_06` | a plan's proof is adequate to its criterion |
+| `CON_07` | a change does only what its plan declared |
+| `CON_09` | no artifact restates another's content as its own authority |

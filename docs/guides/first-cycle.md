@@ -354,3 +354,24 @@ The session transcript can be read too, from `~/.claude/projects/<slugged-repo-p
 What is in neither is where you felt friction: a refusal you wanted to override, a question the interview
 should have asked, a step that felt like ceremony. Note those as they happen, in as few words as you like.
 Every defect worth fixing so far came from watching the flow run, not from reading what it produced.
+
+---
+
+---
+
+---
+
+---
+
+## Constraints cited here
+
+Short descriptions, so nothing here sends you to look one up. `constraints.md` carries the full
+statement, its `Forbids:` clause and the reasoning; `/sdlc:constraints` renders the effective set for
+a solution, this list plus any `LOC_` of its own.
+
+| | |
+|---|---|
+| `CON_02` | an intent's unknowns stay open questions |
+| `CON_03` | a criterion can fail |
+| `CON_06` | a plan's proof is adequate to its criterion |
+| `CON_07` | a change does only what its plan declared |

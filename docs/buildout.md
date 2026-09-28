@@ -337,3 +337,27 @@ unattended mode safe to trust, and it is the one nobody demonstrates.
 **A second contributor can start at phase 0.** Because the framework is built as an ordinary
 product, contributing means writing markdown, PowerShell and eval cases behind a normal pull
 request — there is no process to learn first, and no dependency on any phase being finished.
+
+---
+
+---
+
+---
+
+---
+
+## Constraints cited here
+
+Short descriptions, so nothing here sends you to look one up. `constraints.md` carries the full
+statement, its `Forbids:` clause and the reasoning; `/sdlc:constraints` renders the effective set for
+a solution, this list plus any `LOC_` of its own.
+
+| | |
+|---|---|
+| `CON_01` | an intent states the problem, not the solution |
+| `CON_02` | an intent's unknowns stay open questions |
+| `CON_03` | a criterion can fail |
+| `CON_04` | a spec covers every outcome its intent asks for |
+| `CON_05` | a spec adds no scope the intent did not ask for |
+| `CON_06` | a plan's proof is adequate to its criterion |
+| `CON_07` | a change does only what its plan declared |

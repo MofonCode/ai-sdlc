@@ -474,3 +474,22 @@ cost when a solution's core value is model quality rather than integration.
    A global constraint waived locally is a different act from a local one waived locally.
 4. Does an abandoned cycle keep its directory as a record, or is it removed? Keeping it means
    the repo accumulates dead cycles; removing it means the reason it died is lost.
+
+---
+
+---
+
+---
+
+---
+
+## Constraints cited here
+
+Short descriptions, so nothing here sends you to look one up. `constraints.md` carries the full
+statement, its `Forbids:` clause and the reasoning; `/sdlc:constraints` renders the effective set for
+a solution, this list plus any `LOC_` of its own.
+
+| | |
+|---|---|
+| `CON_01` | an intent states the problem, not the solution |
+| `CON_04` | a spec covers every outcome its intent asks for |

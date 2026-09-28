@@ -12,6 +12,7 @@ namespace Sdlc.Tests;
 public sealed class DocsTests
 {
     private const int MaxInstructionLines = 200;
+    private const string FootnoteHeading = "## Constraints cited here";
 
     private static string AgentsMd => File.ReadAllText(RepoPaths.At("AGENTS.md"));
 
@@ -170,6 +171,70 @@ public sealed class DocsTests
 
         Assert.AreEqual(0, missing.Count,
             "These skills are named in no guide: " + string.Join(", ", missing));
+    }
+
+    [TestMethod]
+    public void EveryCitedConstraintExistsAndIsFootnoted()
+    {
+        // A document citing a constraint should not send a reader away to find out what it says, and a
+        // citation naming one that no longer exists is worse than none. Both are checkable.
+        //
+        // Lines where the id is a value rather than a reference are skipped: a JSON field, a YAML
+        // frontmatter entry. Glossing or footnoting those would be describing data.
+        string constraints = File.ReadAllText(RepoPaths.Constraints);
+
+        HashSet<string> defined = [.. Regex
+            .Matches(constraints, @"^## (?<id>CON_[0-9]{2,})", RegexOptions.Multiline, TimeSpan.FromSeconds(2))
+            .Select(m => m.Groups["id"].Value)];
+
+        Assert.IsTrue(defined.Count >= 6, "constraints.md defined too few constraints to check against.");
+
+        List<string> problems = [];
+        int citations = 0;
+
+        foreach (string file in Directory.EnumerateFiles(RepoPaths.Docs, "*.md", SearchOption.AllDirectories))
+        {
+            string text = File.ReadAllText(file);
+            string name = Path.GetFileName(file);
+
+            int split = text.IndexOf(FootnoteHeading, StringComparison.Ordinal);
+            string body = split >= 0 ? text[..split] : text;
+            string footnote = split >= 0 ? text[split..] : string.Empty;
+
+            HashSet<string> cited = [];
+
+            foreach (string line in body.Split('\n'))
+            {
+                // An id inside quotes, or after a YAML key, is data.
+                if (line.Contains('\"', StringComparison.Ordinal) || line.Contains("cites:", StringComparison.Ordinal))
+                {
+                    continue;
+                }
+
+                foreach (Match m in Regex.Matches(line, @"CON_[0-9]{2}", RegexOptions.None, TimeSpan.FromSeconds(2)))
+                {
+                    cited.Add(m.Value);
+                }
+            }
+
+            foreach (string id in cited)
+            {
+                citations++;
+
+                if (!defined.Contains(id))
+                {
+                    problems.Add($"{name} cites {id}, which constraints.md does not define");
+                }
+                else if (!footnote.Contains(id, StringComparison.Ordinal))
+                {
+                    problems.Add($"{name} cites {id} but its footnote omits it");
+                }
+            }
+        }
+
+        Assert.IsTrue(citations >= 10, $"Only {citations} citations found across the docs.");
+
+        Assert.AreEqual(0, problems.Count, string.Join("; ", problems));
     }
 
     [TestMethod]
