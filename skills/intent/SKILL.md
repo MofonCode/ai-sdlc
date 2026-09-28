@@ -31,13 +31,20 @@ assumption.
 
 Four always, in roughly this order. Stop asking when an answer would only be a guess.
 
-1. **What happens today that shouldn't?** — the problem
-2. **Who notices, and how often?** — affected people and systems, frequency, severity
-3. **How would you know it was fixed?** — the observable difference. This is the seed the spec
-   grows from, so it is the highest-value answer you will get. Do not let them answer in
-   thresholds; that is the spec's job
-4. **What must not change?** — compatibility, deadlines, data shapes, anything out of bounds. The
-   most-skipped question and the one whose absence causes the most rework
+**Ask them in the tense the work is actually in.** The wording below is for something that exists and
+misbehaves. For a new solution nothing is broken yet, and asking how they would know it was *fixed*
+reads as though you have not understood the request — which is the impression it made the first time
+this skill met one. Establish the type first, then use the matching column.
+
+| | Something exists and misbehaves | Nothing exists yet |
+|---|---|---|
+| 1 | What happens today that shouldn't? | What can nobody do today that they need to? |
+| 2 | Who notices, and how often? | Who needs this, and how often would they use it? |
+| 3 | How would you know it was fixed? | What would you be able to see that you cannot see today? |
+| 4 | What must not change? | What is out of bounds — what must this not touch or become? |
+
+Question 3 is the highest-value answer you will get in either column: it is the seed the spec grows
+from. Do not let them answer in thresholds; that is the spec's job.
 
 Then, conditionally:
 

@@ -167,6 +167,121 @@ public sealed class HookTests
         Assert.IsFalse(decision.Denied, $"{relative} is authored, not derived: {decision.Reason}");
     }
 
+    // ------------------------------------------------------------------ artifact shape
+
+    private static object WriteEvent(string filePath, string content, string cwd) => new
+    {
+        hook_event_name = "PreToolUse",
+        tool_name = "Write",
+        cwd,
+        tool_input = new { file_path = filePath, content },
+    };
+
+    [TestMethod]
+    public void TheVerifyDocumentTheTrialProducedIsRefused()
+    {
+        // Exactly what the first trial run wrote: id for cycle, passes_spent outside remediation, and a
+        // criteria key the schema does not permit. Nothing caught it, and the state machine it was
+        // supposed to encode quietly stopped being enforced.
+        string content = """
+            ---
+            id: 20260928_8d33
+            spec: .sdlc/cycles/20260928_8d33/spec.md
+            plan: .sdlc/cycles/20260928_8d33/plan.md
+            framework_version: 0.1.0
+            verified_at: 2026-09-28T04:54:38Z
+            outcome: blocked
+            passes_spent: 0
+            evidence:
+            criteria:
+            findings:
+            ---
+
+            # Verify
+            """;
+
+        Decision decision = Invoke(
+            Tool("Assert-ArtifactShape.ps1"),
+            WriteEvent("C:/repo/.sdlc/cycles/20260928_8d33/verify.md", content, "C:/repo"));
+
+        Assert.IsTrue(decision.Denied, "A verify document using the wrong key names must be refused.");
+        StringAssert.Contains(decision.Reason, "cycle", StringComparison.Ordinal);
+        StringAssert.Contains(decision.Reason, "criteria", StringComparison.Ordinal);
+    }
+
+    [TestMethod]
+    public void TheSolutionProfileTheTrialProducedIsRefused()
+    {
+        string content = """
+            ---
+            stack: dotnet
+            origin: adopted
+            adopted_at: da302b15622cc6a16aa2e617878cf30662b78f49
+            adopted_on: 2026-09-28
+            ---
+
+            # dice-trial
+            """;
+
+        Decision decision = Invoke(
+            Tool("Assert-ArtifactShape.ps1"),
+            WriteEvent("C:/repo/.sdlc/solution.md", content, "C:/repo"));
+
+        Assert.IsTrue(decision.Denied, "adopted_on is not a permitted key.");
+        StringAssert.Contains(decision.Reason, "adopted_on", StringComparison.Ordinal);
+    }
+
+    [TestMethod]
+    public void AWellFormedVerifyDocumentIsAllowed()
+    {
+        string content = """
+            ---
+            framework_version: 0.1.0
+            cycle: 20260928_8d33
+            spec: .sdlc/cycles/20260928_8d33/spec.md
+            plan: .sdlc/cycles/20260928_8d33/plan.md
+            verified_at: 2026-09-28T04:54:38Z
+            outcome: pass
+            remediation:
+              passes_spent: 0
+            evidence:
+              build:
+                path: .sdlc/cycles/20260928_8d33/evidence/build.log
+            findings: []
+            ---
+
+            # Verify
+            """;
+
+        Decision decision = Invoke(
+            Tool("Assert-ArtifactShape.ps1"),
+            WriteEvent("C:/repo/.sdlc/cycles/20260928_8d33/verify.md", content, "C:/repo"));
+
+        Assert.IsFalse(decision.Denied, $"A conforming document must pass: {decision.Reason}");
+    }
+
+    [TestMethod]
+    public void MalformedFindingsJsonIsRefused()
+    {
+        Decision decision = Invoke(
+            Tool("Assert-ArtifactShape.ps1"),
+            WriteEvent($"C:/repo/.sdlc/cycles/{CycleId}/findings/spec.r1.json", "{ not json", "C:/repo"));
+
+        Assert.IsTrue(decision.Denied, "A findings document that is not JSON cannot be read by anything.");
+    }
+
+    [TestMethod]
+    public void AnUngovernedFileIsNotChecked()
+    {
+        // This hook runs on every write. Anything outside the governed artifact set must pass straight
+        // through, or it becomes a tax on ordinary work and gets switched off.
+        Decision decision = Invoke(
+            Tool("Assert-ArtifactShape.ps1"),
+            WriteEvent("C:/repo/src/Thing.cs", "namespace X;", "C:/repo"));
+
+        Assert.IsFalse(decision.Denied, $"Source files are not governed artifacts: {decision.Reason}");
+    }
+
     // ------------------------------------------------- a governed directory without git
 
     [TestMethod]

@@ -10,8 +10,10 @@
             "args": [
               "-NoProfile",
               "-NonInteractive",
-              "-ExecutionPolicy", "Bypass",
-              "-File", "${CLAUDE_PLUGIN_ROOT}/tools/Assert-DerivedArtifact.ps1"
+              "-ExecutionPolicy",
+              "Bypass",
+              "-File",
+              "${CLAUDE_PLUGIN_ROOT}/tools/Assert-DerivedArtifact.ps1"
             ],
             "timeout": 20,
             "statusMessage": "Checking the artifact is not derived..."
@@ -22,11 +24,27 @@
             "args": [
               "-NoProfile",
               "-NonInteractive",
-              "-ExecutionPolicy", "Bypass",
-              "-File", "${CLAUDE_PLUGIN_ROOT}/tools/Assert-DeclaredFile.ps1"
+              "-ExecutionPolicy",
+              "Bypass",
+              "-File",
+              "${CLAUDE_PLUGIN_ROOT}/tools/Assert-DeclaredFile.ps1"
             ],
             "timeout": 20,
             "statusMessage": "Checking the plan declares this file..."
+          },
+          {
+            "type": "command",
+            "command": "powershell.exe",
+            "args": [
+              "-NoProfile",
+              "-NonInteractive",
+              "-ExecutionPolicy",
+              "Bypass",
+              "-File",
+              "${CLAUDE_PLUGIN_ROOT}/tools/Assert-ArtifactShape.ps1"
+            ],
+            "timeout": 20,
+            "statusMessage": "Checking the artifact matches its schema..."
           }
         ]
       },
@@ -39,8 +57,10 @@
             "args": [
               "-NoProfile",
               "-NonInteractive",
-              "-ExecutionPolicy", "Bypass",
-              "-File", "${CLAUDE_PLUGIN_ROOT}/tools/Assert-Landable.ps1"
+              "-ExecutionPolicy",
+              "Bypass",
+              "-File",
+              "${CLAUDE_PLUGIN_ROOT}/tools/Assert-Landable.ps1"
             ],
             "timeout": 20,
             "statusMessage": "Checking the cycle verified clean..."

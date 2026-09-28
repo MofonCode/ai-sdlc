@@ -183,6 +183,40 @@ flow. So a new fixture is not finished until it has been interrogated once and t
 **Done when** interrogating each bad fixture artifact produces the findings recorded beside it,
 and no findings on the good ones.
 
+## What the first trial run found
+
+A greenfield cycle was run end to end on a real repository at `0.1.0`. The core held: all eight findings
+documents were schema-valid, the file set matched the plan exactly, the evidence was genuine, and CON_07
+fired for precisely the right reason — content inside a declared file, the one thing a hook cannot see.
+Eighteen defects came out of the edges, and `0.2.0` is the result.
+
+**The meta-defect, fixed first.** Nothing validated a live artifact: schema checking existed only in the
+test project, against fixtures. That is how a verify document with twelve schema errors shipped looking
+authoritative, and it meant the state machine the schemas encode had never once guarded anything real.
+`tools/Assert-ArtifactShape.ps1` now refuses a write whose top-level keys contradict the schema, reading
+the schema at run time so there is no second definition to drift. It checks names, not values — the
+conditional rules still need a real evaluator, which Windows PowerShell 5.1 cannot be — so the deep
+check stays in the test project. Shallow and immediate, plus complete and slower.
+
+**The diagnosis that explains most of the rest.** `interrogate` carries a worked example of its output
+and produced eight valid documents out of eight. `verify` and `init` carried none and both produced
+invalid ones. Every skill that writes a schema-governed artifact now shows the shape it must write.
+
+**`init` was the worst offender**, with six. It never committed its own output, so `AGENTS.md` was
+untracked when the cycle took its diff, the diff recorded all 52 lines as new, and a plan saying it
+*changes* that file could not match — the first cycle failed CON_07 for something adoption did. It wrote
+an `AGENTS.md` asserting the repository was empty *and* a note telling a reader to delete that paragraph
+later, which is an instruction that outlives the truth it described. It wrote `adopted_on`, which the
+schema forbids. It chose `origin: adopted` for a repository holding one empty commit, because it read
+"has history" as "has commits" rather than "has code". It created `.gitkeep` files nothing removes. And
+it wrote no guide for whoever has to work in the adopted solution.
+
+**Identifiers and layout changed on usability grounds.** Ids are underscore-separated so a double-click
+selects the whole of one, and everything about a cycle now lives in one directory with a single
+`findings/` folder beside the artifacts. The old split put an intent somewhere else with findings of its
+own, for a reason — an intent can be rejected before a cycle exists — that turned out not to be worth
+two places to look.
+
 ## Phase 4 — the artifact chain
 
 **Status: verified on the happy path.** A one-line problem description became a sound intent, a sound

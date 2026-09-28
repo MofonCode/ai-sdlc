@@ -43,19 +43,40 @@ Two things the healing may not do:
 Keep going until the build is clean and every test passes, or until you are certain you cannot get
 there — in which case stop and say exactly what fails and what you tried.
 
+## Commit the cycle's artifacts before you diff
+
+The intent, spec, plan and findings are the cycle's record, not part of the change under review. Commit
+them first, so the diff that follows contains only the change:
+
+```
+git add .sdlc
+git commit -m "record artifacts for cycle $0"
+```
+
+Then note that commit's sha. It is the base every diff below is taken against, and verify needs to know
+it.
+
+**Do not commit source files here.** Only `.sdlc/`. Staging the change itself would put it behind the
+base and empty the diff.
+
 ## Record the evidence
 
-Verify derives every claim from evidence that already exists, so this phase produces it. Write
-into `.sdlc/cycles/$0/evidence/`:
+Verify derives every claim from evidence that already exists, so this phase produces it. Write into
+`.sdlc/cycles/$0/evidence/`:
 
 | File | Content |
 |---|---|
-| `build.log` | the full build output of the final, clean build |
-| `tests.trx` | the test run results of the final, passing run |
-| `diff.patch` | `git diff <base>` for the cycle's branch |
+| `build.log` | the full output of the final, clean build |
+| `tests.trx` | the results of the final, passing test run |
+| `diff.patch` | the change, taken against the artifacts commit above |
 
-These are the inputs to verify. A missing file is not a formatting problem — it makes the
-corresponding verify claim unprovable, and verify will report that rather than assume.
+**The diff must say what it is a diff against.** Take it as `git diff --cached <base>` after staging
+only the files the plan declared, and record that base — verify reports a claim as unprovable when it
+cannot tell whether content came from this cycle or predates it, and a patch with no stated base is
+exactly that situation. Put the base in the patch as a first-line comment and report it.
+
+These are the inputs to verify. A missing file is not a formatting problem — it makes the corresponding
+verify claim unprovable, and verify will report that rather than assume.
 
 ## Then stop
 

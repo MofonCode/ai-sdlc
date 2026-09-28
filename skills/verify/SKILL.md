@@ -66,8 +66,48 @@ will be rejected as the contradiction it is.
 
 ## Write it
 
-Frontmatter carries the machine-readable record; the prose below is the human-readable report,
-derived from the same evidence and adding nothing.
+Frontmatter carries the machine-readable record; the prose below is the human-readable report, derived
+from the same evidence and adding nothing.
+
+**Copy the shape below exactly.** Every key name and nesting level is checked, and a document that
+reads correctly while using the wrong names is worse than one that is obviously broken — nothing
+downstream can read it, and the state machine it encodes stops being enforced. In particular: the cycle
+key is `cycle`, not `id`; `passes_spent` lives inside `remediation`, not at the top level; each evidence
+entry is an object with a `path`, not a bare string; and there is no `criteria` key — a criterion's
+verdict belongs in the prose table, and anything it needs to block on is a finding.
+
+```markdown
+---
+framework_version: 0.1.0
+cycle: 20260928_8d33
+spec: .sdlc/cycles/20260928_8d33/spec.md
+plan: .sdlc/cycles/20260928_8d33/plan.md
+verified_at: 2026-09-28T04:54:38Z
+outcome: blocked
+remediation:
+  passes_spent: 0
+evidence:
+  build:
+    path: .sdlc/cycles/20260928_8d33/evidence/build.log
+    summary: 0 warnings, 0 errors
+  tests:
+    path: .sdlc/cycles/20260928_8d33/evidence/tests.trx
+    summary: 14 passed, 0 failed
+  diff:
+    path: .sdlc/cycles/20260928_8d33/evidence/diff.patch
+    sha: f060736
+findings:
+  - id: F_01
+    severity: blocking
+    disposition: open
+    cites: CON_07
+    statement: <one sentence saying what is wrong>
+    locus: <where in the diff or the artifact>
+    remedy: <what would resolve it; required on every blocking finding>
+---
+```
+
+Add `waivers: <path>` only when a finding's disposition is `waived`.
 
 ```markdown
 # Verify - cycle $0
@@ -87,8 +127,16 @@ derived from the same evidence and adding nothing.
 
 ## Then stop
 
-Report the outcome and the counts. On `blocked`, say that `/sdlc:remediate $0` is next. On
-`escalated`, say plainly that landing will refuse this cycle and a person owns it now.
+Report the outcome and the counts, then each blocking finding in one line: the constraint **and a
+short description of what it forbids**, not the bare id. A reader should not have to look up `CON_07`
+to know what went wrong.
+
+On `blocked`, say that `/sdlc:remediate $0` is next. On `escalated`, say plainly that landing will
+refuse this cycle and a person owns it now.
+
+If a finding's cause lies in the framework rather than in this cycle — adoption left something
+uncommitted, a skill wrote a malformed artifact — say so in the report. None of the four exits fits
+that case, and quietly proposing a plan amendment for it sends a person to fix the wrong thing.
 
 ---
 
