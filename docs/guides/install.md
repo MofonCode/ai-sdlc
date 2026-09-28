@@ -20,6 +20,13 @@ out to `gh`, and CI is GitHub Actions.
 
 Works from anywhere — it clones the repository itself, so you do not need a copy.
 
+**The repository is private.** You need read access to `MofonCode/ai-sdlc` and credentials that can clone
+it, so authenticate first:
+
+```pwsh
+gh auth login
+```
+
 ```pwsh
 claude plugin marketplace add MofonCode/ai-sdlc
 ```
@@ -27,6 +34,12 @@ claude plugin marketplace add MofonCode/ai-sdlc
 ```pwsh
 claude plugin install sdlc@ai-sdlc
 ```
+
+Use the `owner/repo` shorthand rather than the full URL. Both work, but they register differently: the
+shorthand becomes a **GitHub** source, while `https://github.com/MofonCode/ai-sdlc` becomes a generic
+**Git** source — a plain clone with no GitHub-specific handling. For a private repository the GitHub path
+is the one that goes through GitHub authentication, and a plain clone falls back to whatever the git
+credential manager has, which on a fresh machine may be nothing at all.
 
 ## Install from a local directory
 

@@ -47,8 +47,11 @@ half-built skills.
 
 **Status: done** — `f1ab05d`. The GitHub path is verified: `claude plugin marketplace add
 MofonCode/ai-sdlc` clones and installs with 12 skills and the hook loaded. Still unverified on a second
-machine, which needs a second machine — what that would add is whether anything here depends on this
-one's state.
+machine, and that is where the remaining risk is: **the repository is private.** A teammate needs read
+access and credentials that can clone it, and this machine's `gh` is already authenticated, so every form
+works here and proves nothing about them. The `owner/repo` shorthand registers a GitHub source and the
+full URL registers a generic Git source; for a private repository the first is the one that goes through
+GitHub authentication rather than the git credential manager.
 
 Nothing can be validated until the plugin loads, and nobody else can install it until the
 GitHub path works.
