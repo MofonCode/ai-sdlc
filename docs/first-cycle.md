@@ -18,30 +18,54 @@ artifacts.
 
 ## What to run it on
 
-Pick a repository that **already has code** — three to ten files is plenty. A greenfield project
-skips the interesting half: adoption, files a plan must declare, and existing callers that constrain
-what a change may do.
+Two cycles in one empty repository. Together they cover both paths anyone will actually take — adopting
+into nothing, and changing something that exists — and neither covers the other.
 
-You also want a defect you chose, so you know what "done" looks like before the process tells you.
+**Cycle 1, greenfield.** `type: solution`. *"There is no way to split a bill evenly between people from
+the command line."* One class, one caller that prints the result, one test. This is the only thing that
+exercises `init` from empty, the `solution` intent type, and a plan whose files are all new.
 
-If nothing to hand fits, a good trial application is a small CLI that splits a bill between people
-and loses a penny to rounding: `Split(10.00m, 3)` returns three shares of `3.33`, and the caller
-prints `total 9.99` for a bill of `10.00`.
+**Cycle 2, a change to what cycle 1 built.** *"Splitting 10.00 between three people prints three shares
+of 3.33 and a total of 9.99, so a penny goes missing whenever a bill does not divide evenly."* Now there
+is existing code with a caller and a public surface, which is what brings the rest alive: CON-07, the
+declared-file hook, a plan trying to prove a signature did not move, a tier that is not automatically
+`local`, and escalation.
 
-It is the right shape for a first cycle because it has all four of the things a fragment does not:
+Cycle 2 is the more informative of the two, and it needs cycle 1 to have happened. It also tests
+something no fixture can: cycle 2's substrate was produced *by the process*, so a vague spec in cycle 1
+will be felt in cycle 2. That is the only honest test of whether the chain compounds.
 
-- **A symptom visible from outside the code.** An intent can state it without reading anything
-- **A caller that is not part of the library.** A plan can try to cite it as proof that a signature
-  did not move, and you get to see whether interrogation accepts that or finds the hole in it
-- **A genuine open question** — who gets the leftover penny, the first person, the last, or
+**Scope cycle 1 hard.** The natural failure of a greenfield intent is sprawl — the interview will
+cheerfully help you design an expense tracker. Keep saying "not in this cycle." If the spec comes back
+with eight criteria, that is worth reporting.
+
+The rounding defect is the right one for cycle 2 because it has four things a synthetic bug usually
+lacks:
+
+- **A symptom visible from outside the code.** `total 9.99` for a bill of `10.00`. An intent can state
+  it without reading anything
+- **A caller outside the library.** A plan may try to cite it as proof that a signature did not move,
+  and you get to see whether interrogation accepts that or finds the hole in it
+- **A genuine open question** — who gets the leftover penny: the first person, the last, or
   round-robin? Nothing in the code can answer it, so it should surface as an **Open** question rather
   than a number the model invented. That is the cleanest test of CON-02 you will get
-- **A natural must-not-change:** the output format, which something downstream may be parsing.
+- **A natural must-not-change:** the printed output format, which something downstream may parse.
   Whether the spec writes a criterion for it is the test of CON-04
 
-Build it as a class library, a console caller and an MSTest project, with one test that passes and
-does not cover the defect. A green starting point matters: it means any failure during the cycle
-belongs to the cycle.
+## Before you start: the repository
+
+The framework needs one, and `init` refuses without it. Not bureaucracy — `build` records the diff that
+is the only evidence `verify` derives its claims from, and every gate keys on a `cycle/<id>` branch that
+cannot exist otherwise. A governed directory with no repository permits everything while still producing
+artifacts that look governed.
+
+An empty repository is not enough either; there has to be a commit for a sha to point at.
+
+```pwsh
+mkdir C:\Repos\split-trial; cd C:\Repos\split-trial
+git init
+git commit --allow-empty -m "before adoption"
+```
 
 ## 1. Install the plugin
 
