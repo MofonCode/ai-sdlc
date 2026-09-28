@@ -27,6 +27,30 @@ public sealed class DocsTests
         .Select(m => m.Groups["path"].Value)
         .OrderBy(p => p, StringComparer.Ordinal)];
 
+    /// <summary>
+    /// Reads a document's metadata block.
+    /// <para>
+    /// It is an HTML comment rather than YAML frontmatter, because VS Code's markdown preview displays
+    /// frontmatter instead of hiding it — every doc opened there began with a rule, the raw metadata, and
+    /// another rule. A comment renders as nothing in every renderer, and nothing but these tests reads
+    /// this metadata, so the frontmatter convention bought nothing here. Skills are the opposite case and
+    /// keep YAML frontmatter: the harness parses theirs.
+    /// </para>
+    /// </summary>
+    private static string Metadata(string doc, string text)
+    {
+        Assert.IsTrue(
+            text.StartsWith("<!--", StringComparison.Ordinal),
+            $"{doc} does not open with an HTML comment, so it has no freshness signal. " +
+            "Docs metadata is a comment, not frontmatter — see docs/conventions.md.");
+
+        int end = text.IndexOf("-->", 4, StringComparison.Ordinal);
+
+        Assert.IsTrue(end > 0, $"{doc} has an unterminated metadata comment.");
+
+        return text[4..end];
+    }
+
     [TestMethod]
     public void EveryDocIsIndexedExactlyOnce()
     {
@@ -45,15 +69,10 @@ public sealed class DocsTests
         {
             string text = File.ReadAllText(RepoPaths.At(doc.Split('/')));
 
-            Assert.IsTrue(
-                text.StartsWith("---", StringComparison.Ordinal),
-                $"{doc} has no frontmatter, so it has no freshness signal.");
+            string metadata = Metadata(doc, text);
 
-            int end = text.IndexOf("\n---", 3, StringComparison.Ordinal);
-            string frontmatter = text[3..(end > 0 ? end : text.Length)];
-
-            bool covers = frontmatter.Contains("covers:", StringComparison.Ordinal);
-            bool exempt = frontmatter.Contains("freshness: exempt", StringComparison.Ordinal);
+            bool covers = metadata.Contains("covers:", StringComparison.Ordinal);
+            bool exempt = metadata.Contains("freshness: exempt", StringComparison.Ordinal);
 
             Assert.IsTrue(
                 covers ^ exempt,
@@ -63,7 +82,7 @@ public sealed class DocsTests
             if (exempt)
             {
                 Assert.IsTrue(
-                    frontmatter.Contains("reason:", StringComparison.Ordinal),
+                    metadata.Contains("reason:", StringComparison.Ordinal),
                     $"{doc} claims exemption without a reason.");
             }
         }
@@ -75,10 +94,9 @@ public sealed class DocsTests
         foreach (string doc in DocFiles)
         {
             string text = File.ReadAllText(RepoPaths.At(doc.Split('/')));
-            int end = text.IndexOf("\n---", 3, StringComparison.Ordinal);
-            string frontmatter = text[3..(end > 0 ? end : text.Length)];
+            string metadata = Metadata(doc, text);
 
-            foreach (Match m in Regex.Matches(frontmatter, @"^\s*-\s*""(?<glob>[^""]+)""",
+            foreach (Match m in Regex.Matches(metadata, @"^\s*-\s*""(?<glob>[^""]+)""",
                 RegexOptions.Multiline, TimeSpan.FromSeconds(2)))
             {
                 string glob = m.Groups["glob"].Value;

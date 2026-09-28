@@ -1,9 +1,9 @@
----
+<!--
 covers:
   - "skills/**/SKILL.md"
   - "tools/*.ps1"
   - "tests/Sdlc.Tests/*.cs"
----
+-->
 
 # Conventions
 
@@ -312,6 +312,31 @@ checked-in copy was not touched
 
 ## Documentation
 
+### Docs metadata is an HTML comment; skill metadata is YAML frontmatter
+
+Two styles in one repository, deliberately.
+
+A **skill** declares YAML frontmatter because the harness parses it — name, description,
+`argument-hint`, `allowed-tools`, `disable-model-invocation`. That is not ours to change.
+
+A **doc** declares an HTML comment:
+
+```markdown
+<!--
+covers:
+  - "skills/**/SKILL.md"
+-->
+```
+
+VS Code's markdown preview displays frontmatter rather than hiding it, so every doc opened there began
+with a rule, the raw metadata and another rule. A comment renders as nothing in every renderer. And the
+convention bought nothing here: these tests are the only thing that reads docs metadata, so there was no
+ecosystem to be compatible with.
+
+Enforced by: `DocsTests.EveryDocDeclaresAFreshnessSignal`, through the `Metadata` helper that every
+metadata-reading test shares — it rejects a doc opening with frontmatter, with a message naming this
+convention
+
 ### Every doc is indexed once and carries a freshness signal
 
 A doc that documents source declares a `covers:` glob and is checked for staleness against it. A doc
@@ -391,6 +416,8 @@ claude plugin uninstall sdlc@ai-sdlc
 ```pwsh
 claude plugin install sdlc@ai-sdlc
 ```
+
+---
 
 ---
 

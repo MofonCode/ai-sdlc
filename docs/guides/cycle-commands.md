@@ -1,7 +1,7 @@
----
+<!--
 covers:
   - "skills/**/SKILL.md"
----
+-->
 
 # The cycle, as commands
 

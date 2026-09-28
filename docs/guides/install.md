@@ -1,7 +1,7 @@
----
+<!--
 covers:
   - ".claude-plugin/*.json"
----
+-->
 
 # Installing, updating and removing
 

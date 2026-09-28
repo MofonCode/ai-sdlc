@@ -1,8 +1,8 @@
----
+<!--
 covers:
   - "tools/*.ps1"
   - "schemas/verify.schema.json"
----
+-->
 
 # When something refuses
 

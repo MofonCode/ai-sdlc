@@ -1,7 +1,7 @@
----
+<!--
 freshness: exempt
 reason: design record — records decisions rather than documenting source
----
+-->
 
 # ai-sdlc — concept
 
@@ -474,6 +474,8 @@ cost when a solution's core value is model quality rather than integration.
    A global constraint waived locally is a different act from a local one waived locally.
 4. Does an abandoned cycle keep its directory as a record, or is it removed? Keeping it means
    the repo accumulates dead cycles; removing it means the reason it died is lost.
+
+---
 
 ---
 

@@ -1,10 +1,10 @@
----
+<!--
 covers:
   - "Directory.Packages.props"
   - "Directory.Build.props"
   - "global.json"
   - "tools/Get-StackDefaults.ps1"
----
+-->
 
 # Tech stack
 

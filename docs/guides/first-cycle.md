@@ -1,8 +1,8 @@
----
+<!--
 covers:
   - "skills/**/SKILL.md"
   - "hooks/hooks.json"
----
+-->
 
 # Running your first cycle
 
@@ -364,6 +364,8 @@ The session transcript can be read too, from `~/.claude/projects/<slugged-repo-p
 What is in neither is where you felt friction: a refusal you wanted to override, a question the interview
 should have asked, a step that felt like ceremony. Note those as they happen, in as few words as you like.
 Every defect worth fixing so far came from watching the flow run, not from reading what it produced.
+
+---
 
 ---
 

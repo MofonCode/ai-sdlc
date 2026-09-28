@@ -1,7 +1,7 @@
----
+<!--
 freshness: exempt
 reason: a finite delivery sequence, not documentation of source. It completes and is archived.
----
+-->
 
 # Buildout — delivering the framework
 
@@ -339,6 +339,8 @@ unattended mode safe to trust, and it is the one nobody demonstrates.
 **A second contributor can start at phase 0.** Because the framework is built as an ordinary
 product, contributing means writing markdown, PowerShell and eval cases behind a normal pull
 request — there is no process to learn first, and no dependency on any phase being finished.
+
+---
 
 ---
 
