@@ -21,36 +21,47 @@ artifacts.
 Two cycles in one empty repository. Together they cover both paths anyone will actually take — adopting
 into nothing, and changing something that exists — and neither covers the other.
 
-**Cycle 1, greenfield.** `type: solution`. *"There is no way to split a bill evenly between people from
-the command line."* One class, one caller that prints the result, one test. This is the only thing that
-exercises `init` from empty, the `solution` intent type, and a plan whose files are all new.
+**Cycle 1, greenfield.** `type: solution`. *"There is no way to see a die roll; we want a web page that
+shows one number from 1 to 6."* This is the only thing that exercises `init` from empty, the `solution`
+intent type, and a plan whose files are all new.
 
-**Cycle 2, a change to what cycle 1 built.** *"Splitting 10.00 between three people prints three shares
-of 3.33 and a total of 9.99, so a penny goes missing whenever a bill does not divide evenly."* Now there
-is existing code with a caller and a public surface, which is what brings the rest alive: CON-07, the
-declared-file hook, a plan trying to prove a signature did not move, a tier that is not automatically
-`local`, and escalation.
+**Cycle 2, a change to what cycle 1 built.** *"One die is not enough; the page should show two."* Now
+there is existing code with a caller and a rendered output, which is what brings the rest alive: CON-07,
+the declared-file hook, a plan trying to prove existing behaviour did not move, a tier that is not
+automatically `local`, and escalation.
 
 Cycle 2 is the more informative of the two, and it needs cycle 1 to have happened. It also tests
 something no fixture can: cycle 2's substrate was produced *by the process*, so a vague spec in cycle 1
 will be felt in cycle 2. That is the only honest test of whether the chain compounds.
 
 **Scope cycle 1 hard.** The natural failure of a greenfield intent is sprawl — the interview will
-cheerfully help you design an expense tracker. Keep saying "not in this cycle." If the spec comes back
-with eight criteria, that is worth reporting.
+cheerfully help you design a board-game platform. Keep saying "not in this cycle." If the spec comes
+back with eight criteria, that is worth reporting.
 
-The rounding defect is the right one for cycle 2 because it has four things a synthetic bug usually
-lacks:
+### Why a die roll is a good first subject
 
-- **A symptom visible from outside the code.** `total 9.99` for a bill of `10.00`. An intent can state
-  it without reading anything
-- **A caller outside the library.** A plan may try to cite it as proof that a signature did not move,
-  and you get to see whether interrogation accepts that or finds the hole in it
-- **A genuine open question** — who gets the leftover penny: the first person, the last, or
-  round-robin? Nothing in the code can answer it, so it should surface as an **Open** question rather
-  than a number the model invented. That is the cleanest test of CON-02 you will get
-- **A natural must-not-change:** the printed output format, which something downstream may parse.
-  Whether the spec writes a criterion for it is the test of CON-04
+It puts pressure on exactly the two places this process is supposed to earn its keep.
+
+**Randomness resists a falsifiable criterion.** "Shows a random number" cannot fail, and CON-03 forbids
+a criterion that cannot. A sound spec has to land on something checkable — the value is within 1 to 6,
+every face appears across N rolls, or the roll comes from a seam a test can seed. Which one it picks is
+the most interesting thing cycle 1 will tell you. If it writes "displays a random number" and
+interrogation passes it, that is a finding about CON-03 rather than about you.
+
+**A page is harder to prove than a class.** Asserting on a rendered component needs a component test
+harness, and the honest shape is the roll living in a testable unit with the page as a thin caller. A
+plan that puts the logic in the page and then claims a unit test proves it has written an inadequate
+proof, which is CON-06's to catch. Expect cycle 1 to spend real effort on test infrastructure; that is
+the framework forcing a testable design rather than getting in the way.
+
+**State the range in the intent.** If you say "1 to 6", the spec inherits a fact. If you leave it out
+and the spec invents it, CON-02 should have caught it at the intent — so mentioning it is the kinder
+test, and omitting it deliberately is the sharper one. Pick which experiment you want.
+
+**Cycle 2 has a scope question worth leaving open.** Two numbers *instead of* one, or a second added
+alongside? And is the page's existing output a must-not-change? Do not resolve either in the opening
+sentence. Watch whether the interview asks, and whether the spec writes a criterion for the part you
+did not mention.
 
 ## Before you start: the repository
 
@@ -62,7 +73,7 @@ artifacts that look governed.
 An empty repository is not enough either; there has to be a commit for a sha to point at.
 
 ```pwsh
-mkdir C:\Repos\split-trial; cd C:\Repos\split-trial
+mkdir C:\Repos\dice-trial; cd C:\Repos\dice-trial
 git init
 git commit --allow-empty -m "before adoption"
 ```
@@ -103,7 +114,7 @@ never code that predates them, so there is nothing to baseline and nothing to cl
 ## 3. Write the intent
 
 ```
-/sdlc:intent Splitting 10.00 between three people prints three shares of 3.33 and a total of 9.99, so a penny goes missing every time a bill does not divide evenly.
+/sdlc:intent We have no way to see a die roll. I want a web page that shows one number from 1 to 6, rerolled each time the page is asked for.
 ```
 
 Describe **the problem**, not the fix. If you name a fix, the skill will ask what its absence causes
