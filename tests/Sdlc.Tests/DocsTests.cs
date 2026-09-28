@@ -1,4 +1,5 @@
 using System.Reflection;
+using System.Text.Json;
 using System.Text.RegularExpressions;
 
 namespace Sdlc.Tests;
@@ -235,6 +236,45 @@ public sealed class DocsTests
         Assert.IsTrue(citations >= 10, $"Only {citations} citations found across the docs.");
 
         Assert.AreEqual(0, problems.Count, string.Join("; ", problems));
+    }
+
+    [TestMethod]
+    public void GuidesNameTheRealPluginVersion()
+    {
+        // A guide that states a version has to state the one that ships. The first-cycle guide said
+        // 0.1.0 across a whole release, which quietly told a reader they were verifying something other
+        // than what they had installed.
+        using JsonDocument manifest = JsonDocument.Parse(
+            File.ReadAllText(RepoPaths.At(".claude-plugin", "plugin.json")));
+
+        string shipped = manifest.RootElement.GetProperty("version").GetString()!;
+
+        List<string> wrong = [];
+        int claims = 0;
+
+        foreach (string file in Directory.EnumerateFiles(Path.Combine(RepoPaths.Docs, "guides"), "*.md"))
+        {
+            string text = File.ReadAllText(file);
+
+            foreach (Match match in Regex.Matches(
+                text,
+                @"Verified as of `(?<v>[0-9]+\.[0-9]+\.[0-9]+)`",
+                RegexOptions.ExplicitCapture,
+                TimeSpan.FromSeconds(2)))
+            {
+                claims++;
+                string claimed = match.Groups["v"].Value;
+
+                if (claimed != shipped)
+                {
+                    wrong.Add($"{Path.GetFileName(file)} claims {claimed}, shipped is {shipped}");
+                }
+            }
+        }
+
+        Assert.IsTrue(claims > 0, "No guide states a verified-as-of version, so this test proves nothing.");
+
+        Assert.AreEqual(0, wrong.Count, string.Join("; ", wrong));
     }
 
     [TestMethod]

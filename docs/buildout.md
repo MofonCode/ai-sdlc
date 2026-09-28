@@ -350,6 +350,8 @@ request — there is no process to learn first, and no dependency on any phase b
 
 ---
 
+---
+
 ## Constraints cited here
 
 Short descriptions, so nothing here sends you to look one up. `constraints.md` carries the full

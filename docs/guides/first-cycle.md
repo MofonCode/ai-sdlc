@@ -9,7 +9,7 @@ covers:
 Eighteen steps, in order, from an empty directory to a pull request. One command per block, so each can
 be copied on its own.
 
-**Verified as of `0.1.0`:** steps 4 to 13. Step 3 and steps 14 onward use skills that have never been run
+**Verified as of `0.2.0`:** steps 4 to 13. Step 3 and steps 14 onward use skills that have never been run
 end to end, and each says so where it appears. Expect friction there and note where it happens — those
 notes are worth more than the artifacts.
 
@@ -83,8 +83,9 @@ git commit --allow-empty -m "before adoption"
 claude plugin details sdlc@ai-sdlc
 ```
 
-Expect `Version: 0.1.0`, `Skills (12)` and `Hooks (1) PreToolUse`. If it is missing, **Troubleshooting** at
-the end has the commands.
+Expect a version, `Skills (12)` and `Hooks (1) PreToolUse`. **If the hook count is zero, stop** — the
+deterministic layer is not loaded, nothing is enforced, and every step below will appear to work anyway.
+If the plugin is missing entirely, **Troubleshooting** at the end has the command.
 
 ## 3. Adopt the framework
 
@@ -312,16 +313,23 @@ in one run. If any link behaves differently, that is the most useful thing you w
 
 ## Troubleshooting
 
-### The plugin is missing, or you changed the framework and want it picked up
+### The plugin is missing
 
-A directory-marketplace install caches by version, and `claude plugin update` does nothing when the version
-has not moved — so a refresh is a full reinstall. You should not need this during a trial run.
-
-Run the first from `C:\Repos\ai-sdlc`. A bare `.` is rejected; the `./` is required.
+Install it from GitHub. This clones the repository itself, so it works from anywhere and you do not need
+a copy of the framework.
 
 ```pwsh
-claude plugin marketplace add ./
+claude plugin marketplace add MofonCode/ai-sdlc
 ```
+
+```pwsh
+claude plugin install sdlc@ai-sdlc
+```
+
+### You changed the framework and want the change picked up
+
+Only relevant if you have a clone and installed from it. An install caches by version, and
+`claude plugin update` does nothing when the version has not moved, so a refresh is a full reinstall:
 
 ```pwsh
 claude plugin uninstall sdlc@ai-sdlc
@@ -331,7 +339,8 @@ claude plugin uninstall sdlc@ai-sdlc
 claude plugin install sdlc@ai-sdlc
 ```
 
-The uninstall and install are a pair. Running only the first leaves you with no plugin.
+The two are a pair — running only the first leaves you with no plugin. `install.md` covers both sources
+and when to use which.
 
 ### Nothing is refused and everything works first time
 
@@ -341,10 +350,11 @@ Check the branch. The gates key on `cycle/<id>` exactly, and off that branch the
 git rev-parse --abbrev-ref HEAD
 ```
 
-### A skill says it cannot read something under `C:\Repos\ai-sdlc`
+### A skill says it cannot read something in the plugin directory
 
-It should not need to — the constraints are injected at load time. If you see this, the injection failed,
-and it is worth reporting verbatim.
+It should not need to. The constraints and the stack defaults are injected at load time, precisely because
+a session working in your solution cannot reach wherever the plugin is installed. If you see a skill
+asking for access to a plugin path, an injection failed — worth reporting verbatim.
 
 ## What to bring back
 
@@ -354,6 +364,8 @@ The session transcript can be read too, from `~/.claude/projects/<slugged-repo-p
 What is in neither is where you felt friction: a refusal you wanted to override, a question the interview
 should have asked, a step that felt like ceremony. Note those as they happen, in as few words as you like.
 Every defect worth fixing so far came from watching the flow run, not from reading what it produced.
+
+---
 
 ---
 
