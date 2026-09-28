@@ -22,20 +22,25 @@ skips the interesting half: adoption, files a plan must declare, and existing ca
 what a change may do.
 
 You also want a defect you chose, so you know what "done" looks like before the process tells you.
-If nothing to hand fits, ten minutes making one is time well spent:
 
-```pwsh
-mkdir C:\Repos\sdlc-trial
-cd C:\Repos\sdlc-trial
-dotnet new classlib -n Trial.Core -o src/Trial.Core
-git init
-git add --all
-git commit -m "trial: starting point"
-```
+If nothing to hand fits, a good trial application is a small CLI that splits a bill between people
+and loses a penny to rounding: `Split(10.00m, 3)` returns three shares of `3.33`, and the caller
+prints `total 9.99` for a bill of `10.00`.
 
-Then write one boring, real defect into it — a missing guard, an off-by-one, a duplicated check —
-and commit that as part of the starting point. The best defect is one with a caller, because callers
-are what make a plan's proofs honest.
+It is the right shape for a first cycle because it has all four of the things a fragment does not:
+
+- **A symptom visible from outside the code.** An intent can state it without reading anything
+- **A caller that is not part of the library.** A plan can try to cite it as proof that a signature
+  did not move, and you get to see whether interrogation accepts that or finds the hole in it
+- **A genuine open question** — who gets the leftover penny, the first person, the last, or
+  round-robin? Nothing in the code can answer it, so it should surface as an **Open** question rather
+  than a number the model invented. That is the cleanest test of CON-02 you will get
+- **A natural must-not-change:** the output format, which something downstream may be parsing.
+  Whether the spec writes a criterion for it is the test of CON-04
+
+Build it as a class library, a console caller and an MSTest project, with one test that passes and
+does not cover the defect. A green starting point matters: it means any failure during the cycle
+belongs to the cycle.
 
 ## 1. Install the plugin
 
