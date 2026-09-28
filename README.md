@@ -65,9 +65,15 @@ The other half is timing. Killing a bad idea costs a paragraph at intent and a w
 
 ## State
 
-The cycle is verified from `intent` through `plan`, against nine golden fixtures and one real repository.
-`build`, `verify`, `remediate` and `land` are written and not yet run end to end — `docs/buildout.md`
-tracks which phase is where and what "done" means for each.
+Verified, against nine golden fixtures and two real cycles: `init`, `intent`, `interrogate`, `spec`,
+`plan`, `constraints`, and `build` as far as a green build and recorded evidence.
+
+Not yet run end to end: `verify`, `remediate`, `land`, `run`, and the `suggestions` view. Treat their
+behaviour as unproven — in particular nothing has yet driven a cycle to `escalated` and watched landing
+refuse it, which is the behaviour that makes unattended work safe to trust.
+
+`docs/conventions.md` carries the rules each of those phases taught us, every one naming the test that
+enforces it.
 
 ```pwsh
 dotnet test

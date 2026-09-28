@@ -16,7 +16,7 @@ before proposing a change to how the framework works.
 
 Rebuilt from `archive/v02`. The twelve skills, the constraints, the schemas and the hooks are
 written; the cycle has not yet been walked end to end against a fixture, so treat skill behaviour
-as unproven until `docs/buildout.md` says otherwise.
+as unproven until the README's State section says otherwise.
 
 Earlier versions live on `archive/v01` and `archive/v02`. They are evidence, not a starting point:
 read from them only when pointed at a specific file, and never copy forward without saying why.
@@ -106,7 +106,6 @@ Open one of these only when its trigger applies; do not read them speculatively.
 | Doc | Open it when |
 |---|---|
 | `docs/concept.md` | proposing or questioning how the framework works — phases, gates, artifacts, governance |
-| `docs/buildout.md` | asking what to build next, or whether a phase is finished |
 | `docs/techstack.md` | choosing a project shape, changing a package pin, or writing a PowerShell tool |
 | `docs/guides/first-cycle.md` | running a cycle for the first time, with the reasoning behind each step |
 | `docs/guides/cycle-commands.md` | you know the flow and want the command sequence alone |

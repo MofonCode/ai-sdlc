@@ -7,10 +7,10 @@ This repository is a Claude Code plugin, so its own components are the product: 
 `.claude-plugin/plugin.json`. A change to any of those changes framework behaviour for every
 solution that installs it — treat them as production code, not configuration.
 
-Shell work is PowerShell, and scripts the plugin ships are `.ps1`. Which edition they target —
-Windows PowerShell 5.1, which every Windows machine already has, or PowerShell 7, which is a
-better language but an install — is not yet decided. It binds at buildout phase 2, when the
-first script is written. Until then, do not assume either.
+Shell work is PowerShell, and scripts the plugin ships are `.ps1` targeting **Windows PowerShell 5.1**,
+invoked as `powershell.exe`. Not PowerShell 7: a hook that cannot start because an edition is missing
+protects nothing while appearing to. `docs/techstack.md` records what 5.1 costs and how the scripts are
+written for it.
 
 The import above is required rather than stylistic: Claude Code reads `AGENTS.md` directly only
 from v2.1.277, and on Windows a `CLAUDE.md` symlinked to `AGENTS.md` checks out as plain text
