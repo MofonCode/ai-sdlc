@@ -52,7 +52,9 @@ the framework forcing a testable design, not getting in the way.
 
 ## 1. Make the repository
 
-Already done at `C:\Repos\dice-trial` — skip to step 2. These are here so the sequence is repeatable.
+Run all of these. A previous trial leaves the directory behind, so `mkdir` is the one command that
+may already be satisfied — if the directory exists and is empty, start at `cd`. Do not skip the
+rest: a leftover directory has no `.git`.
 
 `init` refuses a directory that is not a repository, and not out of bureaucracy: `build` records the diff
 that is the only evidence `verify` derives its claims from, and every gate keys on a `cycle/<id>` branch
