@@ -34,6 +34,28 @@ Every statement you write cites one of those. Two failures to avoid:
 If an evidence file is missing, that is a finding, not a gap to fill by running the build
 yourself. Running it would make you the author of what you are auditing.
 
+## The file set is checked mechanically, and you cite the result
+
+Run this before judging anything, from the solution's root:
+
+```
+powershell.exe -NoProfile -File "${CLAUDE_PLUGIN_ROOT}/tools/Compare-DiffToPlan.ps1" -CycleId $0
+```
+
+It reads git and the plan's `## Files` table and prints what changed but was not declared, and what was
+declared but did not change. **This is the complete check on the file set**, and the reason it exists
+here rather than only in a hook: a hook inspects an action, so it can only recognise ways of writing a
+file that it knows about, and a heredoc that writes one inside a script is opaque to it. This reads the
+result, so nothing routes around it.
+
+Treat its output as evidence and cite it:
+
+- **UNDECLARED** — a blocking finding citing CON_07. The change reached a file no reviewer approved
+- **UNDELIVERED** — worth a finding only if a criterion needed that file. Often the plan over-promised,
+  which is a suggestion, not a breach
+
+Do not run it and then paraphrase. Quote the lines, as with every other piece of evidence.
+
 ## Judge every criterion
 
 For each numbered criterion in the spec, decide: met, unmet, or unprovable from the evidence.

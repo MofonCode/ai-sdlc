@@ -387,6 +387,109 @@ public sealed class HookTests
         }
     }
 
+    // --------------------------------------------- writes that arrive through the shell
+
+    [TestMethod]
+    public void AShellRedirectToAnUndeclaredFileIsRefused()
+    {
+        // The defect this closes: skills write files with `cat > path <<EOF`, which is the Bash tool, so
+        // an Edit|Write matcher never saw it. All three write gates were being routed around by the
+        // default path every skill takes.
+        using FixtureWorkspace workspace = FixtureWorkspace.Materialize("greenfield");
+        WritePlan(workspace, approved: true);
+
+        Decision decision = Invoke(
+            Tool("Assert-DeclaredFile.ps1"),
+            BashEvent("cat > src/Greenfield.Core/Sneaky.cs <<EOF\nclass X {}\nEOF", workspace.Path));
+
+        Assert.IsTrue(decision.Denied, "A shell redirect to an undeclared file must be refused.");
+        StringAssert.Contains(decision.Reason, "Sneaky.cs", StringComparison.Ordinal);
+    }
+
+    [TestMethod]
+    public void AShellRedirectToADeclaredFileIsAllowed()
+    {
+        using FixtureWorkspace workspace = FixtureWorkspace.Materialize("greenfield");
+        WritePlan(workspace, approved: true);
+
+        Decision decision = Invoke(
+            Tool("Assert-DeclaredFile.ps1"),
+            BashEvent("cat > src/Greenfield.Core/Totals.cs <<EOF\nx\nEOF", workspace.Path));
+
+        Assert.IsFalse(decision.Denied, $"A declared file must be writable by any means: {decision.Reason}");
+    }
+
+    [TestMethod]
+    [DataRow("dotnet test dice.slnx 2>&1 | tail -30", "a descriptor redirect names no file")]
+    [DataRow("echo hello > /dev/null", "the null device is not a file")]
+    [DataRow("git log --oneline | head -5", "no redirect at all")]
+    [DataRow("dotnet build 2>&1", "stderr to stdout")]
+    public void AShellCommandThatWritesNoFileIsIgnored(string command, string why)
+    {
+        // An over-refusing hook gets switched off, and this one now runs on every Bash call in a governed
+        // repository. Ordinary commands must pass straight through.
+        using FixtureWorkspace workspace = FixtureWorkspace.Materialize("greenfield");
+        WritePlan(workspace, approved: true);
+
+        Decision decision = Invoke(Tool("Assert-DeclaredFile.ps1"), BashEvent(command, workspace.Path));
+
+        Assert.IsFalse(decision.Denied, $"{why}: {decision.Reason}");
+    }
+
+    [TestMethod]
+    public void TheDeclaredListComesFromTheFilesTableAlone()
+    {
+        // The first version scanned the whole plan for any backticked token holding a slash or a dot, so
+        // it believed net10.0, text/html, GET / and Random.Shared.Next(1, 7) were declared files. A gate
+        // matching against that is not a gate. This plan carries exactly those fragments in its prose.
+        using FixtureWorkspace workspace = FixtureWorkspace.Materialize("greenfield");
+        workspace.Run("checkout", "-q", "-b", $"cycle/{CycleId}");
+
+        string cycleDir = Path.Combine(workspace.Path, ".sdlc", "cycles", CycleId);
+        Directory.CreateDirectory(cycleDir);
+
+        string[] plan =
+        [
+            "---",
+            $"id: {CycleId}",
+            $"spec: .sdlc/cycles/{CycleId}/spec.md",
+            "tier: local",
+            "approved_by: a person",
+            "approved_at: 2026-09-28T12:00:00Z",
+            "---",
+            "",
+            "# Plan",
+            "",
+            "## Files",
+            "",
+            "| File | Change |",
+            "|---|---|",
+            "| `src/Greenfield.Core/Totals.cs` | seed the accumulation |",
+            "",
+            "## Proof",
+            "",
+            "- Targets `net10.0`, serves `text/html`, maps `GET /`, calls `Random.Shared.Next(1, 7)`",
+            "- Output lands in `bin/` and `obj/`, sources under `src/`",
+        ];
+        File.WriteAllLines(Path.Combine(cycleDir, "plan.md"), plan);
+
+        // Declared: allowed.
+        Decision declared = Invoke(
+            Tool("Assert-DeclaredFile.ps1"),
+            EditEvent(Path.Combine(workspace.Path, "src", "Greenfield.Core", "Totals.cs"), workspace.Path));
+
+        Assert.IsFalse(declared.Denied, $"The one file in the table must be allowed: {declared.Reason}");
+
+        // A fragment from the prose is not a declared file, so a path resembling one is still refused.
+        Decision fragment = Invoke(
+            Tool("Assert-DeclaredFile.ps1"),
+            EditEvent(Path.Combine(workspace.Path, "src", "Other.cs"), workspace.Path));
+
+        Assert.IsTrue(fragment.Denied,
+            "A path not in the Files table must be refused, however many backticked fragments the " +
+            "plan's prose contains.");
+    }
+
     // ------------------------------------------------------------------ landing
 
     [TestMethod]

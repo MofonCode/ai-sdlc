@@ -42,18 +42,10 @@ if ([string]::IsNullOrWhiteSpace($cwd)) { $cwd = (Get-Location).Path }
 # $ErrorActionPreference = 'Stop' that terminates the script. Outside a repository git writes to
 # stderr, so without this the hook CRASHES instead of deciding - and a crashed hook is a hook that
 # enforces nothing. It stayed latent until a test ran the script outside a repository.
-Push-Location $cwd
-$previousPreference = $ErrorActionPreference
-$ErrorActionPreference = 'Continue'
-try {
-    $branch = (& git rev-parse --abbrev-ref HEAD 2>$null)
-    $gitFailed = $LASTEXITCODE -ne 0
-    $branch = "$branch".Trim()
-}
-finally {
-    $ErrorActionPreference = $previousPreference
-    Pop-Location
-}
+. (Join-Path $PSScriptRoot 'SdlcPlan.ps1')
+
+$state = Get-SdlcBranchState -WorkingDirectory $cwd
+$gitFailed = -not $state.IsRepository
 
 if ($gitFailed) {
     # Staying quiet here is correct for a directory that is not governed: this hook runs on every
@@ -73,8 +65,8 @@ if ($gitFailed) {
     exit 0
 }
 
-if ($branch -notmatch '^cycle/(?<id>[0-9]{8}_[0-9a-f]{4})$') { exit 0 }
-$cycleId = $Matches['id']
+$cycleId = $state.CycleId
+if ($null -eq $cycleId) { exit 0 }
 
 $verifyPath = Join-Path $cwd (".sdlc/cycles/$cycleId/verify.md")
 

@@ -187,24 +187,31 @@ public sealed class PluginTests
     public void EveryToolScriptIsReachedFromSomewhere()
     {
         // A script nothing invokes is either dead or a guardrail somebody forgot to wire up, and the
-        // second is indistinguishable from protection that works. Two things reach a script: the
-        // hook manifest, and a skill that injects its output at load time.
+        // second is indistinguishable from protection that works. Three things reach a script: the hook
+        // manifest, a skill that runs or injects it, and another script that dot-sources it.
         string manifest = File.ReadAllText(RepoPaths.At("hooks", "hooks.json"));
 
         string[] skillBodies = [.. Directory
             .EnumerateFiles(RepoPaths.Skills, "SKILL.md", SearchOption.AllDirectories)
             .Select(File.ReadAllText)];
 
-        foreach (string script in Directory.EnumerateFiles(RepoPaths.At("tools"), "*.ps1"))
+        string[] scripts = [.. Directory.EnumerateFiles(RepoPaths.At("tools"), "*.ps1")];
+
+        foreach (string script in scripts)
         {
             string name = Path.GetFileName(script);
 
+            bool sourced = scripts
+                .Where(other => other != script)
+                .Any(other => File.ReadAllText(other).Contains(name, StringComparison.Ordinal));
+
             bool reached = manifest.Contains(name, StringComparison.Ordinal)
-                || skillBodies.Any(b => b.Contains(name, StringComparison.Ordinal));
+                || skillBodies.Any(b => b.Contains(name, StringComparison.Ordinal))
+                || sourced;
 
             Assert.IsTrue(
                 reached,
-                $"tools/{name} is named by neither hooks.json nor any skill. Nothing runs it.");
+                $"tools/{name} is named by hooks.json, no skill, and no other script. Nothing runs it.");
         }
     }
 

@@ -60,6 +60,20 @@
               "-ExecutionPolicy",
               "Bypass",
               "-File",
+              "${CLAUDE_PLUGIN_ROOT}/tools/Assert-DeclaredFile.ps1"
+            ],
+            "timeout": 20,
+            "statusMessage": "Checking the plan declares this file..."
+          },
+          {
+            "type": "command",
+            "command": "powershell.exe",
+            "args": [
+              "-NoProfile",
+              "-NonInteractive",
+              "-ExecutionPolicy",
+              "Bypass",
+              "-File",
               "${CLAUDE_PLUGIN_ROOT}/tools/Assert-Landable.ps1"
             ],
             "timeout": 20,
