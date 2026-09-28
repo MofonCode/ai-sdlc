@@ -9,9 +9,10 @@ covers:
 A walkthrough for taking one real change from idea to pull request in a repository that has adopted
 the framework. Follow it in order; every step names what it produces and who has to act.
 
-**Verified as of `0.1.0`:** `interrogate`, `intent`, `spec`, `plan`, `constraints`. Steps 8 onward
-use skills that have not yet been run end to end — expect friction there, and note where it happens.
-Those notes are worth more than the artifacts.
+**Verified as of `0.1.0`:** `interrogate`, `intent`, `spec`, `plan`, `constraints` — steps 3 to 8.
+Step 2 and steps 9 onward use skills that have not been run end to end yet, and each is marked where
+it appears. Expect friction there, and note where it happens: those notes are worth more than the
+artifacts.
 
 ---
 
@@ -78,7 +79,7 @@ never code that predates them, so there is nothing to baseline and nothing to cl
 ## 3. Write the intent
 
 ```
-/sdlc:intent Callers of Total have to check for an empty list first, and that check is now copied in three places.
+/sdlc:intent Splitting 10.00 between three people prints three shares of 3.33 and a total of 9.99, so a penny goes missing every time a bill does not divide evenly.
 ```
 
 Describe **the problem**, not the fix. If you name a fix, the skill will ask what its absence causes
