@@ -107,6 +107,7 @@ Open one of these only when its trigger applies; do not read them speculatively.
 | `docs/concept.md` | proposing or questioning how the framework works — phases, gates, artifacts, governance |
 | `docs/buildout.md` | asking what to build next, or whether a phase is finished |
 | `docs/techstack.md` | choosing a project shape, changing a package pin, or writing a PowerShell tool |
+| `docs/first-cycle.md` | running a cycle for the first time, or asking which command comes next |
 
 Rows are added as the documents are written. Every document under `docs/` appears here exactly
 once, and every row points at a file that exists.
