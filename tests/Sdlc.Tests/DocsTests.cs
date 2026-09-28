@@ -16,8 +16,8 @@ public sealed class DocsTests
     private static string AgentsMd => File.ReadAllText(RepoPaths.At("AGENTS.md"));
 
     private static string[] DocFiles => [.. Directory
-        .EnumerateFiles(RepoPaths.Docs, "*.md")
-        .Select(p => "docs/" + Path.GetFileName(p))
+        .EnumerateFiles(RepoPaths.Docs, "*.md", SearchOption.AllDirectories)
+        .Select(p => "docs/" + Path.GetRelativePath(RepoPaths.Docs, p).Replace('\\', '/'))
         .OrderBy(p => p, StringComparer.Ordinal)];
 
     private static string[] IndexedPaths => [.. Regex
@@ -152,6 +152,24 @@ public sealed class DocsTests
 
         Assert.AreEqual(0, missing.Count,
             "conventions.md cites tests that do not exist: " + string.Join(", ", missing));
+    }
+
+    [TestMethod]
+    public void EverySkillAppearsInAGuide() 
+    {
+        // A skill nobody documented is one nobody will run. The guides are where a person looks, so a
+        // new skill that reaches none of them has shipped invisible.
+        string guides = string.Concat(Directory
+            .EnumerateFiles(Path.Combine(RepoPaths.Docs, "guides"), "*.md")
+            .Select(File.ReadAllText));
+
+        List<string> missing = [.. Directory
+            .EnumerateDirectories(RepoPaths.Skills)
+            .Select(d => Path.GetFileName(d)!)
+            .Where(name => !guides.Contains($"/sdlc:{name}", StringComparison.Ordinal))];
+
+        Assert.AreEqual(0, missing.Count,
+            "These skills are named in no guide: " + string.Join(", ", missing));
     }
 
     [TestMethod]

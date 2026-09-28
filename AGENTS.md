@@ -108,7 +108,10 @@ Open one of these only when its trigger applies; do not read them speculatively.
 | `docs/concept.md` | proposing or questioning how the framework works — phases, gates, artifacts, governance |
 | `docs/buildout.md` | asking what to build next, or whether a phase is finished |
 | `docs/techstack.md` | choosing a project shape, changing a package pin, or writing a PowerShell tool |
-| `docs/first-cycle.md` | running a cycle for the first time, or asking which command comes next |
+| `docs/guides/first-cycle.md` | running a cycle for the first time, with the reasoning behind each step |
+| `docs/guides/cycle-commands.md` | you know the flow and want the command sequence alone |
+| `docs/guides/install.md` | installing, checking, updating or removing the plugin |
+| `docs/guides/when-it-blocks.md` | something refused, or a cycle came back blocked or escalated |
 | `docs/conventions.md` | changing anything in this repository — a skill, a hook, a schema, a fixture, a doc |
 
 Rows are added as the documents are written. Every document under `docs/` appears here exactly

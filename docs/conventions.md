@@ -321,6 +321,17 @@ Enforced by: `DocsTests.EveryDocIsIndexedExactlyOnce`, `DocsTests.EveryDocDeclar
 `DocsTests.EveryCoversGlobPointsSomewhere` — a glob matching nothing can never be stale, which makes the
 check decoration
 
+### A guide is a view, and every skill appears in one
+
+`docs/guides/` is where a person looks. A skill named in none of them has shipped invisible, however good
+its own description is.
+
+The guides restate command sequences the skills own. That is a view, not a second authority — the same
+standing as the suggestions view — and it is why `cycle-commands.md` says so at the top. What keeps a view
+honest is a test that it has not fallen behind.
+
+Enforced by: `DocsTests.EverySkillAppearsInAGuide`
+
 ### Instruction files stay short enough to be followed
 
 `AGENTS.md` and `CLAUDE.md` under 200 lines. They load every session, and a longer file both costs more
