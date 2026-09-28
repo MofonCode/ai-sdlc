@@ -1,6 +1,6 @@
 # Solution constraints - brownfield
 
-## LOC-01 - Tenant id comes from the token, never the request
+## LOC_01 - Tenant id comes from the token, never the request
 
 **Applies to:** a diff, at verification.
 

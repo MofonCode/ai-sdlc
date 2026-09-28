@@ -25,7 +25,7 @@ read from them only when pointed at a specific file, and never copy forward with
 
 | Path | Holds |
 |---|---|
-|  the global constraints, `CON-nn`. The framework.s product | the global constraints, `CON-nn`. The framework's product |
+| `constraints.md` | the global constraints, `CON_nn`. Skills receive them by load-time injection, because a solution session cannot read the plugin root |
 | `schemas/` | JSON Schema for every artifact. They own the vocabularies and the verify state machine |
 | `skills/<name>/SKILL.md` | one skill per phase, plus `init`, `run` and two read-only views |
 | `hooks/hooks.json` | the deterministic layer: what may not happen, whatever a model concludes |
@@ -53,11 +53,11 @@ and constraints are deliberately different words.
 
 | Term | Gloss |
 |---|---|
-| cycle | one change from intent to landing, identified `YYYYMMDD-xxxx` |
+| cycle | one change from intent to landing, identified `YYYYMMDD_xxxx` |
 | intent | why the work exists — written by interviewing a person |
 | spec | testable acceptance criteria for this cycle; disposable once landed |
 | plan | the implementation plan — files, order, risk, proof. Not the intent |
-| constraint | a permanent rule with a `Forbids:` clause. `CON-` global, `LOC-` per solution |
+| constraint | a permanent rule with a `Forbids:` clause. `CON_` global, `LOC_` per solution |
 | finding | a verdict from an interrogation: `blocking` or `suggestion` |
 | outcome | a verify document's state: `pass`, `blocked`, `escalated` |
 
@@ -66,9 +66,10 @@ the word both ways; this repository does not.
 
 ## Constraints
 
-Not in this file. Global constraints will live in  the global constraints, `CON-nn`. The framework.s product at the plugin root; a
-solution's own in its `.sdlc/constraints.md`. This file never restates them — an artifact that
-restates another's content as its own authority creates two sources that will disagree.
+Not in this file. Global constraints are `constraints.md` at the plugin root, reaching a skill by
+load-time injection; a solution's own live in its `.sdlc/constraints.md`. This file never restates
+them — an artifact that restates another's content as its own authority creates two sources that
+will disagree.
 
 ## Commands
 

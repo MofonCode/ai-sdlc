@@ -35,11 +35,11 @@
     },
     "cycleId": {
       "type": "string",
-      "pattern": "^[0-9]{8}-[0-9a-f]{4}$"
+      "pattern": "^[0-9]{8}_[0-9a-f]{4}$"
     },
     "findingId": {
       "type": "string",
-      "pattern": "^F-[0-9]{2,}$"
+      "pattern": "^F_[0-9]{2,}$"
     },
     "severity": {
       "enum": ["blocking", "suggestion"],
@@ -51,7 +51,7 @@
     },
     "constraintId": {
       "type": "string",
-      "pattern": "^(CON|LOC)-[0-9]{2,}$",
+      "pattern": "^(CON|LOC)_[0-9]{2,}$",
       "description": "CON resolves in the library's constraints.md, LOC in the solution's."
     },
     "finding": {

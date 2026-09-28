@@ -78,7 +78,7 @@ validator reports it. It exists for people working in this repository, because C
 
 Skills enforce constraints and branch on schema enums, so both precede the first skill.
 
-- `constraints.md` at the plugin root — the global constraints, `CON-nn`, each with a non-empty
+- `constraints.md` at the plugin root — the global constraints, `CON_nn`, each with a non-empty
   `Forbids:`. Target eight to ten; every candidate passes the three tests in concept §4.2 or is
   moved to a hook, a schema, or an analyzer
 - `schemas/findings.schema.json` — the `severity` enum is the single definition of the taxonomy
@@ -139,14 +139,14 @@ Walking the flow found eleven defects that reading it never would, all now fixed
    so it now keys on what does distinguish them: Edit versus Write for a verify document, creation
    versus overwrite for findings and evidence.
 4. **A model cannot read a clock** and writes a plausible midnight. The injector states the time.
-5. **Judging on a constraint's heading rather than its `Forbids:` clause.** CON-04 fired on a spec
-   that had a criterion for every outcome, because one was vague — which is CON-03's breach. The
+5. **Judging on a constraint's heading rather than its `Forbids:` clause.** CON_04 fired on a spec
+   that had a criterion for every outcome, because one was vague — which is CON_03's breach. The
    clause is the operative text and is deliberately narrower than the heading.
 6. **An unresolvable cross-reference degrades silently.** A spec naming `intent: intent.good.md`
    instead of a repository-relative path could not be bound to its intent, so the relational
    constraints were skipped and the verdict came back *sound*. Interrogation now refuses rather than
    judging what it can reach, and the spec and plan skills state that the reference is a path.
-7. **CON-04 did not say that must-not-change items are outcomes**, so a spec dropping a
+7. **CON_04 did not say that must-not-change items are outcomes**, so a spec dropping a
    compatibility requirement passed. Clarified in the clause.
 8. **A skill cannot invoke another skill.** Every skill ended with "then run `/sdlc:X`" and every one
    of those calls errored. A chain that only sometimes fires is worse than none: it produces artifacts
@@ -166,7 +166,7 @@ Walking the flow found eleven defects that reading it never would, all now fixed
 The golden artifacts were also rewritten twice, for the same reason both times. **An interrogation
 reads the code, so a golden artifact must be true of the fixture solution it is placed in.** The first
 set described a dashboard the fixture does not have; the replacement claimed two guarded call sites
-that did not exist, and CON-02 correctly fired on the artifact meant to be sound. Each artifact now
+that did not exist, and CON_02 correctly fired on the artifact meant to be sound. Each artifact now
 isolates one constraint — a fixture tripping two makes a failure ambiguous — and the fixture carries
 the callers its artifacts refer to.
 

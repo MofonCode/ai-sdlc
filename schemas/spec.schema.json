@@ -15,7 +15,7 @@
     "intent": {
       "type": "string",
       "minLength": 1,
-      "description": "Path to the intent this spec answers to. CON-04 and CON-05 are both judged against it, so it is required."
+      "description": "Path to the intent this spec answers to. CON_04 and CON_05 are both judged against it, so it is required."
     },
     "accepted_by": {
       "type": "string",

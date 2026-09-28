@@ -1,15 +1,15 @@
 {
   "framework_version": "0.0.1",
-  "cycle": "20260927-a3f1",
-  "artifact": ".sdlc/cycles/20260927-a3f1/spec.md",
+  "cycle": "20260927_a3f1",
+  "artifact": ".sdlc/cycles/20260927_a3f1/spec.md",
   "interrogated_at": "2026-09-27T14:02:11Z",
   "round": 1,
   "findings": [
     {
-      "id": "F-01",
+      "id": "F_01",
       "severity": "blocking",
       "disposition": "open",
-      "cites": "CON-03",
+      "cites": "CON_03",
       "statement": "Blocking with nothing that would fix it.",
       "locus": "\"x\""
     }

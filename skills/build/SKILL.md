@@ -18,7 +18,7 @@ without one wastes the attempt.
 
 ## Build only what the plan declared
 
-Implement the declared changes in the declared order. Two rules, and CON-07 covers the second:
+Implement the declared changes in the declared order. Two rules, and CON_07 covers the second:
 
 - **A file the plan did not name is not yours to touch.** If the work genuinely needs one, stop,
   say which file and why, and let the plan be amended and re-approved. That is a short interruption;

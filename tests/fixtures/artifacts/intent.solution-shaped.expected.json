@@ -2,7 +2,7 @@
   "artifact": "intent.solution-shaped.md",
   "kind": "intent",
   "must_cite_blocking": [
-    "CON-01"
+    "CON_01"
   ],
   "allow_other_blocking": false,
   "note": "Names an implementation and asks only that the implementation exist."

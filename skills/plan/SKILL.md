@@ -30,7 +30,7 @@ fails its own hook.
 
 ## Name a proof for every criterion, and make it adequate
 
-CON-06. For each numbered criterion in the spec, name the check that establishes it — a test by
+CON_06. For each numbered criterion in the spec, name the check that establishes it — a test by
 name, a measurement, an observation with a procedure.
 
 The test is **could this check pass while the criterion is unmet?** If yes, the proof is

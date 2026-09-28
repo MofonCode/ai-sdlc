@@ -1,20 +1,20 @@
 {
   "framework_version": "0.0.1",
-  "cycle": "20260927-a3f1",
-  "spec": ".sdlc/cycles/20260927-a3f1/spec.md",
-  "plan": ".sdlc/cycles/20260927-a3f1/plan.md",
+  "cycle": "20260927_a3f1",
+  "spec": ".sdlc/cycles/20260927_a3f1/spec.md",
+  "plan": ".sdlc/cycles/20260927_a3f1/plan.md",
   "verified_at": "2026-09-27T15:40:02Z",
   "evidence": {
     "build": {
-      "path": ".sdlc/cycles/20260927-a3f1/evidence/build.log",
+      "path": ".sdlc/cycles/20260927_a3f1/evidence/build.log",
       "summary": "0 warnings, 0 errors"
     },
     "tests": {
-      "path": ".sdlc/cycles/20260927-a3f1/evidence/tests.trx",
+      "path": ".sdlc/cycles/20260927_a3f1/evidence/tests.trx",
       "summary": "94 passed, 0 failed"
     },
     "diff": {
-      "path": ".sdlc/cycles/20260927-a3f1/evidence/diff.patch",
+      "path": ".sdlc/cycles/20260927_a3f1/evidence/diff.patch",
       "sha": "f1ab05d"
     }
   },
@@ -24,10 +24,10 @@
   },
   "findings": [
     {
-      "id": "F-01",
+      "id": "F_01",
       "severity": "blocking",
       "disposition": "open",
-      "cites": "CON-08",
+      "cites": "CON_08",
       "statement": "Escalated with budget remaining is a contradiction.",
       "locus": "verify.md",
       "remedy": "Spend the budget or report blocked."

@@ -32,7 +32,7 @@ that is the hook's answer, not a judgement call.
 
 ## What the pull request carries
 
-The body is assembled from the artifacts, not written fresh — CON-09 forbids restating what
+The body is assembled from the artifacts, not written fresh — CON_09 forbids restating what
 another artifact owns. Link each and summarise in one line:
 
 - the intent — the problem, in its own words

@@ -2,7 +2,7 @@
   "artifact": "plan.inadequate-proof.md",
   "kind": "plan",
   "must_cite_blocking": [
-    "CON-06"
+    "CON_06"
   ],
   "allow_other_blocking": false,
   "note": "does not throw does not prove returns zero; covered by criterion 1 and manual check prove nothing.",

@@ -140,7 +140,7 @@ public sealed class SkillTests
     [TestMethod]
     public void NoSkillRestatesAConstraint()
     {
-        // CON-09: an artifact that reproduces what another owns creates two sources that diverge.
+        // CON_09: an artifact that reproduces what another owns creates two sources that diverge.
         // A skill may cite a constraint by id and explain why it matters; it may not copy the rule.
         foreach (string dir in SkillDirectories)
         {

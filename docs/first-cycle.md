@@ -25,7 +25,7 @@ into nothing, and changing something that exists — and neither covers the othe
 files are all new.
 
 **Cycle 2, a change to what cycle 1 built.** *"One die is not enough; the page should show two."* Now there
-is existing code with a rendered output, which is what brings the rest alive: CON-07, the declared-file
+is existing code with a rendered output, which is what brings the rest alive: CON_07, the declared-file
 hook, a plan trying to prove existing behaviour did not move, a tier that is not automatically `local`,
 and escalation.
 
@@ -35,14 +35,14 @@ in cycle 2.
 
 ### Why a die roll is a good subject
 
-**Randomness resists a falsifiable criterion.** "Shows a random number" cannot fail, and CON-03 forbids a
+**Randomness resists a falsifiable criterion.** "Shows a random number" cannot fail, and CON_03 forbids a
 criterion that cannot. A sound spec has to land on something checkable — the value is within 1 to 6, every
 face appears across N rolls, or the roll comes from a seam a test can seed. Which one it picks is the most
 interesting thing cycle 1 will tell you.
 
 **A page is harder to prove than a class.** The honest shape is the roll living in a testable unit with the
 page as a thin caller. A plan that puts the logic in the page and then claims a unit test proves it has
-written an inadequate proof, which is CON-06's to catch. Expect real effort on test infrastructure; that is
+written an inadequate proof, which is CON_06's to catch. Expect real effort on test infrastructure; that is
 the framework forcing a testable design, not getting in the way.
 
 **Scope cycle 1 hard.** The interview will cheerfully help you design a board-game platform. Keep saying
@@ -123,16 +123,16 @@ rather than invented answers. An intent with three open questions is sound; thre
 liability, because every later phase treats an accepted intent as settled.
 
 **A deliberate choice:** saying "1 to 6" hands the spec a fact. Leaving it out is the sharper test — if the
-spec invents a range, CON-02 should have caught it here. Pick knowingly.
+spec invents a range, CON_02 should have caught it here. Pick knowingly.
 
 It writes `.sdlc/intents/<id>.md`. **Note that id** — every command after this takes it.
 
 ## 5. Put the cycle on a branch
 
-Substitute your id for `20260928-a1b2` here and in every later step.
+Substitute your id for `20260928_a1b2` here and in every later step.
 
 ```pwsh
-git checkout -b cycle/20260928-a1b2
+git checkout -b cycle/20260928_a1b2
 ```
 
 The name matters: the gates key on `cycle/<id>` and stay silent off it, so a mistyped branch means nothing
@@ -142,10 +142,10 @@ If the intent is rejected, delete the branch.
 ## 6. Interrogate the intent
 
 ```
-/sdlc:interrogate .sdlc/intents/20260928-a1b2.md
+/sdlc:interrogate .sdlc/intents/20260928_a1b2.md
 ```
 
-Writes `.sdlc/intents/findings/20260928-a1b2.r1.json`. Read the findings, not just the count.
+Writes `.sdlc/intents/findings/20260928_a1b2.r1.json`. Read the findings, not just the count.
 
 Blocking findings mean the intent must change first. Fix it and run this again — it writes `r2` and keeps
 `r1`, because the sequence is the record of whether your repair worked.
@@ -165,7 +165,7 @@ of the three gates: you are agreeing this is the right problem, before anything 
 ## 8. Write the spec
 
 ```
-/sdlc:spec 20260928-a1b2
+/sdlc:spec 20260928_a1b2
 ```
 
 Turns the intent into numbered acceptance criteria, each stating an observable outcome and how it is
@@ -174,7 +174,7 @@ checked. It refuses if the intent is not accepted.
 ## 9. Interrogate the spec
 
 ```
-/sdlc:interrogate .sdlc/cycles/20260928-a1b2/spec.md
+/sdlc:interrogate .sdlc/cycles/20260928_a1b2/spec.md
 ```
 
 ## 10. Accept the spec
@@ -191,7 +191,7 @@ accepted_at: 2026-09-28T09:15:00Z
 ## 11. Write the plan
 
 ```
-/sdlc:plan 20260928-a1b2
+/sdlc:plan 20260928_a1b2
 ```
 
 Declares every file it will touch, a blast-radius tier, and how each criterion will be proven.
@@ -199,7 +199,7 @@ Declares every file it will touch, a blast-radius tier, and how each criterion w
 ## 12. Interrogate the plan
 
 ```
-/sdlc:interrogate .sdlc/cycles/20260928-a1b2/plan.md
+/sdlc:interrogate .sdlc/cycles/20260928_a1b2/plan.md
 ```
 
 ## 13. Approve the plan
@@ -224,7 +224,7 @@ every source edit until those two fields exist.
 ## 14. Build
 
 ```
-/sdlc:build 20260928-a1b2
+/sdlc:build 20260928_a1b2
 ```
 
 *Never run end to end.* It implements the plan and heals its own build and test failures — nothing should
@@ -237,7 +237,7 @@ design working, and it will look like a failure.
 ## 15. Verify
 
 ```
-/sdlc:verify 20260928-a1b2
+/sdlc:verify 20260928_a1b2
 ```
 
 *Never run end to end.* Writes `.sdlc/cycles/<id>/verify.md` and decides an outcome. It writes no code — it
@@ -256,7 +256,7 @@ the document's value is that it was derived. To change it, change an input — t
 ## 16. Remediate
 
 ```
-/sdlc:remediate 20260928-a1b2
+/sdlc:remediate 20260928_a1b2
 ```
 
 *Never run end to end.* Works the open blocking findings and nothing else — suggestions are yours to read,
@@ -265,7 +265,7 @@ not its to act on.
 ## 17. Verify again
 
 ```
-/sdlc:verify 20260928-a1b2
+/sdlc:verify 20260928_a1b2
 ```
 
 Nothing but a fresh verification can tell whether a fix worked. Three passes, then `escalated`. The counter
@@ -278,7 +278,7 @@ reason, or abandon the cycle.
 ## 18. Land
 
 ```
-/sdlc:land 20260928-a1b2
+/sdlc:land 20260928_a1b2
 ```
 
 *Never run end to end.* Needs `gh` authenticated and a GitHub remote. Opens a pull request whose body is
@@ -295,7 +295,7 @@ trustworthy and it is the half nobody demonstrates.
 
 The route in is to **approve a plan that interrogation flagged.** Write a spec with a criterion the plan
 does not cover — for two dice, a criterion about the page's existing single-die output that the plan leaves
-alone — then let the plan declare only the file it wants. Interrogation should raise CON-06, because no
+alone — then let the plan declare only the file it wants. Interrogation should raise CON_06, because no
 proof covers that criterion. Approve it anyway.
 
 What should follow: build satisfies what it can, verify finds the uncovered criterion unmet, and remediation

@@ -13,7 +13,7 @@ namespace Sdlc.Tests;
 [TestClass]
 public sealed class HookTests
 {
-    private const string CycleId = "20260927-ab12";
+    private const string CycleId = "20260927_ab12";
 
     private static string Tool(string name) => RepoPaths.At("tools", name);
 

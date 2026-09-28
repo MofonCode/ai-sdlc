@@ -2,7 +2,7 @@
   "artifact": "intent.guessed-fact.md",
   "kind": "intent",
   "must_cite_blocking": [
-    "CON-02"
+    "CON_02"
   ],
   "allow_other_blocking": false,
   "note": "Asserts a measured duration and a boxing cause nobody verified, and records no open questions."

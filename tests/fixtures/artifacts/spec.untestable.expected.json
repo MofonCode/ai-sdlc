@@ -2,7 +2,7 @@
   "artifact": "spec.untestable.md",
   "kind": "spec",
   "must_cite_blocking": [
-    "CON-03"
+    "CON_03"
   ],
   "allow_other_blocking": false,
   "note": "handles empty input correctly cannot fail.",

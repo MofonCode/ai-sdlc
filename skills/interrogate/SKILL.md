@@ -18,7 +18,7 @@ skill to fetch it: a session working in a governed solution is sandboxed to that
 reach the plugin root. If you find yourself asking for directory access you have taken a path that
 does not exist.
 
-Also read `.sdlc/constraints.md` for this solution's own `LOC-nn`. It is often absent; that is normal
+Also read `.sdlc/constraints.md` for this solution's own `LOC_nn`. It is often absent; that is normal
 and not a problem to report.
 
 !`powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "${CLAUDE_PLUGIN_ROOT}/tools/Get-Constraints.ps1"`
@@ -72,13 +72,13 @@ downstream reads your reply, and remediation, verify and landing all read the fi
 highest already there. Never overwrite an earlier round — the sequence is the record of whether a
 repair worked. Create the directory if it does not exist.
 
-So interrogating `.sdlc/intents/20260927-0002.md` with no earlier rounds writes
-`.sdlc/intents/findings/20260927-0002.r1.json`.
+So interrogating `.sdlc/intents/20260927_0002.md` with no earlier rounds writes
+`.sdlc/intents/findings/20260927_0002.r1.json`.
 
 Every field is required for a reason:
 
 - `framework_version` — the `Framework version` stated with the injected constraints above
-- `cycle` — the artifact's id, `YYYYMMDD-xxxx`
+- `cycle` — the artifact's id, `YYYYMMDD_xxxx`
 - `artifact` — the path you were given, repository-relative
 - `interrogated_at` — the `Now (UTC)` value stated with the injected constraints above, verbatim.
   You cannot read a clock, and a guessed timestamp orders the rounds wrongly
@@ -93,16 +93,16 @@ Every field is required for a reason:
 ```json
 {
   "framework_version": "0.0.1",
-  "cycle": "20260927-0002",
-  "artifact": ".sdlc/intents/20260927-0002.md",
+  "cycle": "20260927_0002",
+  "artifact": ".sdlc/intents/20260927_0002.md",
   "interrogated_at": "2026-09-27T22:40:00Z",
   "round": 1,
   "findings": [
     {
-      "id": "F-01",
+      "id": "F_01",
       "severity": "blocking",
       "disposition": "open",
-      "cites": "CON-01",
+      "cites": "CON_01",
       "statement": "...",
       "locus": "...",
       "remedy": "..."

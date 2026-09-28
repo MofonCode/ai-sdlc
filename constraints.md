@@ -4,7 +4,7 @@ The rules every solution governed by this framework is judged against. They live
 library, and are never copied into a solution - an interrogation assembles the effective set at run
 time from these plus the solution's own `.sdlc/constraints.md`.
 
-**Citation.** `CON-nn` resolves in this file. `LOC-nn` resolves in the solution being worked on.
+**Citation.** `CON_nn` resolves in this file. `LOC_nn` resolves in the solution being worked on.
 Every blocking finding cites exactly one.
 
 **IDs are a monotonic sequence.** Assigned once, never reused, never backfilled. A removed constraint
@@ -19,7 +19,7 @@ to apply. Three tests, all of which must pass:
 3. It is incompatible with at least one plausible implementation
 
 Rules about code go to analyzers. Mechanical rules about artifacts go to hooks or schemas. A rule
-that survives every implementation is decoration, however true it sounds - see CON-11, which exists
+that survives every implementation is decoration, however true it sounds - see CON_11, which exists
 to keep this list from becoming that.
 
 **Stack neutrality.** These bind solutions on any stack, so none of them may name a language,
@@ -27,7 +27,7 @@ framework or package. Stack specifics live in `docs/techstack.md` and in analyze
 
 ---
 
-## CON-01 — An intent states the problem, not the solution
+## CON_01 — An intent states the problem, not the solution
 
 **Applies to:** an intent, at acceptance.
 
@@ -39,7 +39,7 @@ the spec nothing to test except that the solution now exists, and the problem it
 solve is never checked. A decision already taken is legitimate; it belongs in the intent's fixed
 decisions with attribution, not as the intent's content.
 
-## CON-02 — An intent's unknowns are recorded as open questions, not answered by guess
+## CON_02 — An intent's unknowns are recorded as open questions, not answered by guess
 
 **Applies to:** an intent, at acceptance.
 
@@ -50,7 +50,7 @@ measured or verified.
 criterion, then a test, then a green verification of something nobody established. An intent
 with three open questions is sound; an intent with three invented answers is a liability.
 
-## CON-03 — A criterion states an observable outcome and how it is checked
+## CON_03 — A criterion states an observable outcome and how it is checked
 
 **Applies to:** a spec, at acceptance, and any criterion added later.
 
@@ -61,7 +61,7 @@ correctly", "is secure" — or one naming an outcome with no way to observe it.
 passes it, and nobody ever learns whether it was met. A word-list check catches the common
 phrasings and belongs in a hook; this covers the general case, which no word list reaches.
 
-## CON-04 — A spec covers every outcome its intent asks for
+## CON_04 — A spec covers every outcome its intent asks for
 
 **Applies to:** a spec, at acceptance.
 
@@ -73,7 +73,7 @@ and they are the ones most often dropped - dropping one is how a compatibility b
 spec, so an omitted outcome is never mentioned again and the cycle lands green having done part
 of the job.
 
-## CON-05 — A spec introduces no scope its intent did not ask for
+## CON_05 — A spec introduces no scope its intent did not ask for
 
 **Applies to:** a spec, at acceptance.
 
@@ -84,7 +84,7 @@ arrives carrying the authority of an accepted artifact. Gaps and creep fail diff
 remedied differently — a gap sends you back for more criteria, creep sends you to delete one —
 so they are separate constraints rather than one rule about correspondence.
 
-## CON-06 — A plan's proof is adequate to the criterion it claims to prove
+## CON_06 — A plan's proof is adequate to the criterion it claims to prove
 
 **Applies to:** a plan, at approval.
 
@@ -94,7 +94,7 @@ so they are separate constraints rather than one rule about correspondence.
 whether "add a unit test" proves "returns within 200ms over 50,000 rows". An inadequate proof is
 worse than none, because it produces a green verification instead of an obvious gap.
 
-## CON-07 — A change does only what its plan declared, including inside files the plan named
+## CON_07 — A change does only what its plan declared, including inside files the plan named
 
 **Applies to:** a diff, at verification.
 
@@ -105,7 +105,7 @@ refactor, a drive-by rename, a fix to something else noticed in passing.
 file passes that hook and reaches review dressed as approved work, which is precisely where it
 is least likely to be questioned.
 
-## CON-08 — A verify claim rests on evidence that exists and supports it
+## CON_08 — A verify claim rests on evidence that exists and supports it
 
 **Applies to:** a verify document.
 
@@ -115,7 +115,7 @@ hunk — or one citing evidence that does not establish what the statement claim
 **Why:** verify is the only artifact whose entire value is being derived. A claim reaching beyond
 its evidence turns an auditor into an author, and nothing downstream can tell which one wrote it.
 
-## CON-09 — No artifact restates another's content as its own authority
+## CON_09 — No artifact restates another's content as its own authority
 
 **Applies to:** every artifact.
 
@@ -125,7 +125,7 @@ artifact owns, instead of citing it.
 **Why:** two copies diverge, and nothing says which is binding. Citation keeps exactly one owner
 per fact, which is the only arrangement that stays true without maintenance.
 
-## CON-10 — A waiver's reason says why the finding is acceptable
+## CON_10 — A waiver's reason says why the finding is acceptable
 
 **Applies to:** a waiver.
 
@@ -136,7 +136,7 @@ only that the finding is understood.
 control on that override, and it is what a reader has six months later instead of the
 conversation that produced it.
 
-## CON-11 — Every constraint carries a Forbids clause that rules something out
+## CON_11 — Every constraint carries a Forbids clause that rules something out
 
 **Applies to:** a diff that adds or changes a constraint, global or local.
 

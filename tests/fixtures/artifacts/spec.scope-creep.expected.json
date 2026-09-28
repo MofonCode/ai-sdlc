@@ -2,7 +2,7 @@
   "artifact": "spec.scope-creep.md",
   "kind": "spec",
   "must_cite_blocking": [
-    "CON-05"
+    "CON_05"
   ],
   "allow_other_blocking": false,
   "note": "Null handling and a new Average method appear nowhere in the intent.",

@@ -2,7 +2,7 @@
   "artifact": "spec.uncovered.md",
   "kind": "spec",
   "must_cite_blocking": [
-    "CON-04"
+    "CON_04"
   ],
   "allow_other_blocking": false,
   "note": "Drops the intent's must-not-change signature outcome.",

@@ -1,6 +1,6 @@
 ---
-id: 20260927-0001
-spec: .sdlc/cycles/20260927-0001/spec.md
+id: 20260927_0001
+spec: .sdlc/cycles/20260927_0001/spec.md
 tier: local
 ---
 

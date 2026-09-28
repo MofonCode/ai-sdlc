@@ -21,7 +21,7 @@ correction is made by changing an input and re-deriving, never by editing the re
 
 ## Everything derives from evidence that exists
 
-CON-08. Read, from `.sdlc/cycles/$0/evidence/`: `build.log`, `tests.trx`, `diff.patch`. Read the
+CON_08. Read, from `.sdlc/cycles/$0/evidence/`: `build.log`, `tests.trx`, `diff.patch`. Read the
 spec and the plan.
 
 Every statement you write cites one of those. Two failures to avoid:
@@ -41,7 +41,7 @@ Report **every** unmet or unprovable criterion as a finding — none is too smal
 verify document that reports the worst problem and stops has hidden the rest.
 
 Then interrogate the diff itself against the constraint set, exactly as `/sdlc:interrogate` would.
-CON-07 is the one machines miss: a change inside a declared file that the plan never described.
+CON_07 is the one machines miss: a change inside a declared file that the plan never described.
 
 Severity: a criterion the spec asked for and the change does not meet is `blocking`. Something
 that would be better and was not asked for is a `suggestion`. Suggestions never block and are

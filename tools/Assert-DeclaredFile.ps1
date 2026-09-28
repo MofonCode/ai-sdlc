@@ -10,7 +10,7 @@
 #      a file outside it arrives with an approval it never had.
 #
 # What this hook cannot see is creep INSIDE a declared file - an unrelated refactor in a file the
-# plan legitimately names. That needs reading comprehension, so it is CON-07's job at verification
+# plan legitimately names. That needs reading comprehension, so it is CON_07's job at verification
 # rather than a hook's.
 #
 # Windows PowerShell 5.1. No &&, no ??, no ternary; ConvertFrom-Json returns PSCustomObject.
@@ -83,7 +83,7 @@ if ($gitFailed) {
     exit 0
 }
 
-if ($branch -notmatch '^cycle/(?<id>[0-9]{8}-[0-9a-f]{4})$') { exit 0 }
+if ($branch -notmatch '^cycle/(?<id>[0-9]{8}_[0-9a-f]{4})$') { exit 0 }
 $cycleId = $Matches['id']
 
 $planPath = Join-Path $cwd (".sdlc/cycles/$cycleId/plan.md")

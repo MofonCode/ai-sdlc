@@ -27,7 +27,7 @@ and an unapproved intent has none to give.
 
 ## Every criterion must be able to fail
 
-CON-03. Words like *performs well*, *works correctly*, *handles large files*, *is secure* name no
+CON_03. Words like *performs well*, *works correctly*, *handles large files*, *is secure* name no
 observable outcome and no check. A criterion that cannot fail is satisfied by construction: build
 implements it, verify passes it, and nobody ever learns whether it was met.
 
@@ -37,11 +37,11 @@ it — say which criterion is blocked on which open question and stop.
 
 ## Cover the intent, and nothing more
 
-- **CON-04** — every outcome the intent asks for has a criterion. A gap here is invisible
+- **CON_04** — every outcome the intent asks for has a criterion. A gap here is invisible
   downstream: build implements the spec, verify checks the spec, and the omitted outcome is never
   mentioned again. Read the intent's **Must not change** section especially; it is the one most
   often dropped
-- **CON-05** — no criterion that no statement in the intent supports. Scope added here was never
+- **CON_05** — no criterion that no statement in the intent supports. Scope added here was never
   approved by whoever accepted the intent, and it arrives carrying an accepted artifact's
   authority
 

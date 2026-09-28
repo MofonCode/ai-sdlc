@@ -13,7 +13,7 @@ underspecified about it. Finding that out is the work.
 
 ## First, convert
 
-Most requests arrive already shaped as a solution — "add a cache", "make the export async". CON-01
+Most requests arrive already shaped as a solution — "add a cache", "make the export async". CON_01
 forbids an intent that is an implementation instruction with no statement of what is wrong. So the
 first move is not a question, it is a conversion:
 
@@ -55,7 +55,7 @@ Then, conditionally:
 
 ## Unknowns stay unknown
 
-CON-02 forbids stating as settled fact a figure, cause or behaviour nobody verified. Every later
+CON_02 forbids stating as settled fact a figure, cause or behaviour nobody verified. Every later
 phase treats an accepted intent as settled, so a guessed number becomes a criterion, then a test,
 then a green verification of something nobody established.
 
@@ -64,12 +64,12 @@ three invented answers is a liability.
 
 ## Write it
 
-Write `.sdlc/intents/<id>.md` where `<id>` is `YYYYMMDD-xxxx` — the date from the injected `Now (UTC)`
+Write `.sdlc/intents/<id>.md` where `<id>` is `YYYYMMDD_xxxx` — the date from the injected `Now (UTC)`
 value below, and four random hex characters.
 
 Frontmatter first, and it is not optional — every later phase routes on it:
 
-- `id` — the same `YYYYMMDD-xxxx`
+- `id` — the same `YYYYMMDD_xxxx`
 - `type` — one of `solution`, `feature`, `bug`, `suggestion`
 - `stack` — only when this intent departs from the solution's declared stack
 - `source` — only for `type: suggestion`: the verify document it came from
@@ -78,7 +78,7 @@ Then the sections, in order:
 
 ```markdown
 ---
-id: 20260927-7b3c
+id: 20260927_7b3c
 type: bug
 ---
 

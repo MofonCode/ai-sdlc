@@ -73,7 +73,7 @@ if ($gitFailed) {
     exit 0
 }
 
-if ($branch -notmatch '^cycle/(?<id>[0-9]{8}-[0-9a-f]{4})$') { exit 0 }
+if ($branch -notmatch '^cycle/(?<id>[0-9]{8}_[0-9a-f]{4})$') { exit 0 }
 $cycleId = $Matches['id']
 
 $verifyPath = Join-Path $cwd (".sdlc/cycles/$cycleId/verify.md")

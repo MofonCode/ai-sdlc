@@ -5,14 +5,14 @@ namespace Sdlc.Tests;
 
 /// <summary>
 /// The global constraints are the framework's product, so the properties the concept claims about
-/// them are asserted rather than trusted. CON-11 says every constraint must forbid something;
+/// them are asserted rather than trusted. CON_11 says every constraint must forbid something;
 /// these tests are what stop that from being a sentence nobody checks.
 /// </summary>
 [TestClass]
 public sealed class ConstraintsTests
 {
     private static readonly Regex Heading = new(
-        @"^## (?<id>CON-(?<n>\d{2,})) — (?<statement>.+)$",
+        @"^## (?<id>CON_(?<n>\d{2,})) — (?<statement>.+)$",
         RegexOptions.Multiline | RegexOptions.ExplicitCapture,
         TimeSpan.FromSeconds(2));
 
@@ -63,7 +63,7 @@ public sealed class ConstraintsTests
         {
             Assert.IsTrue(
                 body.Contains("**Forbids:**", StringComparison.Ordinal),
-                $"{id} has no Forbids clause. CON-11 forbids that.");
+                $"{id} has no Forbids clause. CON_11 forbids that.");
 
             int index = body.IndexOf("**Forbids:**", StringComparison.Ordinal);
             string clause = body[(index + "**Forbids:**".Length)..];
@@ -100,7 +100,7 @@ public sealed class ConstraintsTests
         {
             Assert.IsTrue(
                 numbers[i] > numbers[i - 1],
-                $"CON-{numbers[i]:D2} appears after CON-{numbers[i - 1]:D2}. IDs are a monotonic sequence.");
+                $"CON_{numbers[i]:D2} appears after CON_{numbers[i - 1]:D2}. IDs are a monotonic sequence.");
         }
     }
 
@@ -130,7 +130,7 @@ public sealed class ConstraintsTests
 
         MatchCollection references = Regex.Matches(
             Text,
-            @"Superseded-by:\s*(?<id>CON-\d{2,})",
+            @"Superseded-by:\s*(?<id>CON_\d{2,})",
             RegexOptions.ExplicitCapture,
             TimeSpan.FromSeconds(2));
 

@@ -18,10 +18,10 @@ derived.
 
 | Source | Owns | Series |
 |---|---|---|
-| the library, injected below | global constraints | `CON-nn` |
-| `.sdlc/constraints.md` | this solution's own | `LOC-nn` |
+| the library, injected below | global constraints | `CON_nn` |
+| `.sdlc/constraints.md` | this solution's own | `LOC_nn` |
 
-A citation says where to resolve it. `CON-` binds every solution; `LOC-` binds only this one. A reader
+A citation says where to resolve it. `CON_` binds every solution; `LOC_` binds only this one. A reader
 needs the distinction to know which they may change.
 
 With an argument, print that one constraint in full. Without one, print a table of id, statement and
@@ -37,7 +37,7 @@ like ordinary parameter binding; a column drop looks like cleanup. That is the c
 and an analyzer cannot judge, because the violation is about context rather than syntax. If an
 analyzer could catch it, it belongs to the analyzer - most candidates do.
 
-`LOC-` ids are a monotonic sequence of their own: the next is higher than any that has ever existed in
+`LOC_` ids are a monotonic sequence of their own: the next is higher than any that has ever existed in
 this solution, including any since removed.
 
 ---

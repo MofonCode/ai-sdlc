@@ -57,7 +57,7 @@ public sealed class FixtureTests
     public void ExpectationsCiteConstraintsThatExist()
     {
         HashSet<string> globalIds = [.. System.Text.RegularExpressions.Regex
-            .Matches(File.ReadAllText(RepoPaths.Constraints), @"^## (CON-\d{2,})",
+            .Matches(File.ReadAllText(RepoPaths.Constraints), @"^## (CON_\d{2,})",
                 System.Text.RegularExpressions.RegexOptions.Multiline,
                 TimeSpan.FromSeconds(2))
             .Select(m => m.Groups[1].Value)];
@@ -81,9 +81,9 @@ public sealed class FixtureTests
     public void EveryConstraintAboutAnArtifactHasAFailingFixture()
     {
         // A constraint no fixture exercises is a rule nobody has ever seen fire. This covers the
-        // ones an interrogation of a single artifact can reach; CON-07 through CON-11 need a diff,
+        // ones an interrogation of a single artifact can reach; CON_07 through CON_11 need a diff,
         // a verify document or a waiver, and are exercised in later phases.
-        string[] reachable = ["CON-01", "CON-02", "CON-03", "CON-04", "CON-05", "CON-06"];
+        string[] reachable = ["CON_01", "CON_02", "CON_03", "CON_04", "CON_05", "CON_06"];
 
         HashSet<string> exercised = [.. ExpectationFiles
             .SelectMany(f => JsonDocument.Parse(File.ReadAllText(f)).RootElement

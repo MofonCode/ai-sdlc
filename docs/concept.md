@@ -60,7 +60,7 @@ ambiguity is expensive.
 
 | Term | Means |
 |---|---|
-| **cycle** | one change from intent to landing, identified as `YYYYMMDD-xxxx` |
+| **cycle** | one change from intent to landing, identified as `YYYYMMDD_xxxx` |
 | **intent** | why the work exists — the only artifact written by interview |
 | **spec** | what "done" means for this cycle, as testable acceptance criteria |
 | **criterion** | one testable statement in a spec. Per-cycle and disposable |
@@ -213,11 +213,11 @@ the same thing depends on someone running the view and reading it.
 
 | Source | Owns | Series |
 |---|---|---|
-| the library, `constraints.md` at the plugin root | global constraints, and the definition of landable | `CON-nn` |
-| a solution's `.sdlc/constraints.md` | that solution's own constraints | `LOC-nn` |
+| the library, `constraints.md` at the plugin root | global constraints, and the definition of landable | `CON_nn` |
+| a solution's `.sdlc/constraints.md` | that solution's own constraints | `LOC_nn` |
 
-Neither is copied into the other. A citation says where to resolve it: `CON-` in the library,
-`LOC-` in the solution. A person reads the merged set by rendering it, the same way they read
+Neither is copied into the other. A citation says where to resolve it: `CON_` in the library,
+`LOC_` in the solution. A person reads the merged set by rendering it, the same way they read
 a verify document — the effective set is derived.
 
 **DECIDED:** IDs are a monotonic sequence, seeded like a database identity column. They
@@ -256,10 +256,10 @@ Illustrative only — the live lists are `constraints.md` in the library and
 `.sdlc/constraints.md` in a solution, and this document is not a second copy of either:
 
 ```markdown
-## CON-01 — An intent states the problem, not the solution
+## CON_01 — An intent states the problem, not the solution
 Forbids: an intent whose content is an implementation instruction, with no stated problem.
 
-## LOC-01 — Tenant id comes from the token, never the request
+## LOC_01 — Tenant id comes from the token, never the request
 Forbids: reading a tenant identifier from route values, query string, form fields,
 or a JSON body anywhere under `src/Api/`.
 ```
@@ -290,7 +290,7 @@ code that predates it. This was found while building the first adoption fixture:
 design had `solution.md` record a baseline of accepted pre-existing violations, and there is
 nothing for it to record. Every constraint governs an artifact — an intent, a spec, a plan, a
 diff, a verify document, a waiver — and a repository adopting the framework has none of those
-yet. The example written here cited CON-04, a rule about whether a spec covers its intent, as
+yet. The example written here cited CON_04, a rule about whether a spec covers its intent, as
 something a codebase could violate forty-seven times.
 
 So there is no baseline and no ratchet. Adoption is free: existing code is not interrogated,
@@ -470,7 +470,7 @@ cost when a solution's core value is model quality rather than integration.
 1. Names: `land` and `remediate` are provisional.
 2. Does `interrogate` stay a separate skill, or become a step inside each phase's skill? It
    runs at every boundary, which argues for one callable implementation either way.
-3. Who may sign a waiver, and does that depend on whether the finding cites `CON-` or `LOC-`?
+3. Who may sign a waiver, and does that depend on whether the finding cites `CON_` or `LOC_`?
    A global constraint waived locally is a different act from a local one waived locally.
 4. Does an abandoned cycle keep its directory as a record, or is it removed? Keeping it means
    the repo accumulates dead cycles; removing it means the reason it died is lost.
