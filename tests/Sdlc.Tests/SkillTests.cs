@@ -149,7 +149,7 @@ public sealed class SkillTests
             Assert.IsFalse(
                 body.Contains("**Forbids:**", StringComparison.Ordinal),
                 $"{Path.GetFileName(dir)} copies a Forbids clause. Cite the constraint by id " +
-                "instead; constraints.md owns the wording.");
+                "instead; CONSTRAINTS.md owns the wording.");
         }
     }
 }

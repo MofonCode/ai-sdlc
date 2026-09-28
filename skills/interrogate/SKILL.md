@@ -70,7 +70,7 @@ skill to fetch it: a session working in a governed solution is sandboxed to that
 reach the plugin root. If you find yourself asking for directory access you have taken a path that
 does not exist.
 
-Also read `.sdlc/constraints.md` for this solution's own `LOC_nn`. It is often absent; that is normal
+Also read `.sdlc/CONSTRAINTS.md` for this solution's own `LOC_nn`. It is often absent; that is normal
 and not a problem to report.
 
 !`powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "${CLAUDE_PLUGIN_ROOT}/tools/Get-Constraints.ps1"`

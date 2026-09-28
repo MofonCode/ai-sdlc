@@ -21,7 +21,7 @@ internal static class RepoPaths
     /// sandboxed to the solution - so skills receive the contents through a load-time injection
     /// running with the harness's privileges instead. See tools/Get-Constraints.ps1.
     /// </summary>
-    public static string Constraints => At("constraints.md");
+    public static string Constraints => At("CONSTRAINTS.md");
 
     public static string Fixtures => At("tests", "fixtures");
 

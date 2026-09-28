@@ -1,8 +1,8 @@
 # Global constraints
 
 The rules every solution governed by this framework is judged against. They live here, in the
-library, and are never copied into a solution - an interrogation assembles the effective set at run
-time from these plus the solution's own `.sdlc/constraints.md`.
+library, and are never copied into a solution — an interrogation assembles the effective set at run
+time from these plus the solution's own `.sdlc/CONSTRAINTS.md`.
 
 **Citation.** `CON_nn` resolves in this file. `LOC_nn` resolves in the solution being worked on.
 Every blocking finding cites exactly one.
@@ -19,7 +19,7 @@ to apply. Three tests, all of which must pass:
 3. It is incompatible with at least one plausible implementation
 
 Rules about code go to analyzers. Mechanical rules about artifacts go to hooks or schemas. A rule
-that survives every implementation is decoration, however true it sounds - see CON_11, which exists
+that survives every implementation is decoration, however true it sounds — see CON_11, which exists
 to keep this list from becoming that.
 
 **Stack neutrality.** These bind solutions on any stack, so none of them may name a language,
@@ -67,7 +67,7 @@ phrasings and belongs in a hook; this covers the general case, which no word lis
 
 **Forbids:** a spec whose criteria satisfy some of the intent's stated outcomes while leaving
 others with no criterion at all. An intent's **must not change** items are among those outcomes,
-and they are the ones most often dropped - dropping one is how a compatibility break lands green.
+and they are the ones most often dropped — dropping one is how a compatibility break lands green.
 
 **Why:** a gap here is invisible downstream. Build implements the spec and verify checks the
 spec, so an omitted outcome is never mentioned again and the cycle lands green having done part

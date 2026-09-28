@@ -53,7 +53,7 @@ The other half is timing. Killing a bad idea costs a paragraph at intent and a w
 
 | Path | Holds |
 |---|---|
-| `constraints.md` | the global constraints, `CON_nn` — rules about artifacts that need judgement to apply |
+| `CONSTRAINTS.md` | the global constraints, `CON_nn` — rules about artifacts that need judgement to apply |
 | `schemas/` | JSON Schema per artifact. They own the vocabularies and the verify state machine |
 | `skills/` | one skill per phase, plus `init`, `run` and two read-only views |
 | `hooks/`, `tools/` | the deterministic layer: what may not happen, whatever a model concludes |

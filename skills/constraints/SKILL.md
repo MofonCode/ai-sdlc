@@ -12,14 +12,14 @@ read from disk: a session working in a governed solution is sandboxed to that so
 reach the plugin root, so anything depending on a file read there would fail - and would fail hardest
 in an unattended run, where there is nobody to approve a directory.
 
-The effective set is those plus the solution's own `.sdlc/constraints.md`, which is inside the
+The effective set is those plus the solution's own `.sdlc/CONSTRAINTS.md`, which is inside the
 solution and always readable. Nothing is stored merged: like a verify document, the effective set is
 derived.
 
 | Source | Owns | Series |
 |---|---|---|
 | the library, injected below | global constraints | `CON_nn` |
-| `.sdlc/constraints.md` | this solution's own | `LOC_nn` |
+| `.sdlc/CONSTRAINTS.md` | this solution's own | `LOC_nn` |
 
 A citation says where to resolve it. `CON_` binds every solution; `LOC_` binds only this one. A reader
 needs the distinction to know which they may change.

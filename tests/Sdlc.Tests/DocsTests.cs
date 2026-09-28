@@ -206,7 +206,7 @@ public sealed class DocsTests
             .Matches(constraints, @"^## (?<id>CON_[0-9]{2,})", RegexOptions.Multiline, TimeSpan.FromSeconds(2))
             .Select(m => m.Groups["id"].Value)];
 
-        Assert.IsTrue(defined.Count >= 6, "constraints.md defined too few constraints to check against.");
+        Assert.IsTrue(defined.Count >= 6, "CONSTRAINTS.md defined too few constraints to check against.");
 
         List<string> problems = [];
         int citations = 0;
@@ -242,7 +242,7 @@ public sealed class DocsTests
 
                 if (!defined.Contains(id))
                 {
-                    problems.Add($"{name} cites {id}, which constraints.md does not define");
+                    problems.Add($"{name} cites {id}, which CONSTRAINTS.md does not define");
                 }
                 else if (!footnote.Contains(id, StringComparison.Ordinal))
                 {
@@ -308,6 +308,29 @@ public sealed class DocsTests
                 lines <= MaxInstructionLines,
                 $"{file} is {lines} lines, past the {MaxInstructionLines} line target. Move " +
                 "detail behind a described pointer in the docs index.");
+        }
+    }
+
+    [TestMethod]
+    public void RootDocumentsAreNamedInCapitals()
+    {
+        // A document at the root is one a reader is expected to find without being told where to look,
+        // and the capitals are the signal. constraints.md sat next to README.md, AGENTS.md and CLAUDE.md
+        // reading like a stray note rather than one of the four things that govern this repository.
+        //
+        // Windows cannot catch this on its own: a case-insensitive filesystem resolves At("constraints.md")
+        // to CONSTRAINTS.md and every other test still passes, so the reference rots until someone checks
+        // out on Linux. This reads the name git recorded.
+        foreach (string file in Directory.EnumerateFiles(RepoPaths.Root, "*.md"))
+        {
+            string name = Path.GetFileNameWithoutExtension(file);
+
+            Assert.AreEqual(
+                name.ToUpperInvariant(),
+                name,
+                StringComparer.Ordinal,
+                $"{Path.GetFileName(file)} is at the repository root, where documents are named in " +
+                "capitals. Rename it, or move it under docs/ where lowercase is the convention.");
         }
     }
 }

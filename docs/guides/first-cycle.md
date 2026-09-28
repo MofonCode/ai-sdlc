@@ -383,7 +383,7 @@ Every defect worth fixing so far came from watching the flow run, not from readi
 
 ## Constraints cited here
 
-Short descriptions, so nothing here sends you to look one up. `constraints.md` carries the full
+Short descriptions, so nothing here sends you to look one up. `CONSTRAINTS.md` carries the full
 statement, its `Forbids:` clause and the reasoning; `/sdlc:constraints` renders the effective set for
 a solution, this list plus any `LOC_` of its own.
 

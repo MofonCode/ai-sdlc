@@ -14,7 +14,7 @@
 $ErrorActionPreference = 'Stop'
 
 $root = Split-Path -Parent $PSScriptRoot
-$path = Join-Path $root 'constraints.md'
+$path = Join-Path $root 'CONSTRAINTS.md'
 
 if (-not (Test-Path -LiteralPath $path)) {
     throw "The global constraints are missing from $path."

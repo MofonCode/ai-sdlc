@@ -52,7 +52,7 @@
     "constraintId": {
       "type": "string",
       "pattern": "^(CON|LOC)_[0-9]{2,}$",
-      "description": "CON resolves in the library's constraints.md, LOC in the solution's."
+      "description": "CON resolves in the library's CONSTRAINTS.md, LOC in the solution's."
     },
     "finding": {
       "type": "object",

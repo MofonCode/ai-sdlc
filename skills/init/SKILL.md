@@ -104,7 +104,7 @@ session, and a longer file both costs more and is followed less.
 
 Two things it must not contain:
 
-- **Constraints.** Global ones live in the library, local ones in `.sdlc/constraints.md`. A third copy
+- **Constraints.** Global ones live in the library, local ones in `.sdlc/CONSTRAINTS.md`. A third copy
   here would be a source that disagrees with both
 - **Anything that goes stale the moment a cycle runs.** Do not write that the repository is empty, that
   there is no build yet, or a note telling a future reader to delete a paragraph once something lands.

@@ -213,8 +213,8 @@ the same thing depends on someone running the view and reading it.
 
 | Source | Owns | Series |
 |---|---|---|
-| the library, `constraints.md` at the plugin root | global constraints, and the definition of landable | `CON_nn` |
-| a solution's `.sdlc/constraints.md` | that solution's own constraints | `LOC_nn` |
+| the library, `CONSTRAINTS.md` at the plugin root | global constraints, and the definition of landable | `CON_nn` |
+| a solution's `.sdlc/CONSTRAINTS.md` | that solution's own constraints | `LOC_nn` |
 
 Neither is copied into the other. A citation says where to resolve it: `CON_` in the library,
 `LOC_` in the solution. A person reads the merged set by rendering it, the same way they read
@@ -252,8 +252,8 @@ pass:
 The third is the one that kills platitudes: a rule compatible with every possible
 implementation is decoration, however true it sounds.
 
-Illustrative only — the live lists are `constraints.md` in the library and
-`.sdlc/constraints.md` in a solution, and this document is not a second copy of either:
+Illustrative only — the live lists are `CONSTRAINTS.md` in the library and
+`.sdlc/CONSTRAINTS.md` in a solution, and this document is not a second copy of either:
 
 ```markdown
 ## CON_01 — An intent states the problem, not the solution
@@ -324,7 +324,7 @@ The first declares *which* stack a solution is and how it came to be governed �
 field, by machines. The second explains *how* the stack is used — project shapes, pins,
 layout, rationale — and is read as prose by whoever is doing the work.
 
-**DECIDED:** `.sdlc/constraints.md` is created when a solution writes its first local
+**DECIDED:** `.sdlc/CONSTRAINTS.md` is created when a solution writes its first local
 constraint, not at init. Many solutions will never have one, and nothing is lost when they
 don't — they are judged by the library.
 
@@ -362,7 +362,7 @@ CLAUDE.md            # thin: @AGENTS.md, plus anything Claude-specific
 AGENTS.md            # under 200 lines, loaded every session
 docs/*.md            # opened only when its trigger applies
 .sdlc/solution.md    # declarations — stack and origin; looked up, not read
-.sdlc/constraints.md # this solution's constraints; read at interrogation, never ambiently
+.sdlc/CONSTRAINTS.md # this solution's constraints; read at interrogation, never ambiently
 ```
 
 `AGENTS.md` carries: what this is, framework-versus-consumer, vocabulary, commands, the repo
@@ -493,7 +493,7 @@ cost when a solution's core value is model quality rather than integration.
 
 ## Constraints cited here
 
-Short descriptions, so nothing here sends you to look one up. `constraints.md` carries the full
+Short descriptions, so nothing here sends you to look one up. `CONSTRAINTS.md` carries the full
 statement, its `Forbids:` clause and the reasoning; `/sdlc:constraints` renders the effective set for
 a solution, this list plus any `LOC_` of its own.
 

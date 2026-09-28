@@ -72,7 +72,7 @@ public sealed class FixtureTests
 
                 Assert.IsTrue(
                     globalIds.Contains(id),
-                    $"{Path.GetFileName(file)} expects a finding citing {id}, which constraints.md does not define.");
+                    $"{Path.GetFileName(file)} expects a finding citing {id}, which CONSTRAINTS.md does not define.");
             }
         }
     }

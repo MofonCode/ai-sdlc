@@ -78,7 +78,7 @@ Enforced by: `SkillTests.EverySkillDescribesWhenToUseIt`, which also holds a len
 ### A skill cites a constraint, never copies it
 
 Refer to `CON_07` and explain why it matters in your own words. Do not reproduce its `Forbids:` clause.
-`constraints.md` owns the wording, and a second copy is a source that will disagree — CON_09 forbids
+`CONSTRAINTS.md` owns the wording, and a second copy is a source that will disagree — CON_09 forbids
 exactly this.
 
 Enforced by: `SkillTests.NoSkillRestatesAConstraint`
@@ -247,7 +247,7 @@ documents
 
 | Where | Job |
 |---|---|
-| `constraints.md` preamble | the authority — it is the file the rule governs |
+| `CONSTRAINTS.md` preamble | the authority — it is the file the rule governs |
 | `docs/concept.md` §4.1 | the decision, with its reasoning |
 | `skills/constraints/SKILL.md` | how to add a local one |
 | `ConstraintsTests` | enforcement |
@@ -396,6 +396,20 @@ and is followed less. Detail goes behind a described pointer in the docs index.
 
 Enforced by: `DocsTests.InstructionFilesStayShortEnoughToBeFollowed`
 
+### A document at the root is named in capitals; everything under `docs/` is lowercase
+
+`README.md`, `AGENTS.md`, `CLAUDE.md`, `CONSTRAINTS.md`. The capitals are what tells a reader these four
+are the documents that govern the repository, and a lowercase name among them reads as a stray note
+instead — which is what `constraints.md` looked like before it was renamed. A new root document
+either earns the capitals or belongs under `docs/`.
+
+Windows will not catch a stale reference to one of these on its own: a case-insensitive filesystem
+resolves `constraints.md` to `CONSTRAINTS.md` and every test still passes, so the reference rots
+silently until someone checks out on a case-sensitive filesystem. Rename through `git mv`, and grep for
+the old spelling across `.md`, `.cs`, `.ps1` and `.json`.
+
+Enforced by: `DocsTests.RootDocumentsAreNamedInCapitals`
+
 ### The docs index describes a trigger, not a subject
 
 "Open it when the orchestrator failed" beats "about local development". A pointer is opened on judgement,
@@ -451,7 +465,7 @@ claude plugin install sdlc@ai-sdlc
 
 ## Constraints cited here
 
-Short descriptions, so nothing here sends you to look one up. `constraints.md` carries the full
+Short descriptions, so nothing here sends you to look one up. `CONSTRAINTS.md` carries the full
 statement, its `Forbids:` clause and the reasoning; `/sdlc:constraints` renders the effective set for
 a solution, this list plus any `LOC_` of its own.
 
