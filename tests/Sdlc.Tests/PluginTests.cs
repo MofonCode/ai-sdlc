@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Text.Json;
 
 namespace Sdlc.Tests;
@@ -101,6 +102,85 @@ public sealed class PluginTests
         }
 
         Assert.IsTrue(checked_ > 0, "No hook scripts were checked, so this test proves nothing.");
+    }
+
+    // ------------------------------------------------------------------ injectors
+
+    private static string RunScript(string name)
+    {
+        ProcessStartInfo info = new("powershell.exe")
+        {
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            UseShellExecute = false,
+            StandardOutputEncoding = System.Text.Encoding.UTF8,
+        };
+
+        foreach (string argument in new[]
+        {
+            "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass",
+            "-File", RepoPaths.At("tools", name),
+        })
+        {
+            info.ArgumentList.Add(argument);
+        }
+
+        using Process process = Process.Start(info)
+            ?? throw new InvalidOperationException("Could not start powershell.exe.");
+
+        string stdout = process.StandardOutput.ReadToEnd();
+        string stderr = process.StandardError.ReadToEnd();
+        process.WaitForExit();
+
+        Assert.AreEqual(0, process.ExitCode,
+            $"{name} exited {process.ExitCode}. A failed injection abandons the skill. stderr: {stderr.Trim()}");
+
+        return stdout;
+    }
+
+    [TestMethod]
+    [DataRow("Get-Constraints.ps1", "CON_01")]
+    [DataRow("Get-StackDefaults.ps1", "MofonCode.Core")]
+    public void AnInjectorEmitsItsContentUncorrupted(string script, string expected)
+    {
+        // Windows PowerShell 5.1 assumes the system codepage when Get-Content reads a file with no BOM,
+        // so an em dash round-trips as mojibake and a rule reaches the model corrupted. Both injectors
+        // shipped with that defect: every interrogation was reading mangled constraint headings until a
+        // -Encoding UTF8 on the read fixed it. Nothing caught it, because the text stayed readable.
+        string output = RunScript(script);
+
+        StringAssert.Contains(output, expected, StringComparison.Ordinal);
+
+        Assert.IsFalse(
+            output.Contains("\u00e2\u0080", StringComparison.Ordinal),
+            $"{script} emitted mojibake - a UTF-8 sequence decoded as the system codepage. " +
+            "Read the source with -Encoding UTF8.");
+
+        StringAssert.Contains(output, "\u2014", StringComparison.Ordinal,
+            $"{script} emitted no em dash at all, so this test is no longer checking anything.");
+    }
+
+    [TestMethod]
+    public void TheStackDefaultsBlockIsMarkedAndSubstantial()
+    {
+        // The injector extracts between markers and throws without them, which abandons the skill rather
+        // than letting a plan choose project shapes against nothing.
+        string techstack = File.ReadAllText(RepoPaths.At("docs", "techstack.md"));
+
+        StringAssert.Contains(techstack, "<!-- stack-defaults:begin -->", StringComparison.Ordinal);
+        StringAssert.Contains(techstack, "<!-- stack-defaults:end -->", StringComparison.Ordinal);
+
+        string output = RunScript("Get-StackDefaults.ps1");
+
+        // The two defaults a plan most often gets wrong: orchestration nothing needs, and a library
+        // named where a seam was wanted.
+        StringAssert.Contains(output, "Aspire", StringComparison.Ordinal);
+        StringAssert.Contains(output, "Mediator", StringComparison.Ordinal);
+        StringAssert.Contains(output, "FluentResults", StringComparison.Ordinal);
+
+        Assert.IsFalse(output.Contains("How this repository is built", StringComparison.Ordinal),
+            "The injector leaked the section about building this repository, which is none of a " +
+            "solution's business.");
     }
 
     [TestMethod]

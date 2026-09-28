@@ -19,6 +19,24 @@ Same rule as the spec's: no plan against a spec with unresolved blocking finding
 spec whose frontmatter carries no `accepted_by` and `accepted_at`. That pair is how a person records
 acceptance, and they write it — never you.
 
+## Choose shapes from the defaults, and say so when you depart
+
+The stack defaults are injected at the end of this skill: which project shape serves which concern, when
+a solution gets an Aspire AppHost, and which shared-kernel type covers which seam.
+
+They are defaults, not rules. A solution may depart from any of them, and the departure is legal — but
+**silence about it is not.** When this plan introduces a project, name the shape it uses; when it departs
+from the default, say why in one sentence. That sentence is what a reviewer checks, and its absence is
+what makes a departure look like an oversight.
+
+Two places plans go wrong against these:
+
+- **Standing up orchestration nothing needs.** An AppHost belongs where there is more than one process,
+  or one process plus a backing service. A lone executable with no dependencies does not get one, and a
+  plan that builds one anyway has spent the cycle on scaffolding
+- **Naming a library instead of a seam.** "Use the shared kernel" chooses nothing. Name the type — the
+  mediator interface, the result extension, the trace scope — so the proof can cite something real
+
 ## Declare every file
 
 List every file you will create, change or delete, each with what happens to it. A hook compares
@@ -95,7 +113,8 @@ wastes the turn.
 
 # Reference
 
-The framework version, the current UTC time, and the global constraints, injected at load time. They
+The framework version, the current UTC time, the global constraints, and the stack defaults, injected at
+load time. They
 are here so that what you write is written to them. **Do not try to read them from disk** — a session
 working in a governed solution is sandboxed to that solution and the attempt is denied, which wastes a
 turn and looks like a failure to anyone watching.
@@ -104,3 +123,7 @@ Interrogation is still the gate. Writing to the constraints does not mean judgin
 against them.
 
 !`powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "${CLAUDE_PLUGIN_ROOT}/tools/Get-Constraints.ps1"`
+
+---
+
+!`powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "${CLAUDE_PLUGIN_ROOT}/tools/Get-StackDefaults.ps1"`

@@ -152,6 +152,24 @@ indistinguishable from protection that works.
 Enforced by: `PluginTests.EveryToolScriptIsReachedFromSomewhere`,
 `PluginTests.EveryHookScriptTheManifestNamesExists`, `PluginTests.EveryInjectedScriptASkillNamesExists`
 
+### A script that reads a file passes `-Encoding UTF8`
+
+5.1's `Get-Content` assumes the system codepage for a file with no BOM, so an em dash round-trips as
+mojibake. Both injectors shipped with that defect and nothing noticed, because the text stayed readable —
+every interrogation was reading mangled constraint headings. Write UTF-8 explicitly too.
+
+Enforced by: `PluginTests.AnInjectorEmitsItsContentUncorrupted`, which asserts both that no mojibake
+sequence appears and that an em dash does, so the check cannot pass by the content losing its dashes
+
+### A stack default reaches a skill by injection, never by a file read
+
+`docs/techstack.md` is at the plugin root, which a solution session cannot read. A plan choosing project
+shapes had no access to the defaults at all until `tools/Get-StackDefaults.ps1` existed — nobody noticed,
+because no plan had yet needed them. The same is true of anything else a skill needs from this repository.
+
+Enforced by: `PluginTests.TheStackDefaultsBlockIsMarkedAndSubstantial`, which also asserts the injector
+does not leak the part of that file about building this repository
+
 ### Shipped PowerShell targets Windows PowerShell 5.1
 
 `powershell.exe`, not `pwsh`. A hook that cannot start because an edition is not installed protects
