@@ -1,3 +1,4 @@
+using System.Reflection;
 using System.Text.RegularExpressions;
 
 namespace Sdlc.Tests;
@@ -95,6 +96,62 @@ public sealed class DocsTests
                     "that do not exist can never be stale, which makes the check a decoration.");
             }
         }
+    }
+
+    [TestMethod]
+    public void EveryEnforcedByCitationNamesATestThatExists()
+    {
+        // docs/conventions.md claims that each rule a machine can check names the test that checks it.
+        // That claim is the whole reason the document is worth more than advice, so it is verified here:
+        // a citation pointing at a renamed or deleted test would leave a convention looking enforced
+        // while nothing enforced it.
+        //
+        // Only the Enforced-by paragraphs are scanned. Elsewhere the document backticks ordinary
+        // identifiers - PSCustomObject, WarningsNotAsErrors - which are not tests and never were.
+        string conventions = File.ReadAllText(RepoPaths.At("docs", "conventions.md"));
+
+        string[] paragraphs = [.. Regex
+            .Matches(conventions, @"Enforced by:(?<body>.*?)(?:\r?\n\r?\n|$)",
+                RegexOptions.Singleline | RegexOptions.ExplicitCapture, TimeSpan.FromSeconds(2))
+            .Select(m => m.Groups["body"].Value)];
+
+        Assert.IsTrue(paragraphs.Length >= 15,
+            $"Only {paragraphs.Length} Enforced-by paragraphs found; the document is meant to be dense with them.");
+
+        const BindingFlags Any = BindingFlags.Public | BindingFlags.NonPublic
+            | BindingFlags.Instance | BindingFlags.Static;
+
+        Type[] classes = [.. typeof(DocsTests).Assembly.GetTypes()
+            .Where(t => t.Namespace == "Sdlc.Tests")];
+
+        List<string> missing = [];
+        int checked_ = 0;
+
+        foreach (string paragraph in paragraphs)
+        {
+            foreach (Match match in Regex.Matches(paragraph,
+                @"`(?:(?<type>[A-Za-z]+Tests)\.)?(?<name>[A-Z][A-Za-z0-9]{8,})`",
+                RegexOptions.ExplicitCapture, TimeSpan.FromSeconds(2)))
+            {
+                string name = match.Groups["name"].Value;
+                string typeName = match.Groups["type"].Value;
+                checked_++;
+
+                IEnumerable<Type> candidates = string.IsNullOrEmpty(typeName)
+                    ? classes
+                    : classes.Where(c => c.Name == typeName);
+
+                if (!candidates.Any(c => c.GetMethod(name, Any) is not null))
+                {
+                    missing.Add(match.Value);
+                }
+            }
+        }
+
+        Assert.IsTrue(checked_ >= 25, $"Only {checked_} citations were checked.");
+
+        Assert.AreEqual(0, missing.Count,
+            "conventions.md cites tests that do not exist: " + string.Join(", ", missing));
     }
 
     [TestMethod]
