@@ -612,10 +612,41 @@ Two things that are not optional:
 - **A defect found by running the framework gets a test that replays it.** Most of the rules above exist
   because something went wrong once. The test is what stops it going wrong twice
 
+### Bump the version when a consumer could see the change
+
+**The bump is what makes the change reachable.** An install caches by version, so an unbumped version
+means `claude plugin update` hands a consumer stale code while reporting success. It is not bookkeeping.
+
+**Bump when the change is consumer-visible:** anything under `skills/`, `hooks/`, `tools/`, `schemas/`,
+`CONSTRAINTS.md`, or a document that reaches a session by injection — `docs/techstack.md` today. Not for
+tests, `.editorconfig`, CI, or a doc only contributors read; those change nothing about what a governed
+solution gets.
+
+**Minor for behaviour changed or capability added. Patch for a refinement of behaviour already shipped.**
+No major before 1.0. Judged from the consumer's side: "the declared-file gate stops refusing writes
+outside the repository" is minor because a cycle behaves differently; "the approval block prints an empty
+name instead of a filled one" is a patch because the step was already there.
+
+**Two files move together**, and a test enforces it: `version` in `.claude-plugin/plugin.json`, and every
+`Verified as of` line in `docs/guides/`.
+
+Enforced by: `DocsTests.GuidesNameTheRealPluginVersion`
+
+### `Verified as of` means verified, so moving it is a claim
+
+That line says a walkthrough was run against that version. The test forces it to equal the shipped
+version, which catches the defect it was written for — the guide once claimed `0.1.0` across a whole
+release, quietly telling a reader they were checking something other than what they had installed.
+
+The cost of that equality is that a bump *moves the claim whether or not anything was re-run*. So when a
+bump changes a step the guide covers, either walk it again or say in the pull request which steps the new
+version has not been re-verified against. A claim that drifts upward on its own is the failure mode this
+whole document is written against.
+
 ### After changing the plugin, reinstall
 
 A directory-marketplace install caches by version, and `claude plugin update` does nothing when the
-version has not moved.
+version has not moved, so a refresh is the pair below rather than an update.
 
 ```pwsh
 claude plugin uninstall sdlc@ai-sdlc

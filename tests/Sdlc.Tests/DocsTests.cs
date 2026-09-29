@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Reflection;
 using System.Text.Json;
 using System.Text.RegularExpressions;
@@ -262,6 +263,12 @@ public sealed class DocsTests
         // A guide that states a version has to state the one that ships. The first-cycle guide said
         // 0.1.0 across a whole release, which quietly told a reader they were verifying something other
         // than what they had installed.
+        //
+        // Two claims now, because forcing one to equal the shipped version moved it on every bump whether
+        // or not anything was re-run. "describes <v>" must be the shipped version, so a reader knows the
+        // guide matches what they installed; "last actually walked on <v>" may lag, and must name a
+        // version that exists and is not ahead of what ships. The gap between them is the honest answer
+        // to "has this been verified", and it is the gap a bump opens.
         using var manifest = JsonDocument.Parse(
             File.ReadAllText(RepoPaths.At(".claude-plugin", "plugin.json")));
 
@@ -276,7 +283,7 @@ public sealed class DocsTests
 
             foreach (Match match in Regex.Matches(
                 text,
-                @"Verified as of `(?<v>[0-9]+\.[0-9]+\.[0-9]+)`",
+                @"describes `(?<v>[0-9]+\.[0-9]+\.[0-9]+)`",
                 RegexOptions.ExplicitCapture,
                 TimeSpan.FromSeconds(2)))
             {
@@ -285,14 +292,42 @@ public sealed class DocsTests
 
                 if (claimed != shipped)
                 {
-                    wrong.Add($"{Path.GetFileName(file)} claims {claimed}, shipped is {shipped}");
+                    wrong.Add($"{Path.GetFileName(file)} describes {claimed}, shipped is {shipped}");
+                }
+            }
+
+            foreach (Match match in Regex.Matches(
+                text,
+                @"[Ll]ast actually walked on `(?<v>[0-9]+\.[0-9]+\.[0-9]+)`",
+                RegexOptions.ExplicitCapture,
+                TimeSpan.FromSeconds(2)))
+            {
+                claims++;
+                string walked = match.Groups["v"].Value;
+
+                if (Order(walked).CompareTo(Order(shipped)) > 0)
+                {
+                    wrong.Add(
+                        $"{Path.GetFileName(file)} says it was walked on {walked}, which is ahead of the " +
+                        $"shipped {shipped}. A walk cannot have happened on a version that does not exist.");
                 }
             }
         }
 
-        Assert.IsTrue(claims > 0, "No guide states a verified-as-of version, so this test proves nothing.");
+        Assert.IsTrue(claims > 0, "No guide states a version, so this test proves nothing.");
 
         Assert.AreEqual(0, wrong.Count, string.Join("; ", wrong));
+    }
+
+    /// <summary>A semver as a comparable tuple, for "is this version ahead of that one".</summary>
+    private static (int Major, int Minor, int Patch) Order(string version)
+    {
+        string[] parts = version.Split('.');
+
+        return (
+            int.Parse(parts[0], CultureInfo.InvariantCulture),
+            int.Parse(parts[1], CultureInfo.InvariantCulture),
+            int.Parse(parts[2], CultureInfo.InvariantCulture));
     }
 
     [TestMethod]

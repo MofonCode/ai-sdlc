@@ -9,9 +9,15 @@ covers:
 Eighteen steps, in order, from an empty directory to a pull request. One command per block, so each can
 be copied on its own.
 
-**Verified as of `0.8.0`:** steps 4 to 13. Step 3 and steps 14 onward use skills that have never been run
-end to end, and each says so where it appears. Expect friction there and note where it happens — those
-notes are worth more than the artifacts.
+**This guide describes `0.8.1`.** Steps 4 to 13 have been walked end to end, and steps 3 and 14 onward
+use skills that have never been. Each says so where it appears. Expect friction there and note where it
+happens — those notes are worth more than the artifacts.
+
+**Last actually walked on `0.5.0`.** Four releases since then changed things these steps touch: the
+declared-file gate stopped refusing writes it had no business refusing, the intent interview stopped
+asking about the stack, the approval block began printing an empty name, and the testing default gained
+the two settings `dotnet test` needs. None of that has been re-run. Treat steps 4 to 13 as current by
+inspection rather than by evidence until a cycle is walked on this version.
 
 ---
 
