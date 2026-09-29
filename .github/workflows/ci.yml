@@ -52,8 +52,8 @@ jobs:
           global-json-file: global.json
 
       # The suite asserts the properties the design claims: that the schemas reject what they
-      # should, that every constraint forbids something and names no stack, that every fixture is
-      # evaluated by exactly one expectation, and that a fixture workspace is a real git
+      # should, that every constraint forbids something and names no stack, that every sample artifact
+      # is evaluated by exactly one expectation, and that a materialized workspace is a real git
       # repository which never mutates the checked-in copy.
       - name: Build and test
         run: dotnet test --configuration Debug --nologo

@@ -458,11 +458,14 @@ Enforced by: `FixtureTests.EveryConstraintAboutAnArtifactHasAFailingFixture`
 ### A fixture solution compiles, from a copy
 
 Nothing compiled these for a long time, and both were broken. greenfield did not build at all: its csproj
-declared `Nullable` but not `ImplicitUsings`, and its sources used `IEnumerable<decimal>` with no `using`
-— which compiled only because this repository's `Directory.Build.props` sits above the fixture in-tree
-and supplied the implicit usings. Materialized into a temporary directory, where no props file is above
-it, it failed on three errors. A skill would have hit that inside a build phase and reported it as the
-cycle's failure.
+declared `Nullable` but not `ImplicitUsings`, and its sources used `IEnumerable<decimal>` with no `using`,
+so it failed on three errors the moment anything tried.
+
+**Nothing had tried.** An earlier note here blamed the repository's `Directory.Build.props` for masking it
+in-tree, and that was wrong: `tests/solutions/Directory.Build.props` is deliberately empty precisely to
+stop that inheritance, so the fixture never had implicit usings anywhere. The defect was not hidden by
+inheritance, it was invisible for want of a build — which is the duller and more common way a thing goes
+unnoticed. A skill would have hit it inside a build phase and reported it as the cycle's failure.
 
 **A fixture must be self-sufficient**, because a skill only ever sees the copy. Declare the framework, the
 nullable setting and the implicit usings in the csproj; pin a package version inline rather than through

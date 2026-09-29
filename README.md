@@ -80,7 +80,7 @@ The other half is timing. Killing a bad idea costs a paragraph at intent and a w
 | `skills/` | one skill per phase, plus `init`, `run` and two read-only views |
 | `hooks/`, `tools/` | the deterministic layer: what may not happen, whatever a model concludes |
 | `docs/` | the design record, the delivery plan, the conventions, the guides |
-| `tests/` | asserts the properties the design claims, and the fixtures it claims them against |
+| `tests/` | the test project, plus the sample artifacts, documents and repositories it claims them against |
 
 `docs/concept.md` is the design record and the authority on every design question.
 `docs/conventions.md` is how to change this repository, with each rule naming the test that enforces it.

@@ -12,7 +12,7 @@ namespace Sdlc.Tests;
 [TestClass]
 public sealed class FixtureTests
 {
-    private static string ArtifactsDir => Path.Combine(RepoPaths.Fixtures, "artifacts");
+    private static string ArtifactsDir => RepoPaths.Artifacts;
 
     private static IEnumerable<string> ExpectationFiles =>
         Directory.EnumerateFiles(ArtifactsDir, "*.expected.json");
@@ -126,7 +126,7 @@ public sealed class FixtureTests
     [DataRow("brownfield")]
     public void FixtureSolutionDeclaresItsProfile(string solutionName)
     {
-        string path = Path.Combine(RepoPaths.Fixtures, "solutions", solutionName, ".sdlc", "solution.md");
+        string path = Path.Combine(RepoPaths.Solutions, solutionName, ".sdlc", "solution.md");
 
         Assert.IsTrue(File.Exists(path), $"{solutionName} has no .sdlc/solution.md.");
 
@@ -229,7 +229,7 @@ public sealed class FixtureTests
 
         Assert.IsFalse(Directory.Exists(path), "The workspace was not discarded.");
         Assert.IsFalse(
-            File.Exists(Path.Combine(RepoPaths.Fixtures, "solutions", solutionName, "SCRATCH.txt")),
+            File.Exists(Path.Combine(RepoPaths.Solutions, solutionName, "SCRATCH.txt")),
             "The checked-in fixture was mutated. Skills must only ever run against a copy.");
     }
 }

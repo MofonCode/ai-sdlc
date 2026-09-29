@@ -31,7 +31,7 @@ public sealed class HeadlessSkillTests
     /// <summary>A model call is slow, and one that hangs must not hang the suite.</summary>
     private static readonly TimeSpan _budget = TimeSpan.FromMinutes(6);
 
-    private static string ArtifactsDir => Path.Combine(RepoPaths.Fixtures, "artifacts");
+    private static string ArtifactsDir => RepoPaths.Artifacts;
 
     [TestMethod]
     [DataRow("intent.good.md")]

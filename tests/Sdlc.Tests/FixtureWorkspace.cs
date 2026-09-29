@@ -29,11 +29,11 @@ internal sealed class FixtureWorkspace : IDisposable
     /// </summary>
     public static FixtureWorkspace Materialize(string solutionName)
     {
-        string source = System.IO.Path.Combine(RepoPaths.Fixtures, "solutions", solutionName);
+        string source = System.IO.Path.Combine(RepoPaths.Solutions, solutionName);
 
         if (!Directory.Exists(source))
         {
-            throw new DirectoryNotFoundException($"No fixture solution named '{solutionName}' under {RepoPaths.Fixtures}.");
+            throw new DirectoryNotFoundException($"No sample solution named '{solutionName}' under {RepoPaths.Solutions}.");
         }
 
         string target = System.IO.Path.Combine(

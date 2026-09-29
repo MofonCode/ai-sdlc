@@ -43,7 +43,7 @@ public sealed class SchemaTests
     public void FixtureMatchesItsSchema(string schemaName, string fixtureName, bool expectedValid)
     {
         using var instance = JsonDocument.Parse(
-            File.ReadAllText(Path.Combine(RepoPaths.Fixtures, "schemas", fixtureName)));
+            File.ReadAllText(Path.Combine(RepoPaths.SchemaSamples, fixtureName)));
 
         EvaluationResults results = Schemas.Get(schemaName).Evaluate(instance.RootElement, Schemas.Options);
 
@@ -58,7 +58,7 @@ public sealed class SchemaTests
     {
         // A fixture nobody evaluates is worse than no fixture: it looks like coverage.
         string[] onDisk = [.. Directory
-            .EnumerateFiles(Path.Combine(RepoPaths.Fixtures, "schemas"), "*.json")
+            .EnumerateFiles(RepoPaths.SchemaSamples, "*.json")
             .Select(Path.GetFileName)
             .Where(n => n is not null)
             .Select(n => n!)
@@ -74,7 +74,7 @@ public sealed class SchemaTests
         CollectionAssert.AreEqual(
             onDisk,
             covered,
-            "Every fixture under tests/fixtures/schemas must appear in exactly one DataRow. " +
+            "Every document under tests/schemas must appear in exactly one DataRow. " +
             $"On disk: {string.Join(", ", onDisk)}. Covered: {string.Join(", ", covered)}.");
     }
 

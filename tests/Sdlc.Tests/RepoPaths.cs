@@ -23,7 +23,17 @@ internal static class RepoPaths
     /// </summary>
     public static string Constraints => At("CONSTRAINTS.md");
 
-    public static string Fixtures => At("tests", "fixtures");
+    /// <summary>Sample intents, specs and plans, each beside a statement of what it must be found to breach.</summary>
+    public static string Artifacts => At("tests", "artifacts");
+
+    /// <summary>
+    /// Documents the schemas are evaluated against, valid and invalid. Distinct from <see cref="Schemas"/>,
+    /// which is the schemas themselves.
+    /// </summary>
+    public static string SchemaSamples => At("tests", "schemas");
+
+    /// <summary>Sample repositories a skill or a hook is run inside, copied before use.</summary>
+    public static string Solutions => At("tests", "solutions");
 
     public static string Skills => At("skills");
 

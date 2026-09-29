@@ -78,7 +78,7 @@ public sealed class ValidatorTests
     {
         // The golden artifacts are what every interrogation test judges. If one does not satisfy its own
         // schema, every expectation built on it is measuring something malformed.
-        Result result = Run(RepoPaths.At("tests", "fixtures", "artifacts"));
+        Result result = Run(RepoPaths.Artifacts);
 
         Assert.AreEqual(0, result.ExitCode, result.Output);
         StringAssert.Contains(result.Output, "intent.schema.json", StringComparison.Ordinal);

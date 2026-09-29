@@ -7,7 +7,7 @@ before it may advance. Nothing advances on assertion.
 
 **This repository does not run cycles on itself.** There is no `.sdlc/` directory here, and
 adding one is wrong. The framework is built as an ordinary product — branch, review, merge — and
-its skills are validated against fixture solutions under `tests/fixtures/`.
+its skills are validated against sample solutions under `tests/solutions/`.
 
 `docs/concept.md` is the design record and the current authority on every design question. Read it
 before proposing a change to how the framework works.
@@ -31,7 +31,9 @@ read from them only when pointed at a specific file, and never copy forward with
 | `hooks/hooks.json` | the deterministic layer: what may not happen, whatever a model concludes |
 | `tools/*.ps1` | what the hooks run. Windows PowerShell 5.1 |
 | `tests/Sdlc.Tests/` | asserts the properties the design claims |
-| `tests/fixtures/` | fixture solutions and golden artifacts. Never mutated — skills run on copies |
+| `tests/artifacts/` | sample intents, specs and plans, each beside what it must be found to breach |
+| `tests/schemas/` | documents the schemas are evaluated against, valid and invalid |
+| `tests/solutions/` | sample repositories a skill runs inside. Never mutated — always copied first |
 | `docs/` | the design record, the delivery plan, the stack reference |
 
 ## Framework or consumer
@@ -87,8 +89,8 @@ complete check; the hook that runs on every write compares key names only.
 dotnet run --project tools/Sdlc.Validate -- <path>
 ```
 
-There is no application to run. This repository ships a plugin, and the fixtures under
-`tests/fixtures/solutions/` are the only things that build like a solution — they are materialized
+There is no application to run. This repository ships a plugin, and the sample repositories under
+`tests/solutions/` are the only things that build like a solution — they are materialized
 into a scratch copy by the test harness, never built in place.
 
 ## What makes a change landable
@@ -105,7 +107,7 @@ Until CI exists, the first two conditions collapse into the third.
 - Anything under `.sdlc/` in a consumer solution that is a generated artifact: a verify
   document is derived from evidence and is never hand-edited
 - Constraint IDs, once assigned. They are a monotonic sequence, never reused or backfilled
-- Anything under `tests/fixtures/` while running a skill. Materialize a workspace and use the copy
+- Anything under `tests/solutions/` while running a skill. Materialize a workspace and use the copy
 
 ## Where the detail lives
 
