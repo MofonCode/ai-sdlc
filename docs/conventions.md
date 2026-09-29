@@ -491,9 +491,25 @@ correctly on the artifact meant to be sound.
 No test can check this — it is semantic. **A new sample is not finished until it has been interrogated
 once and the result read.**
 
-### A sample isolates one constraint
+### A sample isolates one constraint, including the ones it did not mean to trip
 
-A sample that trips two makes a failure ambiguous about which rule broke.
+A sample that trips two makes a failure ambiguous about which rule broke. The half that is easy to
+miss is the second: **the parts of a sample that are not the point still have to be sound.**
+
+All four spec samples carried the same criterion 2 — "returns the arithmetic total for a non-empty
+sequence, asserted by a test over a known sequence" — a claim about every non-empty sequence checked
+with one. An implementation correct only at the length it was tested at passes that and fails the
+criterion, so the criterion is arguably a CON_03 breach in its own right, in four samples whose point
+was CON_03 once, CON_04, CON_05 and nothing at all.
+
+Three of them tolerated it silently. `spec.uncovered.md` expects CON_04 and would have failed had CON_03
+also fired; `spec.untestable.md` expects CON_03 already, so a second breach of the same rule disappeared
+into the set. Only `spec.good.md`, which expects nothing, had no room to hide it — which is why a
+corpus-wide defect surfaced as one artifact flaking at about half.
+
+**A shared weakness in the boilerplate of a sample corpus is a latent flake generator**, and it surfaces
+wherever tolerance is lowest rather than where the defect is. Fix it everywhere the text appears, not
+only where it failed.
 
 Enforced by: `SampleTests.ExpectationsCiteConstraintsThatExist`,
 `SampleTests.EveryArtifactHasAnExpectationAndViceVersa`
@@ -784,6 +800,8 @@ a solution, this list plus any `LOC_` of its own.
 |---|---|
 | `CON_02` | an intent's unknowns stay open questions |
 | `CON_03` | a criterion can fail |
+| `CON_04` | a spec covers every outcome its intent asks for |
+| `CON_05` | a spec introduces no scope its intent did not ask for |
 | `CON_06` | a plan's proof is adequate to its criterion |
 | `CON_07` | a change does only what its plan declared |
 | `CON_09` | no artifact restates another's content as its own authority |
