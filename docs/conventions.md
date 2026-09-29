@@ -520,12 +520,28 @@ constraints. So a broken stage shows up as a refusal, not as a false pass.
 
 Enforced by: `HeadlessSkillTests.InterrogatingAGoldenArtifactCitesTheConstraintsItsExpectationNames`
 
-### A fixture asserting a judgement will flake, and should say so
+### A fixture asserting a judgement will flake, and the rate is the useful number
 
 CON_06 asks whether a proof is *adequate* — the constraint that most needs reading comprehension, and so
-the one with real variance. `plan.good.md` drew a finding on one run and none on the next with nothing
-changed. A disagreeing case should be re-run and reported as flaky, never retried silently: hiding
-variance is the same mistake as an advisory gate.
+the one with real variance. A disagreeing case is re-run and reported as flaky, never retried silently:
+hiding variance is the same mistake as an advisory gate.
+
+**Measure it rather than labelling it.** Two cases have been measured against `interrogate`, and the
+numbers said different things:
+
+| Case | Verdict | What the rate meant |
+|---|---|---|
+| `spec.good.md`, CON_03 | 2 pass / 2 fail, then 4 / 4 after a fixture fix | a boundary case, and the artifact was at fault |
+| `plan.good.md`, CON_06 | 2 pass / 2 fail on one spec, 1 / 4 on another | irreducible, and not attributable to either spec |
+
+A rate near half says the artifact sits on the constraint's edge, and the fixture is usually what to fix
+— `spec.good.md`'s criterion 3 named a check that could not observe the outcome it claimed, so the model
+was choosing between two defensible readings at random. A rate that stays mixed after the artifact is
+unambiguous is judgement variance, and no edit to the fixture will settle it.
+
+**Do not chase a judgement by editing an artifact until the model agrees.** That tunes a fixture to one
+model on one day and teaches nothing. When a reading is genuinely available either way, the expectation
+is what should say so.
 
 ### Skills run against a copy, never the checked-in fixture
 
