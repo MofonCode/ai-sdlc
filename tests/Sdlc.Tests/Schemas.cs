@@ -13,11 +13,11 @@ namespace Sdlc.Tests;
 /// </summary>
 internal static class Schemas
 {
-    private static readonly Lazy<IReadOnlyDictionary<string, JsonSchema>> ByFileName = new(Load);
+    private static readonly Lazy<IReadOnlyDictionary<string, JsonSchema>> _byFileName = new(Load);
 
-    public static JsonSchema Get(string fileName) => ByFileName.Value[fileName];
+    public static JsonSchema Get(string fileName) => _byFileName.Value[fileName];
 
-    public static IReadOnlyCollection<string> FileNames => (IReadOnlyCollection<string>)ByFileName.Value.Keys;
+    public static IReadOnlyCollection<string> FileNames => (IReadOnlyCollection<string>)_byFileName.Value.Keys;
 
     public static readonly EvaluationOptions Options = new()
     {

@@ -466,6 +466,36 @@ An `@path` import expands into context at launch. In the docs index that would d
 
 ---
 
+### Coverage here means "is each shipped thing exercised", not a percentage
+
+The C# in this repository **is** the test suite; what ships is markdown, JSON Schema and PowerShell.
+A line-coverage number over that would measure the test helpers, so there is none, and
+`coverlet.collector` was removed — it was a declared dependency that nothing ever collected, which
+reads as if coverage were handled.
+
+What replaces it is direct: every constraint has a fixture that trips it, every schema fixture is
+evaluated by exactly one expectation, every skill appears in a guide, and every script is exercised
+by a test. **Reachability is not coverage** — the older test asserted only that something *invokes*
+each script, and `Compare-DiffToPlan.ps1` satisfied it with no test at all, which is how it shipped
+taking its base from `HEAD`.
+
+Enforced by: `PluginTests.EveryToolScriptIsExercisedByATest`, alongside
+`PluginTests.EveryToolScriptIsReachedFromSomewhere`
+
+### Style is stated in `.editorconfig` and gated in CI
+
+Adapted from MarketSense's, which is the house style across these repositories; the three changes are
+commented in the file. Two rules make it real rather than advisory: `IDE0055` is an error, so
+whitespace fails the build, and CI runs `dotnet format --verify-no-changes`.
+
+Before this existed, `Directory.Build.props` set `EnforceCodeStyleInBuild` with no `.editorconfig`
+behind it — enforcement against an unwritten standard. A trailing space survived a hundred green
+runs and this same hard gate, because the formatting rule defaults to silent.
+
+Line endings: `.gitattributes` is `* text=auto` with no `eol=` pins, so git stores LF and checks out
+native; `.editorconfig` states `crlf` to match the Windows working tree. Git owns what is committed,
+`.editorconfig` owns what is edited, and they no longer need per-extension exceptions to agree.
+
 ## Landing a change here
 
 A change lands when `dotnet test` is green, `claude plugin validate .` passes, it is consistent with

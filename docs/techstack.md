@@ -95,7 +95,6 @@ departure from the defaults above:
 |---|---|
 | `JsonSchema.Net` | `System.Text.Json` does not validate schemas, and Microsoft publishes no validator |
 | `YamlDotNet` | .NET ships no YAML reader, and frontmatter must be read by a real parser |
-| `coverlet.collector` | coverage collection |
 
 The YAML one has history. In v02 a hand-rolled frontmatter regex reported that a skill declared
 `disable-model-invocation` while the real parser had dropped every field in that file. The skill was

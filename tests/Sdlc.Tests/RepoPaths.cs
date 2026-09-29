@@ -8,9 +8,9 @@ namespace Sdlc.Tests;
 /// </summary>
 internal static class RepoPaths
 {
-    private static readonly Lazy<string> RootLazy = new(FindRoot);
+    private static readonly Lazy<string> _rootLazy = new(FindRoot);
 
-    public static string Root => RootLazy.Value;
+    public static string Root => _rootLazy.Value;
 
     public static string At(params string[] parts) => Path.Combine([Root, .. parts]);
 

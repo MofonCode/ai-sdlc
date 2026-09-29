@@ -24,7 +24,7 @@ public sealed class FixtureTests
 
         foreach (string file in ExpectationFiles)
         {
-            using JsonDocument doc = JsonDocument.Parse(File.ReadAllText(file));
+            using var doc = JsonDocument.Parse(File.ReadAllText(file));
             EvaluationResults results = schema.Evaluate(doc.RootElement, Schemas.Options);
 
             Assert.IsTrue(
@@ -64,7 +64,7 @@ public sealed class FixtureTests
 
         foreach (string file in ExpectationFiles)
         {
-            using JsonDocument doc = JsonDocument.Parse(File.ReadAllText(file));
+            using var doc = JsonDocument.Parse(File.ReadAllText(file));
 
             foreach (JsonElement cited in doc.RootElement.GetProperty("must_cite_blocking").EnumerateArray())
             {
@@ -136,7 +136,7 @@ public sealed class FixtureTests
         YamlStream yaml = new();
         yaml.Load(new StringReader(text[3..end]));
 
-        YamlMappingNode root = (YamlMappingNode)yaml.Documents[0].RootNode;
+        var root = (YamlMappingNode)yaml.Documents[0].RootNode;
         string[] keys = [.. root.Children.Keys.OfType<YamlScalarNode>().Select(k => k.Value!)];
 
         CollectionAssert.Contains(keys, "stack", $"{solutionName} does not declare a stack.");
@@ -152,7 +152,7 @@ public sealed class FixtureTests
     {
         string path;
 
-        using (FixtureWorkspace workspace = FixtureWorkspace.Materialize(solutionName))
+        using (var workspace = FixtureWorkspace.Materialize(solutionName))
         {
             path = workspace.Path;
 

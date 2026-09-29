@@ -145,7 +145,7 @@ public sealed class DocsTests
             .Where(t => t.Namespace == "Sdlc.Tests")];
 
         List<string> missing = [];
-        int checked_ = 0;
+        int citationsChecked = 0;
 
         foreach (string paragraph in paragraphs)
         {
@@ -155,7 +155,7 @@ public sealed class DocsTests
             {
                 string name = match.Groups["name"].Value;
                 string typeName = match.Groups["type"].Value;
-                checked_++;
+                citationsChecked++;
 
                 IEnumerable<Type> candidates = string.IsNullOrEmpty(typeName)
                     ? classes
@@ -168,14 +168,14 @@ public sealed class DocsTests
             }
         }
 
-        Assert.IsTrue(checked_ >= 25, $"Only {checked_} citations were checked.");
+        Assert.IsTrue(citationsChecked >= 25, $"Only {citationsChecked} citations were checked.");
 
         Assert.AreEqual(0, missing.Count,
             "conventions.md cites tests that do not exist: " + string.Join(", ", missing));
     }
 
     [TestMethod]
-    public void EverySkillAppearsInAGuide() 
+    public void EverySkillAppearsInAGuide()
     {
         // A skill nobody documented is one nobody will run. The guides are where a person looks, so a
         // new skill that reaches none of them has shipped invisible.
@@ -262,7 +262,7 @@ public sealed class DocsTests
         // A guide that states a version has to state the one that ships. The first-cycle guide said
         // 0.1.0 across a whole release, which quietly told a reader they were verifying something other
         // than what they had installed.
-        using JsonDocument manifest = JsonDocument.Parse(
+        using var manifest = JsonDocument.Parse(
             File.ReadAllText(RepoPaths.At(".claude-plugin", "plugin.json")));
 
         string shipped = manifest.RootElement.GetProperty("version").GetString()!;

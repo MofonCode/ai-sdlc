@@ -113,7 +113,7 @@ public sealed class HookTests
     {
         // The first version of this hook denied every write under findings/ and blocked
         // /sdlc:interrogate from writing its own output. Found by running the flow, not by reading it.
-        using FixtureWorkspace workspace = FixtureWorkspace.Materialize("greenfield");
+        using var workspace = FixtureWorkspace.Materialize("greenfield");
 
         string target = Path.Combine(workspace.Path, ".sdlc", "cycles", CycleId, "findings", "intent.r1.json");
 
@@ -125,7 +125,7 @@ public sealed class HookTests
     [TestMethod]
     public void OverwritingAnExistingFindingsRoundIsRefused()
     {
-        using FixtureWorkspace workspace = FixtureWorkspace.Materialize("greenfield");
+        using var workspace = FixtureWorkspace.Materialize("greenfield");
 
         string dir = Path.Combine(workspace.Path, ".sdlc", "cycles", CycleId, "findings");
         Directory.CreateDirectory(dir);
@@ -141,7 +141,7 @@ public sealed class HookTests
     [TestMethod]
     public void OverwritingExistingEvidenceIsRefused()
     {
-        using FixtureWorkspace workspace = FixtureWorkspace.Materialize("greenfield");
+        using var workspace = FixtureWorkspace.Materialize("greenfield");
 
         string dir = Path.Combine(workspace.Path, ".sdlc", "cycles", CycleId, "evidence");
         Directory.CreateDirectory(dir);
@@ -182,7 +182,7 @@ public sealed class HookTests
         // a spec, approved_by on a plan - which meant every reader and every regex had to know which
         // artifact used which, for one act that is the same act.
         const string gate = "approved";
-        using FixtureWorkspace workspace = FixtureWorkspace.Materialize("greenfield");
+        using var workspace = FixtureWorkspace.Materialize("greenfield");
 
         string cycleDir = Path.Combine(workspace.Path, ".sdlc", "cycles", CycleId);
         Directory.CreateDirectory(Path.Combine(cycleDir, "findings"));
@@ -213,7 +213,7 @@ public sealed class HookTests
     {
         // The happy path: approval always comes after interrogation, so this guard must never fire
         // during a normal cycle.
-        using FixtureWorkspace workspace = FixtureWorkspace.Materialize("greenfield");
+        using var workspace = FixtureWorkspace.Materialize("greenfield");
 
         string cycleDir = Path.Combine(workspace.Path, ".sdlc", "cycles", CycleId);
         Directory.CreateDirectory(Path.Combine(cycleDir, "findings"));
@@ -401,7 +401,7 @@ public sealed class HookTests
         // The defect this closes: skills write files with `cat > path <<EOF`, which is the Bash tool, so
         // an Edit|Write matcher never saw it. All three write gates were being routed around by the
         // default path every skill takes.
-        using FixtureWorkspace workspace = FixtureWorkspace.Materialize("greenfield");
+        using var workspace = FixtureWorkspace.Materialize("greenfield");
         WritePlan(workspace, approved: true);
 
         Decision decision = Invoke(
@@ -415,7 +415,7 @@ public sealed class HookTests
     [TestMethod]
     public void AShellRedirectToADeclaredFileIsAllowed()
     {
-        using FixtureWorkspace workspace = FixtureWorkspace.Materialize("greenfield");
+        using var workspace = FixtureWorkspace.Materialize("greenfield");
         WritePlan(workspace, approved: true);
 
         Decision decision = Invoke(
@@ -434,7 +434,7 @@ public sealed class HookTests
     {
         // An over-refusing hook gets switched off, and this one now runs on every Bash call in a governed
         // repository. Ordinary commands must pass straight through.
-        using FixtureWorkspace workspace = FixtureWorkspace.Materialize("greenfield");
+        using var workspace = FixtureWorkspace.Materialize("greenfield");
         WritePlan(workspace, approved: true);
 
         Decision decision = Invoke(Tool("Assert-DeclaredFile.ps1"), BashEvent(command, workspace.Path));
@@ -448,7 +448,7 @@ public sealed class HookTests
         // The first version scanned the whole plan for any backticked token holding a slash or a dot, so
         // it believed net10.0, text/html, GET / and Random.Shared.Next(1, 7) were declared files. A gate
         // matching against that is not a gate. This plan carries exactly those fragments in its prose.
-        using FixtureWorkspace workspace = FixtureWorkspace.Materialize("greenfield");
+        using var workspace = FixtureWorkspace.Materialize("greenfield");
         workspace.Run("checkout", "-q", "-b", $"cycle/{CycleId}");
 
         string cycleDir = Path.Combine(workspace.Path, ".sdlc", "cycles", CycleId);
@@ -501,7 +501,7 @@ public sealed class HookTests
     [TestMethod]
     public void LandingIsNotConsideredOffACycleBranch()
     {
-        using FixtureWorkspace workspace = FixtureWorkspace.Materialize("greenfield");
+        using var workspace = FixtureWorkspace.Materialize("greenfield");
 
         Decision decision = Invoke(Tool("Assert-Landable.ps1"), BashEvent("gh pr create --fill", workspace.Path));
 
@@ -511,7 +511,7 @@ public sealed class HookTests
     [TestMethod]
     public void LandingWithoutAVerifyDocumentIsRefused()
     {
-        using FixtureWorkspace workspace = FixtureWorkspace.Materialize("greenfield");
+        using var workspace = FixtureWorkspace.Materialize("greenfield");
         workspace.Run("checkout", "-q", "-b", $"cycle/{CycleId}");
 
         Decision decision = Invoke(Tool("Assert-Landable.ps1"), BashEvent("gh pr create --fill", workspace.Path));
@@ -526,7 +526,7 @@ public sealed class HookTests
     [DataRow("pass", 0, true)]
     public void LandingFollowsTheVerifiedOutcome(string outcome, int passesSpent, bool shouldBeAllowed)
     {
-        using FixtureWorkspace workspace = FixtureWorkspace.Materialize("greenfield");
+        using var workspace = FixtureWorkspace.Materialize("greenfield");
         workspace.Run("checkout", "-q", "-b", $"cycle/{CycleId}");
 
         string cycleDir = Path.Combine(workspace.Path, ".sdlc", "cycles", CycleId);
@@ -558,7 +558,7 @@ public sealed class HookTests
     [TestMethod]
     public void ReadingPullRequestsIsNeverRefused()
     {
-        using FixtureWorkspace workspace = FixtureWorkspace.Materialize("greenfield");
+        using var workspace = FixtureWorkspace.Materialize("greenfield");
         workspace.Run("checkout", "-q", "-b", $"cycle/{CycleId}");
 
         Decision decision = Invoke(Tool("Assert-Landable.ps1"), BashEvent("gh pr list --state open", workspace.Path));
@@ -571,7 +571,7 @@ public sealed class HookTests
     [TestMethod]
     public void SourceEditsAreNotGatedOffACycleBranch()
     {
-        using FixtureWorkspace workspace = FixtureWorkspace.Materialize("greenfield");
+        using var workspace = FixtureWorkspace.Materialize("greenfield");
 
         Decision decision = Invoke(
             Tool("Assert-DeclaredFile.ps1"),
@@ -584,7 +584,7 @@ public sealed class HookTests
     [TestMethod]
     public void SourceEditWithNoPlanIsRefused()
     {
-        using FixtureWorkspace workspace = FixtureWorkspace.Materialize("greenfield");
+        using var workspace = FixtureWorkspace.Materialize("greenfield");
         workspace.Run("checkout", "-q", "-b", $"cycle/{CycleId}");
 
         Decision decision = Invoke(
@@ -598,7 +598,7 @@ public sealed class HookTests
     [TestMethod]
     public void SourceEditWithAnUnapprovedPlanIsRefused()
     {
-        using FixtureWorkspace workspace = FixtureWorkspace.Materialize("greenfield");
+        using var workspace = FixtureWorkspace.Materialize("greenfield");
         WritePlan(workspace, approved: false);
 
         Decision decision = Invoke(
@@ -613,7 +613,7 @@ public sealed class HookTests
     [TestMethod]
     public void UndeclaredFileIsRefusedEvenWithAnApprovedPlan()
     {
-        using FixtureWorkspace workspace = FixtureWorkspace.Materialize("greenfield");
+        using var workspace = FixtureWorkspace.Materialize("greenfield");
         WritePlan(workspace, approved: true);
 
         Decision decision = Invoke(
@@ -627,7 +627,7 @@ public sealed class HookTests
     [TestMethod]
     public void DeclaredFileIsAllowedWithAnApprovedPlan()
     {
-        using FixtureWorkspace workspace = FixtureWorkspace.Materialize("greenfield");
+        using var workspace = FixtureWorkspace.Materialize("greenfield");
         WritePlan(workspace, approved: true);
 
         Decision decision = Invoke(

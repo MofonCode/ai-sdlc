@@ -11,7 +11,7 @@ namespace Sdlc.Tests;
 [TestClass]
 public sealed class PluginTests
 {
-    private static readonly string[] OnlyHooks = ["hooks"];
+    private static readonly string[] _onlyHooks = ["hooks"];
 
     private static JsonDocument Read(string relativePath) =>
         JsonDocument.Parse(File.ReadAllText(RepoPaths.At(relativePath.Split('/'))));
@@ -53,7 +53,7 @@ public sealed class PluginTests
         string[] topLevel = [.. hooks.RootElement.EnumerateObject().Select(p => p.Name)];
 
         CollectionAssert.AreEqual(
-            OnlyHooks,
+            _onlyHooks,
             topLevel,
             "Every event must sit inside the hooks object. An event key at the top level makes the " +
             "whole plugin fail to load, silently.");
@@ -158,6 +158,58 @@ public sealed class PluginTests
 
         StringAssert.Contains(output, "\u2014", StringComparison.Ordinal,
             $"{script} emitted no em dash at all, so this test is no longer checking anything.");
+    }
+
+    [TestMethod]
+    public void EveryToolScriptIsExercisedByATest()
+    {
+        // Reachability is not coverage, and this repository had only the first. The reachability test
+        // above asserts that something invokes each script; it says nothing about whether a test ever
+        // runs one. Compare-DiffToPlan.ps1 satisfied reachability with no test at all, and shipped
+        // taking its base from HEAD at run time - so one ordinary git commit during a build emptied the
+        // diff and reported success with an undeclared file in it.
+        //
+        // There is no line-coverage number here on purpose: the C# in this repository is the test suite,
+        // and the thing being covered is markdown and PowerShell. What matters is whether each shipped
+        // script is exercised, and that is answerable directly.
+        string[] testBodies = [.. Directory
+            .EnumerateFiles(RepoPaths.At("tests", "Sdlc.Tests"), "*.cs")
+            .Select(File.ReadAllText)];
+
+        string[] scripts = [.. Directory.EnumerateFiles(RepoPaths.At("tools"), "*.ps1")];
+
+        List<string> untested = [];
+
+        foreach (string script in scripts)
+        {
+            string name = Path.GetFileName(script);
+
+            if (testBodies.Any(body => body.Contains(name, StringComparison.Ordinal)))
+            {
+                continue;
+            }
+
+            // A dot-sourced library is covered through its callers, but only if a test actually runs
+            // one of them. Otherwise "it is a library" is a way of never testing anything.
+            bool coveredThroughACaller = scripts
+                .Where(other => other != script)
+                .Any(other =>
+                    File.ReadAllText(other).Contains(name, StringComparison.Ordinal)
+                    && testBodies.Any(body =>
+                        body.Contains(Path.GetFileName(other), StringComparison.Ordinal)));
+
+            if (!coveredThroughACaller)
+            {
+                untested.Add(name);
+            }
+        }
+
+        Assert.AreEqual(
+            0,
+            untested.Count,
+            "These scripts ship with no test exercising them, directly or through a caller: "
+            + string.Join(", ", untested)
+            + ". A guardrail nobody runs is indistinguishable from one that works.");
     }
 
     [TestMethod]

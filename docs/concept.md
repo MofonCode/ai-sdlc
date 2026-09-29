@@ -239,6 +239,22 @@ in violation of rules that never applied to it.
 library holds the *global* bar — what makes any change landable. The spec holds the
 *per-cycle* acceptance criteria — what makes this change done. Verify checks both.
 
+### 4.1a Proof is judged per criterion, never measured in aggregate
+
+**DECIDED:** the framework sets no coverage threshold on the solutions it governs, and will not.
+CON_06 forbids a plan naming a check that could pass while its criterion is unmet — proof adequacy,
+decided one criterion at a time by someone reading both.
+
+A percentage cannot do that job. It answers "how much of the code did tests execute", and the
+question every cycle actually faces is "is *this* criterion proven". A suite can execute every line
+and assert nothing; it can also leave a whole module uncovered while proving every criterion in the
+spec. Worse, a threshold is a target, and the cheapest way to move it is tests that execute code
+without asserting anything — which lowers the real proof while raising the number that stands in for
+it.
+
+Coverage tooling is welcome in a solution as an instrument for whoever is writing tests. It is not a
+gate here, and no artifact records it.
+
 ### 4.2 What qualifies as a constraint
 
 **DECIDED:** a constraint is a rule about an **artifact** that needs reading comprehension to
@@ -501,3 +517,4 @@ a solution, this list plus any `LOC_` of its own.
 |---|---|
 | `CON_01` | an intent states the problem, not the solution |
 | `CON_04` | a spec covers every outcome its intent asks for |
+| `CON_06` | a plan's proof is adequate to the criterion it claims to prove |

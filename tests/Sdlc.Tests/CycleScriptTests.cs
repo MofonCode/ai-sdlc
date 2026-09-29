@@ -119,7 +119,7 @@ public sealed class CycleScriptTests
     {
         // The regression test for the defect above. The same work, compared three times: uncommitted,
         // after one commit, and after two. An undeclared file must be reported every time.
-        using FixtureWorkspace workspace = FixtureWorkspace.Materialize("greenfield");
+        using var workspace = FixtureWorkspace.Materialize("greenfield");
         OnCycleBranch(workspace);
         WritePlan(workspace);
         Commit(workspace, "record artifacts");
@@ -171,7 +171,7 @@ public sealed class CycleScriptTests
     {
         // Guessing a base is what the old behaviour did. Refusing is the only safe answer, because a
         // wrong base reports success rather than failing.
-        using FixtureWorkspace workspace = FixtureWorkspace.Materialize("greenfield");
+        using var workspace = FixtureWorkspace.Materialize("greenfield");
         OnCycleBranch(workspace);
         WritePlan(workspace);
         Commit(workspace, "record artifacts");
@@ -190,7 +190,7 @@ public sealed class CycleScriptTests
     {
         // Re-pinning would put work already done behind the new base and hide it, which is the same
         // failure by another route.
-        using FixtureWorkspace workspace = FixtureWorkspace.Materialize("greenfield");
+        using var workspace = FixtureWorkspace.Materialize("greenfield");
         OnCycleBranch(workspace);
         WritePlan(workspace);
         Commit(workspace, "record artifacts");
@@ -222,7 +222,7 @@ public sealed class CycleScriptTests
     {
         // Off cycle/<id> the write gates stay silent, so a build there is unenforced while looking
         // governed. That is worse than no build at all.
-        using FixtureWorkspace workspace = FixtureWorkspace.Materialize("greenfield");
+        using var workspace = FixtureWorkspace.Materialize("greenfield");
         WritePlan(workspace);
 
         Result result = Run(
@@ -237,7 +237,7 @@ public sealed class CycleScriptTests
     {
         // Anything already dirty is attributed to this cycle and surfaces as scope the plan never
         // declared, which sends a reader to investigate the wrong thing.
-        using FixtureWorkspace workspace = FixtureWorkspace.Materialize("greenfield");
+        using var workspace = FixtureWorkspace.Materialize("greenfield");
         OnCycleBranch(workspace);
         WritePlan(workspace);
         WriteSource(workspace, "src/Preexisting.cs", "class Old {}");
@@ -254,7 +254,7 @@ public sealed class CycleScriptTests
     {
         // The carve-out that makes the check usable: the plan has just been written and is necessarily
         // uncommitted at this point. A rule that refused here would refuse every real build.
-        using FixtureWorkspace workspace = FixtureWorkspace.Materialize("greenfield");
+        using var workspace = FixtureWorkspace.Materialize("greenfield");
         OnCycleBranch(workspace);
         WritePlan(workspace);
 
@@ -269,7 +269,7 @@ public sealed class CycleScriptTests
     public void BuildIsNotReadyWithoutAnApprovedPlan()
     {
         // The gate the whole process rests on. A person decides what a change may touch, before it does.
-        using FixtureWorkspace workspace = FixtureWorkspace.Materialize("greenfield");
+        using var workspace = FixtureWorkspace.Materialize("greenfield");
         OnCycleBranch(workspace);
         WritePlan(workspace, approved: false);
 

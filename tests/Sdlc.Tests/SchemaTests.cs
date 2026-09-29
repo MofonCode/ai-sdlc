@@ -11,8 +11,8 @@ namespace Sdlc.Tests;
 [TestClass]
 public sealed class SchemaTests
 {
-    private static readonly string[] ExpectedSeverities = ["blocking", "suggestion"];
-    private static readonly string[] ExpectedOutcomes = ["pass", "blocked", "escalated"];
+    private static readonly string[] _expectedSeverities = ["blocking", "suggestion"];
+    private static readonly string[] _expectedOutcomes = ["pass", "blocked", "escalated"];
 
     [TestMethod]
     [DataRow("findings.schema.json", "findings.valid.json", true)]
@@ -26,7 +26,7 @@ public sealed class SchemaTests
     [DataRow("verify.schema.json", "verify.invalid-waived-without-document.json", false)]
     public void FixtureMatchesItsSchema(string schemaName, string fixtureName, bool expectedValid)
     {
-        using JsonDocument instance = JsonDocument.Parse(
+        using var instance = JsonDocument.Parse(
             File.ReadAllText(Path.Combine(RepoPaths.Fixtures, "schemas", fixtureName)));
 
         EvaluationResults results = Schemas.Get(schemaName).Evaluate(instance.RootElement, Schemas.Options);
@@ -67,7 +67,7 @@ public sealed class SchemaTests
     {
         // The concept makes the findings schema the sole owner of the severity taxonomy. If a
         // second definition appears anywhere, consumers can disagree about what blocks.
-        using JsonDocument findings = JsonDocument.Parse(
+        using var findings = JsonDocument.Parse(
             File.ReadAllText(Path.Combine(RepoPaths.Schemas, "findings.schema.json")));
 
         JsonElement severity = findings.RootElement
@@ -75,13 +75,13 @@ public sealed class SchemaTests
 
         string[] values = [.. severity.EnumerateArray().Select(v => v.GetString()!)];
 
-        CollectionAssert.AreEqual(ExpectedSeverities, values);
+        CollectionAssert.AreEqual(_expectedSeverities, values);
     }
 
     [TestMethod]
     public void OutcomeEnumMatchesTheStateMachine()
     {
-        using JsonDocument verify = JsonDocument.Parse(
+        using var verify = JsonDocument.Parse(
             File.ReadAllText(Path.Combine(RepoPaths.Schemas, "verify.schema.json")));
 
         JsonElement outcome = verify.RootElement
@@ -89,7 +89,7 @@ public sealed class SchemaTests
 
         string[] values = [.. outcome.EnumerateArray().Select(v => v.GetString()!)];
 
-        CollectionAssert.AreEqual(ExpectedOutcomes, values);
+        CollectionAssert.AreEqual(_expectedOutcomes, values);
     }
 
     [TestMethod]
@@ -107,7 +107,7 @@ public sealed class SchemaTests
 
         foreach (string artifact in new[] { "intent", "spec", "plan" })
         {
-            using JsonDocument schema = JsonDocument.Parse(
+            using var schema = JsonDocument.Parse(
                 File.ReadAllText(Path.Combine(RepoPaths.Schemas, $"{artifact}.schema.json")));
 
             JsonElement properties = schema.RootElement.GetProperty("properties");

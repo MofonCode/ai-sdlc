@@ -11,13 +11,13 @@ namespace Sdlc.Tests;
 [TestClass]
 public sealed class ConstraintsTests
 {
-    private static readonly Regex Heading = new(
+    private static readonly Regex _heading = new(
         @"^## (?<id>CON_(?<n>\d{2,})) — (?<statement>.+)$",
         RegexOptions.Multiline | RegexOptions.ExplicitCapture,
         TimeSpan.FromSeconds(2));
 
     // Words that would make a global constraint judge a solution on a stack it never chose.
-    private static readonly string[] StackWords =
+    private static readonly string[] _stackWords =
     [
         "dotnet", ".net", "csharp", "c#", "msbuild", "nuget", "mstest", "xunit", "nunit",
         "blazor", "maui", "aspire", "asp.net", "sql server", "cosmos", "ml.net",
@@ -29,7 +29,7 @@ public sealed class ConstraintsTests
     private static List<(string Id, int Number, string Statement, string Body)> Parse()
     {
         string text = Text;
-        MatchCollection matches = Heading.Matches(text);
+        MatchCollection matches = _heading.Matches(text);
         List<(string, int, string, string)> result = [];
 
         for (int i = 0; i < matches.Count; i++)
@@ -113,7 +113,7 @@ public sealed class ConstraintsTests
         {
             string haystack = statement + body;
 
-            foreach (string word in StackWords)
+            foreach (string word in _stackWords)
             {
                 Assert.IsFalse(
                     haystack.Contains(word, StringComparison.OrdinalIgnoreCase),

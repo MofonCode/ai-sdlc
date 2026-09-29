@@ -13,7 +13,7 @@ public sealed class SkillTests
 {
     // Skills whose effects reach outside the repository, or commit a team to a process. A model
     // must never decide on its own that now is the moment for one of these.
-    private static readonly string[] MustBeHumanInvoked = ["land", "run", "init"];
+    private static readonly string[] _mustBeHumanInvoked = ["land", "run", "init"];
 
     private static IEnumerable<string> SkillDirectories =>
         Directory.EnumerateDirectories(RepoPaths.Skills).OrderBy(d => d, StringComparer.Ordinal);
@@ -96,7 +96,7 @@ public sealed class SkillTests
     [TestMethod]
     public void OutwardFacingSkillsAreHumanInvokedOnly()
     {
-        foreach (string name in MustBeHumanInvoked)
+        foreach (string name in _mustBeHumanInvoked)
         {
             string file = Path.Combine(RepoPaths.Skills, name, "SKILL.md");
             Assert.IsTrue(File.Exists(file), $"Expected a skill named {name}.");
@@ -121,7 +121,7 @@ public sealed class SkillTests
         // A skill cannot read its schema - a solution session cannot reach the plugin root - so the
         // required fields have to be stated in the body. The intent skill once had that text removed
         // while stripping unreachable paths, and produced intents with no frontmatter at all.
-        using System.Text.Json.JsonDocument schema = System.Text.Json.JsonDocument.Parse(
+        using var schema = System.Text.Json.JsonDocument.Parse(
             File.ReadAllText(Path.Combine(RepoPaths.Schemas, schemaName)));
 
         string body = File.ReadAllText(Path.Combine(RepoPaths.Skills, skill, "SKILL.md"));
