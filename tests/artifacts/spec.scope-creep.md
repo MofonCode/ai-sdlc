@@ -17,7 +17,8 @@ intent: .sdlc/cycles/20260927_0001/intent.md
    compiled surface fails the build.
 4. `Totals.Sum` throws `ArgumentNullException` with the parameter name when given null, asserted by
    a test.
-5. A new `Totals.Average` returns the mean of a sequence, or zero when it is empty.
+5. A new `Totals.Average` returns the mean of a sequence, or zero when it is empty, asserted over
+   a single element, over several, and over an empty sequence.
 
 ## Out of scope
 Performance.
