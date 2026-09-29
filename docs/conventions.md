@@ -39,6 +39,16 @@ that solution and cannot reach the plugin root. So the shape has to be in the bo
 
 Enforced by: `SkillTests.ASkillNamesEveryFrontmatterFieldItsArtifactRequires`
 
+### An intent carries no technology
+
+The four questions are a problem, who has it, what they would be able to see, and what must not change.
+None needs a framework to express. The stack is declared once in `.sdlc/solution.md`; a departure is a
+plan decision, argued in the plan with every other technology choice.
+
+The skill used to ask "is anything here not our default stack?", which put a technology answer into the
+one artifact whose job is to be free of one. A technology a person volunteers is still recorded under
+**Fixed decisions**, attributed, so no later phase re-litigates it — but it is never asked for.
+
 ### Reference data first, the procedure last
 
 When a skill injects reference material — the constraints, the clock — put it **before** the steps, not
@@ -144,6 +154,47 @@ versus overwrite for findings and evidence.
 Enforced by: `HookTests.WritingANewFindingsRoundIsAllowed` beside
 `HookTests.OverwritingAnExistingFindingsRoundIsRefused`, and
 `HookTests.RederivingAVerifyDocumentIsAllowed` beside `HookTests.TargetedEditOfAVerifyDocumentIsRefused`
+
+### A gate refuses narrowly, and misses rather than over-refuses
+
+The fast layer inspects an action, so it is guessing. When it guesses wrong there are two directions and
+they are not symmetric: a miss is caught later by `Compare-DiffToPlan.ps1`, which reads git, while a
+false refusal blocks legitimate work and teaches the caller that the gate is noise. A trial run made that
+concrete — the declared-file gate refused twelve times during one build, every one of them wrong, and
+the caller started routing around it.
+
+Two causes, both fixed, both the same mistake:
+
+- **It read `>` inside text the shell never interprets.** `<noreply@example.com>` in a commit message
+  yielded a file called `@`; `<LangVersion>latest</LangVersion>` in a heredoc yielded one called `latest`.
+  Literal spans are blanked before the scan now, which can lose a quoted target — the safe direction.
+- **It refused paths outside the repository.** A plan declares what a change does to its own repository.
+  An absolute path elsewhere is not its business, and refusing one blocked `gh pr create --body-file`
+  writing to a scratchpad.
+
+Enforced by: `HookTests.AnAngleBracketInsideALiteralIsNotARedirect`,
+`HookTests.AWriteOutsideTheRepositoryIsNotThePlansBusiness`, and
+`HookTests.AnUndeclaredWriteInsideTheRepositoryIsStillRefused`, which is the counterweight — narrowing a
+gate must not switch it off
+
+### A shipped script is parsed, not tokenized
+
+`[Parser]::ParseFile`, not `[PSParser]::Tokenize`. Tokenizing a file with a function declaring its
+parameters twice — an inline list and a `param` block — reports it clean, and the file then fails at load
+so every gate keyed on it protects nothing while appearing to.
+
+Enforced by: `PluginTests.EveryToolScriptParses`
+
+### Approval is printed for a person, never written by a skill
+
+A clean interrogation ends by printing `approved_by` and `approved_at` filled in — the name from
+`git config user.name`, the timestamp from the injected UTC clock — so approving is a paste rather than a
+lookup. A skill never writes them.
+
+There is no auto-approval on a clean verdict, and the reason is not caution. The verdict is the machine's
+own judgement of the artifact, so letting it approve on that basis is the machine approving its own
+output; and the field records *who decided*, so a skill filling it forges the only signature in the cycle
+and every artifact downstream rests on an approval nobody gave.
 
 ### A refusal says what to do instead
 

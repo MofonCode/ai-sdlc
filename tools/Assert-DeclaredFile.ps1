@@ -35,6 +35,49 @@ function Deny([string]$Reason) {
     exit 0
 }
 
+function Remove-LiteralSpan([string]$Command) {
+    <#
+    .SYNOPSIS
+    The command with heredoc bodies, here-strings and quoted spans blanked out.
+
+    .DESCRIPTION
+    A redirect is shell syntax. A `>` inside text the shell never interprets is not one, and the first
+    version of this scanned the raw command string, so every `>` anywhere looked like a redirect.
+
+    Two real refusals from a trial run, both of them wrong:
+
+      git commit -m @'...<noreply@anthropic.com>...'@   ->  refused a file called "@"
+      cat > f <<'EOF' ... <LangVersion>latest</...      ->  refused a file called "latest"
+
+    The first fires on any commit carrying an attribution line. The second fires on any .csproj, .props
+    or .razor written through a heredoc, which is how every markup file in a cycle gets written. Between
+    them the gate refused twelve times during one build, and the caller learned to route around it.
+
+    Blanking the literals rather than parsing them can lose a genuine target - `> "a file.md"` becomes
+    `> ` and is skipped. That direction is safe: anything missed here is caught at verification by
+    Compare-DiffToPlan.ps1, which reads git. A false refusal is not safe, because it teaches a caller
+    that the gate is noise.
+    #>
+
+    $text = $Command
+
+    # Heredoc bodies first: they can contain quotes of their own. `<<EOF`, `<<'EOF'`, `<<-"EOF"`.
+    $text = [regex]::Replace(
+        $text,
+        '(?s)<<-?\s*(?<q>["'']?)(?<w>[A-Za-z_][A-Za-z0-9_]*)\k<q>.*?(?:\r?\n|\A)\k<w>',
+        ' ')
+
+    # PowerShell here-strings.
+    $text = [regex]::Replace($text, "(?s)@'.*?'@", ' ')
+    $text = [regex]::Replace($text, '(?s)@".*?"@', ' ')
+
+    # Ordinary quoted spans.
+    $text = [regex]::Replace($text, "'[^']*'", ' ')
+    $text = [regex]::Replace($text, '"[^"]*"', ' ')
+
+    return $text
+}
+
 function Get-RedirectionTarget([string]$Command) {
     # The shell forms that create or replace a file. Deliberately short: the complete guarantee is the
     # diff comparison at verification, so this only has to catch the common shapes.
@@ -42,9 +85,12 @@ function Get-RedirectionTarget([string]$Command) {
     #   > path      >> path      N> path      tee path      tee -a path
     #
     # Not counted: `2>&1` and friends, which redirect a descriptor and name no file, and the null device.
+    # Not seen at all: anything inside a literal - see Remove-LiteralSpan.
     $targets = New-Object System.Collections.Generic.List[string]
 
-    foreach ($m in [regex]::Matches($Command, '(?<![0-9&])[0-9]?>>?\s*(?<t>[^\s|;&<>()]+)')) {
+    $shell = Remove-LiteralSpan -Command $Command
+
+    foreach ($m in [regex]::Matches($shell, '(?<![0-9&])[0-9]?>>?\s*(?<t>[^\s|;&<>()]+)')) {
         $t = $m.Groups['t'].Value.Trim().Trim('"').Trim("'")
         if (-not $t) { continue }
         if ($t -match '^&') { continue }
@@ -52,7 +98,7 @@ function Get-RedirectionTarget([string]$Command) {
         if (-not $targets.Contains($t)) { $targets.Add($t) }
     }
 
-    foreach ($m in [regex]::Matches($Command, '\btee\b\s+(?:-a\s+)?(?<t>[^\s|;&<>()-][^\s|;&<>()]*)')) {
+    foreach ($m in [regex]::Matches($shell, '\btee\b\s+(?:-a\s+)?(?<t>[^\s|;&<>()-][^\s|;&<>()]*)')) {
         $t = $m.Groups['t'].Value.Trim().Trim('"').Trim("'")
         if ($t -and -not $targets.Contains($t)) { $targets.Add($t) }
     }
@@ -143,6 +189,15 @@ foreach ($target in $targets) {
     $relative = $normalized
     if ($relative.StartsWith($cwdNormalized, [System.StringComparison]::OrdinalIgnoreCase)) {
         $relative = $relative.Substring($cwdNormalized.Length).TrimStart('/')
+    }
+    elseif ([System.IO.Path]::IsPathRooted($normalized)) {
+        # Absolute, and not under this repository. A plan declares what a change does to its own
+        # repository and says nothing about anywhere else, so this is not ours to refuse.
+        #
+        # It used to be refused, and during a trial run that blocked `gh pr create --body-file` writing
+        # to the session scratchpad - a path with no relationship to the plan at all. The caller worked
+        # around it by piping the body over stdin, which is what an over-refusing gate always produces.
+        continue
     }
 
     $declared = Get-SdlcDeclaredFile -PlanPath $planPath

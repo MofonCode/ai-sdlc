@@ -161,6 +161,51 @@ public sealed class PluginTests
     }
 
     [TestMethod]
+    public void EveryToolScriptParses()
+    {
+        // A script that does not parse refuses nothing, and a hook that cannot start protects nothing
+        // while appearing to. This shipped once: a function declared its parameters twice - an inline
+        // list and a param block - and every gate keyed on that file died at load. Tokenizing the file
+        // reported it clean, because tokenizing is not parsing.
+        List<string> broken = [];
+
+        foreach (string script in Directory.EnumerateFiles(RepoPaths.At("tools"), "*.ps1"))
+        {
+            string check =
+                "$e = $null; "
+                + "$null = [System.Management.Automation.Language.Parser]::ParseFile('"
+                + script
+                + "', [ref]$null, [ref]$e); "
+                + "if ($e.Count -gt 0) { $e[0].Message; exit 1 }";
+
+            ProcessStartInfo info = new("powershell.exe")
+            {
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false,
+            };
+
+            info.ArgumentList.Add("-NoProfile");
+            info.ArgumentList.Add("-NonInteractive");
+            info.ArgumentList.Add("-Command");
+            info.ArgumentList.Add(check);
+
+            using Process process = Process.Start(info)
+                ?? throw new InvalidOperationException("Could not start powershell.exe.");
+
+            string message = process.StandardOutput.ReadToEnd().Trim();
+            process.WaitForExit();
+
+            if (process.ExitCode != 0)
+            {
+                broken.Add($"{Path.GetFileName(script)}: {message}");
+            }
+        }
+
+        Assert.AreEqual(0, broken.Count, string.Join(" | ", broken));
+    }
+
+    [TestMethod]
     public void EveryToolScriptIsExercisedByATest()
     {
         // Reachability is not coverage, and this repository had only the first. The reachability test

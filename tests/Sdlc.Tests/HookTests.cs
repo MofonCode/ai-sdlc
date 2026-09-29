@@ -443,6 +443,81 @@ public sealed class HookTests
     }
 
     [TestMethod]
+    [DataRow(
+        "git commit -m @'\nrecord artifacts\n\nCo-Authored-By: Someone <noreply@example.com>\n'@",
+        "@",
+        "an attribution line's closing angle bracket, inside a PowerShell here-string")]
+    [DataRow(
+        "cat > src/Greenfield.Core/Totals.cs <<'EOF'\n<LangVersion>latest</LangVersion>\nEOF",
+        "latest",
+        "markup inside a heredoc body")]
+    [DataRow(
+        "echo \"generic List<int> and a > sign\"",
+        "sign",
+        "an angle bracket inside a double-quoted string")]
+    public void AnAngleBracketInsideALiteralIsNotARedirect(string command, string phantom, string why)
+    {
+        // Both of the first two refused during a trial run, and neither names a file. The parser scanned
+        // the raw command string, so any `>` looked like a redirect: an attribution line ending
+        // `<noreply@...>` yielded a file called "@", and a heredoc carrying `<LangVersion>latest</...>`
+        // yielded one called "latest". That is every commit and every markup file a cycle writes - it
+        // refused twelve times in one build, and the caller started routing around the gate.
+        using var workspace = FixtureWorkspace.Materialize("greenfield");
+        WritePlan(workspace, approved: true);
+
+        Decision decision = Invoke(Tool("Assert-DeclaredFile.ps1"), BashEvent(command, workspace.Path));
+
+        Assert.IsFalse(
+            decision.Denied,
+            $"Refused over {why}, reporting a file named \"{phantom}\": {decision.Reason}");
+    }
+
+    [TestMethod]
+    public void AWriteOutsideTheRepositoryIsNotThePlansBusiness()
+    {
+        // This refused during a trial run and blocked `gh pr create --body-file`, whose body was staged
+        // in the session scratchpad - a path with no relationship to the plan. A plan declares what a
+        // change does to its own repository and says nothing about anywhere else.
+        using var workspace = FixtureWorkspace.Materialize("greenfield");
+        WritePlan(workspace, approved: true);
+
+        string outside = Path.Combine(Path.GetTempPath(), "sdlc-outside-the-repo", "pr-body.md");
+
+        Decision viaTool = Invoke(
+            Tool("Assert-DeclaredFile.ps1"), EditEvent(outside, workspace.Path));
+
+        Assert.IsFalse(viaTool.Denied, $"A write outside the repository must pass: {viaTool.Reason}");
+
+        Decision viaShell = Invoke(
+            Tool("Assert-DeclaredFile.ps1"),
+            BashEvent($"gh pr create --body-file {outside.Replace('\\', '/')}", workspace.Path));
+
+        Assert.IsFalse(viaShell.Denied, $"Nor may the shell path refuse it: {viaShell.Reason}");
+    }
+
+    [TestMethod]
+    public void AnUndeclaredWriteInsideTheRepositoryIsStillRefused()
+    {
+        // The counterweight to the two tests above. Narrowing the parser and scoping it to the
+        // repository must not have turned the gate off: a plain redirect to an undeclared path in the
+        // repository still has to fail, or the fix traded false refusals for no enforcement.
+        using var workspace = FixtureWorkspace.Materialize("greenfield");
+        WritePlan(workspace, approved: true);
+
+        Decision relative = Invoke(
+            Tool("Assert-DeclaredFile.ps1"),
+            BashEvent("echo x > src/Greenfield.Core/Sneaky.cs", workspace.Path));
+
+        Assert.IsTrue(relative.Denied, "A redirect to an undeclared path must still be refused.");
+
+        Decision absolute = Invoke(
+            Tool("Assert-DeclaredFile.ps1"),
+            EditEvent(Path.Combine(workspace.Path, "src", "Greenfield.Core", "Sneaky.cs"), workspace.Path));
+
+        Assert.IsTrue(absolute.Denied, "Nor may an absolute path inside the repository slip through.");
+    }
+
+    [TestMethod]
     public void TheDeclaredListComesFromTheFilesTableAlone()
     {
         // The first version scanned the whole plan for any backticked token holding a slash or a dot, so

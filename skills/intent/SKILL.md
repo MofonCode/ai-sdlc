@@ -49,8 +49,6 @@ from. Do not let them answer in thresholds; that is the spec's job.
 Then, conditionally:
 
 5. **Is there a decision already made that I should treat as fixed?**
-6. **Is anything here not our default stack?** — only for a new solution, or when the request
-   implies it. Record it, because `solution.md` is what later cycles read
 
 ## Never ask
 
@@ -59,6 +57,18 @@ Then, conditionally:
 - How to build it. That is the plan
 - Criteria in testable form. That is the spec. The boundary: an intent says "the export finishes
   without the user waiting"; a spec says "returns a job id within 200ms"
+- **Anything about the stack, a framework, a package or a project shape.** The solution's stack is
+  already declared in `.sdlc/solution.md`, and a departure from it is a plan decision argued in the
+  plan, where every other technology choice is made. This question used to be asked here and it put a
+  technology answer into an artifact whose whole job is to be free of one
+
+An intent is the product owner's document. Its four sections are a problem, who has it, what they would
+be able to see, and what must not change — none of which needs a technology to express. If an answer
+you are about to record could only be written by someone who knows the codebase, it belongs downstream.
+
+**Fixed decisions are the one exception, and only when the person volunteered one.** Record a technology
+a person has already settled on, attributed, so no later phase re-litigates it. Never ask for one to fill
+the section.
 
 ## Unknowns stay unknown
 

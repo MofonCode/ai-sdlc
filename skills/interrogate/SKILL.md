@@ -204,7 +204,12 @@ blocking: 0 · suggestions: 0
 
 findings → `.sdlc/cycles/20260928_a43a/findings/intent.r1.json`
 
-next → a person approves it by adding `approved_by` and `approved_at` to its frontmatter, then:
+next → a person approves it by pasting this into the artifact's frontmatter:
+
+approved_by: Peter Almanzar
+approved_at: 2026-09-29T01:05:00Z
+
+then:
 
 /sdlc:spec 20260928_a43a
 ```
@@ -223,6 +228,20 @@ Suggestions get two lines — they have no remedy to act on.
 
 **The command on its own line, alone in a fence**, so it can be copied without trimming anything. Never
 wrap it in prose.
+
+**Give them the approval block, filled in, and never write it yourself.**
+
+A clean interrogation ends with a person doing one thing, so make that thing a copy rather than a
+lookup. Print `approved_by` and `approved_at` as two lines they can paste, with the name taken from
+`git config user.name` and the timestamp from the UTC clock in the reference section below — you cannot
+read a clock, and a plausible-looking invented timestamp is worse than none.
+
+**Printing it is the whole of your part.** Do not write those fields into the artifact, and do not offer
+to, however clean the verdict. The field says who decided; a skill that fills it in has forged the only
+signature in the cycle, and every artifact downstream then rests on an approval nobody gave. The gate is
+not paperwork in front of the work — it is the work of deciding, and the interrogation you just ran is
+evidence for that decision rather than a substitute for it. A clean verdict is your judgement of the
+artifact, so treating it as sufficient means the machine approved its own output.
 
 **Where the next command comes from:**
 
