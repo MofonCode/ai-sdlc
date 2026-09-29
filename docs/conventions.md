@@ -523,6 +523,26 @@ constraints. So a broken stage shows up as a refusal, not as a false pass.
 
 Enforced by: `HeadlessSkillTests.InterrogatingAGoldenArtifactCitesTheConstraintsItsExpectationNames`
 
+### A solution's own constraints have to reach the judgement
+
+Global constraints arrive by load-time injection; a solution's own are read from its
+`.sdlc/CONSTRAINTS.md` by the skill. Nothing established that the two are ever actually merged, and
+that is the precondition for every `LOC_` rule anywhere — if the merge does not happen, a local
+constraint is decoration however well it is written, and no amount of enforcement testing would find out.
+
+brownfield exists for this: it carries `LOC_01` and an `adopted_at` sha, standing in for a repository
+that predates the framework. The pair of tests asserts the effective set contains both series, and that a
+solution with no constraints of its own still renders — the absence is normal, so it must read as "no
+local rules" rather than as a missing file.
+
+Asserted on the effective set rather than on enforcement, because `LOC_01` applies to a diff at
+verification. Enforcing it needs a built cycle with evidence, and that is the step after this one; the
+property still untested is the other half of what brownfield is for, that code predating adoption draws
+no finding while a change adding more of it does.
+
+Enforced by: `HeadlessSkillTests.TheEffectiveSetMergesASolutionsOwnConstraints` and
+`HeadlessSkillTests.ASolutionWithNoConstraintsOfItsOwnStillRenders`
+
 ### A sample asserting a judgement will flake, and the rate is the useful number
 
 CON_06 asks whether a proof is *adequate* — the constraint that most needs reading comprehension, and so

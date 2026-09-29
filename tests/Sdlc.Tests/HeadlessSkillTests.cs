@@ -95,6 +95,71 @@ public sealed class HeadlessSkillTests
         }
     }
 
+    [TestMethod]
+    public void TheEffectiveSetMergesASolutionsOwnConstraints()
+    {
+        // The precondition for every LOC_ constraint anywhere. brownfield carries LOC_01 in its own
+        // .sdlc/CONSTRAINTS.md, and nothing until now established that a solution's constraints reach a
+        // judgement at all - global ones arrive by load-time injection, local ones by the skill reading
+        // the solution. If the merge does not happen, every local constraint in every solution is
+        // decoration, and LOC_01 would never fire however well it were written.
+        //
+        // Asserted on the effective set rather than on enforcement, because LOC_01 says "applies to a
+        // diff, at verification": enforcing it needs a built cycle, and this is the step before that.
+        if (Environment.GetEnvironmentVariable(EnableVariable) != "1")
+        {
+            Assert.Inconclusive($"Set {EnableVariable}=1 to run the headless skill cases.");
+        }
+
+        using var workspace = SolutionWorkspace.Materialize("brownfield");
+
+        (int exitCode, string output) = Claude(workspace.Path, "/sdlc:constraints");
+
+        Assert.AreEqual(0, exitCode, $"The skill failed:{Environment.NewLine}{Trim(output)}");
+
+        StringAssert.Contains(
+            output,
+            "LOC_01",
+            StringComparison.Ordinal,
+            "The solution's own constraint did not reach the effective set, so a LOC_ rule binds nothing."
+            + $"{Environment.NewLine}{Trim(output)}");
+
+        StringAssert.Contains(
+            output,
+            "CON_",
+            StringComparison.Ordinal,
+            "The global constraints are missing, so the local ones replaced them rather than joining them."
+            + $"{Environment.NewLine}{Trim(output)}");
+    }
+
+    [TestMethod]
+    public void ASolutionWithNoConstraintsOfItsOwnStillRenders()
+    {
+        // The counterweight. greenfield has no .sdlc/CONSTRAINTS.md, which the skill calls normal, so the
+        // absence must read as "no local rules" rather than as a missing file. A merge that only works
+        // when both halves exist would refuse most solutions.
+        if (Environment.GetEnvironmentVariable(EnableVariable) != "1")
+        {
+            Assert.Inconclusive($"Set {EnableVariable}=1 to run the headless skill cases.");
+        }
+
+        using var workspace = SolutionWorkspace.Materialize("greenfield");
+
+        Assert.IsFalse(
+            File.Exists(Path.Combine(workspace.Path, ".sdlc", "CONSTRAINTS.md")),
+            "greenfield is the no-local-constraints case; this test means nothing if it has some.");
+
+        (int exitCode, string output) = Claude(workspace.Path, "/sdlc:constraints");
+
+        Assert.AreEqual(0, exitCode, $"The skill failed:{Environment.NewLine}{Trim(output)}");
+
+        StringAssert.Contains(
+            output,
+            "CON_",
+            StringComparison.Ordinal,
+            $"The global constraints did not render:{Environment.NewLine}{Trim(output)}");
+    }
+
     private sealed record Expectation(
         string Kind,
         string? Against,
