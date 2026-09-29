@@ -9,7 +9,7 @@ namespace Sdlc.Tests;
 /// <c>Assert-ArtifactShape.ps1</c> compares top-level key names on every write, because Windows
 /// PowerShell 5.1 has no JSON Schema evaluator. The evaluator that checks the rules that matter — that
 /// <c>pass</c> requires no open blocking finding, that <c>escalated</c> requires a spent budget — only
-/// ever saw fixtures. So a real cycle could commit a verify document claiming <c>pass</c> alongside an
+/// ever saw samples. So a real cycle could commit a verify document claiming <c>pass</c> alongside an
 /// open blocking finding, and nothing in the framework would object.
 /// </para>
 /// </summary>
@@ -74,7 +74,7 @@ public sealed class ValidatorTests
     }
 
     [TestMethod]
-    public void TheCheckedInArtifactFixturesAreValid()
+    public void TheCheckedInArtifactSamplesAreValid()
     {
         // The golden artifacts are what every interrogation test judges. If one does not satisfy its own
         // schema, every expectation built on it is measuring something malformed.

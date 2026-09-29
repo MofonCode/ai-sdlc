@@ -5,7 +5,7 @@ namespace Sdlc.Tests;
 
 /// <summary>
 /// The schemas carry the framework's vocabularies and its verify state machine, so they are
-/// tested with real fixtures in both directions. A schema proven only by documents that should
+/// tested with real documents in both directions. A schema proven only by documents that should
 /// pass has not been proven: the rules that matter are the ones that reject.
 /// </summary>
 [TestClass]
@@ -40,23 +40,23 @@ public sealed class SchemaTests
     [DataRow("expectation.schema.json", "expectation.valid.json", true)]
     [DataRow("expectation.schema.json", "expectation.invalid-missing-assertions.json", false)]
     [DataRow("expectation.schema.json", "expectation.invalid-kind.json", false)]
-    public void FixtureMatchesItsSchema(string schemaName, string fixtureName, bool expectedValid)
+    public void DocumentMatchesItsSchema(string schemaName, string documentName, bool expectedValid)
     {
         using var instance = JsonDocument.Parse(
-            File.ReadAllText(Path.Combine(RepoPaths.SchemaSamples, fixtureName)));
+            File.ReadAllText(Path.Combine(RepoPaths.SchemaSamples, documentName)));
 
         EvaluationResults results = Schemas.Get(schemaName).Evaluate(instance.RootElement, Schemas.Options);
 
         Assert.AreEqual(
             expectedValid,
             results.IsValid,
-            $"{fixtureName} against {schemaName}: {Schemas.Describe(results)}");
+            $"{documentName} against {schemaName}: {Schemas.Describe(results)}");
     }
 
     [TestMethod]
-    public void EverySchemaFixtureIsCovered()
+    public void EverySchemaDocumentIsCovered()
     {
-        // A fixture nobody evaluates is worse than no fixture: it looks like coverage.
+        // A document nobody evaluates is worse than none: it looks like coverage.
         string[] onDisk = [.. Directory
             .EnumerateFiles(RepoPaths.SchemaSamples, "*.json")
             .Select(Path.GetFileName)
@@ -65,7 +65,7 @@ public sealed class SchemaTests
             .OrderBy(n => n, StringComparer.Ordinal)];
 
         string[] covered = [.. typeof(SchemaTests)
-            .GetMethod(nameof(FixtureMatchesItsSchema))!
+            .GetMethod(nameof(DocumentMatchesItsSchema))!
             .GetCustomAttributes(typeof(DataRowAttribute), inherit: false)
             .Cast<DataRowAttribute>()
             .Select(r => (string)r.Data[1]!)

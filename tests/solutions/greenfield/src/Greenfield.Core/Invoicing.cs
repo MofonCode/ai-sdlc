@@ -1,9 +1,9 @@
 namespace Greenfield.Core;
 
 /// <summary>
-/// The two call sites the fixture artifacts refer to. Both guard before calling
+/// The two call sites the sample artifacts refer to. Both guard before calling
 /// <see cref="Totals.Sum"/> because it throws on an empty sequence, and the guard is the duplication
-/// the intent fixture describes.
+/// the intent sample describes.
 /// </summary>
 public static class Invoicing
 {

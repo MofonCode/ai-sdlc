@@ -9,7 +9,7 @@ namespace Sdlc.Tests;
 /// Everything else in this suite checks the things around a skill — that its frontmatter parses, that the
 /// script it names exists, that the schema governing its output rejects what it should. None of that
 /// establishes that an interrogation reaches the right verdict, which is the only thing the framework is
-/// for. This runs <c>claude -p</c> against a golden artifact staged into a materialized fixture and
+/// for. This runs <c>claude -p</c> against a sample artifact staged into a materialized workspace and
 /// compares the findings it wrote to the expectation checked in beside the artifact.
 /// </para>
 /// <para>
@@ -54,7 +54,7 @@ public sealed class HeadlessSkillTests
 
         Expectation expectation = ReadExpectation(artifact);
 
-        using var workspace = FixtureWorkspace.Materialize("greenfield");
+        using var workspace = SolutionWorkspace.Materialize("greenfield");
 
         string cycle = Stage(workspace, artifact, expectation);
 
@@ -131,7 +131,7 @@ public sealed class HeadlessSkillTests
     /// staged from its `.good.md` variant, the only kind the corpus carries as a dependency.
     /// </para>
     /// </summary>
-    private static string Stage(FixtureWorkspace workspace, string artifact, Expectation expectation)
+    private static string Stage(SolutionWorkspace workspace, string artifact, Expectation expectation)
     {
         string cycle = FrontmatterValue(Path.Combine(ArtifactsDir, artifact), "id")
             ?? throw new InvalidOperationException($"{artifact} declares no id.");

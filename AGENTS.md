@@ -15,7 +15,7 @@ before proposing a change to how the framework works.
 ## State of this repository
 
 Rebuilt from `archive/v02`. The twelve skills, the constraints, the schemas and the hooks are
-written; the cycle has not yet been walked end to end against a fixture, so treat skill behaviour
+written; the cycle has not yet been walked end to end against a sample, so treat skill behaviour
 as unproven until the README's State section says otherwise.
 
 Earlier versions live on `archive/v01` and `archive/v02`. They are evidence, not a starting point:
@@ -121,7 +121,7 @@ Open one of these only when its trigger applies; do not read them speculatively.
 | `docs/guides/cycle-commands.md` | you know the flow and want the command sequence alone |
 | `docs/guides/install.md` | installing, checking, updating or removing the plugin |
 | `docs/guides/when-it-blocks.md` | something refused, or a cycle came back blocked or escalated |
-| `docs/conventions.md` | changing anything in this repository — a skill, a hook, a schema, a fixture, a doc |
+| `docs/conventions.md` | changing anything in this repository — a skill, a hook, a schema, a sample, a doc |
 
 Rows are added as the documents are written. Every document under `docs/` appears here exactly
 once, and every row points at a file that exists.

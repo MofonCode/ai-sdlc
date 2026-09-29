@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/MofonCode/ai-sdlc/schemas/expectation.schema.json",
-  "title": "Fixture expectation",
+  "title": "Sample expectation",
   "description": "What an interrogation of one golden artifact must conclude. Assertions are on structure - which constraints are cited at which severity - never on wording, because wording is model output and asserting on it would make every test brittle.",
   "type": "object",
   "additionalProperties": false,
@@ -39,7 +39,7 @@
     },
     "allow_other_blocking": {
       "type": "boolean",
-      "description": "false means blocking findings must be exactly must_cite_blocking. A fixture that tolerates extra blockers cannot detect over-reporting, which is as damaging as under-reporting."
+      "description": "false means blocking findings must be exactly must_cite_blocking. A sample that tolerates extra blockers cannot detect over-reporting, which is as damaging as under-reporting."
     },
     "note": {
       "type": "string",

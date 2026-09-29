@@ -5,12 +5,12 @@ using YamlDotNet.RepresentationModel;
 namespace Sdlc.Tests;
 
 /// <summary>
-/// The fixtures are the substrate every later phase is validated against, so their integrity is
+/// The samples are the substrate every later phase is validated against, so their integrity is
 /// asserted here. An expectation citing a constraint that does not exist, or an artifact nobody
 /// evaluates, would make a whole phase look tested when it was not.
 /// </summary>
 [TestClass]
-public sealed class FixtureTests
+public sealed class SampleTests
 {
     private static string ArtifactsDir => RepoPaths.Artifacts;
 
@@ -50,7 +50,7 @@ public sealed class FixtureTests
             artifacts,
             claimed,
             "Every golden artifact needs exactly one expectation, and every expectation must name " +
-            "an artifact that exists. Otherwise a fixture is either unevaluated or phantom.");
+            "an artifact that exists. Otherwise a sample is either unevaluated or phantom.");
     }
 
     [TestMethod]
@@ -78,9 +78,9 @@ public sealed class FixtureTests
     }
 
     [TestMethod]
-    public void EveryConstraintAboutAnArtifactHasAFailingFixture()
+    public void EveryConstraintAboutAnArtifactHasASampleThatTripsIt()
     {
-        // A constraint no fixture exercises is a rule nobody has ever seen fire. This covers the
+        // A constraint no sample exercises is a rule nobody has ever seen fire. This covers the
         // ones an interrogation of a single artifact can reach; CON_07 through CON_11 need a diff,
         // a verify document or a waiver, and are exercised in later phases.
         string[] reachable = ["CON_01", "CON_02", "CON_03", "CON_04", "CON_05", "CON_06"];
@@ -94,7 +94,7 @@ public sealed class FixtureTests
         {
             Assert.IsTrue(
                 exercised.Contains(id),
-                $"{id} is checkable against a single artifact but no fixture expects it to fire.");
+                $"{id} is checkable against a single artifact but no sample expects it to fire.");
         }
     }
 
@@ -124,7 +124,7 @@ public sealed class FixtureTests
     [TestMethod]
     [DataRow("greenfield")]
     [DataRow("brownfield")]
-    public void FixtureSolutionDeclaresItsProfile(string solutionName)
+    public void ASampleSolutionDeclaresItsProfile(string solutionName)
     {
         string path = Path.Combine(RepoPaths.Solutions, solutionName, ".sdlc", "solution.md");
 
@@ -148,11 +148,11 @@ public sealed class FixtureTests
     [TestMethod]
     [DataRow("greenfield")]
     [DataRow("brownfield")]
-    public void AFixtureSolutionBuildsCleanFromACopy(string solutionName)
+    public void ASampleSolutionBuildsCleanFromACopy(string solutionName)
     {
         // Nothing compiled these until now. They are the substrate a skill runs against, so a broken
         // csproj here would surface for the first time inside a build phase, reported as the cycle's
-        // failure rather than the fixture's.
+        // failure rather than the sample's.
         //
         // greenfield also tracks its public surface with Microsoft.CodeAnalysis.PublicApiAnalyzers, so
         // this asserts more than "the project loads": every public member has to be listed in
@@ -161,22 +161,22 @@ public sealed class FixtureTests
         //
         // From a copy, not in place. Two reasons: this repository's Directory.Packages.props sets
         // ManagePackageVersionsCentrally, which would reject greenfield's inline package Version with
-        // NU1008 while the fixture sits in-tree; and building in place would write bin/ and obj/ into a
-        // checked-in fixture, which the test below exists to prevent.
-        using var workspace = FixtureWorkspace.Materialize(solutionName);
+        // NU1008 while the sample sits in-tree; and building in place would write bin/ and obj/ into a
+        // checked-in sample, which the test below exists to prevent.
+        using var workspace = SolutionWorkspace.Materialize(solutionName);
 
         (int exitCode, string output) = Dotnet(workspace.Path, "build", "--nologo", "--verbosity", "quiet");
 
         Assert.AreEqual(
             0,
             exitCode,
-            $"The {solutionName} fixture does not build:{Environment.NewLine}{output}");
+            $"The {solutionName} sample does not build:{Environment.NewLine}{output}");
 
         Assert.AreEqual(
             string.Empty,
             workspace.Run("status", "--porcelain").Trim(),
             $"Building {solutionName} left files git can see. Add them to its .gitignore, or the diff a "
-            + "cycle takes against this fixture includes build output.");
+            + "cycle takes against this sample includes build output.");
     }
 
     /// <summary>Runs dotnet in a directory and returns its exit code with everything it wrote.</summary>
@@ -208,11 +208,11 @@ public sealed class FixtureTests
     [TestMethod]
     [DataRow("greenfield")]
     [DataRow("brownfield")]
-    public void FixtureMaterializesAsAGitRepositoryAndIsDiscarded(string solutionName)
+    public void AMaterializedWorkspaceIsARepositoryAndIsDiscarded(string solutionName)
     {
         string path;
 
-        using (var workspace = FixtureWorkspace.Materialize(solutionName))
+        using (var workspace = SolutionWorkspace.Materialize(solutionName))
         {
             path = workspace.Path;
 
@@ -220,9 +220,9 @@ public sealed class FixtureTests
             Assert.IsTrue(File.Exists(Path.Combine(path, ".sdlc", "solution.md")), "The profile was not copied.");
             Assert.AreEqual(40, workspace.BaseCommit.Length, "No base commit to diff against.");
             Assert.AreEqual(string.Empty, workspace.Run("status", "--porcelain").Trim(),
-                "A freshly materialized workspace must be clean, or a later diff includes the fixture itself.");
+                "A freshly materialized workspace must be clean, or a later diff includes the sample itself.");
 
-            // Mutating the copy must not reach the checked-in fixture.
+            // Mutating the copy must not reach the checked-in sample.
             File.WriteAllText(Path.Combine(path, "SCRATCH.txt"), "written by a test");
             Assert.AreNotEqual(string.Empty, workspace.Run("status", "--porcelain").Trim());
         }
@@ -230,6 +230,6 @@ public sealed class FixtureTests
         Assert.IsFalse(Directory.Exists(path), "The workspace was not discarded.");
         Assert.IsFalse(
             File.Exists(Path.Combine(RepoPaths.Solutions, solutionName, "SCRATCH.txt")),
-            "The checked-in fixture was mutated. Skills must only ever run against a copy.");
+            "The checked-in sample was mutated. Skills must only ever run against a copy.");
     }
 }

@@ -306,7 +306,7 @@ Enforced by: `SchemaTests.OneWordNamesTheHumanGateOnEveryArtifact`
 `dotnet run --project tools/Sdlc.Validate -- <path>` runs the same evaluator the suite uses against a
 real artifact, or every artifact under a directory. It exists because the two layers of checking left a
 hole: the hook compares top-level key names on every write, and the evaluator that checks values only
-ever saw fixtures. So a verify document could claim `pass` beside an open blocking finding and nothing in
+ever saw samples. So a verify document could claim `pass` beside an open blocking finding and nothing in
 the framework would object — every key in it is a legal key.
 
 Two things it taught immediately. Its own first run rejected a valid document because deserializing YAML
@@ -317,7 +317,7 @@ beneath a node that passed is not a failure, and is dropped.
 
 Enforced by: `ValidatorTests.AVerifyDocumentClaimingPassWithAnOpenBlockingFindingIsRejected`,
 `ValidatorTests.AnIntegerInFrontmatterStaysAnInteger`,
-`ValidatorTests.TheCheckedInArtifactFixturesAreValid`, and
+`ValidatorTests.TheCheckedInArtifactSamplesAreValid`, and
 `ValidatorTests.AMissingArtifactIsAUsageErrorRatherThanAPass`
 
 ### A schema owns its vocabulary, and nothing else restates it
@@ -352,35 +352,35 @@ not. It is required on blocking findings only now, beside `remedy`, which alread
 
 If a suggestion really does breach a constraint, it is not a suggestion.
 
-Enforced by: `SchemaTests.FixtureMatchesItsSchema`, through
+Enforced by: `SchemaTests.DocumentMatchesItsSchema`, through
 `findings.valid-suggestion-without-cites.json` and `findings.invalid-blocking-no-cites.json`
 
 ### A schema is tested in both directions, and the rejections are the point
 
 A schema proven only by documents that should pass has not been proven, and the asymmetry is the reason:
-losing a rule only makes a schema *more* permissive, so a suite of valid-only fixtures stays green against
+losing a rule only makes a schema *more* permissive, so a suite of valid-only documents stays green against
 a schema whose rule was deleted, typoed, or left pointing at a `$defs` name that no longer exists. The
-invalid fixture is the only document whose verdict depends on the rule being there.
+invalid document is the only one whose verdict depends on the rule being there.
 
 All seven schemas are covered in both directions. `findings` and `verify` were first; `intent`, `spec`,
-`plan`, `solution` and `expectation` had valid coverage only until rejection fixtures were added for the
+`plan`, `solution` and `expectation` had valid coverage only until rejecting documents were added for the
 both-or-neither approval pair, the `tier` and `origin` and `kind` enums, `additionalProperties: false`,
 the adopted-needs-a-sha conditional, and an expectation asserting nothing.
 
-### A rejection fixture must fail for exactly one reason
+### A rejecting document must fail for exactly one reason
 
-`FixtureMatchesItsSchema` asserts only valid-or-invalid, so a fixture with two defects passes while
+`DocumentMatchesItsSchema` asserts only valid-or-invalid, so a document with two defects passes while
 proving nothing about either. **To check, flip its expected verdict to `true` and read the failure
 message** — the assertion prints the schema's own errors.
 
 That found a real one. `solution.invalid-baseline.json` was written to prove `additionalProperties: false`
 refuses a `baseline` key, and it also declared `origin: adopted` with no `adopted_at`. It would have been
 rejected with the additionalProperties rule removed, so it proved nothing; the missing sha became its own
-fixture instead. Ignore the noise from a declined conditional in that output — an `if` that did not match
+document instead. Ignore the noise from a declined conditional in that output — an `if` that did not match
 reports its mismatch, and that is the conditional standing aside, not a second defect.
 
-Enforced by: `SchemaTests.FixtureMatchesItsSchema`, with `SchemaTests.EverySchemaFixtureIsCovered`
-asserting no fixture is left unevaluated — one nobody runs is worse than none, because it looks like
+Enforced by: `SchemaTests.DocumentMatchesItsSchema`, with `SchemaTests.EverySchemaDocumentIsCovered`
+asserting no document is left unevaluated — one nobody runs is worse than none, because it looks like
 coverage
 
 ### Frontmatter is read with a real parser
@@ -391,11 +391,11 @@ model-invocable at run time and 333 tests said otherwise. A check on markup is w
 parser behind it is.
 
 Enforced by: `SkillTests.EverySkillFrontmatterParsesAndNamesItself`,
-`FixtureTests.ArtifactFrontmatterParsesWithARealYamlParser`
+`SampleTests.ArtifactFrontmatterParsesWithARealYamlParser`
 
-### Live artifacts are validated, not just fixtures
+### Live artifacts are validated, not just samples
 
-Schema checking that runs only against fixtures is how a verify document with twelve errors shipped
+Schema checking that runs only against samples is how a verify document with twelve errors shipped
 looking authoritative. `tools/Assert-ArtifactShape.ps1` refuses a write whose top-level keys contradict
 the schema, reading the schema at run time so there is no second definition.
 
@@ -445,17 +445,17 @@ never applied to it.
 
 Enforced by: `ConstraintsTests.GlobalConstraintsAreStackNeutral`
 
-### Every constraint an interrogation can reach has a fixture that trips it
+### Every constraint an interrogation can reach has a sample that trips it
 
 A rule nobody has seen fire is a rule nobody has tested.
 
-Enforced by: `FixtureTests.EveryConstraintAboutAnArtifactHasAFailingFixture`
+Enforced by: `SampleTests.EveryConstraintAboutAnArtifactHasASampleThatTripsIt`
 
 ---
 
-## Fixtures
+## Samples
 
-### A fixture solution compiles, from a copy
+### A sample solution compiles, from a copy
 
 Nothing compiled these for a long time, and both were broken. greenfield did not build at all: its csproj
 declared `Nullable` but not `ImplicitUsings`, and its sources used `IEnumerable<decimal>` with no `using`,
@@ -463,40 +463,40 @@ so it failed on three errors the moment anything tried.
 
 **Nothing had tried.** An earlier note here blamed the repository's `Directory.Build.props` for masking it
 in-tree, and that was wrong: `tests/solutions/Directory.Build.props` is deliberately empty precisely to
-stop that inheritance, so the fixture never had implicit usings anywhere. The defect was not hidden by
+stop that inheritance, so the sample never had implicit usings anywhere. The defect was not hidden by
 inheritance, it was invisible for want of a build — which is the duller and more common way a thing goes
 unnoticed. A skill would have hit it inside a build phase and reported it as the cycle's failure.
 
-**A fixture must be self-sufficient**, because a skill only ever sees the copy. Declare the framework, the
+**A sample must be self-sufficient**, because a skill only ever sees the copy. Declare the framework, the
 nullable setting and the implicit usings in the csproj; pin a package version inline rather than through
 central management, since `Directory.Packages.props` is not there either — and in-tree it would reject an
 inline version with NU1008, which is the second reason the build happens from a copy.
 
-**And a fixture carries a `.gitignore` for `bin/` and `obj/`.** Without one, building leaves output that
-`git status` reports, so the diff a cycle takes against the fixture includes the compiler's work.
+**And a sample carries a `.gitignore` for `bin/` and `obj/`.** Without one, building leaves output that
+`git status` reports, so the diff a cycle takes against the sample includes the compiler's work.
 
 greenfield's build also proves its public surface: `PublicApiAnalyzers` fails if a public member is
 missing from `PublicAPI.Shipped.txt` or listed there without existing. That is what makes
 `plan.good.md`'s proof honest when it cites the file, and it is why `Invoicing.cs` is load-bearing
 despite no test naming it.
 
-Enforced by: `FixtureTests.AFixtureSolutionBuildsCleanFromACopy`
+Enforced by: `SampleTests.ASampleSolutionBuildsCleanFromACopy`
 
 ### A golden artifact is true of the solution it sits in
 
-An interrogation reads the code. The first fixture set described an ops dashboard the fixture solution
+An interrogation reads the code. The first sample set described an ops dashboard the sample solution
 did not have; the replacement claimed two guarded call sites that did not exist, and CON_02 fired
 correctly on the artifact meant to be sound.
 
-No test can check this — it is semantic. **A new fixture is not finished until it has been interrogated
+No test can check this — it is semantic. **A new sample is not finished until it has been interrogated
 once and the result read.**
 
-### A fixture isolates one constraint
+### A sample isolates one constraint
 
-A fixture that trips two makes a failure ambiguous about which rule broke.
+A sample that trips two makes a failure ambiguous about which rule broke.
 
-Enforced by: `FixtureTests.ExpectationsCiteConstraintsThatExist`,
-`FixtureTests.EveryArtifactHasAnExpectationAndViceVersa`
+Enforced by: `SampleTests.ExpectationsCiteConstraintsThatExist`,
+`SampleTests.EveryArtifactHasAnExpectationAndViceVersa`
 
 ### An expectation asserts structure, never wording
 
@@ -509,7 +509,7 @@ Everything else about a skill is checked indirectly — its frontmatter parses, 
 exist, the schema governing its output rejects what it should. None of that establishes that an
 interrogation reaches the right verdict, which is the only thing the framework is for.
 
-`HeadlessSkillTests` stages a golden artifact into a materialized fixture, runs `claude -p` against it,
+`HeadlessSkillTests` stages a sample artifact into a materialized workspace, runs `claude -p` against it,
 and compares the findings it wrote to the expectation checked in beside the artifact. Assertions are on
 structure — which constraints at which severity — never on wording, because wording is model output.
 
@@ -523,7 +523,7 @@ constraints. So a broken stage shows up as a refusal, not as a false pass.
 
 Enforced by: `HeadlessSkillTests.InterrogatingAGoldenArtifactCitesTheConstraintsItsExpectationNames`
 
-### A fixture asserting a judgement will flake, and the rate is the useful number
+### A sample asserting a judgement will flake, and the rate is the useful number
 
 CON_06 asks whether a proof is *adequate* — the constraint that most needs reading comprehension, and so
 the one with real variance. A disagreeing case is re-run and reported as flaky, never retried silently:
@@ -534,24 +534,24 @@ numbers said different things:
 
 | Case | Verdict | What the rate meant |
 |---|---|---|
-| `spec.good.md`, CON_03 | 2 pass / 2 fail, then 4 / 4 after a fixture fix | a boundary case, and the artifact was at fault |
+| `spec.good.md`, CON_03 | 2 pass / 2 fail, then 4 / 4 after a fix to the sample | a boundary case, and the artifact was at fault |
 | `plan.good.md`, CON_06 | 2 pass / 2 fail on one spec, 1 / 4 on another | irreducible, and not attributable to either spec |
 
-A rate near half says the artifact sits on the constraint's edge, and the fixture is usually what to fix
+A rate near half says the artifact sits on the constraint's edge, and the sample is usually what to fix
 — `spec.good.md`'s criterion 3 named a check that could not observe the outcome it claimed, so the model
 was choosing between two defensible readings at random. A rate that stays mixed after the artifact is
-unambiguous is judgement variance, and no edit to the fixture will settle it.
+unambiguous is judgement variance, and no edit to the sample will settle it.
 
-**Do not chase a judgement by editing an artifact until the model agrees.** That tunes a fixture to one
+**Do not chase a judgement by editing an artifact until the model agrees.** That tunes a sample to one
 model on one day and teaches nothing. When a reading is genuinely available either way, the expectation
 is what should say so.
 
-### Skills run against a copy, never the checked-in fixture
+### Skills run against a copy, never the checked-in sample
 
-`FixtureWorkspace.Materialize` gives a disposable git repository. A test that dirties its own input
+`SolutionWorkspace.Materialize` gives a disposable git repository. A test that dirties its own input
 passes once and is meaningless afterwards.
 
-Enforced by: `FixtureTests.FixtureMaterializesAsAGitRepositoryAndIsDiscarded`, which asserts the
+Enforced by: `SampleTests.AMaterializedWorkspaceIsARepositoryAndIsDiscarded`, which asserts the
 checked-in copy was not touched
 
 ---
@@ -658,7 +658,7 @@ A line-coverage number over that would measure the test helpers, so there is non
 `coverlet.collector` was removed — it was a declared dependency that nothing ever collected, which
 reads as if coverage were handled.
 
-What replaces it is direct: every constraint has a fixture that trips it, every schema fixture is
+What replaces it is direct: every constraint has a sample that trips it, every schema document is
 evaluated by exactly one expectation, every skill appears in a guide, and every script is exercised
 by a test. **Reachability is not coverage** — the older test asserted only that something *invokes*
 each script, and `Compare-DiffToPlan.ps1` satisfied it with no test at all, which is how it shipped

@@ -29,7 +29,7 @@ advances on assertion; it advances on evidence that survived a challenge.
 
 **DECIDED:** the framework is developed as an ordinary product — branch, review, merge — and
 does not run its own cycles. There is no `.sdlc/` directory in this repository and there never
-will be. Skills are validated against checked-in fixture solutions: deterministic, disposable,
+will be. Skills are validated against checked-in sample solutions: deterministic, disposable,
 and reviewable. A framework that governed itself would couple its own history to its test
 data, make every failure a two-layer debugging problem, and block work on the process behind
 the very process being built.
@@ -302,7 +302,7 @@ than syntax.
 ### 4.3 A solution declares three things
 
 **DECIDED:** a constraint is evaluated against **the change under consideration**, never against
-code that predates it. This was found while building the first adoption fixture: the earlier
+code that predates it. This was found while building the first adoption sample: the earlier
 design had `solution.md` record a baseline of accepted pre-existing violations, and there is
 nothing for it to record. Every constraint governs an artifact — an intent, a spec, a plan, a
 diff, a verify document, a waiver — and a repository adopting the framework has none of those
@@ -393,7 +393,7 @@ defeat the point; a described path is opened only when the model judges it relev
 | Doc | Opened when |
 |---|---|
 | `docs/techstack.md` | choosing a project shape, or changing package pins |
-| `docs/testing.md` | writing or fixing tests — fixtures, suites, flakes |
+| `docs/testing.md` | writing or fixing tests — samples, suites, flakes |
 | `docs/local-dev.md` | the orchestrator failed, or you need topology and ports |
 
 **DECIDED:** documentation freshness is checked, not promised. Each detail doc declares what

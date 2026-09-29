@@ -13,7 +13,7 @@ namespace Sdlc.Validate;
 /// The hook that runs on every write, <c>tools/Assert-DeclaredFile.ps1</c>'s sibling
 /// <c>Assert-ArtifactShape.ps1</c>, compares top-level key names and nothing else, because Windows
 /// PowerShell 5.1 has no JSON Schema evaluator. So the rules that matter most were checked only
-/// against fixtures: <c>verify.schema.json</c> says "pass requires that no blocking finding is still
+/// against samples: <c>verify.schema.json</c> says "pass requires that no blocking finding is still
 /// open" and "escalated requires passes_spent of exactly 3", and both are rules about values. A real
 /// cycle could commit a verify document claiming <c>pass</c> with an open blocking finding and nothing
 /// would object.
@@ -190,7 +190,7 @@ internal static class Program
         string name = Path.GetFileName(path);
 
         // The kind is the first dot-segment, so this covers a live artifact (`plan.md`) and a golden
-        // fixture (`plan.good.md`, `spec.untestable.md`) with one rule. The fixture corpus is worth
+        // sample (`plan.good.md`, `spec.untestable.md`) with one rule. The sample corpus is worth
         // reaching: every interrogation test judges those files, so one that does not satisfy its own
         // schema makes every expectation built on it meaningless.
         string kind = name.Split('.')[0];

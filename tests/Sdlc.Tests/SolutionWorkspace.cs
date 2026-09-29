@@ -3,16 +3,16 @@ using System.Diagnostics;
 namespace Sdlc.Tests;
 
 /// <summary>
-/// A disposable copy of a fixture solution, initialized as a git repository.
+/// A disposable copy of a sample solution, initialized as a git repository.
 /// <para>
-/// Skills mutate the solution they run in, so they must never run in the checked-in fixture: a
+/// Skills mutate the solution they run in, so they must never run in the checked-in sample: a
 /// test that dirties its own input passes once and is meaningless afterwards. Git is present
 /// because build and verify read a diff, which does not exist without a commit to diff against.
 /// </para>
 /// </summary>
-internal sealed class FixtureWorkspace : IDisposable
+internal sealed class SolutionWorkspace : IDisposable
 {
-    private FixtureWorkspace(string path, string baseCommit)
+    private SolutionWorkspace(string path, string baseCommit)
     {
         Path = path;
         BaseCommit = baseCommit;
@@ -21,13 +21,13 @@ internal sealed class FixtureWorkspace : IDisposable
     /// <summary>Absolute path of the materialized copy.</summary>
     public string Path { get; }
 
-    /// <summary>The commit holding the fixture as checked in. Diffs are taken against this.</summary>
+    /// <summary>The commit holding the sample as checked in. Diffs are taken against this.</summary>
     public string BaseCommit { get; }
 
     /// <summary>
-    /// Copies the named fixture solution into a fresh temporary directory and commits it.
+    /// Copies the named sample solution into a fresh temporary directory and commits it.
     /// </summary>
-    public static FixtureWorkspace Materialize(string solutionName)
+    public static SolutionWorkspace Materialize(string solutionName)
     {
         string source = System.IO.Path.Combine(RepoPaths.Solutions, solutionName);
 
@@ -38,7 +38,7 @@ internal sealed class FixtureWorkspace : IDisposable
 
         string target = System.IO.Path.Combine(
             System.IO.Path.GetTempPath(),
-            "ai-sdlc-fixture",
+            "ai-sdlc-sample",
             $"{solutionName}-{Guid.NewGuid():N}");
 
         CopyTree(source, target);
@@ -48,14 +48,14 @@ internal sealed class FixtureWorkspace : IDisposable
         Git(target, "init", "--quiet", "--initial-branch=main");
         Git(target, "add", "--all");
         Git(target,
-            "-c", "user.name=ai-sdlc fixtures",
-            "-c", "user.email=fixtures@localhost",
+            "-c", "user.name=ai-sdlc tests",
+            "-c", "user.email=tests@localhost",
             "-c", "commit.gpgsign=false",
-            "commit", "--quiet", "--message", $"fixture: {solutionName} as checked in");
+            "commit", "--quiet", "--message", $"sample: {solutionName} as checked in");
 
         string head = Git(target, "rev-parse", "HEAD").Trim();
 
-        return new FixtureWorkspace(target, head);
+        return new SolutionWorkspace(target, head);
     }
 
     /// <summary>Runs git in this workspace and returns its standard output.</summary>

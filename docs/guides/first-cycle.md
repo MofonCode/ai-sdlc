@@ -36,7 +36,7 @@ hook, a plan trying to prove existing behaviour did not move, a tier that is not
 and escalation.
 
 Cycle 2 is the more informative of the two, and it needs cycle 1 to have happened. It also tests something
-no fixture can: cycle 2's substrate was produced *by the process*, so a vague spec in cycle 1 will be felt
+no sample can: cycle 2's substrate was produced *by the process*, so a vague spec in cycle 1 will be felt
 in cycle 2.
 
 ### Why a die roll is a good subject

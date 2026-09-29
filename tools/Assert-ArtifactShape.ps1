@@ -2,7 +2,7 @@
 #
 # The trial run produced a verify document with twelve schema errors - `id` where `cycle` belongs,
 # `passes_spent` outside `remediation`, an unpermitted `criteria` key - and nothing noticed, because
-# schema validation lived only in the framework's own test project, against fixtures. A document that
+# schema validation lived only in the framework's own test project, against samples. A document that
 # reads authoritatively and cannot be parsed by its consumer is worse than one that is obviously
 # broken: the state machine it is supposed to encode silently stops being enforced.
 #
