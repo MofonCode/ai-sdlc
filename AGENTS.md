@@ -122,6 +122,7 @@ Open one of these only when its trigger applies; do not read them speculatively.
 | `docs/guides/install.md` | installing, checking, updating or removing the plugin |
 | `docs/guides/when-it-blocks.md` | something refused, or a cycle came back blocked or escalated |
 | `docs/conventions.md` | changing anything in this repository — a skill, a hook, a schema, a sample, a doc |
+| `docs/open-items.md` | picking up work, or handing it over — what is unfinished, unproven or undecided |
 
 Rows are added as the documents are written. Every document under `docs/` appears here exactly
 once, and every row points at a file that exists.
