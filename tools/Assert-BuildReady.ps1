@@ -60,10 +60,10 @@ if (-not (Test-Path -LiteralPath $planPath)) {
 else {
     $plan = Get-Content -LiteralPath $planPath -Raw -Encoding UTF8
 
-    $approvedBy = [regex]::Match($plan, '(?m)^approved_by:\s*(?<v>\S.*)$')
-    $approvedAt = [regex]::Match($plan, '(?m)^approved_at:\s*(?<v>\S.*)$')
+    $approvedBy = Get-SdlcApprovalField -Text $plan -Field 'approved_by'
+    $approvedAt = Get-SdlcApprovalField -Text $plan -Field 'approved_at'
 
-    if (-not ($approvedBy.Success -and $approvedAt.Success)) {
+    if ($null -eq $approvedBy -or $null -eq $approvedAt) {
         $problems.Add(
             "The plan for $CycleId is not approved. A person adds approved_by and approved_at to its " +
             'frontmatter. This is the gate the whole process rests on.')

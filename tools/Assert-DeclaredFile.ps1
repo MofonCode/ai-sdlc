@@ -175,10 +175,10 @@ foreach ($target in $targets) {
 
     # Approval is recorded in the plan's frontmatter by the person who gave it. Both fields, because a
     # name with no date says nothing about which version of the plan was approved.
-    $approvedBy = [regex]::Match($plan, '(?m)^approved_by:\s*(?<v>\S.*)$')
-    $approvedAt = [regex]::Match($plan, '(?m)^approved_at:\s*(?<v>\S.*)$')
+    $approvedBy = Get-SdlcApprovalField -Text $plan -Field 'approved_by'
+    $approvedAt = Get-SdlcApprovalField -Text $plan -Field 'approved_at'
 
-    if (-not ($approvedBy.Success -and $approvedAt.Success)) {
+    if ($null -eq $approvedBy -or $null -eq $approvedAt) {
         Deny (
             "The plan for $cycleId is not approved. A person adds approved_by and approved_at to its " +
             'frontmatter; until then nothing in this cycle may touch source. This is the gate the ' +

@@ -9,7 +9,7 @@ covers:
 Eighteen steps, in order, from an empty directory to a pull request. One command per block, so each can
 be copied on its own.
 
-**Verified as of `0.6.0`:** steps 4 to 13. Step 3 and steps 14 onward use skills that have never been run
+**Verified as of `0.6.1`:** steps 4 to 13. Step 3 and steps 14 onward use skills that have never been run
 end to end, and each says so where it appears. Expect friction there and note where it happens — those
 notes are worth more than the artifacts.
 

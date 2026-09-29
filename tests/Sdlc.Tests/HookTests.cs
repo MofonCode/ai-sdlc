@@ -473,6 +473,47 @@ public sealed class HookTests
     }
 
     [TestMethod]
+    [DataRow("", "an unfilled paste of the approval block")]
+    [DataRow("   ", "a name of spaces")]
+    [DataRow("\"  \"", "a quoted name of spaces, which passed the old check and the schema's minLength")]
+    public void AnApprovalWithNoNameIsNotAnApproval(string name, string why)
+    {
+        // The interrogation report prints the block with approved_by empty, because typing the name is
+        // the act of approving. So an unfilled paste has to stop the cycle rather than pass it - the
+        // field exists to record that a specific person decided.
+        using var workspace = FixtureWorkspace.Materialize("greenfield");
+        workspace.Run("checkout", "--quiet", "-b", $"cycle/{CycleId}");
+
+        string cycleDir = Path.Combine(workspace.Path, ".sdlc", "cycles", CycleId);
+        Directory.CreateDirectory(cycleDir);
+
+        File.WriteAllLines(Path.Combine(cycleDir, "plan.md"),
+        [
+            "---",
+            $"id: {CycleId}",
+            "tier: local",
+            "approved_by:" + (string.IsNullOrEmpty(name) ? string.Empty : " " + name),
+            "approved_at: 2026-09-29T01:05:00Z",
+            "---",
+            "",
+            "# Plan",
+            "",
+            "## Files",
+            "",
+            "| File | Change |",
+            "|---|---|",
+            "| `src/Greenfield.Core/Totals.cs` | the declared work |",
+        ]);
+
+        Decision decision = Invoke(
+            Tool("Assert-DeclaredFile.ps1"),
+            EditEvent(Path.Combine(workspace.Path, "src", "Greenfield.Core", "Totals.cs"), workspace.Path));
+
+        Assert.IsTrue(decision.Denied, $"{why} must not count as approved.");
+        StringAssert.Contains(decision.Reason, "not approved", StringComparison.Ordinal);
+    }
+
+    [TestMethod]
     public void AWriteOutsideTheRepositoryIsNotThePlansBusiness()
     {
         // This refused during a trial run and blocked `gh pr create --body-file`, whose body was staged

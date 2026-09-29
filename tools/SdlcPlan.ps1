@@ -157,3 +157,37 @@ function Get-SdlcCycleBase {
 
     return $sha
 }
+
+function Get-SdlcApprovalField {
+    <#
+    .SYNOPSIS
+    An approval field's value from frontmatter text, or $null when it is absent or effectively blank.
+
+    .DESCRIPTION
+    One definition, because three gates asked this question and a fourth answer would be a fourth
+    opinion about whether a cycle may proceed.
+
+    "Effectively blank" is the point. The interrogation report prints the block with the name left empty
+    for a person to type:
+
+        approved_by:
+        approved_at: 2026-09-29T01:05:00Z
+
+    so an unfilled paste has to read as not approved. The earlier check matched `\S.*`, which refuses a
+    bare blank correctly but accepts `approved_by: "  "` - the quotes are non-whitespace, so a name made
+    of spaces passed both this and the schema's minLength. Quotes come off before the emptiness test now.
+    #>
+    param(
+        [Parameter(Mandatory = $true)][AllowEmptyString()][string]$Text,
+        [Parameter(Mandatory = $true)][string]$Field
+    )
+
+    $m = [regex]::Match($Text, '(?m)^' + [regex]::Escape($Field) + ':(?<v>.*)$')
+    if (-not $m.Success) { return $null }
+
+    $value = $m.Groups['v'].Value.Trim().Trim('"').Trim("'").Trim()
+
+    if (-not $value) { return $null }
+
+    return $value
+}

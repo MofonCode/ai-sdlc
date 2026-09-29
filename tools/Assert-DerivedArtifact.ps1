@@ -24,6 +24,8 @@
 
 $ErrorActionPreference = 'Stop'
 
+. (Join-Path $PSScriptRoot 'SdlcPlan.ps1')
+
 function Deny([string]$Reason) {
     $payload = @{
         hookSpecificOutput = @{
@@ -90,10 +92,9 @@ if ($normalized -match '/\.sdlc/cycles/(?<cycle>[^/]+)/findings/(?<kind>intent|s
         # is a frontmatter field silently not matching.
         $frontmatter = Get-Content -LiteralPath $artifact -Raw -Encoding UTF8
 
-        $approved = [regex]::Match($frontmatter, '(?m)^approved_by:\s*(?<v>\S.*)$')
+        $settledBy = Get-SdlcApprovalField -Text $frontmatter -Field 'approved_by'
 
-        if ($approved.Success) {
-            $settledBy = $approved.Groups['v'].Value.Trim()
+        if ($null -ne $settledBy) {
 
             Deny (
                 "The $kind for $cycle was approved by $settledBy, so it is settled and a finding " +

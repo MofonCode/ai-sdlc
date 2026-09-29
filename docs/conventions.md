@@ -187,9 +187,15 @@ Enforced by: `PluginTests.EveryToolScriptParses`
 
 ### Approval is printed for a person, never written by a skill
 
-A clean interrogation ends by printing `approved_by` and `approved_at` filled in — the name from
-`git config user.name`, the timestamp from the injected UTC clock — so approving is a paste rather than a
-lookup. A skill never writes them.
+A clean interrogation ends by printing the block with **the timestamp filled and the name empty** — the
+timestamp from the injected UTC clock, because it is the part a person cannot produce; the name left for
+them to type, because typing it is the act of approving. A name already sitting there turns approval into
+pressing return on someone else's assertion. A skill never writes either field into the artifact.
+
+An unfilled paste is refused by every gate. `Get-SdlcApprovalField` in `tools/SdlcPlan.ps1` is the single
+definition of "approved", and it strips quotes before testing for emptiness: the older per-gate check
+matched `\S.*`, which refuses a bare blank but accepted `approved_by: "  "`, since the quotes are
+non-whitespace and the schema's `minLength` counts them.
 
 There is no auto-approval on a clean verdict, and the reason is not caution. The verdict is the machine's
 own judgement of the artifact, so letting it approve on that basis is the machine approving its own

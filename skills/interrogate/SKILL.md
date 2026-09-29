@@ -204,9 +204,10 @@ blocking: 0 · suggestions: 0
 
 findings → `.sdlc/cycles/20260928_a43a/findings/intent.r1.json`
 
-next → a person approves it by pasting this into the artifact's frontmatter:
+next → a person approves it by pasting this into the artifact's frontmatter and typing
+their name:
 
-approved_by: Peter Almanzar
+approved_by:
 approved_at: 2026-09-29T01:05:00Z
 
 then:
@@ -229,12 +230,25 @@ Suggestions get two lines — they have no remedy to act on.
 **The command on its own line, alone in a fence**, so it can be copied without trimming anything. Never
 wrap it in prose.
 
-**Give them the approval block, filled in, and never write it yourself.**
+**Give them the approval block with the timestamp filled and the name empty.**
 
-A clean interrogation ends with a person doing one thing, so make that thing a copy rather than a
-lookup. Print `approved_by` and `approved_at` as two lines they can paste, with the name taken from
-`git config user.name` and the timestamp from the UTC clock in the reference section below — you cannot
-read a clock, and a plausible-looking invented timestamp is worse than none.
+A clean interrogation ends with a person doing one thing, so make that thing a paste rather than a
+lookup — but not a paste that approves by itself. Print exactly:
+
+```
+approved_by:
+approved_at: <the UTC time from the reference section below>
+```
+
+**The timestamp is filled because it is the part a person cannot produce.** Take it from the injected
+clock; you cannot read one yourself, and a plausible-looking invented timestamp is worse than none.
+
+**The name is left empty because typing it is the act of approving.** Do not fill it from
+`git config user.name` or from anywhere else. A name already sitting there turns approval into pressing
+return on someone else's assertion, and the one thing this field is for is recording that a specific
+person decided. An unfilled paste is refused by every gate — `approved_by:` with nothing after it does
+not count as approved, and neither does a name made only of spaces — so forgetting to type stops the
+cycle rather than passing it.
 
 **Printing it is the whole of your part.** Do not write those fields into the artifact, and do not offer
 to, however clean the verdict. The field says who decided; a skill that fills it in has forged the only
