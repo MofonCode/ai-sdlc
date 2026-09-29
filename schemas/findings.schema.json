@@ -57,12 +57,15 @@
     "finding": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["id", "severity", "disposition", "cites", "statement", "locus"],
+      "required": ["id", "severity", "disposition", "statement", "locus"],
       "properties": {
         "id": { "$ref": "#/$defs/findingId" },
         "severity": { "$ref": "#/$defs/severity" },
         "disposition": { "$ref": "#/$defs/disposition" },
-        "cites": { "$ref": "#/$defs/constraintId" },
+        "cites": {
+          "$ref": "#/$defs/constraintId",
+          "description": "The constraint this finding breaches. Required on a blocking finding: blocking means a rule was broken, and a reader has to be able to check which one. Omitted on a suggestion that breaches nothing - it used to be required on every finding, so suggestions cited a constraint and then argued in their own statement that its clause was not breached, which left the field meaning two different things."
+        },
         "statement": {
           "type": "string",
           "minLength": 1,
@@ -81,13 +84,13 @@
       },
       "allOf": [
         {
-          "description": "A blocking finding must say what would resolve it: remediation cannot work a finding that names no remedy.",
+          "description": "A blocking finding names the constraint it breaches and what would resolve it. Without the constraint a reader cannot check the claim; without the remedy remediation has nothing to work.",
           "if": {
             "properties": { "severity": { "const": "blocking" } },
             "required": ["severity"]
           },
           "then": {
-            "required": ["remedy"],
+            "required": ["cites", "remedy"],
             "properties": { "remedy": { "type": "string", "minLength": 1 } }
           }
         }

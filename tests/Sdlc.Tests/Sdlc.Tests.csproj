@@ -3,6 +3,7 @@
   <PropertyGroup>
     <IsPackable>false</IsPackable>
     <OutputType>Exe</OutputType>
+    <EnableMSTestRunner>true</EnableMSTestRunner>
 
     <!-- JUSTIFIED SUPPRESSION. CA1515 wants types in a non-library assembly to be internal.
          MSTest requires test classes and methods to be public (MSTEST0002, MSTEST0003), and

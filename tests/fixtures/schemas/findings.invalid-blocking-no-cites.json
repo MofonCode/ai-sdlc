@@ -1,0 +1,17 @@
+{
+  "framework_version": "0.0.1",
+  "cycle": "20260927_a3f1",
+  "artifact": ".sdlc/cycles/20260927_a3f1/spec.md",
+  "interrogated_at": "2026-09-27T14:02:11Z",
+  "round": 1,
+  "findings": [
+    {
+      "id": "F_01",
+      "severity": "blocking",
+      "disposition": "open",
+      "statement": "Criterion 3 cannot fail.",
+      "locus": "criterion 3",
+      "remedy": "State a measurable bound and the check that observes it."
+    }
+  ]
+}

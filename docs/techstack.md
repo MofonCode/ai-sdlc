@@ -31,9 +31,37 @@ to bind adds a `LOC_` constraint or an architecture test of its own.
 | Relational data | SQL Server |
 | Document data | Cosmos DB |
 | Machine learning | ML.NET |
-| Testing | MSTest on Microsoft.Testing.Platform |
+| Testing | MSTest on Microsoft.Testing.Platform, wired as below |
 | Shared kernel | `MofonCode.Core` |
 | Local orchestration | .NET Aspire AppHost, under the condition below |
+
+### Microsoft.Testing.Platform needs two settings, or `dotnet test` does not run
+
+On the .NET 10 SDK, `dotnet test` defaults to VSTest and MTP refuses that path. A plan that names MSTest
+on MTP must declare **both** of these, or the command every `AGENTS.md` documents fails:
+
+`global.json` — alongside the `sdk` section:
+
+```json
+"test": {
+  "runner": "Microsoft.Testing.Platform"
+}
+```
+
+The test project — or `Directory.Build.props`, which is better when a solution has more than one test
+project, because a project added later without it silently runs a different runner:
+
+```xml
+<EnableMSTestRunner>true</EnableMSTestRunner>
+```
+
+**Do not set `TestingPlatformDotnetTestSupport`.** It was the .NET 9 mechanism, it is legacy on 10, and
+setting it instead of the two above is how a trial run ended up unable to run `dotnet test` at all — the
+evidence had to come from invoking the test executable directly, so the documented command and the
+working command were different commands.
+
+Verified on the .NET 10 SDK with MSTest 4.4.1: bare `dotnet test` from the solution root passes with
+both settings and fails with either one missing.
 
 ### When a solution gets an Aspire AppHost
 

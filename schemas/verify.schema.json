@@ -135,7 +135,11 @@
           "minLength": 1,
           "description": "Where the recorded output lives. A claim citing evidence that is not here cannot be checked."
         },
-        "sha": { "type": "string", "pattern": "^[0-9a-f]{7,40}$" },
+        "sha": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{7,40}$",
+          "description": "The commit this evidence was captured at. For a diff that is the tip, not the base: the base is the one build pinned in evidence/base.sha, so a cycle carries two shas. This description exists because there was none, and nothing said which was which."
+        },
         "summary": { "type": "string", "minLength": 1 }
       }
     },

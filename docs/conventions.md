@@ -309,6 +309,33 @@ Every consumer branches on the same closed set.
 Enforced by: `SchemaTests.SeverityEnumIsTheSingleDefinition`,
 `SchemaTests.OutcomeEnumMatchesTheStateMachine`
 
+### A stack default this repository states, this repository runs
+
+`docs/techstack.md` named MSTest on Microsoft.Testing.Platform as the testing default while this
+repository ran MSTest under VSTest — it never set `EnableMSTestRunner`, which is the only reason its own
+`dotnet test` worked. So the default went out to every scaffolded solution untested by the framework
+publishing it, and the first solution to follow it could not run the command its own `AGENTS.md`
+documents.
+
+Both settings are now in this repository and named in the defaults: the `test` section in `global.json`
+and `EnableMSTestRunner` on the test project. The suite runs under MTP, so the configuration we prescribe
+is the configuration our own 112 tests exercise.
+
+The general rule: **a default is a claim, and a claim this repository does not run is a claim nothing
+checks.** Where a default can be exercised here, exercise it here.
+
+### A field means one thing, and a required field must mean it everywhere
+
+`cites` was required on every finding. A suggestion that breaches no constraint had to name one anyway,
+so the trial produced two suggestions that cited CON_07 and then spent their own statements explaining
+that CON_07's clause was not breached — telling a reader a rule was broken and then telling them it was
+not. It is required on blocking findings only now, beside `remedy`, which already worked that way.
+
+If a suggestion really does breach a constraint, it is not a suggestion.
+
+Enforced by: `SchemaTests.FixtureMatchesItsSchema`, through
+`findings.valid-suggestion-without-cites.json` and `findings.invalid-blocking-no-cites.json`
+
 ### A schema is tested in both directions, and the rejections are the point
 
 A schema proven only by documents that should pass has not been proven. Nine fixtures cover the findings

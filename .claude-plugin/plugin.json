@@ -1,7 +1,7 @@
 {
   "name": "sdlc",
   "displayName": "ai-sdlc",
-  "version": "0.6.1",
+  "version": "0.7.0",
   "description": "A constraint-governed SDLC. An intent becomes a spec, a plan, a build and a verification, each interrogated against a set of constraints before it advances.",
   "author": {
     "name": "Peter Almanzar"

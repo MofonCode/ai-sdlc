@@ -1,0 +1,16 @@
+{
+  "framework_version": "0.0.1",
+  "cycle": "20260927_a3f1",
+  "artifact": ".sdlc/cycles/20260927_a3f1/spec.md",
+  "interrogated_at": "2026-09-27T14:02:11Z",
+  "round": 2,
+  "findings": [
+    {
+      "id": "F_01",
+      "severity": "suggestion",
+      "disposition": "open",
+      "statement": "Criterion 2 would read more plainly as two criteria, one per outcome it checks.",
+      "locus": "criterion 2"
+    }
+  ]
+}

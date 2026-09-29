@@ -18,6 +18,8 @@ public sealed class SchemaTests
     [DataRow("findings.schema.json", "findings.valid.json", true)]
     [DataRow("findings.schema.json", "findings.invalid-severity.json", false)]
     [DataRow("findings.schema.json", "findings.invalid-blocking-no-remedy.json", false)]
+    [DataRow("findings.schema.json", "findings.valid-suggestion-without-cites.json", true)]
+    [DataRow("findings.schema.json", "findings.invalid-blocking-no-cites.json", false)]
     [DataRow("verify.schema.json", "verify.valid-pass.json", true)]
     [DataRow("verify.schema.json", "verify.valid-escalated.json", true)]
     [DataRow("verify.schema.json", "verify.valid-pass-with-waiver.json", true)]

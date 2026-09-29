@@ -185,8 +185,7 @@ blocking: 1 · suggestions: 1
 
 **suggestions**
 
-- `F_02` · **CON_03** — a criterion can fail
-  at criterion 2 — "renders correctly" names no check
+- `F_02` — criterion 2 would read more plainly as two, one per outcome it checks
 
 findings → `.sdlc/cycles/20260928_a43a/findings/intent.r1.json`
 
@@ -222,6 +221,13 @@ zero — a reader scanning three of these in a row is reading that line and noth
 
 **Name the constraint and what it forbids**, never the bare id. `CON_01` alone sends someone to look it
 up; `CON_01 — the problem, not the solution` does not. Keep the description to a handful of words.
+
+**A suggestion that breaches nothing cites nothing.** `cites` is how a reader checks which rule was
+broken, so it belongs on a blocking finding and the schema requires it there. Leave it off a suggestion
+that names no breach, in the report and in the findings document alike. It used to be required on every
+finding, and the result was suggestions that cited a constraint and then spent their own statement
+explaining that its clause was not breached — which tells a reader a rule was broken and then tells them
+it was not. If a suggestion really does breach a constraint, it is not a suggestion.
 
 **One finding, three lines**: the id and constraint, then where it is, then what would fix it. A remedy on
 every blocking finding, because remediation cannot work one that does not say what would resolve it.
