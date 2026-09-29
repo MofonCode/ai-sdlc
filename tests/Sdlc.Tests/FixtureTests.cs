@@ -148,6 +148,66 @@ public sealed class FixtureTests
     [TestMethod]
     [DataRow("greenfield")]
     [DataRow("brownfield")]
+    public void AFixtureSolutionBuildsCleanFromACopy(string solutionName)
+    {
+        // Nothing compiled these until now. They are the substrate a skill runs against, so a broken
+        // csproj here would surface for the first time inside a build phase, reported as the cycle's
+        // failure rather than the fixture's.
+        //
+        // greenfield also tracks its public surface with Microsoft.CodeAnalysis.PublicApiAnalyzers, so
+        // this asserts more than "the project loads": every public member has to be listed in
+        // PublicAPI.Shipped.txt and every listed member has to exist. That is what makes plan.good.md's
+        // proof honest when it cites the file.
+        //
+        // From a copy, not in place. Two reasons: this repository's Directory.Packages.props sets
+        // ManagePackageVersionsCentrally, which would reject greenfield's inline package Version with
+        // NU1008 while the fixture sits in-tree; and building in place would write bin/ and obj/ into a
+        // checked-in fixture, which the test below exists to prevent.
+        using var workspace = FixtureWorkspace.Materialize(solutionName);
+
+        (int exitCode, string output) = Dotnet(workspace.Path, "build", "--nologo", "--verbosity", "quiet");
+
+        Assert.AreEqual(
+            0,
+            exitCode,
+            $"The {solutionName} fixture does not build:{Environment.NewLine}{output}");
+
+        Assert.AreEqual(
+            string.Empty,
+            workspace.Run("status", "--porcelain").Trim(),
+            $"Building {solutionName} left files git can see. Add them to its .gitignore, or the diff a "
+            + "cycle takes against this fixture includes build output.");
+    }
+
+    /// <summary>Runs dotnet in a directory and returns its exit code with everything it wrote.</summary>
+    private static (int ExitCode, string Output) Dotnet(string workingDirectory, params string[] arguments)
+    {
+        System.Diagnostics.ProcessStartInfo info = new("dotnet")
+        {
+            WorkingDirectory = workingDirectory,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            UseShellExecute = false,
+        };
+
+        foreach (string argument in arguments)
+        {
+            info.ArgumentList.Add(argument);
+        }
+
+        using System.Diagnostics.Process process = System.Diagnostics.Process.Start(info)
+            ?? throw new InvalidOperationException("Could not start dotnet.");
+
+        string stdout = process.StandardOutput.ReadToEnd();
+        string stderr = process.StandardError.ReadToEnd();
+        process.WaitForExit();
+
+        return (process.ExitCode, stdout + stderr);
+    }
+
+    [TestMethod]
+    [DataRow("greenfield")]
+    [DataRow("brownfield")]
     public void FixtureMaterializesAsAGitRepositoryAndIsDiscarded(string solutionName)
     {
         string path;

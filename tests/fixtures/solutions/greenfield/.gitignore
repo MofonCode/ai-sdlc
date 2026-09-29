@@ -1,0 +1,4 @@
+# Build output stays out of the diff a cycle takes. Without this, `git status` in a materialized
+# workspace reports bin/ and obj/, and verify measures the compiler's output as part of the change.
+bin/
+obj/

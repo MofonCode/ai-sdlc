@@ -455,6 +455,30 @@ Enforced by: `FixtureTests.EveryConstraintAboutAnArtifactHasAFailingFixture`
 
 ## Fixtures
 
+### A fixture solution compiles, from a copy
+
+Nothing compiled these for a long time, and both were broken. greenfield did not build at all: its csproj
+declared `Nullable` but not `ImplicitUsings`, and its sources used `IEnumerable<decimal>` with no `using`
+— which compiled only because this repository's `Directory.Build.props` sits above the fixture in-tree
+and supplied the implicit usings. Materialized into a temporary directory, where no props file is above
+it, it failed on three errors. A skill would have hit that inside a build phase and reported it as the
+cycle's failure.
+
+**A fixture must be self-sufficient**, because a skill only ever sees the copy. Declare the framework, the
+nullable setting and the implicit usings in the csproj; pin a package version inline rather than through
+central management, since `Directory.Packages.props` is not there either — and in-tree it would reject an
+inline version with NU1008, which is the second reason the build happens from a copy.
+
+**And a fixture carries a `.gitignore` for `bin/` and `obj/`.** Without one, building leaves output that
+`git status` reports, so the diff a cycle takes against the fixture includes the compiler's work.
+
+greenfield's build also proves its public surface: `PublicApiAnalyzers` fails if a public member is
+missing from `PublicAPI.Shipped.txt` or listed there without existing. That is what makes
+`plan.good.md`'s proof honest when it cites the file, and it is why `Invoicing.cs` is load-bearing
+despite no test naming it.
+
+Enforced by: `FixtureTests.AFixtureSolutionBuildsCleanFromACopy`
+
 ### A golden artifact is true of the solution it sits in
 
 An interrogation reads the code. The first fixture set described an ops dashboard the fixture solution
