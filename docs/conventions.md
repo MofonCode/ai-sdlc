@@ -776,20 +776,6 @@ claude plugin install sdlc@ai-sdlc
 
 ---
 
----
-
----
-
----
-
----
-
----
-
----
-
----
-
 ## Constraints cited here
 
 Short descriptions, so nothing here sends you to look one up. `CONSTRAINTS.md` carries the full

@@ -507,20 +507,6 @@ cost when a solution's core value is model quality rather than integration.
 
 ---
 
----
-
----
-
----
-
----
-
----
-
----
-
----
-
 ## Constraints cited here
 
 Short descriptions, so nothing here sends you to look one up. `CONSTRAINTS.md` carries the full
