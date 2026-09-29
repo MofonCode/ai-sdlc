@@ -9,7 +9,7 @@ covers:
 Eighteen steps, in order, from an empty directory to a pull request. One command per block, so each can
 be copied on its own.
 
-**Verified as of `0.3.0`:** steps 4 to 13. Step 3 and steps 14 onward use skills that have never been run
+**Verified as of `0.4.0`:** steps 4 to 13. Step 3 and steps 14 onward use skills that have never been run
 end to end, and each says so where it appears. Expect friction there and note where it happens — those
 notes are worth more than the artifacts.
 
@@ -125,7 +125,7 @@ gets recorded as a fixed decision with your name on it.
 
 It will interview you. Answer what you know and say so when you do not: unknowns become **Open** questions
 rather than invented answers. An intent with three open questions is sound; three invented ones are a
-liability, because every later phase treats an accepted intent as settled.
+liability, because every later phase treats an approved intent as settled.
 
 **A deliberate choice:** saying "1 to 6" hands the spec a fact. Leaving it out is the sharper test — if the
 spec invents a range, CON_02 should have caught it here. Pick knowingly.
@@ -158,16 +158,16 @@ Writes `.sdlc/cycles/20260928_a1b2/findings/intent.r1.json`. Read the findings, 
 Blocking findings mean the intent must change first. Fix it and run this again — it writes `r2` and keeps
 `r1`, because the sequence is the record of whether your repair worked.
 
-## 7. Accept the intent
+## 7. Approve the intent
 
-Nothing accepts an artifact for you. Edit the intent's frontmatter yourself and add both fields:
+Nothing approves an artifact for you. Edit the intent's frontmatter yourself and add both fields:
 
 ```yaml
-accepted_by: Peter Almanzar
-accepted_at: 2026-09-28T09:00:00Z
+approved_by: Peter Almanzar
+approved_at: 2026-09-28T09:00:00Z
 ```
 
-Both, or neither — a name with no date says nothing about which version you accepted. This is the cheapest
+Both, or neither — a name with no date says nothing about which version you approved. This is the cheapest
 of the three gates: you are agreeing this is the right problem, before anything else exists.
 
 ## 8. Write the spec
@@ -177,7 +177,7 @@ of the three gates: you are agreeing this is the right problem, before anything 
 ```
 
 Turns the intent into numbered acceptance criteria, each stating an observable outcome and how it is
-checked. It refuses if the intent is not accepted.
+checked. It refuses if the intent is not approved.
 
 ## 9. Interrogate the spec
 
@@ -185,15 +185,15 @@ checked. It refuses if the intent is not accepted.
 /sdlc:interrogate 20260928_a1b2 spec
 ```
 
-## 10. Accept the spec
+## 10. Approve the spec
 
 Read the criteria properly first. This is what everything downstream is measured against, and the numbering
 is an interface — the plan and the verify document cite criteria by number, so a criterion must never be
-renumbered once accepted.
+renumbered once approved.
 
 ```yaml
-accepted_by: Peter Almanzar
-accepted_at: 2026-09-28T09:15:00Z
+approved_by: Peter Almanzar
+approved_at: 2026-09-28T09:15:00Z
 ```
 
 ## 11. Write the plan
@@ -238,9 +238,18 @@ every source edit until those two fields exist.
 *Never run end to end.* It implements the plan and heals its own build and test failures — nothing should
 leave this step that does not compile and pass.
 
-It must also write three files into `.sdlc/cycles/<id>/evidence/`: `build.log`, `tests.trx` and
-`diff.patch`. If any is missing, the next step will report the matching claims as unprovable. That is the
-design working, and it will look like a failure.
+Before writing anything it checks three preconditions and refuses on any of them: you are on
+`cycle/<id>`, the plan is approved, and nothing is uncommitted outside `.sdlc/`. The last one catches a
+dirty tree whose changes would otherwise be attributed to this cycle and reported as scope nobody
+approved.
+
+It then **pins the base** — the commit everything after is measured from — into
+`.sdlc/cycles/<id>/evidence/base.sha`. **Because it is pinned, you can commit during a build as often as
+you like.** Only `.sdlc/` goes in before the pin.
+
+It must also write into `.sdlc/cycles/<id>/evidence/`: `build.log`, `tests.trx` and `diff.patch`. If any
+is missing, the next step will report the matching claims as unprovable. That is the design working, and
+it will look like a failure.
 
 ## 15. Verify
 

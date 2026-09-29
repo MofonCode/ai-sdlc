@@ -10,11 +10,45 @@ allowed-tools: Bash(powershell.exe *) Bash(git *) Bash(dotnet *)
 Implement `.sdlc/cycles/$0/plan.md`. Nothing leaves this phase that does not compile and pass its
 tests.
 
-## Refuse unless the plan is approved
+## Refuse unless this cycle is ready to build
 
-Read the plan. Stop if it does not exist, if its interrogation left blocking findings, or if no
-person has approved it. A hook also refuses source edits without an approved plan, so proceeding
-without one wastes the attempt.
+Run this first, from the solution's root, and do not proceed on a `NOT READY`:
+
+```
+powershell.exe -NoProfile -File "${CLAUDE_PLUGIN_ROOT}/tools/Assert-BuildReady.ps1" -CycleId $0
+```
+
+It checks the three things that have to hold before a single line is written: you are on `cycle/$0`,
+a person has approved the plan, and nothing is uncommitted outside `.sdlc/`. Quote its output and stop
+if it refuses — every item it names is a decision for a person, not something to work around.
+
+Read the plan too, and stop if its interrogation left blocking findings. That one is a judgement the
+script cannot make.
+
+## Pin the base before you touch source
+
+Everything verify later claims is measured from one commit. Commit the cycle's record first, then write
+that commit's sha where verify will read it:
+
+```
+git add .sdlc
+```
+
+```
+git commit -m "record artifacts for cycle $0"
+```
+
+```
+powershell.exe -NoProfile -File "${CLAUDE_PLUGIN_ROOT}/tools/Set-CycleBase.ps1" -CycleId $0
+```
+
+The intent, spec, plan and findings are the cycle's record, not part of the change under review, which
+is why they go in before the base rather than after.
+
+**After this, commit your source changes as often as you like.** The base is pinned, so the comparison
+spans every commit you make. It was not always so: the comparison used to take its base as `HEAD` at the
+moment it ran, and one ordinary `git commit` during a build moved the base on top of the change, emptied
+the diff, and reported success with an undeclared file sitting in it. A recorded base cannot do that.
 
 ## Build only what the plan declared
 
@@ -43,22 +77,6 @@ Two things the healing may not do:
 Keep going until the build is clean and every test passes, or until you are certain you cannot get
 there — in which case stop and say exactly what fails and what you tried.
 
-## Commit the cycle's artifacts before you diff
-
-The intent, spec, plan and findings are the cycle's record, not part of the change under review. Commit
-them first, so the diff that follows contains only the change:
-
-```
-git add .sdlc
-git commit -m "record artifacts for cycle $0"
-```
-
-Then note that commit's sha. It is the base every diff below is taken against, and verify needs to know
-it.
-
-**Do not commit source files here.** Only `.sdlc/`. Staging the change itself would put it behind the
-base and empty the diff.
-
 ## Record the evidence
 
 Verify derives every claim from evidence that already exists, so this phase produces it. Write into
@@ -68,12 +86,18 @@ Verify derives every claim from evidence that already exists, so this phase prod
 |---|---|
 | `build.log` | the full output of the final, clean build |
 | `tests.trx` | the results of the final, passing test run |
-| `diff.patch` | the change, taken against the artifacts commit above |
+| `diff.patch` | the change, taken against the base pinned above |
+| `base.sha` | written already, when you pinned the base |
 
-**The diff must say what it is a diff against.** Take it as `git diff --cached <base>` after staging
-only the files the plan declared, and record that base — verify reports a claim as unprovable when it
-cannot tell whether content came from this cycle or predates it, and a patch with no stated base is
-exactly that situation. Put the base in the patch as a first-line comment and report it.
+Take the patch against the base that `Set-CycleBase.ps1` reported, so it covers every commit you made:
+
+```
+git diff <base>
+```
+
+**The diff must say what it is a diff against.** Put that base in the patch as a first-line comment.
+Verify reports a claim as unprovable when it cannot tell whether content came from this cycle or
+predates it, and a patch with no stated base is exactly that situation.
 
 These are the inputs to verify. A missing file is not a formatting problem — it makes the corresponding
 verify claim unprovable, and verify will report that rather than assume.

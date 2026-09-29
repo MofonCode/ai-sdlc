@@ -35,7 +35,7 @@ all of them are a person's:
 | Exit | When the blocker is | What you change |
 |---|---|---|
 | fix by hand | real, and the machine could not do it | the code, then `/sdlc:verify <id>` |
-| amend the spec | the *criterion* was wrong, not the code | the spec, remove its acceptance, re-interrogate, re-accept |
+| amend the spec | the *criterion* was wrong, not the code | the spec, remove its approval, re-interrogate, re-approve |
 | waive | real, understood, and accepted anyway | a waiver record naming who, when and why |
 | abandon | not worth solving | close the cycle unlanded |
 
@@ -61,10 +61,10 @@ has in six months instead of the conversation.
 
 ## Interrogation said the artifact is settled
 
-A person already accepted or approved it, so a finding has nothing left to act on.
+A person already approved it, so a finding has nothing left to act on.
 
-If it has since been **amended**, the acceptance is stale: remove those frontmatter fields, interrogate,
-and have a person accept it again. Otherwise the cycle has moved on — after an accepted spec comes
+If it has since been **amended**, the approval is stale: remove those frontmatter fields, interrogate,
+and have a person approve it again. Otherwise the cycle has moved on — after an approved spec comes
 `/sdlc:plan`, after an approved plan comes `/sdlc:build`.
 
 ## Landing refused

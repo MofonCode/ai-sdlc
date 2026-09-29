@@ -72,32 +72,34 @@ if ($normalized -match '/\.sdlc/cycles/(?<cycle>[^/]+)/findings/(?<kind>intent|s
         )
     }
 
-    # An artifact a person has accepted or approved is settled, and a finding against it has no
-    # consumer: the phase that would have acted on it is behind us, and the artifact is already the
-    # basis of everything downstream. Writing one anyway is how the review loop restarts on work that
-    # was finished. The legitimate case - an amended spec - clears the acceptance first, which is a
-    # person's act and not a skill's.
+    # An artifact a person has approved is settled, and a finding against it has no consumer: the
+    # phase that would have acted on it is behind us, and the artifact is already the basis of
+    # everything downstream. Writing one anyway is how the review loop restarts on work that was
+    # finished. The legitimate case - an amended spec - clears the approval first, which is a person's
+    # act and not a skill's.
+    #
+    # One word for the gate, on every artifact. An intent, a spec and a plan are all approved_by a
+    # person; there is no second vocabulary for the same act.
     $cycle = $Matches['cycle']
     $kind = $Matches['kind']
 
     $artifact = Join-Path (Split-Path -Parent (Split-Path -Parent $path)) "$kind.md"
 
     if (Test-Path -LiteralPath $artifact) {
-        $frontmatter = Get-Content -LiteralPath $artifact -Raw
+        # -Encoding UTF8: 5.1 assumes the system codepage for a file with no BOM, and a mangled read
+        # is a frontmatter field silently not matching.
+        $frontmatter = Get-Content -LiteralPath $artifact -Raw -Encoding UTF8
 
-        $settledBy = $null
-        $gate = $null
-        $accepted = [regex]::Match($frontmatter, '(?m)^accepted_by:\s*(?<v>\S.*)$')
         $approved = [regex]::Match($frontmatter, '(?m)^approved_by:\s*(?<v>\S.*)$')
-        if ($accepted.Success) { $settledBy = $accepted.Groups['v'].Value.Trim(); $gate = 'accepted' }
-        if ($approved.Success) { $settledBy = $approved.Groups['v'].Value.Trim(); $gate = 'approved' }
 
-        if ($null -ne $gate) {
+        if ($approved.Success) {
+            $settledBy = $approved.Groups['v'].Value.Trim()
+
             Deny (
-                "The $kind for $cycle was $gate by $settledBy, so it is settled and a finding " +
-                'against it has nothing to act on it. If it has since been amended, the acceptance is ' +
-                'stale: remove those frontmatter fields, interrogate, and have a person accept it ' +
-                'again. Otherwise the cycle has moved on - after an accepted spec comes /sdlc:plan, ' +
+                "The $kind for $cycle was approved by $settledBy, so it is settled and a finding " +
+                'against it has nothing to act on it. If it has since been amended, the approval is ' +
+                'stale: remove those frontmatter fields, interrogate, and have a person approve it ' +
+                'again. Otherwise the cycle has moved on - after an approved spec comes /sdlc:plan, ' +
                 'after an approved plan comes /sdlc:build.'
             )
         }

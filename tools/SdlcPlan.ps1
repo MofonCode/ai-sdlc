@@ -123,3 +123,37 @@ function Test-SdlcPathDeclared {
 
     return $false
 }
+
+function Get-SdlcCycleBase {
+    <#
+    .SYNOPSIS
+    The commit a cycle's build declared as the base of its change, or $null if none was recorded.
+
+    .DESCRIPTION
+    Build writes this the moment it has committed the cycle's artifacts and before it touches source,
+    so everything after it belongs to the change under review.
+
+    It is recorded rather than recomputed because the obvious recomputation is wrong. The first version
+    of Compare-DiffToPlan.ps1 took the base as `git rev-parse HEAD` at the moment it ran, which is the
+    artifacts commit only while nothing has been committed since. One ordinary `git commit` during build
+    moved the base on top of the change and the diff came back empty - with an undeclared file in it and
+    exit code 0. A pinned base cannot do that, however many commits a build makes.
+    #>
+    param(
+        [Parameter(Mandatory = $true)][string]$RepositoryRoot,
+        [Parameter(Mandatory = $true)][string]$CycleId
+    )
+
+    $path = Join-Path $RepositoryRoot ".sdlc/cycles/$CycleId/evidence/base.sha"
+
+    if (-not (Test-Path -LiteralPath $path)) { return $null }
+
+    $sha = "$(Get-Content -LiteralPath $path -Raw -Encoding UTF8)".Trim()
+
+    if ($sha -notmatch '^[0-9a-f]{7,40}$') {
+        throw "The base recorded for $CycleId is not a commit sha: '$sha'. It is written by build as " +
+              'the single line of .sdlc/cycles/<id>/evidence/base.sha.'
+    }
+
+    return $sha
+}

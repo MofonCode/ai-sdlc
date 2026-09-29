@@ -28,7 +28,7 @@ furthest-advanced artifact in this cycle"* — and name the explicit form once:
 
 > To judge a different one, pass its kind: `/sdlc:interrogate $0 spec`.
 
-That matters because flow order picks wrongly in one real case. Amending an accepted spec after a
+That matters because flow order picks wrongly in one real case. Amending an approved spec after a
 verification failure is a legitimate way out of an escalated cycle, and it leaves a plan on disk, so the
 rule lands on the plan when the spec was meant. Naming your choice is the only thing standing between
 that and a confident verdict on the wrong document.
@@ -45,7 +45,7 @@ the adjudication of a diff, and `/sdlc:verify` is what produces it.
 
 ## 0b. Refuse an artifact that is already settled
 
-Read the artifact's frontmatter before judging it. If it carries `accepted_by` and `accepted_at`, or
+Read the artifact's frontmatter before judging it. If it carries `approved_by` and `approved_at`, or
 `approved_by` and `approved_at`, **stop.**
 
 A person has passed that gate. A finding raised now has no consumer: the artifact it would change is
@@ -53,13 +53,13 @@ already the basis of everything downstream, and the phase that would have acted 
 you. Producing one anyway invites exactly the loop this process exists to avoid — an artifact that comes
 back sound, an observation that reads as work, a round that changes nothing.
 
-Say which gate was passed and by whom, then where the cycle actually is: after an accepted spec the step
+Say which gate was passed and by whom, then where the cycle actually is: after an approved spec the step
 is `/sdlc:plan`, after an approved plan it is `/sdlc:build`. If every artifact in the cycle is settled,
 say so plainly — that is a useful answer, not a failure.
 
-**The one legitimate reason to interrogate a settled artifact is that it changed.** Amending an accepted
-spec is a way out of an escalated cycle, and an amendment makes the old acceptance stale. The order is:
-amend it, remove the acceptance fields, interrogate, then have a person accept it again. Say that, so the
+**The one legitimate reason to interrogate a settled artifact is that it changed.** Amending an approved
+spec is a way out of an escalated cycle, and an amendment makes the old approval stale. The order is:
+amend it, remove the approval fields, interrogate, then have a person approve it again. Say that, so the
 route is obvious. Never clear those fields yourself — they are the gate, and clearing one is a person's
 act.
 
@@ -204,7 +204,7 @@ blocking: 0 · suggestions: 0
 
 findings → `.sdlc/cycles/20260928_a43a/findings/intent.r1.json`
 
-next → a person accepts it by adding `accepted_by` and `accepted_at` to its frontmatter, then:
+next → a person approves it by adding `approved_by` and `approved_at` to its frontmatter, then:
 
 /sdlc:spec 20260928_a43a
 ```
@@ -228,11 +228,11 @@ wrap it in prose.
 
 | This artifact | Nothing blocking, so next is | Something blocking, so next is |
 |---|---|---|
-| intent | a person accepts, then `/sdlc:spec <id>` | `/sdlc:interrogate <id> intent` |
-| spec | a person accepts, then `/sdlc:plan <id>` | `/sdlc:interrogate <id> spec` |
+| intent | a person approves, then `/sdlc:spec <id>` | `/sdlc:interrogate <id> intent` |
+| spec | a person approves, then `/sdlc:plan <id>` | `/sdlc:interrogate <id> spec` |
 | plan | a person approves, then `/sdlc:build <id>` | `/sdlc:interrogate <id> plan` |
 
-Say who acts, not only what runs. "A person accepts it" is the gate; omitting it implies the next command
+Say who acts, not only what runs. "A person approves it" is the gate; omitting it implies the next command
 is yours to run, and it is not.
 
 **Never restate the findings document in prose.** It is the record; this is a pointer to it, and the

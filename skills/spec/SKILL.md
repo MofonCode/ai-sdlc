@@ -19,8 +19,8 @@ Read the intent first. Stop and say so if:
 
 - it does not exist, or names a problem you cannot find
 - its own interrogation left blocking findings unresolved
-- it carries no `accepted_by` and `accepted_at` in its frontmatter. That pair is how a person records
-  acceptance, and they write it — never you
+- it carries no `approved_by` and `approved_at` in its frontmatter. That pair is how a person records
+  approval, and they write it — never you
 
 Do not write a spec against an intent nobody approved. The spec inherits the intent's authority,
 and an unapproved intent has none to give.
@@ -42,7 +42,7 @@ it — say which criterion is blocked on which open question and stop.
   mentioned again. Read the intent's **Must not change** section especially; it is the one most
   often dropped
 - **CON_05** — no criterion that no statement in the intent supports. Scope added here was never
-  approved by whoever accepted the intent, and it arrives carrying an accepted artifact's
+  approved by whoever approved the intent, and it arrives carrying an approved artifact's
   authority
 
 Honour **Fixed decisions** as given. They are a person's choice, not yours to revisit.
@@ -69,7 +69,7 @@ its intent through that field, and an interrogation that cannot resolve it canno
 ```
 
 Number the criteria. The plan and the verify document both cite them by number, so the numbers are
-an interface: never renumber a criterion once the spec is accepted.
+an interface: never renumber a criterion once the spec is approved.
 
 ## Then stop
 
@@ -79,8 +79,8 @@ challenged them. Report what you produced and name the next command for whoever 
 in an interactive session, or the batch runner in an unattended one.
 
 Say: the spec is at `.sdlc/cycles/$0/spec.md`, the next step is
-`/sdlc:interrogate .sdlc/cycles/$0/spec.md`, and after that a person accepts it by adding
-`accepted_by` and `accepted_at` to its frontmatter.
+`/sdlc:interrogate .sdlc/cycles/$0/spec.md`, and after that a person approves it by adding
+`approved_by` and `approved_at` to its frontmatter.
 
 ---
 

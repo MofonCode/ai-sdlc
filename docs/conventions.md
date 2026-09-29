@@ -174,7 +174,11 @@ Enforced by: `PluginTests.EveryToolScriptIsReachedFromSomewhere`,
 mojibake. Both injectors shipped with that defect and nothing noticed, because the text stayed readable —
 every interrogation was reading mangled constraint headings. Write UTF-8 explicitly too.
 
-Enforced by: `PluginTests.AnInjectorEmitsItsContentUncorrupted`, which asserts both that no mojibake
+Every `Get-Content` in `tools/`, not just the injectors'. That gap hid three unencoded reads: the
+settled-artifact gate, the artifact-shape gate, and the check deciding whether a cycle may land.
+
+Enforced by: `PluginTests.EveryScriptReadsFilesWithAnExplicitEncoding` and
+`PluginTests.AnInjectorEmitsItsContentUncorrupted`, which asserts both that no mojibake
 sequence appears and that an em dash does, so the check cannot pass by the content losing its dashes
 
 ### A stack default reaches a skill by injection, never by a file read
@@ -196,6 +200,47 @@ The cost is real and the scripts are written for it: no `&&` or `||`, no ternary
 validation lives in the test project rather than in a script. `docs/techstack.md` has the detail.
 
 ---
+
+### A measurement reads its own base, it never recomputes one
+
+A check that compares a result to a declaration needs a fixed point to measure from, and it must read
+that point rather than derive it at run time. `Compare-DiffToPlan.ps1` took its base as
+`git rev-parse HEAD` when it ran — correct only while nothing had been committed since the artifacts
+commit. One `git commit` during a build put the base on top of the change, so the diff came back empty,
+the undeclared file in it disappeared, and the exit code said success. Build now pins the base into
+`evidence/base.sha` and the comparison refuses when none is recorded.
+
+The general rule: **when a wrong answer looks like a pass, refuse instead of guessing.** A check whose
+failure mode is silent success is worse than no check, because it is also a claim.
+
+Enforced by: `CycleScriptTests.TheComparisonIsUnchangedByHowOftenTheBuildCommits`,
+`CycleScriptTests.TheComparisonRefusesWhenNoBaseWasPinned`, `CycleScriptTests.APinnedBaseIsNotMoved`
+
+### A phase that measures asserts its preconditions first
+
+Build is the first phase to write source and everything downstream is measured from where it starts, so
+it checks the branch, the plan's approval and a clean tree before touching anything — and refuses rather
+than repairing, because each failure is a person's decision. A precondition left to prose is a
+precondition that holds most of the time.
+
+Enforced by: `CycleScriptTests.BuildIsNotReadyOffTheCycleBranch`,
+`CycleScriptTests.BuildIsNotReadyWithUncommittedSource`,
+`CycleScriptTests.BuildIsNotReadyWithoutAnApprovedPlan`,
+`CycleScriptTests.BuildIsReadyWhenOnlyTheCycleArtifactsAreDirty`
+
+### One act, one word: a person **approves**
+
+An intent, a spec and a plan all wait on the same act, and it is spelled `approved_by` / `approved_at` on
+every one of them. It used to be `accepted_*` on the first two and `approved_*` on the plan, which meant
+every reader, skill and regex had to remember which artifact used which word for one decision — and the
+hook refusing findings against a settled artifact carried two code paths to match it.
+
+"Accepted" was the wrong word to standardise on: a spec's criteria are **acceptance criteria**, so a spec
+that was also "accepted" made one word mean both the criteria and the sign-off. Criteria are accepted;
+people approve. A waiver is neither — it tolerates a finding rather than passing a gate — and keeps its
+own wording.
+
+Enforced by: `SchemaTests.OneWordNamesTheHumanGateOnEveryArtifact`
 
 ## Schemas and artifacts
 

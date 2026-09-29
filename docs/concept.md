@@ -68,7 +68,7 @@ ambiguity is expensive.
 | **constraint** | a permanent rule with a non-empty `Forbids:` clause. Without one it is decoration |
 | **interrogation** | an adversarial check of an artifact against the effective constraints, producing findings |
 | **finding** | a verdict on one criterion or constraint: `blocking` or `suggestion`, cited |
-| **waiver** | a person's recorded, attributed acceptance of a blocking finding |
+| **waiver** | a person's recorded, attributed decision to tolerate a blocking finding |
 | **outcome** | a verify document's state: `pass`, `blocked`, or `escalated` |
 
 **DECIDED:** criteria and constraints stay distinct words. Criteria are per-cycle and
@@ -100,7 +100,7 @@ intent -> spec -> plan -> build -> verify -> land
 
 | Phase | Question it answers | Artifact | Gate to pass |
 |---|---|---|---|
-| **intent** | why — what is wrong, for whom, under what constraints | `.sdlc/cycles/<id>/intent.md` | a person accepts it |
+| **intent** | why — what is wrong, for whom, under what constraints | `.sdlc/cycles/<id>/intent.md` | a person approves it |
 | **spec** | what — testable acceptance criteria | `.sdlc/cycles/<id>/spec.md` | a person accepts it |
 | **plan** | how — files touched, order, blast-radius tier, proof | `.sdlc/cycles/<id>/plan.md` | **a person approves — the last gate before anything becomes irreversible** |
 | **build** | the change itself | code diff, plus build and test evidence | it builds and its tests pass; machine-decided |

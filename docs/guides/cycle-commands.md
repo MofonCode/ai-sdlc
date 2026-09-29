@@ -47,8 +47,8 @@ git checkout -b cycle/<id>
 Then a person adds to the intent's frontmatter:
 
 ```yaml
-accepted_by: <name>
-accepted_at: <timestamp>
+approved_by: <name>
+approved_at: <timestamp>
 ```
 
 **Spec.**
@@ -61,7 +61,7 @@ accepted_at: <timestamp>
 /sdlc:interrogate <id> spec
 ```
 
-Then a person adds the same `accepted_by` and `accepted_at` pair to the spec's frontmatter.
+Then a person adds the same `approved_by` and `approved_at` pair to the spec's frontmatter.
 
 **Plan.**
 
@@ -127,8 +127,8 @@ skill will.
 
 | Artifact | Fields | You are agreeing |
 |---|---|---|
-| intent | `accepted_by`, `accepted_at` | this is the right problem |
-| spec | `accepted_by`, `accepted_at` | this is what done means |
+| intent | `approved_by`, `approved_at` | this is the right problem |
+| spec | `approved_by`, `approved_at` | this is what done means |
 | plan | `approved_by`, `approved_at` | this approach is sound, and this risk is acceptable |
 
 Both fields or neither. A name with no date says nothing about which version you agreed to.

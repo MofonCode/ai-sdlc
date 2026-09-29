@@ -91,4 +91,58 @@ public sealed class SchemaTests
 
         CollectionAssert.AreEqual(ExpectedOutcomes, values);
     }
+
+    [TestMethod]
+    public void OneWordNamesTheHumanGateOnEveryArtifact()
+    {
+        // An intent, a spec and a plan each wait on the same act: a person puts their name and the time
+        // on it. It used to be spelled two ways - accepted_by on an intent and a spec, approved_by on a
+        // plan - so every reader, every skill and every regex had to remember which artifact used which,
+        // and the hook that refuses findings against a settled artifact carried two code paths to match
+        // one decision. The word is "approved", everywhere.
+        //
+        // "Acceptance" is not free to reuse either: a spec's criteria are acceptance criteria, so a spec
+        // that was also "accepted" made the word mean both the criteria and the sign-off.
+        List<string> problems = [];
+
+        foreach (string artifact in new[] { "intent", "spec", "plan" })
+        {
+            using JsonDocument schema = JsonDocument.Parse(
+                File.ReadAllText(Path.Combine(RepoPaths.Schemas, $"{artifact}.schema.json")));
+
+            JsonElement properties = schema.RootElement.GetProperty("properties");
+
+            foreach (string field in new[] { "approved_by", "approved_at" })
+            {
+                if (!properties.TryGetProperty(field, out _))
+                {
+                    problems.Add($"{artifact}.schema.json does not define {field}");
+                }
+            }
+
+            foreach (string field in new[] { "accepted_by", "accepted_at" })
+            {
+                if (properties.TryGetProperty(field, out _))
+                {
+                    problems.Add($"{artifact}.schema.json still defines {field}");
+                }
+            }
+        }
+
+        // The scripts and skills have to speak it too: a schema nobody reads the same way is not a
+        // vocabulary.
+        foreach (string file in Directory.EnumerateFiles(RepoPaths.At("tools"), "*.ps1")
+            .Concat(Directory.EnumerateFiles(RepoPaths.Skills, "SKILL.md", SearchOption.AllDirectories)))
+        {
+            string text = File.ReadAllText(file);
+
+            if (text.Contains("accepted_by", StringComparison.Ordinal)
+                || text.Contains("accepted_at", StringComparison.Ordinal))
+            {
+                problems.Add($"{Path.GetFileName(file)} names the retired accepted_* field");
+            }
+        }
+
+        Assert.AreEqual(0, problems.Count, string.Join("; ", problems));
+    }
 }

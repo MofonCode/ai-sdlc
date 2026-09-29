@@ -170,12 +170,18 @@ public sealed class HookTests
     // ------------------------------------------------------ settled artifacts
 
     [TestMethod]
-    [DataRow("spec", "accepted")]
-    [DataRow("plan", "approved")]
-    public void FindingsAgainstASettledArtifactAreRefused(string kind, string gate)
+    [DataRow("intent")]
+    [DataRow("spec")]
+    [DataRow("plan")]
+    public void FindingsAgainstASettledArtifactAreRefused(string kind)
     {
         // A person has passed the gate, so a finding has nothing left to act on it - and producing one
         // anyway is how the review loop restarts on work that was already finished.
+        //
+        // One gate word across all three artifacts. There used to be two - accepted_by on an intent and
+        // a spec, approved_by on a plan - which meant every reader and every regex had to know which
+        // artifact used which, for one act that is the same act.
+        const string gate = "approved";
         using FixtureWorkspace workspace = FixtureWorkspace.Materialize("greenfield");
 
         string cycleDir = Path.Combine(workspace.Path, ".sdlc", "cycles", CycleId);
@@ -205,7 +211,7 @@ public sealed class HookTests
     [TestMethod]
     public void FindingsAgainstAnUnsettledArtifactAreAllowed()
     {
-        // The happy path: acceptance always comes after interrogation, so this guard must never fire
+        // The happy path: approval always comes after interrogation, so this guard must never fire
         // during a normal cycle.
         using FixtureWorkspace workspace = FixtureWorkspace.Materialize("greenfield");
 
@@ -217,7 +223,7 @@ public sealed class HookTests
             Tool("Assert-DerivedArtifact.ps1"),
             EditEvent(Path.Combine(cycleDir, "findings", "spec.r1.json"), workspace.Path));
 
-        Assert.IsFalse(decision.Denied, $"Interrogation before acceptance is the normal flow: {decision.Reason}");
+        Assert.IsFalse(decision.Denied, $"Interrogation before approval is the normal flow: {decision.Reason}");
     }
 
     // ------------------------------------------------------------------ artifact shape

@@ -63,7 +63,7 @@ Then, conditionally:
 ## Unknowns stay unknown
 
 CON_02 forbids stating as settled fact a figure, cause or behaviour nobody verified. Every later
-phase treats an accepted intent as settled, so a guessed number becomes a criterion, then a test,
+phase treats an approved intent as settled, so a guessed number becomes a criterion, then a test,
 then a green verification of something nobody established.
 
 Record unknowns under **Open**. An intent with three open questions is sound. An intent with
@@ -108,8 +108,8 @@ challenged them. Report what you produced and name the next command for whoever 
 in an interactive session, or the batch runner in an unattended one.
 
 Say: the intent is at `.sdlc/cycles/<id>/intent.md`, the next step is
-`/sdlc:interrogate .sdlc/cycles/<id>/intent.md`, and after that a person accepts it by adding
-`accepted_by` and `accepted_at` to its frontmatter. Do not write that pair yourself — it is the gate, not a
+`/sdlc:interrogate .sdlc/cycles/<id>/intent.md`, and after that a person approves it by adding
+`approved_by` and `approved_at` to its frontmatter. Do not write that pair yourself — it is the gate, not a
 formality.
 
 If the interview left many open questions because nobody was there to answer them, say so plainly.

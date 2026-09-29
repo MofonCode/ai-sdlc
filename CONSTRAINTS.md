@@ -29,7 +29,7 @@ framework or package. Stack specifics live in `docs/techstack.md` and in analyze
 
 ## CON_01 — An intent states the problem, not the solution
 
-**Applies to:** an intent, at acceptance.
+**Applies to:** an intent, at approval.
 
 **Forbids:** an intent whose body names an implementation and no observable problem — "add a
 cache", "make the export asynchronous" — with nothing said about what is wrong today.
@@ -41,18 +41,18 @@ decisions with attribution, not as the intent's content.
 
 ## CON_02 — An intent's unknowns are recorded as open questions, not answered by guess
 
-**Applies to:** an intent, at acceptance.
+**Applies to:** an intent, at approval.
 
 **Forbids:** an intent stating as settled fact a figure, cause or behaviour that nobody has
 measured or verified.
 
-**Why:** every later phase treats an accepted intent as settled. A guessed figure becomes a
+**Why:** every later phase treats an approved intent as settled. A guessed figure becomes a
 criterion, then a test, then a green verification of something nobody established. An intent
 with three open questions is sound; an intent with three invented answers is a liability.
 
 ## CON_03 — A criterion states an observable outcome and how it is checked
 
-**Applies to:** a spec, at acceptance, and any criterion added later.
+**Applies to:** a spec, at approval, and any criterion added later.
 
 **Forbids:** a criterion that cannot fail — "handles large files", "performs well", "works
 correctly", "is secure" — or one naming an outcome with no way to observe it.
@@ -63,7 +63,7 @@ phrasings and belongs in a hook; this covers the general case, which no word lis
 
 ## CON_04 — A spec covers every outcome its intent asks for
 
-**Applies to:** a spec, at acceptance.
+**Applies to:** a spec, at approval.
 
 **Forbids:** a spec whose criteria satisfy some of the intent's stated outcomes while leaving
 others with no criterion at all. An intent's **must not change** items are among those outcomes,
@@ -75,12 +75,12 @@ of the job.
 
 ## CON_05 — A spec introduces no scope its intent did not ask for
 
-**Applies to:** a spec, at acceptance.
+**Applies to:** a spec, at approval.
 
 **Forbids:** a criterion that no statement in the intent supports.
 
-**Why:** scope added at spec time was never approved by whoever accepted the intent, yet it
-arrives carrying the authority of an accepted artifact. Gaps and creep fail differently and are
+**Why:** scope added at spec time was never approved by whoever approved the intent, yet it
+arrives carrying the authority of an approved artifact. Gaps and creep fail differently and are
 remedied differently — a gap sends you back for more criteria, creep sends you to delete one —
 so they are separate constraints rather than one rule about correspondence.
 

@@ -77,7 +77,7 @@ if (-not (Test-Path -LiteralPath $verifyPath)) {
     )
 }
 
-$verify = Get-Content -LiteralPath $verifyPath -Raw
+$verify = Get-Content -LiteralPath $verifyPath -Raw -Encoding UTF8
 
 $outcomeMatch = [regex]::Match($verify, '(?m)^outcome:\s*(?<v>pass|blocked|escalated)\s*$')
 if (-not $outcomeMatch.Success) {

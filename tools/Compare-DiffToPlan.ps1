@@ -43,23 +43,37 @@ if ($declared.Count -eq 0) {
           'without it there is nothing to compare a change against.'
 }
 
-# Default base: the commit that recorded this cycle's artifacts, which is what build diffs against.
+# The base is read, never guessed. See Get-SdlcCycleBase for why HEAD was the wrong answer.
 if ([string]::IsNullOrWhiteSpace($Base)) {
-    Push-Location $root
-    $previous = $ErrorActionPreference
-    $ErrorActionPreference = 'Continue'
-    try {
-        $Base = (& git rev-parse HEAD 2>$null)
-        $failed = $LASTEXITCODE -ne 0
-    }
-    finally {
-        $ErrorActionPreference = $previous
-        Pop-Location
+    # An untyped local, deliberately. $Base is declared [string], so assigning $null to it coerces to
+    # the empty string and a `$null -eq $Base` test silently passes - which is how this first shipped,
+    # reporting "The base  is not a commit" instead of the refusal it meant to give.
+    $recorded = Get-SdlcCycleBase -RepositoryRoot $root -CycleId $CycleId
+
+    if ([string]::IsNullOrWhiteSpace($recorded)) {
+        throw "No base recorded for $CycleId at .sdlc/cycles/$CycleId/evidence/base.sha. Build writes " +
+              'it after committing the cycle artifacts and before touching source. Without it there is ' +
+              'no commit this change can be measured from, and guessing one is how this check was ' +
+              'silently voided before. Pass -Base <sha> to compare against a specific commit instead.'
     }
 
-    if ($failed) { throw "Not a git repository: $root" }
-    $Base = "$Base".Trim()
+    $Base = $recorded
 }
+
+# A base that is not a commit in this repository would make every result meaningless.
+Push-Location $root
+$previous = $ErrorActionPreference
+$ErrorActionPreference = 'Continue'
+try {
+    & git cat-file -e "$Base^{commit}" 2>$null | Out-Null
+    $unknown = $LASTEXITCODE -ne 0
+}
+finally {
+    $ErrorActionPreference = $previous
+    Pop-Location
+}
+
+if ($unknown) { throw "The base $Base is not a commit in $root." }
 
 Push-Location $root
 $previous = $ErrorActionPreference

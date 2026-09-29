@@ -48,6 +48,11 @@ here rather than only in a hook: a hook inspects an action, so it can only recog
 file that it knows about, and a heredoc that writes one inside a script is opaque to it. This reads the
 result, so nothing routes around it.
 
+It measures from the base build pinned in `.sdlc/cycles/$0/evidence/base.sha`, which is why the result
+does not depend on how many commits the build made. If it refuses because no base was recorded, that is
+the finding: build never pinned one, and there is no commit this change can be measured from. Report it
+rather than passing `-Base` to make the refusal go away — a base you chose is not evidence.
+
 Treat its output as evidence and cite it:
 
 - **UNDECLARED** — a blocking finding citing CON_07. The change reached a file no reviewer approved

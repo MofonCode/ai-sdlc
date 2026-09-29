@@ -14,8 +14,8 @@ intent -> spec -> plan -> build -> verify -> land
 
 | Phase | Answers | Produces | Gate |
 |---|---|---|---|
-| intent | why | `intent.md` | a person accepts it |
-| spec | what done means | `spec.md` | a person accepts it |
+| intent | why | `intent.md` | a person approves it |
+| spec | what done means | `spec.md` | a person approves it |
 | plan | how | `plan.md` | **a person approves — the last gate before anything is irreversible** |
 | build | the change | a diff, plus build and test evidence | it compiles and passes |
 | verify | did it do the spec justice | `verify.md` | outcome `pass` |

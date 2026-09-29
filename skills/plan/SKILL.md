@@ -1,6 +1,6 @@
 ---
 name: plan
-description: Turn an accepted spec into a plan that declares the files it will touch, its blast radius, and how each criterion will be proven. Use after a spec is accepted and before any code is written.
+description: Turn an approved spec into a plan that declares the files it will touch, its blast radius, and how each criterion will be proven. Use after a spec is approved and before any code is written.
 argument-hint: "[cycle-id]"
 allowed-tools: Bash(powershell.exe *) Bash(git *)
 ---
@@ -13,11 +13,11 @@ Turn `.sdlc/cycles/$0/spec.md` into `.sdlc/cycles/$0/plan.md`.
 approves before code exists.** Everything after it is machine-decided until landing. Write it as
 the thing someone reads to decide whether to let the change happen.
 
-## Refuse if the spec is not accepted
+## Refuse if the spec is not approved
 
 Same rule as the spec's: no plan against a spec with unresolved blocking findings, and none against a
-spec whose frontmatter carries no `accepted_by` and `accepted_at`. That pair is how a person records
-acceptance, and they write it — never you.
+spec whose frontmatter carries no `approved_by` and `approved_at`. That pair is how a person records
+approval, and they write it — never you.
 
 ## Choose shapes from the defaults, and say so when you depart
 

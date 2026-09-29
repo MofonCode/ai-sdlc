@@ -161,6 +161,48 @@ public sealed class PluginTests
     }
 
     [TestMethod]
+    public void EveryScriptReadsFilesWithAnExplicitEncoding()
+    {
+        // The rule above was enforced only for the two injectors, by observing their output. That left
+        // every other script unchecked, and three of them were reading without -Encoding UTF8: the
+        // settled-artifact gate, the artifact-shape gate, and the one that decides whether a cycle may
+        // land. Their reads stay readable when mangled, so nothing would have surfaced it.
+        List<string> unencoded = [];
+
+        foreach (string script in Directory.EnumerateFiles(RepoPaths.At("tools"), "*.ps1"))
+        {
+            string[] lines = File.ReadAllLines(script);
+
+            for (int i = 0; i < lines.Length; i++)
+            {
+                string line = lines[i];
+
+                if (line.TrimStart().StartsWith('#'))
+                {
+                    continue;
+                }
+
+                if (!line.Contains("Get-Content", StringComparison.Ordinal))
+                {
+                    continue;
+                }
+
+                if (!line.Contains("-Encoding UTF8", StringComparison.Ordinal))
+                {
+                    unencoded.Add($"{Path.GetFileName(script)}:{i + 1}");
+                }
+            }
+        }
+
+        Assert.AreEqual(
+            0,
+            unencoded.Count,
+            "These reads assume the system codepage, so a file with no BOM comes back mangled: "
+            + string.Join(", ", unencoded)
+            + ". Pass -Encoding UTF8.");
+    }
+
+    [TestMethod]
     public void TheStackDefaultsBlockIsMarkedAndSubstantial()
     {
         // The injector extracts between markers and throws without them, which abandons the skill rather

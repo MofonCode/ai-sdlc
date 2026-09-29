@@ -16,7 +16,7 @@ to a pull request, without supervision.
 A cycle is eligible only if `.sdlc/cycles/<id>/plan.md` exists, its interrogation left no blocking
 findings, and **a person has approved it**.
 
-Never start a batch from an accepted intent or an accepted spec. The plan gate is the one place a
+Never start a batch from an approved intent or an approved spec. The plan gate is the one place a
 person sees what will change before it changes; beginning earlier means the machine writes the
 spec, writes the plan and executes it with nobody between the idea and the diff. That removes the
 gate the whole process rests on.

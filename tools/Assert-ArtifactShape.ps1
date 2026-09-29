@@ -67,7 +67,7 @@ if ($null -eq $schemaName) { exit 0 }
 $schemaPath = Join-Path (Split-Path -Parent $PSScriptRoot) "schemas/$schemaName"
 if (-not (Test-Path -LiteralPath $schemaPath)) { exit 0 }
 
-$schema = Get-Content -LiteralPath $schemaPath -Raw | ConvertFrom-Json
+$schema = Get-Content -LiteralPath $schemaPath -Raw -Encoding UTF8 | ConvertFrom-Json
 
 $allowed = @()
 if ($schema.properties) { $allowed = $schema.properties.PSObject.Properties.Name }
