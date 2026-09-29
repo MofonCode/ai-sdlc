@@ -9,6 +9,10 @@ on:
     branches: [master]
   pull_request:
     branches: [master]
+  # For the `skills` job below, which bills the model and so does not run on every push.
+  schedule:
+    - cron: '0 6 * * *'
+  workflow_dispatch:
 
 jobs:
   validate:
@@ -61,7 +65,69 @@ jobs:
       - name: Verify formatting
         run: dotnet format --verify-no-changes --no-restore
 
-# Skill behaviour is asserted by running Claude headlessly against a materialized fixture and
-# checking the artifacts it produced. That job joins this file with the first skill. It is not
-# `claude plugin eval`: that is early access and unavailable on this account, so building on it
-# would block the plan on something outside our control.
+  # Skill behaviour, asserted by running the skill rather than by checking the things around it.
+  # Every other job here establishes that a skill's frontmatter parses, that the scripts it names
+  # exist, and that the schema governing its output rejects what it should. None of that says an
+  # interrogation reaches the right verdict, which is the only thing the framework is for.
+  #
+  # Not on push or pull_request, deliberately. Each case invokes the model, so the suite costs real
+  # money and about forty seconds per case; a gate that bills every push gets switched off. Nightly
+  # plus on demand keeps the signal without the tax.
+  #
+  # It is not `claude plugin eval`: that is early access and unavailable on this account, so building
+  # on it would block this on something outside our control.
+  skills:
+    # The whole workflow triggers, not a job, so without this the model would be billed on every push
+    # and every pull request - which is precisely what the comment above says not to do.
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      # A missing credential is a configuration gap, not a defect in the framework, so it says so and
+      # stops rather than failing nine cases with an authentication error apiece.
+      - name: Check for a credential
+        id: credential
+        shell: pwsh
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          if ([string]::IsNullOrWhiteSpace($env:ANTHROPIC_API_KEY)) {
+            Write-Host '::warning::No ANTHROPIC_API_KEY secret is set, so the headless skill cases cannot run. Add it in the repository settings.'
+            'present=false' | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          }
+          else {
+            'present=true' | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          }
+
+      - name: Install Claude Code
+        if: steps.credential.outputs.present == 'true'
+        run: npm install -g @anthropic-ai/claude-code
+
+      # The directory source, so this needs no published package and no public repository: the
+      # checkout is the marketplace.
+      - name: Install the plugin from the checkout
+        if: steps.credential.outputs.present == 'true'
+        run: |
+          claude plugin marketplace add ./
+          claude plugin install sdlc@ai-sdlc
+
+      - name: Interrogate the golden artifacts
+        if: steps.credential.outputs.present == 'true'
+        env:
+          SDLC_HEADLESS: '1'
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: dotnet test --configuration Debug --nologo --filter InterrogatingAGoldenArtifact
+
+# A disagreeing case is re-run and reported as flaky, never retried silently. CON_06 asks whether a
+# proof is adequate, which is the constraint with real variance: plan.good.md has drawn a finding on
+# one run and none on the next with nothing changed. Automatic retries here would hide exactly the
+# thing worth knowing.

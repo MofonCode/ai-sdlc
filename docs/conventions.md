@@ -500,6 +500,26 @@ Enforced by: `FixtureTests.ExpectationsCiteConstraintsThatExist`,
 Which constraints are cited at which severity. Wording is model output, and asserting on it makes every
 case brittle.
 
+### Skill behaviour is asserted by running the skill
+
+Everything else about a skill is checked indirectly — its frontmatter parses, the scripts it names
+exist, the schema governing its output rejects what it should. None of that establishes that an
+interrogation reaches the right verdict, which is the only thing the framework is for.
+
+`HeadlessSkillTests` stages a golden artifact into a materialized fixture, runs `claude -p` against it,
+and compares the findings it wrote to the expectation checked in beside the artifact. Assertions are on
+structure — which constraints at which severity — never on wording, because wording is model output.
+
+**Opt-in, because it bills the model.** `SDLC_HEADLESS=1` or the cases skip, and CI runs them nightly and
+on demand rather than on every push. A gate that charges for every commit gets switched off, which is the
+same failure as an advisory one.
+
+Staging is load-bearing rather than setup: a spec names an intent and a plan names a spec, and an
+interrogation that cannot resolve the reference refuses instead of quietly skipping the relational
+constraints. So a broken stage shows up as a refusal, not as a false pass.
+
+Enforced by: `HeadlessSkillTests.InterrogatingAGoldenArtifactCitesTheConstraintsItsExpectationNames`
+
 ### A fixture asserting a judgement will flake, and should say so
 
 CON_06 asks whether a proof is *adequate* — the constraint that most needs reading comprehension, and so
