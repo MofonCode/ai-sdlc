@@ -26,6 +26,20 @@ public sealed class SchemaTests
     [DataRow("verify.schema.json", "verify.invalid-pass-with-open-blocking.json", false)]
     [DataRow("verify.schema.json", "verify.invalid-escalated-budget-left.json", false)]
     [DataRow("verify.schema.json", "verify.invalid-waived-without-document.json", false)]
+    [DataRow("intent.schema.json", "intent.valid.json", true)]
+    [DataRow("intent.schema.json", "intent.invalid-approved-without-timestamp.json", false)]
+    [DataRow("intent.schema.json", "intent.invalid-unknown-key.json", false)]
+    [DataRow("spec.schema.json", "spec.valid.json", true)]
+    [DataRow("spec.schema.json", "spec.invalid-approved-without-timestamp.json", false)]
+    [DataRow("plan.schema.json", "plan.valid.json", true)]
+    [DataRow("plan.schema.json", "plan.invalid-tier.json", false)]
+    [DataRow("solution.schema.json", "solution.valid.json", true)]
+    [DataRow("solution.schema.json", "solution.invalid-baseline.json", false)]
+    [DataRow("solution.schema.json", "solution.invalid-origin.json", false)]
+    [DataRow("solution.schema.json", "solution.invalid-adopted-without-sha.json", false)]
+    [DataRow("expectation.schema.json", "expectation.valid.json", true)]
+    [DataRow("expectation.schema.json", "expectation.invalid-missing-assertions.json", false)]
+    [DataRow("expectation.schema.json", "expectation.invalid-kind.json", false)]
     public void FixtureMatchesItsSchema(string schemaName, string fixtureName, bool expectedValid)
     {
         using var instance = JsonDocument.Parse(

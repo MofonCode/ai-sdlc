@@ -1,0 +1,10 @@
+{
+  "artifact": "spec.untestable.md",
+  "kind": "spec",
+  "against": "intent.good.md",
+  "must_cite_blocking": [
+    "CON_03"
+  ],
+  "allow_other_blocking": false,
+  "note": "Criterion 3 names no check, so it cannot fail."
+}

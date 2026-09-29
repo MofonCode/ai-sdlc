@@ -357,8 +357,27 @@ Enforced by: `SchemaTests.FixtureMatchesItsSchema`, through
 
 ### A schema is tested in both directions, and the rejections are the point
 
-A schema proven only by documents that should pass has not been proven. Nine fixtures cover the findings
-and verify schemas, four valid and five invalid.
+A schema proven only by documents that should pass has not been proven, and the asymmetry is the reason:
+losing a rule only makes a schema *more* permissive, so a suite of valid-only fixtures stays green against
+a schema whose rule was deleted, typoed, or left pointing at a `$defs` name that no longer exists. The
+invalid fixture is the only document whose verdict depends on the rule being there.
+
+All seven schemas are covered in both directions. `findings` and `verify` were first; `intent`, `spec`,
+`plan`, `solution` and `expectation` had valid coverage only until rejection fixtures were added for the
+both-or-neither approval pair, the `tier` and `origin` and `kind` enums, `additionalProperties: false`,
+the adopted-needs-a-sha conditional, and an expectation asserting nothing.
+
+### A rejection fixture must fail for exactly one reason
+
+`FixtureMatchesItsSchema` asserts only valid-or-invalid, so a fixture with two defects passes while
+proving nothing about either. **To check, flip its expected verdict to `true` and read the failure
+message** — the assertion prints the schema's own errors.
+
+That found a real one. `solution.invalid-baseline.json` was written to prove `additionalProperties: false`
+refuses a `baseline` key, and it also declared `origin: adopted` with no `adopted_at`. It would have been
+rejected with the additionalProperties rule removed, so it proved nothing; the missing sha became its own
+fixture instead. Ignore the noise from a declined conditional in that output — an `if` that did not match
+reports its mismatch, and that is the conditional standing aside, not a second defect.
 
 Enforced by: `SchemaTests.FixtureMatchesItsSchema`, with `SchemaTests.EverySchemaFixtureIsCovered`
 asserting no fixture is left unevaluated — one nobody runs is worse than none, because it looks like
