@@ -101,13 +101,27 @@ intent -> spec -> plan -> build -> verify -> land
 | Phase | Question it answers | Artifact | Gate to pass |
 |---|---|---|---|
 | **intent** | why — what is wrong, for whom, under what constraints | `.sdlc/cycles/<id>/intent.md` | a person approves it |
-| **spec** | what — testable acceptance criteria | `.sdlc/cycles/<id>/spec.md` | a person accepts it |
+| **spec** | what — testable acceptance criteria | `.sdlc/cycles/<id>/spec.md` | a person approves it |
 | **plan** | how — files touched, order, blast-radius tier, proof | `.sdlc/cycles/<id>/plan.md` | **a person approves — the last gate before anything becomes irreversible** |
 | **build** | the change itself | code diff, plus build and test evidence | it builds and its tests pass; machine-decided |
 | **verify** | did the change do the spec justice | `.sdlc/cycles/<id>/verify.md` | outcome `pass` |
 | **land** | integration | a pull request | a code owner approves the merge — never the authoring agent |
 
 Naming of `land` and `remediate` is provisional; everything else about them is settled.
+
+**DECIDED:** a cycle's artifacts stay in the repository once it lands. They are not pruned, archived
+or moved elsewhere.
+
+A retention policy was considered and dropped. The case for one is real — a measured cycle weighs
+about 89 KB, of which the evidence directory is 52 KB and the intent is 3.7 KB, so a solution with a
+thousand cycles carries tens of megabytes it mostly never reads. The case against is that every scheme
+for trimming it costs more than the bytes: pruning needs someone to own when and what, splitting
+artifacts into a second repository breaks the diff comparison and the pinned base, which both read one
+repository, and archiving puts the answer to "why does this code exist" somewhere a reader has to know
+to look. Keeping everything is the option with no moving parts.
+
+Open question 4 is narrower and stays open: an **abandoned** cycle is a different case, because nothing
+landed and the directory records only a decision to stop.
 
 ### 3.1 Each phase answers to the one before it
 
@@ -419,7 +433,7 @@ with no `covers:` glob has no such signal — which is an argument for keeping t
 |---|---|
 | `init` | adopt the framework into a repository — scaffold `.sdlc/`, `solution.md`, and a lean `AGENTS.md` |
 | `intent` | interview a person into an intent, including any departure from the default stack |
-| `spec` | turn an accepted intent into testable acceptance criteria |
+| `spec` | turn an approved intent into testable acceptance criteria |
 | `plan` | turn a spec into a plan, declaring files and blast radius |
 | `build` | implement an approved plan, self-healing build and test failures until it is green |
 | `verify` | adjudicate the diff against the spec and report every unmet criterion |

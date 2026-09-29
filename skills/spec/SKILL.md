@@ -1,6 +1,6 @@
 ---
 name: spec
-description: Turn an accepted intent into testable acceptance criteria. Use after an intent exists and a person has accepted it, and before any planning.
+description: Turn an approved intent into testable acceptance criteria. Use after an intent exists and a person has accepted it, and before any planning.
 argument-hint: "[cycle-id]"
 allowed-tools: Bash(powershell.exe *) Bash(git *)
 ---

@@ -9,7 +9,7 @@ covers:
 Eighteen steps, in order, from an empty directory to a pull request. One command per block, so each can
 be copied on its own.
 
-**This guide describes `0.8.2`.** Steps 4 to 13 have been walked end to end, and steps 3 and 14 onward
+**This guide describes `0.8.3`.** Steps 4 to 13 have been walked end to end, and steps 3 and 14 onward
 use skills that have never been. Each says so where it appears. Expect friction there and note where it
 happens — those notes are worth more than the artifacts.
 
