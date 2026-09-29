@@ -75,8 +75,16 @@ will disagree.
 
 ```
 dotnet test                              # the whole suite
+dotnet format --verify-no-changes        # the formatting gate CI runs
 claude plugin validate .                 # the marketplace manifest, strict
 claude plugin validate .claude-plugin/plugin.json   # the plugin manifest
+```
+
+Validate live artifacts against their schemas — a whole `.sdlc/` directory, or one file. This is the
+complete check; the hook that runs on every write compares key names only.
+
+```
+dotnet run --project tools/Sdlc.Validate -- <path>
 ```
 
 There is no application to run. This repository ships a plugin, and the fixtures under

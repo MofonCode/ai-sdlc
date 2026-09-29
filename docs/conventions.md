@@ -301,6 +301,25 @@ Enforced by: `SchemaTests.OneWordNamesTheHumanGateOnEveryArtifact`
 
 ## Schemas and artifacts
 
+### The complete schema check can be pointed at a live file
+
+`dotnet run --project tools/Sdlc.Validate -- <path>` runs the same evaluator the suite uses against a
+real artifact, or every artifact under a directory. It exists because the two layers of checking left a
+hole: the hook compares top-level key names on every write, and the evaluator that checks values only
+ever saw fixtures. So a verify document could claim `pass` beside an open blocking finding and nothing in
+the framework would object — every key in it is a legal key.
+
+Two things it taught immediately. Its own first run rejected a valid document because deserializing YAML
+to `object` makes every scalar a string, so `passes_spent: 0` arrived as `"0"`; the conversion now follows
+YAML 1.2, where quoting decides. And a schema built from conditionals reports every branch that declined
+to apply, so the one real error sat under four lines belonging to a rule that did not apply — a detail
+beneath a node that passed is not a failure, and is dropped.
+
+Enforced by: `ValidatorTests.AVerifyDocumentClaimingPassWithAnOpenBlockingFindingIsRejected`,
+`ValidatorTests.AnIntegerInFrontmatterStaysAnInteger`,
+`ValidatorTests.TheCheckedInArtifactFixturesAreValid`, and
+`ValidatorTests.AMissingArtifactIsAUsageErrorRatherThanAPass`
+
 ### A schema owns its vocabulary, and nothing else restates it
 
 The `severity` enum in `schemas/findings.schema.json` is the single definition of what severities exist.

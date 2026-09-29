@@ -1,4 +1,7 @@
 <Solution>
+  <Folder Name="/tools/">
+    <Project Path="tools/Sdlc.Validate/Sdlc.Validate.csproj" />
+  </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/Sdlc.Tests/Sdlc.Tests.csproj" />
   </Folder>

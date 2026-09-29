@@ -76,6 +76,46 @@ for a lone console app has spent the cycle on scaffolding rather than on the cha
 
 Prefer emulators over live Azure resources wherever one exists.
 
+### Results, not exceptions
+
+**An operation that can fail returns a `Result` or `Result<T>`.** `FluentResults`, through
+`MofonCode.Core`. A failure a caller is expected to handle — not found, rejected, conflicting, refused
+by a downstream service — is a value the signature declares, not a control-flow jump the signature
+hides. Exceptions are for programmer error and for conditions nothing can recover from.
+
+At a boundary — an endpoint, a page, a handler — a failed `Result` becomes the response. Do not convert
+it back into an exception to be caught somewhere else.
+
+**Do not wrap an operation that cannot fail.** `Result<int>` around `Random.Shared.Next(1, 7)` is a type
+that is always success: it adds ceremony and proves nothing, and a reader now has to check a branch that
+cannot be taken. The test for this is whether you can name a failure a caller would act on. If you
+cannot, return the value.
+
+### Commands and queries go through Mediator
+
+**An application operation is a request and a handler**, not a method on a service reached by direct
+injection. `IRequest<T>` with `IRequestHandler<,>` for something that answers; the `ICommandRequest*`
+equivalents where nothing is returned. Cross-cutting concerns — validation, tracing, retry — are
+`IRequestBehavior<,>` implementations, so they are written once rather than repeated in every handler.
+
+**It earns its place when there is an operation to dispatch.** More than one step, a decision, a
+validation, something worth a behaviour around it. A single infallible expression called from one page is
+not an application operation, and routing it through a request and a handler leaves three files where one
+line was the whole of it — the same objection as an AppHost for a lone console app.
+
+### One folder per feature, not one folder per layer
+
+**A feature owns its request, its handler, and the types only it uses**, in one place. `Rolling/` holding
+the roll request, its handler and its abstraction beats `Services/`, `Models/` and `Handlers/` each
+holding a third of three unrelated features.
+
+Where a framework dictates a location, let it have that one file and keep the rest of the feature
+together: a Blazor page lives under `Components/Pages/` because routing expects it there, and everything
+else it needs stays in the feature folder rather than being scattered to match the page.
+
+**A plan departs from any of the three by arguing it, in the plan.** These are defaults, and a departure
+that is reasoned in the artifact a person approves is a decision. One that is silent is a habit.
+
 ### `MofonCode.Core` — the shared kernel
 
 One opinionated core, so every solution has the same shape for the things every solution needs. Name the

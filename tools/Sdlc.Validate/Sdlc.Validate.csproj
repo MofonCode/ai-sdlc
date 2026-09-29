@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <IsPackable>false</IsPackable>
+    <RootNamespace>Sdlc.Validate</RootNamespace>
+    <AssemblyName>Sdlc.Validate</AssemblyName>
+
+    <!-- JUSTIFIED SUPPRESSION. CA1303 wants every literal passed to Console.WriteLine to come from a
+         resource table, so that it can be localized. This is a developer tool whose output is read
+         beside the schema files it names, and those are English; a resource table would add indirection
+         to every diagnostic for a translation nobody is going to write. Remove this if the tool ever
+         acquires a localized audience. -->
+    <NoWarn>CA1303</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="JsonSchema.Net" />
+    <PackageReference Include="YamlDotNet" />
+  </ItemGroup>
+
+</Project>
