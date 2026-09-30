@@ -8,7 +8,7 @@ reason: a working list — true as of its last edit, and expected to change with
 What is unfinished, unproven, or undecided. Each item says what it is, why it matters, and what would
 close it — so picking one up needs no archaeology.
 
-**Last reviewed:** 2026-09-29, at `0.8.3`.
+**Last reviewed:** 2026-09-30, at `0.8.3`.
 
 Three categories, and the distinction matters more than it looks. **Needs a person** cannot be closed by
 an agent at all. **Unconfirmed** is work that is done and unverified — the riskiest kind, because it
@@ -189,6 +189,165 @@ workaround rather than a fix, and that is worth knowing before building either.
 *Closes when:* a decision is recorded in `docs/concept.md`, and if a constraint is the answer, it is
 written with a sample that trips it.
 
+### 14. A skill that suggests how to divide an intent
+
+**Raised by Peter,** as the constructive half of item 13. Splitting stays a person's decision; a skill
+proposes how.
+
+It would be a third read-only view, alongside `constraints` and `suggestions` — it decides nothing and
+**writes nothing**. The moment it writes a split proposal it needs a schema, a gate, and an answer for
+what happens when the proposal is ignored.
+
+Three things to get right:
+
+- **Run it before the intent is approved.** Splitting after a spec exists throws the spec away.
+- **It will propose an order the framework cannot express.** Nothing records that one cycle depends on
+  another: `.sdlc/cycles/` is flat, ids are timestamps with no ordering guarantee, and no gate checks a
+  predecessor landed. The advice is still useful; claiming it is enforced would be the "looks like
+  protection and is not" failure.
+- **Naming.** Both existing views are plural nouns of what they show. `slices` fits; `divide` and `split`
+  read as activities, which phases here deliberately avoid.
+
+It pairs with the constraint in item 13: **the constraint answers whether an intent is too large, the
+advisor answers how to cut it.** Different questions, no overlap.
+
+Splitting also leaves the original intent's directory behind, which makes item 10 load-bearing rather
+than theoretical.
+
+### 15. Auto-interrogation with bounded self-healing
+
+**Raised by Peter.** One command writes an artifact, interrogates it, works its own blocking findings and
+interrogates again, up to a bound — reporting once at the end. Approval stays manual throughout.
+
+**This does not need a skill to invoke another skill.** The constraint set already reaches `intent`,
+`spec` and `plan` by load-time injection, so a skill can judge itself against the same rules in process.
+The chaining prohibition is about invoking `/sdlc:interrogate`, not about doing the work.
+
+**The bound is a state, not a stopping point.** Remediation already has this shape — three passes, and
+exhaustion is the named outcome `escalated`. A loop needs the same, because three endings must be
+distinguishable: converged clean, still blocking after the budget, and oscillating. Oscillation is not
+hypothetical: uncapped observations once ran four rounds on a spec that was sound after two.
+
+**Healing may fix how something is said. It may never supply what was never said.** This is the hard
+limit and it falls hardest on intent, which is written *by interviewing a person*. Given "as a board game
+player I would like to roll a single dice" there is no problem, no who, no done-looks-like and no
+must-not-change — and a loop that heals rather than asks will **invent** them, which is CON_02's exact
+failure mode, with every later phase then treating the invention as approved.
+
+| Finding | Auto-healable |
+|---|---|
+| states a solution rather than a problem (CON_01) | yes — rephrase from the same information |
+| a section missing or malformed | yes |
+| asserts an unmeasured figure (CON_02) | **no** — demote it to **Open**, or stop and ask |
+
+Demotion to **Open** is the legitimate third move: not deleted, not verified, recorded as unknown, which
+is what CON_02 asks for. Spec and plan carry no such limit — both derive from an approved upstream
+artifact, so the information exists and healing is only rewriting.
+
+**Report what was fixed, not just that it converged.** The rounds are the record of what was challenged.
+If r1's findings are resolved silently, a reader sees a clean r2 and never learns what was wrong with
+their own spec, and that feedback is part of what the gate is for.
+
+### 16. Independent interrogation: a fresh context, and a quorum for contested findings
+
+**Raised by Peter.** Two separate wins, and conflating them hides the better one.
+
+**A subagent buys independence.** It never sees the interview, the drafts or the author's reasoning —
+only the artifact, the constraints and whatever it is judged against. That removes **investment bias**.
+It does **not** remove model bias: same model, same priors, so it would flip the same coin on a contested
+constraint.
+
+Worth knowing what the status quo actually is. `run` drives each step as its own `claude -p` session, so
+the unattended path already has a clean context per step. **The interactive path does not** — all three
+trials ran `/sdlc:intent` then `/sdlc:interrogate` in one session, so the model that wrote the artifact
+judged it with its own reasoning still in context. Typing the second command never created independence;
+it created friction. This work makes the interactive path honest about a property the unattended path
+already has.
+
+**A team buys something different and more valuable: it turns a coin flip into a visible disagreement.**
+`plan.good.md` draws a blocking CON_06 finding in about half of runs, and today that returns as a single
+verdict. Three independent interrogators return 2–1 or 1–2, and **the split is the information**: a
+finding raised by 3 of 3 is not the claim a finding raised by 1 of 3 is, and nothing can currently tell
+them apart. That is why item 5 took twelve runs to characterise by hand.
+
+This supersedes an earlier idea of a `may_cite_blocking` field. **Record a finding as contested rather
+than as permitted** — contested is true, permitted is a tolerance. It needs a field on a finding: how
+many interrogators raised it, out of how many.
+
+On what to do with disagreement: *any is blocking* over-refuses, *majority* collapses the signal back
+into a verdict, *unanimous* lets one lenient judge clear anything. **Record the split and let the gate see
+it** — a contested judgement is exactly what a person should weigh, and a single verdict destroys it.
+
+**Cost, and proportionality.** Three artifacts, two rounds, three agents is about eighteen model calls a
+cycle for interrogation alone. Match judges to the cost of being wrong: **most for the plan**, which is
+the last gate before anything becomes irreversible; one for intent and spec, which are cheap to redo.
+
+**A subagent must invoke the real skill, not a paraphrase of it.** Global constraints arrive by load-time
+injection from the plugin root; a bare agent handed a hand-written prompt is a second path to the same
+rules, which is the two-sources failure CON_09 exists for.
+
+### 17. Orchestrated multi-cycle build: partition, parallel worktrees, one integration branch
+
+**Raised by Peter.** Several approved plans, built together, landing as a single pull request.
+
+The primitive is right and already available: **two plans conflict exactly when their declared file sets
+intersect**, and `Get-SdlcDeclaredFile` in `tools/SdlcPlan.ps1` already parses a plan's `## Files` table
+into that set. Nothing new to invent, and nothing to approve twice.
+
+**The algorithm.**
+
+1. Collect eligible cycles — approved plan, no blocking findings.
+2. Read each `## Files` table.
+3. Build a conflict graph, an edge wherever declared sets intersect.
+4. Connected components of size greater than one are **serial groups**; isolated nodes are
+   **parallel-safe**.
+5. Create the orchestrated feature branch off the default branch.
+6. **Serial groups first**, one cycle at a time, each in a worktree branched off the *current feature
+   tip* — build, verify, squash-merge on `pass`.
+7. After each serial merge, flag any cycle not yet run whose declared set intersects what just changed.
+8. **Parallel-safe set concurrently**, each in a worktree off the feature tip at that moment — build,
+   verify, squash-merge.
+9. **Integration check on the feature branch**: build and a full test run.
+10. One pull request, carrying every cycle's intent, plan and verify document.
+
+Branching worktrees off the feature tip rather than the default branch means later cycles build on
+earlier ones. Their pinned bases differ, which is correct — each is pinned in its own worktree at its
+own build time.
+
+**This belongs to `run`, not `build`.** Keep `build` single-cycle. `run` is already the orchestrator —
+eligibility, a worktree per cycle, one `claude -p` session per step — and it inherits the mechanism that
+makes any of this possible.
+
+**Verify runs in the worktree, never on the merged commit.** A cycle pins `base.sha` and
+`Compare-DiffToPlan` diffs base to working tree. A squash merge produces a new sha and drops the cycle's
+commits from the feature branch's history, so on that branch the base is unreachable and the comparison
+is meaningless. The feature branch is integration only.
+
+**Why not one shared working tree.** It disables three mechanisms at once: the gates key on
+`^cycle/<id>$`, so a branch carrying several cycles matches nothing and every write gate goes silent
+during the phase they exist for; `Compare-DiffToPlan` reads unstaged and untracked files too, so each
+cycle sees its siblings' work as `UNDECLARED`; and two agents running `dotnet build` share `obj/` and
+`bin/`. It also inverts a DECIDED entry — one worktree per cycle, so parallel cycles cannot interfere.
+
+**Two gaps this exposes.**
+
+*Nothing checks the combined result.* Each cycle is green in its own worktree; together is unknown. And
+**file overlap is a conservative proxy that misses semantic coupling**: cycle A declares `Totals.cs`,
+cycle B declares `Invoicing.cs` which calls `Totals.Sum`, the sets do not intersect, the partitioner runs
+them in parallel, and A renaming a method breaks B. Step 9 is what catches it, and it is not verify —
+verify adjudicates one cycle against one spec, while this asks whether the integration stands.
+
+*Nothing detects a stale plan.* Serialising does not resolve a conflict, it sequences it: the second plan
+was approved against a codebase where the first had not happened. CON_07 judges a change against its
+plan; no constraint judges a plan against the tree it will be built into. Building anyway defers the
+problem to verify, and auto-rebasing the plan is the machine editing an approved artifact, which is the
+approval gate gone. **Refusing and reporting is the stop that keeps the gate meaningful** — "B overlaps A
+on `Foo.cs`, A has landed, B needs re-approval".
+
+*Also true today, independent of orchestration:* two approved plans can declare the same file and neither
+knows. The `## Files` table is checked per plan; nothing cross-checks plans in flight. A cross-plan
+overlap check is small, independently useful, and the same read step 3 needs.
+
 ---
 
 ## Constraints cited here
@@ -199,7 +358,11 @@ a solution, this list plus any `LOC_` of its own.
 
 | | |
 |---|---|
+| `CON_01` | an intent states the problem, not the solution |
+| `CON_02` | an intent's unknowns stay open questions |
 | `CON_03` | a criterion states an observable outcome and how it is checked |
 | `CON_04` | a spec covers every outcome its intent asks for |
 | `CON_06` | a plan's proof is adequate to the criterion it claims to prove |
+| `CON_07` | a change does only what its plan declared |
+| `CON_09` | no artifact restates another's content as its own authority |
 | `LOC_01` | a local constraint in the brownfield sample, not a global rule |
