@@ -13,13 +13,19 @@ internal static class Usage
 
         Commands
             constraints              Render the constraint set in force.
+            gate <id>                Say whether a cycle's build may run. Exits 1 if not.
+            cycle-approval <id>      Print the approval entry for a person to paste.
             help                     This text.
+
+        Common options
+            --solution <path>        The solution to work in. Defaults to the working directory.
 
         Options for constraints
             --for <artifact>         Narrow to one artifact: intent, spec, plan, diff, verify.
             --brief                  Ids and statements only, without the clauses.
-            --solution <path>        The solution to read local constraints from.
-                                     Defaults to the working directory.
+
+        Options for cycle-approval
+            --by <name>              Who is approving. Defaults to git's configured user name.
 
         Exit codes
             0  the command did what was asked

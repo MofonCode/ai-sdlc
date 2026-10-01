@@ -41,8 +41,8 @@ public sealed class FileConstraintDocuments(
     string solutionRoot,
     string? profilePath = null) : IConstraintDocuments
 {
-    /// <summary>The path a solution's own constraints are read from, relative to its root.</summary>
-    public const string SolutionRelativePath = ".sdlc/constraints.md";
+    /// <summary>The file a solution's own constraints are read from, inside its .sdlc directory.</summary>
+    public const string SolutionFileName = "constraints.md";
 
     /// <inheritdoc />
     public async Task<IReadOnlyList<ConstraintDocument>> Enumerate(CancellationToken cancellationToken)
@@ -53,7 +53,7 @@ public sealed class FileConstraintDocuments(
         await Add(ConstraintTier.Profile, profilePath, required: false).ConfigureAwait(false);
         await Add(
             ConstraintTier.Solution,
-            Path.Combine(solutionRoot, SolutionRelativePath),
+            Path.Combine(solutionRoot, Cycles.Cycle.SdlcDirectoryName, SolutionFileName),
             required: false).ConfigureAwait(false);
 
         return documents;

@@ -1,14 +1,15 @@
+using System.Diagnostics.CodeAnalysis;
+using System.Globalization;
 using System.Text;
 using FluentResults;
-using Microsoft.Extensions.DependencyInjection;
-using MofonCode.Core;
 using Sdlc.Cli;
-using Sdlc.Core;
+using Sdlc.Core.Approvals;
 using Sdlc.Core.Constraints;
+using Sdlc.Core.Cycles;
 
-// Constraint text is passed through verbatim, so the stream has to carry what the library holds.
-// On Windows the default is the console codepage, which turns an em dash into a question mark - and
-// a session judging against mangled text would cite mangled text. Setting this throws on a handle
+// Constraint and artifact text is passed through verbatim, so the stream has to carry what the files
+// hold. On Windows the default is the console codepage, which turns an em dash into a question mark -
+// and a session judging against mangled text would cite mangled text. Setting this throws on a handle
 // that cannot take it, and a failure here is cosmetic rather than a reason not to run.
 try
 {
@@ -31,7 +32,9 @@ try
 {
     return line.Verb switch
     {
-        "constraints" => await Constraints(line).ConfigureAwait(false),
+        "constraints" => await Workspace.Run(line, w => Constraints(w, line)).ConfigureAwait(false),
+        "gate" => await WithCycle(line, Gate).ConfigureAwait(false),
+        "cycle-approval" => await WithCycle(line, (w, id) => CycleApproval(w, line, id)).ConfigureAwait(false),
         _ => await Unknown(line.Verb).ConfigureAwait(false),
     };
 }
@@ -43,50 +46,123 @@ catch (Exception error) when (error is IOException or UnauthorizedAccessExceptio
     return ExitCode.Failed;
 }
 
-static async Task<int> Constraints(CommandLine line)
+static async Task<int> Constraints(Workspace workspace, CommandLine line)
 {
-    string solutionRoot = line.TryOption("solution", out string? root)
-        ? root
-        : Directory.GetCurrentDirectory();
+    line.TryOption("for", out string? artifact);
 
-    if (!Locate.Library(out string? libraryPath, out string? why))
+    Result<ConstraintSet> result = await workspace
+        .Send<EffectiveConstraintsQuery, ConstraintSet>(new EffectiveConstraintsQuery(artifact))
+        .ConfigureAwait(false);
+
+    if (result.IsFailed)
     {
-        await Console.Error.WriteLineAsync(why).ConfigureAwait(false);
-        return ExitCode.Failed;
+        return await Report(result, ExitCode.Refused).ConfigureAwait(false);
     }
 
-    ServiceProvider provider = new ServiceCollection()
-        .AddSdlc(libraryPath, solutionRoot)
-        .BuildServiceProvider();
+    ConstraintDetail detail = line.HasOption("brief") ? ConstraintDetail.Brief : ConstraintDetail.Full;
 
-    await using (provider.ConfigureAwait(false))
+    await Console.Out.WriteAsync(ConstraintRenderer.Render(result.Value, detail, artifact))
+        .ConfigureAwait(false);
+
+    return ExitCode.Ok;
+}
+
+static async Task<int> Gate(Workspace workspace, CycleId id)
+{
+    Result<GateVerdict> result = await workspace
+        .Send<ApprovalGateQuery, GateVerdict>(new ApprovalGateQuery(id))
+        .ConfigureAwait(false);
+
+    if (result.IsFailed)
     {
-        Mediator mediator = provider.GetRequiredService<Mediator>();
-        line.TryOption("for", out string? artifact);
+        return await Report(result, ExitCode.Refused).ConfigureAwait(false);
+    }
 
-        Result<ConstraintSet> result = await mediator
-            .Send<EffectiveConstraintsQuery, ConstraintSet>(new EffectiveConstraintsQuery(artifact))
-            .ConfigureAwait(false);
+    GateVerdict verdict = result.Value;
 
-        if (result.IsFailed)
-        {
-            foreach (IError error in result.Errors)
-            {
-                await Console.Error.WriteLineAsync(error.Message).ConfigureAwait(false);
-            }
-
-            return ExitCode.Refused;
-        }
-
-        ConstraintDetail detail = line.HasOption("brief")
-            ? ConstraintDetail.Brief
-            : ConstraintDetail.Full;
-
-        await Console.Out.WriteAsync(ConstraintRenderer.Render(result.Value, detail, artifact))
-            .ConfigureAwait(false);
-
+    // A refusal goes to standard error and a pass to standard output, so a hook that forwards only one
+    // stream still shows the person why they were stopped.
+    if (verdict.MayBuild)
+    {
+        await Console.Out.WriteLineAsync(verdict.Explanation).ConfigureAwait(false);
         return ExitCode.Ok;
     }
+
+    await Console.Error.WriteLineAsync(verdict.Explanation).ConfigureAwait(false);
+    return ExitCode.Refused;
+}
+
+static async Task<int> CycleApproval(Workspace workspace, CommandLine line, CycleId id)
+{
+    string by = line.TryOption("by", out string? named)
+        ? named
+        : Git.UserName(workspace.SolutionRoot) ?? "<your name>";
+
+    Result<ApprovalTextResult> result = await workspace
+        .Send<ApprovalTextQuery, ApprovalTextResult>(new ApprovalTextQuery(id, by))
+        .ConfigureAwait(false);
+
+    if (result.IsFailed)
+    {
+        return await Report(result, ExitCode.Refused).ConfigureAwait(false);
+    }
+
+    ApprovalTextResult text = result.Value;
+
+    if (!text.MayApprove)
+    {
+        await Console.Error.WriteLineAsync(text.Instructions).ConfigureAwait(false);
+        return ExitCode.Refused;
+    }
+
+    await Console.Out.WriteAsync(ApprovalRenderer.Render(text)).ConfigureAwait(false);
+    return ExitCode.Ok;
+}
+
+static async Task<int> WithCycle(CommandLine line, Func<Workspace, CycleId, Task<int>> body)
+{
+    if (!TryCycle(line, out CycleId id, out string? complaint))
+    {
+        await Console.Error.WriteLineAsync(complaint).ConfigureAwait(false);
+        return ExitCode.Usage;
+    }
+
+    return await Workspace.Run(line, workspace => body(workspace, id)).ConfigureAwait(false);
+}
+
+static bool TryCycle(CommandLine line, out CycleId id, [NotNullWhen(false)] out string? complaint)
+{
+    id = default;
+
+    if (line.Arguments.Count == 0)
+    {
+        complaint = string.Create(
+            CultureInfo.InvariantCulture,
+            $"Which cycle? Give its id, as in 'sdlc {line.Verb} 20260929_1456_32'.");
+        return false;
+    }
+
+    if (!CycleId.TryParse(line.Arguments[0], out CycleId? parsed))
+    {
+        complaint = string.Create(
+            CultureInfo.InvariantCulture,
+            $"'{line.Arguments[0]}' is not a cycle id. They are written as date, 24-hour time and seconds, as in 20260929_1456_32.");
+        return false;
+    }
+
+    id = parsed.Value;
+    complaint = null;
+    return true;
+}
+
+static async Task<int> Report<T>(Result<T> result, int code)
+{
+    foreach (IError error in result.Errors)
+    {
+        await Console.Error.WriteLineAsync(error.Message).ConfigureAwait(false);
+    }
+
+    return code;
 }
 
 static async Task<int> Unknown(string verb)

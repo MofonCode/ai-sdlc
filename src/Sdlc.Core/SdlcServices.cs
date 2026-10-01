@@ -1,6 +1,8 @@
 using Microsoft.Extensions.DependencyInjection;
 using MofonCode.Core;
+using Sdlc.Core.Approvals;
 using Sdlc.Core.Constraints;
+using Sdlc.Core.Cycles;
 
 namespace Sdlc.Core;
 
@@ -31,6 +33,17 @@ public static class SdlcServices
         services.AddTransient<
             IRequestHandler<EffectiveConstraintsQuery, ConstraintSet>,
             EffectiveConstraintsHandler>();
+
+        // The three cycle handlers take the solution root rather than resolving it themselves, so a
+        // test can point them at a scratch directory without an environment variable deciding it.
+        services.AddTransient<IRequestHandler<ApprovalGateQuery, GateVerdict>>(
+            _ => new ApprovalGateHandler(solutionRoot));
+
+        services.AddTransient<IRequestHandler<CycleStatusQuery, CycleStatus>>(
+            _ => new CycleStatusHandler(solutionRoot));
+
+        services.AddTransient<IRequestHandler<ApprovalTextQuery, ApprovalTextResult>>(
+            _ => new ApprovalTextHandler(solutionRoot));
 
         return services;
     }
