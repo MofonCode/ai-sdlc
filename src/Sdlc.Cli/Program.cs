@@ -4,6 +4,7 @@ using System.Text;
 using FluentResults;
 using Sdlc.Cli;
 using Sdlc.Core.Approvals;
+using Sdlc.Core.Artifacts;
 using Sdlc.Core.Constraints;
 using Sdlc.Core.Cycles;
 using Sdlc.Core.Hooks;
@@ -36,6 +37,7 @@ try
         "constraints" => await Workspace.Run(line, w => Constraints(w, line)).ConfigureAwait(false),
         "gate" => await WithCycle(line, Gate).ConfigureAwait(false),
         "cycle-approval" => await WithCycle(line, (w, id) => CycleApproval(w, line, id)).ConfigureAwait(false),
+        "status" => await WithCycle(line, (w, id) => Status(w, line, id)).ConfigureAwait(false),
         "hook" => await Hook(line).ConfigureAwait(false),
         _ => await Unknown(line.Verb).ConfigureAwait(false),
     };
@@ -118,6 +120,36 @@ static async Task<int> CycleApproval(Workspace workspace, CommandLine line, Cycl
     }
 
     await Console.Out.WriteAsync(ApprovalRenderer.Render(text)).ConfigureAwait(false);
+    return ExitCode.Ok;
+}
+
+static async Task<int> Status(Workspace workspace, CommandLine line, CycleId id)
+{
+    Result<CycleStatus> result = await workspace
+        .Send<CycleStatusQuery, CycleStatus>(new CycleStatusQuery(id))
+        .ConfigureAwait(false);
+
+    if (result.IsFailed)
+    {
+        return await Report(result, ExitCode.Refused).ConfigureAwait(false);
+    }
+
+    CycleStatus status = result.Value;
+
+    // --stage names the artifact whose panel to show. Without it, the panel is for whichever artifact
+    // the cycle is waiting on, which is what a person wants after any stage finishes.
+    ArtifactKind kind = line.TryOption("stage", out string? named) && Cycle.TryParseKind(named, out ArtifactKind asked)
+        ? asked
+        : status.Blocking?.Kind ?? ArtifactKind.Plan;
+
+    ArtifactState state = status.Artifacts.First(artifact => artifact.Kind == kind);
+    ArtifactOutline outline = await ArtifactOutlineReader
+        .ReadFile(state.Path, CancellationToken.None)
+        .ConfigureAwait(false);
+
+    await Console.Out.WriteAsync(StatusRenderer.RenderStage(status, new StagePanel(state, outline)))
+        .ConfigureAwait(false);
+
     return ExitCode.Ok;
 }
 

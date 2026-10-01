@@ -15,6 +15,7 @@ internal static class Usage
             constraints              Render the constraint set in force.
             gate <id>                Say whether a cycle's build may run. Exits 1 if not.
             cycle-approval <id>      Print the approval entry for a person to paste.
+            status <id>              Show the panel for a stage. Ends with the next command.
             hook --host <name>       Judge a tool call. Reads the host's payload on stdin and
                                      writes its decision on stdout. Hosts: claude, copilot.
             help                     This text.
@@ -25,6 +26,10 @@ internal static class Usage
         Options for constraints
             --for <artifact>         Narrow to one artifact: intent, spec, plan, diff, verify.
             --brief                  Ids and statements only, without the clauses.
+
+        Options for status
+            --stage <artifact>       Which panel: intent, spec or plan. Defaults to whichever
+                                     artifact the cycle is waiting on.
 
         Options for cycle-approval
             --by <name>              Who is approving. Defaults to git's configured user name.
