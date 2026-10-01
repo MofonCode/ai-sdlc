@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <PackageReference Include="MofonCode.Core" />
+    <PackageReference Include="YamlDotNet" />
+    <PackageReference Include="JsonSchema.Net" />
+  </ItemGroup>
+
+</Project>

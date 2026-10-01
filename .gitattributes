@@ -1,0 +1,16 @@
+# LF in the repository, native in the working tree.
+#
+# `text=auto` gives both halves of that: git normalizes every text file to LF on the way in, so a
+# diff never shows a whole file changed because a teammate is on another machine, and checks out
+# with the platform's own endings - CRLF on Windows, LF elsewhere. Editors, PowerShell and the .NET
+# tooling all see the endings their platform expects while the history stays clean.
+#
+# Deliberately no `eol=` pins. An `eol=` forces a working-tree ending on every platform, which is
+# the opposite of native: this file used to pin .md, .json and .yml to lf while its own comment
+# claimed checkout was native, so those files arrived LF on Windows and .editorconfig had to carry a
+# matching exception to stay consistent with them. Both are simpler without it.
+#
+# .editorconfig states crlf to match the Windows working tree, and this repository is Windows-only
+# by design - CI runs windows-latest and the shipped tooling is Windows PowerShell 5.1.
+
+* text=auto

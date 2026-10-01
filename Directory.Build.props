@@ -1,0 +1,35 @@
+<Project>
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+
+    <!-- CI builds carry no warnings. WarningsNotAsErrors is deliberately empty so that an
+         exception is one visible line here rather than a pragma buried in code, and every
+         suppression below says why it exists. -->
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <WarningsNotAsErrors></WarningsNotAsErrors>
+
+    <!-- latest-all rather than the latest-recommended the dotnet-default profile ships to
+         consumers. This repository is the framework: archive/v03 built clean at latest-all,
+         so the stricter level is evidence-backed here, while consumer code gets the level
+         MofonCode.Core validated for application work. -->
+    <AnalysisLevel>latest-all</AnalysisLevel>
+    <AnalysisModeSecurity>All</AnalysisModeSecurity>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    <NuGetAudit>true</NuGetAudit>
+    <NuGetAuditMode>all</NuGetAuditMode>
+    <NuGetAuditLevel>moderate</NuGetAuditLevel>
+
+    <!-- MSTest on Microsoft.Testing.Platform needs this and the `test` runner section in
+         global.json, or `dotnet test` silently falls back to VSTest and MTP refuses the
+         path. It lives here rather than in the test project so a test project added later
+         cannot quietly run a different runner. Do not set TestingPlatformDotnetTestSupport:
+         that is the .NET 9 mechanism and setting it instead is what left a trial run unable
+         to run `dotnet test` at all. -->
+    <EnableMSTestRunner>true</EnableMSTestRunner>
+  </PropertyGroup>
+
+</Project>

@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="MSTest" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Sdlc.Core\Sdlc.Core.csproj" />
+    <ProjectReference Include="..\..\src\Sdlc.Cli\Sdlc.Cli.csproj" />
+  </ItemGroup>
+
+</Project>
