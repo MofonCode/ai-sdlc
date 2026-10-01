@@ -15,6 +15,8 @@ internal static class Usage
             constraints              Render the constraint set in force.
             gate <id>                Say whether a cycle's build may run. Exits 1 if not.
             cycle-approval <id>      Print the approval entry for a person to paste.
+            hook --host <name>       Judge a tool call. Reads the host's payload on stdin and
+                                     writes its decision on stdout. Hosts: claude, copilot.
             help                     This text.
 
         Common options

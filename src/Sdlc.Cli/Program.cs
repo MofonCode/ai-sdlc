@@ -6,6 +6,7 @@ using Sdlc.Cli;
 using Sdlc.Core.Approvals;
 using Sdlc.Core.Constraints;
 using Sdlc.Core.Cycles;
+using Sdlc.Core.Hooks;
 
 // Constraint and artifact text is passed through verbatim, so the stream has to carry what the files
 // hold. On Windows the default is the console codepage, which turns an em dash into a question mark -
@@ -35,6 +36,7 @@ try
         "constraints" => await Workspace.Run(line, w => Constraints(w, line)).ConfigureAwait(false),
         "gate" => await WithCycle(line, Gate).ConfigureAwait(false),
         "cycle-approval" => await WithCycle(line, (w, id) => CycleApproval(w, line, id)).ConfigureAwait(false),
+        "hook" => await Hook(line).ConfigureAwait(false),
         _ => await Unknown(line.Verb).ConfigureAwait(false),
     };
 }
@@ -128,6 +130,44 @@ static async Task<int> WithCycle(CommandLine line, Func<Workspace, CycleId, Task
     }
 
     return await Workspace.Run(line, workspace => body(workspace, id)).ConfigureAwait(false);
+}
+
+static async Task<int> Hook(CommandLine line)
+{
+    if (!line.TryOption("host", out string? named) || !HookProtocol.TryParseHost(named, out HookHost? host))
+    {
+        await Console.Error.WriteLineAsync(
+            "Which host? Pass --host claude or --host copilot.").ConfigureAwait(false);
+        return ExitCode.Usage;
+    }
+
+    string payload = await Console.In.ReadToEndAsync().ConfigureAwait(false);
+    Result<ToolCall> call = HookProtocol.ReadCall(payload, host.Value);
+
+    // A payload this cannot read allows the call and says so on standard error. These surfaces are
+    // young, and a hook that failed closed on a renamed field would stop a person working for a reason
+    // they cannot act on; one that failed silently would permit everything while appearing to protect.
+    // Visible and permissive is the only honest third option.
+    if (call.IsFailed)
+    {
+        foreach (IError error in call.Errors)
+        {
+            await Console.Error.WriteLineAsync("sdlc hook: " + error.Message).ConfigureAwait(false);
+        }
+
+        await Console.Out.WriteAsync(
+            HookProtocol.WriteDecision(host.Value, HookDecision.Allow, null)).ConfigureAwait(false);
+        return ExitCode.Ok;
+    }
+
+    HookVerdict verdict = HookPolicyHandler.Decide(call.Value);
+
+    await Console.Out.WriteAsync(
+        HookProtocol.WriteDecision(host.Value, verdict.Decision, verdict.Reason)).ConfigureAwait(false);
+
+    // Zero either way: the decision is in the payload, and a non-zero exit would read to the host as
+    // the hook itself having failed.
+    return ExitCode.Ok;
 }
 
 static bool TryCycle(CommandLine line, out CycleId id, [NotNullWhen(false)] out string? complaint)
