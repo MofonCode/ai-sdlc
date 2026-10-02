@@ -1,32 +1,35 @@
 # ai-sdlc — concept
 
-**Iteration 4.** Last updated 2026-10-01.
+**Iteration 4.** Rewritten 2026-10-02 from a reconciliation of the previous draft against the
+implementation, which closed twenty-four contradictions. That working-through is commit `adf15cc`
+and is not carried forward as a file.
 
 The original longhand draft is preserved unedited in [`CONCEPT.raw.md`](CONCEPT.raw.md).
-This document is where the concept currently stands. Open questions are at the end.
 
-Iteration 3 shipped as `0.8.3` and is archived on the `archive/v03` branch of this
-repository — eleven skills, seven schemas, a hook config, eight PowerShell gates,
-two sample solutions and a test suite that asserts skill behaviour by running the
-skills. Where this document says a thing already exists, that is where it exists.
-Iteration 4 is largely carry-forward plus making it host-agnostic.
+**How to read this.** Sections 1 to 18 state what is true. Section 20 says why, one decision at a
+time, with what was rejected. No section repeats a reason, and no decision repeats a design — one
+fact, one owner. A statement in the design carries a `(D-nn)` marker where a decision governs it.
+
+Iteration 3 shipped as `0.8.3` and is archived on the `archive/v03` branch of this repository.
+Where this document says a thing already exists, that is where it exists.
 
 ---
 
 ## 1. What this is
 
-A host-agnostic plugin that governs a team's software lifecycle. A change does not
-travel from a request to a diff. It moves through phases, each producing a file the
-next phase reads, and each file is challenged against a fixed set of rules before it
-advances. Nothing advances on assertion.
+A host-agnostic plugin that governs a team's software lifecycle. A change does not travel from a
+request to a diff. It moves through phases, each producing a file the next phase reads, and each
+file is challenged against a fixed set of rules before it advances. Nothing advances on assertion.
 
 Two things it exists to make possible:
 
-- **A person approves a plan before code exists**, and the approval is recorded
-  against the exact bytes that were approved.
+- **A person approves a plan before code exists**, and the approval is recorded against the exact
+  bytes that were approved.
 - **Approved plans build unattended**, one or many at a time.
 
-It has a strong opinion about the stack it scaffolds, and that opinion is swappable.
+It has a strong opinion about the stack it scaffolds, and that opinion is swappable. The rules are
+stack-neutral and travel to any stack; **the tool itself needs .NET**, so host-agnostic is not
+stack-agnostic.
 
 ---
 
@@ -34,8 +37,7 @@ It has a strong opinion about the stack it scaffolds, and that opinion is swappa
 
 ### 2.1 Enforcement lives below the agent
 
-The agent is never the thing enforcing a rule. Three layers, and only the last is a
-guarantee:
+The agent is never the thing enforcing a rule. Three layers, and only the last is a guarantee:
 
 | Layer | Mechanism | Bypassable by | Purpose |
 |---|---|---|---|
@@ -43,66 +45,59 @@ guarantee:
 | Local deterministic | the `sdlc` gate binary, a pre-tool hook, git hooks | a human with a shell | fast feedback |
 | Non-bypassable | `sdlc verify-chain` as a pull-request check, plus branch policy | nobody without repo admin | the guarantee |
 
-The promise made to a team is the third layer: **nothing merges unless the artifact
-chain is complete, approved, and hash-matched.** That is host agnostic because it
-runs where no agent holds credentials.
+The promise made to a team is the third layer: **nothing merges unless the artifact chain is
+complete, approved, and hash-matched.**
 
-A corollary iteration 3 states and is worth keeping as a rule of its own: **a
-directory that appears enforced and is not is worse than one that never pretended.**
-A check that silently does nothing — a CI job with no credentials, a hook that fails
-to start — is the failure mode to design against.
+A rule of its own, carried from iteration 3: **a directory that appears enforced and is not is
+worse than one that never pretended.** A check that silently does nothing — a CI job with no
+credentials, a hook that fails to start — is the failure mode to design against.
 
 ### 2.2 The gate is a program, not a prompt
 
-One executable owns every process constraint and exits non-zero with the warning
-text. Every skill on every host does nothing but call it. The same binary runs in
-the pre-tool hook, in git hooks, and in the pipeline. One implementation, three call
-sites, no drift between hosts.
+One executable owns every process constraint and exits non-zero with the warning text. Every skill
+on every host does nothing but call it. The same binary runs in the pre-tool hook, in git hooks, and
+in the pipeline — one implementation, three call sites. It carries the schema evaluator with it, so
+artifacts are fully validated where they are written.
 
-**It carries the schema evaluator with it.** Iteration 3 could not: its hooks are
-PowerShell 5.1, which has no `Test-Json`, so a consumer solution got a shallow
-key-name check while the real evaluator ran only in this repository's own CI. That
-left schema rules enforced in the one repository that does not need them — the schema
-rejects a verify document claiming `pass` with an open blocking finding, and nothing
-in a live cycle ever checked it. A binary that already has to ship removes the reason
-for the split, so artifacts are fully validated where they are written.
+**The command line is the mechanism** (D-26). If an MCP server ships, it is a surface over the same
+commands rather than a second implementation.
 
 ### 2.3 Constraints belong in the lowest layer that can hold them
 
-In order of preference:
+1. **The compiler.** Analyzers, `TreatWarningsAsErrors`, `.editorconfig` severities, central package
+   management. An analyzer is the most host-agnostic enforcement there is — the build rejects the
+   code whichever agent wrote it, with no hook and no adapter.
+2. **A schema or a hook.** Anything mechanical about an artifact: a required section, a key that must
+   be present, a file the plan did not declare.
+3. **A constraint.** Only what needs reading comprehension — whether a spec answers its intent,
+   whether a criterion is testable, whether a proof reaches its claim.
 
-1. **The compiler.** Analyzers, `TreatWarningsAsErrors`, `.editorconfig` severities,
-   central package management. An analyzer is the most host-agnostic enforcement
-   that exists — the build rejects the code no matter which agent wrote it, with no
-   hook and no adapter.
-2. **A schema or a hook.** Anything mechanical about an artifact: a required
-   section, a key that must be present, a file the plan did not declare.
-3. **A constraint.** Only what needs reading comprehension — whether a spec answers
-   its intent, whether a criterion is testable, whether a proof reaches its claim.
-
-So: **analyzers police the code, schemas and hooks police artifact shape,
-constraints police the reasoning.** §6.2 makes this an admission test the
-constraint library enforces on itself.
+**Analyzers police the code, schemas and hooks police artifact shape, constraints police the
+reasoning.** §7.2 makes this an admission test the library applies to itself.
 
 ### 2.4 Judging and editing are separate acts
 
-A skill that both judges an artifact and rewrites it ends up judging its own edits,
-and its second opinion is no longer independent. `interrogate` judges and never
-edits. `refine` and `remediate` edit and never judge.
+`interrogate` judges and never edits. `refine` and `remediate` edit and never judge.
 
-The corollary matters more: **nothing that reacts to a failing test may edit a
-planning document.** If a red test can cause an agent to adjust the spec, the
-criteria become whatever the code happens to do and the spec stops judging the
-build. That is the path of least resistance, not an edge case — rewording a sentence
-is easier than fixing a bug — so it is enforced by the hook rather than by
-instruction. See §5.1.
+The corollary: **nothing that reacts to a failing test may edit a planning document.** If a red test
+can cause an agent to adjust the spec, the criteria become whatever the code happens to do. It is
+enforced by the hook rather than by instruction (§6.3).
 
-### 2.5 The plugin does not govern itself
+### 2.5 Side research and evaluation run in a new process
 
-ai-sdlc is not an ai-sdlc solution. If it were, a change to a constraint would be
-judged by the constraint it changes, and a defect that blocks landing would also
-block the fix for that defect. The process is exercised by running cycles in
-`dice-trial`.
+The main window keeps only what it needs to decide. Interrogation, fresh readers, and any
+go-and-find-out step run in their own process (D-01).
+
+### 2.6 Flexibility comes from making compliance cheap
+
+Not from making constraints optional. Where the correct path is expensive, the answer is a tool that
+makes it affordable — never a shortcut around it (D-17).
+
+### 2.7 The plugin does not govern itself
+
+ai-sdlc is not an ai-sdlc solution. If it were, a change to a constraint would be judged by the
+constraint it changes, and a defect that blocks landing would also block the fix for that defect.
+The process is exercised by running cycles in `dice-trial`.
 
 ---
 
@@ -118,158 +113,159 @@ intent -> spec -> plan -> build -> verify -> land
 |---|---|---|
 | `intent` | why this change exists | `intent.md` — the problem, not a solution |
 | `spec` | what done means | `spec.md` — acceptance criteria, each testable |
-| `plan` | how | `plan.md` — files it will touch, blast radius, the proof committed to per criterion |
+| `plan` | how | `plan.md` — the approach, the files, the proof per criterion |
 | `build` | the change itself | a diff, plus build and test evidence |
 | `verify` | whether the change did the spec justice | `verify.md` — an outcome and its findings |
 | `land` | integration | a pull request |
 
-`interrogate`, `refine` and `remediate` are not phases. They are the two loops that
-run inside the phases:
+Two loops run inside the phases:
 
 ```
-interrogate -> refine -> interrogate         (an artifact, uncapped)
-verify      -> remediate -> verify           (the code, at most 3 passes)
+interrogate -> refine -> interrogate         an artifact, uncapped
+verify      -> remediate -> verify           the code, at most 3 passes
 ```
 
-Past three remediation passes the outcome is `escalated` and landing refuses it.
-**The artifact loop is never capped.** On the last intent that ran eleven rounds,
-round seven found that the headline change was unreachable and round eleven found
-that no success criterion failed if it were skipped entirely. A cap of three would
-have stopped before either.
+Past three remediation passes the outcome is `escalated` and landing refuses it. **The artifact loop
+is never capped** — on the intent that ran eleven rounds, round seven found that the headline change
+was unreachable and round eleven found that no success criterion failed if it were skipped entirely.
 
-A stage will not run until the artifact before it has an interrogation round with no
-open blocking findings — see §4.4.
+Each stage skill runs the artifact loop itself: it writes, interrogates, refines, and interrogates
+again until the round is clean or nothing further can be settled, then reports and hands back
+(D-29).
+
+A stage will not run until the artifact before it has an interrogation round with no open blocking
+findings (§5.4).
 
 ### 3.1 Every class of change runs the full chain
 
-`intent` interviews the user and establishes whether this is a new solution, a
-feature addition, a feature change, or a bug fix.
+`intent` interviews the user and establishes whether this is a new solution, a feature addition, a
+feature change, or a bug fix. **Intent, spec and plan are all required, always.** The classification
+informs how each artifact is written — a bug fix's spec derives its criteria from a reproduction
+rather than a desired outcome — and never skips one.
 
-**Intent, spec and plan are all required, always.** The classification informs how
-each artifact is written — a bug fix's spec derives its criteria from a reproduction
-rather than from a desired outcome — but it never skips an artifact.
+**Splitting work into deliverable chunks belongs to whoever is prompting** (D-25). They write
+smaller intents and run each through the cycle; no tooling accommodates splitting.
 
-An earlier draft of this document proposed an express path collapsing intent and
-spec and making the plan optional for bug fixes. That is withdrawn. Without a plan
-there is no declared file set, and the declared-versus-changed comparison is the
-strongest mechanism in the design; a path that removes it to save a few minutes
-trades the guarantee for convenience.
+### 3.2 Steering a cycle that is already underway
 
-### 3.1.1 Splitting an intent
+`steer <id> "comment"` interviews, records the decision in the intent's `Fixed decisions` with
+attribution, and carries the change down the chain — updating and re-interrogating the spec, and the
+plan when one exists. It requires an intent and a spec, edits rather than regenerates, reports what
+changed, and refuses on an approved cycle until a reopen is recorded (D-17).
 
-Size is identified by a person, not by a rule. There is no constraint on intent size
-and no automatic detection: as someone moves from intent to spec to plan and the
-perceived effort grows, they call `split`.
-
-`split` takes the intent, asks the questions needed to divide it — which outcomes
-belong together, what each one is for — and writes the smaller intents as new cycles.
-The original is abandoned with `reason: split into <ids>`, and each new cycle records
-its parent, so the history stays traceable rather than appearing as three intents from
-nowhere.
-
-**Splitting late throws work away, and the skill says so before it acts.** After a
-spec exists, splitting discards that spec; after a plan, both. That is sometimes the
-right trade, but it is the person's trade to make knowingly, so `split` reports what
-will be discarded and waits.
-
-**The part that needs machinery: a split produces cycles that depend on each other.**
-If an intent divides into three and the second needs types the first creates, the
-second cannot be built until the first has landed. Nothing in the design expressed
-that — `.sdlc/cycles/` is flat, ids are timestamps with no ordering guarantee, and the
-claim graph detects that two plans touch the same file without saying which goes
-first.
-
-So `split` records an order, and the cycles carry it:
-
-```yaml
-# in the plan's frontmatter
-after: [20260929_1456_32]
-```
-
-`batch-build` respects it — a cycle whose predecessor has not landed is **not
-attempted** rather than failed, the same reporting §9 uses for a plan downstream of a
-failure. Without this, splitting hands `batch-build` a problem it cannot see, and the
-result is a confusing build failure rather than a scheduling decision.
-
-This is the smallest thing that makes splitting safe. It is not a general dependency
-system: `after` is a declaration a person made while splitting, not something inferred.
-
-### 3.2 Artifacts
-
-| Artifact | Holds |
-|---|---|
-| `intent.md` | the problem as observable today, who has it, what done looks like, fixed decisions with attribution, bounds, assumptions, and open questions |
-| `spec.md` | acceptance criteria, each naming what is observable and how it is checked, each citing the part of the intent it answers; plus out of scope, assumptions, and blocked-on |
-| `plan.md` | shape and departures from the profile defaults, a file table (add / update / delete, with a change note per row), order, the proof per criterion naming the tests that will exist, `Cannot prove`, and `Risk` |
-| `verify.md` | an outcome, a criterion-by-criterion table citing test names out of the test results, findings, and suggestions |
-
-**The plan holds a file table, not diffs.** The draft asked for line adds and
-removes. That is not carried forward: a plan detailed to the line means the agent
-already did the work, the line numbers are stale the moment any other cycle lands,
-and a 900-line diff at the last cheap gate gets rubber-stamped rather than read.
-Line-level change is the build artifact — the branch and `diff.patch`.
-
-What makes the file table binding is the comparison at verify: every changed file
-must be declared and every declared file must have changed, reported as `UNDECLARED`
-and `UNDELIVERED`. That check is what turns the plan from a description into a
-commitment, and it already exists as `Compare-DiffToPlan.ps1`.
-
-`Cannot prove` is a declaration, not a failure. When `verify` encounters exactly
-what the plan said its proof could not reach, it confirms the limit rather than
-raising a finding — the finding would be raised at the plan gate, by CON_06, if the
-proof were inadequate to a criterion it *did* claim.
-
-### 3.3 Evidence
-
-`build` records what happened, as files rather than as prose: `diff.patch`,
-`build.log`, `tests.trx`, `base.sha`. `verify` reads those and nothing else, so its
-verdict cites test names and diff lines rather than recollection. Where the evidence
-does not reach, `verify` says so explicitly rather than implying coverage it does
-not have.
-
-`build` treats warnings as errors — enforced by `Directory.Build.props`, not by
-instruction.
+Steering changes *how*, not *what*. A comment that changes the problem is a different intent.
 
 ---
 
-## 4. Gates and approvals
+## 4. Artifacts
 
-### 4.1 One approval per cycle, taken before the build
+### 4.1 Every artifact is an envelope carrying a body
 
-**A cycle has exactly one gate: the planning approval.** It covers the three
-planning documents together — `intent.md`, `spec.md`, `plan.md` — and is taken once,
-immediately before `build`. One decision, one ledger entry, three hashes.
+| Part | Holds | Same across artifacts | Governed by |
+|---|---|---|---|
+| **envelope** | `framework_version`, `cycle`, and the `## Open` region | yes, identically | the envelope schema; `CON_14` governs `Open` |
+| **body** | the artifact-specific sections | no, deliberately | a body schema per kind; the constraints bind this |
 
-Approving it means agreeing to all three at once: that this is the right problem,
-that this is what done means, and that this approach and its blast radius are
-acceptable. There is no separate intent gate or spec gate, because a person reading
-a plan is reading the spec restated inside it.
+```
+framework_version: 1.0.0
+cycle: 20260929_1456_32
 
-Two mechanisms, defending different things:
+## Open
+```
+
+**The test for where a field goes:** same on every artifact, with the same meaning and the same
+consumer, goes in the envelope. Differs per artifact because a different consumer reads it, goes in
+the body (D-07, D-07a).
+
+`cycle` duplicates what the path carries, and the gate checks the two agree. `## Open` is required
+even when empty, or the gate cannot tell "nothing is open" from "the author forgot the section".
+
+The **body is flat.** Every section in it is evaluated content, so there is no sub-structure
+separating "the part that is judged".
+
+### 4.2 The body, per artifact
+
+| Artifact | Body | What consumes each |
+|---|---|---|
+| `intent` | `Problem` | `CON_01`; `spec` derives criteria from it |
+| | `Wanted outcomes` | `CON_04` — this is its left-hand side |
+| | `Fixed decisions` | `CON_01` routes decisions-already-taken here; `plan` cites them; `steer` writes here |
+| | `Must not change` | `CON_04`, which names it |
+| | `type` | the change classification; later artifacts read it |
+| `spec` | `Acceptance criteria` | `CON_03`, `CON_04`, `CON_05`, `CON_06`, `CON_12`, and `verify` |
+| | `Out of scope` | `CON_05`; a disposal destination (§5.4) |
+| `plan` | `Shape and departures` | `CON_13` |
+| | `Files` | the blast-radius signal and the claim graph; ordering reasoning lives here |
+| | `Proof` | `CON_06`, and `verify`'s criterion table |
+| | `Risk` | the person at the gate |
+| | `tier` | the blast radius: `local`, `contract`, `data`, chosen by reversibility |
+
+A section exists because something reads it: a constraint, a mechanical check, a downstream skill, or
+a person at the gate (D-06).
+
+### 4.3 `## Open` — what an artifact deliberately does not assert
+
+Questions nobody has answered, criteria that cannot be written yet, and limits of the proof. One
+name on every artifact (D-08).
+
+An entry is something **in scope** that this artifact cannot settle, with the reason it cannot. Three
+things it is not, each with its own home: work nobody has done yet (a later cycle), something wrong
+(a finding), something chosen out (`Out of scope`).
+
+**An assumption is not an open item** — it is a provisional answer rather than the absence of one. It
+goes in the artifact's decisions region marked unconfirmed: `Fixed decisions` on an intent, `Shape
+and departures` on a plan. A spec has neither and needs neither.
+
+### 4.4 The plan holds two kinds of claim
+
+| Section | Kind | Judged by |
+|---|---|---|
+| `Shape and departures` | a **decision** — which approach | `CON_06`, `CON_13` |
+| `Files` | an **estimate** — which files, how large | nothing; it is a signal |
+
+A plan holds a file table, never diffs. Line-level change is the build artifact — the branch and
+`diff.patch`.
+
+### 4.5 Evidence
+
+`build` records what happened as files rather than prose: the diff, the build log, a test summary,
+and the base commit. `verify` reads those and nothing else, so its verdict cites test names and diff
+lines rather than recollection. Where the evidence does not reach, `verify` says so.
+
+**Evidence is normalised at the boundary** (D-13). `build` writes both what the toolchain produced
+and one framework-defined summary — test name and outcome — and `verify` reads only the summary.
+
+`build` treats warnings as errors, enforced by `Directory.Build.props` rather than by instruction.
+
+---
+
+## 5. Gates and approvals
+
+### 5.1 One approval per cycle, taken before the build
+
+A cycle has exactly one gate: the planning approval. It covers `intent.md`, `spec.md` and `plan.md`
+together and is taken once, immediately before `build`. One decision, one ledger entry, three
+hashes.
+
+Approving means agreeing to all three at once. There is no separate intent gate or spec gate,
+because a person reading a plan is reading it against the spec it cites.
 
 | | Local approval | The pull request |
 |---|---|---|
-| Defends against | an agent that *forgets* — proceeding without a plan a person read | a human who did not look |
-| Mechanism | one ledger entry, three hashes, a hook that refuses `build` without it | code-owner review of the branch |
+| Defends against | an agent that *forgets* | a human who did not look |
+| Mechanism | a ledger entry, three hashes, a hook that refuses `build` | code-owner review |
 | Timing | before any code exists | after |
 
-**The gate is local, and only local.** There is no remote plan approval — no
-artifact-only pull request, no platform review before the build. The local paste is
-the approval; the code pull request is where another person looks. The ledger
-carries a `framework_version`, so if a remote decision ever has to be recorded that
-is a versioned format change rather than something to design for now.
+**The gate is local, and only local.** A code owner merges the pull request, never the agent that
+authored it.
 
-A code owner merges the pull request, never the agent that authored it.
+`solution.md` and the constraint set are approved by being hand-edited; neither is part of a cycle
+gate.
 
-### 4.2 The approval record
+### 5.2 The approval ledger
 
-**One file per cycle**, beside the other artifacts in the cycle's own directory:
-`.sdlc/cycles/20260929_1456_32/approval.md`. Nothing about approval lives outside
-the cycle it belongs to.
-
-It is an **append-only ledger of decisions** — normally one entry, and more only
-where a decision was revisited. A denial is an entry. A later approval supersedes
-it. The gate history of the cycle reads top to bottom in one file.
+One file per cycle, `.sdlc/cycles/<id>/approval.md`, an append-only ledger of decisions. The last
+entry stands.
 
 ```yaml
 ---
@@ -278,151 +274,120 @@ framework_version: 1.0.0
 decisions:
   - decision: changes_requested
     by: Peter Almanzar
-    at: 2026-09-29T01:06:00Z
+    at: 2026-10-01T11:06:00Z
     hashes:
-      intent.md: 3f9a2c7b…
-      spec.md:   91c4de08…
-      plan.md:   7e2b5504…
+      intent.md: 3f9a2c7b...
+      spec.md:   91c4de08...
+      plan.md:   7e2b5504...
     reason: the spec has no criterion for delivery as a page at all
 
   - decision: approved
     by: Peter Almanzar
-    at: 2026-09-29T01:12:00Z
+    at: 2026-10-01T11:12:00Z
     hashes:
-      intent.md: 3f9a2c7b…
-      spec.md:   5b07af31…
-      plan.md:   d40e1196…
+      intent.md: 3f9a2c7b...
+      spec.md:   5b07af31...
+      plan.md:   d40e1196...
     findings_rounds:
       intent.md: 2
       spec.md:   2
       plan.md:   2
-    accepted_findings: [plan.F_02]
 ---
 ```
 
-The block between the `---` fences is **frontmatter**: a YAML header carrying the
-document's machine-readable facts, with the prose body below it for people. Every
-artifact here has both, and the division is deliberate — schemas and gates read the
-frontmatter, humans read the body, and neither has to parse the other. Frontmatter is
-read with a real YAML parser and never with a regex: iteration 2 hand-rolled one, and it
-reported that a skill declared a setting while the real parser had dropped every field
-in that file, with 333 tests agreeing with the regex.
+Four decision values: `approved`, `changes_requested`, `denied`, and `reopened` (D-19). A refusal
+carries a reason, which `CON_10` governs. A reopen supersedes an approval, returning the cycle to
+pre-approval so the documents can be rewritten and re-approved — the recovery path when a plan turns
+out to be wrong.
 
-Each hash is of that document's own bytes, canonicalized — CRLF normalized to LF,
-trailing whitespace stripped — or Windows checkouts produce phantom mismatches.
+The block between the `---` fences is **frontmatter**: a YAML header carrying machine-readable facts,
+with the prose body below it for people. Schemas and gates read the frontmatter; humans read the
+body. Frontmatter is read with a real YAML parser and never a regular expression.
 
-**Three hashes in one entry, deliberately.** The three documents are approved as one
-act, so they are recorded as one act. If any of the three no longer matches, the
-approval no longer describes what is on disk and the gate refuses — the person
-re-runs the approval skill and re-approves all three. There is no partial staleness
-to reason about and no cascade to define, because there is only ever one gate.
+**Three hashes in one entry, of each document's canonicalised bytes** — CRLF normalised to LF,
+trailing whitespace stripped. They are an attestation that a person read these three documents, not
+a chain; derivation is the findings round's job (§6.2). If any of the three no longer matches, the
+gate refuses and the approval is taken again.
 
-**`accepted_findings`** names the open findings a person knowingly let through,
-prefixed by which document they belong to. Without it, the gate cannot tell a plan
-approved *with* a known objection from one approved because the objection was
-missed. It also replaces iteration 3's `waivers.md`: a waiver is an accepted finding
-on the approval entry.
+**Timestamps are written into the file.** A file's modified time cannot serve: git does not store
+mtimes, so a clone sets every file's to the moment of checkout.
 
-**Timestamps are written into the file.** A file's last-modified time cannot serve:
-git does not store mtimes, so a clone or checkout sets every file's to the moment of
-checkout, and on a teammate's machine or in CI every approval would read as granted
-just now.
+### 5.3 No skill writes a protected file. A skill drafts it.
 
-Filename-as-state (`20260929_1456_32.approved.md`) was considered and rejected: it is
-no harder to forge, it carries no hash so approve-then-edit goes unnoticed, every
-reference to the artifact breaks on approval, it is binary so there is nowhere to put
-a denial, and it has no room for who or when.
+Four files only a person writes:
 
-### 4.3 No skill writes the approval. A skill only prints it.
+| File | What is drafted |
+|---|---|
+| `approval.md` | a gate decision — three hashes, timestamp, findings rounds |
+| `abandoned.md` | why the cycle stopped |
+| `constraints.md` | a proposed `LOC_nn` |
+| `solution.md` | the `profile` line, on migration |
 
-`sdlc cycle-approval <id>` prints a ready-made entry — three hashes computed,
-timestamp filled, findings rounds and open findings listed — together with
-instructions. The person copies it, opens or creates `approval.md`, pastes, saves.
-The plugin never writes that file.
+One verb drafts them all: `sdlc draft approval <id>`, `draft abandon <id>`, `draft constraint`,
+`draft profile <name>`. `draft approval` also takes `--deny` and `--changes-requested` (D-11). Each
+prints a ready-made entry; the person reads it, decides, and places it.
 
-This keeps the property that made iteration 3 trustworthy: **a human performs the
-act of approval, and no skill can perform it for them.** It also makes the hook rule
-absolute rather than conditional —
+**The pre-tool hook denies every agent write to all four, with no exception.** There is no approve
+command for an exception to be carved out for, so every hook rule stays absolute (D-09).
 
-- **the pre-tool hook denies every agent write to `approval.md`, with no exception.**
-  There is no approve command for it to carve out.
+Two costs of the paste flow: a pasted hash cannot be checked by eye, so `status` shows the first
+twelve characters of each recorded hash beside each document's current twelve and a refusal names
+*which* document changed; and a first entry is a file creation while a revisit is an edit, which the
+printed instructions say.
 
-That is the highest-value hook rule in the design, and the main reason the hook layer
-earns its place.
+`draft approval` refuses while any blocking finding is open.
 
-Two costs of the copy-paste flow, both manageable:
+### 5.4 What holds the planning stages
 
-- **A pasted hash cannot be checked by eye.** The `status` panel shows the first
-  twelve characters of each recorded hash next to each document's current twelve, so
-  a mismatch is diagnosable by looking. When the gate refuses, it names *which of the
-  three documents* changed after the text was printed and says to print it again —
-  never just "hash mismatch."
-- **A first entry is a file creation; a revisit is an edit.** The usual case is
-  create-paste-save once. A denial followed by an approval means opening the file and
-  pasting at the bottom. The printed instructions say which case applies.
+**A clean interrogation round is required to advance.** `spec` will not run until `intent.md` has a
+round with no open blocking findings, and `plan` likewise on `spec.md` (D-02).
 
-The approval skill **refuses to print** while any blocking finding is open and
-unlisted. What it prints instead names them, so accepting a blocker is always a
-visible act rather than a silence.
+Three mechanical checks need no reading comprehension:
 
-### 4.4 Structural checks hold the planning stages
+1. **every intent open item is disposed of by the spec** — as a criterion, under `Out of scope` with
+   a reason, or under `Open` citing the intent item (D-05)
+2. every spec criterion maps to at least one file and one named test in the plan
+3. every changed file is declared in the plan, and every declared file changed — recorded as a
+   signal, not a gate (§7.6)
 
-With one gate before the build, the planning stages are held together mechanically
-rather than by review. These carry real weight — they are the only thing standing
-between a stage and the next one.
-
-**A clean interrogation round is required to advance.** `spec` will not run until
-`intent.md` has a round with no open blocking findings, and `plan` will not run
-without the same on `spec.md`. Interrogation is part of the chain, not an optional
-extra — which is what keeps a single approval from resting on three documents nothing
-has argued with. A blocking finding may be cleared by refining the artifact or, where
-a person decides to accept it, by naming it in the approval entry; it may not be
-cleared by ignoring it.
-
-The remaining checks need no reading comprehension at all:
-
-- every intent statement maps to at least one spec criterion;
-- every spec criterion maps to at least one file **and** at least one named test in
-  the plan;
-- every changed file is declared in the plan, and every declared file changed.
+With every intent item disposed, anything still open at plan time is by construction out of scope or
+explicitly deferred: anything in scope got a criterion, and `CON_06` and `CON_12` require every
+criterion to have a proof that can run. **So the gate before build is about dependency, not the
+absence of open items** (D-04).
 
 ---
 
-## 5. Interrogation and findings
+## 6. Interrogation and findings
 
-`interrogate` runs against one artifact in fresh context, judges it against the
-constraints in force, and writes a findings round. It never edits the artifact.
+`interrogate` runs against one artifact in fresh context, judges it against the constraints in force,
+and writes a findings round. It never edits.
 
-**The fresh context is a fresh process, on every host** — the host's own
-non-interactive mode (`claude -p`, `copilot -p`). A new process is a new context, it
-behaves the same everywhere, and iteration 3's `run` already drives each step this
-way. Subagents would be more ergonomic on Claude Code and would mean two code paths
-for the most important skill, so they are not used.
+**The fresh context is a fresh process** — the host's own non-interactive mode. That buys
+independence from *investment bias*: the reader never saw the interview, the drafts, or the author's
+reasoning. It does not buy independence from *model bias*, so a borderline judgement flips the same
+coin twice.
 
-What this buys is **independence from investment bias**: the reader never saw the
-interview, the drafts, or the author's reasoning — only the artifact, its upstream,
-and the constraints. What it does not buy is independence from **model bias**: same
-model, same priors, so a borderline judgement flips the same coin twice. A quorum of
-readers would address that, at a multiple of the cost, and is not in v1.
+### 6.1 Findings are data
 
-Findings are data, at `findings/<artifact>.r<round>.json`:
+`findings/<artifact>.r<round>.json`:
 
 ```json
 {
   "framework_version": "1.0.0",
   "cycle": "20260929_1456_32",
-  "artifact": ".sdlc/cycles/20260929_1456_32/spec.md",
-  "interrogated_at": "2026-09-29T01:08:39Z",
+  "artifact": "spec.md",
+  "upstream_sha256": "3f9a2c7b...",
+  "interrogated_at": "2026-10-01T11:08:39Z",
   "round": 1,
   "findings": [
     {
       "id": "F_01",
       "severity": "blocking",
       "disposition": "open",
-      "cites": "CON_04.1",
-      "statement": "…what is wrong, in full",
-      "locus": "…where in the artifact",
-      "remedy": "…what would fix it"
+      "cites": "CON_04",
+      "statement": "...what is wrong, in full",
+      "locus": "...where in the artifact",
+      "remedy": "...what would fix it"
     }
   ]
 }
@@ -432,129 +397,34 @@ An empty `findings` array is a clean round.
 
 | Severity | Meaning |
 |---|---|
-| `blocking` | stops the artifact advancing; cites exactly one constraint |
-| `suggestion` | noticed, does not block; cites a constraint |
-| `advice` | improvement that violates nothing and cites nothing |
+| `blocking` | stops the artifact advancing. **Cannot be waived by any mechanism** (D-27) |
+| `suggestion` | non-blocking. Recorded, accumulated, surfaced by `sdlc suggestions` |
 
-`advice` is new in iteration 4. Every finding previously had to cite a constraint,
-which left no home for "this would be better as X."
+A non-blocking finding is *non-blocking*, not *trivial*.
 
 | Disposition | Meaning |
 |---|---|
 | `open` | outstanding |
 | `answered` | the artifact changed to address it |
-| `waived` | accepted at the gate, recorded in `accepted_findings` |
 | `withdrawn` | retracted by a later round |
 
-Disposition transitions carry who and when. Without that, the fact that a person
-accepted a finding at a gate exists nowhere but prose — which is the state iteration
-3's trial cycle is in: every disposition in it reads `open`, including one the
-findings themselves describe as carried forward unchanged.
+Disposition transitions carry who and when.
 
-**Rounds accumulate and are never rewritten.** A per-artifact summary — highest
-round, count of open blocking findings — is what the gate reads, so no consumer has
-to glob and merge rounds and reach its own conclusion.
+**Rounds accumulate and are never rewritten.** A finding keeps its id across rounds for the life of
+the cycle, so a carried finding is distinguishable from a new one, and the latest round that mentions
+one says where it has got to. A per-artifact summary — highest round, count of open blockers — is
+what the gate reads.
 
-**Finding ids are unique per artifact for the life of the cycle.** A finding carried
-into a later round keeps its id; a new finding takes the next one. Without that,
-`F_01` in round 2 may be either a new objection or an old one, and only prose
-distinguishes them.
+**How many rounds is the owner's call, and there is no cap.** The panel reports what each round found
+and the cost of a round, and attaches no recommendation about continuing.
 
-**How many rounds is the owner's call, and there is no cap.** The panel reports what
-each round found and the cost of a round. It does not recommend stopping on
-diminishing-returns grounds; that judgement has been wrong before, twice, and
-expensively.
+### 6.2 A round records the upstream it judged against
 
-### 5.0 The self-healing loop
+`upstream_sha256` is the hash of the artifact above, as the round saw it. A round is clean **as of**
+that upstream, so changing an upstream makes a downstream round stale, the stage gate fails, and
+re-interrogation is required (D-21).
 
-One command writes an artifact, interrogates it, works its own blocking findings, and
-interrogates again — reporting once at the end. Approval stays manual throughout. It
-runs for **all three planning artifacts**, intent included.
-
-This needs no skill to invoke another skill: the constraint set reaches the skill by
-the same command everything else uses (§6.3), so a skill can judge itself against the
-same rules in process.
-
-It makes a **best effort to reach a clean round**, and every finding has exactly three
-exits:
-
-| Exit | When | Where it shows |
-|---|---|---|
-| **healed** | the loop can fix it from information already present | the artifact changes; the report names what changed |
-| **assumed** | the loop must supply something to proceed | the artifact's **Assumptions** section, naming what was assumed and which finding prompted it |
-| **asked** | the loop cannot proceed without a person | the artifact's **Open** section, and the loop stops and asks |
-
-**Assumptions are recorded in the artifact, not in a log.** This is the mechanism that
-makes the owner a real backstop rather than a nominal one. A `verify`-style report is
-read once; a section in the artifact is read every time the artifact is read, and it
-is what a reviewer's eye lands on at the gate. Each entry says what was assumed and
-what prompted it, so accepting it is a decision and correcting it is one edit.
-
-**Why that matters more than it sounds: a healed finding produces a clean round.** If
-round one objects that a figure was never measured and the loop quietly softens the
-sentence, round two is clean and the person reviewing sees nothing to review. Recording
-the assumption is what keeps it visible. So the rule is not "never assume" — it is
-**never assume silently.**
-
-**What cannot be assumed into existence.** An intent is written by interviewing a
-person. Given "as a player I would like to roll a die" there is no problem, no who, no
-done-looks-like and no must-not-change. A loop that invents them produces `CON_02`'s
-exact failure, with every later phase treating the invention as approved. So an
-unmeasured figure may be recorded as an assumption or raised as a question — it may
-not be reworded into something vaguer that passes. Rewording is the one move that
-removes the problem from the page while leaving the belief in it.
-
-Spec and plan carry no such limit: both derive from an approved upstream artifact, so
-the information exists and healing is rewriting rather than inventing.
-
-**A stage may run with a non-blocking prior artifact.** Open questions and recorded
-assumptions do not block the next stage — they travel forward, and keeping them aligned
-with what was actually intended is the owner's job at the gate.
-
-#### Why this terminates without a round cap
-
-The loop is bounded by having a fixed target: an artifact that violates no constraint.
-Blocking findings are the only thing acted on, each heal removes one, and the
-constraint set is finite — so a loop that only ever closes blockers converges.
-
-**Suggestions are never acted on automatically, and that is what keeps it finite.** A
-suggestion has no satisfaction condition; there is always a further improvement, so a
-loop chasing suggestions would never finish. They accumulate for `sdlc suggestions` and
-a person decides.
-
-**The one case that does not converge, and it is not hypothetical.** Two constraints
-whose remedies conflict: closing one opens the other. It happened in the trial cycle.
-The spec needed a criterion for demonstrable impartiality — `CON_04`, cover every
-outcome the intent asks for — and writing one required a sample size and a tolerance
-the intent did not contain. Supplying them violates `CON_02`; omitting the criterion
-violates `CON_04`. A loop would flip between the two indefinitely.
-
-`CON_04` against `CON_05` has the same shape: closing a coverage gap by adding a
-criterion can overshoot into scope the intent never asked for, and deleting it reopens
-the gap. The two are deliberately separate constraints, so the conflict is structural
-rather than a bug.
-
-**What actually resolved it in the trial is the third exit.** The spec recorded the
-criterion under `Blocked on` and named exactly why neither move was available. Not
-healed — handed to a person. So the loop terminates because every finding has an exit
-that is not "try again", and detecting a finding that reappears after a heal is how it
-knows to take the third one.
-
-Three endings have to be distinguishable in the report: **converged**, **open —
-assumptions or questions recorded**, and **conflicting — two constraints whose remedies
-exclude each other, named**. None of them is a round count, and a person may run as
-many further rounds by hand as they like.
-
-### 5.1 `refine` and `remediate` — two editors with opposite guards
-
-Applying a remedy is editing, not reasoning: the finding already carries one. What
-makes these skills rather than freehand edits is the bookkeeping — dispositions move
-from `open` to `answered` and what changed is recorded — plus a bound on how far the
-edit may reach, a pass counter for the code loop, and identical behaviour on every
-host.
-
-They are two skills rather than one with a mode, because their guards are opposites
-and a single tool with a conditional is one mistake away from inverting the system:
+### 6.3 `refine` and `remediate` — two editors with opposite guards
 
 | | `refine <id> <artifact>` | `remediate <id>` |
 |---|---|---|
@@ -562,116 +432,97 @@ and a single tool with a conditional is one mistake away from inverting the syst
 | May edit | the one named artifact | source and tests |
 | May never edit | source, tests, `approval.md` | `intent.md`, `spec.md`, `plan.md`, `approval.md` |
 | Capped | no | three passes, then `escalated` |
-| Also refuses | once the cycle is approved — the hash would silently break, so re-approval is the honest path | — |
+| Also refuses | once the cycle is approved | — |
 
-Both guards are hook rules on file paths, not instructions in a prompt.
+Both guards are hook rules on file paths, not instructions in a prompt. They are two skills rather
+than one with a mode, because their guards are opposites.
 
-A person editing an artifact by hand needs neither skill. The skills exist for when
-the loop should be recorded.
+What makes them skills rather than freehand edits is the bookkeeping — dispositions move to
+`answered` and what changed is recorded — plus a bound on how far an edit may reach, a pass counter,
+and identical behaviour on every host. A person editing an artifact by hand needs neither.
+
+### 6.4 The loop's three exits
+
+Each stage skill loops until a round is clean or nothing further can be settled. Every finding has
+exactly three exits:
+
+| Exit | When | Where it shows |
+|---|---|---|
+| **healed** | fixable from information already present | the artifact changes; the report says what changed |
+| **assumed** | something had to be supplied to proceed | the decisions region, marked unconfirmed |
+| **asked** | it cannot proceed without a person | `## Open`, and the loop stops and asks |
+
+**Assumptions are recorded in the artifact, not a log.** A report is read once; a section is read
+every time the artifact is read, and it is what a reviewer's eye lands on at the gate. The rule is
+not "never assume" — it is **never assume silently.**
+
+**What cannot be assumed into existence.** An intent is written by interviewing a person. An
+unmeasured figure may be recorded as an assumption or raised as a question; it may not be reworded
+into something vaguer that passes, because rewording is the one move that removes the problem from
+the page while leaving the belief in it.
+
+**It stops on convergence or on conflict, not on a count.** A round producing no new findings is
+convergence. Two constraints whose remedies exclude each other is a conflict, named and handed back.
+Three endings have to be distinguishable: converged, open, conflicting.
 
 ---
 
-## 6. Constraints
+## 7. Constraints
 
-A constraint is a rule an artifact is judged against — one that needs reading
-comprehension to apply. Every blocking finding cites exactly one.
+A constraint is a rule an artifact is judged against — one that needs reading comprehension to apply.
+Every blocking finding cites exactly one.
 
-### 6.1 Every constraint says what it forbids and why
-
-Four parts, and all four are required. A constraint missing any of them is invalid
-rather than merely untidy, and a test fails on it:
+### 7.1 Four parts, all required
 
 | Part | Holds |
 |---|---|
 | **name** | the id and a one-line statement of the rule |
-| **Applies to** | which artifact, and at what moment — "an intent, at approval"; "a diff, at verification" |
+| **Applies to** | which artifact, and at what moment |
 | **Forbids** | what becomes illegal, named concretely enough that an example could be written |
-| **Why** | what goes wrong if the rule is absent — the cost it avoids, not a restatement of the rule |
+| **Why** | what goes wrong if the rule is absent — the cost it avoids, never a restatement |
 
-The **Why** is what makes a constraint arguable rather than arbitrary. It is what a
-reader has six months later instead of the conversation that produced it, and it is
-what tells a person at a gate whether accepting a finding is cheap or expensive in
-this particular case. Iteration 3 already carries one on every constraint; iteration
-4 makes it structurally required.
+The **Why** is what makes a constraint arguable rather than arbitrary, and what tells a person at a
+gate whether a finding is cheap or expensive in this case. `Forbids` may not restate the statement.
 
-`Forbids` may not restate the statement. "An intent states the problem, not the
-solution" forbids *"an intent whose body names an implementation and no observable
-problem — 'add a cache', 'make the export asynchronous' — with nothing said about
-what is wrong today."* The first is the rule; the second is what becomes illegal.
-
-### 6.2 What is admitted to the library
+### 7.2 What is admitted
 
 Three tests, all of which must pass:
 
-1. Its `Forbids` clause names something that becomes illegal.
-2. **No analyzer, schema or hook could decide it.**
-3. It is incompatible with at least one plausible implementation.
+1. its `Forbids` clause names something that becomes illegal
+2. **no analyzer, schema or hook could decide it**
+3. it is incompatible with at least one plausible implementation
 
-Rules about code go to analyzers — and where an existing analyzer already decides
-it, that analyzer is used rather than a rule written. Mechanical rules about
-artifacts go to schemas or hooks. A rule that survives every implementation is
-decoration however true it sounds, and `CON_11` exists to keep the list from
-becoming that. It applies to itself.
+Rules about code go to analyzers — and where an existing analyzer already decides it, that analyzer
+is used rather than a rule written. Mechanical rules about artifacts go to schemas or hooks.
 
-**Stack neutrality.** Constraints bind solutions on any stack, so none may name a
-language, framework or package. Stack specifics live in the profile and in
-analyzers. This is also what lets the whole library survive the move to other hosts
-untouched.
+**Stack neutrality.** No constraint may name a language, framework or package.
 
-### 6.3 Tiers
+### 7.3 Tiers and resolution
 
 | Tier | Id | Lives in |
 |---|---|---|
-| global | `CON_nn` | the plugin's constraint library |
+| global | `CON_nn` | the plugin's library |
 | profile | `PRO_nn` | the stack profile package |
 | solution | `LOC_nn` | `.sdlc/constraints.md` |
 
-Resolution is global, then profile, then solution. The effective set is rendered on
-demand by `sdlc constraints` rather than copied into a solution — a local copy goes
-stale and then disagrees with the live set, with nothing to say which one binds.
+Global, then profile, then solution. The effective set is rendered on demand by
+`sdlc constraints --for <artifact>`, never copied into a solution — and **that command is also how
+the set reaches a session, on every host.** Running it is the first step of every skill that judges
+or writes an artifact. Per-host native delivery is an optimisation layered on top, never the
+mechanism.
 
-**That command is also how the set reaches a session, on every host.**
-`sdlc constraints --for <artifact>` prints the effective set, and running it is the
-first step of every skill that judges or writes an artifact. One source, one format,
-identical everywhere.
+### 7.4 Ids and revisions
 
-Per-host native delivery — Claude Code load-time injection, a Copilot instructions
-file, a Gemini context file — is an optimisation layered on top where a host supports
-it, never the mechanism. Keeping the set in one place and rendering it on demand is
-what stops the three hosts drifting into three slightly different rule sets, which is
-the same failure as a stale local copy with more ways to happen.
+**Ids are a monotonic sequence.** Assigned once, never reused, never backfilled. A removed constraint
+leaves a gap, and the gap plus the commit that made it is the record.
 
-### 6.4 Ids, and revisions
+**A change to what is forbidden is a new constraint.** The old one keeps its id, stays on the page
+verbatim, and gains `Superseded-by`.
 
-**Ids are a monotonic sequence.** Assigned once, never reused, never backfilled. A
-removed constraint leaves a gap, and the gap plus the commit that made it is the
-record.
+**A change to the wording alone is a revision.** `CON_01` becomes `CON_01.2` — same `Forbids`, better
+words. Findings cite the revision. **A bare id is revision 1**, and that is the canonical form.
 
-**A change to what is forbidden is a new constraint.** The old one keeps its id and
-gains `Superseded-by`. It stays on the page, verbatim, so a finding that cited it
-remains readable against the rule it was actually judged under.
-
-**A change to the wording alone is a revision.** `CON_01` becomes `CON_01.2` — same
-`Forbids` clause, better words. Findings cite the revision: `cites: CON_01.2`. A
-round judged under older wording stays distinguishable from one judged under newer
-wording, which is the whole point.
-
-So two kinds of change with two different mechanisms:
-
-| Change | Mechanism | Example |
-|---|---|---|
-| the words improve, the rule is identical | revision — `CON_01.2` | tightening a vague phrase |
-| what is forbidden changes | new id, old one `Superseded-by` | widening a rule to cover a new case |
-
-The cost, accepted: every citation is three characters longer and the schema's
-`cites` pattern has to admit the revision suffix.
-
-### 6.5 The eleven carried forward
-
-All eleven of iteration 3's global constraints come across, and `CON_12` joins them.
-They are stack-neutral
-by rule, each has a `Forbids` clause, and each is about an artifact rather than code
-— so the host and profile work does not touch them.
+### 7.5 The set
 
 | Id | Rule | Applies to |
 |---|---|---|
@@ -684,318 +535,200 @@ by rule, each has a `Forbids` clause, and each is about an artifact rather than 
 | `CON_07` | a change does only what its plan declared, including inside files the plan named | diff |
 | `CON_08` | a verify claim rests on evidence that exists and supports it | verify |
 | `CON_09` | no artifact restates another's content as its own authority | every artifact |
-| `CON_10` | a waiver's reason says why the finding is acceptable | a waiver |
+| `CON_10` | a gate refusal's reason says why | an approval decision |
 | `CON_11` | every constraint carries a Forbids clause that rules something out | a diff adding a constraint |
 | `CON_12` | a criterion's check is one the solution's testing layers can run | spec |
+| `CON_13` | a plan that departs from the declared defaults says why | plan |
+| `CON_14` | an open item is one nobody can resolve yet, not one nobody has done | intent, spec, plan |
 
-**`CON_12` is the first constraint added in iteration 4**, and it demonstrates §6.4's
-rule in use: it is a *new* id rather than a revision of `CON_03`, because it changes what
-is forbidden rather than how `CON_03` is worded. A device-only criterion can fail and can
-be observed, so `CON_03` admits it; `CON_12` does not.
+`CON_06` is the one to watch: it drew a blocking finding in roughly half of twelve runs on a golden
+sample, the cause was traced to the sample rather than the constraint, and the fix was made by
+reading rather than re-running.
 
-> **`CON_12` — a criterion's check is one the solution's testing layers can run.**
->
-> **Applies to:** a spec, at approval.
->
-> **Forbids:** a criterion whose only named check is a person observing something — on a
-> device, in an app store, on hardware the suite cannot reach.
->
-> **Why:** `verify` derives its verdict from `tests.trx` and `diff.patch`, and `CON_08`
-> forbids a claim with no cited evidence. A criterion with no machine-runnable check has
-> no entry in the test results, so admitting one forces a choice between `verify`
-> adjudicating on attestation and `pass` no longer meaning every criterion was met. The
-> outcome belongs in the intent as a bound, verified by a person outside the cycle, where
-> it is honest about not being governed.
+`CON_04` and `CON_05` stay separate — a gap and creep fail differently and are remedied differently.
 
-Three notes on carrying them:
+### 7.6 Where the "must be provable" principle lives
 
-- **`CON_06` is the one to watch.** It drew a blocking finding in roughly half of
-  twelve runs on a golden sample. The cause was traced to the sample spec rather
-  than to the constraint, and the fix was made by reading rather than by re-running
-  — so whether the flake is gone is unconfirmed.
-- **`CON_10` needs rewording.** Waivers are now accepted findings on the approval
-  entry, not a `waivers.md`, so the rule binds the `reason` on an approval decision.
-- **`CON_04` and `CON_05` stay separate.** A gap and creep fail differently and are
-  remedied differently — a gap sends you back for more criteria, creep sends you to
-  delete one — so they are two constraints rather than one about correspondence.
+Four constraints, one per artifact, each naming what becomes illegal in that place:
 
-**Nothing yet constrains intent size**, and it is the known gap. Size matters
-because a cycle lands whole or not at all, so cycle size decides how much work one
-unmet criterion holds hostage, and a plan touching sixty files cannot be read — at
-which point approval degrades into signing. The test is not how many outcomes an
-intent has, since `CON_04` requires the spec to cover all of them, but whether **one
-reviewable change could prove them all.**
-
-### 6.6 Where the "must be provable" principle lives
-
-The rule that nothing enters an artifact unless it can be proven is not one
-constraint. It is four, one per artifact, each naming what becomes illegal in that
-specific place:
-
-| Artifact | Constraint | What it forbids |
+| Artifact | Constraint | Forbids |
 |---|---|---|
-| intent | `CON_02` | stating as settled fact a figure, cause or behaviour nobody has measured |
+| intent | `CON_02` | stating as settled fact a figure nobody measured |
 | spec | `CON_03` | a criterion that cannot fail, or an outcome with no way to observe it |
 | plan | `CON_06` | a named check that could pass while its criterion is unmet |
-| verify | `CON_08` | a statement with no cited evidence, or citing evidence that does not establish it |
+| verify | `CON_08` | a statement with no cited evidence |
 
-A single general rule would read well and forbid nothing in particular, which is
-what `CON_11` exists to reject. Four specific rules each fail a real artifact.
+### 7.7 What blocks, and what is only a signal
+
+**What blocks:** the build fails, tests fail, or the proof is not met — every criterion maps to a
+named test and that test passed.
+
+**What is a signal:** the comparison of declared files against changed files (D-15). `UNDELIVERED`
+means the plan's blast radius was wider than the change; `UNDECLARED` means something reached the
+diff without the hook seeing it. Both are recorded as suggestions. Their real uses are estimating
+blast radius and detecting collisions for the claim graph.
 
 ---
 
-## 7. The solution's own files
+## 8. The solution's own files
 
-Three files in `.sdlc/`, and the three-way split is by **mutability**, which is a
-sharper line than facts-versus-rules:
+Three files in `.sdlc/`, split by **mutability**:
 
 | File | Changed by | Protection |
 |---|---|---|
-| `constraints.md` | a person, by hand | the hook denies every agent write, unconditionally |
-| `techstack.md` | a cycle whose plan declares it | none beyond the ordinary declared-file gate |
-| `solution.md` | `init`, once | the hook denies agent writes after creation |
+| `constraints.md` | a person, by hand | the hook denies every agent write |
+| `techstack.md` | a cycle whose plan declares it | the ordinary declared-file gate |
+| `solution.md` | `init`, and a cycle for `profile` alone | the hook denies every agent write |
 
-### 7.1 `constraints.md` — protected, hand-edited
+`.sdlc/README.md` is framework-owned, regenerated by `init` in update mode, unprotected.
 
-The solution's own `LOC_nn` constraints. The hook denies the agent any write to it,
-and a person edits it directly — the same shape as `approval.md`, with the same
-absolute rule and nothing to toggle.
+### 8.1 `constraints.md`
 
-**A configuration flag was considered and rejected.** A boolean saying "this file is
-unlocked now" is not protection: an agent that can write files can flip the flag and
-then edit the file, and protecting the flag needs a flag. There is also no special
-cycle type for protected changes, because a cycle judged by the constraints it is
-changing is the same deadlock as the plugin governing itself (§2.5).
+The solution's own `LOC_nn` constraints, hand-edited. There is no configuration flag unlocking it and
+no special cycle type for protected changes.
 
-### 7.2 `techstack.md` — a strong default, not a rule
+### 8.2 `techstack.md`
 
-What this solution is built from, and what a plan builds with. It is **not
-enforced**: no global constraint may name a language, framework or package, so
-nothing here binds by itself. A solution that wants a default to bind adds a `LOC_`
-constraint or an architecture test.
+What this solution is built from, and what a plan builds with. **Not enforced:** no global constraint
+may name a language, framework or package, so nothing here binds by itself. A solution that wants a
+default to bind adds a `LOC_` constraint or an architecture test.
 
-**A plan may depart from any default. Silence about departing is what is illegal** —
-a departure argued in the artifact a person approves is a decision; an unexplained
-one is a habit. That is the whole of what "high-weighted suggestion" means
-mechanically.
+**A plan may depart from any default. Silence about departing is what is illegal** — `CON_13`.
 
-Because it is an ordinary governed file, changing it requires a cycle whose plan
-declares it. The process governs its own stack changes through the normal mechanism,
-with no new machinery.
+### 8.3 `solution.md`
 
-### 7.3 `solution.md` — does it earn its place?
-
-**Asked directly: yes, and it is two keys.** It was three; `adopted_at` is dropped.
+Two keys.
 
 | Key | What consumes it |
 |---|---|
-| `profile` | `init` and `plan`, to resolve which profile package applies — must be machine-readable, and prose in `techstack.md` is not that |
-| `origin` | `intent`, to know whether "this repository holds no solution at all" is a true problem statement or a false one |
+| `profile` | `init` and `plan`, to resolve which profile package applies |
+| `origin` | `intent`, to know whether "this repository holds no solution at all" is true |
 
-The honest case for keeping the file is **mutability, not content.** `origin` and
-`adopted_at` are historical facts: a sha does not become a different sha, and a
-repository that had code at adoption always did. Folding them into `techstack.md`
-would put an immutable fact inside a file that a cycle is allowed to edit, and then
-an agent with a plan declaring `techstack.md` could rewrite the record of what
-predated governance. Keeping them in a file nothing writes after `init` makes that
-structurally impossible instead of merely discouraged.
-
-`profile` is the one key that can legitimately change — a solution migrating from
-`dotnet-default` to `mofoncode` — and it changes through a cycle that declares
-`solution.md`, which is the one exception to "nothing writes it after init."
-
-**`adopted_at` is dropped, and the evidence is unambiguous.** Searching iteration 3
-for every use: `init` writes it, the schema requires it when `origin` is `adopted`,
-three documents mention it, and two tests assert the schema. **No skill, tool or hook
-ever reads it.** It was a write-only field validated into existence.
-
-The reason it was never needed: findings are raised against a diff, and a diff
-contains only the change — so code that predates adoption is invisible to an
-interrogation whether or not a boundary is recorded. The rule it existed to support
-("existing code doing this is not a finding; a change that adds another one is") falls
-out of looking at diffs, with no sha required.
-
-**There is deliberately no baseline field.** Constraints govern the change, never
-code that predates adoption, so an existing repository is not in violation on its
-first day and there is nothing to record. Recording existing problems is analyzer and
-refactoring work with its own tooling, and it is not this framework's business.
+There is deliberately no baseline field. Constraints govern the change, never code that predates
+adoption, so an existing repository is not in violation on its first day.
 
 ---
 
-## 8. `init`
+## 9. `init`
 
-Adopting a process is a decision about how a team works, so `init` is human-invoked
-only and never model-invoked.
+Adopting a process is a decision about how a team works, so `init` is human-invoked and never
+model-invoked. Three modes (D-28):
 
-### 8.1 It refuses two situations
+| Mode | When | What it does |
+|---|---|---|
+| **scaffold** | a new solution | writes everything, `origin: scaffolded` |
+| **onboard** | existing code, no `.sdlc/` | writes everything, `origin: adopted` |
+| **update** | `.sdlc/` exists | refreshes only what the framework owns |
 
-- **Already adopted** — `.sdlc/` exists. Re-scaffolding would overwrite the
-  solution's own declarations and its local constraints, the two things here that are
-  nobody else's to write.
-- **Not a git repository.** Without git, `build` cannot record the diff that is the
-  only evidence `verify` derives from, and the gates key on a `cycle/<id>` branch that
-  cannot exist — so every hook permits everything while the artifacts still look
-  governed. It says so and names the two commands that fix it.
+**Update needs no list of what it may touch: it updates what it owns, and what it owns is everything
+not protected.** So it refreshes hook configs, pipelines, and `.sdlc/README.md`.
 
-### 8.2 It interviews, then proposes
+It refuses outside a git repository. Without git, `build` cannot record the diff that `verify`
+derives from and the gates key on a `cycle/<id>` branch that cannot exist — so every hook would
+permit everything while the artifacts still looked governed.
 
-New in iteration 4. `init` asks what the solution is about and what matters in it,
-and from **the answers** proposes an initial `LOC_` constraint set for the person to
-accept, edit or decline.
+**It interviews, then proposes.** `init` asks what the solution is about and what matters in it, and
+from **the answers** drafts an initial `LOC_` set for a person to place. From the answers, not the
+codebase: reading an existing repository to decide what to forbid would make adoption a judgement on
+code that predates the framework.
 
-**From the answers, not from the codebase.** Reading an existing repository to decide
-what to forbid would make adoption a judgement on code that predates the framework,
-and adoption is free by design — constraints govern each change as it is made. The
-interview is where a person's own rules come from; the code is not.
+**`origin` is decided by `git ls-files`, and it is about code rather than commits.** A repository
+holding only an empty commit, a README or a licence is `scaffolded`. `techstack.md` comes from the
+profile's defaults when scaffolded, and is read from the repository when adopted.
 
-Proposed constraints are printed for the person to put into `.sdlc/constraints.md`
-themselves, because that file is hand-edited by rule (§7.1).
+**`AGENTS.md`** is lean and under 200 lines: a short summary of what the solution is; references —
+a relative path plus a one-line description — to `techstack.md`, the build and test procedure, and
+how to run the application locally; and a repo map. It never contains constraints, and never anything
+that goes stale the moment a cycle runs. If one already exists, `init` prints the leaned version and
+leaves the file alone.
 
-### 8.3 It derives the stack only where the stack is a fact
+**It commits what it created.** An uncommitted `AGENTS.md` is untracked when a cycle takes its diff,
+so the diff records the whole file as new, and a plan that says it *changes* that file can never
+match — the first cycle would fail `CON_07` for something adoption did.
 
-| `origin` | Where `techstack.md` comes from |
-|---|---|
-| `scaffolded` | the profile's defaults — the stack is being chosen, not discovered |
-| `adopted` | read from the repository — target frameworks, package references, project types — then shown to the person for correction |
-
-`origin` itself is decided by `git ls-files`, and it is **about code, not commits**:
-a repository holding only an empty commit, a README or a licence is `scaffolded`.
-Getting this wrong writes a false claim into a file every later cycle reads.
-
-### 8.4 `AGENTS.md`
-
-Lean, and under 200 lines — it loads into context every session, and a longer file
-both costs more and is followed less. It holds:
-
-- a short summary of what the solution is;
-- **references** — a relative path plus a one-line description of what that file
-  contains — to `techstack.md`, to the build and test procedure, and to how the
-  application is run locally;
-- a repo map.
-
-Two things it must never contain:
-
-- **Constraints.** Global ones live in the library, local ones in
-  `.sdlc/constraints.md`. A third copy here would be a source that disagrees with
-  both.
-- **Anything that goes stale the moment a cycle runs.** Not "the repository is
-  empty", not "delete this paragraph once the build exists". An instruction that
-  depends on someone remembering to remove it outlives the truth it described, and is
-  loaded into every session meanwhile.
-
-**If an `AGENTS.md` already exists, `init` prints the leaned version and leaves the
-file alone.** Rewriting a repository's instruction file is the one destructive thing
-adoption could do, and the print-don't-write pattern is the same one the approval
-uses.
-
-### 8.5 It commits what it created
-
-Adoption is not a change to be reviewed; it is the boundary every later cycle is
-measured from.
-
-This matters more than it looks. An uncommitted `AGENTS.md` is untracked when a
-cycle takes its diff, so the diff records the whole file as new — and a plan that
-says it *changes* that file can never match what the diff shows. The first cycle then
-fails `CON_07` for something adoption did rather than anything the cycle chose.
-
-### 8.6 It creates no empty directories
-
-A cycle's directory is made by the skill that writes the first artifact into it. An
-empty directory needs a placeholder to survive git, and nothing ever removes the
-placeholder once real files arrive.
+It creates no empty directories.
 
 ---
 
-## 9. batch-build
+## 10. Building and landing
 
-A local skill, executed rather than subscribed to. It collects the approved cycles in
-**this** working copy and builds them together, concurrently where that is safe.
-There is no shared queue: approved plans are not published, and no other machine's
-work enters the batch.
+### 10.1 `batch-build` completes cycles
 
-A local cycle index persists state — which cycles exist, their stage, and the outcome
-of the last batch — so a run can be resumed and read. The index is local and is not a
-coordination mechanism.
+A local skill, executed rather than subscribed to. It collects the approved cycles in **this** working
+copy, builds **and verifies** each, and reports. There is no shared queue (D-22).
 
-Because claims are declared in `plan.md` and plans live in the repository, a
-cross-person collision report stays available later as a read over other cycle
-branches, without a shared store. Nothing needs designing for that now.
+1. Build the claim graph from the approved plans.
+2. Partition into non-overlapping groups.
+3. Run each group in parallel, each in its own git worktree.
+4. Serialise overlapping plans in cycle-id order, rebasing each on the previous result.
 
-**It schedules around collisions rather than resolving them.** Plans declare the
-files they claim, so a collision is known before anything is built — which is the
-cheap moment. Resolving a merge conflict afterwards is the expensive moment, and the
-worst place to spend an agent's judgement, because by then both sides' intent has
-been compressed into text.
+Four per-cycle outcomes: `passed`, `blocked`, `escalated`, and **not attempted** — a cycle downstream
+of a failure in the claim graph.
 
-1. Build the claim graph from the approved plans, and read each plan's `after`.
-2. Hold back any cycle whose declared predecessor has not landed — reported as **not
-   attempted**, never as failed.
-3. Partition the rest into non-overlapping groups.
-4. Run each group in parallel, each in its own git worktree.
-5. Serialize overlapping plans, rebasing each on the previous result.
+**It schedules around collisions rather than resolving them.** Plans declare the files they claim, so
+a collision is known before anything is built. `resolve-conflict` remains, scoped to files that
+cannot be claimed exclusively and enumerated rather than discovered: `.csproj` and
+`Directory.Packages.props`, dependency-injection registration, `appsettings`, EF Core migrations,
+Terraform files near state.
 
-`after` is how a split's ordering reaches the scheduler (§3.1.1). The claim graph says
-two plans touch the same file; `after` says which goes first.
+**EF Core migrations serialise.** Two branches that each add a migration snapshot the same parent
+model, and the merged chain breaks in a way that compiles and then fails at deploy.
 
-`resolve-conflict` remains, scoped to files that cannot be claimed exclusively, and
-those are enumerated rather than discovered: `.csproj` and
-`Directory.Packages.props`, dependency-injection registration, `appsettings`, EF Core
-migrations, Terraform files near state.
+**A sibling's failure does not discard the cycles that completed.** Each can be landed individually.
 
-**EF Core migrations serialize.** Two branches that each add a migration snapshot the
-same parent model, and the merged chain is broken in a way that compiles and then
-fails at deploy. Either migrations are serialized, or the migration is dropped and
-regenerated from the merged model after merge.
+**Concurrency is capped by what a plan needs.** The claim graph carries a needs-backing-services bit,
+derived from whether the plan touches the app host or declares service dependencies. Service-free
+plans run wide; plans standing up SQL Server, Redis and a Service Bus emulator run under a low cap.
 
-**Partial batches land.** Successes are landed rather than discarded when a sibling
-fails. One thing has to be right for that to be readable: a plan downstream of a
-failure in the claim graph is reported as **not attempted**, not as failed.
+A local cycle index persists state so a run can be resumed and read. It is not a coordination
+mechanism.
 
-**Concurrency is capped by what a plan needs.** The claim graph carries a
-needs-backing-services bit per plan, derived from whether the plan touches the app
-host or declares service dependencies. Service-free plans run wide; plans that stand
-up SQL Server, Redis and a Service Bus emulator run under a low cap, because
-isolation does not make three database containers fit in memory.
+### 10.2 Local run modes
 
-### 9.1 Local run modes
-
-Two modes that want opposite things, selected by an environment variable that
-batch-build sets:
+Selected by an environment variable that `batch-build` sets:
 
 | | local dev | test / batch |
 |---|---|---|
-| host ports | stable, so a URL can be bookmarked | dynamic, assigned |
+| host ports | stable, so a URL can be bookmarked | dynamic |
 | container names | stable | `{app}-{shortGuid}` |
 | volumes | persistent, named | ephemeral, or named per run |
 | dashboard and OTLP endpoint | on, fixed | off, or overridden per run |
 | databases | persistent | named per run |
 
 **Named volumes are a worse collision than ports.** Two concurrent app hosts calling
-`WithDataVolume()` share one volume — the same database files, two writers — which
-fails strangely rather than loudly. The run id therefore belongs on container names,
-volume names and database names, not only on ports.
+`WithDataVolume()` share one volume — the same database files, two writers — which fails strangely
+rather than loudly. So the run id belongs on container names, volume names and database names, not
+only on ports.
 
-Tests discover endpoints through `Aspire.Hosting.Testing` rather than knowing a port
-number. Without that, dynamic ports only move the problem into test configuration.
+Tests discover endpoints through `Aspire.Hosting.Testing` rather than knowing a port number.
 
-`land` is what touches the remote: it pushes, opens the pull request, and links the
-work item with the intent and spec details. batch-build never pushes.
+### 10.3 `land`
+
+`land` is what touches the remote: it pushes, opens the pull request, and links the work item with
+the intent and spec details.
+
+**`land --all`** sweeps every cycle whose verdict is `passed`, with five guards (D-23): it lands only
+`passed`; it re-checks each cycle's gate rather than trusting the verdict; it reports what it would
+land and **asks once** before the first push; a push failure on one cycle does not stop the others;
+and each pull request is reported individually.
+
+**`batch-build --land`** composes the two, invoking `land` per completed cycle, and asks before the
+run rather than at the end (D-24). Plain `batch-build` never pushes.
 
 ---
 
-## 10. Tech stack and profiles
+## 11. Tech stack and profiles
 
 Strongly opinionated, and the opinion is a swappable **profile**.
 
-### 10.1 The default profile — `dotnet-default`
+### 11.1 `dotnet-default`
 
 | Concern | Choice |
 |---|---|
-| language | C# |
-| framework | .NET |
+| language, framework | C#, .NET |
 | unit and integration testing | MSTest on Microsoft.Testing.Platform |
 | component testing | bUnit, for Blazor components |
-| end-to-end testing | Playwright, against Chromium and WebKit |
+| end-to-end testing | Playwright, in Chromium **and** WebKit |
 | ORM | EF Core |
 | orchestration | Aspire, under the condition below |
 | results | FluentResults |
@@ -1012,208 +745,86 @@ Strongly opinionated, and the opinion is a swappable **profile**.
 | web | Blazor |
 | desktop and Android | MAUI Blazor Hybrid |
 
-**Shared UI is Blazor components in a Razor class library**, hosted by Blazor for web
-and MAUI Blazor Hybrid for desktop and Android. The draft named MAUI for web; MAUI
-does not target web. Keeping the shared layer at the component boundary is what makes
-the ask for shared code real, and it keeps the outer shell replaceable.
+**Shared UI is Blazor components in a Razor class library**, hosted by Blazor for web and MAUI Blazor
+Hybrid for desktop and Android. MAUI does not target web.
 
-**Service Bus and SignalR are not alternatives.** Service Bus is asynchronous
-messaging between services; SignalR is server-to-client push. Most solutions want the
-first, the second only when there is a live UI to push to.
+**Service Bus and SignalR are not alternatives.** Service Bus is asynchronous messaging between
+services; SignalR is server-to-client push.
 
-**An Aspire AppHost is conditional, not automatic.** More than one process, or one
-process plus a backing service a developer would otherwise start by hand — then it
-earns its place and brings emulators rather than live Azure resources. A single
-executable with no backing services does not get one: that is an extra project, an
-extra launch profile and a slower start for no orchestration, and Aspire can be added
-later without restructuring.
+**An Aspire AppHost is conditional.** More than one process, or one process plus a backing service a
+developer would otherwise start by hand. A single executable with no backing services does not get
+one.
 
-**`dotnet test` needs two settings or it does not run the suite.** On the .NET 10 SDK
-`dotnet test` defaults to VSTest and Microsoft.Testing.Platform refuses that path, so
-the profile ships both: `"test": { "runner": "Microsoft.Testing.Platform" }` in
-`global.json`, and `<EnableMSTestRunner>true</EnableMSTestRunner>` in
-`Directory.Build.props` rather than in a single test project. **Do not set
-`TestingPlatformDotnetTestSupport`** — it is the .NET 9 mechanism, legacy on 10, and
-setting it instead is what left a trial run unable to run `dotnet test` at all, so the
-documented command and the working command were different commands.
+**`dotnet test` needs two settings or it does not run the suite.** On the .NET 10 SDK it defaults to
+VSTest and Microsoft.Testing.Platform refuses that path, so the profile ships both:
+`"test": { "runner": "Microsoft.Testing.Platform" }` in `global.json`, and
+`<EnableMSTestRunner>true</EnableMSTestRunner>` in `Directory.Build.props` rather than one test
+project. **Do not set `TestingPlatformDotnetTestSupport`** — the .NET 9 mechanism, and setting it
+instead is what left a trial unable to run `dotnet test` at all.
 
-On results: **ErrorOr** is the more actively released library and the common
-recommendation for greenfield work. FluentResults is kept deliberately — it is not
-deprecated, its multi-error accumulation is exactly the bulk-validation case
-FluentValidation produces, and it is what the MofonCode kernel is built on.
+A note recorded rather than buried: **ML.NET costs real capability** against the Python ecosystem on
+competitive modelling work.
 
-A note recorded rather than buried: **ML.NET costs real capability** against the
-Python ecosystem on competitive modelling work. Name that cost when a solution's core
-value is model quality rather than integration.
-
-### 10.2 The MofonCode profile
-
-**Private.** Its own repository, published to an Azure Artifacts feed only the team
-can restore. The public plugin ships `dotnet-default` and nothing house-specific, so a
-public user never sees this profile and never needs credentials for it — the profile
-mechanism simply has to support a configurable package source, which it needs
-regardless.
-
-It adds `MofonCode.Core` — a minimal mediator, `Result<T>` handlers over
-FluentResults, `TraceResult` over OpenTelemetry activities, pipeline behaviours,
-composable specifications, throttled concurrency, and **analyzers that keep a vertical
-slice in shape** — plus the conventions that go with it:
-
-- **an operation that can fail returns `Result` or `Result<T>`**, and a failed result
-  becomes the response at a boundary rather than being converted back into an
-  exception. Do not wrap an operation that cannot fail: `Result<int>` around
-  `Random.Shared.Next(1, 7)` is a type that is always success.
-- **commands and queries go through the mediator** when there is an operation to
-  dispatch — more than one step, a decision, a validation. A single infallible
-  expression called from one page is not an application operation.
-- **one folder per feature, not one per layer.** Where a framework dictates a
-  location, let it have that one file and keep the rest of the feature together.
-- **name the seam and the type.** A plan that says only "use MofonCode.Core" has
-  chosen nothing.
-
-**No MediatR**, because the kernel has a mediator, declared in `techstack.md` so an
-agent does not reach for it out of habit.
-
-**Correction, from reading the package: `MofonCode.Core` ships no custom analyzers.**
-There is no analyzer project, no diagnostic ids, and no source generator — seventeen
-source files and nothing else. What it ships instead is an **analyzer policy** in
-`Directory.Build.props`, and that policy is worth taking wholesale (§10.4). So the
-three conventions above are **prose, enforced by nothing**: nothing today decides
-results-not-exceptions, mediator dispatch, or one-folder-per-feature.
-
-Per §6.2 that leaves each of them split between a mechanical half and a judgement
-half, and only the judgement half may be a `PRO_nn` constraint:
-
-| Convention | Mechanically decidable | Needs judgement |
-|---|---|---|
-| results, not exceptions | a handler's public methods return `Result`/`Result<T>` | whether an operation can fail at all — "do not wrap what cannot fail" |
-| dispatch through the mediator | a page or endpoint injecting an application service directly | whether there is an operation to dispatch, or one infallible expression |
-| one folder per feature | a type's folder matches its feature; no `Services/`, `Models/`, `Handlers/` split | where a framework dictates a location |
-
-One-folder-per-feature is almost entirely mechanical and is the best candidate for the
-first custom analyzer. The other two have a real judgement half that no analyzer
-reaches.
-
-**Custom analyzers are developed in the profile that declares the convention**, not in
-`MofonCode.Core`. A convention and the analyzer that enforces it belong together: the
-`mofoncode` profile ships the analyzer for a `mofoncode` rule, `dotnet-default` ships
-the analyzer for a stack-wide one. The kernel stays a kernel, and a profile that states
-a rule is the thing that can also decide it.
-
-`MofonCode.Core` is `0.1.0` and depends only on FluentResults and the
-`Microsoft.Extensions.*.Abstractions` packages — no EF Core, no SQL client, nothing
-that decides a data story on a solution's behalf. Pin it: every solution taking it
-inherits its breaking changes.
-
-### 10.2.1 Commands and queries are the default, and `origin` decides whether that binds
-
-**An application operation is a request and a handler.** Prefer it over a method on a
-service reached by direct injection, in what the plugin scaffolds *and in the plugin
-itself* — the gate binary's own surface is a set of requests (`verify-chain`,
-`constraints`, `cycle-approval`) and each is a handler, so the tool is built the way it
-asks solutions to be built.
-
-It still earns its place rather than being automatic: more than one step, a decision, a
-validation, something worth a behaviour around it. A single infallible expression called
-from one place is not an application operation, and routing it through a request and a
-handler leaves three files where one line was the whole of it.
-
-**And this is where `origin` finally does work.** A default only binds a solution that
-is being shaped:
-
-| `origin` | What the profile's patterns mean |
-|---|---|
-| `scaffolded` | the defaults bind — commands and queries, results over exceptions, one folder per feature |
-| `adopted` | **the existing standard wins.** Where a solution already has a pattern for application operations, the profile defers to it |
-
-That is a general rule, not one about dispatch: the profile proposes a shape for new
-work and never rewrites the conventions of a codebase that predates it. Adopting the
-framework does not mean adopting a refactor, which is the same reason adoption reads
-nothing to judge it (§8.2). A plan that *does* want to move an adopted solution onto a
-profile default argues for it like any other departure.
-
-### 10.3 Testing layers, and which one may prove a criterion
-
-Four layers, and the question that matters is not which tools exist but **which layer a
-given criterion needs** — because `CON_06` forbids a proof that could pass while its
-criterion is unmet.
+### 11.2 Testing layers, and which may prove a criterion
 
 | Layer | Tool | Proves |
 |---|---|---|
-| unit | MSTest on Microsoft.Testing.Platform | a function's behaviour in isolation |
-| component | bUnit | a Blazor component renders and reacts, with no browser |
-| integration | `WebApplicationFactory<T>`, and `Aspire.Hosting.Testing` where there is an app host | the composed application answering a real request, over its own interface |
-| end to end | Playwright, in Chromium **and** WebKit | what a person sees and does in a real browser engine |
+| unit | MSTest | a function in isolation |
+| component | bUnit | a Blazor component renders and reacts, no browser |
+| integration | `WebApplicationFactory<T>`, plus `Aspire.Hosting.Testing` | the composed application answering a real request |
+| end to end | Playwright, Chromium and WebKit | what a person sees in a real browser engine |
 
-**The rule for choosing:**
+- **A criterion about what the server produces** is proven by requesting it and parsing the response.
+- **A criterion about what happens *in* the browser** cannot be — the response is the input to the
+  behaviour rather than the behaviour.
+- **Integration tests use real backing services.** The EF Core in-memory provider does not translate
+  SQL, so it passes queries a real database rejects — a proof that could pass while its criterion is
+  unmet.
 
-- **A criterion about what the server produces** is proven by requesting it and parsing
-  the response. The trial cycle's "the roll is delivered as a page a player can open"
-  was proven this way — an HTTP request through `WebApplicationFactory`, the body parsed
-  as a document, the value found in rendered text. No browser needed, and a browser
-  would have added minutes and flake for nothing.
-- **A criterion about what happens *in* the browser** — interactivity, client-side
-  state, a render that only occurs after hydration, anything a user clicks — cannot be
-  proven by parsing a response, because the response is the input to the behaviour
-  rather than the behaviour. That is where Playwright is required rather than optional.
-- **Integration tests use real backing services, not in-memory substitutes.** The EF
-  Core in-memory provider does not translate SQL, so it passes queries that a real
-  database rejects — which is exactly a proof that could pass while its criterion is
-  unmet. Aspire's containers are already the local story; tests reach them through
-  `Aspire.Hosting.Testing` rather than hard-coded connection strings, and reset state
-  between tests rather than sharing it.
+**There is no device end-to-end layer.** Appium is absent, not scheduled: a flaky proof gets rerun
+until green, which teaches a team to ignore red; the prerequisite lands on every machine and in CI;
+and MAUI's own device-test tooling is not packaged for consumers. MAUI Blazor Hybrid hosts the same
+components in a WebView, so bUnit tests them once and Playwright runs them in the two engines the
+hybrid targets use. **What remains unproven is the native shell only** — platform permissions, app
+lifecycle, deep links, native file pickers, platform chrome.
 
-**Coverage is collected across all layers** and displayed, per §12 — an integration test
-covering a line counts the same as a unit test covering it.
+**A device-only outcome is a bound in the intent, never a criterion in the spec**, verified by a
+person outside the cycle. `CON_12` keeps them out of specs. So MAUI-targeted work has some outcomes
+this framework does not govern.
 
-### 10.3.1 There is no device end-to-end layer, deliberately
+### 11.3 The MofonCode profile
 
-**Appium is not in the stack.** Not scheduled, not optional — absent. Three reasons,
-and the first is the one that decides it:
+Private: its own repository, published to an Azure Artifacts feed only the team can restore. The
+public plugin ships `dotnet-default` and nothing house-specific.
 
-- **A flaky proof is worse than an honest gap.** A criterion whose test fails at random
-  gets rerun until green, which teaches a team to ignore red — and the framework's
-  entire claim is that nothing advances on assertion. A scheduled device suite nobody
-  can run locally is §2.1's failure exactly: it looks enforced and is not.
-- **The prerequisite cost lands on everyone.** An Android SDK and an emulator or a
-  device, on every machine running cycles and in CI, for a capability most cycles never
-  touch. That breaks the adopt-with-one-command property.
-- **MAUI's own device-test tooling is not packaged for consumers**, so what shipped
-  would be scaffolding maintained by this project rather than something inherited.
+It adds `MofonCode.Core` — a minimal mediator, `Result<T>` handlers over FluentResults, `TraceResult`
+over OpenTelemetry activities, pipeline behaviours, composable specifications, throttled concurrency
+— plus the conventions that go with it:
 
-**Two cheaper layers cover most of what it would have bought.** MAUI Blazor Hybrid hosts
-the *same* Blazor components in a WebView — Edge WebView2 on Windows, Chrome WebView on
-Android, WKWebView on iOS. So the components are tested once with bUnit, and Playwright
-runs them in **Chromium and WebKit**, which are the two engines the hybrid targets
-actually use. The second engine is the deliberate part: it costs a line of configuration
-and it is the only thing standing between the suite and an iOS-only rendering
-difference. Firefox is not included — no MAUI host uses Gecko, so it buys nothing here.
+- **an operation that can fail returns `Result` or `Result<T>`**, and a failed result becomes the
+  response at a boundary. Do not wrap an operation that cannot fail.
+- **commands and queries go through the mediator** when there is an operation to dispatch, in what
+  the plugin scaffolds *and in the plugin itself*.
+- **one folder per feature, not one per layer.**
+- **name the seam and the type.** A plan saying only "use MofonCode.Core" has chosen nothing.
 
-**What remains genuinely unproven is the native shell**, and only that: platform
-permissions, app lifecycle, deep links, native file pickers, platform chrome. That is a
-far smaller gap than "no device testing", and naming it precisely is what makes it
-manageable.
+**`MofonCode.Core` ships no custom analyzers** — no analyzer project, no diagnostic ids, no source
+generator. What it ships is an analyzer policy (§11.4). So the three conventions above are prose
+enforced by nothing, and each splits between a mechanically decidable half and a judgement half, of
+which only the judgement half may be a `PRO_nn` constraint.
 
-**A device-only outcome is a bound in the intent, never a criterion in the spec.** It is
-verified by a person outside the cycle. The reason is `verify`'s evidence model: it reads
-`tests.trx` and `diff.patch` and nothing else, and `CON_08` forbids a claim with no cited
-evidence. A criterion only a person on a phone can observe has no entry in the test
-results, so admitting it would mean either `verify` adjudicating on attestation, or
-`pass` no longer meaning every criterion was met. Both cost more than the gap does.
+**Custom analyzers are developed in the profile that declares the convention**, not in the kernel.
 
-The consequence, stated plainly: **MAUI-targeted work has some outcomes this framework
-does not govern.** They are recorded in the intent as bounds, and a plan's `Cannot prove`
-names them where they touch the change. `CON_12` is what keeps them out of specs.
+**No MediatR** — the kernel has a mediator, declared in `techstack.md` so an agent does not reach for
+it out of habit.
 
-If device coverage is ever needed, the realistic route is a cloud device farm rather than
-local Appium — a cost and an external dependency, and a later decision.
+**`origin` decides whether a default binds.** A `scaffolded` solution takes the profile's patterns; in
+an `adopted` solution **the existing standard wins.** The profile proposes a shape for new work and
+never rewrites the conventions of a codebase that predates it.
 
-### 10.4 The analyzer policy every profile ships
+### 11.4 The analyzer policy every profile ships
 
-**CI builds carry no warnings.** Taken verbatim from `MofonCode.Core`, because it is
-the part of that package that is genuinely enforcement, and it is stack-wide rather
-than house-specific — so it belongs in `dotnet-default`, not only in the private
-profile:
+**CI builds carry no warnings.**
 
 ```xml
 <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
@@ -1226,172 +837,123 @@ profile:
 <NuGetAuditLevel>moderate</NuGetAuditLevel>
 ```
 
-Three things about it matter as much as the settings:
+- **`WarningsNotAsErrors` is deliberately empty**, so an exception is one visible line a reviewer
+  reads.
+- **Every suppression lives in `Directory.Build.props` with its reason**, never as a pragma in source.
+- **`EnforceCodeStyleInBuild` makes formatting a build concern**, so a CI formatting gate never fails
+  a cycle after its work is done.
 
-- **`WarningsNotAsErrors` is deliberately empty**, so an exception is one visible line
-  in a file a reviewer reads rather than an invisible default.
-- **Every suppression lives in `Directory.Build.props` with its reason**, never as a
-  `#pragma warning disable` in source. `MofonCode.Core` holds three — `CA1716`,
-  `CA1000`, `CA1848` — each with a paragraph saying why, and zero pragmas anywhere in
-  its seventeen source files. A reviewer can therefore read the complete list of
-  exceptions in one place.
-- **`EnforceCodeStyleInBuild` makes formatting a build concern**, which is what keeps
-  a formatting gate in CI from being the thing that fails a cycle after its work is
-  done.
+### 11.5 What a profile is
 
-The no-pragma rule is itself mechanically checkable — a build-time check that fails on
-`#pragma warning disable` in source — so it is a hook or an analyzer, never a
-constraint.
+**Templates plus constraints.** Package set and versions, analyzer set, `Directory.Build.props` and
+`Directory.Packages.props` fragments, project templates, app host run-mode defaults, pipeline
+templates, and its own `PRO_nn`.
 
-### 10.5 What a profile is
+Profiles are **NuGet packages** — versioned, restorable, identical to consume from nuget.org for the
+public one and from an Azure Artifacts feed for the private one.
 
-**Templates plus constraints.** A profile declares its package set and versions, its
-analyzer set, `Directory.Build.props` and `Directory.Packages.props` fragments,
-project templates, app host run-mode defaults, pipeline templates, and its own
-`PRO_nn` constraints.
+**Versions are resolved at `init` and recorded, never guessed in a document:** take the latest stable
+release compatible with the target framework, write it into `Directory.Packages.props`, and let the
+diff record what was taken.
 
-Profiles are distributed as **NuGet packages** — versioned, restorable,
-Microsoft-first, and identical to consume from nuget.org for the public profile and
-from an Azure Artifacts feed for the private one.
-
-**Versions are resolved at `init` and recorded, never guessed in a document.** The
-rule iteration 3 set: resolve the latest stable release compatible with the target
-framework, write it into `Directory.Packages.props`, and let the diff record exactly
-what was taken.
-
-A profile's defaults have to reach a plan, and a session working inside a governed
-solution cannot read a file that lives in the plugin — so the defaults are
-**extracted and injected** into the plan rather than read. Iteration 3 does this with
-a marked region in its tech stack document and `Get-StackDefaults.ps1`; iteration 4's
-profile package is that region, versioned.
+A profile's defaults reach a plan by being **extracted and injected**, because a session working
+inside a governed solution cannot read a file that lives in the plugin.
 
 ---
 
-## 11. Hosts
+## 12. Hosts
 
-Every host under consideration can deny a tool call before it runs, so the enforcement
-primitive is portable. The differences are vocabulary, not capability.
+Every candidate host can deny a tool call before it runs, so the enforcement primitive is portable.
+What differs is vocabulary.
 
 | Host | Blocking event | Config | Deny shape |
 |---|---|---|---|
 | Claude Code | `PreToolUse` | `.claude/settings.json` or plugin | `permissionDecision: "deny"` |
-| GitHub Copilot | `preToolUse` | `.github/hooks/*.json` | `permissionDecision`: `allow`/`deny`/`ask`; takes `bash` **and** `powershell` |
-| OpenAI Codex CLI | `PreToolUse` | `.codex/config.toml` | `permissionDecision` + `permissionDecisionReason` |
-| Gemini CLI | `BeforeTool` | `.gemini/settings.json` | `{"decision":"deny","reason":"…"}` |
-| Antigravity | `PreToolUse` | `.agents/hooks.json` or a plugin | `{"decision":"deny","reason":"…"}`, plus `ask` / `force_ask` |
+| GitHub Copilot | `preToolUse` | `.github/hooks/*.json` | `permissionDecision`; takes `bash` **and** `powershell` |
+| OpenAI Codex CLI | `PreToolUse` | `.codex/config.toml` | `permissionDecision` + reason |
+| Gemini CLI | `BeforeTool` | `.gemini/settings.json` | `{"decision":"deny","reason":"..."}` |
+| Antigravity | `PreToolUse` | `.agents/hooks.json` or a plugin | same, plus `ask` / `force_ask` |
 
-**v1 ships Claude Code and GitHub Copilot.** The rest follow.
+**v1 ships Claude Code and GitHub Copilot.**
 
-ChatGPT is not a target — Codex is OpenAI's repository-agentic surface. Antigravity
-plugins are the stated successor to Gemini CLI extensions, so the Google side targets
-Antigravity plugins with Gemini CLI as a separate host.
+ChatGPT is not a target — Codex is OpenAI's repository-agentic surface. Antigravity plugins are the
+stated successor to Gemini CLI extensions.
 
-### 11.1 What the adapter normalizes
+### 12.1 What the adapter normalises
 
-Event names; tool names (`Edit`/`Write`/`Bash` versus `edit`/`view`/`bash` versus
-`write_file`/`replace`/`run_shell_command`); input key names and nesting; and the deny
-shape. So `sdlc hook --host <name>` reads stdin, normalizes, asks the one policy
-engine, and emits that host's deny format. Each host gets a conformance test that
-feeds a captured real payload and asserts a deny.
+Event names; tool names (`Edit`/`Write`/`Bash` against `edit`/`view`/`bash` against
+`write_file`/`replace`/`run_shell_command`); input key names and nesting; and the deny shape. So
+`sdlc hook --host <name>` reads stdin, normalises, asks the one policy engine, and emits that host's
+format. Each host has a conformance test that feeds a captured real payload and asserts a deny.
 
-Iteration 3's own assessment of this work, which iteration 4 is executing: the
-git-reading checks already work as gates whichever agent did the work; the
-action-based hooks, the skills, load-time injection and `${CLAUDE_PLUGIN_ROOT}` are
-Claude Code only. **The coherent split — git-based gates as the authority, hooks as a
-fast local layer — was identified and never written.** That is the architecture work.
+A payload the reader cannot understand **allows the call and says so on standard error.** These
+surfaces are young: failing closed on a renamed field would stop a person working for a reason they
+cannot act on, and failing silently would permit everything while appearing to protect.
 
-### 11.2 MCP is the portability lever
+### 12.2 One consequence of the Copilot choice
 
-- **an MCP server** exposes every cycle stage, the gate, and interrogation as tools —
-  one implementation, an identical tool surface everywhere. This is *how the agent does
-  the work*;
-- **the pre-tool hook** is one small config per host pointing at the same gate binary.
-  This is *what stops the agent doing the work another way*;
-- **`sdlc verify-chain` in CI** is *the guarantee*;
-- **one `AGENTS.md`** is the single prompt source of truth, with per-host instruction
-  files as thin pointers to it.
-
-### 11.3 Two consequences of the host choices
-
-Copilot's cloud coding agent is asynchronous and cannot conduct an interview, so the
-intent phase cannot run there. v1 targets Copilot CLI and IDE chat. The cloud agent is
-a natural fit for `build` from an already-approved plan — later, not v1.
-
-**Shipped tooling stays Windows PowerShell 5.1**, invoked as `powershell.exe`, for the
-reason iteration 3 recorded: hooks are the deterministic layer, and a hook that fails
-to start because an edition is not installed protects nothing while appearing to. 5.1
-is on every Windows machine. The cost is real and the scripts are written for it — no
-`&&` or `||`, no ternary, no `??`, `ConvertFrom-Json` returns a `PSCustomObject`, and
-`Test-Json` does not exist, so schema validation lives in the test project rather than
-in a script.
+Copilot's cloud coding agent is asynchronous and cannot conduct an interview, so the intent phase
+cannot run there. v1 targets Copilot CLI and IDE chat. The cloud agent suits `build` from an
+already-approved plan — later.
 
 ---
 
-## 12. Pipelines
+## 13. Pipelines
 
-Generated at `init`, per host. Every pull request builds, tests, **displays code
-coverage**, and runs `sdlc verify-chain`.
+Generated at `init`, **per platform** — GitHub Actions or Azure Pipelines. ("Host" means the agent;
+"platform" means where the code lives.)
 
-Coverage is displayed, not enforced — no percentage threshold. Coverlet plus
-ReportGenerator; Azure DevOps has a native coverage tab, GitHub needs a PR-comment
-action. One cheap addition inside the no-threshold rule: report the coverage **delta**
-against the target branch, so a silent slide becomes visible without gating anything.
+Every pull request builds, tests, **displays code coverage**, and runs `sdlc verify-chain`.
 
-`verify-chain` re-establishes, from the repository rather than from any agent's word,
-that:
+Coverage is displayed, not enforced — no threshold. Coverlet plus ReportGenerator; Azure DevOps has a
+native coverage tab, GitHub needs a PR-comment action. One cheap addition inside the no-threshold
+rule: report the coverage **delta** against the target branch.
 
-- every artifact in the chain exists;
-- the approval ledger holds an `approved` decision;
-- all three recorded hashes match the bytes on disk;
-- every changed file was declared in the plan;
-- every spec criterion maps to a named test;
-- the outcome in `verify.md` is `pass`.
+`verify-chain` re-establishes, from the repository rather than any agent's word, that:
 
-**And what it must not claim.** With local-only approval it proves the entry exists
-and the hashes match. It cannot prove a second person approved. The check says so in
-its own output, so a green run is not read as more than it is.
+- every artifact in the chain exists
+- the approval ledger's standing decision is `approved`
+- all three recorded hashes match the bytes on disk
+- every findings round's `upstream_sha256` matches its upstream now
+- every spec criterion maps to a named test
+- every changed file was declared, **and every declared file changed**
+- the outcome in `verify.md` is `pass`
 
-### 12.1 Two hosts, one of them under-exercised
+**And what it must not claim.** With local-only approval it proves the entry exists and the hashes
+match. It cannot prove a second person approved, and it says so in its own output.
 
-The plugin is open source on GitHub, so contributors, issues and examples all exercise
-the **GitHub** adapter. The **Azure DevOps** adapter is what private MofonCode work
-depends on, and without deliberate effort exactly one person ever runs it.
+Keeping every check inside `sdlc verify-chain` means each pipeline is about thirty lines of YAML
+wrapping one command.
 
-`dice-trial` is the trial repository — cleared and re-run as often as needed, and
-where cycles are exercised against the real skills.
+### 13.1 `dice-trial`
 
-**It carries two remotes.** It already has a GitHub one, with the trial cycle's branch
-pushed and a pull request open, so the GitHub adapter has a real exercise path. An
-Azure DevOps remote is added alongside it, and the same cycle is pushed to both. One
-repository, one set of cycles, both adapters meeting a real server — no second trial
-repository to keep current.
+The trial repository — cleared and re-run as often as needed, and where cycles are exercised against
+the real skills. It has a GitHub remote with the trial cycle's branch pushed and a pull request open,
+so the GitHub adapter has a real exercise path.
 
-Design lever that shrinks the exposure: every check lives inside `sdlc verify-chain`,
-so each pipeline is about thirty lines of YAML wrapping one command.
-
-**Before `dice-trial` is cleared the first time, keep the existing cycle.** The
-`20260929_4e1a` artifacts are the best worked example of what good output looks like,
-and they are the calibration target for the skills being written. Re-running a cycle
-will not reproduce them by accident.
+**Before clearing it the first time, keep the existing cycle.** The `20260929_4e1a` artifacts are the
+best worked example of what good output looks like, and they are the calibration target for the
+skills being written.
 
 ---
 
-## 13. The experience
+## 14. The experience
 
-At the end of every stage the user sees a panel: whether the artifact's checks passed,
-a brief summary of what it says, and the next step.
+At the end of every stage the user sees a panel: whether the artifact's checks passed, what the
+document says about itself, and the next step.
 
 ```
-  spec · 20260929_1456_32                           round 2 · 1 blocking
+  spec - 20260929_1456_32                               round 2 - 1 blocking
 
   Says      Asking for the page returns one roll of a six-sided die, decided
-            for that asking. 6 criteria, 6 exclusions, 2 blocked on open
-            intent questions.
+            for that asking
+            3 sections: Acceptance criteria, Out of scope, Open
 
-  Checks    r1: 2 blocking · r2: 1 blocking
-            F_01  CON_04.1  blocking   the decided delivery has no criterion
+  Checks    r1: 2 blocking - r2: 1 blocking
+            F_01   CON_04      blocking
+                the decided delivery has no criterion at all
 
-  Gate      not approved - answer or waive F_01 first
+  Gate      not approved yet
 
   Next      sdlc refine 20260929_1456_32 spec        apply F_01
             sdlc interrogate 20260929_1456_32 spec   re-check
@@ -1399,197 +961,523 @@ a brief summary of what it says, and the next step.
 
 Four rules:
 
-1. **The CLI prints it, not the model.** A skill writing this as prose produces a
-   format that drifts every run and between hosts. The last step of each stage is
-   `sdlc status <id> --stage <artifact>`, shown verbatim — which also gets the panel
-   onto every host for free, including CI.
-2. **It is not called verification.** `verify` is a phase name with a specific
-   meaning; for an artifact the word is "checks."
+1. **The command line prints it, not the model**, so the format cannot drift between hosts. The last
+   step of each stage is `sdlc status <id> --stage <artifact>`, shown verbatim.
+2. **It is not called verification.** `verify` is a phase name with a specific meaning; for an
+   artifact the word is "checks".
 3. **It ends with the literal next command**, copy-pasteable.
-4. **ASCII-safe glyphs and a no-color mode**, because it renders in a pipeline log and
-   in the default Windows console, not only in Windows Terminal.
+4. **ASCII-safe glyphs and a no-colour mode**, because it renders in a pipeline log and in the default
+   Windows console.
 
-The round history is shown and no recommendation about continuing is attached.
+The `Says` line is read from the document — its first heading and its section headings. A
+command-line tool cannot summarise content, and inventing one would be worse than showing the
+headings a person wrote.
 
 ---
 
-## 14. Skills
+## 15. Skills
 
 | Skill | Does |
 |---|---|
-| `init` | adopts the framework into a repository — see §8 |
-| `intent` | interviews the user; classifies the change; writes `intent.md` |
-| `spec` | derives testable criteria from the intent; writes `spec.md` |
-| `plan` | reads the spec and the existing code; writes `plan.md` with its file table, proof, and claims |
-| `interrogate` | judges one artifact against the constraints in force; writes a findings round; never edits |
-| `refine` | applies an artifact's findings to that artifact; may not touch code; refuses once the cycle is approved |
-| `remediate` | applies a blocked verify's findings to source and tests; may not touch a planning document; capped at three passes |
-| `build` | implements the plan; builds; tests; records evidence; warnings are errors |
-| `verify` | adjudicates the build against the spec from evidence alone; writes `verify.md` |
-| `split` | divides an oversized intent into smaller ones, recording their order and abandoning the original |
-| `batch-build` | collects approved cycles and builds them, concurrently where the claim graph allows |
+| `init` | adopts the framework into a repository — §9 |
+| `intent` | interviews; classifies the change; writes `intent.md`; runs the loop |
+| `spec` | derives testable criteria from the intent; writes `spec.md`; runs the loop |
+| `plan` | reads the spec and the existing code; writes `plan.md`; runs the loop |
+| `steer` | re-runs the chain from an existing intent and spec — §3.2 |
+| `interrogate` | judges one artifact against the constraints in force; writes a round; never edits |
+| `refine` | applies an artifact's findings to that artifact |
+| `remediate` | applies a blocked verify's findings to source and tests |
+| `build` | implements the plan; builds; tests; records evidence |
+| `verify` | adjudicates the build against the spec from evidence alone |
+| `batch-build` | completes approved cycles, concurrently where the claim graph allows |
 | `resolve-conflict` | resolves collisions on files that cannot be claimed exclusively |
 | `land` | pushes, opens the pull request, links the work item |
-| `cycle-approval` | prints the approval entry for the three planning documents, with instructions to paste into `approval.md`; writes nothing |
+| `draft` | prints a protected file's entry for a person to place — §5.3 |
 | `status` | prints the stage panel, and the state of a cycle or of all cycles |
 | `constraints` | renders the effective constraint set, all tiers |
 | `suggestions` | lists accumulated non-blocking findings |
 
-The draft's `pull-request` is `land`, and `interogate-artifact` is `interrogate` —
-spellings are fixed because skill names become directory names, command names and
-documentation.
+### 15.1 Preconditions
 
-Any skill run against a chain whose prior artifact is missing or unapproved fails and
-says which artifact and which gate stopped it.
+| Skill | Requires | Refuses when | Writes |
+|---|---|---|---|
+| `init` | a git repository | not a repository | the scaffolding, per mode |
+| `intent` | nothing | an intent exists | `intent.md`, creating the cycle directory |
+| `spec` | a clean intent | intent missing or not clean; a spec exists | `spec.md` |
+| `plan` | a clean spec | spec missing or not clean; a plan exists | `plan.md` |
+| `interrogate` | the artifact exists | it does not | a findings round |
+| `refine` | a round with open blockers | no blockers; cycle approved | that artifact only |
+| `steer` | an intent **and** a spec | only an intent; approved without a reopen | intent, spec, plan — whichever exist |
+| `draft approval` | three documents, each with a round | any missing, uninterrogated, or holding an open blocker | nothing; it prints |
+| `build` | the gate satisfied | the gate refuses | code, evidence |
+| `verify` | evidence exists | no evidence | `verify.md` |
+| `remediate` | verify blocked | not blocked; three passes spent | code and tests only |
+| `land` | verify passed | not passed; escalated | push, pull request |
+
+**A stage skill whose artifact already exists refuses and names what you probably meant** —
+`interrogate` to judge it, or `steer` to change it (D-18).
+
+`intent` creates the cycle directory as its first act and fails if it exists. Creating it **is** the
+collision check, and the filesystem makes that atomic (D-10).
 
 ---
 
-## 15. Layout
+## 16. Layout
 
 ```
 .sdlc/
-  solution.md                 profile, origin, adopted_at — written by init
-  techstack.md                what this solution is built from
-  constraints.md              this solution's own constraints (LOC_nn), hand-edited
-  README.md                   terminology, flow and commands, for whoever works here
+  solution.md               profile, origin - written by init
+  techstack.md              what this solution is built from
+  constraints.md            this solution's own LOC_nn, hand-edited
+  README.md                 terminology, flow and commands
   cycles/
     20260929_1456_32/
       intent.md
       spec.md
       plan.md
       verify.md
-      approval.md             append-only ledger of this cycle's gate decisions
-      abandoned.md            why this cycle stopped, if it did
+      approval.md           append-only ledger of gate decisions
+      abandoned.md          why this cycle stopped, if it did
       findings/
         intent.r1.json
-        intent.r2.json
         spec.r1.json
         plan.r1.json
       evidence/
         diff.patch
         build.log
         tests.trx
+        tests.json          the normalised summary verify reads
         base.sha
 ```
 
-A cycle is one governed change: an id, a directory, and a `cycle/<id>` branch.
-Directories appear when the skill that writes the first file into them runs; nothing
-is pre-created.
+A cycle is one governed change: an id, a directory, and a `cycle/<id>` branch. Directories appear
+when the skill that writes the first file into them runs; nothing is created speculatively, ahead of
+the step that owns it.
 
-**Cycle ids are `<date 8>_<time 4>_<seconds 2>`** — `20260929_1456_32`. Purely
-temporal, so they sort chronologically and say when the cycle opened, with no opaque
-component. Allocation needs no coordination and works offline.
+**Cycle ids are `<date 8>_<time 4>_<seconds 2>`** — `20260929_1456_32`. Purely temporal, so they sort
+chronologically and say when the cycle opened. Allocation needs no coordination and works offline.
+The id is load-bearing in the branch name, the directory path, and every cross-reference, so it is
+fixed at allocation and never rewritten.
 
-The id is load-bearing in three places — the branch name, the directory path, and
-every cross-reference inside the artifacts — so it is fixed at allocation and never
-rewritten. Two cycles opened in the same second would collide; the directory already
-existing is what catches it.
+Artifacts live on the cycle branch. `batch-build` reads approved cycles locally and completes them
+before anything is pushed, so the gate is passed before code exists.
 
-Artifacts live on the cycle branch. `batch-build` reads approved cycles locally and
-builds before anything is pushed, so the gate is passed before code exists; the pull
-request then reviews code against an already-approved plan.
+A cycle index exists so `batch-build` does not glob directories to find work, and each cycle records
+its branch and work item.
 
-A cycle index exists so `batch-build` does not glob and parse directories to find
-work, and each cycle records its branch and work item.
+### 16.1 Abandoning a cycle
 
-### 15.1 Abandoning a cycle
+An abandoned cycle **keeps its directory** and records why in `abandoned.md`. The reason is the only
+thing the cycle produced, and a repository holding the intents that were tried and dropped — with the
+objections that killed them — is readable history.
 
-An abandoned cycle **keeps its directory**, and records why in `abandoned.md`
-alongside `approval.md`. The reason is the only thing the cycle produced, and a
-repository holding the intents that were tried and dropped — with the objections that
-killed them — is readable history rather than clutter.
+It follows the draft pattern: a skill prints the entry, a person places it, and the hook denies every
+agent write. The reason is history rather than safety — an agent stuck on a blocking finding has an
+obvious escape in abandoning and starting clean, and a hand-written reason is what keeps the
+objections on the record.
 
-It follows the approval pattern exactly: a skill prints the entry, the person creates
-the file, and **the hook denies every agent write to it.**
-
-The reason for that is not safety — abandoning nothing lands, so it cannot forge a
-result. It is history. An agent stuck on a blocking finding has an obvious escape:
-abandon the cycle and start a clean one, and eleven rounds of objections vanish into a
-directory nobody reads. A human-written reason is what makes abandonment a decision
-rather than an exit.
-
-```yaml
----
-cycle: 20260929_1456_32
-abandoned_by: Peter Almanzar
-at: 2026-10-01T14:22:00Z
-stage: plan
-findings_rounds:
-  intent.md: 2
-  spec.md: 3
-  plan.md: 1
-reason: the spec's criteria cannot be met without the schema change in flight
-        elsewhere; reopening once that lands
----
-```
-
-**Abandonment is terminal.** A cycle with an `abandoned.md` never builds, even if it
-also holds an approval — `batch-build` skips it, and so does `land`. Changing your
-mind means a new cycle, not resurrecting this one, because resurrection would need
-rules for which decision wins and the ordering of two hand-written files is not
-something to rest a gate on.
+**Abandonment is terminal.** A cycle with an `abandoned.md` never builds, even if it also holds an
+approval.
 
 ---
 
-## 16. What iteration 3 proved, and what it did not
+## 17. What iteration 3 proved, and what it did not
 
-Carrying v03 forward means carrying its evidence and its gaps honestly.
+**Exercised by a real cycle:** `init`, `intent`, `interrogate` (six rounds across three artifacts),
+`spec`, `plan`, `build`, `verify`, and the diff-to-plan comparison. `CON_07` raised two real findings
+on a real diff.
 
-**Exercised by a real cycle:** `init`, `intent`, `interrogate` (six rounds across
-three artifacts), `spec`, `plan`, `build`, `verify`, and the diff-to-plan comparison.
-`CON_07` raised two real findings on a real diff.
+**Never run by any cycle or test:** `remediate`, `run`, `suggestions`.
 
-**Never run by any cycle or any test that invokes them:** `remediate`, `run`,
-`suggestions`.
+**Never reached, so never tested:** `escalated`. The bounded-remediation state machine exists
+entirely on paper, and landing has never refused a cycle. Iteration 3 called this its largest
+untested claim, and **`batch-build` depends on it completely** — unattended building is only safe
+because a cycle that cannot be made to pass stops instead of landing.
 
-**Never reached, so never tested:** `escalated`. The bounded-remediation state machine
-— three passes, then a person owns it — exists entirely on paper, and `Assert-Landable`
-has never refused anything because no cycle has ever been unlandable. Iteration 3 calls
-this the largest untested claim in the framework, and **`batch-build` depends on it
-completely**: unattended building is only safe because a cycle that cannot be made to
-pass stops instead of landing.
-
-**A check that tested nothing while appearing to run:** the nightly job asserting
-interrogation verdicts needs an API key that was never set, so it emitted a warning and
-exited cleanly. This is §2.1's failure mode inside the plugin's own CI.
+**A check that tested nothing while appearing to run:** the nightly job asserting interrogation
+verdicts needed an API key that was never set, so it warned and exited cleanly. §2.1's failure mode
+inside the plugin's own CI.
 
 **Unconfirmed:** the `CON_06` flake fix, made by reading rather than by re-running.
 
-**The implication for sequencing.** Before `batch-build` is built on bounded
-remediation, drive one cycle to `escalated` on purpose — the cheapest route is a
-deliberately inadequate proof, which should block, then remediate, then exhaust the
-budget. That single trial also closes the brownfield half of `adopted_at` (§7.3) if it
-runs in a repository with pre-existing code.
+**The implication for sequencing.** Before `batch-build` is built on bounded remediation, drive one
+cycle to `escalated` on purpose — the cheapest route is a deliberately inadequate proof, which should
+block, then remediate, then exhaust the budget.
 
 ---
 
-## 17. Non-goals
+## 18. Non-goals
 
 - **Enforcing a coverage percentage.** Coverage is displayed.
-- **Making local approval unforgeable.** It cannot be; the pull request is where
-  accountability lives. Local approval exists to keep an agent honest.
-- **Governing ai-sdlc with ai-sdlc.** See §2.5.
-- **Resolving merge conflicts as the primary strategy.** Collisions are scheduled
-  around; resolution is the fallback for unclaimable files.
-- **Remote plan approval.** See §4.1.
-- **A shared batch queue.** See §9.
-- **Supporting ChatGPT as a host.** Codex is the surface.
-- **Plans detailed to the line.** See §3.2.
-- **Baselining existing problems at adoption.** See §7.3.
+- **Making local approval unforgeable.** It cannot be; the pull request is where accountability lives.
+- **Governing ai-sdlc with ai-sdlc** — §2.7.
+- **Resolving merge conflicts as the primary strategy.** Collisions are scheduled around.
+- **Remote plan approval** — the local paste is the gate.
+- **A shared batch queue.**
+- **Tooling for splitting work** — D-25.
+- **A combined design skill** — D-16.
+- **Waiving a blocking finding** — D-27.
+- **Supporting ChatGPT as a host.**
+- **Plans detailed to the line.**
+- **A device end-to-end layer** — §11.2.
+- **Baselining existing problems at adoption.**
 
 ---
 
-## 18. Open questions
+## 19. Open questions
 
-1. **Do the mechanical halves of the three MofonCode conventions become custom
-   analyzers?** §10.2 establishes that no analyzer decides them today, and that each
-   splits into a decidable half and a judgement half. One-folder-per-feature is almost
-   entirely mechanical and is the obvious first one. Writing them is new work in
-   `MofonCode.Core`, not something to inherit — so the question is whether it is worth
-   it, or whether the judgement halves stay `PRO_nn` constraints and the mechanical
-   halves stay unenforced.
-2. **Does the no-pragma rule ship as a build check?** §10.3 keeps every suppression in
-   `Directory.Build.props` with a reason and zero `#pragma warning disable` in source.
-   The rule is mechanically checkable, so it should be a check rather than a
-   convention — the question is only whether it is worth a custom analyzer or whether
-   a simpler build-time grep suffices.
+1. **Does `advice` survive as a third severity, or collapse into `suggestion`?** It was added for an
+   improvement that violates nothing and cites nothing, partly as a home for human steering — which
+   `D-17` reassigned to the intent's `Fixed decisions`. The library requires a citation only on
+   *blocking* findings, so a non-blocking finding that cites nothing is already a suggestion. Two
+   severities, or citation becomes required on suggestions and `advice` earns its place back.
+2. **Which `PRO_nn` conventions become analyzers?** §11.3 establishes that nothing decides them
+   today and each splits in two. One-folder-per-feature is almost entirely mechanical and is the
+   obvious first. Needs the kernel's analyzers read, not a decision taken.
+3. **Does the no-pragma rule ship as a build check?** §11.4 keeps every suppression in
+   `Directory.Build.props` with a reason and zero pragmas in source. The rule is mechanically
+   checkable, so the question is whether it is worth a custom analyzer or a build-time grep.
+4. **How does the Azure DevOps adapter get exercised?** `dice-trial` has a GitHub remote and no Azure
+   DevOps one, and a second trial repository was declined. Without an answer the adapter ships
+   untested against a real server.
+5. **`CON_15`, held rather than open.** *A plan's blast radius matches what it changes* — admissible
+   on all three tests, and held until `tier` is in use so the constraint describes the rule rather
+   than its first example.
+6. **The cross-cycle learning loop, deferred by decision.** v02 built `retro` and `absorb-retro` with
+   a corpus, an importer that refuses to overwrite differing content, and signals computed read-only;
+   v03 removed them and recorded the cost — *"nothing aggregates automatically."* The data to
+   aggregate already exists in the findings rounds. Three things to carry forward if it returns: the
+   completion-certificate trap, where an artifact's existence means `done` and a mistaken one
+   silently loses work; `caused-by` / `caused-at-stage`, which is how the process learns **which
+   stage leaks**; and the private/public boundary, which v02 never had to answer.
+
+---
+
+## 20. Decisions
+
+Ids are a monotonic sequence of their own, separate from `CON_nn`: a constraint judges an artifact, a
+decision explains the framework. Assigned once, never reused. **A reversed decision is superseded by
+a new id rather than edited**, so a commit citing `D-14` still means what it meant.
+
+Each entry carries the decision, the cost it avoids, and what was rejected. The `Rejected` field is
+half the value: in six months the question is not "why this" but "why not that".
+
+The full working-through — what the previous draft said, how each contradiction was found, and the
+code each decision changes — is in commit `adf15cc`.
+
+### D-01 — Side research and evaluation run in a new process
+
+**Why.** Research returns an answer and should not leave its search behind. An evaluation must not
+have seen the thing it judges being made.
+
+**Rejected.** Subagents for interrogation: better ergonomics on one host, two code paths for the most
+important skill. In-process self-judgement in the healing loop: removes the only thing independence
+buys.
+
+### D-02 — Constraints bind an artifact's body; its open region is the compliant exit
+
+**Why.** `CON_02` forbids an intent *stating as settled fact* a figure nobody measured — so an item
+recorded as an open question satisfies it rather than overriding it. `CON_04` forbids leaving an
+intent's *stated outcomes* uncovered, and an open question is not a stated outcome. So clean-to-advance
+**stays**: an unresolvable item moves to the open region, and that is the fix.
+
+**Rejected.** Advancing on a round merely existing; a pre-gate acceptance record, which is a second
+gate under another name; requiring a clean round only of the spec and plan.
+
+### D-03 — An open item must be one nobody can resolve yet
+
+**Why.** `D-02` makes the open region a legitimate exit, which makes it an exploitable one: an agent
+can empty the body into it and satisfy every constraint by asserting nothing. `CON_14` is the only
+control, and no hook can decide it.
+
+**Rejected.** Capping the number of open items — a number nobody chose. Leaving it ungoverned — a
+person reading a body with nothing in it has nothing to object to.
+
+### D-04 — The plan gate is about dependency, not the absence of open items
+
+**Why.** A hard no-open-items rule would have blocked the trial cycle, whose plan carried limits
+citing two open intent questions, was approved, built, and shipped working software. False positives
+on a gate are what make a team route around it.
+
+**Rejected.** "No blockers *or* open items at plan": blocks cycles that are fine, for a property the
+existing constraints already deliver through `D-05`.
+
+### D-05 — The spec disposes of every intent open item
+
+**Why.** The check it replaces — every intent statement maps to a criterion — cannot exist, because
+`CON_04` is in the library only on the grounds that no hook can decide coverage. Disposal is a
+different question: *presence*, which a parser decides.
+
+**Rejected.** Keeping the coverage check and removing `CON_04`; keeping both, which `CON_11` exists to
+prevent.
+
+### D-06 — An artifact section earns its place by having a consumer
+
+**Why.** Decoration costs attention at every interrogation. Same test the library applies to itself,
+pointed at structure.
+
+**Applied.** `Who` dropped — no consumer of any kind, and `Problem` now carries who has it. `Order`
+folded into `Files`, with the ordering *reasoning* preserved there rather than lost. `Risk` kept — the
+person at the gate is a real consumer. `Done looks like` renamed `Wanted outcomes`, because it is
+`CON_04`'s left-hand side and cannot move to the spec, but the old name read as a spec concern.
+
+**Rejected.** Dropping `Risk` as unused. Giving `Risk` a constraint, which would be admissible and is
+deferred until the practice settles.
+
+### D-07, D-07a — An artifact is an envelope carrying a body
+
+**Why.** It makes the governance rule one sentence, gives a durable test for where a future field
+goes, and puts the seam in the code where an envelope reader can be artifact-agnostic. It also
+removes a duplication the schemas would carry: iteration 3 had four schemas each restating the common
+frontmatter, which is `CON_09` pointed at schemas.
+
+**The audit that corrected it.** The first version named "id, upstream reference, framework version"
+— which described no artifact that existed. The trial's common part was a cycle id under two
+different names. The upstream *reference* is dropped: not universal, since the intent has none, and
+derivable, since the chain order is fixed.
+
+**`type` and `tier` go in the body**, and that killed a proposed `metadata` bag — both candidates for
+it turned out to be *claims* rather than bookkeeping, and a claim in the envelope escapes the
+constraints. Three further reasons against a bag: it defeats the schema, which v03 set
+`additionalProperties: false` on deliberately; it institutionalises what `D-06` removes; and "custom"
+names no owner.
+
+**Deferred, with its shape recorded:** a team will want to stamp a ticket number on every artifact,
+and the answer is a **declared extension** — the solution declares which extra keys it carries and
+the schema validates against the declaration. Same pattern as `LOC_nn`. Not built: a mechanism with
+no user is how a bag gets built badly later.
+
+**The risk to watch.** Naming a pattern invites stretching it, into an envelope carrying fields that
+are uniform only because somebody forced them. The test is the guard, not the pattern's gravity.
+
+### D-08, D-08a — The open region is `## Open`, on every artifact
+
+**Why.** A three-name mapping is free for the gate and not free for the interrogation skill, which is
+a model reading a prompt. Its failure has two directions: a finding raised about something correctly
+recorded as open (annoying, self-correcting), or **a section in the body going unjudged** (silent, and
+the exact failure the design prevents). And the three names bought less than they appeared to — the
+information is in the entries, which already declare their own kind.
+
+**Kept as `Open`** after exploring alternatives. `Cannot settle` and `Unsettled` resist backlog
+content better, because they force the author to assert impossibility — the trick that made v03's
+`Cannot prove` a good name. `Open` was kept for brevity, and the cost is accepted: `CON_14` does the
+work the name does not.
+
+**Rejected.** `Open questions` — two of three entry kinds are not questions. `Unresolved` — implies it
+could have been resolved. `Deferred` — implies a later, which evidence limits do not have. `Limits` —
+collides with `Must not change` and with "constraints".
+
+### D-09 — `solution.md` is protected, and a profile change is drafted
+
+**Why.** `origin` is a historical fact that must never change and `profile` is a choice revisited
+rarely, so protecting both costs one manual line per migration. The alternatives either expose
+`origin` or introduce the framework's **first conditional hook rule**, which is where a bypass would
+live. Every hook rule staying absolute means the whole rule set states in one sentence.
+
+**And it completes a pattern.** Four protected files follow one rule — a tool never writes them, a
+tool drafts what to put in them — so it is **one verb, not four commands**.
+
+**Rejected.** Per-key protection: the hook sees a path, never a before-and-after. Leaving it
+unprotected: makes `origin` agent-rewritable. Splitting into two files.
+
+### D-10 — The intent skill creates the cycle directory, and fails if it exists
+
+**Why.** The claim that an existing directory catches a collision was false, because at allocation
+there was no directory. Creating it **is** the check, and the filesystem makes that atomic.
+
+**Rejected.** Deleting the claim, which leaves a collision to surface as a confusing merge. Checking
+without creating, which leaves a race.
+
+### D-11 — A refusal is drafted too
+
+**Why.** Rejecting is what a person does when they are least inclined to look up a format. Giving help
+to the easy case and withholding it from the hard one is the asymmetry people resent.
+
+**Rejected.** Leaving refusals hand-written. Dropping `denied` and keeping two states, which loses the
+difference between "fix this and come back" and "no, not this way".
+
+### D-12 — `SolutionFileName` becomes `SolutionConstraintsFileName`
+
+**Why.** The constant meant *the solution's constraints file* and read as *the solution file*, and
+`D-09` puts `solution.md` in the same code path — so the next person picks the wrong constant out of
+autocomplete and the hook guards the wrong file.
+
+### D-13 — Evidence is normalised at the boundary
+
+**Why.** **The gate must not know about test platforms.** Reading evidence natively would put a `.trx`
+parser inside the gate, then a JUnit parser beside it, and the thing that owns *process* constraints
+starts owning *file formats*. Normalising in the build step puts the stack-specific part where the
+stack already is. Keeping the original alongside the summary means `CON_08` is satisfied by both.
+
+**Rejected.** Roles with a per-profile reader in the gate. Narrowing §6.2's neutrality claim to the
+constraint text only, which reduces "swappable" to "swappable within .NET". Deferring because both
+profiles are .NET.
+
+### D-14 — `verify-chain` checks the comparison in both directions
+
+**Superseded by D-15.** Kept because a decision is superseded, never edited.
+
+### D-15 — The declared-versus-changed comparison is a signal, not a gate
+
+**Why.** `CON_07` already says the file set is not its job — *"the file set is mechanical and a hook
+already enforces it. Creep **inside** an approved file passes that hook"* — so the constraint exists
+*because* the comparison cannot see inside a file, and the comparison was never load-bearing for
+scope creep. And the counterexample dissolves: a plan whose declared file went untouched while every
+test passed is an **inadequate proof**, caught by `CON_06` at the plan gate before code existed.
+
+**What blocks instead:** build fails, tests fail, or the proof is not met. Outcome-based rather than
+process-based.
+
+**Rejected.** `UNDECLARED` blocking while `UNDELIVERED` does not: a noisy blocker gets routed around,
+and all three ways an undeclared file appears show in the pull request diff.
+
+**What it gives up.** The claim *"no file reached this change without a reviewer"* moves from the
+non-bypassable layer to the hook, so a human hand-editing an undeclared file lands it with a note.
+And wide claims over-serialise cycles in `batch-build` that did not need ordering — a performance
+cost, self-correcting.
+
+### D-16 — There is no `design` skill
+
+**Why.** The separate commands are where a person decides to proceed, not code organisation. Even a
+combined skill interviewing at every stage removes the moment you stop, read the intent, and *choose*
+to go on. Human-in-the-loop is not only "was a person asked" but "did a person decide to continue".
+
+**Rejected.** A chained orchestrator that interrogates between stages — which would preserve every
+constraint, and was rejected on the decision points rather than the constraints.
+
+### D-17 — `steer` re-runs the chain from an existing intent and spec
+
+**Why.** The correct path by hand is expensive enough that people will not pay it, so steering ends up
+in conversation where it is lost. **A path so costly that it pushes information out of the system is
+worse than no path.** `steer` keeps the correct path and makes it affordable — compliance gets
+cheaper and no constraint loosens.
+
+**Rejected.** A `steering.md` input file, which this makes unnecessary and which would need six
+answers of its own. An `advice` finding alone: it needs an artifact to attach to, and the scenario is
+steering arriving before a plan exists. A proposed implementation in the spec: its criteria must
+derive from the intent, so a proposal appearing there derives from nothing, which `CON_05` forbids.
+
+### D-18 — A stage skill refuses when its artifact exists, and names what you meant
+
+**Why.** Typing `intent <id>` must never silently overwrite an intent. A flag that re-interrogates
+would be a second way to do what `interrogate` already does, and the one people type is the one that
+drifts. A refusal that teaches the right command adds nothing and removes a destructive mode.
+
+### D-19 — `reopen` is a fourth decision, and it is how a wrong plan is recovered
+
+**Why.** Without it a wrong plan has no legal move: `remediate` may not edit a planning document,
+`refine` refuses once approved, and the plan is hash-locked — so `remediate` could only keep trying to
+make wrong code satisfy a wrong plan until it escalates. It also gives the design its symmetry: code
+failures are capped because an unbounded fix-verify loop burns tokens unwatched; artifact failures are
+not.
+
+**Rejected.** Abandoning and starting over, which throws away an intent and spec that are probably
+fine. Letting `remediate` edit the plan — the inversion §2.4 exists to prevent. Hand-editing and
+relying on the hash mismatch, which leaves no record of why.
+
+### D-20 — Each skill's preconditions are stated in one table
+
+**Why.** Its absence is what lets a skill quietly check the wrong precondition. Drafting it surfaced
+two rules nobody had written: `spec` and `plan` refuse on an existing artifact, and `refine` refuses
+on an approved cycle.
+
+### D-21 — A findings round records the upstream hash it judged against
+
+**Why.** The approval proves *these three documents were approved*, not *the spec was derived from
+this intent*. So an intent edited after a clean spec leaves a spec derived from an intent that no
+longer exists, with every hash matching on disk. And it is not hypothetical — `D-17` is the mechanism
+that creates it.
+
+**Why on the round rather than in the frontmatter**, which was the original proposal: a hash in the
+spec's frontmatter would be written by the spec skill and not updated by a person hand-editing, so it
+could be stale *and wrong*; the round is written by the interrogation, which just read both. It also
+describes the thing that goes stale — the judgement — and makes `D-02` compute staleness for nothing.
+
+### D-22 — `batch-build` completes cycles; `land` pushes
+
+**Why.** One word carried two meanings. And "successes" implies success is determined, so
+`batch-build` must **verify** as well as build — a batch that cannot say which cycles succeeded cannot
+land the ones that did.
+
+**Rejected.** `batch-build` pushing, which makes an unattended run reach the remote. Building without
+verifying, which leaves "success" undefined.
+
+### D-23 — `land --all` sweeps every completed cycle, with one confirmation
+
+**Why.** A batch of eight that completes and then needs eight manual invocations is a batch whose
+value evaporates at the last step. One confirmation before the first push, because a pull request is
+reversible but **outward-facing** — and printing the list also covers the surprise that every
+`passed` cycle is eligible, including one from last week.
+
+**Rejected.** Per-cycle confirmation. No confirmation. Landing `blocked` cycles with a warning — the
+verdict is the only thing between unattended building and unreviewed work reaching a pull request.
+
+### D-24 — `batch-build --land` composes the two; plain `batch-build` stops at completion
+
+**Why.** Landing is not a new decision: the approval already said *this plan is agreed, build it*, and
+a pull request **requests** review rather than committing anything. So the confirmation is about
+**volume** rather than permission. A flag rather than the default, because the composed form touches
+the remote and the plain one does not.
+
+**Rejected.** Landing by default. A confirmation per cycle inside an unattended run. No confirmation
+at all — defensible, and rejected because volume is a real cost somebody should have chosen.
+
+### D-25 — There is no `split` skill, and no `after` ordering
+
+**Why.** v03 reached the same conclusion: splitting is a scoping decision that belongs to a person,
+and *"auto-splitting without dependency ordering produces cycles that cannot be built in isolation,
+which is worse than one large cycle that at least builds."* `after` was introduced **specifically to
+supply that missing concept** — machinery built to enable a feature whose value was never
+established, which is `D-06`'s test pointed at a skill.
+
+**The risk this leaves open.** Nothing pushes back on a sixty-file plan, and v03's argument still
+holds: *"a plan touching sixty files across five features cannot be meaningfully read, so approval
+degrades into signing."* Partially mitigated by `tier`, which signposts reversibility.
+
+**What could return without the costs.** A **read-only advisor** that proposes how to cut an intent and
+writes nothing. It creates no cycles, so it cannot create cycles that will not build.
+
+### D-26 — The command line is the mechanism; MCP is a later surface
+
+**Why.** Two reasons, the second of which decides it. A pipeline and a git hook **cannot speak MCP**,
+so the command line must exist regardless. And **MCP cannot deliver `D-01`'s independence for
+interrogation**: a tool runs in its own process, but the model calling it is the same session, so
+either the tool judges — needing its own model calls, credentials and bill — or the calling model
+judges, which is the session that wrote the artifact grading its own homework. **A tool call hands
+data to the reader you already have; a new process creates a new reader.**
+
+This is specific to interrogation. Everything else the gate does is deterministic, and MCP would serve
+it fine — which makes it a convenience over commands that must exist anyway.
+
+**Rejected.** MCP as the mechanism. Both with no precedence, which was the contradiction. Dropping MCP
+entirely, which loses a real future benefit for a sentence's cost.
+
+### D-27 — A blocking finding cannot be waived, by any mechanism
+
+**Why.** `D-02` had already made the waiver vestigial: acceptance existed because some blockers
+appeared to have no legal exit, and once every blocker has one, no legitimate case for waiving remains.
+**And the exit does not launder bad work** — a criterion whose proof cannot reach it is recorded under
+`Open`, so `CON_06` is satisfied, and then **verify still blocks** because every criterion must map to
+a passing test. The exit moves *where* a problem is caught, never *whether*. Some blockers have no
+open-region exit and must simply be fixed.
+
+**`CON_10` rebinds rather than retiring.** Its forbids clause applies exactly to a gate refusal's
+reason, which the ledger already requires.
+
+### D-28 — `init` has three modes, and the protected set defines what update may touch
+
+**Why.** `init` refusing when `.sdlc/` exists was correct while nothing needed refreshing, and it
+leaves a solution's scaffolding to rot across framework versions with nothing to fix it. **Update
+needs no list of exclusions: it updates what it owns, and what it owns is everything not protected.**
+
+It also closes part of the maintenance gap — when the framework version moves, something now updates
+a solution's scaffolding. The judgement half, proposing changes to constraints and the tech stack,
+remains open.
+
+### D-29 — The interrogate-refine loop is a mode of each stage skill
+
+**Why.** `D-02` requires a clean round to advance, so the stage that must reach one is the stage that
+should run the loop. And `D-16` is satisfied, because the loop stops on convergence and **hands back
+rather than claiming to be done** — so the decision to keep interrogating stays the person's.
+
+**Rejected.** A named skill of its own: an eighteenth entry and a second way to invoke one loop.
