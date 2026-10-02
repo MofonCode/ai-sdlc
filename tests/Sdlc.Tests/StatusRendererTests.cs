@@ -228,6 +228,61 @@ public sealed class StatusRendererTests
     }
 
     [TestMethod]
+    [DataRow(null, "sdlc build", "the gate is satisfied")]
+    [DataRow("pass", "sdlc land", "verified clean")]
+    [DataRow("blocked", "sdlc remediate", "a criterion is not met")]
+    [DataRow("escalated", "sdlc status", "needs a person")]
+    public async Task An_approved_cycle_is_pointed_at_the_step_its_verification_calls_for(
+        string? outcome,
+        string command,
+        string why)
+    {
+        // Telling somebody to build a cycle that has already built and verified is the panel being
+        // confidently wrong about the one thing it exists to say.
+        using var workspace = CycleWorkspace.Create();
+        workspace.WriteAllArtifacts();
+
+        foreach (ArtifactKind kind in Cycle.PlanningDocuments)
+        {
+            workspace.WriteCleanRound(kind);
+        }
+
+        workspace.WriteApproval();
+
+        if (outcome is not null)
+        {
+            workspace.WriteVerify(outcome);
+        }
+
+        string panel = await Render(workspace, ArtifactKind.Plan);
+
+        StringAssert.Contains(panel, command, panel);
+        StringAssert.Contains(panel, why, panel);
+    }
+
+    [TestMethod]
+    public async Task A_verify_document_with_an_outcome_nobody_recognises_points_back_at_verify()
+    {
+        // Rather than guessing. An outcome the panel cannot read is a verification to look at, and saying
+        // "land it" on one would be the worst possible guess.
+        using var workspace = CycleWorkspace.Create();
+        workspace.WriteAllArtifacts();
+
+        foreach (ArtifactKind kind in Cycle.PlanningDocuments)
+        {
+            workspace.WriteCleanRound(kind);
+        }
+
+        workspace.WriteApproval();
+        workspace.WriteVerify("probably fine");
+
+        string panel = await Render(workspace, ArtifactKind.Plan);
+
+        StringAssert.Contains(panel, "sdlc verify");
+        StringAssert.Contains(panel, "probably fine");
+    }
+
+    [TestMethod]
     public async Task A_shape_problem_is_shown_above_the_findings()
     {
         // A shape problem is usually why a round found what it found: an interrogation reading an

@@ -139,6 +139,38 @@ public static class StatusRenderer
         }
     }
 
+    /// <summary>
+    /// What to do once the gate is satisfied, which depends on how far the build has got.
+    /// </summary>
+    /// <remarks>
+    /// Telling somebody to build a cycle that has already built and verified is the panel being confidently
+    /// wrong about the one thing it exists to say. The verification's outcome is the only thing that
+    /// distinguishes the four states, so it is what this reads.
+    /// </remarks>
+    private static (string Command, string Why) AfterTheGate(CycleStatus status, string id) =>
+        status.Outcome switch
+        {
+            null => (
+                string.Create(CultureInfo.InvariantCulture, $"sdlc build {id}"),
+                "the gate is satisfied"),
+
+            string pass when pass.Equals("pass", StringComparison.OrdinalIgnoreCase) => (
+                string.Create(CultureInfo.InvariantCulture, $"sdlc land {id}"),
+                "verified clean"),
+
+            string blocked when blocked.Equals("blocked", StringComparison.OrdinalIgnoreCase) => (
+                string.Create(CultureInfo.InvariantCulture, $"sdlc remediate {id}"),
+                "a criterion is not met"),
+
+            string escalated when escalated.Equals("escalated", StringComparison.OrdinalIgnoreCase) => (
+                string.Create(CultureInfo.InvariantCulture, $"sdlc status {id}"),
+                "escalated - this one needs a person"),
+
+            _ => (
+                string.Create(CultureInfo.InvariantCulture, $"sdlc verify {id}"),
+                string.Create(CultureInfo.InvariantCulture, $"the outcome reads '{status.Outcome}'")),
+        };
+
     private static string GateLine(CycleStatus status) => status.Gate.Refusal switch
     {
         GateRefusal.None => "approved, and all three documents match what was approved",
@@ -199,9 +231,7 @@ public static class StatusRenderer
             }
             else if (status.Gate.MayBuild)
             {
-                next.Add((
-                    string.Create(CultureInfo.InvariantCulture, $"sdlc build {id}"),
-                    "the gate is satisfied"));
+                next.Add(AfterTheGate(status, id));
             }
             else
             {

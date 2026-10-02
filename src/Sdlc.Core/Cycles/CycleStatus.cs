@@ -74,10 +74,21 @@ public sealed record CycleStatusQuery(CycleId Id) : IRequest<CycleStatus>;
 /// <param name="Cycle">The cycle.</param>
 /// <param name="Artifacts">Each planning document's state, in chain order.</param>
 /// <param name="Gate">What the approval gate found.</param>
+/// <param name="Verify">
+/// The verify document's state, when one exists. Kept apart from <paramref name="Artifacts"/> rather than
+/// added to it: that list is the three the approval covers, and the gate's blockers and hashes are computed
+/// from it, so a fourth entry would quietly change what "approved" means.
+/// </param>
+/// <param name="Outcome">
+/// What the verification concluded, when it has. Read here so the panel can say what to do after a build
+/// rather than telling somebody to build again.
+/// </param>
 public sealed record CycleStatus(
     Cycle Cycle,
     IReadOnlyList<ArtifactState> Artifacts,
-    GateVerdict Gate)
+    GateVerdict Gate,
+    ArtifactState? Verify = null,
+    string? Outcome = null)
 {
     /// <summary>The artifact the cycle is waiting on, or null when all three are clear.</summary>
     public ArtifactState? Blocking => Artifacts.FirstOrDefault(artifact => !artifact.IsClear);
@@ -133,9 +144,58 @@ public sealed class CycleStatusHandler(string solutionRoot)
             .Handle(new ApprovalGateQuery(request.Id), cancellationToken)
             .ConfigureAwait(false);
 
-        return gate.IsFailed
-            ? gate.ToResult<CycleStatus>()
-            : Result.Ok(new CycleStatus(cycle, artifacts, gate.Value));
+        if (gate.IsFailed)
+        {
+            return gate.ToResult<CycleStatus>();
+        }
+
+        Result<ArtifactState> verify = await Read(
+            cycle,
+            ArtifactKind.Verify,
+            artifacts.Single(artifact => artifact.Kind == ArtifactKind.Plan).Hash,
+            cancellationToken).ConfigureAwait(false);
+
+        if (verify.IsFailed)
+        {
+            return verify.ToResult<CycleStatus>();
+        }
+
+        return Result.Ok(new CycleStatus(
+            cycle,
+            artifacts,
+            gate.Value,
+            verify.Value.Exists ? verify.Value : null,
+            verify.Value.Exists
+                ? await Outcome(cycle, cancellationToken).ConfigureAwait(false)
+                : null));
+    }
+
+    /// <summary>
+    /// What the verify document says its outcome was.
+    /// </summary>
+    /// <remarks>
+    /// Read with a line scan rather than a YAML parser, because this is for a panel and an unreadable
+    /// document should produce a panel that says nothing about the outcome rather than a status command that
+    /// refuses to run. The chain check reads it properly, and that is where being strict belongs.
+    /// </remarks>
+    private static async Task<string?> Outcome(Cycle cycle, CancellationToken cancellationToken)
+    {
+        Result<FrontmatterDocument> split = await Frontmatter
+            .ReadFile(cycle.PathOf(ArtifactKind.Verify), cancellationToken)
+            .ConfigureAwait(false);
+
+        if (split.IsFailed)
+        {
+            return null;
+        }
+
+        return split.Value.Yaml
+            .ReplaceLineEndings()
+            .Split(Environment.NewLine)
+            .Select(line => line.Trim())
+            .FirstOrDefault(line => line.StartsWith("outcome:", StringComparison.Ordinal))
+            ?["outcome:".Length..]
+            .Trim();
     }
 
     private static async Task<Result<ArtifactState>> Read(
