@@ -132,7 +132,7 @@ public static class Templates
             string.Empty,
             "```markdown",
             "---",
-            "framework_version: 1.0.0",
+            "framework_version: " + Cycle.FrameworkVersion,
             "cycle: 20260929_1456_32",
             "---",
             string.Empty,

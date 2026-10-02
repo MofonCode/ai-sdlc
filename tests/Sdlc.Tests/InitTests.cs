@@ -226,6 +226,20 @@ public sealed class InitTests
     }
 
     [TestMethod]
+    public void The_solution_readme_shows_the_format_version_being_stamped()
+    {
+        // The readme's example envelope is the shape a person checks their own artifact against, so a
+        // version it hardcodes is a version that is right until the format moves and wrong everywhere
+        // afterwards -- in a file already written into every solution that adopted before the change.
+        // It was a literal '1.0.0' for exactly as long as that was also the constant's value.
+        StringAssert.Contains(
+            Templates.Readme(),
+            "framework_version: " + Cycle.FrameworkVersion,
+            "The solution readme's example envelope does not show the version being stamped into "
+            + "artifacts. Interpolate Cycle.FrameworkVersion rather than writing the number.");
+    }
+
+    [TestMethod]
     public void Every_command_the_solution_readme_names_is_one_the_binary_has()
     {
         // The readme goes into every governed solution and is the first place somebody looks. A command it

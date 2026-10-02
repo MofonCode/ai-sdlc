@@ -398,12 +398,19 @@ public sealed class PluginTests
     }
 
     [TestMethod]
-    public void Every_guide_a_guide_sends_somebody_to_exists()
+    public void Every_markdown_path_a_document_names_exists()
     {
-        // The same rule one level down. These cross-reference each other heavily, and three of the four
-        // were referenced by name before any of them was written.
+        // The readme's rule applied to every document in the repository rather than only the guides.
+        // They cross-reference each other heavily, and three of the four guides were referenced by name
+        // before any of them was written.
         //
-        // A guide reference is one that carries a directory or a hyphenated name. That is not a
+        // This was scoped to docs/ and the scope was the hole: src/README.md was written as a guide,
+        // moved to src/, and carried four paths that still resolved from the directory it used to be in.
+        // Nothing failed, because nothing outside docs/ was being read. A document's links rot wherever
+        // it lives, so every .md in the tree is read now -- the two root authorities, AGENTS.md, the
+        // readmes beside the code and the reference material included.
+        //
+        // A path reference is one that carries a directory or a hyphenated name. That is not a
         // convention invented for this test: the guides are named for what they walk through, so they
         // hyphenate, while every file the framework writes is a single word -- intent.md, approval.md,
         // solution.md, techstack.md. Keying on the shape means no list of artifact names to exclude, and
@@ -411,8 +418,16 @@ public sealed class PluginTests
         string guides = Path.Combine(Root, "docs", "guides");
         Assert.IsTrue(Directory.Exists(guides), "The guides directory is gone.");
 
-        foreach (string path in Directory.EnumerateFiles(
-            Path.Combine(Root, "docs"), "*.md", SearchOption.AllDirectories))
+        string[] documents = [.. Directory
+            .EnumerateFiles(Root, "*.md", SearchOption.AllDirectories)
+            .Where(path => !Ignored(Path.GetRelativePath(Root, path)))];
+
+        Assert.IsTrue(
+            documents.Length > 20,
+            "Almost no documents were read, so this is passing by finding nothing. The tree moved or "
+            + "the exclusions are swallowing it.");
+
+        foreach (string path in documents)
         {
             string directory = Path.GetDirectoryName(path)!;
 
@@ -533,6 +548,30 @@ public sealed class PluginTests
             agents,
             "same change",
             "And say that a change to the surface updates the documents describing it, in that change.");
+    }
+
+    /// <summary>
+    /// Whether a path is build output rather than a document somebody wrote.
+    /// </summary>
+    /// <remarks>
+    /// Build output carries package readmes by the hundred, and none of them is this repository's claim
+    /// about itself. Keyed on a path segment rather than a prefix, so a new project's output is excluded
+    /// the day it appears instead of the day somebody remembers to add it.
+    /// </remarks>
+    /// <param name="relative">The path, relative to the repository root.</param>
+    /// <returns>True when the file is not a document this repository is responsible for.</returns>
+    private static bool Ignored(string relative)
+    {
+        string[] segments = relative.Split(
+            [Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar],
+            StringSplitOptions.RemoveEmptyEntries);
+
+        return segments.Any(segment =>
+            segment.Equals("bin", StringComparison.OrdinalIgnoreCase)
+            || segment.Equals("obj", StringComparison.OrdinalIgnoreCase)
+            || segment.Equals("TestResults", StringComparison.OrdinalIgnoreCase)
+            || segment.Equals("node_modules", StringComparison.OrdinalIgnoreCase)
+            || segment.StartsWith('.'));
     }
 
     private static IEnumerable<string> Skills() =>
