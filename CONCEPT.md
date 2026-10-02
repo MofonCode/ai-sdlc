@@ -918,6 +918,9 @@ already-approved plan — later.
 Generated at `init`, **per platform** — GitHub Actions or Azure Pipelines. ("Host" means the agent;
 "platform" means where the code lives.)
 
+**The Azure Pipelines template has never run against a real server** (D-32). It carries a note saying so
+in the generated file, because a pipeline nobody has run looks exactly like a gate.
+
 Every pull request builds, tests, **displays code coverage**, and runs `sdlc verify-chain`.
 
 Coverage is displayed, not enforced — no threshold. Coverlet plus ReportGenerator; Azure DevOps has a
@@ -1184,13 +1187,10 @@ block, then remediate, then exhaust the budget.
 2. **Does the no-pragma rule ship as a build check?** §11.4 keeps every suppression in
    `Directory.Build.props` with a reason and zero pragmas in source. The rule is mechanically
    checkable, so the question is whether it is worth a custom analyzer or a build-time grep.
-3. **How does the Azure DevOps adapter get exercised?** `dice-trial` has a GitHub remote and no Azure
-   DevOps one, and a second trial repository was declined. Without an answer the adapter ships
-   untested against a real server.
-4. **`CON_15`, held rather than open.** *A plan's blast radius matches what it changes* — admissible
+3. **`CON_15`, held rather than open.** *A plan's blast radius matches what it changes* — admissible
    on all three tests, and held until `tier` is in use so the constraint describes the rule rather
    than its first example.
-5. **The cross-cycle learning loop, deferred by decision.** v02 built `retro` and `absorb-retro` with
+4. **The cross-cycle learning loop, deferred by decision.** v02 built `retro` and `absorb-retro` with
    a corpus, an importer that refuses to overwrite differing content, and signals computed read-only;
    v03 removed them and recorded the cost — *"nothing aggregates automatically."* The data to
    aggregate already exists in the findings rounds. Three things to carry forward if it returns: the
@@ -1567,3 +1567,25 @@ is wrong rather than ignored.
 **Rejected.** Warning on an undeclared key instead of failing: the warning is read once and the key
 stays forever. Allowing unknown sections while policing keys, which splits one rule into two with no
 reason a reader could reconstruct.
+
+### D-32 — The Azure DevOps adapter ships unexercised, and says so
+
+**Decision.** The Azure Pipelines template and the `az repos pr create` path ship without ever having
+run against a real Azure DevOps server. The template itself carries a note saying so, and §13 and the
+README say it too. No second trial repository is created and `dice-trial` gets no Azure DevOps remote.
+
+**Why.** It is one pipeline file and one command invocation, the failure is loud and immediate, and
+nothing else in the framework depends on either. Against that, a second trial repository is a thing to
+keep alive, keep credentialed and keep in step with the first — and the cost of one person hitting a
+broken pipeline once is smaller than the cost of maintaining a repository nobody uses for anything else.
+
+**What makes this honest rather than a shortcut.** The note is in the generated file, not only in the
+concept. §2.1's rule is that a thing which appears enforced and is not is worse than one that never
+pretended, and a pipeline nobody has run is exactly that shape: it looks like a gate. So the first
+person to adopt on Azure DevOps reads, in their own repository, that this path is untried.
+
+**Rejected.** Giving `dice-trial` an Azure DevOps remote as well as its GitHub one — declined once
+already, and it makes the trial repository answer to two platforms when its job is exercising the
+cycle. A throwaway Azure DevOps project — the same maintenance in a form nobody owns. Dropping the
+Azure DevOps template until it can be tested, which would make the private half of the stack, where
+the work actually lives, the half with no pipeline.

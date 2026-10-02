@@ -291,6 +291,11 @@ public static class Templates
     /// Coverage is collected and displayed and never thresholded. A threshold gets met by testing what is
     /// easy to test.
     /// </para>
+    /// <para>
+    /// The Azure DevOps template carries a note saying it has never been run against a real server, and
+    /// that note is deliberately in the generated file rather than only in the framework's own documents --
+    /// a pipeline nobody has run looks exactly like a gate.
+    /// </para>
     /// </remarks>
     /// <param name="platform">Which platform.</param>
     /// <returns>The file's contents.</returns>
@@ -337,6 +342,15 @@ public static class Templates
         Platform.AzureDevOps => string.Join(
             Environment.NewLine,
             [
+                "# NOTE: this pipeline has never run against a real Azure DevOps server. The GitHub one",
+                "# has; this one is the same six steps written from the documentation. If the first run",
+                "# fails on syntax or on a task version, that is why -- the one line that matters is the",
+                "# last, and 'sdlc verify-chain' is what has to execute for the gate to mean anything.",
+                "#",
+                "# Said here rather than only in the framework's own notes, because a pipeline nobody has",
+                "# run looks exactly like a gate, and a check that appears to enforce and does not is",
+                "# worse than one that never pretended.",
+                string.Empty,
                 "trigger: none",
                 string.Empty,
                 "pr:",

@@ -107,8 +107,10 @@ What is honest to say about the rest:
 - **Copilot gets the hook, not yet the skills.** The adapter is tested against a captured Copilot payload;
   packaging the skills for Copilot is not done, and guessing at a format would produce files that silently
   do nothing — which is the failure mode above.
-- **The Azure DevOps adapter has no repository to be exercised against.** `CONCEPT.md` §19 carries that as
-  an open question rather than a solved problem.
+- **The Azure DevOps pipeline has never run against a real server, by decision.** It is one file and one
+  command, the failure is loud, and nothing else depends on it — so it ships with a note saying so in the
+  generated file itself, where the first person to adopt on Azure DevOps will read it. `CONCEPT.md` D-32
+  has the reasoning and what it rejected.
 
 ## Not goals
 

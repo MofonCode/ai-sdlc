@@ -279,6 +279,25 @@ public sealed class InitTests
     }
 
     [TestMethod]
+    public void The_untested_pipeline_says_so_in_the_file_it_generates()
+    {
+        // D-32. A pipeline nobody has run looks exactly like a gate, and a check that appears to enforce
+        // and does not is worse than one that never pretended -- so the caveat is in the generated file,
+        // where the first person to adopt on this platform reads it, rather than only in our own notes.
+        string ado = Templates.Pipeline(Platform.AzureDevOps);
+
+        StringAssert.Contains(ado, "never run against a real Azure DevOps server");
+        StringAssert.Contains(
+            ado,
+            "sdlc verify-chain",
+            "The caveat must not bury the one line that matters.");
+
+        Assert.IsFalse(
+            Templates.Pipeline(Platform.GitHub).Contains("never run", StringComparison.Ordinal),
+            "The GitHub pipeline has run, so claiming otherwise would be the opposite mistake.");
+    }
+
+    [TestMethod]
     public void The_agents_file_points_at_the_constraints_rather_than_restating_them()
     {
         // A copy of the rules here would be a second place they live, and the copy is always the one that
