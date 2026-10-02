@@ -9,6 +9,7 @@ using Sdlc.Core.Evidence;
 using Sdlc.Core.Findings;
 using Sdlc.Core.Git;
 using Sdlc.Core.Init;
+using Sdlc.Core.Landing;
 using Sdlc.Core.Solutions;
 
 namespace Sdlc.Core;
@@ -76,6 +77,9 @@ public static class SdlcServices
 
         services.AddTransient<IRequestHandler<NewCycleCommand, Cycle>>(
             _ => new NewCycleHandler(solutionRoot, TimeProvider.System));
+
+        services.AddTransient<IRequestHandler<LandableQuery, Landable>>(
+            _ => new LandableHandler(solutionRoot));
 
         services.AddTransient<IRequestHandler<RecordEvidenceCommand, EvidenceReport>>(
             services => new RecordEvidenceHandler(

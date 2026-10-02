@@ -28,6 +28,8 @@ internal static class Usage
             gate <id>                Say whether a cycle's build may run. Exits 1 if not.
             verify-chain <id>        Re-establish the whole chain from the repository. Exits 1 if
                                      it does not hold. This is the pull-request check.
+            landable <id> | --all    Say whether a cycle may be landed, without landing it. Exits 1
+                                     if not. With --all, lists every cycle and what each is.
             draft approval <id>      Print the gate entry for a person to paste.
             draft abandon <id>       Print the record that stops a cycle, for a person to place.
             draft constraint         Print the next free LOC_ id, with its four parts empty.

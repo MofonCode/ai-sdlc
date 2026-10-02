@@ -14,6 +14,7 @@ using Sdlc.Core.Findings;
 using Sdlc.Core.Git;
 using Sdlc.Core.Hooks;
 using Sdlc.Core.Init;
+using Sdlc.Core.Landing;
 using Sdlc.Core.Solutions;
 
 // Constraint and artifact text is passed through verbatim, so the stream has to carry what the files
@@ -47,6 +48,7 @@ try
         "constraints" => await Workspace.Run(line, w => Constraints(w, line)).ConfigureAwait(false),
         "gate" => await WithCycle(line, "gate", Gate).ConfigureAwait(false),
         "verify-chain" => await WithCycle(line, "verify-chain", VerifyChain).ConfigureAwait(false),
+        "landable" => await Landable(line).ConfigureAwait(false),
         "draft" => await Draft(line).ConfigureAwait(false),
         "status" => await WithCycle(line, "status", (w, id) => Status(w, line, id)).ConfigureAwait(false),
         "suggestions" => await Workspace.Run(line, w => Suggestions(w, line)).ConfigureAwait(false),
@@ -189,6 +191,60 @@ static async Task<int> NewCycle(Workspace workspace)
         $"Opened {cycle.Directory}. Its branch is {cycle.Id.BranchName()}; create it with 'git switch -c {cycle.Id.BranchName()}'."))
         .ConfigureAwait(false);
 
+    return ExitCode.Ok;
+}
+
+// Whether a cycle may be landed, without landing it. Pushing and opening the pull request is the land
+// skill's, because it needs the platform's own tool and a sentence a person wrote; what the binary owns is
+// the refusal, which has to be the same whether one cycle is landed or eight.
+static async Task<int> Landable(CommandLine line)
+{
+    if (!line.HasOption("all"))
+    {
+        return await WithCycle(line, "landable", async (workspace, id) =>
+        {
+            Result<Landable> result = await workspace
+                .Send<LandableQuery, Landable>(new LandableQuery(id))
+                .ConfigureAwait(false);
+
+            if (result.IsFailed)
+            {
+                return await Report(result, ExitCode.Failed).ConfigureAwait(false);
+            }
+
+            await Console.Out.WriteAsync(LandRenderer.Render(result.Value)).ConfigureAwait(false);
+            return result.Value.MayLand ? ExitCode.Ok : ExitCode.Refused;
+        }).ConfigureAwait(false);
+    }
+
+    return await Workspace.Run(line, Sweep).ConfigureAwait(false);
+}
+
+// Every cycle is examined, and every one is listed -- landable or not. A list of only the eligible ones
+// hides the surprise that matters most: a cycle from last week still sitting there verified, which the
+// sweep picks up because every passed cycle is eligible.
+static async Task<int> Sweep(Workspace workspace)
+{
+    List<Landable> candidates = [];
+
+    foreach (Cycle cycle in CycleIndex.All(workspace.SolutionRoot))
+    {
+        Result<Landable> result = await workspace
+            .Send<LandableQuery, Landable>(new LandableQuery(cycle.Id))
+            .ConfigureAwait(false);
+
+        if (result.IsFailed)
+        {
+            return await Report(result, ExitCode.Failed).ConfigureAwait(false);
+        }
+
+        candidates.Add(result.Value);
+    }
+
+    await Console.Out.WriteAsync(LandRenderer.RenderSweep(candidates)).ConfigureAwait(false);
+
+    // Zero whether or not anything is landable. Nothing refused here; a sweep over a tidy solution with
+    // nothing ready is a correct answer rather than a failure.
     return ExitCode.Ok;
 }
 
