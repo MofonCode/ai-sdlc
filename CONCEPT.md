@@ -935,8 +935,16 @@ profile actually wants enforced needs a fitness function beside it.
 `Directory.Packages.props` fragments, project templates, app host run-mode defaults, pipeline
 templates, and its own `PRO_nn`.
 
-Profiles are **NuGet packages** — versioned, restorable, identical to consume from nuget.org for the
-public one and from an Azure Artifacts feed for the private one.
+**`dotnet-default` is carried by the binary; any other profile is a NuGet package** — D-33. The
+default has to work on a machine with no feed configured and no network, because it is what adoption
+uses, and a restore that can fail is a first command that can fail. Everything beyond the default is
+restorable, versioned, from nuget.org for a public profile and an Azure Artifacts feed for a private
+one — which is the mechanism the `mofoncode` profile needs and the default does not.
+
+The cost, named: a change to `dotnet-default` is a release of the binary rather than of a package. That
+is the right way round. The default is the thing every solution starts from, so it moves rarely and in
+step with the gate that reads it; a profile that wants its own cadence is exactly the case the package
+mechanism is for.
 
 **Versions are resolved at `init` and recorded, never guessed in a document:** take the latest stable
 release compatible with the target framework, write it into `Directory.Packages.props`, and let the
@@ -1663,3 +1671,37 @@ already, and it makes the trial repository answer to two platforms when its job 
 cycle. A throwaway Azure DevOps project — the same maintenance in a form nobody owns. Dropping the
 Azure DevOps template until it can be tested, which would make the private half of the stack, where
 the work actually lives, the half with no pipeline.
+
+### D-33 — The default profile is carried by the binary; every other profile is a package
+
+**Decision.** `dotnet-default` ships inside the gate binary, as the pipeline templates already do, and
+`init` writes its files directly. The NuGet mechanism in §11.5 stands for every other profile — a
+private house profile, a profile for another stack — and those are restorable and versioned on their
+own cadence.
+
+**Why.** The two halves of a profile reach a solution differently and only one of them can be a
+package today. Prose defaults are *extracted and injected* into a plan, because a session inside a
+governed solution cannot read a file that lives in the plugin. But `.editorconfig`,
+`Directory.Build.props`, `Directory.Packages.props`, `global.json` and a `BannedSymbols.txt` have to
+physically land in the repository at adoption, and there is no published feed — the README says so.
+A default profile that needed a restore would make `sdlc init` a first command that can fail on a
+machine with no feed configured, for the one profile every solution starts from.
+
+**What it costs.** A change to `dotnet-default` is a release of the binary rather than of a package,
+so the default cannot move independently of the gate. That is the right way round: the default is what
+every solution starts from, so it should move rarely and in step with the thing that reads it. A
+profile wanting its own cadence is precisely the case the package mechanism exists for, and it keeps
+that case open rather than closing it.
+
+**Rejected.** *Profiles are packages, including the default* — §11.5 as written, and it cannot be
+built today: no feed exists, and adoption would acquire a failure mode in its first command. *Templates
+in the binary, full stop* — simpler, and it closes the door on a private profile with its own release
+cycle, which is the whole reason the private half exists. *A profile as a git submodule or a cloned
+directory* — no versioning, and it puts a network dependency in the same place while being harder to
+reason about than a package.
+
+**The honest part.** §11.5 claimed something untrue, and the claim was load-bearing: it is what made
+the profile package look like the next thing to build. Writing the files from the binary is what
+actually unblocks `init` scaffolding a solution, which is what every stated convention — sealed types,
+an internal data context, validation through the pipeline, one way out of an error boundary — needs in
+order to be enforced by anything.

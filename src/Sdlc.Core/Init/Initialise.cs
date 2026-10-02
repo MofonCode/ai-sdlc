@@ -181,6 +181,32 @@ public static class Initialise
                 actions,
                 cancellationToken).ConfigureAwait(false);
 
+            // The stack files, and only into a solution being shaped. An adopted repository keeps its
+            // own conventions: the profile proposes a shape for new work and never rewrites one that
+            // predates it, and shipping these with a baseline of an existing solution's violations is
+            // the non-goal that constraints already answer by carrying no baseline field.
+            //
+            // Written by the binary rather than restored from a package -- D-33. Adoption has to work
+            // with no feed configured and no network, because a default profile that needed a restore
+            // would make the first command one that can fail.
+            //
+            // Created once and never rewritten, including by update. These are a person's to amend, and
+            // a cycle that changes one is a cycle like any other.
+            if (origin == SolutionOrigin.Scaffolded)
+            {
+                foreach ((string path, string contents) in (ValueTuple<string, string>[])
+                [
+                    (".editorconfig", Templates.EditorConfig()),
+                    ("Directory.Build.props", Templates.BuildProps()),
+                    ("Directory.Packages.props", Templates.PackageProps()),
+                    ("global.json", Templates.GlobalJson()),
+                    (Path.Combine("tests", "Directory.Build.props"), Templates.TestBuildProps()),
+                ])
+                {
+                    await Once(path, contents, actions, cancellationToken).ConfigureAwait(false);
+                }
+            }
+
             // Written under .sdlc rather than into .git/hooks, because .git is not tracked -- a hook written
             // there would exist on one machine and silently not on anybody else's, which is the shape of
             // enforcement this design is written against. The person installs it, and init says how.

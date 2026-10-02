@@ -543,6 +543,293 @@ public static class Templates
             ]);
     }
 
+    /// <summary>
+    /// The code-style rules a scaffolded solution starts from.
+    /// </summary>
+    /// <remarks>
+    /// <para>Deliberately shorter than this repository's own. A template a consumer has to read should
+    /// carry the rules that bind and not every preference that merely nudges, because a two-hundred-line
+    /// file nobody reads is a file nobody can be held to.</para>
+    /// <para><strong>The naming section decides nothing at build time, and says so in the file.</strong>
+    /// Naming surfaces as <c>IDE1006</c>, which <c>EnforceCodeStyleInBuild</c> does not cover. The
+    /// architecture test project scaffolded beside it is what makes those rules real, so the comment
+    /// points at it rather than letting a reader assume the build is checking.</para>
+    /// </remarks>
+    /// <returns>The file's contents.</returns>
+    public static string EditorConfig() => string.Join(
+        Environment.NewLine,
+        [
+            "# Written by 'sdlc init' from the dotnet-default profile. Yours to amend: a cycle that",
+            "# changes it is a cycle like any other, and the diff is the record.",
+            "#",
+            "# WHAT ENFORCES WHAT, because this is the thing most easily assumed wrong:",
+            "#   formatting and style  -> the build, via EnforceCodeStyleInBuild + warnings as errors",
+            "#   naming                -> NOTHING here. Naming is IDE1006, which EnforceCodeStyleInBuild",
+            "#                            does not cover, so these rules guide an editor and decide no",
+            "#                            build. The architecture test project is what enforces them.",
+            string.Empty,
+            "root = true",
+            string.Empty,
+            "[*]",
+            "indent_style = space",
+            "indent_size = 4",
+            "charset = utf-8",
+            "trim_trailing_whitespace = true",
+            "insert_final_newline = true",
+            string.Empty,
+            "[*.{cs,csx}]",
+            string.Empty,
+            "# One namespace per file, declared without a block.",
+            "csharp_style_namespace_declarations = file_scoped:warning",
+            string.Empty,
+            "# Explicit types, except where the right-hand side already names the type.",
+            "csharp_style_var_for_built_in_types = false:warning",
+            "csharp_style_var_when_type_is_apparent = true:warning",
+            "csharp_style_var_elsewhere = false:warning",
+            string.Empty,
+            "# Collection expressions and target-typed new.",
+            "dotnet_style_prefer_collection_expression = true:warning",
+            "dotnet_style_prefer_simplified_object_creation = true:warning",
+            string.Empty,
+            "# Formatting is a build concern. IDE0055 defaults to silent, so without this line",
+            "# EnforceCodeStyleInBuild enforces no formatting at all - a trailing space then survives",
+            "# every green build and every CI gate.",
+            "dotnet_diagnostic.IDE0055.severity = error",
+            string.Empty,
+            "# Sealing by default. CA1852 reaches internal types only; the architecture test covers the",
+            "# public ones, because no analyzer does.",
+            "dotnet_diagnostic.CA1852.severity = error",
+            string.Empty,
+            "# NAMING. Guides an editor; enforced by the architecture test project, not by the build.",
+            "# The shape of it is that accessibility is visible in the name: an underscore means state on",
+            "# this instance, camelCase means private to the type, PascalCase means reachable outside it.",
+            string.Empty,
+            "# Private fields, instance and static: _camelCase",
+            "dotnet_naming_rule.private_fields_are_underscore_camel.severity = warning",
+            "dotnet_naming_rule.private_fields_are_underscore_camel.symbols = private_fields",
+            "dotnet_naming_rule.private_fields_are_underscore_camel.style = underscore_camel",
+            "dotnet_naming_symbols.private_fields.applicable_kinds = field",
+            "dotnet_naming_symbols.private_fields.applicable_accessibilities = private, private_protected",
+            "dotnet_naming_style.underscore_camel.required_prefix = _",
+            "dotnet_naming_style.underscore_camel.capitalization = camel_case",
+            string.Empty,
+            "# Constants: PascalCase, no prefix. A constant is a value rather than state.",
+            "dotnet_naming_rule.constants_are_pascal.severity = warning",
+            "dotnet_naming_rule.constants_are_pascal.symbols = constants",
+            "dotnet_naming_rule.constants_are_pascal.style = pascal",
+            "dotnet_naming_symbols.constants.applicable_kinds = field",
+            "dotnet_naming_symbols.constants.required_modifiers = const",
+            "dotnet_naming_style.pascal.capitalization = pascal_case",
+            string.Empty,
+            "# Private methods: camelCase",
+            "dotnet_naming_rule.private_methods_are_camel.severity = warning",
+            "dotnet_naming_rule.private_methods_are_camel.symbols = private_methods",
+            "dotnet_naming_rule.private_methods_are_camel.style = camel",
+            "dotnet_naming_symbols.private_methods.applicable_kinds = method",
+            "dotnet_naming_symbols.private_methods.applicable_accessibilities = private, private_protected",
+            "dotnet_naming_style.camel.capitalization = camel_case",
+            string.Empty,
+            "# A private NESTED TYPE is not covered, and stays PascalCase. camelCase is not available to",
+            "# it: CS8981 reserves an all-lower-case type name for the language, and it fires on one word",
+            "# and not on two - so 'handler' is refused where 'ledgerShape' is accepted, and a rule that",
+            "# covers some type names and not others is not a rule.",
+            string.Empty,
+            "# Everything reachable from outside its type: PascalCase",
+            "dotnet_naming_rule.public_members_are_pascal.severity = warning",
+            "dotnet_naming_rule.public_members_are_pascal.symbols = public_members",
+            "dotnet_naming_rule.public_members_are_pascal.style = pascal",
+            "dotnet_naming_symbols.public_members.applicable_kinds = method, property, event, class, struct, enum, delegate, namespace",
+            "dotnet_naming_symbols.public_members.applicable_accessibilities = public, internal, protected, protected_internal",
+            string.Empty,
+            "# Interfaces: IPascalCase. Type parameters: TPascalCase.",
+            "dotnet_naming_rule.interfaces_are_prefixed.severity = warning",
+            "dotnet_naming_rule.interfaces_are_prefixed.symbols = interfaces",
+            "dotnet_naming_rule.interfaces_are_prefixed.style = interface_style",
+            "dotnet_naming_symbols.interfaces.applicable_kinds = interface",
+            "dotnet_naming_style.interface_style.required_prefix = I",
+            "dotnet_naming_style.interface_style.capitalization = pascal_case",
+            string.Empty,
+            "dotnet_naming_rule.type_parameters_are_prefixed.severity = warning",
+            "dotnet_naming_rule.type_parameters_are_prefixed.symbols = type_parameters",
+            "dotnet_naming_rule.type_parameters_are_prefixed.style = type_parameter_style",
+            "dotnet_naming_symbols.type_parameters.applicable_kinds = type_parameter",
+            "dotnet_naming_style.type_parameter_style.required_prefix = T",
+            "dotnet_naming_style.type_parameter_style.capitalization = pascal_case",
+            string.Empty,
+            "# Locals and parameters: camelCase",
+            "dotnet_naming_rule.locals_are_camel.severity = suggestion",
+            "dotnet_naming_rule.locals_are_camel.symbols = locals",
+            "dotnet_naming_rule.locals_are_camel.style = camel",
+            "dotnet_naming_symbols.locals.applicable_kinds = parameter, local",
+            string.Empty,
+            "[*.{xml,json,yaml,yml,csproj,props,targets,slnx}]",
+            "indent_size = 2",
+            string.Empty,
+        ]);
+
+    /// <summary>
+    /// The build settings a scaffolded solution starts from.
+    /// </summary>
+    /// <remarks>
+    /// <c>latest-recommended</c> rather than the <c>latest-all</c> this repository runs on itself,
+    /// because that is the level <c>MofonCode.Core</c> validated for application work.
+    /// <c>WarningsNotAsErrors</c> is empty on purpose, so an exception is one visible line in this file
+    /// rather than a pragma in source -- and a pragma in source is what the architecture test refuses.
+    /// </remarks>
+    /// <returns>The file's contents.</returns>
+    public static string BuildProps() => string.Join(
+        Environment.NewLine,
+        [
+            "<Project>",
+            string.Empty,
+            "  <!-- Written by 'sdlc init' from the dotnet-default profile. Yours to amend. -->",
+            string.Empty,
+            "  <PropertyGroup>",
+            "    <TargetFramework>net10.0</TargetFramework>",
+            "    <LangVersion>latest</LangVersion>",
+            "    <Nullable>enable</Nullable>",
+            "    <ImplicitUsings>enable</ImplicitUsings>",
+            string.Empty,
+            "    <!-- A build carries no warnings. WarningsNotAsErrors is deliberately empty, so an",
+            "         exception is one visible line here with its reason rather than a pragma buried in",
+            "         source - and a pragma in source is what the architecture tests refuse outright. -->",
+            "    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>",
+            "    <WarningsNotAsErrors></WarningsNotAsErrors>",
+            "    <AnalysisLevel>latest-recommended</AnalysisLevel>",
+            "    <AnalysisModeSecurity>All</AnalysisModeSecurity>",
+            "    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>",
+            string.Empty,
+            "    <!-- A vulnerable dependency fails the build. 'moderate' rather than the SDK's 'low':",
+            "         low-severity advisories on transitive packages are noise a team learns to ignore,",
+            "         and a gate people ignore is worse than no gate. -->",
+            "    <NuGetAudit>true</NuGetAudit>",
+            "    <NuGetAuditMode>all</NuGetAuditMode>",
+            "    <NuGetAuditLevel>moderate</NuGetAuditLevel>",
+            string.Empty,
+            "    <!-- MSTest on Microsoft.Testing.Platform needs this AND the 'test' runner section in",
+            "         global.json. Without both, 'dotnet test' falls back to VSTest, the platform refuses",
+            "         that path, and the command exits zero having run nothing - which reads as a clean",
+            "         run. It lives here rather than in a test project so a project added later cannot",
+            "         quietly run a different runner. Do not set TestingPlatformDotnetTestSupport: that is",
+            "         the .NET 9 mechanism, and setting it instead is what produced exactly that silent",
+            "         zero-test pass in a trial cycle. -->",
+            "    <EnableMSTestRunner>true</EnableMSTestRunner>",
+            "  </PropertyGroup>",
+            string.Empty,
+            "</Project>",
+            string.Empty,
+        ]);
+
+    /// <summary>
+    /// Central package management, with the versions this release of the gate builds against.
+    /// </summary>
+    /// <remarks>
+    /// The concept asks for versions resolved at adoption rather than guessed in a document. Resolving
+    /// needs a feed and a network, which adoption deliberately does not require (D-33), so these are
+    /// the versions the gate itself builds against at this release: a known-good set rather than a
+    /// guess, and a failed restore is the check. A cycle that moves one records it in the diff.
+    /// </remarks>
+    /// <returns>The file's contents.</returns>
+    public static string PackageProps() => string.Join(
+        Environment.NewLine,
+        [
+            "<Project>",
+            string.Empty,
+            "  <!-- Written by 'sdlc init' from the dotnet-default profile. A new package reference is a",
+            "       deliberate act: it is added here with its version, and the diff records it. -->",
+            string.Empty,
+            "  <PropertyGroup>",
+            "    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>",
+            "    <CentralPackageTransitivePinningEnabled>true</CentralPackageTransitivePinningEnabled>",
+            "  </PropertyGroup>",
+            string.Empty,
+            "  <ItemGroup>",
+            "    <!-- The versions this release of the gate builds against, rather than resolved from a",
+            "         feed: adoption needs no network, so a known-good set beats a guess and a failed",
+            "         restore is the check. -->",
+            "    <PackageVersion Include=\"MSTest\" Version=\"4.4.1\" />",
+            "    <PackageVersion Include=\"Microsoft.Extensions.DependencyInjection\" Version=\"10.0.12\" />",
+            "  </ItemGroup>",
+            string.Empty,
+            "</Project>",
+            string.Empty,
+        ]);
+
+    /// <summary>
+    /// The handful of analyzer rules a test project needs relaxed.
+    /// </summary>
+    /// <remarks>
+    /// <para><strong>Found by running it.</strong> With the analyzer policy and no relaxations, a
+    /// scaffolded solution cannot write its first test: <c>CA1707</c> refuses
+    /// <c>Rolls_within_one_and_six</c> and <c>CA1305</c> refuses a bare <c>ToString()</c> inside an
+    /// assertion. A profile that shipped the policy without this would make every consumer rediscover
+    /// the same five exceptions.</para>
+    /// <para>Each one argues against something a suite does on purpose, and each says so, because the
+    /// policy's own rule is that an exception is a visible line with its reason. The import matters as
+    /// much: a <c>Directory.Build.props</c> in a subdirectory shadows the one above it, so without it a
+    /// test project silently loses the target framework, the analyzer level and warnings-as-errors all
+    /// at once.</para>
+    /// </remarks>
+    /// <returns>The file's contents.</returns>
+    public static string TestBuildProps() => string.Join(
+        Environment.NewLine,
+        [
+            "<Project>",
+            string.Empty,
+            "  <!-- Written by 'sdlc init' from the dotnet-default profile. Yours to amend. -->",
+            string.Empty,
+            "  <!-- Inherit rather than replace: a Directory.Build.props in a subdirectory shadows the",
+            "       one above it, so without this import a test project loses the target framework, the",
+            "       analyzer level and warnings-as-errors all at once. -->",
+            "  <Import Project=\"$([MSBuild]::GetPathOfFileAbove('Directory.Build.props', '$(MSBuildThisFileDirectory)../'))\" />",
+            string.Empty,
+            "  <PropertyGroup>",
+            "    <IsPackable>false</IsPackable>",
+            string.Empty,
+            "    <!-- Warnings stay errors here. These five are relaxed for test code only, each because",
+            "         it argues against something a suite does on purpose.",
+            string.Empty,
+            "         CA1707 - underscores in member names. A test name is a sentence stating what must",
+            "                  be true, and the failure output is that sentence.",
+            "         CA1515 - types could be internal. MSTest discovers public test classes.",
+            "         CA1307 - StringComparison on a comparison. Correct in production string handling",
+            "                  and noise inside an assertion, where a failing test is read rather than",
+            "                  relied on by a caller.",
+            "         CA1305 - IFormatProvider on a ToString. Same reason: an assertion message is read",
+            "                  by whoever broke the test, not formatted for a user.",
+            "         CA2007 - ConfigureAwait on an await. There is no synchronization context to",
+            "                  capture in a test host, so the call conveys nothing. -->",
+            "    <NoWarn>$(NoWarn);CA1707;CA1515;CA1307;CA1305;CA2007</NoWarn>",
+            "  </PropertyGroup>",
+            string.Empty,
+            "</Project>",
+            string.Empty,
+        ]);
+
+    /// <summary>
+    /// The pinned SDK and the test runner.
+    /// </summary>
+    /// <remarks>
+    /// The <c>test</c> section is half of a pair: without it and <c>EnableMSTestRunner</c> in
+    /// <c>Directory.Build.props</c>, <c>dotnet test</c> exits zero having run nothing, which reads as a
+    /// clean run. A trial cycle lost its whole verification to exactly that.
+    /// </remarks>
+    /// <returns>The file's contents.</returns>
+    public static string GlobalJson() => string.Join(
+        Environment.NewLine,
+        [
+            "{",
+            "  \"sdk\": {",
+            "    \"version\": \"10.0.100\",",
+            "    \"rollForward\": \"latestFeature\"",
+            "  },",
+            "  \"test\": {",
+            "    \"runner\": \"Microsoft.Testing.Platform\"",
+            "  }",
+            "}",
+            string.Empty,
+        ]);
+
     private static readonly string[] _scaffolded =
     [
         "## Defaults",

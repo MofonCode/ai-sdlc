@@ -1,4 +1,5 @@
 using System.Text.Json.Nodes;
+using System.Xml.Linq;
 using FluentResults;
 using Microsoft.Extensions.DependencyInjection;
 using Sdlc.Core.Artifacts;
@@ -266,6 +267,126 @@ public sealed class InitTests
                 verb,
                 $"The solution readme names 'sdlc {verb}', which the usage text does not list.");
         }
+    }
+
+    [TestMethod]
+    public async Task A_scaffolded_solution_gets_the_stack_files_and_an_adopted_one_gets_none()
+    {
+        // D-33: the default profile is carried by the binary, so adoption needs no feed and no
+        // network. And origin decides whether it binds - an adopted repository keeps its own
+        // conventions, because the profile proposes a shape for new work and never rewrites one that
+        // predates it.
+        string[] stack =
+        [
+            ".editorconfig",
+            "Directory.Build.props",
+            "Directory.Packages.props",
+            "global.json",
+            Path.Combine("tests", "Directory.Build.props"),
+        ];
+
+        using var fresh = Scratch.Create();
+        await Adopt(fresh, tracked: []);
+
+        foreach (string file in stack)
+        {
+            Assert.IsTrue(
+                File.Exists(Path.Combine(fresh.Root, file)),
+                file + " is what makes a stated convention enforceable, so a scaffolded solution starts with it.");
+        }
+
+        using var existing = Scratch.Create();
+        await Adopt(existing, tracked: ["src/App/Program.cs"]);
+
+        foreach (string file in stack)
+        {
+            Assert.IsFalse(
+                File.Exists(Path.Combine(existing.Root, file)),
+                file + " would rewrite the conventions of a codebase that predates the framework.");
+        }
+    }
+
+    [TestMethod]
+    public async Task A_stack_file_a_person_amended_is_not_rewritten_by_update()
+    {
+        // These are a person's to amend. Update refreshes what the framework owns, and it does not own
+        // the rules a team has since argued about.
+        using var solution = Scratch.Create();
+        await Adopt(solution, tracked: []);
+
+        string path = Path.Combine(solution.Root, ".editorconfig");
+        await File.WriteAllTextAsync(path, "root = true\n\n# ours now\n");
+
+        Initialise.Response report = await Adopt(solution, tracked: []);
+
+        Assert.AreEqual(
+            Initialise.InitChange.Kept,
+            report.Actions.Single(action => action.Path == ".editorconfig").Change);
+
+        StringAssert.Contains(await File.ReadAllTextAsync(path), "# ours now");
+    }
+
+    [TestMethod]
+    public void The_generated_stack_is_well_formed_and_carries_the_pair_that_silently_breaks_a_run()
+    {
+        // The runner needs EnableMSTestRunner and the global.json test section together. With one of
+        // them, 'dotnet test' exits zero having run nothing, which reads as a clean run - and a trial
+        // cycle lost its whole verification to exactly that. So both halves are asserted here, where a
+        // reader can see they are a pair.
+        Assert.IsNotNull(XDocument.Parse(Templates.BuildProps()));
+        Assert.IsNotNull(XDocument.Parse(Templates.PackageProps()));
+        Assert.IsNotNull(JsonNode.Parse(Templates.GlobalJson()));
+
+        StringAssert.Contains(Templates.BuildProps(), "<EnableMSTestRunner>true</EnableMSTestRunner>");
+        Assert.AreEqual(
+            "Microsoft.Testing.Platform",
+            JsonNode.Parse(Templates.GlobalJson())!["test"]!["runner"]!.GetValue<string>());
+
+        // The element, not the word: the file names the property in a comment warning against it, and
+        // asserting on the bare name catches the warning rather than the mistake.
+        Assert.IsFalse(
+            Templates.BuildProps().Contains("<TestingPlatformDotnetTestSupport>", StringComparison.Ordinal),
+            "That is the .NET 9 mechanism, and setting it instead of EnableMSTestRunner is what "
+            + "produced the silent zero-test pass.");
+    }
+
+    [TestMethod]
+    public void A_test_project_can_write_its_first_test_under_the_generated_policy()
+    {
+        // Found by running it rather than by reading it: with the analyzer policy and no relaxations,
+        // CA1707 refuses Rolls_within_one_and_six and CA1305 refuses a bare ToString() in an
+        // assertion, so a scaffolded solution could not write the test its own plan named. A profile
+        // shipping the policy without these would make every consumer rediscover the same five.
+        string props = Templates.TestBuildProps();
+
+        Assert.IsNotNull(XDocument.Parse(props));
+
+        foreach (string rule in (string[])["CA1707", "CA1515", "CA1307", "CA1305", "CA2007"])
+        {
+            StringAssert.Contains(props, rule, rule + " is relaxed for test code, and says why.");
+        }
+
+        StringAssert.Contains(
+            props,
+            "GetPathOfFileAbove",
+            "A Directory.Build.props in a subdirectory shadows the one above it, so without the import "
+            + "a test project silently loses the framework, the analyzer level and warnings-as-errors.");
+    }
+
+    [TestMethod]
+    public void The_generated_editorconfig_says_what_does_not_enforce_its_naming_rules()
+    {
+        // The rules are there to guide an editor, and EnforceCodeStyleInBuild does not cover IDE1006.
+        // A file that stated them without saying so would be the directory that appears enforced and
+        // is not, in the one place a reader goes to find out what binds them.
+        string text = Templates.EditorConfig();
+
+        StringAssert.Contains(text, "dotnet_naming_rule.private_fields_are_underscore_camel");
+        StringAssert.Contains(text, "dotnet_naming_rule.private_methods_are_camel");
+        StringAssert.Contains(text, "dotnet_diagnostic.IDE0055.severity = error");
+
+        StringAssert.Contains(text, "IDE1006");
+        StringAssert.Contains(text, "architecture test");
     }
 
     [TestMethod]
