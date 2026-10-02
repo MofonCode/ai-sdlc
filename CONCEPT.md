@@ -837,6 +837,65 @@ it out of habit.
 an `adopted` solution **the existing standard wins.** The profile proposes a shape for new work and
 never rewrites the conventions of a codebase that predates it.
 
+That extends to what the profile *writes*: an `.editorconfig`, a `BannedSymbols.txt` and a fitness
+function are only written into a scaffolded solution. The alternative — shipping them with a baseline of
+the adopted solution's existing violations — is a non-goal (§18) for the same reason constraints carry
+no baseline field (§8.3): an existing repository is not in violation on its first day. A convention is
+nearly free to declare and expensive to apply to code that predates it, so the cost belongs with
+whoever plans the move rather than with adoption.
+
+### 11.3.1 The shape of one operation
+
+Settled by building it. **One static holder per application operation, named for the operation**, with
+everything that operation owns inside it:
+
+```csharp
+public static class ApprovalGate
+{
+    public static IServiceCollection AddApprovalGateRequestHandler(this IServiceCollection services) => …
+
+    public enum GateRefusal { … }
+    public sealed record Response(…);
+    public sealed record Query(CycleId Id) : IRequest<Response>;
+
+    private sealed class Handler(SolutionRoot solution) : IRequestHandler<Query, Response> { … }
+}
+```
+
+A caller writes `new ApprovalGate.Query(id)` and gets back `ApprovalGate.Response`. Four things about it
+are load-bearing rather than stylistic:
+
+- **`Query` or `Command`**, so the call site says which kind of operation it is without anyone checking
+  the handler.
+- **The handler is `private`.** Nothing in the program can name it, so the mediator is the only way in
+  and no caller can skip the behaviour pipeline. This is also why **the registration lives inside the
+  holder**: a registration written anywhere else could not name a private type. Self-registration is
+  part of the shape, not a preference.
+- **Every handler is registered by type, with nothing captured in a closure.** That requires the
+  container to be able to supply everything a handler takes — a solution root has to be a type rather
+  than a `string` parameter. While it was a string, fourteen of the gate's own registrations were
+  factories closing over it and two also closed over the clock, so no caller could substitute a clock
+  at all.
+- **A response nests with the query that produces it**, and so do the records and enums that exist only
+  to describe it. The exception is a response that is a shared type rather than one operation's payload
+  — a core domain entity, or a result four operations produce and one renderer reads. Those stay
+  top-level, because `GetBundle.Response` says less than a name that already says what the thing is.
+
+**What it costs, stated rather than discovered later.** `CA1034` forbids a publicly visible nested type
+and `CA1812` cannot see a handler the container instantiates by reflection, so both are suppressed in
+`Directory.Build.props` with their reasons. Neither fires at `latest-recommended`, so a consumer on the
+profile's own analysis level pays nothing; the cost belongs to a repository running `latest-all`.
+
+**A nested handler cannot construct another operation's handler**, which is a forcing function rather
+than a limitation: it dispatches through the mediator instead, so the behaviour pipeline applies to the
+nested call where a direct construction skipped it.
+
+**Private nested types stay PascalCase.** camelCase was tried and the compiler refused it — `CS8981`
+reserves an all-lower-case type name for the language. It could not have been a convention either: the
+warning fires on one word and not on two, so `handler` is refused where `ledgerShape` is accepted, and a
+rule that covers some type names and not others is not a rule. Private methods and fields carry the
+accessibility-in-the-name convention instead.
+
 ### 11.4 The analyzer policy every profile ships
 
 **CI builds carry no warnings.**
@@ -857,6 +916,18 @@ never rewrites the conventions of a codebase that predates it.
 - **Every suppression lives in `Directory.Build.props` with its reason**, never as a pragma in source.
 - **`EnforceCodeStyleInBuild` makes formatting a build concern**, so a CI formatting gate never fails
   a cycle after its work is done.
+
+**The no-pragma rule is a fitness function, not an analyzer.** It was an open question and is
+answered: a test that reads every source file and fails on `#pragma warning disable` costs one method,
+and a custom analyzer would have cost a project, a diagnostic id and a packaging story for the same
+decision. The rule's own first run reported its own source, because a rule that names the construct it
+forbids necessarily contains it — composing the token rather than exempting the file was the fix, since
+an exemption would have been the one place the rule could not see.
+
+**`EnforceCodeStyleInBuild` does not cover naming.** Naming surfaces as `IDE1006`, which is IDE-only,
+so the naming section of an `.editorconfig` decides nothing at build time — nineteen fields in this
+repository broke its own rule while the build reported zero warnings. Anything in that section a
+profile actually wants enforced needs a fitness function beside it.
 
 ### 11.5 What a profile is
 
@@ -1181,16 +1252,19 @@ block, then remediate, then exhaust the budget.
 
 ## 19. Open questions
 
-1. **Which `PRO_nn` conventions become analyzers?** §11.3 establishes that nothing decides them
-   today and each splits in two. One-folder-per-feature is almost entirely mechanical and is the
-   obvious first. Needs the kernel's analyzers read, not a decision taken.
-2. **Does the no-pragma rule ship as a build check?** §11.4 keeps every suppression in
-   `Directory.Build.props` with a reason and zero pragmas in source. The rule is mechanically
-   checkable, so the question is whether it is worth a custom analyzer or a build-time grep.
-3. **`CON_15`, held rather than open.** *A plan's blast radius matches what it changes* — admissible
+1. **Which `PRO_nn` conventions become analyzers?** Narrowed from three to two, and the blocker is
+   gone: the kernel has been read and it ships no analyzers (§11.3). **Mediator dispatch no longer
+   needs one** — a handler is private inside its holder (§11.3.1), so nothing can reach past the
+   mediator and encapsulation decides it for free. What remains is one-folder-per-feature, which is
+   almost entirely mechanical, and results-not-exceptions, whose decidable half is a handler's return
+   type and whose judgement half is whether an operation can fail at all. The question is now narrower
+   than "analyzer or not": a fitness function over the assemblies decides the mechanical part of both
+   with no analyzer project, no diagnostic ids and no packaging — which is what the no-pragma rule
+   turned out to want when it was built (§11.4).
+2. **`CON_15`, held rather than open.** *A plan's blast radius matches what it changes* — admissible
    on all three tests, and held until `tier` is in use so the constraint describes the rule rather
    than its first example.
-4. **The cross-cycle learning loop, deferred by decision.** v02 built `retro` and `absorb-retro` with
+3. **The cross-cycle learning loop, deferred by decision.** v02 built `retro` and `absorb-retro` with
    a corpus, an importer that refuses to overwrite differing content, and signals computed read-only;
    v03 removed them and recorded the cost — *"nothing aggregates automatically."* The data to
    aggregate already exists in the findings rounds. Three things to carry forward if it returns: the
