@@ -470,6 +470,71 @@ public sealed class PluginTests
             "The skill names the Azure DevOps command, so it has to say the path is untried.");
     }
 
+    [TestMethod]
+    public void Every_path_agents_md_links_to_exists_with_the_case_it_states()
+    {
+        // The readme's rule pointed at the file a session reads before it knows anything else. A dead
+        // link here is worse than one in a guide: the reader is deciding where to look, and it will not
+        // report that the map it was handed is wrong -- it will look somewhere else and work from
+        // recollection, which is the state this whole repository is written against.
+        //
+        // The capitalisation is asserted as well as the existence, and not because of the filesystem --
+        // .gitattributes records that this repository is Windows-only by design, so a clone resolves
+        // 'Concept.md' happily. It is because the web does not: a relative link is resolved
+        // case-sensitively when the file is rendered on the host, so a link that works in every editor
+        // here is dead for the reader who met this repository through a browser. That reader is the one
+        // with the least context to recover from it.
+        string agents = File.ReadAllText(Path.Combine(Root, "AGENTS.md"));
+
+        string[] targets = [.. System.Text.RegularExpressions.Regex
+            .Matches(agents, @"\]\((?<path>[^)\s#]+)\)")
+            .Select(match => match.Groups["path"].Value)
+            .Where(path => !path.StartsWith("http", StringComparison.OrdinalIgnoreCase))
+            .Distinct(StringComparer.Ordinal)];
+
+        Assert.IsTrue(
+            targets.Length > 0,
+            "AGENTS.md links to nothing. It is the repository's map, so an empty one is a regression "
+            + "rather than a matter of taste.");
+
+        foreach (string target in targets)
+        {
+            string full = Path.Combine(Root, target.Replace('/', Path.DirectorySeparatorChar));
+
+            Assert.IsTrue(
+                File.Exists(full) || Directory.Exists(full),
+                $"AGENTS.md links to {target}, which does not exist.");
+
+            string name = Path.GetFileName(full);
+
+            Assert.IsTrue(
+                Directory.EnumerateFileSystemEntries(Path.GetDirectoryName(full)!, name)
+                    .Any(entry => string.Equals(Path.GetFileName(entry), name, StringComparison.Ordinal)),
+                $"AGENTS.md links to {target}, which exists under a different capitalisation. That "
+                + "resolves in a clone and is a dead link when the file is rendered on the host.");
+        }
+    }
+
+    [TestMethod]
+    public void Agents_md_sends_a_session_to_the_skill_reference_rather_than_restating_it()
+    {
+        // What AGENTS.md must not do is describe the skills itself. A second description is the one that
+        // goes stale, and a session working from the stale copy has no way to tell -- the same reason no
+        // skill restates a constraint. So it points at docs/skills.md, and says that the surface and the
+        // documents describing it move together, which is the part of the rule a test can actually hold.
+        string agents = File.ReadAllText(Path.Combine(Root, "AGENTS.md"));
+
+        StringAssert.Contains(
+            agents,
+            "docs/skills.md",
+            "AGENTS.md has to send a session to the skill reference rather than summarise it.");
+
+        StringAssert.Contains(
+            agents,
+            "same change",
+            "And say that a change to the surface updates the documents describing it, in that change.");
+    }
+
     private static IEnumerable<string> Skills() =>
         Directory.EnumerateFiles(Path.Combine(Root, "skills"), "SKILL.md", SearchOption.AllDirectories);
 

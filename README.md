@@ -137,6 +137,7 @@ when something refuses.
 | `CONCEPT.md` | the design, and every decision behind it with what each one rejected |
 | `CONSTRAINTS.md` | the fourteen global constraints, each with what it forbids and why |
 | `CONCEPT.raw.md` | the original longhand draft, preserved unedited |
+| `AGENTS.md` | how to work in this repository: what it is, where things are, what the suite enforces |
 | `docs/` | the guides: the skills, installing, a first cycle, the commands, and every refusal |
 | `src/Sdlc.Core/` | the gate: constraints, cycles, approvals, findings, hooks, evidence, the chain |
 | `src/Sdlc.Cli/` | the one binary every skill on every host calls |
