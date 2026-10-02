@@ -248,6 +248,40 @@ public sealed class PluginTests
         }
     }
 
+    [TestMethod]
+    public void The_skills_on_disk_are_exactly_the_ones_the_concept_inventories()
+    {
+        // Two lists that drift silently: a skill added to the plugin and never written down reads as
+        // undocumented, and one written down and never built sends a person to a slash command that does
+        // not answer. The inventory is a table in the concept, so this compares against the table.
+        string concept = File.ReadAllText(Path.Combine(Root, "CONCEPT.md"));
+
+        int start = concept.IndexOf("## 15. Skills", StringComparison.Ordinal);
+        int end = concept.IndexOf("### 15.1", StringComparison.Ordinal);
+
+        Assert.IsTrue(start >= 0 && end > start, "The concept no longer has a skills inventory to check.");
+
+        HashSet<string> inventoried = new(
+            System.Text.RegularExpressions.Regex
+                .Matches(concept[start..end], @"^\| `(?<name>[a-z-]+)`", System.Text.RegularExpressions.RegexOptions.Multiline)
+                .Select(match => match.Groups["name"].Value),
+            StringComparer.Ordinal);
+
+        HashSet<string> shipped = new(
+            Skills().Select(path => Path.GetFileName(Path.GetDirectoryName(path))!),
+            StringComparer.Ordinal);
+
+        Assert.AreEqual(
+            0,
+            shipped.Except(inventoried, StringComparer.Ordinal).Count(),
+            "Shipped and not inventoried: " + string.Join(", ", shipped.Except(inventoried, StringComparer.Ordinal)));
+
+        Assert.AreEqual(
+            0,
+            inventoried.Except(shipped, StringComparer.Ordinal).Count(),
+            "Inventoried and not shipped: " + string.Join(", ", inventoried.Except(shipped, StringComparer.Ordinal)));
+    }
+
     private static IEnumerable<string> Skills() =>
         Directory.EnumerateFiles(Path.Combine(Root, "skills"), "SKILL.md", SearchOption.AllDirectories);
 
