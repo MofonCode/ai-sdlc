@@ -52,13 +52,13 @@ internal sealed class Workspace
             return ExitCode.Failed;
         }
 
-        ServiceProvider _provider = new ServiceCollection()
+        ServiceProvider provider = new ServiceCollection()
             .AddSdlc(libraryPath, solutionRoot)
             .BuildServiceProvider();
 
-        await using (_provider.ConfigureAwait(false))
+        await using (provider.ConfigureAwait(false))
         {
-            return await body(new Workspace(_provider, solutionRoot)).ConfigureAwait(false);
+            return await body(new Workspace(provider, solutionRoot)).ConfigureAwait(false);
         }
     }
 
