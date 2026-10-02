@@ -5,6 +5,7 @@ using Sdlc.Core.Chain;
 using Sdlc.Core.Constraints;
 using Sdlc.Core.Cycles;
 using Sdlc.Core.Drafts;
+using Sdlc.Core.Evidence;
 using Sdlc.Core.Findings;
 using Sdlc.Core.Git;
 using Sdlc.Core.Init;
@@ -75,6 +76,12 @@ public static class SdlcServices
 
         services.AddTransient<IRequestHandler<NewCycleCommand, Cycle>>(
             _ => new NewCycleHandler(solutionRoot, TimeProvider.System));
+
+        services.AddTransient<IRequestHandler<RecordEvidenceCommand, EvidenceReport>>(
+            services => new RecordEvidenceHandler(
+                solutionRoot,
+                services.GetRequiredService<IRepository>(),
+                TimeProvider.System));
 
         return services;
     }

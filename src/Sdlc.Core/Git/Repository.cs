@@ -43,6 +43,35 @@ public interface IRepository
     /// <param name="message">The commit message.</param>
     /// <returns>Success, or a failure carrying what git said.</returns>
     Result Commit(string workingDirectory, IReadOnlyList<string> paths, string message);
+
+    /// <summary>
+    /// Where a branch diverged from the default branch.
+    /// </summary>
+    /// <remarks>
+    /// A merge base rather than the default branch's current tip. Measuring from the tip would show every
+    /// commit somebody else landed while this cycle was open as part of this change, and a diff that wide
+    /// makes the declared-file comparison meaningless and the proof unreadable.
+    /// </remarks>
+    /// <param name="workingDirectory">Where to ask from.</param>
+    /// <param name="branch">The cycle's branch.</param>
+    /// <returns>The commit, or null when git cannot say.</returns>
+    string? MergeBase(string workingDirectory, string branch);
+
+    /// <summary>The diff from a commit to the working tree, including what is not yet committed.</summary>
+    /// <param name="workingDirectory">Where to ask from.</param>
+    /// <param name="from">The commit to measure from.</param>
+    /// <returns>The patch, or null when git cannot say.</returns>
+    string? Diff(string workingDirectory, string from);
+
+    /// <summary>The paths that differ from a commit, including untracked files.</summary>
+    /// <remarks>
+    /// Untracked files are included deliberately. A new file an agent wrote and never staged is part of the
+    /// change, and leaving it out would make the comparison miss exactly the case it is best at catching.
+    /// </remarks>
+    /// <param name="workingDirectory">Where to ask from.</param>
+    /// <param name="from">The commit to measure from.</param>
+    /// <returns>The paths, relative to the root.</returns>
+    IReadOnlyList<string> ChangedFiles(string workingDirectory, string from);
 }
 
 /// <summary>
@@ -69,11 +98,7 @@ public sealed class GitRepository : IRepository
     {
         string? output = Run(workingDirectory, "ls-files");
 
-        return output is null
-            ? []
-            : [.. output
-                .ReplaceLineEndings()
-                .Split(Environment.NewLine, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)];
+        return Lines(output);
     }
 
     /// <inheritdoc />
@@ -123,6 +148,66 @@ public sealed class GitRepository : IRepository
             }
         }
     }
+
+    /// <inheritdoc />
+    public string? MergeBase(string workingDirectory, string branch)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(branch);
+
+        // The default branch is whatever the remote says it is, falling back to the local main or master.
+        // Hard-coding one is how this breaks on the first repository that uses the other.
+        string? head = Run(workingDirectory, "symbolic-ref --short refs/remotes/origin/HEAD")?.Trim();
+
+        string[] candidates = head is { Length: > 0 }
+            ? [head, "origin/main", "origin/master", "main", "master"]
+            : ["origin/main", "origin/master", "main", "master"];
+
+        foreach (string candidate in candidates)
+        {
+            if (Run(workingDirectory, $"merge-base {candidate} {branch}")?.Trim() is { Length: > 0 } found)
+            {
+                return found;
+            }
+        }
+
+        return null;
+    }
+
+    /// <inheritdoc />
+    public string? Diff(string workingDirectory, string from)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(from);
+
+        return Run(workingDirectory, $"diff {from}");
+    }
+
+    /// <inheritdoc />
+    public IReadOnlyList<string> ChangedFiles(string workingDirectory, string from)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(from);
+
+        HashSet<string> paths = new(StringComparer.OrdinalIgnoreCase);
+
+        foreach (string line in Lines(Run(workingDirectory, $"diff --name-only {from}")))
+        {
+            paths.Add(line);
+        }
+
+        // Untracked files too. A new file an agent wrote and never staged is part of the change, and
+        // leaving it out would make the comparison miss the case it is best at catching.
+        foreach (string line in Lines(Run(workingDirectory, "ls-files --others --exclude-standard")))
+        {
+            paths.Add(line);
+        }
+
+        return [.. paths.Order(StringComparer.Ordinal)];
+    }
+
+    private static IReadOnlyList<string> Lines(string? output) => output is null
+        ? []
+        : [.. output
+            .ReplaceLineEndings()
+            .Split(Environment.NewLine, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)];
 
     private static string? Run(string workingDirectory, string arguments)
     {

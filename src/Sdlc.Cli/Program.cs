@@ -9,6 +9,7 @@ using Sdlc.Core.Chain;
 using Sdlc.Core.Constraints;
 using Sdlc.Core.Cycles;
 using Sdlc.Core.Drafts;
+using Sdlc.Core.Evidence;
 using Sdlc.Core.Findings;
 using Sdlc.Core.Git;
 using Sdlc.Core.Hooks;
@@ -42,6 +43,7 @@ try
     {
         "init" => await Workspace.Run(line, w => Init(w, line)).ConfigureAwait(false),
         "new" => await Workspace.Run(line, NewCycle).ConfigureAwait(false),
+        "evidence" => await WithCycle(line, "evidence", (w, id) => Evidence(w, line, id)).ConfigureAwait(false),
         "constraints" => await Workspace.Run(line, w => Constraints(w, line)).ConfigureAwait(false),
         "gate" => await WithCycle(line, "gate", Gate).ConfigureAwait(false),
         "verify-chain" => await WithCycle(line, "verify-chain", VerifyChain).ConfigureAwait(false),
@@ -197,6 +199,30 @@ static async Task<int> Skill(CommandLine line)
 {
     await Console.Error.WriteAsync(Stages.Explain(line.Verb, line.Arguments)).ConfigureAwait(false);
     return ExitCode.Usage;
+}
+
+// What a build leaves behind, as files rather than prose. Verify reads only this, because a verdict
+// derived from a session's recollection is a verdict nobody can check.
+static async Task<int> Evidence(Workspace workspace, CommandLine line, CycleId id)
+{
+    line.TryOption("tests", out string? trx);
+    line.TryOption("build-log", out string? log);
+
+    Result<EvidenceReport> result = await workspace
+        .Send<RecordEvidenceCommand, EvidenceReport>(new RecordEvidenceCommand(id, trx, log))
+        .ConfigureAwait(false);
+
+    if (result.IsFailed)
+    {
+        return await Report(result, ExitCode.Refused).ConfigureAwait(false);
+    }
+
+    await Console.Out.WriteAsync(EvidenceRenderer.Render(result.Value)).ConfigureAwait(false);
+
+    // Zero even when the comparison disagrees and even when tests failed. Recording what happened
+    // succeeded; what to make of it is verify's, and a non-zero exit here would make the build step look
+    // like the thing that refused.
+    return ExitCode.Ok;
 }
 
 static async Task<int> Gate(Workspace workspace, CycleId id)

@@ -32,6 +32,8 @@ internal static class Usage
             draft abandon <id>       Print the record that stops a cycle, for a person to place.
             draft constraint         Print the next free LOC_ id, with its four parts empty.
             draft profile <name>     Print the solution.md keys for a profile migration.
+            evidence <id>            Record what a build produced: the diff, its base commit, and a
+                                     normalised test summary. Verify reads only this.
             status <id>              Show the panel for a stage. Ends with the next command.
             suggestions [<id>]       List the open non-blocking findings, for one cycle or all.
             hook --host <name>       Judge a tool call. Reads the host's payload on stdin and
@@ -48,6 +50,10 @@ internal static class Usage
         Options for constraints
             --for <artifact>         Narrow to one artifact: intent, spec, plan, diff, verify.
             --brief                  Ids and statements only, without the clauses.
+
+        Options for evidence
+            --tests <path>           A runner's own results file to normalise, kept alongside.
+            --build-log <path>       A build log to keep alongside.
 
         Options for status
             --stage <artifact>       Which panel: intent, spec or plan. Defaults to whichever

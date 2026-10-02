@@ -125,7 +125,7 @@ public sealed class InitTests
         // cannot exist -- so every hook would permit everything while the artifacts still looked governed.
         using var solution = Scratch.Create();
 
-        Result<InitReport> result = await new InitHandler(solution.Root, new FakeRepository([], isRepository: false))
+        Result<InitReport> result = await new InitHandler(solution.Root, new FakeRepository { Repository = false })
             .Handle(new InitCommand("dotnet-default", Platform.GitHub), CancellationToken.None);
 
         Assert.IsTrue(result.IsFailed);
@@ -263,25 +263,13 @@ public sealed class InitTests
         IReadOnlyList<string> tracked,
         Platform platform = Platform.GitHub)
     {
-        Result<InitReport> result = await new InitHandler(solution.Root, new FakeRepository(tracked))
+        Result<InitReport> result = await new InitHandler(solution.Root, new FakeRepository { Tracked = tracked })
             .Handle(new InitCommand("dotnet-default", platform), CancellationToken.None);
 
         Assert.IsTrue(result.IsSuccess, string.Join("; ", result.Errors.Select(e => e.Message)));
         return result.Value;
     }
 
-    /// <summary>A git that answers from a list, so the three modes need no real repositories.</summary>
-    private sealed class FakeRepository(IReadOnlyList<string> tracked, bool isRepository = true) : IRepository
-    {
-        public bool IsRepository(string workingDirectory) => isRepository;
-
-        public IReadOnlyList<string> TrackedFiles(string workingDirectory) => tracked;
-
-        public string? UserName(string workingDirectory) => "Peter Almanzar";
-
-        public Result Commit(string workingDirectory, IReadOnlyList<string> paths, string message) =>
-            Result.Ok();
-    }
 
     /// <summary>A scratch directory that is not a cycle workspace, for adoption's sake.</summary>
     private sealed class Scratch : IDisposable
