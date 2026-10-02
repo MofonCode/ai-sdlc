@@ -1,0 +1,14 @@
+{
+  "name": "ai-sdlc",
+  "description": "The ai-sdlc process framework: a constraint-governed cycle from intent to landed change.",
+  "owner": {
+    "name": "MofonCode"
+  },
+  "plugins": [
+    {
+      "name": "sdlc",
+      "source": "./",
+      "description": "Supervised intent, spec and plan; build and verify with bounded remediation; nothing advances on assertion."
+    }
+  ]
+}

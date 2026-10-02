@@ -41,6 +41,7 @@ try
     return line.Verb switch
     {
         "init" => await Workspace.Run(line, w => Init(w, line)).ConfigureAwait(false),
+        "new" => await Workspace.Run(line, NewCycle).ConfigureAwait(false),
         "constraints" => await Workspace.Run(line, w => Constraints(w, line)).ConfigureAwait(false),
         "gate" => await WithCycle(line, "gate", Gate).ConfigureAwait(false),
         "verify-chain" => await WithCycle(line, "verify-chain", VerifyChain).ConfigureAwait(false),
@@ -48,6 +49,7 @@ try
         "status" => await WithCycle(line, "status", (w, id) => Status(w, line, id)).ConfigureAwait(false),
         "suggestions" => await Workspace.Run(line, w => Suggestions(w, line)).ConfigureAwait(false),
         "hook" => await Hook(line).ConfigureAwait(false),
+        _ when Stages.IsSkill(line.Verb) => await Skill(line).ConfigureAwait(false),
         _ => await Unknown(line.Verb).ConfigureAwait(false),
     };
 }
@@ -159,6 +161,42 @@ static bool TryPlatform(
             complaint = $"'{named}' is not a platform. One of: github, azure-devops.";
             return false;
     }
+}
+
+// Allocates an id and creates the directory. Creating it is the collision check: at allocation there is
+// no directory to be already there, so a look-then-create would leave the race it was written to close.
+static async Task<int> NewCycle(Workspace workspace)
+{
+    Result<Cycle> result = await workspace
+        .Send<NewCycleCommand, Cycle>(new NewCycleCommand())
+        .ConfigureAwait(false);
+
+    if (result.IsFailed)
+    {
+        return await Report(result, ExitCode.Refused).ConfigureAwait(false);
+    }
+
+    Cycle cycle = result.Value;
+
+    // The id alone on standard output, so a skill can capture it, with everything a person needs on
+    // standard error beside it.
+    await Console.Out.WriteLineAsync(cycle.Id.ToString()).ConfigureAwait(false);
+
+    await Console.Error.WriteLineAsync(string.Create(
+        CultureInfo.InvariantCulture,
+        $"Opened {cycle.Directory}. Its branch is {cycle.Id.BranchName()}; create it with 'git switch -c {cycle.Id.BranchName()}'."))
+        .ConfigureAwait(false);
+
+    return ExitCode.Ok;
+}
+
+// A stage that needs language is a skill, and the binary says so rather than reporting an unknown
+// command. The status panel ends with the literal next command, so this is where somebody arrives after
+// copying one -- and a tool that sent them nowhere would make its most-read output look wrong.
+static async Task<int> Skill(CommandLine line)
+{
+    await Console.Error.WriteAsync(Stages.Explain(line.Verb, line.Arguments)).ConfigureAwait(false);
+    return ExitCode.Usage;
 }
 
 static async Task<int> Gate(Workspace workspace, CycleId id)

@@ -73,6 +73,9 @@ public static class SdlcServices
         services.AddTransient<IRequestHandler<InitCommand, InitReport>>(
             services => new InitHandler(solutionRoot, services.GetRequiredService<IRepository>()));
 
+        services.AddTransient<IRequestHandler<NewCycleCommand, Cycle>>(
+            _ => new NewCycleHandler(solutionRoot, TimeProvider.System));
+
         return services;
     }
 }

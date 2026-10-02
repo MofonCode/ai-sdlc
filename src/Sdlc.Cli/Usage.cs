@@ -23,6 +23,7 @@ internal static class Usage
 
         Commands
             init                     Adopt the framework into this repository. Run by a person.
+            new                      Open a cycle: allocate its id and create its directory.
             constraints              Render the constraint set in force.
             gate <id>                Say whether a cycle's build may run. Exits 1 if not.
             verify-chain <id>        Re-establish the whole chain from the repository. Exits 1 if
@@ -61,6 +62,12 @@ internal static class Usage
 
         A refusal is drafted on the same terms as an approval, and leaves the reason line empty for
         the person to write. The gate rejects a refusal that says nothing about why.
+
+        The stages
+            Writing an intent, a spec or a plan, judging one against the rules, building, verifying
+            and landing are skills rather than commands: they need language, so your agent runs
+            them and this binary checks what they produced. Typing one here says so, and names the
+            invocation. 'sdlc help' lists what the binary does on its own.
 
         Exit codes
             0  the command did what was asked
