@@ -1,5 +1,7 @@
 # ai-sdlc
 
+**Version 0.9.0** · iteration 4 · .NET 10 · MIT
+
 A host-agnostic plugin that governs a team's software lifecycle through gated artifacts.
 
 A change does not travel from a request to a diff. It moves through phases, each producing a file the
@@ -67,7 +69,44 @@ asks the one policy engine, and writes the host's own decision shape.
 **v1 ships Claude Code and GitHub Copilot.** The rules themselves name no language, framework or package,
 so they travel to any stack — but the tool is a .NET executable, so the toolchain does not.
 
+## Install
+
+Two halves have to be present, and they fail differently. The **plugin** carries the seventeen skills and
+the pre-tool hook; the **`sdlc` binary** is the gate those skills call. Without the plugin nothing asks for
+a cycle. Without the binary every skill's first command fails.
+
+**There is no published feed yet**, so the binary is built from a clone of this repository.
+
+```pwsh
+dotnet pack src\Sdlc.Cli\Sdlc.Cli.csproj -c Release -o src\Sdlc.Cli\bin\pack
+dotnet tool install --global --add-source src\Sdlc.Cli\bin\pack MofonCode.Sdlc.Cli
+```
+
+The plugin comes from GitHub. **The repository is private**, so authenticate first.
+
+```pwsh
+gh auth login
+claude plugin marketplace add MofonCode/ai-sdlc
+claude plugin install sdlc@ai-sdlc
+```
+
+Then ask both halves what they are:
+
+```pwsh
+sdlc version
+claude plugin details sdlc@ai-sdlc
+```
+
+Expect the same version from each, with `Skills (17)` and `Hooks (1) PreToolUse`. **A hook count of zero is
+a failed install rather than a detail** — the deterministic layer is not loaded, nothing is denied, and
+every cycle will still appear to work. Start a new session afterwards, because skills load at startup.
+
+`docs/guides/install.md` has the rest: the local-directory source for changing the framework itself,
+updating, removing, and the four things that catch people.
+
 ## Getting started
+
+Installing puts the framework on your machine. It governs nothing until a repository adopts it.
 
 ```
 sdlc init              # adopt the framework into this repository. A person runs this
@@ -79,6 +118,11 @@ Then ask your agent for the stages: `/sdlc:intent`, `/sdlc:spec`, `/sdlc:plan`. 
 binary does on its own, and `.sdlc/README.md` — written into the solution by `init` — is the whole flow in
 one page.
 
+For more than one page: `docs/guides/first-cycle.md` walks a cycle from an empty directory to a pull
+request, `docs/guides/cycle-commands.md` is every command for one cycle on one screen, `docs/skills.md` is
+what each of the seventeen skills is and who starts it, and `docs/guides/when-it-blocks.md` is what to do
+when something refuses.
+
 ## Repository layout
 
 | | |
@@ -86,6 +130,7 @@ one page.
 | `CONCEPT.md` | the design, and every decision behind it with what each one rejected |
 | `CONSTRAINTS.md` | the fourteen global constraints, each with what it forbids and why |
 | `CONCEPT.raw.md` | the original longhand draft, preserved unedited |
+| `docs/` | the guides: the skills, installing, a first cycle, the commands, and every refusal |
 | `src/Sdlc.Core/` | the gate: constraints, cycles, approvals, findings, hooks, evidence, the chain |
 | `src/Sdlc.Cli/` | the one binary every skill on every host calls |
 | `skills/` | the seventeen skills |
@@ -94,7 +139,7 @@ one page.
 
 ## Where it stands
 
-Iteration 4. The planning half is complete and exercised end to end: adoption, a cycle, the three
+Version 0.9.0, iteration 4. The planning half is complete and exercised end to end: adoption, a cycle, the three
 documents, interrogation rounds, a pasted approval, recorded evidence, a verification, the chain, and the
 landing decision.
 
@@ -118,3 +163,7 @@ Enforcing a coverage percentage. Making the local approval unforgeable — it ca
 is where accountability lives. Governing ai-sdlc with ai-sdlc. Resolving merge conflicts as the primary
 strategy. Tooling for splitting work. A device end-to-end layer. `CONCEPT.md` §18 has the full list with
 reasons.
+
+## License
+
+MIT. See [LICENSE](LICENSE).

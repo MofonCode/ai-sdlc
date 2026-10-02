@@ -302,6 +302,120 @@ public sealed class PluginTests
     }
 
     [TestMethod]
+    public void The_binary_and_the_plugin_carry_the_same_release_version()
+    {
+        // Two halves of one install, fetched separately. They disagreed silently until the props set a
+        // VersionPrefix: the plugin said 0.9.0 and the package took the SDK default of 1.0.0, so neither
+        // number told anybody what they actually had. A skill calling a verb an older binary does not
+        // have is what that shape eventually produces, and the version report is the only thing that
+        // would have shown it -- so the report has to be true.
+        JsonNode manifest = Read(Path.Combine(".claude-plugin", "plugin.json"));
+
+        Assert.AreEqual(
+            manifest["version"]!.GetValue<string>(),
+            Sdlc.Cli.Release.Version,
+            "plugin.json and the packed binary disagree. VersionPrefix in Directory.Build.props is the "
+            + "one place the release version is set.");
+    }
+
+    [TestMethod]
+    public void The_artifact_format_version_is_not_bound_to_the_release()
+    {
+        // These two are different facts and the temptation is to make them one number. The format version
+        // is stamped into every artifact's frontmatter to say which envelope it was written in, so moving
+        // it on a release that changed no format would restamp every file as a new format and make a
+        // reader distrust files it can parse perfectly well. Asserting they are independent is awkward,
+        // so this asserts what the independence is for: the report says which is which.
+        StringAssert.Contains(
+            Sdlc.Cli.Release.Text,
+            "artifact format",
+            "The version report has to name the format version, or the two get read as one number.");
+
+        StringAssert.Contains(
+            Sdlc.Cli.Release.Text,
+            Sdlc.Core.Cycles.Cycle.FrameworkVersion,
+            "And report the value actually being stamped into artifacts.");
+    }
+
+    [TestMethod]
+    public void The_readme_states_the_release_version_it_actually_ships()
+    {
+        // A version in a readme is the first thing a reader believes and the last thing anybody updates.
+        // It is countable against the manifest, so it is asserted rather than trusted -- the same reason
+        // the skill and constraint counts are.
+        string readme = File.ReadAllText(Path.Combine(Root, "README.md"));
+        string version = Read(Path.Combine(".claude-plugin", "plugin.json"))["version"]!.GetValue<string>();
+
+        StringAssert.Contains(
+            readme,
+            version,
+            "The readme does not state the version in plugin.json. One of the two is stale.");
+    }
+
+    [TestMethod]
+    public void Every_guide_the_readme_sends_somebody_to_exists()
+    {
+        // The design's own rule applied to its documentation: a pointer that goes nowhere is the
+        // directory that appears enforced and is not. A reader who clicks one dead link stops trusting
+        // the rest of the table, which is the whole value of having one.
+        string readme = File.ReadAllText(Path.Combine(Root, "README.md"));
+
+        foreach (System.Text.RegularExpressions.Match match in System.Text.RegularExpressions.Regex
+            .Matches(readme, @"`(?<path>docs/[A-Za-z0-9/._-]+\.md)`"))
+        {
+            string relative = match.Groups["path"].Value.Replace('/', Path.DirectorySeparatorChar);
+
+            Assert.IsTrue(
+                File.Exists(Path.Combine(Root, relative)),
+                $"The readme points at {match.Groups["path"].Value}, which does not exist.");
+        }
+    }
+
+    [TestMethod]
+    public void Every_guide_a_guide_sends_somebody_to_exists()
+    {
+        // The same rule one level down. These cross-reference each other heavily, and three of the four
+        // were referenced by name before any of them was written.
+        //
+        // A guide reference is one that carries a directory or a hyphenated name. That is not a
+        // convention invented for this test: the guides are named for what they walk through, so they
+        // hyphenate, while every file the framework writes is a single word -- intent.md, approval.md,
+        // solution.md, techstack.md. Keying on the shape means no list of artifact names to exclude, and
+        // no list that goes stale the first time the envelope gains a file.
+        string guides = Path.Combine(Root, "docs", "guides");
+        Assert.IsTrue(Directory.Exists(guides), "The guides directory is gone.");
+
+        foreach (string path in Directory.EnumerateFiles(
+            Path.Combine(Root, "docs"), "*.md", SearchOption.AllDirectories))
+        {
+            string directory = Path.GetDirectoryName(path)!;
+
+            foreach (System.Text.RegularExpressions.Match match in System.Text.RegularExpressions.Regex
+                .Matches(File.ReadAllText(path), @"`(?<path>[A-Za-z0-9/.-]*[/-][A-Za-z0-9/.-]*\.md)`"))
+            {
+                string named = match.Groups["path"].Value;
+
+                // A path inside a governed solution is being described, not linked. `.sdlc/README.md` is
+                // written by adoption into somebody else's repository, so there is nothing here to
+                // resolve it against.
+                if (named.StartsWith('.') && !named.StartsWith("..", StringComparison.Ordinal))
+                {
+                    continue;
+                }
+
+                // Resolved from the file that names it, the way a reader following it would.
+                string resolved = Path.GetFullPath(
+                    Path.Combine(directory, named.Replace('/', Path.DirectorySeparatorChar)));
+
+                Assert.IsTrue(
+                    File.Exists(resolved),
+                    $"{Path.GetRelativePath(Root, path)} points at '{named}', which resolves to "
+                    + $"{Path.GetRelativePath(Root, resolved)} and does not exist.");
+            }
+        }
+    }
+
+    [TestMethod]
     public void The_readme_says_what_is_not_done_rather_than_only_what_is()
     {
         // The design's own rule, pointed at its readme: a thing that appears finished and is not is worse

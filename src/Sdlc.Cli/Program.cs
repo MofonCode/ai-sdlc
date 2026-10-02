@@ -38,6 +38,15 @@ if (line.Verb is "" or "help")
     return line.Verb.Length == 0 ? ExitCode.Usage : ExitCode.Ok;
 }
 
+// Answered before any workspace is opened, because the question somebody asks this is "what have I
+// got installed" -- and a version that refused outside a governed solution would be unanswerable at
+// exactly the moment they are checking whether the install worked.
+if (line.Verb is "version")
+{
+    await Console.Out.WriteAsync(Release.Text).ConfigureAwait(false);
+    return ExitCode.Ok;
+}
+
 try
 {
     return line.Verb switch

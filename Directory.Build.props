@@ -6,6 +6,24 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
 
+    <!-- The release version, declared once for the whole solution. It is the number
+         .claude-plugin/plugin.json carries, because the plugin and the binary are two halves
+         of one install and a reader asking "what version is this" means the pair. Without it
+         the package took the SDK default of 1.0.0 while the plugin said 0.9.0, so the two
+         halves disagreed with nobody able to see it. PluginTests asserts they still agree.
+
+         Cycle.FrameworkVersion is deliberately NOT this. That constant is the artifact format
+         stamped into every file's framework_version, and binding it here would restamp every
+         artifact as a new format on a release that changed no format at all. -->
+    <VersionPrefix>0.9.0</VersionPrefix>
+
+    <!-- MIT, declared once for the whole solution rather than per project, so a packable
+         project added later cannot ship under a different licence by omission. LICENSE at
+         the repository root is the text this expression names. -->
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <RepositoryUrl>https://github.com/MofonCode/ai-sdlc</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+
     <!-- CI builds carry no warnings. WarningsNotAsErrors is deliberately empty so that an
          exception is one visible line here rather than a pragma buried in code, and every
          suppression below says why it exists. -->

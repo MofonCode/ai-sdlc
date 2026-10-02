@@ -41,6 +41,8 @@ internal static class Usage
             suggestions [<id>]       List the open non-blocking findings, for one cycle or all.
             hook --host <name>       Judge a tool call. Reads the host's payload on stdin and
                                      writes its decision on stdout. Hosts: claude, copilot.
+            version                  Which version of the gate this is, and which versions it
+                                     expects beside it.
             help                     This text.
 
         Common options

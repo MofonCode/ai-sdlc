@@ -1,0 +1,108 @@
+# Every command for one cycle
+
+One screen. What each one is, and whether the binary or an agent runs it.
+
+**A command is deterministic and the binary owns it; a skill needs language and an agent runs it.** The
+binary never writes a planning document and a skill never decides a gate. `../skills.md` has what each
+skill is and who starts it; this is the order they go in.
+
+## Once per machine
+
+```pwsh
+sdlc version
+```
+
+## Once per repository
+
+```pwsh
+sdlc init
+```
+
+Then, in your agent: `/sdlc:init` for the half a command cannot do — the interview about what matters in
+this solution, and the `LOC_` rules it proposes.
+
+## The cycle, in order
+
+| | What runs it | What it does |
+|---|---|---|
+| `sdlc constraints` | binary | the rules in force, all tiers resolved |
+| `sdlc new` | binary | allocates the id, creates the directory, names the branch |
+| `/sdlc:intent` | agent | interviews you into `intent.md` |
+| `/sdlc:interrogate <id> intent` | agent, fresh process | writes `findings/intent.r1.json` |
+| `/sdlc:refine <id> intent` | agent | applies those findings to `intent.md` |
+| `/sdlc:spec <id>` | agent | derives `spec.md` from the intent alone |
+| `/sdlc:interrogate <id> spec` | agent, fresh process | `findings/spec.r1.json` |
+| `/sdlc:refine <id> spec` | agent | applies them to `spec.md` |
+| `/sdlc:plan <id>` | agent | decides how, and what proves each criterion, in `plan.md` |
+| `/sdlc:interrogate <id> plan` | agent, fresh process | `findings/plan.r1.json` |
+| `/sdlc:refine <id> plan` | agent | applies them to `plan.md` |
+| `sdlc draft approval <id>` | binary | prints the gate entry. **You paste it** |
+| `sdlc gate <id>` | binary | whether the build may run. Exits 1 if not |
+| `/sdlc:build <id>` | agent | implements, builds, tests |
+| `sdlc evidence <id>` | binary | records the diff, the base commit, the test summary |
+| `/sdlc:verify <id>` | agent, fresh process | adjudicates from the evidence alone, writes `verify.md` |
+| `/sdlc:remediate <id>` | agent | only when verify wrote `blocked`. At most three passes |
+| `sdlc landable <id>` | binary | whether it may be landed. Exits 1 if not |
+| `/sdlc:land <id>` | agent | pushes and opens the pull request. Asks first |
+| `sdlc verify-chain <id>` | binary | the pull-request check. The only non-bypassable layer |
+
+The interrogate-refine loop repeats until a round raises nothing blocking. Round numbers climb;
+`findings/intent.r2.json` sits beside `r1` and neither is rewritten.
+
+## At any point
+
+```pwsh
+sdlc status <id>
+```
+
+The stage panel, its checks, the gate, and the literal next command. Without `--stage` it shows whichever
+artifact the cycle is waiting on.
+
+```pwsh
+sdlc status <id> --stage spec
+sdlc constraints --for plan --brief
+sdlc suggestions
+sdlc claims
+sdlc landable --all
+```
+
+## Stopping
+
+```pwsh
+sdlc draft abandon <id>
+```
+
+Prints the record. **You place it**, and the reason is left empty because the file is rejected without
+one. Terminal.
+
+## What a cycle leaves on disk
+
+```
+.sdlc/cycles/20260929_1456_32/
+    intent.md
+    spec.md
+    plan.md
+    approval.md            <- only a person writes this
+    verify.md
+    findings/
+        intent.r1.json
+        intent.r2.json
+        spec.r1.json
+        plan.r1.json
+    evidence/
+        base.sha
+        diff.patch
+        tests.json
+```
+
+`reference/iteration-3-cycle/` is a real one, run for real, to calibrate against — in iteration 3's
+shape rather than this one, which its own README explains.
+
+## Where to go next
+
+| | |
+|---|---|
+| installing both halves | `install.md` |
+| a cycle walked end to end, with what to expect | `first-cycle.md` |
+| what to do when something refuses | `when-it-blocks.md` |
+| what each skill is and who starts it | `../skills.md` |
