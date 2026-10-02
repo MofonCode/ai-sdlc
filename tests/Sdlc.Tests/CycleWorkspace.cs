@@ -1,5 +1,6 @@
 using System.Globalization;
 using Sdlc.Core.Cycles;
+using Sdlc.Core.Solutions;
 
 namespace Sdlc.Tests;
 
@@ -218,12 +219,51 @@ internal sealed class CycleWorkspace : IDisposable
         File.WriteAllText(Cycle.ApprovalPath, string.Join('\n', lines) + "\n");
     }
 
-    /// <summary>Records that the cycle was abandoned.</summary>
+    /// <summary>Records that the cycle was abandoned, with a reason, as a person would.</summary>
     public void Abandon() => File.WriteAllText(
         Cycle.AbandonedPath,
         string.Create(
             CultureInfo.InvariantCulture,
-            $"---\ncycle: {Cycle.Id}\nabandoned_by: Peter Almanzar\nat: 2026-10-01T12:00:00Z\nreason: superseded\n---\n"));
+            $"---\ncycle: {Cycle.Id}\nby: Peter Almanzar\nat: 2026-10-01T12:00:00Z\n---\n\n# Why this cycle stopped\n\nSuperseded by a narrower intent.\n"));
+
+    /// <summary>Writes the solution document.</summary>
+    /// <param name="profile">The profile that governs the solution.</param>
+    /// <param name="origin">Where the code came from.</param>
+    public void WriteSolution(string profile, SolutionOrigin origin) => WriteRaw(
+        SolutionDocument.PathIn(Root),
+        string.Create(
+            CultureInfo.InvariantCulture,
+            $"---\nprofile: {profile}\norigin: {SolutionDocument.NameOf(origin)}\n---\n\n# a solution\n"));
+
+    /// <summary>
+    /// Writes a solution constraints file holding the numbered constraints given.
+    /// </summary>
+    /// <remarks>
+    /// Takes the numbers rather than a count, so a test can leave a gap -- which is the case that
+    /// matters, because a gap is the record of a removed constraint rather than a free id.
+    /// </remarks>
+    /// <param name="numbers">The LOC_ numbers to write.</param>
+    public void WriteSolutionConstraints(params int[] numbers)
+    {
+        List<string> lines = ["# This solution's own constraints", string.Empty];
+
+        foreach (int number in numbers)
+        {
+            lines.AddRange(
+                string.Create(CultureInfo.InvariantCulture, $"## LOC_{number:00} — rule {number}"),
+                string.Empty,
+                "**Applies to:** a plan, at approval.",
+                string.Empty,
+                string.Create(CultureInfo.InvariantCulture, $"**Forbids:** something {number} rules out."),
+                string.Empty,
+                string.Create(CultureInfo.InvariantCulture, $"**Why:** the cost rule {number} avoids."),
+                string.Empty);
+        }
+
+        WriteRaw(
+            Path.Combine(Root, Cycle.SdlcDirectoryName, "constraints.md"),
+            string.Join('\n', lines));
+    }
 
     /// <inheritdoc />
     public void Dispose()

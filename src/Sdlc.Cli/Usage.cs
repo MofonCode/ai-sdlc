@@ -10,7 +10,8 @@ internal static class Usage
     /// Only what is built is offered. Naming a drafter this cannot run would send someone looking for
     /// the flag that makes it work, which is the confusion the whole draft pattern exists to avoid.
     /// </remarks>
-    public const string Drafters = "The only drafter built so far is: approval <id>.";
+    public const string Drafters =
+        "One of: approval <id>, abandon <id>, constraint, profile <name>.";
 
     /// <summary>The usage text, written to standard output for help and to standard error for a
     /// usage error.</summary>
@@ -24,6 +25,9 @@ internal static class Usage
             constraints              Render the constraint set in force.
             gate <id>                Say whether a cycle's build may run. Exits 1 if not.
             draft approval <id>      Print the gate entry for a person to paste.
+            draft abandon <id>       Print the record that stops a cycle, for a person to place.
+            draft constraint         Print the next free LOC_ id, with its four parts empty.
+            draft profile <name>     Print the solution.md keys for a profile migration.
             status <id>              Show the panel for a stage. Ends with the next command.
             hook --host <name>       Judge a tool call. Reads the host's payload on stdin and
                                      writes its decision on stdout. Hosts: claude, copilot.

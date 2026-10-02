@@ -3,6 +3,8 @@ using MofonCode.Core;
 using Sdlc.Core.Approvals;
 using Sdlc.Core.Constraints;
 using Sdlc.Core.Cycles;
+using Sdlc.Core.Drafts;
+using Sdlc.Core.Solutions;
 
 namespace Sdlc.Core;
 
@@ -44,6 +46,17 @@ public static class SdlcServices
 
         services.AddTransient<IRequestHandler<ApprovalTextQuery, ApprovalTextResult>>(
             _ => new ApprovalTextHandler(solutionRoot));
+
+        // The drafters. Each prints what belongs in a file only a person writes, and none of them opens
+        // that file for writing -- which is what lets every hook rule stay absolute.
+        services.AddTransient<IRequestHandler<AbandonTextQuery, DraftResult>>(
+            _ => new AbandonTextHandler(solutionRoot));
+
+        services.AddTransient<IRequestHandler<ConstraintTextQuery, DraftResult>>(
+            _ => new ConstraintTextHandler(solutionRoot));
+
+        services.AddTransient<IRequestHandler<ProfileTextQuery, DraftResult>>(
+            _ => new ProfileTextHandler(solutionRoot));
 
         return services;
     }

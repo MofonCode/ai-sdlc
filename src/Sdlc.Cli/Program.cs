@@ -7,7 +7,9 @@ using Sdlc.Core.Approvals;
 using Sdlc.Core.Artifacts;
 using Sdlc.Core.Constraints;
 using Sdlc.Core.Cycles;
+using Sdlc.Core.Drafts;
 using Sdlc.Core.Hooks;
+using Sdlc.Core.Solutions;
 
 // Constraint and artifact text is passed through verbatim, so the stream has to carry what the files
 // hold. On Windows the default is the console codepage, which turns an em dash into a question mark -
@@ -114,6 +116,10 @@ static async Task<int> Draft(CommandLine line)
     {
         "approval" => await WithCycle(rest, "draft approval", (w, id) => DraftApproval(w, line, id))
             .ConfigureAwait(false),
+        "abandon" => await WithCycle(rest, "draft abandon", (w, id) => DraftAbandon(w, id))
+            .ConfigureAwait(false),
+        "constraint" => await Workspace.Run(rest, DraftConstraint).ConfigureAwait(false),
+        "profile" => await Workspace.Run(rest, w => DraftProfile(w, rest)).ConfigureAwait(false),
         _ => await UnknownDraft(line.Arguments[0]).ConfigureAwait(false),
     };
 }
@@ -157,6 +163,56 @@ static async Task<int> DraftApproval(Workspace workspace, CommandLine line, Cycl
     }
 
     await Console.Out.WriteAsync(ApprovalRenderer.Render(text)).ConfigureAwait(false);
+    return ExitCode.Ok;
+}
+
+static async Task<int> DraftAbandon(Workspace workspace, CycleId id)
+{
+    string by = Git.UserName(workspace.SolutionRoot) ?? "<your name>";
+
+    return await PrintDraft(await workspace
+        .Send<AbandonTextQuery, DraftResult>(new AbandonTextQuery(id, by))
+        .ConfigureAwait(false)).ConfigureAwait(false);
+}
+
+static async Task<int> DraftConstraint(Workspace workspace) =>
+    await PrintDraft(await workspace
+        .Send<ConstraintTextQuery, DraftResult>(new ConstraintTextQuery())
+        .ConfigureAwait(false)).ConfigureAwait(false);
+
+static async Task<int> DraftProfile(Workspace workspace, CommandLine line)
+{
+    if (line.Arguments.Count == 0)
+    {
+        await Console.Error.WriteLineAsync(
+            "Which profile? Give its package name, as in 'sdlc draft profile dotnet-default'.")
+            .ConfigureAwait(false);
+        return ExitCode.Usage;
+    }
+
+    return await PrintDraft(await workspace
+        .Send<ProfileTextQuery, DraftResult>(new ProfileTextQuery(line.Arguments[0]))
+        .ConfigureAwait(false)).ConfigureAwait(false);
+}
+
+// A drafter that produced nothing is a refusal rather than a failure, so its explanation goes to
+// standard error and the exit code says a rule stopped it rather than the tool breaking.
+static async Task<int> PrintDraft(Result<DraftResult> result)
+{
+    if (result.IsFailed)
+    {
+        return await Report(result, ExitCode.Refused).ConfigureAwait(false);
+    }
+
+    DraftResult draft = result.Value;
+
+    if (!draft.MayDraft)
+    {
+        await Console.Error.WriteLineAsync(draft.Instructions).ConfigureAwait(false);
+        return ExitCode.Refused;
+    }
+
+    await Console.Out.WriteAsync(DraftRenderer.Render(draft)).ConfigureAwait(false);
     return ExitCode.Ok;
 }
 

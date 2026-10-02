@@ -40,6 +40,22 @@ public readonly record struct ConstraintId
         Revision = revision;
     }
 
+    /// <summary>
+    /// A newly assigned id, at revision 1.
+    /// </summary>
+    /// <remarks>
+    /// For allocating the next number in a tier. There is no overload taking a revision: a revision is
+    /// what happens to wording that already exists, so it is read from a document rather than assigned.
+    /// </remarks>
+    /// <param name="tier">Which tier the id belongs to.</param>
+    /// <param name="number">The number, which must never have been used in that tier before.</param>
+    /// <returns>The id.</returns>
+    public static ConstraintId Of(ConstraintTier tier, int number)
+    {
+        ArgumentOutOfRangeException.ThrowIfLessThan(number, 1);
+        return new ConstraintId(tier, number, 1);
+    }
+
     /// <summary>The tier this id resolves in.</summary>
     public ConstraintTier Tier { get; }
 
