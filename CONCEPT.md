@@ -1020,7 +1020,7 @@ headings a person wrote.
 | `interrogate` | the artifact exists | it does not | a findings round |
 | `refine` | a round with open blockers | no blockers; cycle approved | that artifact only |
 | `steer` | an intent **and** a spec | only an intent; approved without a reopen | intent, spec, plan — whichever exist |
-| `draft approval` | three documents, each with a round | any missing, uninterrogated, or holding an open blocker | nothing; it prints |
+| `draft approval` | three documents, each with a round | any missing, uninterrogated, holding an open blocker, or judged against an upstream that has changed | nothing; it prints |
 | `build` | the gate satisfied | the gate refuses | code, evidence |
 | `verify` | evidence exists | no evidence | `verify.md` |
 | `remediate` | verify blocked | not blocked; three passes spent | code and tests only |
@@ -1028,6 +1028,36 @@ headings a person wrote.
 
 **A stage skill whose artifact already exists refuses and names what you probably meant** —
 `interrogate` to judge it, or `steer` to change it (D-18).
+
+### 15.2 What the binary does, and what a skill does
+
+The command line is the mechanism (D-26), so the split matters: a **command** is deterministic and the
+binary owns it; a **skill** needs language and an agent runs it. A skill calls commands and shows what
+they print verbatim.
+
+| Command | Does |
+|---|---|
+| `init` | adopts the framework — three modes, §9. Human-invoked; the hook denies an agent running it |
+| `new` | allocates a cycle id and creates its directory, which **is** the collision check (D-10) |
+| `constraints [--for <artifact>]` | renders the effective set, all tiers. How the rules reach a session |
+| `status <id> [--stage]` | the stage panel — §14 |
+| `gate <id>` | whether a cycle's build may run. Exits 1 if not |
+| `draft approval\|abandon\|constraint\|profile` | prints what belongs in a file only a person writes — §5.3 |
+| `evidence <id>` | records the diff, its base commit, and the normalised test summary — §4.5 |
+| `suggestions [<id>]` | the open non-blocking findings |
+| `landable <id> \| --all` | whether a cycle may be landed, without landing it |
+| `verify-chain <id>` | the whole chain, as the pull-request check runs it — §13 |
+| `hook --host <name>` | judges one tool call — §12 |
+
+**Typing a stage name is answered rather than refused.** The panel ends with the literal next command,
+and for a stage that is a skill — `sdlc spec <id>` — the binary cannot do the work. So it says what the
+stage is and names the invocation. A tool must never send somebody somewhere it does not go: the
+alternative is the most-read output in the plugin pointing at "Unknown command", and a person concluding
+the install is broken.
+
+**`landable` and `land` are deliberately two things.** The refusal has to be identical whether one cycle
+is landed or eight, so the binary owns it; pushing and writing a pull-request body needs the platform's
+own tool and a sentence somebody wrote, so the skill owns that.
 
 `intent` creates the cycle directory as its first act and fails if it exists. Creating it **is** the
 collision check, and the filesystem makes that atomic (D-10).

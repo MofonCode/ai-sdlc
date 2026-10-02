@@ -282,6 +282,39 @@ public sealed class PluginTests
             "Inventoried and not shipped: " + string.Join(", ", inventoried.Except(shipped, StringComparer.Ordinal)));
     }
 
+    [TestMethod]
+    public void The_readme_counts_what_the_repository_actually_ships()
+    {
+        // A number in a readme is a claim somebody will check, and the first one that is wrong makes the
+        // rest not worth reading. These two are countable, so they are asserted rather than trusted; the
+        // decision count is deliberately not stated, because it drifts every time one is added.
+        string readme = File.ReadAllText(Path.Combine(Root, "README.md"));
+
+        int skills = Skills().Count();
+        int constraints = System.Text.RegularExpressions.Regex
+            .Count(File.ReadAllText(RepoPaths.Library), @"(?m)^## CON_");
+
+        Assert.AreEqual(17, skills, "The readme says seventeen skills.");
+        Assert.AreEqual(14, constraints, "The readme says fourteen global constraints.");
+
+        StringAssert.Contains(readme, "seventeen skills");
+        StringAssert.Contains(readme, "fourteen global constraints");
+    }
+
+    [TestMethod]
+    public void The_readme_says_what_is_not_done_rather_than_only_what_is()
+    {
+        // The design's own rule, pointed at its readme: a thing that appears finished and is not is worse
+        // than one that never pretended. Somebody deciding whether to adopt this needs the second list.
+        string readme = File.ReadAllText(Path.Combine(Root, "README.md"));
+
+        StringAssert.Contains(readme, "Where it stands");
+        StringAssert.Contains(
+            readme,
+            "Copilot gets the hook, not yet the skills",
+            "The known gap has to be in the readme, not only in a commit message.");
+    }
+
     private static IEnumerable<string> Skills() =>
         Directory.EnumerateFiles(Path.Combine(Root, "skills"), "SKILL.md", SearchOption.AllDirectories);
 
