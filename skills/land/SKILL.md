@@ -39,6 +39,11 @@ Then open the pull request with the platform's own tool — `gh pr create` on Gi
 on Azure DevOps. If neither is available, say so and give the person the branch name and the body to
 paste; do not try to reach the API by hand.
 
+**The Azure DevOps path has never been run.** The GitHub one has. So on Azure DevOps, show the person
+the exact command before running it rather than after, and if it fails on an argument or a missing
+extension, that is why — say so plainly instead of trying variations. The generated
+`azure-pipelines.yml` carries the same note, and `CONCEPT.md` D-32 is the decision to ship it that way.
+
 **The body is the cycle, not a summary you invented.** It should carry:
 
 - the intent's problem, in the intent's words

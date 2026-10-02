@@ -315,6 +315,21 @@ public sealed class PluginTests
             "The known gap has to be in the readme, not only in a commit message.");
     }
 
+    [TestMethod]
+    public void The_land_skill_carries_the_same_caveat_the_pipeline_does()
+    {
+        // D-32's own reasoning, applied consistently: the caveat goes where somebody meets the path. The
+        // generated pipeline warns and the skill did not, which would have left an agent confidently
+        // running an untried command and reading the failure as its own mistake.
+        string land = File.ReadAllText(Path.Combine(Root, "skills", "land", "SKILL.md"));
+
+        StringAssert.Contains(land, "az repos pr create");
+        StringAssert.Contains(
+            land,
+            "never been run",
+            "The skill names the Azure DevOps command, so it has to say the path is untried.");
+    }
+
     private static IEnumerable<string> Skills() =>
         Directory.EnumerateFiles(Path.Combine(Root, "skills"), "SKILL.md", SearchOption.AllDirectories);
 
