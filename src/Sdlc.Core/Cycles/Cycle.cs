@@ -109,6 +109,18 @@ public sealed record Cycle(CycleId Id, string SolutionRoot)
     /// <returns>The file name, such as <c>intent.md</c>.</returns>
     public static string FileNameOf(ArtifactKind kind) => NameOf(kind) + ".md";
 
+    /// <summary>
+    /// An artifact's name with the right article in front of it.
+    /// </summary>
+    /// <remarks>
+    /// Because "a intent" appears in a message a person reads, and a tool that cannot spell its own
+    /// vocabulary reads as one that has not been looked at.
+    /// </remarks>
+    /// <param name="kind">Which artifact.</param>
+    /// <returns>The name, articled.</returns>
+    public static string DescribeKind(ArtifactKind kind) =>
+        (kind == ArtifactKind.Intent ? "an " : "a ") + NameOf(kind);
+
     /// <summary>The artifact's name as it is written and spoken.</summary>
     /// <param name="kind">The artifact.</param>
     /// <returns>The name, such as <c>intent</c>.</returns>

@@ -227,7 +227,80 @@ public sealed class StatusRendererTests
             "The frame the panel draws must be ASCII: it renders where UTF-8 is not a given.");
     }
 
-    private static async Task<string> Render(CycleWorkspace workspace, ArtifactKind kind)
+    [TestMethod]
+    public async Task A_shape_problem_is_shown_above_the_findings()
+    {
+        // A shape problem is usually why a round found what it found: an interrogation reading an
+        // artifact with no Proof section raises something about the proof, and the author chases the
+        // finding rather than the missing heading.
+        using var workspace = CycleWorkspace.Create();
+        workspace.WriteAllArtifacts();
+        workspace.WriteCleanRound(ArtifactKind.Intent);
+
+        string panel = await Render(workspace, ArtifactKind.Intent, shape: true);
+
+        StringAssert.Contains(panel, "Shape");
+        Assert.IsTrue(
+            panel.IndexOf("Shape", StringComparison.Ordinal) < panel.IndexOf("Checks", StringComparison.Ordinal),
+            "The shape has to come before the checks, or a reader acts on the finding first.");
+    }
+
+    [TestMethod]
+    public async Task A_sound_artifact_says_nothing_about_its_shape()
+    {
+        // Reporting every check that passed would bury the one that did not, and the panel's whole job
+        // is that the state is the first thing read.
+        using var workspace = CycleWorkspace.Create();
+        workspace.WriteAllArtifacts();
+        workspace.WriteCleanRound(ArtifactKind.Intent);
+
+        ArtifactValidation sound = new(ArtifactKind.Intent, []);
+        string panel = await Render(workspace, ArtifactKind.Intent, shapeResult: sound);
+
+        Assert.IsFalse(panel.Contains("Shape", StringComparison.Ordinal));
+    }
+
+    [TestMethod]
+    public async Task A_wrapped_line_keeps_the_indent_its_first_line_had()
+    {
+        // Without it, the continuation of an indented list item starts back at the label column and
+        // reads as a new item, which is worse than the overflow it was meant to fix.
+        using var workspace = CycleWorkspace.Create();
+        workspace.WriteAllArtifacts();
+        workspace.WriteCleanRound(ArtifactKind.Intent);
+
+        ArtifactValidation long_problem = new(
+            ArtifactKind.Intent,
+            [new SchemaViolation(
+                "ticket",
+                "is not a key an intent carries, and a field nothing declared is a field nothing reads, "
+                + "which is the whole reason an undeclared key is a violation rather than an extra.")]);
+
+        string panel = await Render(workspace, ArtifactKind.Intent, shapeResult: long_problem);
+
+        string[] wrapped = [.. panel
+            .ReplaceLineEndings()
+            .Split(Environment.NewLine)
+            .SkipWhile(line => !line.Contains("ticket", StringComparison.Ordinal))
+            .Take(2)
+            .Select(line => line.TrimEnd())];
+
+        Assert.AreEqual(2, wrapped.Length, "The problem is long enough to wrap: " + panel);
+
+        int first = wrapped[0].Length - wrapped[0].TrimStart().Length;
+        int second = wrapped[1].Length - wrapped[1].TrimStart().Length;
+
+        Assert.AreEqual(
+            first,
+            second,
+            "The continuation lost the item's indent. " + panel);
+    }
+
+    private static async Task<string> Render(
+        CycleWorkspace workspace,
+        ArtifactKind kind,
+        bool shape = false,
+        ArtifactValidation? shapeResult = null)
     {
         Result<CycleStatus> read = await new CycleStatusHandler(workspace.Root)
             .Handle(new CycleStatusQuery(workspace.Cycle.Id), CancellationToken.None);
@@ -237,6 +310,13 @@ public sealed class StatusRendererTests
         ArtifactState state = read.Value.Artifacts.First(artifact => artifact.Kind == kind);
         ArtifactOutline outline = await ArtifactOutlineReader.ReadFile(state.Path, CancellationToken.None);
 
-        return StatusRenderer.RenderStage(read.Value, new StagePanel(state, outline));
+        ArtifactValidation? checked_shape = shapeResult ?? (shape
+            ? ArtifactSchema.Validate(
+                kind,
+                await File.ReadAllTextAsync(state.Path, CancellationToken.None),
+                workspace.Cycle.Id)
+            : null);
+
+        return StatusRenderer.RenderStage(read.Value, new StagePanel(state, outline, checked_shape));
     }
 }

@@ -9,7 +9,15 @@ namespace Sdlc.Core.Cycles;
 /// <summary>One artifact's state plus what its document says about itself.</summary>
 /// <param name="State">Where the artifact has got to.</param>
 /// <param name="Outline">Its headline and sections, read from the document.</param>
-public sealed record StagePanel(ArtifactState State, ArtifactOutline Outline);
+/// <param name="Shape">
+/// What the schema made of it. Shown above the findings, because a shape problem is usually why a
+/// round found what it found -- an interrogation reading an artifact with no Proof section raises
+/// something about the proof, and the author chases the finding instead of the missing heading.
+/// </param>
+public sealed record StagePanel(
+    ArtifactState State,
+    ArtifactOutline Outline,
+    ArtifactValidation? Shape = null);
 
 /// <summary>
 /// The panel a person sees at the end of a stage.
@@ -61,6 +69,8 @@ public static class StatusRenderer
         Field(output, string.Empty, ArtifactOutlineReader.Describe(panel.Outline));
         output.AppendLine();
 
+        Shape(output, panel.Shape);
+
         Checks(output, state);
         output.AppendLine();
 
@@ -70,6 +80,30 @@ public static class StatusRenderer
         Next(output, status, state);
 
         return output.ToString();
+    }
+
+    /// <summary>
+    /// Writes what the schema found, and nothing at all when it found nothing.
+    /// </summary>
+    /// <remarks>
+    /// Silence on a sound artifact is deliberate. A panel that reported every check that passed would
+    /// bury the one that did not, and the panel's whole job is that the state is the first thing read.
+    /// </remarks>
+    private static void Shape(StringBuilder output, ArtifactValidation? shape)
+    {
+        if (shape is null || shape.IsValid)
+        {
+            return;
+        }
+
+        Field(output, "Shape", Count(shape.Violations.Count, "problem"));
+
+        foreach (SchemaViolation violation in shape.Violations)
+        {
+            Field(output, string.Empty, "    " + violation.Where + " " + violation.Problem);
+        }
+
+        output.AppendLine();
     }
 
     private static void Checks(StringBuilder output, ArtifactState state)
@@ -194,6 +228,10 @@ public static class StatusRenderer
         _ => string.Create(CultureInfo.InvariantCulture, $"{blockers} blocking"),
     };
 
+    private static string Count(int number, string noun) => number == 1
+        ? "1 " + noun
+        : string.Create(CultureInfo.InvariantCulture, $"{number} {noun}s");
+
     /// <summary>
     /// Writes one labelled field, wrapping only when it has to.
     /// </summary>
@@ -201,6 +239,11 @@ public static class StatusRenderer
     /// Wrapping splits on spaces and rejoins with one, which collapses deliberate column padding - so a
     /// line that already fits is written through untouched. The first version wrapped everything and
     /// turned aligned columns into prose.
+    /// <para>
+    /// A wrapped line keeps whatever indent its first line had. Without that, the continuation of an
+    /// indented list item starts back at the label column and reads as a new item, which is worse than
+    /// the overflow it was meant to fix.
+    /// </para>
     /// </remarks>
     private static void Field(StringBuilder output, string label, string body)
     {
@@ -212,10 +255,12 @@ public static class StatusRenderer
             return;
         }
 
+        string hanging = Label + new string(' ', body.Length - body.TrimStart().Length);
+
         bool first = true;
-        foreach (string piece in Wrap(body, Width - Label.Length))
+        foreach (string piece in Wrap(body.TrimStart(), Width - hanging.Length))
         {
-            output.AppendLine(first ? prefix + piece : Label + piece);
+            output.AppendLine(first ? prefix + body[..(body.Length - body.TrimStart().Length)] + piece : hanging + piece);
             first = false;
         }
     }

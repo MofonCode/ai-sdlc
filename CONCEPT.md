@@ -173,6 +173,10 @@ cycle: 20260929_1456_32
 ## Open
 ```
 
+**The envelope is an allowlist, not a region.** Two frontmatter keys and one section. Everything else
+in the file — any other key, any other section — is body, and a key or section nothing declared is a
+violation rather than a tolerated extra (D-31).
+
 **The test for where a field goes:** same on every artifact, with the same meaning and the same
 consumer, goes in the envelope. Differs per artifact because a different consumer reads it, goes in
 the body (D-07, D-07a).
@@ -199,6 +203,8 @@ separating "the part that is judged".
 | | `Proof` | `CON_06`, and `verify`'s criterion table |
 | | `Risk` | the person at the gate |
 | | `tier` | the blast radius: `local`, `contract`, `data`, chosen by reversibility |
+| `verify` | `Criteria` | the criterion-by-criterion adjudication; `CON_08` binds every claim in it |
+| | `outcome` | `pass`, `blocked` or `escalated`; `land` and `verify-chain` read it |
 
 A section exists because something reads it: a constraint, a mechanical check, a downstream skill, or
 a person at the gate (D-06).
@@ -1492,3 +1498,26 @@ gate rather than in a findings file.
 back. It makes the cheap finding expensive, and the trial's two suggestions — that `dotnet test` did
 not run the suite, and that a criterion's proof rested on a substituted source — were both
 substantive without a constraint to hang on.
+
+### D-31 — The envelope is an allowlist, and an undeclared key or section is a violation
+
+**Decision.** Two frontmatter keys — `framework_version` and `cycle` — plus one section, `## Open`.
+Everything else in the file is body. A key or section the artifact does not declare is a schema
+violation, not a tolerated extra. `verify`'s body is one section, `Criteria`, plus an `outcome` key;
+its findings are data in `findings/verify.rN.json` like every other artifact's.
+
+**Why.** Writing it as an allowlist rather than as "the envelope holds these, the body holds the rest"
+is what makes `D-07a` enforceable instead of merely intended. `D-07a` rejected a `metadata` bag
+because a claim in the envelope escapes the constraints — and that only holds if the envelope cannot
+grow. Naming the body parts and leaving the envelope open would let the next universal-looking field
+in through the side the constraints do not reach.
+
+Rejecting an undeclared key is the same argument as `D-06` pointed at the schema: a field nothing
+declared is a field nothing reads, and v03 set `additionalProperties: false` deliberately. `D-07a`
+already recorded the escape hatch this needs — a **declared extension**, where the solution says which
+extra keys it carries and the schema validates against the declaration — and until that exists, extra
+is wrong rather than ignored.
+
+**Rejected.** Warning on an undeclared key instead of failing: the warning is read once and the key
+stays forever. Allowing unknown sections while policing keys, which splits one rule into two with no
+reason a reader could reconstruct.

@@ -240,7 +240,18 @@ static async Task<int> Status(Workspace workspace, CommandLine line, CycleId id)
         .ReadFile(state.Path, CancellationToken.None)
         .ConfigureAwait(false);
 
-    await Console.Out.WriteAsync(StatusRenderer.RenderStage(status, new StagePanel(state, outline)))
+    // The gate carries the schema evaluator with it, so an artifact is fully checked where it is
+    // written rather than first in a pipeline. A shape problem found here costs a heading; the same one
+    // found in CI costs a round trip.
+    ArtifactValidation? shape = state.Exists
+        ? ArtifactSchema.Validate(
+            kind,
+            await File.ReadAllTextAsync(state.Path, CancellationToken.None).ConfigureAwait(false),
+            id)
+        : null;
+
+    await Console.Out
+        .WriteAsync(StatusRenderer.RenderStage(status, new StagePanel(state, outline, shape)))
         .ConfigureAwait(false);
 
     return ExitCode.Ok;
