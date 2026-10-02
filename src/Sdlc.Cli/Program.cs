@@ -80,7 +80,7 @@ static async Task<int> Constraints(Workspace workspace, CommandLine line)
     line.TryOption("for", out string? artifact);
 
     Result<ConstraintSet> result = await workspace
-        .Send<EffectiveConstraintsQuery, ConstraintSet>(new EffectiveConstraintsQuery(artifact))
+        .Send<EffectiveConstraints.Request, ConstraintSet>(new EffectiveConstraints.Request(artifact))
         .ConfigureAwait(false);
 
     if (result.IsFailed)
@@ -111,7 +111,7 @@ static async Task<int> Init(Workspace workspace, CommandLine line)
     }
 
     Result<InitReport> result = await workspace
-        .Send<InitCommand, InitReport>(new InitCommand(profile, platform))
+        .Send<Initialise.Request, InitReport>(new Initialise.Request(profile, platform))
         .ConfigureAwait(false);
 
     if (result.IsFailed)
@@ -182,7 +182,7 @@ static bool TryPlatform(
 static async Task<int> NewCycle(Workspace workspace)
 {
     Result<Cycle> result = await workspace
-        .Send<NewCycleCommand, Cycle>(new NewCycleCommand())
+        .Send<NewCycle.Request, Cycle>(new NewCycle.Request())
         .ConfigureAwait(false);
 
     if (result.IsFailed)
@@ -214,7 +214,7 @@ static async Task<int> Landable(CommandLine line)
         return await WithCycle(line, "landable", async (workspace, id) =>
         {
             Result<Landable> result = await workspace
-                .Send<LandableQuery, Landable>(new LandableQuery(id))
+                .Send<Land.Request, Landable>(new Land.Request(id))
                 .ConfigureAwait(false);
 
             if (result.IsFailed)
@@ -240,7 +240,7 @@ static async Task<int> Sweep(Workspace workspace)
     foreach (Cycle cycle in CycleIndex.All(workspace.SolutionRoot))
     {
         Result<Landable> result = await workspace
-            .Send<LandableQuery, Landable>(new LandableQuery(cycle.Id))
+            .Send<Land.Request, Landable>(new Land.Request(cycle.Id))
             .ConfigureAwait(false);
 
         if (result.IsFailed)
@@ -273,7 +273,7 @@ static async Task<int> Skill(CommandLine line)
 static async Task<int> Claims(Workspace workspace)
 {
     Result<ClaimGraph> result = await workspace
-        .Send<ClaimGraphQuery, ClaimGraph>(new ClaimGraphQuery())
+        .Send<ComputeClaimGraph.Request, ClaimGraph>(new ComputeClaimGraph.Request())
         .ConfigureAwait(false);
 
     if (result.IsFailed)
@@ -295,7 +295,7 @@ static async Task<int> Evidence(Workspace workspace, CommandLine line, CycleId i
     line.TryOption("build-log", out string? log);
 
     Result<EvidenceReport> result = await workspace
-        .Send<RecordEvidenceCommand, EvidenceReport>(new RecordEvidenceCommand(id, trx, log))
+        .Send<RecordEvidence.Request, EvidenceReport>(new RecordEvidence.Request(id, trx, log))
         .ConfigureAwait(false);
 
     if (result.IsFailed)
@@ -314,7 +314,7 @@ static async Task<int> Evidence(Workspace workspace, CommandLine line, CycleId i
 static async Task<int> Gate(Workspace workspace, CycleId id)
 {
     Result<GateVerdict> result = await workspace
-        .Send<ApprovalGateQuery, GateVerdict>(new ApprovalGateQuery(id))
+        .Send<ApprovalGate.Request, GateVerdict>(new ApprovalGate.Request(id))
         .ConfigureAwait(false);
 
     if (result.IsFailed)
@@ -342,7 +342,7 @@ static async Task<int> Gate(Workspace workspace, CycleId id)
 static async Task<int> VerifyChain(Workspace workspace, CycleId id)
 {
     Result<ChainVerdict> result = await workspace
-        .Send<VerifyChainQuery, ChainVerdict>(new VerifyChainQuery(id))
+        .Send<VerifyChain.Request, ChainVerdict>(new VerifyChain.Request(id))
         .ConfigureAwait(false);
 
     if (result.IsFailed)
@@ -402,7 +402,7 @@ static async Task<int> DraftApproval(Workspace workspace, CommandLine line, Cycl
     }
 
     Result<ApprovalTextResult> result = await workspace
-        .Send<ApprovalTextQuery, ApprovalTextResult>(new ApprovalTextQuery(id, by, decision))
+        .Send<ApprovalText.Request, ApprovalTextResult>(new ApprovalText.Request(id, by, decision))
         .ConfigureAwait(false);
 
     if (result.IsFailed)
@@ -427,13 +427,13 @@ static async Task<int> DraftAbandon(Workspace workspace, CycleId id)
     string by = Git.UserName(workspace.SolutionRoot) ?? "<your name>";
 
     return await PrintDraft(await workspace
-        .Send<AbandonTextQuery, DraftResult>(new AbandonTextQuery(id, by))
+        .Send<AbandonText.Request, DraftResult>(new AbandonText.Request(id, by))
         .ConfigureAwait(false)).ConfigureAwait(false);
 }
 
 static async Task<int> DraftConstraint(Workspace workspace) =>
     await PrintDraft(await workspace
-        .Send<ConstraintTextQuery, DraftResult>(new ConstraintTextQuery())
+        .Send<ConstraintText.Request, DraftResult>(new ConstraintText.Request())
         .ConfigureAwait(false)).ConfigureAwait(false);
 
 static async Task<int> DraftProfile(Workspace workspace, CommandLine line)
@@ -492,7 +492,7 @@ static async Task<int> Suggestions(Workspace workspace, CommandLine line)
     }
 
     Result<IReadOnlyList<Suggestion>> result = await workspace
-        .Send<SuggestionsQuery, IReadOnlyList<Suggestion>>(new SuggestionsQuery(id))
+        .Send<Suggestions.Request, IReadOnlyList<Suggestion>>(new Suggestions.Request(id))
         .ConfigureAwait(false);
 
     if (result.IsFailed)
@@ -509,7 +509,7 @@ static async Task<int> Suggestions(Workspace workspace, CommandLine line)
 static async Task<int> Status(Workspace workspace, CommandLine line, CycleId id)
 {
     Result<CycleStatus> result = await workspace
-        .Send<CycleStatusQuery, CycleStatus>(new CycleStatusQuery(id))
+        .Send<ReadCycleStatus.Request, CycleStatus>(new ReadCycleStatus.Request(id))
         .ConfigureAwait(false);
 
     if (result.IsFailed)
@@ -682,7 +682,7 @@ static async Task<int> TurnEnd(CommandLine line, HookHost host)
     _ = await Workspace.Run(line, async workspace =>
     {
         Result<HookVerdict> verdict = await workspace
-            .Send<TurnEndQuery, HookVerdict>(new TurnEndQuery(turn.Value))
+            .Send<TurnEndGate.Request, HookVerdict>(new TurnEndGate.Request(turn.Value))
             .ConfigureAwait(false);
 
         if (verdict.IsFailed)

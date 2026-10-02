@@ -122,16 +122,23 @@ dotnet_naming_symbols.constants.required_modifiers = const
 
 dotnet_naming_style.pascal_case.capitalization = pascal_case
 
-# DEVIATION FROM THE BASE. MarketSense names private methods camelCase. Every private helper in
-# this repository is PascalCase - Git, CopyTree, FindRoot, WritePlan, OnCycleBranch - which is also
-# what the .NET design guidelines say for a method at any accessibility. Importing the base rule
-# would have flagged every helper here, so the rule is inverted rather than the code.
-dotnet_naming_rule.methods_should_be_pascal.severity = warning
-dotnet_naming_rule.methods_should_be_pascal.symbols = all_methods
-dotnet_naming_rule.methods_should_be_pascal.style = pascal_case
+# Private methods: camelCase. The house convention, and the one real departure from the .NET design
+# guidelines, which say PascalCase for a method at any accessibility. It is kept because the
+# accessibility is then visible in the name: a reader scanning a file can tell what is reachable from
+# outside it without checking a modifier, which is worth more here than matching the platform.
+#
+# An earlier version of this file inverted the rule to PascalCase instead, on the grounds that every
+# helper in this repository already was. That was the code deciding the convention. Reversed 2026-10-02
+# by the owner; the helpers are renamed to match rather than the rule bent to fit them.
+#
+# A private NESTED TYPE is not covered, deliberately, and stays PascalCase. The operation shape nests a
+# `Handler` inside each holder, and a camelCase type name has no precedent in .NET.
+dotnet_naming_rule.private_methods_should_be_camel.severity = warning
+dotnet_naming_rule.private_methods_should_be_camel.symbols = private_methods
+dotnet_naming_rule.private_methods_should_be_camel.style = camel_case_style
 
-dotnet_naming_symbols.all_methods.applicable_kinds = method
-dotnet_naming_symbols.all_methods.applicable_accessibilities = *
+dotnet_naming_symbols.private_methods.applicable_kinds = method
+dotnet_naming_symbols.private_methods.applicable_accessibilities = private, private_protected
 
 # Public/internal members: PascalCase
 dotnet_naming_rule.public_members_should_be_pascal.severity = warning

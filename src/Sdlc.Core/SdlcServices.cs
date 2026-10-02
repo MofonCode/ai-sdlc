@@ -65,70 +65,42 @@ public static class SdlcServices
         services.TryAddSingleton<IConstraintDocuments>(
             _ => new FileConstraintDocuments(libraryPath, solutionRoot));
 
-        services.AddTransient<
-            IRequestHandler<EffectiveConstraintsQuery, ConstraintSet>,
-            EffectiveConstraintsHandler>();
+        services.AddEffectiveConstraintsRequestHandler();
 
-        services.AddTransient<
-            IRequestHandler<ApprovalGateQuery, GateVerdict>,
-            ApprovalGateHandler>();
+        services.AddApprovalGateRequestHandler();
 
-        services.AddTransient<
-            IRequestHandler<CycleStatusQuery, CycleStatus>,
-            CycleStatusHandler>();
+        services.AddReadCycleStatusRequestHandler();
 
-        services.AddTransient<
-            IRequestHandler<ApprovalTextQuery, ApprovalTextResult>,
-            ApprovalTextHandler>();
+        services.AddApprovalTextRequestHandler();
 
         // The turn-end gate. Unlike the pre-tool policy, which is a pure function over a tool call
         // and stays static for the sake of the hook's start-up cost, this one reads git and the
         // recorded evidence and decides -- so it is a real operation and goes through the mediator.
-        services.AddTransient<
-            IRequestHandler<TurnEndQuery, HookVerdict>,
-            TurnEndHandler>();
+        services.AddTurnEndGateRequestHandler();
 
         // The drafters. Each prints what belongs in a file only a person writes, and none of them opens
         // that file for writing -- which is what lets every hook rule stay absolute.
-        services.AddTransient<
-            IRequestHandler<AbandonTextQuery, DraftResult>,
-            AbandonTextHandler>();
+        services.AddAbandonTextRequestHandler();
 
-        services.AddTransient<
-            IRequestHandler<ConstraintTextQuery, DraftResult>,
-            ConstraintTextHandler>();
+        services.AddConstraintTextRequestHandler();
 
         // Self-registering, inside the operation's own holder. That is not a style choice: the
         // handler is private in there, so nothing written out here could name it.
         services.AddProfileTextRequestHandler();
 
-        services.AddTransient<
-            IRequestHandler<VerifyChainQuery, ChainVerdict>,
-            VerifyChainHandler>();
+        services.AddVerifyChainRequestHandler();
 
-        services.AddTransient<
-            IRequestHandler<SuggestionsQuery, IReadOnlyList<Suggestion>>,
-            SuggestionsHandler>();
+        services.AddSuggestionsRequestHandler();
 
-        services.AddTransient<
-            IRequestHandler<InitCommand, InitReport>,
-            InitHandler>();
+        services.AddInitialiseRequestHandler();
 
-        services.AddTransient<
-            IRequestHandler<NewCycleCommand, Cycle>,
-            NewCycleHandler>();
+        services.AddNewCycleRequestHandler();
 
-        services.AddTransient<
-            IRequestHandler<ClaimGraphQuery, ClaimGraph>,
-            ClaimGraphHandler>();
+        services.AddComputeClaimGraphRequestHandler();
 
-        services.AddTransient<
-            IRequestHandler<LandableQuery, Landable>,
-            LandableHandler>();
+        services.AddLandRequestHandler();
 
-        services.AddTransient<
-            IRequestHandler<RecordEvidenceCommand, EvidenceReport>,
-            RecordEvidenceHandler>();
+        services.AddRecordEvidenceRequestHandler();
 
         return services;
     }

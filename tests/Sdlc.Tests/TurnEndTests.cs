@@ -280,7 +280,7 @@ public sealed class TurnEndTests
         solution.WritePlan(proofs: 1);
         Directory.CreateDirectory(solution.Cycle.EvidenceDirectory);
         CycleWorkspace.WriteRaw(
-            Path.Combine(solution.Cycle.EvidenceDirectory, RecordEvidenceHandler.SummaryFileName),
+            Path.Combine(solution.Cycle.EvidenceDirectory, RecordEvidence.SummaryFileName),
             "not json at all");
         WriteRecordedDiff(solution, "diff --git a/src/Thing.cs b/src/Thing.cs\n");
 
@@ -320,8 +320,8 @@ public sealed class TurnEndTests
             services => services.AddSingleton<IRepository>(
                 new FakeRepository { Branch = CycleBranch, Base = null }));
 
-        Result<HookVerdict> result = await gate.Send<TurnEndQuery, HookVerdict>(
-            new TurnEndQuery(new TurnEnd(solution.Root, AlreadyContinuing: false)));
+        Result<HookVerdict> result = await gate.Send<TurnEndGate.Request, HookVerdict>(
+            new TurnEndGate.Request(new TurnEnd(solution.Root, AlreadyContinuing: false)));
 
         Assert.IsTrue(result.IsSuccess);
         Assert.AreEqual(HookDecision.Allow, result.Value.Decision);
@@ -332,7 +332,7 @@ public sealed class TurnEndTests
         Directory.CreateDirectory(solution.Cycle.EvidenceDirectory);
 
         CycleWorkspace.WriteRaw(
-            Path.Combine(solution.Cycle.EvidenceDirectory, RecordEvidenceHandler.DiffFileName),
+            Path.Combine(solution.Cycle.EvidenceDirectory, RecordEvidence.DiffFileName),
             patch);
     }
 
@@ -352,8 +352,8 @@ public sealed class TurnEndTests
                 Changed = changed ?? ["src/Thing.cs"],
             }));
 
-        Result<HookVerdict> result = await gate.Send<TurnEndQuery, HookVerdict>(
-            new TurnEndQuery(new TurnEnd(solution.Root, alreadyContinuing)));
+        Result<HookVerdict> result = await gate.Send<TurnEndGate.Request, HookVerdict>(
+            new TurnEndGate.Request(new TurnEnd(solution.Root, alreadyContinuing)));
 
         Assert.IsTrue(
             result.IsSuccess,

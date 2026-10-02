@@ -35,7 +35,7 @@ public sealed class VerifyChainTests
         using var gate = Gate.For(workspace.Root);
 
         Result<ChainVerdict> result = await gate
-            .Send<VerifyChainQuery, ChainVerdict>(new VerifyChainQuery(absent.Value));
+            .Send<VerifyChain.Request, ChainVerdict>(new VerifyChain.Request(absent.Value));
 
         Assert.IsTrue(result.IsSuccess);
         Assert.IsFalse(result.Value.Holds);
@@ -272,7 +272,7 @@ public sealed class VerifyChainTests
         using var gate = Gate.For(workspace.Root);
 
         Result<ChainVerdict> result = await gate
-            .Send<VerifyChainQuery, ChainVerdict>(new VerifyChainQuery(workspace.Cycle.Id));
+            .Send<VerifyChain.Request, ChainVerdict>(new VerifyChain.Request(workspace.Cycle.Id));
 
         Assert.IsTrue(result.IsSuccess, string.Join("; ", result.Errors.Select(e => e.Message)));
         return result.Value;

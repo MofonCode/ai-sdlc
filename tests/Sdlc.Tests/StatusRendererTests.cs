@@ -368,7 +368,7 @@ public sealed class StatusRendererTests
         using var gate = Gate.For(workspace.Root);
 
         Result<CycleStatus> read = await gate
-            .Send<CycleStatusQuery, CycleStatus>(new CycleStatusQuery(workspace.Cycle.Id));
+            .Send<ReadCycleStatus.Request, CycleStatus>(new ReadCycleStatus.Request(workspace.Cycle.Id));
 
         Assert.IsTrue(read.IsSuccess, string.Join("; ", read.Errors.Select(e => e.Message)));
 

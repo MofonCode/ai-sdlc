@@ -107,17 +107,17 @@ public sealed class InitTests
         // Rewriting a repository's instruction file is the one destructive thing adoption could do, and
         // the existing one usually holds things nothing else knows.
         using var solution = Scratch.Create();
-        string path = Path.Combine(solution.Root, InitHandler.AgentsFileName);
+        string path = Path.Combine(solution.Root, Initialise.AgentsFileName);
         await File.WriteAllTextAsync(path, "instructions nobody should lose\n");
 
         InitReport report = await Adopt(solution, tracked: ["src/App/Program.cs"]);
 
         Assert.AreEqual(
             InitChange.Printed,
-            report.Actions.Single(action => action.Path == InitHandler.AgentsFileName).Change);
+            report.Actions.Single(action => action.Path == Initialise.AgentsFileName).Change);
 
         Assert.AreEqual("instructions nobody should lose\n", await File.ReadAllTextAsync(path));
-        Assert.IsTrue(report.Printed.ContainsKey(InitHandler.AgentsFileName));
+        Assert.IsTrue(report.Printed.ContainsKey(Initialise.AgentsFileName));
     }
 
     [TestMethod]
@@ -130,7 +130,7 @@ public sealed class InitTests
         using Gate gate = Adopter(solution, new FakeRepository { Repository = false });
 
         Result<InitReport> result = await gate
-            .Send<InitCommand, InitReport>(new InitCommand("dotnet-default", Platform.GitHub));
+            .Send<Initialise.Request, InitReport>(new Initialise.Request("dotnet-default", Platform.GitHub));
 
         Assert.IsTrue(result.IsFailed);
         StringAssert.Contains(result.Errors[0].Message, "git init");
@@ -404,7 +404,7 @@ public sealed class InitTests
         using Gate gate = Adopter(solution, new FakeRepository { Tracked = tracked });
 
         Result<InitReport> result = await gate
-            .Send<InitCommand, InitReport>(new InitCommand("dotnet-default", platform));
+            .Send<Initialise.Request, InitReport>(new Initialise.Request("dotnet-default", platform));
 
         Assert.IsTrue(result.IsSuccess, string.Join("; ", result.Errors.Select(e => e.Message)));
         return result.Value;

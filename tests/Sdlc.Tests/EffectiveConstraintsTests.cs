@@ -105,7 +105,7 @@ public sealed class EffectiveConstraintsTests
         using Gate gate = Resolver(documents);
 
         Result<ConstraintSet> result = await gate
-            .Send<EffectiveConstraintsQuery, ConstraintSet>(new EffectiveConstraintsQuery());
+            .Send<EffectiveConstraints.Request, ConstraintSet>(new EffectiveConstraints.Request());
 
         Assert.IsTrue(
             result.IsFailed,
@@ -123,7 +123,7 @@ public sealed class EffectiveConstraintsTests
         using Gate gate = Resolver(documents);
 
         Result<ConstraintSet> result = await gate
-            .Send<EffectiveConstraintsQuery, ConstraintSet>(new EffectiveConstraintsQuery(artifact));
+            .Send<EffectiveConstraints.Request, ConstraintSet>(new EffectiveConstraints.Request(artifact));
 
         Assert.IsTrue(result.IsSuccess, string.Join("; ", result.Errors.Select(e => e.Message)));
         return result.Value;

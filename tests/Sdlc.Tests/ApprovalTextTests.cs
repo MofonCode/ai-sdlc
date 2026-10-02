@@ -57,7 +57,7 @@ public sealed class ApprovalTextTests
         using var gate = Gate.For(workspace.Root);
 
         Result<GateVerdict> verdict = await gate
-            .Send<ApprovalGateQuery, GateVerdict>(new ApprovalGateQuery(workspace.Cycle.Id));
+            .Send<ApprovalGate.Request, GateVerdict>(new ApprovalGate.Request(workspace.Cycle.Id));
 
         Assert.IsTrue(verdict.IsSuccess);
         Assert.AreEqual(
@@ -367,8 +367,8 @@ public sealed class ApprovalTextTests
         using var gate = Gate.For(workspace.Root);
 
         Result<ApprovalTextResult> result = await gate
-            .Send<ApprovalTextQuery, ApprovalTextResult>(
-                new ApprovalTextQuery(workspace.Cycle.Id, "Peter Almanzar", decision));
+            .Send<ApprovalText.Request, ApprovalTextResult>(
+                new ApprovalText.Request(workspace.Cycle.Id, "Peter Almanzar", decision));
 
         Assert.IsTrue(result.IsSuccess, string.Join("; ", result.Errors.Select(e => e.Message)));
         return result.Value;

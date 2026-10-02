@@ -53,7 +53,7 @@ public static class ChainRenderer
 
             // Stated on a pass rather than only on a failure. A team reads this line when the check is
             // green, which is the moment they are deciding how much it proved.
-            foreach (string line in Wrap(VerifyChainHandler.Caveat))
+            foreach (string line in Wrap(VerifyChain.Caveat))
             {
                 output.AppendLine(Indent + line);
             }

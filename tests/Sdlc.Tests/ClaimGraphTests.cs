@@ -158,7 +158,7 @@ public sealed class ClaimGraphTests
         using var gate = Gate.For(solution.Root);
 
         Result<ClaimGraph> result = await gate
-            .Send<ClaimGraphQuery, ClaimGraph>(new ClaimGraphQuery());
+            .Send<ComputeClaimGraph.Request, ClaimGraph>(new ComputeClaimGraph.Request());
 
         Assert.IsTrue(result.IsSuccess, string.Join("; ", result.Errors.Select(e => e.Message)));
         return result.Value;

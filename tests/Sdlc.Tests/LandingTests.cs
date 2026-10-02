@@ -208,7 +208,7 @@ public sealed class LandingTests
         using var gate = Gate.For(workspace.Root);
 
         Result<Landable> result = await gate
-            .Send<LandableQuery, Landable>(new LandableQuery(workspace.Cycle.Id));
+            .Send<Land.Request, Landable>(new Land.Request(workspace.Cycle.Id));
 
         Assert.IsTrue(result.IsSuccess, string.Join("; ", result.Errors.Select(e => e.Message)));
         return result.Value;

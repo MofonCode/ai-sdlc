@@ -154,8 +154,8 @@ public sealed class SuggestionsTests
         using var gate = Gate.For(workspace.Root);
 
         Result<IReadOnlyList<Suggestion>> result = await gate
-            .Send<SuggestionsQuery, IReadOnlyList<Suggestion>>(
-                new SuggestionsQuery(all ? null : workspace.Cycle.Id));
+            .Send<Suggestions.Request, IReadOnlyList<Suggestion>>(
+                new Suggestions.Request(all ? null : workspace.Cycle.Id));
 
         Assert.IsTrue(result.IsSuccess, string.Join("; ", result.Errors.Select(e => e.Message)));
         return result.Value;

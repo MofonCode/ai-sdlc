@@ -395,7 +395,7 @@ public sealed class ApprovalGateTests
         using var gate = Gate.For(workspace.Root);
 
         Result<GateVerdict> result = await gate
-            .Send<ApprovalGateQuery, GateVerdict>(new ApprovalGateQuery(workspace.Cycle.Id));
+            .Send<ApprovalGate.Request, GateVerdict>(new ApprovalGate.Request(workspace.Cycle.Id));
 
         Assert.IsTrue(result.IsSuccess, string.Join("; ", result.Errors.Select(e => e.Message)));
         return result.Value;

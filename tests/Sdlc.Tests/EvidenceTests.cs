@@ -212,9 +212,9 @@ public sealed class EvidenceTests
 
         foreach (string expected in (string[])
         [
-            RecordEvidenceHandler.BaseFileName,
-            RecordEvidenceHandler.DiffFileName,
-            RecordEvidenceHandler.SummaryFileName,
+            RecordEvidence.BaseFileName,
+            RecordEvidence.DiffFileName,
+            RecordEvidence.SummaryFileName,
             "results.trx",
         ])
         {
@@ -257,7 +257,7 @@ public sealed class EvidenceTests
         EvidenceReport report = await Record(workspace, trx: null, changed: ["src/Thing.cs"]);
 
         Assert.IsNull(report.Summary);
-        Assert.IsTrue(report.Written.Contains(RecordEvidenceHandler.DiffFileName, StringComparer.Ordinal));
+        Assert.IsTrue(report.Written.Contains(RecordEvidence.DiffFileName, StringComparer.Ordinal));
     }
 
     [TestMethod]
@@ -269,7 +269,7 @@ public sealed class EvidenceTests
         using Gate gate = Recorder(workspace, new FakeRepository());
 
         Result<EvidenceReport> result = await gate
-            .Send<RecordEvidenceCommand, EvidenceReport>(new RecordEvidenceCommand(
+            .Send<RecordEvidence.Request, EvidenceReport>(new RecordEvidence.Request(
                 workspace.Cycle.Id,
                 Path.Combine(workspace.Root, "absent.trx")));
 
@@ -288,8 +288,8 @@ public sealed class EvidenceTests
         using Gate gate = Recorder(workspace, new FakeRepository { Base = null });
 
         Result<EvidenceReport> result = await gate
-            .Send<RecordEvidenceCommand, EvidenceReport>(
-                new RecordEvidenceCommand(workspace.Cycle.Id));
+            .Send<RecordEvidence.Request, EvidenceReport>(
+                new RecordEvidence.Request(workspace.Cycle.Id));
 
         Assert.IsTrue(result.IsFailed);
         StringAssert.Contains(result.Errors[0].Message, "diverged");
@@ -303,8 +303,8 @@ public sealed class EvidenceTests
         using Gate gate = Recorder(workspace, new FakeRepository());
 
         Result<EvidenceReport> result = await gate
-            .Send<RecordEvidenceCommand, EvidenceReport>(
-                new RecordEvidenceCommand(workspace.Cycle.Id));
+            .Send<RecordEvidence.Request, EvidenceReport>(
+                new RecordEvidence.Request(workspace.Cycle.Id));
 
         Assert.IsTrue(result.IsFailed);
         StringAssert.Contains(result.Errors[0].Message, "no plan");
@@ -359,8 +359,8 @@ public sealed class EvidenceTests
         using Gate gate = Recorder(workspace, new FakeRepository { Changed = changed });
 
         Result<EvidenceReport> result = await gate
-            .Send<RecordEvidenceCommand, EvidenceReport>(
-                new RecordEvidenceCommand(workspace.Cycle.Id, trx));
+            .Send<RecordEvidence.Request, EvidenceReport>(
+                new RecordEvidence.Request(workspace.Cycle.Id, trx));
 
         Assert.IsTrue(result.IsSuccess, string.Join("; ", result.Errors.Select(e => e.Message)));
         return result.Value;
