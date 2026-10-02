@@ -10,6 +10,10 @@ namespace Sdlc.Core.Findings;
 /// <param name="FrameworkVersion">The version that produced it.</param>
 /// <param name="Cycle">The cycle's id.</param>
 /// <param name="Artifact">The artifact's path, as the round recorded it.</param>
+/// <param name="UpstreamSha256">
+/// The canonical hash of the artifact above, as this round saw it. Null on an intent, which has no
+/// upstream.
+/// </param>
 /// <param name="InterrogatedAt">When the round ran.</param>
 /// <param name="Round">Which round this is, counting from one.</param>
 /// <param name="Findings">What it found. An empty list is a clean round.</param>
@@ -17,11 +21,19 @@ public sealed record FindingsRound(
     [property: JsonPropertyName("framework_version")] string? FrameworkVersion,
     string? Cycle,
     string? Artifact,
+    [property: JsonPropertyName("upstream_sha256")] string? UpstreamSha256,
     [property: JsonPropertyName("interrogated_at")] DateTimeOffset? InterrogatedAt,
     int Round,
     IReadOnlyList<Finding> Findings)
 {
-    /// <summary>Whether the round raised nothing that stops the artifact.</summary>
+    /// <summary>
+    /// Whether the round raised nothing that stops the artifact.
+    /// </summary>
+    /// <remarks>
+    /// Clean <em>as of</em> the upstream it recorded. A round judged against an intent that has since
+    /// changed is clean about a document that no longer exists, which is why staleness is computed
+    /// against <see cref="UpstreamSha256"/> rather than inferred from this.
+    /// </remarks>
     public bool IsClean => !Findings.Any(finding => finding.IsOpenBlocker);
 }
 

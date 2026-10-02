@@ -47,6 +47,17 @@ public enum GateRefusal
     /// </para>
     /// </remarks>
     OpenBlocker,
+
+    /// <summary>
+    /// A findings round judged its artifact against an upstream that has since changed.
+    /// </summary>
+    /// <remarks>
+    /// The three approval hashes prove these three documents were approved. They do not prove the spec
+    /// was derived from this intent -- so an intent edited after a clean spec leaves a spec derived from
+    /// an intent that no longer exists, with every approval hash matching. Only the round knows what it
+    /// read, which is why it records it.
+    /// </remarks>
+    StaleRound,
 }
 
 /// <summary>One document's hash as approved against its hash now.</summary>
@@ -193,6 +204,12 @@ public sealed class ApprovalGateHandler(string solutionRoot)
             return Verdict(cycle, GateRefusal.OpenBlocker, Blocked(cycle, blockers), ledger, hashes);
         }
 
+        IReadOnlyList<string> stale = await Stale(cycle, cancellationToken).ConfigureAwait(false);
+        if (stale.Count > 0)
+        {
+            return Verdict(cycle, GateRefusal.StaleRound, Superseded(cycle, stale), ledger, hashes);
+        }
+
         return Verdict(
             cycle,
             GateRefusal.None,
@@ -241,6 +258,78 @@ public sealed class ApprovalGateHandler(string solutionRoot)
 
         return blockers;
     }
+
+    /// <summary>
+    /// Finds artifacts whose latest round judged them against an upstream that has since moved.
+    /// </summary>
+    /// <remarks>
+    /// Reads the documents in chain order and compares each round's recorded upstream against the
+    /// upstream's hash now. A round that recorded no upstream at all counts as stale: a round that
+    /// cannot say what it judged is not evidence that it judged the right thing.
+    /// </remarks>
+    private static async Task<IReadOnlyList<string>> Stale(
+        Cycle cycle,
+        CancellationToken cancellationToken)
+    {
+        List<string> stale = [];
+        Dictionary<ArtifactKind, string> hashes = [];
+
+        foreach (ArtifactKind kind in Cycle.PlanningDocuments)
+        {
+            hashes[kind] = await ContentHash
+                .OfFile(cycle.PathOf(kind), cancellationToken)
+                .ConfigureAwait(false);
+
+            if (Cycle.UpstreamOf(kind) is not { } upstream)
+            {
+                continue;
+            }
+
+            Result<IReadOnlyList<FindingsRound>> history =
+                await FindingsReader.ReadHistory(cycle, kind, cancellationToken).ConfigureAwait(false);
+
+            if (history.IsFailed || history.Value.Count == 0)
+            {
+                continue;
+            }
+
+            string? judged = history.Value[^1].UpstreamSha256;
+            string now = hashes[upstream];
+
+            if (string.Equals(judged, now, StringComparison.Ordinal))
+            {
+                continue;
+            }
+
+            stale.Add(judged is null
+                ? string.Create(
+                    CultureInfo.InvariantCulture,
+                    $"  {Cycle.FileNameOf(kind)}: round {history.Value[^1].Round} did not record which {Cycle.FileNameOf(upstream)} it judged against")
+                : string.Create(
+                    CultureInfo.InvariantCulture,
+                    $"  {Cycle.FileNameOf(kind)}: round {history.Value[^1].Round} judged {Cycle.FileNameOf(upstream)} {ContentHash.Abbreviate(judged)}, which is now {ContentHash.Abbreviate(now)}"));
+        }
+
+        return stale;
+    }
+
+    private static string Superseded(Cycle cycle, IReadOnlyList<string> stale) =>
+        string.Join(
+            Environment.NewLine,
+            [
+                string.Create(
+                    CultureInfo.InvariantCulture,
+                    $"Cycle {cycle.Id} is approved, and {stale.Count} interrogation{(stale.Count == 1 ? " judged" : "s judged")} against a document that has changed since:"),
+                string.Empty,
+                .. stale,
+                string.Empty,
+                "The approval records that three documents were read. It cannot record that the spec was",
+                "derived from this intent, so an upstream edited after a clean round leaves a judgement",
+                "about a document that no longer exists. Re-interrogate the artifact named above, then",
+                string.Create(
+                    CultureInfo.InvariantCulture,
+                    $"approve again with 'sdlc draft approval {cycle.Id}'."),
+            ]);
 
     private static string Blocked(Cycle cycle, IReadOnlyList<string> blockers) =>
         string.Join(

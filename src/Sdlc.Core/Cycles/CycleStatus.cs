@@ -18,6 +18,12 @@ namespace Sdlc.Core.Cycles;
 /// <param name="OpenBlockers">
 /// Findings that still stop it advancing: blocking, and open in the latest round that mentions them.
 /// </param>
+/// <param name="UpstreamHash">
+/// The hash of the artifact above as it stands now, or null when this artifact has no upstream.
+/// </param>
+/// <param name="JudgedAgainst">
+/// The upstream hash the latest round recorded, or null when it recorded none or there is no round.
+/// </param>
 public sealed record ArtifactState(
     ArtifactKind Kind,
     string Path,
@@ -26,17 +32,38 @@ public sealed record ArtifactState(
     int Rounds,
     int LatestRound,
     IReadOnlyList<int> History,
-    IReadOnlyList<Finding> OpenBlockers)
+    IReadOnlyList<Finding> OpenBlockers,
+    string? UpstreamHash = null,
+    string? JudgedAgainst = null)
 {
+    /// <summary>
+    /// Whether the latest round judged this artifact against an upstream that has since changed.
+    /// </summary>
+    /// <remarks>
+    /// A round is clean <em>as of</em> the upstream it saw. The approval proves these three documents
+    /// were approved, not that the spec was derived from this intent -- so an intent edited after a
+    /// clean spec leaves a spec derived from an intent that no longer exists, with every approval hash
+    /// matching on disk. Steering is the mechanism that creates exactly that.
+    /// <para>
+    /// A round that recorded no upstream at all is stale too. The honest reading of a missing hash is
+    /// "this round cannot say what it judged", and treating that as fine would make the check skippable
+    /// by omitting a field.
+    /// </para>
+    /// </remarks>
+    public bool IsStale => UpstreamHash is not null
+        && Rounds > 0
+        && !string.Equals(UpstreamHash, JudgedAgainst, StringComparison.Ordinal);
+
     /// <summary>
     /// Whether this artifact lets the next stage run.
     /// </summary>
     /// <remarks>
     /// Interrogation is part of the chain rather than an optional extra, which is what keeps a single
     /// approval from resting on three documents nothing has argued with. So an artifact nobody has
-    /// interrogated is not clear, however clean it looks.
+    /// interrogated is not clear, however clean it looks -- and neither is one whose judgement was
+    /// made against an upstream that has moved since.
     /// </remarks>
-    public bool IsClear => Exists && Rounds > 0 && OpenBlockers.Count == 0;
+    public bool IsClear => Exists && Rounds > 0 && OpenBlockers.Count == 0 && !IsStale;
 }
 
 /// <summary>Asks where a cycle has got to.</summary>
@@ -54,6 +81,9 @@ public sealed record CycleStatus(
 {
     /// <summary>The artifact the cycle is waiting on, or null when all three are clear.</summary>
     public ArtifactState? Blocking => Artifacts.FirstOrDefault(artifact => !artifact.IsClear);
+
+    /// <summary>Artifacts whose latest round judged them against an upstream that has since changed.</summary>
+    public IReadOnlyList<ArtifactState> Stale => [.. Artifacts.Where(artifact => artifact.IsStale)];
 
     /// <summary>Every open blocking finding across the three documents, prefixed by document.</summary>
     public IReadOnlyList<string> OpenBlockerIds =>
@@ -78,9 +108,19 @@ public sealed class CycleStatusHandler(string solutionRoot)
         Cycle cycle = new(request.Id, solutionRoot);
         List<ArtifactState> artifacts = [];
 
+        // Read in chain order, so each artifact's upstream is already in hand when its turn comes. The
+        // upstream's hash is taken from what is on disk now, which is the whole point: the round says
+        // what it judged, and this says what is there.
         foreach (ArtifactKind kind in Cycle.PlanningDocuments)
         {
-            Result<ArtifactState> state = await Read(cycle, kind, cancellationToken).ConfigureAwait(false);
+            ArtifactKind? upstream = Cycle.UpstreamOf(kind);
+            string? upstreamHash = upstream is null
+                ? null
+                : artifacts.FirstOrDefault(artifact => artifact.Kind == upstream.Value)?.Hash;
+
+            Result<ArtifactState> state =
+                await Read(cycle, kind, upstreamHash, cancellationToken).ConfigureAwait(false);
+
             if (state.IsFailed)
             {
                 return state.ToResult<CycleStatus>();
@@ -101,6 +141,7 @@ public sealed class CycleStatusHandler(string solutionRoot)
     private static async Task<Result<ArtifactState>> Read(
         Cycle cycle,
         ArtifactKind kind,
+        string? upstreamHash,
         CancellationToken cancellationToken)
     {
         string path = cycle.PathOf(kind);
@@ -120,6 +161,10 @@ public sealed class CycleStatusHandler(string solutionRoot)
 
         IReadOnlyList<FindingsRound> rounds = history.Value;
 
+        // The latest round is the one that stands, so it is the one whose upstream matters. An earlier
+        // round judged against an earlier upstream is history rather than a problem.
+        FindingsRound? latest = rounds.Count == 0 ? null : rounds[^1];
+
         return Result.Ok(new ArtifactState(
             kind,
             path,
@@ -128,7 +173,9 @@ public sealed class CycleStatusHandler(string solutionRoot)
             rounds.Count,
             rounds.Count == 0 ? 0 : rounds.Max(round => round.Round),
             [.. rounds.Select(round => round.Findings.Count(finding => finding.IsOpenBlocker))],
-            FindingsReader.StandingBlockers(rounds)));
+            FindingsReader.StandingBlockers(rounds),
+            upstreamHash,
+            latest?.UpstreamSha256));
     }
 
 }

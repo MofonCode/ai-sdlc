@@ -65,8 +65,8 @@ internal sealed class CycleWorkspace : IDisposable
     /// <summary>Writes an interrogation round that found nothing.</summary>
     /// <param name="kind">The artifact interrogated.</param>
     /// <param name="round">The round number.</param>
-    public void WriteCleanRound(ArtifactKind kind, int round = 1) =>
-        WriteRound(kind, round, findings: string.Empty);
+    public void WriteCleanRound(ArtifactKind kind, int round = 1, string? upstream = null) =>
+        WriteRound(kind, round, findings: string.Empty, upstream);
 
     /// <summary>Writes an interrogation round holding one open blocking finding.</summary>
     /// <param name="kind">The artifact interrogated.</param>
@@ -117,9 +117,23 @@ internal sealed class CycleWorkspace : IDisposable
     /// <param name="kind">The artifact interrogated.</param>
     /// <param name="round">The round number.</param>
     /// <param name="findings">The findings array's contents, without its brackets.</param>
-    public void WriteRound(ArtifactKind kind, int round, string findings)
+    /// <param name="upstream">
+    /// The upstream hash to record. Null records the real hash of the upstream on disk, which is what
+    /// an interrogation does; passing a value is how a test makes a round look judged against an
+    /// upstream that has since changed.
+    /// </param>
+    public void WriteRound(ArtifactKind kind, int round, string findings, string? upstream = null)
     {
         Directory.CreateDirectory(Cycle.FindingsDirectory);
+
+        // An intent has no upstream, so its rounds record none. Everything below it records the hash of
+        // the document above as it stands when the round runs.
+        string recorded = Cycle.UpstreamOf(kind) is { } above
+            ? string.Create(
+                CultureInfo.InvariantCulture,
+                $"\"upstream_sha256\": \"{upstream ?? HashOf(above)}\",")
+            : string.Empty;
+
         File.WriteAllText(
             Cycle.FindingsPath(kind, round),
             string.Create(
@@ -129,11 +143,34 @@ internal sealed class CycleWorkspace : IDisposable
                     "framework_version": "1.0.0",
                     "cycle": "{{Cycle.Id}}",
                     "artifact": "{{Cycle.NameOf(kind)}}.md",
+                    {{recorded}}
                     "interrogated_at": "2026-10-01T10:00:00Z",
                     "round": {{round}},
                     "findings": [{{findings}}]
                   }
                   """));
+    }
+
+    /// <summary>
+    /// Writes a file verbatim, for a shape the typed helpers deliberately cannot produce.
+    /// </summary>
+    /// <param name="path">Where to write it.</param>
+    /// <param name="content">What to write.</param>
+    public static void WriteRaw(string path, string content)
+    {
+        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+        File.WriteAllText(path, content);
+    }
+
+    /// <summary>The canonical hash of one artifact as it stands on disk.</summary>
+    /// <param name="kind">The artifact.</param>
+    /// <returns>Its hash, or a placeholder when it has not been written.</returns>
+    public string HashOf(ArtifactKind kind)
+    {
+        string path = Cycle.PathOf(kind);
+        return File.Exists(path)
+            ? Sdlc.Core.Artifacts.ContentHash.Of(File.ReadAllText(path))
+            : "0000000000000000000000000000000000000000000000000000000000000000";
     }
 
     /// <summary>Writes an approval ledger holding one decision.</summary>

@@ -112,6 +112,7 @@ public static class StatusRenderer
         GateRefusal.Refused => "sent back - " + (status.Gate.Ledger?.Current?.Reason ?? "no reason recorded"),
         GateRefusal.HashMismatch => "approved, but a document has changed since",
         GateRefusal.OpenBlocker => "approved, but a blocking finding is still open",
+        GateRefusal.StaleRound => "approved, but an interrogation judged a document that has changed since",
         GateRefusal.Abandoned => "abandoned, which is terminal",
         GateRefusal.MissingDocument => "cannot be approved until all three documents exist",
         GateRefusal.NoCycle => "no cycle directory yet",

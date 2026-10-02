@@ -57,6 +57,22 @@ public sealed record Cycle(CycleId Id, string SolutionRoot)
     public static IReadOnlyList<ArtifactKind> PlanningDocuments { get; } =
         [ArtifactKind.Intent, ArtifactKind.Spec, ArtifactKind.Plan];
 
+    /// <summary>
+    /// The artifact an interrogation of this one judges it against, or null when there is none.
+    /// </summary>
+    /// <remarks>
+    /// Derived from the chain order rather than declared, because the order is fixed: the spec is
+    /// derived from the intent and the plan from the spec. An intent has no upstream, which is why this
+    /// is nullable rather than a lookup that throws.
+    /// </remarks>
+    /// <param name="kind">The artifact being interrogated.</param>
+    /// <returns>The artifact above it in the chain, or null for the first.</returns>
+    public static ArtifactKind? UpstreamOf(ArtifactKind kind)
+    {
+        int position = PlanningDocuments.ToList().IndexOf(kind);
+        return position > 0 ? PlanningDocuments[position - 1] : null;
+    }
+
     /// <summary>The cycle's own directory.</summary>
     /// <remarks>
     /// Built from segments rather than from one slash-separated string, so the separators are the

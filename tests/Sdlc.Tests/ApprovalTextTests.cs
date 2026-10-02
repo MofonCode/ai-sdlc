@@ -287,6 +287,27 @@ public sealed class ApprovalTextTests
     }
 
     [TestMethod]
+    public async Task A_stale_round_refuses_the_entry_but_not_a_send_back()
+    {
+        using CycleWorkspace workspace = Ready();
+        workspace.WriteArtifact(ArtifactKind.Intent, "a different problem entirely");
+
+        ApprovalTextResult approving = await Print(workspace);
+
+        Assert.IsFalse(approving.MayApprove);
+        StringAssert.Contains(approving.Instructions, "spec.md");
+        StringAssert.Contains(
+            approving.Instructions,
+            "sdlc interrogate",
+            "The fix is a fresh round, not an edit, so the refusal names the interrogation.");
+
+        Assert.IsTrue(
+            (await Print(workspace, GateDecision.ChangesRequested)).MayApprove,
+            "A judgement made against a document that has moved is often exactly what the person is "
+            + "sending the cycle back about.");
+    }
+
+    [TestMethod]
     public async Task An_uninterrogated_cycle_can_be_refused_but_not_approved()
     {
         using var workspace = CycleWorkspace.Create();

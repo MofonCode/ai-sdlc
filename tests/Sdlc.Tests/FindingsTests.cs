@@ -216,5 +216,5 @@ public sealed class FindingsTests
     }
 
     private static FindingsRound Round(int number, params Finding[] findings) =>
-        new(null, null, null, null, number, findings);
+        new(null, null, null, null, null, number, findings);
 }

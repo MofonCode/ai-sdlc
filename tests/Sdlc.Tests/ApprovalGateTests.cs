@@ -234,6 +234,108 @@ public sealed class ApprovalGateTests
     }
 
     [TestMethod]
+    public async Task An_intent_edited_after_a_clean_spec_refuses_the_build()
+    {
+        // The three approval hashes cannot catch this. They record that three documents were read, not
+        // that the spec was derived from this intent, so re-approving after the edit leaves every hash
+        // matching and a spec judged against an intent that no longer exists.
+        using var workspace = CycleWorkspace.Create();
+        workspace.WriteAllArtifacts();
+        foreach (ArtifactKind kind in Cycle.PlanningDocuments)
+        {
+            workspace.WriteCleanRound(kind);
+        }
+
+        workspace.WriteArtifact(ArtifactKind.Intent, "a different problem entirely");
+        workspace.WriteApproval();
+
+        GateVerdict verdict = await Check(workspace);
+
+        Assert.AreEqual(
+            GateRefusal.StaleRound,
+            verdict.Refusal,
+            "Every approval hash matches what is on disk, so only the round knows. " + verdict.Explanation);
+
+        StringAssert.Contains(verdict.Explanation, "spec.md");
+        StringAssert.Contains(verdict.Explanation, "intent.md");
+    }
+
+    [TestMethod]
+    public async Task Re_interrogating_the_downstream_clears_the_staleness()
+    {
+        using var workspace = CycleWorkspace.Create();
+        workspace.WriteAllArtifacts();
+        foreach (ArtifactKind kind in Cycle.PlanningDocuments)
+        {
+            workspace.WriteCleanRound(kind);
+        }
+
+        workspace.WriteArtifact(ArtifactKind.Intent, "a different problem entirely");
+
+        // What the fix is: judge the spec against the intent as it stands now.
+        workspace.WriteCleanRound(ArtifactKind.Spec, round: 2);
+        workspace.WriteApproval();
+
+        GateVerdict verdict = await Check(workspace);
+
+        Assert.AreEqual(GateRefusal.None, verdict.Refusal, verdict.Explanation);
+    }
+
+    [TestMethod]
+    public async Task A_round_that_records_no_upstream_at_all_refuses_the_build()
+    {
+        // Fail closed. A round that cannot say what it judged is not evidence that it judged the right
+        // thing, and treating a missing field as fine would make the check skippable by omitting it.
+        using var workspace = CycleWorkspace.Create();
+        workspace.WriteAllArtifacts();
+        workspace.WriteCleanRound(ArtifactKind.Intent);
+        workspace.WriteCleanRound(ArtifactKind.Plan);
+
+        CycleWorkspace.WriteRaw(
+            workspace.Cycle.FindingsPath(ArtifactKind.Spec, 1),
+            $$"""
+              {
+                "cycle": "{{workspace.Cycle.Id}}",
+                "artifact": "spec.md",
+                "round": 1,
+                "findings": []
+              }
+              """);
+
+        workspace.WriteApproval();
+
+        GateVerdict verdict = await Check(workspace);
+
+        Assert.AreEqual(GateRefusal.StaleRound, verdict.Refusal, verdict.Explanation);
+        StringAssert.Contains(
+            verdict.Explanation,
+            "did not record",
+            "A round that recorded nothing and one that recorded the wrong hash need different words, "
+            + "or a person goes hunting for an edit that never happened.");
+    }
+
+    [TestMethod]
+    public async Task An_intent_is_never_stale_because_it_has_no_upstream()
+    {
+        using var workspace = CycleWorkspace.Create();
+        workspace.WriteAllArtifacts();
+        foreach (ArtifactKind kind in Cycle.PlanningDocuments)
+        {
+            workspace.WriteCleanRound(kind);
+        }
+
+        workspace.WriteApproval();
+
+        GateVerdict verdict = await Check(workspace);
+
+        Assert.AreEqual(
+            GateRefusal.None,
+            verdict.Refusal,
+            "The intent's round records no upstream because there is none. Requiring one would refuse "
+            + "every cycle. " + verdict.Explanation);
+    }
+
+    [TestMethod]
     public async Task A_blocker_answered_in_a_later_round_no_longer_refuses_the_build()
     {
         using var workspace = CycleWorkspace.Create();

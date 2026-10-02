@@ -90,6 +90,14 @@ public sealed class ApprovalTextHandler(string solutionRoot)
             return Refuse(status, Uninterrogated(status, uninterrogated), request.Decision);
         }
 
+        // A judgement made against a document that has moved since is not a judgement of what is on
+        // disk now. Like a blocker, this stops an approval and not a refusal: the staleness is often
+        // exactly what the person is sending the cycle back about.
+        if (request.Decision == GateDecision.Approved && status.Stale.Count > 0)
+        {
+            return Refuse(status, Superseded(status), request.Decision);
+        }
+
         // An open blocker stops an approval and nothing else. Refusing a blocked cycle is the correct
         // move, so a drafter that would not help with it would push the person into writing YAML by hand
         // at exactly the moment the format is least welcome.
@@ -124,6 +132,36 @@ public sealed class ApprovalTextHandler(string solutionRoot)
         return string.Create(
             CultureInfo.InvariantCulture,
             $"Cycle {status.Cycle.Id} cannot be approved yet: {joined} {verb} not been written. The approval covers all three planning documents as one act, so all three have to exist first.");
+    }
+
+    /// <summary>
+    /// Says which artifacts were judged against a document that has changed since.
+    /// </summary>
+    /// <remarks>
+    /// The three hashes cannot catch this. They record that three documents were read, not that the
+    /// spec was derived from this intent -- so an upstream edited after a clean round leaves every
+    /// approval hash matching and a judgement about a document that no longer exists.
+    /// </remarks>
+    private static string Superseded(CycleStatus status)
+    {
+        List<string> lines =
+        [
+            string.Create(
+                CultureInfo.InvariantCulture,
+                $"Cycle {status.Cycle.Id} cannot be approved: {status.Stale.Count} interrogation{(status.Stale.Count == 1 ? " judged" : "s judged")} against a document that has changed since."),
+            string.Empty,
+            .. status.Stale.Select(artifact => string.Create(
+                CultureInfo.InvariantCulture,
+                $"    {Cycle.FileNameOf(artifact.Kind)} was judged against {Cycle.FileNameOf(Cycle.UpstreamOf(artifact.Kind)!.Value)} as it stood at round {artifact.LatestRound}")),
+            string.Empty,
+            "Interrogate each one again, so the round says it judged what is there now:",
+            string.Empty,
+            .. status.Stale.Select(artifact => string.Create(
+                CultureInfo.InvariantCulture,
+                $"    sdlc interrogate {status.Cycle.Id} {Cycle.NameOf(artifact.Kind)}")),
+        ];
+
+        return string.Join(Environment.NewLine, lines);
     }
 
     /// <summary>
