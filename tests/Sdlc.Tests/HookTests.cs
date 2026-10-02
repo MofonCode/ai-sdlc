@@ -153,7 +153,7 @@ public sealed class HookTests
 
         Assert.AreEqual(HookDecision.Deny, verdict.Decision);
         StringAssert.Contains(verdict.Reason, "no agent may write it");
-        StringAssert.Contains(verdict.Reason, "sdlc cycle-approval");
+        StringAssert.Contains(verdict.Reason, "sdlc draft approval");
     }
 
     [TestMethod]

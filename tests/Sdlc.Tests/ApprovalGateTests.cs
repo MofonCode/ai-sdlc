@@ -74,7 +74,7 @@ public sealed class ApprovalGateTests
         GateVerdict verdict = await Check(workspace);
 
         Assert.AreEqual(GateRefusal.NotApproved, verdict.Refusal);
-        StringAssert.Contains(verdict.Explanation, "cycle-approval");
+        StringAssert.Contains(verdict.Explanation, "draft approval");
     }
 
     [TestMethod]
@@ -162,7 +162,7 @@ public sealed class ApprovalGateTests
     }
 
     [TestMethod]
-    public async Task A_blocker_raised_after_approval_is_refused_because_nothing_accepted_it()
+    public async Task A_blocker_raised_after_approval_refuses_the_build()
     {
         using var workspace = CycleWorkspace.Create();
         workspace.WriteAllArtifacts();
@@ -176,28 +176,61 @@ public sealed class ApprovalGateTests
 
         GateVerdict verdict = await Check(workspace);
 
-        Assert.AreEqual(GateRefusal.UnacceptedBlocker, verdict.Refusal);
+        Assert.AreEqual(GateRefusal.OpenBlocker, verdict.Refusal);
         StringAssert.Contains(verdict.Explanation, "spec.F_07");
         StringAssert.Contains(verdict.Explanation, "CON_04");
     }
 
     [TestMethod]
-    public async Task A_blocker_the_approval_accepts_by_name_does_not_refuse_the_build()
+    public async Task An_approval_standing_over_an_open_blocker_refuses_the_build_with_no_way_past()
     {
+        // The hard rule, asserted at the gate rather than only at the printer. The printer refuses to
+        // produce an entry while a blocker is open, so an approval in this state was hand-written -- and
+        // a hand-written one must not buy anything a printed one could not.
         using var workspace = CycleWorkspace.Create();
         workspace.WriteAllArtifacts();
         workspace.WriteCleanRound(ArtifactKind.Intent);
         workspace.WriteCleanRound(ArtifactKind.Spec);
         workspace.WriteBlockingRound(ArtifactKind.Plan, id: "F_02");
 
-        workspace.WriteApproval(accepted: ["plan.F_02"]);
+        workspace.WriteApproval();
 
         GateVerdict verdict = await Check(workspace);
 
         Assert.AreEqual(
-            GateRefusal.None,
+            GateRefusal.OpenBlocker,
             verdict.Refusal,
-            "A person may override the machine as long as the override is recorded. " + verdict.Explanation);
+            "A blocking finding cannot be waived, accepted or overridden. " + verdict.Explanation);
+
+        StringAssert.Contains(verdict.Explanation, "plan.F_02");
+        StringAssert.Contains(
+            verdict.Explanation,
+            "cannot be waived",
+            "The refusal has to say there is no flag, or someone goes looking for one.");
+    }
+
+    [TestMethod]
+    public async Task A_reopen_after_an_approval_refuses_the_build_again()
+    {
+        using var workspace = CycleWorkspace.Create();
+        workspace.WriteAllArtifacts();
+        foreach (ArtifactKind kind in Cycle.PlanningDocuments)
+        {
+            workspace.WriteCleanRound(kind);
+        }
+
+        workspace.WriteApproval(
+            decision: "reopened",
+            reason: "the plan proves criterion 3 against a stub");
+
+        GateVerdict verdict = await Check(workspace);
+
+        Assert.AreEqual(GateRefusal.Refused, verdict.Refusal);
+        StringAssert.Contains(
+            verdict.Explanation,
+            "reopened",
+            "The refusal names the standing decision, so a reopen does not read as a plain denial.");
+        StringAssert.Contains(verdict.Explanation, "criterion 3");
     }
 
     [TestMethod]

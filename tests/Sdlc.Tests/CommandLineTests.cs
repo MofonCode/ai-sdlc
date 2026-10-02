@@ -96,4 +96,29 @@ public sealed class CommandLineTests
         Assert.IsTrue(line.TryOption("stage", out string? stage));
         Assert.AreEqual("spec", stage);
     }
+
+    [TestMethod]
+    public void Dropping_a_consumed_sub_verb_leaves_the_cycle_id_as_the_first_argument()
+    {
+        // 'draft' takes a sub-verb, so everything downstream has to read argument zero as the id it
+        // expects rather than knowing how deep inside a verb it sits.
+        var line = CommandLine.Parse(["draft", "approval", "20260929_1456_32", "--deny"]);
+
+        Assert.AreEqual("draft", line.Verb);
+        Assert.AreEqual("approval", line.Arguments[0]);
+
+        CommandLine rest = line.WithoutFirstArgument();
+
+        CollectionAssert.AreEqual(new[] { "20260929_1456_32" }, rest.Arguments.ToArray());
+        Assert.IsTrue(rest.HasOption("deny"), "Options survive, or the sub-verb would eat the flags.");
+        Assert.AreEqual("draft", rest.Verb);
+    }
+
+    [TestMethod]
+    public void Dropping_a_sub_verb_from_a_line_that_has_none_is_not_an_error()
+    {
+        CommandLine rest = CommandLine.Parse(["draft"]).WithoutFirstArgument();
+
+        Assert.AreEqual(0, rest.Arguments.Count);
+    }
 }

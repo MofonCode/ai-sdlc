@@ -150,7 +150,7 @@ public sealed class StatusRendererTests
 
         string panel = await Render(workspace, ArtifactKind.Plan);
 
-        StringAssert.Contains(panel, "sdlc cycle-approval 20260929_1456_32");
+        StringAssert.Contains(panel, "sdlc draft approval 20260929_1456_32");
         StringAssert.Contains(panel, "not approved yet");
     }
 

@@ -82,7 +82,7 @@ public sealed class ApprovalTextTests
     }
 
     [TestMethod]
-    public async Task An_open_blocker_is_pre_listed_as_accepted_so_carrying_it_is_a_visible_act()
+    public async Task An_open_blocker_refuses_the_entry_and_names_what_has_to_be_answered()
     {
         using var workspace = CycleWorkspace.Create();
         workspace.WriteAllArtifacts();
@@ -92,12 +92,36 @@ public sealed class ApprovalTextTests
 
         ApprovalTextResult text = await Print(workspace);
 
-        Assert.IsTrue(text.MayApprove);
-        StringAssert.Contains(text.Entry!, "accepted_findings: [plan.F_02]");
+        Assert.IsFalse(
+            text.MayApprove,
+            "There is no entry to print. An approval standing over an open blocker would assert "
+            + "something untrue, and printing one would be the tool proposing it.");
+
+        Assert.IsNull(text.Entry);
+        StringAssert.Contains(text.Instructions, "plan.F_02");
         StringAssert.Contains(
             text.Instructions,
-            "plan.F_02",
-            "The instructions have to say what pasting the entry agrees to carry.");
+            "sdlc refine",
+            "A refusal at the point someone wanted to approve has to say what to do instead.");
+    }
+
+    [TestMethod]
+    public async Task A_printed_entry_carries_no_field_for_findings_it_let_through()
+    {
+        using var workspace = CycleWorkspace.Create();
+        workspace.WriteAllArtifacts();
+        foreach (ArtifactKind kind in Cycle.PlanningDocuments)
+        {
+            workspace.WriteCleanRound(kind);
+        }
+
+        ApprovalTextResult text = await Print(workspace);
+
+        Assert.IsTrue(text.MayApprove);
+        Assert.IsFalse(
+            text.Entry!.Contains("accepted_findings", StringComparison.Ordinal),
+            "The field is gone from the model, so printing it would invite someone to fill it in and "
+            + "believe the gate was reading it.");
     }
 
     [TestMethod]
@@ -171,6 +195,121 @@ public sealed class ApprovalTextTests
         StringAssert.Contains(rendered, "Paste this:");
     }
 
+    [TestMethod]
+    [DataRow(GateDecision.ChangesRequested, "changes_requested")]
+    [DataRow(GateDecision.Denied, "denied")]
+    [DataRow(GateDecision.Reopened, "reopened")]
+    public async Task A_refusal_is_drafted_on_the_same_terms_as_an_approval(
+        GateDecision decision,
+        string written)
+    {
+        using CycleWorkspace workspace = Ready();
+
+        ApprovalTextResult text = await Print(workspace, decision);
+
+        Assert.IsTrue(
+            text.MayApprove,
+            "Rejecting is what a person does when they are least inclined to look a format up. "
+            + text.Instructions);
+
+        StringAssert.Contains(text.Entry!, "decision: " + written);
+        Assert.AreEqual(decision, text.Decision);
+    }
+
+    [TestMethod]
+    public async Task A_drafted_refusal_leaves_the_reason_empty_so_an_unfilled_one_fails()
+    {
+        using CycleWorkspace workspace = Ready();
+
+        ApprovalTextResult text = await Print(workspace, GateDecision.Denied);
+
+        StringAssert.Contains(
+            text.Entry!,
+            "reason:",
+            "The key has to be on the page, or a person has to know the schema to refuse a cycle.");
+
+        string pasted = string.Create(
+            CultureInfo.InvariantCulture,
+            $"---\ncycle: {workspace.Cycle.Id}\ndecisions:\n{text.Entry}---\n");
+
+        Result<ApprovalLedger> read = ApprovalLedger.Read(pasted, "pasted");
+
+        Assert.IsTrue(
+            read.IsFailed,
+            "An unfilled refusal has to fail rather than stand. A placeholder would have passed this "
+            + "check forever while saying nothing, which is what CON_10 forbids.");
+
+        StringAssert.Contains(read.Errors[0].Message, "why");
+    }
+
+    [TestMethod]
+    public async Task A_filled_refusal_round_trips_and_leaves_the_cycle_unapproved()
+    {
+        using CycleWorkspace workspace = Ready();
+
+        ApprovalTextResult text = await Print(workspace, GateDecision.ChangesRequested);
+
+        // What a person does: paste, then write the reason on the empty line.
+        string filled = text.Entry!.Replace(
+            "    reason:",
+            "    reason: the spec has no criterion for delivery as a page at all",
+            StringComparison.Ordinal);
+
+        string pasted = string.Create(
+            CultureInfo.InvariantCulture,
+            $"---\ncycle: {workspace.Cycle.Id}\ndecisions:\n{filled}---\n");
+
+        Result<ApprovalLedger> read = ApprovalLedger.Read(pasted, "pasted");
+
+        Assert.IsTrue(read.IsSuccess, string.Join("; ", read.Errors.Select(e => e.Message)));
+        Assert.AreEqual(GateDecision.ChangesRequested, read.Value.Current!.Decision);
+        Assert.IsFalse(read.Value.IsApproved);
+        Assert.AreEqual(3, read.Value.Current.Hashes.Count, "A refusal records what it looked at.");
+    }
+
+    [TestMethod]
+    public async Task A_blocked_cycle_can_still_be_refused_even_though_it_cannot_be_approved()
+    {
+        using var workspace = CycleWorkspace.Create();
+        workspace.WriteAllArtifacts();
+        workspace.WriteCleanRound(ArtifactKind.Intent);
+        workspace.WriteCleanRound(ArtifactKind.Spec);
+        workspace.WriteBlockingRound(ArtifactKind.Plan, id: "F_02", cites: "CON_06");
+
+        Assert.IsFalse((await Print(workspace)).MayApprove);
+
+        ApprovalTextResult sent_back = await Print(workspace, GateDecision.ChangesRequested);
+
+        Assert.IsTrue(
+            sent_back.MayApprove,
+            "A blocked cycle is exactly the one a person wants to send back. Refusing to help with "
+            + "that would push them into writing YAML by hand at the worst moment.");
+    }
+
+    [TestMethod]
+    public async Task An_uninterrogated_cycle_can_be_refused_but_not_approved()
+    {
+        using var workspace = CycleWorkspace.Create();
+        workspace.WriteAllArtifacts();
+
+        Assert.IsFalse((await Print(workspace)).MayApprove);
+        Assert.IsTrue((await Print(workspace, GateDecision.Denied)).MayApprove);
+    }
+
+    [TestMethod]
+    public async Task A_cycle_missing_a_document_cannot_be_refused_either()
+    {
+        using var workspace = CycleWorkspace.Create();
+        workspace.WriteArtifact(ArtifactKind.Intent);
+
+        ApprovalTextResult text = await Print(workspace, GateDecision.Denied);
+
+        Assert.IsFalse(
+            text.MayApprove,
+            "Every decision records three hashes, so there is nothing to refuse until all three "
+            + "documents exist.");
+    }
+
     private static CycleWorkspace Ready()
     {
         var workspace = CycleWorkspace.Create();
@@ -184,10 +323,14 @@ public sealed class ApprovalTextTests
         return workspace;
     }
 
-    private static async Task<ApprovalTextResult> Print(CycleWorkspace workspace)
+    private static async Task<ApprovalTextResult> Print(
+        CycleWorkspace workspace,
+        GateDecision decision = GateDecision.Approved)
     {
         Result<ApprovalTextResult> result = await new ApprovalTextHandler(workspace.Root)
-            .Handle(new ApprovalTextQuery(workspace.Cycle.Id, "Peter Almanzar"), CancellationToken.None);
+            .Handle(
+                new ApprovalTextQuery(workspace.Cycle.Id, "Peter Almanzar", decision),
+                CancellationToken.None);
 
         Assert.IsTrue(result.IsSuccess, string.Join("; ", result.Errors.Select(e => e.Message)));
         return result.Value;

@@ -32,14 +32,21 @@ public enum GateRefusal
     HashMismatch,
 
     /// <summary>
-    /// A blocking finding is open and the approval does not accept it.
+    /// A blocking finding is open.
     /// </summary>
     /// <remarks>
-    /// A person may override the machine; the override has to be recorded. An approval that leaves a
-    /// blocker neither answered nor named in <c>accepted_findings</c> has done neither, so it says the
-    /// cycle is agreed while an objection to it stands unanswered.
+    /// There is no way out of this refusal but to answer the finding. A blocking finding cannot be
+    /// waived, accepted or overridden by any mechanism, so the gate does not ask whether the approval
+    /// named it -- an approval standing over an open blocker says the cycle is agreed while an
+    /// objection to it stands unanswered, and that is what this refuses.
+    /// <para>
+    /// The printer refuses to produce an entry while a blocker is open, so reaching this means the
+    /// blocker was raised after the entry was printed or the entry was written by hand. Keeping the
+    /// check here as well as there is deliberate: the printer is advice a person can decline to take,
+    /// and the gate is the layer that does not negotiate.
+    /// </para>
     /// </remarks>
-    UnacceptedBlocker,
+    OpenBlocker,
 }
 
 /// <summary>One document's hash as approved against its hash now.</summary>
@@ -126,7 +133,7 @@ public sealed class ApprovalGateHandler(string solutionRoot)
         {
             return Verdict(cycle, GateRefusal.NotApproved, string.Create(
                 CultureInfo.InvariantCulture,
-                $"Cycle {cycle.Id} is not approved: there is no {Path.GetFileName(cycle.ApprovalPath)}. Run 'sdlc cycle-approval {cycle.Id}' and paste what it prints."));
+                $"Cycle {cycle.Id} is not approved: there is no {Path.GetFileName(cycle.ApprovalPath)}. Run 'sdlc draft approval {cycle.Id}' and paste what it prints."));
         }
 
         string ledgerText = await File.ReadAllTextAsync(cycle.ApprovalPath, cancellationToken)
@@ -178,12 +185,12 @@ public sealed class ApprovalGateHandler(string solutionRoot)
             return Verdict(cycle, GateRefusal.HashMismatch, Mismatch(cycle, changed), ledger, hashes);
         }
 
-        IReadOnlyList<string> unaccepted =
-            await Unaccepted(cycle, current, cancellationToken).ConfigureAwait(false);
+        IReadOnlyList<string> blockers =
+            await OpenBlockers(cycle, cancellationToken).ConfigureAwait(false);
 
-        if (unaccepted.Count > 0)
+        if (blockers.Count > 0)
         {
-            return Verdict(cycle, GateRefusal.UnacceptedBlocker, Unanswered(cycle, unaccepted), ledger, hashes);
+            return Verdict(cycle, GateRefusal.OpenBlocker, Blocked(cycle, blockers), ledger, hashes);
         }
 
         return Verdict(
@@ -197,19 +204,18 @@ public sealed class ApprovalGateHandler(string solutionRoot)
     }
 
     /// <summary>
-    /// Finds blocking findings that are open and that the approval does not name.
+    /// Finds every blocking finding still open across the three planning documents.
     /// </summary>
     /// <remarks>
-    /// The approval text pre-lists every open blocker, so a person pasting it accepts them by name and
-    /// this finds nothing. It fires when a blocker was raised after the text was printed, or when
-    /// someone removed a line from accepted_findings intending to fix it and approved anyway.
+    /// A history that cannot be read is skipped rather than treated as clean by accident: an unreadable
+    /// round is a separate failure, reported where it is read, and inferring "no blockers" from "could
+    /// not tell" is how a check comes to pass for the wrong reason.
     /// </remarks>
-    private static async Task<IReadOnlyList<string>> Unaccepted(
+    private static async Task<IReadOnlyList<string>> OpenBlockers(
         Cycle cycle,
-        GateEntry approval,
         CancellationToken cancellationToken)
     {
-        List<string> unaccepted = [];
+        List<string> blockers = [];
 
         foreach (ArtifactKind kind in Cycle.PlanningDocuments)
         {
@@ -227,36 +233,29 @@ public sealed class ApprovalGateHandler(string solutionRoot)
                     CultureInfo.InvariantCulture,
                     $"{Cycle.NameOf(kind)}.{blocker.Id}");
 
-                bool accepted = approval.AcceptedFindings.Any(listed =>
-                    string.Equals(listed.Trim(), qualified, StringComparison.OrdinalIgnoreCase)
-                    || string.Equals(listed.Trim(), blocker.Id, StringComparison.OrdinalIgnoreCase));
-
-                if (!accepted)
-                {
-                    unaccepted.Add(string.Create(
-                        CultureInfo.InvariantCulture,
-                        $"  {qualified}  {blocker.Cites}  {blocker.Statement}"));
-                }
+                blockers.Add(string.Create(
+                    CultureInfo.InvariantCulture,
+                    $"  {qualified}  {blocker.Cites}  {blocker.Statement}"));
             }
         }
 
-        return unaccepted;
+        return blockers;
     }
 
-    private static string Unanswered(Cycle cycle, IReadOnlyList<string> unaccepted) =>
+    private static string Blocked(Cycle cycle, IReadOnlyList<string> blockers) =>
         string.Join(
             Environment.NewLine,
             [
                 string.Create(
                     CultureInfo.InvariantCulture,
-                    $"Cycle {cycle.Id} is approved, and {unaccepted.Count} blocking finding{(unaccepted.Count == 1 ? " is" : "s are")} open without being accepted:"),
+                    $"Cycle {cycle.Id} is approved, and {blockers.Count} blocking finding{(blockers.Count == 1 ? " is" : "s are")} still open:"),
                 string.Empty,
-                .. unaccepted,
+                .. blockers,
                 string.Empty,
-                "Either refine the artifact so the finding is answered, or accept it by name in the",
+                "A blocking finding cannot be waived, accepted or overridden. Refine the artifact until",
                 string.Create(
                     CultureInfo.InvariantCulture,
-                    $"approval's accepted_findings. Re-run 'sdlc cycle-approval {cycle.Id}' to get an entry that lists them."),
+                    $"the finding is answered, re-interrogate, then approve again with 'sdlc draft approval {cycle.Id}'."),
             ]);
 
     private static string Describe(GateDecision? decision) => decision switch
@@ -264,6 +263,7 @@ public sealed class ApprovalGateHandler(string solutionRoot)
         GateDecision.Approved => "approved",
         GateDecision.ChangesRequested => "changes requested",
         GateDecision.Denied => "denied",
+        GateDecision.Reopened => "reopened",
         _ => "nothing at all",
     };
 
@@ -293,7 +293,7 @@ public sealed class ApprovalGateHandler(string solutionRoot)
                 string.Empty,
                 string.Create(
                     CultureInfo.InvariantCulture,
-                    $"The approval describes documents that are no longer on disk. Re-run 'sdlc cycle-approval {cycle.Id}' and approve them again."),
+                    $"The approval describes documents that are no longer on disk. Re-run 'sdlc draft approval {cycle.Id}' and approve them again."),
             ]);
     }
 

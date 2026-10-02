@@ -185,13 +185,34 @@ public sealed class FindingsTests
     }
 
     [TestMethod]
-    public void A_waived_blocker_is_not_standing()
+    public void A_round_claiming_a_waived_disposition_is_rejected_rather_than_read_as_something_else()
     {
-        FindingsRound round = Round(
-            1,
-            new Finding("F_01", Severity.Blocking, Disposition.Waived, "CON_06", "accepted at the gate."));
+        // There is no waived disposition: a blocking finding is answered, withdrawn by a later round, or
+        // open. A round carrying the old value has to fail loudly -- reading it as open would be right
+        // by accident, and silently defaulting it would let a pre-rule round grant what it used to.
+        const string json = """
+            {
+              "cycle": "20260929_1456_32",
+              "artifact": "plan.md",
+              "round": 1,
+              "findings": [
+                {
+                  "id": "F_01",
+                  "severity": "blocking",
+                  "disposition": "waived",
+                  "cites": "CON_06",
+                  "statement": "the proof rests on a stub."
+                }
+              ]
+            }
+            """;
 
-        Assert.AreEqual(0, FindingsReader.StandingBlockers([round]).Count);
+        Result<FindingsRound> read = FindingsReader.Read(json, "plan.r1.json");
+
+        Assert.IsTrue(
+            read.IsFailed,
+            "A disposition the model does not have must not parse. Accepting it would make the hard "
+            + "rule depend on which values a reader happens to recognise.");
     }
 
     private static FindingsRound Round(int number, params Finding[] findings) =>

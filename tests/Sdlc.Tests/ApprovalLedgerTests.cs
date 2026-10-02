@@ -22,7 +22,6 @@ public sealed class ApprovalLedgerTests
               intent.md: 2
               spec.md:   3
               plan.md:   1
-            accepted_findings: [plan.F_02]
         ---
         """;
 
@@ -37,8 +36,84 @@ public sealed class ApprovalLedgerTests
         Assert.AreEqual(new DateTimeOffset(2026, 10, 1, 12, 0, 0, TimeSpan.Zero), entry.At);
         Assert.AreEqual("bbbb", entry.Hashes["spec.md"]);
         Assert.AreEqual(3, entry.FindingsRounds["spec.md"]);
-        CollectionAssert.AreEqual(new[] { "plan.F_02" }, entry.AcceptedFindings.ToArray());
         Assert.IsTrue(ledger.IsApproved);
+    }
+
+    [TestMethod]
+    public void A_reopen_supersedes_an_approval_and_returns_the_cycle_to_unapproved()
+    {
+        const string reopened = """
+            ---
+            cycle: 20260929_1456_32
+            decisions:
+              - decision: approved
+                by: Peter Almanzar
+                at: 2026-10-01T12:00:00Z
+              - decision: reopened
+                by: Peter Almanzar
+                at: 2026-10-02T09:30:00Z
+                reason: the plan proves criterion 3 against a stub, so the proof reaches nothing
+            ---
+            """;
+
+        ApprovalLedger ledger = Read(reopened);
+
+        Assert.AreEqual(GateDecision.Reopened, ledger.Current!.Decision);
+        Assert.IsFalse(
+            ledger.IsApproved,
+            "A reopen that left the cycle approved would do nothing. Turning IsApproved false is the "
+            + "entire mechanism: the gate refuses the build again and the planning documents can be "
+            + "rewritten.");
+    }
+
+    [TestMethod]
+    public void A_reopen_with_no_reason_is_rejected_like_any_other_refusal()
+    {
+        const string silent = """
+            ---
+            cycle: 20260929_1456_32
+            decisions:
+              - decision: reopened
+                by: Peter Almanzar
+                at: 2026-10-02T09:30:00Z
+            ---
+            """;
+
+        Result<ApprovalLedger> read = ApprovalLedger.Read(silent, "approval.md");
+
+        Assert.IsTrue(read.IsFailed);
+        StringAssert.Contains(
+            read.Errors[0].Message,
+            "why",
+            "Withdrawing an approval is the one decision whose reason the author most needs, because "
+            + "it arrives after the work was agreed.");
+    }
+
+    [TestMethod]
+    public void An_accepted_findings_key_left_over_from_an_older_ledger_grants_nothing()
+    {
+        // The reader ignores unmatched properties, so an old file still parses. What matters is that
+        // the key confers nothing: a blocking finding cannot be waived by any mechanism, and a ledger
+        // written before that rule must not keep working as if it could.
+        const string legacy = """
+            ---
+            cycle: 20260929_1456_32
+            decisions:
+              - decision: approved
+                by: Peter Almanzar
+                at: 2026-10-01T12:00:00Z
+                accepted_findings: [plan.F_02]
+            ---
+            """;
+
+        ApprovalLedger ledger = Read(legacy);
+
+        Assert.IsTrue(ledger.IsApproved);
+        Assert.AreEqual(
+            1,
+            ledger.Decisions.Count,
+            "The entry still reads. Nothing on GateEntry records what it listed, so the gate cannot "
+            + "consult it, which is what makes the rule absolute rather than grandfathered.");
     }
 
     [TestMethod]

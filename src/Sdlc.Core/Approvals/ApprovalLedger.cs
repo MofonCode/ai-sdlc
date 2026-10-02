@@ -19,6 +19,18 @@ public enum GateDecision
 
     /// <summary>Refused outright.</summary>
     Denied,
+
+    /// <summary>
+    /// A standing approval is withdrawn, returning the cycle to its pre-approval state.
+    /// </summary>
+    /// <remarks>
+    /// Without this a wrong plan has no legal move. Remediation may not edit a planning document and
+    /// refinement refuses once the cycle is approved, so the only path left is to keep trying to make
+    /// wrong code satisfy a wrong plan until the remediation budget runs out. A reopen is not an
+    /// approval, so <see cref="ApprovalLedger.IsApproved"/> turns false and the gate refuses the build
+    /// again -- that is the whole mechanism.
+    /// </remarks>
+    Reopened,
 }
 
 /// <summary>One entry in a cycle's gate ledger.</summary>
@@ -30,19 +42,17 @@ public enum GateDecision
 /// file name. All three are recorded because the three are approved as one act.
 /// </param>
 /// <param name="FindingsRounds">The interrogation round current for each document, keyed by file name.</param>
-/// <param name="AcceptedFindings">
-/// Open findings the person knowingly let through, prefixed by the document they belong to. Without
-/// these the gate cannot tell a plan approved *with* a known objection from one approved because the
-/// objection was missed.
+/// <param name="Reason">
+/// Why. Required on anything but an approval, and free to carry on one. There is deliberately no
+/// field recording findings let through: a blocking finding cannot be waived by any mechanism, so an
+/// entry has nothing to record there.
 /// </param>
-/// <param name="Reason">Why. Required on anything but an approval, and free to carry on one.</param>
 public sealed record GateEntry(
     GateDecision Decision,
     string By,
     DateTimeOffset At,
     IReadOnlyDictionary<string, string> Hashes,
     IReadOnlyDictionary<string, int> FindingsRounds,
-    IReadOnlyList<string> AcceptedFindings,
     string? Reason);
 
 /// <summary>
@@ -60,8 +70,9 @@ public sealed record ApprovalLedger(
     /// The decision that stands: the last one recorded.
     /// </summary>
     /// <remarks>
-    /// A later approval supersedes an earlier refusal, so order decides rather than presence. The
-    /// file is append-only, which is what makes the last entry meaningful.
+    /// A later approval supersedes an earlier refusal and a later reopen supersedes an approval, so
+    /// order decides rather than presence. The file is append-only, which is what makes the last entry
+    /// meaningful.
     /// </remarks>
     public GateEntry? Current => Decisions.Count > 0 ? Decisions[^1] : null;
 
@@ -121,7 +132,7 @@ public sealed record ApprovalLedger(
             {
                 errors.Add(new Error(string.Create(
                     CultureInfo.InvariantCulture,
-                    $"{position} has decision '{entry.Decision}'. Expected approved, changes_requested or denied.")));
+                    $"{position} has decision '{entry.Decision}'. Expected approved, changes_requested, denied or reopened.")));
                 continue;
             }
 
@@ -152,7 +163,6 @@ public sealed record ApprovalLedger(
                 entry.At.Value.ToUniversalTime(),
                 entry.Hashes ?? [],
                 entry.FindingsRounds ?? [],
-                entry.AcceptedFindings ?? [],
                 string.IsNullOrWhiteSpace(entry.Reason) ? null : entry.Reason.Trim()));
         }
 
@@ -160,6 +170,23 @@ public sealed record ApprovalLedger(
             ? Result.Fail<ApprovalLedger>(errors)
             : Result.Ok(new ApprovalLedger(shape.Cycle ?? string.Empty, shape.FrameworkVersion, entries));
     }
+
+    /// <summary>
+    /// How a decision is written in the file.
+    /// </summary>
+    /// <remarks>
+    /// The reader and the printer have to agree, so the spelling lives here once rather than in each.
+    /// </remarks>
+    /// <param name="decision">The decision.</param>
+    /// <returns>Its name in the ledger.</returns>
+    public static string NameOf(GateDecision decision) => decision switch
+    {
+        GateDecision.Approved => "approved",
+        GateDecision.ChangesRequested => "changes_requested",
+        GateDecision.Denied => "denied",
+        GateDecision.Reopened => "reopened",
+        _ => throw new ArgumentOutOfRangeException(nameof(decision)),
+    };
 
     private static bool TryReadDecision(string? text, out GateDecision decision)
     {
@@ -179,6 +206,9 @@ public sealed record ApprovalLedger(
                 return true;
             case string denied when denied.Equals("denied", StringComparison.OrdinalIgnoreCase):
                 decision = GateDecision.Denied;
+                return true;
+            case string reopened when reopened.Equals("reopened", StringComparison.OrdinalIgnoreCase):
+                decision = GateDecision.Reopened;
                 return true;
             default:
                 return false;
@@ -214,8 +244,6 @@ public sealed record ApprovalLedger(
         public Dictionary<string, string>? Hashes { get; set; }
 
         public Dictionary<string, int>? FindingsRounds { get; set; }
-
-        public List<string>? AcceptedFindings { get; set; }
 
         public string? Reason { get; set; }
     }

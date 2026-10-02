@@ -111,7 +111,7 @@ public static class StatusRenderer
         GateRefusal.NotApproved => "not approved yet",
         GateRefusal.Refused => "sent back - " + (status.Gate.Ledger?.Current?.Reason ?? "no reason recorded"),
         GateRefusal.HashMismatch => "approved, but a document has changed since",
-        GateRefusal.UnacceptedBlocker => "approved, with a blocking finding open and unaccepted",
+        GateRefusal.OpenBlocker => "approved, but a blocking finding is still open",
         GateRefusal.Abandoned => "abandoned, which is terminal",
         GateRefusal.MissingDocument => "cannot be approved until all three documents exist",
         GateRefusal.NoCycle => "no cycle directory yet",
@@ -171,7 +171,7 @@ public static class StatusRenderer
             else
             {
                 next.Add((
-                    string.Create(CultureInfo.InvariantCulture, $"sdlc cycle-approval {id}"),
+                    string.Create(CultureInfo.InvariantCulture, $"sdlc draft approval {id}"),
                     "all three are clear - approve them"));
             }
         }

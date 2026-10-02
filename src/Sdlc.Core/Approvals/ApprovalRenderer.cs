@@ -6,7 +6,7 @@ using Sdlc.Core.Cycles;
 namespace Sdlc.Core.Approvals;
 
 /// <summary>
-/// Renders what a person reads before approving a cycle.
+/// Renders what a person reads before recording a gate decision.
 /// </summary>
 /// <remarks>
 /// The entry they will paste, the state of the three documents it covers, and what to do with it.
@@ -16,7 +16,7 @@ namespace Sdlc.Core.Approvals;
 public static class ApprovalRenderer
 {
     /// <summary>
-    /// Renders the approval text and its context.
+    /// Renders the ledger entry and its context.
     /// </summary>
     /// <param name="text">What the handler produced.</param>
     /// <returns>The rendered text, ending in a newline.</returns>
@@ -27,7 +27,8 @@ public static class ApprovalRenderer
         StringBuilder output = new();
         CycleStatus status = text.Status;
 
-        output.AppendLine(CultureInfo.InvariantCulture, $"Cycle {status.Cycle.Id}");
+        output.AppendLine(CultureInfo.InvariantCulture,
+            $"Cycle {status.Cycle.Id} - {Heading(text.Decision)}");
         output.AppendLine();
 
         // The three documents with their round history and their hash. A person cannot verify a pasted
@@ -45,11 +46,13 @@ public static class ApprovalRenderer
                 $"    {Cycle.NameOf(artifact.Kind),-8}{ContentHash.Abbreviate(artifact.Hash ?? "missing"),-14}{rounds}");
         }
 
-        IReadOnlyList<string> accepted = status.OpenBlockerIds;
-        if (accepted.Count > 0)
+        // Reached only on a refusal: an approval with an open blocker never produces an entry. A person
+        // refusing is the one who most needs these on the page, because they are what the reason is
+        // usually about.
+        if (status.OpenBlockerIds.Count > 0)
         {
             output.AppendLine();
-            output.AppendLine("Open blocking findings, which the entry below accepts by name:");
+            output.AppendLine("Open blocking findings, which no decision can waive:");
             output.AppendLine();
 
             foreach (ArtifactState artifact in status.Artifacts)
@@ -73,6 +76,15 @@ public static class ApprovalRenderer
 
         return output.ToString();
     }
+
+    private static string Heading(GateDecision decision) => decision switch
+    {
+        GateDecision.Approved => "approving",
+        GateDecision.ChangesRequested => "requesting changes",
+        GateDecision.Denied => "denying",
+        GateDecision.Reopened => "reopening a standing approval",
+        _ => "deciding",
+    };
 
     private static string Blockers(int count) => count switch
     {

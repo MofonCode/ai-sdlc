@@ -76,6 +76,17 @@ internal sealed class CommandLine
         return new CommandLine(verb, arguments, options);
     }
 
+    /// <summary>
+    /// The same line with the first positional argument removed.
+    /// </summary>
+    /// <remarks>
+    /// For a verb that takes a sub-verb. Dropping the consumed word here means everything downstream
+    /// reads argument zero as the thing it expects, rather than each handler knowing how deep it sits.
+    /// </remarks>
+    /// <returns>A line whose arguments start after the first.</returns>
+    public CommandLine WithoutFirstArgument() =>
+        new(Verb, Arguments.Count == 0 ? [] : [.. Arguments.Skip(1)], options);
+
     /// <summary>Whether an option was given, with or without a value.</summary>
     /// <param name="name">The option name, without leading dashes.</param>
     /// <returns>True when it was given.</returns>

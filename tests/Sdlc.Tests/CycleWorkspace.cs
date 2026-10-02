@@ -142,12 +142,10 @@ internal sealed class CycleWorkspace : IDisposable
     /// Each document's recorded hash. Null records the real hash of what is on disk, which is the
     /// normal case; passing a value is how a test makes a document look edited after approval.
     /// </param>
-    /// <param name="accepted">Finding ids the decision accepts.</param>
     /// <param name="reason">The reason, required on anything but an approval.</param>
     public void WriteApproval(
         string decision = "approved",
         IReadOnlyDictionary<ArtifactKind, string>? hashes = null,
-        IReadOnlyList<string>? accepted = null,
         string? reason = null)
     {
         List<string> lines =
@@ -171,13 +169,6 @@ internal sealed class CycleWorkspace : IDisposable
             lines.Add(string.Create(
                 CultureInfo.InvariantCulture,
                 $"      {Cycle.FileNameOf(kind)}: {hash}"));
-        }
-
-        if (accepted is { Count: > 0 })
-        {
-            lines.Add(string.Create(
-                CultureInfo.InvariantCulture,
-                $"    accepted_findings: [{string.Join(", ", accepted)}]"));
         }
 
         if (reason is not null)

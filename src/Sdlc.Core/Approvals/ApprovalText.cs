@@ -6,24 +6,32 @@ using Sdlc.Core.Cycles;
 
 namespace Sdlc.Core.Approvals;
 
-/// <summary>Asks for the approval entry a person would paste to approve a cycle.</summary>
-/// <param name="Id">The cycle to approve.</param>
+/// <summary>Asks for the ledger entry a person would paste to record a gate decision.</summary>
+/// <param name="Id">The cycle the decision is about.</param>
 /// <param name="By">
-/// Who is approving. Supplied by the caller from the git identity rather than invented here: the
-/// entry names a person, and a tool that filled that in for itself would be writing the approval.
+/// Who is deciding. Supplied by the caller from the git identity rather than invented here: the entry
+/// names a person, and a tool that filled that in for itself would be writing the decision.
 /// </param>
-public sealed record ApprovalTextQuery(CycleId Id, string By) : IRequest<ApprovalTextResult>;
+/// <param name="Decision">
+/// What is being recorded. A refusal is drafted on the same terms as an approval: rejecting is what a
+/// person does when they are least inclined to look a format up, and giving help to the easy case
+/// while withholding it from the hard one is the asymmetry people resent.
+/// </param>
+public sealed record ApprovalTextQuery(CycleId Id, string By, GateDecision Decision = GateDecision.Approved)
+    : IRequest<ApprovalTextResult>;
 
 /// <summary>The text to paste, or what has to happen before there is any.</summary>
 /// <param name="Status">The cycle's state, so a caller can report it without reading again.</param>
-/// <param name="Entry">The entry to paste, when the cycle may be approved.</param>
+/// <param name="Entry">The entry to paste, when there is one to produce.</param>
 /// <param name="Instructions">What to do with it, or what is in the way.</param>
 /// <param name="MayApprove">Whether an entry was produced.</param>
+/// <param name="Decision">Which decision the entry records.</param>
 public sealed record ApprovalTextResult(
     CycleStatus Status,
     string? Entry,
     string Instructions,
-    bool MayApprove);
+    bool MayApprove,
+    GateDecision Decision = GateDecision.Approved);
 
 /// <summary>
 /// Prints an approval entry. Writes nothing.
@@ -34,8 +42,9 @@ public sealed record ApprovalTextResult(
 /// absolute rather than conditional — every agent write to that file is denied, with no approve
 /// command to carve out an exception for.
 /// <para>
-/// It refuses while any blocking finding is open and unlisted. What it prints instead names them, so
-/// accepting a blocker is a visible act rather than a silence.
+/// It refuses while any blocking finding is open, and names them. There is no entry it could print
+/// instead: a blocking finding cannot be waived, accepted or overridden, so an approval standing over
+/// one would assert something untrue.
 /// </para>
 /// </remarks>
 /// <param name="solutionRoot">The root of the solution being governed.</param>
@@ -64,35 +73,46 @@ public sealed class ApprovalTextHandler(string solutionRoot)
         {
             return Refuse(status, string.Create(
                 CultureInfo.InvariantCulture,
-                $"Cycle {status.Cycle.Id} was abandoned, and abandonment is terminal. Open a new cycle instead."));
+                $"Cycle {status.Cycle.Id} was abandoned, and abandonment is terminal. Open a new cycle instead."), request.Decision);
         }
 
+        // Every decision records three hashes, so all three documents have to exist whichever way the
+        // gate goes. There is nothing to refuse until there is something to refuse.
         List<ArtifactState> missing = [.. status.Artifacts.Where(artifact => !artifact.Exists)];
         if (missing.Count > 0)
         {
-            return Refuse(status, Missing(status, missing));
+            return Refuse(status, Missing(status, missing), request.Decision);
         }
 
         List<ArtifactState> uninterrogated = [.. status.Artifacts.Where(artifact => artifact.Rounds == 0)];
-        if (uninterrogated.Count > 0)
+        if (request.Decision == GateDecision.Approved && uninterrogated.Count > 0)
         {
-            return Refuse(status, Uninterrogated(status, uninterrogated));
+            return Refuse(status, Uninterrogated(status, uninterrogated), request.Decision);
         }
 
-        // The approval lists every open blocker as accepted, so a person pasting it is accepting them
-        // by name. Refusing outright would make a blocker unacceptable, and the gate's whole design is
-        // that a person may override the machine as long as the override is recorded.
-        string entry = Entry(status, request.By);
+        // An open blocker stops an approval and nothing else. Refusing a blocked cycle is the correct
+        // move, so a drafter that would not help with it would push the person into writing YAML by hand
+        // at exactly the moment the format is least welcome.
+        if (request.Decision == GateDecision.Approved && status.OpenBlockerIds.Count > 0)
+        {
+            return Refuse(status, Blocked(status), request.Decision);
+        }
+
+        string entry = Entry(status, request.By, request.Decision);
 
         return Result.Ok(new ApprovalTextResult(
             status,
             entry,
-            Instructions(status),
-            MayApprove: true));
+            Instructions(status, request.Decision),
+            MayApprove: true,
+            request.Decision));
     }
 
-    private static Result<ApprovalTextResult> Refuse(CycleStatus status, string why) =>
-        Result.Ok(new ApprovalTextResult(status, Entry: null, why, MayApprove: false));
+    private static Result<ApprovalTextResult> Refuse(
+        CycleStatus status,
+        string why,
+        GateDecision decision = GateDecision.Approved) =>
+        Result.Ok(new ApprovalTextResult(status, Entry: null, why, MayApprove: false, decision));
 
     private static string Missing(CycleStatus status, List<ArtifactState> missing)
     {
@@ -104,6 +124,45 @@ public sealed class ApprovalTextHandler(string solutionRoot)
         return string.Create(
             CultureInfo.InvariantCulture,
             $"Cycle {status.Cycle.Id} cannot be approved yet: {joined} {verb} not been written. The approval covers all three planning documents as one act, so all three have to exist first.");
+    }
+
+    /// <summary>
+    /// Says which blockers stand in the way, and that there is no way past them but to answer them.
+    /// </summary>
+    /// <remarks>
+    /// This is where a person arrives wanting to approve, so it is the place the hard rule has to be
+    /// stated rather than merely enforced. A refusal that said only "blocked" would read as a tool
+    /// being awkward and send someone looking for the flag that turns it off.
+    /// </remarks>
+    private static string Blocked(CycleStatus status)
+    {
+        IReadOnlyList<string> ids = status.OpenBlockerIds;
+        string verb = ids.Count == 1 ? "finding is" : "findings are";
+
+        List<string> lines =
+        [
+            string.Create(
+                CultureInfo.InvariantCulture,
+                $"Cycle {status.Cycle.Id} cannot be approved: {ids.Count} blocking {verb} open."),
+            string.Empty,
+            string.Create(CultureInfo.InvariantCulture, $"    {string.Join(", ", ids)}"),
+            string.Empty,
+            "A blocking finding cannot be waived, accepted or overridden, so there is no entry to",
+            "print. Answer each one, re-interrogate, and come back:",
+            string.Empty,
+            .. status.Artifacts
+                .Where(artifact => artifact.OpenBlockers.Count > 0)
+                .Select(artifact => string.Create(
+                    CultureInfo.InvariantCulture,
+                    $"    sdlc refine {status.Cycle.Id} {Cycle.NameOf(artifact.Kind)}")),
+            string.Empty,
+            "If a finding cannot be answered at all, the artifact is wrong rather than incomplete.",
+            string.Create(
+                CultureInfo.InvariantCulture,
+                $"Abandon the cycle with 'sdlc draft abandon {status.Cycle.Id}' and open a new one."),
+        ];
+
+        return string.Join(Environment.NewLine, lines);
     }
 
     private static string Uninterrogated(CycleStatus status, List<ArtifactState> pending)
@@ -129,19 +188,17 @@ public sealed class ApprovalTextHandler(string solutionRoot)
     }
 
     /// <summary>
-    /// Builds the entry, with every open blocker pre-listed as accepted.
+    /// Builds the entry a person pastes.
     /// </summary>
     /// <remarks>
-    /// Pre-listing them is what makes accepting one visible: a person reading what they are about to
-    /// paste sees the objections they are agreeing to carry, by id, and can remove the line and go and
-    /// fix one instead.
+    /// Reached only once every blocker is answered, so there is nothing to carry forward and nothing to
+    /// warn about. The entry records who, when, the three hashes, and the round each hash was taken at.
     /// </remarks>
-    private static string Entry(CycleStatus status, string by)
+    private static string Entry(CycleStatus status, string by, GateDecision decision)
     {
         StringBuilder entry = new();
-        IReadOnlyList<string> accepted = status.OpenBlockerIds;
 
-        entry.AppendLine("  - decision: approved");
+        entry.AppendLine(CultureInfo.InvariantCulture, $"  - decision: {ApprovalLedger.NameOf(decision)}");
         entry.AppendLine(CultureInfo.InvariantCulture, $"    by: {by}");
         entry.AppendLine(CultureInfo.InvariantCulture, $"    at: {DateTimeOffset.UtcNow:yyyy-MM-ddTHH:mm:ssZ}");
         entry.AppendLine("    hashes:");
@@ -162,17 +219,20 @@ public sealed class ApprovalTextHandler(string solutionRoot)
             entry.AppendLine(CultureInfo.InvariantCulture, $"      {key,-11} {artifact.LatestRound}");
         }
 
-        entry.Append("    accepted_findings: [");
-        entry.Append(string.Join(", ", accepted));
-        entry.AppendLine("]");
+        // The key is printed with nothing after it on purpose. A refusal needs a reason and nobody can
+        // write it but the person refusing, so a placeholder would be worse than an empty value: the
+        // ledger rejects an empty one and would accept "see above" forever.
+        if (decision != GateDecision.Approved)
+        {
+            entry.AppendLine("    reason:");
+        }
 
         return entry.ToString();
     }
 
-    private static string Instructions(CycleStatus status)
+    private static string Instructions(CycleStatus status, GateDecision decision)
     {
         bool exists = File.Exists(status.Cycle.ApprovalPath);
-        IReadOnlyList<string> accepted = status.OpenBlockerIds;
 
         List<string> lines =
         [
@@ -196,22 +256,20 @@ public sealed class ApprovalTextHandler(string solutionRoot)
                 "    ---");
         }
 
-        if (accepted.Count > 0)
+        if (decision != GateDecision.Approved)
         {
             lines.AddRange(
                 string.Empty,
-                string.Create(
-                    CultureInfo.InvariantCulture,
-                    $"The entry accepts {accepted.Count} open blocking {(accepted.Count == 1 ? "finding" : "findings")}: {string.Join(", ", accepted)}."),
-                "Pasting it is agreeing to carry them. To fix one instead, remove it from",
-                "accepted_findings and refine the artifact first - the gate will refuse an",
-                "approval that leaves a blocker neither answered nor accepted.");
+                "Write the reason on the empty reason line. The gate rejects an entry that refuses a",
+                "cycle and says nothing about why, so an unfilled one fails rather than passing quietly.",
+                "Say what has to change, not that the finding was noted - the reason is what the author",
+                "has to work from.");
         }
 
         lines.AddRange(
             string.Empty,
             "Nothing here writes that file. The hook denies every agent write to it, which is what",
-            "makes a pasted approval a person's act rather than a tool's.");
+            "makes a pasted decision a person's act rather than a tool's.");
 
         return string.Join(Environment.NewLine, lines);
     }

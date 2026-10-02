@@ -35,9 +35,9 @@ try
     return line.Verb switch
     {
         "constraints" => await Workspace.Run(line, w => Constraints(w, line)).ConfigureAwait(false),
-        "gate" => await WithCycle(line, Gate).ConfigureAwait(false),
-        "cycle-approval" => await WithCycle(line, (w, id) => CycleApproval(w, line, id)).ConfigureAwait(false),
-        "status" => await WithCycle(line, (w, id) => Status(w, line, id)).ConfigureAwait(false),
+        "gate" => await WithCycle(line, "gate", Gate).ConfigureAwait(false),
+        "draft" => await Draft(line).ConfigureAwait(false),
+        "status" => await WithCycle(line, "status", (w, id) => Status(w, line, id)).ConfigureAwait(false),
         "hook" => await Hook(line).ConfigureAwait(false),
         _ => await Unknown(line.Verb).ConfigureAwait(false),
     };
@@ -96,14 +96,51 @@ static async Task<int> Gate(Workspace workspace, CycleId id)
     return ExitCode.Refused;
 }
 
-static async Task<int> CycleApproval(Workspace workspace, CommandLine line, CycleId id)
+// One verb drafts every file a person writes by hand. They follow one rule -- a tool never writes
+// them, a tool prints what to put in them -- so they are one verb rather than four commands, and the
+// hook rule that denies every agent write to all four stays absolute rather than conditional.
+static async Task<int> Draft(CommandLine line)
+{
+    if (line.Arguments.Count == 0)
+    {
+        await Console.Error.WriteLineAsync("Draft what? " + Usage.Drafters).ConfigureAwait(false);
+        return ExitCode.Usage;
+    }
+
+    // The sub-verb is consumed here, so the cycle id is the first argument the rest of the tool sees.
+    CommandLine rest = line.WithoutFirstArgument();
+
+    return line.Arguments[0].ToLowerInvariant() switch
+    {
+        "approval" => await WithCycle(rest, "draft approval", (w, id) => DraftApproval(w, line, id))
+            .ConfigureAwait(false),
+        _ => await UnknownDraft(line.Arguments[0]).ConfigureAwait(false),
+    };
+}
+
+// Only what exists is offered. A message that listed a drafter this cannot run would send someone
+// looking for a flag to make it work, which is the failure mode the hook rules are written against.
+static async Task<int> UnknownDraft(string what)
+{
+    await Console.Error.WriteLineAsync(
+        $"There is nothing called '{what}' to draft. {Usage.Drafters}").ConfigureAwait(false);
+    return ExitCode.Usage;
+}
+
+static async Task<int> DraftApproval(Workspace workspace, CommandLine line, CycleId id)
 {
     string by = line.TryOption("by", out string? named)
         ? named
         : Git.UserName(workspace.SolutionRoot) ?? "<your name>";
 
+    if (!TryDecision(line, out GateDecision decision, out string? clash))
+    {
+        await Console.Error.WriteLineAsync(clash).ConfigureAwait(false);
+        return ExitCode.Usage;
+    }
+
     Result<ApprovalTextResult> result = await workspace
-        .Send<ApprovalTextQuery, ApprovalTextResult>(new ApprovalTextQuery(id, by))
+        .Send<ApprovalTextQuery, ApprovalTextResult>(new ApprovalTextQuery(id, by, decision))
         .ConfigureAwait(false);
 
     if (result.IsFailed)
@@ -153,9 +190,37 @@ static async Task<int> Status(Workspace workspace, CommandLine line, CycleId id)
     return ExitCode.Ok;
 }
 
-static async Task<int> WithCycle(CommandLine line, Func<Workspace, CycleId, Task<int>> body)
+// Named flags rather than a --decision value, because the three refusals are different acts and a
+// person reaching for one knows which. Passing two is a contradiction rather than a last-one-wins.
+static bool TryDecision(
+    CommandLine line,
+    out GateDecision decision,
+    [NotNullWhen(false)] out string? clash)
 {
-    if (!TryCycle(line, out CycleId id, out string? complaint))
+    (string Flag, GateDecision Decision)[] flags =
+    [
+        ("changes-requested", GateDecision.ChangesRequested),
+        ("deny", GateDecision.Denied),
+        ("reopen", GateDecision.Reopened),
+    ];
+
+    List<string> given = [.. flags.Where(flag => line.HasOption(flag.Flag)).Select(flag => "--" + flag.Flag)];
+
+    if (given.Count > 1)
+    {
+        decision = default;
+        clash = $"{string.Join(" and ", given)} ask for different decisions. Pass one.";
+        return false;
+    }
+
+    decision = flags.FirstOrDefault(flag => line.HasOption(flag.Flag)).Decision;
+    clash = null;
+    return true;
+}
+
+static async Task<int> WithCycle(CommandLine line, string verb, Func<Workspace, CycleId, Task<int>> body)
+{
+    if (!TryCycle(line, verb, out CycleId id, out string? complaint))
     {
         await Console.Error.WriteLineAsync(complaint).ConfigureAwait(false);
         return ExitCode.Usage;
@@ -202,7 +267,11 @@ static async Task<int> Hook(CommandLine line)
     return ExitCode.Ok;
 }
 
-static bool TryCycle(CommandLine line, out CycleId id, [NotNullWhen(false)] out string? complaint)
+static bool TryCycle(
+    CommandLine line,
+    string verb,
+    out CycleId id,
+    [NotNullWhen(false)] out string? complaint)
 {
     id = default;
 
@@ -210,7 +279,7 @@ static bool TryCycle(CommandLine line, out CycleId id, [NotNullWhen(false)] out 
     {
         complaint = string.Create(
             CultureInfo.InvariantCulture,
-            $"Which cycle? Give its id, as in 'sdlc {line.Verb} 20260929_1456_32'.");
+            $"Which cycle? Give its id, as in 'sdlc {verb} 20260929_1456_32'.");
         return false;
     }
 

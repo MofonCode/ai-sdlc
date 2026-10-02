@@ -37,10 +37,6 @@ public enum Disposition
     [JsonStringEnumMemberName("answered")]
     Answered,
 
-    /// <summary>Accepted at the gate, and named in the approval entry.</summary>
-    [JsonStringEnumMemberName("waived")]
-    Waived,
-
     /// <summary>Retracted by a later round.</summary>
     [JsonStringEnumMemberName("withdrawn")]
     Withdrawn,
