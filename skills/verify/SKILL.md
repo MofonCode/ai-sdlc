@@ -115,6 +115,6 @@ sdlc landable <id>
 
 Show both verbatim. Then stop.
 
-- **Passed?** The person decides whether to run `sdlc land <id>`.
-- **Blocked?** The person decides whether to run `sdlc remediate <id>`. Do not start remediating; you
+- **Passed?** The person decides whether to land.
+- **Blocked?** The person decides whether to remediate. Do not start remediating; you
   have just finished judging, and the separation is the point.

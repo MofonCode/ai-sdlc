@@ -19,8 +19,8 @@ Run `sdlc constraints --for plan` first.
 sdlc status <cycle id> --stage spec
 ```
 
-No spec, or a spec that is not clean: stop. A plan already there: stop, and name `sdlc interrogate
-<id> plan` or `sdlc steer <id> "..."`.
+No spec, or a spec that is not clean: stop. A plan already there: stop, and name `/sdlc:interrogate
+<id> plan` or `/sdlc:steer <id> "..."`.
 
 ## Read the spec, and then read the code
 

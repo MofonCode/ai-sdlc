@@ -113,5 +113,5 @@ stop the others, and each pull request reported individually with its link.
 
 Some files are touched by almost every cycle and cannot be partitioned on: project files,
 `Directory.Packages.props`, dependency-injection registration, `appsettings`, EF Core migrations,
-Terraform near state. Those go to `sdlc resolve-conflict`, which is scoped to exactly that enumerated
+Terraform near state. Those go to the resolve-conflict stage, which is scoped to exactly that enumerated
 list rather than to whatever happens to conflict.

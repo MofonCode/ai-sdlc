@@ -125,10 +125,21 @@ Then ask your agent for the stages: `/sdlc:intent`, `/sdlc:spec`, `/sdlc:plan`. 
 binary does on its own, and `.sdlc/README.md` — written into the solution by `init` — is the whole flow in
 one page.
 
-For more than one page: `docs/guides/first-cycle.md` walks a cycle from an empty directory to a pull
-request, `docs/guides/cycle-commands.md` is every command for one cycle on one screen, `docs/skills.md` is
-what each of the seventeen skills is and who starts it, and `docs/guides/when-it-blocks.md` is what to do
-when something refuses.
+## Documentation
+
+| | |
+|---|---|
+| [`docs/guides/install.md`](docs/guides/install.md) | installing the plugin and the binary, updating, and removing |
+| [`docs/guides/first-cycle.md`](docs/guides/first-cycle.md) | a cycle from an empty directory to a pull request, in fourteen steps |
+| [`docs/guides/cycle-commands.md`](docs/guides/cycle-commands.md) | every command for one cycle, in order, on one screen |
+| [`docs/guides/when-it-blocks.md`](docs/guides/when-it-blocks.md) | the index to every refusal, and the remedy for each |
+| [`docs/skills.md`](docs/skills.md) | the seventeen skills: what each is, how it is invoked, when it runs, and who starts it |
+| [`src/README.md`](src/README.md) | what `Sdlc.Core` and `Sdlc.Cli` are, how one invocation flows, and where a new thing goes |
+
+Two things to read alongside them: [`reference/iteration-3-cycle/`](reference/iteration-3-cycle/) is a real
+cycle run in anger, with its interrogation rounds and its evidence — the best worked example the project
+has. And `.sdlc/README.md`, written into every governed solution by `sdlc init`, is the flow, the files and
+the commands in one page that travels with the repository.
 
 ## Repository layout
 

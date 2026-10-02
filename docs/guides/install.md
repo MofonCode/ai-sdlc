@@ -1,13 +1,13 @@
 # Installing, updating and removing
 
-**Two things have to be present, and they fail differently.** The plugin carries the skills and the
-pre-tool hook; the `sdlc` binary is the gate those skills and hooks call. Without the plugin, nothing
+**Two things have to be present, and they fail differently.** The plugin carries the skills and both
+hooks; the `sdlc` binary is the gate those skills and hooks call. Without the plugin, nothing
 asks for a cycle. Without the binary, the skills ask for something that is not there — and the pre-push
 hook says so and lets the push through, which is the louder of the two failures.
 
 | | What it is | Missing means |
 |---|---|---|
-| the plugin | seventeen skills and one `PreToolUse` hook | no stages, and no deterministic layer |
+| the plugin | seventeen skills and two hooks, `PreToolUse` and `Stop` | no stages, and no deterministic layer |
 | the `sdlc` binary | a .NET tool named `sdlc` | every skill's first command fails |
 
 ## Before either

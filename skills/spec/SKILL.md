@@ -21,8 +21,8 @@ sdlc status <cycle id> --stage intent
 - **No intent?** Say so and stop. There is nothing to derive from.
 - **Intent not clean?** Stop. `CON_04` is coverage of what the intent *states*, so deriving criteria
   from an intent that is still being argued about means deriving them twice.
-- **A spec already exists?** Stop, and name what the person probably meant: `sdlc interrogate <id>
-  spec` to challenge it, or `sdlc steer <id> "..."` to change it. Do not overwrite a spec.
+- **A spec already exists?** Stop, and name what the person probably meant: `/sdlc:interrogate <id>
+  spec` to challenge it, or `/sdlc:steer <id> "..."` to change it. Do not overwrite a spec.
 
 ## Read the intent as the only input
 
@@ -89,7 +89,7 @@ The two fail differently and are remedied differently, which is why they are sep
 sends you back for more criteria, creep sends you to delete one.
 
 **If the intent is missing something it should have asked for, say so and stop.** Do not fix it by
-writing the criterion. That is what `sdlc steer <id>` is for, and it edits the intent with attribution
+writing the criterion. That is what the steer stage is for, and it edits the intent with attribution
 rather than smuggling the change in here.
 
 ## Write it
@@ -131,4 +131,4 @@ decisions region, so an assumption here is almost always a sign the intent is th
 sdlc status <id> --stage spec
 ```
 
-Show it verbatim, then stop. The person decides whether to run `sdlc plan <id>`.
+Show it verbatim, then stop. The person decides whether to move to the plan.

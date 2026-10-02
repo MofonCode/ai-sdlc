@@ -30,7 +30,9 @@ request could mean either, ask.
 | the seventeen skills: what each is, how it is invoked, when it runs, who starts it | [`docs/skills.md`](docs/skills.md) |
 | the design, and every decision behind it with what each one rejected | [`CONCEPT.md`](CONCEPT.md) |
 | the fourteen global constraints, each with what it forbids and why | [`CONSTRAINTS.md`](CONSTRAINTS.md) |
-| the guides: installing, a first cycle, every command, every refusal | [`docs/README.md`](docs/README.md) |
+| what documentation exists, and what each guide covers | the Documentation table in [`README.md`](README.md) |
+| the guides themselves | `docs/` |
+| what `Sdlc.Core` and `Sdlc.Cli` are, how one invocation flows, and where a new thing goes | [`src/README.md`](src/README.md) |
 | the gate's logic: constraints, cycles, approvals, findings, hooks, evidence, the chain | `src/Sdlc.Core/` |
 | the one binary every skill on every host calls | `src/Sdlc.Cli/` |
 | the skills as they ship, one directory each | `skills/` |
@@ -84,16 +86,27 @@ configuration problem to route around.
 **Do not restate the constraints in this file or any other.** `sdlc constraints` renders them, all tiers
 resolved. A copy is a second place they live, and the copy is always the one that goes stale.
 
-## Keep this file and `docs/skills.md` current
+## Keep the documentation current
 
-Both describe the framework's surface, so both go stale the moment the surface moves. In the **same change**
-that adds, removes or renames a skill, changes what a skill takes or refuses, or changes a command's
-behaviour or options:
+Every document describes a surface, so each one goes stale the moment that surface moves. Update it in the
+**same change** that moves it — never in a follow-up, because a follow-up is a thing somebody has to
+remember, and the document is wrong in the meantime.
 
-- update [`docs/skills.md`](docs/skills.md) — the skill's row in the table, its own section, and the count
-  in the heading if it moved
-- update this file if the layout, the commands or the enforced properties changed
-- update `src/Sdlc.Cli/Usage.cs` if a command's surface changed, since that is what `sdlc help` prints
+| If the change | update |
+|---|---|
+| adds, removes or renames a skill, or changes what one takes or refuses | [`docs/skills.md`](docs/skills.md) — the skill's row, its own section, and the count in the heading if it moved |
+| changes a command's behaviour or options | `src/Sdlc.Cli/Usage.cs`, which is what `sdlc help` prints, and [`docs/guides/cycle-commands.md`](docs/guides/cycle-commands.md) |
+| changes what a correct install produces — a hook, a skill count, a version | [`docs/guides/install.md`](docs/guides/install.md), **including the table at the top** |
+| adds, removes or reworks a refusal | [`docs/guides/when-it-blocks.md`](docs/guides/when-it-blocks.md) |
+| changes the flow a person walks through | [`docs/guides/first-cycle.md`](docs/guides/first-cycle.md) |
+| moves the project boundary, an operation's shape, or where a new thing goes | [`src/README.md`](src/README.md) |
+| changes the layout, the commands or the enforced properties | this file |
+| changes where the project stands, its version, or what is not done | [`README.md`](README.md) |
+
+**None of these may restate what another one owns.** The constraints live in `CONSTRAINTS.md` and are
+rendered by `sdlc constraints`; the skills' surface lives in [`docs/skills.md`](docs/skills.md); the list of
+what documentation exists lives in `README.md`. A second copy is the one that goes stale, and a session
+working from the stale copy has no way to tell.
 
 Much of this is asserted rather than trusted, and `tests/Sdlc.Tests/PluginTests.cs` is where: the skills on
 disk are exactly the ones `CONCEPT.md` inventories, every skill names a command the binary actually has,
@@ -101,8 +114,10 @@ no skill restates a constraint instead of running the command, the README's coun
 every guide it points at exists, and every path this file links to exists with the capitalisation it
 states. So a change that leaves one of those behind fails the suite before it reaches review.
 
-**What no test can hold is whether the prose is true** — whether a sentence here still describes what the
-code does. That is the part the reminder is for.
+**What no test holds is whether a sentence is still true.** The install guide's own table claimed one hook
+for as long as the turn-end hook had existed, while the verification step eleven paragraphs down said two
+and called one a failed install. Both were countable and neither was counted. If you are changing a
+surface, read the document that describes it rather than trusting that the suite would have caught it.
 
 This file is deliberately lean and carries nothing a cycle could make untrue — no status, no current work,
 no version, no test counts. `README.md` holds where the project stands, and it is the one place to change

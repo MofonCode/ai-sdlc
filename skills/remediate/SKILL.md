@@ -77,7 +77,7 @@ Say, per finding: what was wrong, what you changed, and whether you are confiden
 sdlc status <id>
 ```
 
-Show it verbatim and stop. The person decides whether to run `sdlc verify <id>` again.
+Show it verbatim and stop. The person decides whether to verify again.
 
 **Do not verify your own remediation.** You have just spent effort on this code; a verification by the
 session that wrote the fix is the investment bias the whole separation exists to remove. Verify runs as

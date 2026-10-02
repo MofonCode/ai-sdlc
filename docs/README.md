@@ -1,17 +1,12 @@
 # Documentation
 
 Written for somebody using the framework. The design and the reasoning behind every decision live one
-level up, in `../CONCEPT.md`.
+level up, in `../CONCEPT.md`; what the code is and how it fits together is in `../src/README.md`.
 
-| | |
-|---|---|
-| [`skills.md`](skills.md) | the seventeen skills: what each is, how it is invoked, when it runs, and who starts it |
-| [`guides/install.md`](guides/install.md) | installing the plugin and the binary, updating, and removing |
-| [`guides/first-cycle.md`](guides/first-cycle.md) | a cycle from an empty directory to a pull request, in fourteen steps |
-| [`guides/cycle-commands.md`](guides/cycle-commands.md) | every command for one cycle, in order, on one screen |
-| [`guides/when-it-blocks.md`](guides/when-it-blocks.md) | the index to every refusal, and the remedy for each |
+**`../README.md` lists what is here and what each one covers.** This file does not repeat that list — a
+second copy of it is the one that goes stale the next time a guide is added or renamed.
 
-Two things to read alongside them:
+Two things to read alongside these guides:
 
 - **`../reference/iteration-3-cycle/`** — a real cycle run in anger, with its interrogation rounds and
   its evidence. In the previous iteration's shape, and the best worked example the project has.

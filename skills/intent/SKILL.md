@@ -165,5 +165,5 @@ Show what it prints **verbatim**. Do not summarise it, reformat it, or add a rec
 whether to keep interrogating — that judgement is the owner's, and the panel deliberately withholds
 it.
 
-Then stop. The person decides whether to run `sdlc spec <id>`. That decision is the human-in-the-loop
+Then stop. The person decides whether to move to the spec. That decision is the human-in-the-loop
 point, and a skill that chained straight into the spec would remove it while appearing to be helpful.

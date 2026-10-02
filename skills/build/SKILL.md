@@ -102,7 +102,7 @@ Say what you implemented, what the tests did, and anything you left alone delibe
 sdlc status <id>
 ```
 
-Show it verbatim and stop. The person decides whether to run `sdlc verify <id>`.
+Show it verbatim and stop. The person decides whether to verify.
 
 **If the build or the tests failed, say so plainly and stop there.** Do not run verify on a red build
 to see what it makes of it, and do not adjust a test to make it pass — that is the inversion the whole
