@@ -99,9 +99,43 @@ public readonly record struct CycleId
         return true;
     }
 
+    /// <summary>The prefix every cycle branch carries.</summary>
+    public const string BranchPrefix = "cycle/";
+
     /// <summary>The branch a cycle's work happens on.</summary>
     /// <returns>The branch name, as <c>cycle/&lt;id&gt;</c>.</returns>
-    public string BranchName() => "cycle/" + ToString();
+    public string BranchName() => BranchPrefix + ToString();
+
+    /// <summary>
+    /// Reads the cycle out of a branch name.
+    /// </summary>
+    /// <remarks>
+    /// Separate from <see cref="TryParse(string?, out CycleId?)"/> rather than folded into it,
+    /// because the two answer different questions. This one asks "is this a cycle branch", and a
+    /// branch that is not one is the ordinary case rather than a malformed id -- which is exactly
+    /// what the turn-end gate needs to know before it has an opinion about anything.
+    /// </remarks>
+    /// <param name="branch">
+    /// A branch name, as a host or a platform spells it: the bare branch, or a fully qualified
+    /// <c>refs/heads/</c> reference. Azure DevOps reports the second and GitHub the first, and both
+    /// hand it straight to the pull-request check.
+    /// </param>
+    /// <param name="id">The cycle the branch belongs to, when this returns true.</param>
+    /// <returns>True when the branch is a cycle branch naming a well-formed id.</returns>
+    public static bool TryParseBranch(string? branch, [NotNullWhen(true)] out CycleId? id)
+    {
+        id = null;
+        string trimmed = branch?.Trim() ?? string.Empty;
+
+        const string FullyQualified = "refs/heads/";
+        if (trimmed.StartsWith(FullyQualified, StringComparison.OrdinalIgnoreCase))
+        {
+            trimmed = trimmed[FullyQualified.Length..];
+        }
+
+        return trimmed.StartsWith(BranchPrefix, StringComparison.OrdinalIgnoreCase)
+            && TryParse(trimmed[BranchPrefix.Length..], out id);
+    }
 
     /// <summary>Renders the id as it is written in paths, branches and citations.</summary>
     /// <returns>The id as text.</returns>

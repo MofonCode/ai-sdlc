@@ -3,6 +3,7 @@ using FluentResults;
 using MofonCode.Core;
 using Sdlc.Core.Cycles;
 using Sdlc.Core.Drafts;
+using Sdlc.Core.Solutions;
 
 namespace Sdlc.Core.Constraints;
 
@@ -21,8 +22,8 @@ public sealed record ConstraintTextQuery : IRequest<DraftResult>;
 /// itself, so <c>constraints.md</c> is edited by a person, by hand. What a tool can do without taking
 /// the decision is the bookkeeping: read what is already there, and say which id is free.
 /// </remarks>
-/// <param name="solutionRoot">The root of the solution being governed.</param>
-public sealed class ConstraintTextHandler(string solutionRoot)
+/// <param name="solution">The root of the solution being governed.</param>
+public sealed class ConstraintTextHandler(SolutionRoot solution)
     : IRequestHandler<ConstraintTextQuery, DraftResult>
 {
     // Shown only when the file does not exist yet, so a first constraint lands in a document that
@@ -46,7 +47,7 @@ public sealed class ConstraintTextHandler(string solutionRoot)
         ArgumentNullException.ThrowIfNull(request);
 
         string path = Path.Combine(
-            solutionRoot,
+            solution.Path,
             Cycle.SdlcDirectoryName,
             FileConstraintDocuments.SolutionConstraintsFileName);
 

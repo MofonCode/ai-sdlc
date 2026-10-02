@@ -392,8 +392,10 @@ public sealed class ApprovalGateTests
 
     private static async Task<GateVerdict> Check(CycleWorkspace workspace)
     {
-        Result<GateVerdict> result = await new ApprovalGateHandler(workspace.Root)
-            .Handle(new ApprovalGateQuery(workspace.Cycle.Id), CancellationToken.None);
+        using var gate = Gate.For(workspace.Root);
+
+        Result<GateVerdict> result = await gate
+            .Send<ApprovalGateQuery, GateVerdict>(new ApprovalGateQuery(workspace.Cycle.Id));
 
         Assert.IsTrue(result.IsSuccess, string.Join("; ", result.Errors.Select(e => e.Message)));
         return result.Value;

@@ -32,8 +32,10 @@ public sealed class VerifyChainTests
         using var workspace = CycleWorkspace.Create();
         Assert.IsTrue(CycleId.TryParse("20991231_2359_59", out CycleId? absent));
 
-        Result<ChainVerdict> result = await new VerifyChainHandler(workspace.Root)
-            .Handle(new VerifyChainQuery(absent.Value), CancellationToken.None);
+        using var gate = Gate.For(workspace.Root);
+
+        Result<ChainVerdict> result = await gate
+            .Send<VerifyChainQuery, ChainVerdict>(new VerifyChainQuery(absent.Value));
 
         Assert.IsTrue(result.IsSuccess);
         Assert.IsFalse(result.Value.Holds);
@@ -267,8 +269,10 @@ public sealed class VerifyChainTests
 
     private static async Task<ChainVerdict> Check(CycleWorkspace workspace)
     {
-        Result<ChainVerdict> result = await new VerifyChainHandler(workspace.Root)
-            .Handle(new VerifyChainQuery(workspace.Cycle.Id), CancellationToken.None);
+        using var gate = Gate.For(workspace.Root);
+
+        Result<ChainVerdict> result = await gate
+            .Send<VerifyChainQuery, ChainVerdict>(new VerifyChainQuery(workspace.Cycle.Id));
 
         Assert.IsTrue(result.IsSuccess, string.Join("; ", result.Errors.Select(e => e.Message)));
         return result.Value;

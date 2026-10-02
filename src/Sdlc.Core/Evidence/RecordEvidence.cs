@@ -3,6 +3,7 @@ using FluentResults;
 using MofonCode.Core;
 using Sdlc.Core.Cycles;
 using Sdlc.Core.Git;
+using Sdlc.Core.Solutions;
 
 namespace Sdlc.Core.Evidence;
 
@@ -39,11 +40,11 @@ public sealed record EvidenceReport(
 /// cite either.
 /// </para>
 /// </remarks>
-/// <param name="solutionRoot">The solution being built.</param>
+/// <param name="solution">The solution being built.</param>
 /// <param name="repository">How to ask git what changed.</param>
 /// <param name="time">Where the current moment comes from.</param>
 public sealed class RecordEvidenceHandler(
-    string solutionRoot,
+    SolutionRoot solution,
     IRepository repository,
     TimeProvider time) : IRequestHandler<RecordEvidenceCommand, EvidenceReport>
 {
@@ -63,7 +64,7 @@ public sealed class RecordEvidenceHandler(
     {
         ArgumentNullException.ThrowIfNull(request);
 
-        Cycle cycle = new(request.Id, solutionRoot);
+        Cycle cycle = new(request.Id, solution.Path);
 
         if (!cycle.Exists)
         {
@@ -84,7 +85,7 @@ public sealed class RecordEvidenceHandler(
         Directory.CreateDirectory(cycle.EvidenceDirectory);
         List<string> written = [];
 
-        string? baseCommit = repository.MergeBase(solutionRoot, cycle.Id.BranchName());
+        string? baseCommit = repository.MergeBase(solution.Path, cycle.Id.BranchName());
 
         if (baseCommit is null)
         {
@@ -96,10 +97,10 @@ public sealed class RecordEvidenceHandler(
         await Write(cycle, BaseFileName, baseCommit + Environment.NewLine, written, cancellationToken)
             .ConfigureAwait(false);
 
-        string diff = repository.Diff(solutionRoot, baseCommit) ?? string.Empty;
+        string diff = repository.Diff(solution.Path, baseCommit) ?? string.Empty;
         await Write(cycle, DiffFileName, diff, written, cancellationToken).ConfigureAwait(false);
 
-        IReadOnlyList<string> changed = repository.ChangedFiles(solutionRoot, baseCommit);
+        IReadOnlyList<string> changed = repository.ChangedFiles(solution.Path, baseCommit);
 
         TestSummary? summary = null;
 

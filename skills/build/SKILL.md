@@ -65,6 +65,10 @@ warns is a build that failed.
 to `dotnet test` exiting zero without running anything, because the runner was not configured. If the
 test count is zero or absent, that is a failure, not a clean run.
 
+**The turn end is checked.** A hook asks the gate before you finish, and it sends the turn back when the
+recorded evidence shows a failing suite or when the working tree has moved since the build was recorded.
+It is not a rule to remember — it is why there is no point reporting done over a red build.
+
 ## Record the evidence
 
 ```

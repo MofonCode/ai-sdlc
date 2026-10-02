@@ -37,7 +37,7 @@ Three layers, and only the last is a guarantee.
 | Layer | Mechanism | Who can get past it |
 |---|---|---|
 | advisory | skill and instruction text | the agent, constantly |
-| local | the `sdlc` binary, a pre-tool hook, git hooks | anyone with a shell |
+| local | the `sdlc` binary, a pre-tool hook, a turn-end hook, git hooks | anyone with a shell |
 | **non-bypassable** | `sdlc verify-chain` as a pull-request check | nobody without repo admin |
 
 The promise made to a team is the third layer: **nothing merges unless the artifact chain is complete,
@@ -69,10 +69,16 @@ asks the one policy engine, and writes the host's own decision shape.
 **v1 ships Claude Code and GitHub Copilot.** The rules themselves name no language, framework or package,
 so they travel to any stack — but the tool is a .NET executable, so the toolchain does not.
 
+**The turn end is Claude Code only, and that is said rather than papered over.** A second moment is worth
+governing — an agent must not report done over a failing build, which is what makes an analyzer or an
+architecture test an enforcement layer rather than one a reviewer consults afterwards — and Copilot's hook
+surface has no turn-end event to listen to. So nothing is configured for it, and
+`sdlc hook --event turn-end --host copilot` refuses by name instead of allowing silently.
+
 ## Install
 
 Two halves have to be present, and they fail differently. The **plugin** carries the seventeen skills and
-the pre-tool hook; the **`sdlc` binary** is the gate those skills call. Without the plugin nothing asks for
+the two hooks; the **`sdlc` binary** is the gate those skills call. Without the plugin nothing asks for
 a cycle. Without the binary every skill's first command fails.
 
 **There is no published feed yet**, so the binary is built from a clone of this repository.
@@ -97,9 +103,10 @@ sdlc version
 claude plugin details sdlc@ai-sdlc
 ```
 
-Expect the same version from each, with `Skills (17)` and `Hooks (1) PreToolUse`. **A hook count of zero is
-a failed install rather than a detail** — the deterministic layer is not loaded, nothing is denied, and
-every cycle will still appear to work. Start a new session afterwards, because skills load at startup.
+Expect the same version from each, with `Skills (17)` and `Hooks (2) PreToolUse, Stop`. **A hook count
+below two is a failed install rather than a detail** — the deterministic layer is not loaded, nothing is
+denied, and every cycle will still appear to work. Start a new session afterwards, because skills load at
+startup.
 
 `docs/guides/install.md` has the rest: the local-directory source for changing the framework itself,
 updating, removing, and the four things that catch people.

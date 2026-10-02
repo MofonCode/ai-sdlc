@@ -13,6 +13,15 @@ public sealed record ToolCall(
     string? Command,
     string? WorkingDirectory);
 
+/// <summary>An agent about to finish a turn, in terms the gate can reason about.</summary>
+/// <param name="WorkingDirectory">Where the host says it is working.</param>
+/// <param name="AlreadyContinuing">
+/// Whether the host is already continuing because a previous turn end was sent back. Named for what
+/// it means rather than for the field a host writes it in, and it is the loop guard: refusing twice
+/// in a row is an endless turn rather than a governed stop.
+/// </param>
+public sealed record TurnEnd(string? WorkingDirectory, bool AlreadyContinuing);
+
 /// <summary>
 /// What a tool does, independent of what a host calls it.
 /// </summary>

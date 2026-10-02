@@ -1,4 +1,6 @@
+using System.Text.Json.Nodes;
 using FluentResults;
+using Microsoft.Extensions.DependencyInjection;
 using Sdlc.Core.Artifacts;
 using Sdlc.Core.Cycles;
 using Sdlc.Core.Git;
@@ -125,8 +127,10 @@ public sealed class InitTests
         // cannot exist -- so every hook would permit everything while the artifacts still looked governed.
         using var solution = Scratch.Create();
 
-        Result<InitReport> result = await new InitHandler(solution.Root, new FakeRepository { Repository = false })
-            .Handle(new InitCommand("dotnet-default", Platform.GitHub), CancellationToken.None);
+        using Gate gate = Adopter(solution, new FakeRepository { Repository = false });
+
+        Result<InitReport> result = await gate
+            .Send<InitCommand, InitReport>(new InitCommand("dotnet-default", Platform.GitHub));
 
         Assert.IsTrue(result.IsFailed);
         StringAssert.Contains(result.Errors[0].Message, "git init");
@@ -251,6 +255,43 @@ public sealed class InitTests
     }
 
     [TestMethod]
+    public void Each_generated_hook_config_is_valid_json()
+    {
+        // These templates are assembled a line at a time, so a stray comma is a settings file the
+        // host rejects -- and a hook configuration that fails to parse is a hook that never runs,
+        // which permits everything while the directory still looks governed.
+        foreach (string host in (string[])["claude", "copilot"])
+        {
+            string text = Templates.HookConfig(host);
+
+            Assert.IsNotNull(
+                JsonNode.Parse(text),
+                host + "'s hook configuration is not valid JSON:\n" + text);
+        }
+    }
+
+    [TestMethod]
+    public void The_turn_end_is_configured_for_claude_and_deliberately_absent_for_copilot()
+    {
+        // Copilot's hook surface has a pre-tool event only. Writing a plausible-looking turn-end
+        // block for it would be the failure this whole design is written against: a check that looks
+        // like enforcement and cannot fire. 'sdlc hook' refuses that combination by name.
+        JsonNode claude = JsonNode.Parse(Templates.HookConfig("claude"))!;
+
+        StringAssert.Contains(
+            claude["hooks"]!["Stop"]!.AsArray()[0]!["hooks"]!.AsArray()[0]!["command"]!.GetValue<string>(),
+            "--event turn-end");
+
+        JsonNode copilot = JsonNode.Parse(Templates.HookConfig("copilot"))!;
+
+        Assert.IsNull(
+            copilot["hooks"]!.AsObject().FirstOrDefault(entry =>
+                entry.Key.Contains("stop", StringComparison.OrdinalIgnoreCase)
+                || entry.Key.Contains("turn", StringComparison.OrdinalIgnoreCase)).Value,
+            "Copilot has no turn-end event to listen to, so nothing may claim one.");
+    }
+
+    [TestMethod]
     public void The_pre_push_hook_has_unix_line_endings_and_ignores_branches_that_are_not_cycles()
     {
         // CRLF in a shell script fails on Linux with a message about the interpreter, which is a confusing
@@ -360,12 +401,18 @@ public sealed class InitTests
         IReadOnlyList<string> tracked,
         Platform platform = Platform.GitHub)
     {
-        Result<InitReport> result = await new InitHandler(solution.Root, new FakeRepository { Tracked = tracked })
-            .Handle(new InitCommand("dotnet-default", platform), CancellationToken.None);
+        using Gate gate = Adopter(solution, new FakeRepository { Tracked = tracked });
+
+        Result<InitReport> result = await gate
+            .Send<InitCommand, InitReport>(new InitCommand("dotnet-default", platform));
 
         Assert.IsTrue(result.IsSuccess, string.Join("; ", result.Errors.Select(e => e.Message)));
         return result.Value;
     }
+
+    /// <summary>The gate with git substituted, which is what decides adoption's three modes.</summary>
+    private static Gate Adopter(Scratch solution, FakeRepository git) =>
+        Gate.For(solution.Root, services => services.AddSingleton<IRepository>(git));
 
 
     /// <summary>A scratch directory that is not a cycle workspace, for adoption's sake.</summary>

@@ -2,6 +2,7 @@ using System.Globalization;
 using FluentResults;
 using MofonCode.Core;
 using Sdlc.Core.Cycles;
+using Sdlc.Core.Solutions;
 
 namespace Sdlc.Core.Findings;
 
@@ -30,8 +31,8 @@ public sealed record SuggestionsQuery(CycleId? Id = null) : IRequest<IReadOnlyLi
 /// listing rather than an analysis, and deliberately so until there is a question worth answering.
 /// </para>
 /// </remarks>
-/// <param name="solutionRoot">The root of the solution being read.</param>
-public sealed class SuggestionsHandler(string solutionRoot)
+/// <param name="solution">The root of the solution being read.</param>
+public sealed class SuggestionsHandler(SolutionRoot solution)
     : IRequestHandler<SuggestionsQuery, IReadOnlyList<Suggestion>>
 {
     /// <inheritdoc />
@@ -42,8 +43,8 @@ public sealed class SuggestionsHandler(string solutionRoot)
         ArgumentNullException.ThrowIfNull(request);
 
         IReadOnlyList<Cycle> cycles = request.Id is { } id
-            ? [new Cycle(id, solutionRoot)]
-            : CycleIndex.All(solutionRoot);
+            ? [new Cycle(id, solution.Path)]
+            : CycleIndex.All(solution.Path);
 
         List<Suggestion> suggestions = [];
         List<IError> errors = [];

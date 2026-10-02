@@ -447,7 +447,7 @@ static async Task<int> DraftProfile(Workspace workspace, CommandLine line)
     }
 
     return await PrintDraft(await workspace
-        .Send<ProfileTextQuery, DraftResult>(new ProfileTextQuery(line.Arguments[0]))
+        .Send<ProfileText.Request, DraftResult>(new ProfileText.Request(line.Arguments[0]))
         .ConfigureAwait(false)).ConfigureAwait(false);
 }
 
@@ -595,6 +595,32 @@ static async Task<int> Hook(CommandLine line)
         return ExitCode.Usage;
     }
 
+    line.TryOption("event", out string? namedEvent);
+
+    if (!HookProtocol.TryParseEvent(namedEvent, out HookEvent? hookEvent))
+    {
+        await Console.Error.WriteLineAsync(
+            $"'{namedEvent}' is not a hook event. Pass --event pre-tool-use or --event turn-end, or leave it off for pre-tool-use.")
+            .ConfigureAwait(false);
+        return ExitCode.Usage;
+    }
+
+    if (hookEvent == HookEvent.TurnEnd)
+    {
+        // Said out loud rather than allowed silently. Copilot's hook surface has no turn-end event
+        // yet, and a configuration that appeared to install one would be the failure this design is
+        // most concerned with: a check that looks like enforcement and is not.
+        if (host == HookHost.Copilot)
+        {
+            await Console.Error.WriteLineAsync(
+                "No turn-end event is wired for Copilot. Its hook surface has a pre-tool event only, so there is nothing for this to listen to. Use --host claude, or leave the turn end ungoverned on that host rather than configuring a check that cannot run.")
+                .ConfigureAwait(false);
+            return ExitCode.Usage;
+        }
+
+        return await TurnEnd(line, host.Value).ConfigureAwait(false);
+    }
+
     string payload = await Console.In.ReadToEndAsync().ConfigureAwait(false);
     Result<ToolCall> call = HookProtocol.ReadCall(payload, host.Value);
 
@@ -614,13 +640,79 @@ static async Task<int> Hook(CommandLine line)
         return ExitCode.Ok;
     }
 
-    HookVerdict verdict = HookPolicyHandler.Decide(call.Value);
+    HookVerdict verdict = HookPolicy.Decide(call.Value);
 
     await Console.Out.WriteAsync(
         HookProtocol.WriteDecision(host.Value, verdict.Decision, verdict.Reason)).ConfigureAwait(false);
 
     // Zero either way: the decision is in the payload, and a non-zero exit would read to the host as
     // the hook itself having failed.
+    return ExitCode.Ok;
+}
+
+// The turn end. Separate from the tool-call path because it answers a different question in a
+// different shape, and because it needs the solution -- git and the recorded evidence -- where the
+// tool-call policy needs only the call.
+//
+// Every failure here allows the turn and says why on standard error, which is the same choice the
+// tool-call path makes for an unreadable payload and is made for the same reason: a hook that fails
+// closed stops a person working for something they cannot act on, and one that fails silently
+// permits everything while appearing to protect. Visible and permissive is the honest third option.
+static async Task<int> TurnEnd(CommandLine line, HookHost host)
+{
+    string payload = await Console.In.ReadToEndAsync().ConfigureAwait(false);
+    Result<TurnEnd> turn = HookProtocol.ReadTurnEnd(payload);
+
+    if (turn.IsFailed)
+    {
+        foreach (IError error in turn.Errors)
+        {
+            await Console.Error.WriteLineAsync("sdlc hook: " + error.Message).ConfigureAwait(false);
+        }
+
+        await Console.Out.WriteAsync(
+            HookProtocol.WriteTurnEndDecision(host, HookDecision.Allow, null)).ConfigureAwait(false);
+        return ExitCode.Ok;
+    }
+
+    bool answered = false;
+
+    // The exit code is discarded on purpose, for the reason the tool-call path gives: the decision
+    // is in the payload, and a non-zero exit reads to the host as the hook itself having failed.
+    _ = await Workspace.Run(line, async workspace =>
+    {
+        Result<HookVerdict> verdict = await workspace
+            .Send<TurnEndQuery, HookVerdict>(new TurnEndQuery(turn.Value))
+            .ConfigureAwait(false);
+
+        if (verdict.IsFailed)
+        {
+            foreach (IError error in verdict.Errors)
+            {
+                await Console.Error.WriteLineAsync("sdlc hook: " + error.Message).ConfigureAwait(false);
+            }
+
+            return ExitCode.Ok;
+        }
+
+        await Console.Out.WriteAsync(
+            HookProtocol.WriteTurnEndDecision(host, verdict.Value.Decision, verdict.Value.Reason))
+            .ConfigureAwait(false);
+
+        answered = true;
+        return ExitCode.Ok;
+    }).ConfigureAwait(false);
+
+    // The workspace refuses to open when the constraint library is not beside the binary, and says
+    // so on standard error before the body runs. The turn-end gate does not read that library -- it
+    // reads git and the recorded evidence -- so a missing library is a reason to say nothing rather
+    // than a reason to stop a turn.
+    if (!answered)
+    {
+        await Console.Out.WriteAsync(
+            HookProtocol.WriteTurnEndDecision(host, HookDecision.Allow, null)).ConfigureAwait(false);
+    }
+
     return ExitCode.Ok;
 }
 
@@ -640,11 +732,17 @@ static bool TryCycle(
         return false;
     }
 
-    if (!CycleId.TryParse(line.Arguments[0], out CycleId? parsed))
+    // A branch name is accepted as well as a bare id, because the generated pipelines hand one
+    // straight in -- GitHub's head_ref is 'cycle/<id>' and Azure DevOps reports
+    // 'refs/heads/cycle/<id>'. Both were refused as malformed ids, which meant the pull-request
+    // check, the one non-bypassable layer and the whole promise made to a team, could not run as
+    // shipped. Found by typing the command the pipeline runs.
+    if (!CycleId.TryParse(line.Arguments[0], out CycleId? parsed)
+        && !CycleId.TryParseBranch(line.Arguments[0], out parsed))
     {
         complaint = string.Create(
             CultureInfo.InvariantCulture,
-            $"'{line.Arguments[0]}' is not a cycle id. They are written as date, 24-hour time and seconds, as in 20260929_1456_32.");
+            $"'{line.Arguments[0]}' is not a cycle id. They are written as date, 24-hour time and seconds, as in 20260929_1456_32 -- or as the branch that carries one, 'cycle/20260929_1456_32'.");
         return false;
     }
 

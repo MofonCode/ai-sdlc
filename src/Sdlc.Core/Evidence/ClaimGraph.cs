@@ -2,6 +2,7 @@ using System.Globalization;
 using FluentResults;
 using MofonCode.Core;
 using Sdlc.Core.Cycles;
+using Sdlc.Core.Solutions;
 
 namespace Sdlc.Core.Evidence;
 
@@ -47,8 +48,8 @@ public sealed record ClaimGraph(
 /// than declared, because the skill that would have declared dependencies was removed with <c>split</c>.
 /// </para>
 /// </remarks>
-/// <param name="solutionRoot">The solution to read.</param>
-public sealed class ClaimGraphHandler(string solutionRoot) : IRequestHandler<ClaimGraphQuery, ClaimGraph>
+/// <param name="solution">The solution to read.</param>
+public sealed class ClaimGraphHandler(SolutionRoot solution) : IRequestHandler<ClaimGraphQuery, ClaimGraph>
 {
     /// <summary>
     /// Words in a plan that mean it stands up something a developer would otherwise start by hand.
@@ -73,7 +74,7 @@ public sealed class ClaimGraphHandler(string solutionRoot) : IRequestHandler<Cla
 
         List<Claim> claims = [];
 
-        foreach (Cycle cycle in CycleIndex.All(solutionRoot))
+        foreach (Cycle cycle in CycleIndex.All(solution.Path))
         {
             string plan = cycle.PathOf(ArtifactKind.Plan);
 

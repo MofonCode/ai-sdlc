@@ -86,9 +86,9 @@ public sealed record InitReport(
 /// version of that which cannot destroy a person's work.
 /// </para>
 /// </remarks>
-/// <param name="solutionRoot">The repository to adopt into.</param>
+/// <param name="solution">The repository to adopt into.</param>
 /// <param name="repository">How to ask git what it knows.</param>
-public sealed class InitHandler(string solutionRoot, IRepository repository)
+public sealed class InitHandler(SolutionRoot solution, IRepository repository)
     : IRequestHandler<InitCommand, InitReport>
 {
     /// <summary>The agent instruction file adoption leans, and never overwrites.</summary>
@@ -107,14 +107,14 @@ public sealed class InitHandler(string solutionRoot, IRepository repository)
                 "Which profile? Give its package name, as in 'sdlc init --profile dotnet-default'.");
         }
 
-        if (!repository.IsRepository(solutionRoot))
+        if (!repository.IsRepository(solution.Path))
         {
             return Result.Fail<InitReport>(string.Create(
                 CultureInfo.InvariantCulture,
-                $"{solutionRoot} is not a git repository. Without git, a build cannot record the diff that verify derives from and the gates key on a branch that cannot exist -- so every hook would permit everything while the artifacts still looked governed. Run 'git init' first."));
+                $"{solution.Path} is not a git repository. Without git, a build cannot record the diff that verify derives from and the gates key on a branch that cannot exist -- so every hook would permit everything while the artifacts still looked governed. Run 'git init' first."));
         }
 
-        string sdlc = Path.Combine(solutionRoot, Cycle.SdlcDirectoryName);
+        string sdlc = Path.Combine(solution.Path, Cycle.SdlcDirectoryName);
         InitMode mode = Mode(sdlc);
         SolutionOrigin origin = await Origin(mode, cancellationToken).ConfigureAwait(false);
 
@@ -189,7 +189,7 @@ public sealed class InitHandler(string solutionRoot, IRepository repository)
 
     private InitMode Mode(string sdlc) => Directory.Exists(sdlc)
         ? InitMode.Update
-        : repository.TrackedFiles(solutionRoot).Any(IsCode)
+        : repository.TrackedFiles(solution.Path).Any(IsCode)
             ? InitMode.Onboard
             : InitMode.Scaffold;
 
@@ -239,7 +239,7 @@ public sealed class InitHandler(string solutionRoot, IRepository repository)
         }
 
         Result<SolutionDocument> existing = await SolutionDocument
-            .ReadFile(solutionRoot, cancellationToken)
+            .ReadFile(solution.Path, cancellationToken)
             .ConfigureAwait(false);
 
         return existing.IsSuccess ? existing.Value.Origin : SolutionOrigin.Adopted;
@@ -251,7 +251,7 @@ public sealed class InitHandler(string solutionRoot, IRepository repository)
         List<InitAction> actions,
         CancellationToken cancellationToken)
     {
-        string path = Path.Combine(solutionRoot, relative);
+        string path = Path.Combine(solution.Path, relative);
 
         if (File.Exists(path))
         {
@@ -272,7 +272,7 @@ public sealed class InitHandler(string solutionRoot, IRepository repository)
         List<InitAction> actions,
         CancellationToken cancellationToken)
     {
-        string path = Path.Combine(solutionRoot, relative);
+        string path = Path.Combine(solution.Path, relative);
 
         if (File.Exists(path))
         {
@@ -290,7 +290,7 @@ public sealed class InitHandler(string solutionRoot, IRepository repository)
         List<InitAction> actions,
         CancellationToken cancellationToken)
     {
-        string path = Path.Combine(solutionRoot, relative);
+        string path = Path.Combine(solution.Path, relative);
         bool existed = File.Exists(path);
 
         if (existed && string.Equals(
@@ -319,8 +319,8 @@ public sealed class InitHandler(string solutionRoot, IRepository repository)
         Dictionary<string, string> printed,
         CancellationToken cancellationToken)
     {
-        string path = Path.Combine(solutionRoot, AgentsFileName);
-        string contents = Templates.Agents(Path.GetFileName(solutionRoot.TrimEnd(
+        string path = Path.Combine(solution.Path, AgentsFileName);
+        string contents = Templates.Agents(Path.GetFileName(solution.Path.TrimEnd(
             Path.DirectorySeparatorChar,
             Path.AltDirectorySeparatorChar)));
 

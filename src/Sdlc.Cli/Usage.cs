@@ -39,8 +39,9 @@ internal static class Usage
             claims                   Say which cycles may be built together, and what collides.
             status <id>              Show the panel for a stage. Ends with the next command.
             suggestions [<id>]       List the open non-blocking findings, for one cycle or all.
-            hook --host <name>       Judge a tool call. Reads the host's payload on stdin and
-                                     writes its decision on stdout. Hosts: claude, copilot.
+            hook --host <name>       Judge a tool call, or a turn that is ending. Reads the host's
+                                     payload on stdin and writes its decision on stdout.
+                                     Hosts: claude, copilot.
             version                  Which version of the gate this is, and which versions it
                                      expects beside it.
             help                     This text.
@@ -51,6 +52,12 @@ internal static class Usage
         Options for init
             --profile <name>         Which profile governs the solution. Default: dotnet-default.
             --platform <name>        Where the code lives: github or azure-devops. Default: github.
+
+        Options for hook
+            --event <name>           Which moment: pre-tool-use or turn-end. Defaults to
+                                     pre-tool-use. A turn end is checked on Claude Code only;
+                                     Copilot's hook surface has no turn-end event, and this
+                                     says so rather than installing a check that cannot run.
 
         Options for constraints
             --for <artifact>         Narrow to one artifact: intent, spec, plan, diff, verify.

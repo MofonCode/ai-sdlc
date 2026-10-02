@@ -121,7 +121,7 @@ public sealed class HookTests
             HookHost.Claude);
 
         Assert.AreEqual(ToolKind.Harmless, call.Kind);
-        Assert.AreEqual(HookDecision.Allow, HookPolicyHandler.Decide(call).Decision);
+        Assert.AreEqual(HookDecision.Allow, HookPolicy.Decide(call).Decision);
     }
 
     [TestMethod]
@@ -149,7 +149,7 @@ public sealed class HookTests
             $$"""{ "tool_name": "Write", "tool_input": { "file_path": "{{ApprovalPath}}" } }""",
             HookHost.Claude);
 
-        HookVerdict verdict = HookPolicyHandler.Decide(call);
+        HookVerdict verdict = HookPolicy.Decide(call);
 
         Assert.AreEqual(HookDecision.Deny, verdict.Decision);
         StringAssert.Contains(verdict.Reason, "no agent may write it");
@@ -163,7 +163,7 @@ public sealed class HookTests
             """{ "tool_name": "Write", "tool_input": { "file_path": ".sdlc/cycles/20260929_1456_32/abandoned.md" } }""",
             HookHost.Claude);
 
-        Assert.AreEqual(HookDecision.Deny, HookPolicyHandler.Decide(call).Decision);
+        Assert.AreEqual(HookDecision.Deny, HookPolicy.Decide(call).Decision);
     }
 
     [TestMethod]
@@ -173,7 +173,7 @@ public sealed class HookTests
             """{ "tool_name": "Edit", "tool_input": { "file_path": ".sdlc/constraints.md" } }""",
             HookHost.Claude);
 
-        HookVerdict verdict = HookPolicyHandler.Decide(call);
+        HookVerdict verdict = HookPolicy.Decide(call);
 
         Assert.AreEqual(HookDecision.Deny, verdict.Decision);
         StringAssert.Contains(verdict.Reason, "deadlock");
@@ -186,7 +186,7 @@ public sealed class HookTests
             """{ "tool_name": "Edit", "tool_input": { "file_path": ".sdlc/solution.md" } }""",
             HookHost.Claude);
 
-        HookVerdict verdict = HookPolicyHandler.Decide(call);
+        HookVerdict verdict = HookPolicy.Decide(call);
 
         Assert.AreEqual(HookDecision.Deny, verdict.Decision);
         StringAssert.Contains(
@@ -214,7 +214,7 @@ public sealed class HookTests
 
             Assert.AreEqual(
                 HookDecision.Deny,
-                HookPolicyHandler.Decide(write).Decision,
+                HookPolicy.Decide(write).Decision,
                 $"A tool write to {name} was allowed.");
 
             ToolCall shell = Read(
@@ -227,7 +227,7 @@ public sealed class HookTests
 
             Assert.AreEqual(
                 HookDecision.Deny,
-                HookPolicyHandler.Decide(shell).Decision,
+                HookPolicy.Decide(shell).Decision,
                 $"A shell write to {name} was allowed.");
         }
     }
@@ -240,7 +240,7 @@ public sealed class HookTests
             """{ "tool_name": "Write", "tool_input": { "file_path": "docs/approval.md" } }""",
             HookHost.Claude);
 
-        Assert.AreEqual(HookDecision.Allow, HookPolicyHandler.Decide(call).Decision);
+        Assert.AreEqual(HookDecision.Allow, HookPolicy.Decide(call).Decision);
     }
 
     [TestMethod]
@@ -265,7 +265,7 @@ public sealed class HookTests
 
         Assert.AreEqual(
             HookDecision.Deny,
-            HookPolicyHandler.Decide(call).Decision,
+            HookPolicy.Decide(call).Decision,
             $"'{command}' would write a file only a person writes.");
     }
 
@@ -281,7 +281,7 @@ public sealed class HookTests
             JsonSerializer.Serialize(new { tool_name = "Bash", tool_input = new { command } }),
             HookHost.Claude);
 
-        Assert.AreEqual(HookDecision.Allow, HookPolicyHandler.Decide(call).Decision, command);
+        Assert.AreEqual(HookDecision.Allow, HookPolicy.Decide(call).Decision, command);
     }
 
     [TestMethod]
@@ -351,12 +351,125 @@ public sealed class HookTests
         Assert.AreEqual(0, call.Paths.Count);
     }
 
+    [TestMethod]
+    [DataRow("pre-tool-use", HookEvent.PreToolUse)]
+    [DataRow("pretooluse", HookEvent.PreToolUse)]
+    [DataRow("turn-end", HookEvent.TurnEnd)]
+    [DataRow("TURN-END", HookEvent.TurnEnd)]
+    [DataRow("stop", HookEvent.TurnEnd)]
+    public void A_known_event_is_recognised_however_it_is_spelled(string spelling, HookEvent expected)
+    {
+        // "stop" is accepted because that is what Claude Code calls it, so a hook config copied from
+        // the host's own documentation works without translation.
+        Assert.IsTrue(HookProtocol.TryParseEvent(spelling, out HookEvent? parsed));
+        Assert.AreEqual(expected, parsed);
+    }
+
+    [TestMethod]
+    [DataRow("")]
+    [DataRow(null)]
+    public void An_absent_event_is_the_tool_call(string? spelling)
+    {
+        // Every hook config written before the second event existed means this one. A default that
+        // refused would turn an upgrade of the binary into a hook that stops running, and a hook
+        // that stops running permits everything.
+        Assert.IsTrue(HookProtocol.TryParseEvent(spelling, out HookEvent? parsed));
+        Assert.AreEqual(HookEvent.PreToolUse, parsed);
+    }
+
+    [TestMethod]
+    [DataRow("postToolUse")]
+    [DataRow("sessionStart")]
+    public void An_event_that_is_not_judged_is_not_recognised(string spelling)
+    {
+        Assert.IsFalse(HookProtocol.TryParseEvent(spelling, out HookEvent? parsed));
+        Assert.IsNull(parsed);
+    }
+
+    [TestMethod]
+    public void A_claude_stop_payload_reads_as_a_turn_end()
+    {
+        const string payload = """
+            {
+              "session_id": "abc123",
+              "transcript_path": "/tmp/transcript.jsonl",
+              "cwd": "C:/solution",
+              "hook_event_name": "Stop",
+              "stop_hook_active": false
+            }
+            """;
+
+        Result<TurnEnd> result = HookProtocol.ReadTurnEnd(payload);
+
+        Assert.IsTrue(result.IsSuccess, string.Join("; ", result.Errors.Select(e => e.Message)));
+        Assert.AreEqual("C:/solution", result.Value.WorkingDirectory);
+        Assert.IsFalse(result.Value.AlreadyContinuing);
+    }
+
+    [TestMethod]
+    [DataRow("true")]
+    [DataRow("\"true\"")]
+    public void A_host_already_continuing_says_so_whichever_way_it_writes_the_flag(string written)
+    {
+        // Both spellings, because the cost of being wrong is asymmetric: reading a true flag as
+        // false refuses a turn the host has already been sent back once, which is an endless turn.
+        Result<TurnEnd> result = HookProtocol.ReadTurnEnd(
+            $$"""{ "hook_event_name": "Stop", "stop_hook_active": {{written}} }""");
+
+        Assert.IsTrue(result.IsSuccess, string.Join("; ", result.Errors.Select(e => e.Message)));
+        Assert.IsTrue(result.Value.AlreadyContinuing);
+    }
+
+    [TestMethod]
+    public void A_turn_end_payload_that_cannot_be_read_fails_rather_than_reading_as_a_clean_turn()
+    {
+        // The command line turns this into an allow and says so on standard error. What must not
+        // happen is a malformed payload reading as a turn with nothing to say, because then a broken
+        // host and a green build are the same answer.
+        Assert.IsTrue(HookProtocol.ReadTurnEnd("not json").IsFailed);
+        Assert.IsTrue(HookProtocol.ReadTurnEnd("[]").IsFailed);
+        Assert.IsTrue(HookProtocol.ReadTurnEnd("   ").IsFailed);
+    }
+
+    [TestMethod]
+    public void A_turn_sent_back_is_a_decision_rather_than_a_permission()
+    {
+        // Deliberately a different shape from the tool-call decision. A tool call is permitted or
+        // refused; a turn is sent back or let go. Writing one in the other's shape is the bug this
+        // asserts against, and the host's answer to it is silence.
+        JsonNode node = Parse(HookProtocol.WriteTurnEndDecision(
+            HookHost.Claude,
+            HookDecision.Deny,
+            "the suite is red"));
+
+        Assert.AreEqual("block", node["decision"]!.GetValue<string>());
+        Assert.AreEqual("the suite is red", node["reason"]!.GetValue<string>());
+        Assert.IsNull(node["permissionDecision"], "That is the tool-call shape, not this one.");
+        Assert.IsNull(node["hookSpecificOutput"], "That is the tool-call shape, not this one.");
+    }
+
+    [TestMethod]
+    public void A_turn_let_go_says_nothing_at_all()
+    {
+        JsonNode node = Parse(HookProtocol.WriteTurnEndDecision(HookHost.Claude, HookDecision.Allow, null));
+
+        Assert.AreEqual(0, node.AsObject().Count, "There is nothing to say, so nothing is said.");
+    }
+
     private static ToolCall Read(string payload, HookHost host)
     {
         Result<ToolCall> result = HookProtocol.ReadCall(payload, host);
 
         Assert.IsTrue(result.IsSuccess, string.Join("; ", result.Errors.Select(e => e.Message)));
         return result.Value;
+    }
+
+    private static JsonNode Parse(string json)
+    {
+        var node = JsonNode.Parse(json);
+
+        Assert.IsNotNull(node, "The decision must be valid JSON: " + json);
+        return node;
     }
 
     private static JsonNode Write(HookHost host, HookDecision decision, string? reason)

@@ -70,8 +70,11 @@ public sealed class DraftTests
         using var workspace = CycleWorkspace.Create();
         Assert.IsTrue(CycleId.TryParse("20991231_2359_59", out CycleId? absent));
 
-        Result<DraftResult> result = await new AbandonTextHandler(workspace.Root)
-            .Handle(new AbandonTextQuery(absent.Value, "Peter Almanzar"), CancellationToken.None);
+        using var gate = Gate.For(workspace.Root);
+
+        Result<DraftResult> result = await gate
+            .Send<AbandonTextQuery, DraftResult>(
+                new AbandonTextQuery(absent.Value, "Peter Almanzar"));
 
         Assert.IsTrue(result.IsSuccess);
         Assert.IsFalse(result.Value.MayDraft);
@@ -120,8 +123,10 @@ public sealed class DraftTests
             Path.Combine(workspace.Root, Cycle.SdlcDirectoryName, "constraints.md"),
             "## LOC_01 - a rule with no clauses at all\n");
 
-        Result<DraftResult> result = await new ConstraintTextHandler(workspace.Root)
-            .Handle(new ConstraintTextQuery(), CancellationToken.None);
+        using var gate = Gate.For(workspace.Root);
+
+        Result<DraftResult> result = await gate
+            .Send<ConstraintTextQuery, DraftResult>(new ConstraintTextQuery());
 
         Assert.IsTrue(result.IsFailed);
         StringAssert.Contains(string.Join("; ", result.Errors.Select(e => e.Message)), "LOC_01");
@@ -167,8 +172,10 @@ public sealed class DraftTests
     {
         using var workspace = CycleWorkspace.Create();
 
-        Result<DraftResult> result = await new ProfileTextHandler(workspace.Root)
-            .Handle(new ProfileTextQuery("mofoncode"), CancellationToken.None);
+        using var gate = Gate.For(workspace.Root);
+
+        Result<DraftResult> result = await gate
+            .Send<ProfileText.Request, DraftResult>(new ProfileText.Request("mofoncode"));
 
         Assert.IsTrue(result.IsFailed);
         StringAssert.Contains(string.Join("; ", result.Errors.Select(e => e.Message)), "sdlc init");
@@ -199,20 +206,27 @@ public sealed class DraftTests
         StringAssert.Contains(rendered, "Open the file.");
     }
 
-    private static async Task<DraftResult> Abandon(CycleWorkspace workspace) =>
-        Ok(await new AbandonTextHandler(workspace.Root).Handle(
-            new AbandonTextQuery(workspace.Cycle.Id, "Peter Almanzar"),
-            CancellationToken.None));
+    private static async Task<DraftResult> Abandon(CycleWorkspace workspace)
+    {
+        using var gate = Gate.For(workspace.Root);
 
-    private static async Task<DraftResult> Constraint(CycleWorkspace workspace) =>
-        Ok(await new ConstraintTextHandler(workspace.Root).Handle(
-            new ConstraintTextQuery(),
-            CancellationToken.None));
+        return Ok(await gate.Send<AbandonTextQuery, DraftResult>(
+            new AbandonTextQuery(workspace.Cycle.Id, "Peter Almanzar")));
+    }
 
-    private static async Task<DraftResult> Profile(CycleWorkspace workspace, string profile) =>
-        Ok(await new ProfileTextHandler(workspace.Root).Handle(
-            new ProfileTextQuery(profile),
-            CancellationToken.None));
+    private static async Task<DraftResult> Constraint(CycleWorkspace workspace)
+    {
+        using var gate = Gate.For(workspace.Root);
+
+        return Ok(await gate.Send<ConstraintTextQuery, DraftResult>(new ConstraintTextQuery()));
+    }
+
+    private static async Task<DraftResult> Profile(CycleWorkspace workspace, string profile)
+    {
+        using var gate = Gate.For(workspace.Root);
+
+        return Ok(await gate.Send<ProfileText.Request, DraftResult>(new ProfileText.Request(profile)));
+    }
 
     private static DraftResult Ok(Result<DraftResult> result)
     {

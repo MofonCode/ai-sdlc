@@ -151,10 +151,11 @@ public sealed class SuggestionsTests
         CycleWorkspace workspace,
         bool all = false)
     {
-        Result<IReadOnlyList<Suggestion>> result = await new SuggestionsHandler(workspace.Root)
-            .Handle(
-                new SuggestionsQuery(all ? null : workspace.Cycle.Id),
-                CancellationToken.None);
+        using var gate = Gate.For(workspace.Root);
+
+        Result<IReadOnlyList<Suggestion>> result = await gate
+            .Send<SuggestionsQuery, IReadOnlyList<Suggestion>>(
+                new SuggestionsQuery(all ? null : workspace.Cycle.Id));
 
         Assert.IsTrue(result.IsSuccess, string.Join("; ", result.Errors.Select(e => e.Message)));
         return result.Value;

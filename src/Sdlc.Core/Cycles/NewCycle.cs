@@ -1,6 +1,7 @@
 using System.Globalization;
 using FluentResults;
 using MofonCode.Core;
+using Sdlc.Core.Solutions;
 
 namespace Sdlc.Core.Cycles;
 
@@ -26,9 +27,9 @@ public sealed record NewCycleCommand : IRequest<Cycle>;
 /// no coordination and works offline, which a sequence number would not.
 /// </para>
 /// </remarks>
-/// <param name="solutionRoot">The solution to open the cycle in.</param>
+/// <param name="solution">The solution to open the cycle in.</param>
 /// <param name="time">Where the current moment comes from, so a test can fix it.</param>
-public sealed class NewCycleHandler(string solutionRoot, TimeProvider time)
+public sealed class NewCycleHandler(SolutionRoot solution, TimeProvider time)
     : IRequestHandler<NewCycleCommand, Cycle>
 {
     /// <inheritdoc />
@@ -37,7 +38,7 @@ public sealed class NewCycleHandler(string solutionRoot, TimeProvider time)
         ArgumentNullException.ThrowIfNull(request);
 
         var id = CycleId.Allocate(time);
-        Cycle cycle = new(id, solutionRoot);
+        Cycle cycle = new(id, solution.Path);
 
         if (Directory.Exists(cycle.Directory))
         {

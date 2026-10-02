@@ -118,9 +118,14 @@ claude plugin details sdlc@ai-sdlc
 
 **The two should report the same version.** They are fetched separately, so they can drift — and a skill
 calling a verb an older binary does not have is what that drift eventually produces. Expect
-`Skills (17)` and `Hooks (1) PreToolUse`. **If the hook count is zero, treat it as a
+`Skills (17)` and `Hooks (2) PreToolUse, Stop`. **If the hook count is below two, treat it as a
 failed install rather than a detail** — the deterministic layer is not loaded, nothing is denied, and
 every cycle will still appear to work.
+
+The two hooks govern two different moments. `PreToolUse` refuses a write to a file only a person writes.
+`Stop` is asked before a turn ends, and sends the turn back when the cycle's recorded evidence shows a
+failing suite or when code has moved since the build was recorded. It is the reason a warnings-as-errors
+build and an architecture test are enforcement rather than something a reviewer finds afterwards.
 
 ```pwsh
 claude plugin marketplace list

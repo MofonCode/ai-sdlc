@@ -54,8 +54,10 @@ public sealed class ApprovalTextTests
                 CultureInfo.InvariantCulture,
                 $"---\ncycle: {workspace.Cycle.Id}\ndecisions:\n{text.Entry}---\n"));
 
-        Result<GateVerdict> verdict = await new ApprovalGateHandler(workspace.Root)
-            .Handle(new ApprovalGateQuery(workspace.Cycle.Id), CancellationToken.None);
+        using var gate = Gate.For(workspace.Root);
+
+        Result<GateVerdict> verdict = await gate
+            .Send<ApprovalGateQuery, GateVerdict>(new ApprovalGateQuery(workspace.Cycle.Id));
 
         Assert.IsTrue(verdict.IsSuccess);
         Assert.AreEqual(
@@ -362,10 +364,11 @@ public sealed class ApprovalTextTests
         CycleWorkspace workspace,
         GateDecision decision = GateDecision.Approved)
     {
-        Result<ApprovalTextResult> result = await new ApprovalTextHandler(workspace.Root)
-            .Handle(
-                new ApprovalTextQuery(workspace.Cycle.Id, "Peter Almanzar", decision),
-                CancellationToken.None);
+        using var gate = Gate.For(workspace.Root);
+
+        Result<ApprovalTextResult> result = await gate
+            .Send<ApprovalTextQuery, ApprovalTextResult>(
+                new ApprovalTextQuery(workspace.Cycle.Id, "Peter Almanzar", decision));
 
         Assert.IsTrue(result.IsSuccess, string.Join("; ", result.Errors.Select(e => e.Message)));
         return result.Value;

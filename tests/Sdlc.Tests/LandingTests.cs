@@ -205,8 +205,10 @@ public sealed class LandingTests
 
     private static async Task<Landable> Ask(CycleWorkspace workspace)
     {
-        Result<Landable> result = await new LandableHandler(workspace.Root)
-            .Handle(new LandableQuery(workspace.Cycle.Id), CancellationToken.None);
+        using var gate = Gate.For(workspace.Root);
+
+        Result<Landable> result = await gate
+            .Send<LandableQuery, Landable>(new LandableQuery(workspace.Cycle.Id));
 
         Assert.IsTrue(result.IsSuccess, string.Join("; ", result.Errors.Select(e => e.Message)));
         return result.Value;

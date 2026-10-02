@@ -1,4 +1,5 @@
 using FluentResults;
+using Microsoft.Extensions.DependencyInjection;
 using Sdlc.Core.Constraints;
 
 namespace Sdlc.Tests;
@@ -101,11 +102,10 @@ public sealed class EffectiveConstraintsTests
         StubDocuments documents = new(
             [new ConstraintDocument(ConstraintTier.Global, "bad.md", "## CON_01 — A rule\n\n**Forbids:** x\n")]);
 
-        EffectiveConstraintsHandler handler = new(documents);
+        using Gate gate = Resolver(documents);
 
-        Result<ConstraintSet> result = await handler
-            .Handle(new EffectiveConstraintsQuery(), CancellationToken.None)
-            .ConfigureAwait(false);
+        Result<ConstraintSet> result = await gate
+            .Send<EffectiveConstraintsQuery, ConstraintSet>(new EffectiveConstraintsQuery());
 
         Assert.IsTrue(
             result.IsFailed,
@@ -120,15 +120,26 @@ public sealed class EffectiveConstraintsTests
             new ConstraintDocument(ConstraintTier.Solution, "solution.md", Solution),
         ]);
 
-        EffectiveConstraintsHandler handler = new(documents);
+        using Gate gate = Resolver(documents);
 
-        Result<ConstraintSet> result = await handler
-            .Handle(new EffectiveConstraintsQuery(artifact), CancellationToken.None)
-            .ConfigureAwait(false);
+        Result<ConstraintSet> result = await gate
+            .Send<EffectiveConstraintsQuery, ConstraintSet>(new EffectiveConstraintsQuery(artifact));
 
         Assert.IsTrue(result.IsSuccess, string.Join("; ", result.Errors.Select(e => e.Message)));
         return result.Value;
     }
+
+    /// <summary>
+    /// The gate with the documents substituted.
+    /// </summary>
+    /// <remarks>
+    /// The solution root is irrelevant to this operation and is never read: it resolves constraints
+    /// from <see cref="IConstraintDocuments"/>, and a stub registered ahead of <c>AddSdlc</c> means
+    /// the real file reader is never built. The temp path is there because the container asks for a
+    /// root, not because this test has anything to do with a solution.
+    /// </remarks>
+    private static Gate Resolver(StubDocuments documents) =>
+        Gate.For(Path.GetTempPath(), services => services.AddSingleton<IConstraintDocuments>(documents));
 
     private sealed class StubDocuments(IReadOnlyList<ConstraintDocument> documents) : IConstraintDocuments
     {

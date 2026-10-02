@@ -1,11 +1,4 @@
-using FluentResults;
-using MofonCode.Core;
-
 namespace Sdlc.Core.Hooks;
-
-/// <summary>Asks the policy what to do about a tool call.</summary>
-/// <param name="Call">What the agent is about to do.</param>
-public sealed record HookPolicyQuery(ToolCall Call) : IRequest<HookVerdict>;
 
 /// <summary>What the policy decided, and why.</summary>
 /// <param name="Decision">Allow or deny.</param>
@@ -25,17 +18,23 @@ public sealed record HookVerdict(HookDecision Decision, string Reason, string? P
 /// common case and the one worth catching early - while the pipeline check is what nothing can get
 /// past. So its rules are the ones that are absolute and cheap: a handful of files only a person
 /// writes, in file writes and in shell commands alike.
+/// <para>
+/// A static function rather than a request and a handler, deliberately, and this is the one place in
+/// the gate where that is the right call. The pre-tool hook runs on every tool call an agent makes,
+/// so its start-up cost is on the critical path of every edit - which is why
+/// <c>Sdlc.Cli.csproj</c> turns on tiered PGO and invariant globalization - and building a container
+/// to reach a pure function over a <see cref="ToolCall"/> would spend that budget on indirection.
+/// It is also not an application operation by the framework's own test: one expression, called from
+/// one place, that cannot fail.
+/// </para>
+/// <para>
+/// It was briefly both. A <c>HookPolicyQuery</c> existed, was never registered, and so could never
+/// be dispatched - the command line called the static method all along. The architecture suite's
+/// composition rule is what found it, on its first run.
+/// </para>
 /// </remarks>
-public sealed class HookPolicyHandler : IRequestHandler<HookPolicyQuery, HookVerdict>
+public static class HookPolicy
 {
-    /// <inheritdoc />
-    public Task<Result<HookVerdict>> Handle(HookPolicyQuery request, CancellationToken cancellationToken)
-    {
-        ArgumentNullException.ThrowIfNull(request);
-
-        return Task.FromResult(Result.Ok(Decide(request.Call)));
-    }
-
     /// <summary>
     /// Applies the policy.
     /// </summary>

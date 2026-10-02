@@ -155,8 +155,10 @@ public sealed class ClaimGraphTests
 
     private static async Task<ClaimGraph> Compute(Solution solution)
     {
-        Result<ClaimGraph> result = await new ClaimGraphHandler(solution.Root)
-            .Handle(new ClaimGraphQuery(), CancellationToken.None);
+        using var gate = Gate.For(solution.Root);
+
+        Result<ClaimGraph> result = await gate
+            .Send<ClaimGraphQuery, ClaimGraph>(new ClaimGraphQuery());
 
         Assert.IsTrue(result.IsSuccess, string.Join("; ", result.Errors.Select(e => e.Message)));
         return result.Value;

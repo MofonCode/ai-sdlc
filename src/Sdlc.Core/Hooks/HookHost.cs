@@ -17,6 +17,24 @@ public enum HookHost
     Copilot,
 }
 
+/// <summary>
+/// Which moment the host is asking about.
+/// </summary>
+/// <remarks>
+/// Named for what the moment is rather than for what either host calls it. Claude Code spells the
+/// second one <c>Stop</c>, which describes the host's own state machine rather than the thing being
+/// judged, and letting that name inland would put one host's vocabulary in the policy -- which is
+/// the whole of what this file exists to prevent.
+/// </remarks>
+public enum HookEvent
+{
+    /// <summary>An agent is about to use a tool. The policy may refuse it.</summary>
+    PreToolUse,
+
+    /// <summary>An agent is about to finish a turn. The gate may send it back.</summary>
+    TurnEnd,
+}
+
 /// <summary>What the policy decided about a tool call.</summary>
 public enum HookDecision
 {
@@ -69,6 +87,57 @@ public static class HookProtocol
         ("copilot", HookHost.Copilot),
         ("github-copilot", HookHost.Copilot),
     ];
+
+    /// <summary>
+    /// How each event may be named on the command line.
+    /// </summary>
+    /// <remarks>
+    /// Each host's own spelling is accepted alongside the framework's, so a hook config copied from a
+    /// host's documentation works without translation.
+    /// </remarks>
+    private static readonly (string Spelling, HookEvent Event)[] Events =
+    [
+        ("pre-tool-use", HookEvent.PreToolUse),
+        ("pretooluse", HookEvent.PreToolUse),
+        ("pre-tool", HookEvent.PreToolUse),
+        ("turn-end", HookEvent.TurnEnd),
+        ("turnend", HookEvent.TurnEnd),
+        ("stop", HookEvent.TurnEnd),
+    ];
+
+    /// <summary>
+    /// Reads an event name as it is written on the command line.
+    /// </summary>
+    /// <remarks>
+    /// An absent name is <see cref="HookEvent.PreToolUse"/>, which is what every hook config written
+    /// before the second event existed means. A default that refused instead would turn an upgrade of
+    /// the binary into a hook that stops running, and a hook that stops running permits everything.
+    /// </remarks>
+    /// <param name="text">The event name, or null when the option was not given.</param>
+    /// <param name="hookEvent">The event, when this returns true.</param>
+    /// <returns>True when the name is absent or is one of the supported events.</returns>
+    public static bool TryParseEvent(string? text, [NotNullWhen(true)] out HookEvent? hookEvent)
+    {
+        string name = text?.Trim() ?? string.Empty;
+
+        if (name.Length == 0)
+        {
+            hookEvent = HookEvent.PreToolUse;
+            return true;
+        }
+
+        hookEvent = null;
+        foreach ((string spelling, HookEvent candidate) in Events)
+        {
+            if (string.Equals(name, spelling, StringComparison.OrdinalIgnoreCase))
+            {
+                hookEvent = candidate;
+                break;
+            }
+        }
+
+        return hookEvent is not null;
+    }
 
     /// <summary>Reads a host name as it is written on the command line.</summary>
     /// <param name="text">The host name.</param>
@@ -160,6 +229,50 @@ public static class HookProtocol
     }
 
     /// <summary>
+    /// Reads a turn ending out of a host's payload.
+    /// </summary>
+    /// <remarks>
+    /// Tolerant for the same reason <see cref="ReadCall"/> is, and the stakes are the same: a key
+    /// that moves must not turn into a hook that fails to start.
+    /// <para>
+    /// The flag matters more than the working directory. Claude Code sets it when the agent is
+    /// already continuing because a previous turn end was refused, and an unconditional second
+    /// refusal there is an endless turn rather than a governed stop.
+    /// </para>
+    /// </remarks>
+    /// <param name="json">The payload the host wrote to standard input.</param>
+    /// <returns>The normalised turn ending, or a failure describing what could not be read.</returns>
+    public static Result<TurnEnd> ReadTurnEnd(string json)
+    {
+        ArgumentNullException.ThrowIfNull(json);
+
+        if (string.IsNullOrWhiteSpace(json))
+        {
+            return Result.Fail<TurnEnd>("The hook received no payload on standard input.");
+        }
+
+        JsonNode? root;
+        try
+        {
+            root = JsonNode.Parse(json);
+        }
+        catch (JsonException error)
+        {
+            return Result.Fail<TurnEnd>(
+                string.Create(CultureInfo.InvariantCulture, $"The hook payload is not valid JSON. {error.Message}"));
+        }
+
+        if (root is not JsonObject payload)
+        {
+            return Result.Fail<TurnEnd>("The hook payload is not a JSON object.");
+        }
+
+        return Result.Ok(new TurnEnd(
+            Text(payload, "cwd") ?? Text(payload, "workingDirectory"),
+            Flag(payload, "stop_hook_active") || Flag(payload, "stopHookActive")));
+    }
+
+    /// <summary>
     /// Writes a decision in the host's own shape.
     /// </summary>
     /// <param name="host">The host that asked.</param>
@@ -188,6 +301,53 @@ public static class HookProtocol
             {
                 ["permissionDecision"] = spelled,
                 ["permissionDecisionReason"] = reason ?? string.Empty,
+            },
+
+            _ => throw new ArgumentOutOfRangeException(nameof(host), host, "Unknown host."),
+        };
+
+        return payload.ToJsonString(Output);
+    }
+
+    /// <summary>
+    /// Writes a turn-end decision in the host's own shape.
+    /// </summary>
+    /// <remarks>
+    /// <strong>A different shape from <see cref="WriteDecision"/>, which is why the adapter exists.</strong>
+    /// A tool call is permitted or refused, so its answer is a permission; a turn is sent back or let
+    /// go, so its answer is a decision at the top level with the reason beside it. Claude Code spells
+    /// the refusal <c>block</c>.
+    /// <para>
+    /// An allow writes an empty object rather than an explicit permission. There is nothing to say,
+    /// and a host that gains a field for saying it will not break on silence.
+    /// </para>
+    /// </remarks>
+    /// <param name="host">The host that asked.</param>
+    /// <param name="decision">What was decided.</param>
+    /// <param name="reason">Why, when the turn was sent back.</param>
+    /// <returns>The JSON to write to standard output.</returns>
+    public static string WriteTurnEndDecision(HookHost host, HookDecision decision, string? reason)
+    {
+        if (decision != HookDecision.Deny)
+        {
+            return new JsonObject().ToJsonString(Output);
+        }
+
+        JsonObject payload = host switch
+        {
+            HookHost.Claude => new JsonObject
+            {
+                ["decision"] = "block",
+                ["reason"] = reason ?? string.Empty,
+            },
+
+            // Reached only if a Copilot turn-end event appears and the command line stops refusing
+            // it. Written in the same shape rather than left to throw, so the day that happens is a
+            // test failure about a field name and not a crash in a hook.
+            HookHost.Copilot => new JsonObject
+            {
+                ["decision"] = "block",
+                ["reason"] = reason ?? string.Empty,
             },
 
             _ => throw new ArgumentOutOfRangeException(nameof(host), host, "Unknown host."),
@@ -226,4 +386,24 @@ public static class HookProtocol
         node.TryGetPropertyValue(key, out JsonNode? value) && value is JsonValue
             ? value.GetValue<object>()?.ToString()
             : null;
+
+    /// <summary>
+    /// Reads a boolean that a host may have written as a boolean or as a string.
+    /// </summary>
+    /// <remarks>
+    /// Both spellings are accepted because the cost of being wrong is asymmetric. Reading a true flag
+    /// as false makes the gate refuse a turn the host has already been sent back once, which is an
+    /// endless turn; reading a false one as true makes it say nothing, once.
+    /// </remarks>
+    private static bool Flag(JsonObject node, string key)
+    {
+        if (!node.TryGetPropertyValue(key, out JsonNode? value) || value is not JsonValue found)
+        {
+            return false;
+        }
+
+        return found.TryGetValue(out bool flag)
+            ? flag
+            : bool.TryParse(found.GetValue<object>()?.ToString(), out bool parsed) && parsed;
+    }
 }

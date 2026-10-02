@@ -34,6 +34,15 @@ internal sealed class FakeRepository : IRepository
     /// <summary>Who git thinks is working.</summary>
     public string? Name { get; init; } = "Peter Almanzar";
 
+    /// <summary>
+    /// The branch checked out.
+    /// </summary>
+    /// <remarks>
+    /// Defaults to a branch that is not a cycle branch, so a test that does not mention it is a test
+    /// about something else -- and the turn-end gate's first rule is to say nothing off a cycle.
+    /// </remarks>
+    public string? Branch { get; init; } = "master";
+
     /// <summary>What was committed, so a test can assert what was staged.</summary>
     public List<IReadOnlyList<string>> Commits { get; } = [];
 
@@ -42,6 +51,8 @@ internal sealed class FakeRepository : IRepository
     public IReadOnlyList<string> TrackedFiles(string workingDirectory) => Tracked;
 
     public string? UserName(string workingDirectory) => Name;
+
+    public string? CurrentBranch(string workingDirectory) => Branch;
 
     public Result Commit(string workingDirectory, IReadOnlyList<string> paths, string message)
     {

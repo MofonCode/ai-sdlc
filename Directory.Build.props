@@ -30,6 +30,24 @@
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <WarningsNotAsErrors></WarningsNotAsErrors>
 
+    <!-- The two rules the operation shape costs. Both are switched off here, with their reasons,
+         rather than as pragmas in fifteen files - which is the policy this file states above.
+
+         CA1034 - do not nest a publicly visible type. The shape is one static holder per
+                  application operation, with its request nested inside it, so a call site reads
+                  'ProfileText.Request' and an operation has one name rather than two. The rule
+                  is aimed at types nested for no reason; here the nesting IS the design, and it
+                  is what lets the handler be private - a registration written outside the holder
+                  could not name a private type. The cost, stated plainly: accidental nesting
+                  elsewhere in the solution is no longer caught.
+
+         CA1812 - an internal type that is never instantiated. Every handler is instantiated by
+                  the container, by reflection, from inside its holder's own registration method.
+                  The analyzer cannot see that and never will, so this fires once per handler and
+                  means nothing. Keeping it would make the rule a thing people suppress at the
+                  site, which is the form this file exists to avoid. -->
+    <NoWarn>$(NoWarn);CA1034;CA1812</NoWarn>
+
     <!-- latest-all rather than the latest-recommended the dotnet-default profile ships to
          consumers. This repository is the framework: archive/v03 built clean at latest-all,
          so the stricter level is evidence-backed here, while consumer code gets the level

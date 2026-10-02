@@ -1,6 +1,8 @@
 using FluentResults;
+using Microsoft.Extensions.DependencyInjection;
 using Sdlc.Core.Cycles;
 using Sdlc.Core.Evidence;
+using Sdlc.Core.Git;
 
 namespace Sdlc.Tests;
 
@@ -264,13 +266,12 @@ public sealed class EvidenceTests
         using var workspace = CycleWorkspace.Create();
         workspace.WritePlan(proofs: 1);
 
-        Result<EvidenceReport> result = await new RecordEvidenceHandler(
-            workspace.Root,
-            new FakeRepository(),
-            TimeProvider.System)
-            .Handle(
-                new RecordEvidenceCommand(workspace.Cycle.Id, Path.Combine(workspace.Root, "absent.trx")),
-                CancellationToken.None);
+        using Gate gate = Recorder(workspace, new FakeRepository());
+
+        Result<EvidenceReport> result = await gate
+            .Send<RecordEvidenceCommand, EvidenceReport>(new RecordEvidenceCommand(
+                workspace.Cycle.Id,
+                Path.Combine(workspace.Root, "absent.trx")));
 
         Assert.IsTrue(result.IsFailed);
         StringAssert.Contains(result.Errors[0].Message, "did not happen");
@@ -284,11 +285,11 @@ public sealed class EvidenceTests
         using var workspace = CycleWorkspace.Create();
         workspace.WritePlan(proofs: 1);
 
-        Result<EvidenceReport> result = await new RecordEvidenceHandler(
-            workspace.Root,
-            new FakeRepository { Base = null },
-            TimeProvider.System)
-            .Handle(new RecordEvidenceCommand(workspace.Cycle.Id), CancellationToken.None);
+        using Gate gate = Recorder(workspace, new FakeRepository { Base = null });
+
+        Result<EvidenceReport> result = await gate
+            .Send<RecordEvidenceCommand, EvidenceReport>(
+                new RecordEvidenceCommand(workspace.Cycle.Id));
 
         Assert.IsTrue(result.IsFailed);
         StringAssert.Contains(result.Errors[0].Message, "diverged");
@@ -299,11 +300,11 @@ public sealed class EvidenceTests
     {
         using var workspace = CycleWorkspace.Create();
 
-        Result<EvidenceReport> result = await new RecordEvidenceHandler(
-            workspace.Root,
-            new FakeRepository(),
-            TimeProvider.System)
-            .Handle(new RecordEvidenceCommand(workspace.Cycle.Id), CancellationToken.None);
+        using Gate gate = Recorder(workspace, new FakeRepository());
+
+        Result<EvidenceReport> result = await gate
+            .Send<RecordEvidenceCommand, EvidenceReport>(
+                new RecordEvidenceCommand(workspace.Cycle.Id));
 
         Assert.IsTrue(result.IsFailed);
         StringAssert.Contains(result.Errors[0].Message, "no plan");
@@ -339,16 +340,27 @@ public sealed class EvidenceTests
         StringAssert.Contains(rendered, "outcome-based");
     }
 
+    /// <summary>
+    /// The gate with git substituted, which is all these tests need to steer.
+    /// </summary>
+    /// <remarks>
+    /// The clock is not substituted: recording stamps a time nothing here asserts on, so the real
+    /// one is the honest default and a fixed one would be ceremony. It is resolvable now either way
+    /// -- while the registration closed over <c>TimeProvider.System</c>, it was not.
+    /// </remarks>
+    private static Gate Recorder(CycleWorkspace workspace, FakeRepository git) =>
+        Gate.For(workspace.Root, services => services.AddSingleton<IRepository>(git));
+
     private static async Task<EvidenceReport> Record(
         CycleWorkspace workspace,
         string? trx,
         IReadOnlyList<string> changed)
     {
-        Result<EvidenceReport> result = await new RecordEvidenceHandler(
-            workspace.Root,
-            new FakeRepository { Changed = changed },
-            TimeProvider.System)
-            .Handle(new RecordEvidenceCommand(workspace.Cycle.Id, trx), CancellationToken.None);
+        using Gate gate = Recorder(workspace, new FakeRepository { Changed = changed });
+
+        Result<EvidenceReport> result = await gate
+            .Send<RecordEvidenceCommand, EvidenceReport>(
+                new RecordEvidenceCommand(workspace.Cycle.Id, trx));
 
         Assert.IsTrue(result.IsSuccess, string.Join("; ", result.Errors.Select(e => e.Message)));
         return result.Value;

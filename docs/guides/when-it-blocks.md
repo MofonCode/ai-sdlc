@@ -174,12 +174,59 @@ rephrasing; a miss costs the guarantee.
 
 ---
 
+## The turn-end hook — the three ways a turn is sent back
+
+Asked before an agent finishes, on a `cycle/<id>` branch only. It is what makes a warnings-as-errors
+build and an architecture test enforcement rather than something a reviewer finds afterwards: nothing can
+report done over a red suite.
+
+**It never runs a build.** It reads what `sdlc evidence` recorded, which every stack normalises to the
+same shape — so the gate stays out of the business of knowing what a test platform is.
+
+### the recorded suite has a failure
+
+The evidence for this cycle carries a failing test. Fix the code, run the suite, record it again. **Do not
+adjust the test**: that is the inversion the whole design exists to prevent, and it is also the easier
+fix, which is why the hook says so rather than trusting anyone to remember.
+
+### there are changes and no recorded evidence
+
+Code was written on this branch and nothing recorded what the build did with it. Verify reads only what
+the build records, so a change nothing recorded is a change nothing can judge.
+
+```
+sdlc evidence <id> --tests <results file> --build-log <log>
+```
+
+### the working tree has moved since the evidence
+
+The recorded diff no longer matches what is on disk, so the evidence describes something other than the
+code. Run the build and the suite again over what is there now, and record it.
+
+### when it says nothing
+
+Deliberately most of the time. It is silent off a cycle branch, on a cycle with no directory, on an
+abandoned cycle, before the cycle has a plan, when nothing has changed, and when the host is already
+continuing because it was sent back once already. A governance hook that met a person finishing a thought
+would be switched off within a day, and then the one case it catches would go uncaught too.
+
+**It is bypassable.** Running `sdlc evidence` against a stale results file satisfies it. That is the local
+layer behaving as designed — `sdlc verify-chain` in the pipeline re-reads the evidence and checks that
+every test the plan named actually passed, and that is the guarantee.
+
+**Claude Code only.** Copilot's hook surface has no turn-end event, so nothing is configured for it and
+`sdlc hook --event turn-end --host copilot` refuses by name. A plausible-looking configuration for a host
+that cannot fire it would be a check that appears to enforce and does not.
+
+---
+
 ## When nothing refuses and it should have
 
 The dangerous direction. Four ways the gate goes quiet:
 
-**The hook is not loaded.** `claude plugin details sdlc@ai-sdlc` must say `Hooks (1) PreToolUse`. **A
-count of zero is a failed install, not a detail** — nothing is denied and every cycle still appears to
+**A hook is not loaded.** `claude plugin details sdlc@ai-sdlc` must say `Hooks (2) PreToolUse, Stop`. **A
+count below two is a failed install, not a detail** — and the two fail differently. Without `PreToolUse`
+nothing is denied; without `Stop` a turn can end on a red build. Either way every cycle still appears to
 work.
 
 **The workspace is not trusted.** Project hooks do not run until it is. Same silence, different cause.

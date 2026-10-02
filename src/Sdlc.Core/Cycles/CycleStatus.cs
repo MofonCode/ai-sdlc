@@ -4,6 +4,7 @@ using MofonCode.Core;
 using Sdlc.Core.Approvals;
 using Sdlc.Core.Artifacts;
 using Sdlc.Core.Findings;
+using Sdlc.Core.Solutions;
 
 namespace Sdlc.Core.Cycles;
 
@@ -105,8 +106,8 @@ public sealed record CycleStatus(
 }
 
 /// <summary>Reads a cycle's state from what is on disk.</summary>
-/// <param name="solutionRoot">The root of the solution being governed.</param>
-public sealed class CycleStatusHandler(string solutionRoot)
+/// <param name="solution">The root of the solution being governed.</param>
+public sealed class CycleStatusHandler(SolutionRoot solution)
     : IRequestHandler<CycleStatusQuery, CycleStatus>
 {
     /// <inheritdoc />
@@ -116,7 +117,7 @@ public sealed class CycleStatusHandler(string solutionRoot)
     {
         ArgumentNullException.ThrowIfNull(request);
 
-        Cycle cycle = new(request.Id, solutionRoot);
+        Cycle cycle = new(request.Id, solution.Path);
         List<ArtifactState> artifacts = [];
 
         // Read in chain order, so each artifact's upstream is already in hand when its turn comes. The
@@ -140,7 +141,7 @@ public sealed class CycleStatusHandler(string solutionRoot)
             artifacts.Add(state.Value);
         }
 
-        Result<GateVerdict> gate = await new ApprovalGateHandler(solutionRoot)
+        Result<GateVerdict> gate = await new ApprovalGateHandler(solution)
             .Handle(new ApprovalGateQuery(request.Id), cancellationToken)
             .ConfigureAwait(false);
 

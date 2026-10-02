@@ -36,6 +36,19 @@ public interface IRepository
     string? UserName(string workingDirectory);
 
     /// <summary>
+    /// The branch checked out, or null when there is not one.
+    /// </summary>
+    /// <remarks>
+    /// Null rather than the literal <c>HEAD</c> for a detached head. A detached head is not a cycle
+    /// branch, and the one caller asks this question only to find out whether it is on one -- so
+    /// answering with a string that reads like a branch name would make it look like a cycle called
+    /// HEAD.
+    /// </remarks>
+    /// <param name="workingDirectory">Where to ask from.</param>
+    /// <returns>The branch name, or null.</returns>
+    string? CurrentBranch(string workingDirectory);
+
+    /// <summary>
     /// Stages the given paths and commits them.
     /// </summary>
     /// <param name="workingDirectory">Where to run.</param>
@@ -106,6 +119,17 @@ public sealed class GitRepository : IRepository
     {
         string? name = Run(workingDirectory, "config user.name")?.Trim();
         return string.IsNullOrWhiteSpace(name) ? null : name;
+    }
+
+    /// <inheritdoc />
+    public string? CurrentBranch(string workingDirectory)
+    {
+        string? branch = Run(workingDirectory, "rev-parse --abbrev-ref HEAD")?.Trim();
+
+        return string.IsNullOrWhiteSpace(branch)
+            || branch.Equals("HEAD", StringComparison.Ordinal)
+            ? null
+            : branch;
     }
 
     /// <inheritdoc />

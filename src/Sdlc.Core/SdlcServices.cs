@@ -1,4 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using MofonCode.Core;
 using Sdlc.Core.Approvals;
 using Sdlc.Core.Chain;
@@ -8,6 +9,7 @@ using Sdlc.Core.Drafts;
 using Sdlc.Core.Evidence;
 using Sdlc.Core.Findings;
 using Sdlc.Core.Git;
+using Sdlc.Core.Hooks;
 using Sdlc.Core.Init;
 using Sdlc.Core.Landing;
 using Sdlc.Core.Solutions;
@@ -20,6 +22,21 @@ public static class SdlcServices
     /// <summary>
     /// Adds the mediator and every handler the gate dispatches to.
     /// </summary>
+    /// <remarks>
+    /// <para><strong>Every handler is registered by type, and nothing is captured in a closure.</strong>
+    /// That is a deliberate property rather than a style, and it took a <see cref="SolutionRoot"/>
+    /// to get: while the root was a bare <c>string</c> parameter, fourteen of these had to be
+    /// factories closing over it, and two of those also closed over <see cref="TimeProvider"/> --
+    /// which meant no caller could substitute a clock through the container at all.</para>
+    ///
+    /// <para>What by-type registration buys: a handler can be <c>private</c> inside its operation's
+    /// holder, because the registration names the type from inside that holder, where it is the only
+    /// thing that can see it. A factory written out here could not.</para>
+    ///
+    /// <para>It also means a test substitutes a dependency the way the application composes one --
+    /// register the fake and dispatch -- so the test proves the wiring as well as the handler.
+    /// Constructing a handler directly proves only the second.</para>
+    /// </remarks>
     /// <param name="services">The collection to add to.</param>
     /// <param name="libraryPath">The framework's own <c>CONSTRAINTS.md</c>.</param>
     /// <param name="solutionRoot">The root of the solution being worked on.</param>
@@ -35,60 +52,83 @@ public static class SdlcServices
 
         services.AddSingleton<Mediator>();
 
-        services.AddSingleton<IConstraintDocuments>(
+        // The two things every handler resolves rather than receives. TryAdd on both, so a host or a
+        // test that registered its own -- a fixed clock, a scratch directory -- keeps it.
+        services.TryAddSingleton(new SolutionRoot(solutionRoot));
+        services.TryAddSingleton(TimeProvider.System);
+        services.TryAddSingleton<IRepository, GitRepository>();
+
+        // Still a factory, and the one that should be: the library is a property of the framework's
+        // installation rather than of the solution, so it is not a value a handler resolves. TryAdd
+        // like the rest, so a caller holding documents of its own -- a test with a stub, a host
+        // reading them from somewhere else -- keeps them and this never touches the disk.
+        services.TryAddSingleton<IConstraintDocuments>(
             _ => new FileConstraintDocuments(libraryPath, solutionRoot));
 
         services.AddTransient<
             IRequestHandler<EffectiveConstraintsQuery, ConstraintSet>,
             EffectiveConstraintsHandler>();
 
-        // The three cycle handlers take the solution root rather than resolving it themselves, so a
-        // test can point them at a scratch directory without an environment variable deciding it.
-        services.AddTransient<IRequestHandler<ApprovalGateQuery, GateVerdict>>(
-            _ => new ApprovalGateHandler(solutionRoot));
+        services.AddTransient<
+            IRequestHandler<ApprovalGateQuery, GateVerdict>,
+            ApprovalGateHandler>();
 
-        services.AddTransient<IRequestHandler<CycleStatusQuery, CycleStatus>>(
-            _ => new CycleStatusHandler(solutionRoot));
+        services.AddTransient<
+            IRequestHandler<CycleStatusQuery, CycleStatus>,
+            CycleStatusHandler>();
 
-        services.AddTransient<IRequestHandler<ApprovalTextQuery, ApprovalTextResult>>(
-            _ => new ApprovalTextHandler(solutionRoot));
+        services.AddTransient<
+            IRequestHandler<ApprovalTextQuery, ApprovalTextResult>,
+            ApprovalTextHandler>();
+
+        // The turn-end gate. Unlike the pre-tool policy, which is a pure function over a tool call
+        // and stays static for the sake of the hook's start-up cost, this one reads git and the
+        // recorded evidence and decides -- so it is a real operation and goes through the mediator.
+        services.AddTransient<
+            IRequestHandler<TurnEndQuery, HookVerdict>,
+            TurnEndHandler>();
 
         // The drafters. Each prints what belongs in a file only a person writes, and none of them opens
         // that file for writing -- which is what lets every hook rule stay absolute.
-        services.AddTransient<IRequestHandler<AbandonTextQuery, DraftResult>>(
-            _ => new AbandonTextHandler(solutionRoot));
+        services.AddTransient<
+            IRequestHandler<AbandonTextQuery, DraftResult>,
+            AbandonTextHandler>();
 
-        services.AddTransient<IRequestHandler<ConstraintTextQuery, DraftResult>>(
-            _ => new ConstraintTextHandler(solutionRoot));
+        services.AddTransient<
+            IRequestHandler<ConstraintTextQuery, DraftResult>,
+            ConstraintTextHandler>();
 
-        services.AddTransient<IRequestHandler<ProfileTextQuery, DraftResult>>(
-            _ => new ProfileTextHandler(solutionRoot));
+        // Self-registering, inside the operation's own holder. That is not a style choice: the
+        // handler is private in there, so nothing written out here could name it.
+        services.AddProfileTextRequestHandler();
 
-        services.AddTransient<IRequestHandler<VerifyChainQuery, ChainVerdict>>(
-            _ => new VerifyChainHandler(solutionRoot));
+        services.AddTransient<
+            IRequestHandler<VerifyChainQuery, ChainVerdict>,
+            VerifyChainHandler>();
 
-        services.AddTransient<IRequestHandler<SuggestionsQuery, IReadOnlyList<Suggestion>>>(
-            _ => new SuggestionsHandler(solutionRoot));
+        services.AddTransient<
+            IRequestHandler<SuggestionsQuery, IReadOnlyList<Suggestion>>,
+            SuggestionsHandler>();
 
-        services.AddSingleton<IRepository, GitRepository>();
+        services.AddTransient<
+            IRequestHandler<InitCommand, InitReport>,
+            InitHandler>();
 
-        services.AddTransient<IRequestHandler<InitCommand, InitReport>>(
-            services => new InitHandler(solutionRoot, services.GetRequiredService<IRepository>()));
+        services.AddTransient<
+            IRequestHandler<NewCycleCommand, Cycle>,
+            NewCycleHandler>();
 
-        services.AddTransient<IRequestHandler<NewCycleCommand, Cycle>>(
-            _ => new NewCycleHandler(solutionRoot, TimeProvider.System));
+        services.AddTransient<
+            IRequestHandler<ClaimGraphQuery, ClaimGraph>,
+            ClaimGraphHandler>();
 
-        services.AddTransient<IRequestHandler<ClaimGraphQuery, ClaimGraph>>(
-            _ => new ClaimGraphHandler(solutionRoot));
+        services.AddTransient<
+            IRequestHandler<LandableQuery, Landable>,
+            LandableHandler>();
 
-        services.AddTransient<IRequestHandler<LandableQuery, Landable>>(
-            _ => new LandableHandler(solutionRoot));
-
-        services.AddTransient<IRequestHandler<RecordEvidenceCommand, EvidenceReport>>(
-            services => new RecordEvidenceHandler(
-                solutionRoot,
-                services.GetRequiredService<IRepository>(),
-                TimeProvider.System));
+        services.AddTransient<
+            IRequestHandler<RecordEvidenceCommand, EvidenceReport>,
+            RecordEvidenceHandler>();
 
         return services;
     }

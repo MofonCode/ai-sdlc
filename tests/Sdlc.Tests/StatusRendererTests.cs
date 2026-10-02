@@ -365,8 +365,10 @@ public sealed class StatusRendererTests
         bool shape = false,
         ArtifactValidation? shapeResult = null)
     {
-        Result<CycleStatus> read = await new CycleStatusHandler(workspace.Root)
-            .Handle(new CycleStatusQuery(workspace.Cycle.Id), CancellationToken.None);
+        using var gate = Gate.For(workspace.Root);
+
+        Result<CycleStatus> read = await gate
+            .Send<CycleStatusQuery, CycleStatus>(new CycleStatusQuery(workspace.Cycle.Id));
 
         Assert.IsTrue(read.IsSuccess, string.Join("; ", read.Errors.Select(e => e.Message)));
 

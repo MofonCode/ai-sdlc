@@ -100,6 +100,34 @@ public sealed class CycleIdTests
         Assert.AreEqual("cycle/20260929_1456_32", id.Value.BranchName());
     }
 
+    [TestMethod]
+    [DataRow("cycle/20260929_1456_32")]
+    [DataRow("refs/heads/cycle/20260929_1456_32")]
+    [DataRow("  cycle/20260929_1456_32  ")]
+    public void A_cycle_branch_is_read_however_a_platform_spells_it(string branch)
+    {
+        // Both generated pipelines hand one of these straight to 'sdlc verify-chain': GitHub's
+        // head_ref is the bare branch and Azure DevOps reports the fully qualified reference. Both
+        // were refused as malformed ids, so the pull-request check could not run as shipped.
+        Assert.IsTrue(CycleId.TryParseBranch(branch, out CycleId? id));
+        Assert.AreEqual("20260929_1456_32", id.Value.ToString());
+    }
+
+    [TestMethod]
+    [DataRow("master")]
+    [DataRow("feature/cycle/20260929_1456_32")]
+    [DataRow("cycles/20260929_1456_32")]
+    [DataRow("cycle/not-an-id")]
+    [DataRow("20260929_1456_32")]
+    [DataRow(null)]
+    public void A_branch_that_is_not_a_cycle_branch_is_not_read_as_one(string? branch)
+    {
+        // A bare id is deliberately not a branch. The question this answers is "is this a cycle
+        // branch", and the turn-end gate asks it to find out whether it has any business at all.
+        Assert.IsFalse(CycleId.TryParseBranch(branch, out CycleId? id));
+        Assert.IsNull(id);
+    }
+
     private sealed class FakeTimeProvider(DateTimeOffset now) : TimeProvider
     {
         public override DateTimeOffset GetUtcNow() => now;

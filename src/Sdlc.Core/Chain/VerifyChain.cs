@@ -5,6 +5,7 @@ using Sdlc.Core.Approvals;
 using Sdlc.Core.Artifacts;
 using Sdlc.Core.Cycles;
 using Sdlc.Core.Evidence;
+using Sdlc.Core.Solutions;
 
 namespace Sdlc.Core.Chain;
 
@@ -48,8 +49,8 @@ public sealed record ChainVerdict(Cycle Cycle, IReadOnlyList<ChainCheck> Checks)
 /// three problems costs less than three round trips, and the checks are independent.
 /// </para>
 /// </remarks>
-/// <param name="solutionRoot">The root of the solution being checked.</param>
-public sealed class VerifyChainHandler(string solutionRoot)
+/// <param name="solution">The root of the solution being checked.</param>
+public sealed class VerifyChainHandler(SolutionRoot solution)
     : IRequestHandler<VerifyChainQuery, ChainVerdict>
 {
     /// <summary>
@@ -72,7 +73,7 @@ public sealed class VerifyChainHandler(string solutionRoot)
     {
         ArgumentNullException.ThrowIfNull(request);
 
-        Cycle cycle = new(request.Id, solutionRoot);
+        Cycle cycle = new(request.Id, solution.Path);
         List<ChainCheck> checks = [];
 
         if (!cycle.Exists)
@@ -155,7 +156,7 @@ public sealed class VerifyChainHandler(string solutionRoot)
     /// </remarks>
     private async Task Gate(Cycle cycle, List<ChainCheck> checks, CancellationToken cancellationToken)
     {
-        Result<GateVerdict> read = await new ApprovalGateHandler(solutionRoot)
+        Result<GateVerdict> read = await new ApprovalGateHandler(solution)
             .Handle(new ApprovalGateQuery(cycle.Id), cancellationToken)
             .ConfigureAwait(false);
 

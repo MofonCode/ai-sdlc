@@ -12,6 +12,18 @@
           }
         ]
       }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "sdlc hook --host claude --event turn-end",
+            "timeout": 10,
+            "statusMessage": "Checking the build is green..."
+          }
+        ]
+      }
     ]
   }
 }

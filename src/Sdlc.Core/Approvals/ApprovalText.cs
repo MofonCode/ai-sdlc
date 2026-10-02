@@ -3,6 +3,7 @@ using System.Text;
 using FluentResults;
 using MofonCode.Core;
 using Sdlc.Core.Cycles;
+using Sdlc.Core.Solutions;
 
 namespace Sdlc.Core.Approvals;
 
@@ -47,8 +48,8 @@ public sealed record ApprovalTextResult(
 /// one would assert something untrue.
 /// </para>
 /// </remarks>
-/// <param name="solutionRoot">The root of the solution being governed.</param>
-public sealed class ApprovalTextHandler(string solutionRoot)
+/// <param name="solution">The root of the solution being governed.</param>
+public sealed class ApprovalTextHandler(SolutionRoot solution)
     : IRequestHandler<ApprovalTextQuery, ApprovalTextResult>
 {
     /// <inheritdoc />
@@ -58,7 +59,7 @@ public sealed class ApprovalTextHandler(string solutionRoot)
     {
         ArgumentNullException.ThrowIfNull(request);
 
-        Result<CycleStatus> read = await new CycleStatusHandler(solutionRoot)
+        Result<CycleStatus> read = await new CycleStatusHandler(solution)
             .Handle(new CycleStatusQuery(request.Id), cancellationToken)
             .ConfigureAwait(false);
 

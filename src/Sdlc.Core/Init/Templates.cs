@@ -194,11 +194,18 @@ public static class Templates
             "| Layer | How | Who can get past it |",
             "|---|---|---|",
             "| advisory | skill and instruction text | the agent, constantly |",
-            "| local | the `sdlc` binary, a pre-tool hook, git hooks | anyone with a shell |",
+            "| local | the `sdlc` binary, a pre-tool hook, a turn-end hook, git hooks | anyone with a shell |",
             "| non-bypassable | `sdlc verify-chain` as a pull-request check | nobody without repo admin |",
             string.Empty,
             "The promise is the third layer: nothing merges unless the chain is complete, approved and",
             "hash-matched. The local layer is there to make that cheap to satisfy, not to be the proof.",
+            string.Empty,
+            "Two hooks, for two moments. The pre-tool hook refuses a write to one of the four files above.",
+            "The turn-end hook is asked before an agent finishes, and sends the turn back when this cycle's",
+            "recorded evidence shows a failing suite, or when the working tree has moved since the build was",
+            "recorded. That second one is what makes a warnings-as-errors build and an architecture test",
+            "enforcement rather than something a reviewer finds afterwards -- nothing can report done over a",
+            "red suite. It never runs a build itself: it reads what `sdlc evidence` wrote.",
             string.Empty,
             "The pre-push hook in `hooks/` is written and not installed, because a hook under `.git` would",
             "exist on one machine and silently not on anybody else's. To use it, per clone:",
@@ -278,6 +285,14 @@ public static class Templates
     /// command as well as a bash one, so both are written: a Windows-only machine with no bash would
     /// otherwise have a hook that silently never runs, which is the failure mode this design is most
     /// concerned with.
+    /// <para>
+    /// <strong>Claude Code gets two events and Copilot gets one.</strong> The turn end is what makes
+    /// the compiler a real enforcement layer rather than one a reviewer consults afterwards -- an
+    /// agent cannot report done over a failing suite -- and Copilot's hook surface has no turn-end
+    /// event to listen to. So nothing is written for it, deliberately, and <c>sdlc hook</c> refuses
+    /// <c>--event turn-end --host copilot</c> by name. Writing a plausible-looking block for a host
+    /// that cannot fire it is precisely the directory that appears enforced and is not.
+    /// </para>
     /// </remarks>
     /// <param name="host">Which host's format to write.</param>
     /// <returns>The file's contents.</returns>
@@ -295,6 +310,16 @@ public static class Templates
                 "          {",
                 "            \"type\": \"command\",",
                 "            \"command\": \"sdlc hook --host claude\"",
+                "          }",
+                "        ]",
+                "      }",
+                "    ],",
+                "    \"Stop\": [",
+                "      {",
+                "        \"hooks\": [",
+                "          {",
+                "            \"type\": \"command\",",
+                "            \"command\": \"sdlc hook --host claude --event turn-end\"",
                 "          }",
                 "        ]",
                 "      }",

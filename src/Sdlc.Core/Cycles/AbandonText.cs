@@ -2,6 +2,7 @@ using System.Globalization;
 using FluentResults;
 using MofonCode.Core;
 using Sdlc.Core.Drafts;
+using Sdlc.Core.Solutions;
 
 namespace Sdlc.Core.Cycles;
 
@@ -22,8 +23,8 @@ public sealed record AbandonTextQuery(CycleId Id, string By) : IRequest<DraftRes
 /// abandoning and starting clean, and a hand-written reason is what keeps the objections that killed
 /// the cycle on the record rather than in a conversation nobody can find.
 /// </remarks>
-/// <param name="solutionRoot">The root of the solution being governed.</param>
-public sealed class AbandonTextHandler(string solutionRoot)
+/// <param name="solution">The root of the solution being governed.</param>
+public sealed class AbandonTextHandler(SolutionRoot solution)
     : IRequestHandler<AbandonTextQuery, DraftResult>
 {
     /// <inheritdoc />
@@ -31,7 +32,7 @@ public sealed class AbandonTextHandler(string solutionRoot)
     {
         ArgumentNullException.ThrowIfNull(request);
 
-        Cycle cycle = new(request.Id, solutionRoot);
+        Cycle cycle = new(request.Id, solution.Path);
 
         if (!cycle.Exists)
         {

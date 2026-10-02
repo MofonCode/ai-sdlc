@@ -4,6 +4,7 @@ using MofonCode.Core;
 using Sdlc.Core.Artifacts;
 using Sdlc.Core.Cycles;
 using Sdlc.Core.Findings;
+using Sdlc.Core.Solutions;
 
 namespace Sdlc.Core.Approvals;
 
@@ -103,8 +104,8 @@ public sealed record GateVerdict(
 /// hand-pasted entry and the gate recomputes every hash, so approve-then-edit is caught — which is the
 /// bypass that happens by accident rather than on purpose.
 /// </remarks>
-/// <param name="solutionRoot">The root of the solution being governed.</param>
-public sealed class ApprovalGateHandler(string solutionRoot)
+/// <param name="solution">The root of the solution being governed.</param>
+public sealed class ApprovalGateHandler(SolutionRoot solution)
     : IRequestHandler<ApprovalGateQuery, GateVerdict>
 {
     /// <inheritdoc />
@@ -114,7 +115,7 @@ public sealed class ApprovalGateHandler(string solutionRoot)
     {
         ArgumentNullException.ThrowIfNull(request);
 
-        Cycle cycle = new(request.Id, solutionRoot);
+        Cycle cycle = new(request.Id, solution.Path);
 
         if (!cycle.Exists)
         {

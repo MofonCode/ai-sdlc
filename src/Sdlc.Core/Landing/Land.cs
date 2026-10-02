@@ -4,6 +4,7 @@ using MofonCode.Core;
 using Sdlc.Core.Chain;
 using Sdlc.Core.Cycles;
 using Sdlc.Core.Findings;
+using Sdlc.Core.Solutions;
 
 namespace Sdlc.Core.Landing;
 
@@ -65,15 +66,15 @@ public sealed record Landable(
 /// costs a person nothing and saves a round trip through CI.
 /// </para>
 /// </remarks>
-/// <param name="solutionRoot">The solution being landed from.</param>
-public sealed class LandableHandler(string solutionRoot) : IRequestHandler<LandableQuery, Landable>
+/// <param name="solution">The solution being landed from.</param>
+public sealed class LandableHandler(SolutionRoot solution) : IRequestHandler<LandableQuery, Landable>
 {
     /// <inheritdoc />
     public async Task<Result<Landable>> Handle(LandableQuery request, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(request);
 
-        Cycle cycle = new(request.Id, solutionRoot);
+        Cycle cycle = new(request.Id, solution.Path);
         string verify = cycle.PathOf(ArtifactKind.Verify);
 
         if (!cycle.Exists || !File.Exists(verify))
@@ -99,7 +100,7 @@ public sealed class LandableHandler(string solutionRoot) : IRequestHandler<Landa
                 $"Cycle {cycle.Id} is escalated: {budget.Value.Spent} remediation passes spent and {budget.Value.OpenBlockers.Count} finding{(budget.Value.OpenBlockers.Count == 1 ? string.Empty : "s")} still open. A cycle that could not be made to pass within its budget stops rather than landing, and that stopping is what makes an unattended batch safe to run."));
         }
 
-        Result<ChainVerdict> chain = await new VerifyChainHandler(solutionRoot)
+        Result<ChainVerdict> chain = await new VerifyChainHandler(solution)
             .Handle(new VerifyChainQuery(request.Id), cancellationToken)
             .ConfigureAwait(false);
 

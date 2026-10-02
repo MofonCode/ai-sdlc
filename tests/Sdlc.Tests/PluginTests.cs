@@ -58,6 +58,32 @@ public sealed class PluginTests
     }
 
     [TestMethod]
+    public void The_turn_end_is_checked_by_the_same_binary()
+    {
+        // The turn end is what makes the compiler an enforcement layer rather than one a reviewer
+        // consults afterwards: an agent cannot report done over a failing suite. Without this entry
+        // every analyzer severity and every architecture test is something discovered later.
+        JsonNode hooks = Read(Path.Combine("hooks", "hooks.json"));
+
+        JsonArray entries = hooks["hooks"]!["Stop"]!.AsArray();
+
+        Assert.AreEqual(1, entries.Count, "One rule set, not one per check.");
+
+        JsonObject entry = entries[0]!.AsObject();
+
+        Assert.IsFalse(
+            entry.ContainsKey("matcher"),
+            "A turn end has no tool to match on, and a matcher here would be a filter on nothing.");
+
+        JsonArray commands = entry["hooks"]!.AsArray();
+
+        Assert.AreEqual(1, commands.Count);
+        StringAssert.Contains(
+            commands[0]!["command"]!.GetValue<string>(),
+            "sdlc hook --host claude --event turn-end");
+    }
+
+    [TestMethod]
     public void The_hook_matcher_covers_the_shell_as_well_as_file_writes()
     {
         // A shell can write a file without any tool naming its path, so matching only the edit tools would
