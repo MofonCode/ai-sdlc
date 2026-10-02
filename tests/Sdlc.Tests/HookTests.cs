@@ -180,6 +180,59 @@ public sealed class HookTests
     }
 
     [TestMethod]
+    public void Writing_the_solution_file_is_denied()
+    {
+        ToolCall call = Read(
+            """{ "tool_name": "Edit", "tool_input": { "file_path": ".sdlc/solution.md" } }""",
+            HookHost.Claude);
+
+        HookVerdict verdict = HookPolicyHandler.Decide(call);
+
+        Assert.AreEqual(HookDecision.Deny, verdict.Decision);
+        StringAssert.Contains(
+            verdict.Reason,
+            "draft profile",
+            "A refusal has to name the way through, or protecting the file just blocks a migration.");
+    }
+
+    [TestMethod]
+    public void Every_protected_file_is_denied_through_both_rules()
+    {
+        // The two rules have disagreed before: the shell rule passed a bare file name into the path
+        // rule, which requires an .sdlc segment, so every shell command was allowed while the file rule
+        // worked. Asserting the set rather than four files is what makes a fifth one covered the day it
+        // is added.
+        foreach (string name in ProtectedPaths.Names)
+        {
+            ToolCall write = Read(
+                JsonSerializer.Serialize(new
+                {
+                    tool_name = "Write",
+                    tool_input = new { file_path = ".sdlc/cycles/20260929_1456_32/" + name },
+                }),
+                HookHost.Claude);
+
+            Assert.AreEqual(
+                HookDecision.Deny,
+                HookPolicyHandler.Decide(write).Decision,
+                $"A tool write to {name} was allowed.");
+
+            ToolCall shell = Read(
+                JsonSerializer.Serialize(new
+                {
+                    tool_name = "Bash",
+                    tool_input = new { command = "echo x > " + name },
+                }),
+                HookHost.Claude);
+
+            Assert.AreEqual(
+                HookDecision.Deny,
+                HookPolicyHandler.Decide(shell).Decision,
+                $"A shell write to {name} was allowed.");
+        }
+    }
+
+    [TestMethod]
     public void A_file_with_a_protected_name_outside_the_framework_directory_is_allowed()
     {
         // Somebody else's approval.md is not this framework's business.
@@ -197,6 +250,7 @@ public sealed class HookTests
     [DataRow("sed -i s/denied/approved/ .sdlc/cycles/x/approval.md")]
     [DataRow("Out-File -FilePath approval.md")]
     [DataRow("rm .sdlc/constraints.md")]
+    [DataRow("sed -i s/dotnet-default/mofoncode/ .sdlc/solution.md")]
     public void A_shell_command_that_would_write_a_protected_file_is_denied(string command)
     {
         // The file rules alone would leave the obvious way round them open: a shell can write a file
@@ -218,6 +272,7 @@ public sealed class HookTests
     [TestMethod]
     [DataRow("cat .sdlc/cycles/20260929_1456_32/approval.md")]
     [DataRow("git diff .sdlc/constraints.md")]
+    [DataRow("cat .sdlc/solution.md")]
     [DataRow("grep approved .sdlc/cycles/x/approval.md")]
     public void A_shell_command_that_only_reads_a_protected_file_is_allowed(string command)
     {

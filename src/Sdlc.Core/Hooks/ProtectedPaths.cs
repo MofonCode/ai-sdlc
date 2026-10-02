@@ -51,7 +51,7 @@ public static class ProtectedPaths
                 + "the objections that killed it on the record.");
         }
 
-        if (string.Equals(fileName, FileConstraintDocuments.SolutionFileName, StringComparison.OrdinalIgnoreCase))
+        if (string.Equals(fileName, FileConstraintDocuments.SolutionConstraintsFileName, StringComparison.OrdinalIgnoreCase))
         {
             return new ProtectedFile(
                 "this solution's own constraints",
@@ -59,12 +59,27 @@ public static class ProtectedPaths
                 + "governing itself. Constraints are edited by a person, by hand.");
         }
 
+        if (string.Equals(fileName, Cycle.SolutionFileName, StringComparison.OrdinalIgnoreCase))
+        {
+            return new ProtectedFile(
+                "what this solution is and which profile governs it",
+                "The origin is a historical fact that must never change, and the profile is a choice "
+                + "revisited rarely. Protecting the file costs one manual line per migration and keeps "
+                + "every hook rule absolute - per-key protection would be the first conditional rule, "
+                + "which is where a bypass would live. Run 'sdlc draft profile <name>'.");
+        }
+
         return null;
     }
 
     /// <summary>The names of every file only a person writes.</summary>
     public static IReadOnlyList<string> Names { get; } =
-        ["approval.md", "abandoned.md", FileConstraintDocuments.SolutionFileName];
+    [
+        "approval.md",
+        "abandoned.md",
+        FileConstraintDocuments.SolutionConstraintsFileName,
+        Cycle.SolutionFileName,
+    ];
 
     /// <summary>
     /// Decides whether a path is one only a person writes.

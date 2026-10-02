@@ -41,8 +41,15 @@ public sealed class FileConstraintDocuments(
     string solutionRoot,
     string? profilePath = null) : IConstraintDocuments
 {
-    /// <summary>The file a solution's own constraints are read from, inside its .sdlc directory.</summary>
-    public const string SolutionFileName = "constraints.md";
+    /// <summary>
+    /// The file a solution's own constraints are read from, inside its .sdlc directory.
+    /// </summary>
+    /// <remarks>
+    /// Named for the constraints rather than for the solution, because <c>solution.md</c> is a
+    /// different protected file in the same directory and the same code path guards both. A constant
+    /// called SolutionFileName sitting next to one is how the wrong file ends up guarded.
+    /// </remarks>
+    public const string SolutionConstraintsFileName = "constraints.md";
 
     /// <inheritdoc />
     public async Task<IReadOnlyList<ConstraintDocument>> Enumerate(CancellationToken cancellationToken)
@@ -53,7 +60,7 @@ public sealed class FileConstraintDocuments(
         await Add(ConstraintTier.Profile, profilePath, required: false).ConfigureAwait(false);
         await Add(
             ConstraintTier.Solution,
-            Path.Combine(solutionRoot, Cycles.Cycle.SdlcDirectoryName, SolutionFileName),
+            Path.Combine(solutionRoot, Cycles.Cycle.SdlcDirectoryName, SolutionConstraintsFileName),
             required: false).ConfigureAwait(false);
 
         return documents;

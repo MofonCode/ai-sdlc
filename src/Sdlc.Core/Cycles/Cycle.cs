@@ -38,6 +38,16 @@ public sealed record Cycle(CycleId Id, string SolutionRoot)
     public const string CyclesDirectoryName = "cycles";
 
     /// <summary>
+    /// The file saying what this solution is and which profile governs it.
+    /// </summary>
+    /// <remarks>
+    /// Not a cycle's file, and here because this is where the framework's directory layout is named.
+    /// It carries two keys and no more: the profile that resolves which package applies, and the origin
+    /// that decides whether a profile's defaults bind or the existing standard wins.
+    /// </remarks>
+    public const string SolutionFileName = "solution.md";
+
+    /// <summary>
     /// The three documents the planning approval covers, in the order they are written and read.
     /// </summary>
     /// <remarks>
