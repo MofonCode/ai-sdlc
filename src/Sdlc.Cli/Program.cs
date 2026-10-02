@@ -9,6 +9,7 @@ using Sdlc.Core.Chain;
 using Sdlc.Core.Constraints;
 using Sdlc.Core.Cycles;
 using Sdlc.Core.Drafts;
+using Sdlc.Core.Findings;
 using Sdlc.Core.Hooks;
 using Sdlc.Core.Solutions;
 
@@ -42,6 +43,7 @@ try
         "verify-chain" => await WithCycle(line, "verify-chain", VerifyChain).ConfigureAwait(false),
         "draft" => await Draft(line).ConfigureAwait(false),
         "status" => await WithCycle(line, "status", (w, id) => Status(w, line, id)).ConfigureAwait(false),
+        "suggestions" => await Workspace.Run(line, w => Suggestions(w, line)).ConfigureAwait(false),
         "hook" => await Hook(line).ConfigureAwait(false),
         _ => await Unknown(line.Verb).ConfigureAwait(false),
     };
@@ -233,6 +235,40 @@ static async Task<int> PrintDraft(Result<DraftResult> result)
     }
 
     await Console.Out.WriteAsync(DraftRenderer.Render(draft)).ConfigureAwait(false);
+    return ExitCode.Ok;
+}
+
+// Takes an optional cycle rather than requiring one, because the question people ask is usually "what
+// has this solution accumulated" rather than "what did that cycle leave".
+static async Task<int> Suggestions(Workspace workspace, CommandLine line)
+{
+    CycleId? id = null;
+
+    if (line.Arguments.Count > 0)
+    {
+        if (!CycleId.TryParse(line.Arguments[0], out CycleId? parsed))
+        {
+            await Console.Error.WriteLineAsync(
+                $"'{line.Arguments[0]}' is not a cycle id. Give one, or none for every cycle.")
+                .ConfigureAwait(false);
+            return ExitCode.Usage;
+        }
+
+        id = parsed.Value;
+    }
+
+    Result<IReadOnlyList<Suggestion>> result = await workspace
+        .Send<SuggestionsQuery, IReadOnlyList<Suggestion>>(new SuggestionsQuery(id))
+        .ConfigureAwait(false);
+
+    if (result.IsFailed)
+    {
+        return await Report(result, ExitCode.Refused).ConfigureAwait(false);
+    }
+
+    // Zero whether or not anything was found. Nothing here refuses anything, and a non-zero exit would
+    // make a tidy solution look like a failing one in a pipeline.
+    await Console.Out.WriteAsync(SuggestionsRenderer.Render(result.Value)).ConfigureAwait(false);
     return ExitCode.Ok;
 }
 

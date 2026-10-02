@@ -31,6 +31,7 @@ internal static class Usage
             draft constraint         Print the next free LOC_ id, with its four parts empty.
             draft profile <name>     Print the solution.md keys for a profile migration.
             status <id>              Show the panel for a stage. Ends with the next command.
+            suggestions [<id>]       List the open non-blocking findings, for one cycle or all.
             hook --host <name>       Judge a tool call. Reads the host's payload on stdin and
                                      writes its decision on stdout. Hosts: claude, copilot.
             help                     This text.

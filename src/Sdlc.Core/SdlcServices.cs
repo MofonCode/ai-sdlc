@@ -5,6 +5,7 @@ using Sdlc.Core.Chain;
 using Sdlc.Core.Constraints;
 using Sdlc.Core.Cycles;
 using Sdlc.Core.Drafts;
+using Sdlc.Core.Findings;
 using Sdlc.Core.Solutions;
 
 namespace Sdlc.Core;
@@ -61,6 +62,9 @@ public static class SdlcServices
 
         services.AddTransient<IRequestHandler<VerifyChainQuery, ChainVerdict>>(
             _ => new VerifyChainHandler(solutionRoot));
+
+        services.AddTransient<IRequestHandler<SuggestionsQuery, IReadOnlyList<Suggestion>>>(
+            _ => new SuggestionsHandler(solutionRoot));
 
         return services;
     }

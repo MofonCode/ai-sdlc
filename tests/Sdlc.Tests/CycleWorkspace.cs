@@ -232,6 +232,36 @@ internal sealed class CycleWorkspace : IDisposable
               """));
     }
 
+    /// <summary>Writes an interrogation round holding one non-blocking finding.</summary>
+    /// <param name="kind">The artifact interrogated.</param>
+    /// <param name="round">The round number.</param>
+    /// <param name="id">The finding's id, which keeps its value across rounds.</param>
+    /// <param name="cites">The constraint it cites, or null for one that cites nothing.</param>
+    /// <param name="disposition">Where it has got to.</param>
+    public void WriteSuggestionRound(
+        ArtifactKind kind,
+        int round = 1,
+        string id = "F_02",
+        string? cites = "CON_12",
+        string disposition = "open")
+    {
+        string citation = cites is null
+            ? string.Empty
+            : string.Create(CultureInfo.InvariantCulture, $"\"cites\": \"{cites}\",");
+
+        WriteRound(kind, round, string.Create(
+            CultureInfo.InvariantCulture,
+            $$"""
+              {
+                "id": "{{id}}",
+                "severity": "suggestion",
+                "disposition": "{{disposition}}",
+                {{citation}}
+                "statement": "something worth doing that nothing forbids."
+              }
+              """));
+    }
+
     /// <summary>Writes a round in which a finding has been answered.</summary>
     /// <param name="kind">The artifact interrogated.</param>
     /// <param name="round">The round number.</param>
