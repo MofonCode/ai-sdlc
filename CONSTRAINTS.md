@@ -149,16 +149,18 @@ artifact owns, instead of citing it.
 **Why:** two copies diverge, and nothing says which is binding. Citation keeps exactly one owner
 per fact, which is the only arrangement that stays true without maintenance.
 
-## CON_10 — An accepted finding's reason says why the finding is acceptable
+## CON_10.2 — A gate refusal's reason says what has to change
 
-**Applies to:** an approval decision that lists accepted findings.
+**Applies to:** a gate decision that is not an approval — changes requested, denied, or a standing
+approval reopened.
 
-**Forbids:** an accepted finding whose reason restates the finding, cites schedule pressure
-alone, or says only that the finding is understood.
+**Forbids:** a reason that restates the finding, cites schedule pressure alone, or says only that
+the finding is understood.
 
-**Why:** accepting a finding at the gate is the one point where a person overrides the machine.
-The reason is the only control on that override, and it is what a reader has six months later
-instead of the conversation that produced it.
+**Why:** the reason is the only thing the author has to work from, and it is what a reader has six
+months later instead of the conversation that produced it. The subject changed in iteration 4 —
+nothing is accepted at the gate any more, because a blocking finding cannot be waived — and the
+rule did not: a refusal that says nothing is a refusal nobody can act on.
 
 ## CON_11 — Every constraint carries a Forbids clause that rules something out
 
@@ -183,3 +185,32 @@ a claim with no cited evidence. A criterion with no machine-runnable check has n
 test results, so admitting one forces a choice between verify adjudicating on attestation and
 `pass` no longer meaning every criterion was met. The outcome belongs in the intent as a bound,
 verified by a person outside the cycle, where it is honest about not being governed.
+
+## CON_13 — A plan that departs from the declared defaults says why
+
+**Applies to:** a plan, at approval.
+
+**Forbids:** a plan that reaches for a package, pattern or layer the solution's `techstack.md` does
+not declare, without saying in `Shape and departures` what the declared default would have cost
+here.
+
+**Why:** the declared stack is how a team's choices survive the person who made them. No constraint
+may name a framework, so nothing stops a plan departing — and nothing should: a default that cannot
+be departed from is a cage, and the first genuinely unsuitable case would see the whole file
+ignored. What must not happen is departing in silence, because then the stack file and the codebase
+disagree and only the diff knows. Naming the cost makes the departure arguable at the one gate
+before code exists.
+
+## CON_14 — An open item is one nobody can resolve yet
+
+**Applies to:** an intent, a spec or a plan, at interrogation.
+
+**Forbids:** recording under `Open` something that a person could answer by being asked, that the
+artifact's own author could settle by deciding, or that is simply work nobody has started.
+
+**Why:** the open region is the compliant exit for a question that genuinely cannot be settled at
+this stage, which is what keeps a constraint from deadlocking an artifact. That makes it the one
+place where asserting nothing satisfies every other rule, so without this an artifact can be
+emptied into it — every constraint passes, and a person reading a body with nothing in it has
+nothing to object to. No mechanical check can tell "cannot be resolved" from "has not been", which
+is why this is a constraint rather than a schema rule.

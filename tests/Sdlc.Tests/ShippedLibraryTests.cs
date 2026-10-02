@@ -123,12 +123,47 @@ public sealed class ShippedLibraryTests
     }
 
     [TestMethod]
-    public void The_library_holds_the_twelve_constraints_iteration_four_carries()
+    public void The_library_holds_the_fourteen_constraints_iteration_four_carries()
     {
         Assert.AreEqual(
-            12,
+            14,
             Library.Count,
-            "Eleven came across from iteration 3 and CON_12 was added for a criterion's check. "
-            + "A deliberate addition updates this number; an accident fails here.");
+            "Nine came across from iteration 3 unchanged, CON_10 was rebound to a gate refusal, and "
+            + "CON_12, CON_13 and CON_14 were added in iteration 4. A deliberate addition updates this "
+            + "number; an accident fails here.");
+    }
+
+    [TestMethod]
+    public void A_rebound_constraint_keeps_its_id_and_gains_a_revision()
+    {
+        // CON_10 used to govern an accepted finding's reason. Nothing is accepted at the gate any more,
+        // and the rule it states applies unchanged to a refusal's reason -- so it is a revision rather
+        // than a new id, and a finding that cited the earlier wording stays readable against it.
+        Constraint rebound = Library.Single(constraint => constraint.Id.Number == 10);
+
+        Assert.AreEqual(2, rebound.Id.Revision);
+        Assert.AreEqual("CON_10.2", rebound.Id.ToString());
+        Assert.IsNull(
+            rebound.SupersededBy,
+            "The forbids clause did not change, so this is the same constraint better worded rather "
+            + "than a replacement.");
+    }
+
+    [TestMethod]
+    public void No_constraint_mentions_accepting_or_waiving_a_finding()
+    {
+        // A blocking finding cannot be waived by any mechanism. A constraint still describing one would
+        // be the rule's last hiding place, and the library is what an interrogation is handed.
+        foreach (Constraint constraint in Library)
+        {
+            string text = constraint.Statement + " " + constraint.AppliesTo + " " + constraint.Forbids;
+
+            foreach (string word in new[] { "accepted finding", "waive", "waived", "accepted_findings" })
+            {
+                Assert.IsFalse(
+                    text.Contains(word, StringComparison.OrdinalIgnoreCase),
+                    $"{constraint.Id} still speaks of '{word}'.");
+            }
+        }
     }
 }
