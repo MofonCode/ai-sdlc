@@ -6,6 +6,8 @@ using Sdlc.Core.Constraints;
 using Sdlc.Core.Cycles;
 using Sdlc.Core.Drafts;
 using Sdlc.Core.Findings;
+using Sdlc.Core.Git;
+using Sdlc.Core.Init;
 using Sdlc.Core.Solutions;
 
 namespace Sdlc.Core;
@@ -65,6 +67,11 @@ public static class SdlcServices
 
         services.AddTransient<IRequestHandler<SuggestionsQuery, IReadOnlyList<Suggestion>>>(
             _ => new SuggestionsHandler(solutionRoot));
+
+        services.AddSingleton<IRepository, GitRepository>();
+
+        services.AddTransient<IRequestHandler<InitCommand, InitReport>>(
+            services => new InitHandler(solutionRoot, services.GetRequiredService<IRepository>()));
 
         return services;
     }

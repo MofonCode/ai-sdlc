@@ -1,0 +1,164 @@
+using System.Diagnostics;
+using System.Globalization;
+using FluentResults;
+
+namespace Sdlc.Core.Git;
+
+/// <summary>
+/// What the framework needs to ask git.
+/// </summary>
+/// <remarks>
+/// An interface because adoption depends on the answers -- whether this is a repository at all, and
+/// whether it already holds code -- and a test that had to build real repositories to cover the three
+/// modes would be slow and would be testing git.
+/// </remarks>
+public interface IRepository
+{
+    /// <summary>Whether the directory is inside a git working tree.</summary>
+    /// <param name="workingDirectory">Where to ask from.</param>
+    /// <returns>True when git recognises it.</returns>
+    bool IsRepository(string workingDirectory);
+
+    /// <summary>
+    /// The files git is tracking, excluding anything the framework owns.
+    /// </summary>
+    /// <remarks>
+    /// Tracked files rather than commits, because origin is about code rather than history: a repository
+    /// holding one empty commit, a README and a licence has no solution in it yet.
+    /// </remarks>
+    /// <param name="workingDirectory">Where to ask from.</param>
+    /// <returns>The paths, relative to the root.</returns>
+    IReadOnlyList<string> TrackedFiles(string workingDirectory);
+
+    /// <summary>The configured user name, or null when git cannot say.</summary>
+    /// <param name="workingDirectory">Where to ask from.</param>
+    /// <returns>The name, or null.</returns>
+    string? UserName(string workingDirectory);
+
+    /// <summary>
+    /// Stages the given paths and commits them.
+    /// </summary>
+    /// <param name="workingDirectory">Where to run.</param>
+    /// <param name="paths">What to stage, relative to the root.</param>
+    /// <param name="message">The commit message.</param>
+    /// <returns>Success, or a failure carrying what git said.</returns>
+    Result Commit(string workingDirectory, IReadOnlyList<string> paths, string message);
+}
+
+/// <summary>
+/// Asks the real git.
+/// </summary>
+/// <remarks>
+/// Spawns the git executable rather than linking a library. The framework needs four facts and a commit,
+/// and a managed git implementation would be a large dependency carried for that -- while every machine
+/// running this already has the tool the user's own workflow depends on.
+/// </remarks>
+public sealed class GitRepository : IRepository
+{
+    // Short, because every one of these runs on a path a person is waiting on. A git that has not
+    // answered in five seconds is not going to, and failing to answer is handled rather than fatal.
+    private static readonly TimeSpan Patience = TimeSpan.FromSeconds(5);
+
+    /// <inheritdoc />
+    public bool IsRepository(string workingDirectory) =>
+        Run(workingDirectory, "rev-parse --is-inside-work-tree") is { } answer
+        && answer.Trim().Equals("true", StringComparison.OrdinalIgnoreCase);
+
+    /// <inheritdoc />
+    public IReadOnlyList<string> TrackedFiles(string workingDirectory)
+    {
+        string? output = Run(workingDirectory, "ls-files");
+
+        return output is null
+            ? []
+            : [.. output
+                .ReplaceLineEndings()
+                .Split(Environment.NewLine, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)];
+    }
+
+    /// <inheritdoc />
+    public string? UserName(string workingDirectory)
+    {
+        string? name = Run(workingDirectory, "config user.name")?.Trim();
+        return string.IsNullOrWhiteSpace(name) ? null : name;
+    }
+
+    /// <inheritdoc />
+    public Result Commit(string workingDirectory, IReadOnlyList<string> paths, string message)
+    {
+        ArgumentNullException.ThrowIfNull(paths);
+        ArgumentException.ThrowIfNullOrWhiteSpace(message);
+
+        if (paths.Count == 0)
+        {
+            return Result.Ok();
+        }
+
+        // Each path quoted and staged explicitly rather than with `git add .`, so a commit made on a
+        // person's behalf cannot pick up work they had in progress.
+        string add = "add -- " + string.Join(' ', paths.Select(path => "\"" + path + "\""));
+
+        if (Run(workingDirectory, add) is null)
+        {
+            return Result.Fail("git could not stage what init created.");
+        }
+
+        // The message goes through a file rather than the command line: it is multi-line, and quoting a
+        // multi-line argument differs between the shells this might run under.
+        string file = Path.Combine(Path.GetTempPath(), "sdlc-commit-" + Guid.NewGuid().ToString("N"));
+
+        try
+        {
+            File.WriteAllText(file, message);
+
+            return Run(workingDirectory, string.Create(CultureInfo.InvariantCulture, $"commit -F \"{file}\"")) is null
+                ? Result.Fail("git could not commit what init created.")
+                : Result.Ok();
+        }
+        finally
+        {
+            if (File.Exists(file))
+            {
+                File.Delete(file);
+            }
+        }
+    }
+
+    private static string? Run(string workingDirectory, string arguments)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(workingDirectory);
+
+        try
+        {
+            using var process = Process.Start(new ProcessStartInfo("git", arguments)
+            {
+                WorkingDirectory = workingDirectory,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false,
+                CreateNoWindow = true,
+            });
+
+            if (process is null)
+            {
+                return null;
+            }
+
+            string output = process.StandardOutput.ReadToEnd();
+
+            if (!process.WaitForExit(Patience))
+            {
+                return null;
+            }
+
+            return process.ExitCode == 0 ? output : null;
+        }
+        catch (Exception error)
+            when (error is System.ComponentModel.Win32Exception or InvalidOperationException)
+        {
+            // No git on PATH, or it could not be started. Every caller treats null as "git cannot say",
+            // which is what lets a missing git produce a clear refusal rather than a stack trace.
+            return null;
+        }
+    }
+}

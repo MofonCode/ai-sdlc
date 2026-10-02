@@ -10,7 +10,9 @@ using Sdlc.Core.Constraints;
 using Sdlc.Core.Cycles;
 using Sdlc.Core.Drafts;
 using Sdlc.Core.Findings;
+using Sdlc.Core.Git;
 using Sdlc.Core.Hooks;
+using Sdlc.Core.Init;
 using Sdlc.Core.Solutions;
 
 // Constraint and artifact text is passed through verbatim, so the stream has to carry what the files
@@ -38,6 +40,7 @@ try
 {
     return line.Verb switch
     {
+        "init" => await Workspace.Run(line, w => Init(w, line)).ConfigureAwait(false),
         "constraints" => await Workspace.Run(line, w => Constraints(w, line)).ConfigureAwait(false),
         "gate" => await WithCycle(line, "gate", Gate).ConfigureAwait(false),
         "verify-chain" => await WithCycle(line, "verify-chain", VerifyChain).ConfigureAwait(false),
@@ -75,6 +78,87 @@ static async Task<int> Constraints(Workspace workspace, CommandLine line)
         .ConfigureAwait(false);
 
     return ExitCode.Ok;
+}
+
+// Human-invoked and never model-invoked: adopting a process is a decision about how a team works, so
+// the hook denies an agent running this at all. What it does here is the mechanical half -- the
+// interview, and the proposal of this solution's own constraints, belong to the skill wrapped around it,
+// because they need language rather than a file listing.
+static async Task<int> Init(Workspace workspace, CommandLine line)
+{
+    string profile = line.TryOption("profile", out string? named) ? named : "dotnet-default";
+
+    if (!TryPlatform(line, out Platform platform, out string? complaint))
+    {
+        await Console.Error.WriteLineAsync(complaint).ConfigureAwait(false);
+        return ExitCode.Usage;
+    }
+
+    Result<InitReport> result = await workspace
+        .Send<InitCommand, InitReport>(new InitCommand(profile, platform))
+        .ConfigureAwait(false);
+
+    if (result.IsFailed)
+    {
+        return await Report(result, ExitCode.Refused).ConfigureAwait(false);
+    }
+
+    InitReport report = result.Value;
+    await Console.Out.WriteAsync(InitRenderer.Render(report)).ConfigureAwait(false);
+
+    if (report.Written.Count == 0)
+    {
+        return ExitCode.Ok;
+    }
+
+    // Committed rather than left in the working tree. An untracked file is untracked when the first
+    // cycle takes its diff, so the diff records the whole file as new and a plan saying it changes that
+    // file can never match -- the first cycle would fail CON_07 for something adoption did.
+    Result commit = new GitRepository().Commit(
+        workspace.SolutionRoot,
+        report.Written,
+        Templates.CommitMessage(report.Mode, report.Written));
+
+    if (commit.IsFailed)
+    {
+        await Console.Error.WriteLineAsync(
+            "The files are written, but git would not commit them: "
+            + string.Join("; ", commit.Errors.Select(error => error.Message))
+            + " Commit them by hand before the first cycle, or its diff will record them as new.")
+            .ConfigureAwait(false);
+
+        return ExitCode.Failed;
+    }
+
+    return ExitCode.Ok;
+}
+
+static bool TryPlatform(
+    CommandLine line,
+    out Platform platform,
+    [NotNullWhen(false)] out string? complaint)
+{
+    platform = Platform.GitHub;
+    complaint = null;
+
+    if (!line.TryOption("platform", out string? named))
+    {
+        return true;
+    }
+
+    switch (named.Trim().Replace("-", string.Empty, StringComparison.Ordinal))
+    {
+        case string github when github.Equals("github", StringComparison.OrdinalIgnoreCase):
+            platform = Platform.GitHub;
+            return true;
+        case string ado when ado.Equals("azuredevops", StringComparison.OrdinalIgnoreCase)
+            || ado.Equals("ado", StringComparison.OrdinalIgnoreCase):
+            platform = Platform.AzureDevOps;
+            return true;
+        default:
+            complaint = $"'{named}' is not a platform. One of: github, azure-devops.";
+            return false;
+    }
 }
 
 static async Task<int> Gate(Workspace workspace, CycleId id)

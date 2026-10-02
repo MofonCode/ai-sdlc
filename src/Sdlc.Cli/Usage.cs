@@ -22,6 +22,7 @@ internal static class Usage
             sdlc <command> [arguments] [--option value]
 
         Commands
+            init                     Adopt the framework into this repository. Run by a person.
             constraints              Render the constraint set in force.
             gate <id>                Say whether a cycle's build may run. Exits 1 if not.
             verify-chain <id>        Re-establish the whole chain from the repository. Exits 1 if
@@ -38,6 +39,10 @@ internal static class Usage
 
         Common options
             --solution <path>        The solution to work in. Defaults to the working directory.
+
+        Options for init
+            --profile <name>         Which profile governs the solution. Default: dotnet-default.
+            --platform <name>        Where the code lives: github or azure-devops. Default: github.
 
         Options for constraints
             --for <artifact>         Narrow to one artifact: intent, spec, plan, diff, verify.

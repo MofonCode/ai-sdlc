@@ -68,7 +68,7 @@ public sealed class HookPolicyHandler : IRequestHandler<HookPolicyQuery, HookVer
                 {
                     return new HookVerdict(
                         HookDecision.Deny,
-                        ProtectedPaths.Refusal("That file", touched!),
+                        ProtectedPaths.CommandRefusal(touched!),
                         null);
                 }
 

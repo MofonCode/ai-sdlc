@@ -136,7 +136,26 @@ public static class ProtectedPaths
     public static bool CommandTouchesProtected(string? command, out ProtectedFile? file)
     {
         file = null;
-        if (string.IsNullOrWhiteSpace(command) || !LooksLikeAWrite(command))
+        if (string.IsNullOrWhiteSpace(command))
+        {
+            return false;
+        }
+
+        // Adoption is denied before the write test, because it writes through a command rather than a
+        // redirection and so would pass every indicator below.
+        if (IsAdoption(command))
+        {
+            file = new ProtectedFile(
+                "adoption of the framework itself",
+                "Adopting a process is a decision about how a team works, so 'sdlc init' is run by a "
+                + "person. It writes the hook configuration that constrains you, the pipeline that gates "
+                + "the merge, and the file saying where this code came from -- which is a historical fact "
+                + "that must never change. Ask for it to be run.");
+
+            return true;
+        }
+
+        if (!LooksLikeAWrite(command))
         {
             // A command that only reads one of these is fine. Refusing `cat approval.md` would make the
             // gate obstructive without making it safer.
@@ -153,6 +172,23 @@ public static class ProtectedPaths
         }
 
         return false;
+    }
+
+    /// <summary>
+    /// Whether a command would adopt or re-adopt the framework.
+    /// </summary>
+    /// <remarks>
+    /// Matched on the verb rather than on a full parse, and deliberately broad: a refusal on a command
+    /// that merely mentions adoption costs a person one rephrasing, and a miss costs the one rule that
+    /// keeps the hook configuration out of the hands of the thing it constrains.
+    /// </remarks>
+    private static bool IsAdoption(string command)
+    {
+        string flattened = command.Replace("\"", string.Empty, StringComparison.Ordinal);
+
+        return flattened.Contains("sdlc init", StringComparison.OrdinalIgnoreCase)
+            || flattened.Contains("sdlc.exe init", StringComparison.OrdinalIgnoreCase)
+            || flattened.Contains("Sdlc.Cli -- init", StringComparison.OrdinalIgnoreCase);
     }
 
     private static bool LooksLikeAWrite(string command)
@@ -173,7 +209,7 @@ public static class ProtectedPaths
     }
 
     /// <summary>
-    /// Phrases a refusal.
+    /// Phrases a refusal about a named path.
     /// </summary>
     /// <param name="path">What the agent tried to write.</param>
     /// <param name="file">What that file is.</param>
@@ -185,5 +221,24 @@ public static class ProtectedPaths
         return string.Create(
             CultureInfo.InvariantCulture,
             $"{path} is {file.Description}, and no agent may write it. {file.Reason}");
+    }
+
+    /// <summary>
+    /// Phrases a refusal about a shell command.
+    /// </summary>
+    /// <remarks>
+    /// Separate from the path phrasing because a command is an act rather than a file: the shell rule
+    /// catches commands that would write a protected file and commands that would adopt the framework,
+    /// and "that file is adoption of the framework, and no agent may write it" is not a sentence.
+    /// </remarks>
+    /// <param name="file">What the command would reach.</param>
+    /// <returns>The reason to hand back to the host.</returns>
+    public static string CommandRefusal(ProtectedFile file)
+    {
+        ArgumentNullException.ThrowIfNull(file);
+
+        return string.Create(
+            CultureInfo.InvariantCulture,
+            $"That command would reach {file.Description}, which is not an agent's to change. {file.Reason}");
     }
 }
