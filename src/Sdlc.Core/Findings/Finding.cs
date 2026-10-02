@@ -10,19 +10,22 @@ public enum Severity
     [JsonStringEnumMemberName("blocking")]
     Blocking,
 
-    /// <summary>Noticed, does not block. Cites a constraint.</summary>
-    [JsonStringEnumMemberName("suggestion")]
-    Suggestion,
-
     /// <summary>
-    /// An improvement that violates nothing and cites nothing.
+    /// Noticed, does not block.
     /// </summary>
     /// <remarks>
-    /// New in iteration 4. Every finding previously had to cite a constraint, which left nowhere for
-    /// "this would be better as X" to go.
+    /// Non-blocking is not trivial. The trial's two suggestions were substantive -- that
+    /// <c>dotnet test</c> did not actually run the suite, and that a criterion's proof rested entirely
+    /// on a substituted source -- which is why they accumulate and are listed rather than discarded.
+    /// <para>
+    /// There are two severities and not three. A third, for an improvement that violates nothing and
+    /// cites nothing, had no behaviour of its own: a citation is required only on a blocking finding,
+    /// so an uncited non-blocking finding is already this. Its other purpose was a home for human
+    /// steering, which belongs in the intent's fixed decisions instead.
+    /// </para>
     /// </remarks>
-    [JsonStringEnumMemberName("advice")]
-    Advice,
+    [JsonStringEnumMemberName("suggestion")]
+    Suggestion,
 }
 
 /// <summary>Where a finding has got to.</summary>
@@ -50,7 +53,11 @@ public enum Disposition
 /// </param>
 /// <param name="Severity">How much weight it carries.</param>
 /// <param name="Disposition">Where it has got to.</param>
-/// <param name="Cites">The constraint it rests on, with its revision. Null only for advice.</param>
+/// <param name="Cites">
+/// The constraint it rests on, with its revision. Required on a blocking finding, which is what makes
+/// a blocker arguable rather than an opinion; optional on a suggestion, which may just be an
+/// improvement nothing forbids.
+/// </param>
 /// <param name="Statement">What is wrong, in full.</param>
 /// <param name="Locus">Where in the artifact.</param>
 /// <param name="Remedy">What would fix it.</param>

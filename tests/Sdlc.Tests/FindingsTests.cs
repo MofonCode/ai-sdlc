@@ -80,7 +80,6 @@ public sealed class FindingsTests
 
     [TestMethod]
     [DataRow("suggestion", Severity.Suggestion)]
-    [DataRow("advice", Severity.Advice)]
     [DataRow("blocking", Severity.Blocking)]
     public void Each_severity_reads_back(string text, Severity expected)
     {
@@ -93,10 +92,12 @@ public sealed class FindingsTests
     }
 
     [TestMethod]
-    public void Advice_cites_nothing_and_does_not_block()
+    public void A_suggestion_may_cite_nothing_and_still_does_not_block()
     {
+        // What the third severity was for. A citation is required only on a blocker, so an uncited
+        // non-blocking finding is a suggestion and needs no tier of its own.
         Result<FindingsRound> result = FindingsReader.Read(
-            """{ "round": 1, "findings": [{ "id": "F_09", "severity": "advice", "disposition": "open", "statement": "this would read better as a table." }] }""",
+            """{ "round": 1, "findings": [{ "id": "F_09", "severity": "suggestion", "disposition": "open", "statement": "this would read better as a table." }] }""",
             "test");
 
         Assert.IsTrue(result.IsSuccess);
@@ -104,6 +105,19 @@ public sealed class FindingsTests
         Assert.IsNull(finding.Cites);
         Assert.IsFalse(finding.IsOpenBlocker);
         Assert.IsTrue(result.Value.IsClean);
+    }
+
+    [TestMethod]
+    public void There_are_two_severities_and_a_third_value_is_rejected()
+    {
+        // Fail loudly rather than defaulting. A severity the model does not have must not read as
+        // 'suggestion' by accident, because the one that matters would read as suggestion too.
+        Result<FindingsRound> result = FindingsReader.Read(
+            """{ "round": 1, "findings": [{ "id": "F_01", "severity": "advice", "disposition": "open", "statement": "x." }] }""",
+            "test");
+
+        Assert.IsTrue(result.IsFailed);
+        Assert.AreEqual(2, Enum.GetValues<Severity>().Length);
     }
 
     [TestMethod]

@@ -1126,24 +1126,19 @@ block, then remediate, then exhaust the budget.
 
 ## 19. Open questions
 
-1. **Does `advice` survive as a third severity, or collapse into `suggestion`?** It was added for an
-   improvement that violates nothing and cites nothing, partly as a home for human steering — which
-   `D-17` reassigned to the intent's `Fixed decisions`. The library requires a citation only on
-   *blocking* findings, so a non-blocking finding that cites nothing is already a suggestion. Two
-   severities, or citation becomes required on suggestions and `advice` earns its place back.
-2. **Which `PRO_nn` conventions become analyzers?** §11.3 establishes that nothing decides them
+1. **Which `PRO_nn` conventions become analyzers?** §11.3 establishes that nothing decides them
    today and each splits in two. One-folder-per-feature is almost entirely mechanical and is the
    obvious first. Needs the kernel's analyzers read, not a decision taken.
-3. **Does the no-pragma rule ship as a build check?** §11.4 keeps every suppression in
+2. **Does the no-pragma rule ship as a build check?** §11.4 keeps every suppression in
    `Directory.Build.props` with a reason and zero pragmas in source. The rule is mechanically
    checkable, so the question is whether it is worth a custom analyzer or a build-time grep.
-4. **How does the Azure DevOps adapter get exercised?** `dice-trial` has a GitHub remote and no Azure
+3. **How does the Azure DevOps adapter get exercised?** `dice-trial` has a GitHub remote and no Azure
    DevOps one, and a second trial repository was declined. Without an answer the adapter ships
    untested against a real server.
-5. **`CON_15`, held rather than open.** *A plan's blast radius matches what it changes* — admissible
+4. **`CON_15`, held rather than open.** *A plan's blast radius matches what it changes* — admissible
    on all three tests, and held until `tier` is in use so the constraint describes the rule rather
    than its first example.
-6. **The cross-cycle learning loop, deferred by decision.** v02 built `retro` and `absorb-retro` with
+5. **The cross-cycle learning loop, deferred by decision.** v02 built `retro` and `absorb-retro` with
    a corpus, an importer that refuses to overwrite differing content, and signals computed read-only;
    v03 removed them and recorded the cost — *"nothing aggregates automatically."* The data to
    aggregate already exists in the findings rounds. Three things to carry forward if it returns: the
@@ -1481,3 +1476,19 @@ should run the loop. And `D-16` is satisfied, because the loop stops on converge
 rather than claiming to be done** — so the decision to keep interrogating stays the person's.
 
 **Rejected.** A named skill of its own: an eighteenth entry and a second way to invoke one loop.
+
+### D-30 — There are two severities, not three
+
+**Decision.** A finding is `blocking` or a `suggestion`. The third value, for an improvement that
+violates nothing and cites nothing, is removed. A citation is required on a blocking finding and
+optional on a suggestion, so an uncited non-blocking finding is already a suggestion.
+
+**Why.** It had no behaviour of its own — nothing read the distinction, and nothing could, because the
+only rule about citation already draws the line at blocking. Its other purpose was a home for human
+steering, which `D-17` reassigned to the intent's `Fixed decisions`, where a reviewer meets it at the
+gate rather than in a findings file.
+
+**Rejected.** Requiring a citation on suggestions, which would have earned the third tier its place
+back. It makes the cheap finding expensive, and the trial's two suggestions — that `dotnet test` did
+not run the suite, and that a criterion's proof rested on a substituted source — were both
+substantive without a constraint to hang on.
