@@ -1,0 +1,26 @@
+{
+  "framework_version": "0.5.0",
+  "cycle": "20260929_4e1a",
+  "artifact": ".sdlc/cycles/20260929_4e1a/plan.md",
+  "interrogated_at": "2026-09-29T01:21:58Z",
+  "round": 1,
+  "findings": [
+    {
+      "id": "F_01",
+      "severity": "blocking",
+      "disposition": "open",
+      "cites": "CON_06",
+      "statement": "Both proofs offered for criterion 3 can pass while the criterion is unmet: a snapshot scoped to the content root cannot see a write to the temp directory, the user profile or any absolute path - which the plan's own Risk section concedes for data protection keys - and the absence of a PackageReference establishes nothing about recording a roll in a store, because the framework alone can reach a remote one with no package at all.",
+      "locus": "## Proof, \"Criterion 3 - nothing about a roll outlives the response\", and ## Risk, \"Data protection writes key material to disk on first use\"",
+      "remedy": "Widen the snapshot beyond the content root to the locations a served request can plausibly reach - the process working directory, the OS temp directory, and the user-profile path data protection uses - asserting no file is created, modified or deleted across the run. Drop the claim that the no-PackageReference assertion establishes the store half of the criterion; keep that assertion if it is wanted as a tripwire, but state what it actually proves, and add a check that no connection-string configuration is present and no data-store service is registered in the composed provider. Then record under Cannot prove the residue none of these checks excludes - a write to an arbitrary absolute path, or an outbound call to a remote store - so it is visible as unproven rather than claimed as proven."
+    },
+    {
+      "id": "F_02",
+      "severity": "suggestion",
+      "disposition": "open",
+      "cites": "CON_06",
+      "statement": "Criterion 5's proof rests entirely on the substituted roll source, so it would stay green if the production roller derived its value from the request - seeding from a header or trace identifier, for instance - which is exactly the criterion being unmet, and unlike the impartiality gap this limitation is not disclosed under Cannot prove.",
+      "locus": "## Proof, \"Criterion 5 - no player-supplied input determines the value\""
+    }
+  ]
+}
