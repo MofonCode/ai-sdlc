@@ -20,12 +20,12 @@ public static class ApprovalRenderer
     /// </summary>
     /// <param name="text">What the handler produced.</param>
     /// <returns>The rendered text, ending in a newline.</returns>
-    public static string Render(ApprovalTextResult text)
+    public static string Render(ApprovalText.Response text)
     {
         ArgumentNullException.ThrowIfNull(text);
 
         StringBuilder output = new();
-        CycleStatus status = text.Status;
+        ReadCycleStatus.Response status = text.Status;
 
         output.AppendLine(CultureInfo.InvariantCulture,
             $"Cycle {status.Cycle.Id} - {Heading(text.Decision)}");
@@ -34,7 +34,7 @@ public static class ApprovalRenderer
         // The three documents with their round history and their hash. A person cannot verify a pasted
         // hash by reading it, so showing the first twelve characters here is what makes a later
         // mismatch diagnosable: the gate names the file and shows the same twelve.
-        foreach (ArtifactState artifact in status.Artifacts)
+        foreach (ReadCycleStatus.ArtifactState artifact in status.Artifacts)
         {
             string rounds = artifact.History.Count == 0
                 ? "never interrogated"
@@ -55,7 +55,7 @@ public static class ApprovalRenderer
             output.AppendLine("Open blocking findings, which no decision can waive:");
             output.AppendLine();
 
-            foreach (ArtifactState artifact in status.Artifacts)
+            foreach (ReadCycleStatus.ArtifactState artifact in status.Artifacts)
             {
                 foreach (Findings.Finding finding in artifact.OpenBlockers)
                 {

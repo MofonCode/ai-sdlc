@@ -208,7 +208,7 @@ public sealed class EvidenceTests
         string trx = Path.Combine(workspace.Root, "results.trx");
         CycleWorkspace.WriteRaw(trx, Trx);
 
-        EvidenceReport report = await Record(workspace, trx, changed: ["src/Thing.cs"]);
+        RecordEvidence.Response report = await Record(workspace, trx, changed: ["src/Thing.cs"]);
 
         foreach (string expected in (string[])
         [
@@ -254,7 +254,7 @@ public sealed class EvidenceTests
         using var workspace = CycleWorkspace.Create();
         workspace.WritePlan(proofs: 1);
 
-        EvidenceReport report = await Record(workspace, trx: null, changed: ["src/Thing.cs"]);
+        RecordEvidence.Response report = await Record(workspace, trx: null, changed: ["src/Thing.cs"]);
 
         Assert.IsNull(report.Summary);
         Assert.IsTrue(report.Written.Contains(RecordEvidence.DiffFileName, StringComparer.Ordinal));
@@ -268,8 +268,8 @@ public sealed class EvidenceTests
 
         using Gate gate = Recorder(workspace, new FakeRepository());
 
-        Result<EvidenceReport> result = await gate
-            .Send<RecordEvidence.Request, EvidenceReport>(new RecordEvidence.Request(
+        Result<RecordEvidence.Response> result = await gate
+            .Send<RecordEvidence.Command, RecordEvidence.Response>(new RecordEvidence.Command(
                 workspace.Cycle.Id,
                 Path.Combine(workspace.Root, "absent.trx")));
 
@@ -287,9 +287,9 @@ public sealed class EvidenceTests
 
         using Gate gate = Recorder(workspace, new FakeRepository { Base = null });
 
-        Result<EvidenceReport> result = await gate
-            .Send<RecordEvidence.Request, EvidenceReport>(
-                new RecordEvidence.Request(workspace.Cycle.Id));
+        Result<RecordEvidence.Response> result = await gate
+            .Send<RecordEvidence.Command, RecordEvidence.Response>(
+                new RecordEvidence.Command(workspace.Cycle.Id));
 
         Assert.IsTrue(result.IsFailed);
         StringAssert.Contains(result.Errors[0].Message, "diverged");
@@ -302,9 +302,9 @@ public sealed class EvidenceTests
 
         using Gate gate = Recorder(workspace, new FakeRepository());
 
-        Result<EvidenceReport> result = await gate
-            .Send<RecordEvidence.Request, EvidenceReport>(
-                new RecordEvidence.Request(workspace.Cycle.Id));
+        Result<RecordEvidence.Response> result = await gate
+            .Send<RecordEvidence.Command, RecordEvidence.Response>(
+                new RecordEvidence.Command(workspace.Cycle.Id));
 
         Assert.IsTrue(result.IsFailed);
         StringAssert.Contains(result.Errors[0].Message, "no plan");
@@ -351,16 +351,16 @@ public sealed class EvidenceTests
     private static Gate Recorder(CycleWorkspace workspace, FakeRepository git) =>
         Gate.For(workspace.Root, services => services.AddSingleton<IRepository>(git));
 
-    private static async Task<EvidenceReport> Record(
+    private static async Task<RecordEvidence.Response> Record(
         CycleWorkspace workspace,
         string? trx,
         IReadOnlyList<string> changed)
     {
         using Gate gate = Recorder(workspace, new FakeRepository { Changed = changed });
 
-        Result<EvidenceReport> result = await gate
-            .Send<RecordEvidence.Request, EvidenceReport>(
-                new RecordEvidence.Request(workspace.Cycle.Id, trx));
+        Result<RecordEvidence.Response> result = await gate
+            .Send<RecordEvidence.Command, RecordEvidence.Response>(
+                new RecordEvidence.Command(workspace.Cycle.Id, trx));
 
         Assert.IsTrue(result.IsSuccess, string.Join("; ", result.Errors.Select(e => e.Message)));
         return result.Value;

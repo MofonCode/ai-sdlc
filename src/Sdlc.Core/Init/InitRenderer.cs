@@ -22,7 +22,7 @@ public static class InitRenderer
     /// </summary>
     /// <param name="report">What adoption did.</param>
     /// <returns>The rendered text, ending in a newline.</returns>
-    public static string Render(InitReport report)
+    public static string Render(Initialise.Response report)
     {
         ArgumentNullException.ThrowIfNull(report);
 
@@ -38,7 +38,7 @@ public static class InitRenderer
 
         output.AppendLine();
 
-        foreach (InitAction action in report.Actions)
+        foreach (Initialise.InitAction action in report.Actions)
         {
             output.AppendLine(string.Create(
                 CultureInfo.InvariantCulture,
@@ -82,20 +82,20 @@ public static class InitRenderer
         return output.ToString();
     }
 
-    private static string Headline(InitMode mode) => mode switch
+    private static string Headline(Initialise.InitMode mode) => mode switch
     {
-        InitMode.Scaffold => "scaffolded a new governed solution",
-        InitMode.Onboard => "adopted ai-sdlc into an existing repository",
-        InitMode.Update => "updated the ai-sdlc scaffolding",
+        Initialise.InitMode.Scaffold => "scaffolded a new governed solution",
+        Initialise.InitMode.Onboard => "adopted ai-sdlc into an existing repository",
+        Initialise.InitMode.Update => "updated the ai-sdlc scaffolding",
         _ => "adopted ai-sdlc",
     };
 
-    private static string Verb(InitChange change) => change switch
+    private static string Verb(Initialise.InitChange change) => change switch
     {
-        InitChange.Created => "created",
-        InitChange.Updated => "updated",
-        InitChange.Kept => "kept",
-        InitChange.Printed => "printed",
+        Initialise.InitChange.Created => "created",
+        Initialise.InitChange.Updated => "updated",
+        Initialise.InitChange.Kept => "kept",
+        Initialise.InitChange.Printed => "printed",
         _ => "touched",
     };
 
@@ -107,15 +107,15 @@ public static class InitRenderer
     /// it decides whether a profile's defaults bind or the existing standard wins, and it never changes
     /// again. A reader who learns that later learns it from a surprise.
     /// </remarks>
-    private static string[] Explain(InitReport report) => report.Mode switch
+    private static string[] Explain(Initialise.Response report) => report.Mode switch
     {
-        InitMode.Scaffold =>
+        Initialise.InitMode.Scaffold =>
         [
             "This repository held no code, so the solution is scaffolded: the profile's patterns are",
             "this solution's patterns, and a plan that departs from them has to say why.",
         ],
 
-        InitMode.Onboard =>
+        Initialise.InitMode.Onboard =>
         [
             "This repository already held code, so the solution is adopted: where it has an existing",
             "standard, that standard wins. The profile proposes a shape for new work and does not rewrite",
@@ -125,7 +125,7 @@ public static class InitRenderer
             "came before adoption, so there is no baseline to record and nothing to forgive.",
         ],
 
-        InitMode.Update =>
+        Initialise.InitMode.Update =>
         [
             string.Create(
                 CultureInfo.InvariantCulture,

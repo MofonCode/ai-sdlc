@@ -21,7 +21,7 @@ public sealed class VerifyChainTests
     {
         using CycleWorkspace workspace = Sound();
 
-        ChainVerdict verdict = await Check(workspace);
+        VerifyChain.Response verdict = await Check(workspace);
 
         Assert.IsTrue(verdict.Holds, Describe(verdict));
     }
@@ -34,8 +34,8 @@ public sealed class VerifyChainTests
 
         using var gate = Gate.For(workspace.Root);
 
-        Result<ChainVerdict> result = await gate
-            .Send<VerifyChain.Request, ChainVerdict>(new VerifyChain.Request(absent.Value));
+        Result<VerifyChain.Response> result = await gate
+            .Send<VerifyChain.Query, VerifyChain.Response>(new VerifyChain.Query(absent.Value));
 
         Assert.IsTrue(result.IsSuccess);
         Assert.IsFalse(result.Value.Holds);
@@ -54,7 +54,7 @@ public sealed class VerifyChainTests
         File.Delete(workspace.Cycle.ApprovalPath);
         workspace.WriteVerify(outcome: "blocked");
 
-        ChainVerdict verdict = await Check(workspace);
+        VerifyChain.Response verdict = await Check(workspace);
 
         Assert.IsTrue(verdict.Failures.Count >= 2, Describe(verdict));
         Assert.IsTrue(
@@ -71,9 +71,9 @@ public sealed class VerifyChainTests
         using CycleWorkspace workspace = Sound();
         workspace.WriteSpec(criteria: 4);
 
-        ChainVerdict verdict = await Check(workspace);
+        VerifyChain.Response verdict = await Check(workspace);
 
-        ChainCheck proof = verdict.Checks.Single(check => check.Name.Contains("proof", StringComparison.Ordinal));
+        VerifyChain.ChainCheck proof = verdict.Checks.Single(check => check.Name.Contains("proof", StringComparison.Ordinal));
 
         Assert.IsFalse(proof.Passed, proof.Detail);
         StringAssert.Contains(proof.Detail, "criteria with no proof: 4");
@@ -87,9 +87,9 @@ public sealed class VerifyChainTests
         using CycleWorkspace workspace = Sound();
         workspace.WriteSpec(criteria: 2);
 
-        ChainVerdict verdict = await Check(workspace);
+        VerifyChain.Response verdict = await Check(workspace);
 
-        ChainCheck proof = verdict.Checks.Single(check => check.Name.Contains("proof", StringComparison.Ordinal));
+        VerifyChain.ChainCheck proof = verdict.Checks.Single(check => check.Name.Contains("proof", StringComparison.Ordinal));
 
         Assert.IsFalse(proof.Passed, proof.Detail);
         StringAssert.Contains(proof.Detail, "the spec does not have: 3");
@@ -103,9 +103,9 @@ public sealed class VerifyChainTests
         using CycleWorkspace workspace = Sound();
         workspace.WriteSpec(criteria: 0);
 
-        ChainVerdict verdict = await Check(workspace);
+        VerifyChain.Response verdict = await Check(workspace);
 
-        ChainCheck proof = verdict.Checks.Single(check => check.Name.Contains("proof", StringComparison.Ordinal));
+        VerifyChain.ChainCheck proof = verdict.Checks.Single(check => check.Name.Contains("proof", StringComparison.Ordinal));
 
         Assert.IsFalse(proof.Passed, proof.Detail);
         StringAssert.Contains(proof.Detail, "cannot be met");
@@ -119,9 +119,9 @@ public sealed class VerifyChainTests
         using CycleWorkspace workspace = Sound();
         workspace.WriteVerify(outcome);
 
-        ChainVerdict verdict = await Check(workspace);
+        VerifyChain.Response verdict = await Check(workspace);
 
-        ChainCheck verified = verdict.Checks.Single(check => check.Name.Contains("verified", StringComparison.Ordinal));
+        VerifyChain.ChainCheck verified = verdict.Checks.Single(check => check.Name.Contains("verified", StringComparison.Ordinal));
 
         Assert.IsFalse(verified.Passed);
         StringAssert.Contains(verified.Detail, outcome);
@@ -135,7 +135,7 @@ public sealed class VerifyChainTests
         using CycleWorkspace workspace = Sound();
         File.Delete(workspace.Cycle.PathOf(ArtifactKind.Verify));
 
-        ChainVerdict verdict = await Check(workspace);
+        VerifyChain.Response verdict = await Check(workspace);
 
         Assert.IsFalse(verdict.Holds);
         Assert.IsFalse(
@@ -152,9 +152,9 @@ public sealed class VerifyChainTests
         workspace.WriteArtifact(ArtifactKind.Intent, "a different problem entirely");
         workspace.WriteApproval();
 
-        ChainVerdict verdict = await Check(workspace);
+        VerifyChain.Response verdict = await Check(workspace);
 
-        ChainCheck gate = verdict.Checks.Single(check => check.Name.Contains("gate", StringComparison.Ordinal));
+        VerifyChain.ChainCheck gate = verdict.Checks.Single(check => check.Name.Contains("gate", StringComparison.Ordinal));
 
         Assert.IsFalse(gate.Passed);
         StringAssert.Contains(gate.Detail, "StaleRound");
@@ -218,9 +218,9 @@ public sealed class VerifyChainTests
         using CycleWorkspace workspace = Sound();
         workspace.WriteTestSummary(proofs: 3, failing: 2);
 
-        ChainVerdict verdict = await Check(workspace);
+        VerifyChain.Response verdict = await Check(workspace);
 
-        ChainCheck proven = verdict.Checks.Single(check => check.Name.Contains("named test", StringComparison.Ordinal));
+        VerifyChain.ChainCheck proven = verdict.Checks.Single(check => check.Name.Contains("named test", StringComparison.Ordinal));
 
         Assert.IsFalse(proven.Passed, proven.Detail);
         StringAssert.Contains(proven.Detail, "proof 2");
@@ -234,9 +234,9 @@ public sealed class VerifyChainTests
         using CycleWorkspace workspace = Sound();
         File.Delete(Path.Combine(workspace.Cycle.EvidenceDirectory, "tests.json"));
 
-        ChainVerdict verdict = await Check(workspace);
+        VerifyChain.Response verdict = await Check(workspace);
 
-        ChainCheck proven = verdict.Checks.Single(check => check.Name.Contains("named test", StringComparison.Ordinal));
+        VerifyChain.ChainCheck proven = verdict.Checks.Single(check => check.Name.Contains("named test", StringComparison.Ordinal));
 
         Assert.IsFalse(proven.Passed);
         StringAssert.Contains(proven.Detail, "rather than 'met'");
@@ -259,25 +259,25 @@ public sealed class VerifyChainTests
                 "3. Covered by the integration suite.",
                 StringComparison.Ordinal));
 
-        ChainVerdict verdict = await Check(workspace);
+        VerifyChain.Response verdict = await Check(workspace);
 
-        ChainCheck proven = verdict.Checks.Single(check => check.Name.Contains("named test", StringComparison.Ordinal));
+        VerifyChain.ChainCheck proven = verdict.Checks.Single(check => check.Name.Contains("named test", StringComparison.Ordinal));
 
         Assert.IsFalse(proven.Passed, proven.Detail);
         StringAssert.Contains(proven.Detail, "proof 3 names no test");
     }
 
-    private static async Task<ChainVerdict> Check(CycleWorkspace workspace)
+    private static async Task<VerifyChain.Response> Check(CycleWorkspace workspace)
     {
         using var gate = Gate.For(workspace.Root);
 
-        Result<ChainVerdict> result = await gate
-            .Send<VerifyChain.Request, ChainVerdict>(new VerifyChain.Request(workspace.Cycle.Id));
+        Result<VerifyChain.Response> result = await gate
+            .Send<VerifyChain.Query, VerifyChain.Response>(new VerifyChain.Query(workspace.Cycle.Id));
 
         Assert.IsTrue(result.IsSuccess, string.Join("; ", result.Errors.Select(e => e.Message)));
         return result.Value;
     }
 
-    private static string Describe(ChainVerdict verdict) =>
+    private static string Describe(VerifyChain.Response verdict) =>
         string.Join("; ", verdict.Checks.Select(c => (c.Passed ? "ok " : "NO ") + c.Name + ": " + c.Detail));
 }

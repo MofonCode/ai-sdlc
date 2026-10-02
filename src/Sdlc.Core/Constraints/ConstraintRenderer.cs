@@ -38,7 +38,7 @@ public static class ConstraintRenderer
     /// <param name="detail">How much of each constraint to include.</param>
     /// <param name="artifact">The artifact the set was narrowed to, when it was.</param>
     /// <returns>The rendered text, ending in a newline.</returns>
-    public static string Render(ConstraintSet set, ConstraintDetail detail, string? artifact = null)
+    public static string Render(EffectiveConstraints.Response set, ConstraintDetail detail, string? artifact = null)
     {
         ArgumentNullException.ThrowIfNull(set);
 

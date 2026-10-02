@@ -58,7 +58,7 @@ try
         "constraints" => await Workspace.Run(line, w => Constraints(w, line)).ConfigureAwait(false),
         "gate" => await WithCycle(line, "gate", Gate).ConfigureAwait(false),
         "verify-chain" => await WithCycle(line, "verify-chain", VerifyChain).ConfigureAwait(false),
-        "landable" => await Landable(line).ConfigureAwait(false),
+        "landable" => await AskLandable(line).ConfigureAwait(false),
         "draft" => await Draft(line).ConfigureAwait(false),
         "status" => await WithCycle(line, "status", (w, id) => Status(w, line, id)).ConfigureAwait(false),
         "suggestions" => await Workspace.Run(line, w => Suggestions(w, line)).ConfigureAwait(false),
@@ -79,8 +79,8 @@ static async Task<int> Constraints(Workspace workspace, CommandLine line)
 {
     line.TryOption("for", out string? artifact);
 
-    Result<ConstraintSet> result = await workspace
-        .Send<EffectiveConstraints.Request, ConstraintSet>(new EffectiveConstraints.Request(artifact))
+    Result<EffectiveConstraints.Response> result = await workspace
+        .Send<EffectiveConstraints.Query, EffectiveConstraints.Response>(new EffectiveConstraints.Query(artifact))
         .ConfigureAwait(false);
 
     if (result.IsFailed)
@@ -110,8 +110,8 @@ static async Task<int> Init(Workspace workspace, CommandLine line)
         return ExitCode.Usage;
     }
 
-    Result<InitReport> result = await workspace
-        .Send<Initialise.Request, InitReport>(new Initialise.Request(profile, platform))
+    Result<Initialise.Response> result = await workspace
+        .Send<Initialise.Command, Initialise.Response>(new Initialise.Command(profile, platform))
         .ConfigureAwait(false);
 
     if (result.IsFailed)
@@ -119,7 +119,7 @@ static async Task<int> Init(Workspace workspace, CommandLine line)
         return await Report(result, ExitCode.Refused).ConfigureAwait(false);
     }
 
-    InitReport report = result.Value;
+    Initialise.Response report = result.Value;
     await Console.Out.WriteAsync(InitRenderer.Render(report)).ConfigureAwait(false);
 
     if (report.Written.Count == 0)
@@ -182,7 +182,7 @@ static bool TryPlatform(
 static async Task<int> NewCycle(Workspace workspace)
 {
     Result<Cycle> result = await workspace
-        .Send<NewCycle.Request, Cycle>(new NewCycle.Request())
+        .Send<NewCycle.Command, Cycle>(new NewCycle.Command())
         .ConfigureAwait(false);
 
     if (result.IsFailed)
@@ -207,14 +207,14 @@ static async Task<int> NewCycle(Workspace workspace)
 // Whether a cycle may be landed, without landing it. Pushing and opening the pull request is the land
 // skill's, because it needs the platform's own tool and a sentence a person wrote; what the binary owns is
 // the refusal, which has to be the same whether one cycle is landed or eight.
-static async Task<int> Landable(CommandLine line)
+static async Task<int> AskLandable(CommandLine line)
 {
     if (!line.HasOption("all"))
     {
         return await WithCycle(line, "landable", async (workspace, id) =>
         {
-            Result<Landable> result = await workspace
-                .Send<Land.Request, Landable>(new Land.Request(id))
+            Result<Land.Response> result = await workspace
+                .Send<Land.Query, Land.Response>(new Land.Query(id))
                 .ConfigureAwait(false);
 
             if (result.IsFailed)
@@ -235,12 +235,12 @@ static async Task<int> Landable(CommandLine line)
 // sweep picks up because every passed cycle is eligible.
 static async Task<int> Sweep(Workspace workspace)
 {
-    List<Landable> candidates = [];
+    List<Land.Response> candidates = [];
 
     foreach (Cycle cycle in CycleIndex.All(workspace.SolutionRoot))
     {
-        Result<Landable> result = await workspace
-            .Send<Land.Request, Landable>(new Land.Request(cycle.Id))
+        Result<Land.Response> result = await workspace
+            .Send<Land.Query, Land.Response>(new Land.Query(cycle.Id))
             .ConfigureAwait(false);
 
         if (result.IsFailed)
@@ -272,8 +272,8 @@ static async Task<int> Skill(CommandLine line)
 // each run, and what it decides is what runs concurrently.
 static async Task<int> Claims(Workspace workspace)
 {
-    Result<ClaimGraph> result = await workspace
-        .Send<ComputeClaimGraph.Request, ClaimGraph>(new ComputeClaimGraph.Request())
+    Result<ComputeClaimGraph.Response> result = await workspace
+        .Send<ComputeClaimGraph.Query, ComputeClaimGraph.Response>(new ComputeClaimGraph.Query())
         .ConfigureAwait(false);
 
     if (result.IsFailed)
@@ -294,8 +294,8 @@ static async Task<int> Evidence(Workspace workspace, CommandLine line, CycleId i
     line.TryOption("tests", out string? trx);
     line.TryOption("build-log", out string? log);
 
-    Result<EvidenceReport> result = await workspace
-        .Send<RecordEvidence.Request, EvidenceReport>(new RecordEvidence.Request(id, trx, log))
+    Result<RecordEvidence.Response> result = await workspace
+        .Send<RecordEvidence.Command, RecordEvidence.Response>(new RecordEvidence.Command(id, trx, log))
         .ConfigureAwait(false);
 
     if (result.IsFailed)
@@ -313,8 +313,8 @@ static async Task<int> Evidence(Workspace workspace, CommandLine line, CycleId i
 
 static async Task<int> Gate(Workspace workspace, CycleId id)
 {
-    Result<GateVerdict> result = await workspace
-        .Send<ApprovalGate.Request, GateVerdict>(new ApprovalGate.Request(id))
+    Result<ApprovalGate.Response> result = await workspace
+        .Send<ApprovalGate.Query, ApprovalGate.Response>(new ApprovalGate.Query(id))
         .ConfigureAwait(false);
 
     if (result.IsFailed)
@@ -322,7 +322,7 @@ static async Task<int> Gate(Workspace workspace, CycleId id)
         return await Report(result, ExitCode.Refused).ConfigureAwait(false);
     }
 
-    GateVerdict verdict = result.Value;
+    ApprovalGate.Response verdict = result.Value;
 
     // A refusal goes to standard error and a pass to standard output, so a hook that forwards only one
     // stream still shows the person why they were stopped.
@@ -341,8 +341,8 @@ static async Task<int> Gate(Workspace workspace, CycleId id)
 // output whether it holds or not: a reader looking at a failed check needs what passed as well.
 static async Task<int> VerifyChain(Workspace workspace, CycleId id)
 {
-    Result<ChainVerdict> result = await workspace
-        .Send<VerifyChain.Request, ChainVerdict>(new VerifyChain.Request(id))
+    Result<VerifyChain.Response> result = await workspace
+        .Send<VerifyChain.Query, VerifyChain.Response>(new VerifyChain.Query(id))
         .ConfigureAwait(false);
 
     if (result.IsFailed)
@@ -401,8 +401,8 @@ static async Task<int> DraftApproval(Workspace workspace, CommandLine line, Cycl
         return ExitCode.Usage;
     }
 
-    Result<ApprovalTextResult> result = await workspace
-        .Send<ApprovalText.Request, ApprovalTextResult>(new ApprovalText.Request(id, by, decision))
+    Result<ApprovalText.Response> result = await workspace
+        .Send<ApprovalText.Query, ApprovalText.Response>(new ApprovalText.Query(id, by, decision))
         .ConfigureAwait(false);
 
     if (result.IsFailed)
@@ -410,7 +410,7 @@ static async Task<int> DraftApproval(Workspace workspace, CommandLine line, Cycl
         return await Report(result, ExitCode.Refused).ConfigureAwait(false);
     }
 
-    ApprovalTextResult text = result.Value;
+    ApprovalText.Response text = result.Value;
 
     if (!text.MayApprove)
     {
@@ -427,13 +427,13 @@ static async Task<int> DraftAbandon(Workspace workspace, CycleId id)
     string by = Git.UserName(workspace.SolutionRoot) ?? "<your name>";
 
     return await PrintDraft(await workspace
-        .Send<AbandonText.Request, DraftResult>(new AbandonText.Request(id, by))
+        .Send<AbandonText.Query, DraftResult>(new AbandonText.Query(id, by))
         .ConfigureAwait(false)).ConfigureAwait(false);
 }
 
 static async Task<int> DraftConstraint(Workspace workspace) =>
     await PrintDraft(await workspace
-        .Send<ConstraintText.Request, DraftResult>(new ConstraintText.Request())
+        .Send<ConstraintText.Query, DraftResult>(new ConstraintText.Query())
         .ConfigureAwait(false)).ConfigureAwait(false);
 
 static async Task<int> DraftProfile(Workspace workspace, CommandLine line)
@@ -447,7 +447,7 @@ static async Task<int> DraftProfile(Workspace workspace, CommandLine line)
     }
 
     return await PrintDraft(await workspace
-        .Send<ProfileText.Request, DraftResult>(new ProfileText.Request(line.Arguments[0]))
+        .Send<ProfileText.Query, DraftResult>(new ProfileText.Query(line.Arguments[0]))
         .ConfigureAwait(false)).ConfigureAwait(false);
 }
 
@@ -491,8 +491,8 @@ static async Task<int> Suggestions(Workspace workspace, CommandLine line)
         id = parsed.Value;
     }
 
-    Result<IReadOnlyList<Suggestion>> result = await workspace
-        .Send<Suggestions.Request, IReadOnlyList<Suggestion>>(new Suggestions.Request(id))
+    Result<Suggestions.Response> result = await workspace
+        .Send<Suggestions.Query, Suggestions.Response>(new Suggestions.Query(id))
         .ConfigureAwait(false);
 
     if (result.IsFailed)
@@ -508,8 +508,8 @@ static async Task<int> Suggestions(Workspace workspace, CommandLine line)
 
 static async Task<int> Status(Workspace workspace, CommandLine line, CycleId id)
 {
-    Result<CycleStatus> result = await workspace
-        .Send<ReadCycleStatus.Request, CycleStatus>(new ReadCycleStatus.Request(id))
+    Result<ReadCycleStatus.Response> result = await workspace
+        .Send<ReadCycleStatus.Query, ReadCycleStatus.Response>(new ReadCycleStatus.Query(id))
         .ConfigureAwait(false);
 
     if (result.IsFailed)
@@ -517,7 +517,7 @@ static async Task<int> Status(Workspace workspace, CommandLine line, CycleId id)
         return await Report(result, ExitCode.Refused).ConfigureAwait(false);
     }
 
-    CycleStatus status = result.Value;
+    ReadCycleStatus.Response status = result.Value;
 
     // --stage names the artifact whose panel to show. Without it, the panel is for whichever artifact
     // the cycle is waiting on, which is what a person wants after any stage finishes.
@@ -525,7 +525,7 @@ static async Task<int> Status(Workspace workspace, CommandLine line, CycleId id)
         ? asked
         : status.Blocking?.Kind ?? ArtifactKind.Plan;
 
-    ArtifactState state = status.Artifacts.First(artifact => artifact.Kind == kind);
+    ReadCycleStatus.ArtifactState state = status.Artifacts.First(artifact => artifact.Kind == kind);
     ArtifactOutline outline = await ArtifactOutlineReader
         .ReadFile(state.Path, CancellationToken.None)
         .ConfigureAwait(false);
@@ -682,7 +682,7 @@ static async Task<int> TurnEnd(CommandLine line, HookHost host)
     _ = await Workspace.Run(line, async workspace =>
     {
         Result<HookVerdict> verdict = await workspace
-            .Send<TurnEndGate.Request, HookVerdict>(new TurnEndGate.Request(turn.Value))
+            .Send<TurnEndGate.Query, HookVerdict>(new TurnEndGate.Query(turn.Value))
             .ConfigureAwait(false);
 
         if (verdict.IsFailed)

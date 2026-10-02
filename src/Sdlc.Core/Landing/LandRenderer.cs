@@ -20,7 +20,7 @@ public static class LandRenderer
     /// <summary>Renders one cycle's landability.</summary>
     /// <param name="landable">What was found.</param>
     /// <returns>The rendered text, ending in a newline.</returns>
-    public static string Render(Landable landable)
+    public static string Render(Land.Response landable)
     {
         ArgumentNullException.ThrowIfNull(landable);
 
@@ -50,12 +50,12 @@ public static class LandRenderer
     /// </remarks>
     /// <param name="candidates">Every cycle the sweep looked at.</param>
     /// <returns>The rendered text, ending in a newline.</returns>
-    public static string RenderSweep(IReadOnlyList<Landable> candidates)
+    public static string RenderSweep(IReadOnlyList<Land.Response> candidates)
     {
         ArgumentNullException.ThrowIfNull(candidates);
 
         StringBuilder output = new();
-        List<Landable> landable = [.. candidates.Where(candidate => candidate.MayLand)];
+        List<Land.Response> landable = [.. candidates.Where(candidate => candidate.MayLand)];
 
         output.AppendLine(string.Create(
             CultureInfo.InvariantCulture,
@@ -63,7 +63,7 @@ public static class LandRenderer
 
         output.AppendLine();
 
-        foreach (Landable candidate in candidates)
+        foreach (Land.Response candidate in candidates)
         {
             output.AppendLine(string.Create(
                 CultureInfo.InvariantCulture,
@@ -86,13 +86,13 @@ public static class LandRenderer
         return output.ToString();
     }
 
-    private static string Reason(Landable candidate) => candidate.Refusal switch
+    private static string Reason(Land.Response candidate) => candidate.Refusal switch
     {
-        LandRefusal.None => "verified, chain holds",
-        LandRefusal.NotVerified => "not verified yet",
-        LandRefusal.NotPassed => "verification did not pass",
-        LandRefusal.Escalated => "escalated: could not be made to pass within its budget",
-        LandRefusal.ChainBroken => "verified, but the chain does not hold",
+        Land.LandRefusal.None => "verified, chain holds",
+        Land.LandRefusal.NotVerified => "not verified yet",
+        Land.LandRefusal.NotPassed => "verification did not pass",
+        Land.LandRefusal.Escalated => "escalated: could not be made to pass within its budget",
+        Land.LandRefusal.ChainBroken => "verified, but the chain does not hold",
         _ => "unknown",
     };
 

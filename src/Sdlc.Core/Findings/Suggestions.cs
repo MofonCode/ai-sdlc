@@ -24,12 +24,21 @@ public static class Suggestions
     {
         ArgumentNullException.ThrowIfNull(services);
 
-        return services.AddTransient<IRequestHandler<Request, IReadOnlyList<Suggestion>>, Handler>();
+        return services.AddTransient<IRequestHandler<Query, Response>, Handler>();
     }
 
     /// <summary>Asks for the non-blocking findings a solution has accumulated.</summary>
     /// <param name="Id">One cycle, or null for every cycle in the solution.</param>
-    public sealed record Request(CycleId? Id = null) : IRequest<IReadOnlyList<Suggestion>>;
+    public sealed record Query(CycleId? Id = null) : IRequest<Response>;
+
+    /// <summary>What was found.</summary>
+    /// <remarks>
+    /// A record around the list rather than the list itself, so this operation's response is its own
+    /// shape like every other one's. It also leaves somewhere for a count or a cap to go later
+    /// without changing what every caller takes.
+    /// </remarks>
+    /// <param name="Suggestions">Every open suggestion, newest round first within each cycle.</param>
+    public sealed record Response(IReadOnlyList<Suggestion> Suggestions);
 
     /// <summary>
     /// Collects the findings nobody had to act on.
@@ -47,11 +56,11 @@ public static class Suggestions
     /// </remarks>
     /// <param name="solution">The root of the solution being read.</param>
     private sealed class Handler(SolutionRoot solution)
-        : IRequestHandler<Request, IReadOnlyList<Suggestion>>
+        : IRequestHandler<Query, Response>
     {
         /// <inheritdoc />
-        public async Task<Result<IReadOnlyList<Suggestion>>> Handle(
-            Request request,
+        public async Task<Result<Response>> Handle(
+            Query request,
             CancellationToken cancellationToken)
         {
             ArgumentNullException.ThrowIfNull(request);
@@ -81,8 +90,8 @@ public static class Suggestions
             }
 
             return errors.Count > 0
-                ? Result.Fail<IReadOnlyList<Suggestion>>(errors)
-                : Result.Ok<IReadOnlyList<Suggestion>>(suggestions);
+                ? Result.Fail<Response>(errors)
+                : Result.Ok(new Response(suggestions));
         }
 
         /// <summary>

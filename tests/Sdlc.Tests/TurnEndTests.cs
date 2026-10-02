@@ -320,8 +320,8 @@ public sealed class TurnEndTests
             services => services.AddSingleton<IRepository>(
                 new FakeRepository { Branch = CycleBranch, Base = null }));
 
-        Result<HookVerdict> result = await gate.Send<TurnEndGate.Request, HookVerdict>(
-            new TurnEndGate.Request(new TurnEnd(solution.Root, AlreadyContinuing: false)));
+        Result<HookVerdict> result = await gate.Send<TurnEndGate.Query, HookVerdict>(
+            new TurnEndGate.Query(new TurnEnd(solution.Root, AlreadyContinuing: false)));
 
         Assert.IsTrue(result.IsSuccess);
         Assert.AreEqual(HookDecision.Allow, result.Value.Decision);
@@ -352,8 +352,8 @@ public sealed class TurnEndTests
                 Changed = changed ?? ["src/Thing.cs"],
             }));
 
-        Result<HookVerdict> result = await gate.Send<TurnEndGate.Request, HookVerdict>(
-            new TurnEndGate.Request(new TurnEnd(solution.Root, alreadyContinuing)));
+        Result<HookVerdict> result = await gate.Send<TurnEndGate.Query, HookVerdict>(
+            new TurnEndGate.Query(new TurnEnd(solution.Root, alreadyContinuing)));
 
         Assert.IsTrue(
             result.IsSuccess,

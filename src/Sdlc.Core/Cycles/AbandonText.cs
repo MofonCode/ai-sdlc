@@ -17,7 +17,7 @@ public static class AbandonText
     {
         ArgumentNullException.ThrowIfNull(services);
 
-        return services.AddTransient<IRequestHandler<Request, DraftResult>, Handler>();
+        return services.AddTransient<IRequestHandler<Query, DraftResult>, Handler>();
     }
 
     /// <summary>Asks for the record a person would place to stop a cycle.</summary>
@@ -26,7 +26,7 @@ public static class AbandonText
     /// Who is stopping it. Supplied by the caller from the git identity rather than invented here, for the
     /// same reason an approval names a person: a tool that filled this in would be taking the decision.
     /// </param>
-    public sealed record Request(CycleId Id, string By) : IRequest<DraftResult>;
+    public sealed record Query(CycleId Id, string By) : IRequest<DraftResult>;
 
     /// <summary>
     /// Prints an abandonment record. Writes nothing.
@@ -39,10 +39,10 @@ public static class AbandonText
     /// </remarks>
     /// <param name="solution">The root of the solution being governed.</param>
     private sealed class Handler(SolutionRoot solution)
-        : IRequestHandler<Request, DraftResult>
+        : IRequestHandler<Query, DraftResult>
     {
         /// <inheritdoc />
-        public Task<Result<DraftResult>> Handle(Request request, CancellationToken cancellationToken)
+        public Task<Result<DraftResult>> Handle(Query request, CancellationToken cancellationToken)
         {
             ArgumentNullException.ThrowIfNull(request);
 

@@ -131,8 +131,17 @@ dotnet_naming_style.pascal_case.capitalization = pascal_case
 # helper in this repository already was. That was the code deciding the convention. Reversed 2026-10-02
 # by the owner; the helpers are renamed to match rather than the rule bent to fit them.
 #
-# A private NESTED TYPE is not covered, deliberately, and stays PascalCase. The operation shape nests a
-# `Handler` inside each holder, and a camelCase type name has no precedent in .NET.
+# A private NESTED TYPE is not covered, and stays PascalCase. This was tried the other way and the
+# compiler refused it: CS8981 says a type name of only lower-case ascii characters may become reserved
+# for the language, and warnings are errors here. It is not an analyzer opinion - it is the language
+# team reserving the namespace, so suppressing it would accept a real chance of a future keyword
+# breaking the build.
+#
+# It also could not have been a convention. CS8981 fires on a single word and not on two, so `handler`
+# is refused where `ledgerShape` is accepted - and a rule that applies to some type names and not
+# others is not a rule. Private methods and fields carry the convention instead, which is where
+# accessibility-in-the-name was wanted: `_camelCase` for a field, camelCase for a method, PascalCase
+# for anything reachable from outside the type.
 dotnet_naming_rule.private_methods_should_be_camel.severity = warning
 dotnet_naming_rule.private_methods_should_be_camel.symbols = private_methods
 dotnet_naming_rule.private_methods_should_be_camel.style = camel_case_style

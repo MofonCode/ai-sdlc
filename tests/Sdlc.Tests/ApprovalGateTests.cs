@@ -22,9 +22,9 @@ public sealed class ApprovalGateTests
         using var workspace = CycleWorkspace.Create();
         Directory.Delete(workspace.Cycle.Directory, recursive: true);
 
-        GateVerdict verdict = await Check(workspace);
+        ApprovalGate.Response verdict = await Check(workspace);
 
-        Assert.AreEqual(GateRefusal.NoCycle, verdict.Refusal);
+        Assert.AreEqual(ApprovalGate.GateRefusal.NoCycle, verdict.Refusal);
         Assert.IsFalse(verdict.MayBuild);
         StringAssert.Contains(verdict.Explanation, "intent");
     }
@@ -42,10 +42,10 @@ public sealed class ApprovalGateTests
         workspace.WriteApproval();
         workspace.Abandon();
 
-        GateVerdict verdict = await Check(workspace);
+        ApprovalGate.Response verdict = await Check(workspace);
 
         Assert.AreEqual(
-            GateRefusal.Abandoned,
+            ApprovalGate.GateRefusal.Abandoned,
             verdict.Refusal,
             "Abandonment is terminal: a cycle carrying both files must not build, or the two would "
             + "need rules for which hand-written file wins.");
@@ -59,9 +59,9 @@ public sealed class ApprovalGateTests
         workspace.WriteArtifact(ArtifactKind.Intent);
         workspace.WriteArtifact(ArtifactKind.Spec);
 
-        GateVerdict verdict = await Check(workspace);
+        ApprovalGate.Response verdict = await Check(workspace);
 
-        Assert.AreEqual(GateRefusal.MissingDocument, verdict.Refusal);
+        Assert.AreEqual(ApprovalGate.GateRefusal.MissingDocument, verdict.Refusal);
         StringAssert.Contains(verdict.Explanation, "plan.md");
     }
 
@@ -71,9 +71,9 @@ public sealed class ApprovalGateTests
         using var workspace = CycleWorkspace.Create();
         workspace.WriteAllArtifacts();
 
-        GateVerdict verdict = await Check(workspace);
+        ApprovalGate.Response verdict = await Check(workspace);
 
-        Assert.AreEqual(GateRefusal.NotApproved, verdict.Refusal);
+        Assert.AreEqual(ApprovalGate.GateRefusal.NotApproved, verdict.Refusal);
         StringAssert.Contains(verdict.Explanation, "draft approval");
     }
 
@@ -84,9 +84,9 @@ public sealed class ApprovalGateTests
         workspace.WriteAllArtifacts();
         workspace.WriteApproval("changes_requested", reason: "the spec has no criterion for delivery");
 
-        GateVerdict verdict = await Check(workspace);
+        ApprovalGate.Response verdict = await Check(workspace);
 
-        Assert.AreEqual(GateRefusal.Refused, verdict.Refusal);
+        Assert.AreEqual(ApprovalGate.GateRefusal.Refused, verdict.Refusal);
         StringAssert.Contains(verdict.Explanation, "changes requested");
         StringAssert.Contains(verdict.Explanation, "no criterion for delivery");
     }
@@ -103,9 +103,9 @@ public sealed class ApprovalGateTests
 
         workspace.WriteApproval();
 
-        GateVerdict verdict = await Check(workspace);
+        ApprovalGate.Response verdict = await Check(workspace);
 
-        Assert.AreEqual(GateRefusal.None, verdict.Refusal, verdict.Explanation);
+        Assert.AreEqual(ApprovalGate.GateRefusal.None, verdict.Refusal, verdict.Explanation);
         Assert.IsTrue(verdict.MayBuild);
         StringAssert.Contains(verdict.Explanation, "Peter Almanzar");
     }
@@ -123,9 +123,9 @@ public sealed class ApprovalGateTests
         workspace.WriteApproval();
         workspace.WriteArtifact(ArtifactKind.Spec, "an extra criterion nobody approved");
 
-        GateVerdict verdict = await Check(workspace);
+        ApprovalGate.Response verdict = await Check(workspace);
 
-        Assert.AreEqual(GateRefusal.HashMismatch, verdict.Refusal);
+        Assert.AreEqual(ApprovalGate.GateRefusal.HashMismatch, verdict.Refusal);
         StringAssert.Contains(
             verdict.Explanation,
             "spec.md",
@@ -152,10 +152,10 @@ public sealed class ApprovalGateTests
         string original = await File.ReadAllTextAsync(path);
         await File.WriteAllTextAsync(path, original.Replace("\n", "\r\n", StringComparison.Ordinal) + "\r\n\r\n");
 
-        GateVerdict verdict = await Check(workspace);
+        ApprovalGate.Response verdict = await Check(workspace);
 
         Assert.AreEqual(
-            GateRefusal.None,
+            ApprovalGate.GateRefusal.None,
             verdict.Refusal,
             "A hash that moves when git changes a line ending would refuse every cycle on a "
             + "teammate's machine, which costs more than the narrower check buys.");
@@ -174,9 +174,9 @@ public sealed class ApprovalGateTests
         workspace.WriteApproval();
         workspace.WriteBlockingRound(ArtifactKind.Spec, round: 2, id: "F_07", cites: "CON_04");
 
-        GateVerdict verdict = await Check(workspace);
+        ApprovalGate.Response verdict = await Check(workspace);
 
-        Assert.AreEqual(GateRefusal.OpenBlocker, verdict.Refusal);
+        Assert.AreEqual(ApprovalGate.GateRefusal.OpenBlocker, verdict.Refusal);
         StringAssert.Contains(verdict.Explanation, "spec.F_07");
         StringAssert.Contains(verdict.Explanation, "CON_04");
     }
@@ -195,10 +195,10 @@ public sealed class ApprovalGateTests
 
         workspace.WriteApproval();
 
-        GateVerdict verdict = await Check(workspace);
+        ApprovalGate.Response verdict = await Check(workspace);
 
         Assert.AreEqual(
-            GateRefusal.OpenBlocker,
+            ApprovalGate.GateRefusal.OpenBlocker,
             verdict.Refusal,
             "A blocking finding cannot be waived, accepted or overridden. " + verdict.Explanation);
 
@@ -223,9 +223,9 @@ public sealed class ApprovalGateTests
             decision: "reopened",
             reason: "the plan proves criterion 3 against a stub");
 
-        GateVerdict verdict = await Check(workspace);
+        ApprovalGate.Response verdict = await Check(workspace);
 
-        Assert.AreEqual(GateRefusal.Refused, verdict.Refusal);
+        Assert.AreEqual(ApprovalGate.GateRefusal.Refused, verdict.Refusal);
         StringAssert.Contains(
             verdict.Explanation,
             "reopened",
@@ -249,10 +249,10 @@ public sealed class ApprovalGateTests
         workspace.WriteArtifact(ArtifactKind.Intent, "a different problem entirely");
         workspace.WriteApproval();
 
-        GateVerdict verdict = await Check(workspace);
+        ApprovalGate.Response verdict = await Check(workspace);
 
         Assert.AreEqual(
-            GateRefusal.StaleRound,
+            ApprovalGate.GateRefusal.StaleRound,
             verdict.Refusal,
             "Every approval hash matches what is on disk, so only the round knows. " + verdict.Explanation);
 
@@ -276,9 +276,9 @@ public sealed class ApprovalGateTests
         workspace.WriteCleanRound(ArtifactKind.Spec, round: 2);
         workspace.WriteApproval();
 
-        GateVerdict verdict = await Check(workspace);
+        ApprovalGate.Response verdict = await Check(workspace);
 
-        Assert.AreEqual(GateRefusal.None, verdict.Refusal, verdict.Explanation);
+        Assert.AreEqual(ApprovalGate.GateRefusal.None, verdict.Refusal, verdict.Explanation);
     }
 
     [TestMethod]
@@ -304,9 +304,9 @@ public sealed class ApprovalGateTests
 
         workspace.WriteApproval();
 
-        GateVerdict verdict = await Check(workspace);
+        ApprovalGate.Response verdict = await Check(workspace);
 
-        Assert.AreEqual(GateRefusal.StaleRound, verdict.Refusal, verdict.Explanation);
+        Assert.AreEqual(ApprovalGate.GateRefusal.StaleRound, verdict.Refusal, verdict.Explanation);
         StringAssert.Contains(
             verdict.Explanation,
             "did not record",
@@ -326,10 +326,10 @@ public sealed class ApprovalGateTests
 
         workspace.WriteApproval();
 
-        GateVerdict verdict = await Check(workspace);
+        ApprovalGate.Response verdict = await Check(workspace);
 
         Assert.AreEqual(
-            GateRefusal.None,
+            ApprovalGate.GateRefusal.None,
             verdict.Refusal,
             "The intent's round records no upstream because there is none. Requiring one would refuse "
             + "every cycle. " + verdict.Explanation);
@@ -347,10 +347,10 @@ public sealed class ApprovalGateTests
 
         workspace.WriteApproval();
 
-        GateVerdict verdict = await Check(workspace);
+        ApprovalGate.Response verdict = await Check(workspace);
 
         Assert.AreEqual(
-            GateRefusal.None,
+            ApprovalGate.GateRefusal.None,
             verdict.Refusal,
             "A finding keeps its id across rounds, so the latest round that mentions it says where it "
             + "has got to. " + verdict.Explanation);
@@ -383,19 +383,19 @@ public sealed class ApprovalGateTests
             ---
             """);
 
-        GateVerdict verdict = await Check(workspace);
+        ApprovalGate.Response verdict = await Check(workspace);
 
-        Assert.AreEqual(GateRefusal.HashMismatch, verdict.Refusal);
+        Assert.AreEqual(ApprovalGate.GateRefusal.HashMismatch, verdict.Refusal);
         StringAssert.Contains(verdict.Explanation, "records no hash");
         StringAssert.Contains(verdict.Explanation, "spec.md");
     }
 
-    private static async Task<GateVerdict> Check(CycleWorkspace workspace)
+    private static async Task<ApprovalGate.Response> Check(CycleWorkspace workspace)
     {
         using var gate = Gate.For(workspace.Root);
 
-        Result<GateVerdict> result = await gate
-            .Send<ApprovalGate.Request, GateVerdict>(new ApprovalGate.Request(workspace.Cycle.Id));
+        Result<ApprovalGate.Response> result = await gate
+            .Send<ApprovalGate.Query, ApprovalGate.Response>(new ApprovalGate.Query(workspace.Cycle.Id));
 
         Assert.IsTrue(result.IsSuccess, string.Join("; ", result.Errors.Select(e => e.Message)));
         return result.Value;

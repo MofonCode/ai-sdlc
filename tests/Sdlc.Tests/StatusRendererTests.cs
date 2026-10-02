@@ -367,12 +367,12 @@ public sealed class StatusRendererTests
     {
         using var gate = Gate.For(workspace.Root);
 
-        Result<CycleStatus> read = await gate
-            .Send<ReadCycleStatus.Request, CycleStatus>(new ReadCycleStatus.Request(workspace.Cycle.Id));
+        Result<ReadCycleStatus.Response> read = await gate
+            .Send<ReadCycleStatus.Query, ReadCycleStatus.Response>(new ReadCycleStatus.Query(workspace.Cycle.Id));
 
         Assert.IsTrue(read.IsSuccess, string.Join("; ", read.Errors.Select(e => e.Message)));
 
-        ArtifactState state = read.Value.Artifacts.First(artifact => artifact.Kind == kind);
+        ReadCycleStatus.ArtifactState state = read.Value.Artifacts.First(artifact => artifact.Kind == kind);
         ArtifactOutline outline = await ArtifactOutlineReader.ReadFile(state.Path, CancellationToken.None);
 
         ArtifactValidation? checked_shape = shapeResult ?? (shape

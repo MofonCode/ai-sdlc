@@ -9,41 +9,6 @@ using Sdlc.Core.Solutions;
 
 namespace Sdlc.Core.Landing;
 
-/// <summary>Why a cycle may not be landed.</summary>
-public enum LandRefusal
-{
-    /// <summary>Nothing refuses it.</summary>
-    None,
-
-    /// <summary>There is no cycle, or no verify document.</summary>
-    NotVerified,
-
-    /// <summary>The verification did not pass.</summary>
-    NotPassed,
-
-    /// <summary>Remediation ran out of passes with blockers still open.</summary>
-    Escalated,
-
-    /// <summary>The chain does not hold, so the pull-request check would refuse it anyway.</summary>
-    ChainBroken,
-}
-
-
-/// <summary>Whether a cycle may be landed, and why not.</summary>
-/// <param name="Cycle">The cycle.</param>
-/// <param name="Refusal">Why not, or <see cref="LandRefusal.None"/>.</param>
-/// <param name="Explanation">What to tell the person.</param>
-/// <param name="Chain">What the chain check found, when it was reached.</param>
-public sealed record Landable(
-    Cycle Cycle,
-    LandRefusal Refusal,
-    string Explanation,
-    ChainVerdict? Chain)
-{
-    /// <summary>Whether the cycle may be landed.</summary>
-    public bool MayLand => Refusal == LandRefusal.None;
-}
-
 /// <summary>Says whether a cycle may be landed, without landing it.</summary>
 public static class Land
 {
@@ -54,12 +19,46 @@ public static class Land
     {
         ArgumentNullException.ThrowIfNull(services);
 
-        return services.AddTransient<IRequestHandler<Request, Landable>, Handler>();
+        return services.AddTransient<IRequestHandler<Query, Response>, Handler>();
+    }
+
+    /// <summary>Why a cycle may not be landed.</summary>
+    public enum LandRefusal
+    {
+        /// <summary>Nothing refuses it.</summary>
+        None,
+
+        /// <summary>There is no cycle, or no verify document.</summary>
+        NotVerified,
+
+        /// <summary>The verification did not pass.</summary>
+        NotPassed,
+
+        /// <summary>Remediation ran out of passes with blockers still open.</summary>
+        Escalated,
+
+        /// <summary>The chain does not hold, so the pull-request check would refuse it anyway.</summary>
+        ChainBroken,
+    }
+
+    /// <summary>Whether a cycle may be landed, and why not.</summary>
+    /// <param name="Cycle">The cycle.</param>
+    /// <param name="Refusal">Why not, or <see cref="LandRefusal.None"/>.</param>
+    /// <param name="Explanation">What to tell the person.</param>
+    /// <param name="Chain">What the chain check found, when it was reached.</param>
+    public sealed record Response(
+        Cycle Cycle,
+        LandRefusal Refusal,
+        string Explanation,
+        VerifyChain.Response? Chain)
+    {
+        /// <summary>Whether the cycle may be landed.</summary>
+        public bool MayLand => Refusal == LandRefusal.None;
     }
 
     /// <summary>Asks whether a cycle may be landed, without landing it.</summary>
     /// <param name="Id">The cycle to check.</param>
-    public sealed record Request(CycleId Id) : IRequest<Landable>;
+    public sealed record Query(CycleId Id) : IRequest<Response>;
 
     /// <summary>
     /// Decides whether a cycle may be landed.
@@ -82,10 +81,10 @@ public static class Land
     /// </para>
     /// </remarks>
     /// <param name="solution">The solution being landed from.</param>
-    private sealed class Handler(SolutionRoot solution, Mediator mediator) : IRequestHandler<Request, Landable>
+    private sealed class Handler(SolutionRoot solution, Mediator mediator) : IRequestHandler<Query, Response>
     {
         /// <inheritdoc />
-        public async Task<Result<Landable>> Handle(Request request, CancellationToken cancellationToken)
+        public async Task<Result<Response>> Handle(Query request, CancellationToken cancellationToken)
         {
             ArgumentNullException.ThrowIfNull(request);
 
@@ -105,7 +104,7 @@ public static class Land
 
             if (budget.IsFailed)
             {
-                return budget.ToResult<Landable>();
+                return budget.ToResult<Response>();
             }
 
             if (budget.Value.Escalated)
@@ -115,20 +114,20 @@ public static class Land
                     $"Cycle {cycle.Id} is escalated: {budget.Value.Spent} remediation passes spent and {budget.Value.OpenBlockers.Count} finding{(budget.Value.OpenBlockers.Count == 1 ? string.Empty : "s")} still open. A cycle that could not be made to pass within its budget stops rather than landing, and that stopping is what makes an unattended batch safe to run."));
             }
 
-            Result<ChainVerdict> chain = await mediator
-                .Send<VerifyChain.Request, ChainVerdict>(
-                    new VerifyChain.Request(request.Id),
+            Result<VerifyChain.Response> chain = await mediator
+                .Send<VerifyChain.Query, VerifyChain.Response>(
+                    new VerifyChain.Query(request.Id),
                     cancellationToken)
                 .ConfigureAwait(false);
 
             if (chain.IsFailed)
             {
-                return chain.ToResult<Landable>();
+                return chain.ToResult<Response>();
             }
 
             // The outcome is read through the chain rather than parsed again here, so the local refusal and the
             // merge check cannot disagree about what a pass is.
-            ChainCheck? verified = chain.Value.Checks
+            VerifyChain.ChainCheck? verified = chain.Value.Checks
                 .FirstOrDefault(check => check.Name.Contains("verified", StringComparison.Ordinal));
 
             if (verified is { Passed: false })
@@ -162,11 +161,11 @@ public static class Land
                 chain.Value);
         }
 
-        private static Result<Landable> Verdict(
+        private static Result<Response> Verdict(
             Cycle cycle,
             LandRefusal refusal,
             string explanation,
-            ChainVerdict? chain = null) =>
-            Result.Ok(new Landable(cycle, refusal, explanation, chain));
+            VerifyChain.Response? chain = null) =>
+            Result.Ok(new Response(cycle, refusal, explanation, chain));
     }
 }

@@ -15,7 +15,7 @@ namespace Sdlc.Core.Cycles;
 /// something about the proof, and the author chases the finding instead of the missing heading.
 /// </param>
 public sealed record StagePanel(
-    ArtifactState State,
+    ReadCycleStatus.ArtifactState State,
     ArtifactOutline Outline,
     ArtifactValidation? Shape = null);
 
@@ -42,13 +42,13 @@ public static class StatusRenderer
     /// <param name="status">The cycle's state.</param>
     /// <param name="panel">The artifact the stage just finished, with its outline.</param>
     /// <returns>The rendered panel, ending in a newline.</returns>
-    public static string RenderStage(CycleStatus status, StagePanel panel)
+    public static string RenderStage(ReadCycleStatus.Response status, StagePanel panel)
     {
         ArgumentNullException.ThrowIfNull(status);
         ArgumentNullException.ThrowIfNull(panel);
 
         StringBuilder output = new();
-        ArtifactState state = panel.State;
+        ReadCycleStatus.ArtifactState state = panel.State;
 
         string heading = string.Create(
             CultureInfo.InvariantCulture,
@@ -106,7 +106,7 @@ public static class StatusRenderer
         output.AppendLine();
     }
 
-    private static void Checks(StringBuilder output, ArtifactState state)
+    private static void Checks(StringBuilder output, ReadCycleStatus.ArtifactState state)
     {
         if (state.Rounds == 0)
         {
@@ -147,7 +147,7 @@ public static class StatusRenderer
     /// wrong about the one thing it exists to say. The verification's outcome is the only thing that
     /// distinguishes the four states, so it is what this reads.
     /// </remarks>
-    private static (string Command, string Why) AfterTheGate(CycleStatus status, string id) =>
+    private static (string Command, string Why) AfterTheGate(ReadCycleStatus.Response status, string id) =>
         status.Outcome switch
         {
             null => (
@@ -171,17 +171,17 @@ public static class StatusRenderer
                 string.Create(CultureInfo.InvariantCulture, $"the outcome reads '{status.Outcome}'")),
         };
 
-    private static string GateLine(CycleStatus status) => status.Gate.Refusal switch
+    private static string GateLine(ReadCycleStatus.Response status) => status.Gate.Refusal switch
     {
-        GateRefusal.None => "approved, and all three documents match what was approved",
-        GateRefusal.NotApproved => "not approved yet",
-        GateRefusal.Refused => "sent back - " + (status.Gate.Ledger?.Current?.Reason ?? "no reason recorded"),
-        GateRefusal.HashMismatch => "approved, but a document has changed since",
-        GateRefusal.OpenBlocker => "approved, but a blocking finding is still open",
-        GateRefusal.StaleRound => "approved, but an interrogation judged a document that has changed since",
-        GateRefusal.Abandoned => "abandoned, which is terminal",
-        GateRefusal.MissingDocument => "cannot be approved until all three documents exist",
-        GateRefusal.NoCycle => "no cycle directory yet",
+        ApprovalGate.GateRefusal.None => "approved, and all three documents match what was approved",
+        ApprovalGate.GateRefusal.NotApproved => "not approved yet",
+        ApprovalGate.GateRefusal.Refused => "sent back - " + (status.Gate.Ledger?.Current?.Reason ?? "no reason recorded"),
+        ApprovalGate.GateRefusal.HashMismatch => "approved, but a document has changed since",
+        ApprovalGate.GateRefusal.OpenBlocker => "approved, but a blocking finding is still open",
+        ApprovalGate.GateRefusal.StaleRound => "approved, but an interrogation judged a document that has changed since",
+        ApprovalGate.GateRefusal.Abandoned => "abandoned, which is terminal",
+        ApprovalGate.GateRefusal.MissingDocument => "cannot be approved until all three documents exist",
+        ApprovalGate.GateRefusal.NoCycle => "no cycle directory yet",
         _ => "unknown",
     };
 
@@ -192,7 +192,7 @@ public static class StatusRenderer
     /// This is the detail that makes the flow feel smooth rather than merely informative: a panel that
     /// reports a state and leaves a person to work out the command has stopped one step short.
     /// </remarks>
-    private static void Next(StringBuilder output, CycleStatus status, ArtifactState state)
+    private static void Next(StringBuilder output, ReadCycleStatus.Response status, ReadCycleStatus.ArtifactState state)
     {
         string id = status.Cycle.Id.ToString();
         string name = Cycle.NameOf(state.Kind);
@@ -221,7 +221,7 @@ public static class StatusRenderer
         }
         else
         {
-            ArtifactState? waiting = status.Blocking;
+            ReadCycleStatus.ArtifactState? waiting = status.Blocking;
 
             if (waiting is not null && waiting.Kind != state.Kind)
             {

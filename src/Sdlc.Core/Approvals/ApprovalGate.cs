@@ -9,91 +9,6 @@ using Sdlc.Core.Solutions;
 
 namespace Sdlc.Core.Approvals;
 
-/// <summary>Why a cycle may not be built.</summary>
-public enum GateRefusal
-{
-    /// <summary>Nothing refuses it.</summary>
-    None,
-
-    /// <summary>The cycle has no directory. Nothing has been written yet.</summary>
-    NoCycle,
-
-    /// <summary>The cycle was abandoned, which is terminal.</summary>
-    Abandoned,
-
-    /// <summary>One of the three planning documents is missing.</summary>
-    MissingDocument,
-
-    /// <summary>There is no approval ledger. Nobody has been to the gate.</summary>
-    NotApproved,
-
-    /// <summary>The standing decision refuses the cycle.</summary>
-    Refused,
-
-    /// <summary>A document has changed since it was approved.</summary>
-    HashMismatch,
-
-    /// <summary>
-    /// A blocking finding is open.
-    /// </summary>
-    /// <remarks>
-    /// There is no way out of this refusal but to answer the finding. A blocking finding cannot be
-    /// waived, accepted or overridden by any mechanism, so the gate does not ask whether the approval
-    /// named it -- an approval standing over an open blocker says the cycle is agreed while an
-    /// objection to it stands unanswered, and that is what this refuses.
-    /// <para>
-    /// The printer refuses to produce an entry while a blocker is open, so reaching this means the
-    /// blocker was raised after the entry was printed or the entry was written by hand. Keeping the
-    /// check here as well as there is deliberate: the printer is advice a person can decline to take,
-    /// and the gate is the layer that does not negotiate.
-    /// </para>
-    /// </remarks>
-    OpenBlocker,
-
-    /// <summary>
-    /// A findings round judged its artifact against an upstream that has since changed.
-    /// </summary>
-    /// <remarks>
-    /// The three approval hashes prove these three documents were approved. They do not prove the spec
-    /// was derived from this intent -- so an intent edited after a clean spec leaves a spec derived from
-    /// an intent that no longer exists, with every approval hash matching. Only the round knows what it
-    /// read, which is why it records it.
-    /// </remarks>
-    StaleRound,
-}
-
-/// <summary>One document's hash as approved against its hash now.</summary>
-/// <param name="Document">The file name.</param>
-/// <param name="Approved">The hash the ledger recorded, or null when it recorded none.</param>
-/// <param name="Current">The hash of what is on disk, or null when the file is missing.</param>
-public sealed record DocumentHash(string Document, string? Approved, string? Current)
-{
-    /// <summary>Whether what is on disk is what was approved.</summary>
-    public bool Matches => Approved is not null && Current is not null
-        && string.Equals(Approved, Current, StringComparison.Ordinal);
-}
-
-
-/// <summary>What the gate found.</summary>
-/// <param name="Cycle">The cycle that was checked.</param>
-/// <param name="Refusal">Why it may not be built, or <see cref="GateRefusal.None"/>.</param>
-/// <param name="Explanation">
-/// What to tell the person, naming the document at fault. Never just "hash mismatch": a refusal that
-/// does not say which of the three changed leaves nothing to act on.
-/// </param>
-/// <param name="Ledger">The ledger, when there was one to read.</param>
-/// <param name="Hashes">Each planning document, as approved and as it is now.</param>
-public sealed record GateVerdict(
-    Cycle Cycle,
-    GateRefusal Refusal,
-    string Explanation,
-    ApprovalLedger? Ledger,
-    IReadOnlyList<DocumentHash> Hashes)
-{
-    /// <summary>Whether the build may run.</summary>
-    public bool MayBuild => Refusal == GateRefusal.None;
-}
-
 /// <summary>Says whether a cycle's build may run, and refuses with the reason when it may not.</summary>
 public static class ApprovalGate
 {
@@ -104,12 +19,96 @@ public static class ApprovalGate
     {
         ArgumentNullException.ThrowIfNull(services);
 
-        return services.AddTransient<IRequestHandler<Request, GateVerdict>, Handler>();
+        return services.AddTransient<IRequestHandler<Query, Response>, Handler>();
+    }
+
+    /// <summary>Why a cycle may not be built.</summary>
+    public enum GateRefusal
+    {
+        /// <summary>Nothing refuses it.</summary>
+        None,
+
+        /// <summary>The cycle has no directory. Nothing has been written yet.</summary>
+        NoCycle,
+
+        /// <summary>The cycle was abandoned, which is terminal.</summary>
+        Abandoned,
+
+        /// <summary>One of the three planning documents is missing.</summary>
+        MissingDocument,
+
+        /// <summary>There is no approval ledger. Nobody has been to the gate.</summary>
+        NotApproved,
+
+        /// <summary>The standing decision refuses the cycle.</summary>
+        Refused,
+
+        /// <summary>A document has changed since it was approved.</summary>
+        HashMismatch,
+
+        /// <summary>
+        /// A blocking finding is open.
+        /// </summary>
+        /// <remarks>
+        /// There is no way out of this refusal but to answer the finding. A blocking finding cannot be
+        /// waived, accepted or overridden by any mechanism, so the gate does not ask whether the approval
+        /// named it -- an approval standing over an open blocker says the cycle is agreed while an
+        /// objection to it stands unanswered, and that is what this refuses.
+        /// <para>
+        /// The printer refuses to produce an entry while a blocker is open, so reaching this means the
+        /// blocker was raised after the entry was printed or the entry was written by hand. Keeping the
+        /// check here as well as there is deliberate: the printer is advice a person can decline to take,
+        /// and the gate is the layer that does not negotiate.
+        /// </para>
+        /// </remarks>
+        OpenBlocker,
+
+        /// <summary>
+        /// A findings round judged its artifact against an upstream that has since changed.
+        /// </summary>
+        /// <remarks>
+        /// The three approval hashes prove these three documents were approved. They do not prove the spec
+        /// was derived from this intent -- so an intent edited after a clean spec leaves a spec derived from
+        /// an intent that no longer exists, with every approval hash matching. Only the round knows what it
+        /// read, which is why it records it.
+        /// </remarks>
+        StaleRound,
+    }
+
+    /// <summary>One document's hash as approved against its hash now.</summary>
+    /// <param name="Document">The file name.</param>
+    /// <param name="Approved">The hash the ledger recorded, or null when it recorded none.</param>
+    /// <param name="Current">The hash of what is on disk, or null when the file is missing.</param>
+    public sealed record DocumentHash(string Document, string? Approved, string? Current)
+    {
+        /// <summary>Whether what is on disk is what was approved.</summary>
+        public bool Matches => Approved is not null && Current is not null
+            && string.Equals(Approved, Current, StringComparison.Ordinal);
+    }
+
+    /// <summary>What the gate found.</summary>
+    /// <param name="Cycle">The cycle that was checked.</param>
+    /// <param name="Refusal">Why it may not be built, or <see cref="GateRefusal.None"/>.</param>
+    /// <param name="Explanation">
+    /// What to tell the person, naming the document at fault. Never just "hash mismatch": a refusal that
+    /// does not say which of the three changed leaves nothing to act on.
+    /// </param>
+    /// <param name="Ledger">The ledger, when there was one to read.</param>
+    /// <param name="Hashes">Each planning document, as approved and as it is now.</param>
+    public sealed record Response(
+        Cycle Cycle,
+        GateRefusal Refusal,
+        string Explanation,
+        ApprovalLedger? Ledger,
+        IReadOnlyList<DocumentHash> Hashes)
+    {
+        /// <summary>Whether the build may run.</summary>
+        public bool MayBuild => Refusal == GateRefusal.None;
     }
 
     /// <summary>Asks whether a cycle's build may run.</summary>
     /// <param name="Id">The cycle to check.</param>
-    public sealed record Request(CycleId Id) : IRequest<GateVerdict>;
+    public sealed record Query(CycleId Id) : IRequest<Response>;
 
     /// <summary>
     /// Decides whether a cycle's build may run.
@@ -121,11 +120,11 @@ public static class ApprovalGate
     /// </remarks>
     /// <param name="solution">The root of the solution being governed.</param>
     private sealed class Handler(SolutionRoot solution)
-        : IRequestHandler<Request, GateVerdict>
+        : IRequestHandler<Query, Response>
     {
         /// <inheritdoc />
-        public async Task<Result<GateVerdict>> Handle(
-            Request request,
+        public async Task<Result<Response>> Handle(
+            Query request,
             CancellationToken cancellationToken)
         {
             ArgumentNullException.ThrowIfNull(request);
@@ -169,7 +168,7 @@ public static class ApprovalGate
             Result<ApprovalLedger> read = ApprovalLedger.Read(ledgerText, cycle.ApprovalPath);
             if (read.IsFailed)
             {
-                return read.ToResult<GateVerdict>();
+                return read.ToResult<Response>();
             }
 
             ApprovalLedger ledger = read.Value;
@@ -402,12 +401,12 @@ public static class ApprovalGate
                 ]);
         }
 
-        private static Result<GateVerdict> Verdict(
+        private static Result<Response> Verdict(
             Cycle cycle,
             GateRefusal refusal,
             string explanation,
             ApprovalLedger? ledger = null,
             IReadOnlyList<DocumentHash>? hashes = null) =>
-            Result.Ok(new GateVerdict(cycle, refusal, explanation, ledger, hashes ?? []));
+            Result.Ok(new Response(cycle, refusal, explanation, ledger, hashes ?? []));
     }
 }

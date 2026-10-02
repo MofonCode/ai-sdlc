@@ -22,9 +22,11 @@ public static class SuggestionsRenderer
     /// </summary>
     /// <param name="suggestions">What was found, in any order.</param>
     /// <returns>The rendered text, ending in a newline.</returns>
-    public static string Render(IReadOnlyList<Suggestion> suggestions)
+    public static string Render(Suggestions.Response response)
     {
-        ArgumentNullException.ThrowIfNull(suggestions);
+        ArgumentNullException.ThrowIfNull(response);
+
+        IReadOnlyList<Suggestion> suggestions = response.Suggestions;
 
         StringBuilder output = new();
 

@@ -21,7 +21,7 @@ public static class EvidenceRenderer
     /// </summary>
     /// <param name="report">What was recorded.</param>
     /// <returns>The rendered text, ending in a newline.</returns>
-    public static string Render(EvidenceReport report)
+    public static string Render(RecordEvidence.Response report)
     {
         ArgumentNullException.ThrowIfNull(report);
 
@@ -82,7 +82,7 @@ public static class EvidenceRenderer
     /// Stated every time, including when the two sets agree. A reader who met this line only on a
     /// disagreement would have no way to know whether it was about to stop them.
     /// </remarks>
-    private static void Comparison(StringBuilder output, EvidenceReport report)
+    private static void Comparison(StringBuilder output, RecordEvidence.Response report)
     {
         FileComparison comparison = report.Comparison;
 

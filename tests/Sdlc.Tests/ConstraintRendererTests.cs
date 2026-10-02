@@ -5,7 +5,7 @@ namespace Sdlc.Tests;
 [TestClass]
 public sealed class ConstraintRendererTests
 {
-    private static ConstraintSet Set(params Constraint[] constraints) =>
+    private static EffectiveConstraints.Response Set(params Constraint[] constraints) =>
         new(
             constraints,
             [new ConstraintDocument(ConstraintTier.Global, "CONSTRAINTS.md", string.Empty)],
@@ -94,7 +94,7 @@ public sealed class ConstraintRendererTests
         Assert.IsTrue(ConstraintId.TryParse("CON_21", out ConstraintId? replacement));
         Constraint retired = Rule("CON_20", "A retired rule") with { SupersededBy = replacement };
 
-        ConstraintSet set = new(
+        EffectiveConstraints.Response set = new(
             [Rule("CON_01", "First")],
             [new ConstraintDocument(ConstraintTier.Global, "CONSTRAINTS.md", string.Empty)],
             [retired]);

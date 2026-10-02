@@ -24,7 +24,7 @@ public sealed class ClaimGraphTests
         solution.Plan("20260929_1100_00", "src/B.cs");
         solution.Plan("20260929_1200_00", "src/C.cs");
 
-        ClaimGraph graph = await Compute(solution);
+        ComputeClaimGraph.Response graph = await Compute(solution);
 
         Assert.AreEqual(0, graph.Collisions.Count);
         Assert.AreEqual(1, graph.Groups.Count);
@@ -39,9 +39,9 @@ public sealed class ClaimGraphTests
         solution.Plan("20260929_1000_00", "src/A.cs", "src/Shared.cs");
         solution.Plan("20260929_1100_00", "src/Shared.cs");
 
-        ClaimGraph graph = await Compute(solution);
+        ComputeClaimGraph.Response graph = await Compute(solution);
 
-        Collision only = graph.Collisions.Single();
+        ComputeClaimGraph.Collision only = graph.Collisions.Single();
 
         CollectionAssert.AreEqual(new[] { "src/Shared.cs" }, only.Files.ToArray());
         Assert.AreEqual(2, graph.Groups.Count);
@@ -57,9 +57,9 @@ public sealed class ClaimGraphTests
         solution.Plan("20261001_0900_00", "src/Shared.cs");
         solution.Plan("20260929_1000_00", "src/Shared.cs");
 
-        ClaimGraph graph = await Compute(solution);
+        ComputeClaimGraph.Response graph = await Compute(solution);
 
-        Collision only = graph.Collisions.Single();
+        ComputeClaimGraph.Collision only = graph.Collisions.Single();
 
         Assert.AreEqual("20260929_1000_00", only.First.ToString());
         Assert.AreEqual("20261001_0900_00", only.Second.ToString());
@@ -76,7 +76,7 @@ public sealed class ClaimGraphTests
         solution.Plan("20260929_1100_00", "src/A.cs");
         solution.Plan("20260929_1200_00", "src/B.cs");
 
-        ClaimGraph graph = await Compute(solution);
+        ComputeClaimGraph.Response graph = await Compute(solution);
 
         Assert.AreEqual(2, graph.Groups.Count);
         Assert.AreEqual(2, graph.Groups[0].Count, "The third claims nothing the first does.");
@@ -96,7 +96,7 @@ public sealed class ClaimGraphTests
 
         solution.PlanShaped("20260929_1000_00", shape, "src/A.cs");
 
-        ClaimGraph graph = await Compute(solution);
+        ComputeClaimGraph.Response graph = await Compute(solution);
 
         Assert.IsTrue(graph.Claims.Single().NeedsServices, shape);
     }
@@ -108,7 +108,7 @@ public sealed class ClaimGraphTests
 
         solution.PlanShaped("20260929_1000_00", "A scoped service decides the roll.", "src/A.cs");
 
-        ClaimGraph graph = await Compute(solution);
+        ComputeClaimGraph.Response graph = await Compute(solution);
 
         Assert.IsFalse(graph.Claims.Single().NeedsServices);
     }
@@ -122,7 +122,7 @@ public sealed class ClaimGraphTests
         solution.Plan("20260929_1000_00", "src/A.cs");
         solution.EmptyCycle("20260929_1100_00");
 
-        ClaimGraph graph = await Compute(solution);
+        ComputeClaimGraph.Response graph = await Compute(solution);
 
         Assert.AreEqual(1, graph.Claims.Count);
     }
@@ -153,12 +153,12 @@ public sealed class ClaimGraphTests
         Assert.IsTrue(rendered.All(char.IsAscii), rendered);
     }
 
-    private static async Task<ClaimGraph> Compute(Solution solution)
+    private static async Task<ComputeClaimGraph.Response> Compute(Solution solution)
     {
         using var gate = Gate.For(solution.Root);
 
-        Result<ClaimGraph> result = await gate
-            .Send<ComputeClaimGraph.Request, ClaimGraph>(new ComputeClaimGraph.Request());
+        Result<ComputeClaimGraph.Response> result = await gate
+            .Send<ComputeClaimGraph.Query, ComputeClaimGraph.Response>(new ComputeClaimGraph.Query());
 
         Assert.IsTrue(result.IsSuccess, string.Join("; ", result.Errors.Select(e => e.Message)));
         return result.Value;

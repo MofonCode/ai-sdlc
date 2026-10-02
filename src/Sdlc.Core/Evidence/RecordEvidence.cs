@@ -8,20 +8,6 @@ using Sdlc.Core.Solutions;
 
 namespace Sdlc.Core.Evidence;
 
-
-/// <summary>What was recorded, and what the comparison noticed.</summary>
-/// <param name="Cycle">The cycle.</param>
-/// <param name="Written">Each evidence file written, relative to the evidence directory.</param>
-/// <param name="Summary">The normalised test summary, when there was one to write.</param>
-/// <param name="Changed">The paths the diff touched.</param>
-/// <param name="Comparison">Declared against changed, which is a signal rather than a gate.</param>
-public sealed record EvidenceReport(
-    Cycle Cycle,
-    IReadOnlyList<string> Written,
-    TestSummary? Summary,
-    IReadOnlyList<string> Changed,
-    FileComparison Comparison);
-
 /// <summary>Records what a build produced - the diff, its base commit, and a normalised test summary.</summary>
 public static class RecordEvidence
 {
@@ -32,8 +18,21 @@ public static class RecordEvidence
     {
         ArgumentNullException.ThrowIfNull(services);
 
-        return services.AddTransient<IRequestHandler<Request, EvidenceReport>, Handler>();
+        return services.AddTransient<IRequestHandler<Command, Response>, Handler>();
     }
+
+    /// <summary>What was recorded, and what the comparison noticed.</summary>
+    /// <param name="Cycle">The cycle.</param>
+    /// <param name="Written">Each evidence file written, relative to the evidence directory.</param>
+    /// <param name="Summary">The normalised test summary, when there was one to write.</param>
+    /// <param name="Changed">The paths the diff touched.</param>
+    /// <param name="Comparison">Declared against changed, which is a signal rather than a gate.</param>
+    public sealed record Response(
+        Cycle Cycle,
+        IReadOnlyList<string> Written,
+        TestSummary? Summary,
+        IReadOnlyList<string> Changed,
+        FileComparison Comparison);
 
     /// <summary>The normalised test summary every later reader uses.</summary>
     public const string SummaryFileName = "tests.json";
@@ -48,8 +47,8 @@ public static class RecordEvidence
     /// <param name="Id">The cycle the build belongs to.</param>
     /// <param name="Trx">A runner's own test results to normalise, or null when there are none yet.</param>
     /// <param name="BuildLog">A build log to keep alongside, or null.</param>
-    public sealed record Request(CycleId Id, string? Trx = null, string? BuildLog = null)
-        : IRequest<EvidenceReport>;
+    public sealed record Command(CycleId Id, string? Trx = null, string? BuildLog = null)
+        : IRequest<Response>;
 
     /// <summary>
     /// Writes a build's evidence, and compares what changed against what the plan declared.
@@ -70,11 +69,11 @@ public static class RecordEvidence
     private sealed class Handler(
         SolutionRoot solution,
         IRepository repository,
-        TimeProvider time) : IRequestHandler<Request, EvidenceReport>
+        TimeProvider time) : IRequestHandler<Command, Response>
     {
         /// <inheritdoc />
-        public async Task<Result<EvidenceReport>> Handle(
-            Request request,
+        public async Task<Result<Response>> Handle(
+            Command request,
             CancellationToken cancellationToken)
         {
             ArgumentNullException.ThrowIfNull(request);
@@ -83,7 +82,7 @@ public static class RecordEvidence
 
             if (!cycle.Exists)
             {
-                return Result.Fail<EvidenceReport>(string.Create(
+                return Result.Fail<Response>(string.Create(
                     CultureInfo.InvariantCulture,
                     $"Cycle {cycle.Id} has no directory at {cycle.Directory}."));
             }
@@ -92,7 +91,7 @@ public static class RecordEvidence
 
             if (!File.Exists(plan))
             {
-                return Result.Fail<EvidenceReport>(string.Create(
+                return Result.Fail<Response>(string.Create(
                     CultureInfo.InvariantCulture,
                     $"Cycle {cycle.Id} has no plan. There is nothing to compare a change against."));
             }
@@ -104,7 +103,7 @@ public static class RecordEvidence
 
             if (baseCommit is null)
             {
-                return Result.Fail<EvidenceReport>(string.Create(
+                return Result.Fail<Response>(string.Create(
                     CultureInfo.InvariantCulture,
                     $"git could not say where {cycle.Id.BranchName()} diverged from the default branch. The diff is measured from that commit, so without it there is nothing to record."));
             }
@@ -126,7 +125,7 @@ public static class RecordEvidence
 
                 if (normalised.IsFailed)
                 {
-                    return normalised.ToResult<EvidenceReport>();
+                    return normalised.ToResult<Response>();
                 }
 
                 summary = normalised.Value;
@@ -146,7 +145,7 @@ public static class RecordEvidence
                 DeclaredFiles.Read(await File.ReadAllTextAsync(plan, cancellationToken).ConfigureAwait(false)),
                 changed);
 
-            return Result.Ok(new EvidenceReport(cycle, written, summary, changed, comparison));
+            return Result.Ok(new Response(cycle, written, summary, changed, comparison));
         }
 
         /// <summary>

@@ -8,62 +8,6 @@ using Sdlc.Core.Solutions;
 
 namespace Sdlc.Core.Init;
 
-/// <summary>How adoption is running.</summary>
-public enum InitMode
-{
-    /// <summary>A new solution. The framework's defaults are the solution's defaults.</summary>
-    Scaffold,
-
-    /// <summary>Code that existed first, with no framework directory yet.</summary>
-    Onboard,
-
-    /// <summary>A governed solution already. Only what the framework owns is refreshed.</summary>
-    Update,
-}
-
-/// <summary>What happened to one file.</summary>
-public enum InitChange
-{
-    /// <summary>It did not exist, and now does.</summary>
-    Created,
-
-    /// <summary>The framework owns it, and it was rewritten.</summary>
-    Updated,
-
-    /// <summary>It exists and is not the framework's to change.</summary>
-    Kept,
-
-    /// <summary>Nothing was written; the contents were printed for a person to place.</summary>
-    Printed,
-}
-
-/// <summary>One file adoption touched, or deliberately did not.</summary>
-/// <param name="Path">Where it is, relative to the solution root.</param>
-/// <param name="Change">What happened to it.</param>
-/// <param name="Why">Why, when the answer is not obvious from the change.</param>
-public sealed record InitAction(string Path, InitChange Change, string? Why = null);
-
-
-/// <summary>What adoption did.</summary>
-/// <param name="Mode">Which mode ran.</param>
-/// <param name="Origin">What the solution's origin was decided to be.</param>
-/// <param name="Actions">Every file touched or deliberately left, in writing order.</param>
-/// <param name="Printed">File contents that were not written, keyed by the path they belong at.</param>
-public sealed record InitReport(
-    InitMode Mode,
-    SolutionOrigin Origin,
-    IReadOnlyList<InitAction> Actions,
-    IReadOnlyDictionary<string, string> Printed)
-{
-    /// <summary>The paths that were written, for the commit to stage.</summary>
-    public IReadOnlyList<string> Written =>
-    [
-        .. Actions
-            .Where(action => action.Change is InitChange.Created or InitChange.Updated)
-            .Select(action => action.Path),
-    ];
-}
-
 /// <summary>Adopts the framework into a repository, in one of three modes.</summary>
 public static class Initialise
 {
@@ -81,13 +25,68 @@ public static class Initialise
     {
         ArgumentNullException.ThrowIfNull(services);
 
-        return services.AddTransient<IRequestHandler<Request, InitReport>, Handler>();
+        return services.AddTransient<IRequestHandler<Command, Response>, Handler>();
+    }
+
+    /// <summary>How adoption is running.</summary>
+    public enum InitMode
+    {
+        /// <summary>A new solution. The framework's defaults are the solution's defaults.</summary>
+        Scaffold,
+
+        /// <summary>Code that existed first, with no framework directory yet.</summary>
+        Onboard,
+
+        /// <summary>A governed solution already. Only what the framework owns is refreshed.</summary>
+        Update,
+    }
+
+    /// <summary>What happened to one file.</summary>
+    public enum InitChange
+    {
+        /// <summary>It did not exist, and now does.</summary>
+        Created,
+
+        /// <summary>The framework owns it, and it was rewritten.</summary>
+        Updated,
+
+        /// <summary>It exists and is not the framework's to change.</summary>
+        Kept,
+
+        /// <summary>Nothing was written; the contents were printed for a person to place.</summary>
+        Printed,
+    }
+
+    /// <summary>One file adoption touched, or deliberately did not.</summary>
+    /// <param name="Path">Where it is, relative to the solution root.</param>
+    /// <param name="Change">What happened to it.</param>
+    /// <param name="Why">Why, when the answer is not obvious from the change.</param>
+    public sealed record InitAction(string Path, InitChange Change, string? Why = null);
+
+    /// <summary>What adoption did.</summary>
+    /// <param name="Mode">Which mode ran.</param>
+    /// <param name="Origin">What the solution's origin was decided to be.</param>
+    /// <param name="Actions">Every file touched or deliberately left, in writing order.</param>
+    /// <param name="Printed">File contents that were not written, keyed by the path they belong at.</param>
+    public sealed record Response(
+        InitMode Mode,
+        SolutionOrigin Origin,
+        IReadOnlyList<InitAction> Actions,
+        IReadOnlyDictionary<string, string> Printed)
+    {
+        /// <summary>The paths that were written, for the commit to stage.</summary>
+        public IReadOnlyList<string> Written =>
+        [
+            .. Actions
+                .Where(action => action.Change is InitChange.Created or InitChange.Updated)
+                .Select(action => action.Path),
+        ];
     }
 
     /// <summary>Adopts the framework into a repository.</summary>
     /// <param name="Profile">The profile that will govern the solution.</param>
     /// <param name="Platform">Where the code lives, which decides the pipeline.</param>
-    public sealed record Request(string Profile, Platform Platform) : IRequest<InitReport>;
+    public sealed record Command(string Profile, Platform Platform) : IRequest<Response>;
 
     /// <summary>
     /// Writes the framework into a repository, in one of three modes.
@@ -111,24 +110,24 @@ public static class Initialise
     /// <param name="solution">The repository to adopt into.</param>
     /// <param name="repository">How to ask git what it knows.</param>
     private sealed class Handler(SolutionRoot solution, IRepository repository)
-        : IRequestHandler<Request, InitReport>
+        : IRequestHandler<Command, Response>
     {
         /// <inheritdoc />
-        public async Task<Result<InitReport>> Handle(
-            Request request,
+        public async Task<Result<Response>> Handle(
+            Command request,
             CancellationToken cancellationToken)
         {
             ArgumentNullException.ThrowIfNull(request);
 
             if (string.IsNullOrWhiteSpace(request.Profile))
             {
-                return Result.Fail<InitReport>(
+                return Result.Fail<Response>(
                     "Which profile? Give its package name, as in 'sdlc init --profile dotnet-default'.");
             }
 
             if (!repository.IsRepository(solution.Path))
             {
-                return Result.Fail<InitReport>(string.Create(
+                return Result.Fail<Response>(string.Create(
                     CultureInfo.InvariantCulture,
                     $"{solution.Path} is not a git repository. Without git, a build cannot record the diff that verify derives from and the gates key on a branch that cannot exist -- so every hook would permit everything while the artifacts still looked governed. Run 'git init' first."));
             }
@@ -193,7 +192,7 @@ public static class Initialise
 
             await Agents(actions, printed, cancellationToken).ConfigureAwait(false);
 
-            return Result.Ok(new InitReport(mode, origin, actions, printed));
+            return Result.Ok(new Response(mode, origin, actions, printed));
         }
 
         /// <summary>Where a platform's pull-request pipeline goes.</summary>

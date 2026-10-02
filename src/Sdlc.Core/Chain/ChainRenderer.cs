@@ -21,7 +21,7 @@ public static class ChainRenderer
     /// </summary>
     /// <param name="verdict">What the chain check found.</param>
     /// <returns>The rendered text, ending in a newline.</returns>
-    public static string Render(ChainVerdict verdict)
+    public static string Render(VerifyChain.Response verdict)
     {
         ArgumentNullException.ThrowIfNull(verdict);
 
@@ -32,7 +32,7 @@ public static class ChainRenderer
             $"{Indent}chain - {verdict.Cycle.Id}"));
         output.AppendLine();
 
-        foreach (ChainCheck check in verdict.Checks)
+        foreach (VerifyChain.ChainCheck check in verdict.Checks)
         {
             output.AppendLine(string.Create(
                 CultureInfo.InvariantCulture,
@@ -67,7 +67,7 @@ public static class ChainRenderer
 
         output.AppendLine();
 
-        foreach (ChainCheck failure in verdict.Failures)
+        foreach (VerifyChain.ChainCheck failure in verdict.Failures)
         {
             output.AppendLine(Indent + "  - " + failure.Name);
         }

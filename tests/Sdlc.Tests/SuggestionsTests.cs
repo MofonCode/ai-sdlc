@@ -124,7 +124,7 @@ public sealed class SuggestionsTests
     {
         using var workspace = CycleWorkspace.Create();
 
-        string rendered = SuggestionsRenderer.Render(await Collect(workspace, all: true));
+        string rendered = SuggestionsRenderer.Render(new Suggestions.Response(await Collect(workspace, all: true)));
 
         StringAssert.Contains(rendered, "No open suggestions.");
     }
@@ -137,7 +137,7 @@ public sealed class SuggestionsTests
         using var workspace = CycleWorkspace.Create();
         workspace.WriteSuggestionRound(ArtifactKind.Spec, round: 1, id: "F_02");
 
-        string rendered = SuggestionsRenderer.Render(await Collect(workspace));
+        string rendered = SuggestionsRenderer.Render(new Suggestions.Response(await Collect(workspace)));
 
         foreach (string word in (string[])["oldest", "priority", "stale", "days", "overdue"])
         {
@@ -153,11 +153,11 @@ public sealed class SuggestionsTests
     {
         using var gate = Gate.For(workspace.Root);
 
-        Result<IReadOnlyList<Suggestion>> result = await gate
-            .Send<Suggestions.Request, IReadOnlyList<Suggestion>>(
-                new Suggestions.Request(all ? null : workspace.Cycle.Id));
+        Result<Suggestions.Response> result = await gate
+            .Send<Suggestions.Query, Suggestions.Response>(
+                new Suggestions.Query(all ? null : workspace.Cycle.Id));
 
         Assert.IsTrue(result.IsSuccess, string.Join("; ", result.Errors.Select(e => e.Message)));
-        return result.Value;
+        return result.Value.Suggestions;
     }
 }

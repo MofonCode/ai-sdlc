@@ -20,12 +20,12 @@ public static class TurnEndGate
     {
         ArgumentNullException.ThrowIfNull(services);
 
-        return services.AddTransient<IRequestHandler<Request, HookVerdict>, Handler>();
+        return services.AddTransient<IRequestHandler<Query, HookVerdict>, Handler>();
     }
 
     /// <summary>Asks whether an agent may finish its turn.</summary>
     /// <param name="Turn">The turn that is ending.</param>
-    public sealed record Request(TurnEnd Turn) : IRequest<HookVerdict>;
+    public sealed record Query(TurnEnd Turn) : IRequest<HookVerdict>;
 
     /// <summary>
     /// Decides whether a turn may end, by reading what the build recorded.
@@ -62,11 +62,11 @@ public static class TurnEndGate
     /// <param name="solution">The solution being governed.</param>
     /// <param name="repository">How to ask git what the tree looks like.</param>
     private sealed class Handler(SolutionRoot solution, IRepository repository)
-        : IRequestHandler<Request, HookVerdict>
+        : IRequestHandler<Query, HookVerdict>
     {
         /// <inheritdoc />
         public async Task<Result<HookVerdict>> Handle(
-            Request request,
+            Query request,
             CancellationToken cancellationToken)
         {
             ArgumentNullException.ThrowIfNull(request);

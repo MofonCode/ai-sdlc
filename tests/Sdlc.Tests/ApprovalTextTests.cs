@@ -21,7 +21,7 @@ public sealed class ApprovalTextTests
     {
         using CycleWorkspace workspace = Ready();
 
-        ApprovalTextResult text = await Print(workspace);
+        ApprovalText.Response text = await Print(workspace);
 
         Assert.IsTrue(text.MayApprove, text.Instructions);
 
@@ -47,7 +47,7 @@ public sealed class ApprovalTextTests
     {
         using CycleWorkspace workspace = Ready();
 
-        ApprovalTextResult text = await Print(workspace);
+        ApprovalText.Response text = await Print(workspace);
         await File.WriteAllTextAsync(
             workspace.Cycle.ApprovalPath,
             string.Create(
@@ -56,12 +56,12 @@ public sealed class ApprovalTextTests
 
         using var gate = Gate.For(workspace.Root);
 
-        Result<GateVerdict> verdict = await gate
-            .Send<ApprovalGate.Request, GateVerdict>(new ApprovalGate.Request(workspace.Cycle.Id));
+        Result<ApprovalGate.Response> verdict = await gate
+            .Send<ApprovalGate.Query, ApprovalGate.Response>(new ApprovalGate.Query(workspace.Cycle.Id));
 
         Assert.IsTrue(verdict.IsSuccess);
         Assert.AreEqual(
-            GateRefusal.None,
+            ApprovalGate.GateRefusal.None,
             verdict.Value.Refusal,
             "Printing an entry the gate then refuses would make the whole flow a dead end. "
             + verdict.Value.Explanation);
@@ -72,9 +72,9 @@ public sealed class ApprovalTextTests
     {
         using CycleWorkspace workspace = Ready();
 
-        ApprovalTextResult text = await Print(workspace);
+        ApprovalText.Response text = await Print(workspace);
 
-        foreach (ArtifactState artifact in text.Status.Artifacts)
+        foreach (ReadCycleStatus.ArtifactState artifact in text.Status.Artifacts)
         {
             StringAssert.Contains(
                 text.Entry!,
@@ -92,7 +92,7 @@ public sealed class ApprovalTextTests
         workspace.WriteCleanRound(ArtifactKind.Spec);
         workspace.WriteBlockingRound(ArtifactKind.Plan, id: "F_02", cites: "CON_06");
 
-        ApprovalTextResult text = await Print(workspace);
+        ApprovalText.Response text = await Print(workspace);
 
         Assert.IsFalse(
             text.MayApprove,
@@ -117,7 +117,7 @@ public sealed class ApprovalTextTests
             workspace.WriteCleanRound(kind);
         }
 
-        ApprovalTextResult text = await Print(workspace);
+        ApprovalText.Response text = await Print(workspace);
 
         Assert.IsTrue(text.MayApprove);
         Assert.IsFalse(
@@ -133,7 +133,7 @@ public sealed class ApprovalTextTests
         workspace.WriteArtifact(ArtifactKind.Intent);
         workspace.WriteArtifact(ArtifactKind.Spec);
 
-        ApprovalTextResult text = await Print(workspace);
+        ApprovalText.Response text = await Print(workspace);
 
         Assert.IsFalse(text.MayApprove);
         Assert.IsNull(text.Entry);
@@ -146,7 +146,7 @@ public sealed class ApprovalTextTests
         using var workspace = CycleWorkspace.Create();
         workspace.WriteAllArtifacts();
 
-        ApprovalTextResult text = await Print(workspace);
+        ApprovalText.Response text = await Print(workspace);
 
         Assert.IsFalse(
             text.MayApprove,
@@ -161,7 +161,7 @@ public sealed class ApprovalTextTests
         using CycleWorkspace workspace = Ready();
         workspace.Abandon();
 
-        ApprovalTextResult text = await Print(workspace);
+        ApprovalText.Response text = await Print(workspace);
 
         Assert.IsFalse(text.MayApprove);
         StringAssert.Contains(text.Instructions, "terminal");
@@ -172,12 +172,12 @@ public sealed class ApprovalTextTests
     {
         using CycleWorkspace workspace = Ready();
 
-        ApprovalTextResult first = await Print(workspace);
+        ApprovalText.Response first = await Print(workspace);
         StringAssert.Contains(first.Instructions, "Create");
 
         workspace.WriteApproval("changes_requested", reason: "needs more thought");
 
-        ApprovalTextResult second = await Print(workspace);
+        ApprovalText.Response second = await Print(workspace);
         StringAssert.Contains(
             second.Instructions,
             "Open",
@@ -207,7 +207,7 @@ public sealed class ApprovalTextTests
     {
         using CycleWorkspace workspace = Ready();
 
-        ApprovalTextResult text = await Print(workspace, decision);
+        ApprovalText.Response text = await Print(workspace, decision);
 
         Assert.IsTrue(
             text.MayApprove,
@@ -223,7 +223,7 @@ public sealed class ApprovalTextTests
     {
         using CycleWorkspace workspace = Ready();
 
-        ApprovalTextResult text = await Print(workspace, GateDecision.Denied);
+        ApprovalText.Response text = await Print(workspace, GateDecision.Denied);
 
         StringAssert.Contains(
             text.Entry!,
@@ -249,7 +249,7 @@ public sealed class ApprovalTextTests
     {
         using CycleWorkspace workspace = Ready();
 
-        ApprovalTextResult text = await Print(workspace, GateDecision.ChangesRequested);
+        ApprovalText.Response text = await Print(workspace, GateDecision.ChangesRequested);
 
         // What a person does: paste, then write the reason on the empty line.
         string filled = text.Entry!.Replace(
@@ -280,7 +280,7 @@ public sealed class ApprovalTextTests
 
         Assert.IsFalse((await Print(workspace)).MayApprove);
 
-        ApprovalTextResult sent_back = await Print(workspace, GateDecision.ChangesRequested);
+        ApprovalText.Response sent_back = await Print(workspace, GateDecision.ChangesRequested);
 
         Assert.IsTrue(
             sent_back.MayApprove,
@@ -293,7 +293,7 @@ public sealed class ApprovalTextTests
     {
         using CycleWorkspace workspace = Ready();
 
-        ApprovalTextResult text = await Print(workspace);
+        ApprovalText.Response text = await Print(workspace);
 
         StringAssert.Contains(
             text.Instructions,
@@ -308,7 +308,7 @@ public sealed class ApprovalTextTests
         using CycleWorkspace workspace = Ready();
         workspace.WriteArtifact(ArtifactKind.Intent, "a different problem entirely");
 
-        ApprovalTextResult approving = await Print(workspace);
+        ApprovalText.Response approving = await Print(workspace);
 
         Assert.IsFalse(approving.MayApprove);
         StringAssert.Contains(approving.Instructions, "spec.md");
@@ -339,7 +339,7 @@ public sealed class ApprovalTextTests
         using var workspace = CycleWorkspace.Create();
         workspace.WriteArtifact(ArtifactKind.Intent);
 
-        ApprovalTextResult text = await Print(workspace, GateDecision.Denied);
+        ApprovalText.Response text = await Print(workspace, GateDecision.Denied);
 
         Assert.IsFalse(
             text.MayApprove,
@@ -360,15 +360,15 @@ public sealed class ApprovalTextTests
         return workspace;
     }
 
-    private static async Task<ApprovalTextResult> Print(
+    private static async Task<ApprovalText.Response> Print(
         CycleWorkspace workspace,
         GateDecision decision = GateDecision.Approved)
     {
         using var gate = Gate.For(workspace.Root);
 
-        Result<ApprovalTextResult> result = await gate
-            .Send<ApprovalText.Request, ApprovalTextResult>(
-                new ApprovalText.Request(workspace.Cycle.Id, "Peter Almanzar", decision));
+        Result<ApprovalText.Response> result = await gate
+            .Send<ApprovalText.Query, ApprovalText.Response>(
+                new ApprovalText.Query(workspace.Cycle.Id, "Peter Almanzar", decision));
 
         Assert.IsTrue(result.IsSuccess, string.Join("; ", result.Errors.Select(e => e.Message)));
         return result.Value;

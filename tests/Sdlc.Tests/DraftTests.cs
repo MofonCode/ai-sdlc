@@ -73,8 +73,8 @@ public sealed class DraftTests
         using var gate = Gate.For(workspace.Root);
 
         Result<DraftResult> result = await gate
-            .Send<AbandonText.Request, DraftResult>(
-                new AbandonText.Request(absent.Value, "Peter Almanzar"));
+            .Send<AbandonText.Query, DraftResult>(
+                new AbandonText.Query(absent.Value, "Peter Almanzar"));
 
         Assert.IsTrue(result.IsSuccess);
         Assert.IsFalse(result.Value.MayDraft);
@@ -126,7 +126,7 @@ public sealed class DraftTests
         using var gate = Gate.For(workspace.Root);
 
         Result<DraftResult> result = await gate
-            .Send<ConstraintText.Request, DraftResult>(new ConstraintText.Request());
+            .Send<ConstraintText.Query, DraftResult>(new ConstraintText.Query());
 
         Assert.IsTrue(result.IsFailed);
         StringAssert.Contains(string.Join("; ", result.Errors.Select(e => e.Message)), "LOC_01");
@@ -175,7 +175,7 @@ public sealed class DraftTests
         using var gate = Gate.For(workspace.Root);
 
         Result<DraftResult> result = await gate
-            .Send<ProfileText.Request, DraftResult>(new ProfileText.Request("mofoncode"));
+            .Send<ProfileText.Query, DraftResult>(new ProfileText.Query("mofoncode"));
 
         Assert.IsTrue(result.IsFailed);
         StringAssert.Contains(string.Join("; ", result.Errors.Select(e => e.Message)), "sdlc init");
@@ -210,22 +210,22 @@ public sealed class DraftTests
     {
         using var gate = Gate.For(workspace.Root);
 
-        return Ok(await gate.Send<AbandonText.Request, DraftResult>(
-            new AbandonText.Request(workspace.Cycle.Id, "Peter Almanzar")));
+        return Ok(await gate.Send<AbandonText.Query, DraftResult>(
+            new AbandonText.Query(workspace.Cycle.Id, "Peter Almanzar")));
     }
 
     private static async Task<DraftResult> Constraint(CycleWorkspace workspace)
     {
         using var gate = Gate.For(workspace.Root);
 
-        return Ok(await gate.Send<ConstraintText.Request, DraftResult>(new ConstraintText.Request()));
+        return Ok(await gate.Send<ConstraintText.Query, DraftResult>(new ConstraintText.Query()));
     }
 
     private static async Task<DraftResult> Profile(CycleWorkspace workspace, string profile)
     {
         using var gate = Gate.For(workspace.Root);
 
-        return Ok(await gate.Send<ProfileText.Request, DraftResult>(new ProfileText.Request(profile)));
+        return Ok(await gate.Send<ProfileText.Query, DraftResult>(new ProfileText.Query(profile)));
     }
 
     private static DraftResult Ok(Result<DraftResult> result)

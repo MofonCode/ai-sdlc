@@ -10,25 +10,6 @@ using Sdlc.Core.Solutions;
 
 namespace Sdlc.Core.Chain;
 
-/// <summary>What one check in the chain concluded.</summary>
-/// <param name="Name">What was checked, as a short label.</param>
-/// <param name="Passed">Whether it held.</param>
-/// <param name="Detail">What held, or what did not and where.</param>
-public sealed record ChainCheck(string Name, bool Passed, string Detail);
-
-
-/// <summary>What the chain check found.</summary>
-/// <param name="Cycle">The cycle that was checked.</param>
-/// <param name="Checks">Every check, in the order they ran.</param>
-public sealed record ChainVerdict(Cycle Cycle, IReadOnlyList<ChainCheck> Checks)
-{
-    /// <summary>Whether every check held.</summary>
-    public bool Holds => Checks.All(check => check.Passed);
-
-    /// <summary>The checks that did not hold.</summary>
-    public IReadOnlyList<ChainCheck> Failures => [.. Checks.Where(check => !check.Passed)];
-}
-
 /// <summary>Re-establishes a cycle's whole chain from the repository. This is the pull-request check.</summary>
 public static class VerifyChain
 {
@@ -56,12 +37,30 @@ public static class VerifyChain
     {
         ArgumentNullException.ThrowIfNull(services);
 
-        return services.AddTransient<IRequestHandler<Request, ChainVerdict>, Handler>();
+        return services.AddTransient<IRequestHandler<Query, Response>, Handler>();
+    }
+
+    /// <summary>What one check in the chain concluded.</summary>
+    /// <param name="Name">What was checked, as a short label.</param>
+    /// <param name="Passed">Whether it held.</param>
+    /// <param name="Detail">What held, or what did not and where.</param>
+    public sealed record ChainCheck(string Name, bool Passed, string Detail);
+
+    /// <summary>What the chain check found.</summary>
+    /// <param name="Cycle">The cycle that was checked.</param>
+    /// <param name="Checks">Every check, in the order they ran.</param>
+    public sealed record Response(Cycle Cycle, IReadOnlyList<ChainCheck> Checks)
+    {
+        /// <summary>Whether every check held.</summary>
+        public bool Holds => Checks.All(check => check.Passed);
+
+        /// <summary>The checks that did not hold.</summary>
+        public IReadOnlyList<ChainCheck> Failures => [.. Checks.Where(check => !check.Passed)];
     }
 
     /// <summary>Asks whether a cycle's artifact chain is complete, approved and hash-matched.</summary>
     /// <param name="Id">The cycle to re-establish.</param>
-    public sealed record Request(CycleId Id) : IRequest<ChainVerdict>;
+    public sealed record Query(CycleId Id) : IRequest<Response>;
 
     /// <summary>
     /// Re-establishes a cycle's chain from the repository rather than from any agent's word.
@@ -83,11 +82,11 @@ public static class VerifyChain
     /// </remarks>
     /// <param name="solution">The root of the solution being checked.</param>
     private sealed class Handler(SolutionRoot solution, Mediator mediator)
-        : IRequestHandler<Request, ChainVerdict>
+        : IRequestHandler<Query, Response>
     {
         /// <inheritdoc />
-        public async Task<Result<ChainVerdict>> Handle(
-            Request request,
+        public async Task<Result<Response>> Handle(
+            Query request,
             CancellationToken cancellationToken)
         {
             ArgumentNullException.ThrowIfNull(request);
@@ -104,7 +103,7 @@ public static class VerifyChain
                         CultureInfo.InvariantCulture,
                         $"has no directory at {cycle.Directory}. There is no chain to check.")));
 
-                return Result.Ok(new ChainVerdict(cycle, checks));
+                return Result.Ok(new Response(cycle, checks));
             }
 
             await Documents(cycle, checks, request.Id, cancellationToken).ConfigureAwait(false);
@@ -113,7 +112,7 @@ public static class VerifyChain
             await Proven(cycle, checks, cancellationToken).ConfigureAwait(false);
             await Outcome(cycle, checks, cancellationToken).ConfigureAwait(false);
 
-            return Result.Ok(new ChainVerdict(cycle, checks));
+            return Result.Ok(new Response(cycle, checks));
         }
 
         /// <summary>Every artifact in the chain exists, and every one has a sound shape.</summary>
@@ -175,9 +174,9 @@ public static class VerifyChain
         /// </remarks>
         private async Task Gate(Cycle cycle, List<ChainCheck> checks, CancellationToken cancellationToken)
         {
-            Result<GateVerdict> read = await mediator
-                .Send<ApprovalGate.Request, GateVerdict>(
-                    new ApprovalGate.Request(cycle.Id),
+            Result<ApprovalGate.Response> read = await mediator
+                .Send<ApprovalGate.Query, ApprovalGate.Response>(
+                    new ApprovalGate.Query(cycle.Id),
                     cancellationToken)
                 .ConfigureAwait(false);
 
@@ -190,7 +189,7 @@ public static class VerifyChain
                 return;
             }
 
-            GateVerdict gate = read.Value;
+            ApprovalGate.Response gate = read.Value;
 
             checks.Add(new ChainCheck(
                 "the gate is satisfied",

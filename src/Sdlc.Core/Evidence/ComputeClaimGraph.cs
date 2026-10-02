@@ -7,32 +7,6 @@ using Sdlc.Core.Solutions;
 
 namespace Sdlc.Core.Evidence;
 
-/// <summary>What one cycle claims.</summary>
-/// <param name="Cycle">The cycle.</param>
-/// <param name="Files">The files its plan declared.</param>
-/// <param name="NeedsServices">
-/// Whether its plan stands up a backing service, which caps how wide a batch may run.
-/// </param>
-public sealed record Claim(CycleId Cycle, IReadOnlyList<string> Files, bool NeedsServices);
-
-/// <summary>Two cycles that claim a file in common.</summary>
-/// <param name="First">The earlier cycle, which goes first.</param>
-/// <param name="Second">The later cycle, which rebases on it.</param>
-/// <param name="Files">What they both claim.</param>
-public sealed record Collision(CycleId First, CycleId Second, IReadOnlyList<string> Files);
-
-
-/// <summary>
-/// Which cycles can be built at once, and which have to wait for which.
-/// </summary>
-/// <param name="Claims">What each cycle claims, in cycle-id order.</param>
-/// <param name="Collisions">Every pair that overlaps.</param>
-/// <param name="Groups">Cycles that may run together, each group in cycle-id order.</param>
-public sealed record ClaimGraph(
-    IReadOnlyList<Claim> Claims,
-    IReadOnlyList<Collision> Collisions,
-    IReadOnlyList<IReadOnlyList<CycleId>> Groups);
-
 /// <summary>Which cycles may be built together, and what collides.</summary>
 public static class ComputeClaimGraph
 {
@@ -43,11 +17,36 @@ public static class ComputeClaimGraph
     {
         ArgumentNullException.ThrowIfNull(services);
 
-        return services.AddTransient<IRequestHandler<Request, ClaimGraph>, Handler>();
+        return services.AddTransient<IRequestHandler<Query, Response>, Handler>();
     }
 
+    /// <summary>What one cycle claims.</summary>
+    /// <param name="Cycle">The cycle.</param>
+    /// <param name="Files">The files its plan declared.</param>
+    /// <param name="NeedsServices">
+    /// Whether its plan stands up a backing service, which caps how wide a batch may run.
+    /// </param>
+    public sealed record Claim(CycleId Cycle, IReadOnlyList<string> Files, bool NeedsServices);
+
+    /// <summary>Two cycles that claim a file in common.</summary>
+    /// <param name="First">The earlier cycle, which goes first.</param>
+    /// <param name="Second">The later cycle, which rebases on it.</param>
+    /// <param name="Files">What they both claim.</param>
+    public sealed record Collision(CycleId First, CycleId Second, IReadOnlyList<string> Files);
+
+    /// <summary>
+    /// Which cycles can be built at once, and which have to wait for which.
+    /// </summary>
+    /// <param name="Claims">What each cycle claims, in cycle-id order.</param>
+    /// <param name="Collisions">Every pair that overlaps.</param>
+    /// <param name="Groups">Cycles that may run together, each group in cycle-id order.</param>
+    public sealed record Response(
+        IReadOnlyList<Claim> Claims,
+        IReadOnlyList<Collision> Collisions,
+        IReadOnlyList<IReadOnlyList<CycleId>> Groups);
+
     /// <summary>Asks which cycles may be built together.</summary>
-    public sealed record Request : IRequest<ClaimGraph>;
+    public sealed record Query : IRequest<Response>;
 
     /// <summary>
     /// Computes which approved cycles collide, before anything is built.
@@ -64,7 +63,7 @@ public static class ComputeClaimGraph
     /// </para>
     /// </remarks>
     /// <param name="solution">The solution to read.</param>
-    private sealed class Handler(SolutionRoot solution) : IRequestHandler<Request, ClaimGraph>
+    private sealed class Handler(SolutionRoot solution) : IRequestHandler<Query, Response>
     {
         /// <summary>
         /// Words in a plan that mean it stands up something a developer would otherwise start by hand.
@@ -81,8 +80,8 @@ public static class ComputeClaimGraph
         ];
 
         /// <inheritdoc />
-        public async Task<Result<ClaimGraph>> Handle(
-            Request request,
+        public async Task<Result<Response>> Handle(
+            Query request,
             CancellationToken cancellationToken)
         {
             ArgumentNullException.ThrowIfNull(request);
@@ -126,7 +125,7 @@ public static class ComputeClaimGraph
                 }
             }
 
-            return Result.Ok(new ClaimGraph(claims, collisions, Partition(claims, collisions)));
+            return Result.Ok(new Response(claims, collisions, Partition(claims, collisions)));
         }
 
         /// <summary>
@@ -181,7 +180,7 @@ public static class ClaimGraphRenderer
     /// <summary>Renders a claim graph.</summary>
     /// <param name="graph">The graph.</param>
     /// <returns>The rendered text, ending in a newline.</returns>
-    public static string Render(ClaimGraph graph)
+    public static string Render(ComputeClaimGraph.Response graph)
     {
         ArgumentNullException.ThrowIfNull(graph);
 
@@ -199,7 +198,7 @@ public static class ClaimGraphRenderer
             return output.ToString();
         }
 
-        foreach (Claim claim in graph.Claims)
+        foreach (ComputeClaimGraph.Claim claim in graph.Claims)
         {
             output.AppendLine(string.Create(
                 CultureInfo.InvariantCulture,
@@ -226,7 +225,7 @@ public static class ClaimGraphRenderer
         output.AppendLine(Indent + "Collisions, which is why there is more than one group:");
         output.AppendLine();
 
-        foreach (Collision collision in graph.Collisions)
+        foreach (ComputeClaimGraph.Collision collision in graph.Collisions)
         {
             output.AppendLine(string.Create(
                 CultureInfo.InvariantCulture,

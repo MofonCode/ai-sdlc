@@ -8,20 +8,6 @@ using Sdlc.Core.Solutions;
 
 namespace Sdlc.Core.Approvals;
 
-
-/// <summary>The text to paste, or what has to happen before there is any.</summary>
-/// <param name="Status">The cycle's state, so a caller can report it without reading again.</param>
-/// <param name="Entry">The entry to paste, when there is one to produce.</param>
-/// <param name="Instructions">What to do with it, or what is in the way.</param>
-/// <param name="MayApprove">Whether an entry was produced.</param>
-/// <param name="Decision">Which decision the entry records.</param>
-public sealed record ApprovalTextResult(
-    CycleStatus Status,
-    string? Entry,
-    string Instructions,
-    bool MayApprove,
-    GateDecision Decision = GateDecision.Approved);
-
 /// <summary>Prints the gate entry a person pastes into the approval ledger. Writes nothing.</summary>
 public static class ApprovalText
 {
@@ -32,8 +18,21 @@ public static class ApprovalText
     {
         ArgumentNullException.ThrowIfNull(services);
 
-        return services.AddTransient<IRequestHandler<Request, ApprovalTextResult>, Handler>();
+        return services.AddTransient<IRequestHandler<Query, Response>, Handler>();
     }
+
+    /// <summary>The text to paste, or what has to happen before there is any.</summary>
+    /// <param name="Status">The cycle's state, so a caller can report it without reading again.</param>
+    /// <param name="Entry">The entry to paste, when there is one to produce.</param>
+    /// <param name="Instructions">What to do with it, or what is in the way.</param>
+    /// <param name="MayApprove">Whether an entry was produced.</param>
+    /// <param name="Decision">Which decision the entry records.</param>
+    public sealed record Response(
+        ReadCycleStatus.Response Status,
+        string? Entry,
+        string Instructions,
+        bool MayApprove,
+        GateDecision Decision = GateDecision.Approved);
 
     /// <summary>Asks for the ledger entry a person would paste to record a gate decision.</summary>
     /// <param name="Id">The cycle the decision is about.</param>
@@ -46,8 +45,8 @@ public static class ApprovalText
     /// person does when they are least inclined to look a format up, and giving help to the easy case
     /// while withholding it from the hard one is the asymmetry people resent.
     /// </param>
-    public sealed record Request(CycleId Id, string By, GateDecision Decision = GateDecision.Approved)
-        : IRequest<ApprovalTextResult>;
+    public sealed record Query(CycleId Id, string By, GateDecision Decision = GateDecision.Approved)
+        : IRequest<Response>;
 
     /// <summary>
     /// Prints an approval entry. Writes nothing.
@@ -68,27 +67,27 @@ public static class ApprovalText
     /// needed one for was reaching the status handler, and that is now a dispatch.
     /// </param>
     private sealed class Handler(Mediator mediator)
-        : IRequestHandler<Request, ApprovalTextResult>
+        : IRequestHandler<Query, Response>
     {
         /// <inheritdoc />
-        public async Task<Result<ApprovalTextResult>> Handle(
-            Request request,
+        public async Task<Result<Response>> Handle(
+            Query request,
             CancellationToken cancellationToken)
         {
             ArgumentNullException.ThrowIfNull(request);
 
-            Result<CycleStatus> read = await mediator
-                .Send<ReadCycleStatus.Request, CycleStatus>(
-                    new ReadCycleStatus.Request(request.Id),
+            Result<ReadCycleStatus.Response> read = await mediator
+                .Send<ReadCycleStatus.Query, ReadCycleStatus.Response>(
+                    new ReadCycleStatus.Query(request.Id),
                     cancellationToken)
                 .ConfigureAwait(false);
 
             if (read.IsFailed)
             {
-                return read.ToResult<ApprovalTextResult>();
+                return read.ToResult<Response>();
             }
 
-            CycleStatus status = read.Value;
+            ReadCycleStatus.Response status = read.Value;
 
             if (status.Cycle.IsAbandoned)
             {
@@ -99,13 +98,13 @@ public static class ApprovalText
 
             // Every decision records three hashes, so all three documents have to exist whichever way the
             // gate goes. There is nothing to refuse until there is something to refuse.
-            List<ArtifactState> missing = [.. status.Artifacts.Where(artifact => !artifact.Exists)];
+            List<ReadCycleStatus.ArtifactState> missing = [.. status.Artifacts.Where(artifact => !artifact.Exists)];
             if (missing.Count > 0)
             {
                 return Refuse(status, Missing(status, missing), request.Decision);
             }
 
-            List<ArtifactState> uninterrogated = [.. status.Artifacts.Where(artifact => artifact.Rounds == 0)];
+            List<ReadCycleStatus.ArtifactState> uninterrogated = [.. status.Artifacts.Where(artifact => artifact.Rounds == 0)];
             if (request.Decision == GateDecision.Approved && uninterrogated.Count > 0)
             {
                 return Refuse(status, Uninterrogated(status, uninterrogated), request.Decision);
@@ -129,7 +128,7 @@ public static class ApprovalText
 
             string entry = Entry(status, request.By, request.Decision);
 
-            return Result.Ok(new ApprovalTextResult(
+            return Result.Ok(new Response(
                 status,
                 entry,
                 Instructions(status, request.Decision),
@@ -137,13 +136,13 @@ public static class ApprovalText
                 request.Decision));
         }
 
-        private static Result<ApprovalTextResult> Refuse(
-            CycleStatus status,
+        private static Result<Response> Refuse(
+            ReadCycleStatus.Response status,
             string why,
             GateDecision decision = GateDecision.Approved) =>
-            Result.Ok(new ApprovalTextResult(status, Entry: null, why, MayApprove: false, decision));
+            Result.Ok(new Response(status, Entry: null, why, MayApprove: false, decision));
 
-        private static string Missing(CycleStatus status, List<ArtifactState> missing)
+        private static string Missing(ReadCycleStatus.Response status, List<ReadCycleStatus.ArtifactState> missing)
         {
             IEnumerable<string> names = missing.Select(artifact => Cycle.FileNameOf(artifact.Kind));
 
@@ -163,7 +162,7 @@ public static class ApprovalText
         /// spec was derived from this intent -- so an upstream edited after a clean round leaves every
         /// approval hash matching and a judgement about a document that no longer exists.
         /// </remarks>
-        private static string Superseded(CycleStatus status)
+        private static string Superseded(ReadCycleStatus.Response status)
         {
             List<string> lines =
             [
@@ -193,7 +192,7 @@ public static class ApprovalText
         /// stated rather than merely enforced. A refusal that said only "blocked" would read as a tool
         /// being awkward and send someone looking for the flag that turns it off.
         /// </remarks>
-        private static string Blocked(CycleStatus status)
+        private static string Blocked(ReadCycleStatus.Response status)
         {
             IReadOnlyList<string> ids = status.OpenBlockerIds;
             string verb = ids.Count == 1 ? "finding is" : "findings are";
@@ -224,7 +223,7 @@ public static class ApprovalText
             return string.Join(Environment.NewLine, lines);
         }
 
-        private static string Uninterrogated(CycleStatus status, List<ArtifactState> pending)
+        private static string Uninterrogated(ReadCycleStatus.Response status, List<ReadCycleStatus.ArtifactState> pending)
         {
             string joined = string.Join(", ", pending.Select(artifact => Cycle.NameOf(artifact.Kind)));
             string verb = pending.Count == 1 ? "has" : "have";
@@ -253,7 +252,7 @@ public static class ApprovalText
         /// Reached only once every blocker is answered, so there is nothing to carry forward and nothing to
         /// warn about. The entry records who, when, the three hashes, and the round each hash was taken at.
         /// </remarks>
-        private static string Entry(CycleStatus status, string by, GateDecision decision)
+        private static string Entry(ReadCycleStatus.Response status, string by, GateDecision decision)
         {
             StringBuilder entry = new();
 
@@ -265,14 +264,14 @@ public static class ApprovalText
             // The key carries its colon before the padding, so the columns line up and the result is
             // still YAML. Padding a bare name and relying on whitespace would produce a block that reads
             // correctly and parses as nothing.
-            foreach (ArtifactState artifact in status.Artifacts)
+            foreach (ReadCycleStatus.ArtifactState artifact in status.Artifacts)
             {
                 string key = Cycle.FileNameOf(artifact.Kind) + ":";
                 entry.AppendLine(CultureInfo.InvariantCulture, $"      {key,-11} {artifact.Hash}");
             }
 
             entry.AppendLine("    findings_rounds:");
-            foreach (ArtifactState artifact in status.Artifacts)
+            foreach (ReadCycleStatus.ArtifactState artifact in status.Artifacts)
             {
                 string key = Cycle.FileNameOf(artifact.Kind) + ":";
                 entry.AppendLine(CultureInfo.InvariantCulture, $"      {key,-11} {artifact.LatestRound}");
@@ -289,7 +288,7 @@ public static class ApprovalText
             return entry.ToString();
         }
 
-        private static string Instructions(CycleStatus status, GateDecision decision)
+        private static string Instructions(ReadCycleStatus.Response status, GateDecision decision)
         {
             bool exists = File.Exists(status.Cycle.ApprovalPath);
 

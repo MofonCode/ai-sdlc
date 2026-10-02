@@ -513,15 +513,15 @@ public static class Templates
     /// <param name="mode">Which mode ran.</param>
     /// <param name="paths">What it wrote.</param>
     /// <returns>The message.</returns>
-    public static string CommitMessage(InitMode mode, IReadOnlyList<string> paths)
+    public static string CommitMessage(Initialise.InitMode mode, IReadOnlyList<string> paths)
     {
         ArgumentNullException.ThrowIfNull(paths);
 
         string headline = mode switch
         {
-            InitMode.Scaffold => "Scaffold a governed solution",
-            InitMode.Onboard => "Adopt ai-sdlc into this repository",
-            InitMode.Update => "Update the ai-sdlc scaffolding",
+            Initialise.InitMode.Scaffold => "Scaffold a governed solution",
+            Initialise.InitMode.Onboard => "Adopt ai-sdlc into this repository",
+            Initialise.InitMode.Update => "Update the ai-sdlc scaffolding",
             _ => throw new ArgumentOutOfRangeException(nameof(mode)),
         };
 

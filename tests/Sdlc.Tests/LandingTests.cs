@@ -22,7 +22,7 @@ public sealed class LandingTests
     {
         using CycleWorkspace workspace = Passing();
 
-        Landable landable = await Ask(workspace);
+        Land.Response landable = await Ask(workspace);
 
         Assert.IsTrue(landable.MayLand, landable.Explanation);
     }
@@ -33,9 +33,9 @@ public sealed class LandingTests
         using var workspace = CycleWorkspace.Create();
         workspace.WriteAllArtifacts();
 
-        Landable landable = await Ask(workspace);
+        Land.Response landable = await Ask(workspace);
 
-        Assert.AreEqual(LandRefusal.NotVerified, landable.Refusal);
+        Assert.AreEqual(Land.LandRefusal.NotVerified, landable.Refusal);
     }
 
     [TestMethod]
@@ -48,9 +48,9 @@ public sealed class LandingTests
         using CycleWorkspace workspace = Passing();
         workspace.WriteVerify(outcome);
 
-        Landable landable = await Ask(workspace);
+        Land.Response landable = await Ask(workspace);
 
-        Assert.AreEqual(LandRefusal.NotPassed, landable.Refusal, landable.Explanation);
+        Assert.AreEqual(Land.LandRefusal.NotPassed, landable.Refusal, landable.Explanation);
     }
 
     [TestMethod]
@@ -65,9 +65,9 @@ public sealed class LandingTests
             workspace.WriteBlockingRound(ArtifactKind.Verify, round, "F_01", "CON_08");
         }
 
-        Landable landable = await Ask(workspace);
+        Land.Response landable = await Ask(workspace);
 
-        Assert.AreEqual(LandRefusal.Escalated, landable.Refusal, landable.Explanation);
+        Assert.AreEqual(Land.LandRefusal.Escalated, landable.Refusal, landable.Explanation);
         StringAssert.Contains(landable.Explanation, "3 remediation passes spent");
         StringAssert.Contains(
             landable.Explanation,
@@ -134,9 +134,9 @@ public sealed class LandingTests
         using CycleWorkspace workspace = Passing();
         File.Delete(workspace.Cycle.ApprovalPath);
 
-        Landable landable = await Ask(workspace);
+        Land.Response landable = await Ask(workspace);
 
-        Assert.AreEqual(LandRefusal.ChainBroken, landable.Refusal, landable.Explanation);
+        Assert.AreEqual(Land.LandRefusal.ChainBroken, landable.Refusal, landable.Explanation);
         StringAssert.Contains(landable.Explanation, "saves a round trip");
     }
 
@@ -147,8 +147,8 @@ public sealed class LandingTests
         // still sitting there verified, which the sweep picks up because every passed cycle is eligible.
         using CycleWorkspace passing = Passing();
 
-        Landable ready = await Ask(passing);
-        Landable skipped = new(passing.Cycle, LandRefusal.Escalated, "spent its budget", null);
+        Land.Response ready = await Ask(passing);
+        Land.Response skipped = new(passing.Cycle, Land.LandRefusal.Escalated, "spent its budget", null);
 
         string rendered = LandRenderer.RenderSweep([ready, skipped]);
 
@@ -164,7 +164,7 @@ public sealed class LandingTests
         using var workspace = CycleWorkspace.Create();
 
         string rendered = LandRenderer.RenderSweep(
-            [new Landable(workspace.Cycle, LandRefusal.NotVerified, "not verified", null)]);
+            [new Land.Response(workspace.Cycle, Land.LandRefusal.NotVerified, "not verified", null)]);
 
         StringAssert.Contains(rendered, "Nothing to land.");
         Assert.IsFalse(
@@ -178,7 +178,7 @@ public sealed class LandingTests
         using var workspace = CycleWorkspace.Create();
 
         string rendered = LandRenderer.RenderSweep(
-            [new Landable(workspace.Cycle, LandRefusal.None, "fine", null)]);
+            [new Land.Response(workspace.Cycle, Land.LandRefusal.None, "fine", null)]);
 
         Assert.IsTrue(rendered.All(char.IsAscii), rendered);
     }
@@ -203,12 +203,12 @@ public sealed class LandingTests
         return workspace;
     }
 
-    private static async Task<Landable> Ask(CycleWorkspace workspace)
+    private static async Task<Land.Response> Ask(CycleWorkspace workspace)
     {
         using var gate = Gate.For(workspace.Root);
 
-        Result<Landable> result = await gate
-            .Send<Land.Request, Landable>(new Land.Request(workspace.Cycle.Id));
+        Result<Land.Response> result = await gate
+            .Send<Land.Query, Land.Response>(new Land.Query(workspace.Cycle.Id));
 
         Assert.IsTrue(result.IsSuccess, string.Join("; ", result.Errors.Select(e => e.Message)));
         return result.Value;

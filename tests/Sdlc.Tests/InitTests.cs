@@ -25,9 +25,9 @@ public sealed class InitTests
     {
         using var solution = Scratch.Create();
 
-        InitReport report = await Adopt(solution, tracked: ["README.md", "LICENSE", ".gitignore"]);
+        Initialise.Response report = await Adopt(solution, tracked: ["README.md", "LICENSE", ".gitignore"]);
 
-        Assert.AreEqual(InitMode.Scaffold, report.Mode);
+        Assert.AreEqual(Initialise.InitMode.Scaffold, report.Mode);
         Assert.AreEqual(
             SolutionOrigin.Scaffolded,
             report.Origin,
@@ -40,9 +40,9 @@ public sealed class InitTests
     {
         using var solution = Scratch.Create();
 
-        InitReport report = await Adopt(solution, tracked: ["README.md", "src/App/Program.cs"]);
+        Initialise.Response report = await Adopt(solution, tracked: ["README.md", "src/App/Program.cs"]);
 
-        Assert.AreEqual(InitMode.Onboard, report.Mode);
+        Assert.AreEqual(Initialise.InitMode.Onboard, report.Mode);
         Assert.AreEqual(SolutionOrigin.Adopted, report.Origin);
     }
 
@@ -55,9 +55,9 @@ public sealed class InitTests
         using var solution = Scratch.Create();
 
         await Adopt(solution, tracked: []);
-        InitReport again = await Adopt(solution, tracked: ["src/App/Program.cs", "src/App/Roll.cs"]);
+        Initialise.Response again = await Adopt(solution, tracked: ["src/App/Program.cs", "src/App/Roll.cs"]);
 
-        Assert.AreEqual(InitMode.Update, again.Mode);
+        Assert.AreEqual(Initialise.InitMode.Update, again.Mode);
         Assert.AreEqual(SolutionOrigin.Scaffolded, again.Origin);
     }
 
@@ -72,10 +72,10 @@ public sealed class InitTests
         string path = SolutionDocument.PathIn(solution.Root);
         await File.WriteAllTextAsync(path, "---\nprofile: mofoncode\norigin: adopted\n---\n\n# mine\n");
 
-        InitReport report = await Adopt(solution, tracked: []);
+        Initialise.Response report = await Adopt(solution, tracked: []);
 
         Assert.AreEqual(
-            InitChange.Kept,
+            Initialise.InitChange.Kept,
             report.Actions.Single(action => action.Path.EndsWith(Cycle.SolutionFileName, StringComparison.Ordinal)).Change);
 
         StringAssert.Contains(await File.ReadAllTextAsync(path), "profile: mofoncode");
@@ -91,10 +91,10 @@ public sealed class InitTests
         string readme = Path.Combine(solution.Root, Cycle.SdlcDirectoryName, "README.md");
         await File.WriteAllTextAsync(readme, "stale, from an older framework version\n");
 
-        InitReport report = await Adopt(solution, tracked: []);
+        Initialise.Response report = await Adopt(solution, tracked: []);
 
         Assert.AreEqual(
-            InitChange.Updated,
+            Initialise.InitChange.Updated,
             report.Actions.Single(action => action.Path.EndsWith("README.md", StringComparison.Ordinal)).Change,
             "Without this, a solution's scaffolding rots across framework versions with nothing to fix it.");
 
@@ -110,10 +110,10 @@ public sealed class InitTests
         string path = Path.Combine(solution.Root, Initialise.AgentsFileName);
         await File.WriteAllTextAsync(path, "instructions nobody should lose\n");
 
-        InitReport report = await Adopt(solution, tracked: ["src/App/Program.cs"]);
+        Initialise.Response report = await Adopt(solution, tracked: ["src/App/Program.cs"]);
 
         Assert.AreEqual(
-            InitChange.Printed,
+            Initialise.InitChange.Printed,
             report.Actions.Single(action => action.Path == Initialise.AgentsFileName).Change);
 
         Assert.AreEqual("instructions nobody should lose\n", await File.ReadAllTextAsync(path));
@@ -129,8 +129,8 @@ public sealed class InitTests
 
         using Gate gate = Adopter(solution, new FakeRepository { Repository = false });
 
-        Result<InitReport> result = await gate
-            .Send<Initialise.Request, InitReport>(new Initialise.Request("dotnet-default", Platform.GitHub));
+        Result<Initialise.Response> result = await gate
+            .Send<Initialise.Command, Initialise.Response>(new Initialise.Command("dotnet-default", Platform.GitHub));
 
         Assert.IsTrue(result.IsFailed);
         StringAssert.Contains(result.Errors[0].Message, "git init");
@@ -168,7 +168,7 @@ public sealed class InitTests
     {
         using var solution = Scratch.Create();
 
-        InitReport report = await Adopt(solution, tracked: [], platform: platform);
+        Initialise.Response report = await Adopt(solution, tracked: [], platform: platform);
 
         Assert.IsTrue(
             report.Actions.Any(action => action.Path.Replace('\\', '/') == expected),
@@ -212,7 +212,7 @@ public sealed class InitTests
         // is tracked, and the report says how to point git at it.
         using var solution = Scratch.Create();
 
-        InitReport report = await Adopt(solution, tracked: []);
+        Initialise.Response report = await Adopt(solution, tracked: []);
 
         Assert.IsTrue(
             File.Exists(Path.Combine(solution.Root, Cycle.SdlcDirectoryName, "hooks", "pre-push")),
@@ -381,7 +381,7 @@ public sealed class InitTests
     {
         using var solution = Scratch.Create();
 
-        InitReport report = await Adopt(solution, tracked: []);
+        Initialise.Response report = await Adopt(solution, tracked: []);
         string message = Templates.CommitMessage(report.Mode, report.Written);
 
         foreach (string path in report.Written)
@@ -396,15 +396,15 @@ public sealed class InitTests
             + "when the first cycle takes its diff.");
     }
 
-    private static async Task<InitReport> Adopt(
+    private static async Task<Initialise.Response> Adopt(
         Scratch solution,
         IReadOnlyList<string> tracked,
         Platform platform = Platform.GitHub)
     {
         using Gate gate = Adopter(solution, new FakeRepository { Tracked = tracked });
 
-        Result<InitReport> result = await gate
-            .Send<Initialise.Request, InitReport>(new Initialise.Request("dotnet-default", platform));
+        Result<Initialise.Response> result = await gate
+            .Send<Initialise.Command, Initialise.Response>(new Initialise.Command("dotnet-default", platform));
 
         Assert.IsTrue(result.IsSuccess, string.Join("; ", result.Errors.Select(e => e.Message)));
         return result.Value;

@@ -17,7 +17,7 @@ namespace Sdlc.Core.Solutions;
 ///
 /// <para><strong>The shape, which every operation follows.</strong> One static class per operation,
 /// named for what it does. The request nests inside it, so the type reads as
-/// <c>ProfileText.Request</c> at every call site and the operation has one name rather than two. The
+/// <c>ProfileText.Query</c> at every call site and the operation has one name rather than two. The
 /// handler is <c>private</c>: nothing in the program can reach it, so the mediator is the only way
 /// in and no caller can skip the pipeline. Its registration lives in here with it, which is what
 /// makes that possible -- a registration written anywhere else could not name a private type.</para>
@@ -34,17 +34,17 @@ public static class ProfileText
     {
         ArgumentNullException.ThrowIfNull(services);
 
-        return services.AddTransient<IRequestHandler<Request, DraftResult>, Handler>();
+        return services.AddTransient<IRequestHandler<Query, DraftResult>, Handler>();
     }
 
     /// <summary>Asks for the line a person would change to move a solution to another profile.</summary>
     /// <param name="Profile">The profile to move to.</param>
-    public sealed record Request(string Profile) : IRequest<DraftResult>;
+    public sealed record Query(string Profile) : IRequest<DraftResult>;
 
-    private sealed class Handler(SolutionRoot solution) : IRequestHandler<Request, DraftResult>
+    private sealed class Handler(SolutionRoot solution) : IRequestHandler<Query, DraftResult>
     {
         public async Task<Result<DraftResult>> Handle(
-            Request request,
+            Query request,
             CancellationToken cancellationToken)
         {
             ArgumentNullException.ThrowIfNull(request);

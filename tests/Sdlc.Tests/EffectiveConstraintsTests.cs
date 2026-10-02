@@ -48,7 +48,7 @@ public sealed class EffectiveConstraintsTests
     [TestMethod]
     public async Task The_effective_set_merges_every_tier_in_resolution_order()
     {
-        ConstraintSet set = await Resolve(null).ConfigureAwait(false);
+        EffectiveConstraints.Response set = await Resolve(null).ConfigureAwait(false);
 
         Assert.AreEqual(3, set.Constraints.Count);
         CollectionAssert.AreEqual(
@@ -60,7 +60,7 @@ public sealed class EffectiveConstraintsTests
     [TestMethod]
     public async Task A_superseded_constraint_is_reported_separately_and_does_not_bind()
     {
-        ConstraintSet set = await Resolve(null).ConfigureAwait(false);
+        EffectiveConstraints.Response set = await Resolve(null).ConfigureAwait(false);
 
         Assert.IsFalse(set.Constraints.Any(c => c.Id.Number == 20));
         Assert.AreEqual("CON_20", set.Superseded.Single().Id.ToString());
@@ -69,7 +69,7 @@ public sealed class EffectiveConstraintsTests
     [TestMethod]
     public async Task Narrowing_to_an_artifact_keeps_the_rules_that_name_it()
     {
-        ConstraintSet set = await Resolve("intent").ConfigureAwait(false);
+        EffectiveConstraints.Response set = await Resolve("intent").ConfigureAwait(false);
 
         CollectionAssert.AreEquivalent(
             new[] { "CON_01", "CON_09" },
@@ -81,7 +81,7 @@ public sealed class EffectiveConstraintsTests
     {
         foreach (string artifact in new[] { "intent", "spec", "plan", "verify", "diff" })
         {
-            ConstraintSet set = await Resolve(artifact).ConfigureAwait(false);
+            EffectiveConstraints.Response set = await Resolve(artifact).ConfigureAwait(false);
             Assert.IsTrue(
                 set.Constraints.Any(c => c.Id.Number == 9),
                 $"CON_09 says it applies to every artifact, so narrowing to {artifact} must keep it.");
@@ -91,7 +91,7 @@ public sealed class EffectiveConstraintsTests
     [TestMethod]
     public async Task Narrowing_to_an_artifact_nothing_binds_returns_an_empty_set_rather_than_failing()
     {
-        ConstraintSet set = await Resolve("retrospective").ConfigureAwait(false);
+        EffectiveConstraints.Response set = await Resolve("retrospective").ConfigureAwait(false);
 
         Assert.AreEqual(1, set.Constraints.Count, "Only the every-artifact rule survives.");
     }
@@ -104,15 +104,15 @@ public sealed class EffectiveConstraintsTests
 
         using Gate gate = Resolver(documents);
 
-        Result<ConstraintSet> result = await gate
-            .Send<EffectiveConstraints.Request, ConstraintSet>(new EffectiveConstraints.Request());
+        Result<EffectiveConstraints.Response> result = await gate
+            .Send<EffectiveConstraints.Query, EffectiveConstraints.Response>(new EffectiveConstraints.Query());
 
         Assert.IsTrue(
             result.IsFailed,
             "A set assembled from a document that does not parse would be silently short of rules.");
     }
 
-    private static async Task<ConstraintSet> Resolve(string? artifact)
+    private static async Task<EffectiveConstraints.Response> Resolve(string? artifact)
     {
         StubDocuments documents = new(
         [
@@ -122,8 +122,8 @@ public sealed class EffectiveConstraintsTests
 
         using Gate gate = Resolver(documents);
 
-        Result<ConstraintSet> result = await gate
-            .Send<EffectiveConstraints.Request, ConstraintSet>(new EffectiveConstraints.Request(artifact));
+        Result<EffectiveConstraints.Response> result = await gate
+            .Send<EffectiveConstraints.Query, EffectiveConstraints.Response>(new EffectiveConstraints.Query(artifact));
 
         Assert.IsTrue(result.IsSuccess, string.Join("; ", result.Errors.Select(e => e.Message)));
         return result.Value;

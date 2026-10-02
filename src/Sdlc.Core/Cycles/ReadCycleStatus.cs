@@ -9,100 +9,6 @@ using Sdlc.Core.Solutions;
 
 namespace Sdlc.Core.Cycles;
 
-/// <summary>Where one artifact in a cycle has got to.</summary>
-/// <param name="Kind">Which artifact.</param>
-/// <param name="Path">Where it is, whether or not it exists.</param>
-/// <param name="Exists">Whether it has been written.</param>
-/// <param name="Hash">Its canonical hash, when it exists.</param>
-/// <param name="Rounds">How many interrogation rounds it has had.</param>
-/// <param name="LatestRound">The highest round number, or zero when it has never been interrogated.</param>
-/// <param name="History">How many open blockers each round left, in round order, for the panel.</param>
-/// <param name="OpenBlockers">
-/// Findings that still stop it advancing: blocking, and open in the latest round that mentions them.
-/// </param>
-/// <param name="UpstreamHash">
-/// The hash of the artifact above as it stands now, or null when this artifact has no upstream.
-/// </param>
-/// <param name="JudgedAgainst">
-/// The upstream hash the latest round recorded, or null when it recorded none or there is no round.
-/// </param>
-public sealed record ArtifactState(
-    ArtifactKind Kind,
-    string Path,
-    bool Exists,
-    string? Hash,
-    int Rounds,
-    int LatestRound,
-    IReadOnlyList<int> History,
-    IReadOnlyList<Finding> OpenBlockers,
-    string? UpstreamHash = null,
-    string? JudgedAgainst = null)
-{
-    /// <summary>
-    /// Whether the latest round judged this artifact against an upstream that has since changed.
-    /// </summary>
-    /// <remarks>
-    /// A round is clean <em>as of</em> the upstream it saw. The approval proves these three documents
-    /// were approved, not that the spec was derived from this intent -- so an intent edited after a
-    /// clean spec leaves a spec derived from an intent that no longer exists, with every approval hash
-    /// matching on disk. Steering is the mechanism that creates exactly that.
-    /// <para>
-    /// A round that recorded no upstream at all is stale too. The honest reading of a missing hash is
-    /// "this round cannot say what it judged", and treating that as fine would make the check skippable
-    /// by omitting a field.
-    /// </para>
-    /// </remarks>
-    public bool IsStale => UpstreamHash is not null
-        && Rounds > 0
-        && !string.Equals(UpstreamHash, JudgedAgainst, StringComparison.Ordinal);
-
-    /// <summary>
-    /// Whether this artifact lets the next stage run.
-    /// </summary>
-    /// <remarks>
-    /// Interrogation is part of the chain rather than an optional extra, which is what keeps a single
-    /// approval from resting on three documents nothing has argued with. So an artifact nobody has
-    /// interrogated is not clear, however clean it looks -- and neither is one whose judgement was
-    /// made against an upstream that has moved since.
-    /// </remarks>
-    public bool IsClear => Exists && Rounds > 0 && OpenBlockers.Count == 0 && !IsStale;
-}
-
-
-/// <summary>A cycle's state: its artifacts, its rounds, and what the gate makes of it.</summary>
-/// <param name="Cycle">The cycle.</param>
-/// <param name="Artifacts">Each planning document's state, in chain order.</param>
-/// <param name="Gate">What the approval gate found.</param>
-/// <param name="Verify">
-/// The verify document's state, when one exists. Kept apart from <paramref name="Artifacts"/> rather than
-/// added to it: that list is the three the approval covers, and the gate's blockers and hashes are computed
-/// from it, so a fourth entry would quietly change what "approved" means.
-/// </param>
-/// <param name="Outcome">
-/// What the verification concluded, when it has. Read here so the panel can say what to do after a build
-/// rather than telling somebody to build again.
-/// </param>
-public sealed record CycleStatus(
-    Cycle Cycle,
-    IReadOnlyList<ArtifactState> Artifacts,
-    GateVerdict Gate,
-    ArtifactState? Verify = null,
-    string? Outcome = null)
-{
-    /// <summary>The artifact the cycle is waiting on, or null when all three are clear.</summary>
-    public ArtifactState? Blocking => Artifacts.FirstOrDefault(artifact => !artifact.IsClear);
-
-    /// <summary>Artifacts whose latest round judged them against an upstream that has since changed.</summary>
-    public IReadOnlyList<ArtifactState> Stale => [.. Artifacts.Where(artifact => artifact.IsStale)];
-
-    /// <summary>Every open blocking finding across the three documents, prefixed by document.</summary>
-    public IReadOnlyList<string> OpenBlockerIds =>
-    [
-        .. Artifacts.SelectMany(artifact => artifact.OpenBlockers.Select(finding =>
-            string.Create(CultureInfo.InvariantCulture, $"{Cycle.NameOf(artifact.Kind)}.{finding.Id}"))),
-    ];
-}
-
 /// <summary>Reads where a cycle has got to: every artifact, its rounds, and what to do next.</summary>
 public static class ReadCycleStatus
 {
@@ -113,21 +19,114 @@ public static class ReadCycleStatus
     {
         ArgumentNullException.ThrowIfNull(services);
 
-        return services.AddTransient<IRequestHandler<Request, CycleStatus>, Handler>();
+        return services.AddTransient<IRequestHandler<Query, Response>, Handler>();
+    }
+
+    /// <summary>Where one artifact in a cycle has got to.</summary>
+    /// <param name="Kind">Which artifact.</param>
+    /// <param name="Path">Where it is, whether or not it exists.</param>
+    /// <param name="Exists">Whether it has been written.</param>
+    /// <param name="Hash">Its canonical hash, when it exists.</param>
+    /// <param name="Rounds">How many interrogation rounds it has had.</param>
+    /// <param name="LatestRound">The highest round number, or zero when it has never been interrogated.</param>
+    /// <param name="History">How many open blockers each round left, in round order, for the panel.</param>
+    /// <param name="OpenBlockers">
+    /// Findings that still stop it advancing: blocking, and open in the latest round that mentions them.
+    /// </param>
+    /// <param name="UpstreamHash">
+    /// The hash of the artifact above as it stands now, or null when this artifact has no upstream.
+    /// </param>
+    /// <param name="JudgedAgainst">
+    /// The upstream hash the latest round recorded, or null when it recorded none or there is no round.
+    /// </param>
+    public sealed record ArtifactState(
+        ArtifactKind Kind,
+        string Path,
+        bool Exists,
+        string? Hash,
+        int Rounds,
+        int LatestRound,
+        IReadOnlyList<int> History,
+        IReadOnlyList<Finding> OpenBlockers,
+        string? UpstreamHash = null,
+        string? JudgedAgainst = null)
+    {
+        /// <summary>
+        /// Whether the latest round judged this artifact against an upstream that has since changed.
+        /// </summary>
+        /// <remarks>
+        /// A round is clean <em>as of</em> the upstream it saw. The approval proves these three documents
+        /// were approved, not that the spec was derived from this intent -- so an intent edited after a
+        /// clean spec leaves a spec derived from an intent that no longer exists, with every approval hash
+        /// matching on disk. Steering is the mechanism that creates exactly that.
+        /// <para>
+        /// A round that recorded no upstream at all is stale too. The honest reading of a missing hash is
+        /// "this round cannot say what it judged", and treating that as fine would make the check skippable
+        /// by omitting a field.
+        /// </para>
+        /// </remarks>
+        public bool IsStale => UpstreamHash is not null
+            && Rounds > 0
+            && !string.Equals(UpstreamHash, JudgedAgainst, StringComparison.Ordinal);
+
+        /// <summary>
+        /// Whether this artifact lets the next stage run.
+        /// </summary>
+        /// <remarks>
+        /// Interrogation is part of the chain rather than an optional extra, which is what keeps a single
+        /// approval from resting on three documents nothing has argued with. So an artifact nobody has
+        /// interrogated is not clear, however clean it looks -- and neither is one whose judgement was
+        /// made against an upstream that has moved since.
+        /// </remarks>
+        public bool IsClear => Exists && Rounds > 0 && OpenBlockers.Count == 0 && !IsStale;
+    }
+
+    /// <summary>A cycle's state: its artifacts, its rounds, and what the gate makes of it.</summary>
+    /// <param name="Cycle">The cycle.</param>
+    /// <param name="Artifacts">Each planning document's state, in chain order.</param>
+    /// <param name="Gate">What the approval gate found.</param>
+    /// <param name="Verify">
+    /// The verify document's state, when one exists. Kept apart from <paramref name="Artifacts"/> rather than
+    /// added to it: that list is the three the approval covers, and the gate's blockers and hashes are computed
+    /// from it, so a fourth entry would quietly change what "approved" means.
+    /// </param>
+    /// <param name="Outcome">
+    /// What the verification concluded, when it has. Read here so the panel can say what to do after a build
+    /// rather than telling somebody to build again.
+    /// </param>
+    public sealed record Response(
+        Cycle Cycle,
+        IReadOnlyList<ArtifactState> Artifacts,
+        ApprovalGate.Response Gate,
+        ArtifactState? Verify = null,
+        string? Outcome = null)
+    {
+        /// <summary>The artifact the cycle is waiting on, or null when all three are clear.</summary>
+        public ArtifactState? Blocking => Artifacts.FirstOrDefault(artifact => !artifact.IsClear);
+
+        /// <summary>Artifacts whose latest round judged them against an upstream that has since changed.</summary>
+        public IReadOnlyList<ArtifactState> Stale => [.. Artifacts.Where(artifact => artifact.IsStale)];
+
+        /// <summary>Every open blocking finding across the three documents, prefixed by document.</summary>
+        public IReadOnlyList<string> OpenBlockerIds =>
+        [
+            .. Artifacts.SelectMany(artifact => artifact.OpenBlockers.Select(finding =>
+                string.Create(CultureInfo.InvariantCulture, $"{Cycle.NameOf(artifact.Kind)}.{finding.Id}"))),
+        ];
     }
 
     /// <summary>Asks where a cycle has got to.</summary>
     /// <param name="Id">The cycle to read.</param>
-    public sealed record Request(CycleId Id) : IRequest<CycleStatus>;
+    public sealed record Query(CycleId Id) : IRequest<Response>;
 
     /// <summary>Reads a cycle's state from what is on disk.</summary>
     /// <param name="solution">The root of the solution being governed.</param>
     private sealed class Handler(SolutionRoot solution, Mediator mediator)
-        : IRequestHandler<Request, CycleStatus>
+        : IRequestHandler<Query, Response>
     {
         /// <inheritdoc />
-        public async Task<Result<CycleStatus>> Handle(
-            Request request,
+        public async Task<Result<Response>> Handle(
+            Query request,
             CancellationToken cancellationToken)
         {
             ArgumentNullException.ThrowIfNull(request);
@@ -150,21 +149,21 @@ public static class ReadCycleStatus
 
                 if (state.IsFailed)
                 {
-                    return state.ToResult<CycleStatus>();
+                    return state.ToResult<Response>();
                 }
 
                 artifacts.Add(state.Value);
             }
 
-            Result<GateVerdict> gate = await mediator
-                .Send<ApprovalGate.Request, GateVerdict>(
-                    new ApprovalGate.Request(request.Id),
+            Result<ApprovalGate.Response> gate = await mediator
+                .Send<ApprovalGate.Query, ApprovalGate.Response>(
+                    new ApprovalGate.Query(request.Id),
                     cancellationToken)
                 .ConfigureAwait(false);
 
             if (gate.IsFailed)
             {
-                return gate.ToResult<CycleStatus>();
+                return gate.ToResult<Response>();
             }
 
             Result<ArtifactState> verify = await Read(
@@ -175,10 +174,10 @@ public static class ReadCycleStatus
 
             if (verify.IsFailed)
             {
-                return verify.ToResult<CycleStatus>();
+                return verify.ToResult<Response>();
             }
 
-            return Result.Ok(new CycleStatus(
+            return Result.Ok(new Response(
                 cycle,
                 artifacts,
                 gate.Value,

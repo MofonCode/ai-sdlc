@@ -16,7 +16,7 @@ public static class NewCycle
     {
         ArgumentNullException.ThrowIfNull(services);
 
-        return services.AddTransient<IRequestHandler<Request, Cycle>, Handler>();
+        return services.AddTransient<IRequestHandler<Command, Cycle>, Handler>();
     }
 
     /// <summary>Opens a cycle: allocates its id and creates its directory.</summary>
@@ -25,7 +25,7 @@ public static class NewCycle
     /// It exists because the intent stage needs the directory to exist before it can write into it, and
     /// because creating it is the collision check.
     /// </remarks>
-    public sealed record Request : IRequest<Cycle>;
+    public sealed record Command : IRequest<Cycle>;
 
     /// <summary>
     /// Allocates a cycle id and creates its directory, failing if one is already there.
@@ -44,10 +44,10 @@ public static class NewCycle
     /// <param name="solution">The solution to open the cycle in.</param>
     /// <param name="time">Where the current moment comes from, so a test can fix it.</param>
     private sealed class Handler(SolutionRoot solution, TimeProvider time)
-        : IRequestHandler<Request, Cycle>
+        : IRequestHandler<Command, Cycle>
     {
         /// <inheritdoc />
-        public Task<Result<Cycle>> Handle(Request request, CancellationToken cancellationToken)
+        public Task<Result<Cycle>> Handle(Command request, CancellationToken cancellationToken)
         {
             ArgumentNullException.ThrowIfNull(request);
 

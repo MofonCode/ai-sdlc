@@ -18,7 +18,7 @@ public static class ConstraintText
     {
         ArgumentNullException.ThrowIfNull(services);
 
-        return services.AddTransient<IRequestHandler<Request, DraftResult>, Handler>();
+        return services.AddTransient<IRequestHandler<Query, DraftResult>, Handler>();
     }
 
     /// <summary>Asks for the skeleton of a new solution constraint.</summary>
@@ -26,7 +26,7 @@ public static class ConstraintText
     /// Takes no statement. A constraint's wording is the thing being decided, and a tool that accepted one
     /// on the command line would be proposing a rule rather than making room for one.
     /// </remarks>
-    public sealed record Request : IRequest<DraftResult>;
+    public sealed record Query : IRequest<DraftResult>;
 
     /// <summary>
     /// Prints the next free solution constraint id, with its four required parts empty. Writes nothing.
@@ -38,7 +38,7 @@ public static class ConstraintText
     /// </remarks>
     /// <param name="solution">The root of the solution being governed.</param>
     private sealed class Handler(SolutionRoot solution)
-        : IRequestHandler<Request, DraftResult>
+        : IRequestHandler<Query, DraftResult>
     {
         // Shown only when the file does not exist yet, so a first constraint lands in a document that
         // explains itself rather than one holding a bare heading.
@@ -55,7 +55,7 @@ public static class ConstraintText
 
         /// <inheritdoc />
         public async Task<Result<DraftResult>> Handle(
-            Request request,
+            Query request,
             CancellationToken cancellationToken)
         {
             ArgumentNullException.ThrowIfNull(request);
