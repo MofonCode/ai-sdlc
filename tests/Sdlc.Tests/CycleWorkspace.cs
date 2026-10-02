@@ -1,6 +1,7 @@
 using System.Globalization;
 using Sdlc.Core.Artifacts;
 using Sdlc.Core.Cycles;
+using Sdlc.Core.Evidence;
 using Sdlc.Core.Solutions;
 
 namespace Sdlc.Tests;
@@ -153,7 +154,7 @@ internal sealed class CycleWorkspace : IDisposable
         {
             lines.Add(string.Create(
                 CultureInfo.InvariantCulture,
-                $"{number}. A test named Thing_does_the_thing_{number} asserts it."));
+                $"{number}. `Thing_does_the_thing_{number}` asserts it."));
         }
 
         lines.AddRange(
@@ -165,6 +166,34 @@ internal sealed class CycleWorkspace : IDisposable
             "## " + ArtifactSchema.OpenSection);
 
         WriteRaw(Cycle.PathOf(ArtifactKind.Plan), string.Join('\n', lines) + "\n");
+    }
+
+    /// <summary>
+    /// Writes a normalised test summary in which the plan's named tests passed.
+    /// </summary>
+    /// <param name="proofs">How many of them, matching WritePlan.</param>
+    /// <param name="failing">Which proof numbers should record a failure instead.</param>
+    public void WriteTestSummary(int proofs, params int[] failing)
+    {
+        List<RecordedTest> tests = [];
+
+        for (int number = 1; number <= proofs; number++)
+        {
+            tests.Add(new RecordedTest(
+                string.Create(CultureInfo.InvariantCulture, $"Thing.Tests.Thing_does_the_thing_{number}"),
+                failing.Contains(number) ? TestOutcome.Failed : TestOutcome.Passed,
+                failing.Contains(number) ? "it did not" : null));
+        }
+
+        Directory.CreateDirectory(Cycle.EvidenceDirectory);
+
+        WriteRaw(
+            Path.Combine(Cycle.EvidenceDirectory, "tests.json"),
+            TestSummaryReader.Write(new TestSummary(
+                Cycle.FrameworkVersion,
+                Cycle.Id.ToString(),
+                DateTimeOffset.UnixEpoch,
+                tests)));
     }
 
     /// <summary>Writes a verify document with a given outcome.</summary>

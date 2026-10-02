@@ -29,6 +29,13 @@ public sealed record FileComparison(
 /// </remarks>
 public static class DeclaredFiles
 {
+    // Anything inside backticks, for reading a proof entry's test names. Wider than the path pattern
+    // below, on purpose: a test name has no extension and no slash, so there is nothing else to key on.
+    private static readonly Regex Backticked = new(
+        @"`(?<text>[^`]+)`",
+        RegexOptions.CultureInvariant | RegexOptions.ExplicitCapture,
+        TimeSpan.FromSeconds(1));
+
     // A path in a Files table or list: inside backticks, which is how a plan writes one, so prose about a
     // file is not mistaken for a declaration of it.
     private static readonly Regex Quoted = new(
@@ -67,6 +74,38 @@ public static class DeclaredFiles
         }
 
         return [.. paths.Order(StringComparer.Ordinal)];
+    }
+
+    /// <summary>
+    /// The test names one proof entry commits to.
+    /// </summary>
+    /// <remarks>
+    /// Read from backticked spans, the same way a declared file is. A plan writes prose around the name --
+    /// "a test named X asserts it" -- and pulling the name out of prose would mean guessing which word is
+    /// the name. Backticks make it a declaration rather than a mention, and the plan skill asks for them.
+    /// </remarks>
+    /// <param name="entry">One numbered proof entry's text.</param>
+    /// <returns>The names it commits to, which may be none.</returns>
+    public static IReadOnlyList<string> TestsIn(string entry)
+    {
+        ArgumentNullException.ThrowIfNull(entry);
+
+        HashSet<string> names = new(StringComparer.Ordinal);
+
+        foreach (Match match in Backticked.Matches(entry))
+        {
+            string name = match.Groups["text"].Value.Trim();
+
+            // A path is a file, not a test. A proof entry may name both -- "`RollTests.cs` holds
+            // `Rolls_within_one_and_six`" -- and counting the file as a test would make the check pass on a
+            // name no runner ever reported.
+            if (name.Length > 0 && !name.Contains('/', StringComparison.Ordinal))
+            {
+                names.Add(name);
+            }
+        }
+
+        return [.. names.Order(StringComparer.Ordinal)];
     }
 
     /// <summary>

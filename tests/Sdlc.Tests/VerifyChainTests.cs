@@ -197,6 +197,7 @@ public sealed class VerifyChainTests
         workspace.WriteSpec(criteria: 3);
         workspace.WritePlan(proofs: 3);
         workspace.WriteVerify(outcome: "pass");
+        workspace.WriteTestSummary(proofs: 3);
 
         foreach (ArtifactKind kind in Cycle.PlanningDocuments)
         {
@@ -205,6 +206,63 @@ public sealed class VerifyChainTests
 
         workspace.WriteApproval();
         return workspace;
+    }
+
+    [TestMethod]
+    public async Task A_proof_whose_named_test_failed_fails_the_chain()
+    {
+        // This is the check that blocks. A proof entry existing is bookkeeping; the criterion is met when
+        // the test it names passed, read from the evidence rather than from anything verify claims.
+        using CycleWorkspace workspace = Sound();
+        workspace.WriteTestSummary(proofs: 3, failing: 2);
+
+        ChainVerdict verdict = await Check(workspace);
+
+        ChainCheck proven = verdict.Checks.Single(check => check.Name.Contains("named test", StringComparison.Ordinal));
+
+        Assert.IsFalse(proven.Passed, proven.Detail);
+        StringAssert.Contains(proven.Detail, "proof 2");
+    }
+
+    [TestMethod]
+    public async Task A_chain_with_no_test_summary_at_all_fails_rather_than_passing()
+    {
+        // A proof nothing ran is not a proof, and a chain that held without one would mean "approved"
+        // rather than "met".
+        using CycleWorkspace workspace = Sound();
+        File.Delete(Path.Combine(workspace.Cycle.EvidenceDirectory, "tests.json"));
+
+        ChainVerdict verdict = await Check(workspace);
+
+        ChainCheck proven = verdict.Checks.Single(check => check.Name.Contains("named test", StringComparison.Ordinal));
+
+        Assert.IsFalse(proven.Passed);
+        StringAssert.Contains(proven.Detail, "rather than 'met'");
+    }
+
+    [TestMethod]
+    public async Task A_proof_that_names_no_test_is_reported_rather_than_skipped()
+    {
+        // "Covered by the integration suite" commits to nothing a reader can check, which is the shape an
+        // inadequate proof takes when it is written in good faith.
+        using CycleWorkspace workspace = Sound();
+
+        string plan = workspace.Cycle.PathOf(ArtifactKind.Plan);
+        string text = await File.ReadAllTextAsync(plan);
+
+        CycleWorkspace.WriteRaw(
+            plan,
+            text.Replace(
+                "3. `Thing_does_the_thing_3` asserts it.",
+                "3. Covered by the integration suite.",
+                StringComparison.Ordinal));
+
+        ChainVerdict verdict = await Check(workspace);
+
+        ChainCheck proven = verdict.Checks.Single(check => check.Name.Contains("named test", StringComparison.Ordinal));
+
+        Assert.IsFalse(proven.Passed, proven.Detail);
+        StringAssert.Contains(proven.Detail, "proof 3 names no test");
     }
 
     private static async Task<ChainVerdict> Check(CycleWorkspace workspace)

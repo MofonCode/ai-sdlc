@@ -4,6 +4,7 @@ using MofonCode.Core;
 using Sdlc.Core.Approvals;
 using Sdlc.Core.Artifacts;
 using Sdlc.Core.Cycles;
+using Sdlc.Core.Evidence;
 
 namespace Sdlc.Core.Chain;
 
@@ -89,6 +90,7 @@ public sealed class VerifyChainHandler(string solutionRoot)
         await Documents(cycle, checks, request.Id, cancellationToken).ConfigureAwait(false);
         await Gate(cycle, checks, cancellationToken).ConfigureAwait(false);
         await Proof(cycle, checks, cancellationToken).ConfigureAwait(false);
+        await Proven(cycle, checks, cancellationToken).ConfigureAwait(false);
         await Outcome(cycle, checks, cancellationToken).ConfigureAwait(false);
 
         return Result.Ok(new ChainVerdict(cycle, checks));
@@ -247,6 +249,105 @@ public sealed class VerifyChainHandler(string solutionRoot)
                 ? string.Create(
                     CultureInfo.InvariantCulture,
                     $"{criteria.Count} criteria, each with a proof entry")
+                : string.Join(Environment.NewLine, problems)));
+    }
+
+    /// <summary>
+    /// Every test a proof entry commits to actually ran and passed.
+    /// </summary>
+    /// <remarks>
+    /// This is the check that blocks. A proof entry existing is bookkeeping; the criterion is met when the
+    /// test it names passed, and that is read from the normalised summary rather than from anything the
+    /// verify document claims. <c>D-15</c> moved the file comparison out of this layer precisely so that
+    /// what blocks here is outcome-based.
+    /// <para>
+    /// A proof entry that names no test is reported rather than skipped. An entry saying "covered by the
+    /// integration suite" commits to nothing a reader can check, which is the shape an inadequate proof
+    /// takes when it is written in good faith.
+    /// </para>
+    /// </remarks>
+    private static async Task Proven(
+        Cycle cycle,
+        List<ChainCheck> checks,
+        CancellationToken cancellationToken)
+    {
+        string planPath = cycle.PathOf(ArtifactKind.Plan);
+
+        if (!File.Exists(planPath))
+        {
+            return;
+        }
+
+        IReadOnlyDictionary<int, string> proofs = ArtifactSections.NumberedItems(
+            await File.ReadAllTextAsync(planPath, cancellationToken).ConfigureAwait(false),
+            "Proof");
+
+        if (proofs.Count == 0)
+        {
+            return;
+        }
+
+        string summaryPath = Path.Combine(cycle.EvidenceDirectory, RecordEvidenceHandler.SummaryFileName);
+
+        if (!File.Exists(summaryPath))
+        {
+            checks.Add(new ChainCheck(
+                "every named test passed",
+                false,
+                string.Create(
+                    CultureInfo.InvariantCulture,
+                    $"there is no {RecordEvidenceHandler.SummaryFileName} in the evidence. A proof nothing ran is not a proof, and a chain that passed without one would mean 'approved' rather than 'met'.")));
+
+            return;
+        }
+
+        Result<TestSummary> read = TestSummaryReader.Read(
+            await File.ReadAllTextAsync(summaryPath, cancellationToken).ConfigureAwait(false),
+            summaryPath);
+
+        if (read.IsFailed)
+        {
+            checks.Add(new ChainCheck(
+                "every named test passed",
+                false,
+                string.Join("; ", read.Errors.Select(error => error.Message))));
+
+            return;
+        }
+
+        TestSummary summary = read.Value;
+        List<string> problems = [];
+
+        foreach ((int number, string entry) in proofs.OrderBy(proof => proof.Key))
+        {
+            IReadOnlyList<string> named = DeclaredFiles.TestsIn(entry);
+
+            if (named.Count == 0)
+            {
+                problems.Add(string.Create(
+                    CultureInfo.InvariantCulture,
+                    $"proof {number} names no test. Write the test's name in backticks, so there is something to check."));
+
+                continue;
+            }
+
+            List<string> absent = [.. named.Where(name => !summary.DidPass(name))];
+
+            if (absent.Count > 0)
+            {
+                problems.Add(string.Create(
+                    CultureInfo.InvariantCulture,
+                    $"proof {number}: {string.Join(", ", absent)} did not run and pass."));
+            }
+        }
+
+        checks.Add(new ChainCheck(
+            "every named test passed",
+            problems.Count == 0,
+            problems.Count == 0
+                ? string.Create(
+                    CultureInfo.InvariantCulture,
+                    $"{proofs.Count} proofs, every named test passing out of {summary.Passed} that did")
                 : string.Join(Environment.NewLine, problems)));
     }
 
