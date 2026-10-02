@@ -289,6 +289,7 @@ public sealed class ApprovalTextHandler(string solutionRoot)
                 string.Empty,
                 "    ---",
                 string.Create(CultureInfo.InvariantCulture, $"    cycle: {status.Cycle.Id}"),
+                string.Create(CultureInfo.InvariantCulture, $"    framework_version: {Cycle.FrameworkVersion}"),
                 "    decisions:",
                 "      <the entry above>",
                 "    ---");

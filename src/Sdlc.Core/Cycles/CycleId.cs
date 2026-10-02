@@ -13,8 +13,14 @@ namespace Sdlc.Core.Cycles;
 /// <para>
 /// The id is load-bearing in three places — the branch name, the directory path, and every
 /// cross-reference inside the cycle's own artifacts — so it is fixed at allocation and never
-/// rewritten. Two cycles opened in the same second would collide; the directory already existing is
-/// what catches it.
+/// rewritten.
+/// </para>
+/// <para>
+/// Two cycles opened in the same second would collide, and <see cref="Allocate"/> cannot catch that:
+/// at allocation there is no directory to be already there. What catches it is the intent skill
+/// creating the cycle's directory as its first act and failing if it exists — creating it <em>is</em>
+/// the check, and the filesystem makes that atomic. A check that looked first and created second
+/// would leave the race it was written to close.
 /// </para>
 /// </remarks>
 public readonly record struct CycleId

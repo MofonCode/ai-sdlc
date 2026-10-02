@@ -31,6 +31,16 @@ public enum ArtifactKind
 /// <param name="SolutionRoot">The root of the solution the cycle belongs to.</param>
 public sealed record Cycle(CycleId Id, string SolutionRoot)
 {
+    /// <summary>
+    /// The framework version every artifact and ledger declares.
+    /// </summary>
+    /// <remarks>
+    /// One constant, because the envelope requires the field on every artifact and a value written in
+    /// three places is three values. It says which format the file was written in, so a later reader
+    /// can tell a file it cannot parse from one it should not try to.
+    /// </remarks>
+    public const string FrameworkVersion = "1.0.0";
+
     /// <summary>The framework's directory inside a solution.</summary>
     public const string SdlcDirectoryName = ".sdlc";
 

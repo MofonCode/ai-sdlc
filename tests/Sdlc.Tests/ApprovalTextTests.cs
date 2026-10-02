@@ -287,6 +287,20 @@ public sealed class ApprovalTextTests
     }
 
     [TestMethod]
+    public async Task The_printed_header_declares_the_framework_version()
+    {
+        using CycleWorkspace workspace = Ready();
+
+        ApprovalTextResult text = await Print(workspace);
+
+        StringAssert.Contains(
+            text.Instructions,
+            "framework_version: " + Cycle.FrameworkVersion,
+            "The envelope requires the field on every artifact. A printed header that omitted it would "
+            + "make a first entry the one file in the cycle that does not declare its format.");
+    }
+
+    [TestMethod]
     public async Task A_stale_round_refuses_the_entry_but_not_a_send_back()
     {
         using CycleWorkspace workspace = Ready();
