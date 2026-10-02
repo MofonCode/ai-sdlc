@@ -222,6 +222,35 @@ public sealed class InitTests
     }
 
     [TestMethod]
+    public void Every_command_the_solution_readme_names_is_one_the_binary_has()
+    {
+        // The readme goes into every governed solution and is the first place somebody looks. A command it
+        // names and the binary does not have sends them to a usage error, and the usage text is the one
+        // place they would not think to look for the answer.
+        string usage = File.ReadAllText(Path.Combine(
+            RepoPaths.Root, "src", "Sdlc.Cli", "Usage.cs"));
+
+        IEnumerable<string> named = System.Text.RegularExpressions.Regex
+            .Matches(Templates.Readme(), @"sdlc (?<verb>[a-z-]+(?: [a-z]+)?)")
+            .Select(match => match.Groups["verb"].Value)
+            .Distinct(StringComparer.Ordinal);
+
+        foreach (string verb in named)
+        {
+            // The stage skills are named deliberately, and the binary answers those by explaining itself.
+            if (Sdlc.Cli.Stages.IsSkill(verb.Split(' ')[0]))
+            {
+                continue;
+            }
+
+            StringAssert.Contains(
+                usage,
+                verb,
+                $"The solution readme names 'sdlc {verb}', which the usage text does not list.");
+        }
+    }
+
+    [TestMethod]
     public void The_pre_push_hook_has_unix_line_endings_and_ignores_branches_that_are_not_cycles()
     {
         // CRLF in a shell script fails on Linux with a message about the interpreter, which is a confusing
