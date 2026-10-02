@@ -5,6 +5,7 @@ using FluentResults;
 using Sdlc.Cli;
 using Sdlc.Core.Approvals;
 using Sdlc.Core.Artifacts;
+using Sdlc.Core.Chain;
 using Sdlc.Core.Constraints;
 using Sdlc.Core.Cycles;
 using Sdlc.Core.Drafts;
@@ -38,6 +39,7 @@ try
     {
         "constraints" => await Workspace.Run(line, w => Constraints(w, line)).ConfigureAwait(false),
         "gate" => await WithCycle(line, "gate", Gate).ConfigureAwait(false),
+        "verify-chain" => await WithCycle(line, "verify-chain", VerifyChain).ConfigureAwait(false),
         "draft" => await Draft(line).ConfigureAwait(false),
         "status" => await WithCycle(line, "status", (w, id) => Status(w, line, id)).ConfigureAwait(false),
         "hook" => await Hook(line).ConfigureAwait(false),
@@ -96,6 +98,24 @@ static async Task<int> Gate(Workspace workspace, CycleId id)
 
     await Console.Error.WriteLineAsync(verdict.Explanation).ConfigureAwait(false);
     return ExitCode.Refused;
+}
+
+// The non-bypassable layer. A pipeline runs this behind branch policy, so its exit code is the thing
+// standing between an unapproved chain and a merge -- which is why the whole report goes to standard
+// output whether it holds or not: a reader looking at a failed check needs what passed as well.
+static async Task<int> VerifyChain(Workspace workspace, CycleId id)
+{
+    Result<ChainVerdict> result = await workspace
+        .Send<VerifyChainQuery, ChainVerdict>(new VerifyChainQuery(id))
+        .ConfigureAwait(false);
+
+    if (result.IsFailed)
+    {
+        return await Report(result, ExitCode.Failed).ConfigureAwait(false);
+    }
+
+    await Console.Out.WriteAsync(ChainRenderer.Render(result.Value)).ConfigureAwait(false);
+    return result.Value.Holds ? ExitCode.Ok : ExitCode.Refused;
 }
 
 // One verb drafts every file a person writes by hand. They follow one rule -- a tool never writes

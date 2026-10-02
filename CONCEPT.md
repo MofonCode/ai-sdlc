@@ -918,12 +918,18 @@ rule: report the coverage **delta** against the target branch.
 `verify-chain` re-establishes, from the repository rather than any agent's word, that:
 
 - every artifact in the chain exists
+- every artifact's shape is sound — the envelope, its body sections, and nothing undeclared
 - the approval ledger's standing decision is `approved`
 - all three recorded hashes match the bytes on disk
 - every findings round's `upstream_sha256` matches its upstream now
-- every spec criterion maps to a named test
-- every changed file was declared, **and every declared file changed**
+- every spec criterion has a proof entry that cites it
 - the outcome in `verify.md` is `pass`
+
+**What it deliberately does not check.** The comparison of declared files against changed files.
+`D-15` moved that to the hook and made it a suggestion, because `CON_07` exists precisely *because*
+the comparison cannot see inside a file — so it was never load-bearing for scope creep, and a noisy
+blocker gets routed around. What blocks instead is outcome-based: the build fails, tests fail, or the
+proof is not met.
 
 **And what it must not claim.** With local-only approval it proves the entry exists and the hashes
 match. It cannot prove a second person approved, and it says so in its own output.

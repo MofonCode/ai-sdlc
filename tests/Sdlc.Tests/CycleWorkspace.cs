@@ -1,4 +1,5 @@
 using System.Globalization;
+using Sdlc.Core.Artifacts;
 using Sdlc.Core.Cycles;
 using Sdlc.Core.Solutions;
 
@@ -40,18 +41,154 @@ internal sealed class CycleWorkspace : IDisposable
         return workspace;
     }
 
-    /// <summary>Writes one of the planning documents with throwaway content.</summary>
+    /// <summary>
+    /// Writes one artifact, shaped the way the schema asks for.
+    /// </summary>
+    /// <remarks>
+    /// Schema-valid rather than minimal, because a fixture that would be rejected by the schema makes
+    /// every test built on it prove less than it looks like it proves -- and the chain check reads shape.
+    /// </remarks>
     /// <param name="kind">Which document.</param>
-    /// <param name="body">What to put in it, which only matters for its hash.</param>
+    /// <param name="body">What to put in each section, which is what moves its hash.</param>
     public void WriteArtifact(ArtifactKind kind, string body = "content")
     {
-        string path = Cycle.PathOf(kind);
-        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
-        File.WriteAllText(
-            path,
-            string.Create(
+        List<string> lines =
+        [
+            "---",
+            "framework_version: " + Cycle.FrameworkVersion,
+            "cycle: " + Cycle.Id,
+        ];
+
+        foreach (string key in ArtifactSchema.BodyKeysOf(kind))
+        {
+            lines.Add(key + ": " + key switch
+            {
+                "type" => "feature addition",
+                "tier" => "local",
+                "outcome" => "pass",
+                _ => throw new InvalidOperationException("unknown body key " + key),
+            });
+        }
+
+        lines.AddRange("---", string.Empty, "# " + Cycle.NameOf(kind), string.Empty);
+
+        foreach (string section in ArtifactSchema.BodySectionsOf(kind))
+        {
+            lines.AddRange("## " + section, string.Empty, body, string.Empty);
+        }
+
+        lines.Add("## " + ArtifactSchema.OpenSection);
+
+        WriteRaw(Cycle.PathOf(kind), string.Join('\n', lines) + "\n");
+    }
+
+    /// <summary>
+    /// Writes a spec carrying a given number of numbered acceptance criteria.
+    /// </summary>
+    /// <param name="criteria">How many criteria, which may be none.</param>
+    public void WriteSpec(int criteria)
+    {
+        List<string> lines =
+        [
+            "---",
+            "framework_version: " + Cycle.FrameworkVersion,
+            "cycle: " + Cycle.Id,
+            "---",
+            string.Empty,
+            "# a spec",
+            string.Empty,
+            "## Acceptance criteria",
+            string.Empty,
+        ];
+
+        for (int number = 1; number <= criteria; number++)
+        {
+            lines.Add(string.Create(
                 CultureInfo.InvariantCulture,
-                $"---\nid: {Cycle.Id}\n---\n\n# {Cycle.NameOf(kind)}\n\n{body}\n"));
+                $"{number}. Something observable happens, checked by asking for it."));
+        }
+
+        lines.AddRange(
+            string.Empty,
+            "## Out of scope",
+            string.Empty,
+            "Nothing else.",
+            string.Empty,
+            "## " + ArtifactSchema.OpenSection);
+
+        WriteRaw(Cycle.PathOf(ArtifactKind.Spec), string.Join('\n', lines) + "\n");
+    }
+
+    /// <summary>
+    /// Writes a plan whose proof section cites a given number of criteria.
+    /// </summary>
+    /// <param name="proofs">How many proof entries, numbered from one.</param>
+    public void WritePlan(int proofs)
+    {
+        List<string> lines =
+        [
+            "---",
+            "framework_version: " + Cycle.FrameworkVersion,
+            "cycle: " + Cycle.Id,
+            "tier: local",
+            "---",
+            string.Empty,
+            "# a plan",
+            string.Empty,
+            "## Shape and departures",
+            string.Empty,
+            "No departure from the declared defaults.",
+            string.Empty,
+            "## Files",
+            string.Empty,
+            "| File | Change |",
+            "|---|---|",
+            "| `src/Thing.cs` | new |",
+            string.Empty,
+            "## Proof",
+            string.Empty,
+        ];
+
+        for (int number = 1; number <= proofs; number++)
+        {
+            lines.Add(string.Create(
+                CultureInfo.InvariantCulture,
+                $"{number}. A test named Thing_does_the_thing_{number} asserts it."));
+        }
+
+        lines.AddRange(
+            string.Empty,
+            "## Risk",
+            string.Empty,
+            "One file, reversible.",
+            string.Empty,
+            "## " + ArtifactSchema.OpenSection);
+
+        WriteRaw(Cycle.PathOf(ArtifactKind.Plan), string.Join('\n', lines) + "\n");
+    }
+
+    /// <summary>Writes a verify document with a given outcome.</summary>
+    /// <param name="outcome">pass, blocked or escalated.</param>
+    public void WriteVerify(string outcome)
+    {
+        List<string> lines =
+        [
+            "---",
+            "framework_version: " + Cycle.FrameworkVersion,
+            "cycle: " + Cycle.Id,
+            "outcome: " + outcome,
+            "---",
+            string.Empty,
+            "# a verify",
+            string.Empty,
+            "## Criteria",
+            string.Empty,
+            "1. Met. Thing_does_the_thing_1 passed.",
+            string.Empty,
+            "## " + ArtifactSchema.OpenSection,
+        ];
+
+        WriteRaw(Cycle.PathOf(ArtifactKind.Verify), string.Join('\n', lines) + "\n");
     }
 
     /// <summary>Writes all three planning documents.</summary>

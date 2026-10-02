@@ -130,9 +130,13 @@ public static class ArtifactSchema
 
         if (read.IsFailed)
         {
+            // Phrased here rather than passed through, because a Where and a Problem are read as one
+            // sentence and the splitter's message is written to stand alone.
             violations.Add(new SchemaViolation(
                 "the document",
-                read.Errors[0].Message.Split(": ", 2)[^1]));
+                read.Errors[0].Message.Contains("never closes", StringComparison.Ordinal)
+                    ? "opens its frontmatter and never closes it. Add a '---' fence after it."
+                    : "has no frontmatter. It must open with a '---' fence."));
 
             // Without frontmatter there is nothing to check the keys against, but the sections are still
             // readable and still worth reporting in the same pass.

@@ -237,6 +237,14 @@ public sealed class StatusRendererTests
         workspace.WriteAllArtifacts();
         workspace.WriteCleanRound(ArtifactKind.Intent);
 
+        // The fixture is schema-valid, so the problem has to be introduced on purpose.
+        CycleWorkspace.WriteRaw(
+            workspace.Cycle.PathOf(ArtifactKind.Intent),
+            await File.ReadAllTextAsync(workspace.Cycle.PathOf(ArtifactKind.Intent))
+                + Environment.NewLine
+                + "## Notes"
+                + Environment.NewLine);
+
         string panel = await Render(workspace, ArtifactKind.Intent, shape: true);
 
         StringAssert.Contains(panel, "Shape");

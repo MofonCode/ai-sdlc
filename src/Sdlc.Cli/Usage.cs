@@ -24,6 +24,8 @@ internal static class Usage
         Commands
             constraints              Render the constraint set in force.
             gate <id>                Say whether a cycle's build may run. Exits 1 if not.
+            verify-chain <id>        Re-establish the whole chain from the repository. Exits 1 if
+                                     it does not hold. This is the pull-request check.
             draft approval <id>      Print the gate entry for a person to paste.
             draft abandon <id>       Print the record that stops a cycle, for a person to place.
             draft constraint         Print the next free LOC_ id, with its four parts empty.

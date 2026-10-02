@@ -1,6 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using MofonCode.Core;
 using Sdlc.Core.Approvals;
+using Sdlc.Core.Chain;
 using Sdlc.Core.Constraints;
 using Sdlc.Core.Cycles;
 using Sdlc.Core.Drafts;
@@ -57,6 +58,9 @@ public static class SdlcServices
 
         services.AddTransient<IRequestHandler<ProfileTextQuery, DraftResult>>(
             _ => new ProfileTextHandler(solutionRoot));
+
+        services.AddTransient<IRequestHandler<VerifyChainQuery, ChainVerdict>>(
+            _ => new VerifyChainHandler(solutionRoot));
 
         return services;
     }
