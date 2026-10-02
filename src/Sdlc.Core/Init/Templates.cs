@@ -358,6 +358,59 @@ public static class Templates
         _ => throw new ArgumentOutOfRangeException(nameof(platform)),
     };
 
+    /// <summary>
+    /// The pre-push hook, which is the last local chance to catch a cycle that will be refused anyway.
+    /// </summary>
+    /// <remarks>
+    /// A cycle branch that is not landable will be refused by the pull-request check, so pushing it costs a
+    /// round trip through CI to learn what a local command could have said in a second. This is the fast
+    /// version of that answer and nothing more -- it is bypassable with <c>--no-verify</c>, like every git
+    /// hook, which is exactly why the guarantee lives in the pipeline instead.
+    /// <para>
+    /// It stays out of the way of everything else. A push of any branch that is not a cycle branch passes
+    /// straight through, because a developer pushing a spike should not meet a governance hook at all.
+    /// </para>
+    /// </remarks>
+    /// <returns>
+    /// The hook's contents, joined with a line feed rather than the platform's separator. A shell script
+    /// with CRLF endings fails on Linux with a message about the interpreter, which is a confusing way to
+    /// learn that a hook was written on Windows.
+    /// </returns>
+    public static string PrePushHook() => string.Join(
+        "\n",
+        [
+            "#!/bin/sh",
+            "# Written by 'sdlc init'. Refuses to push a cycle branch that is not landable, because the",
+            "# pull-request check would refuse it anyway and learning that here takes a second rather than",
+            "# a round trip through CI.",
+            "#",
+            "# Bypassable with --no-verify, like every git hook. That is why the guarantee is the pipeline.",
+            string.Empty,
+            "while read -r _local_ref _local_sha remote_ref _remote_sha; do",
+            "  case \"$remote_ref\" in",
+            "    refs/heads/cycle/*) ;;",
+            "    *) continue ;;",
+            "  esac",
+            string.Empty,
+            "  cycle=${remote_ref#refs/heads/cycle/}",
+            string.Empty,
+            "  if ! command -v sdlc >/dev/null 2>&1; then",
+            "    echo \"sdlc is not on PATH, so $cycle was not checked before this push.\" >&2",
+            "    continue",
+            "  fi",
+            string.Empty,
+            "  if ! sdlc landable \"$cycle\" >&2; then",
+            "    echo >&2",
+            "    echo \"Not pushing cycle/$cycle. Run 'sdlc landable $cycle' for the whole answer, or\" >&2",
+            "    echo \"push with --no-verify if you mean to open a pull request that will be refused.\" >&2",
+            "    exit 1",
+            "  fi",
+            "done",
+            string.Empty,
+            "exit 0",
+            string.Empty,
+        ]);
+
     /// <summary>The commit message for what adoption created.</summary>
     /// <param name="mode">Which mode ran.</param>
     /// <param name="paths">What it wrote.</param>

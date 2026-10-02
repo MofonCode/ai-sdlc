@@ -45,6 +45,7 @@ try
         "init" => await Workspace.Run(line, w => Init(w, line)).ConfigureAwait(false),
         "new" => await Workspace.Run(line, NewCycle).ConfigureAwait(false),
         "evidence" => await WithCycle(line, "evidence", (w, id) => Evidence(w, line, id)).ConfigureAwait(false),
+        "claims" => await Workspace.Run(line, Claims).ConfigureAwait(false),
         "constraints" => await Workspace.Run(line, w => Constraints(w, line)).ConfigureAwait(false),
         "gate" => await WithCycle(line, "gate", Gate).ConfigureAwait(false),
         "verify-chain" => await WithCycle(line, "verify-chain", VerifyChain).ConfigureAwait(false),
@@ -255,6 +256,26 @@ static async Task<int> Skill(CommandLine line)
 {
     await Console.Error.WriteAsync(Stages.Explain(line.Verb, line.Arguments)).ConfigureAwait(false);
     return ExitCode.Usage;
+}
+
+// Which cycles may be built together. Deterministic -- a set intersection over a file table -- so the
+// binary owns it. A batch skill working the graph out by reading plans would get it slightly differently
+// each run, and what it decides is what runs concurrently.
+static async Task<int> Claims(Workspace workspace)
+{
+    Result<ClaimGraph> result = await workspace
+        .Send<ClaimGraphQuery, ClaimGraph>(new ClaimGraphQuery())
+        .ConfigureAwait(false);
+
+    if (result.IsFailed)
+    {
+        return await Report(result, ExitCode.Failed).ConfigureAwait(false);
+    }
+
+    await Console.Out.WriteAsync(ClaimGraphRenderer.Render(result.Value)).ConfigureAwait(false);
+
+    // Zero whether or not anything collides. A collision is a schedule, not a problem.
+    return ExitCode.Ok;
 }
 
 // What a build leaves behind, as files rather than prose. Verify reads only this, because a verdict

@@ -78,6 +78,9 @@ public static class SdlcServices
         services.AddTransient<IRequestHandler<NewCycleCommand, Cycle>>(
             _ => new NewCycleHandler(solutionRoot, TimeProvider.System));
 
+        services.AddTransient<IRequestHandler<ClaimGraphQuery, ClaimGraph>>(
+            _ => new ClaimGraphHandler(solutionRoot));
+
         services.AddTransient<IRequestHandler<LandableQuery, Landable>>(
             _ => new LandableHandler(solutionRoot));
 

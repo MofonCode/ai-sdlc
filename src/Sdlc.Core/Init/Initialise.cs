@@ -163,6 +163,15 @@ public sealed class InitHandler(string solutionRoot, IRepository repository)
             actions,
             cancellationToken).ConfigureAwait(false);
 
+        // Written under .sdlc rather than into .git/hooks, because .git is not tracked -- a hook written
+        // there would exist on one machine and silently not on anybody else's, which is the shape of
+        // enforcement this design is written against. The person installs it, and init says how.
+        await Owned(
+            Path.Combine(Cycle.SdlcDirectoryName, "hooks", "pre-push"),
+            Templates.PrePushHook(),
+            actions,
+            cancellationToken).ConfigureAwait(false);
+
         await Agents(actions, printed, cancellationToken).ConfigureAwait(false);
 
         return Result.Ok(new InitReport(mode, origin, actions, printed));

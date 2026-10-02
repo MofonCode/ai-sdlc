@@ -201,6 +201,55 @@ public sealed class InitTests
     }
 
     [TestMethod]
+    public async Task The_pre_push_hook_is_written_but_not_installed()
+    {
+        // A hook written into .git/hooks would exist on one machine and silently not on anybody else's, and
+        // a check that is absent where nobody looks is worse than no check. So it lands under .sdlc, which
+        // is tracked, and the report says how to point git at it.
+        using var solution = Scratch.Create();
+
+        InitReport report = await Adopt(solution, tracked: []);
+
+        Assert.IsTrue(
+            File.Exists(Path.Combine(solution.Root, Cycle.SdlcDirectoryName, "hooks", "pre-push")),
+            string.Join("; ", report.Actions.Select(action => action.Path)));
+
+        Assert.IsFalse(
+            Directory.Exists(Path.Combine(solution.Root, ".git", "hooks")),
+            "Adoption must not write into .git, which is not tracked.");
+
+        StringAssert.Contains(InitRenderer.Render(report), "git config core.hooksPath .sdlc/hooks");
+    }
+
+    [TestMethod]
+    public void The_pre_push_hook_has_unix_line_endings_and_ignores_branches_that_are_not_cycles()
+    {
+        // CRLF in a shell script fails on Linux with a message about the interpreter, which is a confusing
+        // way to learn that a hook was written on Windows.
+        string hook = Templates.PrePushHook();
+
+        Assert.IsFalse(
+            hook.Contains('\r'),
+            "The hook carries a carriage return, which fails on Linux as an interpreter error.");
+        StringAssert.StartsWith(hook, "#!/bin/sh");
+
+        StringAssert.Contains(
+            hook,
+            "refs/heads/cycle/*",
+            "A developer pushing a spike should not meet a governance hook at all.");
+
+        StringAssert.Contains(
+            hook,
+            "--no-verify",
+            "The hook has to say it is bypassable, or somebody will mistake it for the guarantee.");
+
+        StringAssert.Contains(
+            hook,
+            "not on PATH",
+            "A missing binary warns visibly rather than failing closed or passing silently.");
+    }
+
+    [TestMethod]
     public void The_agents_file_points_at_the_constraints_rather_than_restating_them()
     {
         // A copy of the rules here would be a second place they live, and the copy is always the one that

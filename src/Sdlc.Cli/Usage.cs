@@ -36,6 +36,7 @@ internal static class Usage
             draft profile <name>     Print the solution.md keys for a profile migration.
             evidence <id>            Record what a build produced: the diff, its base commit, and a
                                      normalised test summary. Verify reads only this.
+            claims                   Say which cycles may be built together, and what collides.
             status <id>              Show the panel for a stage. Ends with the next command.
             suggestions [<id>]       List the open non-blocking findings, for one cycle or all.
             hook --host <name>       Judge a tool call. Reads the host's payload on stdin and

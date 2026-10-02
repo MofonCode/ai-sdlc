@@ -18,39 +18,40 @@ bound is implemented and tested, but it has been exercised in fixtures far more 
 first few batch runs are worth watching, and a cycle that escalates is worth reading rather than
 re-running.
 
-## 1. Find the work and build the claim graph
+## 1. Find the work and read the claim graph
 
 ```
 sdlc landable --all
+sdlc claims
 ```
 
-That lists every cycle and its state. The ones to build are the cycles whose gate is satisfied and which
-have no verification yet.
+The first lists every cycle and its state; the ones to build are those whose gate is satisfied and which
+have no verification yet. The second computes the claim graph and prints it: what each cycle claims, which
+groups may run together, and every collision with the files it is about.
 
-For each, read the plan's `Files` section. Those are the files the cycle **claims**. Two cycles claiming
-the same file collide, and the claim graph is how that is known **before** anything is built rather than
-discovered in a merge.
+**Do not work the graph out yourself.** It is a set intersection over a file table, which the binary does
+the same way every time; a graph you derived by reading plans would come out slightly differently each run,
+and what it decides is what runs concurrently.
 
-## 2. Partition, then serialise what overlaps
+## 2. Run the groups
 
-- Cycles whose claims do not intersect run in **parallel**, each in its own git worktree.
-- Cycles whose claims do intersect run **in cycle-id order**, which is chronological, each rebased on
-  the previous result.
+- Each group from `sdlc claims` runs in **parallel**, each cycle in its own git worktree.
+- Cycles in different groups collide, so they run **in cycle-id order**, each rebased on the previous result.
 
-The order is taken rather than declared. Two cycles that genuinely depend on each other with nobody
-having said so means the second's build fails, a person learns, and they rerun. That is accepted: there
-is no dependency declaration, because the skill that would have produced one was removed with `split`.
+The order is taken rather than declared. Two cycles that genuinely depend on each other with nobody having
+said so means the second's build fails, a person learns, and they rerun. That is accepted: there is no
+dependency declaration, because the skill that would have produced one was removed with `split`.
 
 **Schedule around collisions rather than resolving them.** A merge you did not have to do is worth more
 than a merge you did well.
 
 **EF Core migrations serialise, always.** Two branches that each add a migration snapshot the same parent
 model, and the merged chain breaks in a way that compiles and then fails at deploy — which is the worst
-shape a failure can take.
+shape a failure can take. `sdlc claims` flags a plan that mentions one.
 
 ## 3. Cap concurrency by what a plan needs
 
-Read each plan: does it touch the app host, or declare a dependency on a backing service?
+`sdlc claims` marks the cycles whose plans stand up a backing service. Those are the ones to cap.
 
 | | Concurrency |
 |---|---|
