@@ -19,7 +19,7 @@ public static class ArtifactSections
 {
     // A numbered item, as a criterion list is written: "1." or "1)" at the start of a line, with the
     // number captured so a proof can be matched to it by number rather than by prose.
-    private static readonly Regex NumberedItem = new(
+    private static readonly Regex _numberedItem = new(
         @"^\s*(?<number>[0-9]{1,3})[.)]\s+(?<text>\S.*)$",
         RegexOptions.CultureInvariant | RegexOptions.ExplicitCapture,
         TimeSpan.FromSeconds(1));
@@ -113,7 +113,7 @@ public static class ArtifactSections
 
         foreach (string line in lines)
         {
-            Match match = NumberedItem.Match(line);
+            Match match = _numberedItem.Match(line);
             if (!match.Success)
             {
                 continue;

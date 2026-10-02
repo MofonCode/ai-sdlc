@@ -73,7 +73,7 @@ public static class ComputeClaimGraph
         /// miss means two runs sharing a named volume -- the same database files, two writers -- which fails
         /// strangely rather than loudly.
         /// </remarks>
-        private static readonly string[] ServiceWords =
+        private static readonly string[] _serviceWords =
         [
             "AppHost", "app host", "Aspire", "SQL Server", "SqlServer", "Redis", "Service Bus",
             "ServiceBus", "Cosmos", "container", "docker", "migration", "WithDataVolume",
@@ -105,7 +105,7 @@ public static class ComputeClaimGraph
                 claims.Add(new Claim(
                     cycle.Id,
                     DeclaredFiles.Read(text),
-                    ServiceWords.Any(word => text.Contains(word, StringComparison.OrdinalIgnoreCase))));
+                    _serviceWords.Any(word => text.Contains(word, StringComparison.OrdinalIgnoreCase))));
             }
 
             List<Collision> collisions = [];

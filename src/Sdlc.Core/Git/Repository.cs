@@ -99,7 +99,7 @@ public sealed class GitRepository : IRepository
 {
     // Short, because every one of these runs on a path a person is waiting on. A git that has not
     // answered in five seconds is not going to, and failing to answer is handled rather than fatal.
-    private static readonly TimeSpan Patience = TimeSpan.FromSeconds(5);
+    private static readonly TimeSpan _patience = TimeSpan.FromSeconds(5);
 
     /// <inheritdoc />
     public bool IsRepository(string workingDirectory) =>
@@ -255,7 +255,7 @@ public sealed class GitRepository : IRepository
 
             string output = process.StandardOutput.ReadToEnd();
 
-            if (!process.WaitForExit(Patience))
+            if (!process.WaitForExit(_patience))
             {
                 return null;
             }

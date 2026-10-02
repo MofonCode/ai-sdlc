@@ -42,7 +42,7 @@ public static class ConstraintText
     {
         // Shown only when the file does not exist yet, so a first constraint lands in a document that
         // explains itself rather than one holding a bare heading.
-        private static readonly string[] Header =
+        private static readonly string[] _header =
         [
             string.Empty,
             "    # This solution's own constraints",
@@ -108,7 +108,7 @@ public static class ConstraintText
                     exists
                         ? string.Create(CultureInfo.InvariantCulture, $"Open {path} and add the block above at the end.")
                         : string.Create(CultureInfo.InvariantCulture, $"Create {path} with the header below, then the block above."),
-                    .. exists ? [] : Header,
+                    .. exists ? [] : _header,
                     string.Empty,
                     existing.Count == 0
                         ? string.Create(CultureInfo.InvariantCulture, $"{id} is the first solution constraint.")

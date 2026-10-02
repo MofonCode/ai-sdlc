@@ -17,7 +17,7 @@ namespace Sdlc.Cli;
 internal static class Stages
 {
     /// <summary>What each stage skill is for, by the verb a person would type.</summary>
-    private static readonly Dictionary<string, string> Skills = new(StringComparer.OrdinalIgnoreCase)
+    private static readonly Dictionary<string, string> _skills = new(StringComparer.OrdinalIgnoreCase)
     {
         ["intent"] = "interviews a person into the problem the change exists to solve",
         ["spec"] = "derives testable acceptance criteria from the intent",
@@ -36,7 +36,7 @@ internal static class Stages
     /// <summary>Whether a verb names a stage skill.</summary>
     /// <param name="verb">The verb a person typed.</param>
     /// <returns>True when it is a skill rather than an unknown command.</returns>
-    public static bool IsSkill(string verb) => Skills.ContainsKey(verb);
+    public static bool IsSkill(string verb) => _skills.ContainsKey(verb);
 
     /// <summary>
     /// Explains that a stage is a skill, and how to invoke it.
@@ -54,7 +54,7 @@ internal static class Stages
         return string.Join(
             Environment.NewLine,
             [
-                $"'{verb}' is a skill, not a command. It {Skills[verb]}, which needs language rather than",
+                $"'{verb}' is a skill, not a command. It {_skills[verb]}, which needs language rather than",
                 "a file listing -- so your agent runs it and this binary checks what it produced.",
                 string.Empty,
                 "Ask your agent for it. In Claude Code:",

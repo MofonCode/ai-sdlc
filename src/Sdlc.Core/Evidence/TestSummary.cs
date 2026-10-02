@@ -108,7 +108,7 @@ public sealed record TestSummary(
 /// </remarks>
 public static class TestSummaryReader
 {
-    private static readonly JsonSerializerOptions Options = new()
+    private static readonly JsonSerializerOptions _options = new()
     {
         PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower,
         PropertyNameCaseInsensitive = true,
@@ -176,7 +176,7 @@ public static class TestSummaryReader
     {
         ArgumentNullException.ThrowIfNull(summary);
 
-        return JsonSerializer.Serialize(summary, Options) + Environment.NewLine;
+        return JsonSerializer.Serialize(summary, _options) + Environment.NewLine;
     }
 
     /// <summary>Reads a summary back.</summary>
@@ -190,7 +190,7 @@ public static class TestSummaryReader
 
         try
         {
-            TestSummary? summary = JsonSerializer.Deserialize<TestSummary>(json, Options);
+            TestSummary? summary = JsonSerializer.Deserialize<TestSummary>(json, _options);
 
             if (summary?.Tests is null)
             {

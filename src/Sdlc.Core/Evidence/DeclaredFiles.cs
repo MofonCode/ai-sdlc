@@ -31,14 +31,14 @@ public static class DeclaredFiles
 {
     // Anything inside backticks, for reading a proof entry's test names. Wider than the path pattern
     // below, on purpose: a test name has no extension and no slash, so there is nothing else to key on.
-    private static readonly Regex Backticked = new(
+    private static readonly Regex _backticked = new(
         @"`(?<text>[^`]+)`",
         RegexOptions.CultureInvariant | RegexOptions.ExplicitCapture,
         TimeSpan.FromSeconds(1));
 
     // A path in a Files table or list: inside backticks, which is how a plan writes one, so prose about a
     // file is not mistaken for a declaration of it.
-    private static readonly Regex Quoted = new(
+    private static readonly Regex _quoted = new(
         @"`(?<path>[^`\s]+\.[A-Za-z0-9]+|[^`\s]*/[^`\s]*)`",
         RegexOptions.CultureInvariant | RegexOptions.ExplicitCapture,
         TimeSpan.FromSeconds(1));
@@ -67,7 +67,7 @@ public static class DeclaredFiles
 
         foreach (string line in lines)
         {
-            foreach (Match match in Quoted.Matches(line))
+            foreach (Match match in _quoted.Matches(line))
             {
                 paths.Add(Normalise(match.Groups["path"].Value));
             }
@@ -92,7 +92,7 @@ public static class DeclaredFiles
 
         HashSet<string> names = new(StringComparer.Ordinal);
 
-        foreach (Match match in Backticked.Matches(entry))
+        foreach (Match match in _backticked.Matches(entry))
         {
             string name = match.Groups["text"].Value.Trim();
 

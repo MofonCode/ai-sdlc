@@ -110,6 +110,86 @@ public sealed class ConventionTests
     }
 
     /// <summary>
+    /// Every private field is <c>_camelCase</c>, and every constant is PascalCase.
+    /// </summary>
+    /// <remarks>
+    /// <para><strong>.editorconfig says this and enforces nothing.</strong> Naming surfaces as
+    /// IDE1006, which <c>EnforceCodeStyleInBuild</c> does not cover - it is an IDE-only diagnostic.
+    /// Fifteen fields in this repository broke the rule while the build reported zero warnings, which
+    /// is the "appears enforced and is not" failure sitting inside the file that is meant to be the
+    /// compiler layer. This is what makes it real.</para>
+    ///
+    /// <para>The prefix is the point rather than the capitalisation: a reader scanning a method body
+    /// can tell an assignment to the instance from an assignment to a local without checking a
+    /// declaration. A constant is exempt because it is a value rather than state, and the code
+    /// already reads that way.</para>
+    /// </remarks>
+    [TestMethod]
+    public void Every_private_field_is_underscore_camel_case_and_every_constant_is_pascal()
+    {
+        List<string> offenders = [];
+        int inspected = 0;
+
+        foreach (Assembly assembly in Assemblies)
+        {
+            foreach (Type type in assembly.GetTypes())
+            {
+                if (IsCompilerArtefact(type))
+                {
+                    continue;
+                }
+
+                foreach (FieldInfo field in type.GetFields(
+                    BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static | BindingFlags.DeclaredOnly))
+                {
+                    // A primary constructor's capture, an auto-property's backing store and a
+                    // closure's state are all emitted rather than written, and they carry a bracket
+                    // that is not legal in an identifier.
+                    if (field.Name.Contains('<', StringComparison.Ordinal)
+                        || field.GetCustomAttribute<CompilerGeneratedAttribute>() is not null)
+                    {
+                        continue;
+                    }
+
+                    inspected++;
+                    string where = (type.FullName ?? type.Name) + "." + field.Name;
+
+                    if (field.IsLiteral)
+                    {
+                        if (!char.IsUpper(field.Name[0]))
+                        {
+                            offenders.Add(where + " is a constant and should be PascalCase");
+                        }
+
+                        continue;
+                    }
+
+                    if (!field.Name.StartsWith('_') || field.Name.Length < 2 || !char.IsLower(field.Name[1]))
+                    {
+                        offenders.Add(where + " should be _camelCase");
+                    }
+                }
+            }
+        }
+
+        Assert.IsTrue(
+            inspected > 0,
+            "This rule inspected no fields, which means it would pass however they were named. The "
+            + "likely cause is an assembly that did not load.");
+
+        Assert.AreEqual(
+            0,
+            offenders.Count,
+            string.Create(
+                CultureInfo.InvariantCulture,
+                $"These fields do not follow the naming rules (of {inspected} inspected):\n  ")
+            + string.Join("\n  ", offenders)
+            + "\n\nThe rule is in .editorconfig and nothing in the build enforces it, which is why it "
+            + "is here. Rename the field, or - if a whole area is being adopted rather than written - "
+            + "the honest move is an allow-list in this file that shrinks, not a rule that is deleted.");
+    }
+
+    /// <summary>
     /// Every request the gate declares can actually be dispatched.
     /// </summary>
     /// <remarks>

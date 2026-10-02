@@ -70,7 +70,7 @@ public static class HookProtocol
     /// as JSON and never embeds it in a page, so the escaping buys nothing here and costs legibility in
     /// the one place a refusal is read raw: a log, when someone is working out why they were stopped.
     /// </remarks>
-    private static readonly JsonSerializerOptions Output = new()
+    private static readonly JsonSerializerOptions _output = new()
     {
         WriteIndented = false,
         Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
@@ -80,7 +80,7 @@ public static class HookProtocol
     /// How each host may be named on the command line, so a hook config written by hand is accepted
     /// whichever way its author spelled it.
     /// </summary>
-    private static readonly (string Spelling, HookHost Host)[] Spellings =
+    private static readonly (string Spelling, HookHost Host)[] _spellings =
     [
         ("claude", HookHost.Claude),
         ("claude-code", HookHost.Claude),
@@ -95,7 +95,7 @@ public static class HookProtocol
     /// Each host's own spelling is accepted alongside the framework's, so a hook config copied from a
     /// host's documentation works without translation.
     /// </remarks>
-    private static readonly (string Spelling, HookEvent Event)[] Events =
+    private static readonly (string Spelling, HookEvent Event)[] _events =
     [
         ("pre-tool-use", HookEvent.PreToolUse),
         ("pretooluse", HookEvent.PreToolUse),
@@ -127,7 +127,7 @@ public static class HookProtocol
         }
 
         hookEvent = null;
-        foreach ((string spelling, HookEvent candidate) in Events)
+        foreach ((string spelling, HookEvent candidate) in _events)
         {
             if (string.Equals(name, spelling, StringComparison.OrdinalIgnoreCase))
             {
@@ -148,7 +148,7 @@ public static class HookProtocol
         string name = text?.Trim() ?? string.Empty;
 
         host = null;
-        foreach ((string spelling, HookHost candidate) in Spellings)
+        foreach ((string spelling, HookHost candidate) in _spellings)
         {
             if (string.Equals(name, spelling, StringComparison.OrdinalIgnoreCase))
             {
@@ -306,7 +306,7 @@ public static class HookProtocol
             _ => throw new ArgumentOutOfRangeException(nameof(host), host, "Unknown host."),
         };
 
-        return payload.ToJsonString(Output);
+        return payload.ToJsonString(_output);
     }
 
     /// <summary>
@@ -330,7 +330,7 @@ public static class HookProtocol
     {
         if (decision != HookDecision.Deny)
         {
-            return new JsonObject().ToJsonString(Output);
+            return new JsonObject().ToJsonString(_output);
         }
 
         JsonObject payload = host switch
@@ -353,7 +353,7 @@ public static class HookProtocol
             _ => throw new ArgumentOutOfRangeException(nameof(host), host, "Unknown host."),
         };
 
-        return payload.ToJsonString(Output);
+        return payload.ToJsonString(_output);
     }
 
     private static ToolKind Classify(string toolName, List<string> paths, string? command)

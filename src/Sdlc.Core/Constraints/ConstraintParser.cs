@@ -16,12 +16,12 @@ namespace Sdlc.Core.Constraints;
 /// </remarks>
 public static class ConstraintParser
 {
-    private static readonly Regex HeadingPattern = new(
+    private static readonly Regex _headingPattern = new(
         @"^##\s+(?<id>(?:CON|PRO|LOC)_[0-9]{2,4}(?:\.[0-9]{1,3})?)\s+[—-]\s+(?<statement>.+?)\s*$",
         RegexOptions.CultureInvariant | RegexOptions.ExplicitCapture,
         TimeSpan.FromSeconds(1));
 
-    private static readonly Regex ClausePattern = new(
+    private static readonly Regex _clausePattern = new(
         @"^\*\*(?<label>Applies to|Forbids|Why|Superseded-by):\*\*\s*(?<body>.*)$",
         RegexOptions.CultureInvariant | RegexOptions.ExplicitCapture,
         TimeSpan.FromSeconds(1));
@@ -128,7 +128,7 @@ public static class ConstraintParser
         foreach (string line in markdown.Split('\n'))
         {
             string text = line.TrimEnd('\r');
-            Match heading = HeadingPattern.Match(text);
+            Match heading = _headingPattern.Match(text);
 
             if (heading.Success)
             {
@@ -148,7 +148,7 @@ public static class ConstraintParser
                 continue;
             }
 
-            Match clause = ClausePattern.Match(text);
+            Match clause = _clausePattern.Match(text);
             if (clause.Success)
             {
                 current.Open(clause.Groups["label"].Value, clause.Groups["body"].Value);
@@ -166,13 +166,13 @@ public static class ConstraintParser
     }
 
     /// <summary>
-    /// One constraint's heading and clauses, accumulated as lines arrive. A clause's body may wrap
-    /// over several lines, so a line that is not a new clause continues the open one.
+    /// One constraint's heading and _clauses, accumulated as lines arrive. A clause's body may wrap
+    /// over several lines, so a line that is not a new clause continues the _open one.
     /// </summary>
     private sealed class Block(string id, string statement)
     {
-        private readonly Dictionary<string, StringBuilder> clauses = new(StringComparer.Ordinal);
-        private string? open;
+        private readonly Dictionary<string, StringBuilder> _clauses = new(StringComparer.Ordinal);
+        private string? _open;
 
         public string Id { get; } = id;
 
@@ -180,24 +180,24 @@ public static class ConstraintParser
 
         public void Open(string label, string body)
         {
-            open = label;
-            clauses[label] = new StringBuilder(body.Trim());
+            _open = label;
+            _clauses[label] = new StringBuilder(body.Trim());
         }
 
         public void Continue(string text)
         {
-            if (open is null)
+            if (_open is null)
             {
                 return;
             }
 
             if (text.Length == 0)
             {
-                open = null;
+                _open = null;
                 return;
             }
 
-            StringBuilder builder = clauses[open];
+            StringBuilder builder = _clauses[_open];
             if (builder.Length > 0)
             {
                 builder.Append(' ');
@@ -207,6 +207,6 @@ public static class ConstraintParser
         }
 
         public string? Clause(string label) =>
-            clauses.TryGetValue(label, out StringBuilder? builder) ? builder.ToString().Trim() : null;
+            _clauses.TryGetValue(label, out StringBuilder? builder) ? builder.ToString().Trim() : null;
     }
 }

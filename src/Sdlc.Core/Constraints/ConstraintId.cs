@@ -28,7 +28,7 @@ public enum ConstraintTier
 /// </remarks>
 public readonly record struct ConstraintId
 {
-    private static readonly Regex Pattern = new(
+    private static readonly Regex _pattern = new(
         @"^(?<tier>CON|PRO|LOC)_(?<number>[0-9]{2,4})(?:\.(?<revision>[0-9]{1,3}))?$",
         RegexOptions.CultureInvariant | RegexOptions.ExplicitCapture,
         TimeSpan.FromSeconds(1));
@@ -105,7 +105,7 @@ public readonly record struct ConstraintId
             return false;
         }
 
-        Match match = Pattern.Match(text.Trim());
+        Match match = _pattern.Match(text.Trim());
         if (!match.Success)
         {
             return false;

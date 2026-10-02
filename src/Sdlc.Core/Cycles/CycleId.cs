@@ -28,7 +28,7 @@ public readonly record struct CycleId
     /// <summary>The format an id is written in: date, 24-hour time, seconds.</summary>
     public const string Format = "yyyyMMdd_HHmm_ss";
 
-    private static readonly Regex Pattern = new(
+    private static readonly Regex _pattern = new(
         @"^(?<date>[0-9]{8})_(?<time>[0-9]{4})_(?<seconds>[0-9]{2})$",
         RegexOptions.CultureInvariant | RegexOptions.ExplicitCapture,
         TimeSpan.FromSeconds(1));
@@ -78,7 +78,7 @@ public readonly record struct CycleId
         }
 
         string trimmed = text.Trim();
-        if (!Pattern.IsMatch(trimmed))
+        if (!_pattern.IsMatch(trimmed))
         {
             return false;
         }

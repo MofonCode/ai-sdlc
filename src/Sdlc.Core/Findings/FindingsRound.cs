@@ -40,7 +40,7 @@ public sealed record FindingsRound(
 /// <summary>Reads interrogation rounds off disk.</summary>
 public static class FindingsReader
 {
-    private static readonly JsonSerializerOptions Options = new()
+    private static readonly JsonSerializerOptions _options = new()
     {
         PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower,
         PropertyNameCaseInsensitive = true,
@@ -61,7 +61,7 @@ public static class FindingsReader
 
         try
         {
-            FindingsRound? round = JsonSerializer.Deserialize<FindingsRound>(json, Options);
+            FindingsRound? round = JsonSerializer.Deserialize<FindingsRound>(json, _options);
 
             if (round is null)
             {

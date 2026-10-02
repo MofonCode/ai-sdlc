@@ -74,8 +74,8 @@ public static class Templates
             "bind, add a `LOC_` constraint or an architecture test.",
             string.Empty,
             .. origin == SolutionOrigin.Scaffolded
-                ? Scaffolded
-                : Adopted,
+                ? _scaffolded
+                : _adopted,
         ]);
 
     /// <summary>The framework's own README inside a governed solution.</summary>
@@ -543,7 +543,7 @@ public static class Templates
             ]);
     }
 
-    private static readonly string[] Scaffolded =
+    private static readonly string[] _scaffolded =
     [
         "## Defaults",
         string.Empty,
@@ -590,7 +590,7 @@ public static class Templates
         string.Empty,
     ];
 
-    private static readonly string[] Adopted =
+    private static readonly string[] _adopted =
     [
         "## Defaults",
         string.Empty,

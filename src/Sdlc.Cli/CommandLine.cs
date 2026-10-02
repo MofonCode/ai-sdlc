@@ -3,7 +3,7 @@ using System.Diagnostics.CodeAnalysis;
 namespace Sdlc.Cli;
 
 /// <summary>
-/// A parsed command line: a verb, its positional arguments, and its options.
+/// A parsed command line: a verb, its positional arguments, and its _options.
 /// </summary>
 /// <remarks>
 /// Hand-rolled rather than taken from a command-line library, for two reasons that are specific to
@@ -15,13 +15,13 @@ namespace Sdlc.Cli;
 /// </remarks>
 internal sealed class CommandLine
 {
-    private readonly Dictionary<string, string?> options;
+    private readonly Dictionary<string, string?> _options;
 
     private CommandLine(string verb, IReadOnlyList<string> arguments, Dictionary<string, string?> options)
     {
         Verb = verb;
         Arguments = arguments;
-        this.options = options;
+        _options = options;
     }
 
     /// <summary>The verb, lower-cased. Empty when none was given.</summary>
@@ -44,7 +44,7 @@ internal sealed class CommandLine
             : string.Empty;
 
         List<string> arguments = [];
-        Dictionary<string, string?> options = new(StringComparer.OrdinalIgnoreCase);
+        Dictionary<string, string?> _options = new(StringComparer.OrdinalIgnoreCase);
 
         for (int index = verb.Length > 0 ? 1 : 0; index < args.Count; index++)
         {
@@ -61,7 +61,7 @@ internal sealed class CommandLine
 
             if (equals >= 0)
             {
-                options[name[..equals]] = name[(equals + 1)..];
+                _options[name[..equals]] = name[(equals + 1)..];
                 continue;
             }
 
@@ -70,10 +70,10 @@ internal sealed class CommandLine
             bool hasValue = index + 1 < args.Count
                 && !args[index + 1].StartsWith("--", StringComparison.Ordinal);
 
-            options[name] = hasValue ? args[++index] : null;
+            _options[name] = hasValue ? args[++index] : null;
         }
 
-        return new CommandLine(verb, arguments, options);
+        return new CommandLine(verb, arguments, _options);
     }
 
     /// <summary>
@@ -85,12 +85,12 @@ internal sealed class CommandLine
     /// </remarks>
     /// <returns>A line whose arguments start after the first.</returns>
     public CommandLine WithoutFirstArgument() =>
-        new(Verb, Arguments.Count == 0 ? [] : [.. Arguments.Skip(1)], options);
+        new(Verb, Arguments.Count == 0 ? [] : [.. Arguments.Skip(1)], _options);
 
     /// <summary>Whether an option was given, with or without a value.</summary>
     /// <param name="name">The option name, without leading dashes.</param>
     /// <returns>True when it was given.</returns>
-    public bool HasOption(string name) => options.ContainsKey(name);
+    public bool HasOption(string name) => _options.ContainsKey(name);
 
     /// <summary>Reads an option's value.</summary>
     /// <param name="name">The option name, without leading dashes.</param>
@@ -98,7 +98,7 @@ internal sealed class CommandLine
     /// <returns>True when the option was given with a value.</returns>
     public bool TryOption(string name, [NotNullWhen(true)] out string? value)
     {
-        value = options.TryGetValue(name, out string? found) ? found : null;
+        value = _options.TryGetValue(name, out string? found) ? found : null;
         return value is not null;
     }
 }

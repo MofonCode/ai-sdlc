@@ -20,11 +20,11 @@ namespace Sdlc.Cli;
 /// </remarks>
 internal sealed class Workspace
 {
-    private readonly ServiceProvider provider;
+    private readonly ServiceProvider _provider;
 
     private Workspace(ServiceProvider provider, string solutionRoot)
     {
-        this.provider = provider;
+        _provider = provider;
         SolutionRoot = solutionRoot;
     }
 
@@ -52,13 +52,13 @@ internal sealed class Workspace
             return ExitCode.Failed;
         }
 
-        ServiceProvider provider = new ServiceCollection()
+        ServiceProvider _provider = new ServiceCollection()
             .AddSdlc(libraryPath, solutionRoot)
             .BuildServiceProvider();
 
-        await using (provider.ConfigureAwait(false))
+        await using (_provider.ConfigureAwait(false))
         {
-            return await body(new Workspace(provider, solutionRoot)).ConfigureAwait(false);
+            return await body(new Workspace(_provider, solutionRoot)).ConfigureAwait(false);
         }
     }
 
@@ -69,5 +69,5 @@ internal sealed class Workspace
     /// <returns>The handler's result.</returns>
     public Task<Result<TResponse>> Send<TRequest, TResponse>(TRequest request)
         where TRequest : IRequest<TResponse> =>
-        provider.GetRequiredService<Mediator>().Send<TRequest, TResponse>(request);
+        _provider.GetRequiredService<Mediator>().Send<TRequest, TResponse>(request);
 }
