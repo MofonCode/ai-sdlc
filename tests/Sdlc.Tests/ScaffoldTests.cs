@@ -25,7 +25,7 @@ public sealed class ScaffoldTests
         // not in the build, so this passing means every one resolved.
         IReadOnlyList<KeyValuePair<string, string>> files = Scaffold.Files(Name);
 
-        Assert.AreEqual(19, files.Count, "A template added or removed changes this number deliberately.");
+        Assert.AreEqual(21, files.Count, "A template added or removed changes this number deliberately.");
 
         foreach ((string path, string contents) in files)
         {
@@ -72,13 +72,79 @@ public sealed class ScaffoldTests
         string[] paths = [.. Scaffold.Files(Name).Select(file => file.Key.Replace('\\', '/'))];
 
         Assert.IsTrue(
-            paths.Contains("src/Demo.Core/Demo.Core.csproj"),
+            paths.Contains("src/Demo.Application/Demo.Application.csproj"),
             "The rules need a project to read, and RepoFiles throws rather than passing on an empty scan.");
 
         Assert.IsTrue(
-            paths.Contains("src/Demo.Core/Greetings/Greet.cs"),
+            paths.Contains("src/Demo.Application/Greetings/Greet.cs"),
             "The reference slice is the most effective thing a profile ships: an agent copies the code "
             + "beside it far more reliably than it follows an instruction.");
+    }
+
+    [TestMethod]
+    public void The_slice_spans_the_split_it_is_teaching()
+    {
+        // D-38 puts a response in the contracts project and leaves its query nested in the holder. That
+        // is the one place the scaffold departs from "read one file to see an operation", so the slice
+        // has to demonstrate the pair rather than describe it -- and the folders have to mirror, because
+        // a reader looking for a response finds it by the path or by searching.
+        string[] paths = [.. Scaffold.Files(Name).Select(file => file.Key.Replace('\\', '/'))];
+
+        CollectionAssert.Contains(paths, "src/Demo.Contracts/Demo.Contracts.csproj");
+
+        Assert.IsTrue(
+            paths.Contains("src/Demo.Contracts/Greetings/GreetResponse.cs"),
+            "The response belongs in the contracts project, in the folder mirroring the holder's. "
+            + "Without the pair shipped, the first operation written from habit nests its response and "
+            + "the WebAssembly client has no type for it.");
+
+        string contracts = Scaffold.Files(Name)
+            .Single(file => file.Key.EndsWith("Demo.Contracts.csproj", StringComparison.Ordinal)).Value;
+
+        Assert.IsFalse(
+            contracts.Contains("<PackageReference", StringComparison.Ordinal)
+            || contracts.Contains("<ProjectReference", StringComparison.Ordinal),
+            "The contracts project references nothing, and that is the rule rather than the starting "
+            + "state: a Blazor WebAssembly client ships every assembly it references to the browser, so "
+            + "a dependency here is one every visitor downloads.");
+    }
+
+    [TestMethod]
+    public void The_scaffold_ships_the_rules_that_hold_the_layout()
+    {
+        // The layout is only a convention until something fails on it, and D-38's whole argument is
+        // that a rule nobody can enforce is one somebody reaches for when it is inconvenient. These are
+        // the three the entry names, by the test name a reader would meet them under.
+        IReadOnlyList<KeyValuePair<string, string>> files = Scaffold.Files(Name);
+
+        string structure = files
+            .Single(file => file.Key.EndsWith("StructureTests.cs", StringComparison.Ordinal)).Value;
+
+        StringAssert.Contains(
+            structure,
+            "Every_project_under_src_references_only_what_the_direction_rule_allows",
+            "The direction rule is what keeps the dependencies pointing one way, and what stops a web "
+            + "project reaching past the wire into the application.");
+
+        StringAssert.Contains(
+            structure,
+            "Only_the_application_project_may_take_a_data_or_vendor_package",
+            "internal stops another project using the DbContext; this is what stops it adding EF and "
+            + "declaring a second one.");
+
+        StringAssert.Contains(
+            structure,
+            "Every_project_under_src_is_named_in_the_direction_rule",
+            "Guard the guard: a project neither table names is a project both rules skip silently.");
+
+        string convention = files
+            .Single(file => file.Key.EndsWith("ConventionTests.cs", StringComparison.Ordinal)).Value;
+
+        StringAssert.Contains(
+            convention,
+            "Every_response_the_application_declares_lives_in_the_contracts_project",
+            "Without it the split is a habit, and the failure arrives in the UI as a type the client "
+            + "does not have - a long way from the file that caused it.");
     }
 
     [TestMethod]
@@ -88,7 +154,23 @@ public sealed class ScaffoldTests
 
         StringAssert.Contains(slice, "public static class Greet");
         StringAssert.Contains(slice, "public sealed record Query(");
-        StringAssert.Contains(slice, "public sealed record Response(");
+
+        // The response is NOT here -- D-38 puts it in the contracts project, because it is the shape a
+        // WebAssembly client deserialises and that client cannot reference this project. Asserted as an
+        // absence as well as a presence, because restoring the nesting is the natural thing to do and
+        // it compiles perfectly.
+        Assert.IsFalse(
+            slice.Contains("record Response(", StringComparison.Ordinal),
+            "The response is nested in the holder again. It belongs in the contracts project, and the "
+            + "architecture rule the scaffold ships says so - but the slice is what people copy, so a "
+            + "nested one here teaches the shape the rule then refuses.");
+
+        StringAssert.Contains(
+            slice,
+            "IRequest<GreetResponse>",
+            "The query names its response from the contracts project, which is what the architecture "
+            + "rule checks for every request the application declares.");
+
         StringAssert.Contains(
             slice,
             "private sealed class Handler",
@@ -196,7 +278,7 @@ public sealed class ScaffoldTests
         string endpoints = files
             .Single(file => file.Key.EndsWith("GreetEndpoints.cs", StringComparison.Ordinal)).Value;
 
-        StringAssert.Contains(endpoints, "Task<ApiResult<Greet.Response>>");
+        StringAssert.Contains(endpoints, "Task<ApiResult<GreetResponse>>");
         StringAssert.Contains(endpoints, "result.ToApiResult(http)");
 
         string boundary = files

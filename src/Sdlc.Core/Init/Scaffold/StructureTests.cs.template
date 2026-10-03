@@ -11,6 +11,69 @@ namespace __SOLUTION__.Architecture.Tests;
 [TestClass]
 public sealed class StructureTests
 {
+    /// <summary>The part every project's name starts with, so the rest of it is the project's role.</summary>
+    private const string SolutionPrefix = "__SOLUTION__.";
+
+    /// <summary>
+    /// What each project under <c>src/</c> may reference, keyed by its role.
+    /// </summary>
+    /// <remarks>
+    /// <para>The adjacency D-38 records, and the reason it is a table rather than a sentence in a
+    /// guide. Contracts knows nothing, so a front end can reference the shapes it renders without
+    /// dragging the data access behind them; the application project is where the <c>DbContext</c> and
+    /// the vendor wrappers live, and they are <c>internal</c>, so nothing outside can query at all.</para>
+    /// <para><strong><c>Web</c> is listed and is not written by the skeleton.</strong> A UI in the
+    /// default profile would commit every solution to having one, so it arrives with the cycle that
+    /// needs it -- and this row is waiting, which costs nothing while no such project exists. A Blazor
+    /// WebAssembly client ships every assembly it references to the browser, so <c>Web -&gt; Contracts</c>
+    /// is what keeps EF, a provider and every vendor SDK out of a bundle a visitor downloads. It is
+    /// also what makes "the front end holds no business logic" a fact rather than a convention.</para>
+    /// <para><c>Api</c> may name contracts as well as the application project, though it already has
+    /// them transitively. Failing an explicit reference to a project that is reachable anyway would
+    /// make this rule pedantic about something that harms nothing, and a pedantic rule is one somebody
+    /// deletes on the day it is in the way.</para>
+    /// <para><strong>What this catches is narrower than it looks, and the valuable half is the half
+    /// MSBuild cannot see.</strong> A reference from contracts back to the application project is a
+    /// circular dependency, so the build already refuses it and this rule never runs. What it is
+    /// actually for is the reference that compiles perfectly: a new project beside these — an
+    /// infrastructure or a shared one — referenced from the application project, and a web project
+    /// reaching past the wire. Neither is a cycle, and nothing else says a word.</para>
+    /// <para>Test projects are deliberately absent. They reference whatever they have to inspect, and a
+    /// rule that policed them would be policing the police.</para>
+    /// </remarks>
+    private static readonly Dictionary<string, string[]> _allowedProjectReferences =
+        new(StringComparer.Ordinal)
+        {
+            ["Contracts"] = [],
+            ["Application"] = ["Contracts"],
+            ["Api"] = ["Application", "Contracts"],
+            ["Web"] = ["Contracts"],
+        };
+
+    /// <summary>
+    /// What each project under <c>src/</c> may take as a package.
+    /// </summary>
+    /// <remarks>
+    /// <para><strong>The application project is deliberately not in this table, and that is the rule
+    /// rather than an omission.</strong> It is the one project EF, a database provider and any vendor
+    /// SDK may live in, so constraining it would defeat the point -- the rule exists to concentrate
+    /// those dependencies there, not to limit them.</para>
+    /// <para>Stated as an allow-list rather than a list of forbidden packages, because the forbidden
+    /// set cannot be written down: nobody can enumerate every vendor SDK somebody might reach for. The
+    /// legitimate package list for a boundary or a UI is short and knowable, so inverting it is what
+    /// makes the rule hold for a package nobody has thought of yet.</para>
+    /// <para><c>internal</c> stops another project <em>using</em> the context. This is what stops one
+    /// declaring a second context of its own, which is the move somebody makes when the first rule is
+    /// in the way.</para>
+    /// </remarks>
+    private static readonly Dictionary<string, string[]> _allowedPackages =
+        new(StringComparer.Ordinal)
+        {
+            ["Contracts"] = [],
+            ["Api"] = ["MofonCode.Core"],
+            ["Web"] = ["Microsoft.AspNetCore.Components.WebAssembly"],
+        };
+
     /// <summary>
     /// Guards the guard.
     /// </summary>
@@ -53,6 +116,155 @@ public sealed class StructureTests
     }
 
     /// <summary>
+    /// Guards the two rules below.
+    /// </summary>
+    /// <remarks>
+    /// A project under <c>src/</c> that neither table names is a project the direction rule and the
+    /// package rule both skip, silently. Adding one is a decision about the shape of the solution, so
+    /// it should be a failing build that asks for the row rather than a project that quietly governs
+    /// itself.
+    /// </remarks>
+    [TestMethod]
+    public void Every_project_under_src_is_named_in_the_direction_rule()
+    {
+        List<string> unnamed = [.. SourceProjects()
+            .Select(RoleOf)
+            .Where(role => !_allowedProjectReferences.ContainsKey(role))];
+
+        Assert.AreEqual(
+            0,
+            unnamed.Count,
+            "These projects live under src/ and no rule in this file covers them:\n  "
+            + string.Join("\n  ", unnamed)
+            + "\n\nAdd a row to _allowedProjectReferences saying what each may reference, and one to "
+            + "_allowedPackages unless it is the project the packages are meant to live in. Say in the "
+            + "commit why the solution grew a project -- D-38 is the entry that records the shape, and "
+            + "a new layer is a change to it rather than an addition beside it.");
+    }
+
+    /// <summary>
+    /// Every project under <c>src/</c> references only what it is allowed to.
+    /// </summary>
+    /// <remarks>
+    /// The rule that keeps the dependencies pointing one way. If the application project needs
+    /// something from a project it may not reference, the type is in the wrong place: the interface
+    /// belongs in the application project beside the handler that uses it, and the implementation stays
+    /// where its dependencies already are.
+    /// </remarks>
+    [TestMethod]
+    public void Every_project_under_src_references_only_what_the_direction_rule_allows()
+    {
+        List<string> offenders = [];
+        int inspected = 0;
+
+        foreach (string project in SourceProjects())
+        {
+            if (!_allowedProjectReferences.TryGetValue(RoleOf(project), out string[]? allowed))
+            {
+                // The guard above owns this case, and reports it better than this rule would.
+                continue;
+            }
+
+            inspected++;
+
+            foreach (string reference in RepoFiles.ProjectReferences(project))
+            {
+                string referenced = Role(reference);
+
+                if (!allowed.Contains(referenced, StringComparer.Ordinal))
+                {
+                    offenders.Add(RoleOf(project) + " -> " + referenced);
+                }
+            }
+        }
+
+        Assert.IsTrue(
+            inspected > 0,
+            "This rule inspected no projects under src/, so it would pass however they referenced each "
+            + "other. Either the solution has no source projects yet, or the root resolved wrongly.");
+
+        // A positive control, and it is the flaw this rule would otherwise have: every assertion below
+        // is that a count is zero, so a ProjectReference pattern that stopped matching would find
+        // nothing, report no violations and pass. Counting across every project rather than only the
+        // policed ones keeps the control independent of what the tables allow.
+        Assert.IsTrue(
+            RepoFiles.AllProjectFiles().Sum(path => RepoFiles.ProjectReferences(path).Count) > 0,
+            "No project reference was found anywhere in the repository, so this rule could not have "
+            + "detected a wrong one. Either every project is genuinely standalone - which cannot be "
+            + "true while the test projects reference what they inspect - or the pattern RepoFiles uses "
+            + "to read a ProjectReference no longer matches how they are written.");
+
+        Assert.AreEqual(
+            0,
+            offenders.Count,
+            "These project references point somewhere the direction rule does not allow:\n  "
+            + string.Join("\n  ", offenders)
+            + "\n\nThe allowed adjacency is in _allowedProjectReferences at the top of this file. A "
+            + "reference out of Contracts makes it useless, because what a front end references is what "
+            + "a browser downloads. A reference into Application from anything but Api puts the data "
+            + "access behind something that was supposed to go through the wire.");
+    }
+
+    /// <summary>
+    /// Only the application project may hold the data and vendor packages.
+    /// </summary>
+    /// <remarks>
+    /// The second half of the enforcement D-38 records. The <c>DbContext</c> is <c>internal</c>, so no
+    /// other project can use it; this is what stops another project adding EF and declaring its own,
+    /// which is the same breach arriving by a road the access modifier cannot see.
+    /// </remarks>
+    [TestMethod]
+    public void Only_the_application_project_may_take_a_data_or_vendor_package()
+    {
+        List<string> offenders = [];
+        int inspected = 0;
+
+        foreach (string project in SourceProjects())
+        {
+            if (!_allowedPackages.TryGetValue(RoleOf(project), out string[]? allowed))
+            {
+                // The application project, deliberately. It is the one the packages belong in.
+                continue;
+            }
+
+            inspected++;
+
+            foreach (string package in RepoFiles.PackageReferences(project))
+            {
+                if (!allowed.Contains(package, StringComparer.Ordinal))
+                {
+                    offenders.Add(RoleOf(project) + " references " + package);
+                }
+            }
+        }
+
+        Assert.IsTrue(
+            inspected > 0,
+            "This rule inspected no projects, so it would pass however they were referenced. Every "
+            + "project under src/ matched the one deliberately unlisted role, which means the tables "
+            + "and the solution disagree about what is there.");
+
+        // The same positive control as above, for the package pattern rather than the reference one.
+        Assert.IsTrue(
+            RepoFiles.AllProjectFiles().Sum(path => RepoFiles.PackageReferences(path).Count) > 0,
+            "No package reference was found anywhere in the repository, so this rule could not have "
+            + "detected a forbidden one. The pattern RepoFiles uses to read a PackageReference has "
+            + "almost certainly stopped matching.");
+
+        Assert.AreEqual(
+            0,
+            offenders.Count,
+            "These packages are referenced by a project that may not have them:\n  "
+            + string.Join("\n  ", offenders)
+            + "\n\nEF, a database provider and any third-party SDK belong in the application project, "
+            + "where the DbContext and the wrappers around them are internal and the commands and "
+            + "queries are the only thing that can reach data. If this package genuinely belongs at a "
+            + "boundary, add it to _allowedPackages with the reason in the same change -- a short list "
+            + "somebody extended deliberately is the point, and an unexplained entry is how it stops "
+            + "being one.");
+    }
+
+    /// <summary>
     /// Every suppression is readable in one place.
     /// </summary>
     /// <remarks>
@@ -90,4 +302,37 @@ public sealed class StructureTests
             + "wrong for one member, a SuppressMessage attribute carrying its justification is the "
             + "documented form; a pragma is the form nobody can audit.");
     }
+
+    /// <summary>Every project file under <c>src/</c>.</summary>
+    /// <remarks>
+    /// <c>src/</c> rather than every project, because the two tables above describe the solution's own
+    /// layers. A test project references whatever it has to inspect, and policing that would police the
+    /// police.
+    /// </remarks>
+    /// <returns>The absolute paths.</returns>
+    private static IReadOnlyList<string> SourceProjects()
+    {
+        string root = RepoFiles.FindRepoRoot();
+
+        return
+        [
+            .. RepoFiles.AllProjectFiles().Where(path => Path
+                .GetRelativePath(root, path)
+                .Replace('\\', '/')
+                .StartsWith("src/", StringComparison.Ordinal)),
+        ];
+    }
+
+    /// <summary>A project's role: its name with the solution's own name taken off the front.</summary>
+    /// <param name="projectPath">The project file.</param>
+    /// <returns>The role, which is the whole name when it carries no prefix.</returns>
+    private static string RoleOf(string projectPath) => Role(RepoFiles.ProjectName(projectPath));
+
+    /// <summary>The same, for a name that has already been read out of a reference.</summary>
+    /// <param name="projectName">The project's name, without a path or an extension.</param>
+    /// <returns>The role.</returns>
+    private static string Role(string projectName) =>
+        projectName.StartsWith(SolutionPrefix, StringComparison.Ordinal)
+            ? projectName[SolutionPrefix.Length..]
+            : projectName;
 }

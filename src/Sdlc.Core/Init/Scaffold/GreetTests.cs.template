@@ -1,6 +1,7 @@
 using FluentResults;
 using MofonCode.Core;
-using __SOLUTION__.Core.Greetings;
+using __SOLUTION__.Application.Greetings;
+using __SOLUTION__.Contracts.Greetings;
 
 namespace __SOLUTION__.Tests;
 
@@ -20,7 +21,7 @@ public sealed class GreetTests
     {
         using var gate = Gate.Open();
 
-        Result<Greet.Response> result = await gate.Send<Greet.Query, Greet.Response>(new Greet.Query("Ada"));
+        Result<GreetResponse> result = await gate.Send<Greet.Query, GreetResponse>(new Greet.Query("Ada"));
 
         Assert.IsTrue(result.IsSuccess, result.ToLogString());
         Assert.AreEqual("Hello, Ada.", result.Value.Greeting);
@@ -34,7 +35,7 @@ public sealed class GreetTests
         // behaviour unregistered would be testing a guard clause instead.
         using var gate = Gate.Open();
 
-        Result<Greet.Response> result = await gate.Send<Greet.Query, Greet.Response>(new Greet.Query("  "));
+        Result<GreetResponse> result = await gate.Send<Greet.Query, GreetResponse>(new Greet.Query("  "));
 
         Assert.IsTrue(result.IsFailed);
         Assert.AreEqual("A greeting needs a name.", result.ToUserMessage());
@@ -48,7 +49,7 @@ public sealed class GreetTests
         // the Error notices and needs no other rule.
         using var gate = Gate.Open();
 
-        Result<Greet.Response> result = await gate.Send<Greet.Query, Greet.Response>(new Greet.Query(""));
+        Result<GreetResponse> result = await gate.Send<Greet.Query, GreetResponse>(new Greet.Query(""));
 
         ResultEnvelope envelope = result.ToEnvelope(traceId: "example");
 

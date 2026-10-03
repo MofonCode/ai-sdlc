@@ -8,8 +8,17 @@ namespace Sdlc.Core.Init;
 /// The solution a scaffolded repository starts as.
 /// </summary>
 /// <remarks>
-/// <para>A solution file at the root, one source project, a unit test project, and an architecture test
-/// project carrying the fitness functions — plus one reference slice written in the operation shape.</para>
+/// <para>A solution file at the root, three source projects, a unit test project, and an architecture
+/// test project carrying the fitness functions — plus one reference slice written in the operation
+/// shape and spanning all three.</para>
+///
+/// <para><strong>The three are contracts, application and api — D-38.</strong> Contracts holds the wire
+/// shapes and references nothing at all; the application project holds the commands, queries, handlers,
+/// and whatever <c>DbContext</c> and vendor wrappers the solution grows, all <c>internal</c>; the api
+/// holds the endpoints and the one conversion from a <c>Result</c> to a response. There is no web
+/// project, by the same reasoning that keeps EF out of the default profile: a UI here would commit
+/// every scaffolded solution to having one, so it arrives with the cycle that needs it, and the
+/// direction rule covering it ships regardless.</para>
 ///
 /// <para><strong>The slice is the point.</strong> An agent takes the shape of the code beside it far
 /// more reliably than it follows an instruction, so the single most effective thing a profile can ship
@@ -25,8 +34,19 @@ namespace Sdlc.Core.Init;
 /// <para>Templates are embedded resources rather than string constants. The gate publishes single-file,
 /// so a template read from a path beside the binary is missing in exactly that case; a resource is
 /// inside the assembly. They carry a <c>.template</c> extension so nothing reads as source that is
-/// never compiled, and <c>ScaffoldTests</c> builds the generated result, which is what keeps them from
-/// rotting unnoticed.</para>
+/// never compiled.</para>
+///
+/// <para><strong>Nothing in the suite compiles what these produce, and that is a real gap.</strong>
+/// <c>ScaffoldTests</c> reads every template, so a missing resource fails by name, and it asserts the
+/// shape of what comes out — but it asserts strings, so a template that generates code which does not
+/// build passes every test in this repository. It is not hypothetical: the change that split the
+/// contracts project out shipped a <c>--</c> inside an XML comment, which is illegal and fails the
+/// generated solution's first build, and then a <c>CA1859</c> that warnings-as-errors turns into an
+/// error. Both were found by generating a solution and building it by hand.</para>
+///
+/// <para>So: <strong>generate a solution and run <c>dotnet build</c> and <c>dotnet test</c> on it when
+/// changing a template.</strong> A test doing it automatically would need a package restore from a
+/// network, which is why it does not exist yet rather than why it should not.</para>
 /// </remarks>
 public static class Scaffold
 {
@@ -82,7 +102,8 @@ public static class Scaffold
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
 
-        string core = Path.Combine("src", name + ".Core");
+        string contracts = Path.Combine("src", name + ".Contracts");
+        string application = Path.Combine("src", name + ".Application");
         string api = Path.Combine("src", name + ".Api");
         string tests = Path.Combine("tests", name + ".Tests");
         string architecture = Path.Combine("tests", name + ".Architecture.Tests");
@@ -92,10 +113,16 @@ public static class Scaffold
             Entry(name + ".slnx", "Solution.slnx", name),
             Entry("BannedSymbols.txt", "BannedSymbols.txt", name),
 
-            Entry(Path.Combine(core, name + ".Core.csproj"), "Core.csproj", name),
-            Entry(Path.Combine(core, name + "Services.cs"), "Services.cs", name),
-            Entry(Path.Combine(core, "ValidationBehavior.cs"), "ValidationBehavior.cs", name),
-            Entry(Path.Combine(core, "Greetings", "Greet.cs"), "Greet.cs", name),
+            // The wire shapes, first because everything else may reference them and they reference
+            // nothing. The folders mirror the application's, which is what keeps a split operation
+            // findable -- Greetings/GreetResponse.cs here, Greetings/Greet.cs there.
+            Entry(Path.Combine(contracts, name + ".Contracts.csproj"), "Contracts.csproj", name),
+            Entry(Path.Combine(contracts, "Greetings", "GreetResponse.cs"), "GreetResponse.cs", name),
+
+            Entry(Path.Combine(application, name + ".Application.csproj"), "Application.csproj", name),
+            Entry(Path.Combine(application, name + "Services.cs"), "Services.cs", name),
+            Entry(Path.Combine(application, "ValidationBehavior.cs"), "ValidationBehavior.cs", name),
+            Entry(Path.Combine(application, "Greetings", "Greet.cs"), "Greet.cs", name),
 
             Entry(Path.Combine(api, name + ".Api.csproj"), "Api.csproj", name),
             Entry(Path.Combine(api, "Program.cs"), "Program.cs", name),

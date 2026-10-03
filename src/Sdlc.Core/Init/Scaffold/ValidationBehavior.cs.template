@@ -3,7 +3,7 @@ using FluentValidation;
 using FluentValidation.Results;
 using MofonCode.Core;
 
-namespace __SOLUTION__.Core;
+namespace __SOLUTION__.Application;
 
 /// <summary>
 /// Validates a request before its handler runs, and turns what fails into ordinary errors.

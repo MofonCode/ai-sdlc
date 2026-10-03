@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk.Web">
 
   <ItemGroup>
-    <!-- The kernel, referenced here as well as by the core project because this is where ToEnvelope
+    <!-- The kernel, referenced here as well as by the application project because this is where ToEnvelope
          is called. The boundary is the only place a failure is shaped for somebody outside the
          process, so the dependency belongs where the conversion is rather than arriving by accident
          through a project reference. -->
@@ -9,7 +9,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\__SOLUTION__.Core\__SOLUTION__.Core.csproj" />
+    <ProjectReference Include="..\__SOLUTION__.Application\__SOLUTION__.Application.csproj" />
   </ItemGroup>
 
   <ItemGroup>

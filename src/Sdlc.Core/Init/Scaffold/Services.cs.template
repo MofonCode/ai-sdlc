@@ -1,8 +1,8 @@
 using Microsoft.Extensions.DependencyInjection;
 using MofonCode.Core;
-using __SOLUTION__.Core.Greetings;
+using __SOLUTION__.Application.Greetings;
 
-namespace __SOLUTION__.Core;
+namespace __SOLUTION__.Application;
 
 /// <summary>The one seam a host uses to get this solution's operations.</summary>
 /// <remarks>

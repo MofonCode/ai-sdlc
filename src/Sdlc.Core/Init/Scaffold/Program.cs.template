@@ -1,6 +1,6 @@
 using System.Text.Json.Serialization;
 using __SOLUTION__.Api.Greetings;
-using __SOLUTION__.Core;
+using __SOLUTION__.Application;
 
 namespace __SOLUTION__.Api;
 
@@ -9,7 +9,7 @@ namespace __SOLUTION__.Api;
 /// </summary>
 /// <remarks>
 /// <para>One call to <c>Add__SOLUTION__</c> is the whole of what this host can reach: everything
-/// inside the core is private behind the mediator, so the service-collection extension is the
+/// inside the application project is private behind the mediator, so the service-collection extension is
 /// surface, and adding a capability here means adding a line there.</para>
 ///
 /// <para>Each feature maps its own endpoints through one extension method, so this file does not grow

@@ -1,7 +1,7 @@
 using FluentResults;
 using Microsoft.Extensions.DependencyInjection;
 using MofonCode.Core;
-using __SOLUTION__.Core;
+using __SOLUTION__.Application;
 
 namespace __SOLUTION__.Tests;
 

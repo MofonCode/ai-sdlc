@@ -10,7 +10,7 @@
        calling anything - and keeping them apart makes "the architecture tests" a thing a person can
        run on its own. -->
   <ItemGroup>
-    <ProjectReference Include="..\..\src\__SOLUTION__.Core\__SOLUTION__.Core.csproj" />
+    <ProjectReference Include="..\..\src\__SOLUTION__.Application\__SOLUTION__.Application.csproj" />
 
     <!-- The boundary rules read the endpoints' return types, so this has to see the Api assembly.
          It polices the shape of what is here rather than calling any of it. -->

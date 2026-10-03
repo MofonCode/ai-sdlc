@@ -1,6 +1,7 @@
 using FluentResults;
 using MofonCode.Core;
-using __SOLUTION__.Core.Greetings;
+using __SOLUTION__.Application.Greetings;
+using __SOLUTION__.Contracts.Greetings;
 
 namespace __SOLUTION__.Api.Greetings;
 
@@ -14,7 +15,7 @@ namespace __SOLUTION__.Api.Greetings;
 /// gains one line per feature rather than one per route.</item>
 /// <item>The route delegate is <c>private</c>. Nothing can call it but the route, so there is no
 /// second path into the operation that skips the conversion below.</item>
-/// <item>It dispatches and converts, and that is all. No validation — the behaviour in the core has
+/// <item>It dispatches and converts, and that is all. No validation — the behaviour in the application project has
 /// already run — no mapping, no branching on the failure. An endpoint that inspected the result to
 /// decide a response would be a second place the boundary rules live.</item>
 /// <item>It returns <c>ApiResult&lt;T&gt;</c>. An architecture test requires it, because an endpoint
@@ -36,14 +37,14 @@ public static class GreetEndpoints
         return routes;
     }
 
-    private static async Task<ApiResult<Greet.Response>> Handle(
+    private static async Task<ApiResult<GreetResponse>> Handle(
         string name,
         Mediator mediator,
         HttpContext http,
         CancellationToken cancellationToken)
     {
-        Result<Greet.Response> result = await mediator
-            .Send<Greet.Query, Greet.Response>(new Greet.Query(name), cancellationToken)
+        Result<GreetResponse> result = await mediator
+            .Send<Greet.Query, GreetResponse>(new Greet.Query(name), cancellationToken)
             .ConfigureAwait(false);
 
         return result.ToApiResult(http);

@@ -4,7 +4,7 @@ using System.Runtime.CompilerServices;
 using Microsoft.Extensions.DependencyInjection;
 using MofonCode.Core;
 using __SOLUTION__.Api;
-using __SOLUTION__.Core;
+using __SOLUTION__.Application;
 
 namespace __SOLUTION__.Architecture.Tests;
 
@@ -38,7 +38,13 @@ public sealed class ConventionTests
     /// <remarks>
     /// The Api assembly is here too, because a project left off this list is a project the sealed and
     /// naming rules silently stop applying to - and the host is exactly where somebody writes a class
-    /// in a hurry. The request rule below reads the core alone, which is where requests live.
+    /// in a hurry. The two request rules below read the application assembly alone, which is where
+    /// requests live.
+    /// <para>
+    /// The contracts project is deliberately absent. It holds records and nothing else, so the sealed
+    /// rule has nothing to say about it that the compiler does not already, and a type in it exists to
+    /// be public.
+    /// </para>
     /// </remarks>
     private static IReadOnlyList<Assembly> Assemblies =>
         [typeof(__SOLUTION__Services).Assembly, typeof(ApiResult<>).Assembly];
@@ -190,23 +196,7 @@ public sealed class ConventionTests
     [TestMethod]
     public void Every_request_the_solution_declares_has_a_registered_handler()
     {
-        List<(Type Request, Type Response)> requests = [];
-
-        foreach (Type type in Assemblies[0].GetTypes())
-        {
-            if (IsCompilerArtefact(type) || type.IsAbstract || type.IsInterface)
-            {
-                continue;
-            }
-
-            foreach (Type contract in type.GetInterfaces())
-            {
-                if (contract.IsGenericType && contract.GetGenericTypeDefinition() == typeof(IRequest<>))
-                {
-                    requests.Add((type, contract.GetGenericArguments()[0]));
-                }
-            }
-        }
+        List<(Type Request, Type Response)> requests = Requests();
 
         Assert.IsTrue(
             requests.Count > 0,
@@ -225,7 +215,7 @@ public sealed class ConventionTests
             {
                 if (provider.GetService(typeof(IRequestHandler<,>).MakeGenericType(request, response)) is null)
                 {
-                    unregistered.Add(request.Name + " -> " + response.Name);
+                    unregistered.Add(Describe(request) + " -> " + Describe(response));
                 }
             }
         }
@@ -240,6 +230,101 @@ public sealed class ConventionTests
             + "\n\nRegister the handler, or delete the request. A request nothing can dispatch is an "
             + "operation the application declares and cannot perform.");
     }
+
+    /// <summary>
+    /// Every response the application declares lives in the contracts project.
+    /// </summary>
+    /// <remarks>
+    /// <para>The rule that keeps the split honest. A response record is the shape that crosses the
+    /// wire, so the front end has to be able to reference it — and it cannot reference the application
+    /// project, because a WebAssembly client ships every assembly it references to the browser and that
+    /// one holds the data access. D-38 records the whole of it.</para>
+    /// <para><strong>Without this, nothing fails.</strong> The first operation written from habit nests
+    /// its response in its holder, the solution compiles, the Api serialises it perfectly, and the
+    /// client simply has no type for it. The failure arrives in the UI as work nobody can do, a long
+    /// way from the file that caused it.</para>
+    /// <para>Compared by assembly name rather than by naming a type here, so the rule survives the
+    /// reference slice being deleted — which is the first thing a real solution does.</para>
+    /// </remarks>
+    [TestMethod]
+    public void Every_response_the_application_declares_lives_in_the_contracts_project()
+    {
+        const string Contracts = "__SOLUTION__.Contracts";
+
+        List<(Type Request, Type Response)> requests = Requests();
+        List<string> offenders = [];
+
+        Assert.IsTrue(
+            requests.Count > 0,
+            "No request types were found, so this rule would pass with every response in the wrong "
+            + "place. Either the assembly did not load, or nothing dispatches through the mediator yet.");
+
+        foreach ((Type request, Type response) in requests)
+        {
+            string assembly = response.Assembly.GetName().Name ?? "an assembly with no name";
+
+            if (!string.Equals(assembly, Contracts, StringComparison.Ordinal))
+            {
+                offenders.Add(Describe(request) + " -> " + Describe(response) + ", declared in " + assembly);
+            }
+        }
+
+        Assert.AreEqual(
+            0,
+            offenders.Count,
+            string.Create(
+                CultureInfo.InvariantCulture,
+                $"These responses are not declared in {Contracts} (of {requests.Count} requests):\n  ")
+            + string.Join("\n  ", offenders)
+            + "\n\nMove the record to the contracts project, in the folder that mirrors the one the "
+            + "holder is in, and name it flatly - GreetResponse rather than a nested Response, because "
+            + "a second holder of the same name in two namespaces makes the holder's own file ambiguous. "
+            + "The request stays nested where it is: nothing outside this project dispatches it.");
+    }
+
+    /// <summary>
+    /// Every request the application declares, paired with what it produces.
+    /// </summary>
+    /// <remarks>
+    /// Read from the application assembly alone, which is where requests live. Shared by the two rules
+    /// above rather than enumerated twice, so they cannot come to disagree about what a request is.
+    /// </remarks>
+    /// <returns>The request types and their response types.</returns>
+    private static List<(Type Request, Type Response)> Requests()
+    {
+        List<(Type Request, Type Response)> requests = [];
+
+        foreach (Type type in Assemblies[0].GetTypes())
+        {
+            if (IsCompilerArtefact(type) || type.IsAbstract || type.IsInterface)
+            {
+                continue;
+            }
+
+            foreach (Type contract in type.GetInterfaces())
+            {
+                if (contract.IsGenericType && contract.GetGenericTypeDefinition() == typeof(IRequest<>))
+                {
+                    requests.Add((type, contract.GetGenericArguments()[0]));
+                }
+            }
+        }
+
+        return requests;
+    }
+
+    /// <summary>
+    /// A type's name as a reader would say it, with its holder when it is nested.
+    /// </summary>
+    /// <remarks>
+    /// Every request in this solution is nested in a holder and almost all of them are called
+    /// <c>Query</c> or <c>Command</c>, so a bare name tells a reader which rule failed and nothing about
+    /// where. <c>Greet.Query</c> is the shortest string that identifies one.
+    /// </remarks>
+    /// <param name="type">The type to name.</param>
+    /// <returns>Its name, prefixed with the holder's when it has one.</returns>
+    private static string Describe(Type type) =>
+        type.DeclaringType is { } holder ? holder.Name + "." + type.Name : type.Name;
 
     /// <summary>Whether a type was emitted by the compiler rather than written.</summary>
     private static bool IsCompilerArtefact(Type type) =>

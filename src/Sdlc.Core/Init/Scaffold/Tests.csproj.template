@@ -10,7 +10,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\__SOLUTION__.Core\__SOLUTION__.Core.csproj" />
+    <ProjectReference Include="..\..\src\__SOLUTION__.Application\__SOLUTION__.Application.csproj" />
 
     <!-- The boundary writes its own JSON, so asserting what crosses the wire needs no server and no
          test host - just this reference and a DefaultHttpContext. -->

@@ -3,7 +3,7 @@ using FluentResults;
 using Microsoft.AspNetCore.Http;
 using MofonCode.Core;
 using __SOLUTION__.Api;
-using __SOLUTION__.Core.Greetings;
+using __SOLUTION__.Contracts.Greetings;
 
 namespace __SOLUTION__.Tests;
 
@@ -29,7 +29,7 @@ public sealed class BoundaryTests
     [TestMethod]
     public async Task A_success_carries_the_payload_and_says_it_succeeded()
     {
-        (int status, string body) = await Write(Result.Ok(new Greet.Response("Hello, Ada.")));
+        (int status, string body) = await Write(Result.Ok(new GreetResponse("Hello, Ada.")));
 
         Assert.AreEqual(200, status);
         StringAssert.Contains(body, "\"succeeded\":true");
@@ -43,7 +43,7 @@ public sealed class BoundaryTests
         // the half of the rule people forget: hiding these would leave a front end with nothing to
         // display and a user with no idea what to change.
         (int status, string body) = await Write(
-            Result.Fail<Greet.Response>("A greeting needs a name."));
+            Result.Fail<GreetResponse>("A greeting needs a name."));
 
         Assert.AreEqual(400, status);
         StringAssert.Contains(body, "A greeting needs a name.");
@@ -57,7 +57,7 @@ public sealed class BoundaryTests
         // server name and the exception's own type - each of which names an implementation detail of
         // something the caller has no business knowing about.
         (int status, string body) = await Write(
-            Result.Fail<Greet.Response>(new ExceptionalError(new InvalidOperationException(Secret))));
+            Result.Fail<GreetResponse>(new ExceptionalError(new InvalidOperationException(Secret))));
 
         Assert.AreEqual(500, status, "Something broke here. 400 would blame the caller for it.");
         Assert.IsFalse(body.Contains("hunter2", StringComparison.Ordinal), body);
@@ -72,7 +72,7 @@ public sealed class BoundaryTests
         // The pair that makes withholding acceptable: the reader gets a neutral sentence and an id,
         // and the log holds everything. Without the id, hiding the detail loses it.
         (_, string body) = await Write(
-            Result.Fail<Greet.Response>(new ExceptionalError(new InvalidOperationException(Secret))));
+            Result.Fail<GreetResponse>(new ExceptionalError(new InvalidOperationException(Secret))));
 
         StringAssert.Contains(body, "0HN-TEST-TRACE");
     }
