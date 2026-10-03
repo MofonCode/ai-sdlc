@@ -118,7 +118,7 @@ so they are separate constraints rather than one rule about correspondence.
 whether "add a unit test" proves "returns within 200ms over 50,000 rows". An inadequate proof is
 worse than none, because it produces a green verification instead of an obvious gap.
 
-## CON_07 — A change does only what its plan declared, including inside files the plan named
+## CON_07.2 — A change does only what its plan declared, including inside files the plan named
 
 **Applies to:** a diff, at verification.
 

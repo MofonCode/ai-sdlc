@@ -571,7 +571,7 @@ public static class Templates
 
         // Committed by init rather than left for the author, because an untracked AGENTS.md is untracked
         // when the first cycle takes its diff -- so the diff records the whole file as new, and a plan
-        // saying it *changes* that file can never match. The first cycle would fail CON_07 for something
+        // saying it *changes* that file can never match. The first cycle would fail CON_07.2 for something
         // adoption did.
         return string.Join(
             Environment.NewLine,

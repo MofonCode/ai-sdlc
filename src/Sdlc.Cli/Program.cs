@@ -130,7 +130,7 @@ static async Task<int> Init(Workspace workspace, CommandLine line)
 
     // Committed rather than left in the working tree. An untracked file is untracked when the first
     // cycle takes its diff, so the diff records the whole file as new and a plan saying it changes that
-    // file can never match -- the first cycle would fail CON_07 for something adoption did.
+    // file can never match -- the first cycle would fail CON_07.2 for something adoption did.
     Result commit = new GitRepository().Commit(
         workspace.SolutionRoot,
         report.Written,

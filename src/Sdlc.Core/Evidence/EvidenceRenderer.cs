@@ -104,7 +104,7 @@ public static class EvidenceRenderer
 
         output.AppendLine();
         output.AppendLine(Indent + "          These are suggestions, not a refusal. The comparison cannot see inside");
-        output.AppendLine(Indent + "          a file, which is why CON_07 exists -- so it was never what caught scope");
+        output.AppendLine(Indent + "          a file, which is why CON_07.2 exists -- so it was never what caught scope");
         output.AppendLine(Indent + "          creep. What blocks is outcome-based: the build fails, tests fail, or a");
         output.AppendLine(Indent + "          criterion's proof is not met.");
     }

@@ -18,7 +18,7 @@ public sealed record FileComparison(
 /// Reads the files a plan declares, and compares them against what changed.
 /// </summary>
 /// <remarks>
-/// <strong>This is a signal, not a gate.</strong> <c>CON_07</c> exists precisely <em>because</em> the
+/// <strong>This is a signal, not a gate.</strong> <c>CON_07.2</c> exists precisely <em>because</em> the
 /// comparison cannot see inside a file -- creep within a declared file passes it -- so the comparison was
 /// never load-bearing for scope creep, and a noisy blocker gets routed around. What blocks instead is
 /// outcome-based: the build fails, tests fail, or the proof is not met.

@@ -538,7 +538,7 @@ words. Findings cite the revision. **A bare id is revision 1**, and that is the 
 | `CON_04` | a spec covers every outcome its intent asks for | spec |
 | `CON_05` | a spec introduces no scope its intent did not ask for | spec |
 | `CON_06` | a plan's proof is adequate to the criterion it claims to prove | plan |
-| `CON_07` | a change does only what its plan declared, including inside files the plan named | diff |
+| `CON_07.2` | a change does only what its plan declared, including inside files the plan named | diff |
 | `CON_08` | a verify claim rests on evidence that exists and supports it | verify |
 | `CON_09` | no artifact restates another's content as its own authority | every artifact |
 | `CON_10` | a gate refusal's reason says why | an approval decision |
@@ -663,7 +663,7 @@ leaves the file alone.
 
 **It commits what it created.** An uncommitted `AGENTS.md` is untracked when a cycle takes its diff,
 so the diff records the whole file as new, and a plan that says it *changes* that file can never
-match — the first cycle would fail `CON_07` for something adoption did.
+match — the first cycle would fail `CON_07.2` for something adoption did.
 
 It creates no empty directories.
 
@@ -1048,7 +1048,7 @@ rule: report the coverage **delta** against the target branch.
 - the outcome in `verify.md` is `pass`
 
 **What it deliberately does not check.** The comparison of declared files against changed files.
-`D-15` moved that to the hook and made it a suggestion, because `CON_07` exists precisely *because*
+`D-15` moved that to the hook and made it a suggestion, because `CON_07.2` exists precisely *because*
 the comparison cannot see inside a file — so it was never load-bearing for scope creep, and a noisy
 blocker gets routed around. What blocks instead is outcome-based: the build fails, tests fail, or the
 proof is not met.
@@ -1482,7 +1482,15 @@ profiles are .NET.
 **Why.** `CON_07` already says the file set is not its job — *"the file set is mechanical and a hook
 already enforces it. Creep **inside** an approved file passes that hook"* — so the constraint exists
 *because* the comparison cannot see inside a file, and the comparison was never load-bearing for
-scope creep. And the counterexample dissolves: a plan whose declared file went untouched while every
+scope creep.
+
+**The quotation above is revision 1, and half of it was not true.** No hook ever enforced the declared
+file set; the clause was corrected in `CON_07.2`, which says the set is reported as a signal at the
+gate rather than enforced anywhere. It is left here as it was read, because this is the wording the
+decision was taken against and replacing it would make the record describe a conversation nobody had.
+The decision survives the correction and is strengthened by it: the half that was load-bearing — that
+creep inside a declared file is invisible to the comparison — is the half that was always true, and
+the false half was an argument for the comparison being *less* than a gate, which is what this decided. And the counterexample dissolves: a plan whose declared file went untouched while every
 test passed is an **inadequate proof**, caught by `CON_06` at the plan gate before code existed.
 
 **What blocks instead:** build fails, tests fail, or the proof is not met. Outcome-based rather than

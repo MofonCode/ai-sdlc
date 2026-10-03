@@ -38,7 +38,7 @@ from where this branch diverged, so building on the default branch directly make
 
 Read `plan.md`. Implement what `Shape and departures` decided and what `Proof` committed to.
 
-`CON_07` forbids a change within a declared file that the plan did not describe — an unrelated
+`CON_07.2` forbids a change within a declared file that the plan did not describe — an unrelated
 refactor, a drive-by rename, a fix to something else you noticed in passing. The file set is checked
 mechanically; **creep inside an approved file is what reaches review dressed as approved work**, which
 is exactly where it is least likely to be questioned.
@@ -97,7 +97,7 @@ It also prints the declared-against-changed comparison. Read it, and read it cor
   creep described above, and the honest move is to take it back out.
 - **`undelivered`** means a file the plan named went untouched. Sometimes that is right — the plan
   over-declared. Sometimes it means part of the plan was not implemented.
-- **Neither is a refusal.** The comparison cannot see inside a file, which is why `CON_07` exists at
+- **Neither is a refusal.** The comparison cannot see inside a file, which is why `CON_07.2` exists at
   all. What blocks is outcome-based: the build fails, tests fail, or a named test did not pass.
 
 ## Commit on the branch
