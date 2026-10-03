@@ -38,6 +38,8 @@ request could mean either, ask.
 | the skills as they ship, one directory each | `skills/` |
 | the plugin as it installs | `.claude-plugin/`, `hooks/` |
 | the suite | `tests/` |
+| the harness that writes a scaffolded solution so it can be built | `tools/Sdlc.ScaffoldHarness/` |
+| build and test on every pull request | `.github/workflows/ci.yml` |
 | a real cycle's artifacts, to calibrate against | `reference/iteration-3-cycle/` |
 
 `CONCEPT.md` is the current authority on every design question. Read it before proposing a change to how
@@ -50,11 +52,30 @@ dotnet build
 dotnet test
 ```
 
-Both from the repository root. The SDK and the test runner are pinned in `global.json`; `Directory.Build.props`
-holds the shared settings, `Directory.Packages.props` the versions.
+Both from the repository root, and **with no flags**. The SDK and the test runner are pinned in
+`global.json`; `Directory.Build.props` holds the shared settings, `Directory.Packages.props` the versions.
+
+**Do not add verbosity flags to `dotnet test`.** This solution runs on Microsoft.Testing.Platform, and
+VSTest-style flags like `-v q` make it run **zero tests** and exit 5 while printing `failed: 0` on the
+way past.
 
 **Warnings are errors**, and a build that warns is a build that failed. The relaxations for test code are
 listed in `tests/Directory.Build.props`, each with its reason, and there are no pragmas in test source.
+
+### Changing a scaffold template
+
+The suite asserts **strings** in the templates, so a template that generates code which does not compile
+passes every test here. Generate a solution and build it:
+
+```
+dotnet run --project tools/Sdlc.ScaffoldHarness -- <empty-directory>
+dotnet build <empty-directory>/Demo.slnx
+dotnet test  <empty-directory>/Demo.slnx
+```
+
+`.github/workflows/ci.yml` does exactly this on every pull request, so a broken template fails there
+rather than in somebody's repository. Run it locally anyway when you change a template — the pipeline is
+a backstop, not the inner loop.
 
 ## What the suite enforces about this repository
 
@@ -67,6 +88,11 @@ These are properties, not style preferences, and each is a named test in `tests/
 - every directory holding projects is scanned by the checks above
 
 If one of these is in your way, the conversation is about the property, not about the test.
+
+Two more live in `tests/Sdlc.Tests/`, because they read files rather than types: every project file the
+scaffold writes is well-formed XML, and the pipeline still builds and tests a generated solution. The
+second one exists because a step in a YAML file is deletable and deleting it is silent — the same reason
+the response-factory ban has a test of its own.
 
 ## The split between a command and a skill
 

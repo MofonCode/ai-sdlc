@@ -41,7 +41,7 @@ internal static class RepoFiles
     /// <see cref="StructureTests.Every_directory_holding_projects_is_scanned"/> fails when that
     /// happens, so the list cannot rot unnoticed — but fixing it there means editing this line.
     /// </remarks>
-    private static readonly string[] ProjectDirectories = ["src", "tests"];
+    private static readonly string[] ProjectDirectories = ["src", "tests", "tools"];
 
     /// <summary>Exposed so the coverage guard can check this list against what is on disk.</summary>
     internal static IReadOnlyList<string> ScannedDirectories => ProjectDirectories;

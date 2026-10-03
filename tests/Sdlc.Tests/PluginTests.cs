@@ -17,6 +17,60 @@ public sealed class PluginTests
 {
     private static readonly string Root = RepoPaths.Root;
 
+    /// <summary>
+    /// The pipeline still runs the two things that are only checked there.
+    /// </summary>
+    /// <remarks>
+    /// <para>By the same argument as the ban on the framework's response factories: a step in a YAML
+    /// file is deletable, and deleting it is silent. The scaffold verification exists because every
+    /// other test about the templates asserts strings, so if the step goes, the gap it closes reopens
+    /// with nothing failing — and the templates are exactly the area where that already shipped two
+    /// defects in one change.</para>
+    /// <para>This asserts the commands rather than the step names, because a step can be renamed for
+    /// good reasons and what matters is that the work still happens. It deliberately does not assert
+    /// the whole file: a rule that pinned the YAML would fail on every ordinary edit and be deleted
+    /// for being in the way.</para>
+    /// </remarks>
+    [TestMethod]
+    public void The_pipeline_builds_and_tests_a_generated_solution()
+    {
+        string pipeline = File.ReadAllText(Path.Combine(Root, ".github", "workflows", "ci.yml"));
+
+        StringAssert.Contains(
+            pipeline,
+            "dotnet run --project tools/Sdlc.ScaffoldHarness",
+            "Nothing else generates a solution from the templates, so without this step no build ever "
+            + "sees what they produce.");
+
+        StringAssert.Contains(
+            pipeline,
+            "dotnet build --configuration Release \"${{ runner.temp }}/scaffold/Demo.slnx\"",
+            "Generating a solution and not building it proves only that the templates can be written "
+            + "to disk, which Scaffold.Files already proves in-process.");
+
+        StringAssert.Contains(
+            pipeline,
+            "dotnet test --configuration Release \"${{ runner.temp }}/scaffold/Demo.slnx\"",
+            "The generated solution's own tests are the only place the architecture rules the skeleton "
+            + "ships ever run. Build alone would compile them and never execute one.");
+
+        // Comment lines are dropped before looking, and that is not a convenience. The first version
+        // of this assertion searched the whole file and failed on the comment in the YAML explaining
+        // why the gate is deliberately absent -- a rule that cannot tell an explanation from an
+        // invocation, which is the same mistake as reading source with a regular expression when the
+        // question is about what the code does.
+        string[] commands = [.. pipeline
+            .ReplaceLineEndings()
+            .Split(Environment.NewLine)
+            .Where(line => !line.TrimStart().StartsWith('#'))];
+
+        Assert.IsFalse(
+            commands.Any(line => line.Contains("verify-chain", StringComparison.Ordinal)),
+            "This repository is the framework and does not run cycles on itself -- there is no .sdlc/ "
+            + "here and adding one is wrong, because a framework judged by the constraints it is "
+            + "changing is a deadlock. AGENTS.md states it; this is what holds it.");
+    }
+
     [TestMethod]
     public void The_manifest_is_valid_json_and_names_the_plugin()
     {

@@ -1,3 +1,5 @@
+using System.Xml;
+using System.Xml.Linq;
 using Sdlc.Core.Init;
 
 namespace Sdlc.Tests;
@@ -33,6 +35,56 @@ public sealed class ScaffoldTests
                 string.IsNullOrWhiteSpace(contents),
                 path + " came out empty, which means its resource resolved to nothing.");
         }
+    }
+
+    [TestMethod]
+    public void Every_project_file_the_scaffold_writes_is_well_formed_xml()
+    {
+        // The cheapest layer that can hold the rule, and it exists because of a real defect: a comment
+        // in two .csproj templates carried `--`, which is illegal inside an XML comment, and MSBuild
+        // refuses the project with MSB4025 before it compiles a line. Nothing in this suite noticed,
+        // because every other test here asserts strings.
+        //
+        // The trap is specific and will recur: this repository's prose style uses `--` as a dash, the
+        // C# templates are full of it legitimately, and an XML comment is the one place it is fatal.
+        List<string> malformed = [];
+        int inspected = 0;
+
+        foreach ((string path, string contents) in Scaffold.Files(Name))
+        {
+            if (!path.EndsWith(".csproj", StringComparison.Ordinal)
+                && !path.EndsWith(".slnx", StringComparison.Ordinal))
+            {
+                continue;
+            }
+
+            inspected++;
+
+            try
+            {
+                XDocument.Parse(contents);
+            }
+            catch (XmlException error)
+            {
+                malformed.Add(path.Replace('\\', '/') + " -- " + error.Message);
+            }
+        }
+
+        Assert.IsTrue(
+            inspected > 0,
+            "This rule parsed no project files, so it would pass however they were written. Either the "
+            + "scaffold stopped writing a .csproj and a .slnx, or their extensions changed.");
+
+        Assert.AreEqual(
+            0,
+            malformed.Count,
+            "These project files the scaffold writes are not well-formed XML:\n  "
+            + string.Join("\n  ", malformed)
+            + "\n\nMSBuild refuses the project before compiling anything, so the generated solution "
+            + "fails on its first build. If the message mentions '--', that is the usual cause: a "
+            + "double hyphen is illegal inside an XML comment, and a single one reads the same. This "
+            + "catches the shape of the file and nothing about whether the code in it compiles -- "
+            + "tools/Sdlc.ScaffoldHarness is what does that, and CI runs it.");
     }
 
     [TestMethod]

@@ -1,0 +1,67 @@
+# Build and test, on every pull request and every push to master.
+#
+# This repository is the framework, and it is built as an ordinary product -- branch, review, merge.
+# It deliberately does NOT run `sdlc verify-chain` on itself: there is no `.sdlc/` directory here and
+# adding one is wrong, because a framework judged by the constraints it is changing is a deadlock.
+# AGENTS.md states that; this comment exists so nobody closes the gap by pointing the gate at itself.
+#
+# No secrets and no API key. Everything below is `dotnet`, and the governance the framework ships is
+# deterministic too -- `verify-chain` reads hashes, file existence and the approval ledger. A model is
+# never called by a gate, here or in a governed solution.
+
+name: ci
+
+on:
+  pull_request:
+  push:
+    branches: [master]
+
+# A second push to the same branch makes the first run's answer irrelevant, so stop it rather than
+# pay for both. Never cancel on master: those runs are the record of what the branch did.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # Read the pin rather than restate it. global.json says 10.0.100 with rollForward
+      # latestFeature, and a version written out here is a second place that decision lives -- the
+      # copy being the one that goes stale is the failure this repository is largely about.
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      # Warnings are errors here, so a build that warns is a build that failed. Note that NuGetAudit
+      # runs at moderate with NuGetAuditMode all: a newly disclosed advisory in any transitive
+      # dependency turns this red on a pull request that touched nothing. That is deliberate -- it is
+      # how you find out -- but it will look like CI broke when it happens.
+      - name: Build
+        run: dotnet build --configuration Release
+
+      # Bare `dotnet test`, with no verbosity flags. This solution runs on Microsoft.Testing.Platform
+      # (global.json pins the runner), and VSTest-style flags like `-v q` make it run ZERO tests and
+      # exit 5 while printing "failed: 0" on the way past. Do not add flags here.
+      - name: Test
+        run: dotnet test --configuration Release
+
+      # The gap this step exists to close: every test in Sdlc.Tests asserts STRINGS in the scaffold
+      # templates, so a template that generates code which does not compile passes the entire suite.
+      # It has already happened twice in one change -- a `--` inside an XML comment, which is illegal
+      # and kills the generated solution's first build, and then a CA1859 that warnings-as-errors
+      # turns into an error. Neither was visible until a solution was generated and built.
+      #
+      # So: generate one, build it, and run its own tests -- which is also what exercises the
+      # architecture rules the skeleton ships, in the only place they can actually run.
+      - name: Generate a scaffolded solution
+        run: dotnet run --project tools/Sdlc.ScaffoldHarness --configuration Release -- "${{ runner.temp }}/scaffold" Demo
+
+      - name: Build the scaffolded solution
+        run: dotnet build --configuration Release "${{ runner.temp }}/scaffold/Demo.slnx"
+
+      - name: Test the scaffolded solution
+        run: dotnet test --configuration Release "${{ runner.temp }}/scaffold/Demo.slnx"
