@@ -58,12 +58,27 @@ shape a failure can take. `sdlc claims` flags a plan that mentions one.
 | service-free plans | run wide |
 | plans standing up SQL Server, Redis, a Service Bus emulator | run under a low cap, two or three |
 
-And set the run mode so concurrent runs do not collide on more than ports:
+And export two variables into each cycle's worktree, before its build runs:
 
-| | local dev | batch |
+```sh
+SDLC_RUN_MODE=batch
+SDLC_RUN_ID=<eight hex characters, different for every cycle in the run>
+```
+
+**Per cycle, not per run.** The collision below is between two app hosts running at the same time, so
+one id shared across the batch would not separate them. A fresh id per cycle invocation does.
+
+**You are setting them, not using them.** Whether anything reads them is the solution's business: an
+AppHost is conditional, so a solution has one only if it needs more than one process, and most do not.
+Export them anyway — a variable that is always present is one an AppHost can rely on, and the cost of
+setting it where nothing reads it is nothing.
+
+**What a solution's AppHost does with them**, which is the contract rather than your job:
+
+| | `local` | `batch` |
 |---|---|---|
 | host ports | stable | dynamic |
-| container names | stable | `{app}-{shortGuid}` |
+| container names | stable | `{app}-{SDLC_RUN_ID}` |
 | volumes | persistent, named | ephemeral, or named per run |
 | databases | persistent | named per run |
 | dashboard, OTLP endpoint | on | off |
@@ -71,6 +86,10 @@ And set the run mode so concurrent runs do not collide on more than ports:
 **Named volumes are a worse collision than ports.** Two concurrent app hosts calling `WithDataVolume()`
 share one volume — the same database files, two writers — and that fails strangely rather than loudly.
 The run id belongs on container names, volume names and database names, not only on ports.
+
+**If this solution has no AppHost, nothing reads these and the table constrains nothing** — which is
+the state every solution starts in. The cap above is then the only thing keeping concurrent runs apart,
+and it works because service-free plans have nothing to collide on. §10.2 records the gap.
 
 ## 4. Build and verify each
 

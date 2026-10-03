@@ -753,12 +753,20 @@ completed — §19 item 5. This section claimed otherwise for a while.
 
 ### 10.2 Local run modes
 
-Selected by an environment variable that `batch-build` sets:
+**Two variables, and the framework sets them without ever reading them.** `batch-build` exports
+`SDLC_RUN_MODE` — `local` or `batch` — and `SDLC_RUN_ID`, unique per cycle invocation rather than per
+batch, because the collision below is between two app hosts running at the same time and a id shared
+across a run would not separate them.
 
-| | local dev | test / batch |
+**A solution's AppHost reads them and implements this table. Nothing in the framework can.** An
+AppHost is conditional (§11.1) and arrives with the cycle that needs more than one process, so it is
+solution code the framework does not write — the same reason EF and a `Web` project stay out of the
+default profile (D-38). So this is a contract with the half the framework owns and a half it does not:
+
+| | `local` | `batch` |
 |---|---|---|
 | host ports | stable, so a URL can be bookmarked | dynamic |
-| container names | stable | `{app}-{shortGuid}` |
+| container names | stable | `{app}-{SDLC_RUN_ID}` |
 | volumes | persistent, named | ephemeral, or named per run |
 | dashboard and OTLP endpoint | on, fixed | off, or overridden per run |
 | databases | persistent | named per run |
@@ -767,6 +775,18 @@ Selected by an environment variable that `batch-build` sets:
 `WithDataVolume()` share one volume — the same database files, two writers — which fails strangely
 rather than loudly. So the run id belongs on container names, volume names and database names, not
 only on ports.
+
+**Nothing reads either variable today, and that is a gap rather than a design.** The default profile
+ships no AppHost, so the collision above is unguarded until a solution builds one — and the first
+solution to do so is the first thing this table has ever constrained. What the framework does now is
+name the variables and export them, so that AppHost finds a contract instead of inventing
+`ASPNETCORE_ENVIRONMENT=Batch` and every other solution inventing something else. The names are the
+part worth having early; a count of solutions that agree on them is the part that cannot be had early.
+
+This section said *"Selected by an environment variable that `batch-build` sets"* and named no
+variable, while nothing anywhere set or read one. The warning above had nothing acting on it, which is
+the shape of enforcement §2.1 is written against — and the fix is not to claim less but to say which
+half is missing.
 
 Tests discover endpoints through `Aspire.Hosting.Testing` rather than knowing a port number.
 
@@ -1027,8 +1047,12 @@ profile actually wants enforced needs a fitness function beside it.
 ### 11.5 What a profile is
 
 **Templates plus constraints.** Package set and versions, analyzer set, `Directory.Build.props` and
-`Directory.Packages.props` fragments, project templates, app host run-mode defaults, pipeline
-templates, and its own `PRO_nn`.
+`Directory.Packages.props` fragments, project templates, pipeline templates, and its own `PRO_nn`.
+
+**No profile carries AppHost run-mode defaults, and this listed them until F-24.** An AppHost is
+conditional (§11.1) and no profile ships one, so there was nothing for a default to be a default of.
+§10.2 is where the run-mode contract lives; a profile that one day ships an AppHost template would
+carry defaults for it as part of that template rather than as a category of its own.
 
 **`dotnet-default` is carried by the binary; any other profile is a NuGet package** — D-33. The
 default has to work on a machine with no feed configured and no network, because it is what adoption

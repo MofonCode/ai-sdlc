@@ -46,7 +46,7 @@ This file is working material. Delete it when the fixes land.
 | F-21 | Low | done | ~~The first real `Web` project fails the package rule~~ **fixed** |
 | F-22 | Low | done | ~~The scaffold harness keeps a second copy of what adoption writes~~ **fixed** |
 | F-23 | Low | done | ~~D-38 states a registration shape the template does not carry~~ **fixed** |
-| F-24 | Low | **you** | §10.2's run-mode environment variable does not exist |
+| F-24 | Low | done | ~~§10.2's run-mode environment variable does not exist~~ **named, half-built, gap stated** |
 | F-25 | Low | done | ~~The needs-services heuristic matches "container" and "migration"~~ **fixed** |
 | F-26 | Low | done | ~~The generated `AGENTS.md` points at a file `init` does not create~~ **fixed** |
 | F-27 | Low | **you** | `CON_10.2` cannot be applied by anything |
