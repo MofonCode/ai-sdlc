@@ -1,6 +1,7 @@
 ---
 name: verify
 description: Adjudicate a build against its spec, from the recorded evidence alone. Use after a build has recorded its evidence. Never edits code.
+compatibility: Requires the sdlc binary on PATH, from the MofonCode.Sdlc.Cli dotnet tool, and a git repository. Every command here is that binary, so without it the first step fails.
 argument-hint: "<cycle id>"
 allowed-tools: Bash(sdlc *), Read, Write, Glob, Grep
 ---

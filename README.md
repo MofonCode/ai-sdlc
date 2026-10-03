@@ -161,8 +161,9 @@ the commands in one page that travels with the repository.
 | `docs/` | the guides: the skills, installing, a first cycle, the commands, and every refusal |
 | `src/Sdlc.Core/` | the gate: constraints, cycles, approvals, findings, hooks, evidence, the chain |
 | `src/Sdlc.Cli/` | the one binary every skill on every host calls |
-| `skills/` | the seventeen skills |
-| `hooks/`, `.claude-plugin/` | the plugin as it installs |
+| `skills/` | the seventeen skills, read by both plugin systems from this one directory |
+| `plugin.json` | the portable Agent Plugins manifest, which every client but Claude Code reads |
+| `hooks/`, `.claude-plugin/` | Claude Code's own plugin: its manifest, its marketplace catalogue, its hooks |
 | `tests/` | the suite |
 | `tools/` | build-time tools that are not the product — the scaffold harness CI runs |
 | `.github/workflows/ci.yml` | this repository's own CI, which deliberately does not govern itself (D-42) |
@@ -179,9 +180,18 @@ What is honest to say about the rest:
   anger.** Everything unattended rests on it, so the first batch runs are worth watching.
 - **`land` and `batch-build` are skills with no command behind the push.** The refusal is in the binary and
   tested; the push itself uses the platform's own CLI.
-- **Copilot gets the hook, not yet the skills.** The adapter is tested against a captured Copilot payload;
-  packaging the skills for Copilot is not done, and guessing at a format would produce files that silently
-  do nothing — which is the failure mode above.
+- **The Copilot install has never been run, though nothing is guessed any more.** The package is a
+  conformant [Agent Plugins 1.0](https://agent-plugins.org/specification) plugin, so the seventeen skills
+  are discoverable by every client implementing that standard — Copilot included — out of the same
+  `skills/` directory Claude Code reads. What is asserted: the manifest matches the published schema, and
+  every skill satisfies the Agent Skills specification. What is **not** established: nobody has run
+  `copilot plugin marketplace add` against this repository and watched the skills load. Treat the Copilot
+  path as untried in the same way the Azure DevOps pipeline is.
+- **Off Claude Code a skill is chosen, not named.** There is no `/sdlc:spec` on Copilot or Gemini — those
+  clients match a request against a skill's `description` and ask before activating. So the stages have to
+  be asked for in prose, and the two Claude-specific frontmatter fields (`argument-hint`, and
+  `allowed-tools` in Claude's own syntax) do nothing there, which costs a permission prompt per command
+  rather than correctness.
 - **The Azure DevOps pipeline has never run against a real server, by decision.** It is one file and one
   command, the failure is loud, and nothing else depends on it — so it ships with a note saying so in the
   generated file itself, where the first person to adopt on Azure DevOps will read it. `CONCEPT.md` D-32

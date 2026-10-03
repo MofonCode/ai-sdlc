@@ -1188,7 +1188,26 @@ collects keys from every spelling any host is known to use, rather than from the
 asked** — the one piece of host vocabulary deliberately not driven by the table, because narrowing it
 would turn a renamed field back into a rule that quietly stops applying.
 
-### 12.2 One consequence of the Copilot choice
+### 12.2 How the skills reach a host
+
+**Two plugin systems, one `skills/` directory.** The root `plugin.json` makes the package an
+[Agent Plugins 1.0](https://agent-plugins.org/specification) plugin — the open packaging standard
+published in August 2026 by OpenAI with AWS, Microsoft, Cursor, Vercel and Google — and
+`.claude-plugin/plugin.json` makes it a Claude Code plugin. Both discover skills in `skills/` at the
+package root, so there is one copy and no translation (D-47).
+
+**That standard covers skills and MCP servers, and says so about the rest:** commands, hooks and custom
+agents *"lack stable portable contracts"* and are outside v1. So nothing above changes — the hook
+adapter and `SupportedHosts` are the answer to a problem no standard addresses, which is why four
+unrelated projects have built the same adapter.
+
+**What does not travel is explicit invocation.** Claude Code names a skill, `/sdlc:spec <id>`. Every
+Agent Plugins client matches a request against the skill's `description` and asks before activating, so
+there is no slash form and the description is the whole of how a skill gets chosen. That makes the
+descriptions load-bearing off Claude Code rather than merely helpful, and it is why `§15.1`'s
+preconditions are stated in each skill rather than assumed from an argument.
+
+### 12.3 One consequence of the Copilot choice
 
 Copilot's cloud coding agent is asynchronous and cannot conduct an interview, so the intent phase
 cannot run there. v1 targets Copilot CLI and IDE chat. The cloud agent suits `build` from an
@@ -1519,7 +1538,7 @@ Ids are a monotonic sequence of their own, separate from `CON_nn`: a constraint 
 decision explains the framework. Assigned once, never reused. **A reversed decision is superseded by
 a new id rather than edited**, so a commit citing `D-14` still means what it meant.
 
-**This is reference material, not reading.** Forty-six entries and about half this document, so the
+**This is reference material, not reading.** Forty-seven entries and about half this document, so the
 way in is a lookup rather than the top. `AGENTS.md` carries the two commands; in short, a section's
 trailing `(D-nn)` marker answers "what constrains this", and an entry's `Governs` answers the reverse.
 **Read `Rejected` first when proposing something** — it is where the alternative you are reaching for
@@ -2976,3 +2995,70 @@ was paired with removing elsewhere. They go in with the work that consumes them.
   that must never be guessed. `TurnEndEvent` being null is a real answer, the command line refuses that
   combination by name, and a plausible-looking block for an event that cannot fire is the failure the whole
   design is written against. The correction above is not a licence to assume the next host has one.
+
+### D-47 — The package carries both plugin manifests, and conformance is not an install
+
+**Governs:** §12.2
+
+**Decision.** A root `plugin.json` makes this an Agent Plugins 1.0 plugin alongside the Claude Code
+plugin it already was. Both systems discover skills in `skills/` at the package root, so there is one
+copy of the seventeen and nothing translates between them. Every skill additionally declares the
+specification's optional `compatibility` field, naming the binary it needs. The readme says the Copilot
+install has never been run, because it has not.
+
+**Why this needed deciding at all.** The readme said packaging the skills for Copilot was not done, and
+that *"guessing at a format would produce files that silently do nothing"*. That was the right call when
+written and stopped being true in August 2026: Agent Plugins 1.0 is an open standard from OpenAI with
+AWS, Microsoft, Cursor, Vercel and Google, with a published closed schema and six implementing clients.
+There is nothing left to guess.
+
+**Why it cost one file.** The seventeen skills were written for one host and already satisfy the open
+Agent Skills specification — names lowercase-hyphen and matching their directories, descriptions well
+inside the limits — and Claude Code puts plugin component folders at the package root, exactly where the
+standard looks. So the whole of the work was a manifest with two required fields. Nothing moved, which is
+the strongest evidence available that neither format is doing anything exotic.
+
+**Why both manifests rather than migrating to one.** Anthropic is not in the coalition and Claude Code's
+plugin format is unchanged and documents no awareness of the standard. Claude Code is also the host this
+framework is developed and exercised on. Dropping `.claude-plugin/` to be standards-pure would trade a
+working install for a conformant one; carrying both costs a file and a test that they describe the same
+plugin.
+
+**Why `compatibility` is used where the specification says most skills do not need it.** Every one of
+these skills shells out to a binary the package does not carry, and §12.2's point about explicit
+invocation is why that matters here: on Claude Code the install guide is read because somebody ran a
+plugin command, while a client that discovered the skill by matching its description has nothing that
+would ever mention a .NET tool. The field is the only place that fact can travel with the skill.
+
+**Why conformance is reported as untried.** The package now satisfies a schema, and a schema is not a
+session. Nobody has run `copilot plugin marketplace add` against this repository and watched seventeen
+skills appear, and the gap between "conforms" and "works" is exactly where D-32 put the Azure DevOps
+pipeline — so it is recorded on the same terms, in the readme, where somebody deciding whether to adopt
+reads it.
+
+**Rejected.**
+
+- *Copying the skills into each governed solution's `.agents/skills/`* — rejected, and it was the plan
+  until the standard turned up. `.agents/skills/` is the cross-client path for skills belonging to **one
+  repository**; the framework is installed once and governs many, so per-solution copies would put
+  seventeen directories of framework text into every adopted repository, to be refreshed by `init`
+  forever. A package installed once is the shape the thing already has.
+- *`.github/skills/` instead* — rejected as the same idea, narrower: it is Copilot-only where
+  `.agents/skills/` at least reaches Gemini too, and both are beaten by a package.
+- *Rewriting `allowed-tools` into the specification's syntax* — rejected. The specification defines it as
+  a space-separated string and marks it experimental with support varying by client; Claude Code's is
+  comma-separated with a different inner form, and no single string satisfies both. Changing the syntax
+  that works on the host this is developed on, for a field the standard itself calls experimental, trades
+  a working pre-approval for a hypothetical one. The cost of leaving it is a permission prompt per command
+  off Claude Code, which is friction rather than failure, and §12.2 says so out loud.
+- *Dropping `argument-hint`* — rejected for the mirror reason. It is not a specification field, clients
+  that do not know it warn and load the skill anyway, and it is genuinely useful on the host that reads
+  it. An unknown field costs a log line; removing it costs the hint.
+- *Claiming Copilot support in the readme on the strength of conformance* — rejected, and this is the
+  entry's real point. "A host that is listed is a host that was exercised" is the rule D-46 established
+  one commit earlier, and a manifest matching a schema is not an exercise. Writing it as supported would
+  be the same defect that decision was written to close, committed knowingly rather than by accident.
+- *A second marketplace catalogue for Copilot* — rejected as unnecessary rather than wrong. Copilot looks
+  for `marketplace.json` in `.github/plugin/` and falls back to `.claude-plugin/`, so the catalogue
+  already in the repository is the one it reads. A second copy would be a second place the plugin list
+  lives.

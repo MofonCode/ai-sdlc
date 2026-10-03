@@ -1,6 +1,7 @@
 ---
 name: plan
 description: Decide how a spec will be met and what will prove it, producing the plan of a cycle. Use after a spec has a clean interrogation round. This is the last artifact before a person approves.
+compatibility: Requires the sdlc binary on PATH, from the MofonCode.Sdlc.Cli dotnet tool, and a git repository. Every command here is that binary, so without it the first step fails.
 argument-hint: "<cycle id>"
 allowed-tools: Bash(sdlc *), Bash(git *), Read, Write, Edit, Glob, Grep
 ---

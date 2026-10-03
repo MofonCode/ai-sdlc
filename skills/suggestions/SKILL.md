@@ -1,6 +1,7 @@
 ---
 name: suggestions
 description: List the open non-blocking findings a solution has accumulated. Use when someone asks what has been noticed but not acted on, or is looking for small work worth picking up.
+compatibility: Requires the sdlc binary on PATH, from the MofonCode.Sdlc.Cli dotnet tool, and a git repository. Every command here is that binary, so without it the first step fails.
 argument-hint: "[cycle id]"
 allowed-tools: Bash(sdlc *)
 ---

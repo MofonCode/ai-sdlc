@@ -1,6 +1,7 @@
 ---
 name: resolve-conflict
 description: Resolve a collision on one of the few files no cycle can claim exclusively -- project files, DI registration, appsettings, migrations, Terraform. Use when a batch run reports a conflict on one of those.
+compatibility: Requires the sdlc binary on PATH, from the MofonCode.Sdlc.Cli dotnet tool, and a git repository. Every command here is that binary, so without it the first step fails.
 argument-hint: "<file path>"
 allowed-tools: Bash(sdlc *), Bash(git *), Bash(dotnet *), Read, Write, Edit, Glob, Grep
 ---

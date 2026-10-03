@@ -1,6 +1,7 @@
 ---
 name: refine
 description: Apply an artifact's findings to that artifact. Edits one planning document and nothing else, and never judges. Use after an interrogation round raised blocking findings.
+compatibility: Requires the sdlc binary on PATH, from the MofonCode.Sdlc.Cli dotnet tool, and a git repository. Every command here is that binary, so without it the first step fails.
 argument-hint: "<cycle id> <intent|spec|plan>"
 allowed-tools: Bash(sdlc *), Bash(git *), Read, Write, Edit, Glob, Grep
 ---

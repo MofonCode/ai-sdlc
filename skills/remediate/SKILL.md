@@ -1,6 +1,7 @@
 ---
 name: remediate
 description: Apply a blocked verification's findings to source and tests. Edits code, never a planning document, and gets at most three passes. Use after verify recorded a blocked outcome.
+compatibility: Requires the sdlc binary on PATH, from the MofonCode.Sdlc.Cli dotnet tool, and a git repository. Every command here is that binary, so without it the first step fails.
 argument-hint: "<cycle id>"
 allowed-tools: Bash(sdlc *), Bash(git *), Bash(dotnet *), Read, Write, Edit, Glob, Grep
 ---

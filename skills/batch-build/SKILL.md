@@ -1,6 +1,7 @@
 ---
 name: batch-build
 description: Complete every approved cycle in this working copy -- build and verify each, concurrently where their declared files do not collide. Use when several cycles are approved and waiting.
+compatibility: Requires the sdlc binary on PATH, from the MofonCode.Sdlc.Cli dotnet tool, and a git repository. Every command here is that binary, so without it the first step fails.
 argument-hint: "[--land]"
 allowed-tools: Bash(sdlc *), Bash(git *), Bash(dotnet *), Read, Write, Edit, Glob, Grep
 ---

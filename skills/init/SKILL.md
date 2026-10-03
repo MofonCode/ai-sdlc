@@ -1,6 +1,7 @@
 ---
 name: init
 description: Adopt the framework into a repository -- run the scaffolding, interview the team about what matters in this solution, and propose its first constraints. Use when somebody asks to set up ai-sdlc here.
+compatibility: Requires the sdlc binary on PATH, from the MofonCode.Sdlc.Cli dotnet tool, and a git repository. Every command here is that binary, so without it the first step fails.
 argument-hint: "[--platform github|azure-devops]"
 allowed-tools: Bash(sdlc *), Bash(git *), Read, Glob, Grep
 ---

@@ -214,6 +214,130 @@ public sealed class PluginTests
     }
 
     [TestMethod]
+    public void The_root_manifest_conforms_to_the_agent_plugins_schema()
+    {
+        // The portable half of the package. One manifest at the root makes the seventeen skills
+        // discoverable by every client that implements Agent Plugins 1.0, out of the same `skills/`
+        // directory Claude Code already reads -- so there is no second copy to go stale. The schema
+        // is closed and `additionalProperties` is false, which means a field nobody checked is a
+        // plugin the client rejects outright rather than loads with a warning. D-47.
+        JsonObject manifest = Read("plugin.json").AsObject();
+
+        Assert.AreEqual(
+            "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+            manifest["$schema"]!.GetValue<string>(),
+            "The schema identifier is canonical and pinned to a version. A client matches on it.");
+
+        string name = manifest["name"]!.GetValue<string>();
+
+        Assert.IsTrue(
+            Regex.IsMatch(name, "^(?!.*(?:--|\\.\\.))[a-z0-9](?:[a-z0-9.-]*[a-z0-9])?$")
+            && name.Length is > 0 and <= 64,
+            $"'{name}' does not satisfy the specification's name pattern.");
+
+        // The closed set, from the published schema. Anything else is fatal to the whole plugin, so
+        // a field added here in good faith is worth catching in the suite rather than on somebody's
+        // machine.
+        string[] permitted =
+        [
+            "$schema", "name", "version", "description", "author",
+            "homepage", "repository", "license", "keywords", "extensions",
+        ];
+
+        string[] unknown = [.. manifest.Select(field => field.Key).Except(permitted, StringComparer.Ordinal)];
+
+        Assert.AreEqual(
+            0,
+            unknown.Length,
+            "plugin.json carries fields the Agent Plugins schema does not define: "
+            + string.Join(", ", unknown));
+    }
+
+    [TestMethod]
+    public void The_two_manifests_describe_the_same_plugin()
+    {
+        // Two manifests for two plugin systems, one package. Claude Code reads
+        // `.claude-plugin/plugin.json` and every Agent Plugins client reads the root one, and they
+        // can disagree -- which is the whole lesson of the host table one commit earlier. The
+        // version has a third home in Directory.Build.props and a test of its own above; this holds
+        // the pair that a person reads in a client's plugin listing.
+        JsonNode portable = Read("plugin.json");
+        JsonNode claude = Read(Path.Combine(".claude-plugin", "plugin.json"));
+
+        foreach (string field in (string[])["name", "version", "description"])
+        {
+            Assert.AreEqual(
+                claude[field]!.GetValue<string>(),
+                portable[field]!.GetValue<string>(),
+                $"The two manifests disagree about '{field}', so the same package describes itself "
+                + "differently depending on which client installed it.");
+        }
+    }
+
+    [TestMethod]
+    public void Every_skill_conforms_to_the_agent_skills_specification()
+    {
+        // The skills were written for one host and happen to satisfy the open specification, which
+        // is worth holding rather than rediscovering: these constraints are what decides whether a
+        // non-Claude client loads a skill, skips it, or warns. `description` is the field that
+        // matters most off Claude Code -- there is no `/sdlc:spec` on Copilot or Gemini, so the
+        // description is the whole of how a skill gets chosen.
+        foreach (string path in Skills())
+        {
+            string directory = Path.GetFileName(Path.GetDirectoryName(path))!;
+            string[] frontmatter = Frontmatter(path);
+
+            string name = Value(frontmatter, "name", path);
+
+            Assert.AreEqual(
+                directory,
+                name,
+                $"{path}: the specification requires the name to match the parent directory.");
+
+            Assert.IsTrue(
+                Regex.IsMatch(name, "^(?!.*--)[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$") && name.Length <= 64,
+                $"{path}: '{name}' is not 1-64 lowercase alphanumeric characters and single hyphens.");
+
+            string description = Value(frontmatter, "description", path);
+
+            Assert.IsTrue(
+                description.Length is > 0 and <= 1024,
+                $"{path}: a description must be 1-1024 characters, and this one is {description.Length}.");
+
+            // Optional in the specification, required here: every one of these skills shells out to
+            // a binary the package does not carry. On Claude Code the install guide says so; a
+            // client that discovered the skill through Agent Plugins has nothing else that would.
+            string compatibility = Value(frontmatter, "compatibility", path);
+
+            Assert.IsTrue(
+                compatibility.Length <= 500,
+                $"{path}: compatibility must be at most 500 characters.");
+
+            StringAssert.Contains(
+                compatibility,
+                "sdlc binary on PATH",
+                $"{path}: the one thing a reader needs before the first command is the binary.");
+        }
+    }
+
+    [TestMethod]
+    public void No_skill_directory_hides_another_skill_inside_it()
+    {
+        // The specification is explicit that a client reads each immediate child of `skills/` and
+        // MUST NOT recurse deeper. A skill nested below one would load on Claude Code and be
+        // invisible everywhere else, which is the quiet half of a divergence rather than a failure.
+        foreach (string path in Skills())
+        {
+            string relative = Path.GetRelativePath(Path.Combine(Root, "skills"), path).Replace('\\', '/');
+
+            Assert.AreEqual(
+                2,
+                relative.Split('/').Length,
+                $"{relative} is not an immediate child of skills/, so only Claude Code would find it.");
+        }
+    }
+
+    [TestMethod]
     public void No_skill_restates_a_constraint_instead_of_running_the_command()
     {
         // A copy of a rule in a skill is a second place it lives, and the copy is always the one that goes
@@ -797,8 +921,9 @@ public sealed class PluginTests
         StringAssert.Contains(readme, "Where it stands");
         StringAssert.Contains(
             readme,
-            "Copilot gets the hook, not yet the skills",
-            "The known gap has to be in the readme, not only in a commit message.");
+            "The Copilot install has never been run",
+            "The known gap has to be in the readme, not only in a commit message. A package that "
+            + "conforms to a standard is not the same claim as a package somebody installed.");
     }
 
     [TestMethod]
@@ -903,6 +1028,26 @@ public sealed class PluginTests
             || segment.Equals("TestResults", StringComparison.OrdinalIgnoreCase)
             || segment.Equals("node_modules", StringComparison.OrdinalIgnoreCase)
             || segment.StartsWith('.'));
+    }
+
+    /// <summary>One skill's frontmatter lines, between the two fences.</summary>
+    private static string[] Frontmatter(string path) =>
+        [.. File.ReadAllText(path)
+            .ReplaceLineEndings()
+            .Split(Environment.NewLine)
+            .SkipWhile(line => line != "---")
+            .Skip(1)
+            .TakeWhile(line => line != "---")];
+
+    /// <summary>One frontmatter field's value, failing the test when the field is absent.</summary>
+    private static string Value(string[] frontmatter, string key, string path)
+    {
+        string? line = Array.Find(frontmatter, candidate =>
+            candidate.StartsWith(key + ": ", StringComparison.Ordinal));
+
+        Assert.IsNotNull(line, $"{path} declares no '{key}'.");
+
+        return line[(key.Length + 2)..].Trim();
     }
 
     private static IEnumerable<string> Skills() =>

@@ -1,6 +1,7 @@
 ---
 name: land
 description: Push a verified cycle and open its pull request. The only stage that touches the remote. Use after a verification passed, or with --all to sweep every cycle that is ready.
+compatibility: Requires the sdlc binary on PATH, from the MofonCode.Sdlc.Cli dotnet tool, and a git repository. Every command here is that binary, so without it the first step fails.
 argument-hint: "<cycle id> | --all"
 allowed-tools: Bash(sdlc *), Bash(git *), Bash(gh *), Bash(az *), Read, Glob, Grep
 ---

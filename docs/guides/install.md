@@ -7,8 +7,15 @@ hook says so and lets the push through, which is the louder of the two failures.
 
 | | What it is | Missing means |
 |---|---|---|
-| the plugin | seventeen skills and two hooks, `PreToolUse` and `Stop` | no stages, and no deterministic layer |
+| the plugin | seventeen skills, and on Claude Code two hooks, `PreToolUse` and `Stop` | no stages, and on Claude Code no deterministic layer |
 | the `sdlc` binary | a .NET tool named `sdlc` | every skill's first command fails |
+
+**One package, two plugin systems.** The root `plugin.json` makes it an
+[Agent Plugins 1.0](https://agent-plugins.org/specification) plugin, which is what Copilot, VS Code,
+Cursor, Codex and Gemini read; `.claude-plugin/plugin.json` is what Claude Code reads. Both find the
+seventeen skills in the same `skills/` directory, so there is no second copy to go stale. Hooks are
+**not** part of that standard — it covers skills and MCP servers only — so on every host the hooks arrive
+through `sdlc init` writing them into the repository, and on Claude Code additionally through the plugin.
 
 ## Before either
 
@@ -119,6 +126,28 @@ claude plugin install sdlc@ai-sdlc
 
 The two sources use the same marketplace name, so they cannot both be registered. Switching means
 removing one first — see **Remove**.
+
+### On Copilot
+
+**Untried — nobody has run these and watched the skills load.** They are the documented commands and the
+package conforms to the standard they read, which is not the same claim. If you are the first, say what
+happened.
+
+```pwsh
+copilot plugin marketplace add MofonCode/ai-sdlc
+```
+
+```pwsh
+copilot plugin install sdlc@ai-sdlc
+```
+
+`.claude-plugin/marketplace.json` serves both: Copilot looks for `marketplace.json` in `.github/plugin/`
+and falls back to `.claude-plugin/`, so the one catalogue already there is the one it reads. In VS Code
+the equivalent is `chat.plugins.enabled`, this repository added to `chat.plugins.marketplaces` in
+`settings.json`, then `@agentPlugins` in the Extensions view.
+
+**You still need `sdlc init` in each repository**, and more than on Claude Code: the hooks are not part
+of the plugin standard, so adoption writing `.github/hooks/sdlc.json` is the only way they arrive.
 
 ## Check what you have
 

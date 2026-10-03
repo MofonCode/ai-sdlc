@@ -1,6 +1,7 @@
 ---
 name: draft
 description: Print what belongs in one of the four files only a person writes -- an approval, an abandonment, a solution constraint, or a profile migration. Use when a person needs to approve, refuse, stop a cycle, add a rule, or change profile.
+compatibility: Requires the sdlc binary on PATH, from the MofonCode.Sdlc.Cli dotnet tool, and a git repository. Every command here is that binary, so without it the first step fails.
 argument-hint: "approval <id> | abandon <id> | constraint | profile <name>"
 allowed-tools: Bash(sdlc *), Bash(git *)
 ---

@@ -1,6 +1,7 @@
 ---
 name: spec
 description: Derive testable acceptance criteria from an approved-shape intent, producing the spec of a cycle. Use after an intent has a clean interrogation round.
+compatibility: Requires the sdlc binary on PATH, from the MofonCode.Sdlc.Cli dotnet tool, and a git repository. Every command here is that binary, so without it the first step fails.
 argument-hint: "<cycle id>"
 allowed-tools: Bash(sdlc *), Bash(git *), Read, Write, Edit, Glob, Grep
 ---

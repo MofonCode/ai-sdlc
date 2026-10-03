@@ -1,6 +1,7 @@
 ---
 name: status
 description: Show where a cycle has got to -- the stage panel, its checks, the gate, and the next command. Use after any stage, or when someone asks where something stands.
+compatibility: Requires the sdlc binary on PATH, from the MofonCode.Sdlc.Cli dotnet tool, and a git repository. Every command here is that binary, so without it the first step fails.
 argument-hint: "<cycle id> [intent|spec|plan]"
 allowed-tools: Bash(sdlc *)
 ---

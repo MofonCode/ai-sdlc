@@ -1,6 +1,7 @@
 ---
 name: constraints
 description: Show the rules in force for this solution, all tiers resolved. Use before writing or judging any artifact, and whenever someone asks what the rules are.
+compatibility: Requires the sdlc binary on PATH, from the MofonCode.Sdlc.Cli dotnet tool, and a git repository. Every command here is that binary, so without it the first step fails.
 argument-hint: "[intent|spec|plan|diff|verify]"
 allowed-tools: Bash(sdlc *)
 ---

@@ -1,6 +1,7 @@
 ---
 name: interrogate
 description: Judge one artifact against the constraints in force, in a fresh process, and write a findings round. Never edits. Use to challenge an intent, spec, plan or verify document.
+compatibility: Requires the sdlc binary on PATH, from the MofonCode.Sdlc.Cli dotnet tool, and a git repository. Every command here is that binary, so without it the first step fails.
 argument-hint: "<cycle id> <intent|spec|plan|verify>"
 allowed-tools: Bash(sdlc *), Bash(claude *), Bash(git *), Read, Write, Glob, Grep
 ---

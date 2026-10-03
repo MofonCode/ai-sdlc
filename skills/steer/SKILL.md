@@ -1,6 +1,7 @@
 ---
 name: steer
 description: Carry a person's mid-cycle correction down the artifact chain, editing the intent, spec and plan rather than regenerating them. Use when someone wants to change how a cycle in progress is being done.
+compatibility: Requires the sdlc binary on PATH, from the MofonCode.Sdlc.Cli dotnet tool, and a git repository. Every command here is that binary, so without it the first step fails.
 argument-hint: "<cycle id> \"what to change\""
 allowed-tools: Bash(sdlc *), Bash(git *), Read, Write, Edit, Glob, Grep
 ---

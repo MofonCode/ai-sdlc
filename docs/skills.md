@@ -7,7 +7,14 @@ That split is why this document exists separately from `sdlc help` — the binar
 file listing and a hash can decide, and everything here is what cannot be decided that way. A skill
 calls commands and shows what they print verbatim.
 
-Every skill is invoked the same way, which in Claude Code is `/sdlc:<name>`:
+**How a skill starts depends on the host, and this is the one place the two differ.** In Claude Code you
+name it. On a client that loads the skills through [Agent Plugins](https://agent-plugins.org/specification)
+— Copilot, VS Code, Cursor, Codex, Gemini — there is no slash form: the client matches your request
+against each skill's `description` and asks before activating one. So `/sdlc:spec 20261002_1414_12` there
+is "write the spec for cycle 20261002_1414_12", and the cycle id still has to be in the sentence because
+nothing else carries it.
+
+In Claude Code, `/sdlc:<name>`:
 
 ```
 /sdlc:intent We have no way to see a die roll

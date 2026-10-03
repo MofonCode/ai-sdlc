@@ -36,7 +36,7 @@ request could mean either, ask.
 | the gate's logic: constraints, cycles, approvals, findings, hooks, evidence, the chain | `src/Sdlc.Core/` |
 | the one binary every skill on every host calls | `src/Sdlc.Cli/` |
 | the skills as they ship, one directory each | `skills/` |
-| the plugin as it installs | `.claude-plugin/`, `hooks/` |
+| the plugin as it installs: the portable manifest, Claude Code's manifest, Claude Code's hooks | `plugin.json`, `.claude-plugin/`, `hooks/` |
 | the suite | `tests/` |
 | the harness that writes a scaffolded solution so it can be built | `tools/Sdlc.ScaffoldHarness/` |
 | build and test on every pull request | `.github/workflows/ci.yml` |
@@ -46,7 +46,7 @@ request could mean either, ask.
 the framework works, and cite the decision you are revisiting.
 
 **Do not load the whole file to find one decision.** §1–18 state what is true and read front to back;
-§20 is an appendix of 46 decisions and about half the document, and it is reference material you query
+§20 is an appendix of 47 decisions and about half the document, and it is reference material you query
 rather than read. Three lookups, in the directions anybody actually travels:
 
 ```sh
@@ -58,7 +58,7 @@ awk '/^### D-/{d=$2} /^..Governs:/{print d" "$0}' CONCEPT.md | grep '11.3'
 sed -n '/^### D-38/,/^### D-39/p' CONCEPT.md
 
 # I do not yet know which decision I want. The whole list, one line each, sorted by the section it
-# governs - 46 lines rather than 1400, so neighbours are the decisions that constrain each other:
+# governs - 47 lines rather than 1500, so neighbours are the decisions that constrain each other:
 awk '/^### D-/{h=$0; sub("^### ","",h)}
      /^..Governs:/{g=$0; sub("..Governs:.. ","",g); print g "  |  " h}' CONCEPT.md | sort
 ```
@@ -145,7 +145,7 @@ remember, and the document is wrong in the meantime.
 |---|---|
 | adds, removes or renames a skill, or changes what one takes or refuses | [`docs/skills.md`](docs/skills.md) — the skill's row, its own section, and the count in the heading if it moved |
 | changes a command's behaviour or options | `src/Sdlc.Cli/Usage.cs`, which is what `sdlc help` prints, and [`docs/guides/cycle-commands.md`](docs/guides/cycle-commands.md) |
-| changes what a correct install produces — a hook, a skill count, a version | [`docs/guides/install.md`](docs/guides/install.md), **including the table at the top** |
+| changes what a correct install produces — a hook, a skill count, a version, either plugin manifest | [`docs/guides/install.md`](docs/guides/install.md), **including the table at the top** |
 | adds, removes or reworks a refusal | [`docs/guides/when-it-blocks.md`](docs/guides/when-it-blocks.md) |
 | changes the flow a person walks through | [`docs/guides/first-cycle.md`](docs/guides/first-cycle.md) |
 | moves the project boundary, an operation's shape, or where a new thing goes | [`src/README.md`](src/README.md) |
