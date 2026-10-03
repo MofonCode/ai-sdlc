@@ -1410,6 +1410,12 @@ Ids are a monotonic sequence of their own, separate from `CON_nn`: a constraint 
 decision explains the framework. Assigned once, never reused. **A reversed decision is superseded by
 a new id rather than edited**, so a commit citing `D-14` still means what it meant.
 
+**This is reference material, not reading.** Forty-four entries and about half this document, so the
+way in is a lookup rather than the top. `AGENTS.md` carries the two commands; in short, a section's
+trailing `(D-nn)` marker answers "what constrains this", and an entry's `Governs` answers the reverse.
+**Read `Rejected` first when proposing something** — it is where the alternative you are reaching for
+has usually already been weighed, which is the whole reason the field exists.
+
 **The record shape, which a test holds.** Every entry carries `Governs`, `Why` and `Rejected`. The
 **heading is the decision** — `**Decision.**` is an optional elaboration for the entries whose heading
 cannot carry it, and restating a heading under it would be a line of nothing. `Rejected` is half the
@@ -1420,11 +1426,9 @@ from an unwritten one, so an entry that genuinely foreclosed nothing says so and
 anyway. That makes the test below mechanical rather than a judgement, and it is how the two entries
 that foreclose nothing — D-12 and D-20 — are visible as what they are instead of looking unfinished.
 
-**`Governs` is the way in.** §1–18 carry a trailing `(D-nn)` marker, which answers "why does this
-section say that"; `Governs` answers the reverse, which is the direction a challenged reader
-travels — they arrive at an id from a commit message or a code remark and need to know what it
-actually constrains. It went missing for a while and the appendix became something you could only
-enter from the front, which is most of what makes a long one feel unmanageable.
+**Why `Governs` is required.** It went missing from every entry once, and the appendix became
+something you could only enter from the front — which is most of what makes a long one feel
+unmanageable, and why a reader who had a `D-nn` and a question had to read until they found it.
 
 **What earns an id: foreclosing an alternative somebody would otherwise reach for.** An entry whose
 `Rejected` is empty is not a decision, it is a section of §1–18 in the wrong place — the sections

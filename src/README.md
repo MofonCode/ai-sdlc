@@ -6,6 +6,10 @@ Written for somebody **changing** the framework. It describes the shape of the c
 the design is what it is — `../CONCEPT.md` is the authority on every design question, and its decisions are
 cited by id rather than restated.
 
+A code remark citing `D-38` means the entry under that id in `../CONCEPT.md` §20. Look it up rather
+than reading the file: `sed -n '/^### D-38/,/^### D-39/p' ../CONCEPT.md`. Each entry says which
+sections it governs and what it rejected, and `../AGENTS.md` has the other two lookups.
+
 ## Two projects
 
 | | |

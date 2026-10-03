@@ -45,6 +45,29 @@ request could mean either, ask.
 `CONCEPT.md` is the current authority on every design question. Read it before proposing a change to how
 the framework works, and cite the decision you are revisiting.
 
+**Do not load the whole file to find one decision.** §1–18 state what is true and read front to back;
+§20 is an appendix of 44 decisions and about half the document, and it is reference material you query
+rather than read. Three lookups, in the directions anybody actually travels:
+
+```sh
+# I am changing something. Which decisions constrain it?
+#   Either read the section - it carries a trailing (D-nn) marker - or ask by section number:
+awk '/^### D-/{d=$2} /^..Governs:/{print d" "$0}' CONCEPT.md | grep '11.3'
+
+# A commit, a code remark or a finding cites D-38. What does it govern, and why?
+sed -n '/^### D-38/,/^### D-39/p' CONCEPT.md
+
+# I do not yet know which decision I want. The whole list, one line each, sorted by the section it
+# governs - 44 lines rather than 1300, so neighbours are the decisions that constrain each other:
+awk '/^### D-/{h=$0; sub("^### ","",h)}
+     /^..Governs:/{g=$0; sub("..Governs:.. ","",g); print g "  |  " h}' CONCEPT.md | sort
+```
+
+Every entry carries `Governs` (the sections that state the rule), `Why`, and `Rejected`. **Read
+`Rejected` first when you are about to propose something** — it is where the alternative you are
+reaching for has usually already been weighed, and relitigating one is the waste the field exists to
+prevent. A test holds that shape, so these work on every entry rather than most of them.
+
 ## Building and testing
 
 ```
