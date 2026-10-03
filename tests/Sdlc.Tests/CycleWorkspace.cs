@@ -198,13 +198,19 @@ internal sealed class CycleWorkspace : IDisposable
 
     /// <summary>Writes a verify document with a given outcome.</summary>
     /// <param name="outcome">pass, blocked or escalated.</param>
-    public void WriteVerify(string outcome)
+    /// <param name="outcome">The outcome value, written raw so a test can quote it.</param>
+    /// <param name="alsoInFrontmatter">
+    /// Extra frontmatter lines, for the shapes a line scan used to mishandle -- a comment, or a block
+    /// scalar whose text contains <c>outcome:</c>.
+    /// </param>
+    public void WriteVerify(string outcome, params string[] alsoInFrontmatter)
     {
         List<string> lines =
         [
             "---",
             "framework_version: " + Cycle.FrameworkVersion,
             "cycle: " + Cycle.Id,
+            .. alsoInFrontmatter,
             "outcome: " + outcome,
             "---",
             string.Empty,

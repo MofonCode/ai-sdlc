@@ -26,9 +26,9 @@ This file is working material. Delete it when the fixes land.
 | F-01 | Critical | done | ~~The pre-tool hook auto-approves every call it does not refuse~~ **fixed, D-39** |
 | F-02 | Critical | done | ~~`sdlc init` overwrites the project's `.claude/settings.json`~~ **fixed, D-40** |
 | F-03 | Critical | done | ~~The packed tool ships no constraint library, so nothing but `help` and `version` runs~~ **fixed, D-41** |
-| F-04 | High | — | A deleted or malformed findings round makes the gate and the chain check blind |
+| F-04 | High | done | ~~A deleted or malformed findings round makes the gate and the chain check blind~~ **fixed** |
 | F-05 | High | — | `diff.patch` omits every new file, and the comparison reports agreement |
-| F-06 | High | — | `outcome: "pass"` passes the schema and fails the chain |
+| F-06 | High | done | ~~`outcome: "pass"` passes the schema and fails the chain~~ **fixed** |
 | F-07 | High | — | Adoption writes a props file referencing a file it does not write |
 | F-08 | Medium | **you** | The `refine` and `remediate` guards are claimed as hook rules and are prose |
 | F-09 | Medium | — | §11.3.1 and D-38 give contradictory rules for where a response lives |

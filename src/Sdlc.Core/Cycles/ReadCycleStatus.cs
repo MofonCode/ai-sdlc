@@ -206,13 +206,8 @@ public static class ReadCycleStatus
                 return null;
             }
 
-            return split.Value.Yaml
-                .ReplaceLineEndings()
-                .Split(Environment.NewLine)
-                .Select(line => line.Trim())
-                .FirstOrDefault(line => line.StartsWith("outcome:", StringComparison.Ordinal))
-                ?["outcome:".Length..]
-                .Trim();
+            // The same reader the schema and the chain check use. F-06.
+            return Frontmatter.Key(split.Value.Yaml, "outcome");
         }
 
         private static async Task<Result<ArtifactState>> Read(

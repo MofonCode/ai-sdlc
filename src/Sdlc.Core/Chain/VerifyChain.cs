@@ -395,15 +395,18 @@ public static class VerifyChain
                 return;
             }
 
-            string? outcome = split.Value.Yaml
-                .ReplaceLineEndings()
-                .Split(Environment.NewLine)
-                .Select(line => line.Trim())
-                .FirstOrDefault(line => line.StartsWith("outcome:", StringComparison.Ordinal))
-                ?["outcome:".Length..]
-                .Trim();
+            // Through the parser, like the schema. A line scan read `outcome: "pass"` -- valid YAML
+            // the schema accepts -- as the four characters plus its quotes, so a legitimately passing
+            // cycle could not merge and `landable` agreed with the wrong answer. F-06.
+            string? outcome = Frontmatter.Key(split.Value.Yaml, "outcome");
 
-            bool passed = string.Equals(outcome, "pass", StringComparison.OrdinalIgnoreCase);
+            // Compared against the schema's own allowed set rather than the literal "pass", so what
+            // merges and what validates cannot drift apart.
+            bool passed = outcome is not null
+                && string.Equals(
+                    outcome,
+                    ArtifactSchema.Outcomes[0],
+                    StringComparison.OrdinalIgnoreCase);
 
             checks.Add(new ChainCheck(
                 "the change was verified",

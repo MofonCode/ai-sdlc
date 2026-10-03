@@ -1,5 +1,7 @@
 using System.Globalization;
 using FluentResults;
+using YamlDotNet.Core;
+using YamlDotNet.Serialization;
 
 namespace Sdlc.Core.Artifacts;
 
@@ -21,6 +23,59 @@ public sealed record FrontmatterDocument(string Yaml, string Body);
 public static class Frontmatter
 {
     private const string Fence = "---";
+
+    /// <summary>
+    /// Reads the frontmatter's keys through the parser.
+    /// </summary>
+    /// <remarks>
+    /// <strong>One reader, so the schema and the gate cannot disagree about what a key says.</strong>
+    /// They did: <c>ArtifactSchema</c> deserialised the YAML while <c>VerifyChain</c> and
+    /// <c>ReadCycleStatus</c> compared the raw text after <c>outcome:</c>, so
+    /// <c>outcome: "pass"</c> — valid YAML, accepted by the schema — read as <c>"pass"</c> with the
+    /// quotes to the two layers that decide, and a legitimately passing cycle could not merge. A
+    /// comment line, a block scalar and a stray <c>outcome:</c> inside a multi-line value were
+    /// mishandled by the same code.
+    /// <para>
+    /// This file's own remarks had already lost that argument once, in iteration 2: the YAML is handed
+    /// to a real parser, never to a line scan. The scan survived because it lived somewhere else.
+    /// </para>
+    /// </remarks>
+    /// <param name="yaml">The frontmatter, as <see cref="Read"/> returned it.</param>
+    /// <returns>The keys, or a failure saying what the parser could not read.</returns>
+    public static Result<IReadOnlyDictionary<string, string?>> Keys(string yaml)
+    {
+        ArgumentNullException.ThrowIfNull(yaml);
+
+        try
+        {
+            Dictionary<string, string?> keys = new DeserializerBuilder().Build()
+                .Deserialize<Dictionary<string, string?>>(yaml) ?? [];
+
+            return Result.Ok<IReadOnlyDictionary<string, string?>>(keys);
+        }
+        catch (YamlException error)
+        {
+            return Result.Fail<IReadOnlyDictionary<string, string?>>(
+                "the frontmatter is not valid YAML. " + error.Message);
+        }
+    }
+
+    /// <summary>
+    /// Reads one frontmatter key through the parser.
+    /// </summary>
+    /// <param name="yaml">The frontmatter, as <see cref="Read"/> returned it.</param>
+    /// <param name="key">Which key.</param>
+    /// <returns>Its value trimmed, or null when the key is absent, empty or the YAML will not parse.</returns>
+    public static string? Key(string yaml, string key)
+    {
+        Result<IReadOnlyDictionary<string, string?>> keys = Keys(yaml);
+
+        return keys.IsSuccess
+            && keys.Value.TryGetValue(key, out string? value)
+            && !string.IsNullOrWhiteSpace(value)
+                ? value.Trim()
+                : null;
+    }
 
     /// <summary>
     /// Reads a document's frontmatter.

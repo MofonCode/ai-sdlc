@@ -390,6 +390,86 @@ public sealed class ApprovalGateTests
         StringAssert.Contains(verdict.Explanation, "spec.md");
     }
 
+    [TestMethod]
+    public async Task A_round_that_cannot_be_read_refuses_the_build()
+    {
+        // The one-command waiver F-04 found. The gate skipped a history it could not read, so
+        // overwriting a round file with `{}` made every blocking finding for that document vanish --
+        // and D-27 says a blocking finding cannot be waived by any mechanism. "Could not tell" must
+        // never read as "clean".
+        using var workspace = CycleWorkspace.Create();
+        workspace.WriteAllArtifacts();
+        workspace.WriteCleanRound(ArtifactKind.Intent);
+        workspace.WriteCleanRound(ArtifactKind.Plan);
+        workspace.WriteBlockingRound(ArtifactKind.Spec, round: 1, id: "F_09", cites: "CON_04");
+        workspace.WriteApproval();
+
+        Assert.AreEqual(
+            ApprovalGate.GateRefusal.OpenBlocker,
+            (await Check(workspace)).Refusal,
+            "The blocker is open to start with.");
+
+        await File.WriteAllTextAsync(
+            workspace.Cycle.FindingsPath(ArtifactKind.Spec, 1),
+            "{}",
+            TestContext.CancellationToken);
+
+        ApprovalGate.Response verdict = await Check(workspace);
+
+        Assert.AreEqual(ApprovalGate.GateRefusal.UnreadableRound, verdict.Refusal);
+        StringAssert.Contains(verdict.Explanation, "spec.r1");
+        Assert.IsFalse(verdict.MayBuild, "Damaging a file must not be a way past a finding.");
+    }
+
+    [TestMethod]
+    public async Task A_document_with_no_round_at_all_refuses_the_build()
+    {
+        // Deleting findings/ outright left the gate, verify-chain and landable all passing, with no
+        // round having ever existed. ReadCycleStatus.ArtifactState.IsClear has always required
+        // Rounds > 0 and ApprovalText refuses it, so the advisory reader was stricter than the
+        // guarantee -- and the printer is advice a person can decline. §5.4.
+        using var workspace = CycleWorkspace.Create();
+        workspace.WriteAllArtifacts();
+        foreach (ArtifactKind kind in Cycle.PlanningDocuments)
+        {
+            workspace.WriteCleanRound(kind);
+        }
+
+        workspace.WriteApproval();
+
+        Assert.IsTrue((await Check(workspace)).MayBuild, "Clean rounds all round, so it builds.");
+
+        Directory.Delete(workspace.Cycle.FindingsDirectory, recursive: true);
+
+        ApprovalGate.Response verdict = await Check(workspace);
+
+        Assert.AreEqual(ApprovalGate.GateRefusal.Uninterrogated, verdict.Refusal);
+        StringAssert.Contains(verdict.Explanation, "intent.md");
+        StringAssert.Contains(verdict.Explanation, "spec.md");
+        StringAssert.Contains(verdict.Explanation, "plan.md");
+    }
+
+    [TestMethod]
+    public async Task One_document_missing_its_round_is_enough_to_refuse()
+    {
+        using var workspace = CycleWorkspace.Create();
+        workspace.WriteAllArtifacts();
+        workspace.WriteCleanRound(ArtifactKind.Intent);
+        workspace.WriteCleanRound(ArtifactKind.Spec);
+        workspace.WriteApproval();
+
+        ApprovalGate.Response verdict = await Check(workspace);
+
+        Assert.AreEqual(ApprovalGate.GateRefusal.Uninterrogated, verdict.Refusal);
+        StringAssert.Contains(verdict.Explanation, "plan.md");
+        Assert.IsFalse(
+            verdict.Explanation.Contains("intent.md", StringComparison.Ordinal),
+            "It names the document at fault, not all three.");
+    }
+
+    /// <summary>The test context, for the cancellation token the analysers require to be passed on.</summary>
+    public TestContext TestContext { get; set; } = null!;
+
     private static async Task<ApprovalGate.Response> Check(CycleWorkspace workspace)
     {
         using var gate = Gate.For(workspace.Root);

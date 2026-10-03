@@ -43,6 +43,29 @@ public static class ApprovalGate
         /// <summary>The standing decision refuses the cycle.</summary>
         Refused,
 
+        /// <summary>
+        /// A findings round exists and cannot be read.
+        /// </summary>
+        /// <remarks>
+        /// <strong>"Could not tell" must never read as "clean".</strong> This skipped the artifact
+        /// instead, so overwriting one round file with <c>{}</c> made every blocker for that document
+        /// disappear from the gate and from <c>verify-chain</c> -- a one-command waiver for the thing
+        /// D-27 says cannot be waived by any mechanism.
+        /// </remarks>
+        UnreadableRound,
+
+        /// <summary>
+        /// A planning document has no findings round at all.
+        /// </summary>
+        /// <remarks>
+        /// §5.4's clean-round requirement, which <c>ReadCycleStatus.ArtifactState.IsClear</c> has
+        /// always applied and this did not -- so deleting the <c>findings/</c> directory outright left
+        /// the gate, <c>verify-chain</c> and <c>landable</c> all passing, with no round having ever
+        /// existed. The advisory reader was stricter than the guarantee; <c>ApprovalText</c> refuses
+        /// this too, and it is advice a person can decline.
+        /// </remarks>
+        Uninterrogated,
+
         /// <summary>A document has changed since it was approved.</summary>
         HashMismatch,
 
@@ -211,15 +234,46 @@ public static class ApprovalGate
                 return Verdict(cycle, GateRefusal.HashMismatch, Mismatch(cycle, changed), ledger, hashes);
             }
 
-            IReadOnlyList<string> blockers =
-                await OpenBlockers(cycle, cancellationToken).ConfigureAwait(false);
+            // Read once, here, and refused on before anything is inferred from them. Both of the
+            // holes F-04 found were the same mistake in two places: an unreadable round was skipped
+            // and an absent one was never looked for, so "could not tell" and "nobody asked" both
+            // came out as "no blockers".
+            Result<IReadOnlyDictionary<ArtifactKind, IReadOnlyList<FindingsRound>>> interrogations =
+                await Interrogations(cycle, cancellationToken).ConfigureAwait(false);
+
+            if (interrogations.IsFailed)
+            {
+                return Verdict(
+                    cycle,
+                    GateRefusal.UnreadableRound,
+                    Unreadable(cycle, interrogations.Errors),
+                    ledger,
+                    hashes);
+            }
+
+            List<ArtifactKind> uninterrogated =
+                [.. Cycle.PlanningDocuments.Where(kind => interrogations.Value[kind].Count == 0)];
+
+            if (uninterrogated.Count > 0)
+            {
+                return Verdict(
+                    cycle,
+                    GateRefusal.Uninterrogated,
+                    Unchallenged(cycle, uninterrogated),
+                    ledger,
+                    hashes);
+            }
+
+            List<string> blockers = OpenBlockers(interrogations.Value);
 
             if (blockers.Count > 0)
             {
                 return Verdict(cycle, GateRefusal.OpenBlocker, Blocked(cycle, blockers), ledger, hashes);
             }
 
-            IReadOnlyList<string> stale = await Stale(cycle, cancellationToken).ConfigureAwait(false);
+            IReadOnlyList<string> stale = await Stale(cycle, interrogations.Value, cancellationToken)
+                .ConfigureAwait(false);
+
             if (stale.Count > 0)
             {
                 return Verdict(cycle, GateRefusal.StaleRound, Superseded(cycle, stale), ledger, hashes);
@@ -239,27 +293,20 @@ public static class ApprovalGate
         /// Finds every blocking finding still open across the three planning documents.
         /// </summary>
         /// <remarks>
-        /// A history that cannot be read is skipped rather than treated as clean by accident: an unreadable
-        /// round is a separate failure, reported where it is read, and inferring "no blockers" from "could
-        /// not tell" is how a check comes to pass for the wrong reason.
+        /// A pure function over histories the caller has already read and already refused on. It used
+        /// to read them itself and skip any it could not read, which is the defect: inferring "no
+        /// blockers" from "could not tell" is how a check comes to pass for the wrong reason, and the
+        /// comment that stood here claimed an unreadable round was "reported where it is read" --
+        /// true of <c>status</c> and <c>suggestions</c>, and not of the two layers that decide.
         /// </remarks>
-        private static async Task<IReadOnlyList<string>> OpenBlockers(
-            Cycle cycle,
-            CancellationToken cancellationToken)
+        private static List<string> OpenBlockers(
+            IReadOnlyDictionary<ArtifactKind, IReadOnlyList<FindingsRound>> interrogations)
         {
             List<string> blockers = [];
 
             foreach (ArtifactKind kind in Cycle.PlanningDocuments)
             {
-                Result<IReadOnlyList<FindingsRound>> history =
-                    await FindingsReader.ReadHistory(cycle, kind, cancellationToken).ConfigureAwait(false);
-
-                if (history.IsFailed)
-                {
-                    continue;
-                }
-
-                foreach (Finding blocker in FindingsReader.StandingBlockers(history.Value))
+                foreach (Finding blocker in FindingsReader.StandingBlockers(interrogations[kind]))
                 {
                     string qualified = string.Create(
                         CultureInfo.InvariantCulture,
@@ -284,6 +331,7 @@ public static class ApprovalGate
         /// </remarks>
         private static async Task<IReadOnlyList<string>> Stale(
             Cycle cycle,
+            IReadOnlyDictionary<ArtifactKind, IReadOnlyList<FindingsRound>> interrogations,
             CancellationToken cancellationToken)
         {
             List<string> stale = [];
@@ -300,15 +348,8 @@ public static class ApprovalGate
                     continue;
                 }
 
-                Result<IReadOnlyList<FindingsRound>> history =
-                    await FindingsReader.ReadHistory(cycle, kind, cancellationToken).ConfigureAwait(false);
-
-                if (history.IsFailed || history.Value.Count == 0)
-                {
-                    continue;
-                }
-
-                string? judged = history.Value[^1].UpstreamSha256;
+                // Never empty and never unreadable by the time this runs: the caller refuses on both.
+                string? judged = interrogations[kind][^1].UpstreamSha256;
                 string now = hashes[upstream];
 
                 if (string.Equals(judged, now, StringComparison.Ordinal))
@@ -319,14 +360,80 @@ public static class ApprovalGate
                 stale.Add(judged is null
                     ? string.Create(
                         CultureInfo.InvariantCulture,
-                        $"  {Cycle.FileNameOf(kind)}: round {history.Value[^1].Round} did not record which {Cycle.FileNameOf(upstream)} it judged against")
+                        $"  {Cycle.FileNameOf(kind)}: round {interrogations[kind][^1].Round} did not record which {Cycle.FileNameOf(upstream)} it judged against")
                     : string.Create(
                         CultureInfo.InvariantCulture,
-                        $"  {Cycle.FileNameOf(kind)}: round {history.Value[^1].Round} judged {Cycle.FileNameOf(upstream)} {ContentHash.Abbreviate(judged)}, which is now {ContentHash.Abbreviate(now)}"));
+                        $"  {Cycle.FileNameOf(kind)}: round {interrogations[kind][^1].Round} judged {Cycle.FileNameOf(upstream)} {ContentHash.Abbreviate(judged)}, which is now {ContentHash.Abbreviate(now)}"));
             }
 
             return stale;
         }
+
+        /// <summary>
+        /// Reads every planning document's findings history, failing if any one of them cannot be read.
+        /// </summary>
+        /// <remarks>
+        /// One read for the whole verdict, so the blockers check and the staleness check cannot
+        /// disagree about what a round said, and so a refusal happens before anything is inferred.
+        /// </remarks>
+        private static async Task<Result<IReadOnlyDictionary<ArtifactKind, IReadOnlyList<FindingsRound>>>> Interrogations(
+            Cycle cycle,
+            CancellationToken cancellationToken)
+        {
+            Dictionary<ArtifactKind, IReadOnlyList<FindingsRound>> histories = [];
+            List<IError> errors = [];
+
+            foreach (ArtifactKind kind in Cycle.PlanningDocuments)
+            {
+                Result<IReadOnlyList<FindingsRound>> history =
+                    await FindingsReader.ReadHistory(cycle, kind, cancellationToken).ConfigureAwait(false);
+
+                if (history.IsFailed)
+                {
+                    errors.AddRange(history.Errors);
+                    continue;
+                }
+
+                histories[kind] = history.Value;
+            }
+
+            return errors.Count > 0
+                ? Result.Fail<IReadOnlyDictionary<ArtifactKind, IReadOnlyList<FindingsRound>>>(errors)
+                : Result.Ok<IReadOnlyDictionary<ArtifactKind, IReadOnlyList<FindingsRound>>>(histories);
+        }
+
+        private static string Unreadable(Cycle cycle, IReadOnlyList<IError> errors) =>
+            string.Join(
+                Environment.NewLine,
+                [
+                    string.Create(
+                        CultureInfo.InvariantCulture,
+                        $"Cycle {cycle.Id} has a findings round that cannot be read, so the gate cannot say whether a blocking finding is open:"),
+                    string.Empty,
+                    .. errors.Select(error => "  " + error.Message),
+                    string.Empty,
+                    "This is a refusal rather than a shrug on purpose. A round that cannot be read used to be",
+                    "skipped, which made every blocker for that document disappear -- and a blocking finding",
+                    "cannot be waived by any mechanism, least of all by a damaged file. Repair the round, or",
+                    "delete it and interrogate the artifact again.",
+                ]);
+
+        private static string Unchallenged(Cycle cycle, List<ArtifactKind> pending) =>
+            string.Join(
+                Environment.NewLine,
+                [
+                    string.Create(
+                        CultureInfo.InvariantCulture,
+                        $"Cycle {cycle.Id} is approved, and {pending.Count} document{(pending.Count == 1 ? " has" : "s have")} never been interrogated:"),
+                    string.Empty,
+                    .. pending.Select(kind => "  " + Cycle.FileNameOf(kind)),
+                    string.Empty,
+                    "An approval rests on three documents something has argued with. A document with no round",
+                    "at all has not been judged clean -- nothing has judged it. Run 'sdlc interrogate' on each",
+                    string.Create(
+                        CultureInfo.InvariantCulture,
+                        $"of those, then approve again with 'sdlc draft approval {cycle.Id}'."),
+                ]);
 
         private static string Superseded(Cycle cycle, IReadOnlyList<string> stale) =>
             string.Join(
@@ -346,7 +453,7 @@ public static class ApprovalGate
                         $"approve again with 'sdlc draft approval {cycle.Id}'."),
                 ]);
 
-        private static string Blocked(Cycle cycle, IReadOnlyList<string> blockers) =>
+        private static string Blocked(Cycle cycle, List<string> blockers) =>
             string.Join(
                 Environment.NewLine,
                 [

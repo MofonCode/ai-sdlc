@@ -1,8 +1,6 @@
 using System.Globalization;
 using FluentResults;
 using Sdlc.Core.Cycles;
-using YamlDotNet.Core;
-using YamlDotNet.Serialization;
 
 namespace Sdlc.Core.Artifacts;
 
@@ -156,17 +154,20 @@ public static class ArtifactSchema
         CycleId cycle,
         List<SchemaViolation> violations)
     {
-        Dictionary<string, string?> keys;
-        try
+        // Through Frontmatter.Keys, which is the one reader -- the schema accepting a quoted scalar
+        // while the chain check compared raw text after `outcome:` is F-06, and the fix is that there
+        // is nowhere left for a second reading to live.
+        Result<IReadOnlyDictionary<string, string?>> read = Frontmatter.Keys(yaml);
+
+        if (read.IsFailed)
         {
-            keys = new DeserializerBuilder().Build()
-                .Deserialize<Dictionary<string, string?>>(yaml) ?? [];
-        }
-        catch (YamlException error)
-        {
-            violations.Add(new SchemaViolation("the frontmatter", "is not valid YAML. " + error.Message));
+            violations.Add(new SchemaViolation(
+                "the frontmatter",
+                string.Join(" ", read.Errors.Select(error => error.Message))));
             return;
         }
+
+        IReadOnlyDictionary<string, string?> keys = read.Value;
 
         foreach (string required in EnvelopeKeys.Concat(BodyKeysOf(kind)))
         {
@@ -210,7 +211,7 @@ public static class ArtifactSchema
 
     private static void CheckValue(
         ArtifactKind kind,
-        Dictionary<string, string?> keys,
+        IReadOnlyDictionary<string, string?> keys,
         string key,
         IReadOnlyList<string> allowed,
         List<SchemaViolation> violations)
