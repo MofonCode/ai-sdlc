@@ -582,7 +582,51 @@ leaves a gap, and the gap plus the commit that made it is the record.
 verbatim, and gains `Superseded-by`.
 
 **A change to the wording alone is a revision.** `CON_01` becomes `CON_01.2` — same `Forbids`, better
-words. Findings cite the revision. **A bare id is revision 1**, and that is the canonical form.
+words. The new wording **replaces** the old on the page; a revision does not leave its predecessor
+behind the way a supersession does.
+
+**A citation resolves to the number, and the suffix is provenance.** `CON_07` and `CON_07.2` are the
+same rule, because a revision cannot change what is forbidden — that is the definition separating it
+from a supersession. So a finding judged under revision 1 was judged against exactly the `Forbids`
+clause revision 2 carries, and the suffix records which wording its author read rather than which rule
+bound them. Older wording lives in git. §7.4 said findings cite the revision *"so a round judged under
+older wording stays distinguishable"*, which promised something the page could not deliver — both
+revisions had left nothing readable at revision 1 (F-40).
+
+**The alternative was rejected on evidence.** Keeping each predecessor on the page would honour that
+promise literally and would have kept `CON_07`'s original `Why`, which claimed a hook enforced the
+declared file set when no hook ever has. A rule library is read as current; preserving a corrected
+error in it forever costs more than the distinguishability buys, when the thing being distinguished
+cannot change the verdict.
+
+**What this rests on, and what cannot check it.** It rests on a revision really leaving what is
+forbidden alone — if somebody changes that and calls it a revision, the old rule is lost for real,
+because a revision leaves no predecessor behind. That is **not mechanically decidable**: "did anything
+become legal or illegal" is a judgement about prose, and the obvious proxy — comparing the `Forbids`
+clause for equality — is wrong in the case that has already happened. `CON_10`'s prohibition survived
+intact while its *subject* was deleted, so the clause was rewritten to name what was left. A check
+calling that a violation would teach somebody to phrase a real change carefully rather than catch one.
+
+So the judgement is argued in the commit that makes it, and what the suite guards instead is the half
+where a check is honest: **a superseded constraint stays on the page and out of force.** That is where
+loss would matter, and deleting such an entry is a regression nothing else would notice — the
+replacement is still there, the count still looks right, and only a finding nobody is reading today
+becomes unanswerable.
+
+**A bare id is revision 1**, and that is the canonical form.
+
+**Which of the two a change is, is a judgement, and the author makes it in the commit.** `CON_10` is
+the worked example and a third shape: its subject — a reason for *waiving* a blocking finding — was
+deleted outright by D-27, while the prohibition it carried about reasons that restate, plead schedule
+or merely acknowledge applied unchanged to the one kind of reason left. So the rule was re-pointed
+rather than retired, which D-27 argued and recorded.
+
+Nothing was lost by not superseding it. A supersession keeps an old rule readable so a **live** finding
+stays judgeable against it, and there is no such finding: no finding has ever cited `CON_10`, and the
+act it governed cannot occur, so none can be written. Preserving its wording would have protected
+nobody — and the only wording a revision has actually replaced was `CON_07`'s original `Why`, which
+claimed a hook enforced the declared file set when no hook ever has. A rule library is read as current;
+carrying a corrected error in it forever is the worse of the two losses.
 
 ### 7.5 The set
 

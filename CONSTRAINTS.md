@@ -20,9 +20,14 @@ verbatim, and gains `Superseded-by` — so a finding that cited it remains reada
 it was actually judged under.
 
 **A change to the wording alone is a revision.** `CON_01` becomes `CON_01.2`: same `Forbids` clause,
-better words. Findings cite the revision, so a round judged under older wording stays
-distinguishable from one judged under newer wording. A constraint with no revision suffix is
-revision 1.
+better words. The new wording replaces the old here — unlike a supersession, a revision does not
+leave its predecessor on the page. A constraint with no revision suffix is revision 1.
+
+**A citation resolves to the number; the suffix says which wording its author read.** `CON_07` and
+`CON_07.2` are the same rule. A revision cannot change what is forbidden — that is what separates it
+from a supersession — so a finding raised under either was judged against the same `Forbids` clause,
+and nothing about the objection changes. Older wording is in git, and the commit that revised a
+constraint is where to read what it said before.
 
 **Four parts, all required.** A constraint missing any of them is invalid rather than untidy, and
 the suite fails on it:

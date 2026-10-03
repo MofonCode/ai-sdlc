@@ -1,3 +1,4 @@
+using System.Globalization;
 using FluentResults;
 using Sdlc.Core;
 using Sdlc.Core.Constraints;
@@ -198,6 +199,104 @@ public sealed class ShippedLibraryTests
             + ". Either name an artifact in the 'Applies to' clause, or say in the constraint that a "
             + "person applies it and add it to the list in this test. A rule nothing applies and "
             + "nothing admits to not applying is decoration, which CON_11 exists to prevent.");
+    }
+
+    [TestMethod]
+    public void A_superseded_constraint_stays_on_the_page_and_out_of_force()
+    {
+        // The half of the id rules where a check is honest.
+        //
+        // A revision cannot be policed mechanically. What §7.4 asks of one is that nothing became
+        // legal or illegal that was not before, which is a judgement about prose -- and the obvious
+        // proxy, comparing the Forbids clause for equality, is wrong in the case that has actually
+        // happened: CON_10's prohibition survived unchanged while its subject was deleted, so the
+        // clause was rewritten to name what was left. A check that called that a violation would be
+        // teaching somebody to phrase a real change carefully instead of catching one. F-40.
+        //
+        // A supersession can be policed, and it is where loss would matter. When a rule genuinely
+        // changes what is forbidden, the old one keeps its id, stays on the page verbatim and gains
+        // Superseded-by -- so a finding raised under it stays readable against the rule it was
+        // actually judged under. Deleting that entry is a real regression and nothing else would
+        // notice: the rule it pointed at is still there, the count still looks right, and only a
+        // finding nobody is reading today goes unanswerable.
+        List<string> dangling = [];
+        List<string> stillInForce = [];
+
+        foreach (Constraint constraint in Library)
+        {
+            if (constraint.SupersededBy is not { } replacement)
+            {
+                continue;
+            }
+
+            // The constraint it points at has to be here, or the pointer is the only record of a rule
+            // nobody can read.
+            if (!Library.Any(other => other.Id.Number == replacement.Number))
+            {
+                dangling.Add(constraint.Id + " is superseded by " + replacement + ", which is not on the page");
+            }
+
+            // And it must not still bind. A superseded rule is kept for reading, never for judging.
+            if (constraint.IsInForce)
+            {
+                stillInForce.Add(constraint.Id.ToString());
+            }
+        }
+
+        Assert.AreEqual(
+            0,
+            dangling.Count,
+            "A Superseded-by clause points at a constraint that is not here: " + string.Join("; ", dangling)
+            + ". The replacement has to be on the page, or a finding raised under the old rule leads "
+            + "nowhere.");
+
+        Assert.AreEqual(
+            0,
+            stillInForce.Count,
+            "These constraints are superseded and still in force: " + string.Join(", ", stillInForce)
+            + ". A superseded rule is kept so a past finding stays readable, never so a new one can be "
+            + "raised under it.");
+
+        // The positive control, and it is doing real work here: the library has no supersession yet,
+        // so both assertions above pass over an empty set. This proves the machinery would see one --
+        // if the parser stopped reading Superseded-by, the loops would stay empty for the wrong reason
+        // and a deleted entry would sail through.
+        Result<IReadOnlyList<Constraint>> parsed = ConstraintParser.Parse(
+            """
+            # Rules
+
+            ## CON_01 — A retired rule
+
+            **Applies to:** every artifact
+
+            **Forbids:** what the replacement forbids, worded worse
+
+            **Why:** kept so a finding raised under it stays readable
+
+            **Superseded-by:** CON_02
+
+            ## CON_02 — Its replacement
+
+            **Applies to:** every artifact
+
+            **Forbids:** the same thing, said properly
+
+            **Why:** this is what binds now
+
+            """,
+            "a synthetic library");
+
+        Assert.IsTrue(parsed.IsSuccess, string.Join("; ", parsed.Errors.Select(e => e.Message)));
+
+        Constraint retired = parsed.Value.Single(c => c.Id.Number == 1);
+
+        Assert.IsNotNull(
+            retired.SupersededBy,
+            "The parser no longer reads Superseded-by, so the assertions above would pass over an "
+            + "empty set however the real library was edited.");
+
+        Assert.IsFalse(retired.IsInForce, "A superseded constraint does not bind.");
+        Assert.IsTrue(parsed.Value.Single(c => c.Id.Number == 2).IsInForce);
     }
 
     [TestMethod]

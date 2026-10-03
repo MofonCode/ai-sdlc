@@ -62,7 +62,7 @@ This file is working material. Delete it when the fixes land.
 | F-37 | Cosmetic | done | ~~`IRepository.TrackedFiles`' documentation describes filtering it does not do~~ **fixed** |
 | F-38 | Cosmetic | done | ~~§16's layout names a `tests.trx`; the code keeps the runner's own filename~~ **fixed** |
 | F-39 | Cosmetic | done | ~~The no-flags trap for `dotnet test` is documented in one skill and nowhere else~~ **fixed** |
-| F-40 | Cosmetic | **you** | A revised constraint leaves nothing readable at the revision findings cite |
+| F-40 | Cosmetic | done | ~~A revised constraint leaves nothing readable at the revision findings cite~~ **a citation resolves to the number** |
 
 ---
 
