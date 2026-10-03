@@ -245,14 +245,41 @@ public sealed class ConventionTests
     /// way from the file that caused it.</para>
     /// <para>Compared by assembly name rather than by naming a type here, so the rule survives the
     /// reference slice being deleted — which is the first thing a real solution does.</para>
+    /// <para><strong>Two exemptions, and they are the rule rather than holes in it.</strong> What this
+    /// is for is responses that cross the wire, so it asks two questions rather than one:</para>
+    /// <para><em>Can anything outside this project dispatch the request?</em> An <c>internal</c>
+    /// request is an internal operation — nothing outside can name it, so no client deserialises its
+    /// response and the rule has no subject. That is the same reasoning D-38 uses for the
+    /// <c>DbContext</c>: the access modifier is the boundary, decided by the compiler rather than
+    /// agreed. It also matters because §11.3.1 makes a nested handler dispatch through the mediator
+    /// instead of constructing another handler, so internal dispatch is a shape this solution is
+    /// supposed to reach for.</para>
+    /// <para><em>Is the response this solution's to place?</em> A type from an assembly this solution
+    /// does not own cannot be moved into contracts. <c>IRequest&lt;int&gt;</c>,
+    /// <c>IRequest&lt;bool&gt;</c> and a framework <c>Result</c> are §11.3.1's "shared type rather than
+    /// one operation's payload" at its limit, and failing them would be a rule firing on legitimate
+    /// work — which is the kind somebody deletes on the day it is in the way, and deleting this one
+    /// reopens the real gap where a nested response leaves the client with no type.</para>
+    /// <para>Neither exemption alone is enough, which is why there are two: reachability does not help
+    /// a public request returning an <c>int</c>, and the foreign-assembly test does not help an
+    /// internal operation returning a type declared here.</para>
     /// </remarks>
     [TestMethod]
-    public void Every_response_the_application_declares_lives_in_the_contracts_project()
+    public void Every_response_that_crosses_the_wire_lives_in_the_contracts_project()
     {
         const string Contracts = "__SOLUTION__.Contracts";
 
+        string[] ours =
+        [
+            "__SOLUTION__.Contracts",
+            "__SOLUTION__.Application",
+            "__SOLUTION__.Api",
+            "__SOLUTION__.Web",
+        ];
+
         List<(Type Request, Type Response)> requests = Requests();
         List<string> offenders = [];
+        int policed = 0;
 
         Assert.IsTrue(
             requests.Count > 0,
@@ -261,7 +288,21 @@ public sealed class ConventionTests
 
         foreach ((Type request, Type response) in requests)
         {
+            // Not dispatchable from outside, so nothing deserialises what it returns.
+            if (!IsReachableFromOutside(request))
+            {
+                continue;
+            }
+
             string assembly = response.Assembly.GetName().Name ?? "an assembly with no name";
+
+            // Not this solution's type, so not this solution's to move.
+            if (!ours.Contains(assembly, StringComparer.Ordinal))
+            {
+                continue;
+            }
+
+            policed++;
 
             if (!string.Equals(assembly, Contracts, StringComparison.Ordinal))
             {
@@ -269,17 +310,55 @@ public sealed class ConventionTests
             }
         }
 
+        // The positive control the exemptions cost. requests.Count > 0 above proves the assembly
+        // loaded; this says how many survived both exemptions, so a passing run shows its own reach
+        // rather than hiding a rule that inspected nothing. Zero is legitimate for a solution whose
+        // operations are all internal -- it has no wire -- and it should be visible rather than assumed.
+        Console.WriteLine(string.Create(
+            CultureInfo.InvariantCulture,
+            $"Policed {policed} of {requests.Count} requests: the rest are internal operations or return a type this solution does not declare."));
+
         Assert.AreEqual(
             0,
             offenders.Count,
             string.Create(
                 CultureInfo.InvariantCulture,
-                $"These responses are not declared in {Contracts} (of {requests.Count} requests):\n  ")
+                $"These responses cross the wire and are not declared in {Contracts} ({policed} of {requests.Count} requests are policed):\n  ")
             + string.Join("\n  ", offenders)
             + "\n\nMove the record to the contracts project, in the folder that mirrors the one the "
             + "holder is in, and name it flatly - GreetResponse rather than a nested Response, because "
             + "a second holder of the same name in two namespaces makes the holder's own file ambiguous. "
-            + "The request stays nested where it is: nothing outside this project dispatches it.");
+            + "The request stays nested where it is: nothing outside this project dispatches it.\n\n"
+            + "If this operation is internal to the application rather than something the Api exposes, "
+            + "make the request internal instead and this rule stops applying to it - that is the "
+            + "declaration that it has no wire, rather than an exception to be argued.");
+    }
+
+    /// <summary>
+    /// Whether anything outside the application project can dispatch this request.
+    /// </summary>
+    /// <remarks>
+    /// <c>IsPublic</c> is false for a nested type whose holder is internal, and false for a type
+    /// declared internal inside a public holder, so this answers the question that matters rather than
+    /// only inspecting the type's own modifier. D-38 names the application project's public surface as
+    /// the requests and the registration extension; a request outside that surface is an internal
+    /// operation by construction.
+    /// </remarks>
+    /// <param name="request">The request type.</param>
+    /// <returns>True when the type is reachable from another assembly.</returns>
+    private static bool IsReachableFromOutside(Type request)
+    {
+        for (Type? type = request; type is not null; type = type.DeclaringType)
+        {
+            bool visible = type.IsNested ? type.IsNestedPublic : type.IsPublic;
+
+            if (!visible)
+            {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     /// <summary>

@@ -194,7 +194,7 @@ public sealed class ScaffoldTests
 
         StringAssert.Contains(
             convention,
-            "Every_response_the_application_declares_lives_in_the_contracts_project",
+            "Every_response_that_crosses_the_wire_lives_in_the_contracts_project",
             "Without it the split is a habit, and the failure arrives in the UI as a type the client "
             + "does not have - a long way from the file that caused it.");
     }

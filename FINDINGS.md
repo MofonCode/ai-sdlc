@@ -38,7 +38,7 @@ This file is working material. Delete it when the fixes land.
 | F-13 | Medium | done | ~~`sdlc claims` schedules unapproved, abandoned and landed cycles~~ **fixed** |
 | F-14 | Medium | done | ~~A duplicated section passes the artifact schema~~ **fixed** |
 | F-15 | Medium | done | ~~`Repository.Run` can deadlock and discards every git error~~ **fixed** |
-| F-16 | Medium | **you** | The scaffold's response rule is stricter than the decision it implements |
+| F-16 | Medium | done | ~~The scaffold's response rule is stricter than the decision it implements~~ **decided, two discriminators** |
 | F-17 | Low | done | ~~`JsonSchema.Net` is referenced, unused, and most of the package~~ **fixed** |
 | F-18 | Low | done | ~~Four `SuppressMessage` attributes are dead and their justifications are inverted~~ **fixed** |
 | F-19 | Low | done | ~~`sdlc status` never shows the hash digits §5.3 promises~~ **fixed** |

@@ -954,7 +954,7 @@ are load-bearing rather than stylistic:
   `sdlc` itself is the first case throughout — a CLI with no wire, where `Response` nests in its holder
   and `ApprovalGate.Response` is the clearest name available. A scaffolded solution is the second: its
   `Api` and `Web` projects both need the shape, `Web` ships every referenced assembly to a browser, and
-  `Every_response_the_application_declares_lives_in_the_contracts_project` fails the build of a
+  `Every_response_that_crosses_the_wire_lives_in_the_contracts_project` fails the build of a
   solution written the way the first case teaches. A reader of either codebase should know which rule
   they are under from this paragraph rather than from a failing test.
 
@@ -2063,10 +2063,21 @@ project:
   provider, or a vendor SDK; `Contracts` may reference nothing at all. `internal` stops another project
   *using* the context; this is what stops it declaring a second one. Both are needed, and the second is
   the one somebody reaches for when the first is in the way.
-- **the response rule** — every `IRequest<T>` declared in `Application` has its `T` declared in
-  `Contracts`. Without it, the first operation written from muscle memory nests its response in its
-  holder and the client cannot see it. The suite already enumerates `IRequest<>` implementations to
-  check that each has a registered handler, so this is a few lines on machinery that exists.
+- **the response rule** — every `IRequest<T>` that something outside `Application` can dispatch has
+  its `T` declared in `Contracts`, unless `T` belongs to an assembly the solution does not own.
+  Without it, the first operation written from muscle memory nests its response in its holder and the
+  client cannot see it. The suite already enumerates `IRequest<>` implementations to check that each
+  has a registered handler, so this is a few lines on machinery that exists.
+
+  **The two exemptions are the rule, not holes in it, and F-16 is why they exist.** It read "every
+  `IRequest<T>`" with no exception, which fails `IRequest<int>` — the assembly is `CoreLib`, and a
+  primitive cannot be moved into contracts — and fails the first internal dispatch, which §11.3.1
+  makes a nested handler reach for deliberately. A rule that fires on legitimate work is one somebody
+  deletes in the cycle it gets in the way of, and deleting this one reopens the gap it exists to close.
+  So it asks the two questions that actually decide whether a response crosses a wire: can anything
+  outside dispatch the request, and is the type this solution's to place. An `internal` request is the
+  declaration that an operation has no wire — the access modifier again, decided by the compiler
+  rather than agreed.
 
 None passes vacuously: each enumerates the projects or requests it knows about and asserts a negative
 of each, so a repository with no EF reference anywhere still has something to inspect.
