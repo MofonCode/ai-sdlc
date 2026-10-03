@@ -1,3 +1,5 @@
+using System.Text.RegularExpressions;
+
 namespace Sdlc.Architecture.Tests;
 
 /// <summary>
@@ -81,6 +83,66 @@ public sealed class StructureTests
             + "\n\nEverything in the repository depends on it, so a reference out of it is a "
             + "dependency imposed on the whole solution — including on the gate binary, whose "
             + "start-up cost sits on the critical path of every edit an agent makes.");
+    }
+
+    /// <summary>
+    /// Every assembly granted access to another's internals exists, and is in this repository.
+    /// </summary>
+    /// <remarks>
+    /// <para>An <c>InternalsVisibleTo</c> is a deliberate hole in a boundary, and the half people skip
+    /// is checking it still describes reality. A grant to an assembly that was renamed or deleted reads
+    /// as a boundary with an exception in it and is in fact a boundary with a lie in it — and nothing
+    /// fails, because the grant simply never applies.</para>
+    /// <para>Checked against the project list rather than a hand-written set, so the rule cannot
+    /// disagree with the solution. A grant to something outside this repository would be a decision
+    /// worth arguing about, and this is where the argument would surface.</para>
+    /// </remarks>
+    [TestMethod]
+    public void Every_grant_of_internal_access_names_an_assembly_this_repository_builds()
+    {
+        string[] assemblies =
+        [
+            .. RepoFiles.AllProjectFiles().Select(path =>
+            {
+                string text = File.ReadAllText(path);
+                Match named = Regex.Match(text, @"<AssemblyName>([^<]+)</AssemblyName>");
+                return named.Success ? named.Groups[1].Value : RepoFiles.ProjectName(path);
+            }),
+        ];
+
+        List<string> stale = [];
+        int grants = 0;
+
+        foreach (string project in RepoFiles.AllProjectFiles())
+        {
+            string text = File.ReadAllText(project);
+
+            foreach (Match grant in Regex.Matches(text, @"<_Parameter1>([^<]+)</_Parameter1>"))
+            {
+                grants++;
+                string target = grant.Groups[1].Value.Trim();
+
+                if (!assemblies.Contains(target, StringComparer.OrdinalIgnoreCase))
+                {
+                    stale.Add(RepoFiles.ProjectName(project) + " -> " + target);
+                }
+            }
+        }
+
+        Assert.IsTrue(
+            grants > 0,
+            "No grants were found at all, so this rule would pass however the boundaries looked. Either "
+            + "every InternalsVisibleTo was removed - which is good news and means deleting this rule - "
+            + "or the way they are declared changed and the pattern no longer matches.");
+
+        Assert.AreEqual(
+            0,
+            stale.Count,
+            "These grants name an assembly this repository does not build:\n  "
+            + string.Join("\n  ", stale)
+            + "\n\nEither the assembly was renamed, in which case fix the grant, or it is gone and the "
+            + "grant should go with it. A grant that never applies reads as a boundary with a stated "
+            + "exception and is a boundary with a lie in it.");
     }
 
     /// <summary>
