@@ -276,6 +276,34 @@ public sealed class VerifyChainTests
     /// <summary>The test context, for the cancellation token the analysers require to be passed on.</summary>
     public TestContext TestContext { get; set; } = null!;
 
+    [TestMethod]
+    [DataRow("dependabot/nuget/Serilog-4.1.0")]
+    [DataRow("revert-1234-bad-merge")]
+    [DataRow("hotfix/prod-down")]
+    [DataRow("main")]
+    public void A_branch_that_is_not_a_cycle_is_told_so_as_a_verdict(string reference)
+    {
+        // The pipeline hands github.head_ref in on every pull request, so this command meets branches
+        // nobody opened as a cycle. It used to report them as a malformed argument, which on a bot's
+        // pull request reads as a misconfigured tool -- and the response to a misconfigured tool is to
+        // delete the step, which is the only layer nobody can bypass. D-45, F-28.
+        string rendered = ChainRenderer.RenderUngoverned(reference);
+
+        StringAssert.Contains(rendered, reference, "A reader has to see which branch this was about.");
+        StringAssert.Contains(rendered, "no chain", "It says what is wrong in governance terms.");
+        StringAssert.Contains(rendered, "branch policy", "And names the exemption that is a decision.");
+        StringAssert.Contains(
+            rendered,
+            "not the same as deleting this step",
+            "The one response that must not look equivalent is deleting the check.");
+
+        Assert.IsFalse(
+            rendered.Contains("is not a cycle id. They are written", StringComparison.Ordinal),
+            "That is the usage complaint this replaces.");
+
+        Assert.IsTrue(rendered.All(char.IsAscii), rendered);
+    }
+
     private static CycleWorkspace Sound()
     {
         var workspace = CycleWorkspace.Create();

@@ -153,6 +153,14 @@ rather than a desired outcome — and never skips one.
 **Splitting work into deliverable chunks belongs to whoever is prompting** (D-25). They write
 smaller intents and run each through the cycle; no tooling accommodates splitting.
 
+**And a change that arrives without a chain is refused rather than waved through** (D-45). The
+pull-request check runs on every pull request, so it also meets the ones nobody opened as a cycle — a
+dependency bump, a revert, a hotfix branch. It reports that there is no chain and exits non-zero,
+because that is true and because the alternative would make the branch name the bypass. A team that
+wants a class of branch to merge anyway says so in branch policy by not requiring the check on it,
+which is a decision somebody can read; deleting the step is a different decision that reads as
+nothing.
+
 ### 3.2 Steering a cycle that is already underway
 
 `steer <id> "comment"` interviews, records the decision in the intent's `Fixed decisions` with
@@ -2759,3 +2767,56 @@ whether entries whose rule §1–18 now states can be reduced to a statement, a 
 - *Deleting absorbed entries to shorten the appendix* — rejected. Ids are permanent, and the
   `Rejected` lists are the half that exists nowhere else.
 - *Renumbering or merging ids* — rejected for the same reason, more strongly.
+
+### D-45 — A pull request with no governed cycle is refused, and exempting one is branch policy
+
+**Governs:** §3.1, §13
+
+**Decision.** `sdlc verify-chain` on a branch that is not `cycle/<id>` reports that there is no chain
+and exits `Refused`. A team that wants such a branch to merge removes the check's *required* status
+for it in branch policy, rather than removing the step.
+
+**Why this needed deciding at all.** §3.1 says every class of change runs the full chain and that
+intent, spec and plan are always required. It never said what the gate does when a change turns up
+without them — and the generated pipeline triggers on every pull request, so it meets those changes on
+the first day of adoption. Dependabot, a revert, a hotfix: none of them is named `cycle/<id>`.
+
+**What it did before.** It exited `Usage` — "the command line could not be understood" — because the
+branch name failed to parse as a cycle id, on the shared path every typed cycle command uses. So a
+bot's pull request showed a complaint about argument syntax.
+
+**Why the exit code mattered more than the message.** Reported as a usage error, a red check on a
+dependabot pull request looks like a misconfigured tool, and the reasonable response to a misconfigured
+tool is to delete the step that is complaining. That step is the one layer nobody can bypass (§2.1), so
+the worst consequence of the wrong exit code was never the red check — it was the step being removed to
+stop it, which turns the guarantee off everywhere and leaves nothing recording that anybody chose to.
+
+**Why `Refused` and not `Ok`.** `Refused` is defined as "a rule refused what was asked, the gate
+working as intended", which is exactly what happened. Exiting `Ok` would have been frictionless and
+would have made the branch name the bypass: anything merges unverified if you do not call it
+`cycle/<id>`, and §2.1's promise would hold only for the people who opted in.
+
+**Why branch policy is the right place for an exemption.** §2.1 already names the non-bypassable layer
+as two things — this check **plus branch policy**. So the tool states what is true and the team decides
+what to require of which branches. An exemption recorded there is visible, reviewable and scoped to a
+branch pattern; the same exemption made by deleting a YAML step is invisible and total.
+
+**What it costs, stated plainly.** Every dependency bump is red from the day a team adopts, until they
+either open cycles for bumps or exempt the pattern. That is friction arriving at the worst moment —
+first impressions — and it is the price of the promise being the product. Two softer things make it
+bearable rather than solved: the refusal explains both ways on, and the generated pipeline carries a
+comment saying that excluding the check is a decision and deleting it is a different one.
+
+**Rejected.**
+
+- *Exiting `Ok` on a non-cycle branch* — rejected above: it makes the branch name a bypass, and it
+  would require §3.1 to be rewritten to say changes may go ungoverned, which is a different framework.
+- *Keeping `Usage` and improving only the message* — rejected. Exit 2 means the gate was misused, so CI
+  and anybody reading it still sees a broken tool, and the step stays the thing most likely to be
+  deleted. The message was the smaller half of the defect.
+- *A branch filter in the generated workflow, skipping bot branches* — rejected: it hard-codes one
+  team's exemption into every adopted repository, puts the policy in a file the framework owns and
+  rewrites on update (D-40), and makes the quiet default "ungoverned changes merge".
+- *Teaching the framework which branch patterns are ordinarily ungoverned* — rejected as the same
+  thing with more machinery. The list would be a guess about other people's conventions, and a wrong
+  guess is an exemption nobody asked for.

@@ -58,7 +58,7 @@ try
         "claims" => await Workspace.Run(line, Claims).ConfigureAwait(false),
         "constraints" => await Workspace.Run(line, w => Constraints(w, line)).ConfigureAwait(false),
         "gate" => await WithCycle(line, "gate", Gate).ConfigureAwait(false),
-        "verify-chain" => await WithCycle(line, "verify-chain", VerifyChain).ConfigureAwait(false),
+        "verify-chain" => await VerifyChainCommand(line).ConfigureAwait(false),
         "landable" => await AskLandable(line).ConfigureAwait(false),
         "draft" => await Draft(line).ConfigureAwait(false),
         "status" => await WithCycle(line, "status", (w, id) => Status(w, line, id)).ConfigureAwait(false),
@@ -354,6 +354,45 @@ static async Task<int> Gate(Workspace workspace, CycleId id)
 
     await Console.Error.WriteLineAsync(verdict.Explanation).ConfigureAwait(false);
     return ExitCode.Refused;
+}
+
+// Not WithCycle, and that is the whole of F-28.
+//
+// Every other cycle command is typed by a person, so an argument that is not a cycle id is a typo and
+// ExitCode.Usage is the honest answer. This one is handed `github.head_ref` by the generated pipeline
+// on every pull request, so the argument is whatever branch somebody opened -- and
+// `dependabot/nuget/Serilog-4.1.0` is not a typo, it is a change with no governed cycle behind it.
+//
+// Reported as Usage, that read as "the command line could not be understood": a complaint about
+// argument syntax on a bot's pull request, which looks exactly like a misconfigured tool. The obvious
+// fix is to delete the step, and the step is the only layer nobody can bypass. So the worst outcome of
+// the wrong exit code was not the red check; it was the step being removed to stop it.
+//
+// It is Refused instead -- "a rule refused what was asked, the gate working as intended" -- because
+// that is what happened. §3.1 requires every class of change to run the full chain, and a change
+// arriving without one has not. Exiting zero was the alternative and would have made the branch name
+// the bypass: anything merges if you do not call it cycle/<id>. D-45.
+static async Task<int> VerifyChainCommand(CommandLine line)
+{
+    if (line.Arguments.Count == 0)
+    {
+        await Console.Error.WriteLineAsync(
+            "Which cycle? Give its id or its branch, as in 'sdlc verify-chain 20260929_1456_32'.")
+            .ConfigureAwait(false);
+        return ExitCode.Usage;
+    }
+
+    string given = line.Arguments[0];
+
+    if (!CycleId.TryParse(given, out CycleId? id) && !CycleId.TryParseBranch(given, out id))
+    {
+        // Standard output, not error: this is a verdict a reader of a failed check has to read, and
+        // the rest of the report goes there too.
+        await Console.Out.WriteAsync(ChainRenderer.RenderUngoverned(given)).ConfigureAwait(false);
+        return ExitCode.Refused;
+    }
+
+    return await Workspace.Run(line, workspace => VerifyChain(workspace, id.Value)).ConfigureAwait(false);
 }
 
 // The non-bypassable layer. A pipeline runs this behind branch policy, so its exit code is the thing
