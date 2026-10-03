@@ -7,6 +7,11 @@
          Pinned in Directory.Packages.props, because it is pre-1.0 and every consumer inherits its
          breaking changes. -->
     <PackageReference Include="MofonCode.Core" />
+
+    <!-- Validation, run as a pipeline behaviour rather than called from a handler. The kernel does not
+         depend on this - it decides no validation story for a consumer - so the dependency lives here,
+         with the behaviour that uses it. -->
+    <PackageReference Include="FluentValidation" />
   </ItemGroup>
 
   <ItemGroup>

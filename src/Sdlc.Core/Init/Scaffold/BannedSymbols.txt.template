@@ -1,0 +1,5 @@
+P:System.DateTime.Now;Take a TimeProvider and call GetUtcNow(). A clock read from a static cannot be substituted, so anything that depends on the time becomes untestable - and the local-time variants also make a stored value depend on where the process ran.
+P:System.DateTime.UtcNow;Take a TimeProvider and call GetUtcNow(). The value is right; the problem is that nothing can substitute it, so a test of anything time-dependent has to wait for real time to pass.
+P:System.DateTime.Today;Take a TimeProvider and derive the date from GetUtcNow(). A date read from the machine's local clock is a different date either side of midnight somewhere.
+P:System.DateTimeOffset.Now;Take a TimeProvider and call GetUtcNow().
+P:System.DateTimeOffset.UtcNow;Take a TimeProvider and call GetUtcNow().

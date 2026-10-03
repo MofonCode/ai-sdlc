@@ -89,9 +89,11 @@ public static class Scaffold
         return
         [
             Entry(name + ".slnx", "Solution.slnx", name),
+            Entry("BannedSymbols.txt", "BannedSymbols.txt", name),
 
             Entry(Path.Combine(core, name + ".Core.csproj"), "Core.csproj", name),
             Entry(Path.Combine(core, name + "Services.cs"), "Services.cs", name),
+            Entry(Path.Combine(core, "ValidationBehavior.cs"), "ValidationBehavior.cs", name),
             Entry(Path.Combine(core, "Greetings", "Greet.cs"), "Greet.cs", name),
 
             Entry(Path.Combine(tests, name + ".Tests.csproj"), "Tests.csproj", name),

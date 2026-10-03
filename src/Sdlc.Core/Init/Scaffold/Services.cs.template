@@ -29,6 +29,11 @@ public static class __SOLUTION__Services
 
         services.AddSingleton<Mediator>();
 
+        // Validation, as an open generic so every operation with a validator gets it and no handler
+        // has to remember. Registered before the handlers because a behaviour runs around them, and
+        // because the mediator resolves behaviours in registration order.
+        services.AddTransient(typeof(IRequestBehavior<,>), typeof(ValidationBehavior<,>));
+
         // One line per operation, each registered by its own holder. The architecture suite fails when
         // a declared request has no handler, so a line forgotten here is a failing test rather than a
         // runtime surprise on the first request that needed it.

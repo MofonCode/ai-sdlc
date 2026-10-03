@@ -25,7 +25,7 @@ public sealed class ScaffoldTests
         // not in the build, so this passing means all eleven resolved.
         IReadOnlyList<KeyValuePair<string, string>> files = Scaffold.Files(Name);
 
-        Assert.AreEqual(11, files.Count, "A template added or removed changes this number deliberately.");
+        Assert.AreEqual(13, files.Count, "A template added or removed changes this number deliberately.");
 
         foreach ((string path, string contents) in files)
         {
@@ -117,6 +117,74 @@ public sealed class ScaffoldTests
                 member,
                 member + " arrived in MofonCode.Core 0.2.0, so the pin above has to be at least that.");
         }
+    }
+
+    [TestMethod]
+    public void Validation_runs_as_a_behaviour_rather_than_as_a_guard_in_a_handler()
+    {
+        // In the pipeline it runs for every operation that has a validator, so no handler has to
+        // remember it and no caller can reach a handler without it. Proven in the scaffolded solution
+        // by unregistering the behaviour and watching two of its own tests fail - the handler does not
+        // check the name, so a failure there can only have come from the validator.
+        IReadOnlyList<KeyValuePair<string, string>> files = Scaffold.Files(Name);
+
+        string slice = files.Single(file => file.Key.EndsWith("Greet.cs", StringComparison.Ordinal)).Value;
+        StringAssert.Contains(slice, "private sealed class Validator : AbstractValidator<Query>");
+        StringAssert.Contains(
+            slice,
+            "AddTransient<IValidator<Query>, Validator>",
+            "The holder registers its validator beside its handler, which is what lets the validator "
+            + "be private too.");
+
+        string services = files.Single(file => file.Key.EndsWith("Services.cs", StringComparison.Ordinal)).Value;
+        StringAssert.Contains(
+            services,
+            "typeof(IRequestBehavior<,>), typeof(ValidationBehavior<,>)",
+            "An open generic, so an operation gets validation by declaring a validator and nothing else.");
+
+        string behaviour = files
+            .Single(file => file.Key.EndsWith("ValidationBehavior.cs", StringComparison.Ordinal)).Value;
+        StringAssert.Contains(
+            behaviour,
+            "new Error(failure.ErrorMessage)",
+            "An ordinary error rather than an exceptional one: a validation message was written for "
+            + "whoever typed the input, so the envelope has to pass it through rather than replace it.");
+    }
+
+    [TestMethod]
+    public void The_scaffold_bans_reading_the_clock_from_a_static()
+    {
+        // The one ban worth shipping before there is an HTTP boundary to ban Results.Problem at. A
+        // clock read from a static cannot be substituted, so anything depending on the time becomes
+        // untestable - and it is wired in Directory.Build.props rather than per project, so a project
+        // added later is covered without anybody remembering.
+        string banned = Scaffold.Files(Name)
+            .Single(file => file.Key == "BannedSymbols.txt").Value;
+
+        foreach (string symbol in (string[])
+        [
+            "P:System.DateTime.Now",
+            "P:System.DateTime.UtcNow",
+            "P:System.DateTime.Today",
+            "P:System.DateTimeOffset.Now",
+            "P:System.DateTimeOffset.UtcNow",
+        ])
+        {
+            StringAssert.Contains(banned, symbol);
+        }
+
+        foreach (string line in banned.Split('\n', StringSplitOptions.RemoveEmptyEntries))
+        {
+            StringAssert.Contains(
+                line,
+                ";",
+                "Every ban carries its reason after a semicolon. A ban with no reason is a rule somebody "
+                + "deletes at the moment it is inconvenient: " + line);
+        }
+
+        string props = Templates.BuildProps();
+        StringAssert.Contains(props, "Microsoft.CodeAnalysis.BannedApiAnalyzers");
+        StringAssert.Contains(props, "$(MSBuildThisFileDirectory)BannedSymbols.txt");
     }
 
     [TestMethod]

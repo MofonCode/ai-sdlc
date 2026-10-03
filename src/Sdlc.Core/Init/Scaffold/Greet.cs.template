@@ -1,4 +1,5 @@
 using FluentResults;
+using FluentValidation;
 using Microsoft.Extensions.DependencyInjection;
 using MofonCode.Core;
 
@@ -21,22 +22,30 @@ namespace __SOLUTION__.Core.Greetings;
 /// <item>The response nests with the query that produces it, and so does anything that exists only to
 /// describe the response.</item>
 /// <item>The handler is <c>private</c>. Nothing in the program can name it, so the mediator is the
-/// only way in and no caller can skip the behaviour pipeline. That is also why the registration lives
-/// in here: a registration written anywhere else could not name a private type.</item>
-/// <item>A failure is a <c>Result</c>, never an exception. A caller decides what to do with it, and
-/// <c>ToEnvelope</c> is what shapes it for anything outside the process.</item>
+/// only way in and no caller can skip the pipeline — which is also why the registration lives in here:
+/// a registration written anywhere else could not name a private type.</item>
+/// <item>A failure is a <c>Result</c>, never an exception. <c>ToEnvelope</c> is what shapes one for
+/// anything outside the process.</item>
 /// </list>
+///
+/// <para><strong>Where a rule goes.</strong> An input rule belongs in the validator: it can be decided
+/// from the request alone, and the behaviour runs it before the handler for every operation that has
+/// one. A rule that has to look something up belongs in the handler, because it needs what the handler
+/// has. Putting an input rule in the handler works and costs the thing the validator gives for free —
+/// every failure reported at once rather than the first.</para>
 /// </remarks>
 public static class Greet
 {
-    /// <summary>Registers this operation's handler.</summary>
+    /// <summary>Registers this operation's handler and its validator.</summary>
     /// <param name="services">The collection to add to.</param>
     /// <returns>The same collection, for chaining.</returns>
     public static IServiceCollection AddGreetRequestHandler(this IServiceCollection services)
     {
         ArgumentNullException.ThrowIfNull(services);
 
-        return services.AddTransient<IRequestHandler<Query, Response>, Handler>();
+        return services
+            .AddTransient<IValidator<Query>, Validator>()
+            .AddTransient<IRequestHandler<Query, Response>, Handler>();
     }
 
     /// <summary>Asks for a greeting.</summary>
@@ -47,18 +56,24 @@ public static class Greet
     /// <param name="Greeting">What to say.</param>
     public sealed record Response(string Greeting);
 
+    private sealed class Validator : AbstractValidator<Query>
+    {
+        public Validator() =>
+            RuleFor(query => query.Name)
+                .NotEmpty()
+                .WithMessage("A greeting needs a name.");
+    }
+
     private sealed class Handler : IRequestHandler<Query, Response>
     {
         public Task<Result<Response>> Handle(Query request, CancellationToken cancellationToken)
         {
             ArgumentNullException.ThrowIfNull(request);
 
-            // A domain failure, returned rather than thrown. It is written for whoever asked, which is
-            // why ToEnvelope passes it through untouched - an exception's message is the thing that
-            // never reaches a reader.
-            return Task.FromResult(string.IsNullOrWhiteSpace(request.Name)
-                ? Result.Fail<Response>("A greeting needs a name.")
-                : Result.Ok(new Response($"Hello, {request.Name.Trim()}.")));
+            // No guard for a blank name: the validator owns that, and the behaviour has already run by
+            // the time this is reached. A handler that re-checked it would be a second place the rule
+            // lives, and the copy is always the one that goes stale.
+            return Task.FromResult(Result.Ok(new Response($"Hello, {request.Name.Trim()}.")));
         }
     }
 }

@@ -29,8 +29,9 @@ public sealed class GreetTests
     [TestMethod]
     public async Task A_blank_name_is_refused_rather_than_greeted()
     {
-        // A domain failure, returned rather than thrown. The message was written for whoever asked,
-        // which is why the envelope passes it through untouched.
+        // This proves the behaviour pipeline ran: no handler checks the name, so a failure here can
+        // only have come from the validator running in front of it. A test that passed with the
+        // behaviour unregistered would be testing a guard clause instead.
         using var gate = Gate.Open();
 
         Result<Greet.Response> result = await gate.Send<Greet.Query, Greet.Response>(new Greet.Query("  "));
