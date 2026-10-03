@@ -334,7 +334,7 @@ public static class Templates
     /// <strong>A host with no turn-end event gets no turn-end block</strong> -- not an empty one, and
     /// not a plausible-looking one. That case is <see cref="SupportedHost.TurnEndEvent"/> being null,
     /// and it is the one field here that must never be guessed: a block for an event that cannot fire
-    /// is precisely the directory that appears enforced and is not. Both hosts currently have the
+    /// is precisely the directory that appears enforced and is not. All three hosts currently have the
     /// event. Copilot's is <c>agentStop</c>, which the framework spent a release claiming did not
     /// exist -- see D-46.
     /// </para>
@@ -391,7 +391,7 @@ public static class Templates
                     ["type"] = "command",
                     ["bash"] = command,
                     ["powershell"] = command,
-                    [described.TimeoutKey] = SupportedHosts.TimeoutSeconds,
+                    [described.TimeoutKey] = described.Timeout,
                 },
             ];
         }
@@ -409,7 +409,7 @@ public static class Templates
             {
                 ["type"] = "command",
                 ["command"] = command,
-                [described.TimeoutKey] = SupportedHosts.TimeoutSeconds,
+                [described.TimeoutKey] = described.Timeout,
             },
         };
 

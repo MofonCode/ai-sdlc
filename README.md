@@ -66,13 +66,18 @@ Every candidate host can deny a tool call before it runs, so the enforcement pri
 differs is vocabulary, and one adapter normalises it: `sdlc hook --host <name>` reads the host's payload,
 asks the one policy engine, and writes the host's own decision shape.
 
-**v1 ships Claude Code and GitHub Copilot.** The rules themselves name no language, framework or package,
-so they travel to any stack — but the tool is a .NET executable, so the toolchain does not.
+**v1 ships Claude Code, GitHub Copilot and Gemini CLI.** The rules themselves name no language, framework
+or package, so they travel to any stack — but the tool is a .NET executable, so the toolchain does not.
 
-**Both moments are governed on both hosts.** A second moment is worth governing — an agent must not report
+**Both moments are governed on all three.** A second moment is worth governing — an agent must not report
 done over a failing build, which is what makes an analyzer or an architecture test an enforcement layer
-rather than one a reviewer consults afterwards. Claude Code calls it `Stop` and Copilot calls it
-`agentStop`, and the names are the only difference.
+rather than one a reviewer consults afterwards. The names are the only difference:
+
+| | Tool call | Turn end | Config | Refusal |
+|---|---|---|---|---|
+| Claude Code | `PreToolUse` | `Stop` | `.claude/settings.json`, merged | `permissionDecision` nested |
+| GitHub Copilot | `preToolUse` | `agentStop` | `.github/hooks/sdlc.json`, owned | `permissionDecision` at top level |
+| Gemini CLI | `BeforeTool` | `AfterAgent` | `.gemini/settings.json`, merged | `decision: "deny"` |
 
 **What a host supports is a row in a table, not a judgement.** `SupportedHosts` holds one row per host —
 its spellings, where its hook configuration goes, who owns that file, what it calls each event, whether it
@@ -83,6 +88,12 @@ claimed to be Claude-only for a release, and the Copilot pre-tool hook read one 
 documented payload shapes and silently allowed everything on the other. A host with genuinely no turn-end
 event is still refused by name rather than given a check that cannot run. `CONCEPT.md` D-46 has the
 reasoning.
+
+Gemini CLI was the first host added through that table, and it earned its keep immediately: Gemini spells
+the timeout key `timeout` exactly as Claude Code does and reads it as **milliseconds**, so one shared
+number would have given it a ten-millisecond budget — a hook killed before it can answer, on every tool
+call, with the configuration looking correct. The unit is a field on the row, and the suite asserts the
+number each host is written.
 
 ## Install
 
@@ -187,6 +198,12 @@ What is honest to say about the rest:
   every skill satisfies the Agent Skills specification. What is **not** established: nobody has run
   `copilot plugin marketplace add` against this repository and watched the skills load. Treat the Copilot
   path as untried in the same way the Azure DevOps pipeline is.
+- **The Gemini adapter has never been run against Gemini CLI.** Its row, both payload shapes and both
+  refusal shapes are held by conformance tests built from Google's own hooks reference, and `sdlc init`
+  writes `.gemini/settings.json` — but no session on that host has had a tool call refused. One part is a
+  known guess: the `BeforeTool` matcher names `write_file|replace|run_shell_command`, so a write tool
+  Gemini adds under a fourth name would not reach the policy. The pipeline check still catches it, which
+  is the layer that does not depend on any host.
 - **Off Claude Code a skill is chosen, not named.** There is no `/sdlc:spec` on Copilot or Gemini — those
   clients match a request against a skill's `description` and ask before activating. So the stages have to
   be asked for in prose, and the two Claude-specific frontmatter fields (`argument-hint`, and

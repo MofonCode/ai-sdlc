@@ -39,13 +39,15 @@ What lands:
 | `.sdlc/hooks/pre-push` | written, **not installed**. See below |
 | `.claude/settings.json` | the `PreToolUse` and `Stop` hooks that call the gate, **merged** into whatever is already there |
 | `.github/hooks/sdlc.json` | the same two moments, in Copilot's shape: `preToolUse` and `agentStop` |
+| `.gemini/settings.json` | and again in Gemini's: `BeforeTool` and `AfterAgent`, **merged** like Claude's |
 | `.github/workflows/sdlc-verify.yml` | `sdlc verify-chain`. **The only guarantee** |
 
 Adoption rewrites a file only where the framework's own name is in the path, so `.sdlc/**` and the two
-`sdlc`-named files above are refreshed on every run. `.claude/settings.json` is shared with you and with
-the host: `init` adds or updates its two hook entries and keeps every other key, including your
-permissions and your own hooks. If that file is not valid JSON — a comment, a trailing comma — nothing
-is written to it and the entries are printed for you to place. On Azure DevOps the pipeline is
+`sdlc`-named files above are refreshed on every run. `.claude/settings.json` and `.gemini/settings.json`
+are shared with you and with the host: `init` adds or updates its two hook entries in each and keeps
+every other key, including your permissions, your model settings and your own hooks. If either file is
+not valid JSON — a comment, a trailing comma — nothing is written to it and the entries are printed for
+you to place. On Azure DevOps the pipeline is
 `azure-pipelines.yml`, which is the path that platform looks for rather than a name the framework owns,
 so an existing one is printed rather than replaced. Nothing verifies a chain until it is in a pipeline
 that runs, and `init` says so.

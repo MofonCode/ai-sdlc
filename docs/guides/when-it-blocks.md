@@ -223,12 +223,16 @@ would be switched off within a day, and then the one case it catches would go un
 layer behaving as designed — `sdlc verify-chain` in the pipeline re-reads the evidence and checks that
 every test the plan named actually passed, and that is the guarantee.
 
-**Both hosts, now.** Claude Code calls the moment `Stop` and Copilot calls it `agentStop`, and adoption
-configures whichever name the host uses. Copilot was left out of this for a release on the belief that its
-hook surface had no such event; it has had one all along, and `CONCEPT.md` D-46 records how the claim
-survived. A host that genuinely has no turn end is still refused by name — `sdlc hook --event turn-end`
-says so and configures nothing, because a plausible-looking configuration for an event that cannot fire
-is a check that appears to enforce and does not.
+**All three hosts, now.** Claude Code calls the moment `Stop`, Copilot `agentStop` and Gemini CLI
+`AfterAgent`, and adoption configures whichever name the host uses. Copilot was left out of this for a
+release on the belief that its hook surface had no such event; it has had one all along, and
+`CONCEPT.md` D-46 records how the claim survived. A host that genuinely has no turn end is still refused
+by name — `sdlc hook --event turn-end` says so and configures nothing, because a plausible-looking
+configuration for an event that cannot fire is a check that appears to enforce and does not.
+
+**The send-back needs the host to say it is already retrying**, or a refusal is an endless turn rather
+than a governed stop. All three carry that flag and all three spell it `stop_hook_active`, which is the
+one field on these surfaces that nobody has renamed.
 
 ---
 

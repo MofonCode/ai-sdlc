@@ -655,7 +655,7 @@ static async Task<int> Hook(CommandLine line)
         // The hosts come from the table, so this message cannot name one the adapter does not speak
         // to, and cannot omit one it does.
         await Console.Error.WriteLineAsync(
-            "Which host? Pass --host " + string.Join(" or --host ", SupportedHosts.Spellings()) + ".")
+            "Which host? One of: " + string.Join(", ", SupportedHosts.Spellings()) + ".")
             .ConfigureAwait(false);
         return ExitCode.Usage;
     }

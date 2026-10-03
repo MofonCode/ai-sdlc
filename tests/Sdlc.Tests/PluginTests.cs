@@ -175,7 +175,7 @@ public sealed class PluginTests
                 $"The plugin's '{moment}' hook names a spelling the table does not.");
 
             Assert.AreEqual(
-                SupportedHosts.TimeoutSeconds,
+                claude.Timeout,
                 hook[claude.TimeoutKey]!.GetValue<int>(),
                 $"The plugin's '{moment}' hook and the generated one disagree about how long the "
                 + "gate may take, so the same hook behaves differently depending on how it arrived.");

@@ -330,9 +330,16 @@ public sealed class InitTests
 
             string path = action.Path.Replace('\\', '/');
 
-            if (path is Initialise.AgentsFileName or ".claude/settings.json")
+            // AGENTS.md is created only when absent and printed otherwise. A host's settings file is
+            // merged into, and which files those are comes from the table rather than a list here --
+            // so a host added with a shared configuration is exempt without anybody remembering, and
+            // one added with a configuration the framework claims to own is not.
+            bool shared = SupportedHosts.All.Any(host =>
+                host.Ownership == ConfigOwnership.Shared
+                && string.Equals(host.ConfigPath, path, StringComparison.Ordinal));
+
+            if (path == Initialise.AgentsFileName || shared)
             {
-                // AGENTS.md is created only when absent and printed otherwise; settings.json is merged.
                 continue;
             }
 
@@ -713,11 +720,18 @@ public sealed class InitTests
             "sdlc hook --host " + host.Spelling,
             $"{host.Name}'s entry does not run the gate, or names a spelling it does not answer to.");
 
+        // The number as well as the key. Claude Code and Gemini CLI both call it `timeout` and only
+        // one of them means seconds, so a shared number would have given Gemini ten milliseconds --
+        // a hook killed before it answers, on every tool call, which permits everything while the
+        // configuration looks right.
         Assert.AreEqual(
-            SupportedHosts.TimeoutSeconds,
+            host.TimeoutUnit == TimeoutUnit.Milliseconds
+                ? (int)SupportedHosts.Patience.TotalMilliseconds
+                : (int)SupportedHosts.Patience.TotalSeconds,
             command[host.TimeoutKey]!.GetValue<int>(),
-            $"{host.Name} spells its timeout '{host.TimeoutKey}', and a hook with no timeout on the "
-            + "path of every edit is one that can hang the session it protects.");
+            $"{host.Name} spells its timeout '{host.TimeoutKey}' and reads it as "
+            + $"{host.TimeoutUnit}, and a hook whose budget is wrong by a factor of a thousand is "
+            + "one that cannot answer on the path of every edit.");
 
         if (host.EntryShape == HookEntryShape.Direct)
         {

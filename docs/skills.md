@@ -7,7 +7,7 @@ That split is why this document exists separately from `sdlc help` — the binar
 file listing and a hash can decide, and everything here is what cannot be decided that way. A skill
 calls commands and shows what they print verbatim.
 
-**How a skill starts depends on the host, and this is the one place the two differ.** In Claude Code you
+**How a skill starts depends on the host, and this is the one place the hosts differ.** In Claude Code you
 name it. On a client that loads the skills through [Agent Plugins](https://agent-plugins.org/specification)
 — Copilot, VS Code, Cursor, Codex, Gemini — there is no slash form: the client matches your request
 against each skill's `description` and asks before activating one. So `/sdlc:spec 20261002_1414_12` there
@@ -242,7 +242,7 @@ Warnings are errors, enforced by the build props rather than by instruction. And
 actually ran: a trial cycle lost its whole verification to `dotnet test` exiting zero without running
 anything, because the runner was not configured.
 
-**The turn end is checked as well**, on both hosts. A hook asks the gate before the agent finishes
+**The turn end is checked as well**, on all three hosts. A hook asks the gate before the agent finishes
 and sends the turn back on three things: recorded evidence showing a failing suite, code written with no
 evidence recorded at all, and code that has moved since the evidence was recorded. It is not a rule the
 skill has to remember — it is why there is no point reporting done over a red build.

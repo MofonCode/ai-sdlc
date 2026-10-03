@@ -16,6 +16,9 @@ public enum HookHost
     /// <summary>GitHub Copilot. <c>preToolUse</c>, decision at the top level.</summary>
     Copilot,
 
+    /// <summary>Gemini CLI. <c>BeforeTool</c>, and it spells a refusal <c>deny</c>.</summary>
+    Gemini,
+
     // Every other fact about a host -- where its configuration goes, who owns that file, what it
     // calls each event, whether it has a turn end at all -- is a row in SupportedHosts rather than a
     // switch here. A member added without a row throws from SupportedHosts.Of, which the suite holds.
@@ -26,8 +29,9 @@ public enum HookHost
 /// </summary>
 /// <remarks>
 /// Named for what the moment is rather than for what any host calls it. Claude Code spells the
-/// second one <c>Stop</c> and Copilot <c>agentStop</c>, both of which describe the host's own state
-/// machine rather than the thing being judged, and letting either name inland would put one host's
+/// second one <c>Stop</c>, Copilot <c>agentStop</c> and Gemini CLI <c>AfterAgent</c>, all of which
+/// describe that host's own state
+/// machine rather than the thing being judged, and letting any of those names inland would put one host's
 /// vocabulary in the policy -- which is the whole of what this file exists to prevent. Each host's
 /// spelling is a field on its row in <see cref="SupportedHosts"/>, which is the only place they
 /// belong.
@@ -97,12 +101,14 @@ public static class HookProtocol
         ("turn-end", HookEvent.TurnEnd),
         ("turnend", HookEvent.TurnEnd),
 
-        // Each host's own name for the moment. Claude Code calls it `Stop` and Copilot `agentStop`,
-        // and both are accepted for the reason the remark above gives: a config copied from a host's
-        // documentation should work without translation.
+        // Each host's own name for the moment: `Stop` on Claude Code, `agentStop` on Copilot,
+        // `AfterAgent` on Gemini CLI. All are accepted for the reason the remark above gives -- a
+        // config copied from a host's documentation should work without translation.
         ("stop", HookEvent.TurnEnd),
         ("agentstop", HookEvent.TurnEnd),
         ("agent-stop", HookEvent.TurnEnd),
+        ("afteragent", HookEvent.TurnEnd),
+        ("after-agent", HookEvent.TurnEnd),
     ];
 
     /// <summary>
@@ -316,7 +322,7 @@ public static class HookProtocol
     /// rather than the permissive one. Still an override.
     /// </para>
     /// <para>
-    /// Silence for both hosts, including Copilot, whose output spec was not verifiable when this was
+    /// Silence for every host, including the two whose output spec was not verifiable when this was
     /// decided. The failure directions are asymmetric: a host that ignores an empty object falls back
     /// to asking a person, and a host that honours an explicit allow the way Claude Code does gets
     /// the same bypass shipped to it.
@@ -353,6 +359,16 @@ public static class HookProtocol
             {
                 ["permissionDecision"] = "deny",
                 ["permissionDecisionReason"] = reason ?? string.Empty,
+            },
+
+            // A third shape, and the reason these stay typed switches rather than becoming fields on
+            // a row. Gemini CLI does not frame a tool call as a permission at all: it is a decision
+            // with a reason, in the same two keys it uses for a turn, and the refusal is spelled
+            // `deny`. No arrangement of the other two hosts' field names produces this.
+            HookHost.Gemini => new JsonObject
+            {
+                ["decision"] = "deny",
+                ["reason"] = reason ?? string.Empty,
             },
 
             _ => throw new ArgumentOutOfRangeException(nameof(host), host, "Unknown host."),
@@ -400,6 +416,15 @@ public static class HookProtocol
             HookHost.Copilot => new JsonObject
             {
                 ["decision"] = "block",
+                ["reason"] = reason ?? string.Empty,
+            },
+
+            // `deny` rather than `block`, which is the whole of why this is not one shared object.
+            // Gemini CLI documents `block` as an accepted alias, and writing the alias would be
+            // resting the gate on a compatibility shim somebody is free to drop.
+            HookHost.Gemini => new JsonObject
+            {
+                ["decision"] = "deny",
                 ["reason"] = reason ?? string.Empty,
             },
 

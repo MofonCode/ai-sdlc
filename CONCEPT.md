@@ -1147,20 +1147,27 @@ What differs is vocabulary.
 |---|---|---|---|---|
 | Claude Code | `PreToolUse` | `Stop` | `.claude/settings.json` or plugin | `permissionDecision: "deny"` |
 | GitHub Copilot | `preToolUse` | `agentStop` | `.github/hooks/*.json` | `permissionDecision`; takes `bash` **and** `powershell` |
-| OpenAI Codex CLI | `PreToolUse` | not checked | `.codex/config.toml` | `permissionDecision` + reason |
 | Gemini CLI | `BeforeTool` | `AfterAgent` | `.gemini/settings.json` | `{"decision":"deny","reason":"..."}` |
+| OpenAI Codex CLI | `PreToolUse` | not checked | `.codex/config.toml` | `permissionDecision` + reason |
 | Antigravity | `PreToolUse` | not checked | `.agents/hooks.json` or a plugin | same, plus `ask` / `force_ask` |
 
 **"Not checked" is a real entry and is never filled in by inference.** This table said Copilot had no
 turn-end event, which was never true, and the claim travelled into the generated configuration, the
 command line, the guides and the readme before anybody re-read the host's documentation. D-46.
 
-**Both supported hosts govern both moments.** The deny shape is the same two fields on each, nested on
-Claude Code and at the top level on Copilot; the turn end is a top-level `decision` on both, which they
-both spell `block`. Gemini spells its refusal `deny` instead, which is why the two write methods stay
-typed switches rather than one shared shape.
+**All three supported hosts govern both moments.** The first two use the same two permission fields,
+nested on Claude Code and at the top level on Copilot, and send a turn back with a top-level `decision`
+they both spell `block`. Gemini CLI does neither: a tool call is not framed as a permission there, so its
+refusal is a `decision` and a `reason` in both moments, and it spells the word `deny`. Three shapes from
+three hosts is why the two write methods stay typed switches rather than fields on a row.
 
-**v1 ships Claude Code and GitHub Copilot**, and what that means is a row in `SupportedHosts` plus a
+**And the units are part of a host's vocabulary, not just the names.** Claude Code and Gemini CLI both
+call the per-hook timeout `timeout`; Claude reads seconds and Gemini reads milliseconds, defaulting to
+60000. One number under one key would have given Gemini a ten-millisecond budget — a hook killed before
+it answers, on every tool call, while the configuration looks right. A key name is not a description of
+a field (D-46's table carries the unit beside the key).
+
+**v1 ships Claude Code, GitHub Copilot and Gemini CLI**, and what that means is a row in `SupportedHosts` plus a
 conformance test fed a captured payload — not a judgement somebody makes by reading four files (D-46).
 
 ChatGPT is not a target — Codex is OpenAI's repository-agentic surface. Antigravity plugins are the
