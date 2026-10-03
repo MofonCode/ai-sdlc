@@ -1026,7 +1026,12 @@ Generated at `init`, **per platform** — GitHub Actions or Azure Pipelines. ("H
 **The Azure Pipelines template has never run against a real server** (D-32). It carries a note saying so
 in the generated file, because a pipeline nobody has run looks exactly like a gate.
 
-Every pull request builds, tests, **displays code coverage**, and runs `sdlc verify-chain`.
+Every pull request installs the gate, builds, tests, **displays code coverage**, and runs
+`sdlc verify-chain`.
+
+**The install is the first step and it is pinned** (D-37). Without it the templates called `sdlc` on a
+runner where nothing had put it there, so the one step establishing the guarantee would have reported
+command-not-found. The package is not on a public feed yet, and the generated step says so.
 
 Coverage is displayed, not enforced — no threshold. Coverlet plus ReportGenerator; Azure DevOps has a
 native coverage tab, GitHub needs a PR-comment action. One cheap addition inside the no-threshold
@@ -1861,3 +1866,40 @@ which an adopted solution with a different boundary will not want — it does no
 decides, as it does for everything else the profile writes. And the framework itself does not take
 these two bans, because `sdlc` is a command-line binary with no such surface; the parity rule carries
 that exemption explicitly, on the single ground that the surface does not exist here.
+
+### D-37 — The pipeline installs the gate it calls, pinned, and says the feed is not there yet
+
+**Decision.** Both generated pipelines gain one step: `dotnet tool install --global
+MofonCode.Sdlc.Cli --version <release>`, placed immediately after the SDK step and before the build.
+The version is stamped from `Sdlc.Core.Release.Version`, which is the same `VersionPrefix` the plugin
+carries. The step says in the generated file that the package is not on a public feed yet. No tool
+manifest is written into an adopted solution.
+
+**Why.** The templates called `sdlc verify-chain` on a runner where nothing had put `sdlc` on the
+path. The guarantee is that nothing merges unless the chain holds, and the only thing establishing it
+would have reported command-not-found — from the single step a reader trusts most, in a file that
+otherwise looks complete. That is §2.1's failure mode reached by omission rather than by design.
+
+**Why pinned.** An unpinned governance tool can change what a repository is judged by between two
+runs, with nobody having chosen the new rules. `latest` on an ordinary build tool is a convenience; on
+the thing that decides whether a change may merge it is a silent policy change.
+
+**Why before the build.** A gate that cannot be fetched should fail in seconds rather than after a
+full build and test run. The pull request stops either way, and the cheaper failure says the same
+thing.
+
+**Why it says the feed is not there yet.** It is D-32's rule applied one step earlier. The package is
+unpublished, so this install does not resolve, and the person whose first pull request fails on it
+reads the generated file rather than this document. Writing no step at all was the quiet version of
+the same gap — and the quiet version is the one the whole design is written against.
+
+**Rejected.** A tool manifest and `dotnet tool restore`, which is the more idiomatic .NET shape and
+pins per solution for developers as well as CI. It changes the local invocation to `dotnet sdlc`,
+while every skill, the pre-push hook, the status panel's next line and every guide say `sdlc` — so
+adopting it means one command with two spellings depending on where it is read, or rewriting all of
+them. It also adds a file to what adoption writes, which is a larger decision than the one this
+closes. Worth revisiting when the package is published, because the pinning argument above is an
+argument for a manifest.
+
+Also rejected: leaving the step out and documenting the gap, which is what the guides did before this.
+A documented gap in a generated file is still a generated file that looks like a gate.

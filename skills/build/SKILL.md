@@ -18,7 +18,7 @@ sdlc gate <cycle id>
 If it refuses, stop and show what it said. Do not work around it and do not ask the person to approve
 so you can continue — the refusal names what is missing, and the next step belongs to them.
 
-There are seven ways it refuses, and each has a different next step: no cycle, abandoned, a missing
+There are eight ways it refuses, and each has a different next step: no cycle, abandoned, a missing
 document, nobody approved, a refusal standing, a document changed since it was approved, a blocking
 finding still open, or a round that judged a document which has moved since. Read which one.
 

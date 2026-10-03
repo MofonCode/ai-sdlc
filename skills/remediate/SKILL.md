@@ -17,9 +17,16 @@ A verification found a criterion unmet. Your job is to make the code meet it.
 | **May never edit** | `intent.md`, `spec.md`, `plan.md`, `approval.md` |
 | **Capped** | three passes, then the cycle escalates |
 
-**The guard is a hook rule, not a request.** A write to a planning document from here is denied at the
-tool call, and that is deliberate: if a failing test could cause an agent to adjust the spec, the
-criteria become whatever the code happens to do. The whole chain exists to stop that one inversion.
+**`approval.md` is denied at the tool call. The other three are yours to keep.** The hook sees a tool
+call and not which skill made it, so it cannot tell your edit to `spec.md` from the same edit made by
+`refine`, where it is the whole job.
+
+What the rule is for: if a failing test could cause an agent to adjust the spec, the criteria become
+whatever the code happens to do, and the whole chain exists to stop that one inversion. What catches you
+if you break it anyway is slower and certain — this cycle is approved, so its three documents are
+hash-locked, and editing one makes `sdlc gate` refuse the build and `sdlc verify-chain` refuse the
+merge, both naming which document moved. **You cannot edit your way past a criterion; you can only turn
+a cycle that would have landed into one that cannot.**
 
 So when the honest conclusion is "the criterion is wrong", say it and stop. Do not make the code satisfy
 a criterion you believe is mistaken, and do not edit the criterion. The move is

@@ -19,9 +19,16 @@ is to answer them, not to re-litigate them.
 | **Capped** | no. The loop is uncapped on purpose |
 | **Refuses when** | the cycle is approved, or no blocking finding is open |
 
-The guards are hook rules on file paths, not instructions you are being trusted with. Writing to
-source from here is denied at the tool call, which is deliberate: if a failing check could cause an
-agent to adjust a planning document, the criteria become whatever the code happens to do.
+**Only one of those is denied at the tool call.** The hook refuses every agent write to `approval.md`,
+by file path and by shell command alike. The rest of this table is yours to keep — the hook sees a tool
+call and not which skill made it, so it cannot tell an edit to source from here from the same edit made
+by `remediate`, where it is the whole job.
+
+So read the table as a rule rather than a railing. What it is for: if a failing check could cause an
+agent to adjust a planning document, the criteria become whatever the code happens to do, and the whole
+chain exists to stop that one inversion. What catches you if you break it anyway is slower and
+certain — a document edited after approval no longer matches its recorded hash, so `sdlc gate` refuses
+the build and `sdlc verify-chain` refuses the merge, both naming which document moved.
 
 **Refuses once approved.** The plan is hash-locked at that point, so editing it would break the gate
 rather than satisfy it. If a plan turns out to be wrong after approval, the move is a recorded reopen:

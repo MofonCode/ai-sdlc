@@ -500,6 +500,75 @@ public sealed class InitTests
     }
 
     [TestMethod]
+    public void Every_pipeline_installs_the_gate_before_it_calls_it()
+    {
+        // The first version of these templates called 'sdlc verify-chain' on a runner where nothing had
+        // put 'sdlc' on the path. It would have failed command-not-found from the one step that is the
+        // whole guarantee -- the loudest possible place to discover an install was missing, and the
+        // least likely place for a reader to suspect one.
+        foreach (Platform platform in Enum.GetValues<Platform>())
+        {
+            string pipeline = Templates.Pipeline(platform).ReplaceLineEndings();
+            string[] lines = pipeline.Split(Environment.NewLine);
+
+            int install = Array.FindIndex(
+                lines,
+                line => line.Contains("dotnet tool install", StringComparison.Ordinal)
+                    && !line.TrimStart().StartsWith('#'));
+
+            Assert.IsGreaterThan(
+                -1,
+                install,
+                $"{platform} never installs the binary its last step calls.");
+
+            // Pinned rather than latest. An unpinned governance tool can change what a repository is
+            // judged by between two runs, with nobody having chosen the new rules.
+            StringAssert.Contains(
+                lines[install],
+                "--version " + Sdlc.Core.Release.Version,
+                $"{platform} does not pin the gate to the release it ships with.");
+
+            int check = Array.FindIndex(
+                lines,
+                line => line.Contains("sdlc verify-chain", StringComparison.Ordinal)
+                    && !line.TrimStart().StartsWith('#'));
+
+            Assert.IsLessThan(
+                check,
+                install,
+                $"{platform} calls the gate before installing it.");
+
+            // The build is the expensive step, so a gate that cannot be fetched should fail before it
+            // rather than after it.
+            int build = Array.FindIndex(
+                lines,
+                line => line.Contains("dotnet build", StringComparison.Ordinal)
+                    && !line.TrimStart().StartsWith('#'));
+
+            Assert.IsLessThan(
+                build,
+                install,
+                $"{platform} spends a build before finding out whether the gate is available.");
+        }
+    }
+
+    [TestMethod]
+    public void The_unpublished_package_says_so_in_the_pipeline_it_generates()
+    {
+        // D-32's rule applied to the step that step depends on. The package is not on a feed yet, so
+        // this install does not resolve -- and the person whose first pull request fails on it reads the
+        // generated file, not our notes. Writing no install step at all was the quiet version of the
+        // same gap, which is the one the whole design is written against.
+        foreach (Platform platform in Enum.GetValues<Platform>())
+        {
+            StringAssert.Contains(
+                Templates.Pipeline(platform),
+                "not on a public feed yet",
+                $"{platform} installs a package it cannot resolve and does not say so.");
+        }
+    }
+
+    [TestMethod]
     public void The_agents_file_points_at_the_constraints_rather_than_restating_them()
     {
         // A copy of the rules here would be a second place they live, and the copy is always the one that

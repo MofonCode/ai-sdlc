@@ -377,6 +377,18 @@ public static class Templates
     /// that note is deliberately in the generated file rather than only in the framework's own documents --
     /// a pipeline nobody has run looks exactly like a gate.
     /// </para>
+    /// <para>
+    /// <strong>It installs the gate before it calls it.</strong> The first version did not, and assumed
+    /// <c>sdlc</c> was on the runner's path -- so the one line the whole guarantee rests on would have
+    /// reported command-not-found, from the step a reader trusts most. The install is pinned, because an
+    /// unpinned governance tool can change what a repository is judged by without anybody choosing it,
+    /// and it runs before the build so a missing gate fails in seconds rather than after a full suite.
+    /// </para>
+    /// <para>
+    /// The package is not on a feed yet, and that step says so in the generated file on the same terms as
+    /// the Azure DevOps note. A step that cannot resolve is a loud failure before the check it feeds,
+    /// which is the honest shape; writing no step at all was the quiet one.
+    /// </para>
     /// </remarks>
     /// <param name="platform">Which platform.</param>
     /// <returns>The file's contents.</returns>
@@ -401,6 +413,17 @@ public static class Templates
                 "      - uses: actions/setup-dotnet@v4",
                 "        with:",
                 "          global-json-file: global.json",
+                string.Empty,
+                "      # The binary the last step runs. Pinned, because an unpinned governance tool can",
+                "      # change what this repository is judged by without anybody choosing it. First, so",
+                "      # a missing gate fails in seconds rather than after a full build and test run.",
+                "      #",
+                "      # NOTE: MofonCode.Sdlc.Cli is not on a public feed yet, so this step does not",
+                "      # resolve until it is, or until a feed holding it is configured in nuget.config.",
+                "      # It fails here, loudly, rather than at 'sdlc verify-chain' -- which would report",
+                "      # command-not-found from the one line the whole guarantee rests on.",
+                "      - name: install the gate",
+                $"        run: dotnet tool install --global MofonCode.Sdlc.Cli --version {Release.Version}",
                 string.Empty,
                 "      - run: dotnet build --configuration Release",
                 string.Empty,
@@ -446,6 +469,15 @@ public static class Templates
                 "  - task: UseDotNet@2",
                 "    inputs:",
                 "      useGlobalJson: true",
+                string.Empty,
+                "  # The binary the last step runs. Pinned, because an unpinned governance tool can change",
+                "  # what this repository is judged by without anybody choosing it. First, so a missing gate",
+                "  # fails in seconds rather than after a full build and test run.",
+                "  #",
+                "  # NOTE: MofonCode.Sdlc.Cli is not on a public feed yet, so this step does not resolve",
+                "  # until it is, or until a feed holding it is configured in nuget.config.",
+                $"  - script: dotnet tool install --global MofonCode.Sdlc.Cli --version {Release.Version}",
+                "    displayName: install the gate",
                 string.Empty,
                 "  - script: dotnet build --configuration Release",
                 "    displayName: build",

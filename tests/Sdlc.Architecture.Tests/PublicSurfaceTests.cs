@@ -155,6 +155,10 @@ public sealed class PublicSurfaceTests
         "Sdlc.Core.Landing.Land+Query",
         "Sdlc.Core.Landing.Land+Response",
         "Sdlc.Core.Landing.LandRenderer",
+        // Public because two assemblies need the stamped release version and they would otherwise
+        // read it twice: 'sdlc version' in the CLI, and the pipeline template here that pins the
+        // binary a pull request restores.
+        "Sdlc.Core.Release",
         "Sdlc.Core.SdlcServices",
         "Sdlc.Core.Solutions.ProfileText",
         "Sdlc.Core.Solutions.ProfileText+Query",

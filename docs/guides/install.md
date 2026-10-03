@@ -191,11 +191,13 @@ gate is silent, and a cycle appears to work while nothing is denied.
 **A session loads skills at startup.** Reinstall, then start a new session — an open one keeps what it
 already had.
 
-**The generated pipeline assumes `sdlc` is on the runner's PATH, and nothing in it installs the tool.**
-`init` writes a pull-request workflow whose last step is `sdlc verify-chain`, and that step is the whole
-guarantee. On a fresh runner it will fail with a command-not-found until the pipeline gains a step that
-installs the tool — loudly, which is the right failure, but the gate is unexercised until then. There is
-no published feed for a runner to install from either, which is the same gap seen from the other side.
+**The generated pipeline installs the gate, and that install does not resolve yet.** `init` writes a
+pull-request workflow that runs `dotnet tool install --global MofonCode.Sdlc.Cli --version <release>`
+before the build, pinned so an unpinned governance tool cannot change what a repository is judged by
+between two runs. **The package is not on a public feed**, so until it is — or until a feed holding it
+is named in the solution's `nuget.config` — that step fails, and the pull request stops there. It fails
+loudly, early, and in the step whose comment says why, which is the whole reason the step exists rather
+than being left out (D-37).
 
 **Line endings differ between sources without meaning anything.** A directory install copies your working
 tree; a GitHub install checks out through `.gitattributes`. Comparing the two byte for byte shows every

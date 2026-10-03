@@ -172,6 +172,15 @@ The shell rule is deliberately broad — it looks for the file names near a writ
 parsing a command line. A false refusal on a command that merely mentions one of these files costs you a
 rephrasing; a miss costs the guarantee.
 
+**Five is the whole list, and the limit is structural.** The hook sees a tool call and not which skill
+made it, so it cannot deny an edit that is wrong only because of where it came from — `remediate`
+touching `spec.md`, or `refine` touching source. Those rules are real and the skills state them, but
+they are the skill's own discipline rather than something denied at the call. What catches a breach is
+slower and certain: an approved cycle's three documents are hash-locked, so a planning document edited
+after approval makes `sdlc gate` refuse the build and `sdlc verify-chain` refuse the merge, each naming
+which document moved. **You cannot edit your way past a criterion; you can only turn a cycle that would
+have landed into one that cannot.**
+
 ---
 
 ## The turn-end hook — the three ways a turn is sent back
@@ -240,10 +249,12 @@ does not wait for it is a directory that appears enforced and is not — which i
 pretended. Iteration 3 shipped a nightly job that needed an API key nobody had set, and warned and exited
 cleanly for weeks. That is the failure mode this design is written against.
 
-**One more, on the generated pipeline:** it assumes `sdlc` is on the runner's PATH and nothing in it
-installs the tool. On a fresh runner the step fails with a command-not-found — loudly, which is the right
-failure, but the gate is unexercised until the pipeline gains an install step. There is no published feed
-for a runner to install from yet either, which is the same gap seen from the other side.
+**One more, on the generated pipeline:** its first real step installs the gate, pinned to the release
+that generated it, and **that install does not resolve yet** because the package is not on a public feed.
+So a first pull request fails at `install the gate` rather than at `verify the artifact chain`. That is
+the intended shape — the failure names the missing thing, before a build is spent, in a step whose
+comment says so (D-37). Name a feed holding the package in `nuget.config`, or wait for it to be
+published.
 
 ---
 

@@ -1,5 +1,4 @@
 using System.Globalization;
-using System.Reflection;
 using Sdlc.Core.Cycles;
 
 namespace Sdlc.Cli;
@@ -16,36 +15,19 @@ namespace Sdlc.Cli;
 /// </remarks>
 internal static class Release
 {
-    /// <summary>The binary's own version.</summary>
-    public static string Version { get; } = Read();
+    /// <summary>
+    /// The binary's own version.
+    /// </summary>
+    /// <remarks>
+    /// Read from <c>Sdlc.Core</c> rather than from this assembly, because the tool manifest
+    /// <c>init</c> writes pins the version a pipeline restores and that template lives in the core.
+    /// Both assemblies carry the same <c>VersionPrefix</c>, so reading either would give the same
+    /// answer today -- and two readers of one fact is how they stop agreeing later.
+    /// </remarks>
+    public static string Version { get; } = Sdlc.Core.Release.Version;
 
     /// <summary>What <c>sdlc version</c> writes to standard output.</summary>
     public static string Text { get; } = Compose();
-
-    /// <summary>
-    /// Reads the version the build stamped on this assembly.
-    /// </summary>
-    /// <remarks>
-    /// The informational version rather than the assembly version, because that is the one carrying
-    /// the <c>VersionPrefix</c> the props set and any prerelease label with it. The SDK appends
-    /// <c>+&lt;commit sha&gt;</c> to it, which is noise to a person asking what they have installed.
-    /// </remarks>
-    private static string Read()
-    {
-        string? stamped = typeof(Release).Assembly
-            .GetCustomAttribute<AssemblyInformationalVersionAttribute>()
-            ?.InformationalVersion;
-
-        if (string.IsNullOrWhiteSpace(stamped))
-        {
-            // Reachable only from a build that stripped the attribute. Saying so beats printing
-            // nothing where a version belongs, which would read as a broken install.
-            return "unknown";
-        }
-
-        int plus = stamped.IndexOf('+', StringComparison.Ordinal);
-        return plus < 0 ? stamped.Trim() : stamped[..plus].Trim();
-    }
 
     private static string Compose() => string.Create(
         CultureInfo.InvariantCulture,
