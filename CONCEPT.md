@@ -553,6 +553,18 @@ installed tool and not only for one run out of a clone — D-41. Running it is t
 or writes an artifact. Per-host native delivery is an optimisation layered on top, never the
 mechanism.
 
+**One constraint is applied by a person rather than by an interrogation, and the set is exactly one.**
+The effective set is matched by artifact name, so a rule whose subject is not an artifact is handed to
+nobody. `CON_10.2` is that rule: it governs what a gate refusal's reason has to say, and a gate
+decision is a person's own act rather than a document — the approval ledger is the one file only a
+person writes, which is what makes an approval mean anything. `sdlc constraints --for` returns it for
+none of the five artifacts, by construction.
+
+That is stated in the constraint itself and asserted by a test, rather than left as an absence. A rule
+nothing applies looks identical to a rule somebody forgot to wire up, and `CON_11` is the rule that
+keeps the library from growing into decoration — so the human-applied set is declared and the next
+rule that drifts out of reach fails the build instead of quietly joining it. F-27.
+
 ### 7.4 Ids and revisions
 
 **Ids are a monotonic sequence.** Assigned once, never reused, never backfilled. A removed constraint

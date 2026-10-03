@@ -151,6 +151,56 @@ public sealed class ShippedLibraryTests
     }
 
     [TestMethod]
+    public void Every_constraint_reaches_an_interrogation_except_the_one_a_person_applies()
+    {
+        // The effective set is matched by artifact name, so a constraint whose "Applies to" names no
+        // artifact is handed to nobody -- it is not in any of the five sets `sdlc constraints --for`
+        // renders, and no interrogation ever sees it. CON_10.2 is in that position by construction:
+        // its subject is a gate refusal's reason, and a gate decision is a person's act rather than a
+        // document. F-27.
+        //
+        // Declared rather than discovered. A rule nothing applies looks identical to a rule somebody
+        // forgot to wire up, and CON_11 is the rule that keeps the library from becoming decoration --
+        // so the human-applied set is named here and anything else drifting out of reach fails.
+        string[] appliedByAPerson = ["CON_10"];
+
+        string[] artifacts = ["intent", "spec", "plan", "diff", "verify"];
+        List<string> unreachable = [];
+
+        foreach (Constraint constraint in Library)
+        {
+            bool reachable = constraint.AppliesTo.Contains("every artifact", StringComparison.OrdinalIgnoreCase)
+                || artifacts.Any(a => constraint.AppliesTo.Contains(a, StringComparison.OrdinalIgnoreCase));
+
+            if (!reachable)
+            {
+                unreachable.Add(constraint.Id.ToString());
+            }
+        }
+
+        foreach (string id in appliedByAPerson)
+        {
+            Assert.IsTrue(
+                unreachable.Any(u => u.StartsWith(id, StringComparison.Ordinal)),
+                $"{id} is declared as applied by a person, and an interrogation can now reach it. "
+                + "Either it gained an artifact subject, in which case take it off that list, or its "
+                + "'Applies to' clause drifted.");
+        }
+
+        List<string> undeclared = [.. unreachable
+            .Where(u => !appliedByAPerson.Any(known => u.StartsWith(known, StringComparison.Ordinal)))];
+
+        Assert.AreEqual(
+            0,
+            undeclared.Count,
+            "These constraints are in no artifact's effective set, so no interrogation will ever be "
+            + "handed them: " + string.Join(", ", undeclared)
+            + ". Either name an artifact in the 'Applies to' clause, or say in the constraint that a "
+            + "person applies it and add it to the list in this test. A rule nothing applies and "
+            + "nothing admits to not applying is decoration, which CON_11 exists to prevent.");
+    }
+
+    [TestMethod]
     public void No_constraint_mentions_accepting_or_waiving_a_finding()
     {
         // A blocking finding cannot be waived by any mechanism. A constraint still describing one would

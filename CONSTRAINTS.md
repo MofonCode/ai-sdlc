@@ -163,6 +163,15 @@ months later instead of the conversation that produced it. The subject changed i
 nothing is accepted at the gate any more, because a blocking finding cannot be waived — and the
 rule did not: a refusal that says nothing is a refusal nobody can act on.
 
+**Applied by a person, not by an interrogation.** Every other rule here is handed to an interrogation
+of one artifact, matched by the artifact's name. This one's subject is a gate decision, which is not
+an artifact and never will be — the approval ledger is the one file only a person writes, so that an
+approval means something. So nothing hands this rule to anybody: a person reading the ledger applies
+it, at the gate or six months later. The ledger reader checks that a refusal carries a reason at all;
+whether the reason says what has to change is a judgement, and this is where the judgement is written
+down. Said here rather than left as an absence, because a rule nothing applies and nothing admits to
+not applying is decoration, which `CON_11` exists to prevent.
+
 ## CON_11 — Every constraint carries a Forbids clause that rules something out
 
 **Applies to:** a diff that adds or changes a constraint, at any tier.

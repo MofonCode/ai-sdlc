@@ -49,7 +49,7 @@ This file is working material. Delete it when the fixes land.
 | F-24 | Low | done | ~~§10.2's run-mode environment variable does not exist~~ **named, half-built, gap stated** |
 | F-25 | Low | done | ~~The needs-services heuristic matches "container" and "migration"~~ **fixed** |
 | F-26 | Low | done | ~~The generated `AGENTS.md` points at a file `init` does not create~~ **fixed** |
-| F-27 | Low | **you** | `CON_10.2` cannot be applied by anything |
+| F-27 | Low | done | ~~`CON_10.2` cannot be applied by anything~~ **a person applies it, declared and tested** |
 | F-28 | Low | **you** | The generated pipeline fails on any branch that is not a cycle branch |
 | F-29 | Low | done | ~~The generated pipelines do not match §13's coverage description~~ **fixed** |
 | F-30 | Cosmetic | done | ~~§7.5's constraint table is internally inconsistent about revisions~~ **fixed** |
