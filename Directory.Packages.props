@@ -16,7 +16,7 @@
          depends only on FluentResults and the Microsoft.Extensions.*.Abstractions packages,
          so taking it commits a consumer to no data story. Pinned because every solution
          taking it inherits its breaking changes, and it is pre-1.0. -->
-    <PackageVersion Include="MofonCode.Core" Version="0.1.0" />
+    <PackageVersion Include="MofonCode.Core" Version="0.2.0" />
 
     <!-- JSON Schema 2020-12 validation. System.Text.Json does not validate schemas and
          Microsoft publishes no validator, so this is the absence of an on-stack option
