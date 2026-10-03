@@ -563,7 +563,7 @@ public static class Templates
 
         string headline = mode switch
         {
-            Initialise.InitMode.Scaffold => "Scaffold a governed solution",
+            Initialise.InitMode.Greenfield => "Adopt ai-sdlc into a new repository",
             Initialise.InitMode.Onboard => "Adopt ai-sdlc into this repository",
             Initialise.InitMode.Update => "Update the ai-sdlc scaffolding",
             _ => throw new ArgumentOutOfRangeException(nameof(mode)),

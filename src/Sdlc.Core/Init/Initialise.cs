@@ -32,7 +32,21 @@ public static class Initialise
     public enum InitMode
     {
         /// <summary>A new solution. The framework's defaults are the solution's defaults.</summary>
-        Scaffold,
+        /// <remarks>
+        /// Named <c>Greenfield</c> rather than <c>Scaffold</c> because <c>sdlc scaffold</c> is the
+        /// command that writes the projects and this mode writes none — D-35 is the rule that they are
+        /// different things. One word meaning both "adoption found no code" and "write the solution
+        /// skeleton" put the collision at exactly the place somebody asks which one <c>init</c> does.
+        /// <para>
+        /// Not <c>New</c> either: <c>sdlc new</c> allocates a cycle, so that spelling trades this
+        /// collision for a second one, in the document where both are listed.
+        /// </para>
+        /// <para>
+        /// <see cref="Solutions.SolutionOrigin.Scaffolded"/> keeps its name, and correctly: it records
+        /// that a repository's code came from the skeleton, which is what the command did.
+        /// </para>
+        /// </remarks>
+        Greenfield,
 
         /// <summary>Code that existed first, with no framework directory yet.</summary>
         Onboard,
@@ -235,7 +249,7 @@ public static class Initialise
             ? InitMode.Update
             : repository.TrackedFiles(solution.Path).Any(IsCode)
                 ? InitMode.Onboard
-                : InitMode.Scaffold;
+                : InitMode.Greenfield;
 
         /// <summary>
         /// Whether a tracked file counts as the repository already holding a solution.
@@ -277,7 +291,7 @@ public static class Initialise
         /// </remarks>
         private async Task<SolutionOrigin> Origin(InitMode mode, CancellationToken cancellationToken)
         {
-            if (mode == InitMode.Scaffold)
+            if (mode == InitMode.Greenfield)
             {
                 return SolutionOrigin.Scaffolded;
             }

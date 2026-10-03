@@ -20,7 +20,7 @@ git init
 sdlc init
 ```
 
-It picks its own mode from what it finds: **scaffold** for a repository holding no code, **onboard** for
+It picks its own mode from what it finds: **greenfield** for a repository holding no code, **onboard** for
 existing code with no `.sdlc/`, **update** when `.sdlc/` is already there. Update refreshes only what the
 framework owns — the hook configs, the pipeline, `.sdlc/README.md` — and never the four files only a
 person writes.
@@ -41,7 +41,7 @@ What lands:
 | `.github/hooks/sdlc.json` | the same policy, in Copilot's shape |
 | `.github/workflows/pull-request.yml` | `sdlc verify-chain`. **The only guarantee** |
 
-And, in **scaffold** mode only, the files that decide how code is written here — the profile's defaults,
+And, in **greenfield** mode only, the files that decide how code is written here — the profile's defaults,
 yours to amend:
 
 | | |

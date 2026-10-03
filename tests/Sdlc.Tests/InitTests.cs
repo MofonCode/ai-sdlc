@@ -28,7 +28,7 @@ public sealed class InitTests
 
         Initialise.Response report = await Adopt(solution, tracked: ["README.md", "LICENSE", ".gitignore"]);
 
-        Assert.AreEqual(Initialise.InitMode.Scaffold, report.Mode);
+        Assert.AreEqual(Initialise.InitMode.Greenfield, report.Mode);
         Assert.AreEqual(
             SolutionOrigin.Scaffolded,
             report.Origin,

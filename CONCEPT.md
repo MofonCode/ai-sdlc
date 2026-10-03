@@ -628,16 +628,16 @@ model-invoked. Three modes (D-28):
 
 | Mode | When | What it does |
 |---|---|---|
-| **scaffold** | a new solution | writes the governance and the stack settings, `origin: scaffolded` |
+| **greenfield** | a new solution | writes the governance and the stack settings, `origin: scaffolded` |
 | **onboard** | existing code, no `.sdlc/` | writes the governance only, `origin: adopted` |
 | **update** | `.sdlc/` exists | refreshes only what the framework owns |
 
 **`init` writes no code, and no projects** — D-35. A scaffolded solution gets the files that constrain
-how code is written (`.editorconfig`, the two props files, `global.json`, `BannedSymbols.txt`), and
-every one of them constrains nothing until code exists. The solution itself — a solution file, its
-projects, the architecture tests and a reference slice — is `sdlc scaffold`, which refuses unless a
-cycle's plan has been approved. Code arriving at adoption would be the one thing in a governed
-repository with no chain behind it.
+how code is written (`.editorconfig`, the two props files, `global.json`), and every one of them
+constrains nothing until code exists. The solution itself — a solution file, its projects, the
+banned-API list, the architecture tests and a reference slice — is `sdlc scaffold`, which refuses
+unless a cycle's plan has been approved. Code arriving at adoption would be the one thing in a
+governed repository with no chain behind it.
 
 **Update needs no list of what it may touch: it updates what it owns, and what it owns is everything
 not protected.** So it refreshes hook configs, pipelines, and `.sdlc/README.md`.
@@ -1714,7 +1714,8 @@ own cadence.
 package today. Prose defaults are *extracted and injected* into a plan, because a session inside a
 governed solution cannot read a file that lives in the plugin. But `.editorconfig`,
 `Directory.Build.props`, `Directory.Packages.props`, `global.json` and a `BannedSymbols.txt` have to
-physically land in the repository at adoption, and there is no published feed — the README says so.
+physically land in the repository — the first four at adoption, the ban list with the skeleton — and
+there is no published feed, as the README says.
 A default profile that needed a restore would make `sdlc init` a first command that can fail on a
 machine with no feed configured, for the one profile every solution starts from.
 
@@ -1789,10 +1790,19 @@ admitting that rather than solving it.
 
 | Written at adoption | Written by an approved cycle |
 |---|---|
-| `.editorconfig`, `Directory.Build.props`, `Directory.Packages.props`, `global.json`, `tests/Directory.Build.props`, `BannedSymbols.txt` | the solution file, the projects, the architecture tests, the reference slice |
+| `.editorconfig`, `Directory.Build.props`, `Directory.Packages.props`, `global.json`, `tests/Directory.Build.props` | the solution file, the projects, `BannedSymbols.txt`, the architecture tests, the reference slice |
 
 Everything on the left constrains nothing until there is code to constrain, so it carries no decision
 a cycle should have taken. Everything on the right *is* the solution.
+
+**`BannedSymbols.txt` is on the right, and this entry said otherwise for as long as it existed.** The
+code has always written it with the skeleton; the table above claimed adoption did, and nothing could
+fail on the disagreement. The skeleton is where it belongs, by D-36's rule that a ban ships with the
+surface it governs: the list carries the bans on `Results` and `TypedResults`, which are a decision
+about an Api project that does not exist until the skeleton writes one. The clock bans in the same
+file would sit happily on the left, and splitting the list across both moments would mean two writes
+to one path where the second only writes what is absent — so the file ships whole, with the surface
+that needs most of it.
 
 **Why a command rather than the plan carrying the templates.** A profile's prose defaults reach a plan
 by being extracted and injected (§11.5), because a session inside a governed solution cannot read a

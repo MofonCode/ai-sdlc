@@ -60,7 +60,7 @@ actually denies today, and what it does not.
 **Adopts the framework into a repository**: runs the scaffolding, interviews the team about what matters
 in this solution, and proposes its first constraints.
 
-Three modes, decided by what it finds: **scaffold** for a repository holding no code, **onboard** for
+Three modes, decided by what it finds: **greenfield** for a repository holding no code, **onboard** for
 existing code with no `.sdlc/`, **update** when `.sdlc/` already exists. Update refreshes only what the
 framework owns, which is everything not protected — hook configs, the pipeline, `.sdlc/README.md`.
 

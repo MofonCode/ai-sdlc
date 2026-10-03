@@ -84,7 +84,7 @@ public static class InitRenderer
 
     private static string Headline(Initialise.InitMode mode) => mode switch
     {
-        Initialise.InitMode.Scaffold => "scaffolded a new governed solution",
+        Initialise.InitMode.Greenfield => "adopted ai-sdlc into a new repository",
         Initialise.InitMode.Onboard => "adopted ai-sdlc into an existing repository",
         Initialise.InitMode.Update => "updated the ai-sdlc scaffolding",
         _ => "adopted ai-sdlc",
@@ -109,7 +109,7 @@ public static class InitRenderer
     /// </remarks>
     private static string[] Explain(Initialise.Response report) => report.Mode switch
     {
-        Initialise.InitMode.Scaffold =>
+        Initialise.InitMode.Greenfield =>
         [
             "This repository held no code, so the solution is scaffolded: the profile's patterns are",
             "this solution's patterns, and a plan that departs from them has to say why.",

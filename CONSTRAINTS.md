@@ -125,9 +125,10 @@ worse than none, because it produces a green verification instead of an obvious 
 **Forbids:** a change within a declared file that the plan did not describe — an unrelated
 refactor, a drive-by rename, a fix to something else noticed in passing.
 
-**Why:** the file set is mechanical and a hook already enforces it. Creep *inside* an approved
-file passes that hook and reaches review dressed as approved work, which is precisely where it
-is least likely to be questioned.
+**Why:** the file set is mechanical, and it is reported as a signal at the gate rather than
+enforced anywhere. Creep *inside* a declared file does not show up in that signal at all, and
+reaches review dressed as approved work, which is precisely where it is least likely to be
+questioned.
 
 ## CON_08 — A verify claim rests on evidence that exists and supports it
 
