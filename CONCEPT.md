@@ -1410,9 +1410,15 @@ Ids are a monotonic sequence of their own, separate from `CON_nn`: a constraint 
 decision explains the framework. Assigned once, never reused. **A reversed decision is superseded by
 a new id rather than edited**, so a commit citing `D-14` still means what it meant.
 
-Each entry carries **`Governs`** — the sections that state the rule this decided — then the decision,
-the cost it avoids, and what was rejected. The `Rejected` field is half the value: in six months the
-question is not "why this" but "why not that".
+**The record shape, which a test holds.** Every entry carries `Governs`, `Why` and `Rejected`. The
+**heading is the decision** — `**Decision.**` is an optional elaboration for the entries whose heading
+cannot carry it, and restating a heading under it would be a line of nothing. `Rejected` is half the
+value: in six months the question is not "why this" but "why not that".
+
+**`Rejected` is never omitted, and "nothing" is a real answer.** An absent field cannot be told apart
+from an unwritten one, so an entry that genuinely foreclosed nothing says so and says why it is here
+anyway. That makes the test below mechanical rather than a judgement, and it is how the two entries
+that foreclose nothing — D-12 and D-20 — are visible as what they are instead of looking unfinished.
 
 **`Governs` is the way in.** §1–18 carry a trailing `(D-nn)` marker, which answers "why does this
 section say that"; `Governs` answers the reverse, which is the direction a challenged reader
@@ -1530,6 +1536,15 @@ and the answer is a **declared extension** — the solution declares which extra
 the schema validates against the declaration. Same pattern as `LOC_nn`. Not built: a mechanism with
 no user is how a bag gets built badly later.
 
+**Rejected.** A `metadata` bag for per-solution fields: it defeats the schema's closed envelope,
+institutionalises what D-06 removes, names no owner, and both candidates for it turned out to be
+claims rather than bookkeeping — a claim in the envelope escapes the constraints. An upstream
+reference in the envelope: not universal, since the intent has none, and derivable, since the chain
+order is fixed. `type` and `tier` in the envelope rather than the body, for the same reason as the
+bag. A declared extension is **deferred rather than rejected**: a solution declaring which extra keys
+it carries, validated against the declaration, is the right shape for the ticket number a team will
+eventually want, and a mechanism with no user is how a bag gets built badly later.
+
 **The risk to watch.** Naming a pattern invites stretching it, into an envelope carrying fields that
 are uniform only because somebody forced them. The test is the guard, not the pattern's gravity.
 
@@ -1595,6 +1610,9 @@ difference between "fix this and come back" and "no, not this way".
 `D-09` puts `solution.md` in the same code path — so the next person picks the wrong constant out of
 autocomplete and the hook guards the wrong file.
 
+**Rejected.** Nothing — a rename with one correct answer, recorded because the collision it avoids is
+invisible once the name is right, and a future reader shortening it back would reintroduce it.
+
 ### D-13 — Evidence is normalised at the boundary
 
 **Governs:** §4.5
@@ -1612,8 +1630,14 @@ profiles are .NET.
 
 **Governs:** nothing — superseded by D-15.
 
-**Superseded by D-15.** Kept because a decision is superseded, never edited, so a commit citing this
-id still means what it meant.
+**Why.** It made the declared-versus-changed comparison a gate in both directions: an undeclared file
+in the diff and a declared file left untouched would each fail the chain.
+
+**Superseded by D-15**, which makes the comparison a signal rather than a gate — the reasoning is
+there. Kept because a decision is superseded, never edited, so a commit citing this id still means
+what it meant.
+
+**Rejected.** Recorded under D-15, which carries both this decision's alternatives and its own.
 
 ### D-15 — The declared-versus-changed comparison is a signal, not a gate
 
@@ -1673,9 +1697,12 @@ derive from the intent, so a proposal appearing there derives from nothing, whic
 
 **Governs:** §15.1
 
-**Why.** Typing `intent <id>` must never silently overwrite an intent. A flag that re-interrogates
-would be a second way to do what `interrogate` already does, and the one people type is the one that
-drifts. A refusal that teaches the right command adds nothing and removes a destructive mode.
+**Why.** Typing `intent <id>` must never silently overwrite an intent. A refusal that teaches the
+right command adds nothing and removes a destructive mode.
+
+**Rejected.** A `--force` or `--rerun` flag on the stage skill: a second way to do what `interrogate`
+already does, and the one people type is the one that drifts. Overwriting silently, which is the
+behaviour a flag would eventually be added to restore.
 
 ### D-19 — `reopen` is a fourth decision, and it is how a wrong plan is recovered
 
@@ -1699,6 +1726,10 @@ relying on the hash mismatch, which leaves no record of why.
 two rules nobody had written: `spec` and `plan` refuse on an existing artifact, and `refine` refuses
 on an approved cycle.
 
+**Rejected.** Nothing — no alternative was weighed, because the table is the statement of a rule
+rather than a choice between two. §15.1 is where that rule now lives, and this entry records only
+that writing it down was what found the two missing preconditions.
+
 ### D-21 — A findings round records the upstream hash it judged against
 
 **Governs:** §6.2
@@ -1712,6 +1743,11 @@ that creates it.
 spec's frontmatter would be written by the spec skill and not updated by a person hand-editing, so it
 could be stale *and wrong*; the round is written by the interrogation, which just read both. It also
 describes the thing that goes stale — the judgement — and makes `D-02` compute staleness for nothing.
+
+**Rejected.** The upstream hash in the downstream artifact's frontmatter, for the reason above: it is
+written by the skill that cannot see a later hand-edit, so it can be stale and wrong at once, which is
+worse than absent. Recomputing staleness at the gate from the documents alone: it cannot say what a
+round *judged*, only what the files are now.
 
 ### D-22 — `batch-build` completes cycles; `land` pushes
 
@@ -1762,8 +1798,15 @@ established, which is `D-06`'s test pointed at a skill.
 holds: *"a plan touching sixty files across five features cannot be meaningfully read, so approval
 degrades into signing."* Partially mitigated by `tier`, which signposts reversibility.
 
+**Rejected.** A `split` skill that cuts an intent into cycles: splitting is a scoping decision that
+belongs to a person, and auto-splitting without dependency ordering produces cycles that cannot be
+built in isolation — worse than one large cycle that at least builds. An `after` field ordering
+cycles: machinery built to supply the concept auto-splitting was missing, which is D-06's test
+pointed at a skill rather than at an artifact section.
+
 **What could return without the costs.** A **read-only advisor** that proposes how to cut an intent and
-writes nothing. It creates no cycles, so it cannot create cycles that will not build.
+writes nothing. It creates no cycles, so it cannot create cycles that will not build. Deferred rather
+than rejected.
 
 ### D-26 — The command line is the mechanism; MCP is a later surface
 
@@ -1796,6 +1839,12 @@ open-region exit and must simply be fixed.
 **`CON_10` rebinds rather than retiring.** Its forbids clause applies exactly to a gate refusal's
 reason, which the ledger already requires.
 
+**Rejected.** An `accepted_findings` field on the approval, which is what this removes: it made a
+blocking finding waivable by the one act the chain exists to constrain. A severity between blocking
+and suggestion to hold "blocking but allowed" — the same waiver with a different name, and D-30
+removes the third severity for its own reasons. Retiring `CON_10` along with acceptance: its rule
+about a refusal's reason survives the subject it was written for.
+
 ### D-28 — `init` has three modes, and the protected set defines what update may touch
 
 **Governs:** §9
@@ -1803,6 +1852,11 @@ reason, which the ledger already requires.
 **Why.** `init` refusing when `.sdlc/` exists was correct while nothing needed refreshing, and it
 leaves a solution's scaffolding to rot across framework versions with nothing to fix it. **Update
 needs no list of exclusions: it updates what it owns.**
+
+**Rejected.** `init` refusing outright when `.sdlc/` exists, which is what it did: correct while
+nothing needed refreshing, and it leaves a solution's scaffolding to rot across framework versions
+with nothing able to fix it. A list of what update may touch: a list is a second place the truth
+lives, and the protected set already answers the question from the other side.
 
 **Superseded in part by D-40.** This entry defined what update owns as everything not protected, which
 is a file-level rule and was true only while every unprotected file was one the framework had named.
@@ -2066,6 +2120,14 @@ boundary.
 **And the ban is itself guarded.** `The_frameworks_response_factories_are_still_banned` reads
 `BannedSymbols.txt` and fails when either line is gone, because two lines in a text file can be
 deleted in the same commit as the call somebody wanted to make.
+
+**Rejected.** Banning the response factories without scaffolding the Api project: a banned-API entry
+naming a symbol the compilation cannot resolve is reported by nothing, so it is a rule that looks
+enforced and cannot fire — measured, not reasoned. Shipping the boundary without the ban: the one
+conversion becomes a convention, and a second `IResult` arrives the first time somebody is in a hurry.
+Shipping either without the two architecture tests: two lines in a text file can be deleted in the
+same commit as the call somebody wanted to make. The framework taking the bans itself: `sdlc` is a
+command-line binary with no HTTP surface, so the parity rule carries that exemption explicitly.
 
 **What this costs.** The scaffold is four files larger and the profile now takes a position on HTTP,
 which an adopted solution with a different boundary will not want — it does not get one: `origin`
@@ -2493,6 +2555,14 @@ substitution of the rule set is the kind of thing nobody finds.
 - **A parse failure in the global tier has no file to open.** Near-zero: that is a framework bug rather
   than a person's, and `ShippedLibraryTests` makes it a build failure here before it can ship.
 - **The library is fixed at build time.** True of a packed file too, and the thing a release is for.
+
+**Rejected.** Packing `CONSTRAINTS.md` into the `.nupkg` beside the binary, which was the obvious fix
+and repairs only the instance: it leaves a binary needing a file it does not control, three places it
+might be, and a failure when it is in none of them. There is no arrangement of a copied file in which
+the library cannot be missing. Dropping the up-the-tree search in favour of the resource alone: it
+would end this repository's own loop, where editing the library and running the build output takes
+effect with no rebuild. Falling back to the embedded copy when `SDLC_CONSTRAINTS` names a file that is
+not there: it would judge somebody's work against rules they did not choose, silently.
 
 **How it is kept honest.** Three tests assert the embedded copy is the file in this repository, that it
 parses to the same set, and that a file still wins over it. None of those would have caught the original

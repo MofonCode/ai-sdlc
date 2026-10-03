@@ -361,7 +361,7 @@ public sealed class PluginTests
     }
 
     [TestMethod]
-    public void Every_decision_says_what_it_governs_and_the_section_exists()
+    public void Every_decision_carries_the_record_shape_and_its_sections_exist()
     {
         // Governs is the appendix's way in. §1-18 carry a trailing (D-nn) marker, which answers "why
         // does this section say that"; Governs answers the reverse, which is the direction a
@@ -388,10 +388,18 @@ public sealed class PluginTests
 
         Assert.IsTrue(headings.Count > 40, "Only found " + headings.Count + " numbered sections.");
 
-        List<string> ungoverned = [];
+        // Three required fields, because an absent one cannot be told apart from an unwritten one.
+        // The heading is the decision, so **Decision.** is optional - see §20's preamble.
+        // Prefixes, not exact lines. The longer entries qualify the heading -- "**Why, measured rather
+        // than reasoned.**", "**Why one project rather than two.**" -- which reads better than a bare
+        // **Why.** and is the same fact. A test stricter than the prose would be a test that makes the
+        // prose worse.
+        string[] required = ["**Governs:**", "**Why", "**Rejected"];
+
+        List<string> incomplete = [];
         List<string> dangling = [];
         string? current = null;
-        bool said = true;
+        HashSet<string> seen = [];
 
         foreach (string line in lines)
         {
@@ -399,22 +407,35 @@ public sealed class PluginTests
 
             if (entry.Success)
             {
-                if (current is not null && !said)
+                if (current is not null)
                 {
-                    ungoverned.Add(current);
+                    incomplete.AddRange(required
+                        .Where(field => !seen.Contains(field))
+                        .Select(field => current + " has no " + field.Trim('*', ':')));
                 }
 
                 current = entry.Groups[1].Value;
-                said = false;
+                seen = [];
                 continue;
             }
 
-            if (current is null || !line.StartsWith("**Governs:**", StringComparison.Ordinal))
+            if (current is null)
             {
                 continue;
             }
 
-            said = true;
+            foreach (string field in required)
+            {
+                if (line.StartsWith(field, StringComparison.Ordinal))
+                {
+                    seen.Add(field);
+                }
+            }
+
+            if (!line.StartsWith("**Governs:**", StringComparison.Ordinal))
+            {
+                continue;
+            }
 
             foreach (Match section in Regex.Matches(line, @"\u00a7[\d.]+"))
             {
@@ -425,17 +446,24 @@ public sealed class PluginTests
             }
         }
 
-        if (current is not null && !said)
+        if (current is not null)
         {
-            ungoverned.Add(current);
+            incomplete.AddRange(required
+                .Where(field => !seen.Contains(field))
+                .Select(field => current + " has no " + field.Trim('*', ':')));
         }
+
+        List<string> ungoverned = [.. incomplete];
 
         Assert.AreEqual(
             0,
             ungoverned.Count,
-            "These decisions do not say what they govern:\n  " + string.Join("\n  ", ungoverned)
-            + "\n\nAdd a **Governs:** line naming the sections that state the rule, or \"nothing\" with "
-            + "the reason - a superseded decision governs nothing and should say so.");
+            "These decisions are missing a required field:\n  " + string.Join("\n  ", ungoverned)
+            + "\n\nGoverns names the sections that state the rule, or \"nothing\" with the reason - a "
+            + "superseded decision governs nothing and should say so. Rejected names what was "
+            + "foreclosed, or \"nothing\" and why the entry is here anyway: an absent field cannot be "
+            + "told apart from an unwritten one, and an entry that forecloses nothing is a section of "
+            + "§1-18 in the wrong place. The heading is the decision, so **Decision.** is optional.");
 
         Assert.AreEqual(
             0,
