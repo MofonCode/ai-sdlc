@@ -245,7 +245,7 @@ public sealed class ConventionTests
 
                 if (provider.GetService(handler) is null)
                 {
-                    unregistered.Add(request.Name + " -> " + response.Name);
+                    unregistered.Add(Describe(request) + " -> " + Describe(response));
                 }
             }
         }
@@ -262,6 +262,20 @@ public sealed class ConventionTests
             + "by a static method called from one place, it is not an application operation and the "
             + "request type is what should go.");
     }
+
+    /// <summary>
+    /// A type's name as a reader would say it, with its holder when it is nested.
+    /// </summary>
+    /// <remarks>
+    /// Every request this library declares is nested in its operation's holder, and all but a handful
+    /// are called <c>Query</c> or <c>Command</c> — so a bare name told a reader which rule failed and
+    /// nothing at all about where. <c>EffectiveConstraints.Query</c> is the shortest string that
+    /// identifies one, and the failure this rule reports is a type somebody then has to go and find.
+    /// </remarks>
+    /// <param name="type">The type to name.</param>
+    /// <returns>Its name, prefixed with its holder's when it has one.</returns>
+    private static string Describe(Type type) =>
+        type.DeclaringType is { } holder ? holder.Name + "." + type.Name : type.Name;
 
     /// <summary>
     /// Whether a type was emitted by the compiler rather than written.
