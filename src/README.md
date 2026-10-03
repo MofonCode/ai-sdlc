@@ -136,9 +136,11 @@ output. `HookProtocol` is the whole adapter, and the only file that knows a host
   only by its name, so an unrecognised tool is still judged on whether it is about to write a file or run a
   shell.
 - `WriteDecision` and `WriteTurnEndDecision` — two different shapes, which is the reason the adapter exists
-  at all. A tool call is permitted or refused, so its answer is a permission, nested under
-  `hookSpecificOutput` on Claude Code and at the top level on Copilot. A turn is sent back or let go, so its
-  answer is a top-level `decision`, which Claude Code spells `block`.
+  at all. A tool call is refused with a permission, nested under `hookSpecificOutput` on Claude Code and at
+  the top level on Copilot. A turn is sent back with a top-level `decision`, which Claude Code spells
+  `block`. **Neither writes anything on an allow.** An explicit `permissionDecision: "allow"` bypasses the
+  host's permission system rather than standing for silence, so a policy with nothing to say says nothing —
+  D-39 records why, and why `ask` is not the answer either.
 
 `HookEvent` is named for the moment rather than for what either host calls it. Claude Code spells the second
 one `Stop`, which describes that host's state machine rather than the thing being judged, and letting that

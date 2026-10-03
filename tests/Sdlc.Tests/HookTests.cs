@@ -308,12 +308,17 @@ public sealed class HookTests
     [TestMethod]
     [DataRow(HookHost.Claude)]
     [DataRow(HookHost.Copilot)]
-    public void An_allow_is_written_in_the_same_shape_as_a_denial(HookHost host)
+    public void An_allow_says_nothing_rather_than_bypassing_the_hosts_own_gate(HookHost host)
     {
+        // Do not "fix" this back to an explicit allow. On these surfaces
+        // `permissionDecision: "allow"` is not silence -- Claude Code documents it as bypassing the
+        // permission system -- so writing one whenever the policy has no opinion would stop the host
+        // asking a person about every Edit, Write and Bash the hook matches, and would override the
+        // team's own allow and deny rules for them. The policy having nothing to say is written as
+        // nothing, for both hosts. D-39 records why, `ask` included.
         JsonNode written = Write(host, HookDecision.Allow, null);
 
-        JsonNode scope = host == HookHost.Claude ? written["hookSpecificOutput"]! : written;
-        Assert.AreEqual("allow", scope["permissionDecision"]!.GetValue<string>());
+        Assert.AreEqual(0, written.AsObject().Count, "There is nothing to say, so nothing is said.");
     }
 
     [TestMethod]

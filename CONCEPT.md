@@ -2099,3 +2099,55 @@ contents of `Solution.slnx.template` and two project files, which made it a conv
 decision — the category this framework exists to eliminate, sitting inside the framework. It also gives
 two helpers in the scaffolded `RepoFiles` a job: `ProjectReferences` and `PackageReferences` were both
 written and never called, which is the previous pass having intended roughly this and stopping short.
+
+### D-39 — The pre-tool hook refuses or says nothing; it never grants a permission
+
+**Decision.** `sdlc hook` writes a decision only when the policy refuses. On an allow it writes an
+empty object, for every host.
+
+**What was there before.** `HookProtocol.WriteDecision` had no allow branch — anything that was not a
+deny was spelled `allow` — so every tool call the policy had no opinion about came back as an explicit
+`permissionDecision: "allow"`. `HookPolicy.Decide` refuses four protected paths and the shell commands
+that touch them and permits everything else, so that was nearly every call.
+
+**Why that was wrong.** On these surfaces an explicit allow is not silence. Claude Code documents it as
+*bypassing the permission system*, and the hook is configured against
+`Edit|Write|MultiEdit|NotebookEdit|Bash` — exactly the tools a person wants to be asked about. So
+adopting the framework stopped the host prompting on file writes and shell commands, and overrode
+whatever allow and deny rules the team had written for them. §2.1's standing rule is that a directory
+which appears enforced and is not is worse than one that never pretended; a governance tool that
+removes the host's own gate as a side effect is the same failure with the sign flipped, and it arrived
+through the layer whose whole purpose is enforcement.
+
+The turn-end path already had this right and said why: *"An allow writes an empty object rather than an
+explicit permission. There is nothing to say, and a host that gains a field for saying it will not
+break on silence."* The same reasoning applies one event over, and the asymmetry between the two paths
+was an oversight rather than a distinction.
+
+**Why not `ask`.** It is the available third value on Claude Code and it is an override in the other
+direction: it forces a prompt on calls a person's own settings auto-approve, so the hook would decide
+the permission question for them restrictively instead of permissively. The gate's job is to refuse
+four files, not to re-answer a question the host has already been configured to answer.
+
+**Why silence on Copilot too, where the spec was not checked.** Copilot's `preToolUse` output shape
+could not be verified when this was decided, and the failure directions are not symmetric. A host that
+ignores an empty object falls back to asking a person, which is safe and visible. A host that honours an
+explicit allow the way Claude Code does gets the bypass shipped to it. One behaviour for both also keeps
+the allow path out of the host conditional, where only vocabulary belongs.
+
+**What it costs.** The hook can no longer say "I looked, and I am content". Nothing wanted that, and the
+only reader was the host's permission engine, which is the thing being handed back its own decision.
+
+**What this does not change.** A payload the reader cannot understand still allows the call and says so
+on standard error (§12.1), and still exits zero. What changes is that allowing it now means declining to
+answer rather than granting a permission — so the fail-open path no longer widens anything while it
+fails open.
+
+**Rejected.**
+
+- *An explicit allow, with the hook matcher narrowed to the protected paths instead* — a matcher is a
+  tool-name pattern, not a path filter, so it cannot express the rule. Narrowing it to `Write|Edit`
+  would also drop the shell rule, which is the one `ProtectedPaths.CommandTouchesProtected` exists for.
+- *`ask` on anything the policy permits* — rejected above.
+- *An explicit allow for Copilot only* — rejected for the asymmetry above, and because it would put a
+  decision rather than a vocabulary difference inside the host switch.

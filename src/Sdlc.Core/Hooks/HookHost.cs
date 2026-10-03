@@ -275,13 +275,37 @@ public static class HookProtocol
     /// <summary>
     /// Writes a decision in the host's own shape.
     /// </summary>
+    /// <remarks>
+    /// <strong>A refusal is written; an allow says nothing at all.</strong> On these surfaces an
+    /// explicit <c>permissionDecision: "allow"</c> is not silence -- Claude Code documents it as
+    /// bypassing the permission system, so writing one on every call the policy has no opinion about
+    /// would stop the host asking a person about the very tools the hook matches
+    /// (<c>Edit|Write|MultiEdit|NotebookEdit|Bash</c>) and would override whatever allow and deny
+    /// rules the team wrote for them. A governance tool removing the host's own gate as a side
+    /// effect is the inverse of what it is for, so the policy having nothing to say is written as
+    /// nothing. See D-39.
+    /// <para>
+    /// <c>ask</c> is the available third value and is also wrong: it would force a prompt on calls a
+    /// person's own settings auto-approve, which overrides the host in the restrictive direction
+    /// rather than the permissive one. Still an override.
+    /// </para>
+    /// <para>
+    /// Silence for both hosts, including Copilot, whose output spec was not verifiable when this was
+    /// decided. The failure directions are asymmetric: a host that ignores an empty object falls back
+    /// to asking a person, and a host that honours an explicit allow the way Claude Code does gets
+    /// the same bypass shipped to it.
+    /// </para>
+    /// </remarks>
     /// <param name="host">The host that asked.</param>
     /// <param name="decision">What was decided.</param>
     /// <param name="reason">Why, when it was a refusal.</param>
     /// <returns>The JSON to write to standard output.</returns>
     public static string WriteDecision(HookHost host, HookDecision decision, string? reason)
     {
-        string spelled = decision == HookDecision.Deny ? "deny" : "allow";
+        if (decision != HookDecision.Deny)
+        {
+            return new JsonObject().ToJsonString(_output);
+        }
 
         JsonObject payload = host switch
         {
@@ -291,7 +315,7 @@ public static class HookProtocol
                 ["hookSpecificOutput"] = new JsonObject
                 {
                     ["hookEventName"] = "PreToolUse",
-                    ["permissionDecision"] = spelled,
+                    ["permissionDecision"] = "deny",
                     ["permissionDecisionReason"] = reason ?? string.Empty,
                 },
             },
@@ -299,7 +323,7 @@ public static class HookProtocol
             // Copilot reads the same two fields at the top level.
             HookHost.Copilot => new JsonObject
             {
-                ["permissionDecision"] = spelled,
+                ["permissionDecision"] = "deny",
                 ["permissionDecisionReason"] = reason ?? string.Empty,
             },
 
