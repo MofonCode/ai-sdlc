@@ -184,6 +184,7 @@ public static class Templates
             string.Empty,
             "```",
             "sdlc new                              open a cycle",
+            "sdlc scaffold <id>                    write the solution skeleton, once a plan is approved",
             "sdlc constraints [--for <artifact>]   the rules in force",
             "sdlc status <id> [--stage <name>]     where a cycle has got to",
             "sdlc gate <id>                        may this cycle's build run?",

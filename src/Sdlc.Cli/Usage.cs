@@ -24,6 +24,9 @@ internal static class Usage
         Commands
             init                     Adopt the framework into this repository. Run by a person.
             new                      Open a cycle: allocate its id and create its directory.
+            scaffold <id>            Write the solution skeleton -- a solution file, its projects, the
+                                     architecture tests and a reference slice. Refuses without an
+                                     approved plan: adoption writes no code.
             constraints              Render the constraint set in force.
             gate <id>                Say whether a cycle's build may run. Exits 1 if not.
             verify-chain <id>        Re-establish the whole chain from the repository. Exits 1 if

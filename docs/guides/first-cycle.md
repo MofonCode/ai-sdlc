@@ -41,6 +41,25 @@ What lands:
 | `.github/hooks/sdlc.json` | the same policy, in Copilot's shape |
 | `.github/workflows/pull-request.yml` | `sdlc verify-chain`. **The only guarantee** |
 
+And, in **scaffold** mode only, the files that decide how code is written here — the profile's defaults,
+yours to amend:
+
+| | |
+|---|---|
+| `.editorconfig` | the conventions, including the ones only an IDE enforces |
+| `Directory.Build.props` | warnings as errors, the analyser level, the banned-API list |
+| `Directory.Packages.props` | central package versions, so a project cannot pick its own |
+| `global.json` | the SDK, and the test runner without which the suite silently does not run |
+| `tests/Directory.Build.props` | the five rules relaxed for test code, each with its reason |
+
+An **onboard** gets none of them: the profile proposes a shape for new work and never rewrites the
+conventions of a codebase that predates it.
+
+**No code lands, and no projects.** Adoption writes what governs code and stops there. The solution file,
+the projects, the architecture tests and the reference slice arrive in your first cycle, behind an intent,
+a spec, a plan and an approval like everything else — otherwise the first code in a governed repository
+would be the only thing in it with no chain behind it.
+
 **The pre-push hook is written and not installed**, because a hook under `.git` would be a file the
 framework placed somewhere git does not track and nobody would find later. Install it yourself:
 
@@ -192,6 +211,17 @@ file is what reaches review dressed as approved work, where it is least likely t
 It checks the suite actually ran rather than that the runner exited zero. A trial cycle lost its whole
 verification to `dotnet test` exiting zero without running anything, because the runner was not
 configured.
+
+On a new solution's first cycle, this is also where the skeleton arrives, because the plan declared it:
+
+```pwsh
+sdlc scaffold 20260929_1456_32
+```
+
+A solution file, a core project, two test projects and a reference slice written in the shape every
+operation should have. It refuses unless this cycle is approved, so the skeleton is a change like any
+other, and it writes only what is absent — a second run keeps what is there rather than overwriting it.
+Every cycle after this one writes its own code.
 
 ```pwsh
 sdlc evidence 20260929_1456_32

@@ -136,4 +136,66 @@ public static class InitRenderer
 
         _ => [],
     };
+
+    /// <summary>
+    /// Renders what the solution skeleton wrote.
+    /// </summary>
+    /// <remarks>
+    /// It ends by naming the build stage's next step rather than stopping at a file list. The skeleton
+    /// is written inside an approved cycle, so the files are part of that cycle's diff and the build is
+    /// what records them -- a reader who stops here has code on disk that no evidence covers.
+    /// </remarks>
+    /// <param name="report">What was written.</param>
+    /// <returns>The rendered text, ending in a newline.</returns>
+    public static string RenderScaffold(ScaffoldSolution.Response report)
+    {
+        ArgumentNullException.ThrowIfNull(report);
+
+        StringBuilder output = new();
+
+        output.AppendLine();
+        output.AppendLine(string.Create(
+            CultureInfo.InvariantCulture,
+            $"{Indent}scaffolded {report.Name}"));
+        output.AppendLine();
+
+        foreach (string path in report.Written)
+        {
+            output.AppendLine(string.Create(
+                CultureInfo.InvariantCulture,
+                $"{Indent}  created {path.Replace(Path.DirectorySeparatorChar, '/')}"));
+        }
+
+        foreach (string path in report.Kept)
+        {
+            output.AppendLine(string.Create(
+                CultureInfo.InvariantCulture,
+                $"{Indent}  kept    {path.Replace(Path.DirectorySeparatorChar, '/')} - already there"));
+        }
+
+        output.AppendLine();
+
+        foreach (string line in report.Written.Count == 0
+            ? (string[])
+            [
+                "Nothing was written: every file was already there. This has run before, or the",
+                "solution has grown past the skeleton. Overwriting is the one thing a scaffold must",
+                "not do, so it left them alone.",
+            ]
+            :
+            [
+                "The reference slice is written in the shape every operation here should have, and it",
+                "is meant to be deleted once there is real work. The architecture tests beside it are",
+                "what make the conventions in .editorconfig enforceable - naming is an IDE-only",
+                "diagnostic, so the build decides none of it on its own.",
+                string.Empty,
+                "These files are part of this cycle's change. Build, test, and record the evidence, or",
+                "there is code on disk that no verification covers.",
+            ])
+        {
+            output.AppendLine(line.Length == 0 ? string.Empty : Indent + line);
+        }
+
+        return output.ToString();
+    }
 }

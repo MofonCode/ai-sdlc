@@ -628,9 +628,16 @@ model-invoked. Three modes (D-28):
 
 | Mode | When | What it does |
 |---|---|---|
-| **scaffold** | a new solution | writes everything, `origin: scaffolded` |
-| **onboard** | existing code, no `.sdlc/` | writes everything, `origin: adopted` |
+| **scaffold** | a new solution | writes the governance and the stack settings, `origin: scaffolded` |
+| **onboard** | existing code, no `.sdlc/` | writes the governance only, `origin: adopted` |
 | **update** | `.sdlc/` exists | refreshes only what the framework owns |
+
+**`init` writes no code, and no projects** — D-35. A scaffolded solution gets the files that constrain
+how code is written (`.editorconfig`, the two props files, `global.json`, `BannedSymbols.txt`), and
+every one of them constrains nothing until code exists. The solution itself — a solution file, its
+projects, the architecture tests and a reference slice — is `sdlc scaffold`, which refuses unless a
+cycle's plan has been approved. Code arriving at adoption would be the one thing in a governed
+repository with no chain behind it.
 
 **Update needs no list of what it may touch: it updates what it owns, and what it owns is everything
 not protected.** So it refreshes hook configs, pipelines, and `.sdlc/README.md`.
@@ -1743,3 +1750,56 @@ for public use* — the same code under two names, which is the kind of duplicat
 **What this makes honest.** §11.3 claimed the kernel was private and the shape was house-specific. Both
 were false, and the first caused the second — the belief that the shape could not be public is what
 made a kernel-free scaffold look necessary.
+
+### D-35 — `init` writes no code; the solution comes from an approved plan
+
+**Decision.** Adoption writes the governance and the files that constrain how code is written, and
+stops there. The solution file, the projects, the architecture test project and the reference slice
+are written by `sdlc scaffold <id>`, which refuses unless `gate` would let that cycle build — so the
+first code in a repository arrives behind an intent, a spec, a plan and an approval, like every line
+after it.
+
+**Why.** Adoption had briefly written the whole solution, which made the scaffold the only code in a
+governed repository with no chain behind it. The headline promise is *a person approves a plan before
+code exists*; an adoption that writes a project and commits it exempts itself from the one thing the
+design exists to guarantee, and `verify-chain` can re-establish every other line from an approved
+plan but not those.
+
+It was also deciding too early. The scaffold fixes project names, a layout and a mediator-based core
+before any intent has been written, so a first intent that wants a different shape inherits one
+somebody then deletes — and the reference slice's own "delete it once there is real work here" was
+admitting that rather than solving it.
+
+**Where the line falls.** Between constraining how code is written and writing it.
+
+| Written at adoption | Written by an approved cycle |
+|---|---|
+| `.editorconfig`, `Directory.Build.props`, `Directory.Packages.props`, `global.json`, `tests/Directory.Build.props`, `BannedSymbols.txt` | the solution file, the projects, the architecture tests, the reference slice |
+
+Everything on the left constrains nothing until there is code to constrain, so it carries no decision
+a cycle should have taken. Everything on the right *is* the solution.
+
+**Why a command rather than the plan carrying the templates.** A profile's prose defaults reach a plan
+by being extracted and injected (§11.5), because a session inside a governed solution cannot read a
+file that lives in the plugin. Files are different: transcribing five hundred lines through a plan
+invites corruption and proves nothing. So the binary writes them, and the approval is what permits it
+— `sdlc scaffold` dispatches the same `ApprovalGate` query the build stage does, which means a plan
+declaring those files has already been approved, and the declared-against-changed comparison then
+holds the build to it.
+
+**What it costs.** The architecture tests cannot exist at adoption, because their own guard throws
+when a scan finds nothing to inspect. They now arrive in the first cycle with the project they police,
+which is where an invariant belongs anyway — v03's rule was that an adopted invariant ships with its
+architecture test in the same change.
+
+**Rejected.** *Keeping it, with a recorded exemption* — defensible, and it turns the headline promise
+into a qualified one that would then have to be qualified in the README too. *An opt-in flag* — the
+default would still be a choice nobody made deliberately, and a flag is where the exemption would
+quietly live. *A skill that writes the files during the build stage* — the templates live in the
+plugin, so the skill would be transcribing them, which is the corruption risk with none of the
+benefit.
+
+**What this makes honest.** Nothing in the concept forbade adoption writing code; the contradiction
+was with §2's promise rather than with a rule, which is why it survived being built, committed and
+verified end to end before anybody noticed. Stated here so the next thing that writes a file at
+adoption has a rule to fail against rather than a principle to be weighed against.

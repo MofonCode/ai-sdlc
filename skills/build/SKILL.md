@@ -46,6 +46,12 @@ is exactly where it is least likely to be questioned.
 So when you notice something worth fixing that the plan did not describe: **leave it, and say so in
 your report.** That is a suggestion for a later cycle, not a thing to slip in.
 
+**If the plan declares the solution skeleton, run `sdlc scaffold <id>`.** The first cycle of a new
+solution has no projects to change yet, so its plan declares the ones the profile supplies — a solution
+file, a core project, two test projects and a reference slice. The binary writes them, and refuses
+unless this cycle is approved; transcribing several hundred lines of template through a plan document
+would invite corruption and prove nothing. Everything after that first cycle you write yourself.
+
 **Write the tests the plan named.** The proof entries name tests in backticks, and `verify-chain`
 checks that each one ran and passed. A test with a different name than the plan committed to will fail
 that check even if it tests the right thing — so if the name has to change, the plan has to change
@@ -64,6 +70,11 @@ warns is a build that failed.
 **Check that the suite actually ran.** This is not paranoia: a trial cycle lost its whole verification
 to `dotnet test` exiting zero without running anything, because the runner was not configured. If the
 test count is zero or absent, that is a failure, not a clean run.
+
+It happens more than once and for different reasons, so read the count rather than the exit code. A
+second case, found on the .NET 10 SDK: `dotnet test --nologo` is not an option the Microsoft.Testing
+Platform runner accepts, so the flag is passed through to the test application, which then runs
+nothing — every project reports "Zero tests ran" in under a fifth of a second. Drop the flag.
 
 **The turn end is checked.** A hook asks the gate before you finish, and it sends the turn back when the
 recorded evidence shows a failing suite or when the working tree has moved since the build was recorded.

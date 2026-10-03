@@ -93,6 +93,7 @@ public static class SdlcServices
         services.AddSuggestionsRequestHandler();
 
         services.AddInitialiseRequestHandler();
+        services.AddScaffoldSolutionRequestHandler();
 
         services.AddNewCycleRequestHandler();
 

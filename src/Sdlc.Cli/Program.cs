@@ -53,6 +53,7 @@ try
     {
         "init" => await Workspace.Run(line, w => Init(w, line)).ConfigureAwait(false),
         "new" => await Workspace.Run(line, NewCycle).ConfigureAwait(false),
+        "scaffold" => await WithCycle(line, "scaffold", ScaffoldSolution).ConfigureAwait(false),
         "evidence" => await WithCycle(line, "evidence", (w, id) => Evidence(w, line, id)).ConfigureAwait(false),
         "claims" => await Workspace.Run(line, Claims).ConfigureAwait(false),
         "constraints" => await Workspace.Run(line, w => Constraints(w, line)).ConfigureAwait(false),
@@ -146,6 +147,25 @@ static async Task<int> Init(Workspace workspace, CommandLine line)
         return ExitCode.Failed;
     }
 
+    return ExitCode.Ok;
+}
+
+// The solution skeleton, and the gate is what permits it. Adoption writes the files that constrain
+// how code is written; the code itself arrives behind an approved plan like every line after it -- so
+// this asks the same question the build stage asks and refuses with the same reason.
+static async Task<int> ScaffoldSolution(Workspace workspace, CycleId id)
+{
+    Result<Sdlc.Core.Init.ScaffoldSolution.Response> result = await workspace
+        .Send<Sdlc.Core.Init.ScaffoldSolution.Command, Sdlc.Core.Init.ScaffoldSolution.Response>(
+            new Sdlc.Core.Init.ScaffoldSolution.Command(id))
+        .ConfigureAwait(false);
+
+    if (result.IsFailed)
+    {
+        return await Report(result, ExitCode.Refused).ConfigureAwait(false);
+    }
+
+    await Console.Out.WriteAsync(InitRenderer.RenderScaffold(result.Value)).ConfigureAwait(false);
     return ExitCode.Ok;
 }
 

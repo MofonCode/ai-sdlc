@@ -38,6 +38,7 @@ this solution, and the `LOC_` rules it proposes.
 | `/sdlc:refine <id> plan` | agent | applies them to `plan.md` |
 | `sdlc draft approval <id>` | binary | prints the gate entry. **You paste it** |
 | `sdlc gate <id>` | binary | whether the build may run. Exits 1 if not |
+| `sdlc scaffold <id>` | binary | the solution skeleton, on a new solution's first cycle only. Refuses unless the gate passes |
 | `/sdlc:build <id>` | agent | implements, builds, tests |
 | `sdlc evidence <id>` | binary | records the diff, the base commit, the test summary |
 | `/sdlc:verify <id>` | agent, fresh process | adjudicates from the evidence alone, writes `verify.md` |

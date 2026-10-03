@@ -205,19 +205,6 @@ public static class Initialise
                 {
                     await Once(path, contents, actions, cancellationToken).ConfigureAwait(false);
                 }
-
-                // The solution itself: a solution file at the root, one source project, a unit test
-                // project, and the architecture tests - plus one reference slice written in the
-                // operation shape, which is the thing an agent copies. The rules cannot ship alone:
-                // their own guard throws when a scan finds nothing, so a project to police has to
-                // exist in the same breath.
-                foreach ((string path, string contents) in Scaffold.Files(
-                    Scaffold.NameFrom(Path.GetFileName(solution.Path.TrimEnd(
-                        Path.DirectorySeparatorChar,
-                        Path.AltDirectorySeparatorChar)))))
-                {
-                    await Once(path, contents, actions, cancellationToken).ConfigureAwait(false);
-                }
             }
 
             // Written under .sdlc rather than into .git/hooks, because .git is not tracked -- a hook written

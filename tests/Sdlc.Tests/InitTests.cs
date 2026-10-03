@@ -307,6 +307,32 @@ public sealed class InitTests
     }
 
     [TestMethod]
+    public async Task Adoption_writes_no_code_and_no_projects()
+    {
+        // D-35. Adoption writes the files that say how code is to be written; the code itself arrives
+        // through 'sdlc scaffold' behind an approved plan. Writing it here made the solution file, the
+        // projects and the reference slice the only things in a governed repository with no intent, no
+        // spec, no plan and no approval behind them -- which is the promise the whole design rests on.
+        using var solution = Scratch.Create();
+
+        Initialise.Response report = await Adopt(solution, tracked: []);
+
+        Assert.AreEqual(SolutionOrigin.Scaffolded, report.Origin, "The case where it would be tempting.");
+
+        string[] code =
+        [
+            .. Directory.EnumerateFiles(solution.Root, "*.cs", SearchOption.AllDirectories),
+            .. Directory.EnumerateFiles(solution.Root, "*.csproj", SearchOption.AllDirectories),
+            .. Directory.EnumerateFiles(solution.Root, "*.slnx", SearchOption.AllDirectories),
+        ];
+
+        Assert.AreEqual(
+            0,
+            code.Length,
+            "Adoption left code on disk: " + string.Join(", ", code) + ". It belongs to a cycle.");
+    }
+
+    [TestMethod]
     public async Task A_stack_file_a_person_amended_is_not_rewritten_by_update()
     {
         // These are a person's to amend. Update refreshes what the framework owns, and it does not own
