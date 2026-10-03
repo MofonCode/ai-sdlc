@@ -30,7 +30,7 @@ This file is working material. Delete it when the fixes land.
 | F-05 | High | done | ~~`diff.patch` omits every new file, and the comparison reports agreement~~ **fixed** |
 | F-06 | High | done | ~~`outcome: "pass"` passes the schema and fails the chain~~ **fixed** |
 | F-07 | High | done | ~~Adoption writes a props file referencing a file it does not write~~ **fixed** |
-| F-08 | Medium | **you** | The `refine` and `remediate` guards are claimed as hook rules and are prose |
+| F-08 | Medium | done | ~~The `refine` and `remediate` guards are claimed as hook rules and are prose~~ **decided, D-43** |
 | F-09 | Medium | done | ~~§11.3.1 and D-38 give contradictory rules for where a response lives~~ **fixed** |
 | F-10 | Medium | done | ~~The scaffold's package rule has an unguarded exemption~~ **fixed** |
 | F-11 | Medium | done | ~~A blocking finding with no citation is accepted~~ **fixed** |

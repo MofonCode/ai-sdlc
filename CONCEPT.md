@@ -80,8 +80,15 @@ reasoning.** §7.2 makes this an admission test the library applies to itself.
 `interrogate` judges and never edits. `refine` and `remediate` edit and never judge.
 
 The corollary: **nothing that reacts to a failing test may edit a planning document.** If a red test
-can cause an agent to adjust the spec, the criteria become whatever the code happens to do. It is
-enforced by the hook rather than by instruction (§6.3).
+can cause an agent to adjust the spec, the criteria become whatever the code happens to do.
+
+**What enforces it is the gate, not the hook.** The hook denies every agent write to `approval.md` and
+cannot do more than that: it sees a tool call, which carries no skill identity, so it cannot tell an
+edit to the spec made by `refine`, where it is the whole job, from the same edit made by `remediate`,
+where it is the inversion (D-43). What catches the inversion is slower and certain — a planning
+document edited after approval no longer matches the hash the ledger recorded, so `sdlc gate` and
+`sdlc verify-chain` both refuse and name the document. So the inversion cannot reach a merge; it can
+waste a cycle before the gate catches it. §6.3 says which guard is which.
 
 ### 2.5 Side research and evaluation run in a new process
 
@@ -432,16 +439,31 @@ re-interrogation is required (D-21).
 
 ### 6.3 `refine` and `remediate` — two editors with opposite guards
 
-| | `refine <id> <artifact>` | `remediate <id>` |
-|---|---|---|
-| Runs after | `interrogate` | a blocked `verify` |
-| May edit | the one named artifact | source and tests |
-| May never edit | source, tests, `approval.md` | `intent.md`, `spec.md`, `plan.md`, `approval.md` |
-| Capped | no | three passes, then `escalated` |
-| Also refuses | once the cycle is approved | — |
+| | `refine <id> <artifact>` | `remediate <id>` | Enforced by |
+|---|---|---|---|
+| Runs after | `interrogate` | a blocked `verify` | the skill |
+| May edit | the one named artifact | source and tests | the skill |
+| May never edit `approval.md` | yes | yes | **the hook**, at the tool call |
+| May never edit source or tests | yes | — | the skill |
+| May never edit a planning document | — | yes | the skill, and **the gate** afterwards |
+| Capped | no | three passes, then `escalated` | the skill |
+| Also refuses | once the cycle is approved | — | the skill |
 
-Both guards are hook rules on file paths, not instructions in a prompt. They are two skills rather
-than one with a mode, because their guards are opposites.
+**Read the right-hand column before the other three.** Only one row is denied at the tool call, and
+the rest are the skills' own discipline — which is what `skills/refine/SKILL.md` has always said and
+what this section claimed otherwise: *"Both guards are hook rules on file paths, not instructions in a
+prompt."* They are not. The hook receives a tool call and a tool call does not say which skill made
+it, so a per-skill rule has nothing to read; D-43 records why inventing something for it to read makes
+things worse rather than better.
+
+**The row that matters has a second enforcer.** `remediate` editing a planning document is the one
+inversion §2.4 exists to prevent, and it is caught after the fact rather than at the keystroke: the
+three documents' hashes are in the approval ledger, and `sdlc gate` refuses on a mismatch and names
+the document. That is a weaker guarantee than a denial — the edit happens, and a cycle is wasted —
+and a real one, in that nothing merges on an inverted chain.
+
+They are two skills rather than one with a mode because their guards are opposites, which holds
+whether the guards are hook rules or not.
 
 What makes them skills rather than freehand edits is the bookkeeping — dispositions move to
 `answered` and what changed is recorded — plus a bound on how far an edit may reach, a pass counter,
@@ -2391,3 +2413,64 @@ the one file that says it is not the authority. F-34.
   changes, and nothing was watching this repository's own build.
 - *Putting the harness in `tests/`* — rejected. It is not a test: it writes files and exits, and the
   suite's own rules about test projects would have had to grow an exception for it.
+
+### D-43 — A hook rule is absolute or it is not a rule
+
+**Decision.** Every rule in the pre-tool hook applies to every agent write, with no mode, no flag and
+no check on which skill is running. Guards that need to know the stage live in the skills, and the
+documents say so rather than claiming a hook.
+
+**What this settles.** §2.4 said the no-planning-document-edits-from-a-failing-test rule was *"enforced
+by the hook rather than by instruction"*, and §6.3 said *"Both guards are hook rules on file paths, not
+instructions in a prompt."* Neither was true. `HookPolicy.Decide` has two rules — the four protected
+files in a file write, and the same four named in a shell command — and no skill-awareness anywhere.
+The inversion §2.4 exists to prevent was enforced by nothing, and the concept asserted otherwise twice.
+F-08.
+
+**Why the hook cannot do it, which is not the same as nobody having built it.** A hook fires on a tool
+call, and a tool call carries no skill identity. There is no field to read. The guards are opposites —
+`refine` may edit the spec and not the source, `remediate` may edit the source and not the spec — so a
+rule distinguishing them needs to know which stage is running, and nothing in the payload says.
+
+**Why inventing a channel makes it worse.** Every mechanism for telling the hook which stage is running
+is forgeable by the thing it constrains, because the agent runs the shell, writes the files and invokes
+the commands:
+
+| Mechanism | Why it is not enforcement |
+|---|---|
+| An environment variable the skill sets | The agent runs the shell, so it can set it. |
+| A lock or marker file in the cycle directory | The agent writes files, so it can write that one. |
+| A `sdlc stage begin` / `end` pair | The agent invokes commands, so it can invoke the one that lies. |
+
+A conditional rule with a forgeable condition is §2.1's own failure mode — a check that appears to
+enforce and does not — and it is worse than the prose it would replace, because prose at least reads as
+prose. D-09 rejected the framework's first conditional hook rule for this reason and said where a
+bypass would live; this generalises that from one file to the mechanism.
+
+**What the guarantee actually is, stated so nobody has to rediscover it.** Three layers, and the first
+is the only one at the keystroke:
+
+- `approval.md`, `abandoned.md`, `constraints.md` and `solution.md` — denied absolutely, in file writes
+  and in shell commands alike. These work *because* they have no exception: there is no approve command
+  for one to be carved out for.
+- Everything else in §6.3's table — the skills' own discipline, stated in each skill as a rule rather
+  than a railing.
+- A planning document edited after approval — caught by the gate, because the ledger records the three
+  hashes and `ApprovalGate` refuses on a mismatch and names the document. Slower, certain, and it is
+  what stops the inversion reaching a merge.
+
+**What it costs.** The framework claims less than it did. A reader of §6.3 now learns that four of its
+rows are discipline, which is the honest position and a weaker one. The alternative was leaving two
+sections asserting a mechanism that does not exist, which §2.1's own rule forbids more strongly than it
+forbids a weak guarantee.
+
+**Rejected.**
+
+- *A per-skill hook rule, by any of the three mechanisms above* — rejected as forgeable by the
+  constrained party. Not rejected as an idea: a host that one day tells a hook which skill invoked the
+  tool call, unforgeably, would reopen this.
+- *Dropping the guards from the documents altogether* — rejected. They are real rules that the skills
+  follow and a person should know; what was wrong was the claim about who enforces them.
+- *Making the hook deny every write to a planning document outright* — rejected, and this is the near
+  miss. It would enforce `remediate`'s guard absolutely, and it would also stop `refine`, `steer` and
+  the three stage skills doing their jobs, since writing those documents is the whole of the process.
