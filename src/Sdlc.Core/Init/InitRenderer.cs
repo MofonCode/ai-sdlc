@@ -55,7 +55,7 @@ public static class InitRenderer
             output.AppendLine();
             output.AppendLine(string.Create(
                 CultureInfo.InvariantCulture,
-                $"{Indent}{file.Key} already exists. Here is the leaned version, to merge by hand:"));
+                $"{Indent}{file.Key.Replace('\\', '/')} was not written. Here is what belongs in it, to merge by hand:"));
 
             output.AppendLine();
 

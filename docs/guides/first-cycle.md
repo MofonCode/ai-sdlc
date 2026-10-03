@@ -37,9 +37,18 @@ What lands:
 | `.sdlc/techstack.md` | the stack, for a session that has not read the code |
 | `.sdlc/README.md` | the whole flow in one page, inside the solution |
 | `.sdlc/hooks/pre-push` | written, **not installed**. See below |
-| `.claude/settings.json` | the `PreToolUse` hook that calls the gate |
+| `.claude/settings.json` | the `PreToolUse` hook that calls the gate, **merged** into whatever is already there |
 | `.github/hooks/sdlc.json` | the same policy, in Copilot's shape |
-| `.github/workflows/pull-request.yml` | `sdlc verify-chain`. **The only guarantee** |
+| `.github/workflows/sdlc-verify.yml` | `sdlc verify-chain`. **The only guarantee** |
+
+Adoption rewrites a file only where the framework's own name is in the path, so `.sdlc/**` and the two
+`sdlc`-named files above are refreshed on every run. `.claude/settings.json` is shared with you and with
+the host: `init` adds or updates its two hook entries and keeps every other key, including your
+permissions and your own hooks. If that file is not valid JSON — a comment, a trailing comma — nothing
+is written to it and the entries are printed for you to place. On Azure DevOps the pipeline is
+`azure-pipelines.yml`, which is the path that platform looks for rather than a name the framework owns,
+so an existing one is printed rather than replaced. Nothing verifies a chain until it is in a pipeline
+that runs, and `init` says so.
 
 And, in **greenfield** mode only, the files that decide how code is written here — the profile's defaults,
 yours to amend:

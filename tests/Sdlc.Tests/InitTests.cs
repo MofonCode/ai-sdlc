@@ -122,6 +122,228 @@ public sealed class InitTests
     }
 
     [TestMethod]
+    public async Task Adoption_keeps_everything_in_a_settings_file_it_does_not_own()
+    {
+        // The framework owns two hook entries in .claude/settings.json. The host and the team own the
+        // rest of it, and adoption used to write the whole file from a template on every run -- so a
+        // deny rule, an env var or a hook of somebody's own was destroyed by the next upgrade, and the
+        // destruction was reported as "updated". Losing a hook is the failure this framework exists to
+        // prevent. D-40.
+        using var solution = Scratch.Create();
+        string path = Path.Combine(solution.Root, ".claude", "settings.json");
+        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+        await File.WriteAllTextAsync(
+            path,
+            """
+            {
+              "permissions": { "deny": ["Bash(rm -rf:*)"] },
+              "env": { "OUR_VAR": "matters" },
+              "hooks": {
+                "PreToolUse": [
+                  { "matcher": "Bash", "hooks": [ { "type": "command", "command": "our-audit-hook" } ] }
+                ]
+              },
+              "model": "opus"
+            }
+            """);
+
+        await Adopt(solution, tracked: ["src/App/Program.cs"]);
+
+        JsonNode settings = JsonNode.Parse(await File.ReadAllTextAsync(path))!;
+
+        Assert.AreEqual(
+            "Bash(rm -rf:*)",
+            settings["permissions"]!["deny"]![0]!.GetValue<string>(),
+            "A team that adds a deny rule must not lose it to an upgrade.");
+
+        Assert.AreEqual("matters", settings["env"]!["OUR_VAR"]!.GetValue<string>());
+        Assert.AreEqual("opus", settings["model"]!.GetValue<string>(), "An unknown key is still somebody's.");
+
+        JsonArray pre = settings["hooks"]!["PreToolUse"]!.AsArray();
+
+        Assert.AreEqual(
+            "our-audit-hook",
+            pre[0]!["hooks"]![0]!["command"]!.GetValue<string>(),
+            "A sibling hook entry is not adoption's to remove.");
+
+        Assert.IsTrue(
+            Commands(settings, "PreToolUse").Any(command => command == "sdlc hook --host claude"),
+            "And the framework's own entry still has to arrive.");
+
+        Assert.IsTrue(Commands(settings, "Stop").Any(command => command.Contains("turn-end", StringComparison.Ordinal)));
+    }
+
+    [TestMethod]
+    public async Task A_second_adoption_adds_no_second_copy_of_the_frameworks_hook()
+    {
+        // Matched on the `sdlc hook` prefix rather than the whole command, so a release that changes a
+        // flag replaces the entry it owns. Matching the full string would leave the old entry in place
+        // and append a second, and both would run on every tool call.
+        using var solution = Scratch.Create();
+        string path = Path.Combine(solution.Root, ".claude", "settings.json");
+        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+        await File.WriteAllTextAsync(
+            path,
+            """
+            {
+              "hooks": {
+                "PreToolUse": [
+                  {
+                    "matcher": "Edit|Write",
+                    "hooks": [
+                      { "type": "command", "command": "our-audit-hook" },
+                      { "type": "command", "command": "sdlc hook --host claude --a-flag-from-an-older-release" }
+                    ]
+                  }
+                ]
+              }
+            }
+            """);
+
+        Initialise.Response first = await Adopt(solution, tracked: ["src/App/Program.cs"]);
+        JsonNode settings = JsonNode.Parse(await File.ReadAllTextAsync(path))!;
+
+        Assert.AreEqual(
+            1,
+            Commands(settings, "PreToolUse").Count(command => command.StartsWith("sdlc hook", StringComparison.Ordinal)),
+            "One framework entry, not two.");
+
+        Assert.IsTrue(
+            Commands(settings, "PreToolUse").Any(command => command == "our-audit-hook"),
+            "Their hook shares the matcher group with ours, and survives ours being taken out of it.");
+
+        Assert.AreEqual(
+            Initialise.InitChange.Updated,
+            first.Actions.Single(action => action.Path.Replace('\\', '/') == ".claude/settings.json").Change);
+
+        // And a run that changes nothing says so, rather than rewriting the file to the same bytes.
+        Initialise.Response again = await Adopt(solution, tracked: ["src/App/Program.cs"]);
+
+        Assert.AreEqual(
+            Initialise.InitChange.Kept,
+            again.Actions.Single(action => action.Path.Replace('\\', '/') == ".claude/settings.json").Change);
+    }
+
+    [TestMethod]
+    public async Task A_settings_file_that_cannot_be_parsed_is_printed_rather_than_guessed_at()
+    {
+        // Relaxed parsing would accept this and then silently drop the comment on the way back out.
+        // Strict-parse-or-print leaves a file somebody hand-edited exactly as they left it, which is
+        // the same answer AGENTS.md gets and for the same reason.
+        using var solution = Scratch.Create();
+        string path = Path.Combine(solution.Root, ".claude", "settings.json");
+        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+        const string HandEdited = """
+            {
+              // the comment json does not allow, and somebody's reason for a rule
+              "permissions": { "deny": ["Bash(curl:*)"] }
+            }
+            """;
+        await File.WriteAllTextAsync(path, HandEdited);
+
+        Initialise.Response report = await Adopt(solution, tracked: ["src/App/Program.cs"]);
+
+        Initialise.InitAction action = report.Actions
+            .Single(entry => entry.Path.Replace('\\', '/') == ".claude/settings.json");
+
+        Assert.AreEqual(Initialise.InitChange.Printed, action.Change);
+        Assert.AreEqual(HandEdited, await File.ReadAllTextAsync(path), "Not one byte of it.");
+        Assert.IsTrue(report.Printed.Keys.Any(key => key.Replace('\\', '/') == ".claude/settings.json"));
+        StringAssert.Contains(action.Why!, "not valid JSON");
+    }
+
+    [TestMethod]
+    public async Task An_existing_azure_pipeline_is_printed_rather_than_replaced()
+    {
+        // `azure-pipelines.yml` is the path Azure DevOps looks for, so an existing one is a repository's
+        // own CI. Replacing it would destroy it -- and because init commits what it writes, the
+        // destruction would be committed. Printing it says the guarantee is not installed yet, which is
+        // a thing a person can act on.
+        using var solution = Scratch.Create();
+        string path = Path.Combine(solution.Root, "azure-pipelines.yml");
+        const string Theirs = "trigger: [main]\nsteps:\n  - script: echo twelve months of CI\n";
+        await File.WriteAllTextAsync(path, Theirs);
+
+        Initialise.Response report = await Adopt(
+            solution,
+            tracked: ["src/App/Program.cs"],
+            platform: Platform.AzureDevOps);
+
+        Assert.AreEqual(
+            Initialise.InitChange.Printed,
+            report.Actions.Single(action => action.Path == "azure-pipelines.yml").Change);
+
+        Assert.AreEqual(Theirs, await File.ReadAllTextAsync(path));
+        StringAssert.Contains(report.Printed["azure-pipelines.yml"], "sdlc verify-chain");
+    }
+
+    [TestMethod]
+    public async Task A_pipeline_an_earlier_adoption_wrote_at_the_old_name_is_named_not_deleted()
+    {
+        // The GitHub workflow moved to sdlc-verify.yml, so an earlier adoption's pull-request.yml is
+        // left behind running the same check. Deleting a workflow is not adoption's to do, and silence
+        // would leave two pipelines doing one job. A team's own pull-request.yml is not mentioned at
+        // all, which is the whole point of the rename.
+        using var mine = Scratch.Create();
+        string ours = Path.Combine(mine.Root, ".github", "workflows", "pull-request.yml");
+        Directory.CreateDirectory(Path.GetDirectoryName(ours)!);
+        await File.WriteAllTextAsync(ours, "steps:\n  - run: sdlc verify-chain \"$ID\"\n");
+
+        Initialise.Response report = await Adopt(mine, tracked: ["src/App/Program.cs"]);
+        Initialise.InitAction named = report.Actions
+            .Single(action => action.Path.Replace('\\', '/') == ".github/workflows/pull-request.yml");
+
+        Assert.AreEqual(Initialise.InitChange.Kept, named.Change);
+        StringAssert.Contains(named.Why!, "sdlc-verify.yml");
+        Assert.IsTrue(File.Exists(ours), "Adoption does not delete a workflow.");
+
+        using var theirs = Scratch.Create();
+        string unrelated = Path.Combine(theirs.Root, ".github", "workflows", "pull-request.yml");
+        Directory.CreateDirectory(Path.GetDirectoryName(unrelated)!);
+        await File.WriteAllTextAsync(unrelated, "steps:\n  - run: dotnet test\n");
+
+        Initialise.Response quiet = await Adopt(theirs, tracked: ["src/App/Program.cs"]);
+
+        Assert.IsFalse(
+            quiet.Actions.Any(action => action.Path.Replace('\\', '/') == ".github/workflows/pull-request.yml"),
+            "A workflow that is not the framework's is not adoption's to comment on.");
+    }
+
+    [TestMethod]
+    public async Task Every_file_adoption_rewrites_on_every_run_is_named_by_the_framework()
+    {
+        // The rule D-40 records, asserted rather than remembered. A file the framework rewrites has to
+        // be one it named: `pull-request.yml` was not, and a team's own pull-request workflow was
+        // replaced and committed because of it. Where the path belongs to the platform or the host, the
+        // framework merges its own entries in or prints them, and both of those are tested above.
+        using var solution = Scratch.Create();
+
+        Initialise.Response report = await Adopt(solution, tracked: ["src/App/Program.cs"]);
+
+        foreach (Initialise.InitAction action in report.Actions)
+        {
+            if (action.Change is not (Initialise.InitChange.Created or Initialise.InitChange.Updated))
+            {
+                continue;
+            }
+
+            string path = action.Path.Replace('\\', '/');
+
+            if (path is Initialise.AgentsFileName or ".claude/settings.json")
+            {
+                // AGENTS.md is created only when absent and printed otherwise; settings.json is merged.
+                continue;
+            }
+
+            Assert.IsTrue(
+                path.Contains("sdlc", StringComparison.OrdinalIgnoreCase)
+                || path.StartsWith(Cycle.SdlcDirectoryName + "/", StringComparison.Ordinal),
+                $"{path} is rewritten on every run but is not a name the framework owns. Either give it "
+                + "an sdlc-named path, or merge into it, or print it. D-40.");
+        }
+    }
+
+    [TestMethod]
     public async Task Adoption_refuses_outside_a_git_repository()
     {
         // Without git, build cannot record the diff verify derives from and the gates key on a branch that
@@ -163,7 +385,7 @@ public sealed class InitTests
     }
 
     [TestMethod]
-    [DataRow(Platform.GitHub, ".github/workflows/pull-request.yml")]
+    [DataRow(Platform.GitHub, ".github/workflows/sdlc-verify.yml")]
     [DataRow(Platform.AzureDevOps, "azure-pipelines.yml")]
     public async Task Each_platform_gets_its_own_pipeline(Platform platform, string expected)
     {
@@ -625,6 +847,12 @@ public sealed class InitTests
             "The reason adoption commits at all belongs in the message: an untracked file is untracked "
             + "when the first cycle takes its diff.");
     }
+
+    /// <summary>Every hook command configured for one moment, in order.</summary>
+    private static IEnumerable<string> Commands(JsonNode settings, string moment) =>
+        settings["hooks"]![moment]!.AsArray()
+            .SelectMany(entry => entry!["hooks"]!.AsArray())
+            .Select(hook => hook!["command"]!.GetValue<string>());
 
     private static async Task<Initialise.Response> Adopt(
         Scratch solution,

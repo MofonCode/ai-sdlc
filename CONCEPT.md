@@ -630,7 +630,7 @@ model-invoked. Three modes (D-28):
 |---|---|---|
 | **greenfield** | a new solution | writes the governance and the stack settings, `origin: scaffolded` |
 | **onboard** | existing code, no `.sdlc/` | writes the governance only, `origin: adopted` |
-| **update** | `.sdlc/` exists | refreshes only what the framework owns |
+| **update** | `.sdlc/` exists | refreshes only what the framework owns (D-40) |
 
 **`init` writes no code, and no projects** — D-35. A scaffolded solution gets the files that constrain
 how code is written (`.editorconfig`, the two props files, `global.json`), and every one of them
@@ -639,8 +639,16 @@ banned-API list, the architecture tests and a reference slice — is `sdlc scaff
 unless a cycle's plan has been approved. Code arriving at adoption would be the one thing in a
 governed repository with no chain behind it.
 
-**Update needs no list of what it may touch: it updates what it owns, and what it owns is everything
-not protected.** So it refreshes hook configs, pipelines, and `.sdlc/README.md`.
+**What update may touch is decided by whose name is on the file — D-40.** It rewrites what the
+framework named: `.sdlc/README.md`, `.github/hooks/sdlc.json`, `.github/workflows/sdlc-verify.yml` and
+the pre-push hook. In a file the host and the team also own it owns its own entries and nothing else,
+so `.claude/settings.json` is merged — the two hook entries are added or refreshed and every other key,
+including a team's permissions and their own hooks, is kept. And where the path belongs to the platform
+it writes only into an empty space: an existing `azure-pipelines.yml` is a repository's own CI, so the
+step is printed for a person to place rather than written over.
+
+A file it rewrites has to be one it named, which is why the GitHub workflow is `sdlc-verify.yml`. It was
+`pull-request.yml`, and adoption replaced whatever was at that path and then committed it.
 
 It refuses outside a git repository. Without git, `build` cannot record the diff that `verify`
 derives from and the gates key on a `cycle/<id>` branch that cannot exist — so every hook would
@@ -1636,7 +1644,13 @@ reason, which the ledger already requires.
 
 **Why.** `init` refusing when `.sdlc/` exists was correct while nothing needed refreshing, and it
 leaves a solution's scaffolding to rot across framework versions with nothing to fix it. **Update
-needs no list of exclusions: it updates what it owns, and what it owns is everything not protected.**
+needs no list of exclusions: it updates what it owns.**
+
+**Superseded in part by D-40.** This entry defined what update owns as everything not protected, which
+is a file-level rule and was true only while every unprotected file was one the framework had named.
+Two were not — `.claude/settings.json` is the host's and the team's, and `pull-request.yml` is a name a
+repository plausibly already uses — so adoption destroyed both. D-40 is the ownership rule; the three
+modes and the reasoning for them are unchanged.
 
 It also closes part of the maintenance gap — when the framework version moves, something now updates
 a solution's scaffolding. The judgement half, proposing changes to constraints and the tech stack,
@@ -2151,3 +2165,83 @@ fails open.
 - *`ask` on anything the policy permits* — rejected above.
 - *An explicit allow for Copilot only* — rejected for the asymmetry above, and because it would put a
   decision rather than a vocabulary difference inside the host switch.
+
+### D-40 — The framework owns files it named, and entries inside files it shares
+
+**Decision.** Adoption rewrites a file only where the framework's own name is in the path. Where the
+path belongs to the host or the platform, it owns its entries and merges them in, or it writes nothing
+and prints them.
+
+| | Adoption's claim | How |
+|---|---|---|
+| `.sdlc/**`, `.github/hooks/sdlc.json`, `.github/workflows/sdlc-verify.yml` | the whole file | rewritten on every run |
+| `.claude/settings.json` | two hook entries | merged; every other key and sibling hook kept |
+| `azure-pipelines.yml`, `AGENTS.md` | nothing, once one exists | printed for a person to place |
+| `.sdlc/solution.md`, the stack files | nothing, once one exists | created, then never touched |
+
+**What this replaces.** D-28 said update *"needs no list of exclusions: it updates what it owns, and
+what it owns is everything not protected"*, and §9 repeated it. That defines ownership as the
+file-level complement of the protected set, which holds only while every unprotected file is one the
+framework named. Two were not.
+
+`.claude/settings.json` is the host's shared project settings — permissions, environment, the team's
+own hooks. Adoption wrote the whole file from a template, in every mode and on every run, so a team
+that added a `deny` rule or a hook of their own lost it at the next upgrade. **Losing a hook is §2.1's
+own failure mode, caused by the thing installed to prevent it.**
+
+`pull-request.yml` is a name a repository plausibly already uses, and adoption rewrote whatever was
+there. Because §9 also says *"It commits what it created"* and the commit stages everything written,
+a team's existing pull-request workflow was replaced **and committed** — and both were announced as
+`updated`, in the same list as six genuine creations.
+
+**Why renaming rather than merging, for the pipeline.** YAML has no entry the framework can own: a
+workflow is one document, and a merge would mean understanding somebody's job graph. So the collision
+is removed instead of handled — `sdlc-verify.yml` is framework-named, which makes `Owned` truthful,
+and a team's own `pull-request.yml` is never in the line of fire. Azure DevOps gets no such escape,
+because `azure-pipelines.yml` is the path that platform looks for, so an existing one is printed and
+`init` says the guarantee is not installed until somebody places it. A pipeline nobody wired up looks
+exactly like a gate (D-32), so saying it is the whole of the remedy there.
+
+**Why a merge rather than printing, for the settings file.** Printing is safer and it is the wrong
+trade here: the pre-tool hook is the fast local layer a person meets on their first edit, and an
+adoption that silently did not install it would be the directory that appears enforced and is not.
+JSON also has an entry to own, which YAML does not. The merge works on the inner hook objects rather
+than the matcher groups, because a team can legitimately put their hook and this one under one
+matcher; every hook whose command starts with `sdlc hook` is taken out and the framework's entries are
+appended. Prefix-matched, so a release that changes a flag replaces its entry rather than appending a
+second that also runs.
+
+**What it costs, stated plainly.**
+
+- **The first merge reformats the file.** Property order survives and whitespace does not, so a team
+  sees a larger diff than the two entries they expected. The alternative is a hand-rolled JSON editor
+  that preserves formatting, which is a great deal of machinery for one file.
+- **A settings file that is not valid JSON is not merged at all.** Relaxed parsing would accept a
+  comment or a trailing comma and then drop it silently on the way back out, so the rule is
+  strict-parse-or-print: nothing is written, the entries are printed, and the file keeps every byte.
+  The cost is that a team who hand-edited their settings has to place two entries themselves.
+- **A framework hook somebody moved into their own matcher group moves back out.** The entry is the
+  framework's; where it sits is not negotiated.
+- **Renaming the GitHub workflow orphans the old one.** An existing `pull-request.yml` written by an
+  earlier adoption is left behind, still running, and nothing deletes it — deleting a workflow is not
+  a thing adoption should do. `init` names it, and a person removes it.
+- **One more concept to hold.** "What it owns is everything not protected" was one sentence. This is
+  a table.
+
+**Rejected.**
+
+- *Printing the settings file on every collision* — rejected above: the local layer would silently not
+  be installed, which is the shape of enforcement this framework is written against.
+- *Writing no settings file at all, since the plugin ships `hooks/hooks.json`* — the redundancy is
+  real, and for a plugin user every matched tool call pays two process launches. Rejected because
+  adoption cannot reliably tell a plugin install from a global one, and guessing wrong leaves the hook
+  uninstalled. After D-39 both launches answer with silence, so the cost is start-up time rather than
+  behaviour. Worth revisiting if a marker appears.
+- *Merging the pipeline YAML* — rejected above. There is no entry to own.
+- *Keeping `pull-request.yml` and printing on a collision* — rejected as the worse half of both
+  options: it leaves a conventional name claimed by the framework, and the first collision is a
+  pipeline nobody installed.
+- *Naming the Azure DevOps file `sdlc-verify.yml` too, for symmetry* — not rejected, deferred. It
+  would need the pipeline pointed at a non-default path in the portal, which is a step a person takes
+  there anyway, and D-32 says that adapter has never run against a real server. The first team to use
+  it is the one who should decide.

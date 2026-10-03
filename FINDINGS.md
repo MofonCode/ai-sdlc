@@ -24,7 +24,7 @@ This file is working material. Delete it when the fixes land.
 | Id | Severity | Finding |
 |---|---|---|
 | F-01 | Critical | ~~The pre-tool hook auto-approves every call it does not refuse~~ **fixed, D-39** |
-| F-02 | Critical | `sdlc init` overwrites the project's `.claude/settings.json` |
+| F-02 | Critical | ~~`sdlc init` overwrites the project's `.claude/settings.json`~~ **fixed, D-40** |
 | F-03 | Critical | The packed tool ships no constraint library, so nothing but `help` and `version` runs |
 | F-04 | High | A deleted or malformed findings round makes the gate and the chain check blind |
 | F-05 | High | `diff.patch` omits every new file, and the comparison reports agreement |
@@ -104,6 +104,14 @@ allow, the two hosts diverge here and the adapter is the right place for that to
 ---
 
 ## F-02 — `sdlc init` overwrites the project's `.claude/settings.json`
+
+**Fixed,** along with a sibling the finding did not name: the same `Owned` path also replaced an
+existing `.github/workflows/pull-request.yml` or `azure-pipelines.yml` — a team's whole CI, replaced
+and committed, announced as "updated". `.claude/settings.json` is now merged (hook entries only, every
+other key kept, strict-parse-or-print), the GitHub workflow is framework-named `sdlc-verify.yml` so
+owning it is honest, an existing `azure-pipelines.yml` is printed rather than replaced, and a
+`pull-request.yml` an earlier adoption wrote is named for a person to remove. D-40 records the
+ownership rule and partly supersedes D-28; §9's sentence and the first-cycle guide follow it.
 
 **Severity:** Critical
 **Where:** `src/Sdlc.Core/Init/Initialise.cs:181`, written through `Owned` (rewritten on every run,

@@ -177,23 +177,50 @@ public static class Initialise
                 actions,
                 cancellationToken).ConfigureAwait(false);
 
-            await Owned(
+            // Shared with the host and the team, so the framework owns its two hook entries and not
+            // the file. Everything else in it -- permissions, environment, the team's own hooks --
+            // is read, kept and written back. D-40.
+            await Merged(
                 Path.Combine(".claude", "settings.json"),
                 Templates.HookConfig("claude"),
                 actions,
+                printed,
                 cancellationToken).ConfigureAwait(false);
 
+            // Framework-named, so owning the whole file is what the name already says. Copilot reads
+            // every json in that directory, so a team's own config is a sibling file rather than a
+            // sibling key.
             await Owned(
                 Path.Combine(".github", "hooks", "sdlc.json"),
                 Templates.HookConfig("copilot"),
                 actions,
                 cancellationToken).ConfigureAwait(false);
 
-            await Owned(
-                PipelinePath(request.Platform),
-                Templates.Pipeline(request.Platform),
-                actions,
-                cancellationToken).ConfigureAwait(false);
+            // The pipeline is the one non-bypassable layer, so adoption has to write it -- but only a
+            // framework-named file is the framework's to rewrite. `sdlc-verify.yml` is owned.
+            // `azure-pipelines.yml` is the name Azure DevOps looks for, so an existing one is this
+            // repository's own CI: it is printed for a person to place rather than replaced, and init
+            // says the guarantee is not installed until they do. D-40.
+            if (request.Platform == Platform.GitHub)
+            {
+                await Owned(
+                    PipelinePath(request.Platform),
+                    Templates.Pipeline(request.Platform),
+                    actions,
+                    cancellationToken).ConfigureAwait(false);
+
+                Superseded(Path.Combine(".github", "workflows", "pull-request.yml"), actions);
+            }
+            else
+            {
+                await Introduced(
+                    PipelinePath(request.Platform),
+                    Templates.Pipeline(request.Platform),
+                    "one already exists, and it is this repository's own CI rather than the framework's to replace. Nothing verifies a chain until this step runs in a pipeline",
+                    actions,
+                    printed,
+                    cancellationToken).ConfigureAwait(false);
+            }
 
             // The stack files, and only into a solution being shaped. An adopted repository keeps its
             // own conventions: the profile proposes a shape for new work and never rewrites one that
@@ -236,11 +263,19 @@ public static class Initialise
         }
 
         /// <summary>Where a platform's pull-request pipeline goes.</summary>
+        /// <remarks>
+        /// The GitHub path is framework-named on purpose. It was <c>pull-request.yml</c>, which is a
+        /// name a repository plausibly already uses, and adoption rewrote whatever was there -- so a
+        /// team's own pull-request workflow was replaced and committed, announced as "updated". A
+        /// framework-named file makes owning it honest, and takes the collision away rather than
+        /// handling it. Azure DevOps has no equivalent escape, because <c>azure-pipelines.yml</c> is
+        /// the path that platform looks for, so that one is printed on a collision instead. D-40.
+        /// </remarks>
         /// <param name="platform">Which platform.</param>
         /// <returns>The path, relative to the solution root.</returns>
         public static string PipelinePath(Platform platform) => platform switch
         {
-            Platform.GitHub => Path.Combine(".github", "workflows", "pull-request.yml"),
+            Platform.GitHub => Path.Combine(".github", "workflows", "sdlc-verify.yml"),
             Platform.AzureDevOps => "azure-pipelines.yml",
             _ => throw new ArgumentOutOfRangeException(nameof(platform)),
         };
@@ -362,6 +397,117 @@ public static class Initialise
 
             await Write(path, contents, cancellationToken).ConfigureAwait(false);
             actions.Add(new InitAction(relative, existed ? InitChange.Updated : InitChange.Created));
+        }
+
+        /// <summary>
+        /// Names a pipeline an earlier adoption wrote at the name the framework used to claim.
+        /// </summary>
+        /// <remarks>
+        /// The GitHub workflow moved to <c>sdlc-verify.yml</c> (D-40), which leaves the old file behind
+        /// still running the same check on every pull request. Deleting somebody's workflow is not a
+        /// thing adoption should do, and saying nothing would leave two pipelines doing one job with
+        /// no explanation of why. So it is named, and a person removes it.
+        /// <para>
+        /// Only when the file holds the gate's own command. A <c>pull-request.yml</c> that is a team's
+        /// own workflow is none of adoption's business, and the whole point of the rename is that the
+        /// framework stops having an opinion about that name.
+        /// </para>
+        /// </remarks>
+        private void Superseded(string relative, List<InitAction> actions)
+        {
+            string path = Path.Combine(solution.Path, relative);
+
+            if (!File.Exists(path)
+                || !File.ReadAllText(path).Contains("sdlc verify-chain", StringComparison.Ordinal))
+            {
+                return;
+            }
+
+            actions.Add(new InitAction(
+                relative,
+                InitChange.Kept,
+                "an earlier adoption wrote this, and the framework's pipeline is now sdlc-verify.yml. "
+                + "Nothing here deletes a workflow -- remove it yourself, or two pipelines run the same check"));
+        }
+
+        /// <summary>
+        /// Puts the framework's hook entries into a settings file the team also owns.
+        /// </summary>
+        /// <remarks>
+        /// <see cref="Owned"/> would be wrong here, and was: the framework owns two hook entries in
+        /// <c>.claude/settings.json</c>, and the host and the team own the rest of it. Where a merge
+        /// cannot be done without guessing -- the file is not valid JSON -- nothing is written and the
+        /// entries are printed, which leaves a file somebody hand-edited exactly as they left it.
+        /// </remarks>
+        private async Task Merged(
+            string relative,
+            string contents,
+            List<InitAction> actions,
+            Dictionary<string, string> printed,
+            CancellationToken cancellationToken)
+        {
+            string path = Path.Combine(solution.Path, relative);
+
+            if (!File.Exists(path))
+            {
+                await Write(path, contents, cancellationToken).ConfigureAwait(false);
+                actions.Add(new InitAction(relative, InitChange.Created));
+                return;
+            }
+
+            string existing = await File.ReadAllTextAsync(path, cancellationToken).ConfigureAwait(false);
+            Result<string> merged = HookSettings.Merge(existing, contents);
+
+            if (merged.IsFailed)
+            {
+                printed[relative] = contents;
+                actions.Add(new InitAction(
+                    relative,
+                    InitChange.Printed,
+                    string.Join(" ", merged.Errors.Select(error => error.Message))));
+                return;
+            }
+
+            if (string.Equals(existing, merged.Value, StringComparison.Ordinal))
+            {
+                actions.Add(new InitAction(relative, InitChange.Kept, "already current"));
+                return;
+            }
+
+            await Write(path, merged.Value, cancellationToken).ConfigureAwait(false);
+            actions.Add(new InitAction(
+                relative,
+                InitChange.Updated,
+                "the framework's hook entries only -- everything else in the file was kept"));
+        }
+
+        /// <summary>
+        /// Writes a file the framework introduces but does not own, and prints it when one is there.
+        /// </summary>
+        /// <remarks>
+        /// For a file at a path the platform chose rather than the framework. Replacing it would
+        /// destroy a repository's own, and keeping quiet would leave a person thinking the guarantee
+        /// was installed, so it is printed and the reason is said out loud.
+        /// </remarks>
+        private async Task Introduced(
+            string relative,
+            string contents,
+            string why,
+            List<InitAction> actions,
+            Dictionary<string, string> printed,
+            CancellationToken cancellationToken)
+        {
+            string path = Path.Combine(solution.Path, relative);
+
+            if (File.Exists(path))
+            {
+                printed[relative] = contents;
+                actions.Add(new InitAction(relative, InitChange.Printed, why));
+                return;
+            }
+
+            await Write(path, contents, cancellationToken).ConfigureAwait(false);
+            actions.Add(new InitAction(relative, InitChange.Created));
         }
 
         /// <summary>
