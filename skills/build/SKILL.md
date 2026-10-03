@@ -48,9 +48,10 @@ your report.** That is a suggestion for a later cycle, not a thing to slip in.
 
 **If the plan declares the solution skeleton, run `sdlc scaffold <id>`.** The first cycle of a new
 solution has no projects to change yet, so its plan declares the ones the profile supplies — a solution
-file, a core project, two test projects and a reference slice. The binary writes them, and refuses
-unless this cycle is approved; transcribing several hundred lines of template through a plan document
-would invite corruption and prove nothing. Everything after that first cycle you write yourself.
+file, a core project, an HTTP project, two test projects and a reference slice. The binary writes them,
+and refuses unless this cycle is approved; transcribing several hundred lines of template through a plan
+document would invite corruption and prove nothing. Everything after that first cycle you write
+yourself.
 
 **Write the tests the plan named.** The proof entries name tests in backticks, and `verify-chain`
 checks that each one ran and passed. A test with a different name than the plan committed to will fail

@@ -22,10 +22,10 @@ public sealed class ScaffoldTests
     public void Every_template_the_scaffold_names_is_embedded()
     {
         // Reading every file is the assertion: Scaffold.Files throws by name for a template that is
-        // not in the build, so this passing means all eleven resolved.
+        // not in the build, so this passing means every one resolved.
         IReadOnlyList<KeyValuePair<string, string>> files = Scaffold.Files(Name);
 
-        Assert.AreEqual(13, files.Count, "A template added or removed changes this number deliberately.");
+        Assert.AreEqual(19, files.Count, "A template added or removed changes this number deliberately.");
 
         foreach ((string path, string contents) in files)
         {
@@ -152,6 +152,72 @@ public sealed class ScaffoldTests
     }
 
     [TestMethod]
+    public void The_scaffold_ships_a_boundary_for_its_response_bans_to_bite_on()
+    {
+        // The finding this encodes: a ban naming a symbol the compilation cannot resolve is reported by
+        // NOTHING. No warning, no diagnostic - 'T:Totally.Made.Up.Type' in a library builds clean. So
+        // banning the framework's response factories in a solution with no HTTP project was a rule that
+        // existed only in a file, which is worse than no rule because the file makes it look enforced.
+        //
+        // The two therefore ship together or not at all. If the Api project is ever dropped from the
+        // scaffold, these bans have to go with it, and this test is what says so.
+        IReadOnlyList<KeyValuePair<string, string>> files = Scaffold.Files(Name);
+        string[] paths = [.. files.Select(file => file.Key.Replace('\\', '/'))];
+
+        CollectionAssert.Contains(paths, "src/Demo.Api/Demo.Api.csproj");
+        CollectionAssert.Contains(paths, "src/Demo.Api/Boundary.cs");
+        CollectionAssert.Contains(paths, "src/Demo.Api/Greetings/GreetEndpoints.cs");
+
+        string banned = files.Single(file => file.Key == "BannedSymbols.txt").Value;
+
+        foreach (string symbol in (string[])
+        [
+            "T:Microsoft.AspNetCore.Http.Results",
+            "T:Microsoft.AspNetCore.Http.TypedResults",
+        ])
+        {
+            StringAssert.Contains(
+                banned,
+                symbol,
+                symbol + " is what makes the one conversion the only way out. Both are banned rather "
+                + "than Results.Problem alone: Problem has three overloads, a ban naming the wrong one "
+                + "is silently useless, and TypedResults.Problem does the same thing under another name.");
+        }
+    }
+
+    [TestMethod]
+    public void The_slice_leaves_through_the_one_conversion()
+    {
+        // The reference slice is the strongest thing the profile ships, so the endpoint has to show the
+        // shape rather than describe it: dispatch, convert, return. An architecture test in the
+        // scaffolded solution requires the return type, and this requires the slice to demonstrate it.
+        IReadOnlyList<KeyValuePair<string, string>> files = Scaffold.Files(Name);
+
+        string endpoints = files
+            .Single(file => file.Key.EndsWith("GreetEndpoints.cs", StringComparison.Ordinal)).Value;
+
+        StringAssert.Contains(endpoints, "Task<ApiResult<Greet.Response>>");
+        StringAssert.Contains(endpoints, "result.ToApiResult(http)");
+
+        string boundary = files
+            .Single(file => file.Key.EndsWith("Boundary.cs", StringComparison.Ordinal)).Value;
+
+        StringAssert.Contains(
+            boundary,
+            "result.ToEnvelope(traceId: http.TraceIdentifier)",
+            "The conversion goes through the kernel's envelope, which is what drops an exceptional "
+            + "error and everything it caused. A boundary that shaped the response itself would be a "
+            + "second implementation of the one rule that must not have two.");
+
+        StringAssert.Contains(
+            boundary,
+            "WriteAsJsonAsync",
+            "It writes the JSON itself rather than calling a framework factory, which is what lets the "
+            + "ban be absolute. A sanctioned helper calling the banned API would need an exemption, and "
+            + "the exemption is the hole.");
+    }
+
+    [TestMethod]
     public void This_repository_bans_everything_the_profile_it_ships_bans()
     {
         // The framework held consumers to a rule it did not run on itself: the profile shipped the
@@ -166,7 +232,7 @@ public sealed class ScaffoldTests
         string shipped = Scaffold.Files(Name).Single(file => file.Key == "BannedSymbols.txt").Value;
         string own = File.ReadAllText(RepoPaths.BannedSymbols);
 
-        foreach (string symbol in Symbols(shipped))
+        foreach (string symbol in Symbols(shipped).Except(NoSuchSurfaceHere))
         {
             CollectionAssert.Contains(
                 Symbols(own).ToList(),
@@ -175,6 +241,30 @@ public sealed class ScaffoldTests
                 + "the ban, or stop shipping it.");
         }
     }
+
+    /// <summary>
+    /// Bans the profile ships that this repository does not take, each because the surface they
+    /// govern does not exist here.
+    /// </summary>
+    /// <remarks>
+    /// <para>Not a weakening of the rule but the rule stated correctly: what would be wrong is holding
+    /// consumers to something the framework declines to follow <em>where it applies</em>. The clock ban
+    /// applies here, because this reads clocks. These two govern an HTTP boundary, and <c>sdlc</c> is a
+    /// command-line binary with none — so taking them would add lines naming symbols this compilation
+    /// cannot resolve, and an unresolvable ban is reported by nothing at all. A list of inert lines is
+    /// exactly what this file exists to prevent.</para>
+    ///
+    /// <para><strong>Add an entry only with that reason, in the change that declines the ban.</strong>
+    /// "This repository has no such surface" is the only argument this list accepts. "We do not want to
+    /// follow it here" is the thing it is for catching.</para>
+    /// </remarks>
+    private static readonly string[] _noSuchSurfaceHere =
+    [
+        "T:Microsoft.AspNetCore.Http.Results",
+        "T:Microsoft.AspNetCore.Http.TypedResults",
+    ];
+
+    private static IReadOnlyList<string> NoSuchSurfaceHere => _noSuchSurfaceHere;
 
     /// <summary>The symbol each banned-API line names, without its reason.</summary>
     private static IEnumerable<string> Symbols(string file) => file

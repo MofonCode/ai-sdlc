@@ -1813,3 +1813,51 @@ benefit.
 was with §2's promise rather than with a rule, which is why it survived being built, committed and
 verified end to end before anybody noticed. Stated here so the next thing that writes a file at
 adoption has a rule to fail against rather than a principle to be weighed against.
+
+### D-36 — a ban ships with the surface it governs, and never alone
+
+**Decision.** The profile scaffolds an Api project with exactly one conversion from a `Result` to a
+response, bans `Microsoft.AspNetCore.Http.Results` and `TypedResults` outright, and ships two
+architecture tests beside them: every endpoint returns `ApiResult<T>`, and the solution declares no
+second `IResult`. The four are one change. A profile that bans a response factory without scaffolding
+a boundary is shipping a rule that cannot fire.
+
+**Why, measured rather than reasoned.** A banned-API entry naming a symbol the compilation cannot
+resolve is reported by **nothing** — no warning, no diagnostic, no hint. A library banning
+`T:Totally.Made.Up.Type` builds clean. So the scaffold had no HTTP project, and banning
+`Results.Problem` in it would have produced a file that looks enforced and enforces nothing, which is
+worse than no file at all.
+
+Three more things came out of testing it rather than reading about it:
+
+- **A bare method name bans nothing, silently.** `M:…Http.Results.Problem` with no signature matches
+  no overload. Only the full documentation-comment id does.
+- **`Problem` has three overloads in .NET 10**, and a hand-written ban carrying two of them was inert,
+  because the one omitted was the one every call site binds to. The framework's own XML docs in the
+  reference pack are the only reliable source for the ids.
+- **Banning `Results` alone leaves `TypedResults.Problem` compiling**, doing exactly what the ban was
+  written to prevent. A ban on one spelling is not a ban on the behaviour.
+
+So the ban is on the **types**, not the methods: it cannot be defeated by an overload nobody listed,
+and it also catches `Results.Ok`, which sends a bare payload with no notices for a front end to read.
+
+**Why a fitness function as well.** The ban cannot see an endpoint that returns a domain type
+directly — that compiles, calls nothing banned, and sends a payload with no notices and no trace id.
+`Every_endpoint_returns_the_envelope` reads the return types, so it holds for spellings nobody has
+thought of yet: a hand-set status code, a plain string, a factory a later framework version adds.
+Proven by writing such an endpoint, watching the build go green, and watching the rule name it.
+
+**Why the conversion writes its own JSON.** It implements `IResult` and calls `WriteAsJsonAsync`
+rather than a framework factory, so the ban needs no exemption for the one place allowed to build a
+response. An exemption is where the next leak goes, and a boundary that needed one would not be a
+boundary.
+
+**And the ban is itself guarded.** `The_frameworks_response_factories_are_still_banned` reads
+`BannedSymbols.txt` and fails when either line is gone, because two lines in a text file can be
+deleted in the same commit as the call somebody wanted to make.
+
+**What this costs.** The scaffold is four files larger and the profile now takes a position on HTTP,
+which an adopted solution with a different boundary will not want — it does not get one: `origin`
+decides, as it does for everything else the profile writes. And the framework itself does not take
+these two bans, because `sdlc` is a command-line binary with no such surface; the parity rule carries
+that exemption explicitly, on the single ground that the surface does not exist here.

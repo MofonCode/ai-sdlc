@@ -1,0 +1,150 @@
+using System.Globalization;
+using System.Reflection;
+using Microsoft.AspNetCore.Http;
+using __SOLUTION__.Api;
+
+namespace __SOLUTION__.Architecture.Tests;
+
+/// <summary>
+/// Rules about the boundary: what may leave this process, and how.
+/// </summary>
+/// <remarks>
+/// <para>The invariant these defend is that an exceptional error never reaches a reader, and that
+/// every response carries the notices a front end displays. <c>BannedSymbols.txt</c> is half of it —
+/// the framework's response factories are banned, so nothing can build a response but
+/// <c>ApiResult</c>. These rules are the other half, because a ban cannot see an endpoint that
+/// returns a domain type and sends a bare payload with no notices at all.</para>
+///
+/// <para>A ban is also deletable. <see cref="The_frameworks_response_factories_are_still_banned"/>
+/// means removing those two lines is a failing test rather than a quiet widening.</para>
+/// </remarks>
+[TestClass]
+public sealed class EndpointTests
+{
+    // Reached through ApiResult rather than through Boundary: a solution named after one of its own
+    // types makes 'Boundary' both a namespace and a type, and the reference stops compiling. Anything
+    // a template names has to be a name no solution would be called.
+    private static Assembly Api => typeof(ApiResult<>).Assembly;
+
+    /// <summary>
+    /// Every endpoint returns the envelope rather than a domain type or a framework result.
+    /// </summary>
+    /// <remarks>
+    /// Checks the return type rather than the call, which is what makes it hold for a spelling nobody
+    /// has thought of yet: a hand-set status code, a string, a framework factory that arrives in a
+    /// later version. None of those can produce an <c>ApiResult</c>, so none of them pass.
+    /// </remarks>
+    [TestMethod]
+    public void Every_endpoint_returns_the_envelope()
+    {
+        List<string> offenders = [];
+        int inspected = 0;
+
+        foreach (Type holder in Api.GetTypes().Where(type => type.Name.EndsWith("Endpoints", StringComparison.Ordinal)))
+        {
+            foreach (MethodInfo method in holder.GetMethods(
+                BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static | BindingFlags.Instance | BindingFlags.DeclaredOnly))
+            {
+                // The Map extension wires the routes and answers nothing itself.
+                if (method.Name.StartsWith("Map", StringComparison.Ordinal) || method.IsSpecialName)
+                {
+                    continue;
+                }
+
+                inspected++;
+
+                if (!IsApiResult(method.ReturnType))
+                {
+                    offenders.Add((holder.Name + "." + method.Name) + " returns " + Describe(method.ReturnType));
+                }
+            }
+        }
+
+        Assert.IsTrue(
+            inspected > 0,
+            "This rule inspected no endpoint methods, so it would pass however they were written. "
+            + "Either the Api assembly did not load, or the naming this rule looks for has changed: "
+            + "it finds route delegates by the holder's name ending in 'Endpoints'.");
+
+        Assert.AreEqual(
+            0,
+            offenders.Count,
+            string.Create(
+                CultureInfo.InvariantCulture,
+                $"These endpoints do not return ApiResult<T> (of {inspected} inspected):\n  ")
+            + string.Join("\n  ", offenders)
+            + "\n\nEnd with 'result.ToApiResult(http)'. An endpoint returning anything else sends a "
+            + "payload with no notices and no trace id, so a front end has nothing to display when "
+            + "the call fails - and nothing has dropped the exceptional errors from what it sends.");
+    }
+
+    /// <summary>
+    /// Nothing but the boundary can build a response.
+    /// </summary>
+    /// <remarks>
+    /// The ban stops the framework's factories being called. This stops a second one being written: a
+    /// hand-rolled <c>IResult</c> beside the sanctioned one is how the rule comes to have an
+    /// exception, and the exception is where the next leak goes.
+    /// </remarks>
+    [TestMethod]
+    public void The_only_result_this_solution_declares_is_the_boundarys()
+    {
+        List<string> declared = [.. Api
+            .GetTypes()
+            .Where(type => typeof(IResult).IsAssignableFrom(type) && type is { IsInterface: false, IsAbstract: false })
+            .Select(type => type.Name)];
+
+        CollectionAssert.AreEquivalent(
+            new[] { "ApiResult`1" },
+            declared,
+            "The solution declares these IResult implementations: " + string.Join(", ", declared)
+            + ". There is meant to be exactly one, because it is the single place that decides what a "
+            + "reader is told. A second one is a second boundary, and only one of them will have been "
+            + "written with the leak in mind.");
+    }
+
+    /// <summary>
+    /// The ban that makes the boundary the only way out is still in place.
+    /// </summary>
+    /// <remarks>
+    /// Without this, the enforcement is two lines in a text file that anybody can delete in the same
+    /// commit as the call they wanted to make — and nothing would fail.
+    /// </remarks>
+    [TestMethod]
+    public void The_frameworks_response_factories_are_still_banned()
+    {
+        string banned = File.ReadAllText(Path.Combine(RepoFiles.FindRepoRoot(), "BannedSymbols.txt"));
+
+        foreach (string symbol in (string[])
+        [
+            "T:Microsoft.AspNetCore.Http.Results",
+            "T:Microsoft.AspNetCore.Http.TypedResults",
+        ])
+        {
+            StringAssert.Contains(
+                banned,
+                symbol,
+                symbol + " is no longer banned, so a handler can build its own response again and "
+                + "decide what a reader is told. Either put the line back, or say in a plan why this "
+                + "solution has a second boundary and what stops the first one's rule being bypassed.");
+        }
+    }
+
+    private static bool IsApiResult(Type returnType)
+    {
+        Type type = returnType;
+
+        // An async endpoint returns Task<ApiResult<T>>; a synchronous one returns ApiResult<T>.
+        if (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(Task<>))
+        {
+            type = type.GetGenericArguments()[0];
+        }
+
+        return type.IsGenericType && type.GetGenericTypeDefinition() == typeof(ApiResult<>);
+    }
+
+    private static string Describe(Type type) => type.IsGenericType
+        ? type.Name[..type.Name.IndexOf('`', StringComparison.Ordinal)]
+            + "<" + string.Join(", ", type.GetGenericArguments().Select(Describe)) + ">"
+        : type.Name;
+}

@@ -83,6 +83,7 @@ public static class Scaffold
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
 
         string core = Path.Combine("src", name + ".Core");
+        string api = Path.Combine("src", name + ".Api");
         string tests = Path.Combine("tests", name + ".Tests");
         string architecture = Path.Combine("tests", name + ".Architecture.Tests");
 
@@ -96,9 +97,15 @@ public static class Scaffold
             Entry(Path.Combine(core, "ValidationBehavior.cs"), "ValidationBehavior.cs", name),
             Entry(Path.Combine(core, "Greetings", "Greet.cs"), "Greet.cs", name),
 
+            Entry(Path.Combine(api, name + ".Api.csproj"), "Api.csproj", name),
+            Entry(Path.Combine(api, "Program.cs"), "Program.cs", name),
+            Entry(Path.Combine(api, "Boundary.cs"), "Boundary.cs", name),
+            Entry(Path.Combine(api, "Greetings", "GreetEndpoints.cs"), "GreetEndpoints.cs", name),
+
             Entry(Path.Combine(tests, name + ".Tests.csproj"), "Tests.csproj", name),
             Entry(Path.Combine(tests, "Gate.cs"), "Gate.cs", name),
             Entry(Path.Combine(tests, "GreetTests.cs"), "GreetTests.cs", name),
+            Entry(Path.Combine(tests, "BoundaryTests.cs"), "BoundaryTests.cs", name),
 
             Entry(
                 Path.Combine(architecture, name + ".Architecture.Tests.csproj"),
@@ -107,6 +114,7 @@ public static class Scaffold
             Entry(Path.Combine(architecture, "RepoFiles.cs"), "RepoFiles.cs", name),
             Entry(Path.Combine(architecture, "StructureTests.cs"), "StructureTests.cs", name),
             Entry(Path.Combine(architecture, "ConventionTests.cs"), "ConventionTests.cs", name),
+            Entry(Path.Combine(architecture, "EndpointTests.cs"), "EndpointTests.cs", name),
         ];
     }
 

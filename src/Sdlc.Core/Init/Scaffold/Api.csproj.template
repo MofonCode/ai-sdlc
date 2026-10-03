@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <ItemGroup>
+    <!-- The kernel, referenced here as well as by the core project because this is where ToEnvelope
+         is called. The boundary is the only place a failure is shaped for somebody outside the
+         process, so the dependency belongs where the conversion is rather than arriving by accident
+         through a project reference. -->
+    <PackageReference Include="MofonCode.Core" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\__SOLUTION__.Core\__SOLUTION__.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- The suite asserts what this writes to the wire, which is the only way to prove that an
+         exception's message does not reach a reader. Program is internal, so the grant is what lets a
+         test name it. -->
+    <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleTo">
+      <_Parameter1>__SOLUTION__.Tests</_Parameter1>
+    </AssemblyAttribute>
+  </ItemGroup>
+
+</Project>

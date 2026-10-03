@@ -1,0 +1,38 @@
+using System.Text.Json.Serialization;
+using __SOLUTION__.Api.Greetings;
+using __SOLUTION__.Core;
+
+namespace __SOLUTION__.Api;
+
+/// <summary>
+/// The host. Composes the solution and maps the endpoints, and does nothing else.
+/// </summary>
+/// <remarks>
+/// <para>One call to <c>Add__SOLUTION__</c> is the whole of what this host can reach: everything
+/// inside the core is private behind the mediator, so the service-collection extension is the
+/// surface, and adding a capability here means adding a line there.</para>
+///
+/// <para>Each feature maps its own endpoints through one extension method, so this file does not grow
+/// a line per route and a feature can be deleted in one piece.</para>
+/// </remarks>
+internal static class Program
+{
+    private static async Task Main(string[] args)
+    {
+        WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
+
+        builder.Services.Add__SOLUTION__();
+
+        // A severity serialised as a number is a magic number in the client: a front end that
+        // switches on 0, 1 and 2 has encoded an ordering nothing guarantees, and inserting a severity
+        // later silently changes what every old client displays.
+        builder.Services.ConfigureHttpJsonOptions(options =>
+            options.SerializerOptions.Converters.Add(new JsonStringEnumConverter()));
+
+        WebApplication app = builder.Build();
+
+        app.MapGreetings();
+
+        await app.RunAsync().ConfigureAwait(false);
+    }
+}

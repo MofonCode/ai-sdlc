@@ -11,6 +11,10 @@
        run on its own. -->
   <ItemGroup>
     <ProjectReference Include="..\..\src\__SOLUTION__.Core\__SOLUTION__.Core.csproj" />
+
+    <!-- The boundary rules read the endpoints' return types, so this has to see the Api assembly.
+         It polices the shape of what is here rather than calling any of it. -->
+    <ProjectReference Include="..\..\src\__SOLUTION__.Api\__SOLUTION__.Api.csproj" />
   </ItemGroup>
 
 </Project>

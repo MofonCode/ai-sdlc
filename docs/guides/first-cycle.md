@@ -50,7 +50,7 @@ yours to amend:
 | `Directory.Build.props` | warnings as errors, the analyser level, the banned-API list |
 | `Directory.Packages.props` | central package versions, so a project cannot pick its own |
 | `global.json` | the SDK, and the test runner without which the suite silently does not run |
-| `tests/Directory.Build.props` | the five rules relaxed for test code, each with its reason |
+| `tests/Directory.Build.props` | the six rules relaxed for test code, each with its reason |
 
 An **onboard** gets none of them: the profile proposes a shape for new work and never rewrites the
 conventions of a codebase that predates it.
@@ -218,8 +218,10 @@ On a new solution's first cycle, this is also where the skeleton arrives, becaus
 sdlc scaffold 20260929_1456_32
 ```
 
-A solution file, a core project, two test projects and a reference slice written in the shape every
-operation should have. It refuses unless this cycle is approved, so the skeleton is a change like any
+A solution file, a core project, an HTTP project, two test projects, and a reference slice written in
+the shape every operation should have -- including the one conversion every response leaves through,
+which is what makes the banned response factories a rule that can fire rather than a file that looks
+like one. It refuses unless this cycle is approved, so the skeleton is a change like any
 other, and it writes only what is absent — a second run keeps what is there rather than overwriting it.
 Every cycle after this one writes its own code.
 

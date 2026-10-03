@@ -3,6 +3,7 @@ using System.Reflection;
 using System.Runtime.CompilerServices;
 using Microsoft.Extensions.DependencyInjection;
 using MofonCode.Core;
+using __SOLUTION__.Api;
 using __SOLUTION__.Core;
 
 namespace __SOLUTION__.Architecture.Tests;
@@ -31,7 +32,16 @@ public sealed class ConventionTests
     /// </remarks>
     private static readonly string[] _notSubjectToSealing = [];
 
-    private static IReadOnlyList<Assembly> Assemblies => [typeof(__SOLUTION__Services).Assembly];
+    /// <summary>
+    /// Every assembly these rules police.
+    /// </summary>
+    /// <remarks>
+    /// The Api assembly is here too, because a project left off this list is a project the sealed and
+    /// naming rules silently stop applying to - and the host is exactly where somebody writes a class
+    /// in a hurry. The request rule below reads the core alone, which is where requests live.
+    /// </remarks>
+    private static IReadOnlyList<Assembly> Assemblies =>
+        [typeof(__SOLUTION__Services).Assembly, typeof(ApiResult<>).Assembly];
 
     /// <summary>
     /// Every class is sealed, static or abstract.
