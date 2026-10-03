@@ -24,11 +24,6 @@
          taking it inherits its breaking changes, and it is pre-1.0. -->
     <PackageVersion Include="MofonCode.Core" Version="0.2.0" />
 
-    <!-- JSON Schema 2020-12 validation. System.Text.Json does not validate schemas and
-         Microsoft publishes no validator, so this is the absence of an on-stack option
-         rather than a departure from the default stack. -->
-    <PackageVersion Include="JsonSchema.Net" Version="9.4.0" />
-
     <!-- YAML, on the same standing: .NET ships no YAML reader, and artifact frontmatter has
          to be read by a real parser. It exists because a hand-rolled frontmatter regex in
          v02 reported that a skill declared disable-model-invocation while the real parser

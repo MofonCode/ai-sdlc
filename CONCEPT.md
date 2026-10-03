@@ -1057,9 +1057,15 @@ Every pull request installs the gate, builds, tests, **displays code coverage**,
 runner where nothing had put it there, so the one step establishing the guarantee would have reported
 command-not-found. The package is not on a public feed yet, and the generated step says so.
 
-Coverage is displayed, not enforced — no threshold. Coverlet plus ReportGenerator; Azure DevOps has a
-native coverage tab, GitHub needs a PR-comment action. One cheap addition inside the no-threshold
-rule: report the coverage **delta** against the target branch.
+Coverage is displayed, not enforced — no threshold. Collected with Microsoft.Testing.Platform's own
+`--coverage`, which needs no extra package: GitHub summarises it in the job summary, and Azure DevOps
+publishes it to its native coverage tab with `PublishCodeCoverageResults@2`. This said Coverlet plus
+ReportGenerator for a while, which was the plan before the runner carried it; the shipped choice is
+simpler and the sentence was stale rather than wrong-headed.
+
+The coverage **delta** against the target branch is **not** reported, and it is in §19 rather than
+here: it needs a base-branch run to compare against, which is more than the one step this section
+implies.
 
 `verify-chain` re-establishes, from the repository rather than any agent's word, that:
 
@@ -1334,6 +1340,17 @@ block, then remediate, then exhaust the budget.
    completion-certificate trap, where an artifact's existence means `done` and a mistaken one
    silently loses work; `caused-by` / `caused-at-stage`, which is how the process learns **which
    stage leaks**; and the private/public boundary, which v02 never had to answer.
+4. **The coverage delta against the target branch.** §13 described this as taken and nothing reported
+   it. It is cheap only in the sense that it breaks no rule: a delta needs the target branch's own
+   coverage to compare against, so it is a second run or a stored artifact rather than one more step
+   in the pull-request workflow. Worth doing when somebody wants it; dishonest to describe as shipped.
+5. **Resumable `batch-build` state.** §10.1 said a local cycle index persists state so a run can be
+   resumed, and §16 said a cycle index exists so `batch-build` does not glob directories. Neither is
+   built, and the second is the opposite of what `CycleIndex` does deliberately — it globs, because *"a
+   manifest is a second place the truth lives, and the one that goes stale is always the one a tool
+   trusts."* Finding work is a directory listing and should stay one. What is genuinely absent is
+   resume: a long batch run that dies halfway has nothing recording which cycles completed. That wants
+   a run journal rather than an index of cycles, which is a different thing in a different place.
 
 ---
 

@@ -39,19 +39,19 @@ This file is working material. Delete it when the fixes land.
 | F-14 | Medium | done | ~~A duplicated section passes the artifact schema~~ **fixed** |
 | F-15 | Medium | done | ~~`Repository.Run` can deadlock and discards every git error~~ **fixed** |
 | F-16 | Medium | **you** | The scaffold's response rule is stricter than the decision it implements |
-| F-17 | Low | — | `JsonSchema.Net` is referenced, unused, and most of the package |
-| F-18 | Low | — | Four `SuppressMessage` attributes are dead and their justifications are inverted |
-| F-19 | Low | — | `sdlc status` never shows the hash digits §5.3 promises |
+| F-17 | Low | done | ~~`JsonSchema.Net` is referenced, unused, and most of the package~~ **fixed** |
+| F-18 | Low | done | ~~Four `SuppressMessage` attributes are dead and their justifications are inverted~~ **fixed** |
+| F-19 | Low | done | ~~`sdlc status` never shows the hash digits §5.3 promises~~ **fixed** |
 | F-20 | Low | **you** | `findings_rounds` in the approval ledger has no reader |
 | F-21 | Low | done | ~~The first real `Web` project fails the package rule~~ **fixed** |
-| F-22 | Low | — | The scaffold harness keeps a second copy of what adoption writes |
-| F-23 | Low | — | D-38 states a registration shape the template does not carry |
+| F-22 | Low | done | ~~The scaffold harness keeps a second copy of what adoption writes~~ **fixed** |
+| F-23 | Low | done | ~~D-38 states a registration shape the template does not carry~~ **fixed** |
 | F-24 | Low | **you** | §10.2's run-mode environment variable does not exist |
 | F-25 | Low | done | ~~The needs-services heuristic matches "container" and "migration"~~ **fixed** |
-| F-26 | Low | — | The generated `AGENTS.md` points at a file `init` does not create |
+| F-26 | Low | done | ~~The generated `AGENTS.md` points at a file `init` does not create~~ **fixed** |
 | F-27 | Low | **you** | `CON_10.2` cannot be applied by anything |
 | F-28 | Low | **you** | The generated pipeline fails on any branch that is not a cycle branch |
-| F-29 | Low | — | The generated pipelines do not match §13's coverage description |
+| F-29 | Low | done | ~~The generated pipelines do not match §13's coverage description~~ **fixed** |
 | F-30 | Cosmetic | — | §7.5's constraint table is internally inconsistent about revisions |
 | F-31 | Cosmetic | — | `Scaffold.cs` asserts a gap the next commit closed |
 | F-32 | Cosmetic | — | Two `Release` comments assert a tool manifest D-37 rejected |

@@ -155,9 +155,11 @@ public sealed class StructureTests
     /// the diff of one file cannot see that a rule was switched off, and nobody reading the props
     /// file learns it either.
     /// <para>
-    /// <c>SuppressMessage</c> attributes are deliberately not caught here. There are four in the
-    /// tree, each carrying its justification at the site it applies to, and an attribute with a
-    /// stated reason is the documented form rather than the hidden one.
+    /// <c>SuppressMessage</c> attributes are deliberately not caught here: an attribute carrying its
+    /// justification at the site it applies to is the documented form rather than the hidden one. No
+    /// count of them, because the count went stale -- the four that stood in the tree all suppressed
+    /// CA1812, which is in <c>NoWarn</c> repository-wide, so each one suppressed nothing while
+    /// asserting a policy that was not in force. They are comments now. F-18.
     /// </para>
     /// </remarks>
     [TestMethod]

@@ -75,6 +75,7 @@ public static class StatusRenderer
         output.AppendLine();
 
         Field(output, "Gate", GateLine(status));
+        Hashes(output, status);
         output.AppendLine();
 
         Next(output, status, state);
@@ -170,6 +171,42 @@ public static class StatusRenderer
                 string.Create(CultureInfo.InvariantCulture, $"sdlc verify {id}"),
                 string.Create(CultureInfo.InvariantCulture, $"the outcome reads '{status.Outcome}'")),
         };
+
+    /// <summary>
+    /// Each document's approved hash beside its current one, when the gate says one has changed.
+    /// </summary>
+    /// <remarks>
+    /// <strong>The second half of §5.3's mitigation, which shipped without it.</strong> That section
+    /// names two things that make the paste flow bearable: a refusal that names which document changed,
+    /// and <c>status</c> showing the first twelve characters of each hash beside the current twelve.
+    /// Only the first existed, so the panel said "approved, but a document has changed since" and a
+    /// person had to run <c>sdlc gate</c> to find out which -- and the panel is the most-read output in
+    /// the plugin (§14). F-19.
+    /// <para>
+    /// Only on a mismatch. Three hash pairs on every panel is noise, and the pairs say nothing a reader
+    /// needs while they agree.
+    /// </para>
+    /// </remarks>
+    private static void Hashes(StringBuilder output, ReadCycleStatus.Response status)
+    {
+        if (status.Gate.Refusal != ApprovalGate.GateRefusal.HashMismatch)
+        {
+            return;
+        }
+
+        foreach (ApprovalGate.DocumentHash hash in status.Gate.Hashes)
+        {
+            output.AppendLine(string.Create(
+                CultureInfo.InvariantCulture,
+                $"{Indent}{new string(' ', 10)}{hash.Document,-12}{Digits(hash.Approved)} {(hash.Matches ? "==" : "->")} {Digits(hash.Current)}"));
+        }
+    }
+
+    /// <summary>The first twelve characters of a hash, or a word saying there was not one.</summary>
+    /// <param name="hash">The hash, which is null when the document or the approval did not record it.</param>
+    /// <returns>Twelve characters, or "none".</returns>
+    private static string Digits(string? hash) =>
+        string.IsNullOrWhiteSpace(hash) ? "none".PadRight(12) : ContentHash.Abbreviate(hash);
 
     private static string GateLine(ReadCycleStatus.Response status) => status.Gate.Refusal switch
     {

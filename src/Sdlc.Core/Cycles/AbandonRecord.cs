@@ -1,4 +1,3 @@
-using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using FluentResults;
 using Sdlc.Core.Artifacts;
@@ -110,10 +109,11 @@ public sealed record AbandonRecord(string Cycle, string By, DateTimeOffset At, s
         return string.Join(Environment.NewLine, lines).Trim();
     }
 
-    [SuppressMessage(
-        "Performance",
-        "CA1812:Avoid uninstantiated internal classes",
-        Justification = "Constructed by YamlDotNet through reflection, which the analyzer cannot see. Scoped here rather than suppressed repository-wide, where it would hide a class that really is dead.")]
+    // CA1812 does not fire: it is in NoWarn repository-wide, so the attribute that stood
+    // here suppressed nothing and its justification -- "scoped here rather than suppressed
+    // repository-wide" -- asserted the inverse of what the build does. Kept as a comment,
+    // which reads the same and claims nothing: this shape is constructed by YamlDotNet
+    // through reflection, which is why it looks dead. F-18.
     private sealed class Shape
     {
         public string? Cycle { get; set; }

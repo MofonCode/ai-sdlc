@@ -78,11 +78,8 @@ void Write(string relative, string contents)
     written++;
 }
 
-static IEnumerable<(string Path, string Contents)> Stack() =>
-[
-    (".editorconfig", Templates.EditorConfig()),
-    ("Directory.Build.props", Templates.BuildProps()),
-    ("Directory.Packages.props", Templates.PackageProps()),
-    ("global.json", Templates.GlobalJson()),
-    (Path.Combine("tests", "Directory.Build.props"), Templates.TestBuildProps()),
-];
+// Asked for rather than listed. This file used to carry its own copy of the five, with nothing
+// asserting the two agreed -- so a sixth file added to adoption would have left this harness building
+// a solution that no longer matched what `sdlc init` produces: the harness passing and the real thing
+// broken, which is the failure it was built to prevent, one level up. F-22.
+static IEnumerable<(string Path, string Contents)> Stack() => Initialise.StackFiles();

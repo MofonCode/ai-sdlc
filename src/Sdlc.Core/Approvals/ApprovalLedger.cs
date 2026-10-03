@@ -1,4 +1,3 @@
-using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using FluentResults;
 using Sdlc.Core.Artifacts;
@@ -216,10 +215,11 @@ public sealed record ApprovalLedger(
     }
 
     /// <summary>The YAML shape, kept separate from the model so the model has no settable state.</summary>
-    [SuppressMessage(
-        "Performance",
-        "CA1812:Avoid uninstantiated internal classes",
-        Justification = "Constructed by YamlDotNet through reflection, which the analyzer cannot see. Scoped here rather than suppressed repository-wide, where it would hide a class that really is dead.")]
+    // CA1812 does not fire: it is in NoWarn repository-wide, so the attribute that stood
+    // here suppressed nothing and its justification -- "scoped here rather than suppressed
+    // repository-wide" -- asserted the inverse of what the build does. Kept as a comment,
+    // which reads the same and claims nothing: this shape is constructed by YamlDotNet
+    // through reflection, which is why it looks dead. F-18.
     private sealed class LedgerShape
     {
         public string? Cycle { get; set; }
@@ -229,10 +229,11 @@ public sealed record ApprovalLedger(
         public List<EntryShape>? Decisions { get; set; }
     }
 
-    [SuppressMessage(
-        "Performance",
-        "CA1812:Avoid uninstantiated internal classes",
-        Justification = "Constructed by YamlDotNet through reflection, which the analyzer cannot see. Scoped here rather than suppressed repository-wide, where it would hide a class that really is dead.")]
+    // CA1812 does not fire: it is in NoWarn repository-wide, so the attribute that stood
+    // here suppressed nothing and its justification -- "scoped here rather than suppressed
+    // repository-wide" -- asserted the inverse of what the build does. Kept as a comment,
+    // which reads the same and claims nothing: this shape is constructed by YamlDotNet
+    // through reflection, which is why it looks dead. F-18.
     private sealed class EntryShape
     {
         public string? Decision { get; set; }

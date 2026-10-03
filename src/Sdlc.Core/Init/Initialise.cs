@@ -103,6 +103,34 @@ public static class Initialise
     public sealed record Command(string Profile, Platform Platform) : IRequest<Response>;
 
     /// <summary>
+    /// The files that decide how code is written here, written into a scaffolded solution only.
+    /// </summary>
+    /// <remarks>
+    /// <strong>Exposed because something else needs the same list, and a second copy of it is how
+    /// the harness comes to build a solution nobody will ever get.</strong>
+    /// <c>tools/Sdlc.ScaffoldHarness</c> writes these before the skeleton so that what it compiles
+    /// is what adoption produces -- and it listed them by hand, with nothing asserting the two
+    /// agreed. A sixth file added here would have left CI green and the real thing broken, which is
+    /// the failure the harness exists to prevent, one level up. F-22.
+    /// <para>
+    /// An adopted repository gets none of them: the profile proposes a shape for new work and never
+    /// rewrites the conventions of a codebase that predates it. Each is created once and never
+    /// rewritten, update included -- they are a person's to amend, and a cycle that changes one is a
+    /// cycle like any other.
+    /// </para>
+    /// </remarks>
+    /// <returns>Each file's path relative to the solution root, and its contents.</returns>
+    public static IReadOnlyList<(string Path, string Contents)> StackFiles() =>
+    [
+        (".editorconfig", Templates.EditorConfig()),
+        ("Directory.Build.props", Templates.BuildProps()),
+        ("Directory.Packages.props", Templates.PackageProps()),
+        ("global.json", Templates.GlobalJson()),
+        (System.IO.Path.Combine("tests", "Directory.Build.props"), Templates.TestBuildProps()),
+    ];
+
+
+    /// <summary>
     /// Writes the framework into a repository, in one of three modes.
     /// </summary>
     /// <remarks>
@@ -235,14 +263,7 @@ public static class Initialise
             // a cycle that changes one is a cycle like any other.
             if (origin == SolutionOrigin.Scaffolded)
             {
-                foreach ((string path, string contents) in (ValueTuple<string, string>[])
-                [
-                    (".editorconfig", Templates.EditorConfig()),
-                    ("Directory.Build.props", Templates.BuildProps()),
-                    ("Directory.Packages.props", Templates.PackageProps()),
-                    ("global.json", Templates.GlobalJson()),
-                    (Path.Combine("tests", "Directory.Build.props"), Templates.TestBuildProps()),
-                ])
+                foreach ((string path, string contents) in StackFiles())
                 {
                     await Once(path, contents, actions, cancellationToken).ConfigureAwait(false);
                 }
