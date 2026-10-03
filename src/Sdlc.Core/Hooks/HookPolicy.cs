@@ -3,11 +3,15 @@ namespace Sdlc.Core.Hooks;
 /// <summary>What the policy decided, and why.</summary>
 /// <param name="Decision">Allow or deny.</param>
 /// <param name="Reason">Why it was refused. Empty on an allow.</param>
-/// <param name="Path">The path that caused a refusal, when one did.</param>
-public sealed record HookVerdict(HookDecision Decision, string Reason, string? Path)
+/// <remarks>
+/// It carried the offending path as a third field, which nothing ever read. The refusal reason names
+/// the path already — a reason a person cannot act on is not a reason — and both hook paths write a
+/// decision and a reason, with nowhere for a third thing to go.
+/// </remarks>
+public sealed record HookVerdict(HookDecision Decision, string Reason)
 {
     /// <summary>Nothing to say about this call.</summary>
-    public static HookVerdict Allowed { get; } = new(HookDecision.Allow, string.Empty, null);
+    public static HookVerdict Allowed { get; } = new(HookDecision.Allow, string.Empty);
 }
 
 /// <summary>
@@ -53,8 +57,7 @@ public static class HookPolicy
                     {
                         return new HookVerdict(
                             HookDecision.Deny,
-                            ProtectedPaths.Refusal(path, file!),
-                            path);
+                            ProtectedPaths.Refusal(path, file!));
                     }
                 }
 
@@ -67,8 +70,7 @@ public static class HookPolicy
                 {
                     return new HookVerdict(
                         HookDecision.Deny,
-                        ProtectedPaths.CommandRefusal(touched!),
-                        null);
+                        ProtectedPaths.CommandRefusal(touched!));
                 }
 
                 return HookVerdict.Allowed;

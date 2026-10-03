@@ -109,9 +109,12 @@ public static class Land
 
             if (budget.Value.Escalated)
             {
+                // The phrase comes from RemediationBudget.Describe, which exists to build exactly
+                // this and was built here a second time instead -- including its own pluralisation,
+                // which is what a duplicated sentence always grows.
                 return Verdict(cycle, LandRefusal.Escalated, string.Create(
                     CultureInfo.InvariantCulture,
-                    $"Cycle {cycle.Id} is escalated: {budget.Value.Spent} remediation passes spent and {budget.Value.OpenBlockers.Count} finding{(budget.Value.OpenBlockers.Count == 1 ? string.Empty : "s")} still open. A cycle that could not be made to pass within its budget stops rather than landing, and that stopping is what makes an unattended batch safe to run."));
+                    $"Cycle {cycle.Id} is {RemediationBudget.Describe(budget.Value)}. A cycle that could not be made to pass within its budget stops rather than landing, and that stopping is what makes an unattended batch safe to run."));
             }
 
             Result<VerifyChain.Response> chain = await mediator

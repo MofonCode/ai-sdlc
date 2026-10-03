@@ -25,6 +25,14 @@ public sealed record AbandonRecord(string Cycle, string By, DateTimeOffset At, s
     /// <summary>
     /// Reads an <c>abandoned.md</c>.
     /// </summary>
+    /// <remarks>
+    /// <strong>Nothing in the binary calls this, and it is not dead.</strong> Abandonment is read by
+    /// existence alone — <see cref="Cycle.IsAbandoned"/> asks whether the file is there, because the
+    /// fact that stops a cycle is its presence and not anything inside it. What this is for is the
+    /// other direction: <c>sdlc draft abandon</c> prints a record for a person to place, and the
+    /// suite reads that output back through here. A drafter whose output cannot be parsed prints
+    /// something nobody can use, and this is the only thing that would notice.
+    /// </remarks>
     /// <param name="text">The file's contents.</param>
     /// <param name="source">What to call it in an error message.</param>
     /// <returns>The record, or a failure saying what is wrong with it.</returns>

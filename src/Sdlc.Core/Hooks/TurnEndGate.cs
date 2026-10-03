@@ -192,8 +192,7 @@ public static class TurnEndGate
                 CultureInfo.InvariantCulture,
                 $"Run the build and the tests, then 'sdlc evidence {id} --tests <results file> --build-log <log>'.")
             + Environment.NewLine
-            + string.Create(CultureInfo.InvariantCulture, $"'sdlc status {id}' says where the cycle stands."),
-            null);
+            + string.Create(CultureInfo.InvariantCulture, $"'sdlc status {id}' says where the cycle stands."));
 
         private static async Task<string?> ReadBase(string path, CancellationToken cancellationToken)
         {

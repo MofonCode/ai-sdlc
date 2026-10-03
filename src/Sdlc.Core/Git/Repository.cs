@@ -338,7 +338,10 @@ public sealed class GitRepository : IRepository
 
                 return (null, string.Create(
                     CultureInfo.InvariantCulture,
-                    $"git {arguments} did not finish within {_patience / 1000} seconds and was stopped."));
+                    // TotalSeconds, not `_patience / 1000`. Dividing a TimeSpan by 1000 gives five
+                    // milliseconds, so the message read "did not finish within 00:00:00.0050000
+                    // seconds" -- about a timeout nobody could have hit.
+                    $"git {arguments} did not finish within {_patience.TotalSeconds} seconds and was stopped."));
             }
 
             // Safe to block now: the process has exited, so both pipes are closed and complete.

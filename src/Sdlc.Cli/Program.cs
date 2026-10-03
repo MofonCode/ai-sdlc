@@ -11,7 +11,6 @@ using Sdlc.Core.Cycles;
 using Sdlc.Core.Drafts;
 using Sdlc.Core.Evidence;
 using Sdlc.Core.Findings;
-using Sdlc.Core.Git;
 using Sdlc.Core.Hooks;
 using Sdlc.Core.Init;
 using Sdlc.Core.Landing;
@@ -131,7 +130,11 @@ static async Task<int> Init(Workspace workspace, CommandLine line)
     // Committed rather than left in the working tree. An untracked file is untracked when the first
     // cycle takes its diff, so the diff records the whole file as new and a plan saying it changes that
     // file can never match -- the first cycle would fail CON_07.2 for something adoption did.
-    Result commit = new GitRepository().Commit(
+    // Through the container, not `new GitRepository()`. Constructing the concrete type here meant
+    // this one step could not be given a fake, so the only part of adoption that writes to git was
+    // the only part no test could exercise -- while Workspace holds no closure precisely so that a
+    // dependency can be substituted the way the application composes one.
+    Result commit = workspace.Repository.Commit(
         workspace.SolutionRoot,
         report.Written,
         Templates.CommitMessage(report.Mode, report.Written));
@@ -452,7 +455,7 @@ static async Task<int> DraftApproval(Workspace workspace, CommandLine line, Cycl
 {
     string by = line.TryOption("by", out string? named)
         ? named
-        : Git.UserName(workspace.SolutionRoot) ?? "<your name>";
+        : workspace.Repository.UserName(workspace.SolutionRoot) ?? "<your name>";
 
     if (!TryDecision(line, out GateDecision decision, out string? clash))
     {
@@ -483,7 +486,7 @@ static async Task<int> DraftApproval(Workspace workspace, CommandLine line, Cycl
 
 static async Task<int> DraftAbandon(Workspace workspace, CycleId id)
 {
-    string by = Git.UserName(workspace.SolutionRoot) ?? "<your name>";
+    string by = workspace.Repository.UserName(workspace.SolutionRoot) ?? "<your name>";
 
     return await PrintDraft(await workspace
         .Send<AbandonText.Query, DraftResult>(new AbandonText.Query(id, by))

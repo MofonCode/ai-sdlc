@@ -13,9 +13,6 @@ public sealed record RemediationState(int Spent, int Limit, IReadOnlyList<Findin
     /// <summary>Whether anything still blocks.</summary>
     public bool Blocked => OpenBlockers.Count > 0;
 
-    /// <summary>How many passes remain.</summary>
-    public int Remaining => Math.Max(0, Limit - Spent);
-
     /// <summary>
     /// Whether the budget is spent and the cycle still does not pass.
     /// </summary>
@@ -90,6 +87,11 @@ public static class RemediationBudget
     /// <summary>
     /// What to tell somebody about where remediation stands.
     /// </summary>
+    /// <remarks>
+    /// The one place this phrase is built. <see cref="Landing.Land"/> assembled its own escalation
+    /// sentence instead, down to its own pluralisation of "finding" -- two sentences saying the same
+    /// thing, and the one a person read was not the one the suite checked.
+    /// </remarks>
     /// <param name="state">The state.</param>
     /// <returns>One line.</returns>
     public static string Describe(RemediationState state)
@@ -102,19 +104,19 @@ public static class RemediationBudget
                 ? "nothing to remediate"
                 : string.Create(
                     CultureInfo.InvariantCulture,
-                    $"cleared after {Passes(state.Spent)}");
+                    $"cleared after {Count(state.Spent, "pass", "passes")}");
         }
 
         return state.Escalated
             ? string.Create(
                 CultureInfo.InvariantCulture,
-                $"escalated: {Passes(state.Spent)} spent and {state.OpenBlockers.Count} still open")
+                $"escalated: {Count(state.Spent, "remediation pass", "remediation passes")} spent and {Count(state.OpenBlockers.Count, "finding", "findings")} still open")
             : string.Create(
                 CultureInfo.InvariantCulture,
-                $"{state.OpenBlockers.Count} open, {Passes(state.Spent)} spent of {state.Limit}");
+                $"{Count(state.OpenBlockers.Count, "finding", "findings")} open, {Count(state.Spent, "pass", "passes")} spent of {state.Limit}");
     }
 
-    private static string Passes(int number) => number == 1
-        ? "1 pass"
-        : string.Create(CultureInfo.InvariantCulture, $"{number} passes");
+    private static string Count(int number, string singular, string plural) => string.Create(
+        CultureInfo.InvariantCulture,
+        $"{number} {(number == 1 ? singular : plural)}");
 }

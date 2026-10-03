@@ -91,7 +91,11 @@ public sealed class LandingTests
         Assert.AreEqual(1, state.Value.Spent, "The first round is the verification, not a pass.");
         Assert.IsTrue(state.Value.Blocked);
         Assert.IsFalse(state.Value.Escalated);
-        Assert.AreEqual(2, state.Value.Remaining);
+        Assert.AreEqual(RemediationBudget.Limit, state.Value.Limit);
+        StringAssert.Contains(
+            RemediationBudget.Describe(state.Value),
+            "spent of 3",
+            "A cycle inside its budget says how much of it is left, in the one place that phrase is built.");
     }
 
     [TestMethod]

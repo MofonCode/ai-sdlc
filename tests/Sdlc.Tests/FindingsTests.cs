@@ -43,7 +43,11 @@ public sealed class FindingsTests
         Assert.AreEqual(Disposition.Open, finding.Disposition);
         Assert.AreEqual("CON_04.1", finding.Cites);
         Assert.IsTrue(finding.IsOpenBlocker);
-        Assert.IsFalse(result.Value.IsClean);
+
+        // Through StandingBlockers, which is what the gate and the status panel both read. The round
+        // used to answer this itself with an IsClean property, and nothing but this assertion ever
+        // asked it -- so the suite was exercising a second definition of "open" that no caller used.
+        Assert.AreEqual(1, FindingsReader.StandingBlockers([result.Value]).Count);
     }
 
     [TestMethod]
@@ -54,7 +58,7 @@ public sealed class FindingsTests
             "test");
 
         Assert.IsTrue(result.IsSuccess);
-        Assert.IsTrue(result.Value.IsClean);
+        Assert.AreEqual(0, FindingsReader.StandingBlockers([result.Value]).Count);
         Assert.AreEqual(0, result.Value.Findings.Count);
     }
 
@@ -153,7 +157,10 @@ public sealed class FindingsTests
         Finding finding = result.Value.Findings.Single();
         Assert.IsNull(finding.Cites);
         Assert.IsFalse(finding.IsOpenBlocker);
-        Assert.IsTrue(result.Value.IsClean);
+        Assert.AreEqual(
+            0,
+            FindingsReader.StandingBlockers([result.Value]).Count,
+            "A suggestion is noticed and does not block.");
     }
 
     [TestMethod]

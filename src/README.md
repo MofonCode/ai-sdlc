@@ -112,6 +112,13 @@ Where its two inputs come from:
   gate runs from its build output rather than from an installed tool, and the variable is what the suite
   sets to point at a scratch library.
 
+It also exposes **`Workspace.Repository`**, the container's `IRepository`, and that is the only service any
+command reaches directly rather than by dispatching a request. Asking git for the configured user name
+decides nothing and cannot refuse — it pre-fills who is approving on a draft a person then edits. It is
+exposed as that one service rather than a general `Service<T>()`, which would make "dispatch a request" a
+convention instead of the shape. `Sdlc.Cli` previously had its own `Git.UserName` doing the same shell-out,
+and the copy never got either fix `GitRepository` did.
+
 ## Exit codes are a contract
 
 A host hook, a git hook and a pipeline all read them, so `ExitCode` is not an implementation detail.

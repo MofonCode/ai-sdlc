@@ -9,6 +9,14 @@ using Sdlc.Core.Constraints;
 namespace Sdlc.Core.Findings;
 
 /// <summary>One interrogation of one artifact.</summary>
+/// <remarks>
+/// <strong>It had an <c>IsClean</c> property and nothing but tests ever asked it.</strong> Whether an
+/// artifact is clear is not a question about one round: a finding keeps its id across rounds, so a
+/// blocker opened in round one and answered in round two is not open because round one said it was.
+/// <see cref="FindingsReader.StandingBlockers"/> is the fold that answers it, and it says in its own
+/// remarks why there must be exactly one — the gate and the status panel have to agree on what "open"
+/// means, and the one a person reads would not have been the one that refuses the build.
+/// </remarks>
 /// <param name="FrameworkVersion">The version that produced it.</param>
 /// <param name="Cycle">The cycle's id.</param>
 /// <param name="Artifact">The artifact's path, as the round recorded it.</param>
@@ -26,18 +34,7 @@ public sealed record FindingsRound(
     [property: JsonPropertyName("upstream_sha256")] string? UpstreamSha256,
     [property: JsonPropertyName("interrogated_at")] DateTimeOffset? InterrogatedAt,
     int Round,
-    IReadOnlyList<Finding> Findings)
-{
-    /// <summary>
-    /// Whether the round raised nothing that stops the artifact.
-    /// </summary>
-    /// <remarks>
-    /// Clean <em>as of</em> the upstream it recorded. A round judged against an intent that has since
-    /// changed is clean about a document that no longer exists, which is why staleness is computed
-    /// against <see cref="UpstreamSha256"/> rather than inferred from this.
-    /// </remarks>
-    public bool IsClean => !Findings.Any(finding => finding.IsOpenBlocker);
-}
+    IReadOnlyList<Finding> Findings);
 
 /// <summary>Reads interrogation rounds off disk.</summary>
 public static class FindingsReader

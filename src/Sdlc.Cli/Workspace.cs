@@ -2,6 +2,7 @@ using Microsoft.Extensions.DependencyInjection;
 using MofonCode.Core;
 using FluentResults;
 using Sdlc.Core;
+using Sdlc.Core.Git;
 
 namespace Sdlc.Cli;
 
@@ -71,6 +72,31 @@ internal sealed class Workspace
             return await body(new Workspace(provider, solutionRoot)).ConfigureAwait(false);
         }
     }
+
+    /// <summary>
+    /// What git already knows, as the container composed it.
+    /// </summary>
+    /// <remarks>
+    /// <strong>The one service reached directly rather than through a request, and it is here rather
+    /// than in each command for the reason the whole class exists.</strong> Asking git for the
+    /// configured user name is not an application operation -- it decides nothing and cannot fail
+    /// into a refusal; it pre-fills who is approving, on a draft a person then edits.
+    /// <para>
+    /// It is deliberately not a second implementation. <c>Sdlc.Cli</c> carried its own
+    /// <c>Git.UserName</c>, shelling out to <c>git config user.name</c> a second time, and the copy
+    /// never received either fix the one in <see cref="Sdlc.Core.Git.GitRepository"/> did: it
+    /// redirected standard error and never read it while blocking in <c>ReadToEnd</c> with the
+    /// timeout checked afterwards, which is the deadlock that implementation documents, and it threw
+    /// git's own reason away on a failure. Going through the container also means the suite can
+    /// substitute a name, which is what <c>FakeRepository</c> was always for.
+    /// </para>
+    /// <para>
+    /// Exposed as this one service rather than a general <c>Service&lt;T&gt;()</c>, which would let
+    /// any command pull anything out of the container and make "dispatch a request" a convention
+    /// rather than the shape.
+    /// </para>
+    /// </remarks>
+    public IRepository Repository => _provider.GetRequiredService<IRepository>();
 
     /// <summary>Dispatches a request through the mediator.</summary>
     /// <typeparam name="TRequest">The request type.</typeparam>

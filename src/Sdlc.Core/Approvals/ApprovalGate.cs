@@ -212,7 +212,15 @@ public static class ApprovalGate
                 hashes.Add(new DocumentHash(name, approved, actual));
             }
 
-            if (current is null || current.Decision != GateDecision.Approved)
+            // `IsApproved` rather than the comparison written out again. The ledger already names
+            // this concept and documents why the last entry is the one that counts -- a later
+            // approval supersedes a refusal and a later reopen supersedes an approval -- and the
+            // comparison here was a second definition of the same rule, kept correct by coincidence.
+            //
+            // The one thing the old spelling bought was flow analysis: `current is null || ...` left
+            // the compiler able to prove `current` is not null below. `approved` is that proof made
+            // explicit instead, and it cannot drift from the property because it reads it.
+            if (!ledger.IsApproved)
             {
                 string detail = current?.Reason is { } reason
                     ? string.Create(CultureInfo.InvariantCulture, $" The reason given: {reason}")
@@ -279,12 +287,16 @@ public static class ApprovalGate
                 return Verdict(cycle, GateRefusal.StaleRound, Superseded(cycle, stale), ledger, hashes);
             }
 
+            // IsApproved is false whenever there is no standing entry, so reaching here means there
+            // is one.
+            GateEntry standing = ledger.Current!;
+
             return Verdict(
                 cycle,
                 GateRefusal.None,
                 string.Create(
                     CultureInfo.InvariantCulture,
-                    $"Cycle {cycle.Id} was approved by {current.By} at {current.At:u}, and all three documents match what was approved."),
+                    $"Cycle {cycle.Id} was approved by {standing.By} at {standing.At:u}, and all three documents match what was approved."),
                 ledger,
                 hashes);
         }

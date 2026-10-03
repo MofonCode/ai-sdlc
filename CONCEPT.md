@@ -1538,7 +1538,7 @@ Ids are a monotonic sequence of their own, separate from `CON_nn`: a constraint 
 decision explains the framework. Assigned once, never reused. **A reversed decision is superseded by
 a new id rather than edited**, so a commit citing `D-14` still means what it meant.
 
-**This is reference material, not reading.** Forty-seven entries and about half this document, so the
+**This is reference material, not reading.** Forty-eight entries and about half this document, so the
 way in is a lookup rather than the top. `AGENTS.md` carries the two commands; in short, a section's
 trailing `(D-nn)` marker answers "what constrains this", and an entry's `Governs` answers the reverse.
 **Read `Rejected` first when proposing something** — it is where the alternative you are reaching for
@@ -3062,3 +3062,69 @@ reads it.
   for `marketplace.json` in `.github/plugin/` and falls back to `.claude-plugin/`, so the catalogue
   already in the repository is the one it reads. A second copy would be a second place the plugin list
   lives.
+
+### D-48 — Used only by the suite is not the same as dead
+
+**Governs:** §16
+
+**Decision.** A member nothing in the binary calls is removed **unless** it is the single statement of a
+convention the binary depends on, or the inverse of something the binary produces. Those two stay, and
+each says in its own remarks why it has no production caller — so the next reader, or the next dead-code
+pass, does not have to work it out again.
+
+**Why this needed deciding at all.** A reference analysis over the whole repository turned up around
+fifty members in `Sdlc.Core` that nothing outside the suite names. "Delete what only tests use" would
+have taken two things with it that are load-bearing:
+
+- `Cycle.FindingsPath` is where the name of a findings file is decided. Rounds are written by skills and
+  read back by glob, so the binary never needs one by name — but the suite writes its fixture rounds
+  through it, which is what makes a change to the convention break the glob's tests instead of silently
+  passing against files the reader no longer finds.
+- `AbandonRecord.Read` parses a file the binary only ever tests for existence, because presence is what
+  stops a cycle. What it is for is reading back what `sdlc draft abandon` prints: a drafter whose output
+  cannot be parsed prints something nobody can use, and this is the only thing that would notice.
+
+**And the opposite case, which is the common one.** `FindingsRound.IsClean` answered "did this round
+raise a blocker" and only an assertion ever asked. It was also *wrong* as a way to answer the question
+anybody cares about: a finding keeps its id across rounds, so a blocker opened in round one and answered
+in round two is not open because round one said so. `FindingsReader.StandingBlockers` is the fold the
+gate and the status panel both read, and its own remarks say there must be exactly one of it. So the
+suite was exercising a second definition of "open" that no caller used, which is worse than no test —
+it reads as coverage.
+
+**The test for which is which.** Does something outside the suite depend on this being right? For
+`FindingsPath` the glob does; for `AbandonRecord.Read` the drafter's output does. For `IsClean`,
+`RemediationState.Remaining` and `HookVerdict.Path`, nothing did.
+
+**Why the duplicates were the valuable half.** Four of the removals were not unused code but a *second*
+implementation whose unused copy was the better one: `Sdlc.Cli` had its own `Git.UserName` that never
+received the deadlock fix or the error-reporting fix `GitRepository` got; `ApprovalGate` wrote out the
+comparison `ApprovalLedger.IsApproved` already names; `Land` assembled the escalation sentence
+`RemediationBudget.Describe` exists to build, down to its own pluralisation; and adoption's commit went
+through `new GitRepository()` rather than the container, which made the one step that writes to git the
+one step no test could substitute. In each case the fix was to use the thing already there, which is why
+a dead-code pass is worth running at all — the dead member is the symptom and the live duplicate is the
+defect.
+
+**Rejected.**
+
+- *Deleting everything the binary does not call* — rejected above. It would have moved a naming
+  convention into test code and removed the only check that a drafter's output can be read back.
+- *Keeping everything, on the grounds that a test is a caller* — rejected. A test over a member nothing
+  else uses asserts a behaviour no caller has, and it reads as coverage of the real path while the real
+  path goes unexercised. `IsClean` is exactly that, and the assertions now go through
+  `StandingBlockers`, which is what the gate reads.
+- *An attribute or a naming convention marking "exists for the suite"* — rejected. It is a handful of
+  members, the reason differs in each case, and a marker would say "deliberate" where the remarks say
+  why. A reader who disagrees with a sentence can argue with it; a reader who meets an attribute can
+  only obey it.
+- *Removing the record fields a renderer never reads* — rejected for now rather than decided. Several
+  responses carry a field nothing prints — `Land.Response.Chain` holds which chain check failed while
+  the renderer says only that the chain does not hold — and in those cases the honest reading is that
+  something *should* read it, so removing the field would be deleting the evidence of a thin output
+  rather than cleaning up. They are listed where the work is tracked, not quietly dropped.
+- *Removing the artifact-format fields nothing reads* — rejected. `Finding.Locus`, `Finding.Remedy` and
+  `Disposition.Withdrawn` are §7's documented format, written by the interrogate skill and present in
+  `reference/iteration-3-cycle/`; a reader of a findings file wants them whether or not the gate does.
+  `DispositionBy` and `DispositionAt` are the live edge of that: §7 says disposition transitions carry
+  who and when, and no skill asks for either field, so the gap is in the skill rather than the record.
