@@ -1903,3 +1903,181 @@ argument for a manifest.
 
 Also rejected: leaving the step out and documenting the gap, which is what the guides did before this.
 A documented gap in a generated file is still a generated file that looks like a gate.
+
+### D-38 — `Application` is the solutioning layer, and its data access is internal to it
+
+**Decision.** A scaffolded solution's `src/` holds four projects, each prefixed with the solution's own
+name, and exactly one of them can reach data or a third party.
+
+| Project | Holds | Public surface |
+|---|---|---|
+| `Contracts` | the wire shapes — a response record per operation, a request record for each command that needs a body, and the enums they carry | all of it; that is the whole point of it |
+| `Application` | commands, queries, handlers, validators, the `DbContext`, every third-party SDK wrapper | the requests and the registration extension |
+| `Api` | endpoints, and the one conversion from a `Result` to a response | nothing; `Program` is internal |
+| `Web` | Blazor WebAssembly — shapes queried data, sends commands | nothing |
+
+```
+Contracts   -> nothing, and no package reference either
+Application -> Contracts
+Api         -> Application
+Web         -> Contracts
+```
+
+**The `DbContext` is `internal` to `Application`, and so is every SDK wrapper.** No other assembly can
+query, and none can acquire the ability without a change a rule refuses.
+
+**Why one project rather than an application layer over an infrastructure layer.** The split insures
+against swapping the ORM, and that is not the event that happens. Changing the *provider* happens, and
+EF already abstracts it, so the layer earns nothing against the real case while charging a project and
+an interface per capability against the imaginary one. Worse, it relocates the failure it claims to
+prevent: with a port per capability, the uncontrolled surface is the set of ports, and ten developers
+under a deadline produce ten ports rather than ten queries.
+
+**Why `internal` rather than a port.** A port is a convention — nothing stops a fortieth method on an
+`IOrderStore`, or a second interface reading the same table a different way, which is exactly what a
+timeline produces. `internal` is decided by the compiler: no other assembly can query, full stop. The
+framework's own rule is that a constraint belongs in the lowest layer that can hold it, and an access
+modifier is lower than any test. It is also the reason the operation shape keeps its handler
+`private` — the boundary is enforced by what can be named, not by what was agreed.
+
+**Why no repository.** `DbContext` is already a unit of work and `DbSet<T>` is already a repository. A
+wrapper over them is a hand-maintained surface strictly worse than the one it hides, and it buys the
+swappability that the paragraph above establishes nobody uses.
+
+**Why the front end is WebAssembly, and why that is a decision rather than a solution's choice.** A
+same-process front end can inject the mediator and dispatch a command directly, which makes "the UI
+holds no business logic" a convention. WebAssembly cannot reference the application project even by
+accident, and the reason is concrete rather than architectural: **WASM ships every referenced assembly
+to the browser**, so a reference from `Web` to `Application` would download EF Core, the database
+provider and every vendor SDK to each client. The access modifiers stop the UI *calling* the data
+layer; they do not stop the bytes shipping. That is what `Contracts` exists to prevent.
+
+**What the rules are.** Three, and none of them is a convention. All live in the architecture test
+project:
+
+- **the direction rule** — the adjacency above, read from `.csproj` files. It is what stops `Web`
+  reaching past the wire into `Application`.
+- **the package rule** — only `Application` may reference `Microsoft.EntityFrameworkCore*`, a database
+  provider, or a vendor SDK; `Contracts` may reference nothing at all. `internal` stops another project
+  *using* the context; this is what stops it declaring a second one. Both are needed, and the second is
+  the one somebody reaches for when the first is in the way.
+- **the response rule** — every `IRequest<T>` declared in `Application` has its `T` declared in
+  `Contracts`. Without it, the first operation written from muscle memory nests its response in its
+  holder and the client cannot see it. The suite already enumerates `IRequest<>` implementations to
+  check that each has a registered handler, so this is a few lines on machinery that exists.
+
+None passes vacuously: each enumerates the projects or requests it knows about and asserts a negative
+of each, so a repository with no EF reference anywhere still has something to inspect.
+
+**Where a shape lives, and the one existing pattern this changes.**
+
+A response record *is* the wire shape, so it lives in `Contracts`. The query or command stays nested in
+its holder, because it is internal to the operation and nothing outside dispatches it. The folders
+mirror, so finding a response is mechanical rather than a search:
+
+```
+src/<solution>.Contracts/Greetings/GreetResponse.cs
+src/<solution>.Application/Greetings/Greet.cs      Query, Validator, Handler, registration
+```
+
+**The response is named flatly — `GreetResponse`, not nested in a second `Greet` holder in
+`Contracts`.** Nesting it would put two static classes called `Greet` in two namespaces, and the one
+file that must name both is the holder, where the ambiguity would land. The asymmetry is deliberate and
+the template says so, or somebody tidies it into a collision.
+
+This is a departure from the shape the reference slice teaches — *"the response nests with the query
+that produces it"* — and its remarks have to state the new rule rather than leave the old sentence
+standing.
+
+**Inbound shapes are asymmetric, for a reason.** A response always has to be shared, because the client
+deserialises it. A request often does not: for a query the endpoint binds from route and query string
+and constructs the request itself, so no inbound type exists at all. A request record goes in
+`Contracts` only when a command carries a body the client has to serialise, and the endpoint maps it to
+the command in one line. That mapping can drift like any other, but it exists on a minority of
+operations rather than all of them, and a field missed there surfaces as a validation failure rather
+than as silence.
+
+**What it costs, stated plainly.**
+
+- **`internal` buys "only this project", not "only one way".** Two hundred handlers touching
+  `DbContext` directly is the same failure at a smaller radius, with one team and one review surface
+  instead of several. No layer fixes that; a convention about where queries are composed might, and it
+  is not decided here.
+- **The wire shape and the handler's response are one type.** Renaming a field is a breaking change to
+  the client, and there is no seam at which to version one without the other. This is the cost of
+  rejecting a mapping layer, and the condition that would reverse it is named under `Rejected`.
+- **An operation is two files rather than one.** Every decision, rule and line of logic stays in the
+  holder; what leaves is a flat record's field list. Reading one file still says what the operation
+  does.
+- **The registration extension takes an options delegate.** `Program` cannot name an internal
+  `DbContext`, so registration moves inside the project that owns the schema — which is also what keeps
+  the connection string there. The services file must distinguish this from the factory-closure it
+  already forbids, which is about handlers rather than configuration.
+- **Migrations need a design-time factory inside `Application`.** EF's tooling reflects over the
+  assembly and finds an internal one; the `--startup-project` form is the fallback if it ever does not.
+
+**Testing, and what is deferred.** Containers against the real provider are the eventual answer and are
+**not** adopted now: the resources are not there, and a deferral is honest where a weaker substitute is
+not. Until then the suite dispatches through the test gate as it already does, and state is seeded
+directly through the context — which the existing `InternalsVisibleTo` to the test project already
+permits.
+
+Two rules survive the deferral. **The in-memory EF provider is not used**, now or later: it enforces no
+relational constraint, has no transactions, and translates differently, so it is a provider that lets a
+test pass where production fails — the vacuous success this framework's own suite is written against,
+arriving through the data layer. SQLite in-memory is the defensible fast option; whatever gates in CI
+runs against the real provider.
+
+And **a test that cannot find its key fails rather than skips.** §17 records the nightly job that
+needed an API key nobody had set, warned, and exited cleanly — a check that tested nothing while
+appearing to run. The rule is cheapest to adopt before the first such test exists.
+
+**The deferral has a deadline rather than a date.** The default profile ships no EF, so there is nothing
+to integration-test on the first day. The first cycle that adds EF is the one that must answer what it
+tests against, and this entry is what it answers to.
+
+**What the skeleton writes, and what waits for a cycle.** The contracts, application and api projects
+and the two test projects, with the reference slice spanning them. **The web project is written by
+neither adoption nor the skeleton** — the same reasoning as EF: a UI in the default profile commits
+every scaffolded solution to having one. The direction rule covering `Web` ships anyway and costs
+nothing while no such project exists, because it asserts a negative over the projects it finds.
+
+**No `Core` until it has two occupants in two projects.** Cross-cutting helpers are a real category and
+an empty project is not; a project created before it has an inhabitant gets filled with whatever
+arrives, and the reference slice states the mechanism — shape beats instruction. `Contracts` passes that
+test on the first day, with the response record that `Api` and `Web` both need. A helpers project does
+not, and the bar for creating one is two things, used by two projects, that exist.
+
+**Rejected.**
+
+- *A separate infrastructure project* — the layered shape. Rejected for the reason above: it insures
+  against the swap that does not occur, is no help with the one that does, and converts a query surface
+  into a port surface rather than closing it.
+- *A repository abstraction over `DbContext`* — rejected as a worse copy of what EF already provides.
+- *A `Core` project on the first day* — rejected as a project without an occupant. Not rejected as an
+  idea.
+- *EF in the default profile* — rejected because it decides a data story for every solution this
+  scaffolds, and the kernel is deliberately chosen so that adopting it decides none.
+- *Blazor Server* — rejected for the reason given above: it makes the dumb front end a convention,
+  where WebAssembly makes it structural.
+- *`Web` referencing `Application` directly, with no contracts project* — rejected because WASM would
+  ship the data layer and every vendor SDK to the browser. It is the option that looks free.
+- *The in-memory EF provider* — rejected above.
+- *Mapping a handler's response to a separate wire record, with the response staying nested* — rejected
+  because the mapping **drifts silently**: a field added to a response and missed in the mapping
+  produces no build error and no test failure, only a client that never sees it, and the test that would
+  catch it is machinery written to defend machinery. **What would reverse this:** deployed clients
+  running against a newer Api. A cached WASM bundle plus rolling deploys means an internal rename breaks
+  yesterday's client, and then the mapping is the seam that absorbs it. Client and Api deploying
+  together is the assumption this rests on, and it is the thing to re-read when that stops being true.
+- *Generating the client from the OpenAPI document* — Kiota or NSwag, with the response staying nested
+  and no hand-written contracts at all. It satisfies both instincts and was rejected for its cost: a
+  generation step in the build and in CI, and generated code that fails quietly when the generator
+  no-ops. Worth revisiting if `Contracts` ever becomes large enough to be its own maintenance burden.
+- *Containers now* — deferred, not rejected.
+
+**What this makes honest.** Nothing recorded the scaffolded layout before this. It existed as the
+contents of `Solution.slnx.template` and two project files, which made it a convention that read as a
+decision — the category this framework exists to eliminate, sitting inside the framework. It also gives
+two helpers in the scaffolded `RepoFiles` a job: `ProjectReferences` and `PackageReferences` were both
+written and never called, which is the previous pass having intended roughly this and stopping short.
