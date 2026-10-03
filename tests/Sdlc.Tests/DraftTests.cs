@@ -1,4 +1,5 @@
 using FluentResults;
+using Microsoft.Extensions.DependencyInjection;
 using Sdlc.Core.Constraints;
 using Sdlc.Core.Cycles;
 using Sdlc.Core.Drafts;
@@ -204,6 +205,24 @@ public sealed class DraftTests
         StringAssert.Contains(rendered, "Place this:");
         StringAssert.Contains(rendered, "profile: x");
         StringAssert.Contains(rendered, "Open the file.");
+    }
+
+    [TestMethod]
+    public async Task The_abandonment_record_is_stamped_with_the_clock_the_container_supplied()
+    {
+        // The reason the handler takes a TimeProvider. This record is the only thing a dropped cycle
+        // leaves behind, and 'at' is what places it in the history -- so the format is worth pinning
+        // rather than asserting around.
+        using var workspace = CycleWorkspace.Create();
+        using var gate = Gate.For(
+            workspace.Root,
+            services => services.AddSingleton<TimeProvider>(
+                new FakeClock(new DateTimeOffset(2026, 10, 3, 14, 7, 9, 512, TimeSpan.Zero))));
+
+        DraftResult draft = Ok(await gate.Send<AbandonText.Query, DraftResult>(
+            new AbandonText.Query(workspace.Cycle.Id, "Peter Almanzar")));
+
+        StringAssert.Contains(draft.Entry, "at: 2026-10-03T14:07:09Z");
     }
 
     private static async Task<DraftResult> Abandon(CycleWorkspace workspace)

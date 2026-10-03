@@ -73,7 +73,7 @@ public sealed class CycleIdTests
     {
         // Truncation matters: an id carrying milliseconds would not round-trip through its own
         // directory name, so the id in a path and the id in memory would differ.
-        var clock = new FakeTimeProvider(new DateTimeOffset(2026, 10, 1, 9, 5, 7, 884, TimeSpan.Zero));
+        var clock = new FakeClock(new DateTimeOffset(2026, 10, 1, 9, 5, 7, 884, TimeSpan.Zero));
 
         var id = CycleId.Allocate(clock);
 
@@ -84,7 +84,7 @@ public sealed class CycleIdTests
     [TestMethod]
     public void Allocation_round_trips_through_parsing()
     {
-        var clock = new FakeTimeProvider(new DateTimeOffset(2026, 10, 1, 9, 5, 7, TimeSpan.Zero));
+        var clock = new FakeClock(new DateTimeOffset(2026, 10, 1, 9, 5, 7, TimeSpan.Zero));
 
         var allocated = CycleId.Allocate(clock);
 
@@ -126,10 +126,5 @@ public sealed class CycleIdTests
         // branch", and the turn-end gate asks it to find out whether it has any business at all.
         Assert.IsFalse(CycleId.TryParseBranch(branch, out CycleId? id));
         Assert.IsNull(id);
-    }
-
-    private sealed class FakeTimeProvider(DateTimeOffset now) : TimeProvider
-    {
-        public override DateTimeOffset GetUtcNow() => now;
     }
 }

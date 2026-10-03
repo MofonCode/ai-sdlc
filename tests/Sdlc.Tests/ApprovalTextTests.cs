@@ -1,5 +1,6 @@
 using System.Globalization;
 using FluentResults;
+using Microsoft.Extensions.DependencyInjection;
 using Sdlc.Core.Approvals;
 using Sdlc.Core.Cycles;
 
@@ -345,6 +346,26 @@ public sealed class ApprovalTextTests
             text.MayApprove,
             "Every decision records three hashes, so there is nothing to refuse until all three "
             + "documents exist.");
+    }
+
+    [TestMethod]
+    public async Task The_entry_is_stamped_with_the_clock_the_container_supplied()
+    {
+        // The reason the handler takes a TimeProvider. Read from a static this line could only be
+        // asserted around -- a regex, or a range either side of now -- and the format is the part that
+        // matters, because the ledger is parsed back and 'at' is what orders two decisions.
+        using CycleWorkspace workspace = Ready();
+        using var gate = Gate.For(
+            workspace.Root,
+            services => services.AddSingleton<TimeProvider>(
+                new FakeClock(new DateTimeOffset(2026, 10, 3, 14, 7, 9, 512, TimeSpan.Zero))));
+
+        Result<ApprovalText.Response> result = await gate
+            .Send<ApprovalText.Query, ApprovalText.Response>(
+                new ApprovalText.Query(workspace.Cycle.Id, "Peter Almanzar"));
+
+        Assert.IsTrue(result.IsSuccess, string.Join("; ", result.Errors.Select(e => e.Message)));
+        StringAssert.Contains(result.Value.Entry, "    at: 2026-10-03T14:07:09Z");
     }
 
     private static CycleWorkspace Ready()

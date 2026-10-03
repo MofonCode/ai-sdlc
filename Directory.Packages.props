@@ -8,6 +8,12 @@
   <ItemGroup>
     <PackageVersion Include="MSTest" Version="4.4.1" />
 
+    <!-- Reads BannedSymbols.txt and fails the build on a call this repository has ruled out.
+         PrivateAssets=all where it is referenced, because an analyzer is a build-time tool and
+         never a dependency of what ships. Same version the dotnet-default profile pins, so the
+         framework and the solutions it scaffolds are refused by the same analyzer. -->
+    <PackageVersion Include="Microsoft.CodeAnalysis.BannedApiAnalyzers" Version="4.14.0" />
+
     <!-- The container itself. MofonCode.Core takes only the abstractions, deliberately, so the
          host is what chooses an implementation. Latest stable 10.x, resolved rather than guessed. -->
     <PackageVersion Include="Microsoft.Extensions.DependencyInjection" Version="10.0.12" />

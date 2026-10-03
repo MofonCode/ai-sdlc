@@ -860,6 +860,16 @@ no baseline field (§8.3): an existing repository is not in violation on its fir
 nearly free to declare and expensive to apply to code that predates it, so the cost belongs with
 whoever plans the move rather than with adoption.
 
+**The framework runs the bans it ships.** It did not, for a while, and nothing could see it: the profile
+shipped `BannedSymbols.txt` and this repository had no banned list at all, so the two drafters that stamp
+a person's record — an approval entry and an abandonment — both read the clock from a static, in a
+repository whose whole argument is that a rule nobody can enforce is one somebody reaches for at the
+moment it is inconvenient. `ai-sdlc` now has its own list and its own wiring, and a fitness function
+compares the two: a symbol banned in every solution the framework scaffolds and not in the framework is
+a failing test naming the symbol. It compares symbols rather than files, because the reasons are written
+for different readers and the framework may ban more of its own than it imposes on anybody else — the
+asymmetry that is wrong is the other one.
+
 ### 11.3.1 The shape of one operation
 
 Settled by building it. **One static holder per application operation, named for the operation**, with

@@ -19,6 +19,9 @@ internal static class RepoPaths
     /// <summary>The shipped global constraint library.</summary>
     public static string Library => Path.Combine(Root, "CONSTRAINTS.md");
 
+    /// <summary>This repository's own banned-API list, the one its build reads.</summary>
+    public static string BannedSymbols => Path.Combine(Root, "BannedSymbols.txt");
+
     private static string Find()
     {
         string? directory = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);

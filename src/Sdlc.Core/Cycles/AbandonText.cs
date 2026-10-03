@@ -38,7 +38,12 @@ public static class AbandonText
     /// the cycle on the record rather than in a conversation nobody can find.
     /// </remarks>
     /// <param name="solution">The root of the solution being governed.</param>
-    private sealed class Handler(SolutionRoot solution)
+    /// <param name="clock">
+    /// What stamps the record. Injected rather than read from a static, which is what lets a test assert
+    /// the stamped line instead of asserting around it — and it is the rule this framework bans the
+    /// alternative to in every solution it scaffolds.
+    /// </param>
+    private sealed class Handler(SolutionRoot solution, TimeProvider clock)
         : IRequestHandler<Query, DraftResult>
     {
         /// <inheritdoc />
@@ -71,7 +76,7 @@ public static class AbandonText
                     string.Create(CultureInfo.InvariantCulture, $"by: {request.By}"),
                     string.Create(
                         CultureInfo.InvariantCulture,
-                        $"at: {DateTimeOffset.UtcNow:yyyy-MM-ddTHH:mm:ssZ}"),
+                        $"at: {clock.GetUtcNow():yyyy-MM-ddTHH:mm:ssZ}"),
                     "---",
                     string.Empty,
                     "# Why this cycle stopped",

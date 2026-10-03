@@ -152,6 +152,38 @@ public sealed class ScaffoldTests
     }
 
     [TestMethod]
+    public void This_repository_bans_everything_the_profile_it_ships_bans()
+    {
+        // The framework held consumers to a rule it did not run on itself: the profile shipped the
+        // clock ban and ai-sdlc had no banned list at all, so both drafters that stamp a person's
+        // record read the clock from a static. Nothing could see it, in a repository whose whole
+        // argument is that a rule nobody enforces is one somebody reaches for when it suits them.
+        //
+        // So this is the rule about the rules. A ban added to the template from here on is a ban this
+        // repository takes too, or this fails and says which one -- and it compares the symbols rather
+        // than the files, because the reasons are addressed to different readers and the framework may
+        // ban more of its own than it imposes on anybody else.
+        string shipped = Scaffold.Files(Name).Single(file => file.Key == "BannedSymbols.txt").Value;
+        string own = File.ReadAllText(RepoPaths.BannedSymbols);
+
+        foreach (string symbol in Symbols(shipped))
+        {
+            CollectionAssert.Contains(
+                Symbols(own).ToList(),
+                symbol,
+                symbol + " is banned in every solution this scaffolds and not in this one. Either take "
+                + "the ban, or stop shipping it.");
+        }
+    }
+
+    /// <summary>The symbol each banned-API line names, without its reason.</summary>
+    private static IEnumerable<string> Symbols(string file) => file
+        .Split('\n', StringSplitOptions.RemoveEmptyEntries)
+        .Select(line => line.Trim())
+        .Where(line => line.Length > 0 && !line.StartsWith('#'))
+        .Select(line => line.Split(';')[0]);
+
+    [TestMethod]
     public void The_scaffold_bans_reading_the_clock_from_a_static()
     {
         // The one ban worth shipping before there is an HTTP boundary to ban Results.Problem at. A

@@ -68,4 +68,14 @@
     <EnableMSTestRunner>true</EnableMSTestRunner>
   </PropertyGroup>
 
+  <!-- The banned-API list. Wired once here rather than per project, so a project added later is
+       covered without anybody remembering - and it is the same mechanism the dotnet-default profile
+       ships, because a framework that holds consumers to a rule it does not run on itself has a
+       convention rather than an invariant. It had one for a while: the profile shipped the clock ban
+       and this repository read the clock from a static in two drafters. -->
+  <ItemGroup>
+    <PackageReference Include="Microsoft.CodeAnalysis.BannedApiAnalyzers" PrivateAssets="all" />
+    <AdditionalFiles Include="$(MSBuildThisFileDirectory)BannedSymbols.txt" />
+  </ItemGroup>
+
 </Project>

@@ -66,7 +66,12 @@ public static class ApprovalText
     /// How the cycle's status is read. It takes no solution root of its own: the only thing it
     /// needed one for was reaching the status handler, and that is now a dispatch.
     /// </param>
-    private sealed class Handler(Mediator mediator)
+    /// <param name="clock">
+    /// What stamps the entry. Injected rather than read from a static, which is what lets a test assert
+    /// the stamped line instead of asserting around it — and it is the rule this framework bans the
+    /// alternative to in every solution it scaffolds.
+    /// </param>
+    private sealed class Handler(Mediator mediator, TimeProvider clock)
         : IRequestHandler<Query, Response>
     {
         /// <inheritdoc />
@@ -126,7 +131,7 @@ public static class ApprovalText
                 return Refuse(status, Blocked(status), request.Decision);
             }
 
-            string entry = Entry(status, request.By, request.Decision);
+            string entry = Entry(status, request.By, request.Decision, clock.GetUtcNow());
 
             return Result.Ok(new Response(
                 status,
@@ -252,13 +257,17 @@ public static class ApprovalText
         /// Reached only once every blocker is answered, so there is nothing to carry forward and nothing to
         /// warn about. The entry records who, when, the three hashes, and the round each hash was taken at.
         /// </remarks>
-        private static string Entry(ReadCycleStatus.Response status, string by, GateDecision decision)
+        private static string Entry(
+            ReadCycleStatus.Response status,
+            string by,
+            GateDecision decision,
+            DateTimeOffset at)
         {
             StringBuilder entry = new();
 
             entry.AppendLine(CultureInfo.InvariantCulture, $"  - decision: {ApprovalLedger.NameOf(decision)}");
             entry.AppendLine(CultureInfo.InvariantCulture, $"    by: {by}");
-            entry.AppendLine(CultureInfo.InvariantCulture, $"    at: {DateTimeOffset.UtcNow:yyyy-MM-ddTHH:mm:ssZ}");
+            entry.AppendLine(CultureInfo.InvariantCulture, $"    at: {at:yyyy-MM-ddTHH:mm:ssZ}");
             entry.AppendLine("    hashes:");
 
             // The key carries its colon before the padding, so the columns line up and the result is
