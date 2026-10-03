@@ -21,48 +21,101 @@ This file is working material. Delete it when the fixes land.
 
 ## Index
 
-| Id | Severity | Finding |
+| Id | Severity | Needs | Finding |
+|---|---|---|---|
+| F-01 | Critical | done | ~~The pre-tool hook auto-approves every call it does not refuse~~ **fixed, D-39** |
+| F-02 | Critical | done | ~~`sdlc init` overwrites the project's `.claude/settings.json`~~ **fixed, D-40** |
+| F-03 | Critical | done | ~~The packed tool ships no constraint library, so nothing but `help` and `version` runs~~ **fixed, D-41** |
+| F-04 | High | — | A deleted or malformed findings round makes the gate and the chain check blind |
+| F-05 | High | — | `diff.patch` omits every new file, and the comparison reports agreement |
+| F-06 | High | — | `outcome: "pass"` passes the schema and fails the chain |
+| F-07 | High | — | Adoption writes a props file referencing a file it does not write |
+| F-08 | Medium | **you** | The `refine` and `remediate` guards are claimed as hook rules and are prose |
+| F-09 | Medium | — | §11.3.1 and D-38 give contradictory rules for where a response lives |
+| F-10 | Medium | — | The scaffold's package rule has an unguarded exemption |
+| F-11 | Medium | — | A blocking finding with no citation is accepted |
+| F-12 | Medium | — | `NewCycle` uses the look-then-create D-10 rejected |
+| F-13 | Medium | — | `sdlc claims` schedules unapproved, abandoned and landed cycles |
+| F-14 | Medium | — | A duplicated section passes the artifact schema |
+| F-15 | Medium | — | `Repository.Run` can deadlock and discards every git error |
+| F-16 | Medium | **you** | The scaffold's response rule is stricter than the decision it implements |
+| F-17 | Low | — | `JsonSchema.Net` is referenced, unused, and most of the package |
+| F-18 | Low | — | Four `SuppressMessage` attributes are dead and their justifications are inverted |
+| F-19 | Low | — | `sdlc status` never shows the hash digits §5.3 promises |
+| F-20 | Low | **you** | `findings_rounds` in the approval ledger has no reader |
+| F-21 | Low | — | The first real `Web` project fails the package rule |
+| F-22 | Low | — | The scaffold harness keeps a second copy of what adoption writes |
+| F-23 | Low | — | D-38 states a registration shape the template does not carry |
+| F-24 | Low | **you** | §10.2's run-mode environment variable does not exist |
+| F-25 | Low | — | The needs-services heuristic matches "container" and "migration" |
+| F-26 | Low | — | The generated `AGENTS.md` points at a file `init` does not create |
+| F-27 | Low | **you** | `CON_10.2` cannot be applied by anything |
+| F-28 | Low | **you** | The generated pipeline fails on any branch that is not a cycle branch |
+| F-29 | Low | — | The generated pipelines do not match §13's coverage description |
+| F-30 | Cosmetic | — | §7.5's constraint table is internally inconsistent about revisions |
+| F-31 | Cosmetic | — | `Scaffold.cs` asserts a gap the next commit closed |
+| F-32 | Cosmetic | — | Two `Release` comments assert a tool manifest D-37 rejected |
+| F-33 | Cosmetic | — | §16's cycle-index claim contradicts `CycleIndex.cs` |
+| F-34 | Cosmetic | — | `tools/` and the repository's own CI are recorded only in `AGENTS.md` |
+| F-35 | Cosmetic | — | The scaffold prints the line D-35 cited as evidence of a problem |
+| F-36 | Cosmetic | — | §15.2's command table omits `scaffold` and `version` |
+| F-37 | Cosmetic | — | `IRepository.TrackedFiles`' documentation describes filtering it does not do |
+| F-38 | Cosmetic | — | §16's layout names a `tests.trx`; the code keeps the runner's own filename |
+| F-39 | Cosmetic | — | The no-flags trap for `dotnet test` is documented in one skill and nowhere else |
+| F-40 | Cosmetic | **you** | A revised constraint leaves nothing readable at the revision findings cite |
+
+---
+
+# Triage
+
+Re-read at commit `7716c63`, after F-01, F-02 and F-03 landed. The question asked of each remaining
+finding was narrow: **does fixing it require Peter to decide something, or only to be told it is done?**
+
+**Thirty-seven open. Seven need an answer; thirty do not.** The thirty are not all small — F-04, F-06
+and F-15 are real work — but each one's remedy is already determined by a recorded decision, by a rule
+the framework states about itself, or by a single obviously-correct reading. None of them needs a
+preference.
+
+## The seven
+
+Each is a genuine fork where both branches are defensible and the choice has consequences past this fix.
+Stated as questions, so they can be answered in one pass without re-reading the findings.
+
+| Id | The question | Why it is yours |
 |---|---|---|
-| F-01 | Critical | ~~The pre-tool hook auto-approves every call it does not refuse~~ **fixed, D-39** |
-| F-02 | Critical | ~~`sdlc init` overwrites the project's `.claude/settings.json`~~ **fixed, D-40** |
-| F-03 | Critical | ~~The packed tool ships no constraint library, so nothing but `help` and `version` runs~~ **fixed, D-41** |
-| F-04 | High | A deleted or malformed findings round makes the gate and the chain check blind |
-| F-05 | High | `diff.patch` omits every new file, and the comparison reports agreement |
-| F-06 | High | `outcome: "pass"` passes the schema and fails the chain |
-| F-07 | High | Adoption writes a props file referencing a file it does not write |
-| F-08 | Medium | The `refine` and `remediate` guards are claimed as hook rules and are prose |
-| F-09 | Medium | §11.3.1 and D-38 give contradictory rules for where a response lives |
-| F-10 | Medium | The scaffold's package rule has an unguarded exemption |
-| F-11 | Medium | A blocking finding with no citation is accepted |
-| F-12 | Medium | `NewCycle` uses the look-then-create D-10 rejected |
-| F-13 | Medium | `sdlc claims` schedules unapproved, abandoned and landed cycles |
-| F-14 | Medium | A duplicated section passes the artifact schema |
-| F-15 | Medium | `Repository.Run` can deadlock and discards every git error |
-| F-16 | Medium | The scaffold's response rule is stricter than the decision it implements |
-| F-17 | Low | `JsonSchema.Net` is referenced, unused, and most of the package |
-| F-18 | Low | Four `SuppressMessage` attributes are dead and their justifications are inverted |
-| F-19 | Low | `sdlc status` never shows the hash digits §5.3 promises |
-| F-20 | Low | `findings_rounds` in the approval ledger has no reader |
-| F-21 | Low | The first real `Web` project fails the package rule |
-| F-22 | Low | The scaffold harness keeps a second copy of what adoption writes |
-| F-23 | Low | D-38 states a registration shape the template does not carry |
-| F-24 | Low | §10.2's run-mode environment variable does not exist |
-| F-25 | Low | The needs-services heuristic matches "container" and "migration" |
-| F-26 | Low | The generated `AGENTS.md` points at a file `init` does not create |
-| F-27 | Low | `CON_10.2` cannot be applied by anything |
-| F-28 | Low | The generated pipeline fails on any branch that is not a cycle branch |
-| F-29 | Low | The generated pipelines do not match §13's coverage description |
-| F-30 | Cosmetic | §7.5's constraint table is internally inconsistent about revisions |
-| F-31 | Cosmetic | `Scaffold.cs` asserts a gap the next commit closed |
-| F-32 | Cosmetic | Two `Release` comments assert a tool manifest D-37 rejected |
-| F-33 | Cosmetic | §16's cycle-index claim contradicts `CycleIndex.cs` |
-| F-34 | Cosmetic | `tools/` and the repository's own CI are recorded only in `AGENTS.md` |
-| F-35 | Cosmetic | The scaffold prints the line D-35 cited as evidence of a problem |
-| F-36 | Cosmetic | §15.2's command table omits `scaffold` and `version` |
-| F-37 | Cosmetic | `IRepository.TrackedFiles`' documentation describes filtering it does not do |
-| F-38 | Cosmetic | §16's layout names a `tests.trx`; the code keeps the runner's own filename |
-| F-39 | Cosmetic | The no-flags trap for `dotnet test` is documented in one skill and nowhere else |
-| F-40 | Cosmetic | A revised constraint leaves nothing readable at the revision findings cite |
+| F-08 | Are the `refine` and `remediate` guards prose, or should the hook learn which stage is running? | §2.4 and §6.3 claim a hook rule that does not exist. Making it real is the framework's first conditional hook rule, which D-09 rejected explicitly — so it needs its own decision and a mechanism that is not forgeable by the thing it constrains. The cheap answer is to correct the documents, and it is a retreat from a stated guarantee. |
+| F-16 | What discriminates a response that must live in contracts from one that may live anywhere? | The rule ships into every scaffolded solution and currently fires on `IRequest<int>` and on any internal dispatch. The two candidates — request reachability (`public` vs `internal`), or exempting assemblies the solution does not own — draw the line in different places, and whichever ships teaches every future operation its shape. |
+| F-20 | Does `findings_rounds` get a consumer, or get dropped? | Confirmed: only a test reads it. Giving it one means a new gate refusal when a round number is behind what is on disk — a real feature, and a useful one next to F-04. Dropping it means editing §5.2, §5.3, the model and the writer. D-06 forbids leaving it as it is. |
+| F-24 | Is `SDLC_RUN_MODE` invented now, or is §10.2 marked as a requirement on a solution's AppHost? | No AppHost ships, so naming a variable now is designing a contract with no implementer. Saying so in §10.2 is honest and leaves the collision §10.2 warns about with nothing acting on it. |
+| F-27 | Does `CON_10.2` get a reader, or an admission that it has none? | Nothing can evaluate it: `--for` returns it for none of the five artifacts. A weak mechanical check is possible; so is saying a person applies it when reading the ledger. `CON_11`'s own test makes leaving it as decoration the one unavailable option — and this one edits the constraint library. |
+| F-28 | Does a pull request from a non-cycle branch pass or fail? | This is the dependabot and hotfix question, not a wording question. `ExitCode.Refused` blocks every bot bump and every revert until it is opened as a cycle; `Ok` lets ungoverned changes merge by the front door. §3.1 says every class of change runs the chain, which argues for blocking, and nobody has had to live with it yet. |
+| F-40 | Does a revised constraint leave its old wording on the page, or does a citation resolve to the current revision? | §7.4 says findings cite the revision and leaves nothing readable at revision 1, so both `CON_07` and `CON_10` now cite wording that exists only in git. Either answer is coherent; they imply different pages and different things about what a past round was judged against. |
+
+## Calls I would make on the other thirty
+
+Seven of the thirty carry an either-or inside the finding, and each has a recommendation I agree with.
+Listed so that "no decision needed" is a claim you can check rather than take:
+
+| Id | What I would do, and why it needs no decision |
+|---|---|
+| F-05 | `--intent-to-add` over a per-file `--no-index` diff: one git call, and it stages no content. Plus the guard that an empty patch beside a non-empty change set is reported as the bug it is. |
+| F-07 | Condition the `AdditionalFiles` item. The finding worries a condition lets a deleted ban list stop being enforced silently — it does not: the scaffolded `The_frameworks_response_factories_are_still_banned` reads the file, so a deleted one is a red test rather than a quiet gap. That settles it. |
+| F-21 | Prefix-match the `Web` row, with the reason in the remark. The legitimate set really is "the WebAssembly packages". |
+| F-22 | Extract the five greenfield stack files from `Initialise` into one list the harness and adoption both read. Verified they are the same five today, by hand, which is the thing that will drift. |
+| F-23 | Add the options delegate now. One parameter, and D-38's argument is that an agent copies the shape beside it. |
+| F-29 | Correct §13 to name what ships, and move the coverage delta to §19. Building it needs a base-branch run to compare against, which is more than the one step §13 implies. |
+| F-38 | Write the trx through under a fixed name. A cycle's evidence directory is read by people, and a GUID is not a name. |
+
+## Two notes from working through them
+
+**F-39 is filed Cosmetic and has now cost two sessions an hour each.** The `dotnet test --nologo`
+trap — VSTest-style flags forwarded to the application, "Zero tests ran", exit 5 — caught this review
+once and caught the F-01 fix once more. A documentation gap that reliably costs an hour is not cosmetic.
+Worth re-rating to Low and doing early, since it is one sentence in §11.1.
+
+**F-34 grew.** The CI file gained three steps in F-03's fix (pack, install, run the installed tool from
+outside the tree), and that is another thing recorded only in a YAML comment. Its remedy is unchanged;
+there is simply more of it.
 
 ---
 
