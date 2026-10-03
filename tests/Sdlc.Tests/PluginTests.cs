@@ -3,6 +3,7 @@ using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
 using FluentResults;
 using Sdlc.Core.Constraints;
+using Sdlc.Core.Hooks;
 
 namespace Sdlc.Tests;
 
@@ -138,6 +139,47 @@ public sealed class PluginTests
         StringAssert.Contains(
             commands[0]!["command"]!.GetValue<string>(),
             "sdlc hook --host claude --event turn-end");
+    }
+
+    [TestMethod]
+    public void The_plugins_hook_config_agrees_with_what_the_host_table_says_about_claude_code()
+    {
+        // Two files have to say the same thing and only one is generated: this one ships inside the
+        // plugin and cannot be written at install time, while `.claude/settings.json` is assembled
+        // from the host's row by adoption. So they can disagree, and nothing said so -- which is the
+        // defect class D-46 exists to close, sitting one level up from the code it closed it in.
+        //
+        // Not byte-identical, deliberately. This file carries a `statusMessage` per hook, which is
+        // what a person sees while the gate is being asked and has no equivalent in a settings file.
+        // What has to agree is the part that decides anything: the event keys, the command, and the
+        // timeout.
+        SupportedHost claude = SupportedHosts.Of(HookHost.Claude);
+        JsonObject shipped = Read(Path.Combine("hooks", "hooks.json"))["hooks"]!.AsObject();
+
+        string[] expected = claude.TurnEndEvent is null
+            ? [claude.PreToolEvent]
+            : [claude.PreToolEvent, claude.TurnEndEvent];
+
+        CollectionAssert.AreEquivalent(
+            expected,
+            shipped.Select(entry => entry.Key).ToArray(),
+            "The plugin configures different moments than the host table says Claude Code has.");
+
+        foreach (string moment in expected)
+        {
+            JsonObject hook = shipped[moment]!.AsArray()[0]!["hooks"]!.AsArray()[0]!.AsObject();
+
+            StringAssert.Contains(
+                hook["command"]!.GetValue<string>(),
+                "sdlc hook --host " + claude.Spelling,
+                $"The plugin's '{moment}' hook names a spelling the table does not.");
+
+            Assert.AreEqual(
+                SupportedHosts.TimeoutSeconds,
+                hook[claude.TimeoutKey]!.GetValue<int>(),
+                $"The plugin's '{moment}' hook and the generated one disagree about how long the "
+                + "gate may take, so the same hook behaves differently depending on how it arrived.");
+        }
     }
 
     [TestMethod]

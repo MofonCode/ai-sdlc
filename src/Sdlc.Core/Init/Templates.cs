@@ -1,5 +1,9 @@
 using System.Globalization;
+using System.Text.Encodings.Web;
+using System.Text.Json;
+using System.Text.Json.Nodes;
 using Sdlc.Core.Cycles;
+using Sdlc.Core.Hooks;
 using Sdlc.Core.Solutions;
 
 namespace Sdlc.Core.Init;
@@ -33,6 +37,21 @@ public enum Platform
 /// </remarks>
 public static class Templates
 {
+    /// <summary>
+    /// How a hook configuration is written out.
+    /// </summary>
+    /// <remarks>
+    /// Indented, because a person reads this file and edits the half beside it. The same relaxed
+    /// escaping <see cref="HookSettings"/> and the hook's own output use, and for the same reason: a
+    /// settings file holds paths and commands, and an apostrophe written as <c>&#x5c;u0027</c> is
+    /// legible to a parser and to nobody else.
+    /// </remarks>
+    private static readonly JsonSerializerOptions _hookConfig = new()
+    {
+        WriteIndented = true,
+        Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
+    };
+
     /// <summary>
     /// The kernel version a scaffolded solution is pinned to.
     /// </summary>
@@ -297,77 +316,105 @@ public static class Templates
         ]);
 
     /// <summary>
-    /// The pre-tool hook configuration for one host.
+    /// The hook configuration for one host, built from that host's row.
     /// </summary>
     /// <remarks>
-    /// Both hosts get the same binary with a different <c>--host</c>, so the adapter normalises the
-    /// vocabulary in one place and neither host's quirks reach the policy. Copilot takes a PowerShell
-    /// command as well as a bash one, so both are written: a Windows-only machine with no bash would
-    /// otherwise have a hook that silently never runs, which is the failure mode this design is most
-    /// concerned with.
+    /// Every host gets the same binary with a different <c>--host</c>, so the adapter normalises the
+    /// vocabulary in one place and no host's quirks reach the policy. What differs -- the event keys,
+    /// whether entries group under a matcher, whether the file declares a version, what the timeout
+    /// is called -- is <see cref="SupportedHosts"/>, and this assembles it.
     /// <para>
-    /// <strong>Claude Code gets two events and Copilot gets one.</strong> The turn end is what makes
-    /// the compiler a real enforcement layer rather than one a reviewer consults afterwards -- an
-    /// agent cannot report done over a failing suite -- and Copilot's hook surface has no turn-end
-    /// event to listen to. So nothing is written for it, deliberately, and <c>sdlc hook</c> refuses
-    /// <c>--event turn-end --host copilot</c> by name. Writing a plausible-looking block for a host
-    /// that cannot fire it is precisely the directory that appears enforced and is not.
+    /// <strong>Assembled as JSON rather than written out as text, and that is a correctness
+    /// property.</strong> Each configuration used to be a hand-written list of lines per host, where
+    /// a stray comma is a file the host rejects and a hook that never runs permits everything while
+    /// the directory still looks governed. There was a test for exactly that, because the risk was
+    /// real. Built from objects, a malformed file is no longer something a test has to catch.
+    /// </para>
+    /// <para>
+    /// <strong>A host with no turn-end event gets no turn-end block</strong> -- not an empty one, and
+    /// not a plausible-looking one. That case is <see cref="SupportedHost.TurnEndEvent"/> being null,
+    /// and it is the one field here that must never be guessed: a block for an event that cannot fire
+    /// is precisely the directory that appears enforced and is not. Both hosts currently have the
+    /// event. Copilot's is <c>agentStop</c>, which the framework spent a release claiming did not
+    /// exist -- see D-46.
     /// </para>
     /// </remarks>
-    /// <param name="host">Which host's format to write.</param>
+    /// <param name="host">Which host's configuration to write.</param>
     /// <returns>The file's contents.</returns>
-    public static string HookConfig(string host) => host switch
+    public static string HookConfig(HookHost host)
     {
-        "claude" => string.Join(
-            Environment.NewLine,
-            [
-                "{",
-                "  \"hooks\": {",
-                "    \"PreToolUse\": [",
-                "      {",
-                "        \"matcher\": \"Edit|Write|MultiEdit|NotebookEdit|Bash\",",
-                "        \"hooks\": [",
-                "          {",
-                "            \"type\": \"command\",",
-                "            \"command\": \"sdlc hook --host claude\"",
-                "          }",
-                "        ]",
-                "      }",
-                "    ],",
-                "    \"Stop\": [",
-                "      {",
-                "        \"hooks\": [",
-                "          {",
-                "            \"type\": \"command\",",
-                "            \"command\": \"sdlc hook --host claude --event turn-end\"",
-                "          }",
-                "        ]",
-                "      }",
-                "    ]",
-                "  }",
-                "}",
-                string.Empty,
-            ]),
+        SupportedHost described = SupportedHosts.Of(host);
 
-        "copilot" => string.Join(
-            Environment.NewLine,
-            [
-                "{",
-                "  \"version\": 1,",
-                "  \"hooks\": {",
-                "    \"preToolUse\": [",
-                "      {",
-                "        \"bash\": \"sdlc hook --host copilot\",",
-                "        \"powershell\": \"sdlc hook --host copilot\"",
-                "      }",
-                "    ]",
-                "  }",
-                "}",
-                string.Empty,
-            ]),
+        JsonObject events = [];
 
-        _ => throw new ArgumentOutOfRangeException(nameof(host), host, "No hook template for that host."),
-    };
+        events[described.PreToolEvent] = Entries(described, described.ToolMatcher, string.Empty);
+
+        if (described.TurnEndEvent is { } turnEnd)
+        {
+            // No matcher on the turn end even where the host supports one: a turn is not a tool, so
+            // there is nothing to filter by name.
+            events[turnEnd] = Entries(described, null, " --event turn-end");
+        }
+
+        JsonObject file = [];
+
+        if (described.ConfigVersion is { } version)
+        {
+            file["version"] = version;
+        }
+
+        file["hooks"] = events;
+
+        return file.ToJsonString(_hookConfig) + Environment.NewLine;
+    }
+
+    /// <summary>
+    /// One event's entries, in the shape the host spells them.
+    /// </summary>
+    /// <param name="described">The host's row.</param>
+    /// <param name="matcher">Which tools to match, or null for every one.</param>
+    /// <param name="arguments">What to append to the command, for an event that needs an option.</param>
+    /// <returns>The array the event key holds.</returns>
+    private static JsonArray Entries(SupportedHost described, string? matcher, string arguments)
+    {
+        string command = "sdlc hook --host " + described.Spelling + arguments;
+
+        if (described.EntryShape == HookEntryShape.Direct)
+        {
+            // The entry is the command, written for both shells. Copilot takes a PowerShell command
+            // as well as a bash one, and a Windows-only machine with no bash would otherwise have a
+            // hook that silently never runs.
+            return
+            [
+                new JsonObject
+                {
+                    ["type"] = "command",
+                    ["bash"] = command,
+                    ["powershell"] = command,
+                    [described.TimeoutKey] = SupportedHosts.TimeoutSeconds,
+                },
+            ];
+        }
+
+        JsonObject entry = [];
+
+        if (matcher is not null)
+        {
+            entry["matcher"] = matcher;
+        }
+
+        entry["hooks"] = new JsonArray
+        {
+            new JsonObject
+            {
+                ["type"] = "command",
+                ["command"] = command,
+                [described.TimeoutKey] = SupportedHosts.TimeoutSeconds,
+            },
+        };
+
+        return [entry];
+    }
 
     /// <summary>
     /// The pull-request pipeline for one platform.

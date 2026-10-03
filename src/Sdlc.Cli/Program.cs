@@ -649,8 +649,11 @@ static async Task<int> Hook(CommandLine line)
 {
     if (!line.TryOption("host", out string? named) || !HookProtocol.TryParseHost(named, out HookHost? host))
     {
+        // The hosts come from the table, so this message cannot name one the adapter does not speak
+        // to, and cannot omit one it does.
         await Console.Error.WriteLineAsync(
-            "Which host? Pass --host claude or --host copilot.").ConfigureAwait(false);
+            "Which host? Pass --host " + string.Join(" or --host ", SupportedHosts.Spellings()) + ".")
+            .ConfigureAwait(false);
         return ExitCode.Usage;
     }
 
@@ -666,13 +669,32 @@ static async Task<int> Hook(CommandLine line)
 
     if (hookEvent == HookEvent.TurnEnd)
     {
-        // Said out loud rather than allowed silently. Copilot's hook surface has no turn-end event
-        // yet, and a configuration that appeared to install one would be the failure this design is
-        // most concerned with: a check that looks like enforcement and is not.
-        if (host == HookHost.Copilot)
+        // Said out loud rather than allowed silently. A host with no turn-end event has nothing for
+        // this to listen to, and a configuration that appeared to install one would be the failure
+        // this design is most concerned with: a check that looks like enforcement and is not.
+        //
+        // Read from the host's row rather than naming a host here. It named Copilot, on the belief
+        // that its hook surface had no such event -- which was wrong, and the refusal was the last
+        // thing standing between the framework and a governed turn end on that host. D-46.
+        SupportedHost described = SupportedHosts.Of(host.Value);
+
+        if (!described.GovernsTurnEnd)
         {
+            string[] governed =
+            [
+                .. SupportedHosts.All
+                    .Where(candidate => candidate.GovernsTurnEnd)
+                    .Select(candidate => "--host " + candidate.Spelling),
+            ];
+
+            // The alternative is offered only when there is one. "Use , or leave it ungoverned" is
+            // the shape a message takes when it is assembled from a list nobody checked was filled.
+            string instead = governed.Length > 0
+                ? $" Use {string.Join(" or ", governed)}, or leave"
+                : " Leave";
+
             await Console.Error.WriteLineAsync(
-                "No turn-end event is wired for Copilot. Its hook surface has a pre-tool event only, so there is nothing for this to listen to. Use --host claude, or leave the turn end ungoverned on that host rather than configuring a check that cannot run.")
+                $"No turn-end event is wired for {described.Name}. Its hook surface has no such moment, so there is nothing for this to listen to.{instead} the turn end ungoverned on that host rather than configuring a check that cannot run.")
                 .ConfigureAwait(false);
             return ExitCode.Usage;
         }

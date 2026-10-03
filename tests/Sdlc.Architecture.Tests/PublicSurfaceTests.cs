@@ -129,7 +129,14 @@ public sealed class PublicSurfaceTests
         "Sdlc.Core.Findings.SuggestionsRenderer",
         "Sdlc.Core.Git.GitRepository",
         "Sdlc.Core.Git.IRepository",
+        // The four added with D-46. Each host's facts are one row in a table rather than a switch
+        // arm in each of four files, and the row is public because `Templates` and `Initialise`
+        // read it and the conformance suite enumerates it. ConfigOwnership and HookEntryShape are
+        // public for the reason the note above gives: a property of a public record cannot be less
+        // accessible than the record.
+        "Sdlc.Core.Hooks.ConfigOwnership",
         "Sdlc.Core.Hooks.HookDecision",
+        "Sdlc.Core.Hooks.HookEntryShape",
         "Sdlc.Core.Hooks.HookEvent",
         "Sdlc.Core.Hooks.HookHost",
         "Sdlc.Core.Hooks.HookPolicy",
@@ -137,6 +144,8 @@ public sealed class PublicSurfaceTests
         "Sdlc.Core.Hooks.HookVerdict",
         "Sdlc.Core.Hooks.ProtectedFile",
         "Sdlc.Core.Hooks.ProtectedPaths",
+        "Sdlc.Core.Hooks.SupportedHost",
+        "Sdlc.Core.Hooks.SupportedHosts",
         "Sdlc.Core.Hooks.ToolCall",
         "Sdlc.Core.Hooks.ToolKind",
         "Sdlc.Core.Hooks.TurnEnd",

@@ -58,9 +58,10 @@ internal static class Usage
 
         Options for hook
             --event <name>           Which moment: pre-tool-use or turn-end. Defaults to
-                                     pre-tool-use. A turn end is checked on Claude Code only;
-                                     Copilot's hook surface has no turn-end event, and this
-                                     says so rather than installing a check that cannot run.
+                                     pre-tool-use. Each host's own name for a moment is accepted
+                                     too, so a config copied from its documentation works. A host
+                                     with no turn-end event is refused by name rather than given a
+                                     check that cannot run.
 
         Options for constraints
             --for <artifact>         Narrow to one artifact: intent, spec, plan, diff, verify.

@@ -15,16 +15,22 @@ public enum HookHost
 
     /// <summary>GitHub Copilot. <c>preToolUse</c>, decision at the top level.</summary>
     Copilot,
+
+    // Every other fact about a host -- where its configuration goes, who owns that file, what it
+    // calls each event, whether it has a turn end at all -- is a row in SupportedHosts rather than a
+    // switch here. A member added without a row throws from SupportedHosts.Of, which the suite holds.
 }
 
 /// <summary>
 /// Which moment the host is asking about.
 /// </summary>
 /// <remarks>
-/// Named for what the moment is rather than for what either host calls it. Claude Code spells the
-/// second one <c>Stop</c>, which describes the host's own state machine rather than the thing being
-/// judged, and letting that name inland would put one host's vocabulary in the policy -- which is
-/// the whole of what this file exists to prevent.
+/// Named for what the moment is rather than for what any host calls it. Claude Code spells the
+/// second one <c>Stop</c> and Copilot <c>agentStop</c>, both of which describe the host's own state
+/// machine rather than the thing being judged, and letting either name inland would put one host's
+/// vocabulary in the policy -- which is the whole of what this file exists to prevent. Each host's
+/// spelling is a field on its row in <see cref="SupportedHosts"/>, which is the only place they
+/// belong.
 /// </remarks>
 public enum HookEvent
 {
@@ -77,18 +83,6 @@ public static class HookProtocol
     };
 
     /// <summary>
-    /// How each host may be named on the command line, so a hook config written by hand is accepted
-    /// whichever way its author spelled it.
-    /// </summary>
-    private static readonly (string Spelling, HookHost Host)[] _spellings =
-    [
-        ("claude", HookHost.Claude),
-        ("claude-code", HookHost.Claude),
-        ("copilot", HookHost.Copilot),
-        ("github-copilot", HookHost.Copilot),
-    ];
-
-    /// <summary>
     /// How each event may be named on the command line.
     /// </summary>
     /// <remarks>
@@ -102,7 +96,13 @@ public static class HookProtocol
         ("pre-tool", HookEvent.PreToolUse),
         ("turn-end", HookEvent.TurnEnd),
         ("turnend", HookEvent.TurnEnd),
+
+        // Each host's own name for the moment. Claude Code calls it `Stop` and Copilot `agentStop`,
+        // and both are accepted for the reason the remark above gives: a config copied from a host's
+        // documentation should work without translation.
         ("stop", HookEvent.TurnEnd),
+        ("agentstop", HookEvent.TurnEnd),
+        ("agent-stop", HookEvent.TurnEnd),
     ];
 
     /// <summary>
@@ -139,7 +139,15 @@ public static class HookProtocol
         return hookEvent is not null;
     }
 
-    /// <summary>Reads a host name as it is written on the command line.</summary>
+    /// <summary>
+    /// Reads a host name as it is written on the command line.
+    /// </summary>
+    /// <remarks>
+    /// The spellings come from <see cref="SupportedHosts"/> rather than from a list here, so what the
+    /// command line accepts and what adoption configures cannot disagree. They did not have to: the
+    /// two lists were separate, and a host could be spellable without being installable or the
+    /// reverse, with nothing saying which.
+    /// </remarks>
     /// <param name="text">The host name.</param>
     /// <param name="host">The host, when this returns true.</param>
     /// <returns>True when the name is one of the supported hosts.</returns>
@@ -148,16 +156,25 @@ public static class HookProtocol
         string name = text?.Trim() ?? string.Empty;
 
         host = null;
-        foreach ((string spelling, HookHost candidate) in _spellings)
+
+        if (name.Length == 0)
         {
-            if (string.Equals(name, spelling, StringComparison.OrdinalIgnoreCase))
+            return false;
+        }
+
+        foreach (SupportedHost candidate in SupportedHosts.All)
+        {
+            foreach (string spelling in candidate.Spellings)
             {
-                host = candidate;
-                break;
+                if (string.Equals(name, spelling, StringComparison.OrdinalIgnoreCase))
+                {
+                    host = candidate.Host;
+                    return true;
+                }
             }
         }
 
-        return host is not null;
+        return false;
     }
 
     /// <summary>
@@ -194,7 +211,16 @@ public static class HookProtocol
         string toolName = Text(payload, "tool_name") ?? Text(payload, "toolName") ?? string.Empty;
         string? workingDirectory = Text(payload, "cwd") ?? Text(payload, "workingDirectory");
 
-        JsonObject? input = payload["tool_input"] as JsonObject ?? payload["toolInput"] as JsonObject;
+        // Three spellings, and the third is not cosmetic. Copilot documents two payload shapes -- a
+        // VS Code-compatible one that writes `tool_input`, and the CLI's own camelCase one that
+        // writes `toolArgs` -- and only the first was read. So on Copilot CLI this found no path and
+        // no command, every call classified as harmless, and the hook allowed writes to the files
+        // only a person writes while the directory still looked governed. The conformance test
+        // passed because the captured payload was the VS Code shape, which is why there is now one
+        // of each.
+        JsonObject? input = payload["tool_input"] as JsonObject
+            ?? payload["toolInput"] as JsonObject
+            ?? payload["toolArgs"] as JsonObject;
 
         List<string> paths = [];
         string? command = null;
@@ -309,12 +335,14 @@ public static class HookProtocol
 
         JsonObject payload = host switch
         {
-            // Claude Code nests the decision under the event it belongs to.
+            // Claude Code nests the decision under the event it belongs to, and names the event it
+            // is answering -- taken from the host's row rather than written out here, so the name in
+            // the decision and the key in the generated configuration are the same string.
             HookHost.Claude => new JsonObject
             {
                 ["hookSpecificOutput"] = new JsonObject
                 {
-                    ["hookEventName"] = "PreToolUse",
+                    ["hookEventName"] = SupportedHosts.Of(host).PreToolEvent,
                     ["permissionDecision"] = "deny",
                     ["permissionDecisionReason"] = reason ?? string.Empty,
                 },
@@ -365,9 +393,10 @@ public static class HookProtocol
                 ["reason"] = reason ?? string.Empty,
             },
 
-            // Reached only if a Copilot turn-end event appears and the command line stops refusing
-            // it. Written in the same shape rather than left to throw, so the day that happens is a
-            // test failure about a field name and not a crash in a hook.
+            // Copilot's `agentStop` reads the same two fields, and spells the refusal the same way.
+            // This branch was written before the event was wired, against the day it would be, and
+            // the day came: the host has had the event all along and the framework claimed it did
+            // not. See D-46.
             HookHost.Copilot => new JsonObject
             {
                 ["decision"] = "block",

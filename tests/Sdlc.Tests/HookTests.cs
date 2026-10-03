@@ -92,6 +92,42 @@ public sealed class HookTests
     }
 
     [TestMethod]
+    public void A_copilot_cli_payload_reads_too_despite_naming_the_arguments_differently()
+    {
+        // Copilot documents two payload shapes and only one was read. The test above feeds the
+        // VS Code-compatible one, which writes `tool_input`; this is the CLI's own camelCase shape,
+        // which writes `toolArgs`. The reader looked for `tool_input` and `toolInput` and found
+        // neither, so there was no path and no command, every call classified as harmless, and the
+        // hook allowed an agent to write the four files only a person writes -- on the host the
+        // README said was supported, with the conformance test green.
+        const string payload = """
+            {
+              "sessionId": "x",
+              "timestamp": 1704614400000,
+              "cwd": "/solution",
+              "toolName": "str_replace_editor",
+              "toolArgs": { "path": ".sdlc/cycles/20260929_1456_32/approval.md" }
+            }
+            """;
+
+        ToolCall call = Read(payload, HookHost.Copilot);
+
+        Assert.AreEqual(ToolKind.FileWrite, call.Kind);
+        Assert.AreEqual(HookDecision.Deny, HookPolicy.Decide(call).Decision);
+    }
+
+    [TestMethod]
+    public void A_copilot_cli_shell_payload_reads_its_command_out_of_the_camel_case_arguments()
+    {
+        ToolCall call = Read(
+            """{ "toolName": "bash", "toolArgs": { "command": "echo x > .sdlc/constraints.md" } }""",
+            HookHost.Copilot);
+
+        Assert.AreEqual(ToolKind.Shell, call.Kind);
+        Assert.AreEqual(HookDecision.Deny, HookPolicy.Decide(call).Decision);
+    }
+
+    [TestMethod]
     public void A_shell_payload_reads_as_a_shell_call_with_its_command()
     {
         ToolCall call = Read(
@@ -460,6 +496,108 @@ public sealed class HookTests
 
         Assert.AreEqual(0, node.AsObject().Count, "There is nothing to say, so nothing is said.");
     }
+
+    [TestMethod]
+    [DynamicData(nameof(Hosts))]
+    public void Every_host_is_described_completely(HookHost named)
+    {
+        // The table is the support claim, so an incomplete row is a host that looks supported and is
+        // not. Driven off the enum rather than the table, because a member with no row at all is the
+        // case worth catching and enumerating the table would skip it.
+        SupportedHost host = SupportedHosts.Of(named);
+
+        Assert.IsFalse(string.IsNullOrWhiteSpace(host.Name), "A host with no name cannot be refused by one.");
+        Assert.IsTrue(host.Spellings.Count > 0, host.Name + " answers to no name on the command line.");
+        Assert.IsFalse(string.IsNullOrWhiteSpace(host.PreToolEvent), host.Name + " names no pre-tool event.");
+        Assert.IsFalse(string.IsNullOrWhiteSpace(host.TimeoutKey), host.Name + " names no timeout key.");
+
+        foreach (string spelling in host.Spellings)
+        {
+            Assert.IsFalse(
+                spelling.Any(char.IsUpper),
+                "Spellings are matched case-insensitively, so an upper-case one in the table is a "
+                + $"reader wondering whether case matters: '{spelling}'.");
+
+            Assert.IsTrue(
+                HookProtocol.TryParseHost(spelling, out HookHost? parsed) && parsed == named,
+                $"'{spelling}' is in {host.Name}'s row and the command line does not accept it.");
+        }
+
+        // Relative and forward-slashed, which is how every document writes it and what lets a reader
+        // check the path against the host's own documentation without translating separators.
+        Assert.IsFalse(string.IsNullOrWhiteSpace(host.ConfigPath), host.Name + " has nowhere to write its config.");
+        Assert.IsFalse(
+            host.ConfigPath.Contains('\\', StringComparison.Ordinal),
+            host.Name + "'s config path carries a backslash, and Initialise splits on '/'.");
+        Assert.IsFalse(
+            Path.IsPathRooted(host.ConfigPath),
+            host.Name + "'s config path is absolute, so adoption would write outside the solution.");
+    }
+
+    [TestMethod]
+    public void No_two_hosts_answer_to_the_same_name()
+    {
+        // One spelling resolving to two hosts would make the adapter's answer depend on table order,
+        // which is a defect with no symptom until a decision is written in the wrong shape.
+        List<string> spellings = [.. SupportedHosts.All.SelectMany(host => host.Spellings)];
+
+        CollectionAssert.AreEquivalent(
+            spellings.Distinct(StringComparer.OrdinalIgnoreCase).ToArray(),
+            spellings,
+            "Two hosts claim one spelling.");
+    }
+
+    [TestMethod]
+    [DynamicData(nameof(Hosts))]
+    public void Every_host_refuses_a_write_to_a_protected_file_in_its_own_payload_shape(HookHost named)
+    {
+        // §12.1's promise, per row: each host is fed a payload in the shape it documents and has to
+        // deny. A host added to the table without this passing is a host claimed and not exercised.
+        ToolCall call = Read(
+            $$"""{ "tool_name": "Write", "tool_input": { "file_path": "{{ApprovalPath}}" } }""",
+            named);
+
+        Assert.AreEqual(
+            HookDecision.Deny,
+            HookPolicy.Decide(call).Decision,
+            SupportedHosts.Of(named).Name + " allowed a write to an approval ledger.");
+    }
+
+    [TestMethod]
+    [DynamicData(nameof(Hosts))]
+    public void Every_host_has_a_refusal_shape_for_both_moments(HookHost named)
+    {
+        // The two write methods are switches on the host, so a row added without a branch in each
+        // throws rather than compiles -- and this is where that is found. A hook that throws is a
+        // hook that does not run, which permits everything while appearing to protect.
+        SupportedHost host = SupportedHosts.Of(named);
+
+        JsonNode call = Write(named, HookDecision.Deny, "because.");
+        Assert.AreNotEqual(0, call.AsObject().Count, host.Name + " has no tool-call refusal shape.");
+
+        if (!host.GovernsTurnEnd)
+        {
+            return;
+        }
+
+        JsonNode turn = Parse(HookProtocol.WriteTurnEndDecision(named, HookDecision.Deny, "the suite is red"));
+
+        Assert.AreEqual(
+            "block",
+            turn["decision"]!.GetValue<string>(),
+            host.Name + " governs the turn end and does not spell the refusal in a shape it reads.");
+        Assert.AreEqual("the suite is red", turn["reason"]!.GetValue<string>());
+    }
+
+    /// <summary>
+    /// Every host the enum declares, so the conformance assertions run per host.
+    /// </summary>
+    /// <remarks>
+    /// The enum rather than <c>SupportedHosts.All</c>, deliberately: a member with no row is a host
+    /// half-added, and enumerating the table would be the one arrangement that cannot see it.
+    /// </remarks>
+    public static IEnumerable<object[]> Hosts =>
+        Enum.GetValues<HookHost>().Select(host => new object[] { host });
 
     private static ToolCall Read(string payload, HookHost host)
     {

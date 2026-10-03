@@ -37,8 +37,8 @@ What lands:
 | `.sdlc/techstack.md` | the stack, for a session that has not read the code |
 | `.sdlc/README.md` | the whole flow in one page, inside the solution |
 | `.sdlc/hooks/pre-push` | written, **not installed**. See below |
-| `.claude/settings.json` | the `PreToolUse` hook that calls the gate, **merged** into whatever is already there |
-| `.github/hooks/sdlc.json` | the same policy, in Copilot's shape |
+| `.claude/settings.json` | the `PreToolUse` and `Stop` hooks that call the gate, **merged** into whatever is already there |
+| `.github/hooks/sdlc.json` | the same two moments, in Copilot's shape: `preToolUse` and `agentStop` |
 | `.github/workflows/sdlc-verify.yml` | `sdlc verify-chain`. **The only guarantee** |
 
 Adoption rewrites a file only where the framework's own name is in the path, so `.sdlc/**` and the two

@@ -235,7 +235,7 @@ Warnings are errors, enforced by the build props rather than by instruction. And
 actually ran: a trial cycle lost its whole verification to `dotnet test` exiting zero without running
 anything, because the runner was not configured.
 
-**The turn end is checked as well**, on Claude Code only. A hook asks the gate before the agent finishes
+**The turn end is checked as well**, on both hosts. A hook asks the gate before the agent finishes
 and sends the turn back on three things: recorded evidence showing a failing suite, code written with no
 evidence recorded at all, and code that has moved since the evidence was recorded. It is not a rule the
 skill has to remember — it is why there is no point reporting done over a red build.

@@ -1143,15 +1143,25 @@ inside a governed solution cannot read a file that lives in the plugin.
 Every candidate host can deny a tool call before it runs, so the enforcement primitive is portable.
 What differs is vocabulary.
 
-| Host | Blocking event | Config | Deny shape |
-|---|---|---|---|
-| Claude Code | `PreToolUse` | `.claude/settings.json` or plugin | `permissionDecision: "deny"` |
-| GitHub Copilot | `preToolUse` | `.github/hooks/*.json` | `permissionDecision`; takes `bash` **and** `powershell` |
-| OpenAI Codex CLI | `PreToolUse` | `.codex/config.toml` | `permissionDecision` + reason |
-| Gemini CLI | `BeforeTool` | `.gemini/settings.json` | `{"decision":"deny","reason":"..."}` |
-| Antigravity | `PreToolUse` | `.agents/hooks.json` or a plugin | same, plus `ask` / `force_ask` |
+| Host | Blocking event | Turn end | Config | Deny shape |
+|---|---|---|---|---|
+| Claude Code | `PreToolUse` | `Stop` | `.claude/settings.json` or plugin | `permissionDecision: "deny"` |
+| GitHub Copilot | `preToolUse` | `agentStop` | `.github/hooks/*.json` | `permissionDecision`; takes `bash` **and** `powershell` |
+| OpenAI Codex CLI | `PreToolUse` | not checked | `.codex/config.toml` | `permissionDecision` + reason |
+| Gemini CLI | `BeforeTool` | `AfterAgent` | `.gemini/settings.json` | `{"decision":"deny","reason":"..."}` |
+| Antigravity | `PreToolUse` | not checked | `.agents/hooks.json` or a plugin | same, plus `ask` / `force_ask` |
 
-**v1 ships Claude Code and GitHub Copilot.**
+**"Not checked" is a real entry and is never filled in by inference.** This table said Copilot had no
+turn-end event, which was never true, and the claim travelled into the generated configuration, the
+command line, the guides and the readme before anybody re-read the host's documentation. D-46.
+
+**Both supported hosts govern both moments.** The deny shape is the same two fields on each, nested on
+Claude Code and at the top level on Copilot; the turn end is a top-level `decision` on both, which they
+both spell `block`. Gemini spells its refusal `deny` instead, which is why the two write methods stay
+typed switches rather than one shared shape.
+
+**v1 ships Claude Code and GitHub Copilot**, and what that means is a row in `SupportedHosts` plus a
+conformance test fed a captured payload — not a judgement somebody makes by reading four files (D-46).
 
 ChatGPT is not a target — Codex is OpenAI's repository-agentic surface. Antigravity plugins are the
 stated successor to Gemini CLI extensions.
@@ -1161,11 +1171,22 @@ stated successor to Gemini CLI extensions.
 Event names; tool names (`Edit`/`Write`/`Bash` against `edit`/`view`/`bash` against
 `write_file`/`replace`/`run_shell_command`); input key names and nesting; and the deny shape. So
 `sdlc hook --host <name>` reads stdin, normalises, asks the one policy engine, and emits that host's
-format. Each host has a conformance test that feeds a captured real payload and asserts a deny.
+format. Each host has a conformance test that feeds a captured real payload and asserts a deny, and the
+tests are driven off the host enum rather than a list, so a host added without one is a failure rather
+than an omission.
+
+**A host with two payload shapes needs a captured payload of each.** Copilot documents a camelCase shape
+for its CLI and a VS Code-compatible one, and only the second had a test — so the reader looked for
+`tool_input` on a payload that writes `toolArgs`, found no path and no command, classified every call as
+harmless, and allowed an agent to write the four files only a person writes. One captured payload per host
+had sounded like enough; it is one per shape (D-46).
 
 A payload the reader cannot understand **allows the call and says so on standard error.** These
 surfaces are young: failing closed on a renamed field would stop a person working for a reason they
-cannot act on, and failing silently would permit everything while appearing to protect.
+cannot act on, and failing silently would permit everything while appearing to protect. **So the reader
+collects keys from every spelling any host is known to use, rather than from the row of the host that
+asked** — the one piece of host vocabulary deliberately not driven by the table, because narrowing it
+would turn a renamed field back into a rule that quietly stops applying.
 
 ### 12.2 One consequence of the Copilot choice
 
@@ -1498,7 +1519,7 @@ Ids are a monotonic sequence of their own, separate from `CON_nn`: a constraint 
 decision explains the framework. Assigned once, never reused. **A reversed decision is superseded by
 a new id rather than edited**, so a commit citing `D-14` still means what it meant.
 
-**This is reference material, not reading.** Forty-four entries and about half this document, so the
+**This is reference material, not reading.** Forty-six entries and about half this document, so the
 way in is a lookup rather than the top. `AGENTS.md` carries the two commands; in short, a section's
 trailing `(D-nn)` marker answers "what constrains this", and an entry's `Governs` answers the reverse.
 **Read `Rejected` first when proposing something** — it is where the alternative you are reaching for
@@ -2864,3 +2885,94 @@ comment saying that excluding the check is a decision and deleting it is a diffe
 - *Teaching the framework which branch patterns are ordinarily ungoverned* — rejected as the same
   thing with more machinery. The list would be a guess about other people's conventions, and a wrong
   guess is an exemption nobody asked for.
+
+### D-46 — A host is a row in a table, and what it supports is asserted rather than claimed
+
+**Governs:** §12, §12.1
+
+**Decision.** Everything the framework needs to know about an agent host is one row in
+`SupportedHosts`: the names it answers to, where its hook configuration goes, whether the framework owns
+that file or only its entries, what it calls the pre-tool event, what it calls the turn end **or that it
+has none**, and what it calls the per-hook timeout. The configuration is assembled from the row,
+adoption loops the table, and the command line reads the row rather than naming a host. Adding a host is
+that row, a branch in each of `HookProtocol`'s two write methods, and a captured payload per documented
+payload shape in the conformance test.
+
+**Why this needed deciding at all.** Those facts were spread over four mechanisms that each hardcoded
+hosts separately — the spellings in `HookProtocol`, the configuration's content in a string-keyed switch
+in `Templates`, its path and its ownership written out twice in `Initialise`, and the turn end's
+availability as a refusal naming Copilot in the command line. Nothing joined them, so "do we support host
+X" was a judgement somebody made by reading four files, and a host half-added looked exactly like a host
+supported.
+
+**What it got wrong, which is the actual argument.** Two defects, both of the shape this framework exists
+to refuse — a directory that appears enforced and is not.
+
+- **The turn end was claimed to be Claude-only.** Copilot has had `agentStop` throughout, with the same
+  `{"decision": "block", "reason": ...}` shape Claude Code's `Stop` uses. `WriteTurnEndDecision` had even
+  been written against the day the event appeared. Meanwhile the command line refused
+  `--event turn-end --host copilot` by name, the generated configuration wrote no block, and six
+  documents asserted the absence. Every one of those was downstream of one unverified sentence.
+- **The pre-tool hook read one of Copilot's two payload shapes.** The CLI writes `toolArgs`; the reader
+  looked for `tool_input` and `toolInput`. So on Copilot CLI it found no path and no command, classified
+  every call as harmless, and allowed an agent to write an approval ledger. The conformance test passed,
+  because the captured payload was the VS Code one.
+
+Neither was a coding mistake in a hard place. Both were a fact about a host living somewhere nothing
+checked it.
+
+**Why a table rather than better discipline.** The table makes the support claim mechanical: the suite
+enumerates the host enum, asserts every member has a complete row, asserts each host's generated
+configuration declares exactly the events its row names and no others, and asserts each host denies a
+write to a protected file when fed a payload in its own shape. A row that lies now fails a test. The
+previous arrangement had no place for such a test to stand, which is why five releases of documentation
+agreed with each other and not with the host.
+
+**Why the payload reader is deliberately left out of it.** `ReadCall` collects keys from every spelling
+any host is known to use, not from the asking host's row. That is the opposite of normalising, and on
+purpose: these surfaces are young, and a reader narrowed to one host's documented set turns a renamed
+field into a rule that silently stops applying. The fix for the `toolArgs` defect was a third spelling in
+the shared list, not a per-host key set.
+
+**Why the decision shapes stay as code.** The two write methods remain typed switches on `HookHost`
+rather than data on the row. Nesting, key names and the refusal word are JSON structure, and Gemini
+already breaks the pattern by spelling its turn-end refusal `deny` where both current hosts spell it
+`block`. Modelling that as fields would produce a shape language nobody can read, and a switch has the
+better failure mode anyway: a row added without a branch throws from `SupportedHosts.Of` or falls through
+the switch, and a test catches it, where a missing data field would quietly write an empty object — which
+is how an allow is spelled.
+
+**What the row deliberately does not carry yet.** Where a host reads skills from, and its non-interactive
+invocation for the fresh reader `interrogate` needs. Both are real facts about a host and neither has a
+consumer in the binary, so adding them now would be adding fields nothing reads — the thing this change
+was paired with removing elsewhere. They go in with the work that consumes them.
+
+**Rejected.**
+
+- *A branch per supported host, with a shared core branch* — rejected, and it is worth recording why
+  because it is the reach somebody has already had. Branches model divergence intended to converge, and a
+  host branch never converges, so it is permanent merge debt across the whole repository to separate
+  about one percent of it. Worse, it removes the place the assertions stand: `PluginTests` and the
+  conformance suite hold cross-cutting claims about every host at once, and on separate branches those
+  either live on the core branch where they cannot see the hosts, or are duplicated per branch with N
+  chances to drift. There is one binary by design (§12), so either the host branches hold no code — in
+  which case they wanted to be directories — or there are N packages of one tool and `sdlc version` stops
+  having an answer. And a gap would stop being visible: today a missing Copilot line sits next to the
+  Claude line in a file somebody reads, where on a branch it is an absence in a tree nobody checked out.
+- *A separate holder per host — `ClaudeHost`, `CopilotHost`, each with its own methods* — rejected. It
+  reads better at one host and worse at three, because the question people actually ask is "what differs
+  between them", and the answer is then spread across as many files as there are hosts. A table answers
+  it by being read down a column.
+- *Driving the payload reader from the row too* — rejected above. Consistency would cost the tolerance
+  that keeps a renamed field from disabling a rule, which is the more expensive failure by a wide margin.
+- *Modelling nesting and command spelling as two orthogonal fields* rather than one `HookEntryShape` —
+  rejected as abstraction ahead of a second user. Two hosts, two shapes, and a third host reuses whichever
+  matches; a combination nobody has asked for costs a reader two questions where one will do.
+- *Leaving the generated configuration as hand-written lines* — rejected once the content became
+  table-driven anyway. A configuration assembled a line at a time can carry a stray comma, and a hook
+  configuration that fails to parse is a hook that never runs; there was a test for exactly that risk,
+  which assembling from objects retires.
+- *Writing a turn-end block for a host whose event is unverified* — rejected, and it is the one field here
+  that must never be guessed. `TurnEndEvent` being null is a real answer, the command line refuses that
+  combination by name, and a plausible-looking block for an event that cannot fire is the failure the whole
+  design is written against. The correction above is not a licence to assume the next host has one.

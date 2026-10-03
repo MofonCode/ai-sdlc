@@ -4,6 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 using MofonCode.Core;
 using Sdlc.Core.Cycles;
 using Sdlc.Core.Git;
+using Sdlc.Core.Hooks;
 using Sdlc.Core.Solutions;
 
 namespace Sdlc.Core.Init;
@@ -205,24 +206,28 @@ public static class Initialise
                 actions,
                 cancellationToken).ConfigureAwait(false);
 
-            // Shared with the host and the team, so the framework owns its two hook entries and not
-            // the file. Everything else in it -- permissions, environment, the team's own hooks --
-            // is read, kept and written back. D-40.
-            await Merged(
-                Path.Combine(".claude", "settings.json"),
-                Templates.HookConfig("claude"),
-                actions,
-                printed,
-                cancellationToken).ConfigureAwait(false);
+            // Every supported host's hook configuration, from the table that describes them rather
+            // than a block each. Two blocks is where this started, which meant adding a host was an
+            // edit here that nothing asked for and nothing missed -- and the two differed in a way
+            // that mattered: one file the framework owns outright and one it owns entries inside.
+            // That is the host's row saying so now, not a choice made twice by hand. D-40, D-46.
+            foreach (SupportedHost host in SupportedHosts.All)
+            {
+                string relative = Path.Combine([.. host.ConfigPath.Split('/')]);
+                string contents = Templates.HookConfig(host.Host);
 
-            // Framework-named, so owning the whole file is what the name already says. Copilot reads
-            // every json in that directory, so a team's own config is a sibling file rather than a
-            // sibling key.
-            await Owned(
-                Path.Combine(".github", "hooks", "sdlc.json"),
-                Templates.HookConfig("copilot"),
-                actions,
-                cancellationToken).ConfigureAwait(false);
+                if (host.Ownership == ConfigOwnership.Shared)
+                {
+                    // The host's own shared project settings -- permissions, environment, the team's
+                    // own hooks. Everything that is not the framework's two entries is read, kept
+                    // and written back.
+                    await Merged(relative, contents, actions, printed, cancellationToken)
+                        .ConfigureAwait(false);
+                    continue;
+                }
+
+                await Owned(relative, contents, actions, cancellationToken).ConfigureAwait(false);
+            }
 
             // The pipeline is the one non-bypassable layer, so adoption has to write it -- but only a
             // framework-named file is the framework's to rewrite. `sdlc-verify.yml` is owned.

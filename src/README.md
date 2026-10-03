@@ -131,10 +131,18 @@ not a rule refusing.
 ## The hook path, and the one deliberate exception
 
 `sdlc hook` reads a host's payload on standard input and writes that host's own decision shape on standard
-output. `HookProtocol` is the whole adapter, and the only file that knows a host's vocabulary:
+output. Two files between them hold everything host-specific. **`SupportedHosts` is the data** — one row
+per host carrying its spellings, where its hook configuration goes, who owns that file, what it calls each
+event, whether it has a turn end at all, and what it calls the timeout. `Templates`, `Initialise` and the
+command line all read that row rather than carrying a host each; the table is also the support claim, and
+the suite asserts every row is complete and that each host denies a protected write when fed a payload in
+its own shape.
 
-- `TryParseHost` and `TryParseEvent` — every spelling either host's own documentation uses, so a hook config
-  copied from a host works without translation.
+**`HookProtocol` is the code** — the only file that knows a host's vocabulary:
+
+- `TryParseHost` and `TryParseEvent` — every spelling any host's own documentation uses, so a hook config
+  copied from a host works without translation. The host spellings come from `SupportedHosts`, so what the
+  command line accepts and what adoption configures cannot disagree.
 - `ReadCall` and `ReadTurnEnd` — pull a `ToolCall` or a `TurnEnd` out of the payload, collecting the file
   path from every key a host is known to use, and classifying the call by **what it carries** rather than
   only by its name, so an unrecognised tool is still judged on whether it is about to write a file or run a
@@ -146,13 +154,19 @@ output. `HookProtocol` is the whole adapter, and the only file that knows a host
   host's permission system rather than standing for silence, so a policy with nothing to say says nothing —
   D-39 records why, and why `ask` is not the answer either.
 
-`HookEvent` is named for the moment rather than for what either host calls it. Claude Code spells the second
-one `Stop`, which describes that host's state machine rather than the thing being judged, and letting that
-name inland would put one host's vocabulary in the policy.
+`HookEvent` is named for the moment rather than for what any host calls it. Claude Code spells the second
+one `Stop` and Copilot `agentStop`, both of which describe that host's state machine rather than the thing
+being judged, and letting either name inland would put one host's vocabulary in the policy. Those two
+spellings are fields on a row, which is the only place they belong.
 
-**The payload readers are deliberately tolerant.** A reader that threw on an unexpected shape would turn a
-renamed field into a hook that fails to start — and a hook that fails to start permits everything while
-appearing to protect. So a shape this cannot understand allows the call and says so on standard error.
+**The payload readers are deliberately tolerant, and they are not driven by the table.** A reader that
+threw on an unexpected shape would turn a renamed field into a hook that fails to start — and a hook that
+fails to start permits everything while appearing to protect. So a shape this cannot understand allows the
+call and says so on standard error, and the keys are collected from every spelling any host is known to
+use rather than from the row of the host that asked. Narrowing the reader to one host's set would trade
+that tolerance for tidiness: Copilot documents two payload shapes, only one was read, and on the other the
+hook found no path, classified every call as harmless, and allowed writes to the four files only a person
+writes.
 
 Then the one exception to the request-and-handler rule, and the only place in the gate where it is right:
 
@@ -185,7 +199,7 @@ exists with the capitalisation it states.
 | output for a decision that exists | the folder's renderer, as another method or a detail argument. Not a second query |
 | a command | an arm in the `Program.cs` switch, a local function beside the others, and a block in `Usage.cs` — which is what `sdlc help` prints, so it is not optional |
 | a stage that needs language | a skill, not a command. `Stages.cs` is the list the binary answers for, so a person typing `sdlc spec` is told which invocation to use rather than "unknown command" |
-| support for another host | spellings and the three payload methods in `HookProtocol`, and nothing anywhere else. If the change reaches `HookPolicy`, the abstraction has leaked |
+| support for another host | a row in `SupportedHosts`, a branch in each of `HookProtocol`'s two write methods, and a captured payload in `HookTests`. Nothing anywhere else — not `Templates`, not `Initialise`, not a message in the command line. If the change reaches `HookPolicy`, the abstraction has leaked |
 | a global constraint | `../CONSTRAINTS.md`. No code — `sdlc constraints` renders it, and nothing else may hold a copy |
 
 Two rules cut across all of those. **A refusal is a failed `Result` carrying a reason a person can act on**,

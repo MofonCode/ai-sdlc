@@ -69,11 +69,20 @@ asks the one policy engine, and writes the host's own decision shape.
 **v1 ships Claude Code and GitHub Copilot.** The rules themselves name no language, framework or package,
 so they travel to any stack — but the tool is a .NET executable, so the toolchain does not.
 
-**The turn end is Claude Code only, and that is said rather than papered over.** A second moment is worth
-governing — an agent must not report done over a failing build, which is what makes an analyzer or an
-architecture test an enforcement layer rather than one a reviewer consults afterwards — and Copilot's hook
-surface has no turn-end event to listen to. So nothing is configured for it, and
-`sdlc hook --event turn-end --host copilot` refuses by name instead of allowing silently.
+**Both moments are governed on both hosts.** A second moment is worth governing — an agent must not report
+done over a failing build, which is what makes an analyzer or an architecture test an enforcement layer
+rather than one a reviewer consults afterwards. Claude Code calls it `Stop` and Copilot calls it
+`agentStop`, and the names are the only difference.
+
+**What a host supports is a row in a table, not a judgement.** `SupportedHosts` holds one row per host —
+its spellings, where its hook configuration goes, who owns that file, what it calls each event, whether it
+has a turn end at all — and the suite asserts every row is complete and that each host denies a write to a
+protected file when fed a payload in its own shape. That exists because the previous arrangement spread
+those facts over four files and got two of them wrong without anything noticing: the turn end above was
+claimed to be Claude-only for a release, and the Copilot pre-tool hook read one of that host's two
+documented payload shapes and silently allowed everything on the other. A host with genuinely no turn-end
+event is still refused by name rather than given a check that cannot run. `CONCEPT.md` D-46 has the
+reasoning.
 
 ## Install
 

@@ -141,6 +141,13 @@ The two hooks govern two different moments. `PreToolUse` refuses a write to a fi
 failing suite or when code has moved since the build was recorded. It is the reason a warnings-as-errors
 build and an architecture test are enforcement rather than something a reviewer finds afterwards.
 
+**Both moments are governed on both hosts**, and only the names differ. Copilot spells them `preToolUse`
+and `agentStop`, and `sdlc init` writes them into `.github/hooks/sdlc.json` — so a Copilot user needs the
+binary and an adopted repository, and no plugin install. There is nothing to verify with
+`claude plugin details` there; what to check instead is that the file exists and that `sdlc version`
+answers. **Copilot does not yet get the skills**, so the stages have to be asked for in prose rather than
+named — `README.md` has what that costs.
+
 ```pwsh
 claude plugin marketplace list
 ```

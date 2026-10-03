@@ -5,6 +5,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Sdlc.Core.Artifacts;
 using Sdlc.Core.Cycles;
 using Sdlc.Core.Git;
+using Sdlc.Core.Hooks;
 using Sdlc.Core.Init;
 using Sdlc.Core.Solutions;
 
@@ -638,41 +639,113 @@ public sealed class InitTests
     }
 
     [TestMethod]
-    public void Each_generated_hook_config_is_valid_json()
+    [DynamicData(nameof(Hosts))]
+    public void Each_generated_hook_config_declares_the_events_its_host_actually_has(HookHost named)
     {
-        // These templates are assembled a line at a time, so a stray comma is a settings file the
-        // host rejects -- and a hook configuration that fails to parse is a hook that never runs,
-        // which permits everything while the directory still looks governed.
-        foreach (string host in (string[])["claude", "copilot"])
-        {
-            string text = Templates.HookConfig(host);
+        // Driven off the enum, so a member added without a row fails here when Of throws, and a row
+        // added is covered without anybody remembering. What this holds is the join between the row
+        // and the file: a row that says a host has a turn end and a file that configures none is a
+        // half-added host, and that state looks exactly like a supported one from the outside.
+        SupportedHost host = SupportedHosts.Of(named);
 
-            Assert.IsNotNull(
-                JsonNode.Parse(text),
-                host + "'s hook configuration is not valid JSON:\n" + text);
+        JsonNode config = JsonNode.Parse(Templates.HookConfig(host.Host))!;
+        JsonObject events = config["hooks"]!.AsObject();
+
+        Assert.IsNotNull(
+            events[host.PreToolEvent],
+            $"{host.Name} has no '{host.PreToolEvent}' block, so nothing judges a tool call on it.");
+
+        if (host.TurnEndEvent is { } turnEnd)
+        {
+            StringAssert.Contains(
+                Command(events[turnEnd]!.AsArray()[0]!, host),
+                "--event turn-end",
+                $"{host.Name}'s '{turnEnd}' block does not ask for the turn end.");
+        }
+
+        // A block for an event the host cannot fire is the failure this design is written against:
+        // a check that looks like enforcement and never runs. So the only keys permitted are the
+        // ones the row names.
+        string[] permitted = host.TurnEndEvent is null
+            ? [host.PreToolEvent]
+            : [host.PreToolEvent, host.TurnEndEvent];
+
+        CollectionAssert.AreEquivalent(
+            permitted,
+            events.Select(entry => entry.Key).ToArray(),
+            $"{host.Name}'s configuration claims an event its row does not.");
+
+        if (host.ConfigVersion is { } version)
+        {
+            Assert.AreEqual(
+                version,
+                config["version"]!.GetValue<int>(),
+                $"{host.Name} reads a versioned configuration and this one declares no version.");
         }
     }
 
     [TestMethod]
-    public void The_turn_end_is_configured_for_claude_and_deliberately_absent_for_copilot()
+    [DynamicData(nameof(Hosts))]
+    public void Each_generated_hook_entry_is_shaped_the_way_its_host_documents(HookHost named)
     {
-        // Copilot's hook surface has a pre-tool event only. Writing a plausible-looking turn-end
-        // block for it would be the failure this whole design is written against: a check that looks
-        // like enforcement and cannot fire. 'sdlc hook' refuses that combination by name.
-        JsonNode claude = JsonNode.Parse(Templates.HookConfig("claude"))!;
+        // Copilot's entries carried no `type` at all, which its own schema requires -- so the
+        // likeliest reading is that the whole entry was discarded and the gate allowed everything
+        // while `.github/hooks/sdlc.json` sat there looking like enforcement. Asserted per host
+        // rather than per file, because the next host's schema will have its own required field.
+        SupportedHost host = SupportedHosts.Of(named);
+
+        JsonObject entry = JsonNode.Parse(Templates.HookConfig(host.Host))!["hooks"]!
+            .AsObject()[host.PreToolEvent]!
+            .AsArray()[0]!
+            .AsObject();
+
+        JsonObject command = host.EntryShape == HookEntryShape.Direct
+            ? entry
+            : entry["hooks"]!.AsArray()[0]!.AsObject();
+
+        Assert.AreEqual(
+            "command",
+            command["type"]!.GetValue<string>(),
+            $"{host.Name}'s entry does not say what kind of hook it is.");
 
         StringAssert.Contains(
-            claude["hooks"]!["Stop"]!.AsArray()[0]!["hooks"]!.AsArray()[0]!["command"]!.GetValue<string>(),
-            "--event turn-end");
+            Command(entry, host),
+            "sdlc hook --host " + host.Spelling,
+            $"{host.Name}'s entry does not run the gate, or names a spelling it does not answer to.");
 
-        JsonNode copilot = JsonNode.Parse(Templates.HookConfig("copilot"))!;
+        Assert.AreEqual(
+            SupportedHosts.TimeoutSeconds,
+            command[host.TimeoutKey]!.GetValue<int>(),
+            $"{host.Name} spells its timeout '{host.TimeoutKey}', and a hook with no timeout on the "
+            + "path of every edit is one that can hang the session it protects.");
 
-        Assert.IsNull(
-            copilot["hooks"]!.AsObject().FirstOrDefault(entry =>
-                entry.Key.Contains("stop", StringComparison.OrdinalIgnoreCase)
-                || entry.Key.Contains("turn", StringComparison.OrdinalIgnoreCase)).Value,
-            "Copilot has no turn-end event to listen to, so nothing may claim one.");
+        if (host.EntryShape == HookEntryShape.Direct)
+        {
+            // Both shells. A Windows-only machine with no bash would otherwise have a hook that
+            // silently never runs.
+            Assert.AreEqual(
+                entry["bash"]!.GetValue<string>(),
+                entry["powershell"]!.GetValue<string>(),
+                "The two shells run the same command or one of them is governed differently.");
+        }
     }
+
+    /// <summary>
+    /// Every host the enum declares, so these run per host rather than per name somebody typed.
+    /// </summary>
+    /// <remarks>
+    /// The enum rather than the table, deliberately: a member with no row is the half-added host
+    /// this whole arrangement exists to catch, and enumerating the table would skip exactly that
+    /// case.
+    /// </remarks>
+    public static IEnumerable<object[]> Hosts =>
+        Enum.GetValues<HookHost>().Select(host => new object[] { host });
+
+    /// <summary>The command one entry runs, whichever shape its host spells entries in.</summary>
+    private static string Command(JsonNode entry, SupportedHost host) =>
+        host.EntryShape == HookEntryShape.Direct
+            ? entry["bash"]!.GetValue<string>()
+            : entry["hooks"]!.AsArray()[0]!["command"]!.GetValue<string>();
 
     [TestMethod]
     public void The_pre_push_hook_has_unix_line_endings_and_ignores_branches_that_are_not_cycles()
