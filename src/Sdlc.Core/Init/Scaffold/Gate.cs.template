@@ -1,0 +1,53 @@
+using FluentResults;
+using Microsoft.Extensions.DependencyInjection;
+using MofonCode.Core;
+using __SOLUTION__.Core;
+
+namespace __SOLUTION__.Tests;
+
+/// <summary>
+/// The solution as a host composes it, for a test to dispatch through.
+/// </summary>
+/// <remarks>
+/// <para><strong>A test dispatches rather than constructing a handler.</strong> Constructing one proves
+/// the handler works and proves nothing about whether it is wired, and a handler nothing can reach is a
+/// handler that throws on the first request while compiling perfectly. Going through
+/// <c>Add__SOLUTION__</c> and the mediator proves both.</para>
+///
+/// <para>It is also what the operation shape requires: a handler is <c>private</c> inside its holder,
+/// so there is nothing here to construct even if a test wanted to.</para>
+///
+/// <para><strong>Substitutions are registered before <c>Add__SOLUTION__</c>.</strong> Register a fake
+/// clock or a fake client first and the real registration defers to it, as long as the real one uses
+/// <c>TryAdd</c> — which is how a host would do it too, so a test says what it is substituting and
+/// nothing else.</para>
+/// </remarks>
+internal sealed class Gate : IDisposable
+{
+    private readonly ServiceProvider _provider;
+
+    private Gate(ServiceProvider provider) => _provider = provider;
+
+    /// <summary>Builds the solution's container.</summary>
+    /// <param name="substitute">What to register ahead of the real thing. Optional.</param>
+    /// <returns>The gate, which owns the container until it is disposed.</returns>
+    public static Gate Open(Action<IServiceCollection>? substitute = null)
+    {
+        ServiceCollection services = new();
+        substitute?.Invoke(services);
+
+        return new Gate(services.Add__SOLUTION__().BuildServiceProvider());
+    }
+
+    /// <summary>Dispatches a request that produces a response.</summary>
+    /// <typeparam name="TRequest">The request type.</typeparam>
+    /// <typeparam name="TResponse">What it produces.</typeparam>
+    /// <param name="request">The request.</param>
+    /// <returns>The handler's result, through the behaviour pipeline.</returns>
+    public Task<Result<TResponse>> Send<TRequest, TResponse>(TRequest request)
+        where TRequest : IRequest<TResponse> =>
+        _provider.GetRequiredService<Mediator>().Send<TRequest, TResponse>(request);
+
+    /// <inheritdoc />
+    public void Dispose() => _provider.Dispose();
+}

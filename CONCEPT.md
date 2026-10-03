@@ -807,14 +807,23 @@ lifecycle, deep links, native file pickers, platform chrome.
 person outside the cycle. `CON_12` keeps them out of specs. So MAUI-targeted work has some outcomes
 this framework does not govern.
 
-### 11.3 The MofonCode profile
+### 11.3 The kernel, and the conventions that come with it
 
-Private: its own repository, published to an Azure Artifacts feed only the team can restore. The
-public plugin ships `dotnet-default` and nothing house-specific.
+**`MofonCode.Core` is public** — MIT, on nuget.org, published from its own repository by trusted
+publishing with no stored key. So `dotnet-default` references it (D-34). An earlier draft had it
+behind an Azure Artifacts feed and described the operation shape as something a private profile added;
+that was wrong about the package and, following from it, wrong about the shape. The shape in §11.3.1 is
+the framework's, not a house preference, and a public profile that could not scaffold it would leave
+the most effective lever unbuilt — an agent copies neighbouring code far more reliably than it follows
+instructions.
 
-It adds `MofonCode.Core` — a minimal mediator, `Result<T>` handlers over FluentResults, `TraceResult`
-over OpenTelemetry activities, pipeline behaviours, composable specifications, throttled concurrency
-— plus the conventions that go with it:
+**What stays private is undetermined.** The `mofoncode` profile exists for whatever is genuinely
+house-specific, and the honest position is that nothing has been identified yet. It is a mechanism
+waiting for content rather than a profile with content waiting for a feed.
+
+The kernel is a minimal mediator, `Result<T>` handlers over FluentResults, `TraceResult` over
+OpenTelemetry activities, pipeline behaviours, composable specifications, throttled concurrency, and
+the one shape allowed across a boundary (§11.6) — plus the conventions that go with it:
 
 - **an operation that can fail returns `Result` or `Result<T>`**, and a failed result becomes the
   response at a boundary. Do not wrap an operation that cannot fail.
@@ -1705,3 +1714,32 @@ the profile package look like the next thing to build. Writing the files from th
 actually unblocks `init` scaffolding a solution, which is what every stated convention — sealed types,
 an internal data context, validation through the pipeline, one way out of an error boundary — needs in
 order to be enforced by anything.
+
+### D-34 — `dotnet-default` references the kernel
+
+**Decision.** The public profile takes `MofonCode.Core`, so a scaffolded solution gets the operation
+shape of §11.3.1 and a reference slice written in it.
+
+**Why.** The package is MIT and on nuget.org, published by trusted publishing from its own repository,
+so nothing about taking it needs credentials or a private feed — which is what an earlier draft assumed
+and got wrong. And the shape it enables is the framework's own settled convention rather than a house
+preference: a public profile that shipped the analyzer policy and the fitness functions but not the
+shape would leave the most effective lever unbuilt, because an agent copies the code beside it far more
+reliably than it follows an instruction.
+
+**What it costs, and it is a real cost.** Someone adopting the public plugin acquires a dependency on a
+pre-1.0 package that this team controls and versions, and inherits its breaking changes. Three things
+make that acceptable rather than merely convenient: the package is pinned at adoption rather than
+floated, its public surface is now listed and a change to it fails that package's own suite, and it
+depends on nothing but FluentResults and the `Microsoft.Extensions.*.Abstractions` — so it decides no
+data story and no hosting story on a consumer's behalf.
+
+**Rejected.** *A kernel-free public profile*, whose reference slice would return `Result` without a
+mediator — honest, and it demotes §11.3.1 from the framework's shape to one house's, which is not what
+it is. *Vendoring the mediator into each scaffolded solution as source* — no versioning, no fixes, and
+four files every consumer then owns and must maintain. *Publishing a second, differently-named kernel
+for public use* — the same code under two names, which is the kind of duplication that diverges.
+
+**What this makes honest.** §11.3 claimed the kernel was private and the shape was house-specific. Both
+were false, and the first caused the second — the belief that the shape could not be public is what
+made a kernel-free scaffold look necessary.

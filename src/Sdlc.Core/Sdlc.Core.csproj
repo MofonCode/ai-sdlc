@@ -6,4 +6,19 @@
     <PackageReference Include="JsonSchema.Net" />
   </ItemGroup>
 
+  <!-- The scaffold a new solution starts from, embedded rather than written as string constants. The
+       gate publishes single-file and a pre-tool hook invokes it on every tool call, so a template read
+       from a path beside the binary is a template that is missing in exactly that case; a resource is
+       inside the assembly. Named .template rather than .cs so nothing reads as source that is never
+       compiled, and ScaffoldTests reads every one of them, which is what stops them rotting.
+
+       WithCulture="false" is load-bearing, and the failure without it is a good trap. MSBuild infers a
+       resource's culture from the second-to-last extension, and `cs` is the code for Czech - so
+       `RepoFiles.cs.template` was taken for a Czech satellite of `RepoFiles.template` and went into a
+       cs/ satellite assembly rather than the main one. Four templates embedded, seven vanished, and
+       the only symptom was a scaffold that threw partway through writing files. -->
+  <ItemGroup>
+    <EmbeddedResource Include="Init\Scaffold\*.template" WithCulture="false" />
+  </ItemGroup>
+
 </Project>

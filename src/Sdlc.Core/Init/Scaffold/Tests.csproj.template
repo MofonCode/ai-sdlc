@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <PackageReference Include="MSTest" />
+
+    <!-- The container, so a test composes the solution the way a host does rather than constructing a
+         handler. The kernel takes only the abstractions, deliberately, so whoever hosts it chooses the
+         implementation - and here that is the suite. -->
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\__SOLUTION__.Core\__SOLUTION__.Core.csproj" />
+  </ItemGroup>
+
+</Project>

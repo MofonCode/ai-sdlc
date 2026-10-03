@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <PackageReference Include="MSTest" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" />
+  </ItemGroup>
+
+  <!-- Separate from the unit tests on purpose. These rules police the shape of the repository rather
+       than the behaviour of a type, so they read project files and loaded assemblies rather than
+       calling anything - and keeping them apart makes "the architecture tests" a thing a person can
+       run on its own. -->
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\__SOLUTION__.Core\__SOLUTION__.Core.csproj" />
+  </ItemGroup>
+
+</Project>

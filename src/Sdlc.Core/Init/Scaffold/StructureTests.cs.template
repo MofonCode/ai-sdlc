@@ -1,0 +1,93 @@
+namespace __SOLUTION__.Architecture.Tests;
+
+/// <summary>
+/// Rules about the shape of the repository, read from the files on disk.
+/// </summary>
+/// <remarks>
+/// These read <c>.csproj</c> and source files rather than loaded assemblies, so this project stays
+/// outside the graph it polices. Every message says what to do rather than what went wrong, because
+/// the reader is someone meeting the rule for the first time in a failing build.
+/// </remarks>
+[TestClass]
+public sealed class StructureTests
+{
+    /// <summary>
+    /// Guards the guard.
+    /// </summary>
+    /// <remarks>
+    /// Without this, adding a project directory and forgetting to list it in
+    /// <c>RepoFiles</c> silently removes everything under it from every rule in this assembly, and the
+    /// build stays green.
+    /// </remarks>
+    [TestMethod]
+    public void Every_directory_holding_projects_is_scanned()
+    {
+        string root = RepoFiles.FindRepoRoot();
+        List<string> unscanned = [];
+
+        foreach (string directory in Directory.EnumerateDirectories(root))
+        {
+            string name = Path.GetFileName(directory);
+
+            if (name.StartsWith('.') || RepoFiles.ScannedDirectories.Contains(name))
+            {
+                continue;
+            }
+
+            if (Directory
+                .EnumerateFiles(directory, "*.csproj", SearchOption.AllDirectories)
+                .Any(path => !RepoFiles.IsBuildOutput(path)))
+            {
+                unscanned.Add(name);
+            }
+        }
+
+        Assert.AreEqual(
+            0,
+            unscanned.Count,
+            "These directories hold projects and are not scanned, so none of the architecture rules "
+            + "apply to anything inside them:\n  "
+            + string.Join("\n  ", unscanned)
+            + "\n\nAdd them to RepoFiles. A rule that silently stops covering part of the repository "
+            + "is worse than no rule, because the build still goes green.");
+    }
+
+    /// <summary>
+    /// Every suppression is readable in one place.
+    /// </summary>
+    /// <remarks>
+    /// <c>Directory.Build.props</c> states the policy this enforces: <c>WarningsNotAsErrors</c> is
+    /// deliberately empty so that an exception is one visible line in a file a reviewer reads. A pragma
+    /// is the form that hides - a reviewer reading one file's diff cannot see that a rule was switched
+    /// off, and nobody reading the props file learns it either.
+    /// </remarks>
+    [TestMethod]
+    public void No_source_file_switches_off_a_warning_with_a_pragma()
+    {
+        // Composed rather than written out, so this file does not itself contain the construct it
+        // forbids. The alternative is to exempt this file, which is a hole: a suppression added here
+        // would then be the one place the rule could not see.
+        const string Forbidden = "#pragma" + " warning " + "disable";
+
+        List<string> offenders = [];
+        string root = RepoFiles.FindRepoRoot();
+
+        foreach (string file in RepoFiles.SourceFiles())
+        {
+            if (File.ReadAllText(file).Contains(Forbidden, StringComparison.Ordinal))
+            {
+                offenders.Add(Path.GetRelativePath(root, file).Replace('\\', '/'));
+            }
+        }
+
+        Assert.AreEqual(
+            0,
+            offenders.Count,
+            "These files switch off a warning with a pragma:\n  "
+            + string.Join("\n  ", offenders)
+            + "\n\nEvery suppression belongs in Directory.Build.props with the reason it exists, so a "
+            + "reviewer can read the complete list of exceptions in one place. If the rule is genuinely "
+            + "wrong for one member, a SuppressMessage attribute carrying its justification is the "
+            + "documented form; a pragma is the form nobody can audit.");
+    }
+}

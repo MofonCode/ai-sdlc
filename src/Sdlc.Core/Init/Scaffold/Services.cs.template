@@ -1,0 +1,39 @@
+using Microsoft.Extensions.DependencyInjection;
+using MofonCode.Core;
+using __SOLUTION__.Core.Greetings;
+
+namespace __SOLUTION__.Core;
+
+/// <summary>The one seam a host uses to get this solution's operations.</summary>
+/// <remarks>
+/// <para>A host calls this and nothing else. Everything inside is reachable only through the mediator,
+/// so what a host can do is exactly what this method registers — which is what makes the surface a
+/// decision rather than whatever happens to be public.</para>
+///
+/// <para><strong>Register by type, never through a factory that captures a value.</strong> A factory
+/// closing over a path or a clock is what stops a handler being private — the registration must be
+/// able to name the type, and only the holder can — and it also stops a test substituting a clock at
+/// all. Anything a handler needs is a type the container supplies.</para>
+///
+/// <para>Split this method when a host needs one half and not the other. Reading data and ingesting it
+/// are different capabilities, and only one of them should ever hold a provider's credentials.</para>
+/// </remarks>
+public static class __SOLUTION__Services
+{
+    /// <summary>Adds the mediator and every handler this solution dispatches to.</summary>
+    /// <param name="services">The collection to add to.</param>
+    /// <returns>The same collection, for chaining.</returns>
+    public static IServiceCollection Add__SOLUTION__(this IServiceCollection services)
+    {
+        ArgumentNullException.ThrowIfNull(services);
+
+        services.AddSingleton<Mediator>();
+
+        // One line per operation, each registered by its own holder. The architecture suite fails when
+        // a declared request has no handler, so a line forgotten here is a failing test rather than a
+        // runtime surprise on the first request that needed it.
+        services.AddGreetRequestHandler();
+
+        return services;
+    }
+}

@@ -1,0 +1,239 @@
+using System.Globalization;
+using System.Reflection;
+using System.Runtime.CompilerServices;
+using Microsoft.Extensions.DependencyInjection;
+using MofonCode.Core;
+using __SOLUTION__.Core;
+
+namespace __SOLUTION__.Architecture.Tests;
+
+/// <summary>
+/// Rules about the code itself, read from the compiled assemblies.
+/// </summary>
+/// <remarks>
+/// <para>These are fitness functions: the mechanism that stops a convention being prose. Every rule
+/// here exists because nothing else decides it — <c>.editorconfig</c> states some of them and
+/// <c>EnforceCodeStyleInBuild</c> does not cover naming, and no shipped analyzer seals a public
+/// type.</para>
+/// <para>Each rule asserts it actually inspected something. A reflection rule whose assembly failed to
+/// load enumerates nothing, finds no violations and passes — which is the vacuous success
+/// <c>RepoFiles</c> is written against, arriving by a different road.</para>
+/// </remarks>
+[TestClass]
+public sealed class ConventionTests
+{
+    /// <summary>
+    /// Types the sealed rule does not apply to, each for a stated reason.
+    /// </summary>
+    /// <remarks>
+    /// Add an entry in the same change that unseals something, and say why there. An empty list is the
+    /// honest starting point: every exception that ever exists was then written down by a person.
+    /// </remarks>
+    private static readonly string[] _notSubjectToSealing = [];
+
+    private static IReadOnlyList<Assembly> Assemblies => [typeof(__SOLUTION__Services).Assembly];
+
+    /// <summary>
+    /// Every class is sealed, static or abstract.
+    /// </summary>
+    /// <remarks>
+    /// An unsealed class is an extension point, and an extension point nobody asked for is a decision
+    /// made by omission. Sealing by default means inheritance is something a person wrote down, and it
+    /// is also what lets the runtime devirtualise.
+    /// <para>
+    /// No analyzer covers this. <c>CA1852</c> reaches internal types only, so the public ones are
+    /// here — and this rule is cheapest to adopt on the first day, while the repository still
+    /// satisfies it.
+    /// </para>
+    /// </remarks>
+    [TestMethod]
+    public void Every_class_is_sealed_static_or_abstract()
+    {
+        List<string> offenders = [];
+        int inspected = 0;
+
+        foreach (Assembly assembly in Assemblies)
+        {
+            foreach (Type type in assembly.GetTypes())
+            {
+                if (!type.IsClass || IsCompilerArtefact(type) || _notSubjectToSealing.Contains(type.Name))
+                {
+                    continue;
+                }
+
+                inspected++;
+
+                // A static class is abstract and sealed; an abstract class is abstract and not. Both
+                // are deliberate shapes, and neither can be instantiated by accident.
+                if (type.IsSealed || type.IsAbstract)
+                {
+                    continue;
+                }
+
+                offenders.Add(type.FullName ?? type.Name);
+            }
+        }
+
+        Assert.IsTrue(inspected > 0, "This rule inspected no types, so it would pass however the code looked.");
+
+        Assert.AreEqual(
+            0,
+            offenders.Count,
+            string.Create(
+                CultureInfo.InvariantCulture,
+                $"These classes are neither sealed, static nor abstract (of {inspected} inspected):\n  ")
+            + string.Join("\n  ", offenders)
+            + "\n\nSeal it, or make it static or abstract. If something genuinely needs deriving from, "
+            + "that is a decision worth writing down: add it to _notSubjectToSealing with the reason, "
+            + "in the same change that unseals it.");
+    }
+
+    /// <summary>
+    /// Every private field is <c>_camelCase</c>, and every constant is PascalCase.
+    /// </summary>
+    /// <remarks>
+    /// <c>.editorconfig</c> states this and enforces nothing: naming surfaces as <c>IDE1006</c>, which
+    /// <c>EnforceCodeStyleInBuild</c> does not cover. This is what makes it real. The prefix is the
+    /// point rather than the capitalisation — a reader scanning a method body can tell an assignment to
+    /// the instance from an assignment to a local without checking a declaration.
+    /// </remarks>
+    [TestMethod]
+    public void Every_private_field_is_underscore_camel_case_and_every_constant_is_pascal()
+    {
+        List<string> offenders = [];
+        int inspected = 0;
+        int types = 0;
+
+        foreach (Assembly assembly in Assemblies)
+        {
+            foreach (Type type in assembly.GetTypes())
+            {
+                if (IsCompilerArtefact(type))
+                {
+                    continue;
+                }
+
+                types++;
+
+                foreach (FieldInfo field in type.GetFields(
+                    BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static | BindingFlags.DeclaredOnly))
+                {
+                    // A primary constructor's capture, an auto-property's backing store and a
+                    // closure's state are emitted rather than written, and carry a bracket that is not
+                    // legal in an identifier.
+                    if (field.Name.Contains('<', StringComparison.Ordinal)
+                        || field.GetCustomAttribute<CompilerGeneratedAttribute>() is not null)
+                    {
+                        continue;
+                    }
+
+                    inspected++;
+                    string where = (type.FullName ?? type.Name) + "." + field.Name;
+
+                    if (field.IsLiteral)
+                    {
+                        if (!char.IsUpper(field.Name[0]))
+                        {
+                            offenders.Add(where + " is a constant and should be PascalCase");
+                        }
+
+                        continue;
+                    }
+
+                    if (!field.Name.StartsWith('_') || field.Name.Length < 2 || !char.IsLower(field.Name[1]))
+                    {
+                        offenders.Add(where + " should be _camelCase");
+                    }
+                }
+            }
+        }
+
+        // The guard watches the type count, not the field count. A rule that inspected no TYPES has an
+        // assembly that did not load and would pass however the code looked; a rule that inspected no
+        // FIELDS may simply be looking at a solution that has none yet, which is every solution on its
+        // first day. Guarding on the wrong one of those fails a brand-new scaffold.
+        Assert.IsTrue(
+            types > 0,
+            "This rule enumerated no types, so it would pass however the code looked. The likely cause "
+            + "is an assembly that did not load.");
+
+        Assert.AreEqual(
+            0,
+            offenders.Count,
+            string.Create(
+                CultureInfo.InvariantCulture,
+                $"These fields do not follow the naming rules (of {inspected} inspected):\n  ")
+            + string.Join("\n  ", offenders)
+            + "\n\nThe rule is in .editorconfig and nothing in the build enforces it, which is why it "
+            + "is here.");
+    }
+
+    /// <summary>
+    /// Every request the solution declares can actually be dispatched.
+    /// </summary>
+    /// <remarks>
+    /// A request type with no registered handler compiles, reads as an operation, and throws the first
+    /// time anything sends it. Worse, it may never be sent at all — in which case it is a declared
+    /// operation the application cannot perform, and nothing but this rule notices. The container is
+    /// the real one, because asserting against a hand-written list of registrations would test the list.
+    /// </remarks>
+    [TestMethod]
+    public void Every_request_the_solution_declares_has_a_registered_handler()
+    {
+        List<(Type Request, Type Response)> requests = [];
+
+        foreach (Type type in Assemblies[0].GetTypes())
+        {
+            if (IsCompilerArtefact(type) || type.IsAbstract || type.IsInterface)
+            {
+                continue;
+            }
+
+            foreach (Type contract in type.GetInterfaces())
+            {
+                if (contract.IsGenericType && contract.GetGenericTypeDefinition() == typeof(IRequest<>))
+                {
+                    requests.Add((type, contract.GetGenericArguments()[0]));
+                }
+            }
+        }
+
+        Assert.IsTrue(
+            requests.Count > 0,
+            "No request types were found, so this rule would pass with every handler unregistered. "
+            + "Either the assembly did not load, or nothing dispatches through the mediator yet.");
+
+        ServiceProvider provider = new ServiceCollection()
+            .Add__SOLUTION__()
+            .BuildServiceProvider();
+
+        List<string> unregistered = [];
+
+        using (provider)
+        {
+            foreach ((Type request, Type response) in requests)
+            {
+                if (provider.GetService(typeof(IRequestHandler<,>).MakeGenericType(request, response)) is null)
+                {
+                    unregistered.Add(request.Name + " -> " + response.Name);
+                }
+            }
+        }
+
+        Assert.AreEqual(
+            0,
+            unregistered.Count,
+            string.Create(
+                CultureInfo.InvariantCulture,
+                $"These requests have no handler registered (of {requests.Count} declared):\n  ")
+            + string.Join("\n  ", unregistered)
+            + "\n\nRegister the handler, or delete the request. A request nothing can dispatch is an "
+            + "operation the application declares and cannot perform.");
+    }
+
+    /// <summary>Whether a type was emitted by the compiler rather than written.</summary>
+    private static bool IsCompilerArtefact(Type type) =>
+        type.GetCustomAttribute<CompilerGeneratedAttribute>() is not null
+        || type.Name.Contains('<', StringComparison.Ordinal)
+        || (type.DeclaringType is { } outer && IsCompilerArtefact(outer));
+}

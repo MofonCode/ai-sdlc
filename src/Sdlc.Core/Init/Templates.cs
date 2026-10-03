@@ -33,6 +33,17 @@ public enum Platform
 /// </remarks>
 public static class Templates
 {
+    /// <summary>
+    /// The kernel version a scaffolded solution is pinned to.
+    /// </summary>
+    /// <remarks>
+    /// Here rather than inline so the suite can assert the reference slice and the pin agree. The slice
+    /// uses <c>ResultEnvelope</c>, <c>ToUserMessage</c> and <c>ToLogString</c>, which exist from
+    /// <c>0.2.0</c> -- so a scaffold pinned below that produces a solution that does not compile, and
+    /// one pinned above a published version produces one that does not restore.
+    /// </remarks>
+    public const string KernelVersion = "0.2.0";
+
     /// <summary>The solution document, which carries the two keys and nothing else.</summary>
     /// <param name="profile">The profile that governs the solution.</param>
     /// <param name="origin">Where the code came from.</param>
@@ -747,6 +758,13 @@ public static class Templates
             "    <!-- The versions this release of the gate builds against, rather than resolved from a",
             "         feed: adoption needs no network, so a known-good set beats a guess and a failed",
             "         restore is the check. -->",
+            string.Empty,
+            "    <!-- The kernel the operation shape is written against: a mediator, Result handlers,",
+            "         tracing, and the one shape allowed across an error boundary. MIT, on nuget.org.",
+            "         Pinned rather than floated because it is pre-1.0 and every consumer inherits its",
+            "         breaking changes. -->",
+            "    <PackageVersion Include=\"MofonCode.Core\" Version=\"" + KernelVersion + "\" />",
+            string.Empty,
             "    <PackageVersion Include=\"MSTest\" Version=\"4.4.1\" />",
             "    <PackageVersion Include=\"Microsoft.Extensions.DependencyInjection\" Version=\"10.0.12\" />",
             "  </ItemGroup>",
