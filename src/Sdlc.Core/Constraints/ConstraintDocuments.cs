@@ -2,11 +2,17 @@ using System.Globalization;
 
 namespace Sdlc.Core.Constraints;
 
-/// <summary>One tier's constraint document, as text with the path it came from.</summary>
+/// <summary>One tier's constraint document, as text with where it came from.</summary>
 /// <param name="Tier">The tier the document supplies.</param>
-/// <param name="Path">Where it was read from. Carried so a parse failure can name it.</param>
+/// <param name="Source">
+/// Where it was read from, carried so a parse failure and <c>sdlc constraints</c> can name it. Usually
+/// a path, and not always one: the global tier is embedded in the binary unless a file overrides it,
+/// and then this reads <c>embedded in sdlc 0.9.0</c>. Called a source rather than a path for that
+/// reason -- a member named Path holding something that is not one is how a caller ends up passing it
+/// to File.Exists. D-41.
+/// </param>
 /// <param name="Text">The document's contents.</param>
-public sealed record ConstraintDocument(ConstraintTier Tier, string Path, string Text);
+public sealed record ConstraintDocument(ConstraintTier Tier, string Source, string Text);
 
 /// <summary>Supplies the constraint documents in force, in resolution order.</summary>
 public interface IConstraintDocuments
@@ -26,7 +32,10 @@ public interface IConstraintDocuments
 /// The effective set is assembled at run time and never copied into a solution: a local copy goes
 /// stale and then disagrees with the live set, with nothing to say which one binds.
 /// </remarks>
-/// <param name="libraryPath">The framework's own <c>CONSTRAINTS.md</c>.</param>
+/// <param name="libraryPath">
+/// The framework's own <c>CONSTRAINTS.md</c>, when a file supplies it. Null means the copy the binary
+/// carries, which is the normal case for an installed tool -- see <see cref="ShippedLibrary"/>.
+/// </param>
 /// <param name="solutionRoot">
 /// The root of the solution being worked on. Its <c>.sdlc/constraints.md</c> supplies the solution
 /// tier, and is absent until someone writes the first local rule.
@@ -37,7 +46,7 @@ public interface IConstraintDocuments
 /// source rather than a redesign.
 /// </param>
 public sealed class FileConstraintDocuments(
-    string libraryPath,
+    string? libraryPath,
     string solutionRoot,
     string? profilePath = null) : IConstraintDocuments
 {
@@ -56,7 +65,21 @@ public sealed class FileConstraintDocuments(
     {
         List<ConstraintDocument> documents = [];
 
-        await Add(ConstraintTier.Global, libraryPath, required: true).ConfigureAwait(false);
+        // The global tier always resolves: a path when one was found, and otherwise the copy the
+        // binary carries. There is no third outcome, which is the whole of D-41 -- the gate used to
+        // refuse to open at all when no file was beside it or above it.
+        if (string.IsNullOrWhiteSpace(libraryPath))
+        {
+            documents.Add(new ConstraintDocument(
+                ConstraintTier.Global,
+                ShippedLibrary.Source,
+                ShippedLibrary.Text()));
+        }
+        else
+        {
+            await Add(ConstraintTier.Global, libraryPath, required: true).ConfigureAwait(false);
+        }
+
         await Add(ConstraintTier.Profile, profilePath, required: false).ConfigureAwait(false);
         await Add(
             ConstraintTier.Solution,
@@ -76,6 +99,9 @@ public sealed class FileConstraintDocuments(
             {
                 if (required)
                 {
+                    // Reached only when a caller passed a path to a file that is not there. The
+                    // command line checks SDLC_CONSTRAINTS before it builds the container and
+                    // refuses by name, so this is a programmer's mistake rather than a person's.
                     throw new FileNotFoundException(
                         string.Create(
                             CultureInfo.InvariantCulture,

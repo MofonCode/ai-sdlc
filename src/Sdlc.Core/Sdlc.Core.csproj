@@ -21,4 +21,14 @@
     <EmbeddedResource Include="Init\Scaffold\*.template" WithCulture="false" />
   </ItemGroup>
 
+  <!-- The global constraint library, embedded for the same reason and with a sharper version of the
+       same evidence: the packed tool shipped no library at all, so an installed gate could run `help`
+       and `version` and nothing else, and both generated pipelines installed a binary whose one
+       non-bypassable check could never pass. A resource cannot be left out of a package. The file
+       beside the gate or above it still wins when there is one, which is what keeps editing
+       CONSTRAINTS.md here from needing a rebuild. D-41. -->
+  <ItemGroup>
+    <EmbeddedResource Include="..\..\CONSTRAINTS.md" LogicalName="Sdlc.Core.CONSTRAINTS.md" />
+  </ItemGroup>
+
 </Project>

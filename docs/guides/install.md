@@ -35,11 +35,21 @@ dotnet pack src\Sdlc.Cli\Sdlc.Cli.csproj -c Release -o src\Sdlc.Cli\bin\pack
 dotnet tool install --global --add-source src\Sdlc.Cli\bin\pack MofonCode.Sdlc.Cli
 ```
 
-Then, from anywhere:
+Then, from anywhere — and **from anywhere matters**, so run this somewhere that is not a clone of this
+repository:
 
 ```pwsh
-sdlc help
+sdlc constraints
 ```
+
+It should print the fourteen global rules and end with `global  embedded in sdlc <version>`. **Use this
+rather than `sdlc help` as the smoke test.** `help` and `version` are the only two commands that need
+nothing from the installation, so they are the two that cannot tell you whether it worked.
+
+The library is embedded in the binary, so there is nothing to install beside it. `SDLC_CONSTRAINTS` is
+the escape hatch: point it at a `CONSTRAINTS.md` and that file binds instead, which is what you want when
+running a build of the gate against a library you are editing. Pointed at a file that is not there, every
+command refuses and says so rather than falling back — a person who named a rule set meant it.
 
 **The package and the plugin carry the same number, and the artifact format does not.**
 `VersionPrefix` in `Directory.Build.props` is the one place the release version is set, and the suite
@@ -49,8 +59,12 @@ artifact's `framework_version`, tracks the file envelope rather than the release
 across releases that change no format. `sdlc version` prints all three and says which is which. If a
 reinstall has to pin one, `dotnet tool install --version` takes it.
 
-**Verified:** the pack step, on this repository, at this commit. **Not verified:** the global install,
-which has not been run on a clean machine. If `dotnet tool install` refuses because the tool is already
+**Verified:** the pack step, and the install-and-run from outside the tree — `.github/workflows/ci.yml`
+packs the tool, installs it to a temporary tool path and runs `sdlc constraints` from a directory that is
+not this repository, on every pull request. That step exists because everything else runs the binary from
+its build output, which sits inside this tree and so always finds a `CONSTRAINTS.md` by walking up to the
+root; the packed artifact went untested for a release, and shipped no library at all. **Not verified:**
+`--global` specifically, on a clean machine, which differs from the CI path only in where the tool lands. If `dotnet tool install` refuses because the tool is already
 present, the **Update** section below is the pair to run.
 
 ## The plugin

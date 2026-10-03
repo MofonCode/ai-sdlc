@@ -25,7 +25,7 @@ This file is working material. Delete it when the fixes land.
 |---|---|---|
 | F-01 | Critical | ~~The pre-tool hook auto-approves every call it does not refuse~~ **fixed, D-39** |
 | F-02 | Critical | ~~`sdlc init` overwrites the project's `.claude/settings.json`~~ **fixed, D-40** |
-| F-03 | Critical | The packed tool ships no constraint library, so nothing but `help` and `version` runs |
+| F-03 | Critical | ~~The packed tool ships no constraint library, so nothing but `help` and `version` runs~~ **fixed, D-41** |
 | F-04 | High | A deleted or malformed findings round makes the gate and the chain check blind |
 | F-05 | High | `diff.patch` omits every new file, and the comparison reports agreement |
 | F-06 | High | `outcome: "pass"` passes the schema and fails the chain |
@@ -143,6 +143,19 @@ edited — print the block for the person to place, which is the pattern `Agents
 ---
 
 ## F-03 — The packed tool ships no constraint library, so nothing but `help` and `version` runs
+
+**Fixed, by embedding rather than packing.** The library is an `EmbeddedResource` in `Sdlc.Core`, so it
+cannot be left out of a package; a file found through `SDLC_CONSTRAINTS`, beside the gate or above it
+still wins, which keeps this repository's own edit-and-run loop. `Workspace.Run` no longer refuses to
+open over a file none of its commands read, and `FileConstraintDocuments`' `throw` is now unreachable
+rather than one guard away. `ConstraintDocument.Path` became `Source`, since the global tier's value is
+`embedded in sdlc <version>`. D-41 records it, with what embedding costs.
+
+Verified on the packed artifact: installed to a scratch tool path outside the tree with no
+`SDLC_CONSTRAINTS` set, `sdlc constraints` renders the same fourteen rules the repo build does, and
+`init` and `verify-chain` work. CI now packs, installs and runs it from outside the repository — the
+only check in the suite that touches the artifact a person installs, and the reason this survived a
+release.
 
 **Severity:** Critical
 **Where:** `src/Sdlc.Cli/Sdlc.Cli.csproj` (nothing packs `CONSTRAINTS.md`); `src/Sdlc.Cli/Locate.cs:30`;

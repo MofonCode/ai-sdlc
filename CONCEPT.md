@@ -513,7 +513,8 @@ is used rather than a rule written. Mechanical rules about artifacts go to schem
 
 Global, then profile, then solution. The effective set is rendered on demand by
 `sdlc constraints --for <artifact>`, never copied into a solution — and **that command is also how
-the set reaches a session, on every host.** Running it is the first step of every skill that judges
+the set reaches a session, on every host.** The binary carries the library, so that holds for an
+installed tool and not only for one run out of a clone — D-41. Running it is the first step of every skill that judges
 or writes an artifact. Per-host native delivery is an optimisation layered on top, never the
 mechanism.
 
@@ -2245,3 +2246,62 @@ second that also runs.
   would need the pipeline pointed at a non-default path in the portal, which is a step a person takes
   there anyway, and D-32 says that adapter has never run against a real server. The first team to use
   it is the one who should decide.
+
+### D-41 — The binary carries the constraint library
+
+**Decision.** `CONSTRAINTS.md` is an embedded resource in `Sdlc.Core`. A file found through
+`SDLC_CONSTRAINTS`, beside the gate, or above it still wins; the embedded copy is what everything
+falls through to. The library can no longer be missing.
+
+**What was there before.** `Locate.Library` looked at `SDLC_CONSTRAINTS`, then beside the running
+assembly, then up the tree, and `Workspace.Run` refused to open the container when all three came up
+empty. Nothing packed the file, and a global tool install satisfies none of the three.
+
+So the installed tool answered `version` and `help` and nothing else. `constraints`, `init`, `status`,
+`gate`, `draft`, `evidence`, `claims`, `landable` and `verify-chain` all exited 3 with the same message
+about a missing file, the pinned `dotnet tool install` D-37 put in both generated pipelines installed a
+gate whose one non-bypassable check could never pass — **so nothing could ever merge, for a reason
+unrelated to the chain** — and the turn-end gate printed the error and let the turn through. §7.3's
+claim that `sdlc constraints` "is also how the set reaches a session, on every host" held only for a
+binary run out of a clone.
+
+**Why a resource rather than packing the file.** `Sdlc.Core.csproj` already makes this argument for the
+scaffold templates: *"a template read from a path beside the binary is a template that is missing in
+exactly that case; a resource is inside the assembly."* Packing the file repairs the global tool and
+leaves the shape — a binary needing a file it does not control, three places it might be, and a failure
+when it is in none of them. There is no arrangement of a copied file in which "the library is missing"
+cannot happen. With a resource the only route to that state is pointing `SDLC_CONSTRAINTS` at nothing,
+which is a person's own instruction and refuses by name.
+
+**Why the file still wins.** Editing `CONSTRAINTS.md` at the root of this repository and running the
+build output takes effect with no rebuild, because the output directory is inside the tree and the
+up-the-tree search finds the live file. That is the framework's own development loop and constraints are
+what it edits most. Keeping the search ahead of the resource preserves it exactly. The cost is a stray
+`CONSTRAINTS.md` somewhere above an installed tool would be preferred over the embedded one — accepted,
+because the search ends at the filesystem root and the alternative was making every contributor set an
+environment variable or rebuild to see a rule change.
+
+**Why a bad override refuses rather than falling back.** `SDLC_CONSTRAINTS` is a person saying which
+rules bind. Falling back to the embedded copy would judge their work against rules they did not choose,
+and say nothing about it. One wrong path is a configuration error with a one-line fix; a silent
+substitution of the rule set is the kind of thing nobody finds.
+
+**What it costs, stated plainly.**
+
+- **A person cannot read the rules as a file on their machine.** Nothing depends on it — no skill reads
+  the global library, every one of them runs `sdlc constraints`, and §7.3 already says rendering is how
+  the set reaches a session. What is lost is informal: `grep` over the raw text, and diffing two
+  installed versions to see what a revision changed. That sharpens F-40's point that git is where older
+  wording lives.
+- **`sdlc constraints` names a release rather than a path for the global tier.** `ConstraintDocument.Path`
+  became `Source` for that reason: a member named Path holding `embedded in sdlc 0.9.0` is one a caller
+  eventually hands to `File.Exists`.
+- **A parse failure in the global tier has no file to open.** Near-zero: that is a framework bug rather
+  than a person's, and `ShippedLibraryTests` makes it a build failure here before it can ship.
+- **The library is fixed at build time.** True of a packed file too, and the thing a release is for.
+
+**How it is kept honest.** Three tests assert the embedded copy is the file in this repository, that it
+parses to the same set, and that a file still wins over it. None of those would have caught the original
+fault, because all of them run inside the tree — so CI now packs the tool, installs it to a temporary
+tool path and runs `sdlc constraints` from a directory that is not this repository. That is the only
+check in the suite that exercises the artifact a person actually installs.

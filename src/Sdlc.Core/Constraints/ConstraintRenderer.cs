@@ -83,7 +83,7 @@ public static class ConstraintRenderer
         {
             output.AppendLine(string.Create(
                 CultureInfo.InvariantCulture,
-                $"{Indent}{ConstraintId.NameOf(source.Tier),-10} {source.Path}"));
+                $"{Indent}{ConstraintId.NameOf(source.Tier),-10} {source.Source}"));
         }
 
         if (set.Superseded.Count > 0)

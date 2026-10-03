@@ -34,9 +34,16 @@ internal sealed class Workspace
     /// <summary>
     /// Opens a workspace, runs <paramref name="body"/> in it, and closes it.
     /// </summary>
+    /// <remarks>
+    /// <strong>A missing constraint library is no longer a reason not to open.</strong> It was: this
+    /// refused before the body ran whenever no <c>CONSTRAINTS.md</c> was beside the binary or above
+    /// it, which is every global install -- so <c>gate</c>, <c>status</c>, <c>verify-chain</c> and
+    /// both hook paths failed over a file none of them reads. The binary now carries the library
+    /// (D-41) and the one thing left to refuse is an override naming a file that is not there.
+    /// </remarks>
     /// <param name="line">The command line, read for <c>--solution</c>.</param>
     /// <param name="body">What to do with the workspace.</param>
-    /// <returns>What <paramref name="body"/> returned, or a failing exit code when the library is missing.</returns>
+    /// <returns>What <paramref name="body"/> returned, or a failing exit code when the override is wrong.</returns>
     public static async Task<int> Run(CommandLine line, Func<Workspace, Task<int>> body)
     {
         ArgumentNullException.ThrowIfNull(line);
@@ -46,6 +53,9 @@ internal sealed class Workspace
             ? Path.GetFullPath(root)
             : Directory.GetCurrentDirectory();
 
+        // Null is a result, not an absence: it means the copy the binary carries. Only a configured
+        // override pointing at nothing fails, and it fails rather than quietly binding a different set
+        // of rules than the person asked for.
         if (!Locate.Library(out string? libraryPath, out string? why))
         {
             await Console.Error.WriteLineAsync(why).ConfigureAwait(false);

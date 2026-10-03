@@ -70,7 +70,7 @@ public static class EffectiveConstraints
             foreach (ConstraintDocument document in sources)
             {
                 Result<IReadOnlyList<Constraint>> parsed =
-                    ConstraintParser.Parse(document.Text, document.Path);
+                    ConstraintParser.Parse(document.Text, document.Source);
 
                 if (parsed.IsFailed)
                 {

@@ -65,3 +65,29 @@ jobs:
 
       - name: Test the scaffolded solution
         run: dotnet test --configuration Release "${{ runner.temp }}/scaffold/Demo.slnx"
+
+      # The second gap, and the same shape as the first: every check above runs the binary from its
+      # build output, which sits inside this tree -- so the gate always finds CONSTRAINTS.md by walking
+      # up to the repository root, and the packed artifact is never exercised at all. That is how the
+      # package came to ship no library: an installed tool answered `help` and `version` and nothing
+      # else, both generated pipelines installed a gate whose one non-bypassable check could never
+      # pass, and 468 tests agreed everything was fine. D-41 embedded the library; these three steps
+      # are what would have caught it, because they are the only ones run from outside the tree.
+      #
+      # SDLC_CONSTRAINTS is deliberately not set, and the working directory is deliberately not this
+      # repository. Both of those would hand the tool the file it is supposed to no longer need.
+      - name: Pack the tool
+        run: dotnet pack src/Sdlc.Cli/Sdlc.Cli.csproj --configuration Release -o "${{ runner.temp }}/pack"
+
+      - name: Install the packed tool
+        run: >
+          dotnet tool install MofonCode.Sdlc.Cli
+          --add-source "${{ runner.temp }}/pack"
+          --tool-path "${{ runner.temp }}/tool"
+          --prerelease
+
+      # Renders the effective set, which is the command that needs the library and the one a person
+      # should run as a smoke test. `help` and `version` are the two that cannot detect this.
+      - name: The installed tool finds its constraint library
+        working-directory: ${{ runner.temp }}
+        run: '"${{ runner.temp }}/tool/sdlc" constraints'

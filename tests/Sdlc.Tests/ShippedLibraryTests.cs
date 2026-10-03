@@ -1,4 +1,5 @@
 using FluentResults;
+using Sdlc.Core;
 using Sdlc.Core.Constraints;
 
 namespace Sdlc.Tests;
@@ -166,4 +167,92 @@ public sealed class ShippedLibraryTests
             }
         }
     }
+
+    [TestMethod]
+    public async Task The_binary_carries_the_library_and_it_is_the_one_in_this_repository()
+    {
+        // The packed tool shipped no library at all, so an installed gate answered `help` and
+        // `version` and nothing else, both generated pipelines installed a binary whose one
+        // non-bypassable check could never pass, and the turn-end gate failed open. The library is now
+        // an embedded resource, which cannot be left out of a package. D-41.
+        //
+        // Null means "the copy the binary carries". Asserting it against the file on disk is what
+        // catches the resource being dropped from the project file or embedded under another name --
+        // both of which leave every other test passing, because every other test reads the file.
+        FileConstraintDocuments documents = new(libraryPath: null, solutionRoot: Path.GetTempPath());
+
+        IReadOnlyList<ConstraintDocument> sources = await documents.Enumerate(TestContext.CancellationToken);
+        ConstraintDocument global = sources.Single(source => source.Tier == ConstraintTier.Global);
+
+        Assert.AreEqual(
+            await File.ReadAllTextAsync(RepoPaths.Library, TestContext.CancellationToken),
+            global.Text,
+            "The embedded library is not the one at the root of this repository.");
+
+        Result<IReadOnlyList<Constraint>> parsed = ConstraintParser.Parse(global.Text, global.Source);
+
+        Assert.IsTrue(parsed.IsSuccess, string.Join("; ", parsed.Errors.Select(error => error.Message)));
+        Assert.AreEqual(Library.Count, parsed.Value.Count, "The same rules, however they were read.");
+    }
+
+    [TestMethod]
+    public async Task The_embedded_library_names_the_release_rather_than_a_path()
+    {
+        // `sdlc constraints` prints where each tier was read from, and for an installed tool the
+        // honest answer is not a path -- it would be one inside the dotnet tool store, which tells a
+        // reader less than the release does. Which is also why the member is called Source: a
+        // property named Path holding something that is not one gets passed to File.Exists.
+        FileConstraintDocuments documents = new(libraryPath: null, solutionRoot: Path.GetTempPath());
+
+        IReadOnlyList<ConstraintDocument> sources = await documents.Enumerate(TestContext.CancellationToken);
+        string source = sources.Single(entry => entry.Tier == ConstraintTier.Global).Source;
+
+        StringAssert.Contains(source, "embedded");
+        StringAssert.Contains(source, Release.Version);
+        Assert.IsFalse(File.Exists(source), "It is deliberately not a path.");
+    }
+
+    [TestMethod]
+    public async Task A_library_file_still_wins_over_the_embedded_copy()
+    {
+        // The lookup order is SDLC_CONSTRAINTS, then beside the gate, then up the tree, then the
+        // embedded copy. Keeping the file ahead of the resource is what keeps this repository's own
+        // loop: editing CONSTRAINTS.md and running the build output takes effect with no rebuild.
+        string path = Path.Combine(Path.GetTempPath(), "sdlc-library", Guid.NewGuid().ToString("N") + ".md");
+        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+        await File.WriteAllTextAsync(
+            path,
+            """
+            # Rules
+
+            ## CON_01 — Only this one
+
+            **Applies to:** every artifact
+
+            **Forbids:** nothing at all
+
+            **Why:** a file supplied it, so the embedded copy must not be the one that binds
+
+            """,
+            TestContext.CancellationToken);
+
+        try
+        {
+            FileConstraintDocuments documents = new(path, Path.GetTempPath());
+
+            IReadOnlyList<ConstraintDocument> sources =
+                await documents.Enumerate(TestContext.CancellationToken);
+            ConstraintDocument global = sources.Single(source => source.Tier == ConstraintTier.Global);
+
+            Assert.AreEqual(path, global.Source);
+            StringAssert.Contains(global.Text, "Only this one");
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
+    /// <summary>The test context, for the cancellation token the analysers require to be passed on.</summary>
+    public TestContext TestContext { get; set; } = null!;
 }

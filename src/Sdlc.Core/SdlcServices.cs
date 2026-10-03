@@ -38,16 +38,18 @@ public static class SdlcServices
     /// Constructing a handler directly proves only the second.</para>
     /// </remarks>
     /// <param name="services">The collection to add to.</param>
-    /// <param name="libraryPath">The framework's own <c>CONSTRAINTS.md</c>.</param>
+    /// <param name="libraryPath">
+    /// The framework's own <c>CONSTRAINTS.md</c>, when a file supplies it. Null means the copy the
+    /// binary carries, which is the normal case for an installed tool. D-41.
+    /// </param>
     /// <param name="solutionRoot">The root of the solution being worked on.</param>
     /// <returns>The same collection, for chaining.</returns>
     public static IServiceCollection AddSdlc(
         this IServiceCollection services,
-        string libraryPath,
+        string? libraryPath,
         string solutionRoot)
     {
         ArgumentNullException.ThrowIfNull(services);
-        ArgumentException.ThrowIfNullOrWhiteSpace(libraryPath);
         ArgumentException.ThrowIfNullOrWhiteSpace(solutionRoot);
 
         services.AddSingleton<Mediator>();
