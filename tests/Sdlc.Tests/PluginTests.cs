@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using System.Text.RegularExpressions;
 using FluentResults;
 using Sdlc.Core.Constraints;
 
@@ -357,6 +358,89 @@ public sealed class PluginTests
                 dispatched.Contains(verb, StringComparer.Ordinal),
                 $"§15.2's table lists '{verb}' and the binary does not answer it.");
         }
+    }
+
+    [TestMethod]
+    public void Every_decision_says_what_it_governs_and_the_section_exists()
+    {
+        // Governs is the appendix's way in. §1-18 carry a trailing (D-nn) marker, which answers "why
+        // does this section say that"; Governs answers the reverse, which is the direction a
+        // challenged reader travels -- they arrive at an id from a commit message or a code remark.
+        //
+        // It was part of the agreed format from the day the appendix was designed, and it went missing
+        // from all forty-three entries without anything noticing, which is what this test is for. A
+        // pointer at a section that does not exist is worse than none, so both halves are checked.
+        // D-44.
+        string concept = File.ReadAllText(Path.Combine(Root, "CONCEPT.md"));
+        string[] lines = concept.ReplaceLineEndings().Split(Environment.NewLine);
+
+        HashSet<string> headings = [];
+
+        foreach (string line in lines)
+        {
+            Match heading = Regex.Match(line, @"^#{2,4} (\d+(?:\.\d+)*)\.? ");
+
+            if (heading.Success)
+            {
+                headings.Add("\u00a7" + heading.Groups[1].Value);
+            }
+        }
+
+        Assert.IsTrue(headings.Count > 40, "Only found " + headings.Count + " numbered sections.");
+
+        List<string> ungoverned = [];
+        List<string> dangling = [];
+        string? current = null;
+        bool said = true;
+
+        foreach (string line in lines)
+        {
+            Match entry = Regex.Match(line, @"^### (D-\d+)");
+
+            if (entry.Success)
+            {
+                if (current is not null && !said)
+                {
+                    ungoverned.Add(current);
+                }
+
+                current = entry.Groups[1].Value;
+                said = false;
+                continue;
+            }
+
+            if (current is null || !line.StartsWith("**Governs:**", StringComparison.Ordinal))
+            {
+                continue;
+            }
+
+            said = true;
+
+            foreach (Match section in Regex.Matches(line, @"\u00a7[\d.]+"))
+            {
+                if (!headings.Contains(section.Value))
+                {
+                    dangling.Add(current + " -> " + section.Value);
+                }
+            }
+        }
+
+        if (current is not null && !said)
+        {
+            ungoverned.Add(current);
+        }
+
+        Assert.AreEqual(
+            0,
+            ungoverned.Count,
+            "These decisions do not say what they govern:\n  " + string.Join("\n  ", ungoverned)
+            + "\n\nAdd a **Governs:** line naming the sections that state the rule, or \"nothing\" with "
+            + "the reason - a superseded decision governs nothing and should say so.");
+
+        Assert.AreEqual(
+            0,
+            dangling.Count,
+            "These decisions point at a section that does not exist:\n  " + string.Join("\n  ", dangling));
     }
 
     [TestMethod]

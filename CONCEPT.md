@@ -1410,13 +1410,33 @@ Ids are a monotonic sequence of their own, separate from `CON_nn`: a constraint 
 decision explains the framework. Assigned once, never reused. **A reversed decision is superseded by
 a new id rather than edited**, so a commit citing `D-14` still means what it meant.
 
-Each entry carries the decision, the cost it avoids, and what was rejected. The `Rejected` field is
-half the value: in six months the question is not "why this" but "why not that".
+Each entry carries **`Governs`** — the sections that state the rule this decided — then the decision,
+the cost it avoids, and what was rejected. The `Rejected` field is half the value: in six months the
+question is not "why this" but "why not that".
+
+**`Governs` is the way in.** §1–18 carry a trailing `(D-nn)` marker, which answers "why does this
+section say that"; `Governs` answers the reverse, which is the direction a challenged reader
+travels — they arrive at an id from a commit message or a code remark and need to know what it
+actually constrains. It went missing for a while and the appendix became something you could only
+enter from the front, which is most of what makes a long one feel unmanageable.
+
+**What earns an id: foreclosing an alternative somebody would otherwise reach for.** An entry whose
+`Rejected` is empty is not a decision, it is a section of §1–18 in the wrong place — the sections
+state what is true, and this explains why the alternatives are not. The test is deliberately about
+the alternative rather than the importance: a small choice that closes a road worth closing belongs
+here, and a large truth nobody would argue with does not.
+
+**And what does not earn one: the consequence of a decision already recorded.** Removing something a
+previous entry had already made vestigial is that entry taking effect, not a new decision; it goes in
+the commit message and in whichever section described the thing. An id restating another id's
+reasoning is a second place the truth lives, and the one that goes stale is the one somebody trusts.
 
 The full working-through — what the previous draft said, how each contradiction was found, and the
 code each decision changes — is in commit `adf15cc`.
 
 ### D-01 — Side research and evaluation run in a new process
+
+**Governs:** §2.5
 
 **Why.** Research returns an answer and should not leave its search behind. An evaluation must not
 have seen the thing it judges being made.
@@ -1426,6 +1446,8 @@ important skill. In-process self-judgement in the healing loop: removes the only
 buys.
 
 ### D-02 — Constraints bind an artifact's body; its open region is the compliant exit
+
+**Governs:** §5.4
 
 **Why.** `CON_02` forbids an intent *stating as settled fact* a figure nobody measured — so an item
 recorded as an open question satisfies it rather than overriding it. `CON_04` forbids leaving an
@@ -1437,6 +1459,8 @@ gate under another name; requiring a clean round only of the spec and plan.
 
 ### D-03 — An open item must be one nobody can resolve yet
 
+**Governs:** §4.3, §7.5
+
 **Why.** `D-02` makes the open region a legitimate exit, which makes it an exploitable one: an agent
 can empty the body into it and satisfy every constraint by asserting nothing. `CON_14` is the only
 control, and no hook can decide it.
@@ -1445,6 +1469,8 @@ control, and no hook can decide it.
 person reading a body with nothing in it has nothing to object to.
 
 ### D-04 — The plan gate is about dependency, not the absence of open items
+
+**Governs:** §5.4
 
 **Why.** A hard no-open-items rule would have blocked the trial cycle, whose plan carried limits
 citing two open intent questions, was approved, built, and shipped working software. False positives
@@ -1455,6 +1481,8 @@ existing constraints already deliver through `D-05`.
 
 ### D-05 — The spec disposes of every intent open item
 
+**Governs:** §5.4
+
 **Why.** The check it replaces — every intent statement maps to a criterion — cannot exist, because
 `CON_04` is in the library only on the grounds that no hook can decide coverage. Disposal is a
 different question: *presence*, which a parser decides.
@@ -1463,6 +1491,8 @@ different question: *presence*, which a parser decides.
 prevent.
 
 ### D-06 — An artifact section earns its place by having a consumer
+
+**Governs:** §4.2
 
 **Why.** Decoration costs attention at every interrogation. Same test the library applies to itself,
 pointed at structure.
@@ -1476,6 +1506,8 @@ person at the gate is a real consumer. `Done looks like` renamed `Wanted outcome
 deferred until the practice settles.
 
 ### D-07, D-07a — An artifact is an envelope carrying a body
+
+**Governs:** §4.1
 
 **Why.** It makes the governance rule one sentence, gives a durable test for where a future field
 goes, and puts the seam in the code where an envelope reader can be artifact-agnostic. It also
@@ -1503,6 +1535,8 @@ are uniform only because somebody forced them. The test is the guard, not the pa
 
 ### D-08, D-08a — The open region is `## Open`, on every artifact
 
+**Governs:** §4.3
+
 **Why.** A three-name mapping is free for the gate and not free for the interrogation skill, which is
 a model reading a prompt. Its failure has two directions: a finding raised about something correctly
 recorded as open (annoying, self-correcting), or **a section in the body going unjudged** (silent, and
@@ -1520,6 +1554,8 @@ collides with `Must not change` and with "constraints".
 
 ### D-09 — `solution.md` is protected, and a profile change is drafted
 
+**Governs:** §5.3
+
 **Why.** `origin` is a historical fact that must never change and `profile` is a choice revisited
 rarely, so protecting both costs one manual line per migration. The alternatives either expose
 `origin` or introduce the framework's **first conditional hook rule**, which is where a bypass would
@@ -1533,6 +1569,8 @@ unprotected: makes `origin` agent-rewritable. Splitting into two files.
 
 ### D-10 — The intent skill creates the cycle directory, and fails if it exists
 
+**Governs:** §15.2
+
 **Why.** The claim that an existing directory catches a collision was false, because at allocation
 there was no directory. Creating it **is** the check, and the filesystem makes that atomic.
 
@@ -1540,6 +1578,8 @@ there was no directory. Creating it **is** the check, and the filesystem makes t
 without creating, which leaves a race.
 
 ### D-11 — A refusal is drafted too
+
+**Governs:** §5.3
 
 **Why.** Rejecting is what a person does when they are least inclined to look up a format. Giving help
 to the easy case and withholding it from the hard one is the asymmetry people resent.
@@ -1549,11 +1589,15 @@ difference between "fix this and come back" and "no, not this way".
 
 ### D-12 — `SolutionFileName` becomes `SolutionConstraintsFileName`
 
+**Governs:** §11.3
+
 **Why.** The constant meant *the solution's constraints file* and read as *the solution file*, and
 `D-09` puts `solution.md` in the same code path — so the next person picks the wrong constant out of
 autocomplete and the hook guards the wrong file.
 
 ### D-13 — Evidence is normalised at the boundary
+
+**Governs:** §4.5
 
 **Why.** **The gate must not know about test platforms.** Reading evidence natively would put a `.trx`
 parser inside the gate, then a JUnit parser beside it, and the thing that owns *process* constraints
@@ -1566,9 +1610,14 @@ profiles are .NET.
 
 ### D-14 — `verify-chain` checks the comparison in both directions
 
-**Superseded by D-15.** Kept because a decision is superseded, never edited.
+**Governs:** nothing — superseded by D-15.
+
+**Superseded by D-15.** Kept because a decision is superseded, never edited, so a commit citing this
+id still means what it meant.
 
 ### D-15 — The declared-versus-changed comparison is a signal, not a gate
+
+**Governs:** §7.7, §13
 
 **Why.** `CON_07` already says the file set is not its job — *"the file set is mechanical and a hook
 already enforces it. Creep **inside** an approved file passes that hook"* — so the constraint exists
@@ -1597,6 +1646,8 @@ cost, self-correcting.
 
 ### D-16 — There is no `design` skill
 
+**Governs:** §18
+
 **Why.** The separate commands are where a person decides to proceed, not code organisation. Even a
 combined skill interviewing at every stage removes the moment you stop, read the intent, and *choose*
 to go on. Human-in-the-loop is not only "was a person asked" but "did a person decide to continue".
@@ -1605,6 +1656,8 @@ to go on. Human-in-the-loop is not only "was a person asked" but "did a person d
 constraint, and was rejected on the decision points rather than the constraints.
 
 ### D-17 — `steer` re-runs the chain from an existing intent and spec
+
+**Governs:** §2.6, §3.2
 
 **Why.** The correct path by hand is expensive enough that people will not pay it, so steering ends up
 in conversation where it is lost. **A path so costly that it pushes information out of the system is
@@ -1618,11 +1671,15 @@ derive from the intent, so a proposal appearing there derives from nothing, whic
 
 ### D-18 — A stage skill refuses when its artifact exists, and names what you meant
 
+**Governs:** §15.1
+
 **Why.** Typing `intent <id>` must never silently overwrite an intent. A flag that re-interrogates
 would be a second way to do what `interrogate` already does, and the one people type is the one that
 drifts. A refusal that teaches the right command adds nothing and removes a destructive mode.
 
 ### D-19 — `reopen` is a fourth decision, and it is how a wrong plan is recovered
+
+**Governs:** §5.2
 
 **Why.** Without it a wrong plan has no legal move: `remediate` may not edit a planning document,
 `refine` refuses once approved, and the plan is hash-locked — so `remediate` could only keep trying to
@@ -1636,11 +1693,15 @@ relying on the hash mismatch, which leaves no record of why.
 
 ### D-20 — Each skill's preconditions are stated in one table
 
+**Governs:** §15.1
+
 **Why.** Its absence is what lets a skill quietly check the wrong precondition. Drafting it surfaced
 two rules nobody had written: `spec` and `plan` refuse on an existing artifact, and `refine` refuses
 on an approved cycle.
 
 ### D-21 — A findings round records the upstream hash it judged against
+
+**Governs:** §6.2
 
 **Why.** The approval proves *these three documents were approved*, not *the spec was derived from
 this intent*. So an intent edited after a clean spec leaves a spec derived from an intent that no
@@ -1654,6 +1715,8 @@ describes the thing that goes stale — the judgement — and makes `D-02` compu
 
 ### D-22 — `batch-build` completes cycles; `land` pushes
 
+**Governs:** §10.1
+
 **Why.** One word carried two meanings. And "successes" implies success is determined, so
 `batch-build` must **verify** as well as build — a batch that cannot say which cycles succeeded cannot
 land the ones that did.
@@ -1662,6 +1725,8 @@ land the ones that did.
 verifying, which leaves "success" undefined.
 
 ### D-23 — `land --all` sweeps every completed cycle, with one confirmation
+
+**Governs:** §10.3
 
 **Why.** A batch of eight that completes and then needs eight manual invocations is a batch whose
 value evaporates at the last step. One confirmation before the first push, because a pull request is
@@ -1673,6 +1738,8 @@ verdict is the only thing between unattended building and unreviewed work reachi
 
 ### D-24 — `batch-build --land` composes the two; plain `batch-build` stops at completion
 
+**Governs:** §10.3
+
 **Why.** Landing is not a new decision: the approval already said *this plan is agreed, build it*, and
 a pull request **requests** review rather than committing anything. So the confirmation is about
 **volume** rather than permission. A flag rather than the default, because the composed form touches
@@ -1682,6 +1749,8 @@ the remote and the plain one does not.
 at all — defensible, and rejected because volume is a real cost somebody should have chosen.
 
 ### D-25 — There is no `split` skill, and no `after` ordering
+
+**Governs:** §3.1, §18
 
 **Why.** v03 reached the same conclusion: splitting is a scoping decision that belongs to a person,
 and *"auto-splitting without dependency ordering produces cycles that cannot be built in isolation,
@@ -1698,6 +1767,8 @@ writes nothing. It creates no cycles, so it cannot create cycles that will not b
 
 ### D-26 — The command line is the mechanism; MCP is a later surface
 
+**Governs:** §2.2, §15.2
+
 **Why.** Two reasons, the second of which decides it. A pipeline and a git hook **cannot speak MCP**,
 so the command line must exist regardless. And **MCP cannot deliver `D-01`'s independence for
 interrogation**: a tool runs in its own process, but the model calling it is the same session, so
@@ -1713,6 +1784,8 @@ entirely, which loses a real future benefit for a sentence's cost.
 
 ### D-27 — A blocking finding cannot be waived, by any mechanism
 
+**Governs:** §5.3, §6.1, §18
+
 **Why.** `D-02` had already made the waiver vestigial: acceptance existed because some blockers
 appeared to have no legal exit, and once every blocker has one, no legitimate case for waiving remains.
 **And the exit does not launder bad work** — a criterion whose proof cannot reach it is recorded under
@@ -1724,6 +1797,8 @@ open-region exit and must simply be fixed.
 reason, which the ledger already requires.
 
 ### D-28 — `init` has three modes, and the protected set defines what update may touch
+
+**Governs:** §9
 
 **Why.** `init` refusing when `.sdlc/` exists was correct while nothing needed refreshing, and it
 leaves a solution's scaffolding to rot across framework versions with nothing to fix it. **Update
@@ -1741,6 +1816,8 @@ remains open.
 
 ### D-29 — The interrogate-refine loop is a mode of each stage skill
 
+**Governs:** §3
+
 **Why.** `D-02` requires a clean round to advance, so the stage that must reach one is the stage that
 should run the loop. And `D-16` is satisfied, because the loop stops on convergence and **hands back
 rather than claiming to be done** — so the decision to keep interrogating stays the person's.
@@ -1748,6 +1825,8 @@ rather than claiming to be done** — so the decision to keep interrogating stay
 **Rejected.** A named skill of its own: an eighteenth entry and a second way to invoke one loop.
 
 ### D-30 — There are two severities, not three
+
+**Governs:** §5.3
 
 **Decision.** A finding is `blocking` or a `suggestion`. The third value, for an improvement that
 violates nothing and cites nothing, is removed. A citation is required on a blocking finding and
@@ -1764,6 +1843,8 @@ not run the suite, and that a criterion's proof rested on a substituted source �
 substantive without a constraint to hang on.
 
 ### D-31 — The envelope is an allowlist, and an undeclared key or section is a violation
+
+**Governs:** §4.1
 
 **Decision.** Two frontmatter keys — `framework_version` and `cycle` — plus one section, `## Open`.
 Everything else in the file is body. A key or section the artifact does not declare is a schema
@@ -1788,6 +1869,8 @@ reason a reader could reconstruct.
 
 ### D-32 — The Azure DevOps adapter ships unexercised, and says so
 
+**Governs:** §13
+
 **Decision.** The Azure Pipelines template and the `az repos pr create` path ship without ever having
 run against a real Azure DevOps server. The template itself carries a note saying so, and §13 and the
 README say it too. No second trial repository is created and `dice-trial` gets no Azure DevOps remote.
@@ -1809,6 +1892,8 @@ Azure DevOps template until it can be tested, which would make the private half 
 the work actually lives, the half with no pipeline.
 
 ### D-33 — The default profile is carried by the binary; every other profile is a package
+
+**Governs:** §11.5
 
 **Decision.** `dotnet-default` ships inside the gate binary, as the pipeline templates already do, and
 `init` writes its files directly. The NuGet mechanism in §11.5 stands for every other profile — a
@@ -1845,6 +1930,8 @@ order to be enforced by anything.
 
 ### D-34 — `dotnet-default` references the kernel
 
+**Governs:** §11.3
+
 **Decision.** The public profile takes `MofonCode.Core`, so a scaffolded solution gets the operation
 shape of §11.3.1 and a reference slice written in it.
 
@@ -1873,6 +1960,8 @@ were false, and the first caused the second — the belief that the shape could 
 made a kernel-free scaffold look necessary.
 
 ### D-35 — `init` writes no code; the solution comes from an approved plan
+
+**Governs:** §9, §15.2
 
 **Decision.** Adoption writes the governance and the files that constrain how code is written, and
 stops there. The solution file, the projects, the architecture test project and the reference slice
@@ -1936,6 +2025,8 @@ adoption has a rule to fail against rather than a principle to be weighed agains
 
 ### D-36 — a ban ships with the surface it governs, and never alone
 
+**Governs:** §11.4
+
 **Decision.** The profile scaffolds an Api project with exactly one conversion from a `Result` to a
 response, bans `Microsoft.AspNetCore.Http.Results` and `TypedResults` outright, and ships two
 architecture tests beside them: every endpoint returns `ApiResult<T>`, and the solution declares no
@@ -1984,6 +2075,8 @@ that exemption explicitly, on the single ground that the surface does not exist 
 
 ### D-37 — The pipeline installs the gate it calls, pinned, and says the feed is not there yet
 
+**Governs:** §13
+
 **Decision.** Both generated pipelines gain one step: `dotnet tool install --global
 MofonCode.Sdlc.Cli --version <release>`, placed immediately after the SDK step and before the build.
 The version is stamped from `Sdlc.Core.Release.Version`, which is the same `VersionPrefix` the plugin
@@ -2020,6 +2113,8 @@ Also rejected: leaving the step out and documenting the gap, which is what the g
 A documented gap in a generated file is still a generated file that looks like a gate.
 
 ### D-38 — `Application` is the solutioning layer, and its data access is internal to it
+
+**Governs:** §11.3.1
 
 **Decision.** A scaffolded solution's `src/` holds four projects, each prefixed with the solution's own
 name, and exactly one of them can reach data or a third party.
@@ -2210,6 +2305,8 @@ written and never called, which is the previous pass having intended roughly thi
 
 ### D-39 — The pre-tool hook refuses or says nothing; it never grants a permission
 
+**Governs:** §12.1
+
 **Decision.** `sdlc hook` writes a decision only when the policy refuses. On an allow it writes an
 empty object, for every host.
 
@@ -2261,6 +2358,8 @@ fails open.
   decision rather than a vocabulary difference inside the host switch.
 
 ### D-40 — The framework owns files it named, and entries inside files it shares
+
+**Governs:** §9
 
 **Decision.** Adoption rewrites a file only where the framework's own name is in the path. Where the
 path belongs to the host or the platform, it owns its entries and merges them in, or it writes nothing
@@ -2342,6 +2441,8 @@ second that also runs.
 
 ### D-41 — The binary carries the constraint library
 
+**Governs:** §7.3
+
 **Decision.** `CONSTRAINTS.md` is an embedded resource in `Sdlc.Core`. A file found through
 `SDLC_CONSTRAINTS`, beside the gate, or above it still wins; the embedded copy is what everything
 falls through to. The library can no longer be missing.
@@ -2401,6 +2502,8 @@ check in the suite that exercises the artifact a person actually installs.
 
 ### D-42 — The framework runs CI on itself, and does not govern itself with itself
 
+**Governs:** §13, §16
+
 **Decision.** `.github/workflows/ci.yml` builds this repository, runs its suite, generates a
 scaffolded solution and builds and tests that, and packs the tool and runs the packed tool from
 outside the tree. It deliberately does **not** run `sdlc verify-chain` on this repository.
@@ -2439,6 +2542,8 @@ the one file that says it is not the authority. F-34.
   suite's own rules about test projects would have had to grow an exception for it.
 
 ### D-43 — A hook rule is absolute or it is not a rule
+
+**Governs:** §2.4, §6.3
 
 **Decision.** Every rule in the pre-tool hook applies to every agent write, with no mode, no flag and
 no check on which skill is running. Guards that need to know the stage live in the skills, and the
@@ -2498,3 +2603,49 @@ forbids a weak guarantee.
 - *Making the hook deny every write to a planning document outright* — rejected, and this is the near
   miss. It would enforce `remediate`'s guard absolutely, and it would also stop `refine`, `steer` and
   the three stage skills doing their jobs, since writing those documents is the whole of the process.
+
+### D-44 — The decisions are an appendix to this document, not a file of their own
+
+**Governs:** §20
+
+**Decision.** Every `D-nn` lives at the end of `CONCEPT.md`, sorted by id, with §1–18 carrying
+trailing `(D-nn)` markers and each entry carrying `Governs` back. There is no `DECISIONS.md`.
+
+**Why.** Reading order. §1–18 state what is true and should read front to back for somebody new,
+which they cannot do if the reasoning is interleaved; and the appendix is reference material you
+reach for when challenged, which is a different mode of reading rather than a different document. One
+file also means one authority: `AGENTS.md` says this file is the authority on every design question,
+and two files would need that sentence to name both and a reader to guess which.
+
+**Why this is recorded late, which is the interesting part.** It was settled on 2026-10-02, in the
+session that designed this appendix's own format — before there was an appendix to record it in. A
+format decision cannot be written in the format it is establishing, so it went into the conversation
+and into the structure and nowhere else. Then on 2026-10-03 somebody reasoned from the same premise
+that makes it right — a newcomer should be able to read the design cleanly — and proposed splitting
+the decisions into their own file, with §20 at 43% of the document as the evidence. The argument was
+sound and the conclusion was already settled, which is exactly the relitigation the `Rejected` field
+exists to prevent.
+
+**That is also the argument for the entry.** The test above is whether a competent reader would reach
+for the alternative, and this one is not hypothetical: it was reached for, with the whole repository
+available, because the record was missing. The cost of the omission was nearly a 1093-line
+restructure of the document the framework is specified in.
+
+**What it costs, stated plainly.** §20 is 43% of `CONCEPT.md` and the longest entry (D-38) is 188
+lines, which is longer than most sections it governs. A reader scrolling past it to reach §19 pays
+for the choice, and the file will keep growing in the half nobody reads front to back. `Governs` is
+what makes that bearable rather than solved — if it stops being bearable, the thing to re-examine is
+whether entries whose rule §1–18 now states can be reduced to a statement, a pointer and their
+`Rejected` list, which is leaning without moving anything.
+
+**Rejected.**
+
+- *`DECISIONS.md` beside `CONCEPT.md`* — rejected for reading order and for the one-authority point
+  above. Nothing technical stands in the way: all 36 files that cite a `D-nn` cite it by id and not by
+  path, so the move would break no reference. The reason is editorial, which is why it needs writing
+  down — a reader can see that nothing would break and conclude, wrongly, that nothing was decided.
+- *Interleaving each decision with the section it governs* — rejected: a newcomer would meet the
+  reasoning before the rule, and §1–18 would stop being a statement of what is true.
+- *Deleting absorbed entries to shorten the appendix* — rejected. Ids are permanent, and the
+  `Rejected` lists are the half that exists nowhere else.
+- *Renumbering or merging ids* — rejected for the same reason, more strongly.
