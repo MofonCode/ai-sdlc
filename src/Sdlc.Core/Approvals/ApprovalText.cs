@@ -279,13 +279,6 @@ public static class ApprovalText
                 entry.AppendLine(CultureInfo.InvariantCulture, $"      {key,-11} {artifact.Hash}");
             }
 
-            entry.AppendLine("    findings_rounds:");
-            foreach (ReadCycleStatus.ArtifactState artifact in status.Artifacts)
-            {
-                string key = Cycle.FileNameOf(artifact.Kind) + ":";
-                entry.AppendLine(CultureInfo.InvariantCulture, $"      {key,-11} {artifact.LatestRound}");
-            }
-
             // The key is printed with nothing after it on purpose. A refusal needs a reason and nobody can
             // write it but the person refusing, so a placeholder would be worse than an empty value: the
             // ledger rejects an empty one and would accept "see above" forever.

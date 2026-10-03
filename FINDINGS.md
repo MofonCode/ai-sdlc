@@ -42,7 +42,7 @@ This file is working material. Delete it when the fixes land.
 | F-17 | Low | done | ~~`JsonSchema.Net` is referenced, unused, and most of the package~~ **fixed** |
 | F-18 | Low | done | ~~Four `SuppressMessage` attributes are dead and their justifications are inverted~~ **fixed** |
 | F-19 | Low | done | ~~`sdlc status` never shows the hash digits §5.3 promises~~ **fixed** |
-| F-20 | Low | **you** | `findings_rounds` in the approval ledger has no reader |
+| F-20 | Low | done | ~~`findings_rounds` in the approval ledger has no reader~~ **dropped** |
 | F-21 | Low | done | ~~The first real `Web` project fails the package rule~~ **fixed** |
 | F-22 | Low | done | ~~The scaffold harness keeps a second copy of what adoption writes~~ **fixed** |
 | F-23 | Low | done | ~~D-38 states a registration shape the template does not carry~~ **fixed** |

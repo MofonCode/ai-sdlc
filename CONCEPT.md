@@ -301,10 +301,6 @@ decisions:
       intent.md: 3f9a2c7b...
       spec.md:   5b07af31...
       plan.md:   d40e1196...
-    findings_rounds:
-      intent.md: 2
-      spec.md:   2
-      plan.md:   2
 ---
 ```
 
@@ -331,7 +327,7 @@ Four files only a person writes:
 
 | File | What is drafted |
 |---|---|
-| `approval.md` | a gate decision — three hashes, timestamp, findings rounds |
+| `approval.md` | a gate decision — three hashes, who, when, and a reason on anything but an approval |
 | `abandoned.md` | why the cycle stopped |
 | `constraints.md` | a proposed `LOC_nn` |
 | `solution.md` | the `profile` line, on migration |
@@ -347,6 +343,23 @@ Two costs of the paste flow: a pasted hash cannot be checked by eye, so `status`
 twelve characters of each recorded hash beside each document's current twelve and a refusal names
 *which* document changed; and a first entry is a file creation while a revisit is an edit, which the
 printed instructions say.
+
+**The approval pins the documents and not the argument, and that is deliberate.** The three hashes say
+exactly what was agreed to, and nothing records which interrogation rounds had happened — there was
+such a field, `findings_rounds`, and it was left over from the model D-27 removed: while an approval
+could *accept* a finding, the acceptance was only meaningful against a round, because a finding keeps
+its id across rounds. Nothing accepts anything now, nothing read the number, and it was a hand-pasted
+copy of something already on disk.
+
+Nothing needs it. **A round raising a blocker after approval already refuses the build** — the gate
+reads the round files each time rather than trusting the ledger — and a round raising only a
+suggestion is not supposed to block, by D-30. Rounds accumulate and are never rewritten, so the only
+way the argument can change behind an approval is a round file going missing, which the gate refuses on
+(§5.4). And "what argument had been had when this was approved" is derivable: each round records
+`interrogated_at` and the entry records `at`.
+
+**If the argument ever does need pinning, hash the rounds** the way the documents are hashed, rather
+than recording a count. A count is a claim; a hash is a check.
 
 `draft approval` refuses while any blocking finding is open.
 

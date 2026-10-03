@@ -35,7 +35,24 @@ public sealed class ApprovalLedgerTests
         Assert.AreEqual("Peter Almanzar", entry.By);
         Assert.AreEqual(new DateTimeOffset(2026, 10, 1, 12, 0, 0, TimeSpan.Zero), entry.At);
         Assert.AreEqual("bbbb", entry.Hashes["spec.md"]);
-        Assert.AreEqual(3, entry.FindingsRounds["spec.md"]);
+        Assert.IsTrue(ledger.IsApproved);
+    }
+
+    [TestMethod]
+    public void An_approval_written_by_an_earlier_release_still_reads()
+    {
+        // OneApproval above deliberately still carries `findings_rounds`, which this release no longer
+        // writes or models. A ledger is append-only and lives in a repository for the life of the
+        // solution, so entries pasted under an earlier release have to keep reading -- the reader
+        // ignores unmatched keys, which makes a removed field inert rather than a parse error.
+        //
+        // The field was a vestige of the model D-27 removed: while an approval could accept a finding,
+        // the acceptance was only meaningful against a round, because a finding keeps its id across
+        // rounds. Nothing accepts anything now. F-20, and §5.3 says what the approval does pin.
+        ApprovalLedger ledger = Read(OneApproval);
+
+        StringAssert.Contains(OneApproval, "findings_rounds", "The fixture is the point of this test.");
+        Assert.AreEqual(GateDecision.Approved, ledger.Decisions.Single().Decision);
         Assert.IsTrue(ledger.IsApproved);
     }
 
@@ -185,8 +202,22 @@ public sealed class ApprovalLedgerTests
     [TestMethod]
     public void An_entry_naming_nobody_is_rejected()
     {
+        // The pattern deliberately stops at the end of the text and does not include the line break,
+        // and the reason is not style.
+        //
+        // OneApproval is a raw string literal, so its line breaks are the source file's -- and
+        // .gitattributes checks this repository out native, which on Windows is CRLF. A pattern that
+        // included an escaped line feed therefore matched nothing on a fresh Windows clone: the
+        // fixture went through unmodified, and the test asserted that a perfectly valid approval is
+        // rejected. Two tests here did that, and both failed on a clean clone -- verified by cloning
+        // this repository and running them, which is the only way that state is reachable from a
+        // working tree whose files were written rather than checked out.
+        //
+        // The sibling case in ArtifactSchemaTests is not affected: its fixture is joined in code, so
+        // it owns its own line breaks. That is the distinction worth remembering -- a fixture built in
+        // code owns them, and one written in the file inherits them.
         Result<ApprovalLedger> result = ApprovalLedger.Read(
-            OneApproval.Replace("    by: Peter Almanzar\n", string.Empty, StringComparison.Ordinal),
+            OneApproval.Replace("    by: Peter Almanzar", string.Empty, StringComparison.Ordinal),
             "test");
 
         Assert.IsTrue(result.IsFailed);
@@ -199,7 +230,7 @@ public sealed class ApprovalLedgerTests
         // git does not store mtimes, so a clone sets every file's to the moment of checkout. Falling
         // back to it would make every approval read as granted just now on a teammate's machine.
         Result<ApprovalLedger> result = ApprovalLedger.Read(
-            OneApproval.Replace("    at: 2026-10-01T12:00:00Z\n", string.Empty, StringComparison.Ordinal),
+            OneApproval.Replace("    at: 2026-10-01T12:00:00Z", string.Empty, StringComparison.Ordinal),
             "test");
 
         Assert.IsTrue(result.IsFailed);

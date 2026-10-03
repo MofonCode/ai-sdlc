@@ -40,18 +40,23 @@ public enum GateDecision
 /// The canonical hash of each planning document as it stood when the decision was taken, keyed by
 /// file name. All three are recorded because the three are approved as one act.
 /// </param>
-/// <param name="FindingsRounds">The interrogation round current for each document, keyed by file name.</param>
 /// <param name="Reason">
 /// Why. Required on anything but an approval, and free to carry on one. There is deliberately no
 /// field recording findings let through: a blocking finding cannot be waived by any mechanism, so an
 /// entry has nothing to record there.
+/// <para>
+/// And no field recording which interrogation round each document was at. There was one --
+/// <c>findings_rounds</c> -- and it was a vestige of the model D-27 removed: while an approval could
+/// accept a finding, an acceptance was only meaningful against a round, because a finding keeps its id
+/// across rounds. Nothing accepts anything now, and the field had no reader. §5.3 says what the
+/// approval pins and what it does not.
+/// </para>
 /// </param>
 public sealed record GateEntry(
     GateDecision Decision,
     string By,
     DateTimeOffset At,
     IReadOnlyDictionary<string, string> Hashes,
-    IReadOnlyDictionary<string, int> FindingsRounds,
     string? Reason);
 
 /// <summary>
@@ -161,7 +166,6 @@ public sealed record ApprovalLedger(
                 entry.By.Trim(),
                 entry.At.Value.ToUniversalTime(),
                 entry.Hashes ?? [],
-                entry.FindingsRounds ?? [],
                 string.IsNullOrWhiteSpace(entry.Reason) ? null : entry.Reason.Trim()));
         }
 
@@ -243,8 +247,6 @@ public sealed record ApprovalLedger(
         public DateTimeOffset? At { get; set; }
 
         public Dictionary<string, string>? Hashes { get; set; }
-
-        public Dictionary<string, int>? FindingsRounds { get; set; }
 
         public string? Reason { get; set; }
     }
