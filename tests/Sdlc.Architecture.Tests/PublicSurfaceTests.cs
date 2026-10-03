@@ -100,6 +100,11 @@ public sealed class PublicSurfaceTests
         "Sdlc.Core.Evidence.ComputeClaimGraph+Collision",
         "Sdlc.Core.Evidence.ComputeClaimGraph+Query",
         "Sdlc.Core.Evidence.ComputeClaimGraph+Response",
+
+        // Added with F-13: the claim graph now reports the cycles it left out and why, because a
+        // silently shorter schedule is its own confusion. Part of a Response a renderer reads, so it
+        // is public for the same reason Claim and Collision are.
+        "Sdlc.Core.Evidence.ComputeClaimGraph+Skipped",
         "Sdlc.Core.Evidence.DeclaredFiles",
         "Sdlc.Core.Evidence.EvidenceRenderer",
         "Sdlc.Core.Evidence.FileComparison",

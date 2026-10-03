@@ -31,23 +31,23 @@ This file is working material. Delete it when the fixes land.
 | F-06 | High | done | ~~`outcome: "pass"` passes the schema and fails the chain~~ **fixed** |
 | F-07 | High | done | ~~Adoption writes a props file referencing a file it does not write~~ **fixed** |
 | F-08 | Medium | **you** | The `refine` and `remediate` guards are claimed as hook rules and are prose |
-| F-09 | Medium | — | §11.3.1 and D-38 give contradictory rules for where a response lives |
-| F-10 | Medium | — | The scaffold's package rule has an unguarded exemption |
-| F-11 | Medium | — | A blocking finding with no citation is accepted |
-| F-12 | Medium | — | `NewCycle` uses the look-then-create D-10 rejected |
-| F-13 | Medium | — | `sdlc claims` schedules unapproved, abandoned and landed cycles |
-| F-14 | Medium | — | A duplicated section passes the artifact schema |
-| F-15 | Medium | — | `Repository.Run` can deadlock and discards every git error |
+| F-09 | Medium | done | ~~§11.3.1 and D-38 give contradictory rules for where a response lives~~ **fixed** |
+| F-10 | Medium | done | ~~The scaffold's package rule has an unguarded exemption~~ **fixed** |
+| F-11 | Medium | done | ~~A blocking finding with no citation is accepted~~ **fixed** |
+| F-12 | Medium | done | ~~`NewCycle` uses the look-then-create D-10 rejected~~ **fixed** |
+| F-13 | Medium | done | ~~`sdlc claims` schedules unapproved, abandoned and landed cycles~~ **fixed** |
+| F-14 | Medium | done | ~~A duplicated section passes the artifact schema~~ **fixed** |
+| F-15 | Medium | done | ~~`Repository.Run` can deadlock and discards every git error~~ **fixed** |
 | F-16 | Medium | **you** | The scaffold's response rule is stricter than the decision it implements |
 | F-17 | Low | — | `JsonSchema.Net` is referenced, unused, and most of the package |
 | F-18 | Low | — | Four `SuppressMessage` attributes are dead and their justifications are inverted |
 | F-19 | Low | — | `sdlc status` never shows the hash digits §5.3 promises |
 | F-20 | Low | **you** | `findings_rounds` in the approval ledger has no reader |
-| F-21 | Low | — | The first real `Web` project fails the package rule |
+| F-21 | Low | done | ~~The first real `Web` project fails the package rule~~ **fixed** |
 | F-22 | Low | — | The scaffold harness keeps a second copy of what adoption writes |
 | F-23 | Low | — | D-38 states a registration shape the template does not carry |
 | F-24 | Low | **you** | §10.2's run-mode environment variable does not exist |
-| F-25 | Low | — | The needs-services heuristic matches "container" and "migration" |
+| F-25 | Low | done | ~~The needs-services heuristic matches "container" and "migration"~~ **fixed** |
 | F-26 | Low | — | The generated `AGENTS.md` points at a file `init` does not create |
 | F-27 | Low | **you** | `CON_10.2` cannot be applied by anything |
 | F-28 | Low | **you** | The generated pipeline fails on any branch that is not a cycle branch |

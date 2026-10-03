@@ -2,6 +2,7 @@ using System.Globalization;
 using FluentResults;
 using Microsoft.Extensions.DependencyInjection;
 using MofonCode.Core;
+using Sdlc.Core.Approvals;
 using Sdlc.Core.Cycles;
 using Sdlc.Core.Solutions;
 
@@ -40,10 +41,21 @@ public static class ComputeClaimGraph
     /// <param name="Claims">What each cycle claims, in cycle-id order.</param>
     /// <param name="Collisions">Every pair that overlaps.</param>
     /// <param name="Groups">Cycles that may run together, each group in cycle-id order.</param>
+    /// <summary>A cycle with a plan that is not in the graph, and why.</summary>
+    /// <remarks>
+    /// Reported rather than dropped quietly. A silently shorter list is its own confusion -- somebody
+    /// who approved four cycles and sees three scheduled should be told which one and for what reason,
+    /// not left to work it out from the absence.
+    /// </remarks>
+    /// <param name="Cycle">The cycle.</param>
+    /// <param name="Why">Why it is not in the graph, in a few words a renderer can print.</param>
+    public sealed record Skipped(CycleId Cycle, string Why);
+
     public sealed record Response(
         IReadOnlyList<Claim> Claims,
         IReadOnlyList<Collision> Collisions,
-        IReadOnlyList<IReadOnlyList<CycleId>> Groups);
+        IReadOnlyList<IReadOnlyList<CycleId>> Groups,
+        IReadOnlyList<Skipped> Skipped);
 
     /// <summary>Asks which cycles may be built together.</summary>
     public sealed record Query : IRequest<Response>;
@@ -63,7 +75,8 @@ public static class ComputeClaimGraph
     /// </para>
     /// </remarks>
     /// <param name="solution">The solution to read.</param>
-    private sealed class Handler(SolutionRoot solution) : IRequestHandler<Query, Response>
+    private sealed class Handler(SolutionRoot solution, Mediator mediator)
+        : IRequestHandler<Query, Response>
     {
         /// <summary>
         /// Words in a plan that mean it stands up something a developer would otherwise start by hand.
@@ -76,7 +89,8 @@ public static class ComputeClaimGraph
         private static readonly string[] _serviceWords =
         [
             "AppHost", "app host", "Aspire", "SQL Server", "SqlServer", "Redis", "Service Bus",
-            "ServiceBus", "Cosmos", "container", "docker", "migration", "WithDataVolume",
+            "ServiceBus", "Cosmos", "docker", "testcontainers", "compose", "migration",
+            "WithDataVolume",
         ];
 
         /// <inheritdoc />
@@ -87,6 +101,7 @@ public static class ComputeClaimGraph
             ArgumentNullException.ThrowIfNull(request);
 
             List<Claim> claims = [];
+            List<Skipped> skipped = [];
 
             foreach (Cycle cycle in CycleIndex.All(solution.Path))
             {
@@ -97,6 +112,41 @@ public static class ComputeClaimGraph
                 // run is not part of that answer.
                 if (!File.Exists(plan))
                 {
+                    continue;
+                }
+
+                // §10.1 says the graph is built from the approved cycles in this working copy, and the
+                // handler applied no filter at all -- so an abandoned cycle's plan kept claiming its
+                // files forever and every landed cycle narrowed the graph for every future batch. Not
+                // a safety hole, since the gate refuses an unapproved build, but the graph is what
+                // decides concurrency, and D-15 calls over-serialising self-correcting for a wide
+                // claim rather than for a cycle that should not be in the set. F-13.
+                //
+                // Filtered here rather than in batch-build, so "approved" means one thing: it is the
+                // gate's answer, from the gate's own handler.
+                if (cycle.IsAbandoned)
+                {
+                    skipped.Add(new Skipped(cycle.Id, "abandoned"));
+                    continue;
+                }
+
+                if (File.Exists(cycle.PathOf(ArtifactKind.Verify)))
+                {
+                    skipped.Add(new Skipped(cycle.Id, "already verified"));
+                    continue;
+                }
+
+                Result<ApprovalGate.Response> gate = await mediator
+                    .Send<ApprovalGate.Query, ApprovalGate.Response>(
+                        new ApprovalGate.Query(cycle.Id),
+                        cancellationToken)
+                    .ConfigureAwait(false);
+
+                if (gate.IsFailed || !gate.Value.MayBuild)
+                {
+                    skipped.Add(new Skipped(
+                        cycle.Id,
+                        gate.IsFailed ? "the gate could not be read" : "not approved for a build"));
                     continue;
                 }
 
@@ -125,7 +175,7 @@ public static class ComputeClaimGraph
                 }
             }
 
-            return Result.Ok(new Response(claims, collisions, Partition(claims, collisions)));
+            return Result.Ok(new Response(claims, collisions, Partition(claims, collisions), skipped));
         }
 
         /// <summary>
@@ -188,9 +238,24 @@ public static class ClaimGraphRenderer
 
         output.AppendLine(string.Create(
             CultureInfo.InvariantCulture,
-            $"{Indent}claims - {graph.Claims.Count} cycle{(graph.Claims.Count == 1 ? string.Empty : "s")} with a plan"));
+            $"{Indent}claims - {graph.Claims.Count} cycle{(graph.Claims.Count == 1 ? string.Empty : "s")} to build"));
 
         output.AppendLine();
+
+        // What was left out, and why. The graph used to include every cycle with a plan, so an
+        // abandoned one kept claiming its files forever; now it is filtered, and a silently shorter
+        // list would leave somebody who approved four cycles and sees three to work out which.
+        foreach (ComputeClaimGraph.Skipped left in graph.Skipped)
+        {
+            output.AppendLine(string.Create(
+                CultureInfo.InvariantCulture,
+                $"{Indent}{left.Cycle}  not scheduled: {left.Why}"));
+        }
+
+        if (graph.Skipped.Count > 0)
+        {
+            output.AppendLine();
+        }
 
         if (graph.Claims.Count == 0)
         {

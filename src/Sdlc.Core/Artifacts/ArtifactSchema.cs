@@ -259,7 +259,23 @@ public static class ArtifactSchema
                 + "apart from nothing being open."));
         }
 
-        foreach (string section in found)
+        // A heading appearing twice. ArtifactSections.Read accumulates the two bodies rather than
+        // replacing, and NumberedItems then lets the first mention of each number win -- so criterion 1
+        // in a second "## Acceptance criteria" is silently discarded and verify-chain's proof matching
+        // never sees it. A criterion nothing proves and nothing reports is what §5.4's second
+        // mechanical check exists to catch. F-14.
+        foreach (string duplicated in found
+            .GroupBy(section => section, StringComparer.Ordinal)
+            .Where(group => group.Count() > 1)
+            .Select(group => group.Key))
+        {
+            violations.Add(new SchemaViolation(
+                "## " + duplicated,
+                "appears more than once. The two bodies merge, and the first mention of a numbered item "
+                + "wins -- so items under the second heading are silently dropped rather than proved."));
+        }
+
+        foreach (string section in found.Distinct(StringComparer.Ordinal))
         {
             if (!expected.Contains(section, StringComparer.Ordinal)
                 && !string.Equals(section, OpenSection, StringComparison.Ordinal))

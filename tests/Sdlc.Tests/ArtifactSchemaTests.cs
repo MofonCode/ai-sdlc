@@ -269,4 +269,38 @@ public sealed class ArtifactSchemaTests
 
         return string.Join('\n', lines);
     }
+
+    [TestMethod]
+    public void A_section_appearing_twice_is_a_violation()
+    {
+        // Two "## Acceptance criteria" sections validated cleanly. The bodies merge in
+        // ArtifactSections.Read and NumberedItems then lets the first mention of each number win, so
+        // criterion 1 under the second heading was silently discarded and verify-chain's proof matching
+        // never saw it. A criterion nothing proves and nothing reports is what §5.4's second mechanical
+        // check exists to catch. F-14.
+        using var workspace = CycleWorkspace.Create();
+        workspace.WriteSpec(criteria: 2);
+
+        string path = workspace.Cycle.PathOf(ArtifactKind.Spec);
+        string spec = File.ReadAllText(path);
+
+        File.WriteAllText(
+            path,
+            spec.Replace(
+                "## " + ArtifactSchema.OpenSection,
+                "## Acceptance criteria\n\n1. A criterion nothing will ever prove.\n\n## "
+                    + ArtifactSchema.OpenSection,
+                StringComparison.Ordinal));
+
+        ArtifactValidation validation = ArtifactSchema.Validate(
+            ArtifactKind.Spec,
+            File.ReadAllText(path),
+            workspace.Cycle.Id);
+
+        Assert.IsTrue(
+            validation.Violations.Any(violation =>
+                violation.Where.Contains("Acceptance criteria", StringComparison.Ordinal)
+                && violation.Problem.Contains("more than once", StringComparison.Ordinal)),
+            string.Join("; ", validation.Violations.Select(v => v.Where + " " + v.Problem)));
+    }
 }

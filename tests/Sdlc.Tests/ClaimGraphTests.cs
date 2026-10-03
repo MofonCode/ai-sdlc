@@ -1,4 +1,5 @@
 using FluentResults;
+using Sdlc.Core.Artifacts;
 using Sdlc.Core.Cycles;
 using Sdlc.Core.Evidence;
 
@@ -153,6 +154,71 @@ public sealed class ClaimGraphTests
         Assert.IsTrue(rendered.All(char.IsAscii), rendered);
     }
 
+    [TestMethod]
+    public async Task An_unapproved_cycle_is_not_scheduled_and_is_reported()
+    {
+        // §10.1 says the graph is built from the approved cycles in this working copy. The handler
+        // applied no approval filter, no abandonment filter and no already-verified filter, so an
+        // abandoned cycle's plan claimed its files forever and every landed cycle narrowed the graph
+        // for every future batch. batch-build reads this to plan a run. F-13.
+        using var solution = Solution.Create();
+
+        solution.Plan("20260929_1000_00", "src/A.cs");
+        solution.Plan("20260929_1100_00", "src/B.cs");
+        solution.Unapprove("20260929_1100_00");
+
+        ComputeClaimGraph.Response graph = await Compute(solution);
+
+        Assert.AreEqual("20260929_1000_00", graph.Claims.Single().Cycle.ToString());
+        StringAssert.Contains(graph.Skipped.Single().Why, "approved");
+    }
+
+    [TestMethod]
+    public async Task An_abandoned_cycle_stops_claiming_its_files()
+    {
+        using var solution = Solution.Create();
+
+        solution.Plan("20260929_1000_00", "src/Shared.cs");
+        solution.Plan("20260929_1100_00", "src/Shared.cs");
+        solution.Abandon("20260929_1100_00");
+
+        ComputeClaimGraph.Response graph = await Compute(solution);
+
+        Assert.AreEqual(0, graph.Collisions.Count, "An abandoned cycle collides with nothing.");
+        Assert.AreEqual("abandoned", graph.Skipped.Single().Why);
+    }
+
+    [TestMethod]
+    public async Task A_cycle_that_already_has_a_verify_is_not_scheduled_again()
+    {
+        using var solution = Solution.Create();
+
+        solution.Plan("20260929_1000_00", "src/Shared.cs");
+        solution.Plan("20260929_1100_00", "src/Shared.cs");
+        solution.Verified("20260929_1000_00");
+
+        ComputeClaimGraph.Response graph = await Compute(solution);
+
+        Assert.AreEqual(1, graph.Claims.Count);
+        Assert.AreEqual(0, graph.Collisions.Count, "A landed cycle must not serialise a future batch.");
+        StringAssert.Contains(graph.Skipped.Single().Why, "verified");
+    }
+
+    [TestMethod]
+    public async Task The_report_names_what_it_left_out()
+    {
+        using var solution = Solution.Create();
+
+        solution.Plan("20260929_1000_00", "src/A.cs");
+        solution.Plan("20260929_1100_00", "src/B.cs");
+        solution.Abandon("20260929_1100_00");
+
+        string rendered = ClaimGraphRenderer.Render(await Compute(solution));
+
+        StringAssert.Contains(rendered, "20260929_1100_00");
+        StringAssert.Contains(rendered, "not scheduled: abandoned");
+    }
+
     private static async Task<ComputeClaimGraph.Response> Compute(Solution solution)
     {
         using var gate = Gate.For(solution.Root);
@@ -186,6 +252,80 @@ public sealed class ClaimGraphTests
                 id));
 
         public void Plan(string id, params string[] files) => PlanShaped(id, "No departure.", files);
+
+        /// <summary>
+        /// Everything beside the plan that the gate needs before it will permit a build.
+        /// </summary>
+        /// <remarks>
+        /// The graph is built from the approved cycles in this working copy (§10.1), and the handler
+        /// used to apply no filter at all -- so these tests passed with nothing but a plan.md on disk,
+        /// asserting a graph that included cycles nothing would ever build. F-13.
+        /// <para>
+        /// The two upstream documents hold placeholder text rather than valid artifacts, deliberately:
+        /// the gate checks existence, hashes and rounds, and does not validate a schema. Writing
+        /// schema-valid ones would make this fixture track the schema for no gain.
+        /// </para>
+        /// </remarks>
+        public void Approve(string id)
+        {
+            Assert.IsTrue(CycleId.TryParse(id, out CycleId? parsed), id);
+            var cycle = new Cycle(parsed!.Value, Root);
+
+            CycleWorkspace.WriteRaw(cycle.PathOf(ArtifactKind.Intent), "an intent\n");
+            CycleWorkspace.WriteRaw(cycle.PathOf(ArtifactKind.Spec), "a spec\n");
+
+            foreach (ArtifactKind kind in Cycle.PlanningDocuments)
+            {
+                string upstream = Cycle.UpstreamOf(kind) is { } above
+                    ? ContentHash.Of(File.ReadAllText(cycle.PathOf(above)))
+                    : string.Empty;
+
+                CycleWorkspace.WriteRaw(
+                    cycle.FindingsPath(kind, 1),
+                    $$"""
+                    { "round": 1, "artifact": "{{Cycle.NameOf(kind)}}", "upstream_sha256": "{{upstream}}", "findings": [] }
+                    """);
+            }
+
+            List<string> ledger =
+            [
+                "---",
+                "cycle: " + id,
+                "framework_version: 1.0.0",
+                "decisions:",
+                "  - decision: approved",
+                "    by: Peter Almanzar",
+                "    at: 2026-10-01T12:00:00Z",
+                "    hashes:",
+                .. Cycle.PlanningDocuments.Select(kind =>
+                    "      " + Cycle.FileNameOf(kind) + ": "
+                    + ContentHash.Of(File.ReadAllText(cycle.PathOf(kind)))),
+                "---",
+            ];
+
+            CycleWorkspace.WriteRaw(cycle.ApprovalPath, string.Join('\n', ledger) + "\n");
+        }
+
+        /// <summary>Removes a cycle's approval, leaving it with a plan the gate will not build.</summary>
+        public void Unapprove(string id)
+        {
+            Assert.IsTrue(CycleId.TryParse(id, out CycleId? parsed), id);
+            File.Delete(new Cycle(parsed!.Value, Root).ApprovalPath);
+        }
+
+        /// <summary>Marks a cycle abandoned, which takes it out of the graph.</summary>
+        public void Abandon(string id)
+        {
+            Assert.IsTrue(CycleId.TryParse(id, out CycleId? parsed), id);
+            CycleWorkspace.WriteRaw(new Cycle(parsed!.Value, Root).AbandonedPath, "stopped.\n");
+        }
+
+        /// <summary>Gives a cycle a verify document, which means it has already been built.</summary>
+        public void Verified(string id)
+        {
+            Assert.IsTrue(CycleId.TryParse(id, out CycleId? parsed), id);
+            CycleWorkspace.WriteRaw(new Cycle(parsed!.Value, Root).PathOf(ArtifactKind.Verify), "a verify\n");
+        }
 
         /// <summary>A plan whose shape section says something, so the service heuristic can be tested.</summary>
         public void PlanShaped(string id, string shape, params string[] files)
@@ -229,6 +369,11 @@ public sealed class ClaimGraphTests
                         string.Empty,
                         "## Open",
                     ]));
+
+            // Approved by default, because the graph is built from approved cycles and almost every
+            // test here is about collisions rather than about the gate. The tests that care about the
+            // filter undo it.
+            Approve(id);
         }
 
         public void Dispose()

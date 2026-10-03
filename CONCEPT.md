@@ -911,10 +911,25 @@ are load-bearing rather than stylistic:
   than a `string` parameter. While it was a string, fourteen of the gate's own registrations were
   factories closing over it and two also closed over the clock, so no caller could substitute a clock
   at all.
-- **A response nests with the query that produces it**, and so do the records and enums that exist only
-  to describe it. The exception is a response that is a shared type rather than one operation's payload
-  — a core domain entity, or a result four operations produce and one renderer reads. Those stay
-  top-level, because `GetBundle.Response` says less than a name that already says what the thing is.
+- **The request always nests in its holder. Where the response lives depends on who reads it** —
+  and there are two answers under this heading, so which one applies has to be said rather than
+  inferred. **A response nests with the query that produces it** when nothing outside the process
+  consumes it, and so do the records and enums that exist only to describe it. **A response moves to a
+  contracts assembly when a client deserialises it**, because a nested type leaves that client with no
+  name to bind to. D-38 decides the second case and names the rule a scaffolded solution's architecture
+  tests enforce.
+
+  `sdlc` itself is the first case throughout — a CLI with no wire, where `Response` nests in its holder
+  and `ApprovalGate.Response` is the clearest name available. A scaffolded solution is the second: its
+  `Api` and `Web` projects both need the shape, `Web` ships every referenced assembly to a browser, and
+  `Every_response_the_application_declares_lives_in_the_contracts_project` fails the build of a
+  solution written the way the first case teaches. A reader of either codebase should know which rule
+  they are under from this paragraph rather than from a failing test.
+
+  The remaining exception is the same in both: a response that is a shared type rather than one
+  operation's payload — a core domain entity, or a result four operations produce and one renderer
+  reads. Those stay top-level, because `GetBundle.Response` says less than a name that already says
+  what the thing is.
 
 **What it costs, stated rather than discovered later.** `CA1034` forbids a publicly visible nested type
 and `CA1812` cannot see a handler the container instantiates by reflection, so both are suppressed in

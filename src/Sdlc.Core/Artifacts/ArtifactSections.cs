@@ -67,9 +67,15 @@ public static class ArtifactSections
             {
                 string heading = line.Trim()[3..].Trim();
 
-                // A repeated heading accumulates rather than replacing. Two sections of one name is a
-                // schema violation reported elsewhere; silently keeping only the second would hide half
+                // A repeated heading accumulates rather than replacing, which is the safer of the two
+                // behaviours given a duplicate exists: silently keeping only the second would hide half
                 // the content from a check that is meant to be exhaustive.
+                //
+                // Two sections of one name is a schema violation, and for a while this comment said it
+                // was "reported elsewhere" when nothing reported it -- so a second "## Acceptance
+                // criteria" validated cleanly while its first criterion was discarded downstream by
+                // NumberedItems. ArtifactSchema.CheckSections reports it now, which is what makes
+                // accumulating safe rather than merely quiet.
                 if (!sections.TryGetValue(heading, out current))
                 {
                     current = [];

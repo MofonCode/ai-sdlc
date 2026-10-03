@@ -4,6 +4,8 @@ using System.Text.Json.Serialization;
 using FluentResults;
 using Sdlc.Core.Cycles;
 
+using Sdlc.Core.Constraints;
+
 namespace Sdlc.Core.Findings;
 
 /// <summary>One interrogation of one artifact.</summary>
@@ -72,11 +74,37 @@ public static class FindingsReader
 
             // A round with no findings array is not a clean round; it is a file that forgot to say.
             // Treating the two alike would let a malformed round read as nothing to answer.
-            return round.Findings is null
-                ? Result.Fail<FindingsRound>(string.Create(
+            if (round.Findings is null)
+            {
+                return Result.Fail<FindingsRound>(string.Create(
                     CultureInfo.InvariantCulture,
-                    $"{source}: no findings array. A clean round records an empty one rather than omitting it."))
-                : Result.Ok(round);
+                    $"{source}: no findings array. A clean round records an empty one rather than omitting it."));
+            }
+
+            // Every blocking finding cites exactly one constraint (§7, D-30), and nothing enforced it,
+            // so a blocker with no `cites` was accepted and the gate rendered the citation as
+            // whitespace. It is mechanically decidable, so by §2.3 it belongs here rather than in a
+            // prompt -- and an uncited blocker is unarguable, which is the property §7.1 says the
+            // citation buys: a person at the gate cannot judge whether it is cheap or expensive
+            // without the rule behind it. F-11.
+            foreach (Finding blocking in round.Findings.Where(finding => finding.Severity == Severity.Blocking))
+            {
+                if (string.IsNullOrWhiteSpace(blocking.Cites))
+                {
+                    return Result.Fail<FindingsRound>(string.Create(
+                        CultureInfo.InvariantCulture,
+                        $"{source}: blocking finding {blocking.Id} cites no constraint. A blocking finding names the one rule it rests on, because that is what a person at the gate weighs."));
+                }
+
+                if (!ConstraintId.TryParse(blocking.Cites, out _))
+                {
+                    return Result.Fail<FindingsRound>(string.Create(
+                        CultureInfo.InvariantCulture,
+                        $"{source}: blocking finding {blocking.Id} cites '{blocking.Cites}', which is not a constraint id. Expected a form like CON_04 or LOC_02, with an optional revision such as CON_07.2."));
+                }
+            }
+
+            return Result.Ok(round);
         }
         catch (JsonException error)
         {

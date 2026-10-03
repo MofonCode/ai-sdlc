@@ -71,8 +71,33 @@ public sealed class StructureTests
         {
             ["Contracts"] = [],
             ["Api"] = ["MofonCode.Core"],
+
+            // Prefix-matched, unlike every other entry here, and the reason should be visible: the
+            // legitimate set is "the WebAssembly packages", and a Blazor WebAssembly project needs
+            // Microsoft.AspNetCore.Components.WebAssembly.DevServer as well as the runtime package.
+            // Listing them exactly would fail on the day the first real Web project arrives, in the
+            // cycle that is busy doing something else. A prefix is a wider grant than the rows above,
+            // which is the cost.
             ["Web"] = ["Microsoft.AspNetCore.Components.WebAssembly"],
         };
+
+    /// <summary>
+    /// The one project role the package rule does not constrain.
+    /// </summary>
+    /// <remarks>
+    /// <strong>Named, so the exemption is a thing somebody has to edit rather than an absence.</strong>
+    /// The package rule used to skip any role missing from <c>_allowedPackages</c>, which is how the
+    /// application project was exempted -- so adding <c>src/Demo.Infrastructure</c> with a direction row
+    /// and no package row left it silently exempt, and the exemption was the privileged state. D-38
+    /// calls the package rule the one that stops a second project declaring a <c>DbContext</c> of its
+    /// own, which is the move somebody makes when the first rule is in the way; reaching for it cost one
+    /// omitted dictionary entry.
+    /// <para>
+    /// A rule that silently stops covering part of the repository is worse than no rule, because the
+    /// build still goes green -- which this file says elsewhere and did not do here.
+    /// </para>
+    /// </remarks>
+    private const string PackagesLiveHere = "Application";
 
     /// <summary>
     /// Guards the guard.
@@ -125,19 +150,31 @@ public sealed class StructureTests
     /// itself.
     /// </remarks>
     [TestMethod]
-    public void Every_project_under_src_is_named_in_the_direction_rule()
+    public void Every_project_under_src_is_named_in_both_rules()
     {
+        // Both tables, not just the direction one. Checking only that table is how a project could
+        // arrive with a direction row, no package row, and a silent exemption from the rule D-38 says
+        // is the one that matters.
         List<string> unnamed = [.. SourceProjects()
             .Select(RoleOf)
-            .Where(role => !_allowedProjectReferences.ContainsKey(role))];
+            .Where(role => !_allowedProjectReferences.ContainsKey(role))
+            .Distinct(StringComparer.Ordinal)];
+
+        List<string> unpriced = [.. SourceProjects()
+            .Select(RoleOf)
+            .Where(role => !string.Equals(role, PackagesLiveHere, StringComparison.Ordinal))
+            .Where(role => !_allowedPackages.ContainsKey(role))
+            .Distinct(StringComparer.Ordinal)];
 
         Assert.AreEqual(
             0,
-            unnamed.Count,
-            "These projects live under src/ and no rule in this file covers them:\n  "
-            + string.Join("\n  ", unnamed)
-            + "\n\nAdd a row to _allowedProjectReferences saying what each may reference, and one to "
-            + "_allowedPackages unless it is the project the packages are meant to live in. Say in the "
+            unnamed.Count + unpriced.Count,
+            "These projects live under src/ and a rule in this file does not cover them.\n\n"
+            + "Missing from _allowedProjectReferences:\n  " + string.Join("\n  ", unnamed) + "\n\n"
+            + "Missing from _allowedPackages:\n  " + string.Join("\n  ", unpriced) + "\n\n"
+            + "Add a row to each: what the project may reference, and what packages it may take. The "
+            + "only project exempt from the package rule is the one PackagesLiveHere names, and making "
+            + "another one exempt means editing that constant, which is a visible decision. Say in the "
             + "commit why the solution grew a project -- D-38 is the entry that records the shape, and "
             + "a new layer is a change to it rather than an addition beside it.");
     }
@@ -221,17 +258,26 @@ public sealed class StructureTests
 
         foreach (string project in SourceProjects())
         {
-            if (!_allowedPackages.TryGetValue(RoleOf(project), out string[]? allowed))
+            string role = RoleOf(project);
+
+            if (string.Equals(role, PackagesLiveHere, StringComparison.Ordinal))
             {
-                // The application project, deliberately. It is the one the packages belong in.
+                // The one documented exemption, by name. A role simply missing from the table is not
+                // exempt -- the guard below fails the build and asks for the row.
                 continue;
+            }
+
+            if (!_allowedPackages.TryGetValue(role, out string[]? allowed))
+            {
+                // Unreachable while the guard passes, and not an exemption if it ever is reached.
+                allowed = [];
             }
 
             inspected++;
 
             foreach (string package in RepoFiles.PackageReferences(project))
             {
-                if (!allowed.Contains(package, StringComparer.Ordinal))
+                if (!allowed.Any(entry => package.StartsWith(entry, StringComparison.Ordinal)))
                 {
                     offenders.Add(RoleOf(project) + " references " + package);
                 }

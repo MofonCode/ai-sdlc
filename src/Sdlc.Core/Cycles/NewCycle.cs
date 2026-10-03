@@ -31,10 +31,19 @@ public static class NewCycle
     /// Allocates a cycle id and creates its directory, failing if one is already there.
     /// </summary>
     /// <remarks>
-    /// <para><strong>Creating the directory is the check.</strong> Two cycles opened in the same second
-    /// would collide, and nothing earlier can catch that: at allocation there is no directory to be already
-    /// there. A look-then-create would leave the race it was written to close, so this creates and lets the
-    /// filesystem decide -- which it does atomically.
+    /// <para><strong>Claiming the cycle is the check, and a directory cannot do it.</strong> Two cycles
+    /// opened in the same second would collide, and nothing earlier can catch that: at allocation there is
+    /// no directory to be already there. This used to read <c>Directory.Exists</c> and then
+    /// <c>Directory.CreateDirectory</c> directly beneath a remark saying a look-then-create would leave
+    /// the race open -- and it could not have been done the stated way regardless, because
+    /// <c>CreateDirectory</c> succeeds on a directory that is already there, so creation alone can never
+    /// be a collision check. D-10 is a recorded decision with a rejection list, and the code did the
+    /// rejected thing while asserting otherwise.
+    /// </para>
+    /// <para>
+    /// So the claim is a marker file opened with <see cref="FileMode.CreateNew"/>, which throws when the
+    /// file exists. That is one atomic operation the filesystem decides, which is what the decision says.
+    /// The directory is created first and harmlessly: an existing one is not the collision, the claim is.
     /// </para>
     /// <para>
     /// The id is purely temporal, so ids sort chronologically and say when the cycle opened. Allocation needs
@@ -46,6 +55,16 @@ public static class NewCycle
     private sealed class Handler(SolutionRoot solution, TimeProvider time)
         : IRequestHandler<Command, Cycle>
     {
+        /// <summary>
+        /// The file whose creation claims the cycle.
+        /// </summary>
+        /// <remarks>
+        /// Dot-prefixed and named for what it is, so somebody finding one in a cycle directory can tell
+        /// it is bookkeeping rather than an artifact. Nothing ever reads its contents; it is empty, and
+        /// its existence is the whole of the information.
+        /// </remarks>
+        private const string ClaimFileName = ".opened";
+
         /// <inheritdoc />
         public Task<Result<Cycle>> Handle(Command request, CancellationToken cancellationToken)
         {
@@ -54,16 +73,26 @@ public static class NewCycle
             var id = CycleId.Allocate(time);
             Cycle cycle = new(id, solution.Path);
 
-            if (Directory.Exists(cycle.Directory))
+            try
+            {
+                Directory.CreateDirectory(cycle.Directory);
+
+                // CreateNew is the whole mechanism: it throws if the file is there, and the filesystem
+                // decides that, so two processes in the same second cannot both win. Closed at once --
+                // nothing reads the marker, its existence is the claim.
+                using (new FileStream(
+                    Path.Combine(cycle.Directory, ClaimFileName),
+                    FileMode.CreateNew,
+                    FileAccess.Write,
+                    FileShare.None))
+                {
+                }
+            }
+            catch (IOException) when (File.Exists(Path.Combine(cycle.Directory, ClaimFileName)))
             {
                 return Task.FromResult(Result.Fail<Cycle>(string.Create(
                     CultureInfo.InvariantCulture,
                     $"Cycle {id} already exists at {cycle.Directory}. Two cycles opened in the same second collide, because an id is the moment it opened to the second. Wait a second and try again.")));
-            }
-
-            try
-            {
-                Directory.CreateDirectory(cycle.Directory);
             }
             catch (Exception error) when (error is IOException or UnauthorizedAccessException)
             {

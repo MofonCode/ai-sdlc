@@ -186,7 +186,7 @@ public sealed class ScaffoldTests
 
         StringAssert.Contains(
             structure,
-            "Every_project_under_src_is_named_in_the_direction_rule",
+            "Every_project_under_src_is_named_in_both_rules",
             "Guard the guard: a project neither table names is a project both rules skip silently.");
 
         string convention = files

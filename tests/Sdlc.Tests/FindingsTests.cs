@@ -83,12 +83,61 @@ public sealed class FindingsTests
     [DataRow("blocking", Severity.Blocking)]
     public void Each_severity_reads_back(string text, Severity expected)
     {
+        // The citation is here because a blocking finding now requires one -- see
+        // A_blocking_finding_with_no_citation_is_refused. A suggestion may carry one or not.
         Result<FindingsRound> result = FindingsReader.Read(
-            $$"""{ "round": 1, "findings": [{ "id": "F_01", "severity": "{{text}}", "disposition": "open", "statement": "something." }] }""",
+            $$"""{ "round": 1, "findings": [{ "id": "F_01", "severity": "{{text}}", "disposition": "open", "cites": "CON_04", "statement": "something." }] }""",
             "test");
 
         Assert.IsTrue(result.IsSuccess, string.Join("; ", result.Errors.Select(e => e.Message)));
         Assert.AreEqual(expected, result.Value.Findings.Single().Severity);
+    }
+
+    [TestMethod]
+    public void A_blocking_finding_with_no_citation_is_refused()
+    {
+        // §7 says every blocking finding cites exactly one constraint and D-30 says the citation is
+        // required on a blocker and optional on a suggestion. Nothing enforced it, so an uncited
+        // blocker was accepted and the gate rendered the constraint column as whitespace -- leaving a
+        // person at the gate unable to judge whether the finding was cheap or expensive, which is the
+        // property §7.1 says the citation buys. Mechanically decidable, so §2.3 puts it here. F-11.
+        Result<FindingsRound> result = FindingsReader.Read(
+            """{ "round": 1, "findings": [{ "id": "F_09", "severity": "blocking", "disposition": "open", "statement": "no citation at all." }] }""",
+            "spec.r1.json");
+
+        Assert.IsTrue(result.IsFailed);
+
+        string message = string.Join("; ", result.Errors.Select(error => error.Message));
+
+        StringAssert.Contains(message, "F_09", "The error names the finding.");
+        StringAssert.Contains(message, "spec.r1.json", "And the file.");
+    }
+
+    [TestMethod]
+    [DataRow("CON_99", DisplayName = "a constraint number that does not exist still parses as an id")]
+    [DataRow("CON_4", DisplayName = "unpadded")]
+    [DataRow("con_04", DisplayName = "lower case")]
+    [DataRow("CON-04", DisplayName = "wrong separator")]
+    [DataRow("the one about tests", DisplayName = "prose")]
+    [DataRow("   ", DisplayName = "whitespace")]
+    public void A_blocking_citation_that_is_not_a_constraint_id_is_refused(string cites)
+    {
+        // Shape only. Whether the id names a constraint that is in force needs the constraint
+        // documents, which this reader does not have and should not acquire.
+        Result<FindingsRound> result = FindingsReader.Read(
+            $$"""{ "round": 1, "findings": [{ "id": "F_02", "severity": "blocking", "disposition": "open", "cites": "{{cites}}", "statement": "x." }] }""",
+            "spec.r1.json");
+
+        // CON_99 is a well-formed id for a constraint nobody wrote, so it passes the shape check and
+        // is somebody else's problem. Everything else here is not an id at all.
+        if (string.Equals(cites, "CON_99", StringComparison.Ordinal))
+        {
+            Assert.IsTrue(result.IsSuccess, "Well-formed, even if nothing answers to it.");
+            return;
+        }
+
+        Assert.IsTrue(result.IsFailed, cites);
+        StringAssert.Contains(string.Join("; ", result.Errors.Select(error => error.Message)), "F_02");
     }
 
     [TestMethod]

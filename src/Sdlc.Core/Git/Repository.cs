@@ -147,9 +147,12 @@ public sealed class GitRepository : IRepository
         // person's behalf cannot pick up work they had in progress.
         string add = "add -- " + string.Join(' ', paths.Select(path => "\"" + path + "\""));
 
-        if (Run(workingDirectory, add) is null)
+        (string? staged, string? staging) = Ask(workingDirectory, add);
+
+        if (staged is null)
         {
-            return Result.Fail("git could not stage what init created.");
+            return Result.Fail(
+                "git could not stage what init created. " + (staging ?? "It gave no reason."));
         }
 
         // The message goes through a file rather than the command line: it is multi-line, and quoting a
@@ -160,8 +163,13 @@ public sealed class GitRepository : IRepository
         {
             File.WriteAllText(file, message);
 
-            return Run(workingDirectory, string.Create(CultureInfo.InvariantCulture, $"commit -F \"{file}\"")) is null
-                ? Result.Fail("git could not commit what init created.")
+            (string? committed, string? complaint) = Ask(
+                workingDirectory,
+                string.Create(CultureInfo.InvariantCulture, $"commit -F \"{file}\""));
+
+            return committed is null
+                ? Result.Fail(
+                    "git could not commit what init created. " + (complaint ?? "It gave no reason."))
                 : Result.Ok();
         }
         finally
@@ -259,7 +267,35 @@ public sealed class GitRepository : IRepository
             .ReplaceLineEndings()
             .Split(Environment.NewLine, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)];
 
-    private static string? Run(string workingDirectory, string arguments)
+    private static string? Run(string workingDirectory, string arguments) =>
+        Ask(workingDirectory, arguments).Output;
+
+    /// <summary>
+    /// Runs git and returns both of what it said.
+    /// </summary>
+    /// <remarks>
+    /// <strong>Both streams are drained concurrently, and that is the fix rather than tidiness.</strong>
+    /// This redirected standard error and never read it, while <c>ReadToEnd</c> on standard output
+    /// blocked with no timeout -- so git writing enough to fill the stderr pipe buffer meant git
+    /// blocked on stderr, the parent blocked on stdout, and <see cref="_patience"/> was never reached.
+    /// A real deadlock, not a slow path: <c>git add</c> on Windows emits one "LF will be replaced by
+    /// CRLF" warning per file, so staging enough files gets there. It is in <c>init</c> and
+    /// <c>evidence</c>, which have no external timeout; the hook paths are capped by the host config
+    /// and would have failed rather than hung.
+    /// <para>
+    /// <strong>And a failure carries git's message.</strong> Every failure used to return null, so
+    /// git's own reason was thrown away and <c>Commit</c> reported "git could not stage what init
+    /// created" with nothing to act on -- which contradicts the framework's own standard that a
+    /// refusal says what has to change, and <c>CON_10.2</c> is that rule.
+    /// </para>
+    /// </remarks>
+    /// <param name="workingDirectory">Where to run it.</param>
+    /// <param name="arguments">The arguments, after the word git.</param>
+    /// <returns>
+    /// The output when git succeeded, and otherwise null with whatever it said about why. Both are
+    /// null when git could not be started at all.
+    /// </returns>
+    private static (string? Output, string? Error) Ask(string workingDirectory, string arguments)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(workingDirectory);
 
@@ -276,24 +312,46 @@ public sealed class GitRepository : IRepository
 
             if (process is null)
             {
-                return null;
+                return (null, null);
             }
 
-            string output = process.StandardOutput.ReadToEnd();
+            // Started before either is awaited, so neither pipe can fill while this waits on the other.
+            Task<string> output = process.StandardOutput.ReadToEndAsync();
+            Task<string> error = process.StandardError.ReadToEndAsync();
 
             if (!process.WaitForExit(_patience))
             {
-                return null;
+                try
+                {
+                    process.Kill(entireProcessTree: true);
+                }
+                catch (Exception killed) when (killed is InvalidOperationException or NotSupportedException)
+                {
+                    // It exited between the wait timing out and the kill. Nothing to do.
+                }
+
+                return (null, string.Create(
+                    CultureInfo.InvariantCulture,
+                    $"git {arguments} did not finish within {_patience / 1000} seconds and was stopped."));
             }
 
-            return process.ExitCode == 0 ? output : null;
+            // Safe to block now: the process has exited, so both pipes are closed and complete.
+            string said = output.GetAwaiter().GetResult();
+            string complained = error.GetAwaiter().GetResult();
+
+            return process.ExitCode == 0
+                ? (said, null)
+                : (null, string.IsNullOrWhiteSpace(complained)
+                    ? string.Create(CultureInfo.InvariantCulture, $"git {arguments} exited {process.ExitCode} and said nothing.")
+                    : complained.Trim());
         }
         catch (Exception error)
             when (error is System.ComponentModel.Win32Exception or InvalidOperationException)
         {
-            // No git on PATH, or it could not be started. Every caller treats null as "git cannot say",
-            // which is what lets a missing git produce a clear refusal rather than a stack trace.
-            return null;
+            // No git on PATH, or it could not be started. Every caller treats a null output as "git
+            // cannot say", which is what lets a missing git produce a clear refusal rather than a
+            // stack trace.
+            return (null, "git could not be started. " + error.Message);
         }
     }
 }
