@@ -198,9 +198,35 @@ public sealed class GitRepository : IRepository
     }
 
     /// <inheritdoc />
+    /// <remarks>
+    /// <strong>Untracked files are added with <c>--intent-to-add</c> first, and that is the whole
+    /// point.</strong> <c>git diff &lt;base&gt;</c> cannot see a file git is not tracking, so the patch
+    /// recorded as evidence excluded every new file -- which is every first cycle and most feature
+    /// work. The reassuring "every declared file changed, and nothing else did" came from
+    /// <see cref="ChangedFiles"/>, which does include them, so the panel agreed while
+    /// <c>diff.patch</c> was empty and there was nothing for a verify to cite.
+    /// <para>
+    /// <c>--intent-to-add</c> stages the path and none of the content, so a person's index keeps
+    /// whatever they had staged and the file still shows as new in the patch. The alternative was a
+    /// <c>--no-index</c> diff per untracked file, which is one process per file and produces a patch
+    /// in a slightly different shape.
+    /// </para>
+    /// </remarks>
     public string? Diff(string workingDirectory, string from)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(from);
+
+        IReadOnlyList<string> untracked = Lines(
+            Run(workingDirectory, "ls-files --others --exclude-standard"));
+
+        if (untracked.Count > 0)
+        {
+            // Quoted individually, and a failure here is deliberately not fatal: a patch missing one
+            // new file is worse than it should be, and no patch at all is worse still.
+            _ = Run(
+                workingDirectory,
+                "add --intent-to-add -- " + string.Join(' ', untracked.Select(path => "\"" + path + "\"")));
+        }
 
         return Run(workingDirectory, $"diff {from}");
     }

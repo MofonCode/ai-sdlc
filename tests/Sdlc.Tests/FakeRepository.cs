@@ -7,9 +7,18 @@ namespace Sdlc.Tests;
 /// A git that answers from what a test handed it.
 /// </summary>
 /// <remarks>
-/// Building real repositories to cover adoption's three modes, or to make a diff with an untracked file in
-/// it, would be slow and would mostly be testing git. What is worth testing is what the framework does with
-/// the answers.
+/// Building real repositories to cover adoption's three modes would be slow and would mostly be testing
+/// git. What is worth testing is what the framework does with the answers.
+/// <para>
+/// <strong>With one exception, and it was this file's own blind spot.</strong> This used to say a diff
+/// with an untracked file in it was also not worth building for real, and that was wrong: the question
+/// is not what git answers but <em>which question the framework asks it</em>. <c>Diff</c> ran
+/// <c>git diff &lt;base&gt;</c>, which cannot see an untracked file, while <c>ChangedFiles</c> asked for
+/// them explicitly -- so every cycle that created files recorded an empty patch beside a full list of
+/// changes and a panel saying everything was in order. No fake could have caught that, because a fake
+/// answers both questions from the same field. <c>GitDiffTests</c> uses a real repository for exactly
+/// that reason, and nothing else.
+/// </para>
 /// <para>
 /// Every answer defaults to the shape a working repository gives, so a test says only what it is about.
 /// </para>

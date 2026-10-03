@@ -81,6 +81,17 @@ nothing — every project reports "Zero tests ran" in under a fifth of a second.
 recorded evidence shows a failing suite or when the working tree has moved since the build was recorded.
 It is not a rule to remember — it is why there is no point reporting done over a red build.
 
+## Commit the change on the branch
+
+Commit before recording evidence. Message saying what it does and why, referencing the cycle id.
+
+**Why this order.** The diff is measured from where the branch diverged, and a file git is not tracking
+is a file `git diff` cannot see. `sdlc evidence` now stages untracked paths itself before diffing, so
+recording first no longer produces an empty patch — but committing first means the patch comes from
+committed state rather than from whatever the working tree happens to hold, and that is the thing a
+reviewer is reading. Before the fix, an unstaged new file made `diff.patch` empty while the panel said
+every declared file had changed.
+
 ## Record the evidence
 
 ```
@@ -100,11 +111,14 @@ It also prints the declared-against-changed comparison. Read it, and read it cor
 - **Neither is a refusal.** The comparison cannot see inside a file, which is why `CON_07.2` exists at
   all. What blocks is outcome-based: the build fails, tests fail, or a named test did not pass.
 
-## Commit on the branch
+## Commit the evidence
 
-Commit the change with a message saying what it does and why, referencing the cycle id. Commit the
-evidence too — `verify` and the pull-request check both read it from the repository, so evidence that
-exists only in your working tree is evidence the chain cannot see.
+Commit the evidence directory too. `verify` and the pull-request check both read it from the
+repository, so evidence that exists only in your working tree is evidence the chain cannot see.
+
+If `sdlc evidence` refused because the patch came out empty while files had changed, that is a real
+defect rather than a step to work around — it means git cannot see the change the comparison can.
+`git status --short` is where to look.
 
 ## Report and hand back
 

@@ -348,6 +348,32 @@ public sealed class EvidenceTests
     /// one is the honest default and a fixed one would be ceremony. It is resolvable now either way
     /// -- while the registration closed over <c>TimeProvider.System</c>, it was not.
     /// </remarks>
+    [TestMethod]
+    public async Task An_empty_patch_beside_a_changed_file_is_refused_rather_than_recorded()
+    {
+        // The two answers have to agree. They did not: `git diff` cannot see an untracked file while
+        // ChangedFiles asks for them, so a cycle that created files wrote an empty diff.patch and the
+        // panel still said "every declared file changed, and nothing else did". §4.5 has verify reading
+        // the evidence and nothing else, so an empty patch leaves a claim with nothing to cite --
+        // which CON_08 forbids -- while verify-chain's proof check reads only tests.json and holds
+        // regardless. Diff now stages untracked paths, so this state means a defect, and it says so.
+        using var workspace = CycleWorkspace.Create();
+        workspace.WriteAllArtifacts();
+
+        using Gate gate = Recorder(
+            workspace,
+            new FakeRepository { Changed = ["src/Roll.cs"], Patch = string.Empty });
+
+        Result<RecordEvidence.Response> result = await gate
+            .Send<RecordEvidence.Command, RecordEvidence.Response>(
+                new RecordEvidence.Command(workspace.Cycle.Id, null));
+
+        Assert.IsTrue(result.IsFailed, "A panel saying everything is in order is the failure mode.");
+        StringAssert.Contains(
+            string.Join(" ", result.Errors.Select(error => error.Message)),
+            "cannot both be true");
+    }
+
     private static Gate Recorder(CycleWorkspace workspace, FakeRepository git) =>
         Gate.For(workspace.Root, services => services.AddSingleton<IRepository>(git));
 

@@ -116,6 +116,20 @@ public static class RecordEvidence
 
             IReadOnlyList<string> changed = repository.ChangedFiles(solution.Path, baseCommit);
 
+            // The two answers have to agree, and they used to not: `git diff` cannot see an untracked
+            // file while ChangedFiles asks for them explicitly, so a cycle that created files recorded
+            // an empty patch beside a full list of changes -- and said "every declared file changed,
+            // and nothing else did" on the way past. Diff now stages untracked paths with
+            // --intent-to-add, so this cannot happen; if it does, it is a defect in the evidence
+            // itself and §4.5 has verify reading this patch "and nothing else", so it refuses rather
+            // than recording something a verify would cite and a reviewer would trust. F-05.
+            if (changed.Count > 0 && string.IsNullOrWhiteSpace(diff))
+            {
+                return Result.Fail<Response>(string.Create(
+                    CultureInfo.InvariantCulture,
+                    $"{changed.Count} file(s) changed since {baseCommit[..Math.Min(12, baseCommit.Length)]} and the recorded patch is empty, which cannot both be true. Nothing was recorded, because a verify reads the patch and nothing else -- an empty one would leave a claim with nothing to cite and a panel saying everything is in order. Check that git can see the change: 'git status --short'."));
+            }
+
             TestSummary? summary = null;
 
             if (request.Trx is { } trx)
