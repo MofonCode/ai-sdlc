@@ -52,16 +52,16 @@ This file is working material. Delete it when the fixes land.
 | F-27 | Low | **you** | `CON_10.2` cannot be applied by anything |
 | F-28 | Low | **you** | The generated pipeline fails on any branch that is not a cycle branch |
 | F-29 | Low | done | ~~The generated pipelines do not match §13's coverage description~~ **fixed** |
-| F-30 | Cosmetic | — | §7.5's constraint table is internally inconsistent about revisions |
-| F-31 | Cosmetic | — | `Scaffold.cs` asserts a gap the next commit closed |
-| F-32 | Cosmetic | — | Two `Release` comments assert a tool manifest D-37 rejected |
-| F-33 | Cosmetic | — | §16's cycle-index claim contradicts `CycleIndex.cs` |
-| F-34 | Cosmetic | — | `tools/` and the repository's own CI are recorded only in `AGENTS.md` |
-| F-35 | Cosmetic | — | The scaffold prints the line D-35 cited as evidence of a problem |
-| F-36 | Cosmetic | — | §15.2's command table omits `scaffold` and `version` |
-| F-37 | Cosmetic | — | `IRepository.TrackedFiles`' documentation describes filtering it does not do |
-| F-38 | Cosmetic | — | §16's layout names a `tests.trx`; the code keeps the runner's own filename |
-| F-39 | Cosmetic | — | The no-flags trap for `dotnet test` is documented in one skill and nowhere else |
+| F-30 | Cosmetic | done | ~~§7.5's constraint table is internally inconsistent about revisions~~ **fixed** |
+| F-31 | Cosmetic | done | ~~`Scaffold.cs` asserts a gap the next commit closed~~ **fixed** |
+| F-32 | Cosmetic | done | ~~Two `Release` comments assert a tool manifest D-37 rejected~~ **fixed** |
+| F-33 | Cosmetic | done | ~~§16's cycle-index claim contradicts `CycleIndex.cs`~~ **fixed** |
+| F-34 | Cosmetic | done | ~~`tools/` and the repository's own CI are recorded only in `AGENTS.md`~~ **fixed** |
+| F-35 | Cosmetic | done | ~~The scaffold prints the line D-35 cited as evidence of a problem~~ **fixed** |
+| F-36 | Cosmetic | done | ~~§15.2's command table omits `scaffold` and `version`~~ **fixed** |
+| F-37 | Cosmetic | done | ~~`IRepository.TrackedFiles`' documentation describes filtering it does not do~~ **fixed** |
+| F-38 | Cosmetic | done | ~~§16's layout names a `tests.trx`; the code keeps the runner's own filename~~ **fixed** |
+| F-39 | Cosmetic | done | ~~The no-flags trap for `dotnet test` is documented in one skill and nowhere else~~ **fixed** |
 | F-40 | Cosmetic | **you** | A revised constraint leaves nothing readable at the revision findings cite |
 
 ---

@@ -542,7 +542,7 @@ words. Findings cite the revision. **A bare id is revision 1**, and that is the 
 | `CON_07.2` | a change does only what its plan declared, including inside files the plan named | diff |
 | `CON_08` | a verify claim rests on evidence that exists and supports it | verify |
 | `CON_09` | no artifact restates another's content as its own authority | every artifact |
-| `CON_10` | a gate refusal's reason says why | an approval decision |
+| `CON_10.2` | a gate refusal's reason says what has to change | a gate decision that is not an approval |
 | `CON_11` | every constraint carries a Forbids clause that rules something out | a diff adding a constraint |
 | `CON_12` | a criterion's check is one the solution's testing layers can run | spec |
 | `CON_13` | a plan that departs from the declared defaults says why | plan |
@@ -711,8 +711,10 @@ model, and the merged chain breaks in a way that compiles and then fails at depl
 derived from whether the plan touches the app host or declares service dependencies. Service-free
 plans run wide; plans standing up SQL Server, Redis and a Service Bus emulator run under a low cap.
 
-A local cycle index persists state so a run can be resumed and read. It is not a coordination
-mechanism.
+`CycleIndex` finds work by listing `.sdlc/cycles/`, which is the whole of it: a manifest would be a
+second place the truth lives, and the one that goes stale is always the one a tool trusts. **Nothing
+persists a run's own progress yet**, so a long batch that dies halfway has no record of which cycles
+completed — §19 item 5. This section claimed otherwise for a while.
 
 ### 10.2 Local run modes
 
@@ -792,6 +794,14 @@ VSTest and Microsoft.Testing.Platform refuses that path, so the profile ships bo
 `<EnableMSTestRunner>true</EnableMSTestRunner>` in `Directory.Build.props` rather than one test
 project. **Do not set `TestingPlatformDotnetTestSupport`** — the .NET 9 mechanism, and setting it
 instead is what left a trial unable to run `dotnet test` at all.
+
+**And run `dotnet test` with no flags.** On Microsoft.Testing.Platform, VSTest-style flags are not
+options the runner accepts, so they are forwarded to the test application — which runs nothing and
+reports `Zero tests ran` with exit 5, in under a fifth of a second. `--nologo` and `-v q` both do it.
+This is the same symptom as the paragraph above by a different route, and it is the more expensive of
+the two because the build looks fine and the output says `failed: 0` on the way past: it cost one
+review an hour and one later session another. `skills/build/SKILL.md`, `AGENTS.md` and
+`.github/workflows/ci.yml` all say so too; the section that owns the fact should be one of them. F-39.
 
 A note recorded rather than buried: **ML.NET costs real capability** against the Python ecosystem on
 competitive modelling work.
@@ -1200,7 +1210,9 @@ they print verbatim.
 | `suggestions [<id>]` | the open non-blocking findings |
 | `landable <id> \| --all` | whether a cycle may be landed, without landing it |
 | `verify-chain <id>` | the whole chain, as the pull-request check runs it — §13 |
+| `scaffold <id>` | writes the solution skeleton into an approved cycle — D-35 |
 | `hook --host <name>` | judges one tool call — §12 |
+| `version` | the three versions and which is which — the package, the plugin, and the artifact envelope |
 
 **Typing a stage name is answered rather than refused.** The panel ends with the literal next command,
 and for a stage that is a skill — `sdlc spec <id>` — the binary cannot do the work. So it says what the
@@ -1240,7 +1252,7 @@ collision check, and the filesystem makes that atomic (D-10).
       evidence/
         diff.patch
         build.log
-        tests.trx
+        tests.trx           the runner's own output, under a fixed name
         tests.json          the normalised summary verify reads
         base.sha
 ```
@@ -1257,8 +1269,11 @@ fixed at allocation and never rewritten.
 Artifacts live on the cycle branch. `batch-build` reads approved cycles locally and completes them
 before anything is pushed, so the gate is passed before code exists.
 
-A cycle index exists so `batch-build` does not glob directories to find work, and each cycle records
-its branch and work item.
+Finding work **is** a directory listing: `CycleIndex` globs `.sdlc/cycles/`, deliberately, because
+*"a manifest is a second place the truth lives, and the one that goes stale is always the one a tool
+trusts."* Nothing records a branch or a work item — a branch is derived from the id, and no cycle has
+needed a work item yet. Resumable state for a long `batch-build` run is genuinely absent and is in
+§19.
 
 ### 16.1 Abandoning a cycle
 
@@ -2337,3 +2352,42 @@ parses to the same set, and that a file still wins over it. None of those would 
 fault, because all of them run inside the tree — so CI now packs the tool, installs it to a temporary
 tool path and runs `sdlc constraints` from a directory that is not this repository. That is the only
 check in the suite that exercises the artifact a person actually installs.
+
+### D-42 — The framework runs CI on itself, and does not govern itself with itself
+
+**Decision.** `.github/workflows/ci.yml` builds this repository, runs its suite, generates a
+scaffolded solution and builds and tests that, and packs the tool and runs the packed tool from
+outside the tree. It deliberately does **not** run `sdlc verify-chain` on this repository.
+
+**Why it does not govern itself.** There is no `.sdlc/` directory here and no cycle branch, so the
+chain check has nothing to read — `verify-chain` reads hashes, file existence and an approval ledger.
+Pointing it at itself would mean adopting the framework into the framework, which sounds principled
+and buys nothing: the thing being tested is the gate's own code, and the gate's own tests are what
+test that. §2.7 is the related rule.
+
+**Why the repository has ordinary CI at all.** The framework is a product, and a product with no
+pipeline is one whose build state is whatever the last person's machine said. Three of the four jobs
+exist because the suite cannot see what they see:
+
+- **the scaffolded solution** — every scaffold test asserts strings, so a template generating code
+  that does not compile passes the whole suite. It has happened three times now: a `--` inside an XML
+  comment (twice), and a `CA1859` that warnings-as-errors turns into an error. F-31.
+- **the packed tool, installed and run from outside the tree** — every other check runs the binary
+  from a build output inside this repository, where the constraint library is always found by walking
+  up. That is how a release shipped a package with no library in it at all. D-41, F-03.
+- **`tools/`** — a top-level directory holding build-time tools rather than product code, so that the
+  harness is not a test project pretending to be one and not a source project shipping to anybody.
+
+**What this replaces.** All of this lived in `AGENTS.md` and in a YAML header comment, and
+`AGENTS.md:45` says `CONCEPT.md` is the current authority on every design question. Whether the
+framework governs itself is a design question with real reasoning behind it, and it was recorded in
+the one file that says it is not the authority. F-34.
+
+**Rejected.**
+
+- *Adopting ai-sdlc into ai-sdlc* — rejected above. It tests the framework's conclusions against
+  themselves rather than testing the framework.
+- *No CI, on the grounds that the gate is the enforcement* — rejected: the gate governs a solution's
+  changes, and nothing was watching this repository's own build.
+- *Putting the harness in `tests/`* — rejected. It is not a test: it writes files and exits, and the
+  suite's own rules about test projects would have had to grow an exception for it.

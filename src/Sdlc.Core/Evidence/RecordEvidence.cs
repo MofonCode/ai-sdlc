@@ -43,6 +43,9 @@ public static class RecordEvidence
     /// <summary>The change itself.</summary>
     public const string DiffFileName = "diff.patch";
 
+    /// <summary>The runner's own results file, kept beside the normalised summary under a fixed name.</summary>
+    public const string TrxFileName = "tests.trx";
+
     /// <summary>Records what a build produced, as files rather than prose.</summary>
     /// <param name="Id">The cycle the build belongs to.</param>
     /// <param name="Trx">A runner's own test results to normalise, or null when there are none yet.</param>
@@ -190,7 +193,11 @@ public static class RecordEvidence
                 return read.ToResult<TestSummary>();
             }
 
-            await Write(cycle, Path.GetFileName(trx), xml, written, cancellationToken).ConfigureAwait(false);
+            // Under a fixed name rather than the runner's own, which is usually a GUID. §16 documents
+            // the evidence directory as holding a `tests.trx`, and a cycle's evidence directory is
+            // read by people and cited by a verify -- a predictable name is worth more than a record
+            // of what the runner happened to call it, which the original path already says. F-38.
+            await Write(cycle, TrxFileName, xml, written, cancellationToken).ConfigureAwait(false);
 
             TestSummary summary = new(
                 Cycle.FrameworkVersion,

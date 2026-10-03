@@ -184,10 +184,11 @@ public static class InitRenderer
             ]
             :
             [
-                "The reference slice is written in the shape every operation here should have, and it",
-                "is meant to be deleted once there is real work. The architecture tests beside it are",
-                "what make the conventions in .editorconfig enforceable - naming is an IDE-only",
-                "diagnostic, so the build decides none of it on its own.",
+                "The reference slice is one worked example of the shape every operation here should",
+                "have. It is part of this cycle's change, and real work replaces it rather than being",
+                "written beside it. The architecture tests beside it are what make the conventions in",
+                ".editorconfig enforceable - naming is an IDE-only diagnostic, so the build decides",
+                "none of it on its own.",
                 string.Empty,
                 "These files are part of this cycle's change. Build, test, and record the evidence, or",
                 "there is code on disk that no verification covers.",

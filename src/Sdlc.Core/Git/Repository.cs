@@ -20,11 +20,17 @@ public interface IRepository
     bool IsRepository(string workingDirectory);
 
     /// <summary>
-    /// The files git is tracking, excluding anything the framework owns.
+    /// Every file git is tracking.
     /// </summary>
     /// <remarks>
     /// Tracked files rather than commits, because origin is about code rather than history: a repository
     /// holding one empty commit, a README and a licence has no solution in it yet.
+    /// <para>
+    /// <strong>Unfiltered. The caller decides what counts as code</strong> — <c>Initialise.IsCode</c> is
+    /// where the framework's own files and a repository's furniture are excluded. This summary said
+    /// "excluding anything the framework owns" while the implementation ran plain <c>git ls-files</c>,
+    /// which matters because a second caller would otherwise assume filtering it does not get. F-37.
+    /// </para>
     /// </remarks>
     /// <param name="workingDirectory">Where to ask from.</param>
     /// <returns>The paths, relative to the root.</returns>

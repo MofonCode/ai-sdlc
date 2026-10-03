@@ -19,10 +19,11 @@ internal static class Release
     /// The binary's own version.
     /// </summary>
     /// <remarks>
-    /// Read from <c>Sdlc.Core</c> rather than from this assembly, because the tool manifest
-    /// <c>init</c> writes pins the version a pipeline restores and that template lives in the core.
-    /// Both assemblies carry the same <c>VersionPrefix</c>, so reading either would give the same
-    /// answer today -- and two readers of one fact is how they stop agreeing later.
+    /// Read from <c>Sdlc.Core</c> rather than from this assembly, because the pipeline templates pin
+    /// the version a pull request installs and those templates live in the core. Both assemblies carry
+    /// the same <c>VersionPrefix</c>, so reading either would give the same answer today -- and two
+    /// readers of one fact is how they stop agreeing later. (This said "the tool manifest init writes"
+    /// until F-32; D-37 decided that no manifest is written.)
     /// </remarks>
     public static string Version { get; } = Sdlc.Core.Release.Version;
 

@@ -7,11 +7,16 @@ namespace Sdlc.Core;
 /// </summary>
 /// <remarks>
 /// It lives here rather than beside <c>sdlc version</c> because two things need it and they are in
-/// different assemblies: the version report a person reads, and the tool manifest <c>init</c> writes
-/// into an adopted solution so its pipeline can restore the same binary. Two readers of one stamped
-/// attribute would eventually disagree about what "the version" means -- a prerelease label kept in
-/// one and trimmed in the other is enough -- and the one a pipeline pins by is not the one a person
-/// would check.
+/// different assemblies: the version report a person reads, and the pinned <c>dotnet tool install</c>
+/// step in the pipelines <c>Templates.Pipeline</c> writes, so a pull request checks the chain with the
+/// release it was written against (D-37). Two readers of one stamped attribute would eventually
+/// disagree about what "the version" means -- a prerelease label kept in one and trimmed in the other
+/// is enough -- and the one a pipeline pins by is not the one a person would check.
+/// <para>
+/// This said "the tool manifest <c>init</c> writes" until F-32. D-37 decided the opposite and says so:
+/// no tool manifest is written into an adopted solution. The reasoning above survives the correction
+/// unchanged; only the second consumer was named wrongly.
+/// </para>
 /// </remarks>
 public static class Release
 {

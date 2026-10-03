@@ -36,17 +36,19 @@ namespace Sdlc.Core.Init;
 /// inside the assembly. They carry a <c>.template</c> extension so nothing reads as source that is
 /// never compiled.</para>
 ///
-/// <para><strong>Nothing in the suite compiles what these produce, and that is a real gap.</strong>
+/// <para><strong>The suite asserts strings, so CI generates a solution and builds it.</strong>
 /// <c>ScaffoldTests</c> reads every template, so a missing resource fails by name, and it asserts the
-/// shape of what comes out — but it asserts strings, so a template that generates code which does not
-/// build passes every test in this repository. It is not hypothetical: the change that split the
-/// contracts project out shipped a <c>--</c> inside an XML comment, which is illegal and fails the
-/// generated solution's first build, and then a <c>CA1859</c> that warnings-as-errors turns into an
-/// error. Both were found by generating a solution and building it by hand.</para>
+/// shape of what comes out — but a template that generates code which does not build passes every
+/// string assertion in this repository. It is not hypothetical: the change that split the contracts
+/// project out shipped a <c>--</c> inside an XML comment, which is illegal and fails the generated
+/// solution's first build, and then a <c>CA1859</c> that warnings-as-errors turns into an error.
+/// Neither was visible until a solution was generated and built.</para>
 ///
-/// <para>So: <strong>generate a solution and run <c>dotnet build</c> and <c>dotnet test</c> on it when
-/// changing a template.</strong> A test doing it automatically would need a package restore from a
-/// network, which is why it does not exist yet rather than why it should not.</para>
+/// <para>So <c>tools/Sdlc.ScaffoldHarness</c> writes one and <c>.github/workflows/ci.yml</c> builds it
+/// and runs its own tests, on every pull request. That is also the right local loop when changing a
+/// template: generate, <c>dotnet build</c>, <c>dotnet test</c>. The two defects above are why the step
+/// exists, and a third arrived while F-07 was being fixed — another <c>--</c> in an XML comment, caught
+/// by the same assertion within a minute.</para>
 /// </remarks>
 public static class Scaffold
 {

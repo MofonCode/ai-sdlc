@@ -1,5 +1,7 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using FluentResults;
+using Sdlc.Core.Constraints;
 
 namespace Sdlc.Tests;
 
@@ -281,6 +283,127 @@ public sealed class PluginTests
                     verb["sdlc ".Length..],
                     $"{path} names '{verb}', which the usage text does not list.");
             }
+        }
+    }
+
+    [TestMethod]
+    public void The_concepts_command_table_and_the_binarys_verbs_agree_in_both_directions()
+    {
+        // The same check Every_skill_names_a_command_the_binary_actually_has makes, pointed at the
+        // document instead of the skills. §15.2 omitted `scaffold` -- which D-35 added -- and
+        // `version`, which appeared nowhere in CONCEPT.md at all. F-36.
+        //
+        // Both directions, because each omission has its own failure. A verb the table does not list
+        // is a command nobody discovers from the design document; a row for a verb the binary does not
+        // answer sends somebody to a usage error.
+        string program = File.ReadAllText(Path.Combine(Root, "src", "Sdlc.Cli", "Program.cs"));
+        string concept = File.ReadAllText(Path.Combine(Root, "CONCEPT.md"));
+
+        int start = concept.IndexOf("### 15.2", StringComparison.Ordinal);
+        Assert.IsTrue(start >= 0, "§15.2 has moved or been renamed.");
+
+        int end = concept.IndexOf("\n## ", start, StringComparison.Ordinal);
+        string section = end > start ? concept[start..end] : concept[start..];
+
+        // The verbs Program dispatches, read from the one switch over line.Verb rather than from a
+        // second list. Bounded to that switch: Draft has a switch of its own over its sub-verbs, and
+        // `approval` is not a command.
+        int dispatch = program.IndexOf("return line.Verb switch", StringComparison.Ordinal);
+        Assert.IsTrue(dispatch >= 0, "The dispatch switch has moved.");
+
+        int closes = program.IndexOf("_ => await Unknown", dispatch, StringComparison.Ordinal);
+        Assert.IsTrue(closes > dispatch, "The dispatch switch does not close where expected.");
+
+        List<string> dispatched = [];
+
+        foreach (string line in program[dispatch..closes].ReplaceLineEndings().Split(Environment.NewLine))
+        {
+            string trimmed = line.Trim();
+
+            if (!trimmed.StartsWith('"') || !trimmed.Contains("=> await", StringComparison.Ordinal))
+            {
+                continue;
+            }
+
+            dispatched.Add(trimmed[1..trimmed.IndexOf('"', 1)]);
+        }
+
+        // Answered before the switch, because it needs no workspace.
+        dispatched.Add("version");
+
+        Assert.IsTrue(dispatched.Count >= 13, "Only found " + dispatched.Count + " verbs: " + string.Join(", ", dispatched));
+
+        foreach (string verb in dispatched)
+        {
+            StringAssert.Contains(
+                section,
+                "`" + verb,
+                $"The binary answers '{verb}' and §15.2's table does not list it. A command missing "
+                + "from the design document is one nobody discovers by reading it.");
+        }
+
+        // And nothing in the table that the binary does not answer.
+        foreach (string line in section.ReplaceLineEndings().Split(Environment.NewLine))
+        {
+            if (!line.StartsWith("| `", StringComparison.Ordinal))
+            {
+                continue;
+            }
+
+            string cell = line[3..];
+            string verb = cell[..cell.IndexOfAny([' ', '`', '\\'])];
+
+            Assert.IsTrue(
+                dispatched.Contains(verb, StringComparer.Ordinal),
+                $"§15.2's table lists '{verb}' and the binary does not answer it.");
+        }
+    }
+
+    [TestMethod]
+    public void The_concepts_constraint_table_matches_the_shipped_library()
+    {
+        // §7.5's table is where a reader copies a citation from, and §7.4 makes a bare id revision 1 --
+        // so the table read `CON_10` while the library shipped `CON_10.2` with different wording, which
+        // means it named an id that is not on the page. F-30.
+        //
+        // Ids and statements both, because the wording is the half that drifts quietly: a revision that
+        // bumped the suffix and left the old sentence in the table would pass an id-only check.
+        string concept = File.ReadAllText(Path.Combine(Root, "CONCEPT.md"));
+        Result<IReadOnlyList<Constraint>> library = ConstraintParser.Parse(
+            File.ReadAllText(RepoPaths.Library),
+            RepoPaths.Library);
+
+        Assert.IsTrue(library.IsSuccess, string.Join("; ", library.Errors.Select(e => e.Message)));
+
+        int start = concept.IndexOf("### 7.5", StringComparison.Ordinal);
+        Assert.IsTrue(start >= 0, "§7.5 has moved or been renamed.");
+
+        int end = concept.IndexOf("\n## ", start, StringComparison.Ordinal);
+        string section = end > start ? concept[start..end] : concept[start..];
+
+        foreach (Constraint constraint in library.Value.Where(rule => rule.IsInForce))
+        {
+            StringAssert.Contains(
+                section,
+                "`" + constraint.Id + "`",
+                $"{constraint.Id} is in force in the library and §7.5's table does not name it. A "
+                + "reader copies a citation from that table, so an id that is not on the page is a "
+                + "finding nobody can write.");
+
+            // The statement, loosely: the table abbreviates, so this asserts the distinctive words
+            // rather than the whole sentence. CON_10's table row said "says why" while the library
+            // said "says what has to change", and that is the shape of drift worth catching.
+            string[] words = [.. constraint.Statement
+                .Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                .Where(word => word.Length > 4)];
+
+            int present = words.Count(word =>
+                section.Contains(word.Trim('.', ',', '`'), StringComparison.OrdinalIgnoreCase));
+
+            Assert.IsTrue(
+                present >= Math.Max(1, words.Length / 2),
+                $"{constraint.Id}'s row does not read like its statement.\n  library: {constraint.Statement}\n"
+                + "  Matched " + present + " of " + words.Length + " significant words.");
         }
     }
 

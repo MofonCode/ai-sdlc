@@ -215,7 +215,7 @@ public sealed class EvidenceTests
             RecordEvidence.BaseFileName,
             RecordEvidence.DiffFileName,
             RecordEvidence.SummaryFileName,
-            "results.trx",
+            RecordEvidence.TrxFileName,
         ])
         {
             Assert.IsTrue(
@@ -232,6 +232,10 @@ public sealed class EvidenceTests
     {
         // So a verify claim can cite either, and CON_08 is satisfied by both. Replacing it would make the
         // normalisation lossy in a way nobody could check.
+        //
+        // Under a fixed name, not the runner's. The runner's output is usually called a GUID, which
+        // made a cycle's evidence directory unpredictable for the people and the verify claims that
+        // read it -- and §16 documented a `tests.trx` all along. F-38.
         using var workspace = CycleWorkspace.Create();
         workspace.WritePlan(proofs: 1);
 
@@ -241,9 +245,12 @@ public sealed class EvidenceTests
         await Record(workspace, trx, changed: []);
 
         string kept = await File.ReadAllTextAsync(
-            Path.Combine(workspace.Cycle.EvidenceDirectory, "results.trx"));
+            Path.Combine(workspace.Cycle.EvidenceDirectory, RecordEvidence.TrxFileName));
 
         StringAssert.Contains(kept, "UnitTestResult");
+        Assert.IsFalse(
+            File.Exists(Path.Combine(workspace.Cycle.EvidenceDirectory, "results.trx")),
+            "The runner's own filename is not what the evidence directory is keyed by.");
     }
 
     [TestMethod]

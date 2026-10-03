@@ -155,6 +155,8 @@ the commands in one page that travels with the repository.
 | `skills/` | the seventeen skills |
 | `hooks/`, `.claude-plugin/` | the plugin as it installs |
 | `tests/` | the suite |
+| `tools/` | build-time tools that are not the product — the scaffold harness CI runs |
+| `.github/workflows/ci.yml` | this repository's own CI, which deliberately does not govern itself (D-42) |
 
 ## Where it stands
 
