@@ -74,7 +74,15 @@ public static class SdlcServices
 
         services.AddReadCycleStatusRequestHandler();
 
+        services.AddReadFindingsRequestHandler();
+
+        services.AddListCyclesRequestHandler();
+
         services.AddApprovalTextRequestHandler();
+
+        // Composing the decision and putting it where a rename can reach it are separate operations,
+        // because the composer writes nothing and a test of what it produces must not need a disk.
+        services.AddWriteApprovalDraftRequestHandler();
 
         // The turn-end gate. Unlike the pre-tool policy, which is a pure function over a tool call
         // and stays static for the sake of the hook's start-up cost, this one reads git and the

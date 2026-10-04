@@ -8,7 +8,7 @@ allowed-tools: Bash(sdlc *), Bash(git *)
 
 # Draft a file only a person writes
 
-Four files, one rule: **a tool never writes them, a tool prints what to put in them.**
+Four files, one rule: **a tool never places them, a person does.**
 
 ```
 sdlc draft approval <id>     [--changes-requested | --deny | --reopen]
@@ -19,6 +19,11 @@ sdlc draft profile <name>
 
 Show what it prints **verbatim**, including the instructions under the block. Then stop.
 
+**An approval is written to a file beside the ledger and placed by renaming it.** `draft approval`
+writes `approval.<decision>.draft.md` into the cycle directory -- a complete file, not a fragment --
+and prints it with the rename that records it. The other three still print for a person to place by
+hand. Show the rename command and do not run it: it is denied, and it is the decision.
+
 ## You cannot place it, and should not offer to
 
 Every agent write to `approval.md`, `abandoned.md`, `constraints.md` and `solution.md` is denied at the
@@ -26,10 +31,12 @@ tool call — by file path and by shell command alike. There is no flag, no mode
 for an exception to be carved out of, which is why the rule can be stated in one sentence and has
 nowhere for a bypass to live.
 
-So do not offer to paste it, do not offer a shell command that would write it, and do not read the
-refusal as a configuration problem. If the person asks you to place it, the answer is that you cannot,
-and that this is the mechanism rather than an obstacle: a pasted approval means something precisely
-because no tool could have produced it.
+The rename that places an approval is denied too, in every spelling -- `mv`, `Move-Item`,
+`Rename-Item`, `Copy-Item`, and through any shell the host offers. So do not offer to run it, do not
+offer a shell command that would write any of the four, and do not read the refusal as a configuration
+problem. If the person asks you to place it, the answer is that you cannot, and that this is the
+mechanism rather than an obstacle: a decision means something precisely because no tool could have
+recorded it.
 
 ## What each one is for
 
@@ -57,19 +64,21 @@ that killed the cycle on the record.
 beside them. It takes no statement, because the wording is the thing being decided and a tool accepting
 one on the command line would be proposing the rule.
 
-**`profile`** — both `solution.md` keys, not just the one that changes. The origin is a historical fact
-that decides whether a profile's defaults bind, and printing one key while leaving a person to preserve
-the other by hand is how it gets lost.
+**`profile`** — all three `solution.md` keys, not just the one that changes. The origin is a historical
+fact that decides whether a profile's defaults bind, and the platform decides whether a pull-request check
+governs a merge at all; printing one key while leaving a person to preserve the others by hand is how they
+get lost.
 
 ## Two things to say when you show an approval
 
-**A pasted hash cannot be checked by eye.** `sdlc status <id>` shows the first twelve characters of each
-recorded hash beside each document's current twelve, and a gate refusal names *which* document changed.
-That is the remedy for the one real cost of the paste flow.
+**A recorded hash cannot be checked by eye.** `sdlc status <id>` shows the first twelve characters of
+each recorded hash beside each document's current twelve, and a gate refusal names *which* document
+changed. That is the remedy for the one real cost of a decision nobody can read back.
 
-**A first entry is a file creation; a revisit is an edit.** The printed instructions say which, and it
-matters: the ledger is append-only and the last entry stands, so pasting a second entry *over* the first
-would throw away the record it exists to keep.
+**A revisit replaces the ledger and keeps it.** The ledger is append-only and the last entry stands, so
+the draft reproduces every decision already recorded above the new one, fence to fence. Say how many it
+carries -- the printed instructions do -- because the rename overwrites, and somebody is entitled to
+check that what they are about to replace is in the thing replacing it.
 
 ## What a blocker refusal means
 

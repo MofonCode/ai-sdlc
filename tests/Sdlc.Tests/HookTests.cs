@@ -409,6 +409,14 @@ public sealed class HookTests
     [DataRow("Out-File -FilePath approval.md")]
     [DataRow("rm .sdlc/constraints.md")]
     [DataRow("sed -i s/dotnet-default/mofoncode/ .sdlc/solution.md")]
+
+    // The rename that places a decision, in every spelling somebody would reach for. These passed:
+    // the write indicators were "move " and "copy " with trailing spaces, which match neither
+    // Move-Item nor Copy-Item, so on Windows the whole shell rule was one hyphen away from nothing.
+    [DataRow("mv approval.approved.draft.md approval.md")]
+    [DataRow("Move-Item -Force approval.approved.draft.md approval.md")]
+    [DataRow("Rename-Item approval.approved.draft.md approval.md")]
+    [DataRow("Copy-Item approval.approved.draft.md .sdlc/cycles/x/approval.md")]
     public void A_shell_command_that_would_write_a_protected_file_is_denied(string command)
     {
         // The file rules alone would leave the obvious way round them open: a shell can write a file
@@ -425,6 +433,33 @@ public sealed class HookTests
             HookDecision.Deny,
             HookPolicy.Decide(call).Decision,
             $"'{command}' would write a file only a person writes.");
+    }
+
+    [TestMethod]
+    [DataRow("Bash")]
+    [DataRow("PowerShell")]
+    public void The_shell_rule_covers_every_shell_the_host_offers(string tool)
+    {
+        // PowerShell is a separate tool from Bash and the host matches on the tool's name, so a
+        // matcher naming only Bash exempted it -- on the one platform where PowerShell is the shell.
+        // A rule that silently stops covering part of the surface is worse than no rule.
+        ToolCall call = Read(
+            JsonSerializer.Serialize(new
+            {
+                tool_name = tool,
+                tool_input = new { command = "Move-Item x .sdlc/cycles/x/approval.md" },
+            }),
+            HookHost.Claude);
+
+        Assert.AreEqual(
+            HookDecision.Deny,
+            HookPolicy.Decide(call).Decision,
+            $"The shell rule does not reach the {tool} tool.");
+
+        StringAssert.Contains(
+            SupportedHosts.Of(HookHost.Claude).ToolMatcher,
+            tool,
+            $"The policy denies a {tool} call, and the matcher adoption writes has to send it one.");
     }
 
     [TestMethod]

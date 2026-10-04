@@ -67,10 +67,15 @@ public static class ApprovalRenderer
             }
         }
 
+        // The whole file, not the entry alone. A person reads what they are about to put in place, and
+        // what they read is byte-for-byte what is on disk waiting for the rename -- so there is nothing
+        // to transcribe and no second indentation to reconcile.
         output.AppendLine();
-        output.AppendLine("Paste this:");
+        output.AppendLine(text.CarriesForward > 0
+            ? "This file, which carries the decisions already recorded:"
+            : "This file:");
         output.AppendLine();
-        output.Append(text.Entry);
+        output.Append(text.FileText);
         output.AppendLine();
         output.AppendLine(text.Instructions);
 

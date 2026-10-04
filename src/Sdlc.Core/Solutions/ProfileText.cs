@@ -75,9 +75,10 @@ public static class ProfileText
                     $"This solution is already on '{document.Profile}'. Nothing to change.")));
             }
 
-            // The origin is printed alongside, unchanged, because it is the thing a hand-edit is most
-            // likely to disturb and the one field that must never move: it is a historical fact, and
-            // it decides whether a profile's defaults bind at all.
+            // Every key is printed, not only the one that changes. The origin is a historical fact that
+            // must never move, and the platform decides whether a pull-request check governs the merge --
+            // both are things a hand-edit over a partial block would drop, and dropping the platform would
+            // silently reclassify a local solution as GitHub and have doctor report a broken install.
             string entry = string.Join(
                 Environment.NewLine,
                 [
@@ -85,6 +86,9 @@ public static class ProfileText
                     string.Create(
                         CultureInfo.InvariantCulture,
                         $"origin: {SolutionDocument.NameOf(document.Origin)}"),
+                    string.Create(
+                        CultureInfo.InvariantCulture,
+                        $"platform: {SolutionDocument.NameOf(document.Platform)}"),
                 ]) + Environment.NewLine;
 
             string instructions = string.Join(
@@ -92,13 +96,14 @@ public static class ProfileText
                 [
                     string.Create(
                         CultureInfo.InvariantCulture,
-                        $"Open {path} and replace its two frontmatter keys with the lines above."),
+                        $"Open {path} and replace its three frontmatter keys with the lines above."),
                     string.Empty,
                     string.Create(
                         CultureInfo.InvariantCulture,
-                        $"The profile moves from '{document.Profile}' to '{wanted}'. The origin does not change,"),
-                    "and must not: it says where this code came from, which decides whether a profile's",
-                    "defaults bind or the existing standard wins. It is printed above so a hand-edit has the",
+                        $"The profile moves from '{document.Profile}' to '{wanted}'. The other two do not change,"),
+                    "and the origin must not: it says where this code came from, which decides whether a",
+                    "profile's defaults bind or the existing standard wins. The platform decides whether a",
+                    "pull-request check governs a merge at all. Both are printed above so a hand-edit has the",
                     "whole block rather than one line of it.",
                     string.Empty,
                     "A different profile resolves a different set of PRO_ constraints and templates, so run",

@@ -107,20 +107,23 @@ public static class Suggestions
             ArtifactKind kind,
             IReadOnlyList<FindingsRound> rounds)
         {
-            Dictionary<string, (int Round, Finding Finding)> standing = new(StringComparer.Ordinal);
+            // The shared fold, not a copy of it. This had its own, and it differed in a way that
+            // mattered: it folded only over findings a round called a suggestion, so an objection
+            // raised as a suggestion and re-raised as blocking kept the earlier mention as standing --
+            // listed here as an open suggestion while the gate refused on it as an open blocker. One
+            // fold means a panel's count and a refusal cannot describe the same finding differently.
+            IReadOnlyList<Finding> standing = FindingsReader.StandingSuggestions(rounds);
 
-            foreach (FindingsRound round in rounds.OrderBy(round => round.Round))
-            {
-                foreach (Finding finding in round.Findings.Where(f => f.Severity == Severity.Suggestion))
-                {
-                    standing[finding.Id] = (round.Round, finding);
-                }
-            }
-
-            return standing
-                .Where(entry => entry.Value.Finding.Disposition == Disposition.Open)
-                .OrderBy(entry => entry.Key, StringComparer.Ordinal)
-                .Select(entry => new Suggestion(cycle.Id, kind, entry.Value.Round, entry.Value.Finding));
+            return standing.Select(finding => new Suggestion(
+                cycle.Id,
+                kind,
+                LatestMention(rounds, finding.Id),
+                finding));
         }
+
+        /// <summary>Which round last said anything about a finding, which is the round that stands.</summary>
+        private static int LatestMention(IReadOnlyList<FindingsRound> rounds, string id) => rounds
+            .Where(round => round.Findings.Any(finding => string.Equals(finding.Id, id, StringComparison.Ordinal)))
+            .Max(round => round.Round);
     }
 }

@@ -53,7 +53,7 @@ this solution, and the `LOC_` rules it proposes.
 | `/sdlc:plan <id>` | agent | decides how, and what proves each criterion, in `plan.md` |
 | `/sdlc:interrogate <id> plan` | agent, fresh process | `findings/plan.r1.json` |
 | `/sdlc:refine <id> plan` | agent | applies them to `plan.md` |
-| `sdlc draft approval <id>` | binary | prints the gate entry. **You paste it** |
+| `sdlc draft approval <id>` | binary | writes `approval.<decision>.draft.md`. **You rename it** |
 | `sdlc gate <id>` | binary | whether the build may run. Exits 1 if not |
 | `sdlc scaffold <id>` | binary | the solution skeleton, on a new solution's first cycle only. Refuses unless the gate passes |
 | `/sdlc:build <id>` | agent | implements, builds, tests |
@@ -78,11 +78,19 @@ artifact the cycle is waiting on.
 
 ```pwsh
 sdlc status <id> --stage spec
+sdlc status <id> --brief
 sdlc constraints --for plan --brief
+sdlc findings <id>
 sdlc suggestions
-sdlc claims
-sdlc landable --all
+sdlc cycles
+sdlc cycles --claims
+sdlc cycles --landable
 ```
+
+`status --brief` is the between-stages form: the cycle, its counts, what the artifact says, and the next
+command. `findings <id>` is what the interrogations said, per artifact, each finding at the disposition
+that stands. `cycles` lists everything this solution holds, newest first — `--claims` and `--landable`
+are the two questions that used to be their own verbs.
 
 ## Stopping
 

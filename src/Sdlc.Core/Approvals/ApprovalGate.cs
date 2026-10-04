@@ -40,6 +40,24 @@ public static class ApprovalGate
         /// <summary>There is no approval ledger. Nobody has been to the gate.</summary>
         NotApproved,
 
+        /// <summary>
+        /// There is an approval ledger and it cannot be read.
+        /// </summary>
+        /// <remarks>
+        /// <strong>A malformed ledger is a governed stop, not the gate breaking.</strong> This was a
+        /// failed <c>Result</c>, which propagated out of <see cref="ReadCycleStatus"/> -- so a person who
+        /// mis-pasted an entry lost <c>sdlc status</c> and <c>sdlc draft approval</c> in the same stroke,
+        /// and the only tool that would have handed them the correct text refused to run until they fixed
+        /// the YAML by hand. The file a person writes is the file most likely to be malformed, so the
+        /// recovery path has to survive it.
+        /// <para>
+        /// It never reads as approved: a refusal that is not <see cref="GateRefusal.None"/> is a refusal,
+        /// and the same reasoning as <see cref="GateRefusal.UnreadableRound"/> applies -- "could not tell"
+        /// must never read as "clean".
+        /// </para>
+        /// </remarks>
+        UnreadableLedger,
+
         /// <summary>The standing decision refuses the cycle.</summary>
         Refused,
 
@@ -191,7 +209,22 @@ public static class ApprovalGate
             Result<ApprovalLedger> read = ApprovalLedger.Read(ledgerText, cycle.ApprovalPath);
             if (read.IsFailed)
             {
-                return read.ToResult<Response>();
+                // Refused rather than failed, and the reason is the recovery: the drafter reads this
+                // verdict, so failing here would take the one command that can replace the broken file
+                // down with it.
+                return Verdict(cycle, GateRefusal.UnreadableLedger, string.Join(
+                    Environment.NewLine,
+                    [
+                        string.Create(
+                            CultureInfo.InvariantCulture,
+                            $"Cycle {cycle.Id} is not approved: {Path.GetFileName(cycle.ApprovalPath)} cannot be read."),
+                        string.Empty,
+                        .. read.Errors.Select(error => "    " + error.Message),
+                        string.Empty,
+                        string.Create(
+                            CultureInfo.InvariantCulture,
+                            $"Run 'sdlc draft approval {cycle.Id}' for a replacement file to put in its place."),
+                    ]));
             }
 
             ApprovalLedger ledger = read.Value;

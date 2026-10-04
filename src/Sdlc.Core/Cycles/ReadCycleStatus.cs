@@ -48,6 +48,7 @@ public static class ReadCycleStatus
         int LatestRound,
         IReadOnlyList<int> History,
         IReadOnlyList<Finding> OpenBlockers,
+        IReadOnlyList<Finding> OpenSuggestions,
         string? UpstreamHash = null,
         string? JudgedAgainst = null)
     {
@@ -246,6 +247,7 @@ public static class ReadCycleStatus
                 rounds.Count == 0 ? 0 : rounds.Max(round => round.Round),
                 [.. rounds.Select(round => round.Findings.Count(finding => finding.IsOpenBlocker))],
                 FindingsReader.StandingBlockers(rounds),
+                FindingsReader.StandingSuggestions(rounds),
                 upstreamHash,
                 latest?.UpstreamSha256));
         }

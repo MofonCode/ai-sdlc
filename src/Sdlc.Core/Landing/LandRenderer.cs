@@ -59,7 +59,7 @@ public static class LandRenderer
 
         output.AppendLine(string.Create(
             CultureInfo.InvariantCulture,
-            $"{Indent}land --all - {Count(landable.Count)} of {candidates.Count} examined"));
+            $"{Indent}cycles --landable - {Count(landable.Count)} of {candidates.Count} examined"));
 
         output.AppendLine();
 

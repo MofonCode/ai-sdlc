@@ -55,13 +55,14 @@ try
         "new" => await Workspace.Run(line, NewCycle).ConfigureAwait(false),
         "scaffold" => await WithCycle(line, "scaffold", ScaffoldSolution).ConfigureAwait(false),
         "evidence" => await WithCycle(line, "evidence", (w, id) => Evidence(w, line, id)).ConfigureAwait(false),
-        "claims" => await Workspace.Run(line, Claims).ConfigureAwait(false),
+        "cycles" => await Workspace.Run(line, w => Cycles(w, line)).ConfigureAwait(false),
         "constraints" => await Workspace.Run(line, w => Constraints(w, line)).ConfigureAwait(false),
         "gate" => await WithCycle(line, "gate", Gate).ConfigureAwait(false),
         "verify-chain" => await VerifyChainCommand(line).ConfigureAwait(false),
         "landable" => await AskLandable(line).ConfigureAwait(false),
         "draft" => await Draft(line).ConfigureAwait(false),
         "status" => await WithCycle(line, "status", (w, id) => Status(w, line, id)).ConfigureAwait(false),
+        "findings" => await WithCycle(line, "findings", (w, id) => Findings(w, line, id)).ConfigureAwait(false),
         "suggestions" => await Workspace.Run(line, w => Suggestions(w, line)).ConfigureAwait(false),
         "doctor" => await Workspace.Run(line, Doctor).ConfigureAwait(false),
         "hook" => await Hook(line).ConfigureAwait(false),
@@ -196,8 +197,17 @@ static bool TryPlatform(
             || ado.Equals("ado", StringComparison.OrdinalIgnoreCase):
             platform = Platform.AzureDevOps;
             return true;
+
+        // 'none' and 'offline' are accepted spellings of the same answer. Somebody adopting into a
+        // repository with no remote reaches for whichever word they have in mind, and refusing two of
+        // three would send them to read the options for a choice they had already made.
+        case string local when local.Equals("local", StringComparison.OrdinalIgnoreCase)
+            || local.Equals("none", StringComparison.OrdinalIgnoreCase)
+            || local.Equals("offline", StringComparison.OrdinalIgnoreCase):
+            platform = Platform.Local;
+            return true;
         default:
-            complaint = $"'{named}' is not a platform. One of: github, azure-devops.";
+            complaint = $"'{named}' is not a platform. One of: github, azure-devops, local.";
             return false;
     }
 }
@@ -234,9 +244,20 @@ static async Task<int> NewCycle(Workspace workspace)
 // the refusal, which has to be the same whether one cycle is landed or eight.
 static async Task<int> AskLandable(CommandLine line)
 {
-    if (!line.HasOption("all"))
+    // --all moved to 'sdlc cycles --landable', where every other "what is in this solution" question
+    // lives. Answered rather than refused: it was documented, people copied it, and a flag that stopped
+    // working with no explanation is how a working install reads as a broken one.
+    if (line.HasOption("all"))
     {
-        return await WithCycle(line, "landable", async (workspace, id) =>
+        await Console.Error.WriteLineAsync(
+            "'landable --all' is now 'sdlc cycles --landable', beside the rest of what a solution holds. "
+            + "'sdlc landable <id>' is unchanged.")
+            .ConfigureAwait(false);
+
+        return ExitCode.Usage;
+    }
+
+    return await WithCycle(line, "landable", async (workspace, id) =>
         {
             Result<Land.Response> result = await workspace
                 .Send<Land.Query, Land.Response>(new Land.Query(id))
@@ -250,9 +271,6 @@ static async Task<int> AskLandable(CommandLine line)
             await Console.Out.WriteAsync(LandRenderer.Render(result.Value)).ConfigureAwait(false);
             return result.Value.MayLand ? ExitCode.Ok : ExitCode.Refused;
         }).ConfigureAwait(false);
-    }
-
-    return await Workspace.Run(line, Sweep).ConfigureAwait(false);
 }
 
 // Every cycle is examined, and every one is listed -- landable or not. A list of only the eligible ones
@@ -295,10 +313,57 @@ static async Task<int> Skill(CommandLine line)
 // Which cycles may be built together. Deterministic -- a set intersection over a file table -- so the
 // binary owns it. A batch skill working the graph out by reading plans would get it slightly differently
 // each run, and what it decides is what runs concurrently.
-static async Task<int> Claims(Workspace workspace)
+// Every cycle a solution holds, newest first -- and the two questions that used to be their own verbs.
+// One verb, because all three answer "what is in this solution and what can I do with it"; a person who
+// knew about 'claims' and not 'landable --all' had no way to discover the second from the first.
+//
+// The two folded modes keep their own renderers rather than collapsing into the list. A claim graph is a
+// grouping with collisions and a sweep is a list with a warning about notifying people; flattening either
+// into a chronological table would lose exactly what it is read for.
+static async Task<int> Cycles(Workspace workspace, CommandLine line)
 {
-    Result<ComputeClaimGraph.Response> result = await workspace
-        .Send<ComputeClaimGraph.Query, ComputeClaimGraph.Response>(new ComputeClaimGraph.Query())
+    if (line.HasOption("claims"))
+    {
+        Result<ComputeClaimGraph.Response> graph = await workspace
+            .Send<ComputeClaimGraph.Query, ComputeClaimGraph.Response>(new ComputeClaimGraph.Query())
+            .ConfigureAwait(false);
+
+        if (graph.IsFailed)
+        {
+            return await Report(graph, ExitCode.Failed).ConfigureAwait(false);
+        }
+
+        await Console.Out.WriteAsync(ClaimGraphRenderer.Render(graph.Value)).ConfigureAwait(false);
+
+        // Zero whether or not anything collides. A collision is a schedule, not a problem.
+        return ExitCode.Ok;
+    }
+
+    if (line.HasOption("landable"))
+    {
+        return await Sweep(workspace).ConfigureAwait(false);
+    }
+
+    ArtifactKind? stage = line.TryOption("stage", out string? named)
+        && Cycle.TryParseKind(named, out ArtifactKind asked)
+            ? asked
+            : null;
+
+    if (named is not null && stage is null)
+    {
+        await Console.Error.WriteLineAsync(string.Create(
+            CultureInfo.InvariantCulture,
+            $"There is no artifact called '{named}'. Ask for intent, spec, plan or verify."))
+            .ConfigureAwait(false);
+
+        return ExitCode.Usage;
+    }
+
+    Result<ListCycles.Response> result = await workspace
+        .Send<ListCycles.Query, ListCycles.Response>(new ListCycles.Query(
+            stage,
+            line.HasOption("approved") ? true : null,
+            line.HasOption("verified") ? true : null))
         .ConfigureAwait(false);
 
     if (result.IsFailed)
@@ -306,9 +371,9 @@ static async Task<int> Claims(Workspace workspace)
         return await Report(result, ExitCode.Failed).ConfigureAwait(false);
     }
 
-    await Console.Out.WriteAsync(ClaimGraphRenderer.Render(result.Value)).ConfigureAwait(false);
+    await Console.Out.WriteAsync(CyclesRenderer.Render(result.Value)).ConfigureAwait(false);
 
-    // Zero whether or not anything collides. A collision is a schedule, not a problem.
+    // Zero on an empty list. A solution with nothing matching a filter is a correct answer.
     return ExitCode.Ok;
 }
 
@@ -466,7 +531,8 @@ static async Task<int> DraftApproval(Workspace workspace, CommandLine line, Cycl
     }
 
     Result<ApprovalText.Response> result = await workspace
-        .Send<ApprovalText.Query, ApprovalText.Response>(new ApprovalText.Query(id, by, decision))
+        .Send<WriteApprovalDraft.Command, ApprovalText.Response>(
+            new WriteApprovalDraft.Command(id, by, decision))
         .ConfigureAwait(false);
 
     if (result.IsFailed)
@@ -592,6 +658,58 @@ static async Task<int> Suggestions(Workspace workspace, CommandLine line)
     return ExitCode.Ok;
 }
 
+// What the interrogations said about one cycle, per artifact. Deterministic, so the binary owns it: an
+// agent spending a turn to print rounds it could have piped is cost with nothing bought.
+static async Task<int> Findings(Workspace workspace, CommandLine line, CycleId id)
+{
+    ArtifactKind? stage = line.TryOption("stage", out string? named)
+        && Cycle.TryParseKind(named, out ArtifactKind asked)
+            ? asked
+            : null;
+
+    if (named is not null && stage is null)
+    {
+        await Console.Error.WriteLineAsync(string.Create(
+            CultureInfo.InvariantCulture,
+            $"There is no artifact called '{named}'. Ask for intent, spec, plan or verify."))
+            .ConfigureAwait(false);
+
+        return ExitCode.Usage;
+    }
+
+    int? round = null;
+
+    if (line.TryOption("round", out string? asRound))
+    {
+        if (!int.TryParse(asRound, CultureInfo.InvariantCulture, out int parsed) || parsed < 1)
+        {
+            await Console.Error.WriteLineAsync(string.Create(
+                CultureInfo.InvariantCulture,
+                $"'{asRound}' is not a round number. Rounds count from 1."))
+                .ConfigureAwait(false);
+
+            return ExitCode.Usage;
+        }
+
+        round = parsed;
+    }
+
+    Result<ReadFindings.Response> result = await workspace
+        .Send<ReadFindings.Query, ReadFindings.Response>(new ReadFindings.Query(id, stage, round))
+        .ConfigureAwait(false);
+
+    if (result.IsFailed)
+    {
+        return await Report(result, ExitCode.Refused).ConfigureAwait(false);
+    }
+
+    await Console.Out
+        .WriteAsync(FindingsRenderer.Render(result.Value, line.HasOption("brief")))
+        .ConfigureAwait(false);
+
+    return ExitCode.Ok;
+}
+
 static async Task<int> Status(Workspace workspace, CommandLine line, CycleId id)
 {
     Result<ReadCycleStatus.Response> result = await workspace
@@ -626,8 +744,12 @@ static async Task<int> Status(Workspace workspace, CommandLine line, CycleId id)
             id)
         : null;
 
+    StagePanel panel = new(state, outline, shape);
+
     await Console.Out
-        .WriteAsync(StatusRenderer.RenderStage(status, new StagePanel(state, outline, shape)))
+        .WriteAsync(line.HasOption("brief")
+            ? StatusRenderer.RenderBrief(status, panel)
+            : StatusRenderer.RenderStage(status, panel))
         .ConfigureAwait(false);
 
     return ExitCode.Ok;

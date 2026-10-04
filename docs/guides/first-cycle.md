@@ -182,10 +182,20 @@ One gate, covering all three documents, immediately before the build.
 sdlc draft approval 20260929_1456_32
 ```
 
-It **prints** the entry. **You paste it** into `.sdlc/cycles/<id>/approval.md`. No tool writes that file:
-the hook denies every agent write to it by path and by shell command alike, there is no flag and no
-approve command for an exception to live in, and that is precisely what makes a pasted approval mean
-something.
+It writes the complete file — not a fragment — to
+`.sdlc/cycles/<id>/approval.approved.draft.md`, and prints it with the rename that records it:
+
+```pwsh
+Move-Item approval.approved.draft.md approval.md
+```
+
+**The rename is the decision, and it is yours.** No tool places that file: the hook denies every agent
+write to the ledger by path and by shell command alike, including every spelling of a move onto it,
+there is no flag and no approve command for an exception to live in, and that is precisely what makes a
+recorded decision mean something. A draft nobody renamed records nothing.
+
+Where a decision already stands, the draft reproduces it above the new entry, so the rename replaces the
+ledger without losing what it held. The printed instructions say how many it carries.
 
 The entry records a hash of each of the three documents. **If any of them changes afterwards the gate
 refuses** until it is approved again.

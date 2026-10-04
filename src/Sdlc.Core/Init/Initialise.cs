@@ -186,7 +186,7 @@ public static class Initialise
             // invoking this command unable to destroy anything a person wrote.
             await Protected(
                 Path.Combine(Cycle.SdlcDirectoryName, Cycle.SolutionFileName),
-                Templates.Solution(request.Profile, origin),
+                Templates.Solution(request.Profile, origin, request.Platform),
                 actions,
                 cancellationToken).ConfigureAwait(false);
 
@@ -250,7 +250,17 @@ public static class Initialise
             // `azure-pipelines.yml` is the name Azure DevOps looks for, so an existing one is this
             // repository's own CI: it is printed for a person to place rather than replaced, and init
             // says the guarantee is not installed until they do. D-40.
-            if (request.Platform == Platform.GitHub)
+            // Local writes none, and that is the choice rather than an omission. A pipeline for a service
+            // this repository has no remote on would be a file that looks like a gate and is reachable by
+            // nothing -- which is the exact failure D-32 names about an unrun pipeline. What replaces it
+            // is the record in solution.md, so doctor can say the guarantee is not installed instead of
+            // reporting a broken install.
+            if (request.Platform == Platform.Local)
+            {
+                // Nothing to write. The report names what is not installed, which is said out loud in
+                // InitRenderer rather than left for somebody to notice.
+            }
+            else if (request.Platform == Platform.GitHub)
             {
                 await Owned(
                     PipelinePath(request.Platform),
@@ -319,6 +329,9 @@ public static class Initialise
         {
             Platform.GitHub => Path.Combine(".github", "workflows", "sdlc-verify.yml"),
             Platform.AzureDevOps => "azure-pipelines.yml",
+
+            // Local has no pipeline and so has no path. Asking for one is a caller that has not read the
+            // platform, and returning a plausible path would have it write a file nothing runs.
             _ => throw new ArgumentOutOfRangeException(nameof(platform)),
         };
 

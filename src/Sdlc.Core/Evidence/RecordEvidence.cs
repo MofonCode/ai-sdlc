@@ -32,7 +32,8 @@ public static class RecordEvidence
         IReadOnlyList<string> Written,
         TestSummary? Summary,
         IReadOnlyList<string> Changed,
-        FileComparison Comparison);
+        FileComparison Comparison,
+        IReadOnlyList<string> TestSources);
 
     /// <summary>The normalised test summary every later reader uses.</summary>
     public const string SummaryFileName = "tests.json";
@@ -46,9 +47,21 @@ public static class RecordEvidence
     /// <summary>The runner's own results file, kept beside the normalised summary under a fixed name.</summary>
     public const string TrxFileName = "tests.trx";
 
+    /// <summary>
+    /// What a runner's results file is called when a run produced more than one.
+    /// </summary>
+    /// <param name="index">Which source, from one.</param>
+    /// <returns>The name to keep it under.</returns>
+    public static string TrxFileNameAt(int index) => string.Create(
+        CultureInfo.InvariantCulture,
+        $"tests.{index}.trx");
+
     /// <summary>Records what a build produced, as files rather than prose.</summary>
     /// <param name="Id">The cycle the build belongs to.</param>
-    /// <param name="Trx">A runner's own test results to normalise, or null when there are none yet.</param>
+    /// <param name="Trx">
+    /// Where the runner's own test results are: one results file, or a directory holding every results
+    /// file a run produced. Null when there are none yet.
+    /// </param>
     /// <param name="BuildLog">A build log to keep alongside, or null.</param>
     public sealed record Command(CycleId Id, string? Trx = null, string? BuildLog = null)
         : IRequest<Response>;
@@ -134,11 +147,21 @@ public static class RecordEvidence
             }
 
             TestSummary? summary = null;
+            IReadOnlyList<string> sources = [];
 
             if (request.Trx is { } trx)
             {
+                Result<IReadOnlyList<string>> found = Sources(trx);
+
+                if (found.IsFailed)
+                {
+                    return found.ToResult<Response>();
+                }
+
+                sources = found.Value;
+
                 Result<TestSummary> normalised =
-                    await Normalise(cycle, trx, written, cancellationToken).ConfigureAwait(false);
+                    await Normalise(cycle, sources, written, cancellationToken).ConfigureAwait(false);
 
                 if (normalised.IsFailed)
                 {
@@ -162,7 +185,49 @@ public static class RecordEvidence
                 DeclaredFiles.Read(await File.ReadAllTextAsync(plan, cancellationToken).ConfigureAwait(false)),
                 changed);
 
-            return Result.Ok(new Response(cycle, written, summary, changed, comparison));
+            return Result.Ok(new Response(cycle, written, summary, changed, comparison, sources));
+        }
+
+        /// <summary>
+        /// Finds every results file a run produced.
+        /// </summary>
+        /// <remarks>
+        /// <strong>A run with two test projects writes two results files, and this took one.</strong> The
+        /// summary silently held the first project's results while the build log recorded the whole run,
+        /// so a verification adjudicated against part of a suite and had no way to know: a cycle recorded
+        /// 14 of 26 results, and every claim it made was true of the 14. The architecture tests were the
+        /// half that went missing, which is the half that holds the rules.
+        /// <para>
+        /// A directory is therefore accepted and searched, because the number of results files is a fact
+        /// about the solution rather than something a caller should have to count. Sorted, so the order
+        /// recorded is the order on disk rather than the order the file system happened to enumerate.
+        /// </para>
+        /// </remarks>
+        /// <param name="path">A results file, or a directory holding them.</param>
+        /// <returns>Every results file to read, or a failure saying why there are none.</returns>
+        private static Result<IReadOnlyList<string>> Sources(string path)
+        {
+            if (File.Exists(path))
+            {
+                return Result.Ok<IReadOnlyList<string>>([path]);
+            }
+
+            if (!Directory.Exists(path))
+            {
+                return Result.Fail<IReadOnlyList<string>>(string.Create(
+                    CultureInfo.InvariantCulture,
+                    $"{path}: no such file or directory. If the run produced no results file, the run did not happen -- which is not the same as a run with nothing to report."));
+            }
+
+            List<string> found = [.. Directory
+                .EnumerateFiles(path, "*.trx", SearchOption.AllDirectories)
+                .OrderBy(file => file, StringComparer.Ordinal)];
+
+            return found.Count == 0
+                ? Result.Fail<IReadOnlyList<string>>(string.Create(
+                    CultureInfo.InvariantCulture,
+                    $"{path}: holds no .trx file. If the run produced no results file, the run did not happen -- which is not the same as a run with nothing to report."))
+                : Result.Ok<IReadOnlyList<string>>(found);
         }
 
         /// <summary>
@@ -174,36 +239,59 @@ public static class RecordEvidence
         /// </remarks>
         private async Task<Result<TestSummary>> Normalise(
             Cycle cycle,
-            string trx,
+            IReadOnlyList<string> sources,
             List<string> written,
             CancellationToken cancellationToken)
         {
-            if (!File.Exists(trx))
+            List<RecordedTest> tests = [];
+
+            for (int index = 0; index < sources.Count; index++)
+            {
+                string trx = sources[index];
+                string xml = await File.ReadAllTextAsync(trx, cancellationToken).ConfigureAwait(false);
+                Result<IReadOnlyList<RecordedTest>> read = TestSummaryReader.ReadTrx(xml, trx);
+
+                if (read.IsFailed)
+                {
+                    return read.ToResult<TestSummary>();
+                }
+
+                tests.AddRange(read.Value);
+
+                // Under a fixed name rather than the runner's own, which is usually a GUID. §16 documents
+                // the evidence directory as holding a `tests.trx`, and a cycle's evidence directory is
+                // read by people and cited by a verify -- a predictable name is worth more than a record
+                // of what the runner happened to call it, which the original path already says. F-38.
+                // A run with several results files numbers them, because one of them cannot be the one.
+                await Write(
+                    cycle,
+                    sources.Count == 1 ? TrxFileName : TrxFileNameAt(index + 1),
+                    xml,
+                    written,
+                    cancellationToken).ConfigureAwait(false);
+            }
+
+            // Two projects reporting the same test name make the chain check ambiguous: it matches a
+            // plan's named test on the end of what the runner reported, so a failing one and a passing
+            // one of the same name would let the passing one answer for both.
+            List<string> ambiguous = [.. tests
+                .GroupBy(test => test.Name, StringComparer.Ordinal)
+                .Where(group => group.Select(test => test.Outcome).Distinct().Count() > 1)
+                .Select(group => group.Key)
+                .OrderBy(name => name, StringComparer.Ordinal)];
+
+            if (ambiguous.Count > 0)
             {
                 return Result.Fail<TestSummary>(string.Create(
                     CultureInfo.InvariantCulture,
-                    $"{trx}: no such file. If the run produced no results file, the run did not happen -- which is not the same as a run with nothing to report."));
+                    $"The run reported {string.Join(", ", ambiguous)} with more than one outcome, across {sources.Count} results files. The chain check matches a plan's named test on the end of what the runner reported, so a passing result would answer for a failing one of the same name. Rename one of them, or run the projects separately."));
             }
-
-            string xml = await File.ReadAllTextAsync(trx, cancellationToken).ConfigureAwait(false);
-            Result<IReadOnlyList<RecordedTest>> read = TestSummaryReader.ReadTrx(xml, trx);
-
-            if (read.IsFailed)
-            {
-                return read.ToResult<TestSummary>();
-            }
-
-            // Under a fixed name rather than the runner's own, which is usually a GUID. §16 documents
-            // the evidence directory as holding a `tests.trx`, and a cycle's evidence directory is
-            // read by people and cited by a verify -- a predictable name is worth more than a record
-            // of what the runner happened to call it, which the original path already says. F-38.
-            await Write(cycle, TrxFileName, xml, written, cancellationToken).ConfigureAwait(false);
 
             TestSummary summary = new(
                 Cycle.FrameworkVersion,
                 cycle.Id.ToString(),
                 time.GetUtcNow(),
-                read.Value);
+                tests);
 
             await Write(
                 cycle,

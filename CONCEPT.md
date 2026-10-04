@@ -342,15 +342,20 @@ Four files only a person writes:
 
 One verb drafts them all: `sdlc draft approval <id>`, `draft abandon <id>`, `draft constraint`,
 `draft profile <name>`. `draft approval` also takes `--deny` and `--changes-requested` (D-11). Each
-prints a ready-made entry; the person reads it, decides, and places it.
+produces a ready-made entry; the person reads it, decides, and places it.
 
-**The pre-tool hook denies every agent write to all four, with no exception.** There is no approve
-command for an exception to be carved out for, so every hook rule stays absolute (D-09).
+**A gate decision is placed by renaming a file, and the other three by hand (D-52).** `draft approval`
+writes the complete ledger — `approval.<decision>.draft.md`, named for what it records — beside the
+ledger it would replace, and prints it with the rename. Where a decision already stands, the draft
+reproduces it above the new entry fence to fence, so the rename cannot lose history.
 
-Two costs of the paste flow: a pasted hash cannot be checked by eye, so `status` shows the first
-twelve characters of each recorded hash beside each document's current twelve and a refusal names
-*which* document changed; and a first entry is a file creation while a revisit is an edit, which the
-printed instructions say.
+**The pre-tool hook denies every agent write to all four, with no exception** — and every agent command
+that would move anything onto one. There is no approve command for an exception to be carved out for, so
+every hook rule stays absolute (D-09).
+
+One cost remains: a recorded hash cannot be checked by eye, so `status` shows the first twelve
+characters of each recorded hash beside each document's current twelve and a refusal names *which*
+document changed.
 
 **The approval pins the documents and not the argument, and that is deliberate.** The three hashes say
 exactly what was agreed to, and nothing records which interrogation rounds had happened — there was
@@ -715,12 +720,13 @@ default to bind adds a `LOC_` constraint or an architecture test.
 
 ### 8.3 `solution.md`
 
-Two keys.
+Three keys.
 
 | Key | What consumes it |
 |---|---|
 | `profile` | `init` and `plan`, to resolve which profile package applies |
 | `origin` | `intent`, to know whether "this repository holds no solution at all" is true |
+| `platform` | `doctor`, to tell a local solution from a broken install, and `land`, to know whether there is anywhere to push. Absent reads as `github` (D-53) |
 
 There is deliberately no baseline field. Constraints govern the change, never code that predates
 adoption, so an existing repository is not in violation on its first day.
@@ -790,7 +796,7 @@ It creates no empty directories.
 A local skill, executed rather than subscribed to. It collects the approved cycles in **this** working
 copy, builds **and verifies** each, and reports. There is no shared queue (D-22).
 
-1. `sdlc claims` builds the claim graph from the declared plans and partitions it.
+1. `sdlc cycles --claims` builds the claim graph from the declared plans and partitions it.
 2. Run each group in parallel, each cycle in its own git worktree.
 3. Serialise across groups in cycle-id order, rebasing each on the previous result.
 
@@ -900,11 +906,23 @@ Strongly opinionated, and the opinion is a swappable **profile**.
 | realtime push | SignalR, only where a live UI needs it |
 | machine learning | ML.NET |
 | api | ASP.NET Core |
+| api description | OpenAPI, through Microsoft.AspNetCore.OpenApi |
+| tracing, metrics and logs | OpenTelemetry, exported to Azure Monitor |
+| liveness | ASP.NET Core health checks, at `/health` |
 | web | Blazor |
 | desktop and Android | MAUI Blazor Hybrid |
 
 **Shared UI is Blazor components in a Razor class library**, hosted by Blazor for web and MAUI Blazor
 Hybrid for desktop and Android. MAUI does not target web.
+
+**Liveness is the one row here that binds — D-54.** Every other row is a default a plan may depart from
+by saying why (`CON_13`); this one the scaffold writes and a fitness function keeps, because the cost of
+omitting it is paid in production by somebody who did not omit it. It is deliberately not an `ApiResult`
+endpoint: the caller is a load balancer, which has never heard of this solution's envelope.
+
+**Observability is not the error envelope.** A boundary response already carries a trace id, which is what
+lets somebody asking about one request find what was withheld. That is correlation, not tracing: a solution
+with no OpenTelemetry registration collects no spans and exports none, so there is nothing to ask.
 
 **Service Bus and SignalR are not alternatives.** Service Bus is asynchronous messaging between
 services; SignalR is server-to-client push.
@@ -1381,13 +1399,16 @@ they print verbatim.
 | `init` | adopts the framework — three modes, §9. Human-invoked; the hook denies an agent running it |
 | `new` | allocates a cycle id and creates its directory, which **is** the collision check (D-10) |
 | `constraints [--for <artifact>]` | renders the effective set, all tiers. How the rules reach a session |
-| `status <id> [--stage]` | the stage panel — §14 |
+| `status <id> [--stage] [--brief]` | the stage panel — §14. `--brief` is the between-stages form: the counts, what the artifact says, and the next command |
+| `findings <id> [--stage] [--round]` | what the interrogations said about one cycle, per artifact, each finding at the disposition that stands |
 | `gate <id>` | whether a cycle's build may run. Exits 1 if not |
 | `draft approval\|abandon\|constraint\|profile` | prints what belongs in a file only a person writes — §5.3 |
 | `evidence <id>` | records the diff, its base commit, and the normalised test summary — §4.5 |
-| `claims` | which cycles may be built together, and what collides — §10.1 |
-| `suggestions [<id>]` | the open non-blocking findings |
-| `landable <id> \| --all` | whether a cycle may be landed, without landing it |
+| `cycles [--stage\|--approved\|--verified]` | every cycle this solution holds, newest first, with what each is about and where it stands |
+| `cycles --claims` | which cycles may be built together, and what collides — §10.1 |
+| `cycles --landable` | every cycle, saying which may be landed |
+| `suggestions [<id>]` | the open non-blocking findings, across cycles |
+| `landable <id>` | whether one cycle may be landed, without landing it |
 | `verify-chain <id>` | the whole chain, as the pull-request check runs it — §13 |
 | `scaffold <id>` | writes the solution skeleton into an approved cycle — D-35 |
 | `hook --host <name>` | judges one tool call — §12 |
@@ -1419,7 +1440,7 @@ collision check, and the filesystem makes that atomic (D-10).
 
 ```
 .sdlc/
-  solution.md               profile, origin - written by init
+  solution.md               profile, origin, platform - written by init
   techstack.md              what this solution is built from
   constraints.md            this solution's own LOC_nn, hand-edited
   README.md                 terminology, flow and commands
@@ -1438,8 +1459,10 @@ collision check, and the filesystem makes that atomic (D-10).
       evidence/
         diff.patch
         build.log
-        tests.trx           the runner's own output, under a fixed name
-        tests.json          the normalised summary verify reads
+        tests.trx           the runner's own output, under a fixed name. A run that wrote
+                            several results files keeps them as tests.1.trx, tests.2.trx,
+                            because one of several cannot be the one
+        tests.json          the normalised summary verify reads, merged from every one of them
         base.sha
 ```
 
@@ -3364,3 +3387,139 @@ rather than through Agent Plugins.
 - *A fourth entry shape for Antigravity's flat-list events* — rejected as unnecessary. `PreInvocation`,
   `PostInvocation` and `Stop` take a flat list of handlers where `PreToolUse` takes the grouped form, and
   the framework configures none of the flat ones. A shape with no writer is a shape nothing checks.
+
+### D-52 — A gate decision is drafted to a file and placed by renaming it
+
+**Governs:** §5.3
+
+**Decision.** `sdlc draft approval` writes the **complete** ledger it would produce to
+`approval.<decision>.draft.md` in the cycle directory, beside the ledger it would replace, and prints
+exactly those bytes with the rename that records them. The person renames it. Nothing else changes: the
+pre-tool hook still denies every agent write to the ledger, now including every spelling of a move onto
+it, and there is still no command that places one.
+
+**Why.** The flow it replaces asked a person to splice two blocks printed at two different
+indentations — the entry at its real YAML indent, a header template at a four-space display indent, with
+a `<the entry above>` placeholder between them. Placing a first approval therefore meant dedenting one
+block and not the other and substituting by hand, through a terminal and a clipboard. A header at indent
+two above a `decisions:` at indent nought reads correctly and parses as nothing, which is what arrived:
+`Did not find expected <document end>`, no line number, on the one file in the system a person writes.
+
+**What made it a trap rather than a nuisance.** The drafter read the ledger before printing, so a
+mis-placed entry took `draft approval` and `status` down with it — the one command that would have
+handed over the correct text refused to run until the YAML was fixed by hand. The fix for that is
+separate and stands on its own: an unreadable ledger is a gate **refusal**, not a failed result, for the
+same reason `UnreadableRound` is. "Could not tell" must never read as "clean", and the recovery path has
+to survive the most likely malformation.
+
+**Why the binary writes the draft and not the skill.** An agent allowed to write it would be authoring
+approval text with its own hands, and the hook would need a rule naming which file beside the ledger an
+agent may write — the first conditional hook rule, which D-09 says is where a bypass would live. A
+command a person's shell ran moves no rule.
+
+**Why the decision is in the file name.** The rename is the act, so it is where the decision has to be
+legible: somebody moving `approval.denied.draft.md` types `denied` on the way. A single
+`approval.draft.md` would let an approval and a denial look identical at the moment of recording one,
+and a rename is a lower-attention act than transcribing ten lines — which is the one real thing the
+clipboard bought.
+
+**Why a revisit reproduces what stands, verbatim.** The ledger is append-only and the last entry stands,
+so a rename that replaced a one-entry ledger with a one-entry file would discard a decision. The draft
+therefore carries every recorded entry above the new one, copied fence to fence rather than re-emitted
+from the parsed entries: a reason is prose a person wrote, and round-tripping it through a YAML emitter
+is how a quoted colon becomes a different document. This also retires the second cost §5.3 used to
+name — a first entry being a creation and a revisit an edit — because both are now one rename.
+
+**Rejected.** *A skill writing the draft* — D-09's conditional rule, above. *An `sdlc approve` command* —
+precisely the exception D-09 refuses to create; the hook rule set is absolute because there is nothing
+for an exception to live in. *Keeping the paste and merely printing the whole file at one indentation* —
+considered, and it would have prevented this particular failure. Rejected as the lesser half: the
+clipboard round trip adds no governance, and a terminal that soft-wraps or a copy that picks up a prompt
+prefix reintroduces the same class of defect. The file is the artifact; printing a picture of it and
+asking for a transcription was the mistake. *A single `approval.draft.md`* — above. *Re-emitting carried
+entries from the parsed ledger* — above.
+
+### D-53 — A solution may be local, and the platform is recorded rather than inferred
+
+**Governs:** §5.3, §9, §15.2
+
+**Decision.** `--platform` takes a third value, `local`, for a repository with no remote. It writes no
+pipeline. The solution document gains a third key, `platform`, which adoption writes; absent, it reads as
+GitHub. `doctor` reports the guarantee as `elsewhere` on a local solution, naming what is missing and the
+command that installs it, instead of reporting a problem.
+
+**Why.** Adoption offered two platforms and defaulted to one, so somebody trying the framework on a
+repository with no remote had to name a service they were not using. That wrote a pipeline nothing would
+ever send a request to — the same failure D-32 names about an unrun pipeline, which "looks exactly like a
+gate" — and then `land` reached for `gh` or `az` with nowhere to push.
+
+**Why the key, and not inference.** A solution with no pipeline is either local by choice or a GitHub
+install that is broken, and nothing on disk tells those apart. Inferring meant `doctor` reporting every
+local repository as missing the one check that is the guarantee: true, useless, and indistinguishable from
+the report that means something. Recording it is what lets the diagnosis be a sentence rather than a
+guess.
+
+**Why absent reads as GitHub, which is the strict reading.** Every solution adopted before the key existed
+chose GitHub by default, so any other reading would silently reclassify them and exempt them from a check
+they are relying on. A *misspelled* value still fails — `gitub` is a typo, and reading it as GitHub would
+hide it. The same reasoning puts GitHub in the fallback when the document cannot be read at all: an
+unreadable file must not buy an exemption.
+
+**What this deliberately does not do.** It does not make the guarantee optional in a solution that has a
+remote, and it does not soften what is lost. §13's pull-request check is still the only non-bypassable
+layer; the pre-push hook is local and `--no-verify` walks past it. So `doctor` says so on every run, the
+`init` skill says it once when the choice is made, and the `land` skill says it again when somebody
+reaches the point of wanting a remote — three places, because a cost stated only at adoption is a cost
+nobody remembers paying.
+
+**Rejected.** *Inferring the platform from the git remote* — a remote can be added without adoption being
+re-run, so the inference would be stale exactly when it mattered, and a repository with two remotes has no
+single answer. *Writing a pipeline anyway and letting it sit unreachable* — D-32's failure. *Treating local
+as a `Problem` in `doctor`* — a check that reports a correct install as broken is a check people learn to
+skip, and it would take the real problem with it. *Making it a `Sound` pass* — the opposite error: the
+guarantee genuinely is not installed, and a green tick saying otherwise is the one thing this document
+opens by naming. `Elsewhere` is the outcome that already means "real, and not the binary's to settle".
+*A fourth key recording the remote URL* — adoption does not need it, `git` already owns it, and a copy
+would go stale.
+
+### D-54 — The scaffold maps a liveness route, and a fitness function keeps it
+
+**Governs:** §11.1, §11.5
+
+**Decision.** The scaffolded host registers health checks and maps `/health`. An architecture test,
+`The_host_still_answers_whether_it_is_up`, reads the host's source and fails the build when either the
+registration or the route is gone. `techstack.md` declares it, and it is the one row there that binds.
+
+**Why enforced rather than declared.** A `techstack.md` row is a default a plan may depart from by saying
+why (`CON_13`), which is right for a database or a UI framework and wrong here, because the cost of the
+omission is not paid by the person who chose it. A process with no liveness route is one an orchestrator
+cannot distinguish from a process that is up and broken, so it keeps routing traffic to it — and that is
+discovered in production by somebody who did not delete the line. That asymmetry is exactly what a
+fitness function is for, and it is the same argument D-36 makes about a ban that ships with the surface it
+governs.
+
+**Why it is not an `ApiResult` endpoint, and has no `Endpoints` holder.** `Every_endpoint_returns_the_envelope`
+requires any holder named `*Endpoints` to return the envelope. A health route's caller is a load balancer
+or an orchestrator, which understands a status code and the framework's own payload and has never heard of
+this solution's envelope — so routing liveness through it would make the one caller nobody can change
+parse something unfamiliar. Going through the framework's own `MapHealthChecks` means the envelope rule
+needs no exception, and an exception is where the next leak goes.
+
+**Why the registration is checked as well as the route.** `MapHealthChecks` without `AddHealthChecks`
+throws at **startup**, not at build, so a half-removal would pass the build and fail when the process
+came up — the failure mode furthest from the edit that caused it.
+
+**Why it reads source rather than reflecting.** The route is wired inside `Main` and no type records that
+it happened. The same shape as `The_frameworks_response_factories_are_still_banned`, for the same reason:
+what is worth defending is a line somebody can delete, and a rule that cannot see the deletion is prose.
+The rule asserts the host file exists before reading it, so a moved host fails loudly instead of
+inspecting nothing and passing.
+
+**Rejected.** *A `LOC_` constraint* — binds one solution, and this belongs to every solution the profile
+scaffolds. *A global `CON_`* — forbidden: no global constraint may name a framework, and health checks are
+ASP.NET Core's. *Readiness checks alongside liveness* — a readiness probe asserts dependencies are
+reachable, and the scaffold has no dependencies to assert; shipping an empty one would be a check that
+cannot fail, which is the vacuous success this framework spends most of its rules avoiding. The comment on
+the registration says where a real check goes. *An HTTP test that boots the host and calls `/health`* —
+better evidence, and it needs a test host package the profile does not carry yet; the cycle that adds an
+integration layer should add it then rather than this one adding a package for one assertion.

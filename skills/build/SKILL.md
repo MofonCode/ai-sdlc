@@ -96,12 +96,18 @@ every declared file had changed.
 ## Record the evidence
 
 ```
-sdlc evidence <id> --tests <path to the results file> --build-log <path to the build log>
+sdlc evidence <id> --tests <directory holding the results files> --build-log <path to the build log>
 ```
 
-This writes the diff, the commit it is measured from, the runner's output, and one normalised test
-summary. **Verify reads only these files.** A verdict derived from your recollection of the build is a
-verdict nobody can check, which is what `CON_08` forbids.
+This writes the diff, the commit it is measured from, every results file the run produced, and one
+normalised test summary merged from all of them. **Verify reads only these files.** A verdict derived
+from your recollection of the build is a verdict nobody can check, which is what `CON_08` forbids.
+
+**Point `--tests` at the directory, not at one file.** Every test project a run covers writes its own
+results file, so a single path records one project and silently drops the rest — a cycle recorded 14 of
+26 results that way, and the 12 that vanished were the architecture tests. The command prints how many
+results it read and from how many files; **check that count against what the run reported.** If a
+project is missing there, its tests are missing from what the verification will read.
 
 It also prints the declared-against-changed comparison. Read it, and read it correctly:
 
@@ -123,13 +129,16 @@ defect rather than a step to work around — it means git cannot see the change 
 
 ## Report and hand back
 
-Say what you implemented, what the tests did, and anything you left alone deliberately. Then:
-
 ```
-sdlc status <id>
+sdlc status <id> --brief
 ```
 
-Show it verbatim and stop. The person decides whether to verify.
+Show it verbatim. Then **at most five lines of your own**, and only these: what you implemented, what
+the tests did, and anything you left alone deliberately. This is the one stage where prose earns its
+place, because a diff is not self-describing — but it is five lines, not a narrative, and the panel
+above already carries the cycle, the counts, the gate and the next command.
+
+Then stop. The person decides whether to verify.
 
 **If the build or the tests failed, say so plainly and stop there.** Do not run verify on a red build
 to see what it makes of it, and do not adjust a test to make it pass — that is the inversion the whole

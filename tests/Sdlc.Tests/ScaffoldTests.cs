@@ -200,6 +200,42 @@ public sealed class ScaffoldTests
     }
 
     [TestMethod]
+    public void The_scaffold_ships_a_liveness_route_and_the_rule_that_keeps_it()
+    {
+        IReadOnlyList<KeyValuePair<string, string>> files = Scaffold.Files(Name);
+
+        string host = files
+            .Single(file => file.Key.EndsWith("Program.cs", StringComparison.Ordinal)).Value;
+
+        StringAssert.Contains(
+            host,
+            "AddHealthChecks",
+            "MapHealthChecks without the registration throws at startup rather than at build, so the "
+            + "scaffold ships both or neither.");
+
+        StringAssert.Contains(host, "MapHealthChecks(\"/health\")");
+
+        // Not through an Endpoints holder, deliberately: Every_endpoint_returns_the_envelope requires
+        // one of those to return ApiResult<T>, and a load balancer reading this route understands a
+        // status code and the framework's payload. Routing it through the envelope would make the one
+        // caller nobody can change parse something it has never heard of.
+        Assert.IsFalse(
+            files.Any(file => file.Key.EndsWith("HealthEndpoints.cs", StringComparison.Ordinal)),
+            "Liveness goes through the framework's own route rather than this solution's envelope, so "
+            + "there is no holder for it and no exception carved into the envelope rule.");
+
+        string endpoints = files
+            .Single(file => file.Key.EndsWith("EndpointTests.cs", StringComparison.Ordinal)).Value;
+
+        StringAssert.Contains(
+            endpoints,
+            "The_host_still_answers_whether_it_is_up",
+            "A mapped route nothing checks is a line somebody deletes in the same commit as the change "
+            + "that made it inconvenient. A process with no liveness route is indistinguishable from one "
+            + "that is up and broken, and the traffic keeps arriving.");
+    }
+
+    [TestMethod]
     public void The_reference_slice_is_written_in_the_operation_shape()
     {
         string slice = Scaffold.Files(Name).Single(file => file.Key.EndsWith("Greet.cs", StringComparison.Ordinal)).Value;

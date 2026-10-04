@@ -159,12 +159,17 @@ back rather than picking one.
 ## 6. Report and hand back
 
 ```
-sdlc status <id> --stage intent
+sdlc status <id> --stage intent --brief
 ```
 
 Show what it prints **verbatim**. Do not summarise it, reformat it, or add a recommendation about
 whether to keep interrogating — that judgement is the owner's, and the panel deliberately withholds
 it.
+
+**Say nothing else beyond two sentences.** The panel already carries the cycle, the counts, the gate and
+the next command, so prose around it is noise competing with the only lines worth reading. Drop
+`--brief` when somebody asks for the whole panel; the full form is the same answer with the round
+history and the hashes.
 
 Then stop. The person decides whether to move to the spec. That decision is the human-in-the-loop
 point, and a skill that chained straight into the spec would remove it while appearing to be helpful.

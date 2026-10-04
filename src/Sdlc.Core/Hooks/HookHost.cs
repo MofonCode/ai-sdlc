@@ -324,7 +324,7 @@ public static class HookProtocol
     /// explicit <c>permissionDecision: "allow"</c> is not silence -- Claude Code documents it as
     /// bypassing the permission system, so writing one on every call the policy has no opinion about
     /// would stop the host asking a person about the very tools the hook matches
-    /// (<c>Edit|Write|MultiEdit|NotebookEdit|Bash</c>) and would override whatever allow and deny
+    /// (<c>Edit|Write|MultiEdit|NotebookEdit|Bash|PowerShell</c>) and would override whatever allow and deny
     /// rules the team wrote for them. A governance tool removing the host's own gate as a side
     /// effect is the inverse of what it is for, so the policy having nothing to say is written as
     /// nothing. See D-39.

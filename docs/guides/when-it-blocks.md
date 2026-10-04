@@ -31,7 +31,7 @@ cycle does not advance.
 The cycle has no directory. Nothing has been written yet.
 
 **Next:** `sdlc new`, which allocates the id and creates the directory. If you expected a cycle to be
-there, you have the wrong id — `sdlc landable --all` lists every cycle this solution holds.
+there, you have the wrong id — `sdlc cycles` lists every cycle this solution holds.
 
 ### abandoned
 
@@ -50,9 +50,23 @@ One of `intent.md`, `spec.md`, `plan.md` is not there. All three are required, a
 
 There is no approval ledger. Nobody has been to the gate.
 
-**Next:** `sdlc draft approval <id>` and paste what it prints into `.sdlc/cycles/<id>/approval.md`.
-**Asking an agent to paste it will be denied** — see the hook section below. That denial is the
+**Next:** `sdlc draft approval <id>`, then rename the draft it writes onto the ledger beside it.
+**Asking an agent to rename it will be denied** — see the hook section below. That denial is the
 mechanism, not a configuration problem.
+
+### the ledger cannot be read
+
+There is an `approval.md` and it is not valid YAML — almost always a decision placed by hand, or a
+half-finished edit.
+
+**Next:** `sdlc draft approval <id>`. It still runs, and the draft it writes is a complete replacement.
+Nothing is carried forward from a file that will not parse, because that is a failed placement rather
+than a decision somebody took — so read the draft, and if the broken file did hold a decision worth
+keeping, recover it from git rather than from the file.
+
+This refuses rather than failing, which is the point: the one file a person writes is the one most
+likely to be malformed, so `status` and the drafter both have to survive one. A malformed ledger never
+reads as approved.
 
 ### the standing decision refuses it
 
@@ -156,14 +170,14 @@ running, so a rule with no exception has nowhere for a bypass to live.
 
 | What | Why it is a person's |
 |---|---|
-| writing `approval.md` | an approval is a person's act, and a pasted one means something because no tool could have produced it |
+| writing `approval.md`, or moving anything onto it | an approval is a person's act, and a recorded one means something because no tool could have recorded it. `sdlc draft approval` writes a draft beside it; renaming that draft is the decision |
 | writing `abandoned.md` | an agent stuck on a blocking finding has an obvious escape — abandon and start clean. A hand-written reason keeps the objections that killed it on the record |
 | writing `constraints.md` | a cycle judged by the constraints it is changing is the same deadlock as the framework governing itself |
 | writing `solution.md` | the origin is a historical fact that must never change. Per-key protection would be the first conditional rule, which is where a bypass would live |
 | running `sdlc init` | adoption writes the hook configuration that constrains the agent, the pipeline that gates the merge, and the file saying where this code came from |
 
 **If your agent reports one of these as a broken tool, it is reading the mechanism as a malfunction.** The
-refusal message names the drafter to run instead. Run it yourself and paste the output.
+refusal message names the drafter to run instead. Run it yourself, and place what it produces.
 
 **Reading these files is allowed.** Refusing `cat approval.md` would make the gate obstructive without
 making it safer.

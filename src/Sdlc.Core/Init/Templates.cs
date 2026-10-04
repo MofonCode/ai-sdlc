@@ -21,6 +21,21 @@ public enum Platform
 
     /// <summary>Azure DevOps, with Pipelines and a pull request.</summary>
     AzureDevOps,
+
+    /// <summary>
+    /// Nowhere yet. No remote, no pipeline, and the whole cycle runs on this machine.
+    /// </summary>
+    /// <remarks>
+    /// <para><strong>This is the one platform where the guarantee is not installed, and it is recorded so
+    /// that fact can be stated rather than inferred.</strong> §13's pull-request check is the only
+    /// non-bypassable layer; the pre-push hook is local and <c>--no-verify</c> walks past it. A solution
+    /// with no pipeline is therefore governed by habit, and the difference between choosing that and
+    /// having a broken GitHub install is a difference <c>doctor</c> has to be able to see (D-53).</para>
+    /// <para>It exists because the alternative was worse: somebody trying the framework on a repository
+    /// with no remote had to pick a platform they were not using, which wrote a pipeline for a service
+    /// nothing would ever send it to -- and then <c>land</c> reached for a tool with nowhere to push.</para>
+    /// </remarks>
+    Local,
 }
 
 /// <summary>
@@ -63,23 +78,38 @@ public static class Templates
     /// </remarks>
     public const string KernelVersion = "0.2.0";
 
-    /// <summary>The solution document, which carries the two keys and nothing else.</summary>
+    /// <summary>
+    /// The platforms a pipeline is written for.
+    /// </summary>
+    /// <remarks>
+    /// Named once so that adding a platform cannot leave the suite checking a shorter list than the one
+    /// adoption writes. The tests that assert every pipeline runs <c>verify-chain</c> used to enumerate
+    /// the enum, so adding <see cref="Platform.Local"/> -- which has no pipeline by design -- made them
+    /// throw rather than skip it; the alternative, each test excluding Local for itself, is three places
+    /// that have to agree about which platforms are hosted.
+    /// </remarks>
+    public static IReadOnlyList<Platform> Hosted { get; } = [Platform.GitHub, Platform.AzureDevOps];
+
+    /// <summary>The solution document, which carries the three keys and nothing else.</summary>
     /// <param name="profile">The profile that governs the solution.</param>
     /// <param name="origin">Where the code came from.</param>
+    /// <param name="platform">Where it is pushed, which decides whether a pipeline was written.</param>
     /// <returns>The file's contents.</returns>
-    public static string Solution(string profile, SolutionOrigin origin) => string.Join(
+    public static string Solution(string profile, SolutionOrigin origin, Platform platform) => string.Join(
         Environment.NewLine,
         [
             "---",
             "profile: " + profile,
             "origin: " + SolutionDocument.NameOf(origin),
+            "platform: " + SolutionDocument.NameOf(platform),
             "---",
             string.Empty,
             "# What this solution is",
             string.Empty,
             "Replace this with a paragraph a newcomer could read: what the solution does, and who for.",
-            "Nothing reads this prose -- the two keys above are what resolve the profile and decide",
-            "whether its defaults bind -- so it is here for people.",
+            "Nothing reads this prose -- the three keys above are what resolve the profile, decide whether",
+            "its defaults bind, and say whether a pull-request check governs a merge -- so it is here for",
+            "people.",
             string.Empty,
         ]);
 
@@ -1009,6 +1039,9 @@ public static class Templates
         "| realtime push | SignalR, only where a live UI needs it |",
         "| machine learning | ML.NET |",
         "| api | ASP.NET Core |",
+        "| api description | OpenAPI, through Microsoft.AspNetCore.OpenApi |",
+        "| tracing, metrics and logs | OpenTelemetry, exported to Azure Monitor |",
+        "| liveness | ASP.NET Core health checks, at /health |",
         "| web | Blazor |",
         "| desktop and Android | MAUI Blazor Hybrid |",
         string.Empty,
@@ -1023,6 +1056,23 @@ public static class Templates
         "**An Aspire AppHost is conditional.** More than one process, or one process plus a backing",
         "service a developer would otherwise start by hand. A single executable with no backing services",
         "does not get one.",
+        string.Empty,
+        "**Observability is not conditional, and it is not the error envelope.** Every boundary response",
+        "already carries a trace id, which is what lets somebody asking about one request find what was",
+        "withheld from them. That is not tracing: nothing collects the spans and nothing exports them, so",
+        "there is nothing to ask. A solution with no OpenTelemetry registration has no answer to \"what",
+        "was slow\" beyond a log line somebody thought to write.",
+        string.Empty,
+        "**An OpenAPI document is how a caller finds the surface.** A hand-kept description of an HTTP",
+        "API disagrees with the API, and the disagreement is discovered by whoever trusted it.",
+        string.Empty,
+        "**Liveness is enforced rather than declared**, and it is the one row here that binds: the",
+        "scaffold maps `/health` and an architecture test fails the build if the route or its",
+        "registration is removed. A process with no liveness route is one an orchestrator cannot tell",
+        "apart from a process that is up and broken, so it keeps sending traffic to it -- and that cost",
+        "is paid at the worst moment by somebody who did not delete the line. It is deliberately not an",
+        "`ApiResult` endpoint: its caller is a load balancer, which understands a status code and the",
+        "framework's own payload and has never heard of this solution's envelope.",
         string.Empty,
         "**Integration tests use real backing services.** The EF Core in-memory provider does not",
         "translate SQL, so it passes queries a real database rejects -- a proof that could pass while its",

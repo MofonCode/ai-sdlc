@@ -182,7 +182,32 @@ public static class FindingsReader
     /// </remarks>
     /// <param name="rounds">Every round recorded for one artifact.</param>
     /// <returns>The open blocking findings, by id.</returns>
-    public static IReadOnlyList<Finding> StandingBlockers(IReadOnlyList<FindingsRound> rounds)
+    public static IReadOnlyList<Finding> StandingBlockers(IReadOnlyList<FindingsRound> rounds) =>
+        [.. Standing(rounds).Where(finding => finding.IsOpenBlocker)];
+
+    /// <summary>
+    /// Folds a history into the open findings that do not stop the artifact advancing.
+    /// </summary>
+    /// <remarks>
+    /// Derived from the same fold as <see cref="StandingBlockers"/> rather than written beside it. The
+    /// counts a panel shows and the findings the gate refuses on have to mean the same thing by "open",
+    /// and two folds would eventually disagree about a finding carried silently through a round.
+    /// </remarks>
+    /// <param name="rounds">Every round recorded for one artifact.</param>
+    /// <returns>The open non-blocking findings, by id.</returns>
+    public static IReadOnlyList<Finding> StandingSuggestions(IReadOnlyList<FindingsRound> rounds) =>
+    [
+        .. Standing(rounds)
+            .Where(finding => finding.Severity != Severity.Blocking
+                && finding.Disposition == Disposition.Open),
+    ];
+
+    /// <summary>
+    /// Where every finding has got to, latest mention wins.
+    /// </summary>
+    /// <param name="rounds">Every round recorded for one artifact.</param>
+    /// <returns>Each finding once, in id order.</returns>
+    public static IReadOnlyList<Finding> Standing(IReadOnlyList<FindingsRound> rounds)
     {
         ArgumentNullException.ThrowIfNull(rounds);
 
@@ -196,11 +221,6 @@ public static class FindingsReader
             }
         }
 
-        return
-        [
-            .. standing.Values
-                .Where(finding => finding.IsOpenBlocker)
-                .OrderBy(finding => finding.Id, StringComparer.Ordinal),
-        ];
+        return [.. standing.Values.OrderBy(finding => finding.Id, StringComparer.Ordinal)];
     }
 }

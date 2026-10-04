@@ -2,7 +2,7 @@
 name: init
 description: Adopt the framework into a repository -- run the scaffolding, interview the team about what matters in this solution, and propose its first constraints. Use when somebody asks to set up ai-sdlc here.
 compatibility: Requires the sdlc binary on PATH, from the MofonCode.Sdlc.Cli dotnet tool, and a git repository. Every command here is that binary, so without it the first step fails.
-argument-hint: "[--platform github|azure-devops]"
+argument-hint: "[--platform github|azure-devops|local]"
 allowed-tools: Bash(sdlc *), Bash(git *), Read, Glob, Grep
 ---
 
@@ -32,8 +32,19 @@ touches nothing a person writes. Say so, because "init" on a working solution so
 ## 2. Ask for the command to be run
 
 ```
-sdlc init [--profile <name>] [--platform github|azure-devops]
+sdlc init [--profile <name>] [--platform github|azure-devops|local]
 ```
+
+**Ask where the code will live before you hand over the line**, because the answer decides whether a
+pipeline is written and there is no good default for somebody who has not said. If the repository has no
+remote yet — `git remote -v` prints nothing — `local` is the honest answer: a pipeline for a service
+nothing will ever send it to is a file that looks like a gate and is reachable by nothing.
+
+**Say what local costs, once, plainly.** No pull-request check governs a merge, so the pre-push hook is
+the only mechanical layer and `--no-verify` walks past it. Everything else is unchanged: cycles are
+planned, approved, built and verified exactly the same way. Only the guarantee is missing, and `sdlc
+doctor` says so every time it runs. When a remote exists, re-running adoption with a platform writes the
+pipeline, and the `land` skill walks through creating the remote.
 
 Give the person the line. When they have run it, read what it printed — it says which mode ran, what the
 origin was decided to be, and every file it touched or deliberately left.

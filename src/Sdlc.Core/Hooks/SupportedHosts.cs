@@ -200,7 +200,12 @@ public static class SupportedHosts
             EventsKey: "hooks",
             ConfigVersion: null,
             HookEntryShape.Grouped,
-            "Edit|Write|MultiEdit|NotebookEdit|Bash",
+
+            // PowerShell is a separate tool from Bash and this matcher is a regular expression over the
+            // tool's name, so leaving it out exempted every PowerShell call from the shell rule -- on
+            // the one platform where PowerShell is the shell somebody actually has. The path rules held;
+            // the rule that catches a write no path names did not.
+            "Edit|Write|MultiEdit|NotebookEdit|Bash|PowerShell",
 
             // Nothing, on an allow. D-39.
             NeutralDecision: null,

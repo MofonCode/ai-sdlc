@@ -268,6 +268,89 @@ public sealed class EvidenceTests
     }
 
     [TestMethod]
+    public async Task Every_results_file_a_run_produced_reaches_the_summary()
+    {
+        // A run with two test projects writes two results files, and this took one: a cycle recorded 14
+        // of 26 results and the verification adjudicated against the 14 without knowing. The half that
+        // went missing was the architecture tests, which is the half holding the rules.
+        using var workspace = CycleWorkspace.Create();
+        workspace.WritePlan(proofs: 1);
+
+        string results = Path.Combine(workspace.Root, "TestResults");
+        Directory.CreateDirectory(Path.Combine(results, "unit"));
+        Directory.CreateDirectory(Path.Combine(results, "architecture"));
+
+        CycleWorkspace.WriteRaw(Path.Combine(results, "unit", "a.trx"), Trx);
+        CycleWorkspace.WriteRaw(
+            Path.Combine(results, "architecture", "b.trx"),
+            Trx.Replace("Dice.Tests.RollTests", "Dice.Architecture.Tests.StructureTests", StringComparison.Ordinal));
+
+        RecordEvidence.Response report = await Record(workspace, results, changed: ["src/Thing.cs"]);
+
+        Assert.AreEqual(2, report.TestSources.Count, "Both results files have to be found.");
+        Assert.AreEqual(6, report.Summary!.Tests.Count, "Three tests from each file.");
+
+        Assert.IsTrue(
+            report.Summary.Tests.Any(test =>
+                test.Name == "Dice.Architecture.Tests.StructureTests.Two_requests_differ"),
+            "A failure in the second project has to reach the summary a verification reads.");
+
+        // Numbered rather than one of them claiming the fixed name, because one of two cannot be the one.
+        Assert.IsTrue(File.Exists(Path.Combine(
+            workspace.Cycle.EvidenceDirectory,
+            RecordEvidence.TrxFileNameAt(1))));
+
+        Assert.IsTrue(File.Exists(Path.Combine(
+            workspace.Cycle.EvidenceDirectory,
+            RecordEvidence.TrxFileNameAt(2))));
+    }
+
+    [TestMethod]
+    public async Task A_test_name_reported_with_two_outcomes_refuses_rather_than_letting_one_answer()
+    {
+        // verify-chain matches a plan's named test on the end of what the runner reported, so the same
+        // name passing in one project and failing in another would let the pass answer for the failure.
+        using var workspace = CycleWorkspace.Create();
+        workspace.WritePlan(proofs: 1);
+
+        string results = Path.Combine(workspace.Root, "TestResults");
+        Directory.CreateDirectory(results);
+
+        CycleWorkspace.WriteRaw(Path.Combine(results, "a.trx"), Trx);
+        CycleWorkspace.WriteRaw(
+            Path.Combine(results, "b.trx"),
+            Trx.Replace("outcome=\"Failed\"", "outcome=\"Passed\"", StringComparison.Ordinal));
+
+        using Gate gate = Recorder(workspace, new FakeRepository { Changed = ["src/Thing.cs"] });
+
+        Result<RecordEvidence.Response> result = await gate
+            .Send<RecordEvidence.Command, RecordEvidence.Response>(
+                new RecordEvidence.Command(workspace.Cycle.Id, results));
+
+        Assert.IsTrue(result.IsFailed, "A name with two outcomes cannot be recorded as either.");
+        StringAssert.Contains(result.Errors[0].Message, "Two_requests_differ");
+    }
+
+    [TestMethod]
+    public async Task A_directory_with_no_results_file_is_a_failure_rather_than_an_empty_summary()
+    {
+        using var workspace = CycleWorkspace.Create();
+        workspace.WritePlan(proofs: 1);
+
+        string results = Path.Combine(workspace.Root, "TestResults");
+        Directory.CreateDirectory(results);
+
+        using Gate gate = Recorder(workspace, new FakeRepository());
+
+        Result<RecordEvidence.Response> result = await gate
+            .Send<RecordEvidence.Command, RecordEvidence.Response>(
+                new RecordEvidence.Command(workspace.Cycle.Id, results));
+
+        Assert.IsTrue(result.IsFailed);
+        StringAssert.Contains(result.Errors[0].Message, "did not happen");
+    }
+
+    [TestMethod]
     public async Task A_missing_results_file_is_a_failure_rather_than_an_empty_summary()
     {
         using var workspace = CycleWorkspace.Create();

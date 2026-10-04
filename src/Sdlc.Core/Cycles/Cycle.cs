@@ -52,8 +52,9 @@ public sealed record Cycle(CycleId Id, string SolutionRoot)
     /// </summary>
     /// <remarks>
     /// Not a cycle's file, and here because this is where the framework's directory layout is named.
-    /// It carries two keys and no more: the profile that resolves which package applies, and the origin
-    /// that decides whether a profile's defaults bind or the existing standard wins.
+    /// It carries three keys and no more: the profile that resolves which package applies, the origin
+    /// that decides whether a profile's defaults bind or the existing standard wins, and the platform
+    /// that says whether a pull-request check governs a merge at all.
     /// </remarks>
     public const string SolutionFileName = "solution.md";
 
@@ -94,6 +95,28 @@ public sealed record Cycle(CycleId Id, string SolutionRoot)
 
     /// <summary>The append-only ledger of this cycle's gate decisions.</summary>
     public string ApprovalPath => Path.Combine(Directory, "approval.md");
+
+    /// <summary>
+    /// Where a drafted gate decision waits for a person to rename it onto <see cref="ApprovalPath"/>.
+    /// </summary>
+    /// <remarks>
+    /// <para><strong>A different file name, deliberately.</strong> The hook's rules match on the ledger's
+    /// name, so a draft that shared it could not be written at all — and a draft the binary cannot write
+    /// is the clipboard flow again. This name is not protected and records nothing: a draft nobody
+    /// renamed is a file nobody renamed.</para>
+    /// <para><strong>The decision is in the name</strong> because the rename is the act. A person moving
+    /// <c>approval.denied.draft.md</c> onto the ledger types the word <c>denied</c> on the way, where a
+    /// single <c>approval.draft.md</c> would have let an approval and a denial look identical at the
+    /// moment of recording them.</para>
+    /// </remarks>
+    /// <param name="decision">The decision's name in the ledger, as <c>ApprovalLedger.NameOf</c> spells it.</param>
+    /// <returns>The path of the draft for that decision.</returns>
+    public string ApprovalDraftPath(string decision)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(decision);
+
+        return Path.Combine(Directory, "approval." + decision + ".draft.md");
+    }
 
     /// <summary>Why the cycle stopped, when it did. Its presence is what makes abandonment terminal.</summary>
     public string AbandonedPath => Path.Combine(Directory, "abandoned.md");

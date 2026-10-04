@@ -29,7 +29,19 @@ internal static class Program
         builder.Services.ConfigureHttpJsonOptions(options =>
             options.SerializerOptions.Converters.Add(new JsonStringEnumConverter()));
 
+        // Liveness, for whatever starts this process and has to know whether it came up. Registered
+        // with no checks of its own on purpose: an empty set answers 200 as soon as the host is
+        // serving, which is the question an orchestrator is actually asking. A dependency worth
+        // reporting on gets added here as a named check, and then it is part of the answer.
+        builder.Services.AddHealthChecks();
+
         WebApplication app = builder.Build();
+
+        // Deliberately not an ApiResult endpoint, and deliberately not in an Endpoints holder. A reader
+        // of this route is a load balancer or an orchestrator, and what it understands is the status
+        // code plus the framework's own payload -- wrapping that in this solution's envelope would make
+        // the one caller that cannot be changed parse something it has never heard of.
+        app.MapHealthChecks("/health");
 
         app.MapGreetings();
 

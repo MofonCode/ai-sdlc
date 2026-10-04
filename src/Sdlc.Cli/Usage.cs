@@ -31,16 +31,20 @@ internal static class Usage
             gate <id>                Say whether a cycle's build may run. Exits 1 if not.
             verify-chain <id>        Re-establish the whole chain from the repository. Exits 1 if
                                      it does not hold. This is the pull-request check.
-            landable <id> | --all    Say whether a cycle may be landed, without landing it. Exits 1
-                                     if not. With --all, lists every cycle and what each is.
-            draft approval <id>      Print the gate entry for a person to paste.
+            landable <id>            Say whether a cycle may be landed, without landing it. Exits 1
+                                     if not. For every cycle, 'cycles --landable'.
+            draft approval <id>      Write the gate decision beside the ledger, for a person to
+                                     rename onto it. Writes no approval.
             draft abandon <id>       Print the record that stops a cycle, for a person to place.
             draft constraint         Print the next free LOC_ id, with its four parts empty.
             draft profile <name>     Print the solution.md keys for a profile migration.
             evidence <id>            Record what a build produced: the diff, its base commit, and a
                                      normalised test summary. Verify reads only this.
-            claims                   Say which cycles may be built together, and what collides.
+            cycles                   List every cycle this solution holds, newest first: what each
+                                     is about, where it stands, and what it is owed.
             status <id>              Show the panel for a stage. Ends with the next command.
+            findings <id>            What the interrogations said, per artifact, each finding at the
+                                     disposition that stands.
             suggestions [<id>]       List the open non-blocking findings, for one cycle or all.
             doctor                   Check this installation and this repository: the rules, git,
                                      adoption, every host's hook config, and the pipeline that is
@@ -60,7 +64,15 @@ internal static class Usage
 
         Options for init
             --profile <name>         Which profile governs the solution. Default: dotnet-default.
-            --platform <name>        Where the code lives: github or azure-devops. Default: github.
+            --platform <name>        Where the code lives: github, azure-devops, or local for a
+                                     repository with no remote yet. Default: github.
+
+                                     local writes no pipeline, so no pull-request check governs a
+                                     merge -- the pre-push hook is the only mechanical layer and it
+                                     is bypassable. The choice is recorded in solution.md so doctor
+                                     reports it as a choice rather than a broken install. Re-run
+                                     init with a platform once there is a remote; the land skill
+                                     walks through creating one.
 
         Options for hook
             --event <name>           Which moment: pre-tool-use or turn-end. Defaults to
@@ -74,12 +86,36 @@ internal static class Usage
             --brief                  Ids and statements only, without the clauses.
 
         Options for evidence
-            --tests <path>           A runner's own results file to normalise, kept alongside.
+            --tests <path>           Where the run's results are: one results file, or the directory
+                                     holding every one it wrote. Point it at the directory -- each
+                                     test project writes its own, and a summary built from one of
+                                     them is a verification reading part of the suite.
             --build-log <path>       A build log to keep alongside.
+
+        Options for cycles
+            --stage <artifact>       Only cycles whose furthest document is this one.
+            --approved               Only cycles a person has approved.
+            --verified               Only cycles whose verification passed.
+            --landable               Every cycle, saying which may be landed and why not.
+            --claims                 The claim graph: which cycles may be built together, in groups,
+                                     and what collides.
+
+        Newest first, always. The order a person scans is the order the work happened in, and a
+        second order would be a second way to read one answer.
+
+        Options for findings
+            --stage <artifact>       One document: intent, spec, plan or verify. Defaults to all four.
+            --round <n>              One round. Defaults to every round. A finding is still shown at
+                                     the disposition the latest round gave it, so asking about round
+                                     one never reports an answered blocker as open.
+            --brief                  One line per finding, without the statement or the remedy.
 
         Options for status
             --stage <artifact>       Which panel: intent, spec or plan. Defaults to whichever
                                      artifact the cycle is waiting on.
+            --brief                  Four lines: the cycle, its stage, the blocker and suggestion
+                                     counts, the gate, what the artifact says, and the next
+                                     command. The same next command as the full panel.
 
         Options for draft approval
             --by <name>              Who is deciding. Defaults to git's configured user name.
@@ -90,6 +126,14 @@ internal static class Usage
 
         A refusal is drafted on the same terms as an approval, and leaves the reason line empty for
         the person to write. The gate rejects a refusal that says nothing about why.
+
+        The draft is a complete file named for its decision -- approval.approved.draft.md and so on
+        -- written beside the ledger and never onto it. Renaming it is what records the decision,
+        and no command does that: every agent write to the ledger is denied, and so is every agent
+        command that would move anything onto it. A draft nobody renamed records nothing.
+
+        Where a decision already stands, the draft reproduces it above the new entry, so the rename
+        replaces the ledger without losing what it held.
 
         The stages
             Writing an intent, a spec or a plan, judging one against the rules, building, verifying

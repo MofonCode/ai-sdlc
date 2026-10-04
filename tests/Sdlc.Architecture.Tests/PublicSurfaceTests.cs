@@ -49,6 +49,26 @@ public sealed class PublicSurfaceTests
         "Sdlc.Core.Approvals.ApprovalText+Response",
         "Sdlc.Core.Approvals.GateDecision",
         "Sdlc.Core.Approvals.GateEntry",
+
+        // The command 'sdlc draft approval' dispatches. Public because Sdlc.Cli sends it, like every
+        // other operation's request; it returns ApprovalText.Response rather than a shape of its own,
+        // because composing the decision and putting it on disk produce the same answer.
+        "Sdlc.Core.Approvals.WriteApprovalDraft",
+        "Sdlc.Core.Approvals.WriteApprovalDraft+Command",
+        // 'sdlc findings': the operation, the per-artifact shape it returns, and its renderer.
+        "Sdlc.Core.Findings.ArtifactFindings",
+        "Sdlc.Core.Findings.FindingsRenderer",
+        "Sdlc.Core.Findings.ReadFindings",
+        "Sdlc.Core.Findings.ReadFindings+Query",
+        "Sdlc.Core.Findings.ReadFindings+Response",
+
+        // 'sdlc cycles': the listing, the per-cycle shape, and its renderer.
+        "Sdlc.Core.Cycles.CycleSummary",
+        "Sdlc.Core.Cycles.CyclesRenderer",
+        "Sdlc.Core.Cycles.ListCycles",
+        "Sdlc.Core.Cycles.ListCycles+Query",
+        "Sdlc.Core.Cycles.ListCycles+Response",
+
         "Sdlc.Core.Artifacts.ArtifactOutline",
         "Sdlc.Core.Artifacts.ArtifactOutlineReader",
         "Sdlc.Core.Artifacts.ArtifactSchema",

@@ -155,15 +155,17 @@ declared default would have cost here.>
 Interrogate, refine, interrogate again. Then:
 
 ```
-sdlc status <id> --stage plan
+sdlc status <id> --stage plan --brief
 sdlc gate <id>
 ```
 
-Show the panel verbatim. The gate will refuse, because nobody has approved yet — that is the correct
-state and worth showing, because it is the moment to explain what happens next:
+Show the panel verbatim and add nothing to it beyond the paragraph below. The gate will refuse, because
+nobody has approved yet — that is the correct state and worth showing, because it is the moment to
+explain what happens next:
 
 > The three documents are clean. Approving them is yours to do: run `sdlc draft approval <id>`, read
-> what it prints, and paste it into `.sdlc/cycles/<id>/approval.md`. I cannot write that file — every
-> agent write to it is denied — and that is what makes a pasted approval mean something.
+> the file it writes, and rename it onto `approval.md`. I cannot place that file — every agent write to
+> it is denied, and so is every command that would move anything onto it — and that is what makes a
+> recorded approval mean something.
 
 Then stop.

@@ -411,7 +411,7 @@ public sealed class InitTests
     {
         // The guarantee lives in the binary, so each pipeline is about thirty lines wrapping one command.
         // And coverage is displayed rather than enforced: a threshold gets met by testing what is easy.
-        foreach (Platform platform in Enum.GetValues<Platform>())
+        foreach (Platform platform in Templates.Hosted)
         {
             string pipeline = Templates.Pipeline(platform);
 
@@ -869,7 +869,7 @@ public sealed class InitTests
         // put 'sdlc' on the path. It would have failed command-not-found from the one step that is the
         // whole guarantee -- the loudest possible place to discover an install was missing, and the
         // least likely place for a reader to suspect one.
-        foreach (Platform platform in Enum.GetValues<Platform>())
+        foreach (Platform platform in Templates.Hosted)
         {
             string pipeline = Templates.Pipeline(platform).ReplaceLineEndings();
             string[] lines = pipeline.Split(Environment.NewLine);
@@ -922,7 +922,7 @@ public sealed class InitTests
         // this install does not resolve -- and the person whose first pull request fails on it reads the
         // generated file, not our notes. Writing no install step at all was the quiet version of the
         // same gap, which is the one the whole design is written against.
-        foreach (Platform platform in Enum.GetValues<Platform>())
+        foreach (Platform platform in Templates.Hosted)
         {
             StringAssert.Contains(
                 Templates.Pipeline(platform),
@@ -994,6 +994,76 @@ public sealed class InitTests
         settings["hooks"]![moment]!.AsArray()
             .SelectMany(entry => entry!["hooks"]!.AsArray())
             .Select(hook => hook!["command"]!.GetValue<string>());
+
+    [TestMethod]
+    public async Task Adopting_locally_writes_no_pipeline_and_records_that_it_did_not()
+    {
+        using var solution = Scratch.Create();
+
+        await Adopt(solution, tracked: [], platform: Platform.Local);
+
+        Assert.IsFalse(
+            Directory.Exists(Path.Combine(solution.Root, ".github", "workflows")),
+            "A pipeline for a service this repository has no remote on is a file that looks like a gate "
+            + "and is reachable by nothing.");
+
+        Assert.IsFalse(File.Exists(Path.Combine(solution.Root, "azure-pipelines.yml")));
+
+        Result<SolutionDocument> document = await SolutionDocument
+            .ReadFile(solution.Root, CancellationToken.None);
+
+        Assert.IsTrue(document.IsSuccess, string.Join("; ", document.Errors.Select(e => e.Message)));
+        Assert.AreEqual(
+            Platform.Local,
+            document.Value.Platform,
+            "Recorded rather than inferred: nothing else on disk tells local-by-choice from a broken "
+            + "install, and doctor has to be able to say which.");
+    }
+
+    [TestMethod]
+    public async Task Adopting_on_a_platform_still_writes_its_pipeline()
+    {
+        using var solution = Scratch.Create();
+
+        await Adopt(solution, tracked: [], platform: Platform.GitHub);
+
+        Assert.IsTrue(File.Exists(Path.Combine(
+            solution.Root,
+            ".github",
+            "workflows",
+            "sdlc-verify.yml")));
+
+        Result<SolutionDocument> document = await SolutionDocument
+            .ReadFile(solution.Root, CancellationToken.None);
+
+        Assert.AreEqual(Platform.GitHub, document.Value.Platform);
+    }
+
+    [TestMethod]
+    public void A_solution_document_written_before_the_platform_key_reads_as_github()
+    {
+        // The key arrived after solutions had been adopted. Refusing to read a file written without it
+        // would make upgrading the binary look like a corrupted repository, and reading it as local would
+        // silently exempt every existing solution from the one check that is the guarantee.
+        Result<SolutionDocument> document = SolutionDocument.Read(
+            "---\nprofile: dotnet-default\norigin: adopted\n---\n",
+            "solution.md");
+
+        Assert.IsTrue(document.IsSuccess, string.Join("; ", document.Errors.Select(e => e.Message)));
+        Assert.AreEqual(Platform.GitHub, document.Value.Platform);
+    }
+
+    [TestMethod]
+    public void A_platform_nobody_recognises_is_a_typo_rather_than_a_default()
+    {
+        // Absent is GitHub; misspelled is an error. Reading 'gitub' as GitHub would hide it.
+        Result<SolutionDocument> document = SolutionDocument.Read(
+            "---\nprofile: dotnet-default\norigin: adopted\nplatform: gitub\n---\n",
+            "solution.md");
+
+        Assert.IsTrue(document.IsFailed);
+        StringAssert.Contains(document.Errors[0].Message, "github, azure-devops or local");
+    }
 
     private static async Task<Initialise.Response> Adopt(
         Scratch solution,

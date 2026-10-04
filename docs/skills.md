@@ -28,7 +28,7 @@ and prints the invocation — because a tool must never send somebody somewhere 
 
 | Skill | What it is | Takes | When | Who starts it |
 |---|---|---|---|---|
-| `init` | adopts the framework into a repository | `[--platform github\|azure-devops]` | once per repository | **a person**, and the hook denies an agent |
+| `init` | adopts the framework into a repository | `[--platform github\|azure-devops\|local]` | once per repository | **a person**, and the hook denies an agent |
 | `intent` | interviews a person into the problem the change exists to solve | `[a sentence]` | opening a cycle | a person |
 | `spec` | derives testable acceptance criteria from the intent | `<id>` | the intent has a clean round | a person |
 | `plan` | decides how, and what will prove each criterion | `<id>` | the spec has a clean round | a person |
@@ -70,6 +70,12 @@ in this solution, and proposes its first constraints.
 Three modes, decided by what it finds: **greenfield** for a repository holding no code, **onboard** for
 existing code with no `.sdlc/`, **update** when `.sdlc/` already exists. Update refreshes only what the
 framework owns, which is everything not protected — hook configs, the pipeline, `.sdlc/README.md`.
+
+**`--platform local` is for a repository with no remote yet**, and it writes no pipeline. That means no
+pull-request check governs a merge, so the pre-push hook is the only mechanical layer and `--no-verify`
+walks past it — the choice is recorded in `solution.md` so `doctor` can report it as a choice rather than
+as a broken install, and so nobody mistakes a local solution for one governed to the same standard. Once
+there is a remote, re-run `init` with a platform; the `land` skill walks through creating one.
 
 **A person runs it, and the hook denies an agent the command.** The skill's part is the two halves a
 command cannot do: asking what matters here, and proposing the `LOC_` rules that follow from the answers.
@@ -211,21 +217,23 @@ the hash of the artifact above it, so editing the intent makes the spec's latest
 
 ### `draft`
 
-**Prints what belongs in one of the four files only a person writes.** One rule: a tool never writes
-them, a tool prints what to put in them.
+**Prints what belongs in one of the four files only a person writes.** One rule: a tool never places
+them, a person does.
 
 | Drafter | What it is for |
 |---|---|
-| `draft approval <id>` | the gate decision, covering all three planning documents, with a hash of each |
+| `draft approval <id>` | the gate decision, covering all three planning documents, with a hash of each. Written as a complete file beside the ledger, named for its decision, and placed by renaming it |
 | `draft abandon <id>` | why a cycle stopped. Terminal, and the reason is left empty because the file is rejected without one |
 | `draft constraint` | the next free `LOC_` id with its four parts empty, and the three admission tests |
-| `draft profile <name>` | both `solution.md` keys, not only the one that changes |
+| `draft profile <name>` | all three `solution.md` keys, not only the one that changes |
 
 Every agent write to `approval.md`, `abandoned.md`, `constraints.md` and `solution.md` is denied at the
 tool call — by file path and by shell command alike. There is no flag, no mode, and no approve command for
 an exception to be carved out of, which is why the rule states in one sentence and has nowhere for a
-bypass to live. So the skill does not offer to paste it and does not read the refusal as a configuration
-problem: **a pasted approval means something precisely because no tool could have produced it.**
+bypass to live. The denial covers the rename that places an approval, in every spelling and through every
+shell the host offers, so the skill does not offer to run it and does not read the refusal as a
+configuration problem: **a recorded decision means something precisely because no tool could have
+recorded it.**
 
 A refusal is drafted on the same terms as an approval — `--changes-requested`, `--deny`, `--reopen` —
 because rejecting is what a person does when they are least inclined to look a format up, and helping
@@ -333,7 +341,7 @@ queue and no daemon.
 **Everything here rests on the remediation bound.** A cycle that cannot be made to pass stops at three
 passes and escalates, and that stopping is the only reason this is safe to run without watching.
 
-It reads the claim graph from `sdlc claims` rather than working it out: the graph is a set intersection
+It reads the claim graph from `sdlc cycles --claims` rather than working it out: the graph is a set intersection
 over a file table, which the binary does the same way every time, and a graph derived by reading plans
 would come out slightly differently each run while deciding what runs concurrently. Groups run in
 parallel, each cycle in its own worktree; cycles in different groups collide, so they serialise in

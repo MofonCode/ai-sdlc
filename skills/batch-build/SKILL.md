@@ -22,8 +22,8 @@ re-running.
 ## 1. Find the work and read the claim graph
 
 ```
-sdlc landable --all
-sdlc claims
+sdlc cycles --landable
+sdlc cycles --claims
 ```
 
 The first lists every cycle and its state; the ones to build are those whose gate is satisfied and which
@@ -36,7 +36,7 @@ and what it decides is what runs concurrently.
 
 ## 2. Run the groups
 
-- Each group from `sdlc claims` runs in **parallel**, each cycle in its own git worktree.
+- Each group from `sdlc cycles --claims` runs in **parallel**, each cycle in its own git worktree.
 - Cycles in different groups collide, so they run **in cycle-id order**, each rebased on the previous result.
 
 The order is taken rather than declared. Two cycles that genuinely depend on each other with nobody having
@@ -48,11 +48,11 @@ than a merge you did well.
 
 **EF Core migrations serialise, always.** Two branches that each add a migration snapshot the same parent
 model, and the merged chain breaks in a way that compiles and then fails at deploy — which is the worst
-shape a failure can take. `sdlc claims` flags a plan that mentions one.
+shape a failure can take. `sdlc cycles --claims` flags a plan that mentions one.
 
 ## 3. Cap concurrency by what a plan needs
 
-`sdlc claims` marks the cycles whose plans stand up a backing service. Those are the ones to cap.
+`sdlc cycles --claims` marks the cycles whose plans stand up a backing service. Those are the ones to cap.
 
 | | Concurrency |
 |---|---|
@@ -114,7 +114,7 @@ reporting them as a batch failure would throw away work that is fine.
 Per cycle: its id, its outcome, and for anything not `passed`, what stopped it. Then:
 
 ```
-sdlc landable --all
+sdlc cycles --landable
 ```
 
 Show it verbatim and stop.

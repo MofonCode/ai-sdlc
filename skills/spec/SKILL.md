@@ -129,7 +129,11 @@ three exits are the same as the intent's — healed, assumed, asked — except t
 decisions region, so an assumption here is almost always a sign the intent is the thing to fix.
 
 ```
-sdlc status <id> --stage spec
+sdlc status <id> --stage spec --brief
 ```
 
 Show it verbatim, then stop. The person decides whether to move to the plan.
+
+**Say nothing else beyond two sentences.** The panel carries the cycle, the counts, the gate and the next
+command; prose around it competes with the only lines worth reading. Drop `--brief` when somebody asks
+for the whole panel.

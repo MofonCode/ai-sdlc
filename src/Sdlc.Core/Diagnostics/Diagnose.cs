@@ -131,7 +131,7 @@ public static class Diagnose
                 checks.Add(HookConfig(host));
             }
 
-            checks.Add(Pipeline());
+            checks.Add(Pipeline(await RecordedPlatform(cancellationToken).ConfigureAwait(false)));
             checks.Add(PrePush());
             checks.Add(Plugin());
 
@@ -212,7 +212,24 @@ public static class Diagnose
                     CheckOutcome.Sound,
                     string.Create(
                         CultureInfo.InvariantCulture,
-                        $"profile {document.Value.Profile}, origin {SolutionDocument.NameOf(document.Value.Origin)}"));
+                        $"profile {document.Value.Profile}, origin {SolutionDocument.NameOf(document.Value.Origin)}, platform {SolutionDocument.NameOf(document.Value.Platform)}"));
+        }
+
+        /// <summary>
+        /// Which platform this solution records, or GitHub when it is too broken to say.
+        /// </summary>
+        /// <remarks>
+        /// A solution document that will not read is already reported by <see cref="Adoption"/>, and the
+        /// pipeline check must not go quiet because of it: falling back to the strictest reading means an
+        /// unreadable document never buys an exemption from the guarantee.
+        /// </remarks>
+        private async Task<Platform> RecordedPlatform(CancellationToken cancellationToken)
+        {
+            Result<SolutionDocument> document = await SolutionDocument
+                .ReadFile(solution.Path, cancellationToken)
+                .ConfigureAwait(false);
+
+            return document.IsSuccess ? document.Value.Platform : Platform.GitHub;
         }
 
         /// <summary>
@@ -268,8 +285,23 @@ public static class Diagnose
         /// whether the check is <em>required</em> on the branch, which is the half that makes it a
         /// promise -- so that part is reported as somebody else's to confirm.
         /// </remarks>
-        private Check Pipeline()
+        private Check Pipeline(Platform platform)
         {
+            // Local records that there is no pipeline, so the absence of one is the install working. It
+            // is still reported rather than passed silently: what is missing is the only non-bypassable
+            // layer, and a solution that said nothing about that would let somebody believe the pre-push
+            // hook was the guarantee. The hook is local and '--no-verify' walks past it.
+            if (platform == Platform.Local)
+            {
+                return new Check(
+                    "the guarantee",
+                    CheckOutcome.Elsewhere,
+                    "this solution is local, so no pipeline check governs a merge. The pre-push hook is "
+                    + "the only mechanical layer and it is bypassable",
+                    "when there is a remote, 'sdlc init --platform github' or '--platform azure-devops' "
+                    + "writes the pipeline, and a person makes the check required in branch policy");
+            }
+
             string[] candidates =
             [
                 .. Directory.Exists(Path.Combine(solution.Path, ".github", "workflows"))

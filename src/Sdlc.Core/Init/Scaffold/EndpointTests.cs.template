@@ -130,6 +130,49 @@ public sealed class EndpointTests
         }
     }
 
+    /// <summary>
+    /// The host still answers whether it is up.
+    /// </summary>
+    /// <remarks>
+    /// <para>Read from the host's source rather than by reflection, because the route is wired inside
+    /// <c>Main</c> and no type records that it happened. That is the same shape as
+    /// <see cref="The_frameworks_response_factories_are_still_banned"/>, and for the same reason: the
+    /// thing worth defending is a line somebody can delete, and a rule that cannot see the deletion is
+    /// prose.</para>
+    /// <para><strong>Why this is enforced rather than left to whoever deploys it.</strong> A process with
+    /// no liveness route is one an orchestrator cannot tell apart from a process that is up and broken, so
+    /// it keeps sending traffic to it. The cost of that is paid at the worst moment and by somebody who
+    /// did not write this line, which is exactly the asymmetry a fitness function exists to correct.</para>
+    /// <para>It checks the registration as well as the route. <c>MapHealthChecks</c> without
+    /// <c>AddHealthChecks</c> throws at startup rather than at build, so a half-removal would ship.</para>
+    /// </remarks>
+    [TestMethod]
+    public void The_host_still_answers_whether_it_is_up()
+    {
+        string host = Path.Combine(RepoFiles.FindRepoRoot(), "src", "__SOLUTION__.Api", "Program.cs");
+
+        Assert.IsTrue(
+            File.Exists(host),
+            host + " is not there, so this rule inspected nothing and would pass however the host was "
+            + "written. If the host moved, move this rule with it.");
+
+        string source = File.ReadAllText(host);
+
+        StringAssert.Contains(
+            source,
+            "AddHealthChecks",
+            "The host registers no health checks, so MapHealthChecks would throw at startup rather than "
+            + "fail here. Put 'builder.Services.AddHealthChecks();' back.");
+
+        StringAssert.Contains(
+            source,
+            "MapHealthChecks",
+            "The host maps no health endpoint, so nothing that starts this process can tell it came up "
+            + "from it being up and broken -- and an orchestrator keeps sending traffic either way. Put "
+            + "'app.MapHealthChecks(\"/health\");' back, or say in a plan what answers liveness instead "
+            + "and why that is better than a route the platform already understands.");
+    }
+
     private static bool IsApiResult(Type returnType)
     {
         Type type = returnType;

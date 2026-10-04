@@ -1,6 +1,6 @@
 # ai-sdlc
 
-**Version 0.9.0** · iteration 4 · .NET 10 · MIT
+**Version 0.10.0** · iteration 4 · .NET 10 · MIT
 
 A host-agnostic plugin that governs a team's software lifecycle through gated artifacts.
 
@@ -37,7 +37,7 @@ Then, **from a directory that is not a clone of this repository**, check the bin
 sdlc constraints
 ```
 
-It should print the fourteen global rules and end with `global  embedded in sdlc 0.9.0`. **Use this
+It should print the fourteen global rules and end with `global  embedded in sdlc 0.10.0`. **Use this
 rather than `sdlc help` as the smoke test** — `help` and `version` are the only two commands that need
 nothing from the installation, so they are the two that cannot tell you whether it worked.
 
@@ -98,11 +98,12 @@ and warned and exited cleanly for weeks. That is the failure mode this design is
 
 `approval.md`, `abandoned.md`, `constraints.md`, `solution.md`.
 
-No tool writes them. A tool prints what belongs in them — `sdlc draft approval`, `draft abandon`,
-`draft constraint`, `draft profile` — and a person pastes it. The pre-tool hook denies every agent write
-to all four, by file path and by shell command alike, with no exception. There is no approve command for
-an exception to be carved out of, which is why the rule states in one sentence and has nowhere for a
-bypass to live.
+No tool places them. A tool produces what belongs in them — `sdlc draft approval`, `draft abandon`,
+`draft constraint`, `draft profile` — and a person puts it there: a gate decision by renaming the draft
+beside the ledger onto it, the other three by hand. The pre-tool hook denies every agent write to all
+four, by file path and by shell command alike and in every shell the host offers, with no exception.
+There is no approve command for an exception to be carved out of, which is why the rule states in one
+sentence and has nowhere for a bypass to live.
 
 **A blocking finding cannot be waived by any mechanism.** Not at the gate, not with a flag, not with a
 recorded override. It is answered, or the cycle does not advance.
@@ -211,7 +212,7 @@ the commands in one page that travels with the repository.
 
 ## Where it stands
 
-Version 0.9.0, iteration 4. The planning half is complete and exercised end to end: adoption, a cycle, the three
+Version 0.10.0, iteration 4. The planning half is complete and exercised end to end: adoption, a cycle, the three
 documents, interrogation rounds, a pasted approval, recorded evidence, a verification, the chain, and the
 landing decision.
 

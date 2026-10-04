@@ -169,21 +169,103 @@ public sealed class ApprovalTextTests
     }
 
     [TestMethod]
-    public async Task The_instructions_say_create_when_there_is_no_ledger_and_open_when_there_is()
+    public async Task A_revisit_carries_the_standing_decisions_forward_so_the_rename_loses_none()
     {
         using CycleWorkspace workspace = Ready();
 
         ApprovalText.Response first = await Print(workspace);
-        StringAssert.Contains(first.Instructions, "Create");
+        Assert.AreEqual(0, first.CarriesForward, "There is no ledger yet to carry anything forward.");
 
-        workspace.WriteApproval("changes_requested", reason: "needs more thought");
+        workspace.WriteApproval("changes_requested", reason: "needs more thought, and a comma");
 
         ApprovalText.Response second = await Print(workspace);
-        StringAssert.Contains(
-            second.Instructions,
-            "Open",
-            "A first entry is a file creation and a revisit is an edit; saying which is what keeps the "
-            + "flow from feeling inconsistent.");
+
+        Assert.AreEqual(
+            1,
+            second.CarriesForward,
+            "The ledger is append-only and the decision is placed by renaming the draft over it, so a "
+            + "draft that did not reproduce what stands would discard it on the rename.");
+
+        Result<ApprovalLedger> read = ApprovalLedger.Read(second.FileText!, "draft");
+
+        Assert.IsTrue(
+            read.IsSuccess,
+            "The draft does not parse: " + string.Join("; ", read.Errors.Select(e => e.Message)));
+
+        Assert.AreEqual(2, read.Value.Decisions.Count);
+        Assert.AreEqual(GateDecision.ChangesRequested, read.Value.Decisions[0].Decision);
+        Assert.AreEqual(GateDecision.Approved, read.Value.Decisions[1].Decision);
+
+        Assert.AreEqual(
+            "needs more thought, and a comma",
+            read.Value.Decisions[0].Reason,
+            "A reason is prose a person wrote. It is carried forward as bytes rather than re-emitted, "
+            + "because a YAML round trip is where punctuation becomes a different document.");
+    }
+
+    [TestMethod]
+    public async Task A_ledger_that_cannot_be_read_does_not_block_the_replacement_for_it()
+    {
+        using CycleWorkspace workspace = Ready();
+
+        // Exactly the file a mis-placed entry leaves: the header indented, the key under it not. It
+        // reads correctly and parses as nothing.
+        await File.WriteAllTextAsync(
+            workspace.Cycle.ApprovalPath,
+            string.Create(
+                CultureInfo.InvariantCulture,
+                $"---\n  cycle: {workspace.Cycle.Id}\n  framework_version: 1.0.0\ndecisions:\n  - decision: approved\n---\n"));
+
+        ApprovalText.Response text = await Print(workspace);
+
+        Assert.IsTrue(
+            text.MayApprove,
+            "The file a person writes is the file most likely to be malformed, so the command that "
+            + "replaces it has to survive one. " + text.Instructions);
+
+        Result<ApprovalLedger> read = ApprovalLedger.Read(text.FileText!, "draft");
+
+        Assert.IsTrue(read.IsSuccess, "The replacement does not parse either.");
+        Assert.AreEqual(
+            1,
+            read.Value.Decisions.Count,
+            "Nothing was carried forward from a file that will not parse: it is a failed paste rather "
+            + "than a decision somebody took.");
+
+        StringAssert.Contains(text.Instructions, "cannot be read");
+    }
+
+    [TestMethod]
+    public async Task The_draft_is_written_where_the_instructions_say_it_is()
+    {
+        using CycleWorkspace workspace = Ready();
+
+        using var gate = Gate.For(workspace.Root);
+
+        Result<ApprovalText.Response> result = await gate
+            .Send<WriteApprovalDraft.Command, ApprovalText.Response>(
+                new WriteApprovalDraft.Command(workspace.Cycle.Id, "Peter Almanzar"));
+
+        Assert.IsTrue(result.IsSuccess);
+
+        ApprovalText.Response text = result.Value;
+
+        Assert.AreEqual(
+            workspace.Cycle.ApprovalDraftPath("approved"),
+            text.DraftPath,
+            "The decision is in the name, so the rename names what is being recorded.");
+
+        Assert.IsTrue(File.Exists(text.DraftPath!), "Nothing was written for a person to rename.");
+
+        Assert.AreEqual(
+            text.FileText,
+            await File.ReadAllTextAsync(text.DraftPath!),
+            "What was shown and what is on disk have to be the same bytes, or the reader approved "
+            + "something other than what the rename puts in place.");
+
+        Assert.IsFalse(
+            File.Exists(workspace.Cycle.ApprovalPath),
+            "Drafting is not approving. Only the rename records a decision, and no command does it.");
     }
 
     [TestMethod]
@@ -195,7 +277,8 @@ public sealed class ApprovalTextTests
 
         StringAssert.Contains(rendered, "intent");
         StringAssert.Contains(rendered, "r1, clean");
-        StringAssert.Contains(rendered, "Paste this:");
+        StringAssert.Contains(rendered, "This file:");
+        StringAssert.Contains(rendered, "Rename it to record the decision:");
     }
 
     [TestMethod]
@@ -297,7 +380,7 @@ public sealed class ApprovalTextTests
         ApprovalText.Response text = await Print(workspace);
 
         StringAssert.Contains(
-            text.Instructions,
+            text.FileText,
             "framework_version: " + Cycle.FrameworkVersion,
             "The envelope requires the field on every artifact. A printed header that omitted it would "
             + "make a first entry the one file in the cycle that does not declare its format.");

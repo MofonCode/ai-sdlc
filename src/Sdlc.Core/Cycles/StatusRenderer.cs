@@ -37,6 +37,76 @@ public static class StatusRenderer
     private const int Width = 92;
 
     /// <summary>
+    /// Renders the four lines a person wants between stages.
+    /// </summary>
+    /// <remarks>
+    /// <para>A renderer argument rather than a second query, which is the same reason
+    /// <c>constraints --brief</c> is one: there is one answer about where a cycle has got to, and two
+    /// queries for it would eventually disagree.</para>
+    /// <para><strong>It ends with the same next command as the full panel, computed by the same
+    /// method.</strong> A short form that worked out the next step for itself would be a second opinion
+    /// on the only line people copy.</para>
+    /// </remarks>
+    /// <param name="status">The cycle's state.</param>
+    /// <param name="panel">The artifact the stage just finished, with its outline.</param>
+    /// <returns>The rendered panel, ending in a newline.</returns>
+    public static string RenderBrief(ReadCycleStatus.Response status, StagePanel panel)
+    {
+        ArgumentNullException.ThrowIfNull(status);
+        ArgumentNullException.ThrowIfNull(panel);
+
+        StringBuilder output = new();
+        ReadCycleStatus.ArtifactState state = panel.State;
+
+        // Verify counts too. Omitting it made this say "suggestions 4" above a line pointing at
+        // 'sdlc suggestions', which lists five -- the panel disagreeing with the command it sends
+        // people to. A verification's own interrogation raises real findings and they are still open.
+        IEnumerable<ReadCycleStatus.ArtifactState> counted = status.Verify is { } verify
+            ? [.. status.Artifacts, verify]
+            : status.Artifacts;
+
+        int blockers = counted.Sum(artifact => artifact.OpenBlockers.Count);
+        int suggestions = counted.Sum(artifact => artifact.OpenSuggestions.Count);
+
+        output.AppendLine(string.Create(
+            CultureInfo.InvariantCulture,
+            $"{Indent}{status.Cycle.Id}   {Cycle.NameOf(state.Kind)}   {Round(state)}   blockers {blockers}   suggestions {suggestions}   gate {Gate(status)}"));
+
+        output.AppendLine();
+
+        Field(output, "Says", panel.Outline.Headline ?? "(no heading yet)");
+
+        if (suggestions > 0)
+        {
+            Field(output, "Open", string.Create(
+                CultureInfo.InvariantCulture,
+                $"{Count(suggestions, "suggestion"),-44}sdlc suggestions {status.Cycle.Id}"));
+        }
+
+        Next(output, status, state);
+
+        return output.ToString();
+    }
+
+    /// <summary>The round state, as the full panel's right-hand column says it.</summary>
+    private static string Round(ReadCycleStatus.ArtifactState state) => state.Rounds == 0
+        ? "not interrogated"
+        : string.Create(CultureInfo.InvariantCulture, $"r{state.LatestRound} {Count(state.OpenBlockers.Count)}");
+
+    /// <summary>The gate in one word, for the counter line.</summary>
+    private static string Gate(ReadCycleStatus.Response status) => status.Gate.Refusal switch
+    {
+        ApprovalGate.GateRefusal.None => "approved",
+        ApprovalGate.GateRefusal.NotApproved => "not approved",
+        ApprovalGate.GateRefusal.UnreadableLedger => "unreadable",
+        ApprovalGate.GateRefusal.OpenBlocker => "blocked",
+        ApprovalGate.GateRefusal.HashMismatch => "stale hash",
+        ApprovalGate.GateRefusal.StaleRound => "stale round",
+        ApprovalGate.GateRefusal.Abandoned => "abandoned",
+        _ => "refused",
+    };
+
+    /// <summary>
     /// Renders the panel for one stage.
     /// </summary>
     /// <param name="status">The cycle's state.</param>

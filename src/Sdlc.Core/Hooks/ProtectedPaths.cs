@@ -199,9 +199,14 @@ public static class ProtectedPaths
         // The redirections and the commands that create, move or edit a file. A shell has more ways
         // than this, which is why the shell rule is a fast local layer and the pipeline check is the
         // guarantee.
+        // PowerShell's verbs are listed in full rather than left to the bare words beside them: "move "
+        // and "copy " carry a trailing space, so neither matches Move-Item or Copy-Item, and on Windows
+        // those are the commands somebody actually reaches for. A rename is the move that matters most
+        // now that a decision is placed by renaming a draft onto the ledger.
         string[] writeIndicators =
         [
-            ">", ">>", "tee", "cp ", "copy ", "mv ", "move ", "rm ", "del ", "Remove-Item",
+            ">", ">>", "tee", "cp ", "copy ", "mv ", "move ", "rm ", "del ", "ren ", "rename ",
+            "Remove-Item", "Move-Item", "Rename-Item", "Copy-Item", "Set-Item",
             "Set-Content", "Add-Content", "Out-File", "New-Item", "sed -i", "touch ",
             "git mv", "git checkout", "git restore",
         ];

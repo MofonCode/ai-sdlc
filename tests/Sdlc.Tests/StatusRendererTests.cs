@@ -359,11 +359,96 @@ public sealed class StatusRendererTests
             "The continuation lost the item's indent. " + panel);
     }
 
+    [TestMethod]
+    public async Task The_brief_panel_counts_the_blockers_and_the_suggestions_on_one_line()
+    {
+        using var workspace = CycleWorkspace.Create();
+        workspace.WriteAllArtifacts();
+        workspace.WriteCleanRound(ArtifactKind.Intent);
+        workspace.WriteRound(
+            ArtifactKind.Spec,
+            round: 1,
+            findings: """
+              {
+                "id": "F_01",
+                "severity": "blocking",
+                "disposition": "open",
+                "cites": "CON_06",
+                "statement": "a check that can pass while the criterion is unmet.",
+                "locus": "criterion 5",
+                "remedy": "say what makes the second value a face."
+              },
+              {
+                "id": "F_02",
+                "severity": "suggestion",
+                "disposition": "open",
+                "statement": "worth doing and nothing forbids it."
+              },
+              {
+                "id": "F_03",
+                "severity": "suggestion",
+                "disposition": "open",
+                "statement": "also worth doing."
+              }
+              """);
+
+        string panel = await RenderBrief(workspace, ArtifactKind.Spec);
+
+        StringAssert.Contains(panel, "20260929_1456_32");
+        StringAssert.Contains(panel, "spec");
+        StringAssert.Contains(panel, "blockers 1");
+        StringAssert.Contains(
+            panel,
+            "suggestions 2",
+            "The count a person asked for after every stage. A suggestion is not a blocker and is still "
+            + "work somebody noticed.");
+    }
+
+    [TestMethod]
+    public async Task The_brief_panel_ends_with_the_same_next_command_as_the_full_one()
+    {
+        // A short form that worked the next step out for itself would be a second opinion on the one
+        // line people copy.
+        using var workspace = CycleWorkspace.Create();
+        workspace.WriteAllArtifacts();
+        workspace.WriteCleanRound(ArtifactKind.Spec);
+
+        string full = await Render(workspace, ArtifactKind.Spec);
+        string brief = await RenderBrief(workspace, ArtifactKind.Spec);
+
+        string command = full
+            .Split('\n')
+            .First(candidate => candidate.Contains("Next", StringComparison.Ordinal))
+            .Replace("Next", string.Empty, StringComparison.Ordinal)
+            .Trim();
+
+        StringAssert.Contains(brief, command);
+    }
+
+    [TestMethod]
+    public async Task The_brief_panel_stays_within_a_handful_of_lines()
+    {
+        // The whole point of it. A short form that grew would be the full panel with less in it.
+        using var workspace = CycleWorkspace.Create();
+        workspace.WriteAllArtifacts();
+        workspace.WriteCleanRound(ArtifactKind.Spec);
+
+        string brief = await RenderBrief(workspace, ArtifactKind.Spec);
+
+        int lines = brief.ReplaceLineEndings("\n").TrimEnd('\n').Split('\n').Length;
+
+        Assert.IsTrue(lines <= 8, $"The brief panel grew to {lines} lines:\n{brief}");
+    }
+
+    private static Task<string> RenderBrief(CycleWorkspace workspace, ArtifactKind kind) =>
+        Render(workspace, kind, brief: true);
+
     private static async Task<string> Render(
         CycleWorkspace workspace,
         ArtifactKind kind,
         bool shape = false,
-        ArtifactValidation? shapeResult = null)
+        ArtifactValidation? shapeResult = null,
+        bool brief = false)
     {
         using var gate = Gate.For(workspace.Root);
 
@@ -382,6 +467,10 @@ public sealed class StatusRendererTests
                 workspace.Cycle.Id)
             : null);
 
-        return StatusRenderer.RenderStage(read.Value, new StagePanel(state, outline, checked_shape));
+        StagePanel panel = new(state, outline, checked_shape);
+
+        return brief
+            ? StatusRenderer.RenderBrief(read.Value, panel)
+            : StatusRenderer.RenderStage(read.Value, panel);
     }
 }

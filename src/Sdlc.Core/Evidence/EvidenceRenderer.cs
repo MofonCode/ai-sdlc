@@ -46,6 +46,23 @@ public static class EvidenceRenderer
                 CultureInfo.InvariantCulture,
                 $"{Indent}Tests     {summary.Passed} passed, {summary.Failed} failed, {summary.Skipped} not run"));
 
+            // Said every time, including for one. A summary built from one results file while the run
+            // produced two is how a verification adjudicates against half a suite and reports nothing
+            // unusual -- so the count that would have shown it is on the page whether or not it is news.
+            output.AppendLine(string.Create(
+                CultureInfo.InvariantCulture,
+                $"{Indent}          {Count(summary.Tests.Count, "result")} from {Count(report.TestSources.Count, "results file")}"));
+
+            foreach (string source in report.TestSources)
+            {
+                output.AppendLine(Indent + "    " + source);
+            }
+
+            output.AppendLine();
+            output.AppendLine(Indent + "          Every test project a run covers writes its own results file. If a project");
+            output.AppendLine(Indent + "          is missing from that list, its tests are missing from the summary a");
+            output.AppendLine(Indent + "          verification reads -- point --tests at the directory holding them all.");
+
             foreach (RecordedTest failure in summary.Tests.Where(test => test.Outcome == TestOutcome.Failed))
             {
                 output.AppendLine(Indent + "    " + failure.Name);

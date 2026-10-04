@@ -30,6 +30,53 @@ It refuses for four reasons, and each is final rather than advisory:
 **Do not land past a refusal.** The chain-broken one in particular: the pull-request check would refuse
 it anyway, so pushing would cost a round trip through CI to learn what you were just told.
 
+## First: is there anywhere to push?
+
+```
+sdlc doctor
+git remote -v
+```
+
+`.sdlc/solution.md` records the platform. **If it says `local`, or `git remote -v` prints nothing, stop
+before pushing** — there is nowhere to push and nothing to open a pull request against. This is the one
+refusal that is not about the cycle: the work may be perfectly landable and have no destination.
+
+Say so, and offer to set one up. Walk the person through it rather than running it for them — creating a
+repository under somebody's account is theirs to do:
+
+**GitHub**
+
+```
+gh repo create <name> --private --source . --remote origin
+git push -u origin <default branch>
+```
+
+**Azure DevOps**
+
+```
+az repos create --name <name> --project <project>
+git remote add origin <the remoteUrl it prints>
+git push -u origin <default branch>
+```
+
+**Then the part that matters, and it is not optional:** a remote alone installs no guarantee. `init` wrote
+no pipeline for a local solution, so after the remote exists a person re-runs adoption to get one:
+
+```
+sdlc init --platform github
+sdlc init --platform azure-devops
+```
+
+That writes the pull-request check and updates the recorded platform. Then **tell them to make the check
+required in branch policy** — a pipeline that runs and is not required is a pipeline a merge can ignore,
+and that is the difference between the guarantee and a green tick. `sdlc doctor` marks that part
+`elsewhere` because no binary can confirm it.
+
+**A local cycle can still be built, verified and committed.** Only landing needs a remote. What it does
+not have is the pull-request check, which `CONCEPT.md` §13 calls the only non-bypassable layer — the
+pre-push hook is local and `--no-verify` walks past it. Say that plainly rather than letting somebody
+believe a local cycle is governed to the same standard.
+
 ## Push and open the pull request
 
 ```
@@ -68,7 +115,7 @@ check means, that is the honest answer.
 ## Sweeping
 
 ```
-sdlc landable --all
+sdlc cycles --landable
 ```
 
 It lists **every** cycle and what each one is, not only the ones it would land. Show that list verbatim
