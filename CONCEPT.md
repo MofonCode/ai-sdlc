@@ -449,6 +449,12 @@ the cycle, so a carried finding is distinguishable from a new one, and the lates
 one says where it has got to. A per-artifact summary — highest round, count of open blockers — is
 what the gate reads.
 
+**A disposition moves off `open` only on a fresh reader's silence** (D-49). The reader judges the
+document in front of it and has no history; the round records that an earlier finding it did not raise
+is now `answered` — or `withdrawn`, where the objection was dropped rather than answered. A finding the
+reader raises again stays open whatever anyone says about it, and so does one nobody can place in
+either case. This is the only exit from a blocking finding, because D-27 removes every other one.
+
 **How many rounds is the owner's call, and there is no cap.** The panel reports what each round found
 and the cost of a round, and attaches no recommendation about continuing.
 
@@ -1545,7 +1551,7 @@ Ids are a monotonic sequence of their own, separate from `CON_nn`: a constraint 
 decision explains the framework. Assigned once, never reused. **A reversed decision is superseded by
 a new id rather than edited**, so a commit citing `D-14` still means what it meant.
 
-**This is reference material, not reading.** Forty-eight entries and about half this document, so the
+**This is reference material, not reading.** Forty-nine entries and about half this document, so the
 way in is a lookup rather than the top. `AGENTS.md` carries the two commands; in short, a section's
 trailing `(D-nn)` marker answers "what constrains this", and an entry's `Governs` answers the reverse.
 **Read `Rejected` first when proposing something** — it is where the alternative you are reaching for
@@ -3135,3 +3141,65 @@ defect.
   `reference/iteration-3-cycle/`; a reader of a findings file wants them whether or not the gate does.
   `DispositionBy` and `DispositionAt` are the live edge of that: §7 says disposition transitions carry
   who and when, and no skill asks for either field, so the gap is in the skill rather than the record.
+
+### D-49 — A blocking finding is cleared by a fresh reader's silence, never by the author's claim
+
+**Governs:** §6.1
+
+**Decision.** A finding leaves `open` when the next round's fresh reader, judging the current document,
+does not raise it: `answered` where the document changed to address it, `withdrawn` where it was dropped
+because the objection was wrong. A finding the reader raises again stays open. A finding nobody can
+place in either case stays open. The round records the transition because it holds the history; the
+reader's silence is the evidence, and the reader is never asked for a disposition.
+
+**Why this needed deciding at all.** §6.1 said a disposition exists, what its three values mean, and
+that the latest round mentioning a finding says where it has got to. It never said what moves one — and
+no skill said either. `interrogate` documented the silence rule in one direction only, that a round
+mentioning nothing about a finding has not answered it, which is correct and is half a mechanism.
+`refine` correctly refused to touch a round file. So nothing anywhere told any round to write
+`answered`, and `answered` is the only exit D-27 leaves open.
+
+**What it cost, which is how it was found.** `reference/iteration-3-cycle/` is the worked example this
+repository tells people to calibrate against, and it carries three blocking findings — one each on the
+intent, the spec and the plan — raised in round one, answered in the documents, and never recorded as
+answered. Rebuilt inside a governed solution and put to the current binary, its intent panel reads
+`round 2 - 1 blocking` with `r1: 1 blocking - r2: clean` beside it. The cycle completed in anger and
+could not pass today's gate. A record that only accumulates objections is not a record of a cycle.
+
+**Why the reader's silence rather than the refiner's report.** The refiner is the session that may have
+written the document, and a disposition it could set on its own reading is a blocker an author clears by
+asserting it is cleared — the one inversion the whole interrogate-refine split exists to prevent (D-01,
+D-29). Silence from a reader with no stake is weaker evidence than an explicit verdict and it is the
+strongest available, because a reader that was asked "is F_01 answered?" would have been told F_01
+exists, which is the investment bias the fresh process was bought to remove.
+
+**Why the refiner's report still matters.** It is what distinguishes `answered` from `withdrawn`, which
+reader silence alone cannot: both look like a reader not objecting, and the difference is whether the
+document changed for that finding. So `refine` names every id it was given in three groups — changed,
+disagreed-with, or asked — and a report that omits an id leaves the next round unable to place it, which
+by the rule above means it stays open.
+
+**Why unsure stays open.** The two failure directions are not symmetrical. A finding wrongly left open
+stops a build and somebody reads it and acts; a finding wrongly cleared is a blocker that stopped
+existing with nothing recording that it ever did. The second is the shape this framework refuses, so
+ambiguity resolves to the expensive side.
+
+**Rejected.**
+
+- *Letting the refiner set dispositions* — rejected above, and it is the reach somebody has when a
+  blocker will not clear. It would make the author the judge of its own corrections, which is the one
+  thing the fresh process is for.
+- *Letting a person waive a blocker at the gate* — rejected by D-27 and not reopened here. The gate is
+  the place a person accepts three documents, not the place an objection to them is dismissed. The
+  recovery path for a cycle that cannot answer a finding is abandonment or a recorded reopen, both of
+  which leave a record.
+- *Treating a round's silence about a finding as clearing it* — rejected, and this is the rule that was
+  already right. A round that forgot to mention an objection and one that cleared it would be the same
+  file, so the cheapest possible mistake would read as the strongest possible outcome.
+- *Having the fresh reader report dispositions directly* — rejected. Giving it the earlier findings to
+  disposition would hand it the ids, the statements and the history, which is most of the context the
+  new process was opened to withhold. It judges the document; the round does the bookkeeping.
+- *A counter or a flag on the cycle recording "blockers answered"* — rejected for the reason D-27's own
+  entry gives about waivers, and the reason `RemediationBudget` counts rounds rather than keeping a
+  tally: a count kept beside the thing it counts can disagree with it, and the cheap one to forge is the
+  one that would be trusted.

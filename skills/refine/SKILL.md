@@ -73,15 +73,30 @@ every time the artifact is read, and it is what a reviewer meets at the gate.
 
 ## Update the dispositions
 
-A finding you answered moves to `answered` in the **next** round, written by the next interrogation —
-not by you editing the round file. Rounds accumulate and are never rewritten; a round you edited
-stops being the record of what was challenged.
+**You do not.** A finding you answered moves to `answered` in the **next** round, written by the next
+interrogation — not by you editing the round file. Rounds accumulate and are never rewritten; a round
+you edited stops being the record of what was challenged.
 
-What you do record is what changed, in your report.
+What you record is what changed, in your report — and that report is not a courtesy. The next round
+cannot tell a finding you *answered* from one you *disagreed with* by looking at the document, and
+those become different dispositions: `answered` for one, `withdrawn` for the other. Your report is
+where that distinction comes from, so a report that omits an id leaves the next round unable to clear
+it, and a blocker nobody clears refuses the build.
 
 ## Report
 
-Say, per finding: its id, which exit it took, and what you did. Then:
+Say, per finding: its id, which exit it took, and what you did.
+
+**Name every id you were given, including the ones you did not change.** Three groups, because the
+next round reads them differently:
+
+| | What it means for the next round |
+|---|---|
+| ids you changed the document for — `healed` or `assumed` | candidates for `answered` |
+| ids you disagreed with and left alone, with the reason | candidates for `withdrawn` |
+| ids you could not proceed on — `asked` | recorded in `## Open`, and you stop and ask |
+
+Then:
 
 ```
 sdlc status <id> --stage <artifact>

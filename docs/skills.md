@@ -152,6 +152,12 @@ Rounds accumulate and are never rewritten. A finding keeps its id across rounds,
 `upstream_sha256` — the hash of the artifact above it, as the reader saw it. That is what makes a stale
 judgement detectable when an upstream document is edited afterwards.
 
+**It is also the only place a blocking finding can be cleared.** The round records that an earlier
+finding this reader did not raise is now `answered`, or `withdrawn` where the objection was dropped
+rather than answered. A finding the reader raises again stays open, and so does one that cannot be
+placed in either case — the reader's silence is the evidence, and the authoring session's opinion of its
+own corrections is not. `CONCEPT.md` D-49 has the reasoning, and D-27 is why there is no other exit.
+
 ### `refine`
 
 **Applies an artifact's findings to that artifact. Edits one planning document and nothing else, and
@@ -163,6 +169,11 @@ its own corrections.
 It may disagree with a finding — not every finding is right. What it may not do is answer one by making
 the artifact vaguer, which is the single move that removes a problem from the page while leaving the
 belief in it. "Fourteen seconds" becoming "slow" is not a fix.
+
+It never touches a findings round. What it does instead is **report every id it was given**, saying for
+each whether it changed the document or disagreed and left it alone — because the next round cannot tell
+those apart by reading the artifact, and they become different dispositions. An id left out of the
+report is one the next round cannot place, and by D-49 an unplaceable finding stays open.
 
 Every finding ends in exactly one of three exits, and there is no fourth: **healed** (the artifact
 changes), **assumed** (recorded in the decisions region, marked unconfirmed), **asked** (recorded in

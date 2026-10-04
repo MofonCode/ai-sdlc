@@ -111,7 +111,8 @@ status panel would report three problems where there is one.
 
 **Every finding gets a `disposition`.** `open` when outstanding. A round that mentions nothing about a
 finding has not answered it — the fold reads the latest round that *mentions* an id, so silence
-carries it forward unchanged, which is correct.
+carries it forward unchanged, which is correct. **Which means a finding that has been dealt with has
+to be mentioned, and said to be dealt with.** The next section is how.
 
 **`upstream_sha256` is the canonical hash of the artifact above, as you just read it.** Omit it only
 for an intent, which has no upstream. This is what makes a stale judgement detectable: the approval's
@@ -122,6 +123,57 @@ round with no upstream recorded counts as stale, so leaving it out does not skip
 The canonical hash is CRLF normalised to LF, trailing whitespace stripped per line, one closing
 newline. `sdlc status <id>` prints the first twelve characters of each document's hash if you need to
 check your arithmetic.
+
+## How a finding stops blocking
+
+**This is the only way out of a blocking finding, and the round you are writing is the only place it
+can happen.** A blocker cannot be waived at the gate, with a flag, or by a person deciding it is
+fine — `CONCEPT.md` D-27. So a round that is written after the document was fixed, and says nothing
+about the finding that prompted the fix, leaves the cycle unable to pass its own gate with nothing
+explaining why. That has happened: it is why the reference cycle in this repository carries three
+blocking findings that were answered in the document and never recorded as answered.
+
+The fresh reader does not decide this and is not asked to. It judges the document in front of it and
+reports what it objects to; it has no history and no ids from earlier rounds. **You hold the history,
+so you record the transitions** — and the reader's silence is the evidence:
+
+| An earlier finding the reader | becomes | because |
+|---|---|---|
+| did **not** raise, and the document changed to address it | `answered` | a reader with no stake read the new text and did not object |
+| did **not** raise, and the document did not change for it | `withdrawn` | it was dropped rather than answered — the objection was wrong |
+| raised again | stays `open` | whatever anyone says it was, it still stands |
+| did not raise, and you cannot tell which of the first two | stays `open` | a finding you are unsure about is not one you may clear |
+
+**The last row is the rule, not a fallback.** You are the session that may have written the document.
+Marking a finding answered on your own reading of it is the one inversion this whole skill exists to
+prevent, so the only thing that clears a blocker is a fresh reader not raising it.
+
+Which of the first two applies comes from `refine`'s report: it says, per finding, whether it changed
+the document (`healed` or `assumed`) or disagreed and left the artifact alone. If you are running the
+loop you have that report. If you are not, the diff since the previous round answers it.
+
+A round that answers something therefore carries both: what the reader just found, and the earlier
+findings whose disposition moved.
+
+```json
+{
+  "round": 2,
+  "findings": [
+    { "id": "F_01", "severity": "blocking", "disposition": "answered", "cites": "CON_02",
+      "statement": "<as round 1 stated it, unchanged>" },
+    { "id": "F_03", "severity": "suggestion", "disposition": "open",
+      "statement": "<what this reader found>" }
+  ]
+}
+```
+
+**Carry the statement across unchanged.** The id and the statement are what round one said; this
+round is saying where that objection has got to, not restating it in your own words. A round whose
+`F_01` says something different from round one's `F_01` makes the history unreadable.
+
+**An empty `findings` array still means a clean reading, and it clears nothing.** If round one raised
+a blocker and round two is empty, that blocker is still open and still refuses the build — which is
+what makes the distinction above worth getting right rather than a formality.
 
 ## Then report, and stop
 
