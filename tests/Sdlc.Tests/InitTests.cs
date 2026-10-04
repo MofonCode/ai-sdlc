@@ -1207,10 +1207,95 @@ public sealed class InitTests
         StringAssert.Contains(document.Errors[0].Message, "github, azure-devops or local");
     }
 
+    [TestMethod]
+    public async Task Re_running_init_with_a_new_platform_prints_the_key_for_a_person_to_place()
+    {
+        // The whole point of the local platform: adopt with no remote, come back when there is one.
+        // That return trip wrote the pipeline and nothing else -- the platform never entered the
+        // calculation, so the record stayed local, doctor kept reporting that no check governs a merge
+        // while the check sat on disk, and the land skill kept refusing a cycle that had somewhere to go.
+        using var solution = Scratch.Create();
+        await Adopt(solution, tracked: [], platform: Platform.Local);
+
+        Initialise.Response report = await Adopt(solution, tracked: [], platform: Platform.GitHub);
+
+        Assert.AreEqual(Initialise.InitMode.Update, report.Mode);
+        Assert.IsTrue(report.PlatformPending, "The record disagrees with what was asked for.");
+        Assert.AreEqual(
+            Platform.Local,
+            report.Platform,
+            "What the document still says. Reporting the wanted value would claim a migration that has "
+            + "not happened.");
+
+        Assert.IsTrue(
+            File.Exists(Path.Combine(solution.Root, ".github", "workflows", "sdlc-verify.yml")),
+            "The half it can do, it still does.");
+
+        string keys = report.Printed[Path.Combine(Cycle.SdlcDirectoryName, Cycle.SolutionFileName)];
+
+        StringAssert.Contains(keys, "platform: github", "The block carries the platform being moved to.");
+        StringAssert.Contains(keys, "profile: dotnet-default", "All four keys, never the one that moved.");
+        StringAssert.Contains(keys, "origin: scaffolded");
+        StringAssert.Contains(keys, "standard: profile");
+
+        string rendered = InitRenderer.Render(report);
+
+        StringAssert.Contains(
+            rendered,
+            "platform: local",
+            "A reader has to be told which value is still standing.");
+    }
+
+    [TestMethod]
+    public async Task Re_running_init_without_a_platform_proposes_no_migration()
+    {
+        // The trap the fix had to avoid. --platform defaults to github, so a re-run to pick up a new
+        // template would otherwise propose migrating a deliberately local solution onto a platform
+        // nobody asked for -- and the key block is pasted by a person, who would be pasting a
+        // reclassification they never requested. Absent has to mean "keep what is recorded".
+        using var solution = Scratch.Create();
+        await Adopt(solution, tracked: [], platform: Platform.Local);
+
+        Initialise.Response report = await Adopt(solution, tracked: [], platform: null);
+
+        Assert.IsFalse(report.PlatformPending, "Saying nothing is not asking for github.");
+        Assert.AreEqual(Platform.Local, report.Platform);
+        Assert.IsFalse(
+            report.Printed.ContainsKey(Path.Combine(Cycle.SdlcDirectoryName, Cycle.SolutionFileName)),
+            "Nothing is pending, so nothing is printed to paste.");
+
+        Assert.IsFalse(
+            Directory.Exists(Path.Combine(solution.Root, ".github", "workflows")),
+            "And the pipeline still follows the recorded platform rather than the flag's default.");
+    }
+
+    [TestMethod]
+    public async Task A_first_adoption_that_says_nothing_still_records_github()
+    {
+        // The documented default, unchanged. On a first adoption "did not say" and "github" do coincide,
+        // and only there.
+        using var solution = Scratch.Create();
+
+        Initialise.Response report = await Adopt(solution, tracked: [], platform: null);
+
+        Assert.IsFalse(report.PlatformPending);
+        Assert.AreEqual(Platform.GitHub, report.Platform);
+
+        Result<SolutionDocument> document = await SolutionDocument
+            .ReadFile(solution.Root, CancellationToken.None);
+
+        Assert.AreEqual(Platform.GitHub, document.Value.Platform);
+        Assert.IsTrue(File.Exists(Path.Combine(
+            solution.Root,
+            ".github",
+            "workflows",
+            "sdlc-verify.yml")));
+    }
+
     private static async Task<Initialise.Response> Adopt(
         Scratch solution,
         IReadOnlyList<string> tracked,
-        Platform platform = Platform.GitHub,
+        Platform? platform = Platform.GitHub,
         bool adoptStandard = false)
     {
         using Gate gate = Adopter(solution, new FakeRepository { Tracked = tracked });

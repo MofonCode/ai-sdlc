@@ -90,13 +90,29 @@ public static class Initialise
     /// created and never modified, so the stack files are written and the key is printed for a person to
     /// place -- and until they do, <see cref="Standard"/> is what every plan is held to.
     /// </param>
+    /// <param name="PlatformPending">
+    /// Whether <c>--platform</c> asked for a platform the recorded document does not say. The same one
+    /// path as <see cref="StandardPending"/>, and kept separate from it because the consequence differs:
+    /// a pending standard means plans are held to the surrounding code, a pending platform means the
+    /// pipeline is on disk and nothing knows it governs the merge. Both were once invisible -- the
+    /// platform did not enter the calculation at all, so re-running init wrote the pipeline and printed
+    /// nothing, and the recorded platform stayed <c>local</c> forever.
+    /// </param>
+    /// <param name="Platform">
+    /// What the solution document says, or will say, about where the code lives. The counterpart to
+    /// <see cref="Standard"/>, and here for the same reason: a reader told a key is pending has to be
+    /// told which value is still standing, and a renderer that assumed one would be wrong in every
+    /// direction but the common one.
+    /// </param>
     public sealed record Response(
         InitMode Mode,
         SolutionOrigin Origin,
         SolutionStandard Standard,
         IReadOnlyList<InitAction> Actions,
         IReadOnlyDictionary<string, string> Printed,
-        bool StandardPending = false)
+        bool StandardPending = false,
+        bool PlatformPending = false,
+        Platform Platform = Platform.GitHub)
     {
         /// <summary>The paths that were written, for the commit to stage.</summary>
         public IReadOnlyList<string> Written =>
@@ -109,14 +125,20 @@ public static class Initialise
 
     /// <summary>Adopts the framework into a repository.</summary>
     /// <param name="Profile">The profile that will govern the solution.</param>
-    /// <param name="Platform">Where the code lives, which decides the pipeline.</param>
+    /// <param name="Platform">
+    /// Where the code lives, which decides the pipeline. <strong>Null means the caller did not say</strong>,
+    /// which is not the same as saying <c>github</c>: on a first adoption the two coincide, but on a
+    /// repository already governed they are opposites. Absent has to mean "keep what is recorded", or
+    /// re-running init to pick up a template would propose migrating a deliberately local solution onto
+    /// a platform nobody asked for.
+    /// </param>
     /// <param name="AdoptStandard">
     /// Whether an existing codebase is opting in to the profile's conventions for its new work. It
     /// writes the stack files an adopted solution otherwise never gets, and records
     /// <c>standard: profile</c>. Nothing on a scaffolded solution, which is on the profile's standard
     /// already.
     /// </param>
-    public sealed record Command(string Profile, Platform Platform, bool AdoptStandard = false)
+    public sealed record Command(string Profile, Platform? Platform = null, bool AdoptStandard = false)
         : IRequest<Response>;
 
     /// <summary>
@@ -212,7 +234,20 @@ public static class Initialise
                 : recorded?.Standard ?? SolutionDocument.DefaultFor(origin);
 
             SolutionStandard standard = recorded?.Standard ?? wanted;
-            bool pending = standard != wanted;
+
+            // The platform the same way, and it used to not be. `pending` was computed from the standard
+            // alone, so re-running init with a new platform wrote the pipeline and left the recorded
+            // platform untouched with nothing printed -- which contradicts what --platform's own help
+            // says, and left doctor reporting "no pull-request check governs a merge" after the check
+            // existed and the land skill refusing a cycle that had somewhere to go. A document that has
+            // gone stale against the repository, with nothing to notice: the same defect as a verify
+            // document outliving its evidence.
+            Platform wantedPlatform = request.Platform ?? recorded?.Platform ?? Platform.GitHub;
+            Platform platform = recorded?.Platform ?? wantedPlatform;
+
+            bool standardPending = standard != wanted;
+            bool platformPending = platform != wantedPlatform;
+            bool pending = standardPending || platformPending;
 
             List<InitAction> actions = [];
             Dictionary<string, string> printed = new(StringComparer.Ordinal);
@@ -223,7 +258,7 @@ public static class Initialise
             // invoking this command unable to destroy anything a person wrote.
             await Protected(
                 document,
-                Templates.Solution(request.Profile, origin, standard, request.Platform),
+                Templates.Solution(request.Profile, origin, standard, wantedPlatform),
                 actions,
                 cancellationToken).ConfigureAwait(false);
 
@@ -235,7 +270,7 @@ public static class Initialise
                 // that silently reclassifies a solution is the platform.
                 printed[document] = string.Join(
                     Environment.NewLine,
-                    SolutionDocument.Keys(recorded!.Profile, origin, wanted, recorded.Platform))
+                    SolutionDocument.Keys(recorded!.Profile, origin, wanted, wantedPlatform))
                     + Environment.NewLine;
             }
 
@@ -304,16 +339,16 @@ public static class Initialise
             // nothing -- which is the exact failure D-32 names about an unrun pipeline. What replaces it
             // is the record in solution.md, so doctor can say the guarantee is not installed instead of
             // reporting a broken install.
-            if (request.Platform == Platform.Local)
+            if (wantedPlatform == Platform.Local)
             {
                 // Nothing to write. The report names what is not installed, which is said out loud in
                 // InitRenderer rather than left for somebody to notice.
             }
-            else if (request.Platform == Platform.GitHub)
+            else if (wantedPlatform == Platform.GitHub)
             {
                 await Owned(
-                    PipelinePath(request.Platform),
-                    Templates.Pipeline(request.Platform),
+                    PipelinePath(wantedPlatform),
+                    Templates.Pipeline(wantedPlatform),
                     actions,
                     cancellationToken).ConfigureAwait(false);
 
@@ -322,8 +357,8 @@ public static class Initialise
             else
             {
                 await Introduced(
-                    PipelinePath(request.Platform),
-                    Templates.Pipeline(request.Platform),
+                    PipelinePath(wantedPlatform),
+                    Templates.Pipeline(wantedPlatform),
                     "one already exists, and it is this repository's own CI rather than the framework's to replace. Nothing verifies a chain until this step runs in a pipeline",
                     actions,
                     printed,
@@ -369,7 +404,15 @@ public static class Initialise
 
             await Agents(actions, printed, cancellationToken).ConfigureAwait(false);
 
-            return Result.Ok(new Response(mode, origin, standard, actions, printed, pending));
+            return Result.Ok(new Response(
+                mode,
+                origin,
+                standard,
+                actions,
+                printed,
+                standardPending,
+                platformPending,
+                platform));
         }
 
         /// <summary>Where a platform's pull-request pipeline goes.</summary>

@@ -101,7 +101,7 @@ public static class InitRenderer
     /// <param name="path">The path the block belongs at.</param>
     /// <returns>The sentence that follows the path.</returns>
     private static string Preamble(Initialise.Response report, string path) =>
-        report.StandardPending
+        (report.StandardPending || report.PlatformPending)
         && path.Replace('\\', '/').EndsWith(Cycle.SdlcDirectoryName + "/" + Cycle.SolutionFileName, StringComparison.Ordinal)
             ? "already exists, and only a person writes it. Replace its four frontmatter keys with these:"
             : "was not written. Here is what belongs in it, to merge by hand:";
@@ -149,6 +149,19 @@ public static class InitRenderer
                     $"person writes it, so it still says standard: {SolutionDocument.NameOf(report.Standard)} and every plan is still held to"),
                 "the surrounding code. Place the block above and the two agree again; until then this is",
                 "the one state where the files on disk and the rule a plan reads disagree.",
+            ]);
+        }
+
+        if (report.PlatformPending)
+        {
+            lines.AddRange([
+                string.Empty,
+                "The pipeline is written and the record is not. .sdlc/solution.md already exists and only",
+                string.Create(
+                    CultureInfo.InvariantCulture,
+                    $"a person writes it, so it still says platform: {SolutionDocument.NameOf(report.Platform)}. While it does, doctor"),
+                "reports which guarantee is installed from the record rather than from disk, and the land",
+                "skill reads the same key before it pushes. Place the block above and they agree again.",
             ]);
         }
 

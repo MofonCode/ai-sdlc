@@ -91,6 +91,17 @@ internal static class Usage
                                      init with a platform once there is a remote; the land skill
                                      walks through creating one.
 
+                                     On a repository already governed, re-running writes the
+                                     pipeline and prints the solution.md keys for a person to
+                                     place, because that file is protected. Until they are placed
+                                     the record still says the old platform, and doctor and land
+                                     both read the record.
+
+                                     Omitting the option is not the same as passing github: on a
+                                     governed repository it means keep what is recorded, so a
+                                     re-run to pick up a new template never proposes moving a
+                                     local solution onto a platform nobody asked for.
+
         Options for hook
             --event <name>           Which moment: pre-tool-use or turn-end. Defaults to
                                      pre-tool-use. Each host's own name for a moment is accepted

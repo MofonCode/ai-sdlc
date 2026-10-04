@@ -107,7 +107,7 @@ static async Task<int> Init(Workspace workspace, CommandLine line)
 {
     string profile = line.TryOption("profile", out string? named) ? named : "dotnet-default";
 
-    if (!TryPlatform(line, out Platform platform, out string? complaint))
+    if (!TryPlatform(line, out Platform? platform, out string? complaint))
     {
         await Console.Error.WriteLineAsync(complaint).ConfigureAwait(false);
         return ExitCode.Usage;
@@ -178,12 +178,15 @@ static async Task<int> ScaffoldSolution(Workspace workspace, CycleId id)
     return ExitCode.Ok;
 }
 
+// Null when the option is absent, which is the whole point: on a repository already governed, "keep what
+// is recorded" and "github" are different answers, and returning the default for both is what let a
+// re-run write a pipeline while the recorded platform stayed local with nothing printed.
 static bool TryPlatform(
     CommandLine line,
-    out Platform platform,
+    out Platform? platform,
     [NotNullWhen(false)] out string? complaint)
 {
-    platform = Platform.GitHub;
+    platform = null;
     complaint = null;
 
     if (!line.TryOption("platform", out string? named))

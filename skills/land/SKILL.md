@@ -67,7 +67,13 @@ sdlc init --platform github
 sdlc init --platform azure-devops
 ```
 
-That writes the pull-request check and updates the recorded platform. Then **tell them to make the check
+That writes the pull-request check, and **prints the four `solution.md` keys for the person to place** —
+it cannot write them itself, because that file is one of the four only a person writes. Until they are
+pasted the record still says `platform: local`, so `doctor` still reports no check governs a merge and
+this skill still stops at the question above. Hand over what `init` printed and say it is the step that
+finishes the migration.
+
+Then **tell them to make the check
 required in branch policy** — a pipeline that runs and is not required is a pipeline a merge can ignore,
 and that is the difference between the guarantee and a green tick. `sdlc doctor` marks that part
 `elsewhere` because no binary can confirm it.
