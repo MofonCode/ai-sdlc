@@ -228,11 +228,21 @@ What is honest to say about the rest:
   every skill satisfies the Agent Skills specification. What is **not** established: nobody has run
   `copilot plugin marketplace add` against this repository and watched the skills load. Treat the Copilot
   path as untried in the same way the Azure DevOps pipeline is.
-- **Off Claude Code a skill is chosen, not named.** There is no `/sdlc:spec` on Copilot — it matches a
-  request against a skill's `description` and asks before activating. So the stages have to
+- **The Antigravity adapter has never been run either, and two of its gaps are the host's.** Its tool
+  calls are conformance-tested against Google's hooks reference and adoption writes the `sdlc` section of
+  `.agents/hooks.json` — but no session there has had a call refused. Beyond that: **its turn end is not
+  governed at all**, because its `Stop` payload carries no flag saying the agent is already continuing
+  and a refusal without one is an endless turn (D-51); its workspace configuration loads only in a folder
+  marked trusted, so on a fresh clone the local layer is off until somebody marks it; and its skills
+  arrive through `agy plugin install` rather than Agent Plugins, which is a different manifest schema that
+  nobody has validated.
+- **Off Claude Code a skill is chosen, not named.** There is no `/sdlc:spec` on Copilot or Antigravity —
+  they match a request against a skill's `description` and ask before activating. So the stages have to
   be asked for in prose, and the two Claude-specific frontmatter fields (`argument-hint`, and
   `allowed-tools` in Claude's own syntax) do nothing there, which costs a permission prompt per command
   rather than correctness.
+- **The binary is not on a feed.** Installing means cloning this repository and packing it — eight steps
+  where two would do, and the single thing that would most improve a teammate's first hour.
 - **The Azure DevOps pipeline has never run against a real server, by decision.** It is one file and one
   command, the failure is loud, and nothing else depends on it — so it ships with a note saying so in the
   generated file itself, where the first person to adopt on Azure DevOps will read it. `CONCEPT.md` D-32

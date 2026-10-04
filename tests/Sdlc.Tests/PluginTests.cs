@@ -919,11 +919,23 @@ public sealed class PluginTests
         string readme = File.ReadAllText(Path.Combine(Root, "README.md"));
 
         StringAssert.Contains(readme, "Where it stands");
-        StringAssert.Contains(
-            readme,
+
+        // One per host the table claims and nobody has run. A host added to SupportedHosts without a
+        // line here would be a readme that reads as three working hosts, which is the claim this
+        // whole section exists to stop the project making. Claude Code is absent on purpose: it is
+        // the host the framework is developed and exercised on.
+        foreach (string gap in (string[])
+        [
             "The Copilot install has never been run",
-            "The known gap has to be in the readme, not only in a commit message. A package that "
-            + "conforms to a standard is not the same claim as a package somebody installed.");
+            "The Antigravity adapter has never been run",
+        ])
+        {
+            StringAssert.Contains(
+                readme,
+                gap,
+                "The known gap has to be in the readme, not only in a commit message. A package that "
+                + "conforms to a standard is not the same claim as a package somebody installed.");
+        }
     }
 
     [TestMethod]
