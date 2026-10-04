@@ -35,6 +35,13 @@ clone. Both are named with who to ask.
 sdlc init
 ```
 
+In a repository that already holds code, one option is worth knowing before you run it:
+`--adopt-standard` holds new work to the profile's conventions rather than to the code already there. It
+writes the stack files an adopted solution otherwise never gets — `.editorconfig`, both props files,
+`global.json` — and records `standard: profile`. It overwrites nothing and migrates nothing; the cost is
+that `Directory.Build.props` makes warnings errors, so the next build can fail on files nobody has
+touched. `sdlc help` has the whole of it.
+
 Then, in your agent: `/sdlc:init` for the half a command cannot do — the interview about what matters in
 this solution, and the `LOC_` rules it proposes.
 

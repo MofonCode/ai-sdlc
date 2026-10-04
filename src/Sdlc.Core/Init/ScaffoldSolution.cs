@@ -73,10 +73,14 @@ public static class ScaffoldSolution
                 return read.ToResult<Response>();
             }
 
-            // An adopted solution keeps its own shape. The profile proposes a shape for new work and
-            // never imposes one on a codebase that predates it, which is the whole of what origin
-            // decides -- and a skeleton written into a repository that already has one is noise at
-            // best and a second competing layout at worst.
+            // An adopted solution keeps its own shape. A skeleton written into a repository that
+            // already has one is noise at best and a second competing layout at worst.
+            //
+            // Origin rather than standard, and deliberately: this asks whether the repository already
+            // has a layout, which is a fact about where the code came from. --adopt-standard says which
+            // conventions new work follows and does not conjure an absent solution file, four projects
+            // and a reference slice into a codebase that has its own -- so a solution on
+            // standard: profile is still refused here, and the refusal below is still the right advice.
             if (read.Value.Origin != SolutionOrigin.Scaffolded)
             {
                 return Result.Fail<Response>(

@@ -212,7 +212,7 @@ public static class Diagnose
                     CheckOutcome.Sound,
                     string.Create(
                         CultureInfo.InvariantCulture,
-                        $"profile {document.Value.Profile}, origin {SolutionDocument.NameOf(document.Value.Origin)}, platform {SolutionDocument.NameOf(document.Value.Platform)}"));
+                        $"profile {document.Value.Profile}, origin {SolutionDocument.NameOf(document.Value.Origin)}, standard {SolutionDocument.NameOf(document.Value.Standard)}, platform {SolutionDocument.NameOf(document.Value.Platform)}"));
         }
 
         /// <summary>

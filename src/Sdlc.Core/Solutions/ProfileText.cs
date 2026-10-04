@@ -76,35 +76,35 @@ public static class ProfileText
             }
 
             // Every key is printed, not only the one that changes. The origin is a historical fact that
-            // must never move, and the platform decides whether a pull-request check governs the merge --
-            // both are things a hand-edit over a partial block would drop, and dropping the platform would
-            // silently reclassify a local solution as GitHub and have doctor report a broken install.
+            // must never move, the standard decides which conventions new work follows, and the platform
+            // decides whether a pull-request check governs the merge -- all three are things a hand-edit
+            // over a partial block would drop, and dropping the platform would silently reclassify a local
+            // solution as GitHub and have doctor report a broken install. From SolutionDocument.Keys, so
+            // the block cannot come to differ from the one adoption writes.
             string entry = string.Join(
                 Environment.NewLine,
-                [
-                    string.Create(CultureInfo.InvariantCulture, $"profile: {wanted}"),
-                    string.Create(
-                        CultureInfo.InvariantCulture,
-                        $"origin: {SolutionDocument.NameOf(document.Origin)}"),
-                    string.Create(
-                        CultureInfo.InvariantCulture,
-                        $"platform: {SolutionDocument.NameOf(document.Platform)}"),
-                ]) + Environment.NewLine;
+                SolutionDocument.Keys(wanted, document.Origin, document.Standard, document.Platform))
+                + Environment.NewLine;
 
             string instructions = string.Join(
                 Environment.NewLine,
                 [
                     string.Create(
                         CultureInfo.InvariantCulture,
-                        $"Open {path} and replace its three frontmatter keys with the lines above."),
+                        $"Open {path} and replace its four frontmatter keys with the lines above."),
                     string.Empty,
                     string.Create(
                         CultureInfo.InvariantCulture,
-                        $"The profile moves from '{document.Profile}' to '{wanted}'. The other two do not change,"),
-                    "and the origin must not: it says where this code came from, which decides whether a",
-                    "profile's defaults bind or the existing standard wins. The platform decides whether a",
-                    "pull-request check governs a merge at all. Both are printed above so a hand-edit has the",
-                    "whole block rather than one line of it.",
+                        $"The profile moves from '{document.Profile}' to '{wanted}'. The other three do not change,"),
+                    "and the origin must not: it says where this code came from, and it is a historical fact.",
+                    "The standard says which conventions new work follows -- the profile's, or those of the",
+                    "code already here -- and the platform decides whether a pull-request check governs a",
+                    "merge at all. All three are printed above so a hand-edit has the whole block rather than",
+                    "one line of it.",
+                    string.Empty,
+                    "To change the standard as well, edit that key while you are in there: 'profile' holds new",
+                    "work to the profile's conventions, 'existing' to the surrounding code. Moving it to",
+                    "'profile' wants the stack files too, which 'sdlc init --adopt-standard' writes.",
                     string.Empty,
                     "A different profile resolves a different set of PRO_ constraints and templates, so run",
                     "'sdlc constraints' afterwards to see what now applies.",

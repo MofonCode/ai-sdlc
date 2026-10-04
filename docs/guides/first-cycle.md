@@ -33,7 +33,7 @@ What lands:
 
 | | |
 |---|---|
-| `.sdlc/solution.md` | what this solution is and which profile governs it. **A person's file** |
+| `.sdlc/solution.md` | what this solution is, which profile governs it, and which conventions new work follows. **A person's file** |
 | `.sdlc/techstack.md` | the stack, for a session that has not read the code |
 | `.sdlc/README.md` | the whole flow in one page, inside the solution |
 | `.sdlc/hooks/pre-push` | written, **not installed**. See below |
@@ -50,8 +50,8 @@ is written to it and the entries are printed for you to place. On Azure DevOps t
 so an existing one is printed rather than replaced. Nothing verifies a chain until it is in a pipeline
 that runs, and `init` says so.
 
-And, in **greenfield** mode only, the files that decide how code is written here — the profile's defaults,
-yours to amend:
+And the files that decide how code is written here — the profile's defaults, yours to amend. In
+**greenfield** mode always, and in **onboard** only if you asked with `--adopt-standard`:
 
 | | |
 |---|---|
@@ -61,8 +61,18 @@ yours to amend:
 | `global.json` | the SDK, and the test runner without which the suite silently does not run |
 | `tests/Directory.Build.props` | the six rules relaxed for test code, each with its reason |
 
-An **onboard** gets none of them: the profile proposes a shape for new work and never rewrites the
-conventions of a codebase that predates it.
+An **onboard** gets none of them by default: the profile proposes a shape for new work and does not
+rewrite the conventions of a codebase that predates it. `sdlc init --adopt-standard` is how you say you
+want them anyway, and it is a decision rather than a default — `Directory.Build.props` makes warnings
+errors, so the next build can fail on files nobody has touched. Narrow a severity or scope a rule to a
+directory when it does; each of these is created once and never rewritten, so your amendments survive
+every later run. A file you already had is kept rather than replaced.
+
+It records the choice as `standard: profile` in `solution.md`, which is what every plan reads to know
+whether to match the surrounding code or the profile. The `origin` stays `adopted` either way — where
+this code came from is a fact, not a preference. On a repository that is already governed the flag writes
+the files and prints that key block for you to place by hand, because `solution.md` is one of the four
+files only a person writes.
 
 **No code lands, and no projects.** Adoption writes what governs code and stops there. The solution file,
 the projects, the architecture tests and the reference slice arrive in your first cycle, behind an intent,

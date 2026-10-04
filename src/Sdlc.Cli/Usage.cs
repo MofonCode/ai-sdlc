@@ -64,6 +64,23 @@ internal static class Usage
 
         Options for init
             --profile <name>         Which profile governs the solution. Default: dotnet-default.
+            --adopt-standard         Hold this solution's new work to the profile's conventions, in a
+                                     repository that existed first. Writes the stack files an adopted
+                                     solution otherwise never gets -- .editorconfig, the two props
+                                     files, global.json -- and records standard: profile.
+
+                                     A person's decision rather than a default, because it applies a
+                                     convention to code that never agreed to one:
+                                     Directory.Build.props makes warnings errors, so the next build
+                                     can fail on files nobody has touched. Nothing is overwritten --
+                                     a file the repository already had is kept -- and the code
+                                     already there is not migrated by this. A cycle does that.
+
+                                     Nothing on a scaffolded solution, which is on the profile's
+                                     standard already. On a repository already governed, the stack
+                                     files are written and the solution.md key is printed for a
+                                     person to place, because that file is protected.
+
             --platform <name>        Where the code lives: github, azure-devops, or local for a
                                      repository with no remote yet. Default: github.
 

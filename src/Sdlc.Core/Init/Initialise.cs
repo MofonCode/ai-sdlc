@@ -81,13 +81,22 @@ public static class Initialise
     /// <summary>What adoption did.</summary>
     /// <param name="Mode">Which mode ran.</param>
     /// <param name="Origin">What the solution's origin was decided to be.</param>
+    /// <param name="Standard">What the solution document says, or will say, about the standard.</param>
     /// <param name="Actions">Every file touched or deliberately left, in writing order.</param>
     /// <param name="Printed">File contents that were not written, keyed by the path they belong at.</param>
+    /// <param name="StandardPending">
+    /// Whether <c>--adopt-standard</c> asked for a standard the recorded document does not say. True on
+    /// exactly one path: the flag against a <c>solution.md</c> that already exists. Protected files are
+    /// created and never modified, so the stack files are written and the key is printed for a person to
+    /// place -- and until they do, <see cref="Standard"/> is what every plan is held to.
+    /// </param>
     public sealed record Response(
         InitMode Mode,
         SolutionOrigin Origin,
+        SolutionStandard Standard,
         IReadOnlyList<InitAction> Actions,
-        IReadOnlyDictionary<string, string> Printed)
+        IReadOnlyDictionary<string, string> Printed,
+        bool StandardPending = false)
     {
         /// <summary>The paths that were written, for the commit to stage.</summary>
         public IReadOnlyList<string> Written =>
@@ -101,10 +110,17 @@ public static class Initialise
     /// <summary>Adopts the framework into a repository.</summary>
     /// <param name="Profile">The profile that will govern the solution.</param>
     /// <param name="Platform">Where the code lives, which decides the pipeline.</param>
-    public sealed record Command(string Profile, Platform Platform) : IRequest<Response>;
+    /// <param name="AdoptStandard">
+    /// Whether an existing codebase is opting in to the profile's conventions for its new work. It
+    /// writes the stack files an adopted solution otherwise never gets, and records
+    /// <c>standard: profile</c>. Nothing on a scaffolded solution, which is on the profile's standard
+    /// already.
+    /// </param>
+    public sealed record Command(string Profile, Platform Platform, bool AdoptStandard = false)
+        : IRequest<Response>;
 
     /// <summary>
-    /// The files that decide how code is written here, written into a scaffolded solution only.
+    /// The files that decide how code is written here, written where the profile's standard is in force.
     /// </summary>
     /// <remarks>
     /// <strong>Exposed because something else needs the same list, and a second copy of it is how
@@ -114,10 +130,16 @@ public static class Initialise
     /// agreed. A sixth file added here would have left CI green and the real thing broken, which is
     /// the failure the harness exists to prevent, one level up. F-22.
     /// <para>
-    /// An adopted repository gets none of them: the profile proposes a shape for new work and never
-    /// rewrites the conventions of a codebase that predates it. Each is created once and never
-    /// rewritten, update included -- they are a person's to amend, and a cycle that changes one is a
-    /// cycle like any other.
+    /// An adopted repository gets none of them unless it asks: the profile proposes a shape for new work
+    /// and does not rewrite the conventions of a codebase that predates it. <c>--adopt-standard</c> is
+    /// that asking, and it is a person's decision rather than a default, because these files apply a
+    /// convention to code that never agreed to one -- <c>Directory.Build.props</c> makes warnings errors,
+    /// so the next build can fail on files nobody has touched. D-56.
+    /// </para>
+    /// <para>
+    /// Each is created once and never rewritten, update included -- they are a person's to amend, and a
+    /// cycle that changes one is a cycle like any other. Which is also what keeps the opt-in from
+    /// overwriting anything: an <c>.editorconfig</c> the repository already had is kept.
     /// </para>
     /// </remarks>
     /// <returns>Each file's path relative to the solution root, and its contents.</returns>
@@ -177,18 +199,45 @@ public static class Initialise
 
             string sdlc = Path.Combine(solution.Path, Cycle.SdlcDirectoryName);
             InitMode mode = Mode(sdlc);
-            SolutionOrigin origin = await Origin(mode, cancellationToken).ConfigureAwait(false);
+            SolutionDocument? recorded = await Recorded(mode, cancellationToken).ConfigureAwait(false);
+            SolutionOrigin origin = recorded?.Origin ?? Decided(mode);
+
+            // What this run asks for, and what the file will actually say. The two differ on exactly one
+            // path -- the flag against a solution.md that already exists -- because the document is
+            // protected and adoption creates it without ever rewriting it. There, the stack files are
+            // written and the key is printed for a person to place, which is the same arrangement every
+            // other protected file has rather than a special case for this one. D-56.
+            SolutionStandard wanted = request.AdoptStandard
+                ? SolutionStandard.Profile
+                : recorded?.Standard ?? SolutionDocument.DefaultFor(origin);
+
+            SolutionStandard standard = recorded?.Standard ?? wanted;
+            bool pending = standard != wanted;
 
             List<InitAction> actions = [];
             Dictionary<string, string> printed = new(StringComparer.Ordinal);
 
+            string document = Path.Combine(Cycle.SdlcDirectoryName, Cycle.SolutionFileName);
+
             // Protected files are created and never modified, which is the one rule that makes an agent
             // invoking this command unable to destroy anything a person wrote.
             await Protected(
-                Path.Combine(Cycle.SdlcDirectoryName, Cycle.SolutionFileName),
-                Templates.Solution(request.Profile, origin, request.Platform),
+                document,
+                Templates.Solution(request.Profile, origin, standard, request.Platform),
                 actions,
                 cancellationToken).ConfigureAwait(false);
+
+            if (pending)
+            {
+                // The whole key block, not the one line that changes, and the recorded profile and
+                // platform rather than this run's -- the same reason draft profile prints all four. A
+                // person pasting a partial block loses whichever key was left out of it, and the one
+                // that silently reclassifies a solution is the platform.
+                printed[document] = string.Join(
+                    Environment.NewLine,
+                    SolutionDocument.Keys(recorded!.Profile, origin, wanted, recorded.Platform))
+                    + Environment.NewLine;
+            }
 
             // techstack.md is owned by a cycle whose plan declares it, not by the framework, so adoption
             // creates it once and then leaves it alone.
@@ -281,10 +330,19 @@ public static class Initialise
                     cancellationToken).ConfigureAwait(false);
             }
 
-            // The stack files, and only into a solution being shaped. An adopted repository keeps its
-            // own conventions: the profile proposes a shape for new work and never rewrites one that
-            // predates it, and shipping these with a baseline of an existing solution's violations is
-            // the non-goal that constraints already answer by carrying no baseline field.
+            // The stack files, and only where the profile's standard is the one in force. That is every
+            // scaffolded solution, and an adopted one whose team asked with --adopt-standard. An adopted
+            // solution that has not asked keeps its own conventions, because the profile proposes a shape
+            // for new work and does not rewrite one that predates it.
+            //
+            // Keyed on what this run asks for rather than on what the document records, so the flag does
+            // something on an update -- which is where a migration is actually decided, months after
+            // adoption. The cost is the one state the renderer has to say out loud: the files are here
+            // and the recorded key still says otherwise until a person places it.
+            //
+            // This is not a baseline. Nothing is marked forgiven and no existing violation is recorded --
+            // the files declare what new work follows, and the warnings they raise on old code are the
+            // cost of the opt-in, carried by whoever opted in.
             //
             // Written by the binary rather than restored from a package -- D-33. Adoption has to work
             // with no feed configured and no network, because a default profile that needed a restore
@@ -292,7 +350,7 @@ public static class Initialise
             //
             // Created once and never rewritten, including by update. These are a person's to amend, and
             // a cycle that changes one is a cycle like any other.
-            if (origin == SolutionOrigin.Scaffolded)
+            if (wanted == SolutionStandard.Profile)
             {
                 foreach ((string path, string contents) in StackFiles())
                 {
@@ -311,7 +369,7 @@ public static class Initialise
 
             await Agents(actions, printed, cancellationToken).ConfigureAwait(false);
 
-            return Result.Ok(new Response(mode, origin, actions, printed));
+            return Result.Ok(new Response(mode, origin, standard, actions, printed, pending));
         }
 
         /// <summary>Where a platform's pull-request pipeline goes.</summary>
@@ -366,32 +424,44 @@ public static class Initialise
         }
 
         /// <summary>
-        /// What the solution's origin is.
+        /// The solution document as it stands, when there is a readable one.
         /// </summary>
         /// <remarks>
-        /// Read from the existing document wherever there is one, and decided only when the file is being
-        /// written for the first time. Recomputing it would turn a historical fact into something that moves:
-        /// a scaffolded solution would read as adopted the moment it had code in it, which is every solution
-        /// after its first cycle.
+        /// The whole document rather than the one key this used to read, because two keys now come from it
+        /// and a third and fourth are needed to print a replacement block. Reading it twice would be two
+        /// chances to disagree with itself.
         /// <para>
-        /// A repository with a framework directory but no solution document falls through to the fresh
-        /// decision, which is right -- there is nothing to preserve, and the alternative is a tool that cannot
+        /// Null for a repository with a framework directory and no readable document, which falls through
+        /// to the fresh decision -- there is nothing to preserve, and the alternative is a tool that cannot
         /// repair the one file everything else resolves through.
         /// </para>
         /// </remarks>
-        private async Task<SolutionOrigin> Origin(InitMode mode, CancellationToken cancellationToken)
+        private async Task<SolutionDocument?> Recorded(InitMode mode, CancellationToken cancellationToken)
         {
             if (mode == InitMode.Greenfield)
             {
-                return SolutionOrigin.Scaffolded;
+                return null;
             }
 
             Result<SolutionDocument> existing = await SolutionDocument
                 .ReadFile(solution.Path, cancellationToken)
                 .ConfigureAwait(false);
 
-            return existing.IsSuccess ? existing.Value.Origin : SolutionOrigin.Adopted;
+            return existing.IsSuccess ? existing.Value : null;
         }
+
+        /// <summary>
+        /// What the origin is when nothing has recorded one yet.
+        /// </summary>
+        /// <remarks>
+        /// Only ever consulted for a document that does not exist. A recorded origin always wins, because
+        /// recomputing it would turn a historical fact into something that moves: a scaffolded solution
+        /// would read as adopted the moment it had code in it, which is every solution after its first
+        /// cycle.
+        /// </remarks>
+        private static SolutionOrigin Decided(InitMode mode) => mode == InitMode.Greenfield
+            ? SolutionOrigin.Scaffolded
+            : SolutionOrigin.Adopted;
 
         private async Task Protected(
             string relative,

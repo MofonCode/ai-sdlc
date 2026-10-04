@@ -53,10 +53,24 @@ You may depart from anything. A default that cannot be departed from is a cage, 
 genuinely unsuitable case would see the whole file ignored. What is forbidden is departing in
 silence, because then the stack file and the codebase disagree and only the diff knows.
 
-**If the solution's origin is `adopted`, the existing standard wins.** Check `.sdlc/solution.md`. A
-profile proposes a shape for new work; it does not rewrite the conventions of a codebase that
-predates it. In an adopted solution, matching the surrounding code is the default and *departing
-toward the profile* is the thing that needs saying.
+**Which standard wins is `standard` in `.sdlc/solution.md`, not `origin`.** Read that key.
+
+| `standard` | The default for new work | What needs saying |
+|---|---|---|
+| `existing` | match the surrounding code | departing *toward* the profile |
+| `profile` | the profile's patterns | departing *from* them |
+
+`existing` is where an adopted solution starts: a profile proposes a shape for new work and does not
+rewrite the conventions of a codebase that predates it. `profile` is where a scaffolded one starts, and
+where an adopted one arrives when its team opted in with `sdlc init --adopt-standard`.
+
+**If the key is absent, derive it from `origin`** — `scaffolded` means `profile`, `adopted` means
+`existing`. That is what the framework decided on origin alone before the key existed, so an older
+solution reads exactly as it already behaved.
+
+**Neither value says anything about the code already there.** Constraints govern the change, and
+`standard: profile` is not a finding against every file that predates it. Migrating existing code is its
+own cycle, with its own intent and approval, like any other work.
 
 ## Make the proof adequate
 

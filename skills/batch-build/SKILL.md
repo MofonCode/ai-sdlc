@@ -80,13 +80,15 @@ setting it where nothing reads it is nothing.
 |---|---|---|
 | host ports | stable | dynamic |
 | container names | stable | `{app}-{SDLC_RUN_ID}` |
+| container group | solution name | `{solution}-{SDLC_RUN_ID}` |
 | volumes | persistent, named | ephemeral, or named per run |
 | databases | persistent | named per run |
 | dashboard, OTLP endpoint | on | off |
 
 **Named volumes are a worse collision than ports.** Two concurrent app hosts calling `WithDataVolume()`
 share one volume — the same database files, two writers — and that fails strangely rather than loudly.
-The run id belongs on container names, volume names and database names, not only on ports.
+The run id belongs on container names, volume names, database names and the container group, not
+only on ports.
 
 **If this solution has no AppHost, nothing reads these and the table constrains nothing** — which is
 the state every solution starts in. The cap above is then the only thing keeping concurrent runs apart,

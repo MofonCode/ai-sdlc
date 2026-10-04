@@ -11,9 +11,9 @@ namespace Sdlc.Core.Solutions;
 
 /// <summary>Where a governed solution's code came from.</summary>
 /// <remarks>
-/// This decides whether a profile's defaults bind. A scaffolded solution takes the profile's patterns;
-/// in an adopted one the existing standard wins, because the profile proposes a shape for new work and
-/// does not rewrite the conventions of a codebase that predates it.
+/// A historical fact, and the one key that must never change. It decided whether a profile's defaults
+/// bind until <see cref="SolutionStandard"/> existed, and now it only decides what that key means when
+/// it is absent: a scaffolded solution starts on the profile's patterns, an adopted one on its own.
 /// </remarks>
 public enum SolutionOrigin
 {
@@ -24,13 +24,35 @@ public enum SolutionOrigin
     Adopted,
 }
 
+/// <summary>Which code standard this solution's new work is held to.</summary>
+/// <remarks>
+/// Separate from <see cref="SolutionOrigin"/> because the two answer different questions and only one of
+/// them is allowed to move. The origin is where the code came from, and it is a historical fact. The
+/// standard is a decision a team is entitled to revisit, and an adopted solution that has decided to
+/// migrate needs somewhere to say so.
+/// <para>
+/// Deriving it from the origin is what the framework did before this key existed, and it left no way to
+/// opt in: a team that wanted the profile's conventions had the origin saying the surrounding code wins
+/// for the life of the repository. D-56.
+/// </para>
+/// </remarks>
+public enum SolutionStandard
+{
+    /// <summary>The surrounding code wins. What an adopted solution starts as.</summary>
+    Existing,
+
+    /// <summary>The profile's patterns win, and a plan departing from them has to say why.</summary>
+    Profile,
+}
+
 /// <summary>
 /// What a solution is, which profile governs it, and where it is pushed.
 /// </summary>
 /// <remarks>
-/// <para>Three keys and no more. There is deliberately no baseline field: constraints govern a change
+/// <para>Four keys and no more. There is deliberately no baseline field: constraints govern a change
 /// rather than code that predates adoption, so an existing repository is not in violation on its first
-/// day and has nothing to record as forgiven.</para>
+/// day and has nothing to record as forgiven. <c>standard</c> is not one either -- it says which
+/// conventions new work follows, and nothing at all about the code already there.</para>
 /// <para><strong><c>platform</c> is recorded rather than inferred, and that is the whole reason it is a
 /// key.</strong> A solution with no pipeline is either local by choice or a broken install, and nothing
 /// on disk tells those apart -- so <c>doctor</c> reported every local repository as missing the one check
@@ -40,12 +62,59 @@ public enum SolutionOrigin
 /// </remarks>
 /// <param name="Profile">The stack profile package that applies.</param>
 /// <param name="Origin">Where the code came from.</param>
+/// <param name="Standard">Which conventions this solution's new work follows.</param>
 /// <param name="Platform">Where it is pushed, and whether a pull-request check governs the merge.</param>
 public sealed record SolutionDocument(
     string Profile,
     SolutionOrigin Origin,
+    SolutionStandard Standard,
     Platform Platform = Platform.GitHub)
 {
+    /// <summary>
+    /// What the standard is when the key is absent.
+    /// </summary>
+    /// <remarks>
+    /// The origin decided this on its own before the key existed, so deriving the absent value from it
+    /// reads every solution adopted before now exactly as it already behaved. Defaulting to
+    /// <see cref="SolutionStandard.Profile"/> instead would hold a decade of existing code's successors
+    /// to conventions nobody chose, silently, on the next upgrade of the binary.
+    /// </remarks>
+    /// <param name="origin">Where the code came from.</param>
+    /// <returns>The standard that origin implies.</returns>
+    public static SolutionStandard DefaultFor(SolutionOrigin origin) => origin switch
+    {
+        SolutionOrigin.Scaffolded => SolutionStandard.Profile,
+        SolutionOrigin.Adopted => SolutionStandard.Existing,
+        _ => throw new ArgumentOutOfRangeException(nameof(origin)),
+    };
+
+    /// <summary>
+    /// The frontmatter keys, in the order the file carries them.
+    /// </summary>
+    /// <remarks>
+    /// <strong>One home for the block, because three callers write it and a key added to two of them is
+    /// a migration that silently does not take.</strong> Adoption writes it, <c>draft profile</c> prints
+    /// it for a hand-edit, and adoption prints it again when a flag asks for a standard the protected
+    /// file will not let it change. Each had its own list, with nothing asserting the three agreed --
+    /// the shape F-22 names, one level down.
+    /// </remarks>
+    /// <param name="profile">The profile package.</param>
+    /// <param name="origin">Where the code came from.</param>
+    /// <param name="standard">Which conventions new work follows.</param>
+    /// <param name="platform">Where it is pushed.</param>
+    /// <returns>One line per key, without the fences.</returns>
+    public static string[] Keys(
+        string profile,
+        SolutionOrigin origin,
+        SolutionStandard standard,
+        Platform platform) =>
+    [
+        "profile: " + profile,
+        "origin: " + NameOf(origin),
+        "standard: " + NameOf(standard),
+        "platform: " + NameOf(platform),
+    ];
+
     /// <summary>
     /// Reads a <c>solution.md</c>.
     /// </summary>
@@ -103,9 +172,18 @@ public sealed record SolutionDocument(
                 $"{source}: platform is '{shape?.Platform}'. Expected github, azure-devops or local.")));
         }
 
+        // Absent derives from the origin, which decided this alone before the key existed. A value
+        // nobody recognises still fails, for the reason a misspelt platform does.
+        if (!TryReadStandard(shape?.Standard, origin, out SolutionStandard standard))
+        {
+            errors.Add(new Error(string.Create(
+                CultureInfo.InvariantCulture,
+                $"{source}: standard is '{shape?.Standard}'. Expected existing or profile.")));
+        }
+
         return errors.Count > 0
             ? Result.Fail<SolutionDocument>(errors)
-            : Result.Ok(new SolutionDocument(shape!.Profile!.Trim(), origin, platform));
+            : Result.Ok(new SolutionDocument(shape!.Profile!.Trim(), origin, standard, platform));
     }
 
     /// <summary>
@@ -145,6 +223,16 @@ public sealed record SolutionDocument(
         SolutionOrigin.Scaffolded => "scaffolded",
         SolutionOrigin.Adopted => "adopted",
         _ => throw new ArgumentOutOfRangeException(nameof(origin)),
+    };
+
+    /// <summary>How a standard is written in the file.</summary>
+    /// <param name="standard">The standard.</param>
+    /// <returns>Its name.</returns>
+    public static string NameOf(SolutionStandard standard) => standard switch
+    {
+        SolutionStandard.Existing => "existing",
+        SolutionStandard.Profile => "profile",
+        _ => throw new ArgumentOutOfRangeException(nameof(standard)),
     };
 
     /// <summary>How a platform is written in the file.</summary>
@@ -193,6 +281,40 @@ public sealed record SolutionDocument(
         }
     }
 
+    /// <summary>
+    /// Reads the standard key, deriving its absence from the origin.
+    /// </summary>
+    /// <remarks>
+    /// Absent succeeds, on the same terms as <see cref="TryReadPlatform"/>: the key was added after
+    /// solutions had been adopted, and refusing to read a file written before it existed would make an
+    /// upgrade of the binary look like a corrupted repository.
+    /// </remarks>
+    /// <param name="text">The value, or null when the key is absent.</param>
+    /// <param name="origin">Where the code came from, which decides what absent means.</param>
+    /// <param name="standard">The standard read.</param>
+    /// <returns>True unless a value was given that is neither of the two.</returns>
+    private static bool TryReadStandard(string? text, SolutionOrigin origin, out SolutionStandard standard)
+    {
+        standard = DefaultFor(origin);
+
+        if (string.IsNullOrWhiteSpace(text))
+        {
+            return true;
+        }
+
+        switch (text.Trim())
+        {
+            case string existing when existing.Equals("existing", StringComparison.OrdinalIgnoreCase):
+                standard = SolutionStandard.Existing;
+                return true;
+            case string profile when profile.Equals("profile", StringComparison.OrdinalIgnoreCase):
+                standard = SolutionStandard.Profile;
+                return true;
+            default:
+                return false;
+        }
+    }
+
     private static bool TryReadOrigin(string? text, out SolutionOrigin origin)
     {
         origin = default;
@@ -224,6 +346,8 @@ public sealed record SolutionDocument(
         public string? Profile { get; set; }
 
         public string? Origin { get; set; }
+
+        public string? Standard { get; set; }
 
         public string? Platform { get; set; }
     }

@@ -720,16 +720,25 @@ default to bind adds a `LOC_` constraint or an architecture test.
 
 ### 8.3 `solution.md`
 
-Three keys.
+Four keys.
 
 | Key | What consumes it |
 |---|---|
 | `profile` | `init` and `plan`, to resolve which profile package applies |
 | `origin` | `intent`, to know whether "this repository holds no solution at all" is true |
+| `standard` | `plan`, to know whether new work follows the profile's conventions or the surrounding code's, and `init`, to know whether to write the stack files. Absent derives from `origin` (D-56) |
 | `platform` | `doctor`, to tell a local solution from a broken install, and `land`, to know whether there is anywhere to push. Absent reads as `github` (D-53) |
 
+**`origin` and `standard` are two keys because they answer two questions and only one of them may
+move.** Where the code came from is a historical fact. Which conventions its new work follows is a
+decision a team is entitled to revisit, and an adopted solution that wants the profile's conventions
+needs somewhere to say so — D-56. The origin did both jobs until then, which left the opt-in
+inexpressible: a team could want it and the file could only record that the code was old.
+
 There is deliberately no baseline field. Constraints govern the change, never code that predates
-adoption, so an existing repository is not in violation on its first day.
+adoption, so an existing repository is not in violation on its first day. **`standard: profile` is not
+a baseline either** — it declares what new work follows, marks nothing forgiven, and records no
+existing violation.
 
 ---
 
@@ -740,9 +749,17 @@ model-invoked. Three modes (D-28):
 
 | Mode | When | What it does |
 |---|---|---|
-| **greenfield** | a new solution | writes the governance and the stack settings, `origin: scaffolded` |
-| **onboard** | existing code, no `.sdlc/` | writes the governance only, `origin: adopted` |
+| **greenfield** | a new solution | writes the governance and the stack settings, `origin: scaffolded`, `standard: profile` |
+| **onboard** | existing code, no `.sdlc/` | writes the governance only, `origin: adopted`, `standard: existing` |
 | **update** | `.sdlc/` exists | refreshes only what the framework owns (D-40) |
+
+**`--adopt-standard` is how an onboarded solution asks for the stack settings anyway**, and it records
+`standard: profile` rather than touching the origin — D-56. It is a flag rather than a default because
+it applies a convention to code that never agreed to one: `Directory.Build.props` makes warnings
+errors, so the next build can fail on files nobody has touched. Nothing is overwritten, because each
+stack file is created once and never rewritten. On **update** the files are written and the key is
+printed for a person to place, since `solution.md` is protected — and the report says which half
+happened, because that is the one state where the files on disk and the rule a plan reads disagree.
 
 **`init` writes no code, and no projects** — D-35. A scaffolded solution gets the files that constrain
 how code is written (`.editorconfig`, the two props files, `global.json`), and every one of them
@@ -843,6 +860,7 @@ default profile (D-38). So this is a contract with the half the framework owns a
 |---|---|---|
 | host ports | stable, so a URL can be bookmarked | dynamic |
 | container names | stable | `{app}-{SDLC_RUN_ID}` |
+| container group | solution name, stable | `{solution}-{SDLC_RUN_ID}` |
 | volumes | persistent, named | ephemeral, or named per run |
 | dashboard and OTLP endpoint | on, fixed | off, or overridden per run |
 | databases | persistent | named per run |
@@ -852,12 +870,36 @@ default profile (D-38). So this is a contract with the half the framework owns a
 rather than loudly. So the run id belongs on container names, volume names and database names, not
 only on ports.
 
+**The group is two labels, and one of them is undocumented.** Docker Desktop draws containers as
+one collapsible row when they share `com.docker.compose.project`, which is what makes an app host's
+services read as a solution rather than as six unrelated containers. The label alone does nothing:
+Desktop recognises the set as a project only when `com.docker.compose.config-hash` is present too,
+and its value is never read — `not-a-hash-at-all` registers. `com.docker.compose.service` is worth
+setting as well, or the rows fall back to container names. No compose file has to exist.
+
+**The run id belongs on the group for the same reason it belongs on the volumes.** A group that
+stays the solution name under `batch` puts two concurrent app hosts in one row, so the developer
+who opens Docker Desktop to see what is running cannot tell which cycle owns which container — the
+collision the run id exists to prevent, reintroduced at the one place somebody actually looks.
+
+**Two costs, both named.** `config-hash` is a Compose internal nobody promised us: it is in no
+published label schema, and an app host setting it is really satisfying Docker Desktop's own
+recognition logic, which a Desktop release may change without deprecating. That one is benign — the
+containers stop grouping and nothing else moves. The second is not. Compose itself declines to act
+on a set it did not create, where `down` reports *"No resource found to remove"* and `stop` and
+`restart` are silent no-ops — but Docker Desktop's own group buttons bypass Compose and act on the
+containers directly, so the grouping hands a developer a one-click Delete that removes a running
+app host's containers without Aspire knowing. That is the right way round, because the button does
+what it says and an app host whose containers vanished fails visibly, but it is a thing the
+grouping buys rather than a thing it avoids.
+
 **Nothing reads either variable today, and that is a gap rather than a design.** The default profile
 ships no AppHost, so the collision above is unguarded until a solution builds one — and the first
 solution to do so is the first thing this table has ever constrained. What the framework does now is
 name the variables and export them, so that AppHost finds a contract instead of inventing
 `ASPNETCORE_ENVIRONMENT=Batch` and every other solution inventing something else. The names are the
 part worth having early; a count of solutions that agree on them is the part that cannot be had early.
+The group label is in the same position — named here, implemented by the first app host that exists.
 
 This section said *"Selected by an environment variable that `batch-build` sets"* and named no
 variable, while nothing anywhere set or read one. The warning above had nothing acting on it, which is
@@ -1011,16 +1053,22 @@ which only the judgement half may be a `PRO_nn` constraint.
 **No MediatR** — the kernel has a mediator, declared in `techstack.md` so an agent does not reach for
 it out of habit.
 
-**`origin` decides whether a default binds.** A `scaffolded` solution takes the profile's patterns; in
-an `adopted` solution **the existing standard wins.** The profile proposes a shape for new work and
-never rewrites the conventions of a codebase that predates it.
+**`standard` decides whether a default binds, and `origin` only decides what `standard` means when it
+is absent.** On `profile` a solution takes the profile's patterns; on `existing` **the surrounding code
+wins**, and the profile proposes a shape for new work without rewriting the conventions of a codebase
+that predates it. A scaffolded solution starts on `profile`, an adopted one on `existing`.
 
 That extends to what the profile *writes*: an `.editorconfig`, a `BannedSymbols.txt` and a fitness
-function are only written into a scaffolded solution. The alternative — shipping them with a baseline of
-the adopted solution's existing violations — is a non-goal (§18) for the same reason constraints carry
-no baseline field (§8.3): an existing repository is not in violation on its first day. A convention is
-nearly free to declare and expensive to apply to code that predates it, so the cost belongs with
-whoever plans the move rather than with adoption.
+function are written only where the standard is the profile's. An adopted solution gets them when its
+team asks, with `--adopt-standard`, and not otherwise — D-56.
+
+**What is still not done is a baseline**, which remains a non-goal (§18) for the same reason constraints
+carry no baseline field (§8.3): an existing repository is not in violation on its first day, and nothing
+anywhere records a violation as forgiven. A convention is nearly free to declare and expensive to apply
+to code that predates it, so the cost belongs with whoever asked for it rather than with adoption — and
+with the cycle that migrates the code, which is ordinary work with an intent and an approval. The opt-in
+buys the declaration and the warnings it raises on old code; it buys no sweep of that code, and the
+report says so.
 
 **The framework runs the bans it ships.** It did not, for a while, and nothing could see it: the profile
 shipped `BannedSymbols.txt` and this repository had no banned list at all, so the two drafters that stamp
@@ -1539,7 +1587,10 @@ block, then remediate, then exhaust the budget.
 - **Supporting ChatGPT as a host.**
 - **Plans detailed to the line.**
 - **A device end-to-end layer** — §11.2.
-- **Baselining existing problems at adoption.**
+- **Baselining existing problems at adoption.** `--adopt-standard` is not this: it writes the files
+  that declare a convention and records nothing as forgiven (D-56).
+- **Migrating existing code as part of adoption.** The opt-in declares the standard; a cycle moves the
+  code.
 
 ---
 
@@ -3523,3 +3574,81 @@ cannot fail, which is the vacuous success this framework spends most of its rule
 the registration says where a real check goes. *An HTTP test that boots the host and calls `/health`* —
 better evidence, and it needs a test host package the profile does not carry yet; the cycle that adds an
 integration layer should add it then rather than this one adding a package for one assertion.
+
+### D-55 — An app host groups its containers under one Compose project label, run id included
+
+**Governs:** §10.2
+
+**Decision.** A solution's AppHost labels every container it starts with `com.docker.compose.project`
+— the solution's name under `local`, `{solution}-{SDLC_RUN_ID}` under `batch` — plus
+`com.docker.compose.config-hash`, without which Docker Desktop does not recognise the set as a
+project, and `com.docker.compose.service`, without which the rows fall back to container names.
+§10.2 carries the row. Nothing in the framework implements it, which is the arrangement the run-mode
+variables already have and for the same reason.
+
+**Why this was measured rather than reasoned.** The project label alone was tried first and does not
+work: four containers sharing it stayed flat in Docker Desktop 4.49.0. A real three-service Compose
+stack ran as the control, and a hand-labelled imitation was indistinguishable from it in the
+container list — which is what established that `config-hash` is the missing piece, that its value is
+opaque, and that no compose file has to exist on disk. A decision written from the project label
+alone would have been wrong in the direction that looks right: the containers would have stayed
+ungrouped while this page said they were grouped, which is the shape of enforcement §2.1 is written
+against.
+
+**Rejected.** *Shipping an AppHost template to carry the labels* — F-24 and D-38 stand: an AppHost is
+conditional (§11.1), and a scaffold that wrote one would either give every solution a host it does
+not need or make `Scaffold.Files` conditional for the first time, which is a large change to buy a
+label. *A `PRO_nn` on `dotnet-default`* — a constraint needs an artifact to judge and no profile
+ships an AppHost, so the rule would bind nothing while sitting on the page looking enforced.
+*Setting `com.docker.compose.project.config_files`* — optional, buys no grouping, and its only effect
+is to silence a `docker compose ls` warning; pointing a contract at a deliberately absent file to
+quiet a CLI costs more in the reading than the warning costs in the using.
+
+### D-56 — A fourth key records the standard, and an adopted solution can opt in to the profile's
+
+**Governs:** §8.3, §9, §11.3
+
+**Decision.** `solution.md` takes a fourth key, `standard`, with values `existing` and `profile`. It
+decides which conventions a plan holds new work to; `origin` no longer decides that and only supplies
+the value when the key is absent — `scaffolded` reads as `profile`, `adopted` as `existing`, so every
+solution adopted before the key existed reads exactly as it already behaved. `sdlc init
+--adopt-standard` records `profile` on an existing codebase and writes the stack files an adopted
+solution otherwise never gets.
+
+**Why two keys rather than a mutable origin.** The origin is a historical fact and D-09 protects the
+whole file to keep every hook rule absolute. Letting the origin move to express an opt-in would make
+*where this code came from* a preference, and the first solution to flip it would have a file claiming
+the framework wrote code it did not. Two keys cost one line in a protected file and leave the fact
+alone.
+
+**Why a flag rather than a default.** These files apply a convention to code that never agreed to one.
+`Directory.Build.props` makes warnings errors, so adoption writing it unasked would hand a team a
+repository that no longer builds, on day one, over files nobody touched — the worst possible first
+impression of a framework whose whole argument is that it does not break what it governs. A flag puts
+that cost with whoever chose it. `Once` semantics do the rest: an `.editorconfig` the repository
+already had is kept, so the opt-in fills gaps and overwrites nothing.
+
+**What the flag does not do.** It does not migrate existing code, and §18 keeps both that and
+baselining as non-goals. Nothing is recorded as forgiven, no existing violation is listed, and the
+warnings the new files raise on old code are the cost of the opt-in rather than a finding against
+anybody. Moving the code is a cycle, with an intent, a plan and an approval.
+
+**The one incoherent state, named rather than designed away.** On an update the flag writes the files
+and cannot write the key, because `solution.md` is protected and adoption creates protected files
+without ever modifying them. So the keys are printed for a person to place, exactly as every other
+protected file works, and `Response.StandardPending` carries it to the report — which says that until
+the paste happens the recorded standard stands and every plan is still held to the surrounding code.
+Keying the stack files on what the run *asks for* rather than on what the document *records* is what
+makes the flag do anything on an update, which is where a migration is actually decided, months after
+adoption.
+
+**Rejected.** *Letting `--adopt-standard` write `solution.md` on an update* — per-key writes to a
+protected file would be the framework's first conditional hook rule, which is where a bypass would
+live (D-09). *Declaring the migrated scope in `techstack.md` instead* — unprotected and cycle-owned,
+so it needs no paste, and it could carry a per-area migration the single key cannot; rejected because
+the stack files are repository-wide, so a per-area record would describe a precision the mechanism does
+not have, and `techstack.md` declares what a solution *is* rather than which rules bind it. Worth
+revisiting if per-directory `.editorconfig` scoping is ever built. *Reading the presence of the stack
+files as the record* — an old repository plausibly has its own `.editorconfig`, which `Once` keeps, so
+presence proves nothing. *A `baseline` key suppressing warnings on existing files* — §18, and it is the
+thing this design is written against: a file that looks enforced and is not.

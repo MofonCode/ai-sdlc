@@ -113,8 +113,11 @@ static async Task<int> Init(Workspace workspace, CommandLine line)
         return ExitCode.Usage;
     }
 
+    // A flag, not a value: there is no --adopt-standard=false to misread, and the absence of the option
+    // is the answer every existing solution already gave.
     Result<Initialise.Response> result = await workspace
-        .Send<Initialise.Command, Initialise.Response>(new Initialise.Command(profile, platform))
+        .Send<Initialise.Command, Initialise.Response>(
+            new Initialise.Command(profile, platform, line.HasOption("adopt-standard")))
         .ConfigureAwait(false);
 
     if (result.IsFailed)

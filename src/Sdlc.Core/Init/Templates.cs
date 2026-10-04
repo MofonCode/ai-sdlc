@@ -95,21 +95,23 @@ public static class Templates
     /// <param name="origin">Where the code came from.</param>
     /// <param name="platform">Where it is pushed, which decides whether a pipeline was written.</param>
     /// <returns>The file's contents.</returns>
-    public static string Solution(string profile, SolutionOrigin origin, Platform platform) => string.Join(
+    public static string Solution(
+        string profile,
+        SolutionOrigin origin,
+        SolutionStandard standard,
+        Platform platform) => string.Join(
         Environment.NewLine,
         [
             "---",
-            "profile: " + profile,
-            "origin: " + SolutionDocument.NameOf(origin),
-            "platform: " + SolutionDocument.NameOf(platform),
+            .. SolutionDocument.Keys(profile, origin, standard, platform),
             "---",
             string.Empty,
             "# What this solution is",
             string.Empty,
             "Replace this with a paragraph a newcomer could read: what the solution does, and who for.",
-            "Nothing reads this prose -- the three keys above are what resolve the profile, decide whether",
-            "its defaults bind, and say whether a pull-request check governs a merge -- so it is here for",
-            "people.",
+            "Nothing reads this prose -- the four keys above are what resolve the profile, record where",
+            "this code came from, decide which conventions new work follows, and say whether a",
+            "pull-request check governs a merge -- so it is here for people.",
             string.Empty,
         ]);
 
@@ -169,7 +171,7 @@ public static class Templates
             string.Empty,
             "| File | What it holds | Who writes it |",
             "|---|---|---|",
-            "| `solution.md` | the profile, and where this code came from | a person, by hand |",
+            "| `solution.md` | the profile, where this code came from, and which conventions new work follows | a person, by hand |",
             "| `techstack.md` | what the solution is built from | a cycle whose plan declares it |",
             "| `constraints.md` | this solution's own rules | a person, by hand |",
             "| `cycles/<id>/intent.md` | why the change exists | the intent stage |",
@@ -328,7 +330,9 @@ public static class Templates
             "cycles can build at once without colliding. In `batch`, give container names, volume names",
             "and database names the run id -- not just the ports. Two app hosts calling",
             "`WithDataVolume()` share one volume, which means two writers on one database, and that",
-            "fails strangely rather than loudly.",
+            "fails strangely rather than loudly. Group them too: Docker Desktop draws an app host's",
+            "services as one collapsible row when its containers share a `com.docker.compose.project`",
+            "label, and that group name needs the run id for the same reason the container names do.",
             string.Empty,
             "## Governed changes",
             string.Empty,

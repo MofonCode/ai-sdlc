@@ -2,7 +2,7 @@
 name: init
 description: Adopt the framework into a repository -- run the scaffolding, interview the team about what matters in this solution, and propose its first constraints. Use when somebody asks to set up ai-sdlc here.
 compatibility: Requires the sdlc binary on PATH, from the MofonCode.Sdlc.Cli dotnet tool, and a git repository. Every command here is that binary, so without it the first step fails.
-argument-hint: "[--platform github|azure-devops|local]"
+argument-hint: "[--platform github|azure-devops|local] [--adopt-standard]"
 allowed-tools: Bash(sdlc *), Bash(git *), Read, Glob, Grep
 ---
 
@@ -40,7 +40,7 @@ loads these instructions a second time. That loop is three identical rounds befo
 Hand over the line with a leading `!`:
 
 ```
-! sdlc init [--profile <name>] [--platform github|azure-devops|local]
+! sdlc init [--profile <name>] [--platform github|azure-devops|local] [--adopt-standard]
 ```
 
 On Claude Code the `!` prefix runs the rest of the line as the person's own command rather than as a tool
@@ -54,6 +54,32 @@ no such prefix, say to run it in a terminal at the repository root and paste wha
 pipeline is written and there is no good default for somebody who has not said. If the repository has no
 remote yet — `git remote -v` prints nothing — `local` is the honest answer: a pipeline for a service
 nothing will ever send it to is a file that looks like a gate and is reachable by nothing.
+
+**In a repository that already holds code, ask one more question before you hand the line over:
+should new work follow the profile's conventions, or the code already here?** It is the only question in
+this skill whose answer writes files, and the answer is not guessable — a team six months into a rewrite
+answers differently from a team maintaining something stable.
+
+| Answer | Flag | What it does |
+|---|---|---|
+| the code already here | none | the default. Nothing extra is written |
+| the profile's conventions | `--adopt-standard` | writes `.editorconfig`, both props files and `global.json`, and records `standard: profile` |
+
+**Say what the flag costs before they choose it, because the cost lands on the next build rather than on
+this command.** `Directory.Build.props` makes warnings errors, so a build can start failing on files
+nobody has touched. That is the opt-in working, not a fault — and the remedy is to narrow a severity or
+scope a rule to a directory, because each of those files is created once and never rewritten, so an
+amendment survives every later run. Nothing is overwritten either: an `.editorconfig` the repository
+already had is kept.
+
+**Two things the flag does not do**, and both are worth saying because somebody will assume otherwise.
+It does not migrate the code already there — that is a cycle, with an intent and an approval, like any
+other work. And it does not change the origin, which stays `adopted` for the life of the repository.
+
+**On a repository that is already governed, it writes the files and prints the key.** `solution.md` is
+protected, so adoption creates it and never rewrites it. The report prints the four keys for a person to
+place, and says that until they do, the recorded standard is what every plan is held to. Show that block
+verbatim and let them paste it — the same rule as every other protected file.
 
 **Say what local costs, once, plainly.** No pull-request check governs a merge, so the pre-push hook is
 the only mechanical layer and `--no-verify` walks past it. Everything else is unchanged: cycles are
@@ -69,11 +95,21 @@ and it never changes again:
 
 | origin | What it means |
 |---|---|
-| `scaffolded` | the profile's patterns are this solution's patterns. A plan departing from them has to say why |
-| `adopted` | where the solution has an existing standard, that standard wins |
+| `scaffolded` | this repository held no code, and never will have held any before the framework |
+| `adopted` | the code existed first, and that is now a permanent fact about it |
+
+**`standard` is the key beside it, and it is the one that decides anything.** The origin only says where
+the code came from; the standard says which conventions new work follows, and unlike the origin a team is
+entitled to change it.
+
+| standard | What a plan does by default | Where it comes from |
+|---|---|---|
+| `profile` | takes the profile's patterns, and says why when it departs | every scaffolded solution, and an adopted one that asked |
+| `existing` | matches the surrounding code, and says why when it departs toward the profile | an adopted solution, unless it asked |
 
 Nothing is in violation on its first day either way. Constraints govern a change, never code that came
-before adoption, so there is no baseline to record and nothing to forgive.
+before adoption, so there is no baseline to record and nothing to forgive — `standard: profile` included,
+which declares what new work follows and says nothing at all about the code already there.
 
 ## 3. Interview, then propose constraints
 
@@ -123,6 +159,7 @@ Three files are written with placeholders, and they are placeholders on purpose:
 |---|---|
 | `.sdlc/solution.md` | the paragraph from question 1. It is protected — print, do not write |
 | `.sdlc/techstack.md` | on an adopted solution, the table is empty. Offer to fill it from what you can read |
+| the stack files | written only where the standard is the profile's. Each is a person's to amend, and a cycle that changes one is a cycle like any other |
 | `AGENTS.md` | written if absent, printed for merging if present |
 
 `techstack.md` is the one place reading the codebase is right — it declares what the solution *is* rather

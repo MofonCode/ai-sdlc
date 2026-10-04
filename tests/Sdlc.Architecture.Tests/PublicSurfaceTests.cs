@@ -208,6 +208,7 @@ public sealed class PublicSurfaceTests
         "Sdlc.Core.Solutions.SolutionDocument",
         "Sdlc.Core.Solutions.SolutionOrigin",
         "Sdlc.Core.Solutions.SolutionRoot",
+        "Sdlc.Core.Solutions.SolutionStandard",
     ];
 
     [TestMethod]

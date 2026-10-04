@@ -28,7 +28,7 @@ and prints the invocation — because a tool must never send somebody somewhere 
 
 | Skill | What it is | Takes | When | Who starts it |
 |---|---|---|---|---|
-| `init` | adopts the framework into a repository | `[--platform github\|azure-devops\|local]` | once per repository | **a person**, and the hook denies an agent |
+| `init` | adopts the framework into a repository | `[--platform github\|azure-devops\|local] [--adopt-standard]` | once per repository | **a person**, and the hook denies an agent |
 | `intent` | interviews a person into the problem the change exists to solve | `[a sentence]` | opening a cycle | a person |
 | `spec` | derives testable acceptance criteria from the intent | `<id>` | the intent has a clean round | a person |
 | `plan` | decides how, and what will prove each criterion | `<id>` | the spec has a clean round | a person |
@@ -70,6 +70,20 @@ in this solution, and proposes its first constraints.
 Three modes, decided by what it finds: **greenfield** for a repository holding no code, **onboard** for
 existing code with no `.sdlc/`, **update** when `.sdlc/` already exists. Update refreshes only what the
 framework owns, which is everything not protected — hook configs, the pipeline, `.sdlc/README.md`.
+
+**`--adopt-standard` is how an existing codebase opts in to the profile's conventions.** An adopted
+solution holds new work to the code already around it, which is the default and usually right. The flag
+records `standard: profile` instead and writes the stack files an adopted solution otherwise never gets —
+`.editorconfig`, both props files, `global.json`. It is a person's decision rather than a default because
+it applies a convention to code that never agreed to one: `Directory.Build.props` makes warnings errors,
+so the next build can fail on files nobody has touched. Nothing is overwritten — a file the repository
+already had is kept — and the code already there is not migrated by the flag. A cycle does that, planned
+and approved like any other work.
+
+**The origin does not move.** Where the code came from is a historical fact; which conventions its new
+work follows is a decision, and those are now two keys rather than one. On a repository already governed
+the flag writes the files and prints the `solution.md` block for a person to place, because that file is
+protected — and adoption says plainly that until they place it, the recorded standard still stands.
 
 **`--platform local` is for a repository with no remote yet**, and it writes no pipeline. That means no
 pull-request check governs a merge, so the pre-push hook is the only mechanical layer and `--no-verify`
