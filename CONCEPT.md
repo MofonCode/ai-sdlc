@@ -3600,6 +3600,15 @@ project, and `com.docker.compose.service`, without which the rows fall back to c
 §10.2 carries the row. Nothing in the framework implements it, which is the arrangement the run-mode
 variables already have and for the same reason.
 
+**The solution's own `AGENTS.md` names both labels, because it is the only one of these documents a
+cycle can read.** §11.5 is explicit that a session inside a governed solution cannot read a file that
+lives in the plugin, so this page is not a carrier however carefully it is written. The first draft of
+the template named `com.docker.compose.project` alone and left `config-hash` here — which would have
+had a cycle produce the ungrouped configuration this decision was written to rule out, with the page
+claiming the grouping worked. A contract is worth what the document that reaches its implementer says,
+and `AGENTS.md`'s rule that no document restates what another owns does not extend to one a reader
+cannot open.
+
 **Why this was measured rather than reasoned.** The project label alone was tried first and does not
 work: four containers sharing it stayed flat in Docker Desktop 4.49.0. A real three-service Compose
 stack ran as the control, and a hand-labelled imitation was indistinguishable from it in the
