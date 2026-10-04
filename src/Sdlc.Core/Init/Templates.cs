@@ -391,7 +391,7 @@ public static class Templates
                     ["type"] = "command",
                     ["bash"] = command,
                     ["powershell"] = command,
-                    [described.TimeoutKey] = described.Timeout,
+                    [described.TimeoutKey] = SupportedHosts.TimeoutSeconds,
                 },
             ];
         }
@@ -409,7 +409,7 @@ public static class Templates
             {
                 ["type"] = "command",
                 ["command"] = command,
-                [described.TimeoutKey] = described.Timeout,
+                [described.TimeoutKey] = SupportedHosts.TimeoutSeconds,
             },
         };
 

@@ -175,7 +175,7 @@ public sealed class PluginTests
                 $"The plugin's '{moment}' hook names a spelling the table does not.");
 
             Assert.AreEqual(
-                claude.Timeout,
+                SupportedHosts.TimeoutSeconds,
                 hook[claude.TimeoutKey]!.GetValue<int>(),
                 $"The plugin's '{moment}' hook and the generated one disagree about how long the "
                 + "gate may take, so the same hook behaves differently depending on how it arrived.");
@@ -280,7 +280,7 @@ public sealed class PluginTests
         // The skills were written for one host and happen to satisfy the open specification, which
         // is worth holding rather than rediscovering: these constraints are what decides whether a
         // non-Claude client loads a skill, skips it, or warns. `description` is the field that
-        // matters most off Claude Code -- there is no `/sdlc:spec` on Copilot or Gemini, so the
+        // matters most off Claude Code -- there is no `/sdlc:spec` on Copilot, so the
         // description is the whole of how a skill gets chosen.
         foreach (string path in Skills())
         {

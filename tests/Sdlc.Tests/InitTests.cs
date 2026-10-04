@@ -720,18 +720,14 @@ public sealed class InitTests
             "sdlc hook --host " + host.Spelling,
             $"{host.Name}'s entry does not run the gate, or names a spelling it does not answer to.");
 
-        // The number as well as the key. Claude Code and Gemini CLI both call it `timeout` and only
-        // one of them means seconds, so a shared number would have given Gemini ten milliseconds --
-        // a hook killed before it answers, on every tool call, which permits everything while the
-        // configuration looks right.
+        // The number as well as the key. A hook with no timeout on the path of every edit is one
+        // that can hang the session it protects, and a hook whose budget is wrong by a factor of a
+        // thousand cannot answer at all -- which is what the key's own remarks record about a host
+        // that spelled it the same and meant milliseconds.
         Assert.AreEqual(
-            host.TimeoutUnit == TimeoutUnit.Milliseconds
-                ? (int)SupportedHosts.Patience.TotalMilliseconds
-                : (int)SupportedHosts.Patience.TotalSeconds,
+            SupportedHosts.TimeoutSeconds,
             command[host.TimeoutKey]!.GetValue<int>(),
-            $"{host.Name} spells its timeout '{host.TimeoutKey}' and reads it as "
-            + $"{host.TimeoutUnit}, and a hook whose budget is wrong by a factor of a thousand is "
-            + "one that cannot answer on the path of every edit.");
+            $"{host.Name} spells its timeout '{host.TimeoutKey}'.");
 
         if (host.EntryShape == HookEntryShape.Direct)
         {

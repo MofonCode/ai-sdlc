@@ -1153,7 +1153,6 @@ What differs is vocabulary.
 |---|---|---|---|---|
 | Claude Code | `PreToolUse` | `Stop` | `.claude/settings.json` or plugin | `permissionDecision: "deny"` |
 | GitHub Copilot | `preToolUse` | `agentStop` | `.github/hooks/*.json` | `permissionDecision`; takes `bash` **and** `powershell` |
-| Gemini CLI | `BeforeTool` | `AfterAgent` | `.gemini/settings.json` | `{"decision":"deny","reason":"..."}` |
 | OpenAI Codex CLI | `PreToolUse` | not checked | `.codex/config.toml` | `permissionDecision` + reason |
 | Antigravity | `PreToolUse` | not checked | `.agents/hooks.json` or a plugin | same, plus `ask` / `force_ask` |
 
@@ -1161,20 +1160,16 @@ What differs is vocabulary.
 turn-end event, which was never true, and the claim travelled into the generated configuration, the
 command line, the guides and the readme before anybody re-read the host's documentation. D-46.
 
-**All three supported hosts govern both moments.** The first two use the same two permission fields,
-nested on Claude Code and at the top level on Copilot, and send a turn back with a top-level `decision`
-they both spell `block`. Gemini CLI does neither: a tool call is not framed as a permission there, so its
-refusal is a `decision` and a `reason` in both moments, and it spells the word `deny`. Three shapes from
-three hosts is why the two write methods stay typed switches rather than fields on a row.
+**Both supported hosts govern both moments**, with the same two permission fields — nested on Claude
+Code, at the top level on Copilot — and a turn sent back with a top-level `decision` they both spell
+`block`. That agreement is a coincidence of two hosts rather than a property of the surface: Gemini CLI,
+briefly supported, framed a tool call as a `decision` and a `reason` rather than a permission at all, and
+Antigravity requires a `decision` on every call including the ones the policy has no opinion about. So
+the two write methods stay typed switches rather than fields on a row (D-50).
 
-**And the units are part of a host's vocabulary, not just the names.** Claude Code and Gemini CLI both
-call the per-hook timeout `timeout`; Claude reads seconds and Gemini reads milliseconds, defaulting to
-60000. One number under one key would have given Gemini a ten-millisecond budget — a hook killed before
-it answers, on every tool call, while the configuration looks right. A key name is not a description of
-a field (D-46's table carries the unit beside the key).
-
-**v1 ships Claude Code, GitHub Copilot and Gemini CLI**, and what that means is a row in `SupportedHosts` plus a
+**v1 ships Claude Code and GitHub Copilot**, and what that means is a row in `SupportedHosts` plus a
 conformance test fed a captured payload — not a judgement somebody makes by reading four files (D-46).
+**And a host is removed when its product stops serving**, which is what happened to Gemini CLI (D-50).
 
 ChatGPT is not a target — Codex is OpenAI's repository-agentic surface. Antigravity plugins are the
 stated successor to Gemini CLI extensions.
@@ -1551,7 +1546,7 @@ Ids are a monotonic sequence of their own, separate from `CON_nn`: a constraint 
 decision explains the framework. Assigned once, never reused. **A reversed decision is superseded by
 a new id rather than edited**, so a commit citing `D-14` still means what it meant.
 
-**This is reference material, not reading.** Forty-nine entries and about half this document, so the
+**This is reference material, not reading.** Fifty entries and about half this document, so the
 way in is a lookup rather than the top. `AGENTS.md` carries the two commands; in short, a section's
 trailing `(D-nn)` marker answers "what constrains this", and an entry's `Governs` answers the reverse.
 **Read `Rejected` first when proposing something** — it is where the alternative you are reaching for
@@ -3057,7 +3052,7 @@ reads it.
   seventeen directories of framework text into every adopted repository, to be refreshed by `init`
   forever. A package installed once is the shape the thing already has.
 - *`.github/skills/` instead* — rejected as the same idea, narrower: it is Copilot-only where
-  `.agents/skills/` at least reaches Gemini too, and both are beaten by a package.
+  `.agents/skills/` is at least a cross-client convention, and both are beaten by a package.
 - *Rewriting `allowed-tools` into the specification's syntax* — rejected. The specification defines it as
   a space-separated string and marks it experimental with support varying by client; Claude Code's is
   comma-separated with a different inner form, and no single string satisfies both. Changing the syntax
@@ -3203,3 +3198,81 @@ ambiguity resolves to the expensive side.
   entry gives about waivers, and the reason `RemediationBudget` counts rounds rather than keeping a
   tally: a count kept beside the thing it counts can disagree with it, and the cheap one to forge is the
   one that would be trusted.
+
+### D-50 — A host is supported only while its product serves requests, and Antigravity is not a row
+
+**Governs:** §12
+
+**Decision.** A row in `SupportedHosts` requires two things, not one: a surface held by a conformance
+test, **and** a product that still answers. Gemini CLI is removed because the second stopped being true.
+Antigravity CLI is not added in its place, because its surface breaks three assumptions the table does
+not carry and one the whole hook design rests on — it is a piece of work, not a row.
+
+**Why Gemini is out.** Google retired Gemini CLI on 18 June 2026, consolidating its tooling under
+Antigravity, and its own documentation says so. The row had been committed on 3 October 2026, which is
+three and a half months after the product stopped serving requests, so adoption was writing
+`.gemini/settings.json` to configure a hook for a program that could not run. That is the framework's own
+central failure — a directory that appears enforced and is not — reached from a direction nobody had
+thought to check: the vocabulary was researched carefully from the host's live documentation, and the
+question "is this product still shipping" was never asked.
+
+**What the episode is worth keeping.** Two things, and this is why the entry exists rather than the row
+simply being reverted.
+
+- **A key's name is not a description of a field.** Gemini spelled the per-hook timeout `timeout`,
+  identically to Claude Code, and read it as milliseconds against Claude's seconds. One shared number
+  under one shared key would have given it a ten-millisecond budget: a hook killed before it can answer,
+  on every tool call, with the configuration looking correct. The unit was briefly a field for that
+  reason and is gone with the host, because both remaining hosts read seconds and a field with one value
+  is the dead schema D-48 is about. `SupportedHost.TimeoutKey`'s own remarks carry the lesson so the next
+  such host is met with a field rather than an assumption.
+- **The write methods were right to stay code.** D-46 kept the two decision shapes as typed switches
+  rather than data, on the argument that nesting and field names are structure. Gemini then produced a
+  third shape no arrangement of the first two's field names could express, and Antigravity produces a
+  fourth. A row of shape-fields would by now be a format language with three dialects and no reader.
+
+**Why Antigravity is not a row.** Its hook surface, from Google's own reference, differs from every host
+the table describes in four ways, and the last one inverts a rule rather than adding a case:
+
+- **The payload is nested.** `toolCall.name` and `toolCall.args`, where every host so far puts the tool
+  name and its arguments at the top level under some spelling. `ReadCall` reads top-level keys, so this
+  is the first host to need a path-aware reader.
+- **The config has a named-group wrapper.** `{"<hook-name>": {"enabled": true, "PreToolUse": [...]}}`,
+  where the three hosts handled so far put the events directly under a `hooks` object. `HookSettings.Merge`
+  works on that object, so merging into `.agents/hooks.json` is not the merge that exists.
+- **The turn end is inverted and has no loop guard.** `Stop` sends the turn back with
+  `decision: "continue"` and lets it go on any other value — the opposite of writing a refusal and
+  staying silent otherwise. And it carries no `stop_hook_active`: the fields are `executionNum`,
+  `terminationReason` and `fullyIdle`, so the guard that stops a refused turn becoming an endless one has
+  to be rebuilt from a different fact.
+- **`decision` is required on every tool call, including the ones the policy has no opinion about.** This
+  is the one that matters. D-39 decided that a refusal is written and an allow says nothing at all,
+  because an explicit allow bypasses the host's own permission system. On Antigravity the empty object is
+  not silence — reports of agy denying every tool call on a hook that returns `{}` are exactly that
+  shape — and the neutral value is `ask`, documented as prompting while respecting cached permissions.
+  So D-39's *principle* survives, because `ask` there is "defer to the host's own permission flow", but
+  its *spelling* inverts: the thing to write when there is nothing to say is a value, not an absence.
+  That is a field on the row and a paragraph in D-39, not a branch.
+
+**What would be needed, stated so the next person does not re-derive it.** A path-aware payload reader,
+an allow-shape on the row, a third entry shape with a file-level wrapper, a merge that understands the
+named-group layout, a turn-end inversion with a guard built on `executionNum` or `fullyIdle`, and
+conformance payloads for all of it. Comparable in size to the commit that introduced the table.
+
+**Rejected.**
+
+- *Keeping the Gemini row because the adapter is harmless* — rejected. It is not harmless: adoption
+  writes the file, the readme listed the host, and a person could reasonably read all that as support.
+  An adapter for a dead product is the most expensive kind of dishonesty here, because nobody will ever
+  get a failure from it.
+- *Adding Antigravity in the same change that removes Gemini* — rejected, and this is the discipline the
+  episode argues for. Its surface needs the same verification the others got, from its own reference
+  rather than from the claim that hooks "migrate unchanged", and most of the evidence about the
+  empty-object behaviour is version-specific bug reports rather than documentation. Writing a row from
+  that would repeat the mistake with a different fact.
+- *Trusting "hooks, subagents and skills migrate unchanged"* — rejected as the specific sentence that
+  would have caused it. It is Google's migration guidance and it is true at the level of concepts; the
+  event names, the config path, the payload shape and the allow value all changed.
+- *Treating the retirement as a reason to narrow the framework to one host* — rejected. The adapter cost
+  Copilot one row and found two real defects doing it. The lesson is to check that a product serves, not
+  to stop being portable.

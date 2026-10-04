@@ -14,6 +14,53 @@ Two things it exists to make possible:
   that were approved.
 - **Approved plans build unattended**, one or many at a time.
 
+## Start here
+
+Six commands, on Claude Code, from a clone of this repository. Everything below this section is what each
+part is and why; [`docs/guides/install.md`](docs/guides/install.md) is the same path with every variation
+and the four things that catch people.
+
+```pwsh
+dotnet pack src\Sdlc.Cli\Sdlc.Cli.csproj -c Release -o src\Sdlc.Cli\bin\pack
+dotnet tool install --global --add-source src\Sdlc.Cli\bin\pack MofonCode.Sdlc.Cli
+```
+
+```pwsh
+gh auth login                                  # the repository is private
+claude plugin marketplace add MofonCode/ai-sdlc
+claude plugin install sdlc@ai-sdlc
+```
+
+Then, **from a directory that is not a clone of this repository**, check the binary found its rules:
+
+```pwsh
+sdlc constraints
+```
+
+It should print the fourteen global rules and end with `global  embedded in sdlc 0.9.0`. **Use this
+rather than `sdlc help` as the smoke test** — `help` and `version` are the only two commands that need
+nothing from the installation, so they are the two that cannot tell you whether it worked.
+
+Start a new agent session, because skills load at startup. Then in the repository you want governed:
+
+```pwsh
+sdlc init              # adopt. A person runs this; the hook denies an agent
+```
+
+```
+/sdlc:intent  The dashboard takes fourteen seconds and people have stopped opening it
+```
+
+That opens a cycle and interviews you into its intent. `/sdlc:spec` and `/sdlc:plan` follow, you approve
+all three, and then the build runs.
+[`docs/guides/first-cycle.md`](docs/guides/first-cycle.md) walks the whole of it, and
+`.sdlc/README.md` — written into your repository by `init` — is the same flow in one page that travels
+with the code.
+
+**Two halves have to be present and they fail differently.** Without the plugin nothing asks for a cycle;
+without the binary every skill's first command fails. `sdlc version` and
+`claude plugin details sdlc@ai-sdlc` should report the same number.
+
 ## The cycle
 
 ```
@@ -66,18 +113,17 @@ Every candidate host can deny a tool call before it runs, so the enforcement pri
 differs is vocabulary, and one adapter normalises it: `sdlc hook --host <name>` reads the host's payload,
 asks the one policy engine, and writes the host's own decision shape.
 
-**v1 ships Claude Code, GitHub Copilot and Gemini CLI.** The rules themselves name no language, framework
-or package, so they travel to any stack — but the tool is a .NET executable, so the toolchain does not.
+**v1 ships Claude Code and GitHub Copilot.** The rules themselves name no language, framework or
+package, so they travel to any stack — but the tool is a .NET executable, so the toolchain does not.
 
-**Both moments are governed on all three.** A second moment is worth governing — an agent must not report
-done over a failing build, which is what makes an analyzer or an architecture test an enforcement layer
-rather than one a reviewer consults afterwards. The names are the only difference:
+**Both moments are governed on both hosts.** A second moment is worth governing — an agent must not
+report done over a failing build, which is what makes an analyzer or an architecture test an enforcement
+layer rather than one a reviewer consults afterwards. The names are the only difference:
 
 | | Tool call | Turn end | Config | Refusal |
 |---|---|---|---|---|
 | Claude Code | `PreToolUse` | `Stop` | `.claude/settings.json`, merged | `permissionDecision` nested |
 | GitHub Copilot | `preToolUse` | `agentStop` | `.github/hooks/sdlc.json`, owned | `permissionDecision` at top level |
-| Gemini CLI | `BeforeTool` | `AfterAgent` | `.gemini/settings.json`, merged | `decision: "deny"` |
 
 **What a host supports is a row in a table, not a judgement.** `SupportedHosts` holds one row per host —
 its spellings, where its hook configuration goes, who owns that file, what it calls each event, whether it
@@ -89,61 +135,33 @@ documented payload shapes and silently allowed everything on the other. A host w
 event is still refused by name rather than given a check that cannot run. `CONCEPT.md` D-46 has the
 reasoning.
 
-Gemini CLI was the first host added through that table, and it earned its keep immediately: Gemini spells
-the timeout key `timeout` exactly as Claude Code does and reads it as **milliseconds**, so one shared
-number would have given it a ten-millisecond budget — a hook killed before it can answer, on every tool
-call, with the configuration looking correct. The unit is a field on the row, and the suite asserts the
-number each host is written.
+**A host is removed when its product stops serving.** Gemini CLI had a row for two commits; Google
+retired the product on 18 June 2026 in favour of Antigravity CLI, so the row configured a hook for a
+program that no longer answers — the same defect as claiming an unexercised host, reached from the other
+direction. It is out, and `CONCEPT.md` D-50 records what it taught on the way through, including that the
+timeout key's *unit* is not derivable from its name.
 
-## Install
+## What installing gets you, and what it does not
 
-Two halves have to be present, and they fail differently. The **plugin** carries the seventeen skills and
-the two hooks; the **`sdlc` binary** is the gate those skills call. Without the plugin nothing asks for
-a cycle. Without the binary every skill's first command fails.
+**Start here** above has the commands. What they mean:
 
-**There is no published feed yet**, so the binary is built from a clone of this repository.
+| | What it is | Missing means |
+|---|---|---|
+| the plugin | the seventeen skills, and on Claude Code the two hooks | no stages, and no deterministic layer |
+| the `sdlc` binary | a .NET tool named `sdlc` | every skill's first command fails |
 
-```pwsh
-dotnet pack src\Sdlc.Cli\Sdlc.Cli.csproj -c Release -o src\Sdlc.Cli\bin\pack
-dotnet tool install --global --add-source src\Sdlc.Cli\bin\pack MofonCode.Sdlc.Cli
-```
+`claude plugin details sdlc@ai-sdlc` should say `Skills (17)` and `Hooks (2) PreToolUse, Stop`. **A hook
+count below two is a failed install rather than a detail** — the deterministic layer is not loaded,
+nothing is denied, and every cycle will still appear to work.
 
-The plugin comes from GitHub. **The repository is private**, so authenticate first.
+**There is no published feed yet**, which is why the binary is packed from a clone rather than installed
+in one command. That is the biggest cost of the current install and the one thing that would shorten it
+most.
 
-```pwsh
-gh auth login
-claude plugin marketplace add MofonCode/ai-sdlc
-claude plugin install sdlc@ai-sdlc
-```
-
-Then ask both halves what they are:
-
-```pwsh
-sdlc version
-claude plugin details sdlc@ai-sdlc
-```
-
-Expect the same version from each, with `Skills (17)` and `Hooks (2) PreToolUse, Stop`. **A hook count
-below two is a failed install rather than a detail** — the deterministic layer is not loaded, nothing is
-denied, and every cycle will still appear to work. Start a new session afterwards, because skills load at
-startup.
-
-`docs/guides/install.md` has the rest: the local-directory source for changing the framework itself,
-updating, removing, and the four things that catch people.
-
-## Getting started
-
-Installing puts the framework on your machine. It governs nothing until a repository adopts it.
-
-```
-sdlc init              # adopt the framework into this repository. A person runs this
-sdlc constraints       # the rules now in force
-sdlc new               # open a cycle
-```
-
-Then ask your agent for the stages: `/sdlc:intent`, `/sdlc:spec`, `/sdlc:plan`. `sdlc help` lists what the
-binary does on its own, and `.sdlc/README.md` — written into the solution by `init` — is the whole flow in
-one page.
+**Installing governs nothing.** The framework reaches a repository when a person adopts it there, and
+adoption is per repository. [`docs/guides/install.md`](docs/guides/install.md) has the rest: the
+local-directory source for changing the framework itself, Copilot, updating, removing, and the four
+things that catch people.
 
 ## Documentation
 
@@ -198,14 +216,8 @@ What is honest to say about the rest:
   every skill satisfies the Agent Skills specification. What is **not** established: nobody has run
   `copilot plugin marketplace add` against this repository and watched the skills load. Treat the Copilot
   path as untried in the same way the Azure DevOps pipeline is.
-- **The Gemini adapter has never been run against Gemini CLI.** Its row, both payload shapes and both
-  refusal shapes are held by conformance tests built from Google's own hooks reference, and `sdlc init`
-  writes `.gemini/settings.json` — but no session on that host has had a tool call refused. One part is a
-  known guess: the `BeforeTool` matcher names `write_file|replace|run_shell_command`, so a write tool
-  Gemini adds under a fourth name would not reach the policy. The pipeline check still catches it, which
-  is the layer that does not depend on any host.
-- **Off Claude Code a skill is chosen, not named.** There is no `/sdlc:spec` on Copilot or Gemini — those
-  clients match a request against a skill's `description` and ask before activating. So the stages have to
+- **Off Claude Code a skill is chosen, not named.** There is no `/sdlc:spec` on Copilot — it matches a
+  request against a skill's `description` and asks before activating. So the stages have to
   be asked for in prose, and the two Claude-specific frontmatter fields (`argument-hint`, and
   `allowed-tools` in Claude's own syntax) do nothing there, which costs a permission prompt per command
   rather than correctness.

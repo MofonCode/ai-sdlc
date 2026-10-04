@@ -17,26 +17,6 @@ public enum ConfigOwnership
 }
 
 /// <summary>
-/// What unit a host's timeout is expressed in.
-/// </summary>
-/// <remarks>
-/// <strong>Two hosts spell the key the same way and mean different things by the number.</strong>
-/// Claude Code's <c>timeout</c> is seconds; Gemini CLI's <c>timeout</c> is milliseconds, defaulting
-/// to 60000. So one shared number written under one shared key would have given Gemini a ten
-/// millisecond budget -- a hook killed before it can answer, on every tool call, which permits
-/// everything while the configuration looks right. The key name alone was not enough to describe a
-/// host, and this is the field that says so.
-/// </remarks>
-public enum TimeoutUnit
-{
-    /// <summary>The number is seconds.</summary>
-    Seconds,
-
-    /// <summary>The number is milliseconds.</summary>
-    Milliseconds,
-}
-
-/// <summary>
 /// How a host spells one hook entry inside its configuration.
 /// </summary>
 /// <remarks>
@@ -117,10 +97,14 @@ public enum HookEntryShape
 /// <param name="TimeoutKey">
 /// What the host calls the per-hook timeout. Writing the wrong one is an unbounded hook on the path
 /// of every edit.
-/// </param>
-/// <param name="TimeoutUnit">
-/// What that number means to this host. Not derivable from the key: two hosts call it
-/// <c>timeout</c> and only one of them means seconds.
+/// <para>
+/// <strong>The unit is not derivable from the key, and a host that proves it needs a field here.</strong>
+/// Both hosts below read seconds, so there is nothing to carry. Gemini CLI, briefly in this table before
+/// the product turned out to have been retired, called it <c>timeout</c> exactly as Claude Code does and
+/// read it as milliseconds -- one shared number would have given it a ten-millisecond budget, which is a
+/// hook killed before it answers on every tool call. If a host like that is added, the unit becomes a
+/// field again rather than an assumption.
+/// </para>
 /// </param>
 public sealed record SupportedHost(
     HookHost Host,
@@ -133,25 +117,13 @@ public sealed record SupportedHost(
     string? ToolMatcher,
     string PreToolEvent,
     string? TurnEndEvent,
-    string TimeoutKey,
-    TimeoutUnit TimeoutUnit)
+    string TimeoutKey)
 {
     /// <summary>What generated configuration passes to <c>--host</c>.</summary>
     public string Spelling => Spellings[0];
 
     /// <summary>Whether this host can be asked about a turn that is ending.</summary>
     public bool GovernsTurnEnd => TurnEndEvent is not null;
-
-    /// <summary>
-    /// The timeout to write, in whatever unit this host reads.
-    /// </summary>
-    /// <remarks>
-    /// One budget, converted per host, rather than a number per row. A number per row is a number
-    /// somebody changes in one place.
-    /// </remarks>
-    public int Timeout => TimeoutUnit == TimeoutUnit.Milliseconds
-        ? (int)SupportedHosts.Patience.TotalMilliseconds
-        : (int)SupportedHosts.Patience.TotalSeconds;
 }
 
 /// <summary>
@@ -180,11 +152,11 @@ public static class SupportedHosts
     /// an agent makes, so this is on the critical path of every edit -- and a hook with no timeout at
     /// all is one that can hang the session it was meant to protect.
     /// <para>
-    /// A duration rather than a number, because the number differs by host even where the key does
-    /// not. <see cref="SupportedHost.Timeout"/> converts it.
+    /// Seconds, because every host in the table reads seconds. It was briefly a duration converted per
+    /// host, for one that did not -- see <see cref="SupportedHost.TimeoutKey"/>.
     /// </para>
     /// </remarks>
-    public static TimeSpan Patience { get; } = TimeSpan.FromSeconds(10);
+    public const int TimeoutSeconds = 10;
 
     /// <summary>
     /// Every host, in the order adoption writes their configuration.
@@ -209,8 +181,7 @@ public static class SupportedHosts
             "Edit|Write|MultiEdit|NotebookEdit|Bash",
             "PreToolUse",
             "Stop",
-            "timeout",
-            TimeoutUnit.Seconds),
+            "timeout"),
 
         new(
             HookHost.Copilot,
@@ -230,40 +201,7 @@ public static class SupportedHosts
             ToolMatcher: null,
             "preToolUse",
             "agentStop",
-            "timeoutSec",
-            TimeoutUnit.Seconds),
-
-        new(
-            HookHost.Gemini,
-            "Gemini CLI",
-            ["gemini", "gemini-cli"],
-
-            // Merged into, not owned. Gemini CLI reads this file for permissions, model settings and
-            // the team's own hooks, and merges project settings over user settings -- so the
-            // framework owns its entries and nothing else, the way it does on Claude Code.
-            ".gemini/settings.json",
-            ConfigOwnership.Shared,
-            ConfigVersion: null,
-
-            // The same nesting Claude Code uses: a matcher, then a hooks array of commands.
-            HookEntryShape.Grouped,
-
-            // The one guessed thing in this row, and it is named rather than hidden. Gemini matches
-            // tool events by regular expression against the tool's name, and these three are the
-            // write-and-shell tools its own documentation names. A tool it adds under a fourth name
-            // will not reach the policy -- which the pipeline check still catches, because that is
-            // the layer nothing bypasses. A wildcard would be safer in principle and is worse in
-            // practice: the documented spellings for "match everything" are "*" and "", neither of
-            // which is a valid regular expression, so a matcher that failed to compile could take
-            // the whole entry with it.
-            "write_file|replace|run_shell_command",
-            "BeforeTool",
-            "AfterAgent",
-
-            // Spelled like Claude Code's and measured like nothing else: milliseconds, defaulting to
-            // 60000. See TimeoutUnit.
-            "timeout",
-            TimeoutUnit.Milliseconds),
+            "timeoutSec"),
     ];
 
     /// <summary>Every host the framework supports.</summary>

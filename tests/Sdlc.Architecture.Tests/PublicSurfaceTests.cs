@@ -146,9 +146,6 @@ public sealed class PublicSurfaceTests
         "Sdlc.Core.Hooks.ProtectedPaths",
         "Sdlc.Core.Hooks.SupportedHost",
         "Sdlc.Core.Hooks.SupportedHosts",
-        // Added with Gemini: two hosts call the timeout key `timeout` and only one of them means
-        // seconds, so the unit is a field on the row and its type is public with the record.
-        "Sdlc.Core.Hooks.TimeoutUnit",
         "Sdlc.Core.Hooks.ToolCall",
         "Sdlc.Core.Hooks.ToolKind",
         "Sdlc.Core.Hooks.TurnEnd",

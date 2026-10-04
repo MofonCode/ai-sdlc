@@ -12,20 +12,19 @@ hook says so and lets the push through, which is the louder of the two failures.
 
 **One package, two plugin systems.** The root `plugin.json` makes it an
 [Agent Plugins 1.0](https://agent-plugins.org/specification) plugin, which is what Copilot, VS Code,
-Cursor, Codex and Gemini read; `.claude-plugin/plugin.json` is what Claude Code reads. Both find the
+Cursor, Codex and Kiro read; `.claude-plugin/plugin.json` is what Claude Code reads. Both find the
 seventeen skills in the same `skills/` directory, so there is no second copy to go stale. Hooks are
 **not** part of that standard — it covers skills and MCP servers only — so on every host the hooks arrive
 through `sdlc init` writing them into the repository, and on Claude Code additionally through the plugin.
 
-**Three hosts are governed, and `sdlc init` writes all three configurations regardless of which one you
-use.** That is deliberate: the files are inert on a machine without that host, and a teammate who opens
-the repository in a different agent is governed without having to adopt again.
+**Both hosts are governed, and adoption writes both configurations regardless of which one you use.**
+That is deliberate: the file is inert on a machine without that host, and a teammate who opens the
+repository in the other agent is governed without having to adopt again.
 
-| Host | Hook config `init` writes | Tool call | Turn end |
+| Host | Hook config adoption writes | Tool call | Turn end |
 |---|---|---|---|
 | Claude Code | `.claude/settings.json`, merged | `PreToolUse` | `Stop` |
 | GitHub Copilot | `.github/hooks/sdlc.json`, owned | `preToolUse` | `agentStop` |
-| Gemini CLI | `.gemini/settings.json`, merged | `BeforeTool` | `AfterAgent` |
 
 ## Before either
 
@@ -159,23 +158,15 @@ the equivalent is `chat.plugins.enabled`, this repository added to `chat.plugins
 **You still need `sdlc init` in each repository**, and more than on Claude Code: the hooks are not part
 of the plugin standard, so adoption writing `.github/hooks/sdlc.json` is the only way they arrive.
 
-### On Gemini CLI
+### On other hosts
 
-**Also untried.** The adapter's conformance tests are built from Google's own hooks reference and
-`sdlc init` writes `.gemini/settings.json`, but no Gemini session has had a tool call refused by it. The
-skills reach Gemini the same way they reach Copilot — it reads Agent Plugins, and also scans
-`.gemini/skills/` and `.agents/skills/` for project skills.
+**Nothing is configured for a host that is not in the table**, and `sdlc hook --host <name>` refuses a
+name it does not know rather than guessing. Codex, Antigravity and Cursor all have a blocking pre-tool
+hook, so they are adapters waiting to be written rather than hosts that cannot work.
 
-One part of the Gemini row is a known guess and worth knowing before you rely on it: Gemini matches tool
-events by regular expression against the tool's name, and the matcher `init` writes names
-`write_file|replace|run_shell_command`. A write tool Gemini adds under a fourth name would not reach the
-policy. `sdlc verify-chain` in the pipeline still catches it, which is the layer that does not depend on
-any host — but the local layer would be quieter than it looks.
-
-**Do not fix that by hand.** Widening the matcher in `.gemini/settings.json` does not survive: the merge
-replaces every entry whose command starts with `sdlc hook`, which is what makes an upgrade update the
-entry instead of accumulating a second one. A matcher that misses a tool is the framework's defect and
-belongs in the framework's table. Your *own* hooks, on your own commands, are kept untouched.
+Gemini CLI had a row for two releases and no longer does: Google retired the product on 18 June 2026 in
+favour of Antigravity CLI, so the configuration described a hook for a program that no longer answers.
+`CONCEPT.md` D-50 has what that cost and what Antigravity would take.
 
 ## Check what you have
 
@@ -198,10 +189,10 @@ The two hooks govern two different moments. `PreToolUse` refuses a write to a fi
 failing suite or when code has moved since the build was recorded. It is the reason a warnings-as-errors
 build and an architecture test are enforcement rather than something a reviewer finds afterwards.
 
-**Both moments are governed on all three hosts** — only the names differ, and the table at the top of
-this guide has them. On Copilot and Gemini they arrive through `sdlc init` rather than a plugin install,
-so there is nothing to verify with `claude plugin details`: check instead that the host's config file
-exists and that `sdlc version` answers.
+**Both moments are governed on both hosts** — only the names differ, and the table at the top of this
+guide has them. On Copilot they arrive through adoption rather than a plugin install, so there is nothing
+to verify with `claude plugin details`: check instead that `.github/hooks/sdlc.json` exists and that
+`sdlc version` answers.
 
 ```pwsh
 claude plugin marketplace list

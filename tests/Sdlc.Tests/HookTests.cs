@@ -25,9 +25,6 @@ public sealed class HookTests
     [DataRow("copilot")]
     [DataRow("github-copilot")]
     [DataRow("COPILOT")]
-    [DataRow("gemini")]
-    [DataRow("gemini-cli")]
-    [DataRow("Gemini")]
     public void A_known_host_is_recognised_however_it_is_spelled(string spelling)
     {
         Assert.IsTrue(HookProtocol.TryParseHost(spelling, out HookHost? host));
@@ -40,12 +37,18 @@ public sealed class HookTests
     [DataRow("codex")]
     [DataRow("antigravity")]
     [DataRow("cursor")]
+    [DataRow("gemini")]
     public void A_host_that_is_not_supported_yet_is_not_recognised(string? spelling)
     {
         // Codex, Antigravity and Cursor all have a blocking pre-tool hook, so they are adapters
         // waiting to be written rather than hosts that cannot work. Claiming one before its payload
         // shapes and its refusal shape are held by a test would be the "looks supported and is not"
-        // failure. Gemini was on this list until its row and its two write branches existed.
+        // failure.
+        //
+        // Gemini CLI had a row for two commits. Google retired the product on 18 June 2026 and
+        // replaced it with Antigravity CLI, so the row configured a hook for a program that no
+        // longer serves requests -- which is the same defect as claiming an unexercised host,
+        // arrived at from the other direction. D-50.
         Assert.IsFalse(HookProtocol.TryParseHost(spelling, out HookHost? host));
         Assert.IsNull(host);
     }
@@ -130,94 +133,6 @@ public sealed class HookTests
 
         Assert.AreEqual(ToolKind.Shell, call.Kind);
         Assert.AreEqual(HookDecision.Deny, HookPolicy.Decide(call).Decision);
-    }
-
-    [TestMethod]
-    public void A_gemini_before_tool_payload_reads_as_a_file_write_with_its_path()
-    {
-        // Gemini CLI's BeforeTool payload, from its hooks reference: the base fields every event
-        // carries, plus tool_name, tool_input, and two of its own that this does not need. The
-        // snake_case spellings are the ones the reader already handled, which is why adding this
-        // host needed no change to ReadCall at all.
-        const string payload = """
-            {
-              "session_id": "abc123",
-              "transcript_path": "/tmp/transcript.jsonl",
-              "cwd": "C:/solution",
-              "hook_event_name": "BeforeTool",
-              "timestamp": "2026-10-03T00:00:00Z",
-              "tool_name": "write_file",
-              "tool_input": { "file_path": "C:/solution/.sdlc/constraints.md", "content": "x" },
-              "mcp_context": null,
-              "original_request_name": "write_file"
-            }
-            """;
-
-        ToolCall call = Read(payload, HookHost.Gemini);
-
-        Assert.AreEqual("write_file", call.ToolName);
-        Assert.AreEqual(ToolKind.FileWrite, call.Kind);
-        Assert.AreEqual(HookDecision.Deny, HookPolicy.Decide(call).Decision);
-    }
-
-    [TestMethod]
-    public void A_gemini_shell_payload_is_judged_on_the_command_it_carries()
-    {
-        // run_shell_command is the tool the matcher exists for. Classified by what it carries, so a
-        // shell writing a protected file is refused whatever the tool is called.
-        ToolCall call = Read(
-            """
-            {
-              "hook_event_name": "BeforeTool",
-              "tool_name": "run_shell_command",
-              "tool_input": { "command": "echo approved > .sdlc/cycles/x/approval.md" }
-            }
-            """,
-            HookHost.Gemini);
-
-        Assert.AreEqual(ToolKind.Shell, call.Kind);
-        Assert.AreEqual(HookDecision.Deny, HookPolicy.Decide(call).Decision);
-    }
-
-    [TestMethod]
-    public void A_gemini_denial_is_a_decision_rather_than_a_permission()
-    {
-        // The third refusal shape, and the reason the two write methods are switches rather than
-        // data. Gemini CLI does not frame a tool call as a permission at all: it answers with the
-        // same two keys it uses for a turn, and spells the refusal `deny`.
-        JsonNode written = Write(HookHost.Gemini, HookDecision.Deny, "because.");
-
-        Assert.AreEqual("deny", written["decision"]!.GetValue<string>());
-        Assert.AreEqual("because.", written["reason"]!.GetValue<string>());
-        Assert.IsNull(written["permissionDecision"], "That is Copilot's shape, not this one.");
-        Assert.IsNull(written["hookSpecificOutput"], "That is Claude Code's shape, not this one.");
-    }
-
-    [TestMethod]
-    public void A_gemini_after_agent_payload_reads_as_a_turn_end()
-    {
-        // AfterAgent fires once per turn after the model's final response, and carries
-        // stop_hook_active for the same reason Claude Code's Stop does: it is set when the agent is
-        // already continuing because a previous turn end was refused. Without reading it, a refusal
-        // here is an endless turn rather than a governed stop -- so the one field that matters most
-        // is the one all three hosts happen to spell identically.
-        Result<TurnEnd> result = HookProtocol.ReadTurnEnd("""
-            {
-              "session_id": "abc123",
-              "transcript_path": "/tmp/transcript.jsonl",
-              "cwd": "C:/solution",
-              "hook_event_name": "AfterAgent",
-              "prompt": "add the feature",
-              "prompt_response": "done",
-              "stop_hook_active": true
-            }
-            """);
-
-        Assert.IsTrue(result.IsSuccess, string.Join("; ", result.Errors.Select(e => e.Message)));
-        Assert.AreEqual("C:/solution", result.Value.WorkingDirectory);
-        Assert.IsTrue(
-            result.Value.AlreadyContinuing,
-            "A turn already being retried must not be sent back again, on any host.");
     }
 
     [TestMethod]
@@ -676,14 +591,12 @@ public sealed class HookTests
 
         // The word each host reads, taken from that host's own documentation and written out here
         // rather than read off the implementation -- an assertion that asked the code what it wrote
-        // would agree with any answer. Gemini CLI spells it `deny` where the other two spell it
-        // `block`; it documents `block` as an accepted alias, and resting the gate on a
-        // compatibility alias somebody is free to drop is not the same as being right.
+        // would agree with any answer. Both current hosts spell it `block`; that is not a given, and
+        // a host added that spells it otherwise fails here until its word is captured.
         string expected = named switch
         {
             HookHost.Claude => "block",
             HookHost.Copilot => "block",
-            HookHost.Gemini => "deny",
             _ => throw new AssertFailedException(
                 $"{host.Name} governs the turn end and no captured fact here says how it spells a "
                 + "refusal. Add the host's own word, from its documentation."),
