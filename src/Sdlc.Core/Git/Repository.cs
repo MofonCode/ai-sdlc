@@ -336,11 +336,11 @@ public sealed class GitRepository : IRepository
                     // It exited between the wait timing out and the kill. Nothing to do.
                 }
 
+                // TotalSeconds, not `_patience / 1000`. Dividing a TimeSpan by 1000 gives five
+                // milliseconds, so the message read "did not finish within 00:00:00.0050000 seconds"
+                // -- about a timeout nobody could have hit.
                 return (null, string.Create(
                     CultureInfo.InvariantCulture,
-                    // TotalSeconds, not `_patience / 1000`. Dividing a TimeSpan by 1000 gives five
-                    // milliseconds, so the message read "did not finish within 00:00:00.0050000
-                    // seconds" -- about a timeout nobody could have hit.
                     $"git {arguments} did not finish within {_patience.TotalSeconds} seconds and was stopped."));
             }
 
