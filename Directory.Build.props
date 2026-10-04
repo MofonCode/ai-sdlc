@@ -15,12 +15,20 @@
          Cycle.FrameworkVersion is deliberately NOT this. That constant is the artifact format
          stamped into every file's framework_version, and binding it here would restamp every
          artifact as a new format on a release that changed no format at all. -->
-    <VersionPrefix>0.9.0</VersionPrefix>
+    <VersionPrefix>0.10.0</VersionPrefix>
 
     <!-- MIT, declared once for the whole solution rather than per project, so a packable
          project added later cannot ship under a different licence by omission. LICENSE at
          the repository root is the text this expression names. -->
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
+
+    <!-- The holder named in LICENSE, declared here for the same reason the licence expression is:
+         a packable project added later would otherwise ship a package whose metadata asserts no
+         owner at all, and NuGet does not fill this in. Change it here and in LICENSE together.
+         This is the framework's own copyright and reaches only the packages this repository
+         publishes. The scaffolding stamps no copyright into a generated solution, because the
+         solution belongs to whoever adopted the framework and not to whoever wrote it. -->
+    <Copyright>Copyright (c) 2026 MofonCode</Copyright>
     <RepositoryUrl>https://github.com/MofonCode/ai-sdlc</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
 

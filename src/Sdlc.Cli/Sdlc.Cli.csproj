@@ -21,7 +21,7 @@
          defaults are not harmless: `authors` fell back to the assembly name and `description` to the
          literal string "Package Description", and a version pushed to nuget.org can be unlisted but
          never deleted - so the placeholder would have been permanent. -->
-    <Authors>Peter Almanzar</Authors>
+    <Authors>MofonCode</Authors>
     <Company>MofonCode</Company>
     <Title>ai-sdlc gate</Title>
 
