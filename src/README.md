@@ -216,6 +216,7 @@ exists with the capitalisation it states.
 | a stage that needs language | a skill, not a command. `Stages.cs` is the list the binary answers for, so a person typing `sdlc spec` is told which invocation to use rather than "unknown command" |
 | support for another host | a row in `SupportedHosts`, a branch in each of `HookProtocol`'s two write methods, and a captured payload in `HookTests`. Nothing anywhere else — not `Templates`, not `Initialise`, not a message in the command line. If the change reaches `HookPolicy`, the abstraction has leaked |
 | a global constraint | `../CONSTRAINTS.md`. No code — `sdlc constraints` renders it, and nothing else may hold a copy |
+| a check on the installation | a `Check` in `Diagnostics/Diagnose`. If the answer is not the binary's to give, it is `CheckOutcome.Elsewhere` naming who to ask — never a pass |
 
 Two rules cut across all of those. **A refusal is a failed `Result` carrying a reason a person can act on**,
 never an exception and never a bare boolean. And **nothing restates a constraint** — not a skill, not a

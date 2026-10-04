@@ -42,6 +42,12 @@ internal static class Usage
             claims                   Say which cycles may be built together, and what collides.
             status <id>              Show the panel for a stage. Ends with the next command.
             suggestions [<id>]       List the open non-blocking findings, for one cycle or all.
+            doctor                   Check this installation and this repository: the rules, git,
+                                     adoption, every host's hook config, and the pipeline that is
+                                     the guarantee. Reports and never repairs. Exits 1 if anything
+                                     is wrong. What a binary cannot see -- whether a host loaded
+                                     the skills, whether a git hook is installed in this clone --
+                                     is marked 'elsewhere' and names who to ask.
             hook --host <name>       Judge a tool call, or a turn that is ending. Reads the host's
                                      payload on stdin and writes its decision on stdout.
                                      Hosts: claude, copilot, antigravity.

@@ -194,6 +194,24 @@ favour of Antigravity CLI, so the configuration described a hook for a program t
 
 ## Check what you have
 
+**In an adopted repository, one command does most of this walk:**
+
+```pwsh
+sdlc doctor
+```
+
+It checks the rules, git, adoption, every host's hook configuration and whether a pipeline here runs
+`sdlc verify-chain`, and it exits 1 if anything is wrong. Each problem names the command that fixes it.
+
+What it deliberately does **not** claim is the half a binary cannot see. Two things come back marked
+`elsewhere` with who to ask, rather than counted as passes:
+
+- **whether a host loaded the skills** — no binary can ask a host what it loaded, and this is the silent
+  failure of the two, because an agent with no skills behaves exactly like an agent nobody asked.
+- **whether the pre-push hook is installed** — that is `core.hooksPath`, which is per clone and untracked.
+
+So the rest of this section is still worth doing on a new machine.
+
 ```pwsh
 sdlc version
 ```

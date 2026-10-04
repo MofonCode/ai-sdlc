@@ -1392,6 +1392,13 @@ they print verbatim.
 | `scaffold <id>` | writes the solution skeleton into an approved cycle — D-35 |
 | `hook --host <name>` | judges one tool call — §12 |
 | `version` | the three versions and which is which — the package, the plugin, and the artifact envelope |
+| `doctor` | checks this install and this repository, and says which half is missing. Exits 1 if anything is wrong |
+
+**`doctor` reports and never repairs**, and the third of its three outcomes is the point: what a binary
+cannot see — whether a host loaded the skills, whether a git hook is installed in this clone, whether a
+pipeline step is a *required* check — is marked `elsewhere` and names who to ask, rather than being
+counted as sound. A command that said an install worked when nobody had established it is the failure
+this document opens by naming.
 
 **Typing a stage name is answered rather than refused.** The panel ends with the literal next command,
 and for a stage that is a skill — `sdlc spec <id>` — the binary cannot do the work. So it says what the

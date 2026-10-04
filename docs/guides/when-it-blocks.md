@@ -241,12 +241,15 @@ could loop. Its tool calls are governed normally.
 
 ## When nothing refuses and it should have
 
-The dangerous direction. Four ways the gate goes quiet:
+The dangerous direction. Four ways the gate goes quiet — and **`sdlc doctor` is the command for this
+section**: it checks every host's hook configuration, adoption, and whether a pipeline here runs the one
+check that is the guarantee, and exits 1 if any of it is wrong. The two causes it cannot see are marked
+`elsewhere` rather than passed, and they are the first two below.
 
 **A hook is not loaded.** `claude plugin details sdlc@ai-sdlc` must say `Hooks (2) PreToolUse, Stop`. **A
 count below two is a failed install, not a detail** — and the two fail differently. Without `PreToolUse`
 nothing is denied; without `Stop` a turn can end on a red build. Either way every cycle still appears to
-work.
+work. No binary can check this for you, which is why `doctor` names the command instead of answering it.
 
 **The workspace is not trusted.** Project hooks do not run until it is. Same silence, different cause.
 

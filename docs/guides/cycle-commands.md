@@ -12,6 +12,23 @@ skill is and who starts it; this is the order they go in.
 sdlc version
 ```
 
+## When something is not working
+
+```pwsh
+sdlc doctor
+```
+
+Checks this installation and this repository: the rules, git, adoption, every host's hook configuration,
+and whether a pipeline here runs the one check that is the guarantee. **Exits 1 if anything is wrong**,
+so it is usable in a script, and every problem it prints names the command that fixes it.
+
+**It reports and never repairs.** The remedies are commands a person runs — adoption especially, which
+the hook denies to an agent.
+
+Two things it marks `elsewhere` rather than passing or failing, because they are not a binary's to
+answer: whether a host actually loaded the skills, and whether the pre-push hook is installed in this
+clone. Both are named with who to ask.
+
 ## Once per repository
 
 ```pwsh

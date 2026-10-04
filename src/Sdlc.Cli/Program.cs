@@ -8,6 +8,7 @@ using Sdlc.Core.Artifacts;
 using Sdlc.Core.Chain;
 using Sdlc.Core.Constraints;
 using Sdlc.Core.Cycles;
+using Sdlc.Core.Diagnostics;
 using Sdlc.Core.Drafts;
 using Sdlc.Core.Evidence;
 using Sdlc.Core.Findings;
@@ -62,6 +63,7 @@ try
         "draft" => await Draft(line).ConfigureAwait(false),
         "status" => await WithCycle(line, "status", (w, id) => Status(w, line, id)).ConfigureAwait(false),
         "suggestions" => await Workspace.Run(line, w => Suggestions(w, line)).ConfigureAwait(false),
+        "doctor" => await Workspace.Run(line, Doctor).ConfigureAwait(false),
         "hook" => await Hook(line).ConfigureAwait(false),
         _ when Stages.IsSkill(line.Verb) => await Skill(line).ConfigureAwait(false),
         _ => await Unknown(line.Verb).ConfigureAwait(false),
@@ -536,6 +538,28 @@ static async Task<int> PrintDraft(Result<DraftResult> result)
 
 // Takes an optional cycle rather than requiring one, because the question people ask is usually "what
 // has this solution accumulated" rather than "what did that cycle leave".
+// Reports on the install and never repairs it. Every remedy it prints is a command a person runs --
+// adoption especially, which the pre-tool hook denies to an agent, so a doctor that offered to fix
+// things would be a second path into the files adoption writes.
+//
+// Exits 1 when something is wrong, which is what `gate`, `landable` and `verify-chain` do for the same
+// kind of question: a script asking "is this sound" wants an exit code and not a parse.
+static async Task<int> Doctor(Workspace workspace)
+{
+    Result<Diagnose.Response> result = await workspace
+        .Send<Diagnose.Query, Diagnose.Response>(new Diagnose.Query())
+        .ConfigureAwait(false);
+
+    if (result.IsFailed)
+    {
+        return await Report(result, ExitCode.Failed).ConfigureAwait(false);
+    }
+
+    await Console.Out.WriteAsync(DiagnosisRenderer.Render(result.Value)).ConfigureAwait(false);
+
+    return result.Value.Sound ? ExitCode.Ok : ExitCode.Refused;
+}
+
 static async Task<int> Suggestions(Workspace workspace, CommandLine line)
 {
     CycleId? id = null;

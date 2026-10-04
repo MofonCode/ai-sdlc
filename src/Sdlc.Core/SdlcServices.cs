@@ -5,6 +5,7 @@ using Sdlc.Core.Approvals;
 using Sdlc.Core.Chain;
 using Sdlc.Core.Constraints;
 using Sdlc.Core.Cycles;
+using Sdlc.Core.Diagnostics;
 using Sdlc.Core.Drafts;
 using Sdlc.Core.Evidence;
 using Sdlc.Core.Findings;
@@ -104,6 +105,10 @@ public static class SdlcServices
         services.AddLandRequestHandler();
 
         services.AddRecordEvidenceRequestHandler();
+
+        // Reports on the install rather than on a cycle, and dispatches like the rest so it reads the
+        // constraints the way a stage skill does rather than off the disk.
+        services.AddDiagnoseRequestHandler();
 
         return services;
     }
