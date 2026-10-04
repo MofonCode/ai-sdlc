@@ -133,6 +133,20 @@ public static class ReadCycleStatus
             ArgumentNullException.ThrowIfNull(request);
 
             Cycle cycle = new(request.Id, solution.Path);
+
+            // A cycle with no directory has no state to report, and reporting one anyway is worse than
+            // saying so: the panel for a mistyped id read 'intent - not interrogated - gate refused',
+            // which is the same thing it says about a cycle that exists and has had nothing written yet.
+            // Two different situations rendering identically, and the one a person is actually in is the
+            // one the panel does not name. The gate already knew -- it answers NoCycle -- so this is the
+            // reader catching up with what the refusal layer had always said.
+            if (!cycle.Exists)
+            {
+                return Result.Fail<Response>(string.Create(
+                    CultureInfo.InvariantCulture,
+                    $"Cycle {cycle.Id} has no directory at {cycle.Directory}. If you expected it to be there, the id is wrong: 'sdlc cycles' lists every cycle this solution holds."));
+            }
+
             List<ArtifactState> artifacts = [];
 
             // Read in chain order, so each artifact's upstream is already in hand when its turn comes. The

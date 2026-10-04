@@ -1,6 +1,6 @@
 # ai-sdlc
 
-**Version 0.10.0** · iteration 4 · .NET 10 · MIT
+**Version 0.10.1** · iteration 4 · .NET 10 · MIT
 
 A host-agnostic plugin that governs a team's software lifecycle through gated artifacts.
 
@@ -37,7 +37,7 @@ Then, **from a directory that is not a clone of this repository**, check the bin
 sdlc constraints
 ```
 
-It should print the fourteen global rules and end with `global  embedded in sdlc 0.10.0`. **Use this
+It should print the fourteen global rules and end with `global  embedded in sdlc 0.10.1`. **Use this
 rather than `sdlc help` as the smoke test** — `help` and `version` are the only two commands that need
 nothing from the installation, so they are the two that cannot tell you whether it worked.
 
@@ -212,7 +212,7 @@ the commands in one page that travels with the repository.
 
 ## Where it stands
 
-Version 0.10.0, iteration 4. The planning half is complete and exercised end to end: adoption, a cycle, the three
+Version 0.10.1, iteration 4. The planning half is complete and exercised end to end: adoption, a cycle, the three
 documents, interrogation rounds, a pasted approval, recorded evidence, a verification, the chain, and the
 landing decision.
 

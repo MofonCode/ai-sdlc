@@ -360,6 +360,50 @@ public sealed class StatusRendererTests
     }
 
     [TestMethod]
+    public async Task A_cycle_that_does_not_exist_gets_no_panel_at_all()
+    {
+        // A mistyped id used to render 'intent - not interrogated - gate refused', which is exactly what
+        // a cycle that does exist and has had nothing written yet renders. Two different situations
+        // reading identically, and the one the person is actually in is the one not named.
+        using var workspace = CycleWorkspace.Create();
+        workspace.WriteAllArtifacts();
+
+        Assert.IsTrue(CycleId.TryParse("20260101_0000_01", out CycleId? parsed));
+        CycleId absent = parsed!.Value;
+
+        using var gate = Gate.For(workspace.Root);
+
+        Result<ReadCycleStatus.Response> read = await gate
+            .Send<ReadCycleStatus.Query, ReadCycleStatus.Response>(new ReadCycleStatus.Query(absent));
+
+        Assert.IsTrue(read.IsFailed, "There is no such cycle, so there is no state to report.");
+        StringAssert.Contains(read.Errors[0].Message, "has no directory");
+        StringAssert.Contains(
+            read.Errors[0].Message,
+            "sdlc cycles",
+            "The remedy for a wrong id is the command that lists the right ones.");
+    }
+
+    [TestMethod]
+    public async Task A_cycle_with_a_directory_and_nothing_in_it_still_gets_a_panel()
+    {
+        // The other half of the rule above. 'sdlc new' creates the directory before any artifact exists,
+        // so refusing on an empty cycle would refuse every cycle at the moment it is opened.
+        using var workspace = CycleWorkspace.Create();
+
+        using var gate = Gate.For(workspace.Root);
+
+        Result<ReadCycleStatus.Response> read = await gate
+            .Send<ReadCycleStatus.Query, ReadCycleStatus.Response>(
+                new ReadCycleStatus.Query(workspace.Cycle.Id));
+
+        Assert.IsTrue(
+            read.IsSuccess,
+            "A cycle that has just been opened has a directory and no artifacts, and that is the state "
+            + "the panel exists to report. " + string.Join("; ", read.Errors.Select(e => e.Message)));
+    }
+
+    [TestMethod]
     public async Task The_brief_panel_counts_the_blockers_and_the_suggestions_on_one_line()
     {
         using var workspace = CycleWorkspace.Create();
