@@ -223,17 +223,19 @@ would be switched off within a day, and then the one case it catches would go un
 layer behaving as designed — `sdlc verify-chain` in the pipeline re-reads the evidence and checks that
 every test the plan named actually passed, and that is the guarantee.
 
-**Both hosts, now.** Claude Code calls the moment `Stop` and Copilot `agentStop`, and adoption
-configures whichever name the host uses. Copilot was left out of this for a
+**Two of the three hosts.** Claude Code calls the moment `Stop` and Copilot `agentStop`, and adoption
+configures whichever name the host uses. Antigravity has such an event and is deliberately left
+ungoverned — see the paragraph below. Copilot was left out of this for a
 release on the belief that its hook surface had no such event; it has had one all along, and
 `CONCEPT.md` D-46 records how the claim survived. A host that genuinely has no turn end is still refused
 by name — `sdlc hook --event turn-end` says so and configures nothing, because a plausible-looking
 configuration for an event that cannot fire is a check that appears to enforce and does not.
 
 **The send-back needs the host to say it is already retrying**, or a refusal is an endless turn rather
-than a governed stop. Both hosts carry that flag and both spell it `stop_hook_active`. That is not
-universal — Antigravity's stop event has no equivalent — which is one of the reasons it is not a
-supported host yet.
+than a governed stop. Claude Code and Copilot both carry that flag and both spell it `stop_hook_active`.
+**Antigravity does not**, and that is why its turn end is not governed at all:
+`sdlc hook --event turn-end --host antigravity` refuses by name rather than installing a check that
+could loop. Its tool calls are governed normally.
 
 ---
 

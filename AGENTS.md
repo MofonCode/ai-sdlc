@@ -46,7 +46,7 @@ request could mean either, ask.
 the framework works, and cite the decision you are revisiting.
 
 **Do not load the whole file to find one decision.** §1–18 state what is true and read front to back;
-§20 is an appendix of 50 decisions and about half the document, and it is reference material you query
+§20 is an appendix of 51 decisions and about half the document, and it is reference material you query
 rather than read. Three lookups, in the directions anybody actually travels:
 
 ```sh
@@ -58,7 +58,7 @@ awk '/^### D-/{d=$2} /^..Governs:/{print d" "$0}' CONCEPT.md | grep '11.3'
 sed -n '/^### D-38/,/^### D-39/p' CONCEPT.md
 
 # I do not yet know which decision I want. The whole list, one line each, sorted by the section it
-# governs - 50 lines rather than 1600, so neighbours are the decisions that constrain each other:
+# governs - 51 lines rather than 1600, so neighbours are the decisions that constrain each other:
 awk '/^### D-/{h=$0; sub("^### ","",h)}
      /^..Governs:/{g=$0; sub("..Governs:.. ","",g); print g "  |  " h}' CONCEPT.md | sort
 ```

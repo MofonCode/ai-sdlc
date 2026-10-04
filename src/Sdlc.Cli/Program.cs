@@ -696,8 +696,13 @@ static async Task<int> Hook(CommandLine line)
                 ? $" Use {string.Join(" or ", governed)}, or leave"
                 : " Leave";
 
+            // States that nothing is wired, not why. The reasons differ -- a host may have no such
+            // event at all, or have one the framework declines to govern because its payload carries
+            // no way to tell a first stop from a turn already being sent back. Asserting the first
+            // where the second is true would be the inaccuracy this project refuses; the row's own
+            // remarks carry the reason.
             await Console.Error.WriteLineAsync(
-                $"No turn-end event is wired for {described.Name}. Its hook surface has no such moment, so there is nothing for this to listen to.{instead} the turn end ungoverned on that host rather than configuring a check that cannot run.")
+                $"No turn-end event is wired for {described.Name}, so there is nothing for this to listen to.{instead} the turn end ungoverned on that host rather than configuring a check that cannot run.")
                 .ConfigureAwait(false);
             return ExitCode.Usage;
         }

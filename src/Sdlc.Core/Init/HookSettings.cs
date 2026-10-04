@@ -60,6 +60,50 @@ internal static class HookSettings
     };
 
     /// <summary>
+    /// Replaces the framework's own section of a file the host defined, leaving every sibling alone.
+    /// </summary>
+    /// <remarks>
+    /// The easier of the two merges, and the shape Antigravity happens to have: its <c>hooks.json</c>
+    /// is a map of named hook groups, so the framework's group is one key and everything beside it
+    /// belongs to the team. Replacing that key is the whole merge -- no matching entries by the command
+    /// they run, and an uninstall would be the key's removal.
+    /// </remarks>
+    /// <param name="existing">The file as it is now, or null when there is none.</param>
+    /// <param name="framework">The framework's own template, which carries exactly its one section.</param>
+    /// <param name="section">The top-level key the framework owns.</param>
+    /// <returns>The merged file, or a failure saying why a merge could not be done safely.</returns>
+    public static Result<string> MergeSection(string? existing, string framework, string section)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(framework);
+        ArgumentException.ThrowIfNullOrWhiteSpace(section);
+
+        if (string.IsNullOrWhiteSpace(existing))
+        {
+            return Result.Ok(framework);
+        }
+
+        Result<JsonObject> read = Parse(existing);
+
+        if (read.IsFailed)
+        {
+            return read.ToResult<string>();
+        }
+
+        JsonObject current = read.Value;
+
+        if (JsonNode.Parse(framework) is not JsonObject ours || ours[section] is not JsonNode section_)
+        {
+            throw new ArgumentException(
+                "The framework's own template does not carry the section it claims to own.",
+                nameof(framework));
+        }
+
+        current[section] = section_.DeepClone();
+
+        return Result.Ok(current.ToJsonString(_output) + Environment.NewLine);
+    }
+
+    /// <summary>
     /// Puts the framework's hook entries into an existing settings file, leaving everything else alone.
     /// </summary>
     /// <param name="existing">The file as it is now, or null when there is none.</param>
@@ -74,23 +118,14 @@ internal static class HookSettings
             return Result.Ok(framework);
         }
 
-        JsonNode? parsed;
-        try
+        Result<JsonObject> read = Parse(existing);
+
+        if (read.IsFailed)
         {
-            parsed = JsonNode.Parse(existing);
-        }
-        catch (JsonException error)
-        {
-            return Result.Fail<string>(string.Create(
-                CultureInfo.InvariantCulture,
-                $"it is not valid JSON, so the framework's hook entries cannot be merged into it without guessing. {error.Message}"));
+            return read.ToResult<string>();
         }
 
-        if (parsed is not JsonObject current)
-        {
-            return Result.Fail<string>(
-                "it holds something other than a JSON object, so there is nowhere for the framework's hook entries to go.");
-        }
+        JsonObject current = read.Value;
 
         if (JsonNode.Parse(framework) is not JsonObject ours || ours["hooks"] is not JsonObject oursByMoment)
         {
@@ -127,6 +162,34 @@ internal static class HookSettings
         }
 
         return Result.Ok(current.ToJsonString(_output) + Environment.NewLine);
+    }
+
+    /// <summary>
+    /// Reads a settings file, or says why it cannot be merged into without guessing.
+    /// </summary>
+    /// <remarks>
+    /// Strict, for the reason the class's own remarks give: relaxed parsing would accept a file
+    /// carrying comments or a trailing comma and silently drop them on the way back out. Shared by
+    /// both merges so the two cannot differ about what an unreadable file is.
+    /// </remarks>
+    private static Result<JsonObject> Parse(string existing)
+    {
+        JsonNode? parsed;
+        try
+        {
+            parsed = JsonNode.Parse(existing);
+        }
+        catch (JsonException error)
+        {
+            return Result.Fail<JsonObject>(string.Create(
+                CultureInfo.InvariantCulture,
+                $"it is not valid JSON, so the framework's hook entries cannot be merged into it without guessing. {error.Message}"));
+        }
+
+        return parsed is JsonObject current
+            ? Result.Ok(current)
+            : Result.Fail<JsonObject>(
+                "it holds something other than a JSON object, so there is nowhere for the framework's hook entries to go.");
     }
 
     /// <summary>

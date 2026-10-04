@@ -216,17 +216,33 @@ public static class Initialise
                 string relative = Path.Combine([.. host.ConfigPath.Split('/')]);
                 string contents = Templates.HookConfig(host.Host);
 
-                if (host.Ownership == ConfigOwnership.Shared)
+                switch (host.Ownership)
                 {
-                    // The host's own shared project settings -- permissions, environment, the team's
-                    // own hooks. Everything that is not the framework's two entries is read, kept
-                    // and written back.
-                    await Merged(relative, contents, actions, printed, cancellationToken)
-                        .ConfigureAwait(false);
-                    continue;
-                }
+                    case ConfigOwnership.Shared:
+                        // The host's own shared project settings -- permissions, environment, the
+                        // team's own hooks. Everything that is not the framework's two entries is
+                        // read, kept and written back.
+                        await Merged(relative, contents, actions, printed, cancellationToken)
+                            .ConfigureAwait(false);
+                        break;
 
-                await Owned(relative, contents, actions, cancellationToken).ConfigureAwait(false);
+                    case ConfigOwnership.Section:
+                        // A file of named hook groups. The framework owns the one it named and every
+                        // sibling key is somebody else's, so the merge replaces a key rather than
+                        // matching entries by the command they run.
+                        await Merged(
+                            relative,
+                            contents,
+                            actions,
+                            printed,
+                            cancellationToken,
+                            host.EventsKey).ConfigureAwait(false);
+                        break;
+
+                    default:
+                        await Owned(relative, contents, actions, cancellationToken).ConfigureAwait(false);
+                        break;
+                }
             }
 
             // The pipeline is the one non-bypassable layer, so adoption has to write it -- but only a
@@ -470,7 +486,8 @@ public static class Initialise
             string contents,
             List<InitAction> actions,
             Dictionary<string, string> printed,
-            CancellationToken cancellationToken)
+            CancellationToken cancellationToken,
+            string? section = null)
         {
             string path = Path.Combine(solution.Path, relative);
 
@@ -482,7 +499,13 @@ public static class Initialise
             }
 
             string existing = await File.ReadAllTextAsync(path, cancellationToken).ConfigureAwait(false);
-            Result<string> merged = HookSettings.Merge(existing, contents);
+
+            // Two merges, because a host's file is shared in one of two ways: the framework owns
+            // entries inside one hooks object, or it owns one named top-level section beside the
+            // team's own. A file this cannot parse is written to in neither case.
+            Result<string> merged = section is null
+                ? HookSettings.Merge(existing, contents)
+                : HookSettings.MergeSection(existing, contents, section);
 
             if (merged.IsFailed)
             {

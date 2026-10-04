@@ -16,6 +16,12 @@ public enum HookHost
     /// <summary>GitHub Copilot. <c>preToolUse</c>, decision at the top level.</summary>
     Copilot,
 
+    /// <summary>
+    /// Antigravity. <c>PreToolUse</c>, a nested payload, and a decision on every call including the
+    /// ones the policy has no opinion about.
+    /// </summary>
+    Antigravity,
+
     // Every other fact about a host -- where its configuration goes, who owns that file, what it
     // calls each event, whether it has a turn end at all -- is a row in SupportedHosts rather than a
     // switch here. A member added without a row throws from SupportedHosts.Of, which the suite holds.
@@ -208,7 +214,18 @@ public static class HookProtocol
             return Result.Fail<ToolCall>("The hook payload is not a JSON object.");
         }
 
-        string toolName = Text(payload, "tool_name") ?? Text(payload, "toolName") ?? string.Empty;
+        // Antigravity nests both under `toolCall`, where every other host puts them at the top level
+        // under some spelling. Read as another place to look rather than as a host's own reader, for
+        // the reason the whole method is tolerant: a host that moves a key must not fall out of the
+        // rules, and a reader that only understood the asking host's shape would be one rename away
+        // from permitting everything.
+        var call = payload["toolCall"] as JsonObject;
+
+        string toolName = Text(payload, "tool_name")
+            ?? Text(payload, "toolName")
+            ?? (call is null ? null : Text(call, "name"))
+            ?? string.Empty;
+
         string? workingDirectory = Text(payload, "cwd") ?? Text(payload, "workingDirectory");
 
         // Three spellings, and the third is not cosmetic. Copilot documents two payload shapes -- a
@@ -220,7 +237,8 @@ public static class HookProtocol
         // of each.
         JsonObject? input = payload["tool_input"] as JsonObject
             ?? payload["toolInput"] as JsonObject
-            ?? payload["toolArgs"] as JsonObject;
+            ?? payload["toolArgs"] as JsonObject
+            ?? (call?["args"] as JsonObject);
 
         List<string> paths = [];
         string? command = null;
@@ -330,7 +348,12 @@ public static class HookProtocol
     {
         if (decision != HookDecision.Deny)
         {
-            return new JsonObject().ToJsonString(_output);
+            // Silence where the host permits it, and the host's own neutral word where it does not.
+            // Antigravity requires a decision on every call, so there is nothing to be silent with --
+            // see D-51 for why that word is `ask` and not `allow`.
+            return SupportedHosts.Of(host).NeutralDecision is { } neutral
+                ? new JsonObject { ["decision"] = neutral }.ToJsonString(_output)
+                : new JsonObject().ToJsonString(_output);
         }
 
         JsonObject payload = host switch
@@ -353,6 +376,15 @@ public static class HookProtocol
             {
                 ["permissionDecision"] = "deny",
                 ["permissionDecisionReason"] = reason ?? string.Empty,
+            },
+
+            // Antigravity does not frame a tool call as a permission at all: the same `decision` and
+            // `reason` it uses for every other answer, with the refusal spelled `deny`. A third shape
+            // from a third host, which is why these stay typed switches rather than fields on a row.
+            HookHost.Antigravity => new JsonObject
+            {
+                ["decision"] = "deny",
+                ["reason"] = reason ?? string.Empty,
             },
 
             _ => throw new ArgumentOutOfRangeException(nameof(host), host, "Unknown host."),
@@ -400,6 +432,18 @@ public static class HookProtocol
             HookHost.Copilot => new JsonObject
             {
                 ["decision"] = "block",
+                ["reason"] = reason ?? string.Empty,
+            },
+
+            // Antigravity has a Stop event and this is not reached, because its row governs no turn
+            // end: the payload carries no flag saying the agent is already continuing, so a refusal
+            // would be an endless turn. The shape is written anyway rather than left to throw, and
+            // it is the inverted one -- there, `continue` is what sends a turn back and anything
+            // else lets it go, so the word a refusal needs is the opposite of the other two hosts'.
+            // The day a loop guard is documented, this is already right. D-51.
+            HookHost.Antigravity => new JsonObject
+            {
+                ["decision"] = "continue",
                 ["reason"] = reason ?? string.Empty,
             },
 

@@ -17,14 +17,21 @@ seventeen skills in the same `skills/` directory, so there is no second copy to 
 **not** part of that standard — it covers skills and MCP servers only — so on every host the hooks arrive
 through `sdlc init` writing them into the repository, and on Claude Code additionally through the plugin.
 
-**Both hosts are governed, and adoption writes both configurations regardless of which one you use.**
-That is deliberate: the file is inert on a machine without that host, and a teammate who opens the
-repository in the other agent is governed without having to adopt again.
+**All three hosts are governed, and adoption writes every configuration regardless of which one you
+use.** That is deliberate: a file is inert on a machine without that host, and a teammate who opens the
+repository in a different agent is governed without having to adopt again.
 
 | Host | Hook config adoption writes | Tool call | Turn end |
 |---|---|---|---|
 | Claude Code | `.claude/settings.json`, merged | `PreToolUse` | `Stop` |
 | GitHub Copilot | `.github/hooks/sdlc.json`, owned | `preToolUse` | `agentStop` |
+| Antigravity | `.agents/hooks.json`, the `sdlc` section | `PreToolUse` | **not governed** |
+
+**Antigravity's turn end is deliberately left alone.** It has a `Stop` event, but its payload carries no
+flag saying the agent is already continuing because a previous stop was refused — so a refusal there
+would be an endless turn rather than a governed stop. Nothing is configured, and
+`sdlc hook --event turn-end --host antigravity` refuses by name. The pull-request check still gates the
+merge, and it depends on no host.
 
 ## Before either
 
@@ -158,11 +165,28 @@ the equivalent is `chat.plugins.enabled`, this repository added to `chat.plugins
 **You still need `sdlc init` in each repository**, and more than on Claude Code: the hooks are not part
 of the plugin standard, so adoption writing `.github/hooks/sdlc.json` is the only way they arrive.
 
+### On Antigravity
+
+**Untried.** The adapter is conformance-tested against Google's own hooks reference — the nested
+`toolCall` payload, the decision-on-every-call contract, and the `sdlc` section adoption writes into
+`.agents/hooks.json` — but no Antigravity session has had a tool call refused by it.
+
+The skills reach it through its own plugin mechanism rather than Agent Plugins: `agy plugin install`
+with a git URL or a local path, and it also scans `.agents/skills/` in a workspace and
+`~/.gemini/config/skills/` globally. A plugin there is a `plugin.json` plus an optional `skills/`
+directory, which is the layout this repository already has — but that is **not** the same manifest as
+the Agent Plugins one, and nobody has run `agy plugin validate` against it.
+
+**The workspace configuration needs a trusted folder.** Antigravity loads `.agents/hooks.json` only in
+a folder you have marked trusted, so on a fresh clone the local layer is off until you do. That is a
+property of the host rather than of this framework, and it is one more reason the promise rests on the
+pull-request check.
+
 ### On other hosts
 
 **Nothing is configured for a host that is not in the table**, and `sdlc hook --host <name>` refuses a
-name it does not know rather than guessing. Codex, Antigravity and Cursor all have a blocking pre-tool
-hook, so they are adapters waiting to be written rather than hosts that cannot work.
+name it does not know rather than guessing. Codex and Cursor both have a blocking pre-tool hook, so they
+are adapters waiting to be written rather than hosts that cannot work.
 
 Gemini CLI had a row for two releases and no longer does: Google retired the product on 18 June 2026 in
 favour of Antigravity CLI, so the configuration described a hook for a program that no longer answers.
@@ -189,10 +213,10 @@ The two hooks govern two different moments. `PreToolUse` refuses a write to a fi
 failing suite or when code has moved since the build was recorded. It is the reason a warnings-as-errors
 build and an architecture test are enforcement rather than something a reviewer finds afterwards.
 
-**Both moments are governed on both hosts** — only the names differ, and the table at the top of this
-guide has them. On Copilot they arrive through adoption rather than a plugin install, so there is nothing
-to verify with `claude plugin details`: check instead that `.github/hooks/sdlc.json` exists and that
-`sdlc version` answers.
+**The tool call is governed on all three hosts and the turn end on two** — the table at the top of this
+guide has the names. Off Claude Code they arrive through adoption rather than a plugin install, so there
+is nothing to verify with `claude plugin details`: check instead that the host's configuration file
+exists and that `sdlc version` answers.
 
 ```pwsh
 claude plugin marketplace list

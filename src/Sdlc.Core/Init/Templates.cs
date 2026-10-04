@@ -363,7 +363,10 @@ public static class Templates
             file["version"] = version;
         }
 
-        file["hooks"] = events;
+        // One top-level key on every host so far, and only its name differs: `hooks` where the file is
+        // the framework's or the host's own hook object, and the framework's group name where the file
+        // is a map of named groups.
+        file[described.EventsKey] = events;
 
         return file.ToJsonString(_hookConfig) + Environment.NewLine;
     }

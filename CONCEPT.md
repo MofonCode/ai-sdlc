@@ -1160,16 +1160,24 @@ What differs is vocabulary.
 turn-end event, which was never true, and the claim travelled into the generated configuration, the
 command line, the guides and the readme before anybody re-read the host's documentation. D-46.
 
-**Both supported hosts govern both moments**, with the same two permission fields — nested on Claude
-Code, at the top level on Copilot — and a turn sent back with a top-level `decision` they both spell
-`block`. That agreement is a coincidence of two hosts rather than a property of the surface: Gemini CLI,
-briefly supported, framed a tool call as a `decision` and a `reason` rather than a permission at all, and
-Antigravity requires a `decision` on every call including the ones the policy has no opinion about. So
-the two write methods stay typed switches rather than fields on a row (D-50).
+**Claude Code and Copilot govern both moments; Antigravity governs the tool call only.** The first two
+use the same two permission fields — nested on Claude Code, at the top level on Copilot — and send a turn
+back with a top-level `decision` they both spell `block`. That agreement is a coincidence of two hosts
+rather than a property of the surface. Antigravity does not frame a tool call as a permission at all, its
+turn-end refusal is the inverse word (`continue` re-enters the loop; anything else lets the turn go), and
+it requires a `decision` on every call including the ones the policy has no opinion about. Three shapes
+from three hosts is why the two write methods stay typed switches rather than fields on a row (D-50).
 
-**v1 ships Claude Code and GitHub Copilot**, and what that means is a row in `SupportedHosts` plus a
-conformance test fed a captured payload — not a judgement somebody makes by reading four files (D-46).
-**And a host is removed when its product stops serving**, which is what happened to Gemini CLI (D-50).
+**A host whose turn end cannot be guarded is not given one.** Sending a turn back is only safe where the
+payload says the agent is already continuing from a previous refusal — `stop_hook_active` on the two hosts
+that have it. Antigravity's `Stop` carries no equivalent, so the moment is left ungoverned and the command
+line refuses it by name rather than installing a check that could loop forever (D-51). The pull-request
+check is unaffected, because it depends on no host.
+
+**v1 ships Claude Code, GitHub Copilot and Antigravity**, and what that means is a row in
+`SupportedHosts` plus a conformance test fed a captured payload — not a judgement somebody makes by
+reading four files (D-46). **And a host is removed when its product stops serving**, which is what
+happened to Gemini CLI (D-50).
 
 ChatGPT is not a target — Codex is OpenAI's repository-agentic surface. Antigravity plugins are the
 stated successor to Gemini CLI extensions.
@@ -1546,7 +1554,7 @@ Ids are a monotonic sequence of their own, separate from `CON_nn`: a constraint 
 decision explains the framework. Assigned once, never reused. **A reversed decision is superseded by
 a new id rather than edited**, so a commit citing `D-14` still means what it meant.
 
-**This is reference material, not reading.** Fifty entries and about half this document, so the
+**This is reference material, not reading.** Fifty-one entries and about half this document, so the
 way in is a lookup rather than the top. `AGENTS.md` carries the two commands; in short, a section's
 trailing `(D-nn)` marker answers "what constrains this", and an entry's `Governs` answers the reverse.
 **Read `Rejected` first when proposing something** — it is where the alternative you are reaching for
@@ -3276,3 +3284,76 @@ conformance payloads for all of it. Comparable in size to the commit that introd
 - *Treating the retirement as a reason to narrow the framework to one host* — rejected. The adapter cost
   Copilot one row and found two real defects doing it. The lesson is to check that a product serves, not
   to stop being portable.
+
+### D-51 — Silence is the principle; where a host forbids silence the neutral word stands in
+
+**Governs:** §12, §12.1
+
+**Decision.** D-39 said a refusal is written and an allow says nothing at all. Antigravity requires a
+`decision` on every pre-tool call, so nothing is not an available answer there. The framework writes its
+**neutral** value instead — `ask`, documented as prompting while respecting the person's existing
+grants — which is what silence accomplishes on the other two hosts: the question goes back to the
+person's own permission flow rather than being answered by the gate. The word is a field on the host's
+row, `NeutralDecision`, and null on that field means silence. D-39's principle is unchanged; only its
+spelling turned out to be host-specific.
+
+**Why D-39 could not simply be applied.** Its reasoning was about *overriding the host*: an explicit
+`permissionDecision: "allow"` is not silence, because Claude Code documents it as bypassing the
+permission system — so a policy with no opinion would stop the host asking a person about the very tools
+the hook matches. On Antigravity the five values are `allow`, `deny`, `ask`, `force_ask` and
+`deny_unless_prior_grant`, and `decision` is mandatory. `allow` is the same bypass D-39 refuses.
+`force_ask` is the same override in the restrictive direction, which D-39 also considered and rejected.
+`ask` is the only value that leaves the person's own settings deciding, so it is the only one that means
+what the empty object means elsewhere.
+
+**Why this is not a loophole in D-39.** The thing D-39 protects is the host's own gate, not the literal
+emptiness of the output. Writing `ask` where the host has no empty option preserves what D-39 is for; the
+alternative — writing `allow` because it is nominally the "nothing is wrong" answer — would destroy it,
+on a host where it is also reported not to work.
+
+**Why the turn end is not governed there.** Antigravity has a `Stop` event, and sending a turn back is
+`decision: "continue"`. But a turn-end refusal is only safe where the payload says the agent is *already*
+continuing from a previous refusal: without that, the gate refuses, the host re-enters the loop, the gate
+refuses again, and the turn never ends. Claude Code and Copilot both supply `stop_hook_active`.
+Antigravity supplies `executionNum`, and its own documentation says that increments per attempt without
+signalling prior continuations, plus `fullyIdle`, which is about background work rather than about
+retries. Neither is a guard somebody should infer. So `TurnEndEvent` is null for that host — the first row
+to use that value for its documented purpose — adoption writes no such block, and the command line
+refuses the combination by name. The shape for the day a guard is documented is written and tested
+anyway, so the change then is a row field rather than a new branch.
+
+**Why a third ownership mode.** Antigravity's `hooks.json` is a map of named hook groups rather than one
+hooks object, so the framework owns the key it named and every sibling key is a hook somebody else wrote.
+That is cleaner than Claude Code's case, where the framework owns entries *inside* a shared object and has
+to find them by the command they run. `ConfigOwnership.Section` replaces one top-level key and leaves the
+rest of the file untouched, which also makes an uninstall the removal of a key.
+
+**What is not established.** No Antigravity session has had a tool call refused by this. The adapter is
+conformance-tested against Google's hooks reference and the generated configuration matches the documented
+schema, and that is a different claim — the same distinction D-32 draws for the Azure DevOps pipeline and
+D-47 for the Copilot install. Two host properties also sit outside the framework's control and are
+recorded in the install guide rather than worked around: the workspace configuration loads only in a
+folder the person has marked trusted, and the skills arrive through that host's own plugin mechanism
+rather than through Agent Plugins.
+
+**Rejected.**
+
+- *Writing `allow` on a call the policy has no opinion about* — rejected twice over. It is the bypass
+  D-39 exists to refuse, and it is independently reported not to permit the call on that host, so it would
+  be both wrong in principle and broken in fact.
+- *Writing `force_ask`* — rejected. It prompts even where a person has already granted, which overrides
+  the host in the restrictive direction. D-39 weighed exactly this for `ask` on Claude Code, where `ask`
+  has that behaviour; on Antigravity the two values are distinct and `ask` is the deferential one.
+- *Treating the empty object as good enough and letting the host decide what to do with it* — rejected.
+  Reports of that host denying every tool call on a hook returning `{}` are the shape of the risk, and a
+  gate that refuses every call is not a safer failure than one that permits them: it makes the agent
+  unusable, and the response to an unusable hook is to delete it.
+- *Governing the turn end on an inferred guard* — rejected. `executionNum > 1` is a plausible reading of
+  an undocumented integer, and a wrong reading is an endless turn: the worst possible failure for a hook
+  that fires when somebody is waiting for their work to finish.
+- *Owning `.agents/hooks.json` outright, because the framework writes a whole section of it* — rejected
+  by D-40. The path belongs to the host and a team's own groups live beside the framework's, so owning the
+  file would destroy them and report it as "updated".
+- *A fourth entry shape for Antigravity's flat-list events* — rejected as unnecessary. `PreInvocation`,
+  `PostInvocation` and `Stop` take a flat list of handlers where `PreToolUse` takes the grouped form, and
+  the framework configures none of the flat ones. A shape with no writer is a shape nothing checks.

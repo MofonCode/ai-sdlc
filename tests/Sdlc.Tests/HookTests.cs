@@ -35,13 +35,12 @@ public sealed class HookTests
     [DataRow("")]
     [DataRow(null)]
     [DataRow("codex")]
-    [DataRow("antigravity")]
     [DataRow("cursor")]
     [DataRow("gemini")]
     public void A_host_that_is_not_supported_yet_is_not_recognised(string? spelling)
     {
-        // Codex, Antigravity and Cursor all have a blocking pre-tool hook, so they are adapters
-        // waiting to be written rather than hosts that cannot work. Claiming one before its payload
+        // Codex and Cursor both have a blocking pre-tool hook, so they are adapters waiting to be
+        // written rather than hosts that cannot work. Claiming one before its payload
         // shapes and its refusal shape are held by a test would be the "looks supported and is not"
         // failure.
         //
@@ -133,6 +132,62 @@ public sealed class HookTests
 
         Assert.AreEqual(ToolKind.Shell, call.Kind);
         Assert.AreEqual(HookDecision.Deny, HookPolicy.Decide(call).Decision);
+    }
+
+    [TestMethod]
+    public void An_antigravity_payload_reads_despite_nesting_the_call_inside_an_object()
+    {
+        // Antigravity's PreToolUse payload, from Google's hooks reference. Every host before it put
+        // the tool's name and its arguments at the top level under some spelling; this one nests both
+        // under `toolCall`, which is why the reader gained a place to look rather than a host's own
+        // parser. `write_to_file` is its tool for creating a file.
+        const string payload = """
+            {
+              "conversationId": "abc123",
+              "workspacePaths": ["C:/solution"],
+              "transcriptPath": "/tmp/transcript.jsonl",
+              "artifactDirectoryPath": "/tmp/artifacts",
+              "modelName": "gemini-3-pro",
+              "stepIdx": 4,
+              "toolCall": {
+                "name": "write_to_file",
+                "args": { "file_path": "C:/solution/.sdlc/cycles/20260929_1456_32/approval.md" }
+              }
+            }
+            """;
+
+        ToolCall call = Read(payload, HookHost.Antigravity);
+
+        Assert.AreEqual("write_to_file", call.ToolName);
+        Assert.AreEqual(ToolKind.FileWrite, call.Kind);
+        Assert.AreEqual(HookDecision.Deny, HookPolicy.Decide(call).Decision);
+    }
+
+    [TestMethod]
+    public void An_antigravity_shell_payload_is_judged_on_the_command_it_carries()
+    {
+        // `run_command` is its shell tool, and `replace_file_content` its editor. Classified by what
+        // the call carries, so a shell writing a protected file is refused whatever it is called.
+        ToolCall call = Read(
+            """{ "toolCall": { "name": "run_command", "args": { "command": "echo x > .sdlc/constraints.md" } } }""",
+            HookHost.Antigravity);
+
+        Assert.AreEqual(ToolKind.Shell, call.Kind);
+        Assert.AreEqual(HookDecision.Deny, HookPolicy.Decide(call).Decision);
+    }
+
+    [TestMethod]
+    public void An_antigravity_denial_is_a_decision_rather_than_a_permission()
+    {
+        // The third refusal shape across three hosts, which is why the write methods are typed
+        // switches rather than fields on a row. Antigravity does not frame a tool call as a
+        // permission at all.
+        JsonNode written = Write(HookHost.Antigravity, HookDecision.Deny, "because.");
+
+        Assert.AreEqual("deny", written["decision"]!.GetValue<string>());
+        Assert.AreEqual("because.", written["reason"]!.GetValue<string>());
+        Assert.IsNull(written["permissionDecision"], "That is Copilot's shape, not this one.");
+        Assert.IsNull(written["hookSpecificOutput"], "That is Claude Code's shape, not this one.");
     }
 
     [TestMethod]
@@ -357,11 +412,33 @@ public sealed class HookTests
         // `permissionDecision: "allow"` is not silence -- Claude Code documents it as bypassing the
         // permission system -- so writing one whenever the policy has no opinion would stop the host
         // asking a person about every Edit, Write and Bash the hook matches, and would override the
-        // team's own allow and deny rules for them. The policy having nothing to say is written as
-        // nothing, for every host. D-39 records why, `ask` included.
+        // team's own allow and deny rules for them. D-39 records why, and why `force_ask` is not the
+        // answer either.
+        //
+        // Driven off the row, because one host cannot be silent: Antigravity requires a decision on
+        // every call, so the honest translation of "nothing to say" is its neutral word rather than
+        // an empty object. The principle is the same on all three -- hand the question back to the
+        // person's own permission flow -- and only the spelling differs. D-51.
+        SupportedHost described = SupportedHosts.Of(host);
         JsonNode written = Write(host, HookDecision.Allow, null);
 
-        Assert.AreEqual(0, written.AsObject().Count, "There is nothing to say, so nothing is said.");
+        if (described.NeutralDecision is not { } neutral)
+        {
+            Assert.AreEqual(0, written.AsObject().Count, "There is nothing to say, so nothing is said.");
+            return;
+        }
+
+        Assert.AreEqual(
+            neutral,
+            written["decision"]!.GetValue<string>(),
+            described.Name + " requires a decision on every call, and this is not the neutral one.");
+
+        Assert.AreNotEqual(
+            "allow",
+            written["decision"]!.GetValue<string>(),
+            "An explicit allow bypasses the host's own permission system rather than deferring to it.");
+
+        Assert.IsNull(written["reason"], "There is no reason, because nothing was refused.");
     }
 
     [TestMethod]
@@ -584,6 +661,17 @@ public sealed class HookTests
 
         if (!host.GovernsTurnEnd)
         {
+            // A host with no turn end still has a shape written for it rather than a throw, so the
+            // day one is wired is a test failure about a word and not a crash in a hook. Antigravity
+            // is the first row to exercise this: it has a Stop event and no documented flag saying
+            // the agent is already continuing, so the moment is left ungoverned. D-51.
+            JsonNode unused = Parse(HookProtocol.WriteTurnEndDecision(named, HookDecision.Deny, "why"));
+
+            Assert.AreNotEqual(
+                0,
+                unused.AsObject().Count,
+                host.Name + " governs no turn end, and the shape for the day it does is missing.");
+
             return;
         }
 

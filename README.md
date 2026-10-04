@@ -113,17 +113,29 @@ Every candidate host can deny a tool call before it runs, so the enforcement pri
 differs is vocabulary, and one adapter normalises it: `sdlc hook --host <name>` reads the host's payload,
 asks the one policy engine, and writes the host's own decision shape.
 
-**v1 ships Claude Code and GitHub Copilot.** The rules themselves name no language, framework or
-package, so they travel to any stack — but the tool is a .NET executable, so the toolchain does not.
+**v1 ships Claude Code, GitHub Copilot and Antigravity.** The rules themselves name no language,
+framework or package, so they travel to any stack — but the tool is a .NET executable, so the toolchain
+does not.
 
-**Both moments are governed on both hosts.** A second moment is worth governing — an agent must not
+| | Tool call | Turn end | Config | A refusal | Nothing to say |
+|---|---|---|---|---|---|
+| Claude Code | `PreToolUse` | `Stop` | `.claude/settings.json`, merged | `permissionDecision` nested | nothing |
+| GitHub Copilot | `preToolUse` | `agentStop` | `.github/hooks/sdlc.json`, owned | `permissionDecision` top level | nothing |
+| Antigravity | `PreToolUse` | **none** | `.agents/hooks.json`, one section | `decision: "deny"` | `decision: "ask"` |
+
+**The turn end is governed on two of the three.** A second moment is worth governing — an agent must not
 report done over a failing build, which is what makes an analyzer or an architecture test an enforcement
-layer rather than one a reviewer consults afterwards. The names are the only difference:
+layer rather than one a reviewer consults afterwards. Antigravity has a `Stop` event and the framework
+declines to use it: its payload carries no flag saying the agent is already continuing because a previous
+stop was refused, and without one a refusal is an endless turn rather than a governed stop. So nothing is
+configured, `sdlc hook --event turn-end` refuses it by name, and the pull-request check — which depends on
+no host — is still what gates the merge.
 
-| | Tool call | Turn end | Config | Refusal |
-|---|---|---|---|---|
-| Claude Code | `PreToolUse` | `Stop` | `.claude/settings.json`, merged | `permissionDecision` nested |
-| GitHub Copilot | `preToolUse` | `agentStop` | `.github/hooks/sdlc.json`, owned | `permissionDecision` at top level |
+**And one host cannot be silent.** On Claude Code and Copilot a policy with nothing to say writes nothing,
+because an explicit allow bypasses the host's own permission system. Antigravity requires a `decision` on
+every call, so there silence is spelled `ask`: documented as prompting while respecting the person's
+Always Allow settings, which is the same thing silence does elsewhere — hand the question back. The
+principle generalised; the spelling did not. `CONCEPT.md` D-51 has it.
 
 **What a host supports is a row in a table, not a judgement.** `SupportedHosts` holds one row per host —
 its spellings, where its hook configuration goes, who owns that file, what it calls each event, whether it
@@ -136,10 +148,10 @@ event is still refused by name rather than given a check that cannot run. `CONCE
 reasoning.
 
 **A host is removed when its product stops serving.** Gemini CLI had a row for two commits; Google
-retired the product on 18 June 2026 in favour of Antigravity CLI, so the row configured a hook for a
-program that no longer answers — the same defect as claiming an unexercised host, reached from the other
-direction. It is out, and `CONCEPT.md` D-50 records what it taught on the way through, including that the
-timeout key's *unit* is not derivable from its name.
+retired the product on 18 June 2026 in favour of Antigravity, so the row configured a hook for a program
+that no longer answers — the same defect as claiming an unexercised host, reached from the other
+direction. Antigravity replaced it the long way round, as a piece of work rather than a row: `D-50`
+lists what the episode cost and `D-51` what the replacement decided.
 
 ## What installing gets you, and what it does not
 

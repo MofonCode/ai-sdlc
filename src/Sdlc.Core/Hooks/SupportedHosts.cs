@@ -14,6 +14,17 @@ public enum ConfigOwnership
 
     /// <summary>The host defined the file and the team fills it. The framework owns its entries only.</summary>
     Shared,
+
+    /// <summary>
+    /// The host defined the file and the framework owns one named top-level section of it.
+    /// </summary>
+    /// <remarks>
+    /// Antigravity's shape, and the easiest of the three to own honestly: its <c>hooks.json</c> is a map
+    /// of named hook groups, so the framework's group is one key and every other key is somebody else's.
+    /// Replacing that one key is both the update and the uninstall, with no need to match entries by the
+    /// command they run.
+    /// </remarks>
+    Section,
 }
 
 /// <summary>
@@ -81,12 +92,20 @@ public enum HookEntryShape
 /// the way every document writes it, so a reader can check it against the host's documentation
 /// without translating separators.
 /// </param>
-/// <param name="Ownership">Whether the framework owns that file or only its entries.</param>
+/// <param name="Ownership">Whether the framework owns that file, one section of it, or only its entries.</param>
+/// <param name="EventsKey">
+/// The single top-level key the event map sits under. <c>hooks</c> on the two hosts that have one of
+/// those; on Antigravity the file is a map of named hook groups instead, so the key is the framework's
+/// group name and owning it is owning that key.
+/// </param>
 /// <param name="ConfigVersion">The schema version the file declares, when the host asks for one.</param>
 /// <param name="EntryShape">How one entry is spelled inside it.</param>
 /// <param name="ToolMatcher">
 /// Which tools the pre-tool entry matches, when the host filters by name. Null when it does not, and
 /// then every tool call is judged -- which is the safer of the two directions.
+/// </param>
+/// <param name="NeutralDecision">
+/// What to write when the policy has nothing to say, or null where the honest answer is nothing at all.
 /// </param>
 /// <param name="PreToolEvent">The configuration key for the moment before a tool runs.</param>
 /// <param name="TurnEndEvent">
@@ -112,9 +131,11 @@ public sealed record SupportedHost(
     IReadOnlyList<string> Spellings,
     string ConfigPath,
     ConfigOwnership Ownership,
+    string EventsKey,
     int? ConfigVersion,
     HookEntryShape EntryShape,
     string? ToolMatcher,
+    string? NeutralDecision,
     string PreToolEvent,
     string? TurnEndEvent,
     string TimeoutKey)
@@ -176,9 +197,13 @@ public static class SupportedHosts
             // The host's shared project settings -- permissions, environment, the team's own hooks.
             // Adoption writes two entries into it and reads, keeps and writes back everything else.
             ConfigOwnership.Shared,
+            EventsKey: "hooks",
             ConfigVersion: null,
             HookEntryShape.Grouped,
             "Edit|Write|MultiEdit|NotebookEdit|Bash",
+
+            // Nothing, on an allow. D-39.
+            NeutralDecision: null,
             "PreToolUse",
             "Stop",
             "timeout"),
@@ -193,15 +218,62 @@ public static class SupportedHosts
             // than a sibling key.
             ".github/hooks/sdlc.json",
             ConfigOwnership.Framework,
+            EventsKey: "hooks",
             ConfigVersion: 1,
             HookEntryShape.Direct,
 
             // No matcher. Copilot's pre-tool event fires for every tool and filters nowhere, so every
             // call reaches the policy -- which is the direction that cannot quietly stop applying.
             ToolMatcher: null,
+            NeutralDecision: null,
             "preToolUse",
             "agentStop",
             "timeoutSec"),
+
+        new(
+            HookHost.Antigravity,
+            "Antigravity",
+            ["antigravity", "agy"],
+
+            // The host's own path, and a map of named hook groups rather than one hooks object. So the
+            // framework owns the group it named and every sibling key is somebody else's -- which is
+            // the cleanest of the three ownerships, and the only one where an uninstall is a key
+            // being removed.
+            ".agents/hooks.json",
+            ConfigOwnership.Section,
+            EventsKey: "sdlc",
+            ConfigVersion: null,
+
+            // The same nesting Claude Code uses, for the pre-tool event. Antigravity's other events
+            // take a flat list instead, and nothing here configures one of those.
+            HookEntryShape.Grouped,
+
+            // Every tool, which its documentation spells "*" -- so this is the one host where match
+            // everything is a documented value rather than an inference. It costs a process per tool
+            // call, including reads, and buys the property that no tool can be renamed out of the
+            // policy's reach. `ToolMatcher: null` is not available: the matcher is part of the
+            // documented handler shape and omitting it is not documented as valid.
+            "*",
+
+            // **The one host that cannot be silent, and the reason D-39 needed a second paragraph.**
+            // `decision` is mandatory on every pre-tool call, so writing nothing is not an available
+            // answer -- and an empty object is reported to deny, which would refuse every tool call an
+            // agent makes. Of the five values, `ask` is the only one that hands the question back:
+            // Google documents it as prompting while respecting the person's Always Allow settings,
+            // which is what silence does on the other two hosts. `allow` is the bypass D-39 refuses
+            // and `force_ask` is the same override in the restrictive direction. See D-51.
+            NeutralDecision: "ask",
+            "PreToolUse",
+
+            // **No turn end here, deliberately, and this is the first row to say so.** Antigravity has
+            // a `Stop` event and sending a turn back is `decision: "continue"` -- but its payload
+            // carries no flag saying the agent is already continuing because a previous stop was
+            // refused. `executionNum` increments per attempt and its own documentation says it does
+            // not signal prior continuations. Without that, a refusal is an endless turn rather than a
+            // governed stop, so the moment is left ungoverned and `sdlc hook --event turn-end` refuses
+            // it by name. The build is still gated at the pull request, which depends on no host.
+            TurnEndEvent: null,
+            "timeout"),
     ];
 
     /// <summary>Every host the framework supports.</summary>

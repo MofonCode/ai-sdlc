@@ -335,7 +335,7 @@ public sealed class InitTests
             // so a host added with a shared configuration is exempt without anybody remembering, and
             // one added with a configuration the framework claims to own is not.
             bool shared = SupportedHosts.All.Any(host =>
-                host.Ownership == ConfigOwnership.Shared
+                host.Ownership is ConfigOwnership.Shared or ConfigOwnership.Section
                 && string.Equals(host.ConfigPath, path, StringComparison.Ordinal));
 
             if (path == Initialise.AgentsFileName || shared)
@@ -646,6 +646,64 @@ public sealed class InitTests
     }
 
     [TestMethod]
+    public async Task Adoption_replaces_only_its_own_section_of_a_file_of_named_hook_groups()
+    {
+        // The third ownership, and D-40's failure arriving through a shape the merge had not met.
+        // Antigravity's hooks.json is a map of named hook groups rather than one hooks object, so the
+        // framework owns the group it named and every sibling key is a hook somebody else wrote. A
+        // merge that understood only the other shape would have had to own the whole file, which is
+        // how a team loses a hook to an upgrade and is told it was "updated".
+        SupportedHost antigravity = SupportedHosts.Of(HookHost.Antigravity);
+
+        Assert.AreEqual(
+            ConfigOwnership.Section,
+            antigravity.Ownership,
+            "This test is about that ownership; if the row changed, so must it.");
+
+        using var solution = Scratch.Create();
+        string path = Path.Combine(solution.Root, ".agents", "hooks.json");
+        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+        await File.WriteAllTextAsync(
+            path,
+            """
+            {
+              "our-linter": {
+                "PostToolUse": [
+                  { "matcher": "run_command", "hooks": [ { "type": "command", "command": "./lint.sh" } ] }
+                ]
+              },
+              "sdlc": {
+                "PreToolUse": [
+                  { "matcher": "nothing", "hooks": [ { "type": "command", "command": "an-older-release" } ] }
+                ]
+              }
+            }
+            """);
+
+        await Adopt(solution, tracked: ["src/App/Program.cs"]);
+
+        JsonObject merged = JsonNode.Parse(await File.ReadAllTextAsync(path))!.AsObject();
+
+        Assert.AreEqual(
+            "./lint.sh",
+            merged["our-linter"]!["PostToolUse"]![0]!["hooks"]![0]!["command"]!.GetValue<string>(),
+            "A hook group the team wrote is not adoption's to touch.");
+
+        string ours = merged[antigravity.EventsKey]!["PreToolUse"]![0]!["hooks"]![0]!["command"]!
+            .GetValue<string>();
+
+        StringAssert.Contains(
+            ours,
+            "sdlc hook --host " + antigravity.Spelling,
+            "The framework's own group is replaced rather than left at whatever an older release wrote.");
+
+        Assert.AreEqual(
+            2,
+            merged.Count,
+            "Exactly the team's groups plus the framework's one. A third key is something invented.");
+    }
+
+    [TestMethod]
     [DynamicData(nameof(Hosts))]
     public void Each_generated_hook_config_declares_the_events_its_host_actually_has(HookHost named)
     {
@@ -656,7 +714,7 @@ public sealed class InitTests
         SupportedHost host = SupportedHosts.Of(named);
 
         JsonNode config = JsonNode.Parse(Templates.HookConfig(host.Host))!;
-        JsonObject events = config["hooks"]!.AsObject();
+        JsonObject events = config[host.EventsKey]!.AsObject();
 
         Assert.IsNotNull(
             events[host.PreToolEvent],
@@ -701,7 +759,7 @@ public sealed class InitTests
         // rather than per file, because the next host's schema will have its own required field.
         SupportedHost host = SupportedHosts.Of(named);
 
-        JsonObject entry = JsonNode.Parse(Templates.HookConfig(host.Host))!["hooks"]!
+        JsonObject entry = JsonNode.Parse(Templates.HookConfig(host.Host))![host.EventsKey]!
             .AsObject()[host.PreToolEvent]!
             .AsArray()[0]!
             .AsObject();

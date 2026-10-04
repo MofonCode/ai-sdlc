@@ -154,15 +154,20 @@ its own shape.
   path from every key a host is known to use, and classifying the call by **what it carries** rather than
   only by its name, so an unrecognised tool is still judged on whether it is about to write a file or run a
   shell.
-- `WriteDecision` and `WriteTurnEndDecision` — two different shapes, which is the reason the adapter
-  exists at all, and the reason these two stay typed switches rather than becoming fields on a row. A tool
-  call is refused with a permission, nested under `hookSpecificOutput` on Claude Code and at the top level
-  on Copilot. A turn is sent back with a top-level `decision`, which both spell `block`. A third host need
-  not fit either: Gemini CLI, briefly in the table, framed a tool call as a `decision` and a `reason`
-  rather than a permission at all, and Antigravity requires a `decision` on every call including the ones
-  the policy has no opinion about. **Neither writes anything on an allow.** An explicit `permissionDecision: "allow"` bypasses the host's
-  permission system rather than standing for silence, so a policy with nothing to say says nothing — D-39
-  records why, and why `ask` is not the answer either.
+- `WriteDecision` and `WriteTurnEndDecision` — **three refusal shapes across three hosts**, which is the
+  reason the adapter exists at all and the reason these two stay typed switches rather than fields on a
+  row. A tool call is refused with a permission on the first two, nested under `hookSpecificOutput` on
+  Claude Code and at the top level on Copilot; Antigravity does not frame it as a permission at all, so
+  there it is a `decision` and a `reason`. A turn is sent back with a top-level `decision`, which Claude
+  Code and Copilot spell `block` and Antigravity spells `continue` — the inverse, because there
+  `continue` re-enters the loop and anything else lets the turn go. No arrangement of field names
+  produces all three.
+- **An allow says nothing, except where the host forbids silence.** An explicit
+  `permissionDecision: "allow"` bypasses the host's permission system rather than standing for silence,
+  so a policy with nothing to say says nothing — D-39 records why, and why `ask` is not the answer on a
+  host that has the choice. Antigravity has none: it requires a `decision` on every call, so there the
+  neutral answer is its `ask`. The row's `NeutralDecision` carries that word and null means silence,
+  which is what makes the rule readable off the table rather than out of the switch. D-51.
 
 `HookEvent` is named for the moment rather than for what any host calls it. Claude Code spells the second
 one `Stop` and Copilot `agentStop`, both of which describe that host's state machine rather than the thing
