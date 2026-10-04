@@ -953,9 +953,23 @@ Strongly opinionated, and the opinion is a swappable **profile**.
 | liveness | ASP.NET Core health checks, at `/health` |
 | web | Blazor |
 | desktop and Android | MAUI Blazor Hybrid |
+| ui components | MudBlazor |
 
 **Shared UI is Blazor components in a Razor class library**, hosted by Blazor for web and MAUI Blazor
 Hybrid for desktop and Android. MAUI does not target web.
+
+**MudBlazor is one dependency, and the shared Razor class library is where it goes.** Taking it there
+is what makes web and hybrid the same UI rather than two that resemble each other. It needs an
+interactive render mode — which `Web` has by D-38 and a hybrid WebView has by definition — so a
+statically rendered page would get its markup and none of its behaviour.
+`Microsoft.FluentUI.AspNetCore.Components` is the alternative, and the choice turns on the breadth of
+the component set an application shell needs rather than on who maintains it: this row is the profile
+stepping off its own Microsoft-first habit, which is worth saying out loud rather than leaving a
+reader to notice.
+
+**A bUnit test of a component that renders one needs `AddMudServices` and loose JSInterop.** MudBlazor's
+providers call into JavaScript, and bUnit's strict default throws on the first unplanned call — which
+reads as a broken component rather than a missing registration.
 
 **Liveness is the one row here that binds — D-54.** Every other row is a default a plan may depart from
 by saying why (`CON_13`); this one the scaffold writes and a fitness function keeps, because the cost of
