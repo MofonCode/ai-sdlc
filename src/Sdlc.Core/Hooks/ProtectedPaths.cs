@@ -150,7 +150,10 @@ public static class ProtectedPaths
                 "Adopting a process is a decision about how a team works, so 'sdlc init' is run by a "
                 + "person. It writes the hook configuration that constrains you, the pipeline that gates "
                 + "the merge, and the file saying where this code came from -- which is a historical fact "
-                + "that must never change. Ask for it to be run.");
+                + "that must never change. Ask for it to be run, and give the person the command rather "
+                + "than a description of it. Its options are in 'sdlc help', under 'Options for init' -- "
+                + "this rule matches the verb rather than parsing the line, so even 'sdlc init --help' "
+                + "is refused, and 'sdlc help' is the way to read them.");
 
             return true;
         }
@@ -209,6 +212,22 @@ public static class ProtectedPaths
     }
 
     /// <summary>
+    /// How every refusal opens.
+    /// </summary>
+    /// <remarks>
+    /// <strong>A refusal here is the design working, and it did not read that way.</strong> Every host
+    /// renders this text as an error -- red, prefixed `Error:` -- so a rule doing exactly its job
+    /// arrived looking like a crash. A person met it, went looking for the bug, and was sent back twice
+    /// by the thing that was working. So the text says what it is before it says anything else.
+    /// <para>
+    /// It is not an apology and not a softening. The refusal still cannot be worked around; what
+    /// changes is that the reader knows within four words whether they are debugging or being told
+    /// something.
+    /// </para>
+    /// </remarks>
+    public const string Preface = "Refused by the ai-sdlc gate -- this is a rule, not a fault.";
+
+    /// <summary>
     /// Phrases a refusal about a named path.
     /// </summary>
     /// <param name="path">What the agent tried to write.</param>
@@ -220,7 +239,7 @@ public static class ProtectedPaths
 
         return string.Create(
             CultureInfo.InvariantCulture,
-            $"{path} is {file.Description}, and no agent may write it. {file.Reason}");
+            $"{Preface} {path} is {file.Description}, and no agent may write it. {file.Reason}");
     }
 
     /// <summary>
@@ -239,6 +258,6 @@ public static class ProtectedPaths
 
         return string.Create(
             CultureInfo.InvariantCulture,
-            $"That command would reach {file.Description}, which is not an agent's to change. {file.Reason}");
+            $"{Preface} That command would reach {file.Description}, which is not an agent's to change. {file.Reason}");
     }
 }

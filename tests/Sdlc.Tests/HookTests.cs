@@ -332,6 +332,65 @@ public sealed class HookTests
     }
 
     [TestMethod]
+    public void Every_refusal_says_it_is_a_rule_before_it_says_anything_else()
+    {
+        // A refusal here is the design working, and every host renders this text as an error -- red,
+        // prefixed `Error:`. So a rule doing its job arrived looking like a crash, a person went
+        // hunting for the bug, and the thing that was working sent them back twice. Asserted over
+        // both rules and every protected file, because the next one added inherits the problem.
+        foreach (string name in ProtectedPaths.Names)
+        {
+            ToolCall write = Read(
+                JsonSerializer.Serialize(new
+                {
+                    tool_name = "Write",
+                    tool_input = new { file_path = ".sdlc/cycles/20260929_1456_32/" + name },
+                }),
+                HookHost.Claude);
+
+            StringAssert.StartsWith(
+                HookPolicy.Decide(write).Reason,
+                ProtectedPaths.Preface,
+                $"The refusal about {name} does not say it is a rule.");
+        }
+
+        ToolCall shell = Read(
+            """{ "tool_name": "Bash", "tool_input": { "command": "sdlc init" } }""",
+            HookHost.Claude);
+
+        StringAssert.StartsWith(HookPolicy.Decide(shell).Reason, ProtectedPaths.Preface);
+    }
+
+    [TestMethod]
+    public void The_adoption_refusal_says_where_the_options_actually_are()
+    {
+        // The rule matches the verb rather than parsing the line, so `sdlc init --help` is refused
+        // too -- which cost a real session two rounds: an agent tried to read the flags so it could
+        // hand a person an accurate command, met a refusal that looked like a fault, and the person
+        // went looking for a broken install. The flags are in `sdlc help` and the refusal now says
+        // so. Narrowing the rule to permit `--help` was the other option and is worse: "allow when
+        // --help appears" lets `sdlc init --help && sdlc init` through, and a conditional in a hook
+        // rule is where a bypass lives.
+        ToolCall call = Read(
+            """{ "tool_name": "Bash", "tool_input": { "command": "sdlc init --help" } }""",
+            HookHost.Claude);
+
+        HookVerdict verdict = HookPolicy.Decide(call);
+
+        Assert.AreEqual(HookDecision.Deny, verdict.Decision);
+        StringAssert.Contains(verdict.Reason, "sdlc help");
+        StringAssert.Contains(
+            verdict.Reason,
+            "Options for init",
+            "Naming the command without naming the section leaves a reader scanning the whole of it.");
+
+        StringAssert.Contains(
+            Sdlc.Cli.Usage.Text,
+            "Options for init",
+            "The refusal points at a heading in the usage text, so the heading has to be there.");
+    }
+
+    [TestMethod]
     public void A_file_with_a_protected_name_outside_the_framework_directory_is_allowed()
     {
         // Somebody else's approval.md is not this framework's business.
