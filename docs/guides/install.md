@@ -264,11 +264,28 @@ On the GitHub source, pull the marketplace first so the clone is current, then d
 claude plugin marketplace update ai-sdlc
 ```
 
-The binary updates the same way — repack, then:
+**The binary has the same trap, and `dotnet tool update` walks into it.** A tool is cached by version
+too, and `VersionPrefix` only moves on a release — so when you are iterating locally, `update` prints
+`Tool 'mofoncode.sdlc.cli' is already installed` and leaves the old binary on your PATH. It reads like
+success. A stale `sdlc` then adopts repositories with the hook configuration of whatever build it is,
+which is the quietest way to spend an hour on a defect that was fixed before you started.
+
+So the binary is a reinstall too, in this order, after repacking:
 
 ```pwsh
-dotnet tool update --global --add-source src\Sdlc.Cli\bin\pack MofonCode.Sdlc.Cli
+dotnet pack src\Sdlc.Cli\Sdlc.Cli.csproj -c Release -o src\Sdlc.Cli\bin\pack
 ```
+
+```pwsh
+dotnet tool uninstall --global MofonCode.Sdlc.Cli
+```
+
+```pwsh
+dotnet tool install --global --add-source src\Sdlc.Cli\bin\pack MofonCode.Sdlc.Cli
+```
+
+`sdlc version` reports the number, which does not move between local builds — so to tell whether a
+reinstall took, look at the file's timestamp or run a command only the newer build has.
 
 ## Remove
 
