@@ -31,9 +31,24 @@ touches nothing a person writes. Say so, because "init" on a working solution so
 
 ## 2. Ask for the command to be run
 
+**Two things here share a name and do opposite halves of the job.** `/sdlc:init` is this skill — the
+interview, and the constraints that follow from it — and it writes nothing. `sdlc init` is the binary that
+does the scaffolding, and the hook denies it to you. **Say which one you are**, because somebody who has
+just invoked the slash command reasonably believes adoption is now under way, and invoking it again only
+loads these instructions a second time. That loop is three identical rounds before anybody notices.
+
+Hand over the line with a leading `!`:
+
 ```
-sdlc init [--profile <name>] [--platform github|azure-devops|local]
+! sdlc init [--profile <name>] [--platform github|azure-devops|local]
 ```
+
+On Claude Code the `!` prefix runs the rest of the line as the person's own command rather than as a tool
+call of yours, so the gate — which fires on your tool calls — never sees it. The reason to prefer it goes
+beyond getting past the gate: it runs in this session, so what the command prints lands in the
+conversation and you can read the mode, the origin and the file list back without asking for a paste. A
+bare line sends the person to another terminal and the output has to be copied in by hand. On a host with
+no such prefix, say to run it in a terminal at the repository root and paste what it prints.
 
 **Ask where the code will live before you hand over the line**, because the answer decides whether a
 pipeline is written and there is no good default for somebody who has not said. If the repository has no
@@ -46,8 +61,8 @@ planned, approved, built and verified exactly the same way. Only the guarantee i
 doctor` says so every time it runs. When a remote exists, re-running adoption with a platform writes the
 pipeline, and the `land` skill walks through creating the remote.
 
-Give the person the line. When they have run it, read what it printed — it says which mode ran, what the
-origin was decided to be, and every file it touched or deliberately left.
+Give the person the line, `!` and all. When they have run it, read what it printed — it says which mode
+ran, what the origin was decided to be, and every file it touched or deliberately left.
 
 **The origin is the part worth stopping on**, because it is the one thing here with lasting consequences
 and it never changes again:
