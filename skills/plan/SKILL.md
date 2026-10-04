@@ -108,6 +108,13 @@ plan was written, and the proof that looks complete is proving something else.
 You do not need the namespace. A runner reports `Dice.Tests.RollTests.Rolls_within_one_and_six` and the
 check matches on the suffix, because at planning time the namespace does not exist yet.
 
+**You do not need the cases either.** Name a parameterised test once, without its arguments: a runner
+records one result per case and decorates the name — `Page_shows_a_face ("chromium")` — and the check
+finds every case of the test you named and requires **all** of them to have passed. So a test run across
+two browser engines is one proof entry, and a proof that passed in one engine and failed in the other is
+reported as absent rather than as proven. Do not collapse cases into a loop inside one test to make the
+name match; that costs the per-case result your own verify document would otherwise cite.
+
 **If a criterion cannot be proven by anything the testing layers can run, say so in `## Open`.** That
 satisfies `CON_06`, because you named no inadequate check. It does not launder the problem: the
 criterion is then unproven, and verify will block on it. The exit moves *where* the problem is caught,

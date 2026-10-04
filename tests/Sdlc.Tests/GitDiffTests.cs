@@ -27,7 +27,7 @@ public sealed class GitDiffTests
 
         File.WriteAllText(Path.Combine(repo.Root, "Roll.cs"), "public static class Roll { }\n");
 
-        string? patch = new GitRepository().Diff(repo.Root, head);
+        string? patch = new GitRepository().Diff(repo.Root, head, []);
 
         Assert.IsNotNull(patch);
         StringAssert.Contains(patch, "Roll.cs", "An untracked new file is part of the change.");
@@ -51,7 +51,7 @@ public sealed class GitDiffTests
         File.WriteAllText(Path.Combine(repo.Root, "Tracked.cs"), "// edited again\n");
 
         var git = new GitRepository();
-        string? patch = git.Diff(repo.Root, head);
+        string? patch = git.Diff(repo.Root, head, []);
         IReadOnlyList<string> changed = git.ChangedFiles(repo.Root, head);
 
         Assert.IsNotNull(patch);
@@ -77,12 +77,39 @@ public sealed class GitDiffTests
 
         File.WriteAllText(Path.Combine(repo.Root, "Roll.cs"), "public static class Roll { }\n");
 
-        _ = new GitRepository().Diff(repo.Root, head);
+        _ = new GitRepository().Diff(repo.Root, head, []);
 
         Assert.AreEqual(
             string.Empty,
             repo.Git("diff --cached --name-only").Trim(),
             "Nothing of the file's content may be staged.");
+    }
+
+    [TestMethod]
+    public void An_excluded_path_is_absent_and_everything_else_is_still_there()
+    {
+        // A real repository because the question is what git was asked. A pathspec list of nothing but
+        // exclusions matches nothing, so `-- :(exclude).sdlc` alone yields an empty patch rather than
+        // everything else -- which would be the same silent empty diff.patch this file already exists
+        // for, arriving by a different route.
+        using var repo = Repo.Create();
+        string head = repo.Git("rev-parse HEAD").Trim();
+
+        Directory.CreateDirectory(Path.Combine(repo.Root, ".sdlc", "cycles", "20260929_1456_32"));
+        File.WriteAllText(
+            Path.Combine(repo.Root, ".sdlc", "cycles", "20260929_1456_32", "plan.md"),
+            "# the plan a verify must not mistake for the change\n");
+        File.WriteAllText(Path.Combine(repo.Root, "Roll.cs"), "public static class Roll { }\n");
+
+        string? patch = new GitRepository().Diff(repo.Root, head, [".sdlc"]);
+
+        Assert.IsNotNull(patch);
+        StringAssert.Contains(patch, "Roll.cs", "The change itself still has to be in the patch.");
+        StringAssert.Contains(patch, "public static class Roll", "And so do its lines.");
+        Assert.IsFalse(
+            patch.Contains("plan.md", StringComparison.Ordinal),
+            "A verify reads this patch and nothing else, so the plan it is checked against may not be in "
+            + "it. The patch was: " + patch);
     }
 
     /// <summary>A throwaway git repository with one commit in it.</summary>

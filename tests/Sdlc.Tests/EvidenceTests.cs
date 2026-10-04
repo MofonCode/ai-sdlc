@@ -126,6 +126,74 @@ public sealed class EvidenceTests
     }
 
     [TestMethod]
+    public void A_plan_names_a_parameterised_test_and_its_cases_are_found()
+    {
+        // A runner records one result per case and puts the arguments in the name. A plan names the test,
+        // because the cases are the plan's business only when it says so. Matching nothing here is what
+        // pushed a trial cycle into collapsing two browser engines into a loop inside one test, which cost
+        // the per-engine result the verify document was citing.
+        TestSummary summary = new(
+            null,
+            null,
+            null,
+            [
+                new RecordedTest("Page_shows_a_face (\"chromium\")", TestOutcome.Passed),
+                new RecordedTest("Page_shows_a_face (\"webkit\")", TestOutcome.Passed),
+            ]);
+
+        Assert.IsTrue(summary.DidPass("Page_shows_a_face"));
+    }
+
+    [TestMethod]
+    public void One_passing_case_does_not_answer_for_a_failing_one()
+    {
+        // The reason this is every case rather than any case. The ambiguity check at recording time cannot
+        // catch this pair: it groups by the recorded name, and two cases of one test have different ones.
+        TestSummary summary = new(
+            null,
+            null,
+            null,
+            [
+                new RecordedTest("Page_shows_a_face (\"chromium\")", TestOutcome.Passed),
+                new RecordedTest("Page_shows_a_face (\"webkit\")", TestOutcome.Failed, "the face was blank"),
+            ]);
+
+        Assert.IsFalse(summary.DidPass("Page_shows_a_face"));
+    }
+
+    [TestMethod]
+    public void A_parameterised_case_is_found_under_its_namespace_too()
+    {
+        // Both relaxations at once, which is the shape a real runner reports: the fully qualified name a
+        // plan has no way to know, and the arguments it has no reason to carry.
+        TestSummary summary = new(
+            null,
+            null,
+            null,
+            [new RecordedTest("Dice.Tests.DicePageTests.Page_shows_a_face(engine: \"webkit\")", TestOutcome.Passed)]);
+
+        Assert.IsTrue(summary.DidPass("Page_shows_a_face"));
+        Assert.IsFalse(summary.DidPass("Page_shows_a_fade"));
+    }
+
+    [TestMethod]
+    public void A_skipped_case_does_not_prove_the_test()
+    {
+        // A skipped case is not evidence of anything, and a proof whose second engine never ran is a proof
+        // of one engine. TestOutcome keeps the value distinct precisely so this can be refused.
+        TestSummary summary = new(
+            null,
+            null,
+            null,
+            [
+                new RecordedTest("Page_shows_a_face (\"chromium\")", TestOutcome.Passed),
+                new RecordedTest("Page_shows_a_face (\"webkit\")", TestOutcome.Skipped),
+            ]);
+
+        Assert.IsFalse(summary.DidPass("Page_shows_a_face"));
+    }
+
+    [TestMethod]
     public void The_declared_files_are_read_from_backticks_in_the_files_section()
     {
         IReadOnlyList<string> declared = DeclaredFiles.Read("""
@@ -462,6 +530,81 @@ public sealed class EvidenceTests
         StringAssert.Contains(
             string.Join(" ", result.Errors.Select(error => error.Message)),
             "cannot both be true");
+    }
+
+    [TestMethod]
+    public async Task Recording_a_new_run_under_a_standing_verdict_is_refused()
+    {
+        // A verdict adjudicates one recorded run. A trial cycle passed verification, renamed a test,
+        // re-recorded the evidence and left verify.md citing 26 tests where tests.json then held 24, and
+        // two per-engine results that no longer existed. Nothing downstream could tell: the chain check
+        // reads the plan's named tests against tests.json, and both of those moved together.
+        using var workspace = CycleWorkspace.Create();
+        workspace.WriteAllArtifacts();
+        workspace.WriteVerify(outcome: "pass");
+
+        using Gate gate = Recorder(workspace, new FakeRepository { Changed = ["src/Roll.cs"] });
+
+        Result<RecordEvidence.Response> result = await gate
+            .Send<RecordEvidence.Command, RecordEvidence.Response>(
+                new RecordEvidence.Command(workspace.Cycle.Id, null));
+
+        Assert.IsTrue(result.IsFailed, "A verdict about evidence that is gone is the failure mode.");
+
+        string said = string.Join(" ", result.Errors.Select(error => error.Message));
+
+        StringAssert.Contains(said, "already has a verdict");
+        StringAssert.Contains(said, "verify.md", "A refusal says which file has to move.");
+    }
+
+    [TestMethod]
+    public async Task The_cycles_own_paperwork_is_left_out_of_the_recorded_patch()
+    {
+        // The patch is what a verify reads and nothing else, so what it opens with matters. It used to
+        // open with the intent, the spec, the plan and every findings round -- and on a second recording
+        // it contained the previous diff.patch, which doubles its size each time. The declared-file
+        // comparison has always excluded these; the patch did not, and the two readers now agree.
+        using var workspace = CycleWorkspace.Create();
+        workspace.WriteAllArtifacts();
+
+        var git = new FakeRepository { Changed = ["src/Roll.cs"] };
+
+        using Gate gate = Recorder(workspace, git);
+
+        Result<RecordEvidence.Response> result = await gate
+            .Send<RecordEvidence.Command, RecordEvidence.Response>(
+                new RecordEvidence.Command(workspace.Cycle.Id, null));
+
+        Assert.IsTrue(result.IsSuccess, string.Join("; ", result.Errors.Select(e => e.Message)));
+        Assert.IsNotNull(git.Excluded, "The patch has to be asked for with an exclusion.");
+        CollectionAssert.Contains(git.Excluded.ToArray(), Cycle.SdlcDirectoryName);
+    }
+
+    [TestMethod]
+    public async Task A_run_that_touched_only_the_cycles_own_files_records_rather_than_refusing()
+    {
+        // The interaction the exclusion creates. ChangedFiles still reports the artifacts, so counting
+        // every changed path against an empty patch would refuse a recording for a disagreement that is
+        // now the design rather than a defect.
+        using var workspace = CycleWorkspace.Create();
+        workspace.WriteAllArtifacts();
+
+        using Gate gate = Recorder(
+            workspace,
+            new FakeRepository
+            {
+                Changed = [Cycle.SdlcDirectoryName + "/cycles/20260929_1456_32/plan.md"],
+                Patch = string.Empty,
+            });
+
+        Result<RecordEvidence.Response> result = await gate
+            .Send<RecordEvidence.Command, RecordEvidence.Response>(
+                new RecordEvidence.Command(workspace.Cycle.Id, null));
+
+        Assert.IsTrue(
+            result.IsSuccess,
+            "An empty patch is correct when every changed file is one the patch excludes: "
+            + string.Join("; ", result.Errors.Select(e => e.Message)));
     }
 
     private static Gate Recorder(CycleWorkspace workspace, FakeRepository git) =>

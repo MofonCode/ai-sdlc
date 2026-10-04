@@ -55,6 +55,9 @@ internal sealed class FakeRepository : IRepository
     /// <summary>What was committed, so a test can assert what was staged.</summary>
     public List<IReadOnlyList<string>> Commits { get; } = [];
 
+    /// <summary>What the last Diff asked git to leave out, so a test can assert the question.</summary>
+    public IReadOnlyList<string>? Excluded { get; private set; }
+
     public bool IsRepository(string workingDirectory) => Repository;
 
     public IReadOnlyList<string> TrackedFiles(string workingDirectory) => Tracked;
@@ -71,7 +74,11 @@ internal sealed class FakeRepository : IRepository
 
     public string? MergeBase(string workingDirectory, string branch) => Base;
 
-    public string? Diff(string workingDirectory, string from) => Patch;
+    public string? Diff(string workingDirectory, string from, IReadOnlyList<string> exclude)
+    {
+        Excluded = exclude;
+        return Patch;
+    }
 
     public IReadOnlyList<string> ChangedFiles(string workingDirectory, string from) => Changed;
 }

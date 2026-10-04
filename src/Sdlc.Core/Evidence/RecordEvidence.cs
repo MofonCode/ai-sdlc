@@ -112,6 +112,25 @@ public static class RecordEvidence
                     $"Cycle {cycle.Id} has no plan. There is nothing to compare a change against."));
             }
 
+            // A verdict is an adjudication of one recorded run, and replacing the run underneath it leaves
+            // a document whose every citation is about evidence that is no longer there. A trial cycle did
+            // exactly this: verify passed, a test was renamed, the evidence was re-recorded, and the
+            // verify document was left saying 26 tests where tests.json then held 24 and citing two
+            // per-engine results that no longer existed. Nothing downstream could tell -- the chain check
+            // reads the plan's named tests against tests.json and both of those had moved together.
+            //
+            // Refused rather than warned, for the same reason the approval gate refuses an interrogation
+            // round judged against a document that has changed since: the stale artifact is the one a
+            // reader trusts, because it looks finished.
+            string verdict = cycle.PathOf(ArtifactKind.Verify);
+
+            if (File.Exists(verdict))
+            {
+                return Result.Fail<Response>(string.Create(
+                    CultureInfo.InvariantCulture,
+                    $"Cycle {cycle.Id} already has a verdict at {verdict}, and it adjudicates the run recorded now. Recording a new run would leave every claim in it citing evidence that is gone. Delete {Cycle.FileNameOf(ArtifactKind.Verify)} and verify again once this run is recorded -- the findings rounds under findings/ are kept either way, so the history of what was challenged survives."));
+            }
+
             Directory.CreateDirectory(cycle.EvidenceDirectory);
             List<string> written = [];
 
@@ -127,7 +146,12 @@ public static class RecordEvidence
             await Write(cycle, BaseFileName, baseCommit + Environment.NewLine, written, cancellationToken)
                 .ConfigureAwait(false);
 
-            string diff = repository.Diff(solution.Path, baseCommit) ?? string.Empty;
+            // The cycle's own paperwork is left out, for the reason DeclaredFiles.IsFrameworkOwned gives:
+            // this patch is what a verify reads and nothing else, and it used to open with the plan the
+            // verify is meant to be checked against. Keeping the two readers on one answer is the point.
+            string diff = repository.Diff(solution.Path, baseCommit, [Cycle.SdlcDirectoryName])
+                ?? string.Empty;
+
             await Write(cycle, DiffFileName, diff, written, cancellationToken).ConfigureAwait(false);
 
             IReadOnlyList<string> changed = repository.ChangedFiles(solution.Path, baseCommit);
@@ -139,11 +163,17 @@ public static class RecordEvidence
             // --intent-to-add, so this cannot happen; if it does, it is a defect in the evidence
             // itself and §4.5 has verify reading this patch "and nothing else", so it refuses rather
             // than recording something a verify would cite and a reviewer would trust. F-05.
-            if (changed.Count > 0 && string.IsNullOrWhiteSpace(diff))
+            //
+            // Counted over the files the patch is allowed to carry. The patch excludes the cycle's own
+            // paperwork, so a run whose only changes were under .sdlc/ would otherwise trip this on a
+            // disagreement that is the design rather than a defect.
+            int substantive = changed.Count(path => !DeclaredFiles.IsFrameworkOwned(path));
+
+            if (substantive > 0 && string.IsNullOrWhiteSpace(diff))
             {
                 return Result.Fail<Response>(string.Create(
                     CultureInfo.InvariantCulture,
-                    $"{changed.Count} file(s) changed since {baseCommit[..Math.Min(12, baseCommit.Length)]} and the recorded patch is empty, which cannot both be true. Nothing was recorded, because a verify reads the patch and nothing else -- an empty one would leave a claim with nothing to cite and a panel saying everything is in order. Check that git can see the change: 'git status --short'."));
+                    $"{substantive} file(s) outside {Cycle.SdlcDirectoryName}/ changed since {baseCommit[..Math.Min(12, baseCommit.Length)]} and the recorded patch is empty, which cannot both be true. Nothing was recorded, because a verify reads the patch and nothing else -- an empty one would leave a claim with nothing to cite and a panel saying everything is in order. Check that git can see the change: 'git status --short'."));
             }
 
             TestSummary? summary = null;

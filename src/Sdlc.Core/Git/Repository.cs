@@ -79,8 +79,12 @@ public interface IRepository
     /// <summary>The diff from a commit to the working tree, including what is not yet committed.</summary>
     /// <param name="workingDirectory">Where to ask from.</param>
     /// <param name="from">The commit to measure from.</param>
+    /// <param name="exclude">
+    /// Top-level paths to leave out of the patch, or none. Required rather than optional because what a
+    /// patch is <em>for</em> decides what belongs in it, and the one caller has an answer.
+    /// </param>
     /// <returns>The patch, or null when git cannot say.</returns>
-    string? Diff(string workingDirectory, string from);
+    string? Diff(string workingDirectory, string from, IReadOnlyList<string> exclude);
 
     /// <summary>The paths that differ from a commit, including untracked files.</summary>
     /// <remarks>
@@ -225,10 +229,17 @@ public sealed class GitRepository : IRepository
     /// <c>--no-index</c> diff per untracked file, which is one process per file and produces a patch
     /// in a slightly different shape.
     /// </para>
+    /// <para>
+    /// <strong>Excluded paths are a pathspec rather than a filter over the output</strong>, so git never
+    /// writes the hunks instead of this trimming them afterwards. A patch is read front to back by
+    /// whoever has to adjudicate it, and the exclusion is what keeps the top of it from being something
+    /// other than the change.
+    /// </para>
     /// </remarks>
-    public string? Diff(string workingDirectory, string from)
+    public string? Diff(string workingDirectory, string from, IReadOnlyList<string> exclude)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(from);
+        ArgumentNullException.ThrowIfNull(exclude);
 
         IReadOnlyList<string> untracked = Lines(
             Run(workingDirectory, "ls-files --others --exclude-standard"));
@@ -242,7 +253,18 @@ public sealed class GitRepository : IRepository
                 "add --intent-to-add -- " + string.Join(' ', untracked.Select(path => "\"" + path + "\"")));
         }
 
-        return Run(workingDirectory, $"diff {from}");
+        if (exclude.Count == 0)
+        {
+            return Run(workingDirectory, $"diff {from}");
+        }
+
+        // The literal `.` is needed: a pathspec list of nothing but exclusions matches nothing, so
+        // `-- :(exclude).sdlc` on its own produces an empty patch rather than everything else.
+        string pathspec = string.Join(
+            ' ',
+            exclude.Select(path => "\":(exclude)" + path.Replace('\\', '/').Trim('/') + "\""));
+
+        return Run(workingDirectory, $"diff {from} -- . {pathspec}");
     }
 
     /// <inheritdoc />

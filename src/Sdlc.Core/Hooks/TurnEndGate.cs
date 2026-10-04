@@ -159,7 +159,11 @@ public static class TurnEndGate
                     + " nothing can judge."));
             }
 
-            string working = repository.Diff(solution.Path, baseCommit) ?? string.Empty;
+            // Asked with the same exclusion the recorder uses, so the two patches are answers to one
+            // question. CodeOnly still runs over both: it is what keeps a patch recorded before the
+            // recorder took the exclusion comparable with one taken after.
+            string working = repository.Diff(solution.Path, baseCommit, [Cycle.SdlcDirectoryName])
+                ?? string.Empty;
 
             string recorded = await File.ReadAllTextAsync(diffPath, cancellationToken).ConfigureAwait(false);
 

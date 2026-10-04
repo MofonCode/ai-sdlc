@@ -85,17 +85,59 @@ public sealed record TestSummary(
     /// <c>Rolls_within_one_and_six</c> while a runner reports
     /// <c>Dice.Tests.RollTests.Rolls_within_one_and_six</c>. Requiring the fully qualified name would make
     /// every plan carry a namespace it has no reason to know at planning time.
+    /// <para>
+    /// <strong>A parameterised test is matched too, and every one of its cases has to have passed.</strong>
+    /// A runner records one result per case and decorates the name with the arguments --
+    /// <c>Page_shows_a_face ("chromium")</c> -- so a plan naming the test matched nothing and the chain
+    /// check reported a passing proof as absent. The only remedy available to a cycle was to collapse the
+    /// cases into a loop inside one test, which is what a trial run did: it cost the per-case result, so
+    /// the evidence could no longer show which cases ran, and a failure in the second case stopped the
+    /// first from running at all. A gate that makes a proof checkable must not be the reason the proof
+    /// gets weaker.
+    /// </para>
+    /// <para>
+    /// Every case rather than any case, because the cases of one test are one proof. <c>Any</c> let a
+    /// passing case answer for a failing sibling, and the ambiguity check at recording time cannot see
+    /// that pair -- it groups by the recorded name, and two cases of one test have different ones.
+    /// </para>
     /// </remarks>
     /// <param name="name">The test's name, as a plan would write it.</param>
-    /// <returns>True when exactly that test ran and passed.</returns>
+    /// <returns>True when that test ran and every case of it passed.</returns>
     public bool DidPass(string name)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
 
-        return Tests.Any(test =>
-            test.Outcome == TestOutcome.Passed
-            && (string.Equals(test.Name, name, StringComparison.Ordinal)
-                || test.Name.EndsWith("." + name, StringComparison.Ordinal)));
+        List<RecordedTest> cases = [.. Tests.Where(test => Names(test.Name, name))];
+
+        return cases.Count > 0 && cases.TrueForAll(test => test.Outcome == TestOutcome.Passed);
+    }
+
+    /// <summary>Whether a recorded result is a result for the test a plan named.</summary>
+    /// <param name="recorded">The name as the runner reported it, arguments and all.</param>
+    /// <param name="name">The name as a plan wrote it.</param>
+    /// <returns>True when the two name the same test.</returns>
+    private static bool Names(string recorded, string name)
+    {
+        string bare = WithoutCase(recorded);
+
+        return string.Equals(bare, name, StringComparison.Ordinal)
+            || bare.EndsWith("." + name, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// A recorded name with the case arguments taken off.
+    /// </summary>
+    /// <remarks>
+    /// Cut at the first bracket, which a method name cannot contain, so this holds for both spellings a
+    /// runner uses: MSTest reports <c>Method ("arg")</c> and xUnit reports <c>Method(p: 1)</c>.
+    /// </remarks>
+    /// <param name="recorded">The name as the runner reported it.</param>
+    /// <returns>The test's own name.</returns>
+    private static string WithoutCase(string recorded)
+    {
+        int bracket = recorded.IndexOf('(', StringComparison.Ordinal);
+
+        return bracket < 0 ? recorded : recorded[..bracket].TrimEnd();
     }
 }
 

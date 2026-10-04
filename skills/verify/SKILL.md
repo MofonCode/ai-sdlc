@@ -20,7 +20,7 @@ In `.sdlc/cycles/<id>/evidence/`:
 | File | What it is |
 |---|---|
 | `tests.json` | the normalised test summary: name and outcome per test |
-| `diff.patch` | the change itself |
+| `diff.patch` | the change itself. The cycle's own artifacts are **not** in it — their absence is by design, not a missing commit |
 | `base.sha` | the commit the diff is measured from |
 | the runner's own output | kept alongside, for when the summary is not enough |
 | `build.log` | what the build said |

@@ -118,6 +118,51 @@ documents by hand.
 
 ---
 
+## `sdlc evidence` — the seven ways a recording is refused
+
+`sdlc evidence <id>` writes what the build produced. It refuses rather than writing something partial,
+because verify reads what it writes and nothing else, so a half-recorded run is a verdict nobody can
+check.
+
+### no cycle, or no plan
+
+There is no directory for the id, or the cycle has no `plan.md`. The recording compares what changed
+against what the plan declared, so without a plan there is nothing to compare against.
+
+### a verdict already stands
+
+`verify.md` exists, and it adjudicates the run recorded now. Recording a new run would leave every claim
+in that document citing evidence that is gone — and a stale verdict is the one a reader trusts, because
+it looks finished.
+
+**Next:** delete `verify.md`, record the new run, and verify again. The findings rounds under `findings/`
+are kept either way, so the history of what was challenged survives.
+
+### git cannot say where the branch diverged
+
+The diff is measured from the merge base with the default branch. Without it there is nothing to measure.
+
+### an empty patch beside a changed file
+
+Files outside `.sdlc/` changed and the patch came back empty, which cannot both be true. This was a real
+defect once — `git diff` cannot see an untracked file — and it recorded an empty `diff.patch` beside a
+panel saying everything was in order. It is fixed; if you see it, the evidence is wrong rather than the
+code. **Next:** `git status --short`.
+
+### no results file
+
+The `--tests` path does not exist, or the directory holds no `.trx`, or the file holds no results. A run
+that produced no results is a run that did not happen, which is not the same as a run with nothing to
+report.
+
+### one test name with two outcomes
+
+Two projects reported the same test name, one passing and one failing. The chain check matches a plan's
+named test on the end of what the runner reported, so the passing result would answer for the failing
+one. **Next:** rename one of them, or run the projects separately.
+
+---
+
 ## `sdlc landable` — the four ways a landing is refused
 
 ### not verified

@@ -133,8 +133,26 @@ public static class DeclaredFiles
             [.. right.Except(left, StringComparer.OrdinalIgnoreCase).Order(StringComparer.Ordinal)]);
     }
 
-    private static bool IsFrameworkOwned(string path) =>
-        path.StartsWith(Cycles.Cycle.SdlcDirectoryName + "/", StringComparison.OrdinalIgnoreCase);
+    /// <summary>
+    /// Whether a path is one of the framework's own files rather than part of the change.
+    /// </summary>
+    /// <remarks>
+    /// Public because two readers need the same answer and they used to disagree. This comparison has
+    /// always excluded a cycle's own artifacts, for the reason stated where it is called; the recorded
+    /// patch did not, so <c>diff.patch</c> opened with the intent, the spec, the plan and every findings
+    /// round before reaching a line of code -- and on a second recording it contained the previous
+    /// <c>diff.patch</c>, which doubles its size every time. A verify reads that patch and nothing else,
+    /// so the top of it has to be the change.
+    /// </remarks>
+    /// <param name="path">A path relative to the solution root, in either slash.</param>
+    /// <returns>True when the framework owns it.</returns>
+    public static bool IsFrameworkOwned(string path)
+    {
+        ArgumentNullException.ThrowIfNull(path);
+
+        return Normalise(path)
+            .StartsWith(Cycles.Cycle.SdlcDirectoryName + "/", StringComparison.OrdinalIgnoreCase);
+    }
 
     /// <summary>
     /// One spelling for a path, so the two sides of the comparison can be compared.
