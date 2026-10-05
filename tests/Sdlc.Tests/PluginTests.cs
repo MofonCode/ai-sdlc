@@ -772,8 +772,19 @@ public sealed class PluginTests
         string readme = File.ReadAllText(Path.Combine(Root, "README.md"));
 
         int skills = Skills().Count();
-        int constraints = System.Text.RegularExpressions.Regex
-            .Count(File.ReadAllText(RepoPaths.Library), @"(?m)^## CON_");
+
+        // Counted in force rather than by heading. The two were the same number for as long as nothing
+        // had ever been superseded, and a supersession is exactly when they diverge: the old rule keeps
+        // its id and stays on the page verbatim, so it is still a `## CON_` heading and is no longer a
+        // rule anybody is judged against. The readme's claim is about what binds, and `sdlc constraints`
+        // prints the same number, so this asserts what both of them mean.
+        Result<IReadOnlyList<Constraint>> parsed = ConstraintParser.Parse(
+            File.ReadAllText(RepoPaths.Library),
+            RepoPaths.Library);
+
+        Assert.IsTrue(parsed.IsSuccess, string.Join("; ", parsed.Errors.Select(error => error.Message)));
+
+        int constraints = parsed.Value.Count(constraint => constraint.IsInForce);
 
         Assert.AreEqual(17, skills, "The readme says seventeen skills.");
         Assert.AreEqual(14, constraints, "The readme says fourteen global constraints.");
