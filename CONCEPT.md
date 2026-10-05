@@ -653,7 +653,6 @@ carrying a corrected error in it forever is the worse of the two losses.
 | `CON_01` | an intent states the problem, not the solution | intent |
 | `CON_02` | an intent's unknowns are recorded as open questions, not answered by guess | intent |
 | `CON_03` | a criterion states an observable outcome and how it is checked | spec |
-| `CON_04` | a spec covers every outcome its intent asks for | spec |
 | `CON_05` | a spec introduces no scope its intent did not ask for | spec |
 | `CON_06` | a plan's proof is adequate to the criterion it claims to prove | plan |
 | `CON_07.2` | a change does only what its plan declared, including inside files the plan named | diff |
@@ -664,6 +663,13 @@ carrying a corrected error in it forever is the worse of the two losses.
 | `CON_12` | a criterion's check is one the solution's testing layers can run | spec |
 | `CON_14` | an open item is one nobody can resolve yet, not one nobody has done | intent, spec, plan |
 | `CON_15` | a plan says why it departs from a declared default, in either direction | plan |
+| `CON_16` | a spec covers every outcome its intent asks for, and all of each one | spec |
+
+`CON_04` and `CON_13` are not in this table because they no longer bind. `CON_04` required every
+stated outcome to have a criterion and said nothing about a criterion covering only part of one,
+which is the commoner failure and the harder to see: a narrowed criterion still traces to its
+outcome and still passes a coverage check. `CON_16` replaces it and covers both, with the
+remainder going in `Out of scope` where no test can reach it (D-61).
 
 `CON_13` is not in this table because it no longer binds: it forbade a plan reaching for an
 undeclared package, pattern or layer without saying what the declared default would have cost, and
@@ -3948,3 +3954,49 @@ names it as the destination, and OTLP is how a process reaches it, so the export
 whatever deploys the solution rather than to the scaffold. *Asserting the names match by comparing two
 string literals* — a test that compares two literals passes the day somebody changes both; the constant
 is what makes them unable to drift, and the test guards the constant being bypassed.
+
+### D-61 — Covering an outcome means covering all of it
+
+**Governs:** §7.5
+
+**Decision.** `CON_16` replaces `CON_04`. A spec breaches it by leaving a stated outcome with no
+criterion at all, as before, and now also by covering only part of one — unless the remainder is
+carried by another criterion or named in `Out of scope`. `CON_04` keeps its id and stays on the
+library's page verbatim with `Superseded-by`.
+
+**Why.** `CON_04` asked whether each outcome had a criterion. That catches the outcome dropped whole,
+which is the loud failure. It does not catch the outcome quietly narrowed, which is the common one and
+much the harder to see: a criterion covering half of an outcome still traces to it, still reads as
+derived, and satisfies a coverage check exactly as well as one covering all of it.
+
+**What it cost, which is how it was found.** An intent asked for "a die on the screen showing a number
+between 1 and 6". The spec's criterion read "displays a face value that is an integer from 1 to 6" —
+the same sentence with the thing the person asked to look at removed. The plan then dropped the
+component library for defensible reasons, and the build rendered a numeral in a bare paragraph tag.
+Every gate was green at every step, correctly, because no rule had been broken. The person who asked
+for it opened the page and asked whether the application was working.
+
+**Why this is not `CON_05` in reverse.** `CON_05` forbids a criterion no statement in the intent
+supports, and the narrowed criterion is fully supported — it is derived from the outcome, just not from
+all of it. Gaps, creep and narrowing fail differently and are remedied differently: a gap sends you
+back for another criterion, creep sends you to delete one, and narrowing sends you to widen the one
+that is already there. Keeping them separate is the same reasoning `CON_05` records about itself.
+
+**`Out of scope` is the exit, and naming it is what keeps the rule from deadlocking a spec.** An
+outcome can have a part no test can reach — the usual case is judging how something looks, which
+`CON_12` already keeps out of a criterion. The rule does not demand that part be tested. It demands
+that dropping it be written down, which turns a word going missing into a decision a reader can
+disagree with at the gate.
+
+**And the mechanism is in the spec skill rather than the rule.** A criterion carries the outcome's own
+words rather than a paraphrase of them, so the difference between what was asked for and what is being
+checked is visible on the page instead of resting on a reader remembering the intent. Nothing
+downstream compares the two again: build implements the spec and verify checks the spec.
+
+**Rejected.** *Revising `CON_04` in place* — forbidden by the library's own rules, and it would make
+every finding that cited `CON_04` unreadable against the rule it was judged under. *A mechanical check
+that every significant word of an outcome appears in some criterion* — it fails on synonyms and passes
+on a criterion that quotes the words and tests something narrower, which is the failure dressed as the
+fix. *Having verify compare the spec to the intent* — verify derives from the evidence and the diff
+(`CON_08`), and giving it the intent would make it an author of criteria rather than an auditor of
+them; the comparison belongs at the spec gate, before anybody has built anything.

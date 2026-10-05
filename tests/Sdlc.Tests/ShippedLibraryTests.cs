@@ -125,15 +125,22 @@ public sealed class ShippedLibraryTests
     }
 
     [TestMethod]
-    public void The_library_holds_the_fifteen_entries_iteration_four_carries()
+    public void The_library_holds_the_entries_iteration_four_carries()
     {
         Assert.AreEqual(
-            15,
+            16,
             Library.Count,
             "Nine came across from iteration 3 unchanged, CON_10 was rebound to a gate refusal, and "
-            + "CON_12, CON_13 and CON_14 were added in iteration 4. CON_15 superseded CON_13, which is "
-            + "why this counts fifteen while fourteen bind. A deliberate addition updates this number; "
-            + "an accident fails here.");
+            + "CON_12, CON_13 and CON_14 were added in iteration 4. Two supersessions followed, each "
+            + "leaving its predecessor on the page, which is why this counts entries and the readme "
+            + "counts rules. A deliberate addition updates this number; an accident fails here.");
+
+        Assert.AreEqual(
+            14,
+            Library.Count(rule => rule.IsInForce),
+            "The number of rules that bind is the readme's claim and what 'sdlc constraints' prints. A "
+            + "supersession replaces one rule with another and leaves this unchanged; only a genuine "
+            + "addition or removal moves it.");
     }
 
     [TestMethod]
@@ -143,11 +150,19 @@ public sealed class ShippedLibraryTests
         // stays on the page so a finding that cited it is still readable against what it was judged
         // under, and it leaves the set a plan is held to. Counting entries and counting rules are the
         // same number only while this has never happened.
-        Constraint superseded = Library.Single(rule => !rule.IsInForce);
+        // Written against one supersession and generalised at the second, which is the lesson: this is
+        // a plural thing and Single was a bet that it would stay singular for the life of the library.
+        string[] pairs = [.. Library
+            .Where(rule => !rule.IsInForce)
+            .Select(rule => rule.Id + " -> " + rule.SupersededBy)
+            .Order(StringComparer.Ordinal)];
 
-        Assert.AreEqual("CON_13", superseded.Id.ToString());
-        Assert.AreEqual("CON_15", superseded.SupersededBy?.ToString());
-        Assert.AreEqual(14, Library.Count(rule => rule.IsInForce));
+        CollectionAssert.AreEqual(
+            new[] { "CON_04 -> CON_16", "CON_13 -> CON_15" },
+            pairs,
+            "Every superseded rule names its replacement, and a new supersession is added here "
+            + "deliberately. A rule that stopped binding without naming what replaced it would leave "
+            + "a finding that cited it readable against nothing.");
     }
 
     [TestMethod]

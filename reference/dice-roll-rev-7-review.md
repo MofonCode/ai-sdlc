@@ -43,12 +43,13 @@ was done about it.
 | 6 — `sdlc suggestions` reads `Noticed:` lines | done. `IRepository.CommitMessages` reads the cycle branch, `Noticed.ReadAll` unwraps each line, and the listing shows them under their own heading. Run against this cycle it now lists all three, which it previously showed none of |
 | 7 — a greenfield branch in the adoption interview | done. Three replacement questions, plus a table of where each kind of answer goes, applying R2 |
 | 7 — ask once what *simple* bounds | done. A new step in the intent skill, before the artifact is written |
+| 3 — a criterion may no longer narrow its outcome | done (D-61). `CON_16` supersedes `CON_04` and covers partial satisfaction within one outcome, with `Out of scope` as the exit where no test can reach the remainder. The spec skill now has criteria carry the outcome's own words, so a narrowing shows as a difference rather than a paraphrase |
 | 8 — OpenAPI and OpenTelemetry in the scaffold | done (D-60). A `ServiceDefaults` project every host calls, the api description rendered in Swagger UI, and `ObservabilityTests` asserting the kernel's source and meter names are the ones registered. Verified by generating a solution, running it, and breaking the registration to confirm the test bites |
 | 1 — omission is now a departure | done. `CON_15` supersedes `CON_13` and covers both directions, scoped to work that calls for the default (D-59). Placed by Peter, since the constraint library is a person's to write. The rule now says what to do; whether a row like OpenAPI should also *bind* is still open |
 | 2 — the plan's judge is given `techstack.md` | done. A fourth input on plan rounds only, recorded as D-58. An empty stack is pasted rather than omitted, so the reader can tell "declares nothing" from "nobody showed me" |
 | R1 — the MudBlazor contradiction | settled 2026-10-05, option 3 (D-57). The Razor class library gets a `Ui` role in both tables, MudBlazor is admitted there and nowhere else, and `Web` may reference it. `techstack.md` keeps its words and now names the project, because the role is read off the name |
 
-Still open: findings 3, 4 and 5b. Findings 1 and 8 are both closed — the rule now obliges a plan to speak, and the profile now applies the two rows it was declaring and skipping.
+Still open: findings 4 and 5b. Findings 1, 3 and 8 are closed — the rule obliges a plan to speak about a default it skips, a criterion may no longer quietly cover half its outcome, and the profile applies the two rows it was declaring and skipping.
 
 Findings 2, 5 and 6 are small, mechanical and low-risk. I would do them without asking. Findings 1, 3, 4 and 7 each change what every future cycle has to satisfy, and 1 and 3 change the library the binary ships, so they reach every adopter of the plugin — not just this repository. Finding 8 is finding 1 with the cost made concrete; it needs no separate decision.
 
@@ -368,7 +369,7 @@ Smallest blast radius first, and the dependency matters: finding 2 has to land b
 | 7 | `sdlc suggestions` reads `Noticed:` lines (6) | the suggestions command and its skill | **done** |
 | 8 | A greenfield branch in the adoption interview (7) | `../skills/init/SKILL.md` | **done** |
 | 9 | Ask once what *simple* bounds — scope or appearance (7) | `../skills/intent/SKILL.md` | **done** |
-| 10 | Tighten `CON_04` against narrowing (3) | the constraint library, spec skill | **your call** |
+| 10 | Tighten `CON_04` against narrowing (3) | the constraint library, spec skill | **done** — D-61 |
 | 11 | A failure-path `LOC_`, worded to demand an observable (4, R2) | `.sdlc/constraints.md` here, or the global library | **your call** |
 | 12 | Departure from an architecture rule, or the narrower flag (5b) | the plan skill, possibly `CON_13` | **your call**, and worth sitting on |
 

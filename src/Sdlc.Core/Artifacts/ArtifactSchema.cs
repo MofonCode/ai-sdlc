@@ -55,8 +55,8 @@ public static class ArtifactSchema
     public static IReadOnlyList<string> BodySectionsOf(ArtifactKind kind) => kind switch
     {
         // Problem, because CON_01 forbids an intent that names a solution and no observable problem.
-        // Wanted outcomes, because it is CON_04's left-hand side. Fixed decisions, because CON_01 routes
-        // a decision already taken here and steer writes into it. Must not change, because CON_04 names
+        // Wanted outcomes, because it is CON_16's left-hand side. Fixed decisions, because CON_01 routes
+        // a decision already taken here and steer writes into it. Must not change, because CON_16 names
         // it and it is the outcome most often dropped.
         ArtifactKind.Intent =>
             ["Problem", "Wanted outcomes", "Fixed decisions", "Must not change"],

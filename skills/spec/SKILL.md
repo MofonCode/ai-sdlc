@@ -20,7 +20,7 @@ sdlc status <cycle id> --stage intent
 ```
 
 - **No intent?** Say so and stop. There is nothing to derive from.
-- **Intent not clean?** Stop. `CON_04` is coverage of what the intent *states*, so deriving criteria
+- **Intent not clean?** Stop. `CON_16` is coverage of what the intent *states*, so deriving criteria
   from an intent that is still being argued about means deriving them twice.
 - **A spec already exists?** Stop, and name what the person probably meant: `/sdlc:interrogate <id>
   spec` to challenge it, or `/sdlc:steer <id> "..."` to change it. Do not overwrite a spec.
@@ -39,6 +39,29 @@ The intent's `type` tells you how to derive:
 | `feature addition` | each wanted outcome, turned into something checkable |
 | `feature change` | the new behaviour, **plus** a criterion for each `Must not change` item |
 | `new solution` | each wanted outcome, plus whatever the solution must do to be usable at all |
+
+## Cover the whole of each outcome, and quote it
+
+`CON_16` is not satisfied by every outcome having *a* criterion. It asks whether the criterion covers
+what the outcome actually says — and the way an outcome loses half of itself is a paraphrase nobody
+compares to the original.
+
+**So carry the outcome's own words into the criterion, and keep them.** A reader can then see the
+difference rather than having to remember the intent:
+
+| The intent said | A criterion that narrows it | A criterion that covers it |
+|---|---|---|
+| see a **die** on the screen showing a number between 1 and 6 | displays a **face value** that is an integer from 1 to 6 | displays a **die face** showing that many pips, the number being an integer from 1 to 6 |
+
+The left-hand column is real. It passed every gate, and the solution shipped a numeral in a bare
+paragraph tag — because the narrowed criterion still traced to the outcome, still read as derived, and
+still satisfied a coverage check. Nothing downstream ever compares a spec to an intent again: build
+implements the spec and verify checks the spec.
+
+**Where part of an outcome genuinely cannot be checked, put that part in `Out of scope` and say so.**
+That is the exit, and using it is what makes the narrowing a decision somebody wrote down rather than
+a word that went missing. Judging the look of something is the usual case — no test makes that
+judgement, and `CON_12` keeps it out of a criterion.
 
 ## Write criteria that can fail
 

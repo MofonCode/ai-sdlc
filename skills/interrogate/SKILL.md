@@ -110,7 +110,7 @@ as it is, and if it is absent say so in the block in those words.
 >
 > Answer as JSON only, in this shape:
 > ```json
-> { "findings": [ { "id": "F_01", "severity": "blocking", "cites": "CON_04",
+> { "findings": [ { "id": "F_01", "severity": "blocking", "cites": "CON_16",
 >   "statement": "...", "locus": "...", "remedy": "..." } ] }
 > ```
 > An empty array means the document breaks nothing.

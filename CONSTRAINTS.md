@@ -92,6 +92,8 @@ phrasings and belongs in a hook; this covers the general case, which no word lis
 
 ## CON_04 — A spec covers every outcome its intent asks for
 
+**Superseded-by:** CON_16
+
 **Applies to:** a spec, at approval.
 
 **Forbids:** a spec whose criteria satisfy some of the intent's stated outcomes while leaving
@@ -250,3 +252,22 @@ file, and the first person to notice is whoever needed the thing that was never 
 is still enough: this makes an omission arguable at the one gate before code exists, not forbidden.
 The scope is work that calls for the default, because a plan touching one endpoint is not silent
 about the message bus by failing to mention it.
+
+## CON_16 — A spec covers every outcome its intent asks for, and all of each one
+
+**Applies to:** a spec, at approval.
+
+**Forbids:** a spec that leaves one of the intent's stated outcomes with no criterion at all, or
+whose criterion for an outcome satisfies only part of what that outcome says — with the remainder
+neither carried by another criterion nor named in `Out of scope`. An intent's **must not change**
+items are among those outcomes, and they are the ones most often dropped.
+
+**Why:** a gap here is invisible downstream. Build implements the spec and verify checks the spec, so
+what the intent asked for is never read again and the cycle lands green having done part of the job.
+`CON_04` caught an outcome dropped whole and not an outcome quietly narrowed, which is the commoner
+of the two and much the harder to see: a criterion covering half an outcome still traces to it, still
+reads as derived, and still satisfies a coverage check. One real spec turned "see a die on the screen
+showing a number between 1 and 6" into "displays a face value that is an integer from 1 to 6" — the
+same sentence with the thing the person asked to look at taken out of it. Nothing objected, and the
+solution shipped a numeral in a bare paragraph tag. Naming the remainder in `Out of scope` is the
+exit, and it is what stops this deadlocking a spec whose outcome has a part no test can reach.
