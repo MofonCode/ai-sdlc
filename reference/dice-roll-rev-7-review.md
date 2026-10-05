@@ -43,8 +43,9 @@ was done about it.
 | 6 — `sdlc suggestions` reads `Noticed:` lines | done. `IRepository.CommitMessages` reads the cycle branch, `Noticed.ReadAll` unwraps each line, and the listing shows them under their own heading. Run against this cycle it now lists all three, which it previously showed none of |
 | 7 — a greenfield branch in the adoption interview | done. Three replacement questions, plus a table of where each kind of answer goes, applying R2 |
 | 7 — ask once what *simple* bounds | done. A new step in the intent skill, before the artifact is written |
+| R1 — the MudBlazor contradiction | settled 2026-10-05, option 3 (D-57). The Razor class library gets a `Ui` role in both tables, MudBlazor is admitted there and nowhere else, and `Web` may reference it. `techstack.md` keeps its words and now names the project, because the role is read off the name |
 
-Still open and unchanged: findings 1, 2, 3, 4, 8 and 5b, plus R1, which gates three of them.
+Still open: findings 1, 2, 3, 4, 8 and 5b. R1 is settled, so findings 2, 1 and 8 are no longer gated by it.
 
 Findings 2, 5 and 6 are small, mechanical and low-risk. I would do them without asking. Findings 1, 3, 4 and 7 each change what every future cycle has to satisfy, and 1 and 3 change the library the binary ships, so they reach every adopter of the plugin — not just this repository. Finding 8 is finding 1 with the cost made concrete; it needs no separate decision.
 
@@ -311,6 +312,8 @@ So the first solution that follows the declared stack properly — MudBlazor in 
 
 **Order:** settle this before finding 2 and before finding 1. Hand the judge a `techstack.md` that contradicts the test suite and every plan from then on earns a finding about a conflict no cycle can resolve. Bind the declared rows first and you have bound one that cannot be satisfied.
 
+**Settled 2026-10-05, recorded as D-57.** The library wins: components live in `src/<solution>.Ui` from the first one, MudBlazor is admitted there and in no other project, and `Web` may reference it. `techstack.md` is unchanged in substance and now names the project, because the architecture suite reads a role off the project name and a library called `Components` would fail asking for a table row. The cost taken knowingly is a project with one consumer until a second host exists; the alternative was moving every component on the day one arrives, discovered by the cycle trying to add it. MudBlazor is permitted rather than required — the stack file says nothing in it binds by itself, so making a test mandate it would contradict the document it exists to agree with.
+
 ### R2. "Use MudBlazor" cannot be a `LOC_` constraint — the admission tests reject it
 
 `sdlc draft constraint` admits a candidate only if all three hold, and the second is the one that bites:
@@ -345,7 +348,7 @@ That last cell is the one to be clear-eyed about. `solution.md` is read by **pla
 
 ### The order that actually matters
 
-R1, then finding 2, then findings 1 and 8, then finding 3. Everything else is independent and can go in any order.
+R1 is settled. Finding 2 next, then findings 1 and 8, then finding 3. Everything else is independent and can go in any order.
 
 ## Suggested order
 
@@ -353,10 +356,10 @@ Smallest blast radius first, and the dependency matters: finding 2 has to land b
 
 | Step | Work | Touches | Waiting on |
 | --- | --- | --- | --- |
-| 1 | Resolve the MudBlazor contradiction — which of the three sources is wrong (R1) | `techstack.md` or `StructureTests.cs.template` | **your call, and it gates 2–4** |
-| 2 | Give the plan's judge `techstack.md` (2) | `../skills/interrogate/SKILL.md` | step 1 |
-| 3 | OpenAPI in the scaffold template plus the test that binds it (1) | `Program.cs.template`, `EndpointTests.cs.template`, `Directory.Packages.props` | step 1 |
-| 4 | OpenTelemetry: bind it, or demote the row (1, 8) | profile template or `techstack.md` | **your call**, after step 1 |
+| 1 | Resolve the MudBlazor contradiction — which of the three sources is wrong (R1) | `techstack.md` or `StructureTests.cs.template` | **done** — D-57 |
+| 2 | Give the plan's judge `techstack.md` (2) | `../skills/interrogate/SKILL.md` | unblocked |
+| 3 | OpenAPI in the scaffold template plus the test that binds it (1) | `Program.cs.template`, `EndpointTests.cs.template`, `Directory.Packages.props` | unblocked |
+| 4 | OpenTelemetry: bind it, or demote the row (1, 8) | profile template or `techstack.md` | **your call** |
 | 5 | Paste `solution.md` with the standard you expect (7) | `.sdlc/solution.md` | **you, a minute** |
 | 6 | Flag governing files in the evidence comparison (5a) | `src/Sdlc.Core/Evidence/DeclaredFiles.cs` | **done** |
 | 7 | `sdlc suggestions` reads `Noticed:` lines (6) | the suggestions command and its skill | **done** |
@@ -366,7 +369,7 @@ Smallest blast radius first, and the dependency matters: finding 2 has to land b
 | 11 | A failure-path `LOC_`, worded to demand an observable (4, R2) | `.sdlc/constraints.md` here, or the global library | **your call** |
 | 12 | Departure from an architecture rule, or the narrower flag (5b) | the plan skill, possibly `CON_13` | **your call**, and worth sitting on |
 
-Steps 6 to 9 are done — each was self-contained and none changed what a cycle has to satisfy. Steps 2 to 4 are equally mechanical but sit behind step 1, which is a judgement only you can make. Step 5 is yours and unblocks nothing, but every plan from here reads that file.
+Steps 6 to 9 are done — each was self-contained and none changed what a cycle has to satisfy. Steps 2 and 3 are equally mechanical and step 1 no longer blocks them. Step 5 is yours and unblocks nothing, but every plan from here reads that file.
 
 Step 12 is the one I would deliberately leave alone for a while. It is the only finding here that could weaken something rather than tighten it, and the case for it rests on one cycle — a d6 is a small enough problem that any profile would look heavy against it. Two or three more real cycles will say whether the shape is genuinely disproportionate or whether this was simply the worst case to measure it with.
 

@@ -1171,6 +1171,15 @@ warning fires on one word and not on two, so `handler` is refused where `ledgerS
 rule that covers some type names and not others is not a rule. Private methods and fields carry the
 accessibility-in-the-name convention instead.
 
+**Where a component lives, which is the same question one layer out.** A Blazor component is read by a
+host the way a response is read by a client, and a solution may have two hosts — Blazor for web, MAUI
+Blazor Hybrid for desktop and Android. So the components live in `src/<solution>.Ui`, a Razor class
+library, and both hosts reference it. `Ui` references `Contracts` and nothing else, for the reason the
+`Web` row exists: whatever it references is what a browser downloads. MudBlazor is referenced there and
+in no other project, which is what lets a solution follow the component library its own `techstack.md`
+declares — before this the architecture test forbade every way of doing it. Neither `Ui` nor `Web` is
+written by the skeleton; both rows wait in the tables and cost nothing until a cycle needs a UI (D-57).
+
 ### 11.4 The analyzer policy every profile ships
 
 **CI builds carry no warnings.**
@@ -3685,3 +3694,69 @@ revisiting if per-directory `.editorconfig` scoping is ever built. *Reading the 
 files as the record* — an old repository plausibly has its own `.editorconfig`, which `Once` keeps, so
 presence proves nothing. *A `baseline` key suppressing warnings on existing files* — §18, and it is the
 thing this design is written against: a file that looks enforced and is not.
+
+### D-57 — The components live in a Razor class library, and `Ui` is a role the rules name
+
+**Governs:** §11.3.1
+
+**Decision.** A solution's Blazor components live in `src/<solution>.Ui`, a Razor class library, and
+that is where MudBlazor is referenced. `Web` references it and holds no component package of its own.
+Both roles sit in the architecture test's two tables and neither project is written by the skeleton,
+the same way `Web` already was.
+
+```
+Contracts   -> nothing, and no package reference either
+Application -> Contracts
+Api         -> Application
+Ui          -> Contracts          MudBlazor lives here
+Web         -> Contracts, Ui      the WebAssembly packages, and nothing else
+```
+
+**Why, and the honest version is that this was already decided and could not be done.**
+`techstack.md` has declared MudBlazor for ui components and a Razor class library for shared UI since
+the profile shipped. The architecture test it ships beside admitted only
+`Microsoft.AspNetCore.Components.WebAssembly*` in a `Web` project, allowed `Web -> Contracts` and
+nothing else, and had no role for a class library at all. So every road the stack file pointed down
+failed a test the same profile wrote: MudBlazor in `Web` fails the package rule, a `Ui` project fails
+`Every_project_under_src_is_named_in_both_rules` on arrival, and `Web -> Ui` fails the direction rule.
+A plan following the declared stack had to amend the scaffolded test to do it.
+
+That is not a defect in either file. They were written separately and never read against each other,
+which is the failure mode the framework exists to catch in a cycle's documents and had no instrument
+pointed at its own. It surfaced in a real run: a cycle dropped MudBlazor and argued the departure
+honestly, citing the package rule as one of its two reasons, and produced a page of unstyled markup
+while every gate stayed green.
+
+**Why the library from the first component rather than the second host.** The alternative was to let
+`Web` hold components until a second host appears and move them then. It is cheaper on day one and the
+move is the expensive part: every component, every namespace, every test that renders one, done by the
+cycle that was trying to add a phone app. The cost of deciding it now is a project with one consumer
+until a second host exists, which is a project that compiles and has an inhabitant rather than an empty
+one waiting to be filled.
+
+**This is the one place the layout departs from D-38's bar for a new project**, which is two occupants
+in two projects, and the departure is narrower than it looks. That bar refuses a project with no
+inhabitant, because it fills with whatever arrives. `Ui` has its inhabitant on the first day. What it
+lacks at first is a second *consumer*, and a project defined by what it holds does not drift the way
+one defined by what is left over does.
+
+**Why MudBlazor is permitted rather than required.** `techstack.md` says of itself that it is a
+declaration of defaults rather than a set of rules and that nothing in it binds by itself. A test that
+*mandated* MudBlazor would contradict the document it exists to agree with, and a trivial surface is
+entitled to plain markup. What makes an unused default visible is the plan saying so, which is
+`CON_13`'s job rather than this one's.
+
+**What it costs, stated rather than discovered.** A solution with one host carries a project with one
+consumer. The name is load-bearing in a way nothing else in the layout is — the role is read off the
+project name, so a library called `Components` or `Shared` builds nothing and fails asking for a table
+row, which is why `techstack.md` now names the project rather than describing it. And `Web` keeps a
+package row that admits the WebAssembly family by prefix, so the grant there stays wider than the exact
+matches elsewhere.
+
+**Rejected.** *Admitting MudBlazor in `Web` and making the library conditional on a second host*, the
+shape the AppHost row already uses — rejected on the move: components are not processes, and relocating
+them later touches every file that renders one. *Leaving `techstack.md` as the thing that changes* —
+demoting MudBlazor to available-rather-than-default, which removes the contradiction by removing the
+declaration, and returns the profile to having no opinion about what a screen looks like. *A role for a
+MAUI host at the same time* — nothing prescribes one yet, and a table row for a project nobody has is
+how a table starts describing a repository that does not exist.

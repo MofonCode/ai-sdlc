@@ -189,6 +189,27 @@ public sealed class ScaffoldTests
             "Every_project_under_src_is_named_in_both_rules",
             "Guard the guard: a project neither table names is a project both rules skip silently.");
 
+        // D-57. techstack.md declares MudBlazor for ui components and a Razor class library for shared
+        // UI, and the tables here used to forbid every way of doing it: MudBlazor failed the package
+        // rule in Web, a Ui project failed the guard above on arrival, and Web -> Ui failed the
+        // direction rule. A profile whose own test contradicts its own stack file is worse than either
+        // alone, because the plan that follows the file is the one that fails.
+        StringAssert.Contains(
+            structure,
+            "[\"Ui\"] = [\"Contracts\"]",
+            "The Razor class library needs a direction row, or the first solution to add one meets a "
+            + "failing build asking for it.");
+
+        StringAssert.Contains(
+            structure,
+            "[\"Web\"] = [\"Contracts\", \"Ui\"]",
+            "A host that cannot reference the component library cannot render anything from it.");
+
+        StringAssert.Contains(
+            structure,
+            "[\"Ui\"] = [\"MudBlazor\"",
+            "MudBlazor is declared by techstack.md and admitted nowhere until this row exists.");
+
         string convention = files
             .Single(file => file.Key.EndsWith("ConventionTests.cs", StringComparison.Ordinal)).Value;
 

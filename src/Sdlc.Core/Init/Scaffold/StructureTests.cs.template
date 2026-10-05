@@ -22,12 +22,25 @@ public sealed class StructureTests
     /// guide. Contracts knows nothing, so a front end can reference the shapes it renders without
     /// dragging the data access behind them; the application project is where the <c>DbContext</c> and
     /// the vendor wrappers live, and they are <c>internal</c>, so nothing outside can query at all.</para>
-    /// <para><strong><c>Web</c> is listed and is not written by the skeleton.</strong> A UI in the
-    /// default profile would commit every solution to having one, so it arrives with the cycle that
-    /// needs it -- and this row is waiting, which costs nothing while no such project exists. A Blazor
-    /// WebAssembly client ships every assembly it references to the browser, so <c>Web -&gt; Contracts</c>
-    /// is what keeps EF, a provider and every vendor SDK out of a bundle a visitor downloads. It is
-    /// also what makes "the front end holds no business logic" a fact rather than a convention.</para>
+    /// <para><strong><c>Web</c> and <c>Ui</c> are listed and neither is written by the skeleton.</strong>
+    /// A UI in the default profile would commit every solution to having one, so they arrive with the
+    /// cycle that needs them -- and these rows are waiting, which costs nothing while no such project
+    /// exists. A Blazor WebAssembly client ships every assembly it references to the browser, so what
+    /// these two rows allow is what a visitor downloads. Neither can reach the application project, so
+    /// EF, a provider and every vendor SDK stay out of the bundle, and "the front end holds no business
+    /// logic" is a fact rather than a convention.</para>
+    /// <para><strong><c>Ui</c> is the Razor class library the stack file prescribes, and the components
+    /// live there rather than in <c>Web</c>.</strong> <c>techstack.md</c> declares MudBlazor for ui
+    /// components and says shared UI is Blazor components in a Razor class library, hosted by Blazor for
+    /// web and MAUI Blazor Hybrid for desktop and Android -- so the library is what both hosts reference
+    /// and the package rule below admits MudBlazor there and nowhere else. The cost is a project with
+    /// one consumer until a second host exists, and it is paid deliberately: a solution that puts its
+    /// components in <c>Web</c> and grows a second host later has to move every one of them, and the
+    /// cycle that discovers this is the cycle trying to do something else. D-57.</para>
+    /// <para>This is the one place the layout differs from D-38's "no <c>Core</c> until it has two
+    /// occupants in two projects". That bar refuses a project with no inhabitant, which fills with
+    /// whatever arrives. <c>Ui</c> has an inhabitant on its first day -- the components -- and what it
+    /// lacks at first is a second <em>consumer</em>, which is a different objection and a smaller one.</para>
     /// <para><c>Api</c> may name contracts as well as the application project, though it already has
     /// them transitively. Failing an explicit reference to a project that is reachable anyway would
     /// make this rule pedantic about something that harms nothing, and a pedantic rule is one somebody
@@ -47,7 +60,8 @@ public sealed class StructureTests
             ["Contracts"] = [],
             ["Application"] = ["Contracts"],
             ["Api"] = ["Application", "Contracts"],
-            ["Web"] = ["Contracts"],
+            ["Ui"] = ["Contracts"],
+            ["Web"] = ["Contracts", "Ui"],
         };
 
     /// <summary>
@@ -72,13 +86,28 @@ public sealed class StructureTests
             ["Contracts"] = [],
             ["Api"] = ["MofonCode.Core"],
 
-            // Prefix-matched, unlike every other entry here, and the reason should be visible: the
+            // Prefix-matched, unlike the two rows above, and the reason should be visible: the
             // legitimate set is "the WebAssembly packages", and a Blazor WebAssembly project needs
             // Microsoft.AspNetCore.Components.WebAssembly.DevServer as well as the runtime package.
             // Listing them exactly would fail on the day the first real Web project arrives, in the
             // cycle that is busy doing something else. A prefix is a wider grant than the rows above,
             // which is the cost.
+            //
+            // The host, not the components: MudBlazor is absent here on purpose, and Ui is where it is
+            // admitted. A component library both hosts reference is the shape techstack.md declares, so
+            // a component package in the host is the first copy of a UI that will shortly exist twice.
             ["Web"] = ["Microsoft.AspNetCore.Components.WebAssembly"],
+
+            // The component library. MudBlazor is named exactly rather than prefix-matched, because
+            // unlike the WebAssembly pair it is one package rather than a family -- and a prefix would
+            // silently admit anything else published under the name. Microsoft.AspNetCore.Components is
+            // a prefix because a Razor class library legitimately takes several of them: .Web for the
+            // render tree, .Forms for inputs, .Authorization where a page is gated.
+            //
+            // techstack.md declares MudBlazor for ui components, which makes this row the thing that
+            // lets a solution follow its own stack file. Another component library replaces this entry
+            // rather than joining it: two is how a solution ends up with two ways to draw a button.
+            ["Ui"] = ["MudBlazor", "Microsoft.AspNetCore.Components"],
         };
 
     /// <summary>
