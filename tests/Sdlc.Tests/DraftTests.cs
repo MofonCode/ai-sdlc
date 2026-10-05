@@ -134,6 +134,101 @@ public sealed class DraftTests
     }
 
     [TestMethod]
+    public async Task The_solution_draft_is_written_to_disk_for_a_rename()
+    {
+        // A block to paste is a block that does not get pasted: a real adoption left this file on its
+        // shipped placeholder, and every plan in that solution was written against a document saying
+        // nothing. The rename is one command and leaves no step to forget.
+        using var workspace = CycleWorkspace.Create();
+        CycleWorkspace.WriteRaw(
+            SolutionDocument.PathIn(workspace.Root),
+            """
+            ---
+            profile: dotnet-default
+            origin: scaffolded
+            standard: profile
+            platform: local
+            ---
+
+            # What this solution is
+
+            Replace this with a paragraph a newcomer could read.
+
+            """);
+
+        DraftResult draft = await Solution(workspace);
+
+        Assert.IsTrue(draft.MayDraft, draft.Instructions);
+
+        string path = Path.Combine(
+            workspace.Root,
+            Cycle.SdlcDirectoryName,
+            WriteSolutionDraft.DraftFileName);
+
+        Assert.IsTrue(File.Exists(path), "The draft is written, not printed for a person to retype.");
+
+        string written = await File.ReadAllTextAsync(path);
+
+        StringAssert.Contains(
+            written,
+            "platform: local",
+            "The keys are carried through as recorded rather than recomputed. A draft that defaulted "
+            + "the platform would reclassify a local solution as GitHub by being renamed, and doctor "
+            + "would then report a broken install rather than a choice.");
+
+        Assert.IsFalse(
+            written.Contains(WriteSolutionDraft.Placeholder, StringComparison.Ordinal),
+            "The placeholder is replaced, or renaming the draft changes nothing worth doing.");
+    }
+
+    [TestMethod]
+    public async Task A_solution_draft_carries_prose_somebody_already_wrote()
+    {
+        // This is what makes the rename safe rather than destructive. Without it, the one command this
+        // exists to offer would cost a person the paragraph they had written.
+        using var workspace = CycleWorkspace.Create();
+        CycleWorkspace.WriteRaw(
+            SolutionDocument.PathIn(workspace.Root),
+            """
+            ---
+            profile: dotnet-default
+            origin: adopted
+            standard: existing
+            platform: github
+            ---
+
+            # What this solution is
+
+            A dice roller for tabletop games, held to the house style.
+
+            """);
+
+        DraftResult draft = await Solution(workspace);
+
+        Assert.IsTrue(draft.MayDraft, draft.Instructions);
+
+        string written = await File.ReadAllTextAsync(Path.Combine(
+            workspace.Root,
+            Cycle.SdlcDirectoryName,
+            WriteSolutionDraft.DraftFileName));
+
+        StringAssert.Contains(written, "A dice roller for tabletop games, held to the house style.");
+        StringAssert.Contains(written, "origin: adopted");
+        StringAssert.Contains(written, "standard: existing");
+    }
+
+    [TestMethod]
+    public async Task Drafting_a_solution_document_that_does_not_exist_is_refused()
+    {
+        using var workspace = CycleWorkspace.Create();
+
+        DraftResult draft = await Solution(workspace);
+
+        Assert.IsFalse(draft.MayDraft, "There is nothing to carry the keys and the prose through from.");
+        StringAssert.Contains(draft.Instructions, "not been adopted");
+    }
+
+    [TestMethod]
     public async Task A_profile_migration_prints_both_keys_and_leaves_the_origin_alone()
     {
         using var workspace = CycleWorkspace.Create();
@@ -238,6 +333,17 @@ public sealed class DraftTests
         using var gate = Gate.For(workspace.Root);
 
         return Ok(await gate.Send<ConstraintText.Query, DraftResult>(new ConstraintText.Query()));
+    }
+
+    private static async Task<DraftResult> Solution(CycleWorkspace workspace)
+    {
+        using var gate = Gate.For(workspace.Root);
+
+        Result<DraftResult> result = await gate
+            .Send<WriteSolutionDraft.Command, DraftResult>(new WriteSolutionDraft.Command());
+
+        Assert.IsTrue(result.IsSuccess, string.Join("; ", result.Errors.Select(e => e.Message)));
+        return result.Value;
     }
 
     private static async Task<DraftResult> Profile(CycleWorkspace workspace, string profile)

@@ -214,6 +214,12 @@ public sealed class PublicSurfaceTests
         "Sdlc.Core.Solutions.SolutionOrigin",
         "Sdlc.Core.Solutions.SolutionRoot",
         "Sdlc.Core.Solutions.SolutionStandard",
+
+        // The drafter that writes the solution document beside itself for a person to rename. Public
+        // for the same reason the approval one is: the CLI dispatches it, and its two constants are
+        // what a test asserts the draft against.
+        "Sdlc.Core.Solutions.WriteSolutionDraft",
+        "Sdlc.Core.Solutions.WriteSolutionDraft+Command",
     ];
 
     [TestMethod]

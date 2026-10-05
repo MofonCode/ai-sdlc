@@ -4000,3 +4000,45 @@ on a criterion that quotes the words and tests something narrower, which is the 
 fix. *Having verify compare the spec to the intent* — verify derives from the evidence and the diff
 (`CON_08`), and giving it the intent would make it an author of criteria rather than an auditor of
 them; the comparison belongs at the spec gate, before anybody has built anything.
+
+### D-62 — The solution document is drafted to a file, like a gate decision
+
+**Governs:** §8
+
+**Decision.** `sdlc draft solution` writes a complete solution document beside the real one and prints
+the rename that places it, the same shape D-52 gave a gate decision. It carries the four keys through
+exactly as recorded and any prose already written through unchanged; only the shipped placeholder is
+replaced, and by a prompt rather than by invented prose.
+
+**Why.** Adoption printed the document for a person to paste, and in a real adoption it was never
+pasted. The file sat on `Replace this with a paragraph a newcomer could read` for the life of the
+cycle, so every plan in that solution was written against a document that said nothing about what the
+solution was for or what good looked like in it. Nothing failed — nothing reads the prose — and the
+cost landed on the person who later wanted to know. A block to paste is a step somebody has to
+remember; a rename is one command.
+
+**Why it carries the prose through rather than regenerating it.** A draft that replaced the body would
+make the rename destructive for every solution that had written one, which is most of them after the
+first week. Carrying it through is what makes "rename this over that" safe to say without qualification
+— and it is the reason this can be offered at all rather than only at adoption.
+
+**Why it carries the keys through rather than recomputing them.** The origin is a historical fact, the
+standard decides which conventions new work follows, and the platform decides whether a pull-request
+check governs the merge. A draft that defaulted any of them would reclassify a solution by being
+renamed: a `local` solution would come back as `github`, and `doctor` would then report a broken
+install rather than a recorded choice (D-53). Changing a key stays a separate act with its own drafter.
+
+**Why a prompt where the placeholder was.** This knows the four keys and knows nothing about what the
+solution is for. Writing a plausible paragraph would be the tool asserting something only a person can
+say, and a sentence nobody wrote is worse than a blank because it reads as settled.
+
+**The protection does not move.** Every agent write to the real file stays denied, the binary writes
+only the draft, and nothing here knows how to place it — the same division D-09 and D-52 already rest
+on. What changes is the cost of doing it right, not who is allowed to.
+
+**Rejected.** *Letting adoption write the file outright* — it is one of the four a person writes, and
+an exception for "only the first time" is the conditional rule D-09 says is where a bypass would live.
+*Folding this into `draft profile`* — that drafter changes a key, this one gives you the whole file;
+one prints a decision and the other preserves what is already there. *Having the draft fill the prose
+from the adoption interview's answers* — tempting, and it would put words in the person's mouth at the
+one moment they are least likely to read them closely.

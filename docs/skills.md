@@ -237,8 +237,10 @@ the hash of the artifact above it, so editing the intent makes the spec's latest
 
 ### `draft`
 
-**Prints what belongs in one of the four files only a person writes.** One rule: a tool never places
-them, a person does.
+**Prints or writes what belongs in one of the four files only a person writes.** One rule: a tool never
+places them, a person does. Two of the five write a complete file beside the real one so that placing
+it is a rename rather than a paste -- which matters because a block printed for pasting went unpasted
+through a whole cycle, leaving every plan in that solution reading a placeholder.
 
 | Drafter | What it is for |
 |---|---|
@@ -246,6 +248,7 @@ them, a person does.
 | `draft abandon <id>` | why a cycle stopped. Terminal, and the reason is left empty because the file is rejected without one |
 | `draft constraint` | the next free `LOC_` id with its four parts empty, and the three admission tests |
 | `draft profile <name>` | all three `solution.md` keys, not only the one that changes |
+| `sdlc draft solution` | the whole `solution.md`, written beside itself for a rename. Keys carried through as recorded and prose through unchanged, so renaming can neither reclassify the solution nor cost anybody what they wrote |
 
 Every agent write to `approval.md`, `abandoned.md`, `constraints.md` and `solution.md` is denied at the
 tool call — by file path and by shell command alike. There is no flag, no mode, and no approve command for

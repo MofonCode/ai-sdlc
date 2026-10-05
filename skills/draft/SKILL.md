@@ -15,6 +15,7 @@ sdlc draft approval <id>     [--changes-requested | --deny | --reopen]
 sdlc draft abandon <id>
 sdlc draft constraint
 sdlc draft profile <name>
+sdlc draft solution
 ```
 
 Show what it prints **verbatim**, including the instructions under the block. **Add nothing of your
@@ -23,8 +24,10 @@ person who has to place the file. Then stop.
 
 **An approval is written to a file beside the ledger and placed by renaming it.** `draft approval`
 writes `approval.<decision>.draft.md` into the cycle directory -- a complete file, not a fragment --
-and prints it with the rename that records it. The other three still print for a person to place by
-hand. Show the rename command and do not run it: it is denied, and it is the decision.
+and prints it with the rename that records it. **`draft solution` does the same for the solution
+document**, carrying its four keys through as recorded and any prose already there through
+unchanged -- so the rename can neither reclassify the solution nor cost somebody what they wrote.
+The other two still print for a person to place by hand. Show the rename command and do not run it: it is denied, and it is the decision.
 
 ## You cannot place it, and should not offer to
 

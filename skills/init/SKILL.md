@@ -155,9 +155,14 @@ tests.** Sort before you propose:
 | which component library, which packages, which project may reference what | an architecture test | test two below rejects it — an analyzer *can* decide it, so a constraint is the wrong tier |
 | whether a judgement was made and recorded — that a visual treatment was considered, that an unhappy path was specified | a `LOC_` constraint | it needs reading comprehension, which is exactly what test two admits |
 
-`solution.md` is protected, so print the paragraph and let them place it. **Do not let it stay a
-placeholder.** It is the only file in the solution that says what good looks like, and a plan that reads
-`Replace this with a paragraph a newcomer could read` has been told nothing.
+`solution.md` is protected, so you cannot write it -- and you no longer have to hand over a block to
+paste either. **Run `sdlc draft solution`.** It writes the whole file beside the real one, keeping the four
+keys exactly as recorded, and prints the single rename that places it. Show what it prints verbatim.
+
+**Do not let the file stay a placeholder.** It is the only file in the solution that says what good
+looks like, and a plan that reads `Replace this with a paragraph a newcomer could read` has been told
+nothing. That is not hypothetical: a block printed for pasting went unpasted through a whole cycle,
+which is why the drafter writes a file now.
 
 **Ask the person, do not read the codebase.** Reading an existing repository to decide what to forbid
 would make adoption a judgement on code that predates the framework, and the first cycle would spend
@@ -193,7 +198,7 @@ Three files are written with placeholders, and they are placeholders on purpose:
 
 | File | What to offer |
 |---|---|
-| `.sdlc/solution.md` | the paragraph from question 1. It is protected — print, do not write |
+| `.sdlc/solution.md` | the paragraph from question 1. Protected, so run `sdlc draft solution` and show the rename |
 | `.sdlc/techstack.md` | on an adopted solution, the table is empty. Offer to fill it from what you can read |
 | the stack files | written only where the standard is the profile's. Each is a person's to amend, and a cycle that changes one is a cycle like any other |
 | `AGENTS.md` | written if absent, printed for merging if present |

@@ -511,6 +511,7 @@ static async Task<int> Draft(CommandLine line)
             .ConfigureAwait(false),
         "constraint" => await Workspace.Run(rest, DraftConstraint).ConfigureAwait(false),
         "profile" => await Workspace.Run(rest, w => DraftProfile(w, rest)).ConfigureAwait(false),
+        "solution" => await Workspace.Run(rest, DraftSolution).ConfigureAwait(false),
         _ => await UnknownDraft(line.Arguments[0]).ConfigureAwait(false),
     };
 }
@@ -566,6 +567,14 @@ static async Task<int> DraftAbandon(Workspace workspace, CycleId id)
         .Send<AbandonText.Query, DraftResult>(new AbandonText.Query(id, by))
         .ConfigureAwait(false)).ConfigureAwait(false);
 }
+
+// Writes rather than prints, for the reason the approval drafter does: a block to paste is a block
+// that does not get pasted, and a real adoption left the file on its shipped placeholder because
+// of exactly that.
+static async Task<int> DraftSolution(Workspace workspace) =>
+    await PrintDraft(await workspace
+        .Send<WriteSolutionDraft.Command, DraftResult>(new WriteSolutionDraft.Command())
+        .ConfigureAwait(false)).ConfigureAwait(false);
 
 static async Task<int> DraftConstraint(Workspace workspace) =>
     await PrintDraft(await workspace
