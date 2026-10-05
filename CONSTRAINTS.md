@@ -203,6 +203,8 @@ verified by a person outside the cycle, where it is honest about not being gover
 
 ## CON_13 — A plan that departs from the declared defaults says why
 
+**Superseded-by:** CON_15
+
 **Applies to:** a plan, at approval.
 
 **Forbids:** a plan that reaches for a package, pattern or layer the solution's `techstack.md` does
@@ -229,3 +231,22 @@ place where asserting nothing satisfies every other rule, so without this an art
 emptied into it — every constraint passes, and a person reading a body with nothing in it has
 nothing to object to. No mechanical check can tell "cannot be resolved" from "has not been", which
 is why this is a constraint rather than a schema rule.
+
+## CON_15 — A plan says why it departs from a declared default, in either direction
+
+**Applies to:** a plan, at approval.
+
+**Forbids:** a plan that reaches for a package, pattern or layer the solution's `techstack.md` does
+not declare, or that leaves one it declares unapplied in work that calls for it, without saying in
+`Shape and departures` what the declared default would have cost here — or, for an unapplied
+default, what applying it would have cost.
+
+**Why:** a default nobody applies and nobody mentions is indistinguishable from a default nobody
+has. `CON_13` covered one half of departing: a plan adding something undeclared had to argue for
+it, while a plan silently skipping something declared breached nothing — so the rule caught the
+author who was adding and missed the author who was leaving out, which is both the cheaper mistake
+and the harder one to see afterwards. The solution then ships out of conformance with its own stack
+file, and the first person to notice is whoever needed the thing that was never there. Saying why
+is still enough: this makes an omission arguable at the one gate before code exists, not forbidden.
+The scope is work that calls for the default, because a plan touching one endpoint is not silent
+about the message bus by failing to mention it.

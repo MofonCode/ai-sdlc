@@ -130,10 +130,12 @@ public static class Templates
         [
             "# What this solution is built from",
             string.Empty,
-            "A plan may depart from anything here. Saying nothing about departing is what is forbidden,",
-            "which is `CON_13` -- so this file is a declaration of defaults rather than a set of rules.",
-            "Nothing in it binds by itself: no global constraint may name a framework. To make a default",
-            "bind, add a `LOC_` constraint or an architecture test.",
+            "A plan may depart from anything here, in either direction -- reaching for something this",
+            "file does not declare, or leaving something it declares unapplied in work that calls for",
+            "it. Saying nothing about departing is what is forbidden, which is `CON_15` -- so this file",
+            "is a declaration of defaults rather than a set of rules. Nothing in it binds by itself: no",
+            "global constraint may name a framework. To make a default bind, add a `LOC_` constraint or",
+            "an architecture test.",
             string.Empty,
             .. origin == SolutionOrigin.Scaffolded
                 ? _scaffolded

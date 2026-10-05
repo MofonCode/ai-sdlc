@@ -37,9 +37,10 @@ Then, **from a directory that is not a clone of this repository**, check the bin
 sdlc constraints
 ```
 
-It should print the fourteen global rules and end with `global  embedded in sdlc 0.12.0`. **Use this
-rather than `sdlc help` as the smoke test** — `help` and `version` are the only two commands that need
-nothing from the installation, so they are the two that cannot tell you whether it worked.
+It should print the fourteen global rules in force, say where it read them from — `global  embedded in
+sdlc 0.12.0` on an installed tool — and then list `CON_13` under `Superseded, kept for the record`.
+**Use this rather than `sdlc help` as the smoke test** — `help` and `version` are the only two commands
+that need nothing from the installation, so they are the two that cannot tell you whether it worked.
 
 Start a new agent session, because skills load at startup. Then in the repository you want governed:
 

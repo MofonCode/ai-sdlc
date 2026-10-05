@@ -65,7 +65,7 @@ public static class ArtifactSchema
         // one of the three destinations an intent's open item can be disposed of into.
         ArtifactKind.Spec => ["Acceptance criteria", "Out of scope"],
 
-        // Shape and departures holds the decision, judged by CON_06 and CON_13. Files holds the
+        // Shape and departures holds the decision, judged by CON_06 and CON_15. Files holds the
         // estimate, which nothing judges. Proof is CON_06's subject and verify's criterion table. Risk
         // is read by the person at the gate, which is a consumer like any other.
         ArtifactKind.Plan => ["Shape and departures", "Files", "Proof", "Risk"],

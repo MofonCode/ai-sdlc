@@ -171,7 +171,7 @@ stake, never independent verification.
 **What it is given is the constraints in force, the artifact, and the artifact above it — and on a plan
 round, `techstack.md` as well.** The line is between a rule source and the cycle's own history: the
 first predates the cycle and is what the document is judged against, the second is what the new process
-exists to withhold. `CON_13` is a rule entirely about conformance to the stack file, so a reader without
+exists to withhold. `CON_15` is a rule entirely about conformance to the stack file, so a reader without
 it could only ever object to a departure the plan had already admitted to (`CONCEPT.md` D-58).
 
 Rounds accumulate and are never rewritten. A finding keeps its id across rounds, and every round records

@@ -662,8 +662,16 @@ carrying a corrected error in it forever is the worse of the two losses.
 | `CON_10.2` | a gate refusal's reason says what has to change | a gate decision that is not an approval |
 | `CON_11` | every constraint carries a Forbids clause that rules something out | a diff adding a constraint |
 | `CON_12` | a criterion's check is one the solution's testing layers can run | spec |
-| `CON_13` | a plan that departs from the declared defaults says why | plan |
 | `CON_14` | an open item is one nobody can resolve yet, not one nobody has done | intent, spec, plan |
+| `CON_15` | a plan says why it departs from a declared default, in either direction | plan |
+
+`CON_13` is not in this table because it no longer binds: it forbade a plan reaching for an
+undeclared package, pattern or layer without saying what the declared default would have cost, and
+said nothing about a plan leaving a declared default unapplied. That half was the one that went
+unnoticed — the rule objected to the author who was adding and not to the author who was leaving
+out. `CON_15` replaces it and covers both directions, scoped to work that calls for the default.
+`CON_13` stays on the library's page verbatim, so a finding that cited it is still readable against
+the rule it was judged under (D-59).
 
 `CON_06` is the one to watch: it drew a blocking finding in roughly half of twelve runs on a golden
 sample, the cause was traced to the sample rather than the constraint, and the fix was made by
@@ -3811,7 +3819,9 @@ have judged the rule. The same reasoning as `## Open` being required when empty 
 **What it does not fix.** `CON_13` still only forbids *reaching for* something undeclared. A plan that
 silently fails to apply a declared default breaks no rule, and the reader now holding the stack file can
 see that gap without being able to call it one. That is a separate question about what the rule should
-forbid, and this entry does not answer it.
+forbid, and this entry does not answer it — D-59 does, and `CON_15` is the rule the reader is handed
+`techstack.md` to judge today. The paragraphs above name `CON_13` because that is the rule this decision
+was taken against.
 
 **Rejected.** *Giving it to every round* — the reach that turns a fourth input into a general licence,
 and there is no rule on an intent or a spec it would serve. *Having the binary assemble the prompt* —
@@ -3819,3 +3829,52 @@ the skill composes it today and a command that built it would need its own model
 worth anything, which is D-01's argument about why a tool call is not a fresh reader. *Leaving `CON_13`
 undecidable and deleting it instead* — considered, and rejected because the rule is the only thing
 standing between a declared stack and a stack nobody consults; the fix is to let it be judged.
+
+### D-59 — Departing from a declared default is a departure in both directions
+
+**Governs:** §7.5
+
+**Decision.** `CON_15` replaces `CON_13`. A plan departs from `techstack.md` either by reaching for
+something it does not declare or by leaving something it declares unapplied in work that calls for it,
+and both have to be said out loud in `Shape and departures`. `CON_13` keeps its id and stays on the
+library's page verbatim, gaining `Superseded-by`.
+
+**Why.** `CON_13` forbade only the first half. A plan adding an undeclared package had to argue for it;
+a plan silently skipping a declared one breached nothing. So the rule objected to the author who was
+adding and said nothing to the author who was leaving out — which is both the cheaper mistake and the
+one nobody sees afterwards, because an absence leaves no diff hunk to read.
+
+**What it cost, which is how it was found.** A solution adopted on the default profile shipped with no
+api description and no tracing registration, each of which `techstack.md` declares and one of which the
+same file calls not conditional. Its plan asserted that nothing in its shape departed from the declared
+stack, enumerated four concerns and generalised from them. Five interrogation rounds raised no
+objection and were right not to: no rule had been broken. The gap started earlier than the plan — the
+scaffold templates write neither — so the cycle inherited a non-conformance it had no instrument to
+see and no rule obliging it to look.
+
+**Why a supersession rather than a revision.** The library's own front matter settles it: a revision is
+new wording for the same `Forbids` clause, and a change to what is forbidden is a new constraint. This
+changes what is forbidden. The mechanism was built and had never been used — this is the first
+supersession the library has carried, and it is also what separated two numbers that had been equal by
+coincidence: entries on the page, and rules in force. `sdlc constraints` already distinguished them.
+
+**Why "in work that calls for it" is in the clause.** Without a scope, a plan touching one endpoint
+would owe a paragraph on why it did not use the message bus, the cache, the document store and the
+machine-learning runtime. The scope is also what keeps the rule admissible: deciding whether work calls
+for a default needs reading comprehension, which is the second of the three tests a constraint passes,
+and a mechanical version of this rule would fire on every plan.
+
+**Saying why remains enough.** This does not make a declared default mandatory, and `CON_13`'s argument
+survives intact: a default that cannot be departed from is a cage, and the first genuinely unsuitable
+case would see the whole file ignored. What changes is that an omission is now a departure like any
+other, arguable at the one gate before code exists.
+
+**Depends on D-58.** Widening the rule while the fresh reader could not see `techstack.md` would have
+added an obligation nobody could judge. The reader was given the file first, deliberately.
+
+**Rejected.** *Revising `CON_13` in place* — forbidden by the library's own rules, and it would make
+every finding that cited `CON_13` unreadable against the rule it was actually judged under. *A second
+constraint covering omission, leaving `CON_13` live* — two rules for one idea, and a plan would have to
+be read twice against what is plainly a single question. *Making the declared defaults binding instead*
+— that is an architecture test's job where a row is worth enforcing, as liveness already is, and it is
+a different decision from this one.

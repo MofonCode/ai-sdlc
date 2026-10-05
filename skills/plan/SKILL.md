@@ -35,7 +35,7 @@ Read `.sdlc/techstack.md` too. It declares what this solution is built from.
 
 | Section | Kind | Judged by |
 |---|---|---|
-| `Shape and departures` | a **decision** — which approach | `CON_06`, `CON_13` |
+| `Shape and departures` | a **decision** — which approach | `CON_06`, `CON_15` |
 | `Files` | an **estimate** — which files, how large | nothing; it is a signal |
 
 That distinction matters when you are tempted to pad the file table defensively. Declaring files you
@@ -46,8 +46,19 @@ which over-serialises a batch and misleads the person at the gate about how reve
 
 ## Say why you departed
 
-`CON_13`: a plan that reaches for a package, pattern or layer `techstack.md` does not declare has to
-say in `Shape and departures` what the declared default would have cost here.
+`CON_15`: a plan departs from `techstack.md` in either direction, and both have to be said out loud
+in `Shape and departures`.
+
+- **Reaching for something it does not declare** — a package, a pattern, a layer. Say what the
+  declared default would have cost here.
+- **Leaving something it declares unapplied, in work that calls for it.** Say what applying it would
+  have cost. This is the half that used to breach nothing, and it is the one that goes unnoticed: a
+  solution shipped without the api description and the tracing its own stack file declares, and no
+  rule had anything to say about it.
+
+**"In work that calls for it" is the scope.** A plan touching one endpoint is not silent about the
+message bus by failing to mention it. A plan standing up an HTTP surface is silent about the api
+description row by failing to mention that.
 
 You may depart from anything. A default that cannot be departed from is a cage, and the first
 genuinely unsuitable case would see the whole file ignored. What is forbidden is departing in

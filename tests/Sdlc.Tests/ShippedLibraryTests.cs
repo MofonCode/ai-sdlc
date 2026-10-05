@@ -125,14 +125,29 @@ public sealed class ShippedLibraryTests
     }
 
     [TestMethod]
-    public void The_library_holds_the_fourteen_constraints_iteration_four_carries()
+    public void The_library_holds_the_fifteen_entries_iteration_four_carries()
     {
         Assert.AreEqual(
-            14,
+            15,
             Library.Count,
             "Nine came across from iteration 3 unchanged, CON_10 was rebound to a gate refusal, and "
-            + "CON_12, CON_13 and CON_14 were added in iteration 4. A deliberate addition updates this "
-            + "number; an accident fails here.");
+            + "CON_12, CON_13 and CON_14 were added in iteration 4. CON_15 superseded CON_13, which is "
+            + "why this counts fifteen while fourteen bind. A deliberate addition updates this number; "
+            + "an accident fails here.");
+    }
+
+    [TestMethod]
+    public void A_superseded_constraint_is_kept_and_stops_binding()
+    {
+        // The first supersession the library has had, and the distinction it rests on: the old rule
+        // stays on the page so a finding that cited it is still readable against what it was judged
+        // under, and it leaves the set a plan is held to. Counting entries and counting rules are the
+        // same number only while this has never happened.
+        Constraint superseded = Library.Single(rule => !rule.IsInForce);
+
+        Assert.AreEqual("CON_13", superseded.Id.ToString());
+        Assert.AreEqual("CON_15", superseded.SupersededBy?.ToString());
+        Assert.AreEqual(14, Library.Count(rule => rule.IsInForce));
     }
 
     [TestMethod]
