@@ -147,6 +147,11 @@ public sealed class PublicSurfaceTests
         "Sdlc.Core.Findings.Disposition",
         "Sdlc.Core.Findings.Finding",
         "Sdlc.Core.Findings.FindingsReader",
+
+        // What a build saw, left alone and wrote into its commit. Public because it is part of the
+        // suggestions Response a renderer reads, and because the parser that reads one out of a commit
+        // message is the thing under test.
+        "Sdlc.Core.Findings.Noticed",
         "Sdlc.Core.Findings.FindingsRound",
         "Sdlc.Core.Findings.RemediationBudget",
         "Sdlc.Core.Findings.RemediationState",

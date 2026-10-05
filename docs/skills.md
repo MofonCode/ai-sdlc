@@ -44,7 +44,7 @@ and prints the invocation — because a tool must never send somebody somewhere 
 | `resolve-conflict` | resolves a collision on a file no cycle can claim exclusively | `<file path>` | a batch run reports one | a person, or `batch-build` |
 | `status` | shows where a cycle has got to | `<id> [artifact]` | after any stage, or when somebody asks | anyone, constantly |
 | `constraints` | shows the rules in force, all tiers resolved | `[artifact]` | before writing or judging anything | every stage skill, as its first step |
-| `suggestions` | lists the open non-blocking findings | `[id]` | looking for what was noticed and not acted on | a person |
+| `suggestions` | lists the open non-blocking findings, and what the builds noticed | `[id]` | looking for what was noticed and not acted on | a person |
 
 **"Who starts it" is not "who runs it".** Every one of these is executed by an agent — that is what a
 skill is. What differs is who decides it should happen, and two of them are a person's decision in a way
@@ -416,12 +416,17 @@ did not run it is working from recollection.
 
 ### `suggestions`
 
-**Lists the open non-blocking findings a solution has accumulated.**
+**Lists the open non-blocking findings a solution has accumulated, and what its builds noticed.**
 
 Non-blocking is not trivial. Two real ones from a single trial cycle: `dotnet test` did not actually run
 the suite because the runner was not configured, and a criterion's proof rested entirely on a substituted
 source. Both were substantive; neither cited a rule that forbade the current state, which is the only
 thing that made them suggestions.
+
+**Two stores, listed apart.** A suggestion was raised by a fresh reader judging a document and carries a
+round and an id. A `Noticed:` line was written by a build that saw something it was not allowed to fix,
+and lives in that build's commit message. Only the rounds used to be read, so the three a dice-roller
+cycle's build wrote were invisible to the command that answers what has been noticed and not acted on.
 
 No ranking and no ages, because a suggestion's age says nothing about its worth and a tool that sorted by
 age would quietly argue that the oldest matters most.

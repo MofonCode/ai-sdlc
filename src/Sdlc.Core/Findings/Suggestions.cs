@@ -3,6 +3,7 @@ using FluentResults;
 using Microsoft.Extensions.DependencyInjection;
 using MofonCode.Core;
 using Sdlc.Core.Cycles;
+using Sdlc.Core.Git;
 using Sdlc.Core.Solutions;
 
 namespace Sdlc.Core.Findings;
@@ -38,7 +39,14 @@ public static class Suggestions
     /// without changing what every caller takes.
     /// </remarks>
     /// <param name="Suggestions">Every open suggestion, newest round first within each cycle.</param>
-    public sealed record Response(IReadOnlyList<Suggestion> Suggestions);
+    /// <param name="Noticed">
+    /// What the builds wrote down and left alone. A different store from the rounds and listed apart from
+    /// them: a suggestion was raised by a reader judging a document, and one of these was raised by the
+    /// stage that was forbidden from fixing it.
+    /// </param>
+    public sealed record Response(
+        IReadOnlyList<Suggestion> Suggestions,
+        IReadOnlyList<Noticed> Noticed);
 
     /// <summary>
     /// Collects the findings nobody had to act on.
@@ -55,7 +63,8 @@ public static class Suggestions
     /// </para>
     /// </remarks>
     /// <param name="solution">The root of the solution being read.</param>
-    private sealed class Handler(SolutionRoot solution)
+    /// <param name="repository">Git, for the <c>Noticed:</c> lines the builds left in their commits.</param>
+    private sealed class Handler(SolutionRoot solution, IRepository repository)
         : IRequestHandler<Query, Response>
     {
         /// <inheritdoc />
@@ -70,6 +79,7 @@ public static class Suggestions
                 : CycleIndex.All(solution.Path);
 
             List<Suggestion> suggestions = [];
+            List<Noticed> noticed = [];
             List<IError> errors = [];
 
             foreach (Cycle cycle in cycles)
@@ -87,11 +97,37 @@ public static class Suggestions
 
                     suggestions.AddRange(Standing(cycle, kind, history.Value));
                 }
+
+                noticed.AddRange(Noticed(cycle));
             }
 
             return errors.Count > 0
                 ? Result.Fail<Response>(errors)
-                : Result.Ok(new Response(suggestions));
+                : Result.Ok(new Response(suggestions, noticed));
+        }
+
+        /// <summary>
+        /// What one cycle's builds wrote down and left alone.
+        /// </summary>
+        /// <remarks>
+        /// Read from the cycle's own branch, measured from where it diverged, so a landed cycle whose
+        /// branch is gone contributes nothing rather than failing. Silence here is not an error: a cycle
+        /// that has not been built yet has no commits to read, which is the ordinary case for most of the
+        /// cycles this command walks.
+        /// </remarks>
+        private IEnumerable<Noticed> Noticed(Cycle cycle)
+        {
+            string branch = cycle.Id.BranchName();
+
+            if (repository.MergeBase(solution.Path, branch) is not { } divergence)
+            {
+                return [];
+            }
+
+            return repository
+                .CommitMessages(solution.Path, branch, divergence)
+                .SelectMany(Findings.Noticed.ReadAll)
+                .Select(statement => new Noticed(cycle.Id, statement));
         }
 
         /// <summary>

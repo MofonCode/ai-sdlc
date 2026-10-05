@@ -16,6 +16,10 @@ No id lists every cycle, which is usually the question being asked.
 
 Show what it prints verbatim.
 
+A cycle contributes `Noticed:` lines only from its own branch, measured from where it diverged. A cycle
+that has not been built yet has no commits to read, and a landed cycle whose branch is gone contributes
+nothing — neither is an error, and neither is worth remarking on.
+
 ## Non-blocking is not trivial
 
 This is the thing to get right when reporting these. A suggestion did not block an artifact, which says
@@ -37,11 +41,24 @@ If the person asks which to pick up, read the statements and say what you think 
 lines**, under the literal heading `My reading:` so it is not mistaken for something the command
 printed. **Unasked, add nothing** — the listing is the answer.
 
+## Two stores, and the listing reads both
+
+A suggestion was raised by a fresh reader judging a document, and it has a round and an id. A
+**`Noticed:`** line was written by a build that saw something it was not allowed to fix — fixing it
+would have been creep inside an approved file — and it lives in that build's commit message, which is
+where whoever reviews the pull request will meet it.
+
+They are listed apart, under their own headings, because only one of them has a round and an id.
+Mixing them would make a build's observation look like a finding nobody dispositioned.
+
+Reading only the rounds was a real hole: the dice-roller cycle's build wrote three `Noticed:` lines and
+the command that answers *what have we noticed and not acted on* listed none of them.
+
 ## This is the whole of the learning loop today
 
 Iteration 2 built a corpus with an importer and computed signals across cycles. Iteration 3 removed them
-and recorded the cost plainly: nothing aggregates automatically. The data is in the findings rounds,
-which is what this reads.
+and recorded the cost plainly: nothing aggregates automatically. The data is in the findings rounds and
+the cycle branches' commits, which is what this reads.
 
 So if someone asks "what keeps going wrong across our cycles", the honest answer is that this listing is
 what exists, and the aggregation is a deliberate deferral rather than an oversight. Three things would

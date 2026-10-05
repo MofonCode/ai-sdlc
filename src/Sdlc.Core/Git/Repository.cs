@@ -95,6 +95,19 @@ public interface IRepository
     /// <param name="from">The commit to measure from.</param>
     /// <returns>The paths, relative to the root.</returns>
     IReadOnlyList<string> ChangedFiles(string workingDirectory, string from);
+
+    /// <summary>
+    /// The full message of every commit a branch has that the base does not.
+    /// </summary>
+    /// <remarks>
+    /// Whole messages rather than subjects. The one caller reads the <c>Noticed:</c> lines a build writes
+    /// after the body, so a subject line would return exactly the half that never carries one.
+    /// </remarks>
+    /// <param name="workingDirectory">Where to ask from.</param>
+    /// <param name="branch">The branch whose commits to read.</param>
+    /// <param name="from">The commit to measure from.</param>
+    /// <returns>The messages, newest first, or none when git cannot say.</returns>
+    IReadOnlyList<string> CommitMessages(string workingDirectory, string branch, string from);
 }
 
 /// <summary>
@@ -287,6 +300,31 @@ public sealed class GitRepository : IRepository
         }
 
         return [.. paths.Order(StringComparer.Ordinal)];
+    }
+
+    /// <inheritdoc />
+    public IReadOnlyList<string> CommitMessages(string workingDirectory, string branch, string from)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(branch);
+        ArgumentException.ThrowIfNullOrWhiteSpace(from);
+
+        // Separated by a NUL rather than by blank lines, because a commit message contains blank lines by
+        // construction -- the one between the subject and the body -- and splitting on those would turn
+        // one message into several and a wrapped Noticed: line into a fragment.
+        string? output = Run(workingDirectory, $"log {from}..{branch} --format=%B%x00");
+
+        if (output is null)
+        {
+            return [];
+        }
+
+        return
+        [
+            .. output
+                .Split('\0', StringSplitOptions.RemoveEmptyEntries)
+                .Select(message => message.Trim())
+                .Where(message => message.Length > 0),
+        ];
     }
 
     private static IReadOnlyList<string> Lines(string? output) => output is null

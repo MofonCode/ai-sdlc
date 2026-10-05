@@ -45,7 +45,8 @@ internal static class Usage
             status <id>              Show the panel for a stage. Ends with the next command.
             findings <id>            What the interrogations said, per artifact, each finding at the
                                      disposition that stands.
-            suggestions [<id>]       List the open non-blocking findings, for one cycle or all.
+            suggestions [<id>]       List the open non-blocking findings and what the builds
+                                     noticed, for one cycle or all.
             doctor                   Check this installation and this repository: the rules, git,
                                      adoption, every host's hook config, and the pipeline that is
                                      the guarantee. Reports and never repairs. Exits 1 if anything

@@ -30,9 +30,16 @@ public static class SuggestionsRenderer
 
         StringBuilder output = new();
 
+        if (suggestions.Count == 0 && response.Noticed.Count == 0)
+        {
+            output.AppendLine(Indent + "No open suggestions.");
+            return output.ToString();
+        }
+
         if (suggestions.Count == 0)
         {
             output.AppendLine(Indent + "No open suggestions.");
+            Noticed(output, response);
             return output.ToString();
         }
 
@@ -63,8 +70,48 @@ public static class SuggestionsRenderer
             }
         }
 
+        Noticed(output, response);
+
         return output.ToString();
     }
+
+    /// <summary>
+    /// Writes what the builds noticed and left alone, under its own heading.
+    /// </summary>
+    /// <remarks>
+    /// Apart from the suggestions rather than mixed in, because the two were raised by different readers
+    /// and only one of them has a round and an id. Mixing them would make a build's observation look like
+    /// a finding nobody dispositioned.
+    /// </remarks>
+    private static void Noticed(StringBuilder output, Suggestions.Response response)
+    {
+        if (response.Noticed.Count == 0)
+        {
+            return;
+        }
+
+        output.AppendLine();
+        output.AppendLine(string.Create(
+            CultureInfo.InvariantCulture,
+            $"{Indent}{Noticed(response.Noticed.Count)}, from the builds' commits"));
+
+        foreach (IGrouping<CycleId, Noticed> group in response.Noticed
+            .GroupBy(noticed => noticed.Cycle)
+            .OrderBy(group => group.Key.ToString(), StringComparer.Ordinal))
+        {
+            output.AppendLine();
+            output.AppendLine(Indent + group.Key.ToString());
+
+            foreach (Noticed noticed in group)
+            {
+                output.AppendLine(Indent + "        " + noticed.Statement);
+            }
+        }
+    }
+
+    private static string Noticed(int number) => number == 1
+        ? "1 thing noticed"
+        : string.Create(CultureInfo.InvariantCulture, $"{number} things noticed");
 
     private static string Count(int number) => number == 1
         ? "1 open suggestion"

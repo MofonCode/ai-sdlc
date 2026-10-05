@@ -124,7 +124,7 @@ public sealed class SuggestionsTests
     {
         using var workspace = CycleWorkspace.Create();
 
-        string rendered = SuggestionsRenderer.Render(new Suggestions.Response(await Collect(workspace, all: true)));
+        string rendered = SuggestionsRenderer.Render(new Suggestions.Response(await Collect(workspace, all: true), []));
 
         StringAssert.Contains(rendered, "No open suggestions.");
     }
@@ -137,7 +137,7 @@ public sealed class SuggestionsTests
         using var workspace = CycleWorkspace.Create();
         workspace.WriteSuggestionRound(ArtifactKind.Spec, round: 1, id: "F_02");
 
-        string rendered = SuggestionsRenderer.Render(new Suggestions.Response(await Collect(workspace)));
+        string rendered = SuggestionsRenderer.Render(new Suggestions.Response(await Collect(workspace), []));
 
         foreach (string word in (string[])["oldest", "priority", "stale", "days", "overdue"])
         {
@@ -145,6 +145,58 @@ public sealed class SuggestionsTests
                 rendered.Contains(word, StringComparison.OrdinalIgnoreCase),
                 $"The listing must not rank or age suggestions ('{word}').");
         }
+    }
+
+    [TestMethod]
+    public void A_noticed_line_is_read_back_as_the_sentence_it_was_written_as()
+    {
+        // Wrapped, because a commit message wraps. This is the first of the three the dice-roller's build
+        // wrote, and none of the three was listed by the command that answers what we have noticed.
+        IReadOnlyList<string> noticed = Noticed.ReadAll(
+            """
+            Roll a d6 on a page, and keep the sitting's rolls
+
+            Cycle 20261005_0424_24. The solution skeleton arrives with this change.
+
+            Noticed: ApiResponse<T> lives in the api project, which the direction rule stops
+            any front end referencing, so the page re-declares the two envelope fields it
+            reads.
+
+            Noticed: the page's api address is a compile-time constant matched to the port
+            the AppHost pins.
+            """);
+
+        CollectionAssert.AreEqual(
+            new[]
+            {
+                "ApiResponse<T> lives in the api project, which the direction rule stops any front end "
+                    + "referencing, so the page re-declares the two envelope fields it reads.",
+                "the page's api address is a compile-time constant matched to the port the AppHost pins.",
+            },
+            noticed.ToArray());
+    }
+
+    [TestMethod]
+    public void A_commit_that_noticed_nothing_contributes_nothing()
+    {
+        Assert.AreEqual(0, Noticed.ReadAll("Fix the thing\n\nIt was broken and now it is not.").Count);
+    }
+
+    [TestMethod]
+    public void What_a_build_noticed_is_listed_apart_from_what_a_reader_found()
+    {
+        // Two stores, and only one of them used to be read. They are listed apart because a suggestion
+        // has a round and an id and one of these does not -- mixing them would make a build's observation
+        // look like a finding nobody dispositioned.
+        Assert.IsTrue(CycleId.TryParse("20261005_0424_24", out CycleId? id));
+
+        string rendered = SuggestionsRenderer.Render(new Suggestions.Response(
+            [],
+            [new Noticed(id.Value, "the reference slice is still there for a later cycle to remove.")]));
+
+        StringAssert.Contains(rendered, "No open suggestions.");
+        StringAssert.Contains(rendered, "1 thing noticed");
+        StringAssert.Contains(rendered, "the reference slice is still there");
     }
 
     private static async Task<IReadOnlyList<Suggestion>> Collect(

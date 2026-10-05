@@ -55,6 +55,9 @@ internal sealed class FakeRepository : IRepository
     /// <summary>What was committed, so a test can assert what was staged.</summary>
     public List<IReadOnlyList<string>> Commits { get; } = [];
 
+    /// <summary>The messages of the commits a branch has, newest first.</summary>
+    public IReadOnlyList<string> Messages { get; init; } = [];
+
     /// <summary>What the last Diff asked git to leave out, so a test can assert the question.</summary>
     public IReadOnlyList<string>? Excluded { get; private set; }
 
@@ -81,4 +84,7 @@ internal sealed class FakeRepository : IRepository
     }
 
     public IReadOnlyList<string> ChangedFiles(string workingDirectory, string from) => Changed;
+
+    public IReadOnlyList<string> CommitMessages(string workingDirectory, string branch, string from) =>
+        Messages;
 }
