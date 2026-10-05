@@ -106,6 +106,7 @@ public static class Scaffold
 
         string contracts = Path.Combine("src", name + ".Contracts");
         string application = Path.Combine("src", name + ".Application");
+        string defaults = Path.Combine("src", name + ".ServiceDefaults");
         string api = Path.Combine("src", name + ".Api");
         string tests = Path.Combine("tests", name + ".Tests");
         string architecture = Path.Combine("tests", name + ".Architecture.Tests");
@@ -126,6 +127,15 @@ public static class Scaffold
             Entry(Path.Combine(application, "ValidationBehavior.cs"), "ValidationBehavior.cs", name),
             Entry(Path.Combine(application, "Greetings", "Greet.cs"), "Greet.cs", name),
 
+            // Before the api, because the api references it. Every host does: it is where the names
+            // the kernel publishes spans and metrics under are decided, and two hosts deciding that
+            // separately is how traces stop joining up.
+            Entry(
+                Path.Combine(defaults, name + ".ServiceDefaults.csproj"),
+                "ServiceDefaults.csproj",
+                name),
+            Entry(Path.Combine(defaults, "Extensions.cs"), "ServiceDefaultsExtensions.cs", name),
+
             Entry(Path.Combine(api, name + ".Api.csproj"), "Api.csproj", name),
             Entry(Path.Combine(api, "Program.cs"), "Program.cs", name),
             Entry(Path.Combine(api, "Boundary.cs"), "Boundary.cs", name),
@@ -144,6 +154,7 @@ public static class Scaffold
             Entry(Path.Combine(architecture, "StructureTests.cs"), "StructureTests.cs", name),
             Entry(Path.Combine(architecture, "ConventionTests.cs"), "ConventionTests.cs", name),
             Entry(Path.Combine(architecture, "EndpointTests.cs"), "EndpointTests.cs", name),
+            Entry(Path.Combine(architecture, "ObservabilityTests.cs"), "ObservabilityTests.cs", name),
         ];
     }
 

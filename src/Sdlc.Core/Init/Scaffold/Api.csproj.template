@@ -9,7 +9,16 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- The description of this api's surface, generated from the routes themselves, and the page that
+         renders it. The generator is what techstack.md declares; the viewer is a separate package on
+         purpose, so swapping the page never changes the document a client generator reads. -->
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi" />
+    <PackageReference Include="Swashbuckle.AspNetCore.SwaggerUI" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\__SOLUTION__.Application\__SOLUTION__.Application.csproj" />
+    <ProjectReference Include="..\__SOLUTION__.ServiceDefaults\__SOLUTION__.ServiceDefaults.csproj" />
   </ItemGroup>
 
   <ItemGroup>

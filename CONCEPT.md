@@ -1256,6 +1256,17 @@ diff record what was taken.
 A profile's defaults reach a plan by being **extracted and injected**, because a session working
 inside a governed solution cannot read a file that lives in the plugin.
 
+**What a declared default is worth is whether the scaffold applies it.** `dotnet-default` declared an
+api description and OpenTelemetry for two iterations and wrote neither, so every solution adopted from
+it began out of conformance with its own stack file, and nothing said so — the plan rule covered only
+departure by addition until `CON_15`. The scaffold now writes both: `ServiceDefaults` holds the
+observability registration every host calls, and the api generates its description, renders it in
+Swagger UI and sends `/` there, all three in development only. The source and meter names the kernel
+publishes under are pinned rather than derived, and `ObservabilityTests` asserts the registration names
+the same constant — because a span written to a source nothing collects from is discarded in silence,
+and that failure has already happened once in a real codebase at the scale of a hundred and fifty-eight
+handlers (D-60).
+
 ---
 
 ## 12. Hosts
@@ -3878,3 +3889,62 @@ constraint covering omission, leaving `CON_13` live* — two rules for one idea,
 be read twice against what is plainly a single question. *Making the declared defaults binding instead*
 — that is an architecture test's job where a row is worth enforcing, as liveness already is, and it is
 a different decision from this one.
+
+### D-60 — The scaffold ships observability and an api description, and a fitness function holds the names together
+
+**Governs:** §11.5
+
+**Decision.** A scaffolded solution gains a fifth project under `src/`, `ServiceDefaults`, holding the
+OpenTelemetry registration and the kernel's `AddTraceResultLogging` configured with pinned source and
+meter names. Every host calls `AddServiceDefaults`. The api generates an OpenAPI document, renders it
+with Swagger UI and redirects `/` there, all three in development only. `ObservabilityTests` is a new
+architecture test holding the pieces together.
+
+**Why the names are pinned rather than defaulted, which is the whole of this entry.** The kernel writes
+spans to an `ActivitySource` whose name comes from `TraceResultOptions`, and OpenTelemetry collects only
+from sources named in `AddSource`. Those are two strings in two calls, and when they disagree every
+span is discarded at the point it is created. There is no exception, no warning, and nothing to see — a
+dashboard with no data is indistinguishable from a service with no traffic.
+
+That is not a hypothetical. In the codebase this kernel was lifted from, the source was named
+`TraceResult` and the registration asked for the application's name. A hundred and fifty-eight handlers
+were instrumented, every one correctly, and not one span was ever collected. The meter went the same
+way: the operation counter, the failure counter and the duration histogram were recorded into a meter
+nothing subscribed to, while the instrumentation packages' own meters kept the dashboard looking
+populated. Nothing failed, so nothing was fixed.
+
+**Why not the kernel's default.** It defaults both names to the process name, which coincides with what
+`AddSource(builder.Environment.ApplicationName)` asks for — usually. Measured rather than assumed:
+under `dotnet run` and as a built executable the process name is the assembly name and they match;
+under `dotnet app.dll`, which is how a container starts one, the process name is `dotnet` and they do
+not. Working in development and silent in production is the worst shape this failure can take, so the
+scaffold names both explicitly and a test asserts that the same constant is used on both sides.
+
+**Why a project rather than an extension in the api.** The names have to be identical in every host or
+traces from two of them do not join. One project is the only arrangement where that is structural
+rather than remembered, and a solution's second host is exactly the moment nobody is thinking about it.
+It takes only the observability half of Aspire's service defaults: liveness stays in the api, where it
+already is and where `EndpointTests` already guards it (D-54), because two files answering for one
+route would leave the fitness function watching the wrong one.
+
+**The viewer and the generator are separate packages.** `Microsoft.AspNetCore.OpenApi` produces the
+document, which is the declared default and what a client generator reads; Swagger UI only renders it.
+Microsoft stopped shipping a UI in the templates at .NET 9, so a browsable page needs a third-party
+package either way — and keeping the two apart means swapping the page never changes the document.
+
+**Development only.** The document names every route, field and status the process answers, which is a
+map for anybody who should not have one. Publishing it is a decision a plan can make and say so.
+
+**What it costs.** Five packages a solution did not carry before, and a project with one consumer until
+it has two hosts — the same cost D-57 took for the component library, for the same reason. The exporter
+is registered and inert unless `OTEL_EXPORTER_OTLP_ENDPOINT` is set, so a solution with no collector
+pays registration and nothing else.
+
+**Rejected.** *Leaving the row declared and unapplied* — which is what `CON_15` now forbids and what
+this entry exists to end. *Taking Aspire's service defaults whole* — service discovery and HTTP
+resilience are real, and neither is something the profile has decided; adopting them by copying a
+template would be the silent half of a departure. *Binding the Azure Monitor exporter* — the stack file
+names it as the destination, and OTLP is how a process reaches it, so the exporter choice belongs to
+whatever deploys the solution rather than to the scaffold. *Asserting the names match by comparing two
+string literals* — a test that compares two literals passes the day somebody changes both; the constant
+is what makes them unable to drift, and the test guards the constant being bypassed.

@@ -27,7 +27,7 @@ public sealed class ScaffoldTests
         // not in the build, so this passing means every one resolved.
         IReadOnlyList<KeyValuePair<string, string>> files = Scaffold.Files(Name);
 
-        Assert.AreEqual(21, files.Count, "A template added or removed changes this number deliberately.");
+        Assert.AreEqual(24, files.Count, "A template added or removed changes this number deliberately.");
 
         foreach ((string path, string contents) in files)
         {
@@ -209,6 +209,42 @@ public sealed class ScaffoldTests
             structure,
             "[\"Ui\"] = [\"MudBlazor\"",
             "MudBlazor is declared by techstack.md and admitted nowhere until this row exists.");
+
+        // The defect this one defends against leaves no trace at all: a span written to an
+        // ActivitySource that OpenTelemetry was not told to collect from is dropped where it is
+        // created, with no error and no empty dashboard to notice -- a dashboard with no data looks
+        // exactly like a service with no traffic. The codebase this kernel came from had the two names
+        // disagreeing and lost every span from 158 instrumented handlers without ever finding out.
+        string observability = files
+            .Single(file => file.Key.EndsWith("ObservabilityTests.cs", StringComparison.Ordinal)).Value;
+
+        StringAssert.Contains(
+            observability,
+            "The_traced_source_is_the_source_that_is_collected",
+            "Nothing else can catch a source name and a registration drifting apart, because the "
+            + "running solution reports no error when they do.");
+
+        StringAssert.Contains(
+            observability,
+            "The_recorded_meter_is_the_meter_that_is_collected",
+            "The same failure on the metrics side, and the easier one to miss: the instrumentation "
+            + "packages register their own meters, so the dashboard looks populated without this one.");
+
+        string defaults = files
+            .Single(file => file.Key.EndsWith("ServiceDefaults" + Path.DirectorySeparatorChar + "Extensions.cs", StringComparison.Ordinal))
+            .Value;
+
+        StringAssert.Contains(
+            defaults,
+            "options.ActivitySourceName = ActivitySourceName",
+            "The kernel must not be left to name its own source. Its default is the process name, which "
+            + "is the host's name as an executable and 'dotnet' when it runs as 'dotnet app.dll' -- so "
+            + "the default works in development and goes silent in a container.");
+
+        StringAssert.Contains(
+            defaults,
+            "AddSource(ActivitySourceName)",
+            "The same constant on both sides is what makes the two names unable to drift.");
 
         string convention = files
             .Single(file => file.Key.EndsWith("ConventionTests.cs", StringComparison.Ordinal)).Value;

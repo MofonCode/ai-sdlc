@@ -43,11 +43,12 @@ was done about it.
 | 6 — `sdlc suggestions` reads `Noticed:` lines | done. `IRepository.CommitMessages` reads the cycle branch, `Noticed.ReadAll` unwraps each line, and the listing shows them under their own heading. Run against this cycle it now lists all three, which it previously showed none of |
 | 7 — a greenfield branch in the adoption interview | done. Three replacement questions, plus a table of where each kind of answer goes, applying R2 |
 | 7 — ask once what *simple* bounds | done. A new step in the intent skill, before the artifact is written |
+| 8 — OpenAPI and OpenTelemetry in the scaffold | done (D-60). A `ServiceDefaults` project every host calls, the api description rendered in Swagger UI, and `ObservabilityTests` asserting the kernel's source and meter names are the ones registered. Verified by generating a solution, running it, and breaking the registration to confirm the test bites |
 | 1 — omission is now a departure | done. `CON_15` supersedes `CON_13` and covers both directions, scoped to work that calls for the default (D-59). Placed by Peter, since the constraint library is a person's to write. The rule now says what to do; whether a row like OpenAPI should also *bind* is still open |
 | 2 — the plan's judge is given `techstack.md` | done. A fourth input on plan rounds only, recorded as D-58. An empty stack is pasted rather than omitted, so the reader can tell "declares nothing" from "nobody showed me" |
 | R1 — the MudBlazor contradiction | settled 2026-10-05, option 3 (D-57). The Razor class library gets a `Ui` role in both tables, MudBlazor is admitted there and nowhere else, and `Web` may reference it. `techstack.md` keeps its words and now names the project, because the role is read off the name |
 
-Still open: findings 3, 4, 8 and 5b. Finding 1's rule half is done; what remains of it is the profile question in finding 8 — whether to bind OpenAPI and OpenTelemetry in the scaffold, and with what test.
+Still open: findings 3, 4 and 5b. Findings 1 and 8 are both closed — the rule now obliges a plan to speak, and the profile now applies the two rows it was declaring and skipping.
 
 Findings 2, 5 and 6 are small, mechanical and low-risk. I would do them without asking. Findings 1, 3, 4 and 7 each change what every future cycle has to satisfy, and 1 and 3 change the library the binary ships, so they reach every adopter of the plugin — not just this repository. Finding 8 is finding 1 with the cost made concrete; it needs no separate decision.
 
@@ -360,8 +361,8 @@ Smallest blast radius first, and the dependency matters: finding 2 has to land b
 | --- | --- | --- | --- |
 | 1 | Resolve the MudBlazor contradiction — which of the three sources is wrong (R1) | `techstack.md` or `StructureTests.cs.template` | **done** — D-57 |
 | 2 | Give the plan's judge `techstack.md` (2) | `../skills/interrogate/SKILL.md` | **done** — D-58 |
-| 3 | OpenAPI in the scaffold template plus the test that binds it (1) | `Program.cs.template`, `EndpointTests.cs.template`, `Directory.Packages.props` | unblocked |
-| 4 | OpenTelemetry: bind it, or demote the row (1, 8) | profile template or `techstack.md` | **your call** |
+| 3 | OpenAPI in the scaffold template plus the test that binds it (1) | `Program.cs.template`, `ObservabilityTests.cs.template`, the package versions | **done** — D-60 |
+| 4 | OpenTelemetry and OpenAPI in the scaffold (1, 8) | `ServiceDefaults`, `Program.cs.template`, `ObservabilityTests` | **done** — D-60 |
 | 5 | Paste `solution.md` with the standard you expect (7) | `.sdlc/solution.md` | **you, a minute** |
 | 6 | Flag governing files in the evidence comparison (5a) | `src/Sdlc.Core/Evidence/DeclaredFiles.cs` | **done** |
 | 7 | `sdlc suggestions` reads `Noticed:` lines (6) | the suggestions command and its skill | **done** |

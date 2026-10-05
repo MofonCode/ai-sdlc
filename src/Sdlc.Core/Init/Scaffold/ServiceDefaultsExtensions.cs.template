@@ -1,0 +1,114 @@
+using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
+using MofonCode.Core;
+using OpenTelemetry;
+using OpenTelemetry.Metrics;
+using OpenTelemetry.Trace;
+
+namespace __SOLUTION__.ServiceDefaults;
+
+/// <summary>
+/// What every host in this solution registers before anything of its own.
+/// </summary>
+/// <remarks>
+/// <para><strong>One project rather than a copy per host.</strong> A solution grows a second host — a
+/// worker, a second api, a front end that serves its own assets — and the observability wiring is the
+/// part that has to be identical in all of them or the traces do not join up. Copying it is how two
+/// hosts end up exporting under different names and nobody notices until somebody goes looking for a
+/// request that crossed between them.</para>
+///
+/// <para><strong>Liveness is not here.</strong> The api maps <c>/health</c> itself and an architecture
+/// test holds it there. Moving it would mean two places answer for the same route, and the fitness
+/// function would be guarding the wrong file.</para>
+/// </remarks>
+public static class ServiceDefaults
+{
+    /// <summary>
+    /// The name both the spans and the metrics are published under.
+    /// </summary>
+    /// <remarks>
+    /// <strong>A constant used in three places on purpose, and the reason is a real failure.</strong>
+    /// The kernel writes its spans to an <c>ActivitySource</c> named by <c>TraceResultOptions</c>, and
+    /// OpenTelemetry only collects from sources named in <c>AddSource</c>. Those are two separate
+    /// strings in two separate calls, and in the codebase this kernel was lifted from they did not
+    /// match: the source was "TraceResult" and the registration asked for the application's name, so
+    /// every span from a hundred and fifty-eight instrumented handlers was created and dropped. The
+    /// meter went the same way — the counters and the duration histogram were recorded into a meter
+    /// nothing subscribed to.
+    /// <para>
+    /// Nothing failed. That is what makes it worth a constant rather than care: there is no error, no
+    /// warning and no empty-looking dashboard, because a dashboard with no data looks exactly like a
+    /// service with no traffic.
+    /// </para>
+    /// <para>
+    /// Not left to the kernel's default either. That default is the process name, which matches what a
+    /// host is usually called — but a process launched as <c>dotnet app.dll</c> is called <c>dotnet</c>,
+    /// which is how a container runs one. Working in development and silent in production is the worst
+    /// shape this failure can take, so the name is pinned rather than derived.
+    /// </para>
+    /// </remarks>
+    public const string ActivitySourceName = "__SOLUTION__";
+
+    /// <summary>The meter the kernel's counters and histograms are published under.</summary>
+    public const string MeterName = ActivitySourceName + ".Meter";
+
+    /// <summary>
+    /// Registers tracing, metrics and the kernel's logging bridge.
+    /// </summary>
+    /// <param name="builder">The host being composed.</param>
+    /// <returns>The same builder, for chaining.</returns>
+    public static TBuilder AddServiceDefaults<TBuilder>(this TBuilder builder)
+        where TBuilder : IHostApplicationBuilder
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+
+        builder.Logging.AddOpenTelemetry(logging =>
+        {
+            logging.IncludeFormattedMessage = true;
+            logging.IncludeScopes = true;
+        });
+
+        // The two names the kernel will publish under. Read again by the registration below, which is
+        // what keeps them the same string.
+        builder.Services.AddTraceResultLogging(options =>
+        {
+            options.ActivitySourceName = ActivitySourceName;
+            options.MeterName = MeterName;
+        });
+
+        builder.Services
+            .AddOpenTelemetry()
+            .WithMetrics(metrics => metrics
+                .AddAspNetCoreInstrumentation()
+                .AddHttpClientInstrumentation()
+                .AddRuntimeInstrumentation()
+                .AddMeter(MeterName))
+            .WithTracing(tracing => tracing
+                .AddSource(ActivitySourceName)
+                .AddAspNetCoreInstrumentation(options => options.Filter = Interesting)
+                .AddHttpClientInstrumentation());
+
+        // Exported only where something says where to. Aspire sets this variable for every process it
+        // starts, so a developer gets traces in the dashboard with no configuration; a deployment sets
+        // it to its collector. A solution with neither registers everything and exports nothing, which
+        // costs a little memory and keeps the wiring identical in all three cases.
+        if (!string.IsNullOrWhiteSpace(builder.Configuration["OTEL_EXPORTER_OTLP_ENDPOINT"]))
+        {
+            builder.Services.AddOpenTelemetry().UseOtlpExporter();
+        }
+
+        return builder;
+    }
+
+    /// <summary>Whether an incoming request is one worth a span.</summary>
+    /// <param name="context">The request.</param>
+    /// <returns>True unless it is the liveness route.</returns>
+    private static bool Interesting(HttpContext context)
+    {
+        ArgumentNullException.ThrowIfNull(context);
+
+        return !context.Request.Path.StartsWithSegments("/health");
+    }
+}

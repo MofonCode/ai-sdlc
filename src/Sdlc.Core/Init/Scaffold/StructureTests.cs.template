@@ -59,7 +59,8 @@ public sealed class StructureTests
         {
             ["Contracts"] = [],
             ["Application"] = ["Contracts"],
-            ["Api"] = ["Application", "Contracts"],
+            ["ServiceDefaults"] = [],
+            ["Api"] = ["Application", "Contracts", "ServiceDefaults"],
             ["Ui"] = ["Contracts"],
             ["Web"] = ["Contracts", "Ui"],
         };
@@ -84,9 +85,19 @@ public sealed class StructureTests
         new(StringComparer.Ordinal)
         {
             ["Contracts"] = [],
-            ["Api"] = ["MofonCode.Core"],
 
-            // Prefix-matched, unlike the two rows above, and the reason should be visible: the
+            // The api describes its own surface and renders that description. Both are prefix-matched
+            // for the reason the Web row below is: the OpenApi package and the Swagger UI package are
+            // each one name today and neither is a family worth enumerating by hand.
+            ["Api"] = ["MofonCode.Core", "Microsoft.AspNetCore.OpenApi", "Swashbuckle.AspNetCore"],
+
+            // Observability, and the only project that takes it. Every host calls AddServiceDefaults
+            // rather than registering its own, so the instrumentation packages belong here and nowhere
+            // else -- a host that took them directly would be the second place the source and meter
+            // names are decided, which is the defect ObservabilityTests exists to catch.
+            ["ServiceDefaults"] = ["MofonCode.Core", "OpenTelemetry"],
+
+            // Prefix-matched like most rows here, and the reason should be visible: the
             // legitimate set is "the WebAssembly packages", and a Blazor WebAssembly project needs
             // Microsoft.AspNetCore.Components.WebAssembly.DevServer as well as the runtime package.
             // Listing them exactly would fail on the day the first real Web project arrives, in the

@@ -2,6 +2,7 @@
   <Folder Name="/src/">
     <Project Path="src/__SOLUTION__.Contracts/__SOLUTION__.Contracts.csproj" />
     <Project Path="src/__SOLUTION__.Application/__SOLUTION__.Application.csproj" />
+    <Project Path="src/__SOLUTION__.ServiceDefaults/__SOLUTION__.ServiceDefaults.csproj" />
     <Project Path="src/__SOLUTION__.Api/__SOLUTION__.Api.csproj" />
   </Folder>
   <Folder Name="/tests/">
