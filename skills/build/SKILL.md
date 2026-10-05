@@ -122,8 +122,17 @@ It also prints the declared-against-changed comparison. Read it, and read it cor
   creep described above, and the honest move is to take it back out.
 - **`undelivered`** means a file the plan named went untouched. Sometimes that is right — the plan
   over-declared. Sometimes it means part of the plan was not implemented.
-- **Neither is a refusal.** The comparison cannot see inside a file, which is why `CON_07.2` exists at
-  all. What blocks is outcome-based: the build fails, tests fail, or a named test did not pass.
+- **`governing`** means the change touched a file that judges it: an architecture test, a build
+  property, the banned list, a hook, the pipeline, `techstack.md`, this solution's constraints. Unlike
+  the other two it appears **whether or not the plan declared it**, because a declared one is the
+  common case and still the one worth a reviewer's attention. Changing a rule is not the same kind of
+  act as changing the work, and the two reach review looking identical without this line.
+- **None of the three is a refusal.** The comparison cannot see inside a file, which is why `CON_07.2`
+  exists at all. What blocks is outcome-based: the build fails, tests fail, or a named test did not pass.
+
+**A `governing` line belongs in your report and in the commit message.** The person reviewing the pull
+request is the one who can say whether the rule should have moved, and they will not find it by reading
+a file table.
 
 ## Commit the evidence
 

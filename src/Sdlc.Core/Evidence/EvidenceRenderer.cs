@@ -106,7 +106,11 @@ public static class EvidenceRenderer
         if (comparison.Agrees)
         {
             output.AppendLine(Indent + "          every declared file changed, and nothing else did");
-            return;
+
+            if (comparison.Governing.Count == 0)
+            {
+                return;
+            }
         }
 
         foreach (string path in comparison.Undeclared)
@@ -119,7 +123,25 @@ public static class EvidenceRenderer
             output.AppendLine(Indent + "    undelivered " + path);
         }
 
+        // Listed after the two directions and whether or not they disagreed, because a governing file is
+        // most often declared and in order -- which is the case worth a second look rather than the one
+        // worth skipping.
+        foreach (string path in comparison.Governing)
+        {
+            output.AppendLine(Indent + "    governing   " + path);
+        }
+
         output.AppendLine();
+
+        if (comparison.Governing.Count > 0)
+        {
+            output.AppendLine(Indent + "          A governing file holds a rule this cycle is judged by -- an");
+            output.AppendLine(Indent + "          architecture test, a build property, the banned list, a hook, the");
+            output.AppendLine(Indent + "          pipeline, the declared stack, this solution's constraints. Changing");
+            output.AppendLine(Indent + "          one is a change to the rules rather than to the work, and a plan");
+            output.AppendLine(Indent + "          declaring it makes it ordinary rather than unremarkable.");
+            output.AppendLine();
+        }
         output.AppendLine(Indent + "          These are suggestions, not a refusal. The comparison cannot see inside");
         output.AppendLine(Indent + "          a file, which is why CON_07.2 exists -- so it was never what caught scope");
         output.AppendLine(Indent + "          creep. What blocks is outcome-based: the build fails, tests fail, or a");

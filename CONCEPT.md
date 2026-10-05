@@ -685,6 +685,16 @@ means the plan's blast radius was wider than the change; `UNDECLARED` means some
 diff without the hook seeing it. Both are recorded as suggestions. Their real uses are estimating
 blast radius and detecting collisions for the claim graph.
 
+`GOVERNING` is the third line and the only one that does not depend on the plan: it names a changed
+file holding a rule the change is judged by — an architecture test, a build property,
+`BannedSymbols.txt`, a hook, the pipeline, `techstack.md`, `constraints.md`. It reports a **declared**
+file as readily as an undeclared one, because the architecture suite is the only mechanical
+enforcement of shape the framework has and a cycle may amend it as ordinary declared work. The
+dice-roller cycle did exactly that, correctly, and the edit reached review as one row among thirty-nine
+in a file table. The set is what the framework writes or scaffolds, for D-40's reason — it can name
+those with confidence, and a guess at what else a team treats as a rule is a list that is wrong
+somewhere and trusted everywhere. A signal like the other two, under D-15: it refuses nothing.
+
 ---
 
 ## 8. The solution's own files

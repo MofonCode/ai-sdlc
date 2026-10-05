@@ -258,6 +258,75 @@ public sealed class EvidenceTests
     }
 
     [TestMethod]
+    public void A_file_that_judges_the_cycle_is_reported_even_when_the_plan_declared_it()
+    {
+        // The dice-roller cycle declared this edit and was entirely in order. The point is that a change
+        // to the rules reaches a reviewer as a change to the rules, not as one row in a file table.
+        FileComparison comparison = DeclaredFiles.Compare(
+            ["tests/Dice.Architecture.Tests/StructureTests.cs", "src/Dice/Roll.cs"],
+            ["tests/Dice.Architecture.Tests/StructureTests.cs", "src/Dice/Roll.cs"]);
+
+        Assert.IsTrue(comparison.Agrees, "A declared governing file is not a disagreement.");
+
+        CollectionAssert.AreEqual(
+            new[] { "tests/Dice.Architecture.Tests/StructureTests.cs" },
+            comparison.Governing.ToArray());
+    }
+
+    [TestMethod]
+    public void The_governing_set_is_what_the_framework_writes_or_scaffolds()
+    {
+        FileComparison comparison = DeclaredFiles.Compare(
+            [],
+            [
+                "Directory.Build.props",
+                "tests/Directory.Build.props",
+                "BannedSymbols.txt",
+                ".editorconfig",
+                ".claude/settings.json",
+                ".agents/hooks.json",
+                ".github/hooks/sdlc.json",
+                ".github/workflows/ci.yml",
+                ".sdlc/constraints.md",
+                ".sdlc/techstack.md",
+                ".sdlc/hooks/pre-push",
+                "src/Dice/Roll.cs",
+                "Directory.Packages.props",
+            ]);
+
+        CollectionAssert.AreEqual(
+            new[]
+            {
+                ".agents/hooks.json",
+                ".claude/settings.json",
+                ".editorconfig",
+                ".github/hooks/sdlc.json",
+                ".github/workflows/ci.yml",
+                ".sdlc/constraints.md",
+                ".sdlc/hooks/pre-push",
+                ".sdlc/techstack.md",
+                "BannedSymbols.txt",
+                "Directory.Build.props",
+                "tests/Directory.Build.props",
+            },
+            comparison.Governing.ToArray(),
+            "A package version is not a rule, and source is not a rule.");
+    }
+
+    [TestMethod]
+    public void A_governing_file_under_sdlc_survives_the_filter_that_drops_a_cycle_s_paperwork()
+    {
+        // constraints.md and techstack.md live under .sdlc/, which the comparison otherwise drops whole.
+        // Dropping them first would hide the two changes most worth a second look.
+        FileComparison comparison = DeclaredFiles.Compare(
+            [],
+            [".sdlc/techstack.md", ".sdlc/cycles/20260929_1456_32/plan.md"]);
+
+        CollectionAssert.AreEqual(new[] { ".sdlc/techstack.md" }, comparison.Governing.ToArray());
+        Assert.AreEqual(0, comparison.Undeclared.Count, "The paperwork is still not part of the change.");
+    }
+
+    [TestMethod]
     public void A_path_written_either_way_round_compares_equal()
     {
         FileComparison comparison = DeclaredFiles.Compare(

@@ -3,6 +3,17 @@
 Material kept because it is worth reading, not because anything reads it. Nothing here is a test
 fixture and nothing validates against the current schema.
 
+## `dice-roll-rev-7-review.md`
+
+A review of one run of the framework from adoption to build, in `dice-roll-rev-7` on 2026-10-05: eight
+findings about the framework, each with what it would take to remedy it and whether the remedy is a
+judgement somebody has to make. Written from the artifacts, the transcript and the running
+application — the solution was rebuilt and driven in a browser rather than taken on the evidence's
+word.
+
+It is a review rather than a plan, so it goes stale as the findings are acted on. The four it marks as
+needing no decision are the ones to check first against what the code now does.
+
 ## `iteration-3-cycle/`
 
 One complete cycle, run for real in `dice-trial` on 2026-09-29 under iteration 3: an intent through
