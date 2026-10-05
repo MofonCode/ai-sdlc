@@ -1,23 +1,28 @@
 # Documentation
 
-Written for somebody using the framework. The design and the reasoning behind every decision live one
-level up, in `../CONCEPT.md`; what the code is and how it fits together is in `../src/README.md`.
+Everything written for somebody using the framework rather than changing it. Today that is one directory:
 
-**`../README.md` lists what is here and what each one covers.** This file does not repeat that list — a
-second copy of it is the one that goes stale the next time a guide is added or renamed.
+| | |
+|---|---|
+| [`guides/`](guides/) | the four guides. [`guides/README.md`](guides/README.md) is the index — what each covers and when to read it |
 
-Two things to read alongside these guides:
+**The index lives beside the guides, not here.** This file does not describe them, because a second
+description is the copy that goes stale the next time one is renamed.
 
-- **`../reference/iteration-3-cycle/`** — a real cycle run in anger, with its interrogation rounds and
-  its evidence. In the previous iteration's shape, and the best worked example the project has.
+What is documented elsewhere, and why it is not here:
+
+| | |
+|---|---|
+| the seventeen skills: what each is, how it is invoked, who starts it | [`../skills/README.md`](../skills/README.md), beside the skills themselves |
+| the design, and every decision behind it with what each one rejected | [`../CONCEPT.md`](../CONCEPT.md) |
+| the rules in force | `sdlc constraints` renders them, all tiers resolved. A copy would be a second place they live |
+| what the code is and how it fits together | [`../src/README.md`](../src/README.md) |
+| the tools that support changing the framework | [`../tools/README.md`](../tools/README.md) |
+
+Two things to read alongside the guides:
+
+- **[`../reference/iteration-3-cycle/`](../reference/iteration-3-cycle/)** — a real cycle run in anger,
+  with its interrogation rounds and its evidence. In the previous iteration's shape, and the best worked
+  example the project has.
 - **`.sdlc/README.md`**, written into every governed solution by `sdlc init` — the flow, the files and
   the commands, in one page that travels with the repository.
-
-## What these are not
-
-They describe the framework from outside: what to type, what it will say, and what to do when it
-refuses. They state nothing about the rules themselves — `sdlc constraints` renders those, and a copy
-here would be a second place they live, which is always the copy that goes stale.
-
-Where a guide says something has not been exercised, that is load-bearing. **A directory that appears
-enforced and is not is worse than one that never pretended**, and the same goes for a document.

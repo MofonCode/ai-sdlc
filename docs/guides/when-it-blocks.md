@@ -336,6 +336,6 @@ published.
 |---|---|
 | a cycle walked end to end | `first-cycle.md` |
 | every command for one cycle, on one screen | `cycle-commands.md` |
-| what each skill is and who starts it | `../skills.md` |
+| what each skill is and who starts it | `../../skills/README.md` |
 | installing, updating, removing | `install.md` |
 | the fourteen global constraints, each with what it forbids | `../../CONSTRAINTS.md` |

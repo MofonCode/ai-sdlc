@@ -336,6 +336,6 @@ the first batch runs are worth watching.
 |---|---|
 | every command for one cycle, on one screen | `cycle-commands.md` |
 | what to do when something refuses | `when-it-blocks.md` |
-| what each skill is and who starts it | `../skills.md` |
+| what each skill is and who starts it | `../../skills/README.md` |
 | installing, updating, removing | `install.md` |
 | a real cycle's artifacts, to calibrate against | `../../reference/iteration-3-cycle/` |

@@ -2,6 +2,11 @@
 
 Every skill in the plugin: what it is, how it is invoked, when it runs, and who decides it should.
 
+**This directory is the shipped surface, and it is read by both plugin systems.** One subdirectory per
+skill, each holding a `SKILL.md` — that is what Claude Code loads and what an
+[Agent Plugins](https://agent-plugins.org/specification) client enumerates. This file describes them
+and ships nothing; the skills themselves are the directories beside it.
+
 **A command is deterministic and the binary owns it; a skill needs language and an agent runs it.**
 That split is why this document exists separately from `sdlc help` — the binary's own help lists what a
 file listing and a hash can decide, and everything here is what cannot be decided that way. A skill
@@ -55,8 +60,8 @@ repository, so it asks before every push.
 **All seventeen are model-invocable.** Nothing in the manifest stops an agent reaching for one on its
 own, and that is deliberate — what protects the decisions is the hook denying the four protected files
 and `sdlc init`, plus the pull-request check, rather than a flag in a skill's frontmatter. A guard that
-lives in the manifest is a guard the manifest can lose. `guides/when-it-blocks.md` has what the hook
-actually denies today, and what it does not.
+lives in the manifest is a guard the manifest can lose. `../docs/guides/when-it-blocks.md` has what
+the hook actually denies today, and what it does not.
 
 ---
 
@@ -288,7 +293,8 @@ anything, because the runner was not configured.
 and sends the turn back on three things: recorded evidence showing a failing suite, code written with no
 evidence recorded at all, and code that has moved since the evidence was recorded. It is not a rule the
 skill has to remember — it is why there is no point reporting done over a red build.
-`guides/when-it-blocks.md` has the three send-backs and the holes the gate states rather than hides.
+`../docs/guides/when-it-blocks.md` has the three send-backs and the holes the gate states rather than
+hides.
 
 Then `sdlc evidence <id>` records the diff, the commit it is measured from, the runner's own output, and
 one normalised test summary. **Verify reads only these files**, so a verdict derived from the builder's
@@ -450,9 +456,9 @@ is a deliberate deferral rather than an oversight.
 
 | | |
 |---|---|
-| installing the plugin and the binary | `guides/install.md` |
-| a cycle from an empty directory to a pull request | `guides/first-cycle.md` |
-| every command for one cycle, on one screen | `guides/cycle-commands.md` |
-| what to do when something refuses | `guides/when-it-blocks.md` |
+| installing the plugin and the binary | `../docs/guides/install.md` |
+| a cycle from an empty directory to a pull request | `../docs/guides/first-cycle.md` |
+| every command for one cycle, on one screen | `../docs/guides/cycle-commands.md` |
+| what to do when something refuses | `../docs/guides/when-it-blocks.md` |
 | the design, and every decision behind it | `../CONCEPT.md` §15 |
 | a real cycle's artifacts, to calibrate against | `../reference/iteration-3-cycle/` |

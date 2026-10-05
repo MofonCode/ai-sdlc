@@ -923,6 +923,164 @@ public sealed class PluginTests
     }
 
     [TestMethod]
+    public void The_skills_index_names_every_skill_on_disk()
+    {
+        // Each directory holding documents carries an index, and an index is only worth opening if it is
+        // complete. The membership half of that is countable, so it is asserted rather than promised --
+        // the same argument as the readme's counts, applied to the list those counts are about.
+        //
+        // Both directions, because they fail differently and both quietly. A skill added and not written
+        // down reads as undocumented to the next session, which then works from recollection. A skill
+        // removed and left on the page sends somebody to a slash command that does not answer.
+        //
+        // The row and the section are both required. AGENTS.md says a skill change updates its row, its
+        // own section and the count in the heading; the first two are structural and this is where they
+        // are held. A skill with a row and no section is the shape that reads complete and is not.
+        string index = File.ReadAllText(Path.Combine(Root, "skills", "README.md"));
+
+        HashSet<string> disk = new(
+            Skills().Select(path => Path.GetFileName(Path.GetDirectoryName(path))!),
+            StringComparer.Ordinal);
+
+        HashSet<string> rows = new(
+            Regex.Matches(index, @"^\| `(?<name>[a-z-]+)` \|", RegexOptions.Multiline)
+                .Select(match => match.Groups["name"].Value),
+            StringComparer.Ordinal);
+
+        HashSet<string> sections = new(
+            Regex.Matches(index, @"^### `(?<name>[a-z-]+)`", RegexOptions.Multiline)
+                .Select(match => match.Groups["name"].Value),
+            StringComparer.Ordinal);
+
+        Assert.AreEqual(
+            0,
+            disk.Except(rows, StringComparer.Ordinal).Count(),
+            "Shipped and not in the index's table: "
+            + string.Join(", ", disk.Except(rows, StringComparer.Ordinal)));
+
+        Assert.AreEqual(
+            0,
+            rows.Except(disk, StringComparer.Ordinal).Count(),
+            "In the index's table and not shipped: "
+            + string.Join(", ", rows.Except(disk, StringComparer.Ordinal)));
+
+        Assert.AreEqual(
+            0,
+            disk.Except(sections, StringComparer.Ordinal).Count(),
+            "Shipped and given no section of its own in the index: "
+            + string.Join(", ", disk.Except(sections, StringComparer.Ordinal)));
+    }
+
+    [TestMethod]
+    public void The_guides_index_and_the_readme_name_every_guide_on_disk()
+    {
+        // Two lists of the same four files, and the duplication is deliberate: a reader landing on the
+        // repository front page should see what is there without a click, and a reader already in
+        // docs/guides/ should not have to climb out to find out what is beside them. AGENTS.md records
+        // that as the one accepted exception to a list living in a single place -- and the price of the
+        // exception is this test, because an exception paid for by a promise is the copy that goes stale.
+        //
+        // The index's own list is taken from its section headings rather than from its table. Both have
+        // to be there and the heading is the half a reader scrolls to, so keying on it means a guide
+        // described in a table row and nowhere else fails rather than passing as documented.
+        string guides = Path.Combine(Root, "docs", "guides");
+
+        HashSet<string> disk = new(
+            Directory.EnumerateFiles(guides, "*.md")
+                .Select(Path.GetFileName)
+                .Where(name => !string.Equals(name, "README.md", StringComparison.Ordinal))!,
+            StringComparer.Ordinal);
+
+        Assert.IsTrue(disk.Count > 0, "No guides were found, so this would pass by finding nothing.");
+
+        string index = File.ReadAllText(Path.Combine(guides, "README.md"));
+
+        HashSet<string> named = new(
+            Regex.Matches(index, @"^## `(?<file>[a-z0-9-]+\.md)`", RegexOptions.Multiline)
+                .Select(match => match.Groups["file"].Value),
+            StringComparer.Ordinal);
+
+        Assert.AreEqual(
+            0,
+            disk.Except(named, StringComparer.Ordinal).Count(),
+            "On disk and not described by docs/guides/README.md: "
+            + string.Join(", ", disk.Except(named, StringComparer.Ordinal)));
+
+        Assert.AreEqual(
+            0,
+            named.Except(disk, StringComparer.Ordinal).Count(),
+            "Described by docs/guides/README.md and gone: "
+            + string.Join(", ", named.Except(disk, StringComparer.Ordinal)));
+
+        // And the root readme's own table, which is the second list. Every guide it names is already
+        // asserted to exist; what was missing is the other direction -- a guide nobody added to it.
+        string readme = File.ReadAllText(Path.Combine(Root, "README.md"));
+
+        HashSet<string> front = new(
+            Regex.Matches(readme, @"`docs/guides/(?<file>[a-z0-9-]+\.md)`")
+                .Select(match => match.Groups["file"].Value),
+            StringComparer.Ordinal);
+
+        front.Remove("README.md");
+
+        Assert.AreEqual(
+            0,
+            disk.Except(front, StringComparer.Ordinal).Count(),
+            "On disk and missing from the Where to read more table in README.md: "
+            + string.Join(", ", disk.Except(front, StringComparer.Ordinal)));
+
+        Assert.AreEqual(
+            0,
+            front.Except(disk, StringComparer.Ordinal).Count(),
+            "In the Where to read more table in README.md and gone: "
+            + string.Join(", ", front.Except(disk, StringComparer.Ordinal)));
+    }
+
+    [TestMethod]
+    public void The_tools_index_names_every_tool_on_disk()
+    {
+        // The same rule pointed at the directory nobody visits twice a year. These two tools exist
+        // because the suite cannot check what they check, so a tool that goes undescribed is a check
+        // nobody knows to run -- which is how "generate a solution and build it" was a procedure
+        // somebody reconstructed, in the shape that let two template defects reach a commit.
+        //
+        // Build output is excluded by the same rule the document scan uses, so a tool's bin/ and obj/
+        // are not read as tools. Everything else immediately under tools/ is one, which means a new
+        // script is covered the day it appears rather than the day somebody remembers this test.
+        string tools = Path.Combine(Root, "tools");
+
+        HashSet<string> disk = new(
+            Directory.EnumerateFileSystemEntries(tools)
+                .Select(path => Path.GetFileName(path)!)
+                .Where(name => !string.Equals(name, "README.md", StringComparison.Ordinal))
+                .Where(name => !Ignored(name)),
+            StringComparer.Ordinal);
+
+        Assert.IsTrue(disk.Count > 0, "No tools were found, so this would pass by finding nothing.");
+
+        string index = File.ReadAllText(Path.Combine(tools, "README.md"));
+
+        // A directory is named with its trailing slash and a file without one, because that is how a
+        // reader tells them apart. Trimmed here so the comparison is about identity rather than spelling.
+        HashSet<string> named = new(
+            Regex.Matches(index, @"^## `(?<tool>[^`]+)`", RegexOptions.Multiline)
+                .Select(match => match.Groups["tool"].Value.TrimEnd('/')),
+            StringComparer.Ordinal);
+
+        Assert.AreEqual(
+            0,
+            disk.Except(named, StringComparer.Ordinal).Count(),
+            "Under tools/ and not described by tools/README.md: "
+            + string.Join(", ", disk.Except(named, StringComparer.Ordinal)));
+
+        Assert.AreEqual(
+            0,
+            named.Except(disk, StringComparer.Ordinal).Count(),
+            "Described by tools/README.md and gone: "
+            + string.Join(", ", named.Except(disk, StringComparer.Ordinal)));
+    }
+
+    [TestMethod]
     public void The_readme_says_what_is_not_done_rather_than_only_what_is()
     {
         // The design's own rule, pointed at its readme: a thing that appears finished and is not is worse
@@ -1014,13 +1172,13 @@ public sealed class PluginTests
     {
         // What AGENTS.md must not do is describe the skills itself. A second description is the one that
         // goes stale, and a session working from the stale copy has no way to tell -- the same reason no
-        // skill restates a constraint. So it points at docs/skills.md, and says that the surface and the
+        // skill restates a constraint. So it points at skills/README.md, and says that the surface and the
         // documents describing it move together, which is the part of the rule a test can actually hold.
         string agents = File.ReadAllText(Path.Combine(Root, "AGENTS.md"));
 
         StringAssert.Contains(
             agents,
-            "docs/skills.md",
+            "skills/README.md",
             "AGENTS.md has to send a session to the skill reference rather than summarise it.");
 
         StringAssert.Contains(

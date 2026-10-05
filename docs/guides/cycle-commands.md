@@ -3,8 +3,8 @@
 One screen. What each one is, and whether the binary or an agent runs it.
 
 **A command is deterministic and the binary owns it; a skill needs language and an agent runs it.** The
-binary never writes a planning document and a skill never decides a gate. `../skills.md` has what each
-skill is and who starts it; this is the order they go in.
+binary never writes a planning document and a skill never decides a gate. `../../skills/README.md` has
+what each skill is and who starts it; this is the order they go in.
 
 ## Once per machine
 
@@ -138,4 +138,4 @@ shape rather than this one, which its own README explains.
 | installing both halves | `install.md` |
 | a cycle walked end to end, with what to expect | `first-cycle.md` |
 | what to do when something refuses | `when-it-blocks.md` |
-| what each skill is and who starts it | `../skills.md` |
+| what each skill is and who starts it | `../../skills/README.md` |
