@@ -461,4 +461,3 @@ is a deliberate deferral rather than an oversight.
 | every command for one cycle, on one screen | `../docs/guides/cycle-commands.md` |
 | what to do when something refuses | `../docs/guides/when-it-blocks.md` |
 | the design, and every decision behind it | `../CONCEPT.md` §15 |
-| a real cycle's artifacts, to calibrate against | `../reference/iteration-3-cycle/` |

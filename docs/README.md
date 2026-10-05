@@ -19,10 +19,7 @@ What is documented elsewhere, and why it is not here:
 | what the code is and how it fits together | [`../src/README.md`](../src/README.md) |
 | the tools that support changing the framework | [`../tools/README.md`](../tools/README.md) |
 
-Two things to read alongside the guides:
+One thing to read alongside the guides:
 
-- **[`../reference/iteration-3-cycle/`](../reference/iteration-3-cycle/)** — a real cycle run in anger,
-  with its interrogation rounds and its evidence. In the previous iteration's shape, and the best worked
-  example the project has.
 - **`.sdlc/README.md`**, written into every governed solution by `sdlc init` — the flow, the files and
   the commands, in one page that travels with the repository.

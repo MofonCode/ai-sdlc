@@ -161,9 +161,7 @@ updating, removing, and the four things that catch people. And if something refu
 | [`skills/README.md`](skills/README.md) | the seventeen skills: what each is, when it runs, and who starts it |
 | `sdlc constraints` | the rules in force, all tiers resolved. Run it rather than reading a copy of them |
 
-Two more worth knowing about. [`reference/iteration-3-cycle/`](reference/iteration-3-cycle/) is a real
-cycle run in anger, interrogation rounds and evidence included — the best worked example here. And
-`.sdlc/README.md`, written into your repository by `sdlc init`, is the whole flow on one page that
+One more worth knowing about. `.sdlc/README.md`, written into your repository by `sdlc init`, is the whole flow on one page that
 travels with your code.
 
 **Understanding or changing it:**

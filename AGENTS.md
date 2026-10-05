@@ -21,8 +21,7 @@ could mean either, ask.**
 
 **The framework does not run cycles on itself.** There is no `.sdlc/` directory here and adding one is
 wrong — a framework judged by the constraints it is changing is a deadlock. It is built as an ordinary
-product: branch, review, merge. `reference/iteration-3-cycle/` is a real cycle run in anger, and the best
-worked example there is.
+product: branch, review, merge.
 
 ## The map
 
@@ -51,7 +50,6 @@ the cheapest way to discover that what you were about to add already lives somew
 | `tests/` | the suite |
 | `tools/Sdlc.ScaffoldHarness/` | the harness that writes a scaffolded solution so it can be built |
 | `.github/workflows/ci.yml` | build and test on every pull request, which deliberately does not govern this repository with itself (D-42) |
-| `reference/iteration-3-cycle/` | a real cycle's artifacts, to calibrate against |
 
 ### Querying `CONCEPT.md`
 

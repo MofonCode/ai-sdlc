@@ -3286,8 +3286,8 @@ defect.
   something *should* read it, so removing the field would be deleting the evidence of a thin output
   rather than cleaning up. They are listed where the work is tracked, not quietly dropped.
 - *Removing the artifact-format fields nothing reads* — rejected. `Finding.Locus`, `Finding.Remedy` and
-  `Disposition.Withdrawn` are §7's documented format, written by the interrogate skill and present in
-  `reference/iteration-3-cycle/`; a reader of a findings file wants them whether or not the gate does.
+  `Disposition.Withdrawn` are §7's documented format, written by the interrogate skill; a reader of a
+  findings file wants them whether or not the gate does.
   `DispositionBy` and `DispositionAt` are the live edge of that: §7 says disposition transitions carry
   who and when, and no skill asks for either field, so the gap is in the skill rather than the record.
 
@@ -3308,11 +3308,11 @@ mentioning nothing about a finding has not answered it, which is correct and is 
 `refine` correctly refused to touch a round file. So nothing anywhere told any round to write
 `answered`, and `answered` is the only exit D-27 leaves open.
 
-**What it cost, which is how it was found.** `reference/iteration-3-cycle/` is the worked example this
-repository tells people to calibrate against, and it carries three blocking findings — one each on the
-intent, the spec and the plan — raised in round one, answered in the documents, and never recorded as
-answered. Rebuilt inside a governed solution and put to the current binary, its intent panel reads
-`round 2 - 1 blocking` with `r1: 1 blocking - r2: clean` beside it. The cycle completed in anger and
+**What it cost, which is how it was found.** A cycle run for real under iteration 3, the worked example
+this repository calibrated against, carried three blocking findings — one each on the intent, the spec
+and the plan — raised in round one, answered in the documents, and never recorded as answered. Rebuilt
+inside a governed solution and put to the current binary, its intent panel read `round 2 - 1 blocking`
+with `r1: 1 blocking - r2: clean` beside it. The cycle completed in anger and
 could not pass today's gate. A record that only accumulates objections is not a record of a cycle.
 
 **Why the reader's silence rather than the refiner's report.** The refiner is the session that may have

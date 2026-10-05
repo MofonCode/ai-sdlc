@@ -128,9 +128,6 @@ one. Terminal.
         tests.json
 ```
 
-`reference/iteration-3-cycle/` is a real one, run for real, to calibrate against — in iteration 3's
-shape rather than this one, which its own README explains.
-
 ## Where to go next
 
 | | |
