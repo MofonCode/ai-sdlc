@@ -74,7 +74,7 @@ public sealed class FindingsCommandTests
                 "id": "F_03",
                 "severity": "blocking",
                 "disposition": "open",
-                "cites": "CON_06",
+                "cites": { "id": "CON_06", "heading": "a plan's proof is adequate to the criterion it claims to prove" },
                 "statement": "stops the cycle.",
                 "locus": "proof 5",
                 "remedy": "say what makes the second value a face."

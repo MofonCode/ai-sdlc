@@ -197,14 +197,22 @@ public static class StatusRenderer
 
         Field(output, "Checks", string.Join(" - ", history));
 
-        // The id and the constraint on one line, the statement under it: a statement is a sentence and
-        // wrapping it beside two short columns would collapse their alignment.
+        // The id and the constraint on one line, then the rule it cites, then the statement: both of
+        // those are sentences, and wrapping either beside two short columns would collapse their
+        // alignment. The rule comes first because it is the one a reader needs in order to weigh the
+        // objection -- this panel is where somebody at the gate meets a blocker, and an id with no
+        // words beside it tells them a rule was broken without telling them which.
         foreach (Finding finding in state.OpenBlockers)
         {
             Field(
                 output,
                 string.Empty,
-                string.Create(CultureInfo.InvariantCulture, $"{finding.Id,-7}{finding.Cites,-12}blocking"));
+                string.Create(CultureInfo.InvariantCulture, $"{finding.Id,-7}{finding.Cites?.Id,-12}blocking"));
+
+            if (finding.Cites?.Line() is { } rule)
+            {
+                Field(output, string.Empty, "    " + rule);
+            }
 
             Field(output, string.Empty, "    " + finding.Statement);
         }

@@ -94,8 +94,9 @@ as it is, and if it is absent say so in the block in those words.
 > document. Do not report style, wording you would have chosen differently, or anything the rules do
 > not forbid.
 >
-> For every finding, give: the single rule it cites, by id and revision; what is wrong, in full;
-> where in the document; and what would fix it.
+> For every finding, give: the single rule it cites, by id and revision **and by the one line its
+> heading states** -- copied from the rules above exactly as written, never summarised in your own
+> words; what is wrong, in full; where in the document; and what would fix it.
 >
 > A finding is `blocking` when the rule it cites forbids what the document does. It is a `suggestion`
 > when it would improve the document and no rule forbids the current state. A blocking finding must
@@ -110,10 +111,22 @@ as it is, and if it is absent say so in the block in those words.
 >
 > Answer as JSON only, in this shape:
 > ```json
-> { "findings": [ { "id": "F_01", "severity": "blocking", "cites": "CON_16",
+> { "findings": [ { "id": "F_01", "severity": "blocking",
+>   "cites": { "id": "CON_16", "heading": "A spec covers every outcome its intent asks for, and all of each one" },
 >   "statement": "...", "locus": "...", "remedy": "..." } ] }
 > ```
 > An empty array means the document breaks nothing.
+
+**Why the citation carries the rule's own line.** An id on its own is an index entry. It tells a reader
+that something was breached without telling them what, so the only way to read the finding is to go and
+resolve the id somewhere else -- which nobody does, and which nothing downstream makes them do. The line
+travels with the citation instead, into the status panel, the gate refusal and the approval draft, so a
+person meeting the finding meets the rule with it.
+
+**Copy it, do not write it.** The heading is in the block of rules you were handed, above its
+`Applies to`. A summary of a rule is a second version of that rule, and the round is a historical record
+of what was actually judged -- so the line has to be the one that was read. A citation with no heading is
+rejected when the round is read back.
 
 ## Write the round
 
@@ -190,7 +203,8 @@ findings whose disposition moved.
 {
   "round": 2,
   "findings": [
-    { "id": "F_01", "severity": "blocking", "disposition": "answered", "cites": "CON_02",
+    { "id": "F_01", "severity": "blocking", "disposition": "answered",
+      "cites": { "id": "CON_02", "heading": "<as round 1 copied it, unchanged>" },
       "statement": "<as round 1 stated it, unchanged>" },
     { "id": "F_03", "severity": "suggestion", "disposition": "open",
       "statement": "<what this reader found>" }
@@ -198,9 +212,11 @@ findings whose disposition moved.
 }
 ```
 
-**Carry the statement across unchanged.** The id and the statement are what round one said; this
-round is saying where that objection has got to, not restating it in your own words. A round whose
-`F_01` says something different from round one's `F_01` makes the history unreadable.
+**Carry the statement and the citation across unchanged.** The id, the heading and the statement are
+what round one said; this round is saying where that objection has got to, not restating it in your own
+words. A round whose `F_01` says something different from round one's `F_01` makes the history
+unreadable -- and that includes the heading, which is round one's record of the wording it judged
+against, not a field to refresh from today's library.
 
 **An empty `findings` array still means a clean reading, and it clears nothing.** If round one raised
 a blocker and round two is empty, that blocker is still open and still refuses the build — which is

@@ -246,11 +246,16 @@ internal sealed class CycleWorkspace : IDisposable
     /// <param name="round">The round number.</param>
     /// <param name="id">The finding's id.</param>
     /// <param name="cites">The constraint it cites.</param>
+    /// <param name="heading">
+    /// The cited rule's own line. A citation carries one beside the id, so a helper that omitted it
+    /// would write rounds the reader rejects.
+    /// </param>
     public void WriteBlockingRound(
         ArtifactKind kind,
         int round = 1,
         string id = "F_01",
-        string cites = "CON_06")
+        string cites = "CON_06",
+        string heading = "a plan's proof is adequate to the criterion it claims to prove")
     {
         WriteRound(kind, round, string.Create(
             CultureInfo.InvariantCulture,
@@ -259,7 +264,7 @@ internal sealed class CycleWorkspace : IDisposable
                 "id": "{{id}}",
                 "severity": "blocking",
                 "disposition": "open",
-                "cites": "{{cites}}",
+                "cites": { "id": "{{cites}}", "heading": "{{heading}}" },
                 "statement": "something that must be answered.",
                 "locus": "somewhere",
                 "remedy": "answer it."
@@ -273,16 +278,20 @@ internal sealed class CycleWorkspace : IDisposable
     /// <param name="id">The finding's id, which keeps its value across rounds.</param>
     /// <param name="cites">The constraint it cites, or null for one that cites nothing.</param>
     /// <param name="disposition">Where it has got to.</param>
+    /// <param name="heading">The cited rule's own line, which a citation always carries.</param>
     public void WriteSuggestionRound(
         ArtifactKind kind,
         int round = 1,
         string id = "F_02",
         string? cites = "CON_12",
-        string disposition = "open")
+        string disposition = "open",
+        string heading = "a criterion's check is one the solution's testing layers can run")
     {
         string citation = cites is null
             ? string.Empty
-            : string.Create(CultureInfo.InvariantCulture, $"\"cites\": \"{cites}\",");
+            : string.Create(
+                CultureInfo.InvariantCulture,
+                $"\"cites\": {{ \"id\": \"{cites}\", \"heading\": \"{heading}\" }},");
 
         WriteRound(kind, round, string.Create(
             CultureInfo.InvariantCulture,
@@ -310,7 +319,7 @@ internal sealed class CycleWorkspace : IDisposable
                 "id": "{{id}}",
                 "severity": "blocking",
                 "disposition": "answered",
-                "cites": "CON_06",
+                "cites": { "id": "CON_06", "heading": "a plan's proof is adequate to the criterion it claims to prove" },
                 "statement": "something that was answered."
               }
               """));

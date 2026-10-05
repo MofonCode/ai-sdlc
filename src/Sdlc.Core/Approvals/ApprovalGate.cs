@@ -357,9 +357,17 @@ public static class ApprovalGate
                         CultureInfo.InvariantCulture,
                         $"{Cycle.NameOf(kind)}.{blocker.Id}");
 
+                    // The rule's own line between the id and the objection. This list is what a gate
+                    // refusal hands back, so it is read by whoever has to decide what to do about the
+                    // blocker -- and CON_10.2 requires their reason to say what has to change, which
+                    // is not a judgement anybody can make from an id alone.
+                    string rule = blocker.Cites?.Heading is { Length: > 0 } heading
+                        ? heading + "  "
+                        : string.Empty;
+
                     blockers.Add(string.Create(
                         CultureInfo.InvariantCulture,
-                        $"  {qualified}  {blocker.Cites}  {blocker.Statement}"));
+                        $"  {qualified}  {blocker.Cites?.Id}  {rule}{blocker.Statement}"));
                 }
             }
 

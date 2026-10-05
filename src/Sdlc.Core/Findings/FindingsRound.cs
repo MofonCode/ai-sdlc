@@ -86,18 +86,34 @@ public static class FindingsReader
             // without the rule behind it. F-11.
             foreach (Finding blocking in round.Findings.Where(finding => finding.Severity == Severity.Blocking))
             {
-                if (string.IsNullOrWhiteSpace(blocking.Cites))
+                if (blocking.Cites is null || string.IsNullOrWhiteSpace(blocking.Cites.Id))
                 {
                     return Result.Fail<FindingsRound>(string.Create(
                         CultureInfo.InvariantCulture,
                         $"{source}: blocking finding {blocking.Id} cites no constraint. A blocking finding names the one rule it rests on, because that is what a person at the gate weighs."));
                 }
 
-                if (!ConstraintId.TryParse(blocking.Cites, out _))
+                if (!ConstraintId.TryParse(blocking.Cites.Id, out _))
                 {
                     return Result.Fail<FindingsRound>(string.Create(
                         CultureInfo.InvariantCulture,
-                        $"{source}: blocking finding {blocking.Id} cites '{blocking.Cites}', which is not a constraint id. Expected a form like CON_04 or LOC_02, with an optional revision such as CON_07.2."));
+                        $"{source}: blocking finding {blocking.Id} cites '{blocking.Cites.Id}', which is not a constraint id. Expected a form like CON_04 or LOC_02, with an optional revision such as CON_07.2."));
+                }
+            }
+
+            // A citation carries the rule's own line beside the id, wherever one is given. Without it a
+            // reader of the finding holds an index entry rather than a rule, which is the whole reason
+            // the heading is frozen into the round instead of resolved later. Checked at every severity
+            // and not only on blockers: a suggestion that cites is making the same claim on a rule and
+            // is read in the same listing. Whether the id parses stays a blockers-only check, which is
+            // how it already was.
+            foreach (Finding finding in round.Findings.Where(finding => finding.Cites is not null))
+            {
+                if (string.IsNullOrWhiteSpace(finding.Cites!.Heading))
+                {
+                    return Result.Fail<FindingsRound>(string.Create(
+                        CultureInfo.InvariantCulture,
+                        $"{source}: finding {finding.Id} cites '{finding.Cites.Id}' and gives no heading. A citation carries the rule's one line beside its id, copied from the set the round was judged against, so that reading the finding does not mean resolving the id."));
                 }
             }
 

@@ -22,7 +22,7 @@ public sealed class FindingsTests
                   "id": "F_01",
                   "severity": "blocking",
                   "disposition": "open",
-                  "cites": "CON_04.1",
+                  "cites": { "id": "CON_04.1", "heading": "a spec covers every outcome its intent asks for" },
                   "statement": "the decided delivery has no criterion.",
                   "locus": "## Acceptance criteria",
                   "remedy": "add a criterion for the delivery itself."
@@ -41,7 +41,12 @@ public sealed class FindingsTests
         Assert.AreEqual("F_01", finding.Id);
         Assert.AreEqual(Severity.Blocking, finding.Severity);
         Assert.AreEqual(Disposition.Open, finding.Disposition);
-        Assert.AreEqual("CON_04.1", finding.Cites);
+        Assert.AreEqual("CON_04.1", finding.Cites?.Id);
+        Assert.AreEqual(
+            "a spec covers every outcome its intent asks for",
+            finding.Cites?.Heading,
+            "The citation carries the rule's own line, which is what makes the finding readable "
+            + "without resolving the id against a library that has since moved.");
         Assert.IsTrue(finding.IsOpenBlocker);
 
         // Through StandingBlockers, which is what the gate and the status panel both read. The round
@@ -90,7 +95,7 @@ public sealed class FindingsTests
         // The citation is here because a blocking finding now requires one -- see
         // A_blocking_finding_with_no_citation_is_refused. A suggestion may carry one or not.
         Result<FindingsRound> result = FindingsReader.Read(
-            $$"""{ "round": 1, "findings": [{ "id": "F_01", "severity": "{{text}}", "disposition": "open", "cites": "CON_04", "statement": "something." }] }""",
+            $$"""{ "round": 1, "findings": [{ "id": "F_01", "severity": "{{text}}", "disposition": "open", "cites": { "id": "CON_04", "heading": "a spec covers every outcome its intent asks for" }, "statement": "something." }] }""",
             "test");
 
         Assert.IsTrue(result.IsSuccess, string.Join("; ", result.Errors.Select(e => e.Message)));
@@ -129,7 +134,7 @@ public sealed class FindingsTests
         // Shape only. Whether the id names a constraint that is in force needs the constraint
         // documents, which this reader does not have and should not acquire.
         Result<FindingsRound> result = FindingsReader.Read(
-            $$"""{ "round": 1, "findings": [{ "id": "F_02", "severity": "blocking", "disposition": "open", "cites": "{{cites}}", "statement": "x." }] }""",
+            $$"""{ "round": 1, "findings": [{ "id": "F_02", "severity": "blocking", "disposition": "open", "cites": { "id": "{{cites}}", "heading": "a rule, stated in one line" }, "statement": "x." }] }""",
             "spec.r1.json");
 
         // CON_99 is a well-formed id for a constraint nobody wrote, so it passes the shape check and
@@ -224,8 +229,8 @@ public sealed class FindingsTests
     [TestMethod]
     public void A_blocker_answered_in_a_later_round_is_no_longer_standing()
     {
-        FindingsRound first = Round(1, new Finding("F_01", Severity.Blocking, Disposition.Open, "CON_06", "wrong."));
-        FindingsRound second = Round(2, new Finding("F_01", Severity.Blocking, Disposition.Answered, "CON_06", "wrong."));
+        FindingsRound first = Round(1, new Finding("F_01", Severity.Blocking, Disposition.Open, Cited, "wrong."));
+        FindingsRound second = Round(2, new Finding("F_01", Severity.Blocking, Disposition.Answered, Cited, "wrong."));
 
         Assert.AreEqual(0, FindingsReader.StandingBlockers([first, second]).Count);
     }
@@ -233,7 +238,7 @@ public sealed class FindingsTests
     [TestMethod]
     public void A_blocker_carried_unchanged_into_a_later_round_is_counted_once()
     {
-        Finding carried = new("F_01", Severity.Blocking, Disposition.Open, "CON_06", "still wrong.");
+        Finding carried = new("F_01", Severity.Blocking, Disposition.Open, Cited, "still wrong.");
 
         IReadOnlyList<Finding> standing = FindingsReader.StandingBlockers([Round(1, carried), Round(2, carried)]);
 
@@ -248,7 +253,7 @@ public sealed class FindingsTests
     {
         // A later round that says nothing about a finding has not answered it. Reading only the latest
         // round would lose it.
-        FindingsRound first = Round(1, new Finding("F_01", Severity.Blocking, Disposition.Open, "CON_06", "wrong."));
+        FindingsRound first = Round(1, new Finding("F_01", Severity.Blocking, Disposition.Open, Cited, "wrong."));
         FindingsRound second = Round(2);
 
         Assert.AreEqual(1, FindingsReader.StandingBlockers([first, second]).Count);
@@ -270,7 +275,7 @@ public sealed class FindingsTests
                   "id": "F_01",
                   "severity": "blocking",
                   "disposition": "waived",
-                  "cites": "CON_06",
+                  "cites": { "id": "CON_06", "heading": "a plan's proof is adequate to the criterion it claims to prove" },
                   "statement": "the proof rests on a stub."
                 }
               ]
@@ -284,6 +289,45 @@ public sealed class FindingsTests
             "A disposition the model does not have must not parse. Accepting it would make the hard "
             + "rule depend on which values a reader happens to recognise.");
     }
+
+    [TestMethod]
+    [DataRow("blocking", DisplayName = "on a blocker")]
+    [DataRow("suggestion", DisplayName = "on a suggestion")]
+    public void A_citation_with_no_heading_is_refused(string severity)
+    {
+        // The id alone is an index entry: it says a rule was breached without saying which, so reading
+        // the finding means resolving the id somewhere else -- which is the thing nobody does and the
+        // reason the heading is frozen into the round beside it. Checked at both severities because a
+        // suggestion that cites is making the same claim on a rule and is read in the same listing.
+        Result<FindingsRound> result = FindingsReader.Read(
+            $$"""{ "round": 1, "findings": [{ "id": "F_04", "severity": "{{severity}}", "disposition": "open", "cites": { "id": "CON_06" }, "statement": "x." }] }""",
+            "plan.r1.json");
+
+        Assert.IsTrue(result.IsFailed, "A citation carries the rule's own line beside its id.");
+
+        string message = string.Join("; ", result.Errors.Select(error => error.Message));
+
+        StringAssert.Contains(message, "F_04", "The error names the finding.");
+        StringAssert.Contains(message, "CON_06", "And the id it cited.");
+        StringAssert.Contains(message, "plan.r1.json", "And the file.");
+    }
+
+    [TestMethod]
+    public void A_citation_renders_as_the_rules_own_line_under_a_label()
+    {
+        // One format, defined beside the model, because five outputs show this line. The label is what
+        // tells a reader which sentence is the rule and which is the objection -- two unlabelled
+        // sentences in a row is the confusion this whole change exists to remove.
+        Citation citation = new("CON_06", "a plan's proof is adequate to the criterion it claims to prove");
+
+        Assert.AreEqual("rule    a plan's proof is adequate to the criterion it claims to prove", citation.Line());
+        Assert.IsNull(
+            new Citation("CON_06", null).Line(),
+            "Nothing to show rather than a label with nothing after it.");
+    }
+
+    /// <summary>A citation to hang a finding on, where the test is not about the citation.</summary>
+    private static Citation Cited { get; } = new("CON_06", "a plan's proof is adequate to the criterion it claims to prove");
 
     private static FindingsRound Round(int number, params Finding[] findings) =>
         new(null, null, null, null, null, number, findings);

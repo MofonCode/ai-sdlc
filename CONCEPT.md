@@ -430,7 +430,10 @@ to the stack file, so a reader without it could only object to a departure the p
       "id": "F_01",
       "severity": "blocking",
       "disposition": "open",
-      "cites": "CON_04",
+      "cites": {
+        "id": "CON_04",
+        "heading": "a spec covers every outcome its intent asks for"
+      },
       "statement": "...what is wrong, in full",
       "locus": "...where in the artifact",
       "remedy": "...what would fix it"
@@ -440,6 +443,13 @@ to the stack file, so a reader without it could only object to a departure the p
 ```
 
 An empty `findings` array is a clean round.
+
+**A citation is the id and the rule's own line, as one object.** §7.1 calls that pair a constraint's
+*name*, and this is that pair rather than a second arrangement of it. The heading is copied verbatim
+from the set the round was judged against and frozen there (D-63), so a finding can be read without
+resolving its id against a library that has since moved. One citation and not a list: a finding is one
+objection resting on one rule. Two rules whose remedies exclude each other is a conflict, which §6
+makes an ending of the loop rather than something a finding carries.
 
 | Severity | Meaning |
 |---|---|
@@ -4042,3 +4052,61 @@ an exception for "only the first time" is the conditional rule D-09 says is wher
 one prints a decision and the other preserves what is already there. *Having the draft fill the prose
 from the adoption interview's answers* — tempting, and it would put words in the person's mouth at the
 one moment they are least likely to read them closely.
+
+### D-63 — A citation is the rule's id and its own line, frozen into the round
+
+**Governs:** §6.1, §7.1
+
+**Decision.** A finding's `cites` is one object carrying the constraint's id and the one line its
+heading states, copied verbatim from the set the round was judged against. Every output that shows a
+citation shows the line with it — the status panel, the findings history, the suggestions listing, a
+gate refusal and an approval draft. A citation without a heading is rejected when the round is read
+back, at every severity. It stays one citation and does not become a list.
+
+**Why.** A bare `CON_03` is an index entry. It says a rule was breached without saying which, so the
+only way to read the finding is to resolve the id against the library — which nobody does, and which
+nothing downstream obliges them to do. Five renderers printed the id alone, and the one that matters
+most is the status panel, because that is where a person meets a blocker when deciding what to do about
+it. `CON_10.2` requires a gate refusal's reason to say what has to change, and that is not a judgement
+anybody can make from an id.
+
+**Why it is one object rather than two fields.** §7.1 already calls a constraint's id and its one-line
+statement together the constraint's *name*, so this is the pair the design describes rather than a
+second arrangement of it. Two sibling fields can be written apart and drift; one object cannot be
+half-filled without the reader noticing.
+
+**Why it is frozen rather than resolved at render time.** A round is already a historical record pinned
+to the hash of the artifact above it, and the heading is the wording the reader actually judged against
+— which is what somebody reading a finished cycle months later needs, not whatever the library says by
+then. Nothing in a repository records which build of the global library judged a cycle:
+`framework_version` is deliberately the artifact format and not the package version, so the wording was
+otherwise unrecoverable. Resolving at render time would also have made `sdlc status` and the gate fail
+whenever the library did not parse, which is a new way for two commands that do not read it today to
+break.
+
+**Why this is not the copy `CON_09` forbids.** That rule forbids an artifact reproducing a constraint
+*instead of* citing it, and the cost it names is two live copies diverging with nothing to say which
+binds. Neither applies: the heading sits beside the citation rather than in place of it, and it is
+evidence of what was read rather than a second authority. What keeps the copy from becoming a
+paraphrase is that the reader is told to copy the line verbatim and a round without one is rejected.
+
+**Why it stays one citation.** A finding is one objection resting on one rule, which is what keeps the
+refiner's three dispositions meaning something: a finding answered against two of its three rules would
+be neither open nor answered, and a gate refusal would stop naming one thing to fix. Two rules whose
+remedies exclude each other is a conflict, which §6 already makes an ending of the loop — so
+multiplicity belongs to a conflict, where it is the whole point, and not to a finding. Note that §6's
+three endings are stated and none of them is implemented; that gap is not closed here.
+
+**The format change is additive and `framework_version` does not move.** A round written before this
+carries `cites` as a string, which no longer reads — so the suite's fixtures were updated rather than a
+compatibility path being kept. Nothing in a governed solution needed migrating: the rule lands with the
+binary that enforces it, and the rounds it rejects are ones no shipped reader had yet written.
+
+**Rejected.** *An array of citations* — considered first, and it buys a more precise way to express a
+conflict that was already spotted, at the cost of the cardinality rule stated in five places; the
+oscillation it was meant to catch is a cross-round phenomenon that no within-finding field can see,
+because each round's reader is handed only the current document. *Resolving the id to a heading when
+something renders it* — no copy anywhere and the wording can never be wrong, but it threads the
+constraint library into five responses and makes two commands depend on it parsing. *Instructing the
+skills to name the rule in prose and changing no format* — the smallest option, and it leaves every
+rendered output exactly as unreadable as it was.

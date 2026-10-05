@@ -14,6 +14,11 @@ namespace Sdlc.Core.Findings;
 /// one and answered in round two appears twice and reads as two.</para>
 /// <para>The statement is shown in full and the remedy with it. A findings list that elided either would
 /// be an index to a file somebody then opens, and the point of the command is not opening the file.</para>
+/// <para>The cited rule's own line is shown under the id for the same reason, and it is the reason the
+/// round carries the line at all. A bare `CON_16` is an index entry: it tells a reader that something
+/// was breached and not what, so the only way to read the finding is to go and resolve the id, which
+/// nobody does. Brief mode is the exception, because it is explicitly the list of ids for somebody
+/// deciding what to open.</para>
 /// </remarks>
 public static class FindingsRenderer
 {
@@ -97,7 +102,7 @@ public static class FindingsRenderer
 
     private static void Entry(StringBuilder output, Finding finding, bool brief)
     {
-        string cites = finding.Cites is { } constraint ? "  " + constraint : string.Empty;
+        string cites = finding.Cites?.Id is { } id ? "  " + id : string.Empty;
 
         output.AppendLine(string.Create(
             CultureInfo.InvariantCulture,
@@ -106,6 +111,11 @@ public static class FindingsRenderer
         if (brief)
         {
             return;
+        }
+
+        if (finding.Cites?.Line() is { } rule)
+        {
+            output.AppendLine(Indent + "        " + rule);
         }
 
         output.AppendLine(Indent + "        " + finding.Statement.ReplaceLineEndings(" "));

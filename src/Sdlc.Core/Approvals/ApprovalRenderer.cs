@@ -60,7 +60,13 @@ public static class ApprovalRenderer
                 foreach (Findings.Finding finding in artifact.OpenBlockers)
                 {
                     output.AppendLine(CultureInfo.InvariantCulture,
-                        $"    {Cycle.NameOf(artifact.Kind)}.{finding.Id}  {finding.Cites}");
+                        $"    {Cycle.NameOf(artifact.Kind)}.{finding.Id}  {finding.Cites?.Id}");
+
+                    if (finding.Cites?.Line() is { } rule)
+                    {
+                        output.AppendLine(CultureInfo.InvariantCulture, $"        {rule}");
+                    }
+
                     output.AppendLine(CultureInfo.InvariantCulture,
                         $"        {finding.Statement}");
                 }

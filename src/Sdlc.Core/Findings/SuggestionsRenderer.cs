@@ -58,13 +58,22 @@ public static class SuggestionsRenderer
                 .OrderBy(s => s.Artifact)
                 .ThenBy(s => s.Finding.Id, StringComparer.Ordinal))
             {
-                string cites = suggestion.Finding.Cites is { } constraint
-                    ? "  " + constraint
+                string cites = suggestion.Finding.Cites?.Id is { } id
+                    ? "  " + id
                     : string.Empty;
 
                 output.AppendLine(string.Create(
                     CultureInfo.InvariantCulture,
                     $"{Indent}    {Cycle.NameOf(suggestion.Artifact),-8}r{suggestion.Round}  {suggestion.Finding.Id}{cites}"));
+
+                // Most suggestions cite nothing, so this line is usually absent -- which is what makes
+                // it worth printing when it is there. A suggestion that does rest on a rule is a
+                // different kind of thing from one that is simply an improvement, and the id alone does
+                // not say which rule somebody would be choosing not to act on.
+                if (suggestion.Finding.Cites?.Line() is { } rule)
+                {
+                    output.AppendLine(Indent + "        " + rule);
+                }
 
                 output.AppendLine(Indent + "        " + suggestion.Finding.Statement);
             }

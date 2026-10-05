@@ -198,7 +198,7 @@ public sealed class StatusRendererTests
               "id": "F_01",
               "severity": "blocking",
               "disposition": "open",
-              "cites": "CON_04",
+              "cites": { "id": "CON_04", "heading": "a spec covers every outcome its intent asks for, and all of each one, which is itself a line long enough to need wrapping" },
               "statement": "a statement long enough to need wrapping, repeated so that it certainly does: a statement long enough to need wrapping, repeated so that it certainly does."
             }
             """);
@@ -417,7 +417,7 @@ public sealed class StatusRendererTests
                 "id": "F_01",
                 "severity": "blocking",
                 "disposition": "open",
-                "cites": "CON_06",
+                "cites": { "id": "CON_06", "heading": "a plan's proof is adequate to the criterion it claims to prove" },
                 "statement": "a check that can pass while the criterion is unmet.",
                 "locus": "criterion 5",
                 "remedy": "say what makes the second value a face."
