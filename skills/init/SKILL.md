@@ -125,6 +125,40 @@ This is the half that needs you. Three or four questions, no more:
 Question two is the one that produces real constraints. Question three usually produces an analyzer rule
 rather than a constraint, which is the right answer and worth saying out loud.
 
+### On a repository that held no code, ask these instead
+
+**Three of those four questions are about history, and a greenfield repository has none.** The honest
+answers are *nothing*, *nothing* and *nothing* — so a brand-new solution gets zero solution constraints
+by construction, and nothing anywhere records what it is meant to look like when it is finished. A
+dice-roller adopted this way, built a cycle later, came out as a numeral in a bare `<p>` with every gate
+green: nobody had asked, so nobody had been told.
+
+Keep question one. Replace two, three and four with questions that have answers before there is a past:
+
+1. **What is this solution for, in a sentence a newcomer could read?**
+2. **What should every screen in this solution look and behave like?** A component library, a design
+   somebody is working to, an existing product it has to sit beside — or plain and unstyled, which is a
+   legitimate answer and a different one from nobody having asked.
+3. **What does "done to a good standard" mean here?** The thing a reviewer would send back that no test
+   would have caught.
+4. **What will somebody judge this on that no test can check?** This is the one that earns its place
+   later, because `CON_12` keeps it out of a spec and the person is then the only reader it has.
+
+### Where each answer goes, which is not all the same place
+
+**Most of these are not constraints, and offering them as one wastes the person's time at the admission
+tests.** Sort before you propose:
+
+| An answer about | Goes in | Because |
+|---|---|---|
+| what the solution is and the standard expected of it | `solution.md`, the paragraph under the four keys | every plan reads it, and it binds nothing by itself |
+| which component library, which packages, which project may reference what | an architecture test | test two below rejects it — an analyzer *can* decide it, so a constraint is the wrong tier |
+| whether a judgement was made and recorded — that a visual treatment was considered, that an unhappy path was specified | a `LOC_` constraint | it needs reading comprehension, which is exactly what test two admits |
+
+`solution.md` is protected, so print the paragraph and let them place it. **Do not let it stay a
+placeholder.** It is the only file in the solution that says what good looks like, and a plan that reads
+`Replace this with a paragraph a newcomer could read` has been told nothing.
+
 **Ask the person, do not read the codebase.** Reading an existing repository to decide what to forbid
 would make adoption a judgement on code that predates the framework, and the first cycle would spend
 itself on findings about work nobody is defending.

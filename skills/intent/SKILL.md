@@ -84,6 +84,26 @@ record could only be written by someone who knows the codebase, it belongs downs
 
 **Fixed decisions are the one exception, and only when the person volunteered one.**
 
+## 3a. One word to pin down before you write anything
+
+**When somebody bounds the work with *simple*, *basic*, *minimal* or *nothing fancy*, ask once which
+they mean — small in scope, or plain in appearance.** Then record which, in their words.
+
+The word carries both meanings and nobody notices they have chosen one. A person who said *"keep it very
+simple — nothing fancy"* meant one die, no multiplayer, no stored history. It was recorded faithfully as
+a bound on the whole of the work, and the plan a stage later applied it to the surface: *"the whole
+surface is one control and a list of numbers, so the page uses plain markup."* Both readings are honest.
+Only one of them was meant, and the gates have no way to tell them apart afterwards — a bound this
+general reaches every stage and is argued with by none of them.
+
+One question: *"when you say nothing fancy — do you mean keep the scope small, or keep the look plain?"*
+A person who means both says both, and that is a better answer than the one you would have guessed.
+
+**What the solution should look like is not this document's business.** If the answer is about
+appearance in general rather than about this piece of work, it belongs in `.sdlc/solution.md`, where
+every future plan reads it, rather than in an intent that has to be rewritten next cycle. Say so, and
+carry on.
+
 ## 4. Write it
 
 `.sdlc/cycles/<id>/intent.md`, exactly this shape:
