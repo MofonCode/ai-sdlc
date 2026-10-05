@@ -406,6 +406,13 @@ independence from *investment bias*: the reader never saw the interview, the dra
 reasoning. It does not buy independence from *model bias*, so a borderline judgement flips the same
 coin twice.
 
+**What the reader is given is the constraints, the artifact, and the artifact above it — plus
+`techstack.md` when the artifact is a plan.** The line being drawn is between a rule source and the
+cycle's own history: the first is what the document is judged against and predates the cycle, the
+second is what the new process was opened to withhold. `CON_13` is a rule entirely about conformance
+to the stack file, so a reader without it could only object to a departure the plan admitted to
+(D-58).
+
 ### 6.1 Findings are data
 
 `findings/<artifact>.r<round>.json`:
@@ -3760,3 +3767,55 @@ demoting MudBlazor to available-rather-than-default, which removes the contradic
 declaration, and returns the profile to having no opinion about what a screen looks like. *A role for a
 MAUI host at the same time* — nothing prescribes one yet, and a table row for a project nobody has is
 how a table starts describing a repository that does not exist.
+
+### D-58 — The plan's reader is given the stack file, because the rule about it is otherwise undecidable
+
+**Governs:** §6
+
+**Decision.** The fresh reader judging a plan is handed four things: the constraints in force, the plan,
+the spec above it, and the solution's `techstack.md`. On an intent or a spec round it is handed the
+first three, unchanged.
+
+**Why.** `CON_13` forbids a plan that reaches for a package, pattern or layer `techstack.md` does not
+declare without saying what the declared default would have cost. The reader was never given
+`techstack.md`. So the only departures it could object to were the ones the plan itself named and
+explained — which means the rule fired on the document that confessed and was silent on the document
+that did not. A rule that catches the honest author and misses the careless one is worse than no rule,
+because the panel still says it was checked.
+
+**How it was found, which is the part worth keeping.** Round one of a real plan raised the gap itself,
+in the findings record, and then declined to act on it: it observed that nothing in the document said
+whether the component-test package was the declared default, an undeclared addition, or a replacement
+for something the stack named, and recorded that it was "not raised as blocking because the document
+does not itself establish that `techstack.md` fails to declare bUnit". The mechanism named its own
+blindfold in writing and the round went green. Four further rounds followed on the same document, none
+of which could see the file either, and the solution shipped missing two things its stack declares.
+
+**Why this is not the context D-49 refuses.** That entry rejects handing the reader the earlier
+findings — their ids, statements and history — on the grounds that it is most of what the new process
+was opened to withhold, and the rejection is specific to the cycle's own record. `techstack.md` is not
+the cycle's record. It predates the cycle, it is not written by the author being judged, and it is the
+document one of the constraints is *about*. It is the same category as the constraint set the reader is
+already handed; withholding it was never a decision, only an omission that read like one.
+
+**Why a plan only.** `CON_13` applies to a plan and nothing else. On an intent or a spec round the file
+would be material with no rule to serve, and material with no rule to serve is the definition of what
+this prompt excludes. The boundary is the rule's `Applies to` rather than a judgement about how much
+context is too much, which is what keeps it from widening one artifact at a time.
+
+**An empty stack is pasted rather than omitted.** An adopted solution's table starts empty, and a
+reader handed no block cannot distinguish "this solution declares nothing" from "nobody showed me". The
+first is a fact about the solution that makes `CON_13` vacuous; the second is a reader that should not
+have judged the rule. The same reasoning as `## Open` being required when empty (D-08).
+
+**What it does not fix.** `CON_13` still only forbids *reaching for* something undeclared. A plan that
+silently fails to apply a declared default breaks no rule, and the reader now holding the stack file can
+see that gap without being able to call it one. That is a separate question about what the rule should
+forbid, and this entry does not answer it.
+
+**Rejected.** *Giving it to every round* — the reach that turns a fourth input into a general licence,
+and there is no rule on an intent or a spec it would serve. *Having the binary assemble the prompt* —
+the skill composes it today and a command that built it would need its own model and credentials to be
+worth anything, which is D-01's argument about why a tool call is not a fresh reader. *Leaving `CON_13`
+undecidable and deleting it instead* — considered, and rejected because the rule is the only thing
+standing between a declared stack and a stack nobody consults; the fix is to let it be judged.

@@ -19,6 +19,8 @@ this session and not as a subagent:
 
 ```bash
 sdlc constraints --for <artifact> > /tmp/sdlc-constraints.txt
+# a plan round reads one file more -- see the prompt below
+cat .sdlc/techstack.md > /tmp/sdlc-techstack.txt
 claude -p "$(cat <<'PROMPT'
 <the judging prompt below>
 PROMPT
@@ -40,9 +42,33 @@ already have. A new process creates a new reader.
 
 ## The prompt to give the fresh reader
 
-Give it exactly three things: the constraints in force, the artifact, and the artifact above it in
-the chain. Nothing else — no conversation, no request history, no explanation of what the author was
-trying to do. Every one of those is the bias you just paid to remove.
+Give it the constraints in force, the artifact, and the artifact above it in the chain — and, **when
+the artifact is a plan, the solution's `techstack.md`**. Nothing else — no conversation, no request
+history, no explanation of what the author was trying to do. Every one of those is the bias you just
+paid to remove.
+
+**Why the stack file is a fourth input and not a fourth bias.** `CON_13` is a rule entirely about
+conformance to `techstack.md`, and while the reader was not given that file the rule could not be
+decided. A reader could only object to a departure the plan confessed to — so `CON_13` caught the
+honest plan and missed the careless one, which is the inversion of what a rule is for. It is not
+hypothetical: round one of a real plan said in its own findings that it could not tell whether the
+component-test package it was reading about was the declared default, an undeclared addition, or a
+replacement for something the stack named, and declined to raise the point for exactly that reason.
+
+What the fresh process withholds is the **cycle's own history** — the drafts, the interview, the
+earlier findings with their ids and statements (D-49). `techstack.md` is none of those. It is a rule
+source, the same category as the constraint set already being handed over, and it existed before this
+cycle did. Handing it over removes nothing the new process was opened to protect.
+
+**A plan only.** `CON_13` applies to a plan and to nothing else, and an intent or a spec that reached
+for a package would be breaking a different rule. On those rounds the file would be context with no
+rule to serve, which is the definition of what does not belong in this prompt.
+
+**An empty stack is pasted as an empty stack, not left out.** An adopted solution's table starts
+empty, and a reader handed no block cannot tell "this solution declares nothing" from "nobody showed
+me". The first means every choice in the plan is unconstrained by a declared default and `CON_13` has
+nothing to bite on; the second means the reader should not have judged the rule at all. Paste the file
+as it is, and if it is absent say so in the block in those words.
 
 > You are judging one document against a fixed set of rules. You did not write it and you have no
 > stake in it.
@@ -50,6 +76,11 @@ trying to do. Every one of those is the bias you just paid to remove.
 > Here are the rules in force. Each has an `Applies to`, a `Forbids` and a `Why`:
 >
 > <the output of sdlc constraints --for \<artifact\>>
+>
+> Here is what this solution declares it is built from:
+>
+> <the contents of .sdlc/techstack.md — this block on a plan round only, and omitted whole for an
+> intent or a spec>
 >
 > Here is the document above it in the chain, which it is meant to be derived from:
 >
