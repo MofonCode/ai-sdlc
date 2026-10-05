@@ -181,8 +181,13 @@ what makes the distinction above worth getting right rather than a formality.
 sdlc status <id> --stage <artifact>
 ```
 
-Show it verbatim. Do not apply anything. Do not recommend whether to run another round — the panel
-withholds that on purpose, because the judgement has been wrong before and the owner decides.
+Show it verbatim, then **at most two lines of your own**. Do not apply anything. Do not recommend
+whether to run another round — the panel withholds that on purpose, because the judgement has been wrong
+before and the owner decides.
+
+**What the round found is in the findings document and on the panel, so do not narrate it again.** A
+round's own prose is the one thing here nothing downstream reads: the next round reads the JSON, the
+gate reads the fold, and the person reads the panel.
 
 An artifact that ran eleven rounds is not a failure of the process. On one real intent, round seven
 found that the headline change was unreachable, and round eleven found that no success criterion

@@ -55,5 +55,7 @@ had suggested stopping at round four would have been confidently wrong.
 **A summary of the artifact's content.** A command-line tool cannot summarise, and inventing one would
 be worse than showing the headings a person wrote.
 
-If the person asks for your reading of where things stand, give it **after** the panel and clearly as
-yours.
+If the person asks for your reading of where things stand, give it **after** the panel, in **at most
+three lines**, under the literal heading `My reading:` so that nothing mistakes it for something the tool
+said. **Unasked, say nothing at all.** The panel is the answer, and prose beside it competes with the only
+lines worth reading.

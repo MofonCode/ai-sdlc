@@ -114,7 +114,12 @@ sdlc status <id>
 sdlc landable <id>
 ```
 
-Show both verbatim. Then stop.
+Show both verbatim. Then **at most two lines of your own**, and only the outcome in your own words.
+Then stop.
+
+**Nothing that is not already in `verify.md`.** You have just written the document that is the
+adjudication; a hand-back that re-argues it produces a second, shorter verdict with no hash and no
+round, and a reader who disagrees with one cannot tell which one the chain carries.
 
 - **Passed?** The person decides whether to land.
 - **Blocked?** The person decides whether to remediate. Do not start remediating; you

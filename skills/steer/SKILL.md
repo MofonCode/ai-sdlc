@@ -70,7 +70,8 @@ round records the hash of the artifact above it, so editing the intent makes the
 stale, which fails the stage gate and the chain check. Re-interrogate what you touched and everything
 below it.
 
-**5. Report what changed, per artifact,** then:
+**5. Report what changed, one line per artifact** — and nothing about whether the correction was a good
+one. Then:
 
 ```
 sdlc status <id>

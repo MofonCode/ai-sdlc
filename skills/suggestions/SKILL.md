@@ -33,8 +33,9 @@ The listing does not sort by age and does not say how long anything has been ope
 suggestion's age says nothing about its worth and a tool that sorted by age would quietly argue that the
 oldest matters most. Do not add that when you report.
 
-If the person asks which to pick up, read the statements and say what you think — as your own reading,
-clearly separated from what the command printed.
+If the person asks which to pick up, read the statements and say what you think in **at most two
+lines**, under the literal heading `My reading:` so it is not mistaken for something the command
+printed. **Unasked, add nothing** — the listing is the answer.
 
 ## This is the whole of the learning loop today
 

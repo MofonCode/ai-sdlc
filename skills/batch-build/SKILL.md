@@ -113,7 +113,8 @@ reporting them as a batch failure would throw away work that is fine.
 
 ## 5. Report, and stop
 
-Per cycle: its id, its outcome, and for anything not `passed`, what stopped it. Then:
+**One line per cycle**: its id, its outcome, and for anything not `passed`, what stopped it. A batch of
+nine is nine lines, which is the point — a reader is scanning for the ones that did not pass. Then:
 
 ```
 sdlc cycles --landable

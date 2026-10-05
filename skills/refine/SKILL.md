@@ -85,7 +85,17 @@ it, and a blocker nobody clears refuses the build.
 
 ## Report
 
-Say, per finding: its id, which exit it took, and what you did.
+**One line per finding, in this shape**, and nothing else:
+
+```
+F_01  healed     added the fourteen-second measurement to `## Why now`
+F_02  withdrawn  the criterion does name a check; the reader read the wrong line
+F_03  asked      recorded in `## Open` — nobody can say what the retention period is
+```
+
+Three columns: the id, the exit it took, what you did. The report's reader is the next interrogation
+round, which needs the id and the exit to decide a disposition — so a line that argues its case buries
+the one thing the round came for.
 
 **Name every id you were given, including the ones you did not change.** Three groups, because the
 next round reads them differently:

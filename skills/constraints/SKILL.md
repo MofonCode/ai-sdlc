@@ -12,9 +12,9 @@ allowed-tools: Bash(sdlc *)
 sdlc constraints [--for <artifact>] [--brief]
 ```
 
-Show what it prints **verbatim**. Do not summarise the set, do not reorder it, and do not quote it from
-memory — the set in force is the global tier plus this solution's profile plus its own `LOC_`
-constraints, and the one you remember is none of those.
+Show what it prints **verbatim**, and **add nothing of your own**. Do not summarise the set, do not
+reorder it, and do not quote it from memory — the set in force is the global tier plus this solution's
+profile plus its own `LOC_` constraints, and the one you remember is none of those.
 
 ## This is how the rules reach you
 

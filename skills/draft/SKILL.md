@@ -17,7 +17,9 @@ sdlc draft constraint
 sdlc draft profile <name>
 ```
 
-Show what it prints **verbatim**, including the instructions under the block. Then stop.
+Show what it prints **verbatim**, including the instructions under the block. **Add nothing of your
+own** — the printed instructions are the whole hand-back, and they are written to be followed by the
+person who has to place the file. Then stop.
 
 **An approval is written to a file beside the ledger and placed by renaming it.** `draft approval`
 writes `approval.<decision>.draft.md` into the cycle directory -- a complete file, not a fragment --

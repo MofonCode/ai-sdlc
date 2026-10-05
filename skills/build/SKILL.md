@@ -44,8 +44,10 @@ refactor, a drive-by rename, a fix to something else you noticed in passing. The
 mechanically; **creep inside an approved file is what reaches review dressed as approved work**, which
 is exactly where it is least likely to be questioned.
 
-So when you notice something worth fixing that the plan did not describe: **leave it, and say so in
-your report.** That is a suggestion for a later cycle, not a thing to slip in.
+So when you notice something worth fixing that the plan did not describe: **leave it, and record it as a
+`Noticed:` line in the commit message.** That is a suggestion for a later cycle, not a thing to slip in —
+and the commit message is where it survives. Your report is read once, by whoever is at the keyboard; the
+commit is read by whoever reviews the pull request, which is the person who can act on it.
 
 **If the plan declares the solution skeleton, run `sdlc scaffold <id>`.** The first cycle of a new
 solution has no projects to change yet, so its plan declares the ones the profile supplies — a solution
@@ -85,6 +87,11 @@ It is not a rule to remember — it is why there is no point reporting done over
 ## Commit the change on the branch
 
 Commit before recording evidence. Message saying what it does and why, referencing the cycle id.
+
+**Anything you noticed and left alone goes here, one `Noticed:` line each**, after the body. A file the
+plan did not declare and you had to add belongs here too, with the reason it was forced. This is the
+destination for everything the stage was not asked about: it reaches the reviewer, and it keeps the
+hand-back to the stage's own result.
 
 **Why this order.** The diff is measured from where the branch diverged, and a file git is not tracking
 is a file `git diff` cannot see. `sdlc evidence` now stages untracked paths itself before diffing, so
@@ -133,10 +140,15 @@ defect rather than a step to work around — it means git cannot see the change 
 sdlc status <id> --brief
 ```
 
-Show it verbatim. Then **at most five lines of your own**, and only these: what you implemented, what
-the tests did, and anything you left alone deliberately. This is the one stage where prose earns its
-place, because a diff is not self-describing — but it is five lines, not a narrative, and the panel
-above already carries the cycle, the counts, the gate and the next command.
+Show it verbatim. Then **at most five lines of your own**, and only these three things: what you
+implemented, what the build and the tests said, and **how many** `Noticed:` lines the commit carries.
+This is the one stage where prose earns its place, because a diff is not self-describing — but it is five
+lines, not a narrative, and the panel above already carries the cycle, the counts, the gate and the next
+command.
+
+**Do not restate the `Noticed:` lines here.** They are in the commit, which is where the person who can
+act on them will read them. Naming the count is what tells somebody to go and look; repeating the
+contents is how a five-line hand-back becomes a page.
 
 Then stop. The person decides whether to verify.
 

@@ -79,7 +79,9 @@ working tree is evidence it cannot see.
 
 ## Report and hand back
 
-Say, per finding: what was wrong, what you changed, and whether you are confident it is the cause. Then:
+**One line per finding**, carrying three things: what was wrong, what you changed, and whether you are
+confident that was the cause. A finding you are not confident about says so in its line — that is the
+most useful thing in the report, and it is the first thing a paragraph hides. Then:
 
 ```
 sdlc status <id>

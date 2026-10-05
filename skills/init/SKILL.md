@@ -65,14 +65,15 @@ answers differently from a team maintaining something stable.
 | the code already here | none | the default. Nothing extra is written |
 | the profile's conventions | `--adopt-standard` | writes `.editorconfig`, both props files and `global.json`, and records `standard: profile` |
 
-**Say what the flag costs before they choose it, because the cost lands on the next build rather than on
-this command.** `Directory.Build.props` makes warnings errors, so a build can start failing on files
-nobody has touched. That is the opt-in working, not a fault — and the remedy is to narrow a severity or
+**Say what the flag costs before they choose it, in one line**, because the cost lands on the next build
+rather than on this command: `Directory.Build.props` makes warnings errors, so a build can start failing
+on files nobody has touched. **The rest of this paragraph is the answer if they ask, not part of the
+line.** That is the opt-in working, not a fault — and the remedy is to narrow a severity or
 scope a rule to a directory, because each of those files is created once and never rewritten, so an
 amendment survives every later run. Nothing is overwritten either: an `.editorconfig` the repository
 already had is kept.
 
-**Two things the flag does not do**, and both are worth saying because somebody will assume otherwise.
+**Two things the flag does not do**, one line each because somebody will assume otherwise.
 It does not migrate the code already there — that is a cycle, with an intent and an approval, like any
 other work. And it does not change the origin, which stays `adopted` for the life of the repository.
 
@@ -81,8 +82,9 @@ protected, so adoption creates it and never rewrites it. The report prints the f
 place, and says that until they do, the recorded standard is what every plan is held to. Show that block
 verbatim and let them paste it — the same rule as every other protected file.
 
-**Say what local costs, once, plainly.** No pull-request check governs a merge, so the pre-push hook is
-the only mechanical layer and `--no-verify` walks past it. Everything else is unchanged: cycles are
+**Say what local costs in one line, once:** no pull-request check governs a merge, so the pre-push hook
+is the only mechanical layer and `--no-verify` walks past it. **The rest answers a follow-up and is not
+the line.** Everything else is unchanged: cycles are
 planned, approved, built and verified exactly the same way. Only the guarantee is missing, and `sdlc
 doctor` says so every time it runs. When a remote exists, re-running adoption with a platform writes the
 pipeline, and the `land` skill walks through creating the remote.
@@ -168,11 +170,16 @@ innocent code.
 
 ## 5. Report
 
-Say what ran, what the origin is and what it means, what was proposed for the person to place, and what is
-still a placeholder. Then:
-
 ```
 sdlc constraints
 ```
 
-Show it verbatim — that is the set now in force — and stop.
+Show it verbatim — that is the set now in force. Then **at most five lines of your own**, one line each
+and only these: which mode ran, what the origin is, which files are placeholders, and what a person has
+to place before the first cycle.
+
+**Nothing about what any of it means.** Adoption is the stage with a standing temptation to explain the
+framework it has just installed, and `.sdlc/README.md` is the whole of that explanation — written, in the
+repository, and better than a recap. A person who wants the reasoning opens it.
+
+Then stop.

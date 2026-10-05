@@ -71,7 +71,8 @@ sdlc evidence <id> --tests <results>
 
 ## Report
 
-Which file, which cycles, what you kept from each, and anything you declined to resolve. Then stop.
+**At most four lines**: which file, which cycles, what you kept from each, and anything you declined to
+resolve. Then stop.
 
 **Do not land anything from here.** Landing is a decision, and a conflict resolution is an odd moment to
 have somebody make one.

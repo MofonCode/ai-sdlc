@@ -139,5 +139,6 @@ Then:
 
 ## Report
 
-Per cycle: its id, its branch, and the pull request's link. Then stop. Nothing after this is yours — the
-merge belongs to a reviewer.
+**One line per cycle**, carrying three things: its id, its branch, and the pull request's link. Then
+stop. Nothing after this is yours — the merge belongs to a reviewer, and a summary of what they are
+about to read is a reviewer being told what to think.
