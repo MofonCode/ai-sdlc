@@ -160,7 +160,13 @@ tier: local
 ## Shape and departures
 
 <which approach, and why this one. Any departure from techstack.md, with what the
-declared default would have cost here.>
+declared default would have cost here.
+
+And if the Files section changes a rule this cycle is judged by -- an architecture test, a build
+property file, a banned-symbols list, a hook configuration, the pipeline -- what satisfying that
+rule unchanged would have cost. CON_18. Amending such a rule is legitimate declared work; doing it
+without saying what it bought is not, because then the one check that cannot be talked around is
+rewritten by the thing it was checking.>
 
 ## Files
 
@@ -173,7 +179,12 @@ declared default would have cost here.>
 <Never name one of the five files only a person writes -- approval.md, abandoned.md, constraints.md,
 solution.md, techstack.md. The schema refuses a plan that declares one, because the build is denied the
 write and the plan could not be carried out as written. Changing the declared stack is its own act,
-outside a cycle: 'sdlc draft techstack' and a rename.>
+outside a cycle: 'sdlc draft techstack' and a rename.
+
+A file holding a rule is different: you may declare one and change it. The evidence comparison reports
+every such file under GOVERNING whether or not the plan declared it, and CON_18 asks Shape and
+departures to say what the rule would have cost. Those are an architecture test, Directory.Build.props,
+BannedSymbols.txt, .editorconfig, a hook configuration and the pipeline.>
 
 ## Proof
 

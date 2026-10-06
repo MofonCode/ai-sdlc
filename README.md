@@ -114,7 +114,7 @@ claude plugin install sdlc@ai-sdlc
 sdlc constraints
 ```
 
-It should print the fifteen global constraints in force and say it read them from
+It should print the sixteen global constraints in force and say it read them from
 `global  embedded in sdlc 0.12.0`. **Use this rather than `sdlc help` as the smoke test** — `help` and
 `version` are the only commands that need nothing from the installation, so they are the two that cannot
 tell you whether it worked. Then `claude plugin details sdlc@ai-sdlc` should say `Skills (17)` and
@@ -169,7 +169,7 @@ travels with your code.
 | | |
 |---|---|
 | [`CONCEPT.md`](CONCEPT.md) | the design, and every decision behind it with what each one rejected |
-| [`CONSTRAINTS.md`](CONSTRAINTS.md) | the fifteen global constraints, each with what it forbids and why |
+| [`CONSTRAINTS.md`](CONSTRAINTS.md) | the sixteen global constraints, each with what it forbids and why |
 | [`AGENTS.md`](AGENTS.md) | how to work in this repository, written for an agent — and the repository map |
 | [`src/README.md`](src/README.md) | what `Sdlc.Core` and `Sdlc.Cli` are, and where a new thing goes |
 | [`tools/README.md`](tools/README.md) | the two tools that check what the test suite cannot |

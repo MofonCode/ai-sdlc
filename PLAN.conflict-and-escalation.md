@@ -129,11 +129,34 @@ inputs, then phase 3, which reused the counter rather than inventing a second on
 `CONCEPT.md` as D-64, D-65 and D-66, which is where somebody will look for it. Delete the file and its
 row in `AGENTS.md`'s map once the two loose ends below have homes.
 
+## 5b — may a plan depart from an architecture rule?
+
+**Decided, and `CON_18` is placed.** A plan may change a rule the cycle is judged by, and must say in
+`Shape and departures` what satisfying that rule unchanged would have cost.
+
+**Why this was easier than the review thought.** The review asked whether an architecture test should get
+a departure door like `techstack.md` has, and could argue it both ways. D-67 moved the ground: the stack
+file can now be argued with but not edited, while an architecture test can be edited but not argued with
+— which is backwards, since the suite is the only mechanical enforcement of shape the framework has. So
+the door was already open. `DeclaredFiles.Governs` says it outright: *"A cycle is allowed to change these,
+and that is exactly why they are reported."* The question was never whether to open one, but whether
+passing through it should require an argument. It now does, and the suite still runs — no mechanical
+enforcement was traded away.
+
+The counts, §7.5's table and the plan skill's `Shape and departures` guidance moved with it.
+
+**What was rejected:** flagging when a declared shape is heavy relative to its intent. No bright line, so
+it fires inconsistently — and the dice case's real miss was an intent bound, *"keep it very simple"*, that
+no stage reads. That is a separate gap and still open.
+
+---
+
 ## What this plan does not do
 
-- **It does not resolve finding 5b** from the deleted review: whether a plan may depart from an
-  architecture rule the way it departs from the declared stack. That question is now recorded nowhere
-  but git (`d572eb2`) and still wants a home.
+- **It does not read an intent's bounds.** The dice cycle's *"keep it very simple — nothing fancy"* was a
+  fixed decision no stage acts on, which is what let a nine-project shape pass for one button. `CON_18`
+  asks a plan to argue about rules it changes; nothing asks whether a shape is proportionate to what was
+  wanted.
 - **It does not add the heading drift check.** Verifying a stored citation heading against the live
   library has no home on the write path, because no command writes a round — the skill does. `sdlc
   doctor` is where it belongs.

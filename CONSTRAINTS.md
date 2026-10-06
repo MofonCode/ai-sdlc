@@ -288,3 +288,21 @@ indistinguishable, to the person pressing it, from an application that is broken
 criterion a spec of successes can hold. One real solution shipped exactly that: five criteria, all of
 them met, and a button that did nothing at all when the api was unreachable. This asks for one more
 criterion, not a design: being told nothing is a legitimate answer if a spec says so out loud.
+
+## CON_18 — A plan that changes a rule the cycle is judged by says what the rule would have cost
+
+**Applies to:** a plan, at approval.
+
+**Forbids:** a plan declaring a change to a file that holds a rule this cycle is judged by — an
+architecture test, a build property file, a banned-symbols list, a hook configuration, the pipeline —
+without saying in `Shape and departures` what satisfying the rule unchanged would have cost here.
+
+**Why:** the architecture suite is the only mechanical enforcement of shape the framework has, and a cycle
+may amend it as ordinary declared work. That is right: a rule that cannot be amended is a cage, and the
+first genuinely unsuitable case would see it edited in silence or the whole suite ignored. What must not
+happen is amending it without argument, because then the one check that cannot be talked around is simply
+rewritten by the thing it was checking. `CON_15` already asks a plan to say why it departs from a declared
+default; this asks the same of a plan that changes the rule instead of meeting it. One real cycle turned a
+project-reference rule into roughly 3,100 lines across nine projects for a single button, rejected the
+simpler shape citing that rule, and then amended the rule anyway — and the amendment reached a reviewer as
+one row among thirty-nine in a file table, with nothing said about what the rule had cost.

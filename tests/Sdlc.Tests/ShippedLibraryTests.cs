@@ -128,16 +128,17 @@ public sealed class ShippedLibraryTests
     public void The_library_holds_the_entries_iteration_four_carries()
     {
         Assert.AreEqual(
-            17,
+            18,
             Library.Count,
             "Nine came across from iteration 3 unchanged, CON_10 was rebound to a gate refusal, and "
             + "CON_12, CON_13 and CON_14 were added in iteration 4. Two supersessions followed, each "
             + "leaving its predecessor on the page, and CON_17 was placed after them -- which is why "
-            + "this counts entries and the readme counts rules. A deliberate addition updates this "
-            + "number; an accident fails here.");
+            + "this counts entries and the readme counts rules. CON_18 followed, asking a plan that "
+            + "changes a rule the cycle is judged by to say what the rule would have cost. A deliberate "
+            + "addition updates this number; an accident fails here.");
 
         Assert.AreEqual(
-            15,
+            16,
             Library.Count(rule => rule.IsInForce),
             "The number of rules that bind is the readme's claim and what 'sdlc constraints' prints. A "
             + "supersession replaces one rule with another and leaves this unchanged; only a genuine "
