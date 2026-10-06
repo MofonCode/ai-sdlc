@@ -225,6 +225,8 @@ public sealed class PublicSurfaceTests
         // what a test asserts the draft against.
         "Sdlc.Core.Solutions.WriteSolutionDraft",
         "Sdlc.Core.Solutions.WriteSolutionDraft+Command",
+        "Sdlc.Core.Solutions.WriteTechStackDraft",
+        "Sdlc.Core.Solutions.WriteTechStackDraft+Command",
     ];
 
     [TestMethod]

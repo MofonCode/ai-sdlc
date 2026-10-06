@@ -224,6 +224,57 @@ public sealed class ArtifactSchemaTests
         }
     }
 
+    [TestMethod]
+    [DataRow("approval.md")]
+    [DataRow("abandoned.md")]
+    [DataRow("constraints.md")]
+    [DataRow("solution.md")]
+    [DataRow("techstack.md")]
+    public void A_plan_that_declares_a_file_only_a_person_writes_is_refused(string name)
+    {
+        // Such a plan cannot be carried out as written: the build is denied the write at the tool call, so
+        // the file never changes and the evidence comparison reports it as undelivered -- which means "the
+        // blast radius was wider than the change" and sends the author after an edit they forgot rather
+        // than at a declaration that was never executable.
+        string plan = WellFormed(ArtifactKind.Plan)
+            .Replace("## Files", "## Files\n\n| `.sdlc/" + name + "` | what changes in it |", StringComparison.Ordinal);
+
+        ArtifactValidation check = Validate(ArtifactKind.Plan, plan);
+
+        Assert.IsFalse(check.IsValid, Describe(check));
+        Assert.IsTrue(
+            check.Violations.Any(violation => violation.Where == "Files"),
+            "The violation names the section, because that is where the fix goes. " + Describe(check));
+        StringAssert.Contains(Describe(check), name);
+    }
+
+    [TestMethod]
+    public void A_plan_may_declare_a_file_whose_name_matches_a_protected_one_outside_the_framework_directory()
+    {
+        // The schema refuses exactly what the hook denies, by asking the hook -- and the hook requires an
+        // .sdlc segment. A techstack.md at the repository root is an ordinary file to both, and two
+        // different answers to "is this protected" would eventually disagree.
+        string plan = WellFormed(ArtifactKind.Plan)
+            .Replace("## Files", "## Files\n\n| `docs/techstack.md` | what changes in it |", StringComparison.Ordinal);
+
+        ArtifactValidation check = Validate(ArtifactKind.Plan, plan);
+
+        Assert.IsTrue(check.IsValid, Describe(check));
+    }
+
+    [TestMethod]
+    public void An_intent_naming_a_protected_file_is_not_judged_on_it()
+    {
+        // The rule is about a plan's Files section, which is a declaration of what a build will touch. An
+        // intent has no such section and no such promise, so prose mentioning a file is just prose.
+        string intent = Intent()
+            .Replace("## Open", "## Open\n\nWhether `.sdlc/techstack.md` should declare bUnit.", StringComparison.Ordinal);
+
+        ArtifactValidation check = Validate(ArtifactKind.Intent, intent);
+
+        Assert.IsTrue(check.IsValid, Describe(check));
+    }
+
     private static ArtifactValidation Validate(ArtifactKind kind, string markdown)
     {
         Assert.IsTrue(CycleId.TryParse(Id, out CycleId? cycle));

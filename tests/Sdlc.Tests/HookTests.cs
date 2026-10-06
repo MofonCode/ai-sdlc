@@ -105,7 +105,7 @@ public sealed class HookTests
         // VS Code-compatible one, which writes `tool_input`; this is the CLI's own camelCase shape,
         // which writes `toolArgs`. The reader looked for `tool_input` and `toolInput` and found
         // neither, so there was no path and no command, every call classified as harmless, and the
-        // hook allowed an agent to write the four files only a person writes -- on the host the
+        // hook allowed an agent to write the five files only a person writes -- on the host the
         // README said was supported, with the conformance test green.
         const string payload = """
             {

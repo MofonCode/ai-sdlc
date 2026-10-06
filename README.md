@@ -73,7 +73,7 @@ Three layers, and only the last is a guarantee:
 The promise made to a team is the third one. The local layer exists to make it cheap to satisfy, not to
 be the proof.
 
-**And four files only a person ever writes:** `approval.md` the gate decision, `abandoned.md` why a cycle
+**And five files only a person ever writes:** `approval.md` the gate decision, `abandoned.md` why a cycle
 stopped, `constraints.md` the solution's own rules, and `solution.md` what stack it is. A tool prints
 what belongs in them and a person puts it there. Every agent write to all four is denied at the tool
 call, by file path and by shell command alike, with no exception and no flag to carve one out of.

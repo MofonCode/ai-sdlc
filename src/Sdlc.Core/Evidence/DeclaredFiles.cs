@@ -70,7 +70,7 @@ public static class DeclaredFiles
     private static readonly HashSet<string> _governingPaths = new(StringComparer.OrdinalIgnoreCase)
     {
         Cycle.SdlcDirectoryName + "/" + FileConstraintDocuments.SolutionConstraintsFileName,
-        Cycle.SdlcDirectoryName + "/techstack.md",
+        Cycle.SdlcDirectoryName + "/" + Cycle.TechStackFileName,
         ".claude/settings.json",
         ".agents/hooks.json",
     };

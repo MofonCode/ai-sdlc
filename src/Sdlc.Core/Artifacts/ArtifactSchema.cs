@@ -144,8 +144,55 @@ public static class ArtifactSchema
 
         CheckKeys(kind, read.Value.Yaml, cycle, violations);
         CheckSections(kind, markdown, violations);
+        CheckDeclarations(kind, markdown, violations);
 
         return new ArtifactValidation(kind, violations);
+    }
+
+    /// <summary>
+    /// Refuses a plan that declares a file no agent may write.
+    /// </summary>
+    /// <remarks>
+    /// <para>Such a plan cannot be carried out as written: the build is denied the write at the tool call,
+    /// so the file never changes and the evidence comparison reports it as <c>UNDELIVERED</c> -- which
+    /// means "the plan's blast radius was wider than the change" and sends the author looking for an edit
+    /// they forgot rather than at a declaration that was never executable. Same symptom, wrong diagnosis.
+    /// </para>
+    /// <para>Here rather than in the comparison, and here rather than as a constraint. It is mechanically
+    /// decidable, which by §2.3 puts it in a schema rather than a prompt; and the schema runs before the
+    /// build, so the mistake is caught at the one moment it is still free to fix.</para>
+    /// <para><strong>It refuses exactly what the hook denies, by asking the hook.</strong> Two lists of
+    /// protected paths would eventually disagree, and the one that mattered would be whichever the author
+    /// did not read. So a path only counts here if <see cref="Hooks.ProtectedPaths.IsProtected"/> says a
+    /// write to it would be refused -- which also means a <c>techstack.md</c> outside <c>.sdlc</c> is an
+    /// ordinary file to both of them.</para>
+    /// </remarks>
+    /// <param name="kind">Which artifact this is.</param>
+    /// <param name="markdown">The file's contents.</param>
+    /// <param name="violations">The list to add to.</param>
+    private static void CheckDeclarations(
+        ArtifactKind kind,
+        string markdown,
+        List<SchemaViolation> violations)
+    {
+        if (kind != ArtifactKind.Plan)
+        {
+            return;
+        }
+
+        foreach (string declared in Evidence.DeclaredFiles.Read(markdown))
+        {
+            if (!Hooks.ProtectedPaths.IsProtected(declared, out Hooks.ProtectedFile? file))
+            {
+                continue;
+            }
+
+            violations.Add(new SchemaViolation(
+                "Files",
+                string.Create(
+                    CultureInfo.InvariantCulture,
+                    $"declares '{declared}', which only a person writes. {file!.Reason}")));
+        }
     }
 
     private static void CheckKeys(

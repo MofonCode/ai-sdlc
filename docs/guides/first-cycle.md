@@ -22,7 +22,7 @@ sdlc init
 
 It picks its own mode from what it finds: **greenfield** for a repository holding no code, **onboard** for
 existing code with no `.sdlc/`, **update** when `.sdlc/` is already there. Update refreshes only what the
-framework owns — the hook configs, the pipeline, `.sdlc/README.md` — and never the four files only a
+framework owns — the hook configs, the pipeline, `.sdlc/README.md` — and never the five files only a
 person writes.
 
 It writes and then **commits** what it wrote. That is deliberate: an untracked file is untracked when the

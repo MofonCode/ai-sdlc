@@ -59,6 +59,16 @@ public sealed record Cycle(CycleId Id, string SolutionRoot)
     public const string SolutionFileName = "solution.md";
 
     /// <summary>
+    /// The file declaring what this solution is built from.
+    /// </summary>
+    /// <remarks>
+    /// Not a cycle's file either, and named here for the same reason as the one above. It is one of the
+    /// two rule sources a plan is read against, which is why it is a person's to write: see
+    /// <see cref="Solutions.WriteTechStackDraft"/>.
+    /// </remarks>
+    public const string TechStackFileName = "techstack.md";
+
+    /// <summary>
     /// The three documents the planning approval covers, in the order they are written and read.
     /// </summary>
     /// <remarks>

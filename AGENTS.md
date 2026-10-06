@@ -137,7 +137,7 @@ the response-factory ban has a test of its own.
 cannot be decided that way. Typing a stage name at the binary — `sdlc spec <id>` — is answered rather
 than refused: it says the stage is a skill and names the invocation.
 
-**Four files only a person writes**, in a governed solution: `approval.md`, `abandoned.md`,
+**Five files only a person writes**, in a governed solution: `approval.md`, `abandoned.md`,
 `constraints.md`, `solution.md`. No tool writes them. A tool prints what belongs in them —
 `sdlc draft approval`, `draft abandon`, `draft constraint`, `draft profile` — and a person places it.
 The pre-tool

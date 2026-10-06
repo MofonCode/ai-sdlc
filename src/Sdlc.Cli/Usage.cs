@@ -11,7 +11,7 @@ internal static class Usage
     /// the flag that makes it work, which is the confusion the whole draft pattern exists to avoid.
     /// </remarks>
     public const string Drafters =
-        "One of: approval <id>, abandon <id>, constraint, profile <name>, solution.";
+        "One of: approval <id>, abandon <id>, constraint, profile <name>, solution, techstack.";
 
     /// <summary>The usage text, written to standard output for help and to standard error for a
     /// usage error.</summary>
@@ -38,6 +38,8 @@ internal static class Usage
             draft abandon <id>       Print the record that stops a cycle, for a person to place.
             draft constraint         Print the next free LOC_ id, with its four parts empty.
             draft profile <name>     Print the solution.md keys for a profile migration.
+            draft techstack          Copy the declared stack beside itself, for an edit a person
+                                     renames into place.
             draft solution           Write the whole solution.md beside itself, for a person
                                      to rename onto it. Carries the four keys through as
                                      recorded and the prose through unchanged, so the rename

@@ -199,13 +199,20 @@ Three files are written with placeholders, and they are placeholders on purpose:
 | File | What to offer |
 |---|---|
 | `.sdlc/solution.md` | the paragraph from question 1. Protected, so run `sdlc draft solution` and show the rename |
-| `.sdlc/techstack.md` | on an adopted solution, the table is empty. Offer to fill it from what you can read |
+| `.sdlc/techstack.md` | protected, and created once from the profile's template. On an adopted solution the table is empty -- run `sdlc draft techstack`, fill the draft from what you can read, and show the rename |
 | the stack files | written only where the standard is the profile's. Each is a person's to amend, and a cycle that changes one is a cycle like any other |
 | `AGENTS.md` | written if absent, printed for merging if present |
 
 `techstack.md` is the one place reading the codebase is right — it declares what the solution *is* rather
 than what it *should be*, so being wrong there is a correctable fact rather than a rule applied to
 innocent code.
+
+**But you cannot place it.** It is protected, like the other four: created once at adoption from the
+profile's template and never written by anything again. So the move is `sdlc draft techstack`, which copies
+it beside itself; fill the draft in from what you read, show what it printed, and let the person rename it.
+The reason it is protected is worth saying once if they ask: it is the second rule source a plan is read
+against, and `CON_15` judges every plan against it, so an agent able to edit it could satisfy that rule by
+adding the row it wanted instead of arguing for it.
 
 ## 5. Report
 

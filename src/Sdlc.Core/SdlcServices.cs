@@ -99,6 +99,7 @@ public static class SdlcServices
         // handler is private in there, so nothing written out here could name it.
         services.AddProfileTextRequestHandler();
         services.AddWriteSolutionDraftRequestHandler();
+        services.AddWriteTechStackDraftRequestHandler();
 
         services.AddVerifyChainRequestHandler();
 

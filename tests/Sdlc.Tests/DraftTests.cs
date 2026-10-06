@@ -335,6 +335,56 @@ public sealed class DraftTests
         return Ok(await gate.Send<ConstraintText.Query, DraftResult>(new ConstraintText.Query()));
     }
 
+    [TestMethod]
+    public async Task A_stack_draft_is_a_byte_copy_of_the_file_it_is_for()
+    {
+        // The whole guarantee of the rename. Nothing is merged and nothing is regenerated, so placing the
+        // draft applies what somebody changed in it and cannot cost them anything else.
+        using var workspace = CycleWorkspace.Create();
+
+        string path = Path.Combine(workspace.Root, Cycle.SdlcDirectoryName, Cycle.TechStackFileName);
+        const string Declared = "# What this solution is built from\n\n| Concern | Choice |\n|---|---|\n| api | ASP.NET Core |\n";
+
+        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+        await File.WriteAllTextAsync(path, Declared);
+
+        DraftResult draft = await TechStack(workspace);
+
+        Assert.IsTrue(draft.MayDraft, draft.Instructions);
+
+        string draftPath = Path.Combine(
+            workspace.Root,
+            Cycle.SdlcDirectoryName,
+            WriteTechStackDraft.DraftFileName);
+
+        Assert.IsTrue(File.Exists(draftPath), "The draft is written, not printed for a person to retype.");
+        Assert.AreEqual(
+            Declared,
+            await File.ReadAllTextAsync(draftPath),
+            "A byte copy. Anything else would make the rename able to drop a row nobody meant to lose.");
+
+        StringAssert.Contains(draft.Instructions, WriteTechStackDraft.DraftFileName);
+        StringAssert.Contains(
+            draft.Instructions,
+            "CON_15",
+            "The instructions say what belongs in a change here, because the commonest wrong reason to "
+            + "edit this file is a package one cycle happened to need.");
+    }
+
+    [TestMethod]
+    public async Task A_stack_draft_refuses_where_the_solution_was_never_adopted()
+    {
+        // Adoption creates it from the profile's template, and that is the one moment anything but a
+        // person writes it. With no file there is nothing to copy, and inventing one here would be the
+        // tool declaring a stack.
+        using var workspace = CycleWorkspace.Create();
+
+        DraftResult draft = await TechStack(workspace);
+
+        Assert.IsFalse(draft.MayDraft);
+        StringAssert.Contains(draft.Instructions, "has not been adopted");
+    }
+
     private static async Task<DraftResult> Solution(CycleWorkspace workspace)
     {
         using var gate = Gate.For(workspace.Root);
@@ -344,6 +394,14 @@ public sealed class DraftTests
 
         Assert.IsTrue(result.IsSuccess, string.Join("; ", result.Errors.Select(e => e.Message)));
         return result.Value;
+    }
+
+    private static async Task<DraftResult> TechStack(CycleWorkspace workspace)
+    {
+        using var gate = Gate.For(workspace.Root);
+
+        return Ok(await gate
+            .Send<WriteTechStackDraft.Command, DraftResult>(new WriteTechStackDraft.Command()));
     }
 
     private static async Task<DraftResult> Profile(CycleWorkspace workspace, string profile)

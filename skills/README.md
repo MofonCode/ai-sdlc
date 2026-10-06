@@ -40,7 +40,7 @@ and prints the invocation — because a tool must never send somebody somewhere 
 | `interrogate` | judges one artifact against the rules, in a fresh process. Never edits | `<id> <artifact>` | an artifact has just been written or changed | the stage skill's loop, or a person |
 | `refine` | applies an artifact's findings to that artifact. Never judges | `<id> <artifact>` | a round raised blocking findings | the stage skill's loop, or a person |
 | `steer` | carries a mid-cycle correction down the chain | `<id> "what to change"` | a person changes their mind before the gate | a person |
-| `draft` | prints what belongs in a file only a person writes | `approval <id>`, and three more | at the gate, to stop a cycle, or to add a rule | a person |
+| `draft` | prints what belongs in a file only a person writes | `approval <id>`, and five more | at the gate, to stop a cycle, to add a rule, or to change the declared stack | a person |
 | `build` | implements the plan, builds, tests, records the evidence | `<id>` | the gate is satisfied | a person, or `batch-build` |
 | `verify` | adjudicates the build against the spec, from the evidence alone | `<id>` | the build recorded evidence | a person, or `batch-build` |
 | `remediate` | applies a blocked verification's findings to source and tests | `<id>` | verify recorded `blocked` | a person, or `batch-build` |
@@ -58,7 +58,7 @@ agent, so the hook denies an agent the command; `land` is the only stage that re
 repository, so it asks before every push.
 
 **All seventeen are model-invocable.** Nothing in the manifest stops an agent reaching for one on its
-own, and that is deliberate — what protects the decisions is the hook denying the four protected files
+own, and that is deliberate — what protects the decisions is the hook denying the five protected files
 and `sdlc init`, plus the pull-request check, rather than a flag in a skill's frontmatter. A guard that
 lives in the manifest is a guard the manifest can lose. `../docs/guides/when-it-blocks.md` has what
 the hook actually denies today, and what it does not.
@@ -242,7 +242,7 @@ the hash of the artifact above it, so editing the intent makes the spec's latest
 
 ### `draft`
 
-**Prints or writes what belongs in one of the four files only a person writes.** One rule: a tool never
+**Prints or writes what belongs in one of the five files only a person writes.** One rule: a tool never
 places them, a person does. Two of the five write a complete file beside the real one so that placing
 it is a rename rather than a paste -- which matters because a block printed for pasting went unpasted
 through a whole cycle, leaving every plan in that solution reading a placeholder.

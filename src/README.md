@@ -180,7 +180,7 @@ fails to start permits everything while appearing to protect. So a shape this ca
 call and says so on standard error, and the keys are collected from every spelling any host is known to
 use rather than from the row of the host that asked. Narrowing the reader to one host's set would trade
 that tolerance for tidiness: Copilot documents two payload shapes, only one was read, and on the other the
-hook found no path, classified every call as harmless, and allowed writes to the four files only a person
+hook found no path, classified every call as harmless, and allowed writes to the five files only a person
 writes.
 
 Then the one exception to the request-and-handler rule, and the only place in the gate where it is right:

@@ -1,14 +1,14 @@
 ---
 name: draft
-description: Print what belongs in one of the four files only a person writes -- an approval, an abandonment, a solution constraint, or a profile migration. Use when a person needs to approve, refuse, stop a cycle, add a rule, or change profile.
+description: Print what belongs in one of the five files only a person writes -- an approval, an abandonment, a solution constraint, the declared stack, or a profile migration. Use when a person needs to approve, refuse, stop a cycle, add a rule, change the declared stack, or change profile.
 compatibility: Requires the sdlc binary on PATH, from the MofonCode.Sdlc.Cli dotnet tool, and a git repository. Every command here is that binary, so without it the first step fails.
-argument-hint: "approval <id> | abandon <id> | constraint | profile <name>"
+argument-hint: "approval <id> | abandon <id> | constraint | profile <name> | solution | techstack"
 allowed-tools: Bash(sdlc *), Bash(git *)
 ---
 
 # Draft a file only a person writes
 
-Four files, one rule: **a tool never places them, a person does.**
+Five files, one rule: **a tool never places them, a person does.**
 
 ```
 sdlc draft approval <id>     [--changes-requested | --deny | --reopen]
@@ -16,6 +16,7 @@ sdlc draft abandon <id>
 sdlc draft constraint
 sdlc draft profile <name>
 sdlc draft solution
+sdlc draft techstack
 ```
 
 Show what it prints **verbatim**, including the instructions under the block. **Add nothing of your
@@ -26,19 +27,21 @@ person who has to place the file. Then stop.
 writes `approval.<decision>.draft.md` into the cycle directory -- a complete file, not a fragment --
 and prints it with the rename that records it. **`draft solution` does the same for the solution
 document**, carrying its four keys through as recorded and any prose already there through
-unchanged -- so the rename can neither reclassify the solution nor cost somebody what they wrote.
-The other two still print for a person to place by hand. Show the rename command and do not run it: it is denied, and it is the decision.
+unchanged -- so the rename can neither reclassify the solution nor cost somebody what they wrote. **And
+`draft techstack` copies the declared stack beside itself**, so an edit to it is a rename too. The other
+three -- `abandon`, `constraint` and `profile` -- still print for a person to place by hand. Show the
+rename command and do not run it: it is denied, and it is the decision.
 
 ## You cannot place it, and should not offer to
 
-Every agent write to `approval.md`, `abandoned.md`, `constraints.md` and `solution.md` is denied at the
-tool call — by file path and by shell command alike. There is no flag, no mode, and no approve command
+Every agent write to `approval.md`, `abandoned.md`, `constraints.md`, `solution.md` and `techstack.md`
+is denied at the tool call — by file path and by shell command alike. There is no flag, no mode, and no approve command
 for an exception to be carved out of, which is why the rule can be stated in one sentence and has
 nowhere for a bypass to live.
 
 The rename that places an approval is denied too, in every spelling -- `mv`, `Move-Item`,
 `Rename-Item`, `Copy-Item`, and through any shell the host offers. So do not offer to run it, do not
-offer a shell command that would write any of the four, and do not read the refusal as a configuration
+offer a shell command that would write any of the five, and do not read the refusal as a configuration
 problem. If the person asks you to place it, the answer is that you cannot, and that this is the
 mechanism rather than an obstacle: a decision means something precisely because no tool could have
 recorded it.
@@ -64,6 +67,22 @@ Abandonment is terminal: the cycle will never build, even if it also holds an ap
 command to revive it. The reason is history rather than safety — an agent stuck on a blocking finding has
 an obvious escape in abandoning and starting clean, and a hand-written reason is what keeps the objection
 that killed the cycle on the record.
+
+**`techstack`** — a byte copy of the declared stack, beside itself, for an edit a person renames into
+place. You may edit the draft; only the real file is denied. The copy is the guarantee: the rename applies
+what somebody changed and nothing else, with nothing merged and nothing regenerated.
+
+It is protected for the reason the solution's own constraints are. The declared stack is the second rule
+source a plan is read against, and `CON_15` judges every plan against it — so an agent able to edit it
+could satisfy that rule by adding the row it wanted rather than arguing for it. **What belongs in a change
+here is a default the solution is adopting or dropping, not a package one cycle happened to need.** A plan
+that reaches for something undeclared departs and says what the declared default would have cost, which is
+an argument rather than an edit to this file.
+
+**A plan may not declare it either.** The schema refuses a plan whose `Files` section names any of the
+five, because such a plan cannot be carried out as written — the build is denied the write, and the
+evidence comparison would report it as undelivered, which reads as a missing edit rather than an
+impossible declaration.
 
 **`constraint`** — the next free `LOC_` id with its four parts empty, and the three admission tests
 beside them. It takes no statement, because the wording is the thing being decided and a tool accepting

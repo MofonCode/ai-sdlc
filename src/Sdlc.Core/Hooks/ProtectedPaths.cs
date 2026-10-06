@@ -59,6 +59,16 @@ public static class ProtectedPaths
                 + "governing itself. Constraints are edited by a person, by hand.");
         }
 
+        if (string.Equals(fileName, Cycle.TechStackFileName, StringComparison.OrdinalIgnoreCase))
+        {
+            return new ProtectedFile(
+                "what this solution is built from",
+                "The declared stack is the second rule source a plan is read against, and CON_15 judges "
+                + "every plan against it - so an agent that could write it could satisfy that rule by "
+                + "adding the row it wanted. Adoption creates it from the profile's template and nothing "
+                + "rewrites it after. Run 'sdlc draft techstack', edit the draft, and rename it.");
+        }
+
         if (string.Equals(fileName, Cycle.SolutionFileName, StringComparison.OrdinalIgnoreCase))
         {
             return new ProtectedFile(
@@ -79,6 +89,7 @@ public static class ProtectedPaths
         "abandoned.md",
         FileConstraintDocuments.SolutionConstraintsFileName,
         Cycle.SolutionFileName,
+        Cycle.TechStackFileName,
     ];
 
     /// <summary>

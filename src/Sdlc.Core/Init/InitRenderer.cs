@@ -233,7 +233,7 @@ public static class InitRenderer
                 CultureInfo.InvariantCulture,
                 $"The solution was already governed, stays {SolutionDocument.NameOf(report.Origin)}, and is on the {SolutionDocument.NameOf(report.Standard)} standard."),
             "Only what the framework owns was refreshed -- the hook configs, the pipeline, and the README.",
-            "The four files only a person writes were not touched, by the same rule the hook uses rather",
+            "The five files only a person writes were not touched, by the same rule the hook uses rather",
             "than by a second list.",
         ],
 

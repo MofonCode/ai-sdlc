@@ -512,6 +512,7 @@ static async Task<int> Draft(CommandLine line)
         "constraint" => await Workspace.Run(rest, DraftConstraint).ConfigureAwait(false),
         "profile" => await Workspace.Run(rest, w => DraftProfile(w, rest)).ConfigureAwait(false),
         "solution" => await Workspace.Run(rest, DraftSolution).ConfigureAwait(false),
+        "techstack" => await Workspace.Run(rest, DraftTechStack).ConfigureAwait(false),
         _ => await UnknownDraft(line.Arguments[0]).ConfigureAwait(false),
     };
 }
@@ -574,6 +575,11 @@ static async Task<int> DraftAbandon(Workspace workspace, CycleId id)
 static async Task<int> DraftSolution(Workspace workspace) =>
     await PrintDraft(await workspace
         .Send<WriteSolutionDraft.Command, DraftResult>(new WriteSolutionDraft.Command())
+        .ConfigureAwait(false)).ConfigureAwait(false);
+
+static async Task<int> DraftTechStack(Workspace workspace) =>
+    await PrintDraft(await workspace
+        .Send<WriteTechStackDraft.Command, DraftResult>(new WriteTechStackDraft.Command())
         .ConfigureAwait(false)).ConfigureAwait(false);
 
 static async Task<int> DraftConstraint(Workspace workspace) =>

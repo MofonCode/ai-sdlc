@@ -335,7 +335,7 @@ mtimes, so a clone sets every file's to the moment of checkout.
 
 ### 5.3 No skill writes a protected file. A skill drafts it.
 
-Four files only a person writes:
+Five files only a person writes:
 
 | File | What is drafted |
 |---|---|
@@ -1554,7 +1554,7 @@ they print verbatim.
 | `status <id> [--stage] [--brief]` | the stage panel — §14. `--brief` is the between-stages form: the counts, what the artifact says, and the next command |
 | `findings <id> [--stage] [--round]` | what the interrogations said about one cycle, per artifact, each finding at the disposition that stands |
 | `gate <id>` | whether a cycle's build may run. Exits 1 if not |
-| `draft approval\|abandon\|constraint\|profile` | prints what belongs in a file only a person writes — §5.3 |
+| `draft approval\|abandon\|constraint\|profile\|solution\|techstack` | prints or writes what belongs in a file only a person writes — §5.3 |
 | `evidence <id>` | records the diff, its base commit, and the normalised test summary — §4.5 |
 | `cycles [--stage\|--approved\|--verified]` | every cycle this solution holds, newest first, with what each is about and where it stands |
 | `cycles --claims` | which cycles may be built together, and what collides — §10.1 |
@@ -1909,7 +1909,7 @@ rarely, so protecting both costs one manual line per migration. The alternatives
 `origin` or introduce the framework's **first conditional hook rule**, which is where a bypass would
 live. Every hook rule staying absolute means the whole rule set states in one sentence.
 
-**And it completes a pattern.** Four protected files follow one rule — a tool never writes them, a
+**And it completes a pattern.** Five protected files follow one rule — a tool never writes them, a
 tool drafts what to put in them — so it is **one verb, not four commands**.
 
 **Rejected.** Per-key protection: the hook sees a path, never a before-and-after. Leaving it
@@ -2707,7 +2707,7 @@ empty object, for every host.
 
 **What was there before.** `HookProtocol.WriteDecision` had no allow branch — anything that was not a
 deny was spelled `allow` — so every tool call the policy had no opinion about came back as an explicit
-`permissionDecision: "allow"`. `HookPolicy.Decide` refuses four protected paths and the shell commands
+`permissionDecision: "allow"`. `HookPolicy.Decide` refuses five protected paths and the shell commands
 that touch them and permits everything else, so that was nearly every call.
 
 **Why that was wrong.** On these surfaces an explicit allow is not silence. Claude Code documents it as
@@ -2727,7 +2727,7 @@ was an oversight rather than a distinction.
 **Why not `ask`.** It is the available third value on Claude Code and it is an override in the other
 direction: it forces a prompt on calls a person's own settings auto-approve, so the hook would decide
 the permission question for them restrictively instead of permissively. The gate's job is to refuse
-four files, not to re-answer a question the host has already been configured to answer.
+five files, not to re-answer a question the host has already been configured to answer.
 
 **Why silence on Copilot too, where the spec was not checked.** Copilot's `preToolUse` output shape
 could not be verified when this was decided, and the failure directions are not symmetric. A host that
@@ -2954,7 +2954,7 @@ documents say so rather than claiming a hook.
 
 **What this settles.** §2.4 said the no-planning-document-edits-from-a-failing-test rule was *"enforced
 by the hook rather than by instruction"*, and §6.3 said *"Both guards are hook rules on file paths, not
-instructions in a prompt."* Neither was true. `HookPolicy.Decide` has two rules — the four protected
+instructions in a prompt."* Neither was true. `HookPolicy.Decide` has two rules — the five protected
 files in a file write, and the same four named in a shell command — and no skill-awareness anywhere.
 The inversion §2.4 exists to prevent was enforced by nothing, and the concept asserted otherwise twice.
 F-08.
@@ -4272,7 +4272,7 @@ the rules conflict.
 **What clears a halt.** Steering, which already edits the intent, spec and plan together, records the
 correction as a fixed decision with attribution, and leaves the downstream rounds stale so the loop runs
 again. The counter moves with the history. **Nothing mechanical stops an agent steering itself**, and
-there is nowhere to put such a guard: the hook denies writes to the four protected files, and `steer` is
+there is nowhere to put such a guard: the hook denies writes to the five protected files, and `steer` is
 a skill rather than a file. What the reset rests on is downstream — a fabricated steer is a fabricated
 attribution sitting in the intent, which a person reads at the approval gate before any code exists.
 That is the same layer every advisory rule here has, and it is written down rather than assumed.
@@ -4337,3 +4337,56 @@ reaches is a number that will be argued about instead of the rule that actually 
 a conflict declaration as a regression* — a declaration is a judgement about the rules and remediation is
 about the code. *Stopping on one flat pass* — punishes a pass that traded one finding for another of the
 same size, which is ordinary progress.
+
+### D-67 — The declared stack is a person's file, created once from the profile's template
+
+**Governs:** §5.3, §8
+
+**Decision.** `techstack.md` becomes the fifth protected file. Adoption creates it from the profile's
+template and nothing writes it again: every agent write is denied by file path and by shell command,
+exactly as for the other four. A change after that is `sdlc draft techstack`, which copies the file beside
+itself for an edit a person renames into place. And the plan schema refuses a plan whose `Files` section
+declares any of the five.
+
+**Why.** `DeclaredFiles` says it in as many words: *"The solution's own constraints and its declared stack
+are the two rule sources a plan is read against."* Two rule sources, and only one of them was protected.
+The reason given for protecting the other applies here unchanged — a cycle judged by the rule it is
+changing is the same deadlock as the framework governing itself. `CON_15` judges every plan against the
+declared stack, so an agent able to write that file could satisfy the rule by adding the row it wanted and
+then truthfully not be departing from anything. The asymmetry was the whole finding.
+
+**What it makes `CON_15` mean, which is better than what it meant.** The rule never asked a plan to change
+the stack file; it asked a plan to *argue*. Protected, the only path inside a cycle is to depart and say
+what the declared default would have cost, and declaring a new default becomes a separate deliberate act
+with a person's hand on it. Before this, a cycle could make the argument unnecessary by editing what the
+argument was about.
+
+**The draft is a byte copy, which is the whole guarantee.** Renaming it applies what somebody changed and
+nothing else — nothing merged, nothing regenerated, nothing silently dropped. An agent may edit the draft,
+because only `techstack.md` is denied and `techstack.draft.md` is an ordinary file; what an agent cannot do
+is place it. The drafter proposes no rows, for the reason `sdlc draft constraint` takes no statement: which
+packages a solution declares is a judgement about how a team works, and a tool filling them in would be
+making that judgement while looking like bookkeeping.
+
+**Why the schema refuses a plan that declares one, rather than the comparison tolerating it.** Such a plan
+cannot be carried out as written. The build is denied the write, so the file never changes and the evidence
+comparison reports it as `UNDELIVERED` — which means "the plan's blast radius was wider than the change"
+and sends the author looking for an edit they forgot rather than at a declaration that was never
+executable. Same symptom, wrong diagnosis. It is mechanically decidable, so §2.3 puts it in the schema
+rather than a prompt, and the schema runs before the build, which is the one moment the mistake is still
+free to fix. **It asks the hook rather than keeping a second list**: two lists of protected paths would
+eventually disagree, and the one that mattered would be whichever the author had not read. A
+`techstack.md` outside `.sdlc` is therefore an ordinary file to both.
+
+**What this costs.** A stack change is now a person's act rather than a cycle's. That is the point, and the
+cost is real: `.sdlc/README.md` said the file was owned by "a cycle whose plan declares it", and the
+adoption skill offered to fill it in directly. Both are now wrong and both were rewritten. The drafter is
+what keeps the cost to one command and one rename rather than a hand-edit, which is the same reason D-62
+gave for drafting the solution document to a file.
+
+**Rejected.** *Leaving it writable and strengthening the signal* — recommended first and then declined: it
+treats a closed hole as a reporting problem, and the plan's reader is already handed the stack file, so the
+signal would be advising a reader that the thing it was handed may have been edited by the cycle it is
+judging. *Filtering protected paths out of the file comparison* — silent; the impossible declaration stays
+in the plan with nothing saying so. *A drafter that proposes rows from the codebase* — that is adoption's
+job once, and after that it would be a tool declaring a stack.

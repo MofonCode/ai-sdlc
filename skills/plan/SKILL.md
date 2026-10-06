@@ -170,6 +170,11 @@ declared default would have cost here.>
 
 <Ordering reasoning goes here too, when order matters: which file has to land first and why.>
 
+<Never name one of the five files only a person writes -- approval.md, abandoned.md, constraints.md,
+solution.md, techstack.md. The schema refuses a plan that declares one, because the build is denied the
+write and the plan could not be carried out as written. Changing the declared stack is its own act,
+outside a cycle: 'sdlc draft techstack' and a rename.>
+
 ## Proof
 
 1. `Test_name_in_backticks` and what it asserts, concretely enough to write.

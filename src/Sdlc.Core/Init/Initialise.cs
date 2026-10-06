@@ -185,7 +185,7 @@ public static class Initialise
     /// is the exact failure this design is written against: a directory that appears enforced and is not.
     /// </para>
     /// <para><strong>Update needs no list of what it may touch.</strong> It updates what it owns, and what
-    /// it owns is everything not protected. So the four files only a person writes are safe by the same rule
+    /// it owns is everything not protected. So the five files only a person writes are safe by the same rule
     /// the hook uses, rather than by a second list that could drift from it.
     /// </para>
     /// <para><strong>It never modifies a protected file, in any mode.</strong> It will create one that does
@@ -274,10 +274,12 @@ public static class Initialise
                     + Environment.NewLine;
             }
 
-            // techstack.md is owned by a cycle whose plan declares it, not by the framework, so adoption
-            // creates it once and then leaves it alone.
-            await Once(
-                Path.Combine(Cycle.SdlcDirectoryName, "techstack.md"),
+            // Protected, like solution.md: created from the profile's template at adoption and never
+            // written by anything again. It is the second rule source a plan is read against, so an agent
+            // able to edit it could satisfy CON_15 by adding the row it wanted rather than arguing for it.
+            // A change after this is 'sdlc draft techstack' and a rename.
+            await Protected(
+                Path.Combine(Cycle.SdlcDirectoryName, Cycle.TechStackFileName),
                 Templates.TechStack(origin),
                 actions,
                 cancellationToken).ConfigureAwait(false);
