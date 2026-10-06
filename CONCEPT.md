@@ -698,6 +698,7 @@ carrying a corrected error in it forever is the worse of the two losses.
 | `CON_14` | an open item is one nobody can resolve yet, not one nobody has done | intent, spec, plan |
 | `CON_15` | a plan says why it departs from a declared default, in either direction | plan |
 | `CON_16` | a spec covers every outcome its intent asks for, and all of each one | spec |
+| `CON_17` | a spec says what somebody is told when the action fails | spec |
 
 `CON_04` and `CON_13` are not in this table because they no longer bind. `CON_04` required every
 stated outcome to have a criterion and said nothing about a criterion covering only part of one,

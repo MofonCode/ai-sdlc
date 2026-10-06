@@ -271,3 +271,20 @@ showing a number between 1 and 6" into "displays a face value that is an integer
 same sentence with the thing the person asked to look at taken out of it. Nothing objected, and the
 solution shipped a numeral in a bare paragraph tag. Naming the remainder in `Out of scope` is the
 exit, and it is what stops this deadlocking a spec whose outcome has a part no test can reach.
+
+## CON_17 — A spec says what somebody is told when the action fails
+
+**Applies to:** a spec, at approval.
+
+**Forbids:** a spec carrying a criterion for an action somebody initiates and none for what that
+person or caller is told when it does not succeed.
+
+**Why:** the happy path is what a spec is written from, because it is what the intent describes, and
+the unhappy path is what the people using the thing actually meet. Nothing downstream asks for it
+either: build implements the spec, so a failure no criterion mentions is a failure nobody is required
+to handle, and the handling that does arrive is whatever the implementer happened to think of. The
+shape it takes is silence — a control that does nothing when the request behind it fails is
+indistinguishable, to the person pressing it, from an application that is broken, and it passes every
+criterion a spec of successes can hold. One real solution shipped exactly that: five criteria, all of
+them met, and a button that did nothing at all when the api was unreachable. This asks for one more
+criterion, not a design: being told nothing is a legitimate answer if a spec says so out loud.
