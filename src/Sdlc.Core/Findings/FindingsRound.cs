@@ -27,6 +27,13 @@ namespace Sdlc.Core.Findings;
 /// <param name="InterrogatedAt">When the round ran.</param>
 /// <param name="Round">Which round this is, counting from one.</param>
 /// <param name="Findings">What it found. An empty list is a clean round.</param>
+/// <param name="Conflicts">
+/// Rules this reader found cannot both be satisfied, if any. Absent and empty mean the same thing
+/// here, unlike <paramref name="Findings"/>: a reader that found no conflict is the overwhelming
+/// default, and requiring the array would put a key on every round that is empty in almost all of
+/// them -- the decoration <c>CON_11</c> exists to refuse. With Findings the distinction is worth a
+/// rule, because "nothing is wrong" and "the author forgot" need different responses.
+/// </param>
 public sealed record FindingsRound(
     [property: JsonPropertyName("framework_version")] string? FrameworkVersion,
     string? Cycle,
@@ -34,7 +41,8 @@ public sealed record FindingsRound(
     [property: JsonPropertyName("upstream_sha256")] string? UpstreamSha256,
     [property: JsonPropertyName("interrogated_at")] DateTimeOffset? InterrogatedAt,
     int Round,
-    IReadOnlyList<Finding> Findings);
+    IReadOnlyList<Finding> Findings,
+    IReadOnlyList<Conflict>? Conflicts = null);
 
 /// <summary>Reads interrogation rounds off disk.</summary>
 public static class FindingsReader
@@ -114,6 +122,48 @@ public static class FindingsReader
                     return Result.Fail<FindingsRound>(string.Create(
                         CultureInfo.InvariantCulture,
                         $"{source}: finding {finding.Id} cites '{finding.Cites.Id}' and gives no heading. A citation carries the rule's one line beside its id, copied from the set the round was judged against, so that reading the finding does not mean resolving the id."));
+                }
+            }
+
+            // A conflict is the loop's third ending (section 6), so it is checked as strictly as a
+            // finding's citation. The shape rules are all mechanically decidable, which by section 2.3
+            // is what puts them here rather than in the prompt.
+            foreach (Conflict conflict in round.Conflicts ?? [])
+            {
+                string named = conflict.Ids() is { Length: > 0 } ids ? ids : "nothing";
+
+                // Two or more. One rule cannot conflict with itself, and a single-entry conflict is a
+                // finding wearing the wrong shape -- which is the confusion this whole distinction
+                // exists to prevent, so it is refused rather than tolerated.
+                if (conflict.Between is null || conflict.Between.Count < 2)
+                {
+                    return Result.Fail<FindingsRound>(string.Create(
+                        CultureInfo.InvariantCulture,
+                        $"{source}: a conflict names {named}. A conflict is between two rules or more, because its whole claim is that satisfying one breaks another. One rule objecting to the artifact is a finding."));
+                }
+
+                foreach (Citation citation in conflict.Between)
+                {
+                    if (!ConstraintId.TryParse(citation.Id, out _))
+                    {
+                        return Result.Fail<FindingsRound>(string.Create(
+                            CultureInfo.InvariantCulture,
+                            $"{source}: a conflict names '{citation.Id}', which is not a constraint id. Expected a form like CON_04 or LOC_02, with an optional revision such as CON_07.2."));
+                    }
+
+                    if (string.IsNullOrWhiteSpace(citation.Heading))
+                    {
+                        return Result.Fail<FindingsRound>(string.Create(
+                            CultureInfo.InvariantCulture,
+                            $"{source}: a conflict names '{citation.Id}' and gives no heading. Every citation carries the rule's one line beside its id, here for the same reason as on a finding: a person reading this has to weigh two rules against each other, which they cannot do from two numbers."));
+                    }
+                }
+
+                if (string.IsNullOrWhiteSpace(conflict.Statement))
+                {
+                    return Result.Fail<FindingsRound>(string.Create(
+                        CultureInfo.InvariantCulture,
+                        $"{source}: the conflict between {named} says nothing about why. A conflict with no explanation is unarguable, which is what CON_10.2 objects to in a gate refusal and what the same reasoning objects to here."));
                 }
             }
 
@@ -217,6 +267,35 @@ public static class FindingsReader
             .Where(finding => finding.Severity != Severity.Blocking
                 && finding.Disposition == Disposition.Open),
     ];
+
+    /// <summary>
+    /// The conflicts that still stand: the latest round's, and no others.
+    /// </summary>
+    /// <remarks>
+    /// A conflict has no id and no disposition, so it cannot be tracked across rounds the way a finding
+    /// is. It does not need to be. A conflict is a per-round observation, and it is settled the way
+    /// everything else here is settled -- by the next fresh reader's silence (D-49). A conflict declared
+    /// in round two and not declared in round three means the refiner found an exit, and <c>CON_16</c>'s
+    /// <c>Out of scope</c> and <c>CON_14</c>'s <c>## Open</c> exist to be exactly that.
+    /// <para>
+    /// So this is the latest round's list rather than a fold. Accumulating conflicts across rounds would
+    /// report a resolved one forever, which is the mistake <see cref="Standing"/> exists to avoid for
+    /// findings. Counting declarations over the whole history is a different question with a different
+    /// answer, and it belongs to whatever decides a loop is stuck rather than here.
+    /// </para>
+    /// </remarks>
+    /// <param name="rounds">Every round recorded for one artifact.</param>
+    /// <returns>The latest round's conflicts, or nothing when there are no rounds.</returns>
+    public static IReadOnlyList<Conflict> StandingConflicts(IReadOnlyList<FindingsRound> rounds)
+    {
+        ArgumentNullException.ThrowIfNull(rounds);
+
+        FindingsRound? latest = rounds.Count == 0
+            ? null
+            : rounds.OrderBy(round => round.Round).Last();
+
+        return latest?.Conflicts ?? [];
+    }
 
     /// <summary>
     /// Where every finding has got to, latest mention wins.

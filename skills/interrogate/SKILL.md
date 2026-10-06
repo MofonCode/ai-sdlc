@@ -107,15 +107,25 @@ as it is, and if it is absent say so in the block in those words.
 > than a breach of it. What *is* judged about it is whether each entry is genuinely unsettleable —
 > see the rule about open items.
 >
-> If two rules' remedies exclude each other, say so plainly instead of choosing one.
+> If two rules' remedies exclude each other, report it as a conflict rather than choosing one. A
+> conflict is not an objection to this document: it is the claim that **no** version of this document
+> satisfies both rules, so every edit that answers one breaks the other. Name both rules, the same way
+> a finding names its one. Before you report one, check that neither rule's own exit applies -- a
+> remainder named in `Out of scope`, or an item that genuinely belongs under `## Open` -- because a
+> conflict with an exit available is a finding.
 >
 > Answer as JSON only, in this shape:
 > ```json
 > { "findings": [ { "id": "F_01", "severity": "blocking",
 >   "cites": { "id": "CON_16", "heading": "A spec covers every outcome its intent asks for, and all of each one" },
->   "statement": "...", "locus": "...", "remedy": "..." } ] }
+>   "statement": "...", "locus": "...", "remedy": "..." } ],
+>   "conflicts": [ { "between": [
+>       { "id": "CON_05", "heading": "A spec introduces no scope its intent did not ask for" },
+>       { "id": "CON_16", "heading": "A spec covers every outcome its intent asks for, and all of each one" } ],
+>     "statement": "why each remedy excludes the other", "locus": "..." } ] }
 > ```
-> An empty array means the document breaks nothing.
+> An empty `findings` array means the document breaks nothing. Omit `conflicts` when there are none,
+> which is the normal case.
 
 **Why the citation carries the rule's own line.** An id on its own is an index entry. It tells a reader
 that something was breached without telling them what, so the only way to read the finding is to go and
@@ -221,6 +231,18 @@ against, not a field to refresh from today's library.
 **An empty `findings` array still means a clean reading, and it clears nothing.** If round one raised
 a blocker and round two is empty, that blocker is still open and still refuses the build — which is
 what makes the distinction above worth getting right rather than a formality.
+
+**A conflict is written as the reader gave it, and never carried forward.** Unlike a finding it has no
+id and no disposition, because it is this round's observation rather than a tracked objection. The
+conflicts that stand are the latest round's: one declared in round two and not declared in round three
+is one the refiner found an exit for, and the next reader's silence is what says so — the same rule
+that moves a finding to `answered`. So do not copy a previous round's conflicts into this one. If it
+still holds, this round's reader will have said so independently, and that independence is the whole
+value of the declaration.
+
+**Omit `conflicts` entirely when there are none.** An absent array and an empty one mean the same
+thing here, unlike `findings`. A reader that found no conflict is the overwhelming default, and a key
+that is empty on almost every round is the decoration `CON_11` exists to refuse.
 
 ## Then report, and stop
 

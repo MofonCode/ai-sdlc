@@ -88,70 +88,7 @@ else pushing back each time, so the pair is implied.
 
 ## Phase 1 — a conflict becomes a record
 
-Make the third ending exist. Record and display only; nothing halts yet.
-
-### The shape
-
-A second array on the round, beside `findings`:
-
-```json
-{
-  "round": 2,
-  "findings": [ ... ],
-  "conflicts": [
-    {
-      "between": [
-        { "id": "CON_05", "heading": "a spec introduces no scope its intent did not ask for" },
-        { "id": "CON_16", "heading": "a spec covers every outcome its intent asks for, and all of each one" }
-      ],
-      "statement": "covering the visual half of outcome 1 requires criteria the intent does not support; narrowing it to the number leaves the outcome half covered. No wording satisfies both.",
-      "locus": "## Acceptance criteria"
-    }
-  ]
-}
-```
-
-**Not a finding, and not a third severity.** A finding objects to the document; a conflict objects to
-the rule set. D-30 deliberately reduced three severities to two, and a `conflict` severity would
-resurrect exactly what it removed. **This is also the one place multiplicity belongs**, which is why
-`between` is a list: being about more than one rule is the whole point of a conflict, where it was
-wrong for a finding.
-
-Reuses `Citation` from `f1e59ba`, so a conflict carries each rule's own line for the same reason a
-finding does.
-
-### Work
-
-| File | Change |
-|---|---|
-| `src/Sdlc.Core/Findings/Conflict.cs` | new. `Conflict(IReadOnlyList<Citation> Between, string Statement, string? Locus)` |
-| `src/Sdlc.Core/Findings/FindingsRound.cs` | `IReadOnlyList<Conflict>? Conflicts` on the record; validation below |
-| `src/Sdlc.Core/Findings/FindingsReader.cs` | a fold for standing conflicts, beside `Standing` and for the same reason — one definition, not one per caller |
-| `src/Sdlc.Core/Cycles/StatusRenderer.cs` | conflicts under their own heading, not mixed with blockers |
-| `src/Sdlc.Core/Findings/FindingsRenderer.cs` | the same, in the history |
-| `skills/interrogate/SKILL.md` | the prompt's *"If two rules' remedies exclude each other, say so plainly instead of choosing one"* becomes a structured answer; the JSON shape gains `conflicts` |
-| `tests/Sdlc.Architecture.Tests/PublicSurfaceTests.cs` | `Sdlc.Core.Findings.Conflict` |
-| `tests/Sdlc.Tests/` | round reading, validation refusals, both renderers |
-
-### Validation
-
-- `between` holds **at least two** entries. One rule cannot conflict with itself, and a single-entry
-  conflict is a finding wearing the wrong shape.
-- each entry is a valid `Citation` — id parses, heading present. Same rule as a finding's citation.
-- `statement` is non-empty. A conflict with no explanation is unarguable, which is what `CON_10.2`
-  objects to in a gate refusal and what the same reasoning objects to here.
-- an empty `conflicts` array and an absent one mean the same thing, unlike `findings`. A reader that
-  found no conflict is the overwhelming default, and requiring the array would make every round carry a
-  key that is empty in almost all of them — the decoration `CON_11` exists to refuse.
-
-### `between` holds two or more
-
-Each entry is a `Citation`, the same `{id, heading}` object a finding's `cites` carries. It is named for
-how the thing is said out loud: the conflict is *between* `CON_05` and `CON_16`.
-
-More than two is permitted. Three mutually unsatisfiable rules is conceivable, nobody has seen one, and
-permitting it costs nothing in the model -- where capping it at two would be a limit with no argument
-behind it. The renderer shows however many there are.
+**Done.** Landed as D-64; the reasoning is in `CONCEPT.md` and no longer here.
 
 ---
 
@@ -312,7 +249,7 @@ and the ruling are not in two places that can drift.
 | 2 | `steer` clears a halt and the loop re-evaluates. No mechanical guard against an agent steering itself; the approval gate downstream is what it rests on | phase 2, resolution |
 | 3 | **No ceiling** on the remediation loop. `Limit = 3` goes and the progress rule is the whole of it | phase 3 |
 | 4 | A halt stops the loop and reports. It does not refuse the gate, and `ApprovalGate` is untouched | phase 2 |
-| 5 | `between` holds two **or more** | phase 1 |
+| 5 | `between` holds two **or more** | done, D-64 |
 
 Decision 3 is the one that trades a guarantee for a better signal, and phase 3 says so in those words
 rather than leaving it to be rediscovered.

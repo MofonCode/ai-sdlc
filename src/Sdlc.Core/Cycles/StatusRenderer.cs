@@ -142,6 +142,7 @@ public static class StatusRenderer
         Shape(output, panel.Shape);
 
         Checks(output, state);
+        Conflicts(output, state);
         output.AppendLine();
 
         Field(output, "Gate", GateLine(status));
@@ -175,6 +176,45 @@ public static class StatusRenderer
         }
 
         output.AppendLine();
+    }
+
+    /// <summary>
+    /// Writes the rules the latest round found cannot both be satisfied, and nothing when there are none.
+    /// </summary>
+    /// <remarks>
+    /// Under its own heading rather than among the blockers, because the two call for different things.
+    /// A blocker is answered by editing this artifact; a conflict cannot be, and an agent that read one
+    /// as a blocker would edit the document in a circle. That is the loop this exists to end.
+    /// <para>
+    /// It says what it knows and no more. Whether the rules genuinely cannot both hold, or whether this
+    /// reader was mistaken, is not something a panel can decide -- so the line names the rules and the
+    /// reader's reasoning, and leaves the judgement to whoever reads it.
+    /// </para>
+    /// </remarks>
+    private static void Conflicts(StringBuilder output, ReadCycleStatus.ArtifactState state)
+    {
+        if (state.Conflicts.Count == 0)
+        {
+            return;
+        }
+
+        output.AppendLine();
+        Field(output, "Conflicts", Count(state.Conflicts.Count, "conflict"));
+
+        foreach (Conflict conflict in state.Conflicts)
+        {
+            Field(output, string.Empty, "    " + conflict.Ids());
+
+            foreach (Citation citation in conflict.Between ?? [])
+            {
+                if (citation.Line() is { } rule)
+                {
+                    Field(output, string.Empty, "        " + rule);
+                }
+            }
+
+            Field(output, string.Empty, "    " + conflict.Statement);
+        }
     }
 
     private static void Checks(StringBuilder output, ReadCycleStatus.ArtifactState state)

@@ -444,6 +444,30 @@ to the stack file, so a reader without it could only object to a departure the p
 
 An empty `findings` array is a clean round.
 
+A round may also carry the loop's third ending:
+
+```json
+"conflicts": [
+  {
+    "between": [
+      { "id": "CON_05", "heading": "a spec introduces no scope its intent did not ask for" },
+      { "id": "CON_16", "heading": "a spec covers every outcome its intent asks for, and all of each one" }
+    ],
+    "statement": "...why each remedy excludes the other",
+    "locus": "...where the two rules meet"
+  }
+]
+```
+
+**A conflict is not a finding.** A finding is an objection to the artifact: a correct artifact exists
+and this is not it. A conflict is an objection to the rule set as it lands on this situation: no
+correct artifact exists, because every edit satisfying one rule breaks the other. It carries two
+citations or more — the one place in the model where multiplicity is right — and no id and no
+disposition, because it is a per-round observation rather than a tracked objection. The conflicts that
+stand are the latest round's: one nobody re-declares has been resolved, by the same reader's-silence
+rule that moves a finding to `answered`. Absent and empty mean the same thing, unlike `findings`
+(D-64).
+
 **A citation is the id and the rule's own line, as one object.** §7.1 calls that pair a constraint's
 *name*, and this is that pair rather than a second arrangement of it. The heading is copied verbatim
 from the set the round was judged against and frozen there (D-63), so a finding can be read without
@@ -4110,3 +4134,69 @@ something renders it* — no copy anywhere and the wording can never be wrong, b
 constraint library into five responses and makes two commands depend on it parsing. *Instructing the
 skills to name the rule in prose and changing no format* — the smallest option, and it leaves every
 rendered output exactly as unreadable as it was.
+
+### D-64 — A conflict is recorded as its own thing, and settled by the next reader's silence
+
+**Governs:** §6, §6.1
+
+**Decision.** A round may carry a `conflicts` array beside `findings`. A conflict names two rules or
+more, each as the `{id, heading}` citation D-63 defined, with a statement of why each remedy excludes
+the other. It has no id and no disposition. The conflicts that stand are the latest round's, and the
+status panel and the findings history show them under their own heading, apart from the blockers. A
+conflict that names fewer than two rules, or a rule without its heading, or no statement at all, is
+rejected when the round is read back. Nothing halts on one yet; this makes the ending exist.
+
+**Why.** §6 has said since iteration 3 that a loop "stops on convergence or on conflict, not on a
+count", and that "three endings have to be distinguishable: converged, open, conflicting". The code
+distinguished none of them. A conflict landed as prose inside one finding's `statement`, where it was
+indistinguishable from any other objection to the status panel, the gate and the suggestions listing —
+so nothing counted it, nothing stopped on it, and nothing told a person it had happened. The promise was
+in the design document and the mechanism was nowhere.
+
+**Why not a finding, and why not a third severity.** A finding objects to the artifact and is answered
+by editing it. A conflict cannot be: its whole claim is that no version of the artifact satisfies both
+rules, so an agent that read one as a blocker would edit the document in a circle — which is the loop
+this exists to end. D-30 deliberately reduced three severities to two, and a `conflict` severity would
+resurrect exactly what it removed while leaving the two things conflated.
+
+**Why multiplicity belongs here and not on a finding.** D-63 kept `cites` a single citation because a
+finding is one objection resting on one rule, which is what keeps the three dispositions meaning
+something. A conflict is about more than one rule by definition. So `between` is a list, two entries or
+more: one rule cannot conflict with itself, and a single-entry conflict is a finding wearing the wrong
+shape. More than two is permitted — three mutually unsatisfiable rules is conceivable, nobody has seen
+one, and capping it at two would be a limit with no argument behind it.
+
+**Why no id and no disposition.** A conflict is a per-round observation, and it is settled the way
+everything else here is settled: by the next fresh reader's silence (D-49). A conflict declared in round
+two and not declared in round three is one the refiner found an exit for — `CON_16`'s `Out of scope` and
+`CON_14`'s `## Open` exist to be exactly that. Accumulating conflicts across rounds would report a
+resolved one for the life of the cycle, which is the mistake the standing fold exists to avoid for
+findings. The interrogate skill is told not to carry a previous round's conflicts forward: if it still
+holds, this round's reader will have said so independently, and that independence is the whole value of
+the declaration.
+
+**Why one declaration settles nothing on its own.** A declared conflict is an assertion, and nothing in
+this framework advances on assertion. It is also an escape hatch — an agent stuck on a blocker it cannot
+answer has an obvious out in calling it a conflict, the same hazard the abandonment record is written to
+prevent. What makes it usable is that a reader is handed only the constraints, the artifact and the
+artifact above it, and never the prior rounds: two readers declaring the same conflict are two uninvested
+processes agreeing with no knowledge of each other. That corroboration is counted rather than trusted,
+and the counting is not part of this decision.
+
+**Why absent and empty mean the same thing, where `findings` makes them differ.** D-31's reasoning about
+`## Open` applies to `findings`: "nothing is wrong" and "the author forgot" need different responses, so
+a clean round records an empty array rather than omitting it. A reader that found no conflict is the
+overwhelming default, so requiring the key would put something on every round that is empty in almost all
+of them — the decoration `CON_11` exists to refuse.
+
+**One bug this found, worth recording because the test found it rather than a reader.** The findings
+history printed "nothing raised" and skipped the rest of the artifact when no finding stood, so a round
+whose only content was a declared conflict reported nothing raised above the one line that mattered. A
+conflict counts as something raised.
+
+**Rejected.** *A `conflict` severity on a finding* — resurrects what D-30 removed and leaves the two
+conflated. *Accumulating conflicts across rounds* — reports a resolved conflict forever, for a thing with
+no disposition to clear it. *Requiring the `conflicts` key on every round* — decoration on almost every
+round, where the equivalent rule for `findings` buys a real distinction. *Halting the loop on one
+declaration* — that is an assertion halting a cycle, and the corroboration that fixes it needs a counter,
+which is its own decision.

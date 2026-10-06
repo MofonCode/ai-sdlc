@@ -33,6 +33,10 @@ public static class ReadCycleStatus
     /// <param name="OpenBlockers">
     /// Findings that still stop it advancing: blocking, and open in the latest round that mentions them.
     /// </param>
+    /// <param name="Conflicts">
+    /// Rules the latest round found cannot both be satisfied. Separate from the blockers, because a
+    /// conflict is not an objection to this artifact and nothing editing the artifact can answer it.
+    /// </param>
     /// <param name="UpstreamHash">
     /// The hash of the artifact above as it stands now, or null when this artifact has no upstream.
     /// </param>
@@ -49,6 +53,7 @@ public static class ReadCycleStatus
         IReadOnlyList<int> History,
         IReadOnlyList<Finding> OpenBlockers,
         IReadOnlyList<Finding> OpenSuggestions,
+        IReadOnlyList<Conflict> Conflicts,
         string? UpstreamHash = null,
         string? JudgedAgainst = null)
     {
@@ -262,6 +267,7 @@ public static class ReadCycleStatus
                 [.. rounds.Select(round => round.Findings.Count(finding => finding.IsOpenBlocker))],
                 FindingsReader.StandingBlockers(rounds),
                 FindingsReader.StandingSuggestions(rounds),
+                FindingsReader.StandingConflicts(rounds),
                 upstreamHash,
                 latest?.UpstreamSha256));
         }

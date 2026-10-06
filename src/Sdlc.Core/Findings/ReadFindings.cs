@@ -12,10 +12,15 @@ namespace Sdlc.Core.Findings;
 /// <param name="Artifact">Which document was judged.</param>
 /// <param name="Rounds">Every round recorded for it, in round order.</param>
 /// <param name="Standing">Each finding once, at the disposition the latest round that mentions it gave it.</param>
+/// <param name="Conflicts">
+/// The rules the latest round found cannot both be satisfied. The latest round's and no others, for the
+/// reason <see cref="FindingsReader.StandingConflicts"/> gives.
+/// </param>
 public sealed record ArtifactFindings(
     ArtifactKind Artifact,
     IReadOnlyList<FindingsRound> Rounds,
-    IReadOnlyList<Finding> Standing);
+    IReadOnlyList<Finding> Standing,
+    IReadOnlyList<Conflict> Conflicts);
 
 /// <summary>
 /// Reads what the interrogations of a cycle said.
@@ -102,7 +107,11 @@ public static class ReadFindings
                     ? [.. history.Value.Where(round => round.Round == wanted)]
                     : history.Value;
 
-                artifacts.Add(new ArtifactFindings(kind, rounds, standing));
+                artifacts.Add(new ArtifactFindings(
+                    kind,
+                    rounds,
+                    standing,
+                    FindingsReader.StandingConflicts(history.Value)));
             }
 
             return Result.Ok(new Response(cycle, artifacts));

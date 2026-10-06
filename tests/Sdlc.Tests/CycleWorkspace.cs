@@ -334,7 +334,16 @@ internal sealed class CycleWorkspace : IDisposable
     /// an interrogation does; passing a value is how a test makes a round look judged against an
     /// upstream that has since changed.
     /// </param>
-    public void WriteRound(ArtifactKind kind, int round, string findings, string? upstream = null)
+    /// <param name="conflicts">
+    /// The conflicts array's contents, without its brackets, or null to omit the key -- which is what a
+    /// round with no conflict looks like, and the normal case.
+    /// </param>
+    public void WriteRound(
+        ArtifactKind kind,
+        int round,
+        string findings,
+        string? upstream = null,
+        string? conflicts = null)
     {
         Directory.CreateDirectory(Cycle.FindingsDirectory);
 
@@ -358,6 +367,7 @@ internal sealed class CycleWorkspace : IDisposable
                     {{recorded}}
                     "interrogated_at": "2026-10-01T10:00:00Z",
                     "round": {{round}},
+                    {{(conflicts is null ? string.Empty : string.Create(CultureInfo.InvariantCulture, $"\"conflicts\": [{conflicts}],"))}}
                     "findings": [{{findings}}]
                   }
                   """));

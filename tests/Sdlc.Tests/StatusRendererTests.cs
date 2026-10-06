@@ -484,6 +484,61 @@ public sealed class StatusRendererTests
         Assert.IsTrue(lines <= 8, $"The brief panel grew to {lines} lines:\n{brief}");
     }
 
+    [TestMethod]
+    public async Task The_panel_shows_a_conflict_apart_from_the_blockers()
+    {
+        // A blocker is answered by editing this artifact; a conflict cannot be. An agent that read one
+        // as the other would edit the document in a circle, which is the loop this exists to end -- so
+        // they get separate headings rather than one list a reader has to sort.
+        using var workspace = CycleWorkspace.Create();
+        workspace.WriteAllArtifacts();
+        workspace.WriteRound(ArtifactKind.Spec, round: 1, findings: string.Empty, conflicts: DeclaredConflict);
+
+        string panel = await Render(workspace, ArtifactKind.Spec);
+
+        StringAssert.Contains(panel, "Conflicts", "Its own heading.");
+        StringAssert.Contains(panel, "CON_05 and CON_16", "Naming both rules.");
+        StringAssert.Contains(
+            panel,
+            "a spec introduces no scope its intent did not ask for",
+            "With each rule's own line, because two numbers cannot be weighed against each other.");
+        StringAssert.Contains(panel, "narrowing leaves the outcome half covered", "And the reasoning.");
+
+        foreach (string line in panel.Split(Environment.NewLine))
+        {
+            Assert.IsTrue(line.Length <= 92, $"A {line.Length}-character line: \'{line}\'");
+        }
+    }
+
+    [TestMethod]
+    public async Task The_panel_says_nothing_about_conflicts_when_there_are_none()
+    {
+        // The same silence the Shape block keeps. A panel that reported every check that passed would
+        // bury the one that did not.
+        using var workspace = CycleWorkspace.Create();
+        workspace.WriteAllArtifacts();
+        workspace.WriteCleanRound(ArtifactKind.Spec);
+
+        string panel = await Render(workspace, ArtifactKind.Spec);
+
+        Assert.IsFalse(panel.Contains("Conflicts", StringComparison.Ordinal));
+    }
+
+    /// <summary>
+    /// One declared conflict, as a reader writes it: two rules, each with its own line, and why each
+    /// remedy excludes the other.
+    /// </summary>
+    private const string DeclaredConflict = """
+        {
+          "between": [
+            { "id": "CON_05", "heading": "a spec introduces no scope its intent did not ask for" },
+            { "id": "CON_16", "heading": "a spec covers every outcome its intent asks for, and all of each one" }
+          ],
+          "statement": "covering the visual half needs criteria the intent does not support; narrowing leaves the outcome half covered.",
+          "locus": "## Acceptance criteria"
+        }
+        """;
+
     private static Task<string> RenderBrief(CycleWorkspace workspace, ArtifactKind kind) =>
         Render(workspace, kind, brief: true);
 

@@ -128,6 +128,52 @@ public sealed class FindingsCommandTests
             "The brief form is for deciding what to open.");
     }
 
+    [TestMethod]
+    public async Task The_history_shows_the_latest_rounds_conflict()
+    {
+        using var workspace = CycleWorkspace.Create();
+        workspace.WriteAllArtifacts();
+        workspace.WriteRound(ArtifactKind.Spec, round: 1, findings: string.Empty, conflicts: DeclaredConflict);
+
+        string rendered = FindingsRenderer.Render(await Read(workspace, ArtifactKind.Spec));
+
+        StringAssert.Contains(rendered, "conflict  CON_05 and CON_16");
+        StringAssert.Contains(rendered, "a spec introduces no scope its intent did not ask for");
+    }
+
+    [TestMethod]
+    public async Task A_conflict_a_later_round_did_not_re_declare_is_gone_from_the_history()
+    {
+        // Resolved by the next reader's silence, the same rule that moves a finding to answered. A
+        // conflict has no id and no disposition, so accumulating them would report a resolved one for
+        // the life of the cycle.
+        using var workspace = CycleWorkspace.Create();
+        workspace.WriteAllArtifacts();
+        workspace.WriteRound(ArtifactKind.Spec, round: 1, findings: string.Empty, conflicts: DeclaredConflict);
+        workspace.WriteCleanRound(ArtifactKind.Spec, round: 2);
+
+        string rendered = FindingsRenderer.Render(await Read(workspace, ArtifactKind.Spec));
+
+        Assert.IsFalse(
+            rendered.Contains("conflict", StringComparison.Ordinal),
+            "Round two said nothing about it, which is how a conflict is resolved.");
+    }
+
+    /// <summary>
+    /// One declared conflict, as a reader writes it: two rules, each with its own line, and why each
+    /// remedy excludes the other.
+    /// </summary>
+    private const string DeclaredConflict = """
+        {
+          "between": [
+            { "id": "CON_05", "heading": "a spec introduces no scope its intent did not ask for" },
+            { "id": "CON_16", "heading": "a spec covers every outcome its intent asks for, and all of each one" }
+          ],
+          "statement": "covering the visual half needs criteria the intent does not support; narrowing leaves the outcome half covered.",
+          "locus": "## Acceptance criteria"
+        }
+        """;
+
     private static async Task<ReadFindings.Response> Read(
         CycleWorkspace workspace,
         ArtifactKind? artifact = null,

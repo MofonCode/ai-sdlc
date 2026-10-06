@@ -145,6 +145,7 @@ public sealed class PublicSurfaceTests
         "Sdlc.Core.Evidence.TestSummary",
         "Sdlc.Core.Evidence.TestSummaryReader",
         "Sdlc.Core.Findings.Citation",
+        "Sdlc.Core.Findings.Conflict",
         "Sdlc.Core.Findings.Disposition",
         "Sdlc.Core.Findings.Finding",
         "Sdlc.Core.Findings.FindingsReader",

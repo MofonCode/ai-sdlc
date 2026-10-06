@@ -326,9 +326,157 @@ public sealed class FindingsTests
             "Nothing to show rather than a label with nothing after it.");
     }
 
+    [TestMethod]
+    public void A_conflict_reads_back_naming_both_rules()
+    {
+        // The loop's third ending, which section 6 has promised since iteration 3 and nothing recorded.
+        // Not a finding: a finding says this document is wrong, and this says no document is right.
+        Result<FindingsRound> result = FindingsReader.Read(
+            """
+            {
+              "round": 2,
+              "conflicts": [
+                {
+                  "between": [
+                    { "id": "CON_05", "heading": "a spec introduces no scope its intent did not ask for" },
+                    { "id": "CON_16", "heading": "a spec covers every outcome its intent asks for, and all of each one" }
+                  ],
+                  "statement": "covering the visual half needs criteria the intent does not support; narrowing leaves the outcome half covered.",
+                  "locus": "## Acceptance criteria"
+                }
+              ],
+              "findings": []
+            }
+            """,
+            "spec.r2.json");
+
+        Assert.IsTrue(result.IsSuccess, string.Join("; ", result.Errors.Select(e => e.Message)));
+
+        Conflict conflict = result.Value.Conflicts!.Single();
+
+        Assert.AreEqual(2, conflict.Between!.Count);
+        Assert.AreEqual("CON_05 and CON_16", conflict.Ids());
+        Assert.AreEqual("## Acceptance criteria", conflict.Locus);
+        StringAssert.Contains(conflict.Statement!, "narrowing leaves the outcome half covered");
+    }
+
+    [TestMethod]
+    public void A_round_that_names_no_conflicts_has_none_rather_than_null_trouble()
+    {
+        // Absent and empty mean the same thing for conflicts, unlike findings. A reader that found no
+        // conflict is the normal case, so the key is omitted rather than written empty on every round.
+        Result<FindingsRound> result = FindingsReader.Read(
+            """{ "round": 1, "findings": [] }""",
+            "spec.r1.json");
+
+        Assert.IsTrue(result.IsSuccess);
+        Assert.IsNull(result.Value.Conflicts);
+        Assert.AreEqual(
+            0,
+            FindingsReader.StandingConflicts([result.Value]).Count,
+            "The fold answers 'none' rather than making every caller handle a null.");
+    }
+
+    [TestMethod]
+    [DataRow("""[{ "id": "CON_05", "heading": "x" }]""", DisplayName = "one rule")]
+    [DataRow("[]", DisplayName = "no rules")]
+    public void A_conflict_that_does_not_name_two_rules_is_refused(string between)
+    {
+        // One rule cannot conflict with itself, and a single-entry conflict is a finding wearing the
+        // wrong shape -- which is exactly the confusion the distinction exists to prevent.
+        Result<FindingsRound> result = FindingsReader.Read(
+            $$"""{ "round": 1, "findings": [], "conflicts": [{ "between": {{between}}, "statement": "x." }] }""",
+            "spec.r1.json");
+
+        Assert.IsTrue(result.IsFailed);
+
+        string message = string.Join("; ", result.Errors.Select(error => error.Message));
+
+        StringAssert.Contains(message, "two rules or more");
+        StringAssert.Contains(message, "spec.r1.json", "The error names the file.");
+    }
+
+    [TestMethod]
+    public void A_conflict_whose_rule_carries_no_heading_is_refused()
+    {
+        // The same rule as a finding's citation, and for a sharper reason: a person reading this has to
+        // weigh two rules against each other, which they cannot do from two numbers.
+        Result<FindingsRound> result = FindingsReader.Read(
+            """
+            { "round": 1, "findings": [], "conflicts": [{ "between": [
+                { "id": "CON_05", "heading": "a spec introduces no scope its intent did not ask for" },
+                { "id": "CON_16" } ], "statement": "x." }] }
+            """,
+            "spec.r1.json");
+
+        Assert.IsTrue(result.IsFailed);
+        StringAssert.Contains(string.Join("; ", result.Errors.Select(e => e.Message)), "CON_16");
+    }
+
+    [TestMethod]
+    public void A_conflict_with_no_statement_is_refused()
+    {
+        // Unarguable otherwise. CON_10.2 refuses a gate reason that says nothing, and a conflict that
+        // says nothing leaves a person the two ids and no account of why they cannot both hold.
+        Result<FindingsRound> result = FindingsReader.Read(
+            """
+            { "round": 1, "findings": [], "conflicts": [{ "between": [
+                { "id": "CON_05", "heading": "a spec introduces no scope its intent did not ask for" },
+                { "id": "CON_16", "heading": "a spec covers every outcome, and all of each one" } ] }] }
+            """,
+            "spec.r1.json");
+
+        Assert.IsTrue(result.IsFailed);
+        StringAssert.Contains(string.Join("; ", result.Errors.Select(e => e.Message)), "says nothing about why");
+    }
+
+    [TestMethod]
+    public void A_conflict_may_name_more_than_two_rules()
+    {
+        // Three mutually unsatisfiable rules is conceivable and nobody has seen one. Permitting it costs
+        // nothing in the model, where capping it at two would be a limit with no argument behind it.
+        Result<FindingsRound> result = FindingsReader.Read(
+            """
+            { "round": 1, "findings": [], "conflicts": [{ "between": [
+                { "id": "CON_05", "heading": "one" },
+                { "id": "CON_16", "heading": "two" },
+                { "id": "CON_12", "heading": "three" } ], "statement": "none of the three can all hold." }] }
+            """,
+            "spec.r1.json");
+
+        Assert.IsTrue(result.IsSuccess, string.Join("; ", result.Errors.Select(e => e.Message)));
+        Assert.AreEqual("CON_05 and CON_16 and CON_12", result.Value.Conflicts!.Single().Ids());
+    }
+
+    [TestMethod]
+    public void Only_the_latest_rounds_conflicts_stand()
+    {
+        // A conflict has no id and no disposition, so it is settled the way everything else here is --
+        // by the next fresh reader's silence (D-49). One declared in round two and gone in round three is
+        // one the refiner found an exit for. Accumulating them would report a resolved conflict forever.
+        Conflict declared = new(
+            [new Citation("CON_05", "a spec introduces no scope its intent did not ask for"), new Citation("CON_16", "a spec covers every outcome its intent asks for, and all of each one")],
+            "no wording satisfies both.");
+
+        IReadOnlyList<FindingsRound> rounds = [Conflicting(2, declared), Round(3)];
+
+        Assert.AreEqual(
+            0,
+            FindingsReader.StandingConflicts(rounds).Count,
+            "Round three said nothing about it, which is how a conflict is resolved.");
+
+        Assert.AreEqual(
+            1,
+            FindingsReader.StandingConflicts([Round(1), Conflicting(2, declared)]).Count,
+            "And it stands while the latest round is the one that declared it.");
+    }
+
     /// <summary>A citation to hang a finding on, where the test is not about the citation.</summary>
     private static Citation Cited { get; } = new("CON_06", "a plan's proof is adequate to the criterion it claims to prove");
 
     private static FindingsRound Round(int number, params Finding[] findings) =>
         new(null, null, null, null, null, number, findings);
+
+    private static FindingsRound Conflicting(int number, params Conflict[] conflicts) =>
+        new(null, null, null, null, null, number, [], conflicts);
 }

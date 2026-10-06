@@ -78,7 +78,10 @@ public static class FindingsRenderer
                     .ThenBy(finding => finding.Id, StringComparer.Ordinal),
             ];
 
-            if (shown.Count == 0)
+            // Conflicts count as something raised. A round with no findings and a declared conflict is
+            // the loop's third ending, not a quiet round -- and reporting "nothing raised" above it was
+            // worse than saying nothing, because the one line that mattered was the one being denied.
+            if (shown.Count == 0 && artifact.Conflicts.Count == 0)
             {
                 output.AppendLine(Indent + "    nothing raised");
                 continue;
@@ -87,6 +90,31 @@ public static class FindingsRenderer
             foreach (Finding finding in shown)
             {
                 Entry(output, finding, brief);
+            }
+
+            // After the findings, because a conflict is rarer and reads as the conclusion of the
+            // history rather than one more item in it. Only the latest round's, for the reason
+            // StandingConflicts gives: a conflict nobody re-declared was resolved.
+            foreach (Conflict conflict in artifact.Conflicts)
+            {
+                output.AppendLine(string.Create(
+                    CultureInfo.InvariantCulture,
+                    $"{Indent}    conflict  {conflict.Ids()}"));
+
+                if (brief)
+                {
+                    continue;
+                }
+
+                foreach (Citation citation in conflict.Between ?? [])
+                {
+                    if (citation.Line() is { } rule)
+                    {
+                        output.AppendLine(Indent + "        " + rule);
+                    }
+                }
+
+                output.AppendLine(Indent + "        " + conflict.Statement?.ReplaceLineEndings(" "));
             }
         }
 
