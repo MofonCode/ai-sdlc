@@ -284,8 +284,10 @@ It writes `pass` or `blocked`. On `blocked`:
 /sdlc:remediate 20260929_1456_32
 ```
 
-Edits source and tests, never a planning document, and gets **at most three passes**. Not three then try
-harder. If the honest conclusion is that a criterion is wrong, it says so and stops rather than adjusting
+Edits source and tests, never a planning document, and runs **while each pass reduces what is open**.
+It stops when a pass undoes what an earlier one answered, or when two in a row reduce nothing — so there
+is no number of tries to run out of, and no ceiling either (D-66).
+If the honest conclusion is that a criterion is wrong, it says so and stops rather than adjusting
 the spec to match the code — if a failing test could cause an agent to edit the spec, the criteria become
 whatever the code happens to do. The recovery is `sdlc draft approval <id> --reopen`, which withdraws the
 approval with a recorded reason. It does not verify its own remediation.
@@ -327,8 +329,8 @@ source". Both substantive; neither cited a rule that forbade the current state, 
 that made them suggestions.
 
 With several cycles approved and waiting, `/sdlc:batch-build` completes them all, concurrently where
-their declared files do not collide. Everything unattended rests on the three-pass remediation bound, so
-the first batch runs are worth watching.
+their declared files do not collide. Everything unattended rests on the remediation bound — a cycle that
+stops making progress stops rather than landing — so the first batch runs are worth watching.
 
 ## Where to go next
 

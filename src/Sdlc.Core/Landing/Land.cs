@@ -114,7 +114,7 @@ public static class Land
                 // which is what a duplicated sentence always grows.
                 return Verdict(cycle, LandRefusal.Escalated, string.Create(
                     CultureInfo.InvariantCulture,
-                    $"Cycle {cycle.Id} is {RemediationBudget.Describe(budget.Value)}. A cycle that could not be made to pass within its budget stops rather than landing, and that stopping is what makes an unattended batch safe to run."));
+                    $"Cycle {cycle.Id} is {RemediationBudget.Describe(budget.Value)}. A cycle that has stopped making progress stops rather than landing, and that stopping is what makes an unattended batch safe to run."));
             }
 
             Result<VerifyChain.Response> chain = await mediator

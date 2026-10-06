@@ -13,10 +13,15 @@ copy, builds and verifies each, and reports. There is no shared queue and no dae
 
 ## Read this first
 
-**Everything here rests on the remediation bound.** A cycle that cannot be made to pass stops at three
-passes and escalates, and that stopping is the only reason this is safe to run without watching it. The
-bound is implemented and tested, but it has been exercised in fixtures far more than in anger — so the
-first few batch runs are worth watching, and a cycle that escalates is worth reading rather than
+**Everything here rests on the remediation bound.** A cycle that cannot be made to pass stops rather
+than landing, and that stopping is the only reason this is safe to run without watching. The bound is a
+progress rule rather than a pass count: remediation continues while each pass reduces what is open, and
+stops when a pass undoes earlier work or two in a row reduce nothing. **There is no ceiling behind it
+(D-66)**, so a loop that keeps showing small improvements can run for a long time -- which is the one
+thing to watch on an unattended batch.
+
+The bound is implemented and tested, but it has been exercised in fixtures far more than in anger — so
+the first few batch runs are worth watching, and a cycle that escalates is worth reading rather than
 re-running.
 
 ## 1. Find the work and read the claim graph

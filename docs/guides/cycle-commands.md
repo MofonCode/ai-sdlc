@@ -66,7 +66,7 @@ this solution, and the `LOC_` rules it proposes.
 | `/sdlc:build <id>` | agent | implements, builds, tests |
 | `sdlc evidence <id>` | binary | records the diff, the base commit, the test summary |
 | `/sdlc:verify <id>` | agent, fresh process | adjudicates from the evidence alone, writes `verify.md` |
-| `/sdlc:remediate <id>` | agent | only when verify wrote `blocked`. At most three passes |
+| `/sdlc:remediate <id>` | agent | only when verify wrote `blocked`. Runs while each pass reduces what is open |
 | `sdlc landable <id>` | binary | whether it may be landed. Exits 1 if not |
 | `/sdlc:land <id>` | agent | pushes and opens the pull request. Asks first |
 | `sdlc verify-chain <id>` | binary | the pull-request check. The only non-bypassable layer |

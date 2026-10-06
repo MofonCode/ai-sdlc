@@ -1,6 +1,6 @@
 ---
 name: remediate
-description: Apply a blocked verification's findings to source and tests. Edits code, never a planning document, and gets at most three passes. Use after verify recorded a blocked outcome.
+description: Apply a blocked verification's findings to source and tests. Edits code, never a planning document, and runs while each pass reduces what is open. Use after verify recorded a blocked outcome.
 compatibility: Requires the sdlc binary on PATH, from the MofonCode.Sdlc.Cli dotnet tool, and a git repository. Every command here is that binary, so without it the first step fails.
 argument-hint: "<cycle id>"
 allowed-tools: Bash(sdlc *), Bash(git *), Bash(dotnet *), Read, Write, Edit, Glob, Grep
@@ -16,7 +16,7 @@ A verification found a criterion unmet. Your job is to make the code meet it.
 |---|---|
 | **May edit** | source, tests |
 | **May never edit** | `intent.md`, `spec.md`, `plan.md`, `approval.md` |
-| **Capped** | three passes, then the cycle escalates |
+| **Capped** | not on passes. It stops when a pass undoes earlier work, or two in a row reduce nothing |
 
 **`approval.md` is denied at the tool call. The other three are yours to keep.** The hook sees a tool
 call and not which skill made it, so it cannot tell your edit to `spec.md` from the same edit made by
@@ -34,19 +34,32 @@ a criterion you believe is mistaken, and do not edit the criterion. The move is
 `sdlc draft approval <id> --reopen`, which withdraws the approval with a recorded reason so the planning
 documents can be rewritten and re-approved. That is the recovery path, and it leaves a record.
 
-## Know which pass you are on
+## Know whether the loop is still getting anywhere
 
 ```
 sdlc landable <id>
 ```
 
-It says how many passes are spent and how many remain. A pass is a verify findings round after the
-first, so this is counted from what happened rather than from a counter anybody could edit.
+A pass is a verify findings round after the first, counted from what happened rather than from a counter
+anybody could edit. What matters is not how many there have been but whether they are working:
 
-**Three, then the cycle stops.** Not "three then try harder". A cycle that could not be made to pass
-within its budget escalates, landing refuses it, and a person picks it up. That stopping is the only
-reason an unattended batch is safe to run at all, so do not work around it — and if you are on the third
-pass and not confident, say that rather than spending it.
+| What it says | What it means |
+|---|---|
+| *making progress* | each pass has reduced what is open. Keep going — **there is no pass limit to run out of** |
+| *a pass undid earlier work* | a finding an earlier pass answered has been raised again, and the cycle has stopped |
+| *the last two passes reduced nothing* | nothing is moving, and the cycle has stopped |
+
+**There used to be a hard three and there is deliberately no ceiling now (D-66).** A blind three failed
+an honest cycle that needed a fourth pass, and let a cycle making no progress at all spend all three. So
+the bound is on progress instead — but read what that costs you, because it lands on you rather than on
+a counter: **nothing will stop you at pass nine.** If the passes are getting smaller and you can say what
+the next one will fix, that is the rule working. If you are repeating yourself, say so and stop rather
+than finding one more thing to adjust.
+
+**The one that should stop you cold is a regression.** If a pass broke something an earlier pass fixed,
+do not reach for a fix: a loop that is undoing its own work is not going to finish, and what a person
+needs to see is what the pass actually did. Escalation refuses the landing and somebody picks it up, and
+that stopping is what makes an unattended batch safe to run at all.
 
 ## Work the findings
 

@@ -1,3 +1,4 @@
+using System.Globalization;
 using FluentResults;
 using Sdlc.Core.Cycles;
 using Sdlc.Core.Findings;
@@ -54,13 +55,13 @@ public sealed class LandingTests
     }
 
     [TestMethod]
-    public async Task A_cycle_that_spent_its_remediation_budget_is_escalated_and_never_lands()
+    public async Task A_cycle_whose_passes_stop_reducing_anything_is_escalated_and_never_lands()
     {
-        // The state iteration 3 never reached. Four verify rounds: the first is the verification, the three
-        // after it are the passes, and a blocker still stands.
+        // The state iteration 3 never reached. Four verify rounds with the same blocker standing through
+        // all of them: the last two passes reduced nothing, so the loop is not getting anywhere.
         using CycleWorkspace workspace = Passing();
 
-        for (int round = 1; round <= RemediationBudget.Limit + 1; round++)
+        for (int round = 1; round <= 4; round++)
         {
             workspace.WriteBlockingRound(ArtifactKind.Verify, round, "F_01", "CON_08");
         }
@@ -68,7 +69,7 @@ public sealed class LandingTests
         Land.Response landable = await Ask(workspace);
 
         Assert.AreEqual(Land.LandRefusal.Escalated, landable.Refusal, landable.Explanation);
-        StringAssert.Contains(landable.Explanation, "3 remediation passes spent");
+        StringAssert.Contains(landable.Explanation, "the last two passes reduced nothing");
         StringAssert.Contains(
             landable.Explanation,
             "makes an unattended batch safe",
@@ -76,8 +77,10 @@ public sealed class LandingTests
     }
 
     [TestMethod]
-    public async Task A_cycle_still_inside_its_budget_is_blocked_rather_than_escalated()
+    public async Task One_pass_that_reduced_nothing_is_blocked_rather_than_escalated()
     {
+        // One flat pass is not a stall. A pass that fixes one thing and uncovers another of equal size
+        // has made progress the count cannot see, so it takes two in a row.
         using CycleWorkspace workspace = Passing();
 
         workspace.WriteBlockingRound(ArtifactKind.Verify, round: 1, id: "F_01", cites: "CON_08");
@@ -90,13 +93,79 @@ public sealed class LandingTests
         Assert.IsTrue(state.IsSuccess);
         Assert.AreEqual(1, state.Value.Spent, "The first round is the verification, not a pass.");
         Assert.IsTrue(state.Value.Blocked);
+        Assert.IsFalse(state.Value.Stalled);
         Assert.IsFalse(state.Value.Escalated);
-        Assert.AreEqual(RemediationBudget.Limit, state.Value.Limit);
         StringAssert.Contains(
             RemediationBudget.Describe(state.Value),
-            "spent of 3",
-            "A cycle inside its budget says how much of it is left, in the one place that phrase is built.");
+            "making progress",
+            "A cycle that is still moving says so, in the one place that phrase is built.");
     }
+
+    [TestMethod]
+    public async Task A_pass_that_undoes_earlier_work_escalates_at_once()
+    {
+        // The code-side shape of oscillation, and the one signal that does not wait: a loop breaking what
+        // it already fixed is not going to finish, and every further pass is spend against a moving
+        // target. Answered in round two, raised again in round three.
+        using CycleWorkspace workspace = Passing();
+
+        workspace.WriteBlockingRound(ArtifactKind.Verify, round: 1, id: "F_01", cites: "CON_08");
+        workspace.WriteAnsweredRound(ArtifactKind.Verify, round: 2, id: "F_01", cites: "CON_08");
+        workspace.WriteBlockingRound(ArtifactKind.Verify, round: 3, id: "F_02", cites: "CON_08");
+
+        Result<RemediationState> state = await RemediationBudget.Read(
+            workspace.Cycle,
+            CancellationToken.None);
+
+        Assert.IsTrue(state.IsSuccess);
+        Assert.IsTrue(state.Value.Regressed);
+        Assert.IsTrue(state.Value.Escalated);
+        StringAssert.Contains(RemediationBudget.Describe(state.Value), "a pass undid earlier work");
+    }
+
+    [TestMethod]
+    public async Task A_cycle_that_keeps_reducing_what_is_open_never_escalates_however_many_passes_it_takes()
+    {
+        // There is no ceiling. Six passes, each one clearing a finding, is a remediation that is working
+        // -- and the blind three this replaced would have stopped the cycle on its fourth.
+        using CycleWorkspace workspace = Passing();
+
+        for (int round = 1; round <= 7; round++)
+        {
+            workspace.WriteRound(
+                ArtifactKind.Verify,
+                round,
+                string.Join(",", Enumerable.Range(0, 8 - round).Select(Blocking)));
+        }
+
+        Result<RemediationState> state = await RemediationBudget.Read(
+            workspace.Cycle,
+            CancellationToken.None);
+
+        Assert.IsTrue(state.IsSuccess);
+        Assert.AreEqual(6, state.Value.Spent);
+        Assert.IsTrue(state.Value.Blocked, "One finding is still open.");
+        Assert.IsFalse(state.Value.Stalled);
+        Assert.IsFalse(state.Value.Regressed);
+        Assert.IsFalse(
+            state.Value.Escalated,
+            "A loop still reducing what is open has not failed, however long it takes.");
+    }
+
+    /// <summary>One open blocking finding, numbered, for a round that holds several.</summary>
+    /// <param name="index">Which one.</param>
+    /// <returns>The finding as JSON, without surrounding brackets.</returns>
+    private static string Blocking(int index) => string.Create(
+        CultureInfo.InvariantCulture,
+        $$"""
+          {
+            "id": "F_{{index:D2}}",
+            "severity": "blocking",
+            "disposition": "open",
+            "cites": { "id": "CON_08", "heading": "a verify claim rests on evidence that exists and supports it" },
+            "statement": "something that must be answered."
+          }
+          """);
 
     [TestMethod]
     public async Task A_blocker_answered_within_the_budget_clears_the_cycle()

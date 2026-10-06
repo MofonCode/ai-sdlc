@@ -320,16 +320,19 @@ budget running out makes of a blocked cycle.
 ### `remediate`
 
 **Applies a blocked verification's findings to source and tests. Edits code, never a planning document,
-and gets at most three passes.**
+and runs while each pass reduces what is open.**
 
 `refine` and `remediate` are two editors with opposite guards, and the asymmetry is the whole design: if a
 failing test could cause an agent to adjust the spec, the criteria become whatever the code happens to do.
 So when the honest conclusion is "the criterion is wrong", the skill says it and stops. The recovery is
 `sdlc draft approval <id> --reopen`, which withdraws the approval with a recorded reason.
 
-**Three passes, then the cycle stops.** Not three then try harder. A pass is a verify findings round after
-the first, so the count is read from what happened rather than from a counter anybody could edit. That
-stopping is the only reason an unattended batch is safe to run at all.
+**It stops when it is not getting anywhere, not after a set number of tries.** A pass is a verify findings
+round after the first, so this is read from what happened rather than from a counter anybody could edit.
+It stops when a pass undoes what an earlier one answered, or when two passes in a row reduce nothing. That
+stopping is the only reason an unattended batch is safe to run at all. The blind three it replaced failed
+an honest cycle that needed a fourth pass and spent all three on a cycle making no progress at all, and
+there is deliberately no ceiling behind the progress rule now (D-66).
 
 It does not verify its own remediation. A verification by the session that wrote the fix is the investment
 bias the whole separation exists to remove.
@@ -367,8 +370,12 @@ the list.
 their declared files do not collide. A local skill, executed rather than subscribed to: there is no shared
 queue and no daemon.
 
-**Everything here rests on the remediation bound.** A cycle that cannot be made to pass stops at three
-passes and escalates, and that stopping is the only reason this is safe to run without watching.
+**Everything here rests on the remediation bound.** A cycle that cannot be made to pass stops rather
+than landing, and that stopping is the only reason this is safe to run without watching. The bound is a
+progress rule rather than a pass count: remediation continues while each pass reduces what is open, and
+stops when a pass undoes earlier work or two in a row reduce nothing. **There is no ceiling behind it
+(D-66)**, so a loop that keeps showing small improvements can run for a long time -- which is the one
+thing to watch on an unattended batch.
 
 It reads the claim graph from `sdlc cycles --claims` rather than working it out: the graph is a set intersection
 over a file table, which the binary does the same way every time, and a graph derived by reading plans

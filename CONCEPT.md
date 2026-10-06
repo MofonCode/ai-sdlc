@@ -128,16 +128,20 @@ intent -> spec -> plan -> build -> verify -> land
 Two loops run inside the phases:
 
 ```
-interrogate -> refine -> interrogate         an artifact, uncapped
-verify      -> remediate -> verify           the code, at most 3 passes
+interrogate -> refine -> interrogate         an artifact, until it stops converging
+verify      -> remediate -> verify           the code, while each pass reduces what is open
 ```
 
-Past three remediation passes the outcome is `escalated` and landing refuses it. **The artifact loop
-is never capped** — on the intent that ran eleven rounds, round seven found that the headline change
-was unreachable and round eleven found that no success criterion failed if it were skipped entirely.
+**Neither loop counts rounds, and both stop on oscillation.** An artifact loop stops when one rule has
+been answered and raised again three times (D-65); a remediation loop stops when a pass undoes earlier
+work, or two in a row reduce nothing (D-66). Then the outcome is `escalated` and landing refuses it. The
+reason neither is a count: on the intent that ran eleven rounds, round seven found that the headline
+change was unreachable and round eleven found that no success criterion failed if it were skipped
+entirely — and a cap low enough to catch a loop going in circles would have stopped it at four.
 
 Each stage skill runs the artifact loop itself: it writes, interrogates, refines, and interrogates
-again until the round is clean or nothing further can be settled, then reports and hands back
+again until the round is clean, a reader reports a conflict, or the loop is stuck, then reports and hands
+back
 (D-29).
 
 A stage will not run until the artifact before it has an interrogation round with no open blocking
@@ -519,7 +523,7 @@ re-interrogation is required (D-21).
 | May never edit `approval.md` | yes | yes | **the hook**, at the tool call |
 | May never edit source or tests | yes | — | the skill |
 | May never edit a planning document | — | yes | the skill, and **the gate** afterwards |
-| Capped | no | three passes, then `escalated` | the skill |
+| Capped | not on rounds; stops when one rule has come back three times | not on passes; stops when a pass undoes earlier work or two reduce nothing | the skill |
 | Also refuses | once the cycle is approved | — | the skill |
 
 **Read the right-hand column before the other three.** Only one row is denied at the tool call, and
@@ -4280,3 +4284,56 @@ citations rather than transitions* — conflates a sloppy author with a loop goi
 one conflict declaration* — an assertion stopping a cycle, and an escape hatch for an agent stuck on a
 blocker it cannot answer. *A new `GateRefusal` value* — redundant where it would fire and wrong where it
 would bite.
+
+### D-66 — The remediation loop is bounded by progress, with no ceiling behind it
+
+**Governs:** §6
+
+**Decision.** `RemediationBudget.Limit` is removed. Remediation continues while each pass strictly
+reduces the open blocking findings. It stops when a pass undoes what an earlier one answered — a relapse
+on the verification, read by the same counter the artifact loop uses — or when two consecutive passes
+reduce nothing. There is no pass ceiling. An escalated cycle still never lands.
+
+**Why the count had to go.** Three was a judgement, and both of its failure modes showed up: it failed an
+honest cycle that needed a fourth pass, and it let a cycle making no progress at all spend all three
+before stopping. A count cannot tell those apart, because the thing that matters is not how many passes
+there have been but whether they are working.
+
+**Why these two signals.** A regression is the code-side shape of oscillation, and it is the one that
+stops the loop on the spot: a loop breaking what it already fixed is not going to finish, and every
+further pass is spend against a moving target. A stall takes two passes rather than one, because a pass
+that fixes one thing and uncovers another of equal size has made real progress the count cannot see —
+one flat pass is ordinary, two in a row is not.
+
+**Why it reuses the artifact loop's counter.** A remediation pass is a verify findings round, and a
+finding answered by one pass and raised again by the next is exactly the relapse D-65 defines. So
+`Oscillation.Count` over the verify rounds is the regression check, and nothing new had to be invented
+for it. This is what split `StuckRule.Points` into `Relapses` and `Declarations`: a declaration is a
+judgement about the rules and a relapse is a measurement of what happened, and only the measurement
+belongs in a decision about code.
+
+**What no ceiling costs, recorded because it is the reason this was a decision and not a detail.**
+`RemediationBudget` said the cap was what made the unattended half safe: *"A batch is only safe to run
+unwatched because a cycle that cannot be made to pass stops instead of landing."* That property now rests
+entirely on the progress predicate, which is a better signal and **not a guarantee**. A loop that closes
+one finding while opening another satisfies "strictly reduces" on alternate passes and never terminates.
+The judgement is that a blind three was failing honest cycles often enough to cost more than that tail
+risk, and that the regression and stall rules catch the realistic bad loops. If an unattended batch is
+ever seen running away, the remedy is a ceiling put back deliberately rather than this rule quietly
+tightened.
+
+**Why the skill is told what that costs it.** The bound used to stop the agent; now it mostly does not,
+so `skills/remediate/SKILL.md` says in as many words that nothing will stop it at pass nine, and that the
+test is whether it can say what the next pass will fix. A guard that moved from the tool to the operator
+without telling the operator is worse than either.
+
+**Why a regression says something different from a stall.** They want different things from a person. A
+regression means looking at what the last pass actually did; a stall means asking whether the finding is
+answerable at all. So `Describe` names which of the two stopped the cycle rather than reporting one
+escalated state.
+
+**Rejected.** *Keeping a high ceiling behind the predicate* — recommended, and declined: a ceiling nobody
+reaches is a number that will be argued about instead of the rule that actually stops the loop. *Counting
+a conflict declaration as a regression* — a declaration is a judgement about the rules and remediation is
+about the code. *Stopping on one flat pass* — punishes a pass that traded one finding for another of the
+same size, which is ordinary progress.

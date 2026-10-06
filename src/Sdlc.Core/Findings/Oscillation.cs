@@ -11,11 +11,13 @@ namespace Sdlc.Core.Findings;
 /// The rule, as the round that last named it wrote it. Carries the heading, so a reader of a warning
 /// meets the rule rather than a number -- the same reason D-63 put it on a citation.
 /// </param>
-/// <param name="Points">
-/// How much corroborated evidence there is that this rule's ground is stuck. A relapse is one point and
-/// a conflict declaration naming it is one point, weighted the same because both are two independent
-/// readers agreeing rather than one asserting.
+/// <param name="Relapses">
+/// How many times this rule's objection was answered and then raised again. Kept apart from
+/// <paramref name="Declarations"/> because the two are different facts even though they weigh the same:
+/// a relapse is the loop measurably going backwards, which is what a remediation loop needs in order to
+/// recognise a regression, and a declaration is two readers' judgement.
 /// </param>
+/// <param name="Declarations">How many readers named this rule in a conflict.</param>
 /// <param name="Rounds">Which rounds contributed a point, in order.</param>
 /// <param name="Against">
 /// The rules this one is trading with: the others raised or named in the same rounds that gave it
@@ -24,10 +26,21 @@ namespace Sdlc.Core.Findings;
 /// </param>
 public sealed record StuckRule(
     Citation Rule,
-    int Points,
+    int Relapses,
+    int Declarations,
     IReadOnlyList<int> Rounds,
     IReadOnlyList<Citation> Against)
 {
+    /// <summary>
+    /// How much corroborated evidence there is that this rule's ground is stuck.
+    /// </summary>
+    /// <remarks>
+    /// A relapse and a declaration weigh the same, because both are two independent readers agreeing
+    /// rather than one reader asserting. Derived rather than stored, so the two cannot come to disagree
+    /// with their own total.
+    /// </remarks>
+    public int Points => Relapses + Declarations;
+
     /// <summary>Whether this rule has enough points to be worth telling the refiner about.</summary>
     public bool Warned => Points >= Oscillation.Warn;
 
@@ -102,8 +115,9 @@ public static class Oscillation
     /// boundary: narrow, overshoot, broaden, overshoot, then find the wording that satisfies both.
     /// Halting at two would kill that one round before it succeeds.
     /// <para>
-    /// Constants rather than configuration, for the reason <see cref="RemediationBudget.Limit"/> gives:
-    /// the number a team would raise it to is the number at which the bound stops meaning anything.
+    /// Constants rather than configuration, for the reason the remediation loop's own bound was a
+    /// constant: the number a team would raise it to is the number at which the bound stops meaning
+    /// anything.
     /// </para>
     /// </remarks>
     public const int Halt = 3;
@@ -180,7 +194,7 @@ public static class Oscillation
                         break;
 
                     case Disposition.Open when tally.Answered:
-                        tally.Points++;
+                        tally.Relapses++;
                         tally.Rounds.Add(round.Round);
                         tally.Note(raised, key);
 
@@ -207,7 +221,7 @@ public static class Oscillation
                     }
 
                     Tally tally = At(tallies, key, citation);
-                    tally.Points++;
+                    tally.Declarations++;
                     tally.Rounds.Add(round.Round);
                     tally.Note(raised, key);
                 }
@@ -222,7 +236,8 @@ public static class Oscillation
                 .ThenBy(tally => tally.Rule.Id, StringComparer.Ordinal)
                 .Select(tally => new StuckRule(
                     tally.Rule,
-                    tally.Points,
+                    tally.Relapses,
+                    tally.Declarations,
                     tally.Rounds,
                     tally.Against)),
         ]);
@@ -306,7 +321,11 @@ public static class Oscillation
     {
         public Citation Rule { get; set; } = rule;
 
-        public int Points { get; set; }
+        public int Relapses { get; set; }
+
+        public int Declarations { get; set; }
+
+        public int Points => Relapses + Declarations;
 
         public bool Answered { get; set; }
 

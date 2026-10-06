@@ -310,7 +310,15 @@ internal sealed class CycleWorkspace : IDisposable
     /// <param name="kind">The artifact interrogated.</param>
     /// <param name="round">The round number.</param>
     /// <param name="id">The finding's id, which keeps its value across rounds.</param>
-    public void WriteAnsweredRound(ArtifactKind kind, int round, string id = "F_01")
+    /// <param name="cites">
+    /// The constraint it cites. It has to match the round that raised it: a relapse is read off the
+    /// cited rule, so answering one rule a different rule had objected to records no transition at all.
+    /// </param>
+    public void WriteAnsweredRound(
+        ArtifactKind kind,
+        int round,
+        string id = "F_01",
+        string cites = "CON_06")
     {
         WriteRound(kind, round, string.Create(
             CultureInfo.InvariantCulture,
@@ -319,7 +327,7 @@ internal sealed class CycleWorkspace : IDisposable
                 "id": "{{id}}",
                 "severity": "blocking",
                 "disposition": "answered",
-                "cites": { "id": "CON_06", "heading": "a plan's proof is adequate to the criterion it claims to prove" },
+                "cites": { "id": "{{cites}}", "heading": "the rule {{cites}} states, in one line" },
                 "statement": "something that was answered."
               }
               """));

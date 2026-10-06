@@ -100,50 +100,7 @@ else pushing back each time, so the pair is implied.
 
 ## Phase 3 — the remediation loop
 
-Still genuinely unsettled, and the only part of this plan I would not write without an answer.
-
-### The asymmetry that matters
-
-| Loop | Can it land anything? | Worst case |
-|---|---|---|
-| interrogate → refine | **no.** It edits planning documents, and a person approves afterwards | wasted tokens before a human gate |
-| verify → remediate | **yes.** It runs after approval, inside `batch-build`, possibly unattended, and feeds `land` | unbounded spend with no human between it and the remote |
-
-`RemediationBudget` is explicit that the cap is what makes the unattended half safe: *"A batch is only
-safe to run unwatched because a cycle that cannot be made to pass stops instead of landing."* So
-removing it outright costs that property, and that is a decision to record rather than a side effect.
-
-### Progress rather than passes, and no ceiling
-
-| | Rule |
-|---|---|
-| continue while | each pass **strictly reduces** the open findings |
-| stop after | two consecutive passes with no reduction |
-| stop immediately on | a **regression** — a criterion that passed last pass failing now. The code-side oscillation signature |
-| hard ceiling | **none.** `Limit = 3` goes and nothing replaces it |
-
-This lets an honest six-pass remediation through and stops a loop going nowhere *faster* than three blind
-passes did. A progress rule is a predicate rather than a number somebody will want to raise, so it does
-not reopen the configurability argument that kept `Limit` a constant.
-
-**What no ceiling costs, recorded because it is a real cost and not a detail.** `RemediationBudget`'s own
-remarks say the cap is what makes the unattended half safe: *"A batch is only safe to run unwatched
-because a cycle that cannot be made to pass stops instead of landing."* With no ceiling, termination rests
-entirely on the progress rule. A loop that manufactures one trivial improvement per pass — closing a
-finding while opening another, forever — satisfies "strictly reduces" on alternate passes and never
-terminates. The progress rule is a better signal than a blind count and it is not a *guarantee*, which the
-count was.
-
-This was decided knowing that. The judgement is that a blind three was failing honest cycles often enough
-to cost more than the unbounded tail risk, and that the regression rule plus the no-reduction rule catch
-the realistic bad loops. If an unattended batch is ever seen running away, the remedy is a ceiling put
-back deliberately rather than this rule tightened.
-
-### Work
-
-`RemediationState` gains the per-pass open sets; `Escalated` becomes the predicate above;
-`Land.LandRefusal.Escalated`'s reason text changes; a decision entry, because this supersedes the stated
-reasoning behind `Limit = 3`.
+**Done.** Landed as D-66; the reasoning is in `CONCEPT.md` and no longer here.
 
 ---
 
@@ -156,7 +113,7 @@ and the ruling are not in two places that can drift.
 |---|---|---|
 | 1 | Warn at 2 points, halt at 3 | done, D-65 |
 | 2 | `steer` clears a halt and the loop re-evaluates. No mechanical guard against an agent steering itself; the approval gate downstream is what it rests on | done, D-65 |
-| 3 | **No ceiling** on the remediation loop. `Limit = 3` goes and the progress rule is the whole of it | phase 3 |
+| 3 | **No ceiling** on the remediation loop. `Limit = 3` goes and the progress rule is the whole of it | done, D-66 |
 | 4 | A halt stops the loop and reports. It does not refuse the gate, and `ApprovalGate` is untouched | done, D-65 |
 | 5 | `between` holds two **or more** | done, D-64 |
 
@@ -165,8 +122,12 @@ rather than leaving it to be rediscovered.
 
 ## Order
 
-Phases 1 and 2 are done, in that order, because a conflict declaration is one of the counter's two
-inputs. Phase 3 is independent of both and is what remains.
+All three are done: phase 1, then phase 2 because a conflict declaration is one of the counter's two
+inputs, then phase 3, which reused the counter rather than inventing a second one.
+
+**This file has nothing left in it but the record of what was decided.** Every phase's reasoning is in
+`CONCEPT.md` as D-64, D-65 and D-66, which is where somebody will look for it. Delete the file and its
+row in `AGENTS.md`'s map once the two loose ends below have homes.
 
 ## What this plan does not do
 

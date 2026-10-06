@@ -181,8 +181,11 @@ the only thing standing between unattended building and unreviewed work reaching
 
 ### escalated
 
-Remediation ran out of its three passes with blockers still open. **An escalated cycle never lands**, and
-that stopping is the only reason an unattended batch is safe to run at all.
+Remediation stopped getting anywhere with blockers still open: either a pass undid what an earlier one
+answered, or two passes in a row reduced nothing. **An escalated cycle never lands**, and that stopping is
+the only reason an unattended batch is safe to run at all. There is no pass count to run out of — the
+refusal says which of the two stopped it, and they want different things from you: a regression means
+looking at what the last pass actually did, and a stall means asking whether the finding is answerable.
 
 **Next:** a person decides. Either the criterion is wrong, in which case
 `sdlc draft approval <id> --reopen` withdraws the approval with a recorded reason and the documents can be

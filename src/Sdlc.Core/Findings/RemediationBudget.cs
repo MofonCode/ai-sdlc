@@ -6,22 +6,74 @@ namespace Sdlc.Core.Findings;
 
 /// <summary>Where a cycle's remediation has got to.</summary>
 /// <param name="Spent">How many passes have been made.</param>
-/// <param name="Limit">How many are allowed.</param>
+/// <param name="OpenPerRound">
+/// How many blockers stood after each verify round, in round order. The first entry is the verification
+/// itself; each one after it is a pass. This is the progress measure, and it is read from the rounds
+/// rather than kept anywhere, so it cannot disagree with the history it describes.
+/// </param>
 /// <param name="OpenBlockers">What still stands, after the latest pass.</param>
-public sealed record RemediationState(int Spent, int Limit, IReadOnlyList<Finding> OpenBlockers)
+/// <param name="Loop">
+/// What the verify rounds say about rules going backwards. A regression is a relapse on the verification:
+/// a finding answered by one pass and raised again by the next.
+/// </param>
+public sealed record RemediationState(
+    int Spent,
+    IReadOnlyList<int> OpenPerRound,
+    IReadOnlyList<Finding> OpenBlockers,
+    OscillationState Loop)
 {
     /// <summary>Whether anything still blocks.</summary>
     public bool Blocked => OpenBlockers.Count > 0;
 
     /// <summary>
-    /// Whether the budget is spent and the cycle still does not pass.
+    /// Whether a pass undid what an earlier one achieved.
     /// </summary>
     /// <remarks>
-    /// This is the state the whole unattended half of the design rests on, and the state iteration 3 never
-    /// reached. A batch is only safe to run unwatched because a cycle that cannot be made to pass stops
-    /// instead of landing.
+    /// A finding answered and then raised again is the code-side shape of oscillation, and it is the one
+    /// signal that stops remediation on the spot rather than after waiting. A loop that is breaking what
+    /// it already fixed is not going to finish, and every further pass is spend against a moving target.
+    /// Relapses only, not conflict declarations: a declaration is a judgement about the rules, and this
+    /// is a measurement of the code.
     /// </remarks>
-    public bool Escalated => Blocked && Spent >= Limit;
+    public bool Regressed => Loop.Rules.Any(rule => rule.Relapses > 0);
+
+    /// <summary>
+    /// Whether the last two passes both failed to reduce what is open.
+    /// </summary>
+    /// <remarks>
+    /// Two rather than one, because a pass that fixes one thing and uncovers another of equal size has
+    /// made real progress that the count cannot see. Two in a row is a loop that is not getting anywhere.
+    /// </remarks>
+    public bool Stalled => Passes().TakeLast(2) is { } last
+        && last.Count() == 2
+        && last.All(reduced => !reduced);
+
+    /// <summary>
+    /// Whether the cycle cannot be made to pass and should stop rather than land.
+    /// </summary>
+    /// <remarks>
+    /// <para>This is the state the whole unattended half of the design rests on, and the state iteration 3
+    /// never reached. A batch is only safe to run unwatched because a cycle that cannot be made to pass
+    /// stops instead of landing.</para>
+    /// <para><strong>It is a predicate on progress now, not a count of passes.</strong> A hard three
+    /// failed an honest cycle that needed a fourth pass and let a cycle making no progress at all spend
+    /// all three. There is deliberately no ceiling behind the predicate (D-66), so termination rests on
+    /// it entirely.</para>
+    /// </remarks>
+    public bool Escalated => Blocked && (Regressed || Stalled);
+
+    /// <summary>Whether each pass reduced what was open, in order.</summary>
+    /// <remarks>
+    /// A pass is the step from one round to the next, so there is one fewer of these than there are
+    /// rounds. The first round is the verification and reduces nothing.
+    /// </remarks>
+    private IEnumerable<bool> Passes()
+    {
+        for (int round = 1; round < OpenPerRound.Count; round++)
+        {
+            yield return OpenPerRound[round] < OpenPerRound[round - 1];
+        }
+    }
 }
 
 /// <summary>
@@ -32,25 +84,20 @@ public sealed record RemediationState(int Spent, int Limit, IReadOnlyList<Findin
 /// because a count kept beside the thing it counts is a count that can disagree with it -- and the one
 /// that would be trusted is the cheap one to forge. Rounds accumulate and are never rewritten, so
 /// counting them is counting what actually happened.
+/// <para><strong>The bound is on progress, not on passes.</strong> It was three passes, counted from the
+/// rounds. A blind count failed an honest cycle that needed a fourth and spent all three on a cycle
+/// making no progress whatever, so what stops the loop now is a pass that undoes earlier work, or two
+/// passes in a row that reduce nothing. There is no ceiling behind it (D-66): the predicate is the whole
+/// of it, which trades a termination guarantee for a signal that matches what is actually wrong.
+/// </para>
 /// <para>
-/// The cap is on code and not on artifacts, deliberately. An unbounded fix-verify loop burns tokens
-/// unwatched against a build that may never go green; an unbounded interrogation loop is a person
-/// deciding to keep reading, which has been worth eleven rounds before now.
+/// The paragraph this replaces said the interrogation loop needed no bound because it was "a person
+/// deciding to keep reading". That was not true -- the stage skills run it themselves -- and
+/// <see cref="Oscillation"/> is the guard it turned out to need.
 /// </para>
 /// </remarks>
 public static class RemediationBudget
 {
-    /// <summary>
-    /// How many passes a cycle gets before it escalates.
-    /// </summary>
-    /// <remarks>
-    /// Three, which is a judgement rather than a measurement: enough for a missed edge case, a wrong
-    /// assertion, and one surprise, and few enough that a loop going nowhere stops while somebody could
-    /// still care. It is a constant rather than configurable because the number a team would raise it to is
-    /// the number at which the bound stops meaning anything.
-    /// </remarks>
-    public const int Limit = 3;
-
     /// <summary>
     /// Reads where a cycle's remediation stands.
     /// </summary>
@@ -72,7 +119,7 @@ public static class RemediationBudget
             return history.ToResult<RemediationState>();
         }
 
-        IReadOnlyList<FindingsRound> rounds = history.Value;
+        IReadOnlyList<FindingsRound> rounds = [.. history.Value.OrderBy(round => round.Round)];
 
         // The first verification is not a remediation pass -- it is the verification. A pass is each
         // attempt to answer what one found, so the count is rounds after the first.
@@ -80,8 +127,9 @@ public static class RemediationBudget
 
         return Result.Ok(new RemediationState(
             spent,
-            Limit,
-            FindingsReader.StandingBlockers(rounds)));
+            [.. rounds.Select(round => round.Findings.Count(finding => finding.IsOpenBlocker))],
+            FindingsReader.StandingBlockers(rounds),
+            Oscillation.Count(rounds)));
     }
 
     /// <summary>
@@ -107,13 +155,23 @@ public static class RemediationBudget
                     $"cleared after {Count(state.Spent, "pass", "passes")}");
         }
 
-        return state.Escalated
+        if (!state.Escalated)
+        {
+            return string.Create(
+                CultureInfo.InvariantCulture,
+                $"{Count(state.OpenBlockers.Count, "finding", "findings")} open, {Count(state.Spent, "pass", "passes")} spent and making progress");
+        }
+
+        // Which of the two stopped it, because they call for different things. A regression says the
+        // last pass broke what an earlier one fixed, so somebody should look at what it did; a stall
+        // says nothing is moving, so somebody should look at whether the finding is answerable at all.
+        return state.Regressed
             ? string.Create(
                 CultureInfo.InvariantCulture,
-                $"escalated: {Count(state.Spent, "remediation pass", "remediation passes")} spent and {Count(state.OpenBlockers.Count, "finding", "findings")} still open")
+                $"escalated: a pass undid earlier work, with {Count(state.OpenBlockers.Count, "finding", "findings")} still open after {Count(state.Spent, "pass", "passes")}")
             : string.Create(
                 CultureInfo.InvariantCulture,
-                $"{Count(state.OpenBlockers.Count, "finding", "findings")} open, {Count(state.Spent, "pass", "passes")} spent of {state.Limit}");
+                $"escalated: the last two passes reduced nothing, with {Count(state.OpenBlockers.Count, "finding", "findings")} still open after {Count(state.Spent, "pass", "passes")}");
     }
 
     private static string Count(int number, string singular, string plural) => string.Create(
