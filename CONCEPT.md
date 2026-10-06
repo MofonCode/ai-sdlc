@@ -1731,6 +1731,22 @@ block, then remediate, then exhaust the budget.
    trusts."* Finding work is a directory listing and should stay one. What is genuinely absent is
    resume: a long batch run that dies halfway has nothing recording which cycles completed. That wants
    a run journal rather than an index of cycles, which is a different thing in a different place.
+6. **An intent's bounds are read by nothing.** A fixed decision like *"keep it very simple — nothing
+   fancy"* is recorded with attribution, survives every gate, and no stage acts on it. That is half of
+   what the dice-roller cycle got wrong: a project-reference rule produced roughly 3,100 lines across
+   nine projects for one button, and `CON_18` now makes a plan argue about a rule it changes — but
+   nothing asks whether a shape is proportionate to what was actually wanted. The hard part is that
+   proportion has no bright line, so a constraint about it would fire inconsistently; the narrower
+   version worth considering first is having the plan stage show the bound beside the shape it chose,
+   and leave the judgement to the person at the gate. Open because the mechanism is undecided, not
+   because the gap is in doubt.
+7. **A frozen citation heading can drift from the library, and nothing checks.** D-63 freezes the rule's
+   own line into a findings round deliberately, so a cycle read months later shows the wording it was
+   judged under. The cost is that a reader told to copy the line verbatim could paraphrase it, and
+   nothing would notice. There is no home for the check on the write path, because no command writes a
+   round — the interrogate skill does. `sdlc doctor` is where it belongs: it already reports and never
+   repairs, and a heading that no longer matches the constraint it cites is exactly the quiet kind of
+   wrong it exists to surface.
 
 ---
 
