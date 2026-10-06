@@ -52,7 +52,15 @@ public static class ProfileText
             if (string.IsNullOrWhiteSpace(request.Profile))
             {
                 return Result.Fail<DraftResult>(
-                    "Which profile? Give its package name, as in 'sdlc draft profile dotnet-default'.");
+                    "Which profile? Give its name, as in 'sdlc draft profile dotnet-default'.");
+            }
+
+            // The same refusal adoption gives, for the same reason: a migration onto a name that selects
+            // nothing would leave the solution declaring a stack it never got, and the keys this prints
+            // are the ones a person is about to place by hand.
+            if (StackProfiles.Find(request.Profile) is null)
+            {
+                return Result.Fail<DraftResult>(StackProfiles.Unknown(request.Profile));
             }
 
             string path = SolutionDocument.PathIn(solution.Path);

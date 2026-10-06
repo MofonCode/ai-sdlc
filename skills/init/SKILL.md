@@ -50,6 +50,24 @@ conversation and you can read the mode, the origin and the file list back withou
 bare line sends the person to another terminal and the output has to be copied in by hand. On a host with
 no such prefix, say to run it in a terminal at the repository root and paste what it prints.
 
+**Ask which profile governs the solution**, because it decides what the declared stack starts as and
+the stack file is protected the moment it is created -- so a wrong answer costs a draft and a rename
+rather than an edit. Two exist:
+
+| Profile | What it declares | Skeleton |
+|---|---|---|
+| `dotnet-default` | C# and .NET across api, web, desktop and Android | yes -- `sdlc scaffold` writes it |
+| `ml-tensorflow` | Python and TensorFlow for model work, on the same Azure platform | **no** -- `sdlc scaffold` refuses and says so |
+
+**Say what the second one costs before they choose it**, in one line: it ships no solution skeleton and
+no architecture suite, so shape is held by review rather than by a failing build. That is honest rather
+than lesser -- the .NET skeleton earned its shape from a solution that was actually built, and a Python
+one written ahead of any real solution would be guesswork with the authority of a default. The platform
+rows are shared, so either profile declares the same Azure, Terraform and data stores.
+
+**A name nothing answers to is refused rather than recorded**, before anything is written. So a typo
+costs a re-run and never a solution that declares a stack it did not get.
+
 **Ask where the code will live before you hand over the line**, because the answer decides whether a
 pipeline is written and there is no good default for somebody who has not said. If the repository has no
 remote yet — `git remote -v` prints nothing — `local` is the honest answer: a pipeline for a service

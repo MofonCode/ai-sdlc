@@ -71,7 +71,10 @@ internal static class Usage
             --solution <path>        The solution to work in. Defaults to the working directory.
 
         Options for init
-            --profile <name>         Which profile governs the solution. Default: dotnet-default.
+            --profile <name>         Which profile governs the solution, and so what its declared stack
+                                     starts as. One of: dotnet-default, ml-tensorflow. A name nothing
+                                     answers to is refused rather than recorded. Default:
+                                     dotnet-default.
             --adopt-standard         Hold this solution's new work to the profile's conventions, in a
                                      repository that existed first. Writes the stack files an adopted
                                      solution otherwise never gets -- .editorconfig, the two props

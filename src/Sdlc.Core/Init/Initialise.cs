@@ -209,7 +209,16 @@ public static class Initialise
             if (string.IsNullOrWhiteSpace(request.Profile))
             {
                 return Result.Fail<Response>(
-                    "Which profile? Give its package name, as in 'sdlc init --profile dotnet-default'.");
+                    "Which profile? Give its name, as in 'sdlc init --profile dotnet-default'.");
+            }
+
+            // Resolved before anything is written, so an unknown name refuses rather than recording
+            // itself. Nothing resolves an external profile, so a solution carrying a name that selects
+            // nothing would declare a stack it never got -- and the first plan judged against it would
+            // be judged against an empty table nobody chose.
+            if (StackProfiles.Find(request.Profile) is not { } profile)
+            {
+                return Result.Fail<Response>(StackProfiles.Unknown(request.Profile));
             }
 
             if (!repository.IsRepository(solution.Path))
@@ -280,7 +289,7 @@ public static class Initialise
             // A change after this is 'sdlc draft techstack' and a rename.
             await Protected(
                 Path.Combine(Cycle.SdlcDirectoryName, Cycle.TechStackFileName),
-                Templates.TechStack(origin),
+                Templates.TechStack(profile, origin),
                 actions,
                 cancellationToken).ConfigureAwait(false);
 
@@ -387,7 +396,13 @@ public static class Initialise
             //
             // Created once and never rewritten, including by update. These are a person's to amend, and
             // a cycle that changes one is a cycle like any other.
-            if (wanted == SolutionStandard.Profile)
+            // And only where the profile has conventions to write. These four files are .NET -- warnings
+            // as errors in a props file, a global.json pinning an SDK -- so a profile that declares another
+            // language has nothing to put in them. Writing them anyway would be the profile contradicting
+            // its own declarations, which is the same dishonesty the scaffold refusal exists to prevent.
+            // The profile's own notes say the skeleton and its conventions are absent, so a reader of the
+            // stack file meets that fact where it matters.
+            if (wanted == SolutionStandard.Profile && profile.Scaffolds)
             {
                 foreach ((string path, string contents) in StackFiles())
                 {

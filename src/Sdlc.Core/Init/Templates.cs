@@ -116,16 +116,26 @@ public static class Templates
         ]);
 
     /// <summary>
-    /// The tech stack document.
+    /// The tech stack document, as the chosen profile declares it.
     /// </summary>
     /// <remarks>
-    /// A scaffolded solution starts from the profile's defaults. An adopted one starts empty, with a note
-    /// saying so: reading an existing repository to decide what it is built from would be a guess written
-    /// down as a declaration, and the first plan to depart from a wrong guess would be judged against it.
+    /// <para>A scaffolded solution starts from the profile's defaults. An adopted one starts empty, with a
+    /// note saying so: reading an existing repository to decide what it is built from would be a guess
+    /// written down as a declaration, and the first plan to depart from a wrong guess would be judged
+    /// against it. The profile's notes come either way, because they are the reasoning behind the defaults
+    /// and a solution that has not taken them still has to know what it is departing from.</para>
+    /// <para><strong>One flat table, always.</strong> The profile composes its rows from a shared platform
+    /// set plus its own, and that composition happens here rather than in the solution -- what lands on
+    /// disk is a table a person owns and edits, never a derived file (D-68).</para>
     /// </remarks>
+    /// <param name="profile">The profile governing the solution.</param>
     /// <param name="origin">Where the code came from.</param>
     /// <returns>The file's contents.</returns>
-    public static string TechStack(SolutionOrigin origin) => string.Join(
+    public static string TechStack(StackProfile profile, SolutionOrigin origin)
+    {
+        ArgumentNullException.ThrowIfNull(profile);
+
+        return string.Join(
         Environment.NewLine,
         [
             "# What this solution is built from",
@@ -137,10 +147,25 @@ public static class Templates
             "global constraint may name a framework. To make a default bind, add a `LOC_` constraint or",
             "an architecture test.",
             string.Empty,
-            .. origin == SolutionOrigin.Scaffolded
-                ? _scaffolded
-                : _adopted,
+            .. origin == SolutionOrigin.Scaffolded ? Declared(profile) : _adopted,
+            .. profile.Notes,
         ]);
+    }
+
+    /// <summary>The profile's defaults as the table a solution reads.</summary>
+    /// <param name="profile">The profile.</param>
+    /// <returns>The heading, the table, and a blank line after it.</returns>
+    private static IEnumerable<string> Declared(StackProfile profile) =>
+    [
+        "## Defaults",
+        string.Empty,
+        "| Concern | Choice |",
+        "|---|---|",
+        .. profile.Defaults.Select(row => string.Create(
+            CultureInfo.InvariantCulture,
+            $"| {row.Concern} | {row.Choice} |")),
+        string.Empty,
+    ];
 
     /// <summary>The framework's own README inside a governed solution.</summary>
     /// <returns>The file's contents.</returns>
@@ -1051,110 +1076,7 @@ public static class Templates
             string.Empty,
         ]);
 
-    private static readonly string[] _scaffolded =
-    [
-        "## Defaults",
-        string.Empty,
-        "| Concern | Choice |",
-        "|---|---|",
-        "| language, framework | C#, .NET |",
-        "| unit and integration testing | MSTest on Microsoft.Testing.Platform |",
-        "| component testing | bUnit, for Blazor components |",
-        "| end-to-end testing | Playwright, in Chromium and WebKit |",
-        "| ORM | EF Core |",
-        "| orchestration | Aspire, where there is more than one process |",
-        "| results | FluentResults |",
-        "| validation | FluentValidation, through a pipeline behaviour |",
-        "| infrastructure as code | Terraform |",
-        "| relational data | MS SQL |",
-        "| document data | Cosmos DB |",
-        "| cache | Redis |",
-        "| cloud | Azure |",
-        "| async messaging | Azure Service Bus |",
-        "| realtime push | SignalR, only where a live UI needs it |",
-        "| machine learning | ML.NET |",
-        "| api | ASP.NET Core |",
-        "| api description | OpenAPI, through Microsoft.AspNetCore.OpenApi, read in Swagger UI |",
-        "| tracing, metrics and logs | OpenTelemetry, exported to Azure Monitor |",
-        "| liveness | ASP.NET Core health checks, at /health |",
-        "| web | Blazor |",
-        "| desktop and Android | MAUI Blazor Hybrid |",
-        "| ui components | MudBlazor |",
-        string.Empty,
-        "## Notes worth keeping",
-        string.Empty,
-        "**Shared UI is Blazor components in a Razor class library**, hosted by Blazor for web and MAUI",
-        "Blazor Hybrid for desktop and Android. MAUI does not target web.",
-        string.Empty,
-        "**That library is `src/<solution>.Ui`, and the name is load-bearing.** The architecture suite",
-        "reads a project's role off its name, so the rules admitting MudBlazor and letting the web",
-        "project reference it are written against `Ui` and match nothing else. A library named for what",
-        "it holds rather than for its role builds nothing and fails asking for a table row.",
-        string.Empty,
-        "**The components live there from the first one, not from the second host.** A solution with one",
-        "host pays for a project with one consumer, which is the cost; the alternative is moving every",
-        "component the day a second host arrives, discovered by the cycle trying to add it.",
-        string.Empty,
-        "**MudBlazor is one dependency, and that shared library is where it goes** -- so web and hybrid",
-        "are the same UI rather than two that resemble each other. It needs an interactive render mode:",
-        "a statically rendered page would get its markup and none of its behaviour. And a bUnit test of",
-        "a component that renders one needs `AddMudServices` and loose JSInterop -- MudBlazor's providers",
-        "call into JavaScript, and bUnit's strict default throws on the first unplanned call, which reads",
-        "as a broken component rather than a missing registration.",
-        string.Empty,
-        "**Service Bus and SignalR are not alternatives.** Service Bus is asynchronous messaging between",
-        "services; SignalR is server-to-client push.",
-        string.Empty,
-        "**An Aspire AppHost is conditional.** More than one process, or one process plus a backing",
-        "service a developer would otherwise start by hand. A single executable with no backing services",
-        "does not get one.",
-        string.Empty,
-        "**Observability is registered by `AddServiceDefaults`, which every host calls.** Tracing,",
-        "metrics and the kernel's logging bridge are configured in one project so two hosts cannot",
-        "publish under different names. The exporter activates only where `OTEL_EXPORTER_OTLP_ENDPOINT`",
-        "says where to send it, so a solution with no collector registers everything and exports",
-        "nothing. Aspire sets that variable for every process it starts.",
-        string.Empty,
-        "**The source and meter names are pinned, and an architecture test holds them.** The kernel",
-        "writes spans to an `ActivitySource` it names, and OpenTelemetry collects only from sources",
-        "named in `AddSource`. Those are two strings in two calls, and where they disagree every span",
-        "is discarded where it is created, with no error anywhere. That is why `ObservabilityTests`",
-        "exists.",
-        string.Empty,
-        "**Observability is not conditional, and it is not the error envelope.** Every boundary response",
-        "already carries a trace id, which is what lets somebody asking about one request find what was",
-        "withheld from them. That is not tracing: nothing collects the spans and nothing exports them, so",
-        "there is nothing to ask. A solution with no OpenTelemetry registration has no answer to \"what",
-        "was slow\" beyond a log line somebody thought to write.",
-        string.Empty,
-        "**An OpenAPI document is how a caller finds the surface.** A hand-kept description of an HTTP",
-        "API disagrees with the API, and the disagreement is discovered by whoever trusted it. The",
-        "scaffold generates the document at `/openapi/v1.json`, renders it with Swagger UI at",
-        "`/swagger/index.html`, and sends `/` there so the api is not a bodiless 404 in a browser.",
-        "The generator and the viewer are separate packages on purpose: the document is what a client",
-        "generator reads, and swapping the page never changes it.",
-        string.Empty,
-        "**All three are development-only, and that is a decision rather than an oversight.** The",
-        "document names every route, field and status this process answers, which is a map for anybody",
-        "who should not have one. A deployment that wants it public moves those lines out of the",
-        "environment check and says so in a plan.",
-        string.Empty,
-        "**Liveness is enforced rather than declared**, and it is the one row here that binds: the",
-        "scaffold maps `/health` and an architecture test fails the build if the route or its",
-        "registration is removed. A process with no liveness route is one an orchestrator cannot tell",
-        "apart from a process that is up and broken, so it keeps sending traffic to it -- and that cost",
-        "is paid at the worst moment by somebody who did not delete the line. It is deliberately not an",
-        "`ApiResult` endpoint: its caller is a load balancer, which understands a status code and the",
-        "framework's own payload and has never heard of this solution's envelope.",
-        string.Empty,
-        "**Integration tests use real backing services.** The EF Core in-memory provider does not",
-        "translate SQL, so it passes queries a real database rejects -- a proof that could pass while its",
-        "criterion is unmet.",
-        string.Empty,
-        "**There is no device end-to-end layer.** A device-only outcome belongs in an intent as a bound,",
-        "verified by a person outside the cycle; `CON_12` keeps it out of a spec.",
-        string.Empty,
-    ];
+
 
     private static readonly string[] _adopted =
     [

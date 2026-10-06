@@ -90,6 +90,18 @@ public static class ScaffoldSolution
                     + "like any other departure.");
             }
 
+            // A profile that declares another language has no skeleton here, and the twenty-four
+            // templates below are .NET. Writing them would hand a solution a layout its own stack file
+            // contradicts -- a profile lying about itself, which is worse than a profile with no scaffold.
+            // So this refuses and says so, which is one honest sentence instead of twenty-four misleading
+            // files.
+            if (StackProfiles.Find(read.Value.Profile) is { Scaffolds: false } declared)
+            {
+                return Result.Fail<Response>(string.Create(
+                    CultureInfo.InvariantCulture,
+                    $"The '{declared.Name}' profile declares no solution skeleton, so there is nothing to scaffold. Its declared stack is in .sdlc/{Cycle.TechStackFileName} and its notes say what is absent. Start the solution the way that stack is built, and let the plan declare the files it adds."));
+            }
+
             // The same question the build stage asks, so a refusal here reads identically. This is
             // what keeps the first code in the repository behind an approved plan.
             Result<ApprovalGate.Response> gate = await mediator

@@ -120,6 +120,30 @@ public sealed class ScaffoldSolutionTests
         Assert.AreEqual("// what somebody did with it\n", await File.ReadAllTextAsync(edited));
     }
 
+    [TestMethod]
+    public async Task A_profile_that_declares_no_skeleton_is_refused_rather_than_given_the_dotnet_one()
+    {
+        // The honesty rule. These templates are .NET, so writing them for a profile declaring Python
+        // would hand a solution a layout its own stack file contradicts -- a profile lying about itself,
+        // which is worse than a profile with no scaffold. One sentence instead of twenty-four files.
+        using var workspace = CycleWorkspace.Create();
+        workspace.WriteSolution("ml-tensorflow", SolutionOrigin.Scaffolded);
+        Approve(workspace);
+
+        Result<ScaffoldSolution.Response> result = await Run(workspace);
+
+        Assert.IsTrue(result.IsFailed, "A .NET skeleton for a Python profile is the wrong skeleton.");
+
+        string message = Explain(result);
+
+        StringAssert.Contains(message, "ml-tensorflow");
+        StringAssert.Contains(message, "declares no solution skeleton");
+        StringAssert.Contains(
+            message,
+            "techstack.md",
+            "And points at the file that says what the profile does declare.");
+    }
+
     private static async Task<Result<ScaffoldSolution.Response>> Run(CycleWorkspace workspace)
     {
         using var gate = Gate.For(workspace.Root);

@@ -234,7 +234,7 @@ public sealed class DraftTests
         using var workspace = CycleWorkspace.Create();
         workspace.WriteSolution("dotnet-default", SolutionOrigin.Adopted);
 
-        DraftResult draft = await Profile(workspace, "mofoncode");
+        DraftResult draft = await Profile(workspace, "ml-tensorflow");
 
         Assert.IsTrue(draft.MayDraft, draft.Instructions);
 
@@ -243,7 +243,7 @@ public sealed class DraftTests
             "solution.md");
 
         Assert.IsTrue(read.IsSuccess, string.Join("; ", read.Errors.Select(e => e.Message)));
-        Assert.AreEqual("mofoncode", read.Value.Profile);
+        Assert.AreEqual("ml-tensorflow", read.Value.Profile);
         Assert.AreEqual(
             SolutionOrigin.Adopted,
             read.Value.Origin,
@@ -271,10 +271,33 @@ public sealed class DraftTests
         using var gate = Gate.For(workspace.Root);
 
         Result<DraftResult> result = await gate
-            .Send<ProfileText.Query, DraftResult>(new ProfileText.Query("mofoncode"));
+            .Send<ProfileText.Query, DraftResult>(new ProfileText.Query("ml-tensorflow"));
 
         Assert.IsTrue(result.IsFailed);
         StringAssert.Contains(string.Join("; ", result.Errors.Select(e => e.Message)), "sdlc init");
+    }
+
+    [TestMethod]
+    public async Task A_migration_onto_a_profile_that_does_not_exist_is_refused_and_names_the_ones_that_do()
+    {
+        // The keys this prints are the ones a person is about to place by hand, so a name that selects
+        // nothing would leave the solution declaring a stack it never got. Naming what exists is the half
+        // that matters: a refusal that only says no sends somebody looking for a flag.
+        using var workspace = CycleWorkspace.Create();
+        workspace.WriteSolution("dotnet-default", SolutionOrigin.Adopted);
+
+        using var gate = Gate.For(workspace.Root);
+
+        Result<DraftResult> result = await gate
+            .Send<ProfileText.Query, DraftResult>(new ProfileText.Query("tensorflow-ish"));
+
+        Assert.IsTrue(result.IsFailed);
+
+        string message = string.Join("; ", result.Errors.Select(e => e.Message));
+
+        StringAssert.Contains(message, "tensorflow-ish");
+        StringAssert.Contains(message, "dotnet-default", "And every profile that does exist.");
+        StringAssert.Contains(message, "ml-tensorflow");
     }
 
     [TestMethod]

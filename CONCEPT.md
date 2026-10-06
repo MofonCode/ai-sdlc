@@ -4390,3 +4390,62 @@ signal would be advising a reader that the thing it was handed may have been edi
 judging. *Filtering protected paths out of the file comparison* — silent; the impossible declaration stays
 in the plan with nothing saying so. *A drafter that proposes rows from the codebase* — that is adoption's
 job once, and after that it would be a tool declaring a stack.
+
+### D-68 — A profile selects one flat stack table, and says when it has no skeleton
+
+**Governs:** §8
+
+**Decision.** `StackProfiles` ships two embedded profiles, `dotnet-default` and `ml-tensorflow`. The
+`profile` key selects which declared stack adoption writes. Rows are composed in the framework from a
+shared platform set plus the profile's own, and emitted as **one flat table** a person then owns. A profile
+declares whether it ships a solution skeleton: `sdlc scaffold` refuses for one that does not, and the
+convention files are written only for one that does. An unknown profile name is refused before anything is
+written, by adoption and by `sdlc draft profile` alike.
+
+**Why.** The `profile` key existed from iteration 3 and selected nothing. `request.Profile` was used in
+exactly one place — writing the name into `solution.md` — and never read to choose anything, while the
+declared stack, the scaffold, the convention files and the architecture suite were all .NET with no
+profile anywhere near them. A key that records a choice nothing acts on is a key that will eventually be
+wrong about the solution it describes.
+
+**Why one profile per solution, and no stacking.** Merging two profiles' tables needs a precedence rule on
+a concern key, and the cost that disqualifies it is worse: `techstack.md` would become a **derived** file.
+The thing every plan is judged against would then be generated rather than written, and D-67's "a person
+places it" would stop meaning anything. A solution that wants rows another profile declares copies them
+in — a one-time edit against permanent merge machinery.
+
+**Where overlap is handled instead.** In the framework, while authoring, which is where it is cheap. Two
+profiles sharing their platform choices share one set of rows rather than repeating twenty that drift
+apart when edited separately. Nothing in a governed repository knows a composition happened, and the suite
+asserts that both profiles name the same cloud rather than that they happen to agree today.
+
+**Why a profile says whether it scaffolds.** The scaffold is twenty-four .NET templates and an
+architecture suite written against them. Letting it run for a profile declaring Python would hand a
+solution a layout its own stack file contradicts — a profile lying about itself, which is worse than a
+profile with no scaffold, because the declarations are what a plan is judged against. So `Scaffolds` is
+false on `ml-tensorflow`, `sdlc scaffold` refuses with one sentence instead of writing twenty-four
+misleading files, and `--adopt-standard` writes nothing for it either: warnings-as-errors in a props file
+and an SDK pin in `global.json` are .NET, and a profile declaring another language has nothing to put in
+them.
+
+**Why the TensorFlow profile ships declarations and no skeleton, deliberately.** The .NET skeleton earned
+its shape from a solution that was actually built and a review that followed it. Writing a Python
+equivalent before anything has been built from this profile would be guesswork carrying the authority of a
+default, and the first real solution here is what the skeleton should be written from. **The material gap
+is the architecture suite**, which is the only mechanical enforcement of shape the framework has — so the
+profile's own notes say that out loud, in the file a plan reads first, rather than leaving it to be
+discovered.
+
+**Why an unknown name is refused rather than recorded.** Nothing resolves an external profile, so a
+solution recording one would carry a name selecting nothing and declare a stack it never got — and the
+first plan judged against it would be judged against an empty table nobody chose. The refusal names every
+profile that exists, because one that only says no sends somebody looking for the flag that makes it work.
+Easy to relax the day a profile can come from a package; a solution that already records an unresolvable
+name still reads, since adoption validates what was asked for rather than what was recorded.
+
+**Rejected.** *Stacking profiles* — makes the stack file derived, which is the one thing it must not be.
+*A `dotnet-ml` profile sharing the .NET scaffold* — the cheaper second profile, and it answers a different
+question: this one is for model work in Python, and pretending it is .NET-shaped would be the dishonesty
+`Scaffolds` exists to prevent. *Twenty-four Python templates now* — guesswork with the authority of a
+default. *Composing the help text from the profile list* — `Usage.Text` is a const, so the suite holds the
+two together instead, the same way the readme's counts are asserted rather than trusted.

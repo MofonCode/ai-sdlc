@@ -223,6 +223,11 @@ public sealed class PublicSurfaceTests
         // The drafter that writes the solution document beside itself for a person to rename. Public
         // for the same reason the approval one is: the CLI dispatches it, and its two constants are
         // what a test asserts the draft against.
+        // The profiles the framework ships, and the shape of one. Public because Templates composes a
+        // stack file from a profile and the suite asserts what each one declares.
+        "Sdlc.Core.Solutions.StackDefault",
+        "Sdlc.Core.Solutions.StackProfile",
+        "Sdlc.Core.Solutions.StackProfiles",
         "Sdlc.Core.Solutions.WriteSolutionDraft",
         "Sdlc.Core.Solutions.WriteSolutionDraft+Command",
         "Sdlc.Core.Solutions.WriteTechStackDraft",

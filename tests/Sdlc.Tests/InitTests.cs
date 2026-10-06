@@ -1292,17 +1292,79 @@ public sealed class InitTests
             "sdlc-verify.yml")));
     }
 
+    [TestMethod]
+    public async Task Adoption_writes_the_stack_the_chosen_profile_declares()
+    {
+        using var solution = Scratch.Create();
+
+        await Adopt(solution, tracked: [], profile: "ml-tensorflow");
+
+        string stack = await File.ReadAllTextAsync(
+            Path.Combine(solution.Root, Cycle.SdlcDirectoryName, Cycle.TechStackFileName));
+
+        StringAssert.Contains(stack, "| machine learning | TensorFlow, through Keras |");
+        StringAssert.Contains(stack, "| cloud | Azure |", "The platform rows are shared, so they come too.");
+        Assert.IsFalse(
+            stack.Contains("Blazor", StringComparison.Ordinal),
+            "And nothing from the other profile. The profile key now selects something.");
+    }
+
+    [TestMethod]
+    public async Task A_profile_with_no_conventions_to_write_gets_none_rather_than_the_dotnet_ones()
+    {
+        // Warnings-as-errors in a props file and an SDK pin in global.json are .NET. A profile declaring
+        // Python has nothing to put in them, and writing them anyway would be the profile contradicting
+        // its own declarations -- the same dishonesty the scaffold refusal exists to prevent.
+        using var solution = Scratch.Create();
+
+        Initialise.Response report = await Adopt(solution, tracked: [], profile: "ml-tensorflow");
+
+        foreach (string path in (string[])["Directory.Build.props", "global.json", ".editorconfig"])
+        {
+            Assert.IsFalse(
+                File.Exists(Path.Combine(solution.Root, path)),
+                $"{path} was written for a profile that declares no skeleton.");
+        }
+
+        Assert.AreEqual(SolutionStandard.Profile, report.Standard, "The standard is still the profile's.");
+    }
+
+    [TestMethod]
+    public async Task Adoption_refuses_a_profile_that_does_not_exist_instead_of_recording_it()
+    {
+        // Nothing resolves an external profile, so a solution recording a name that selects nothing would
+        // declare a stack it never got -- and the first plan judged against it would be judged against an
+        // empty table nobody chose.
+        using var solution = Scratch.Create();
+        using Gate gate = Adopter(solution, new FakeRepository { Tracked = [] });
+
+        Result<Initialise.Response> result = await gate
+            .Send<Initialise.Command, Initialise.Response>(
+                new Initialise.Command("dotnet-defualt", Platform.GitHub, false));
+
+        Assert.IsTrue(result.IsFailed);
+
+        string message = string.Join("; ", result.Errors.Select(e => e.Message));
+
+        StringAssert.Contains(message, "dotnet-defualt", "The refusal quotes what was asked for.");
+        StringAssert.Contains(message, "dotnet-default", "And names what exists.");
+        Assert.IsFalse(
+            Directory.Exists(Path.Combine(solution.Root, Cycle.SdlcDirectoryName)),
+            "Nothing was written. The name is resolved before anything lands on disk.");
+    }
+
     private static async Task<Initialise.Response> Adopt(
         Scratch solution,
         IReadOnlyList<string> tracked,
         Platform? platform = Platform.GitHub,
-        bool adoptStandard = false)
+        bool adoptStandard = false,
+        string profile = "dotnet-default")
     {
         using Gate gate = Adopter(solution, new FakeRepository { Tracked = tracked });
 
         Result<Initialise.Response> result = await gate
             .Send<Initialise.Command, Initialise.Response>(
-                new Initialise.Command("dotnet-default", platform, adoptStandard));
+                new Initialise.Command(profile, platform, adoptStandard));
 
         Assert.IsTrue(result.IsSuccess, string.Join("; ", result.Errors.Select(e => e.Message)));
         return result.Value;
