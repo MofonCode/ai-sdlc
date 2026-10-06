@@ -42,6 +42,7 @@ the cheapest way to discover that what you were about to add already lives somew
 | [`CONCEPT.md`](CONCEPT.md) | the design, and every decision behind it with what each one rejected |
 | [`CONSTRAINTS.md`](CONSTRAINTS.md) | the fourteen global constraints, each with what it forbids and why |
 | `CONCEPT.raw.md` | the original longhand draft, preserved unedited |
+| `PLAN.conflict-and-escalation.md` | work not yet done: the loop's third ending, and the guards against a loop that cannot converge. A working document -- each phase's reasoning moves to `CONCEPT.md` as a decision when it lands, and the file is deleted when it is empty |
 | `src/Sdlc.Core/` | the gate's logic: constraints, cycles, approvals, findings, hooks, evidence, the chain |
 | `src/Sdlc.Cli/` | the one binary every skill on every host calls |
 | `skills/` | the skills as they ship, one directory each |
