@@ -201,18 +201,36 @@ public static class Diagnose
                 .ReadFile(solution.Path, cancellationToken)
                 .ConfigureAwait(false);
 
-            return document.IsFailed
-                ? new Check(
+            if (document.IsFailed)
+            {
+                return new Check(
                     "adoption",
                     CheckOutcome.Problem,
                     string.Join("; ", document.Errors.Select(error => error.Message)),
-                    "only a person writes " + Cycle.SolutionFileName + ". 'sdlc draft profile <name>' prints what belongs in it")
-                : new Check(
+                    "only a person writes " + Cycle.SolutionFileName + ". 'sdlc draft profile <name>' prints what belongs in it");
+            }
+
+            string recorded = string.Create(
+                CultureInfo.InvariantCulture,
+                $"profile {document.Value.Profile}, origin {SolutionDocument.NameOf(document.Value.Origin)}, standard {SolutionDocument.NameOf(document.Value.Standard)}, platform {SolutionDocument.NameOf(document.Value.Platform)}");
+
+            // Adoption and 'draft profile' both refuse a name nothing answers to, so this is a solution
+            // adopted before profiles resolved to anything, or one hand-edited since. It reads fine and
+            // every gate still works -- what is missing is quieter than that: the profile's defaults are
+            // not declared anywhere, so CON_15 has nothing to bite on and a plan departs from nothing.
+            // Reported rather than repaired, like everything else here.
+            if (StackProfiles.Find(document.Value.Profile) is null)
+            {
+                return new Check(
                     "adoption",
-                    CheckOutcome.Sound,
+                    CheckOutcome.Problem,
                     string.Create(
                         CultureInfo.InvariantCulture,
-                        $"profile {document.Value.Profile}, origin {SolutionDocument.NameOf(document.Value.Origin)}, standard {SolutionDocument.NameOf(document.Value.Standard)}, platform {SolutionDocument.NameOf(document.Value.Platform)}"));
+                        $"{recorded} -- and no profile answers to '{document.Value.Profile}', so nothing supplies its defaults"),
+                    "'sdlc draft profile <name>' prints the keys for a move onto one that exists. The declared stack is a separate file and a separate act: 'sdlc draft techstack'");
+            }
+
+            return new Check("adoption", CheckOutcome.Sound, recorded);
         }
 
         /// <summary>

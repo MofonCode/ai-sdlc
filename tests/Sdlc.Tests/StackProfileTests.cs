@@ -1,3 +1,6 @@
+using FluentResults;
+using Sdlc.Core.Cycles;
+using Sdlc.Core.Diagnostics;
 using Sdlc.Core.Init;
 using Sdlc.Core.Solutions;
 
@@ -168,6 +171,30 @@ public sealed class StackProfileTests
         StringAssert.Contains(stack, "nothing is declared here yet");
         Assert.IsFalse(stack.Contains("| ORM | EF Core |", StringComparison.Ordinal));
         StringAssert.Contains(stack, "## Notes worth keeping");
+    }
+
+    [TestMethod]
+    public async Task Doctor_reports_a_recorded_profile_that_answers_to_nothing()
+    {
+        // Adoption and 'draft profile' both refuse an unknown name, so reaching this state means a
+        // solution adopted before profiles resolved to anything, or one hand-edited since. It reads fine
+        // and every gate still works, which is what makes it worth reporting: the failure is quiet. No
+        // profile supplies the defaults, so CON_15 has nothing to bite on and a plan departs from nothing.
+        using var workspace = CycleWorkspace.Create();
+        workspace.WriteSolution("dotnet-defualt", SolutionOrigin.Adopted);
+
+        using var gate = Gate.For(workspace.Root);
+
+        Result<Diagnose.Response> result = await gate
+            .Send<Diagnose.Query, Diagnose.Response>(new Diagnose.Query());
+
+        Assert.IsTrue(result.IsSuccess, string.Join("; ", result.Errors.Select(e => e.Message)));
+
+        Check adoption = result.Value.Checks.First(check => check.Subject == "adoption");
+
+        Assert.AreEqual(CheckOutcome.Problem, adoption.Outcome, adoption.Detail);
+        StringAssert.Contains(adoption.Detail, "dotnet-defualt");
+        StringAssert.Contains(adoption.Remedy!, "draft profile", "And names the act that fixes it.");
     }
 
     [TestMethod]
