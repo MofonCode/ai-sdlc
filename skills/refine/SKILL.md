@@ -17,8 +17,16 @@ is to answer them, not to re-litigate them.
 |---|---|
 | **May edit** | the one named artifact |
 | **May never edit** | source, tests, `approval.md`, or any other artifact |
-| **Capped** | no. The loop is uncapped on purpose |
+| **Capped** | not on rounds. It stops when one rule has come back three times |
 | **Refuses when** | the cycle is approved, or no blocking finding is open |
+
+**Read the panel's `Loop` line before you edit.** You are handed findings and no history, so without
+it you cannot tell a first objection from the third time the same rule has been refought — and
+refighting is answered by finding an exit, not by another edit of the same sentence. When the line names
+a rule that *has come back*, it also names what that rule is caught against: ask whether the remainder
+can be named in `Out of scope`, or whether the question belongs under `## Open`, before touching the
+words again. When it says *stuck on*, do not edit at all. Report it and stop; a person decides what
+gives, and `/sdlc:steer` is usually how they do it.
 
 **Only one of those is denied at the tool call.** The hook refuses every agent write to `approval.md`,
 by file path and by shell command alike. The rest of this table is yours to keep — the hook sees a tool

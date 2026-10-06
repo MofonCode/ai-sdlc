@@ -524,6 +524,97 @@ public sealed class StatusRendererTests
         Assert.IsFalse(panel.Contains("Conflicts", StringComparison.Ordinal));
     }
 
+    [TestMethod]
+    public async Task The_panel_warns_when_a_rule_has_come_back_twice()
+    {
+        // Two relapses on one rule. The warning is what changes what the refiner is told, so it has to
+        // reach the panel the refiner reads -- and it names the rule it is caught against, because an
+        // exit that satisfies both is what it should be looking for.
+        using var workspace = CycleWorkspace.Create();
+        workspace.WriteAllArtifacts();
+        Oscillating(workspace);
+
+        string panel = await Render(workspace, ArtifactKind.Spec);
+
+        StringAssert.Contains(panel, "Loop");
+        StringAssert.Contains(panel, "has come back 2 times");
+        StringAssert.Contains(panel, "against CON_16", "What the rule is trading with.");
+        StringAssert.Contains(panel, "Look for an exit");
+
+        foreach (string line in panel.Split(Environment.NewLine))
+        {
+            Assert.IsTrue(line.Length <= 92, $"A {line.Length}-character line: \'{line}\'");
+        }
+    }
+
+    [TestMethod]
+    public async Task The_brief_panel_carries_the_loop_line_too()
+    {
+        // The stage skills print the brief panel at the end of a lap, so a halt the short form omitted
+        // would be a halt the loop never saw.
+        using var workspace = CycleWorkspace.Create();
+        workspace.WriteAllArtifacts();
+        Oscillating(workspace);
+
+        string panel = await RenderBrief(workspace, ArtifactKind.Spec);
+
+        StringAssert.Contains(panel, "Loop");
+        StringAssert.Contains(panel, "CON_05");
+    }
+
+    [TestMethod]
+    public async Task The_panel_says_nothing_about_the_loop_while_it_is_converging()
+    {
+        // No round count in a warning tone. A long honest interrogation is not a problem, and a panel
+        // that mentioned the loop on every round would make slowness look like failure.
+        using var workspace = CycleWorkspace.Create();
+        workspace.WriteAllArtifacts();
+        workspace.WriteBlockingRound(ArtifactKind.Spec, round: 1);
+        workspace.WriteBlockingRound(ArtifactKind.Spec, round: 2, id: "F_02");
+        workspace.WriteBlockingRound(ArtifactKind.Spec, round: 3, id: "F_03");
+
+        string panel = await Render(workspace, ArtifactKind.Spec);
+
+        Assert.IsFalse(
+            panel.Contains("Loop", StringComparison.Ordinal),
+            "Three rounds with nothing coming back is a loop that is working.");
+    }
+
+    /// <summary>
+    /// Writes a spec history in which CON_05 is answered and comes back twice, trading with CON_16.
+    /// </summary>
+    /// <remarks>
+    /// The shape of a refiner finding a boundary: narrow, which breaks the other rule, broaden, which
+    /// breaks the first one again. Two relapses, so it warns and does not halt.
+    /// </remarks>
+    /// <param name="workspace">The workspace to write into.</param>
+    private static void Oscillating(CycleWorkspace workspace)
+    {
+        workspace.WriteRound(ArtifactKind.Spec, 1, Cited("F_01", "CON_05", "open"));
+        workspace.WriteRound(
+            ArtifactKind.Spec,
+            2,
+            Cited("F_01", "CON_05", "answered") + "," + Cited("F_02", "CON_16", "open"));
+        workspace.WriteRound(ArtifactKind.Spec, 3, Cited("F_03", "CON_05", "open"));
+        workspace.WriteRound(
+            ArtifactKind.Spec,
+            4,
+            Cited("F_03", "CON_05", "answered") + "," + Cited("F_04", "CON_16", "open"));
+        workspace.WriteRound(ArtifactKind.Spec, 5, Cited("F_05", "CON_05", "open"));
+    }
+
+    private static string Cited(string id, string cites, string disposition) => string.Create(
+        System.Globalization.CultureInfo.InvariantCulture,
+        $$"""
+          {
+            "id": "{{id}}",
+            "severity": "blocking",
+            "disposition": "{{disposition}}",
+            "cites": { "id": "{{cites}}", "heading": "the rule {{cites}} states, in one line" },
+            "statement": "something that must be answered."
+          }
+          """);
+
     /// <summary>
     /// One declared conflict, as a reader writes it: two rules, each with its own line, and why each
     /// remedy excludes the other.

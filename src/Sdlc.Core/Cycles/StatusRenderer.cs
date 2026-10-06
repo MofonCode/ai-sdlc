@@ -83,6 +83,13 @@ public static class StatusRenderer
                 $"{Count(suggestions, "suggestion"),-44}sdlc suggestions {status.Cycle.Id}"));
         }
 
+        // On the brief panel too, because this is the one the stage skills print at the end of a lap.
+        // A halt the short form omitted would be a halt the loop never saw.
+        if (Oscillation.Describe(state.Loop) is { } loop)
+        {
+            Field(output, "Loop", loop);
+        }
+
         Next(output, status, state);
 
         return output.ToString();
@@ -142,6 +149,7 @@ public static class StatusRenderer
         Shape(output, panel.Shape);
 
         Checks(output, state);
+        Loop(output, state);
         Conflicts(output, state);
         output.AppendLine();
 
@@ -176,6 +184,36 @@ public static class StatusRenderer
         }
 
         output.AppendLine();
+    }
+
+    /// <summary>
+    /// Writes where the interrogation loop stands, and nothing at all while it is converging.
+    /// </summary>
+    /// <remarks>
+    /// Silent until a rule has two points, which is the same silence the Shape block keeps: a loop that
+    /// is making progress has nothing to report, however many rounds it has taken. There is no round
+    /// count here on purpose -- a long honest interrogation is not a problem, and a panel that said
+    /// "round 9" in a warning tone would make it look like one.
+    /// </remarks>
+    private static void Loop(StringBuilder output, ReadCycleStatus.ArtifactState state)
+    {
+        if (Oscillation.Describe(state.Loop) is not { } line)
+        {
+            return;
+        }
+
+        output.AppendLine();
+        Field(output, "Loop", line);
+
+        // Every rule in play, not only the worst, because the exit a refiner is looking for is a way to
+        // satisfy both at once and it cannot look for that without the pair.
+        foreach (StuckRule rule in state.Loop.Warnings)
+        {
+            if (rule.Rule.Line() is { } wording)
+            {
+                Field(output, string.Empty, "    " + wording);
+            }
+        }
     }
 
     /// <summary>

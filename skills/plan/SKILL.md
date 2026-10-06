@@ -184,7 +184,12 @@ declared default would have cost here.>
 
 ## Run the loop, then hand back
 
-Interrogate, refine, interrogate again. Then:
+Interrogate, refine, interrogate again — until a round is clean, a reader reports a conflict, or the
+panel's `Loop` line says the loop is stuck on one rule. It is the same loop the intent and spec skills
+run, and the intent skill's loop section has the table. Nothing caps the rounds; what stops the loop is
+a rule coming back three times, which is the loop going backwards rather than going slowly.
+
+Then:
 
 ```
 sdlc status <id> --stage plan --brief

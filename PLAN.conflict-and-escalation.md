@@ -94,98 +94,7 @@ else pushing back each time, so the pair is implied.
 
 ## Phase 2 — the counter, and the room to converge
 
-### The counter
-
-One counter, per constraint, per artifact. Two sources, weighted the same because both are
-corroborated evidence that one rule's ground is stuck:
-
-| Event | Points against that constraint |
-|---|---|
-| a relapse — `open → answered → open` | 1 |
-| a reader declares a conflict naming it | 1 |
-
-| Points | What happens |
-|---|---|
-| 1 | **nothing.** An incomplete fix is ordinary and common |
-| 2 | **warn.** The panel says so. The loop continues |
-| 3 | **halt.** A person is called |
-
-**No round cap, anywhere.** A converging interrogation scores zero points however long it runs, so the
-eleven-round case is untouched. Three points is roughly six rounds of genuine ping-pong — deliberate
-room for a loop that oscillates *on its way to* converging, which is the normal shape of a refiner
-finding a boundary: narrow, overshoot, broaden, overshoot, then find the `Out of scope` phrasing that
-satisfies both. Halting at two would kill that one round before it succeeds.
-
-### The warning has to change what `refine` is told
-
-**This is the part that makes the extra room worth paying for.** More laps at the same approach is just
-more spend. The refiner is currently handed findings and no history, so it cannot know it is refighting
-old ground. At the warning stage it gets told, in the skill's own voice:
-
-> This is the second time `CON_05` has come back after being answered, and the fix that answered it
-> raised `CON_16`. Before editing the same sentence again, consider whether the two rules share an
-> exit: a remainder named in `Out of scope`, or an item that genuinely belongs under `## Open`.
-
-So the loop gets another attempt **and better information for it**. Without this, phase 2 is a bigger
-bill for the same outcome.
-
-### Work
-
-| File | Change |
-|---|---|
-| `src/Sdlc.Core/Findings/Oscillation.cs` | new, shaped like `RemediationBudget`: a state record and a static reader that counts from the rounds. **No counter file** — the same reason that one gives, that a count kept beside the thing it counts can disagree with it, and the cheap one to forge is the one that gets trusted |
-| same | `Warn = 2`, `Halt = 3` as constants. Constants and not configuration, for `RemediationBudget`'s stated reason: the number a team would raise it to is the number at which the bound stops meaning anything |
-| `src/Sdlc.Core/Cycles/StatusRenderer.cs` | the warn and halt states on the panel, naming the constraint and the rounds involved |
-| `skills/intent`, `skills/spec`, `skills/plan` | the loop stops on a halt instead of on the agent's own judgement that nothing further can be settled |
-| `skills/refine/SKILL.md` | the `Capped: no` row becomes the counter; the warning paragraph above |
-| `CONCEPT.md` | §6's three endings become true. A decision entry |
-
-### A halt stops the loop and reports. It does not refuse the gate
-
-No new `GateRefusal` value, and `ApprovalGate` is untouched. The reasoning is mechanical rather than a
-matter of taste: a halt almost always stands beside an open blocking finding -- that is what a relapse
-requires -- and `GateRefusal.OpenBlocker` already refuses the build. A gate refusal would be redundant
-in the common case and wrong in the only case where it would bite, which is the counter reaching three
-and then `refine` fixing it and the next reader going silent. That is a loop which converged, and
-refusing it at the gate would punish the success.
-
-**A halt is evidence that automation got stuck, not evidence the artifact is wrong.** The thing that
-decides whether the artifact may advance is the blockers, and they already do.
-
-### What the halt message must not claim
-
-The counter cannot tell a genuine conflict from a refiner making the same mistake repeatedly. Both need
-a person, so the distinction does not change what happens — but the message must say what it knows and
-not more: *this ground has been refought twice, these are the rules involved, these are the rounds.* Not
-*these rules conflict*.
-
-### Resolution
-
-A halt is cleared by a person, and the exits already exist:
-
-| The actual problem | The exit |
-|---|---|
-| scope or approach needs to change | `steer` — it edits the intent, spec and plan together and records the correction as a fixed decision with attribution |
-| the remainder cannot be covered | name it in `Out of scope` (`CON_16`) or under `## Open` (`CON_14`) |
-| the rules genuinely cannot both hold | a constraint change — a `LOC_` addition or a library revision. Outside a cycle |
-| the cycle should not continue | `sdlc draft abandon <id>` |
-
-**`steer` clears the halt, and the loop re-evaluates.** That is the recorded decision. Steering already
-re-interrogates everything downstream of what it touched, and a round records the hash of the artifact
-above it -- so editing the intent makes the spec's latest round stale and the loop runs again on its own.
-The counter resets with it: the ground that was being refought has moved.
-
-**`steer` does not reach every conflict**, and the halt message should not imply it does. It changes how
-rather than what, so it reaches a scope or approach change and not a case where no document satisfies
-both rules.
-
-**What stops an agent clearing its own halt.** Nothing mechanical, and there is nowhere to put it: the
-hook denies writes to the four protected files, and `steer` is a skill rather than a file, so there is no
-path to deny. What the reset actually rests on is downstream — steering records the correction as a fixed
-decision **with attribution**, in the intent, and a person reads all three planning documents at the
-approval gate before any code exists. A fabricated steer is a fabricated attribution sitting on the page
-where somebody is about to approve it. That is the same layer of protection every advisory rule in the
-framework has, and it is worth stating out loud rather than leaving as an assumption.
+**Done.** Landed as D-65; the reasoning is in `CONCEPT.md` and no longer here.
 
 ---
 
@@ -245,22 +154,19 @@ and the ruling are not in two places that can drift.
 
 | # | Decision | Where it lives |
 |---|---|---|
-| 1 | Warn at 2 points, halt at 3 | phase 2, the counter |
-| 2 | `steer` clears a halt and the loop re-evaluates. No mechanical guard against an agent steering itself; the approval gate downstream is what it rests on | phase 2, resolution |
+| 1 | Warn at 2 points, halt at 3 | done, D-65 |
+| 2 | `steer` clears a halt and the loop re-evaluates. No mechanical guard against an agent steering itself; the approval gate downstream is what it rests on | done, D-65 |
 | 3 | **No ceiling** on the remediation loop. `Limit = 3` goes and the progress rule is the whole of it | phase 3 |
-| 4 | A halt stops the loop and reports. It does not refuse the gate, and `ApprovalGate` is untouched | phase 2 |
+| 4 | A halt stops the loop and reports. It does not refuse the gate, and `ApprovalGate` is untouched | done, D-65 |
 | 5 | `between` holds two **or more** | done, D-64 |
 
 Decision 3 is the one that trades a guarantee for a better signal, and phase 3 says so in those words
 rather than leaving it to be rediscovered.
 
-## Order, and why it is not negotiable
+## Order
 
-Phase 1 before phase 2: a conflict declaration is one of the counter's two inputs, so the counter cannot
-read it until it exists. Phase 3 is independent of both and could go first or last.
-
-The phase-2 counter is *almost* independent of phase 1 — relapses alone are computable from what rounds
-already record. If phase 1 slips, a relapse-only counter still works and is worth having.
+Phases 1 and 2 are done, in that order, because a conflict declaration is one of the counter's two
+inputs. Phase 3 is independent of both and is what remains.
 
 ## What this plan does not do
 

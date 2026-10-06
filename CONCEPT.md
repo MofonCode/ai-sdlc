@@ -4200,3 +4200,82 @@ no disposition to clear it. *Requiring the `conflicts` key on every round* — d
 round, where the equivalent rule for `findings` buys a real distinction. *Halting the loop on one
 declaration* — that is an assertion halting a cycle, and the corroboration that fixes it needs a counter,
 which is its own decision.
+
+### D-65 — The interrogation loop stops on oscillation, never on a count
+
+**Governs:** §6
+
+**Decision.** Points are counted per rule, per artifact, from the rounds alone. A **relapse** — one rule
+going `open -> answered -> open` — is one point. A **conflict declaration** naming that rule is one
+point. At two points the panel's `Loop` line tells the refiner it is refighting old ground and names
+what the rule is caught against; at three the loop stops and hands back to a person. There is no limit
+on rounds. A halt reports and does not refuse the gate.
+
+**Why there is no round cap.** `RemediationBudget` said the cap was on code and not on
+artifacts because "an unbounded interrogation loop is a person deciding to keep reading, which has been
+worth eleven rounds before now". The premise was false: the stage skills run the loop themselves, and
+`skills/spec/SKILL.md` told the session to continue "until a round is clean or nothing further can be
+settled" — a judgement the same session made about its own work, which is the inversion the
+interrogate/refine split exists to prevent. So the loop needed a guard. A cap on rounds is the wrong
+one: it kills the long honest reading and permits the short pathological one, which is backwards.
+
+**Why a sequence and not a tally.** One rule cited in rounds one, three and five for three different
+mistakes is a sloppy author, and the loop is converging fine. One rule cited, *answered*, and cited
+again is the loop going backwards. The two have the same tally, so counting citations would conflate
+them. What is counted is the transition.
+
+**Why these two signals and not others.** Both are corroborated rather than asserted, which is the
+property that makes them usable at all. D-49 derives `answered` from a fresh reader declining to raise
+something, so a relapse is two independent readers — one silent, one not — and nobody in the loop can
+fabricate either half. A reader is never shown the prior rounds, so two readers declaring one conflict
+are two uninvested processes agreeing with no knowledge of each other. Neither number is one the loop
+can move directly, which is what separates this from a self-reported counter.
+
+**Why per rule and not per artifact.** One rule coming back three times is the same ground refought. Two
+different rules relapsing once each is two unrelated incomplete fixes, and aggregating them would halt a
+loop that is converging on both. Per-rule counting also makes constraint-pair bookkeeping unnecessary:
+nothing relapses repeatedly on one rule without something else pushing back each time, so the pair is
+implied, and it is recorded as what the rule is `Against`.
+
+**Why two and three.** One relapse is an incomplete fix and those are ordinary, so one point says
+nothing. Three points is roughly six rounds of genuine ping-pong — deliberate room for a loop that
+oscillates *on its way to* converging, which is the normal shape of a refiner finding a boundary: narrow,
+overshoot, broaden, overshoot, then find the wording that satisfies both. Halting at two would kill that
+one round before it succeeds. Constants rather than configuration, for the reason
+`RemediationBudget.Limit` gives: the number a team would raise it to is the number at which the bound
+stops meaning anything.
+
+**Why the warning changes what the refiner is told, and is not just a display.** This is what makes the
+extra room worth paying for. The refiner is handed findings and no history, so it cannot know it is
+refighting old ground, and more laps at the same approach is only more spend. At two points the `Loop`
+line names the rule, the rounds, and the rule it is trading with, and the refine skill is told to look
+for an exit — a remainder named in `Out of scope`, a question that belongs under `## Open` — rather than
+editing the same sentence again.
+
+**Why a halt reports rather than refusing the gate.** A relapse requires an open blocking finding, and
+`GateRefusal.OpenBlocker` already refuses a build on one. A gate refusal would therefore be redundant in
+the common case and wrong in the only case where it would bite — the counter reaching three, then the
+fix landing and the next reader going silent, which is a loop that converged. A halt is evidence that
+automation got stuck, not evidence the artifact is wrong, and what decides whether the artifact advances
+is still the blockers.
+
+**What a halt must not claim.** The counter cannot tell a genuine conflict from a refiner repeating a
+mistake. Both need a person, so the distinction changes nothing about what happens — but the line says
+what it knows (this rule has come back three times, against these rules, in these rounds) and never that
+the rules conflict.
+
+**What clears a halt.** Steering, which already edits the intent, spec and plan together, records the
+correction as a fixed decision with attribution, and leaves the downstream rounds stale so the loop runs
+again. The counter moves with the history. **Nothing mechanical stops an agent steering itself**, and
+there is nowhere to put such a guard: the hook denies writes to the four protected files, and `steer` is
+a skill rather than a file. What the reset rests on is downstream — a fabricated steer is a fabricated
+attribution sitting in the intent, which a person reads at the approval gate before any code exists.
+That is the same layer every advisory rule here has, and it is written down rather than assumed.
+
+**Rejected.** *A cap on rounds* — kills the eleven-round honest case and permits the four-round
+pathological one. *A configurable patience* — the argument against a configurable `Limit` applies
+unchanged. *Counting per artifact* — aggregates unrelated incomplete fixes into a halt. *Counting
+citations rather than transitions* — conflates a sloppy author with a loop going backwards. *Halting on
+one conflict declaration* — an assertion stopping a cycle, and an escape hatch for an agent stuck on a
+blocker it cannot answer. *A new `GateRefusal` value* — redundant where it would fire and wrong where it
+would bite.

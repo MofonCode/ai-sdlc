@@ -154,6 +154,9 @@ public sealed class PublicSurfaceTests
         // suggestions Response a renderer reads, and because the parser that reads one out of a commit
         // message is the thing under test.
         "Sdlc.Core.Findings.Noticed",
+        "Sdlc.Core.Findings.Oscillation",
+        "Sdlc.Core.Findings.OscillationState",
+        "Sdlc.Core.Findings.StuckRule",
         "Sdlc.Core.Findings.FindingsRound",
         "Sdlc.Core.Findings.RemediationBudget",
         "Sdlc.Core.Findings.RemediationState",

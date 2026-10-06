@@ -37,6 +37,10 @@ public static class ReadCycleStatus
     /// Rules the latest round found cannot both be satisfied. Separate from the blockers, because a
     /// conflict is not an objection to this artifact and nothing editing the artifact can answer it.
     /// </param>
+    /// <param name="Loop">
+    /// Whether the interrogation loop is converging, refighting ground, or stuck. Counted from the same
+    /// rounds rather than read from anywhere else, so it cannot disagree with the history beside it.
+    /// </param>
     /// <param name="UpstreamHash">
     /// The hash of the artifact above as it stands now, or null when this artifact has no upstream.
     /// </param>
@@ -54,6 +58,7 @@ public static class ReadCycleStatus
         IReadOnlyList<Finding> OpenBlockers,
         IReadOnlyList<Finding> OpenSuggestions,
         IReadOnlyList<Conflict> Conflicts,
+        OscillationState Loop,
         string? UpstreamHash = null,
         string? JudgedAgainst = null)
     {
@@ -268,6 +273,7 @@ public static class ReadCycleStatus
                 FindingsReader.StandingBlockers(rounds),
                 FindingsReader.StandingSuggestions(rounds),
                 FindingsReader.StandingConflicts(rounds),
+                Oscillation.Count(rounds),
                 upstreamHash,
                 latest?.UpstreamSha256));
         }

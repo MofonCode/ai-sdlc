@@ -172,9 +172,25 @@ Every finding has exactly three exits:
 **Never assume silently.** A report is read once; a section is read every time the artifact is read,
 and it is what a reviewer's eye lands on at the gate.
 
-**Stop on convergence or on conflict, not on a count.** A round producing no new findings is
-convergence. Two constraints whose remedies exclude each other is a conflict: name it and hand it
-back rather than picking one.
+**Stop on convergence, on conflict, or on a halt — never on a count.** A round producing no new
+findings is convergence. Two constraints whose remedies exclude each other is a conflict: report it as
+one rather than picking a side. A halt is the panel's `Loop` line saying one rule has come back three
+times, which means the loop is refighting ground it already won.
+
+**There is no round limit, and the `Loop` line is not one.** A loop that is converging scores nothing
+however many rounds it takes, and eleven rounds has been worth it before now. What is counted is a rule
+answered and then raised again — going backwards, not going slowly.
+
+| The `Loop` line says | What to do |
+|---|---|
+| nothing | keep going. There is no cap to run out of |
+| a rule *has come back* | **look for an exit, not another edit of the same words.** The line names what the rule is caught against: can the remainder be named in `Out of scope`, or does the question belong under `## Open`? Another lap at the same approach is what the warning exists to prevent |
+| *stuck on* a rule | **stop and hand back.** Show the panel and say which rule, what it is against, and that the exits are a correction with `/sdlc:steer`, a scope change, a rule change, or abandoning the cycle |
+
+**A halt is not a verdict on the artifact.** It says automation got stuck, and the open blockers are
+still what decides whether anything advances. Do not describe a halt as a conflict unless a reader
+declared one: the count cannot tell a genuine conflict from a refiner repeating a mistake, and both want
+a person.
 
 ## 6. Report and hand back
 

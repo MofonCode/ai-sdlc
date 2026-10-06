@@ -147,9 +147,19 @@ decision appearing here would derive from nothing.
 
 ## Run the loop, then hand back
 
-Interrogate, refine, interrogate again until a round is clean or nothing further can be settled. The
-three exits are the same as the intent's — healed, assumed, asked — except that a spec has no
-decisions region, so an assumption here is almost always a sign the intent is the thing to fix.
+Interrogate, refine, interrogate again until a round is clean, a reader reports a conflict, or the
+panel's `Loop` line says the loop is stuck. The three exits for a finding are the same as the intent's —
+healed, assumed, asked — except that a spec has no decisions region, so an assumption here is almost
+always a sign the intent is the thing to fix.
+
+**"Nothing further can be settled" is no longer your call to make.** It used to be, and it was the one
+judgement in this loop that the session running it had no standing to make — the whole interrogate and
+refine split exists so that the thing being judged is not the judge. The `Loop` line on the panel is the
+answer now: silence means keep going, a rule that *has come back* means look for an exit instead of
+editing the same words again, and *stuck on* means stop and hand back to a person. Nothing caps the
+rounds, so a slow convergence is never a reason to stop.
+
+See the intent skill's loop section for the full table; it is the same loop.
 
 ```
 sdlc status <id> --stage spec --brief
