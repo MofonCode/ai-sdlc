@@ -21,7 +21,7 @@ internal static class Usage
     /// One subject today and the verb is plural-ready on purpose: the record has more than rules to say
     /// something about. Only what is built is offered, for the same reason the drafters are.
     /// </remarks>
-    public const string Proposals = "One of: constraints, decisions, palette.";
+    public const string Proposals = "One of: constraints, decisions, theme.";
 
     /// <summary>The usage text, written to standard output for help and to standard error for a
     /// usage error.</summary>
@@ -66,7 +66,7 @@ internal static class Usage
             decisions                The choices this solution has already settled, so a cycle reads
                                      what was argued rather than arguing it again. CON_19 asks a plan
                                      departing from one to say what it would have cost.
-            palette                  The roles this solution's surfaces use and the values that
+            theme                  The roles this solution's surfaces use and the values that
                                      fill them -- the one place a colour or a typeface lives.
             propose constraints      Read this solution's whole history and say which rules its
                                      findings keep citing, with the cycles and finding ids behind
@@ -77,7 +77,7 @@ internal static class Usage
                                      fixed decisions, a plan's shape and departures -- and hand the
                                      passages over for a person to record. Approved cycles only:
                                      an approval is what makes a passage something a person signed.
-            propose palette          Print the roles a palette declares, for a solution that has
+            propose theme          Print the roles a theme declares, for a solution that has
                                      none, or name the ones left empty in the one it has. Never
                                      proposes a value: a colour is a brand's, not a tool's.
             doctor                   Check this installation and this repository: the rules, git,
@@ -216,12 +216,12 @@ internal static class Usage
 
         Three records, and what each stops
             'constraints' stops a cycle doing something. 'decisions' stops it re-deciding
-            something. 'palette' stops it inventing a colour. All three are rendered on demand and
+            something. 'theme' stops it inventing a colour. All three are rendered on demand and
             never copied into an artifact, because a copy is a second place the truth lives.
 
             A plan may depart from any of the three. Departing from a rule is impossible, from a
             recorded decision it is legal but CON_19 asks what the decision would have cost, and
-            from the palette nothing in governance objects at all -- that one is a linter's job,
+            from the theme nothing in governance objects at all -- that one is a linter's job,
             because it is mechanical. Silence is what the rules catch, never the departure.
 
         Reports

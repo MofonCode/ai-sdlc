@@ -229,7 +229,7 @@ running, so a rule with no exception has nowhere for a bypass to live.
 refusal message names the command to run instead — a drafter for four of these files, `propose` for the
 rule file and the decision record. Run it yourself, and place what it produces.
 
-**The palette is deliberately not on this list.** `.sdlc/palette.json` is a solution file like the ones
+**The theme is deliberately not on this list.** `.sdlc/theme.json` is a solution file like the ones
 above and no agent write to it is denied, because nobody is judged against a colour: no constraint reads
 it and no stage takes its brief from it. A cycle changes a value by declaring the file, like any other
 declared work.

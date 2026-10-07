@@ -16,7 +16,7 @@ using Sdlc.Core.Hooks;
 using Sdlc.Core.Init;
 using Sdlc.Core.Decisions;
 using Sdlc.Core.Landing;
-using Sdlc.Core.Palettes;
+using Sdlc.Core.Themes;
 using Sdlc.Core.Proposals;
 using Sdlc.Core.Reports;
 using Sdlc.Core.Solutions;
@@ -70,7 +70,7 @@ try
         "findings" => await WithCycle(line, "findings", (w, id) => Findings(w, line, id)).ConfigureAwait(false),
         "suggestions" => await Workspace.Run(line, w => Suggestions(w, line)).ConfigureAwait(false),
         "decisions" => await Workspace.Run(line, w => Decisions(w, line)).ConfigureAwait(false),
-        "palette" => await Workspace.Run(line, PaletteCommand).ConfigureAwait(false),
+        "theme" => await Workspace.Run(line, ThemeCommand).ConfigureAwait(false),
         "doctor" => await Workspace.Run(line, Doctor).ConfigureAwait(false),
         "hook" => await Hook(line).ConfigureAwait(false),
         _ when Stages.IsSkill(line.Verb) => await Skill(line).ConfigureAwait(false),
@@ -622,7 +622,7 @@ static async Task<int> Propose(CommandLine line)
     {
         "constraints" or "constraint" => await Workspace.Run(rest, ProposeRules).ConfigureAwait(false),
         "decisions" or "decision" => await Workspace.Run(rest, ProposeChoices).ConfigureAwait(false),
-        "palette" => await Workspace.Run(rest, ProposePalette).ConfigureAwait(false),
+        "theme" => await Workspace.Run(rest, ProposeTheme).ConfigureAwait(false),
         _ => await UnknownProposal(line.Arguments[0]).ConfigureAwait(false),
     };
 }
@@ -697,10 +697,10 @@ static async Task<int> ProposeChoices(Workspace workspace)
 
 // A register rather than an argument, so what is proposed is the shape and never the values. A tool
 // choosing a brand's colours would be the one proposal here nobody asked for.
-static async Task<int> ProposePalette(Workspace workspace)
+static async Task<int> ProposeTheme(Workspace workspace)
 {
-    Result<ReadPalette.Response> result = await workspace
-        .Send<ReadPalette.Query, ReadPalette.Response>(new ReadPalette.Query())
+    Result<ReadTheme.Response> result = await workspace
+        .Send<ReadTheme.Query, ReadTheme.Response>(new ReadTheme.Query())
         .ConfigureAwait(false);
 
     if (result.IsFailed)
@@ -708,7 +708,7 @@ static async Task<int> ProposePalette(Workspace workspace)
         return await Report(result, ExitCode.Refused).ConfigureAwait(false);
     }
 
-    await Console.Out.WriteAsync(PaletteRenderer.Propose(result.Value)).ConfigureAwait(false);
+    await Console.Out.WriteAsync(ThemeRenderer.Propose(result.Value)).ConfigureAwait(false);
     return ExitCode.Ok;
 }
 
@@ -734,11 +734,11 @@ static async Task<int> Decisions(Workspace workspace, CommandLine line)
     return ExitCode.Ok;
 }
 
-// The palette as it stands, for a stage about to build a surface.
-static async Task<int> PaletteCommand(Workspace workspace)
+// The theme as it stands, for a stage about to build a surface.
+static async Task<int> ThemeCommand(Workspace workspace)
 {
-    Result<ReadPalette.Response> result = await workspace
-        .Send<ReadPalette.Query, ReadPalette.Response>(new ReadPalette.Query())
+    Result<ReadTheme.Response> result = await workspace
+        .Send<ReadTheme.Query, ReadTheme.Response>(new ReadTheme.Query())
         .ConfigureAwait(false);
 
     if (result.IsFailed)
@@ -746,7 +746,7 @@ static async Task<int> PaletteCommand(Workspace workspace)
         return await Report(result, ExitCode.Refused).ConfigureAwait(false);
     }
 
-    await Console.Out.WriteAsync(PaletteRenderer.Render(result.Value)).ConfigureAwait(false);
+    await Console.Out.WriteAsync(ThemeRenderer.Render(result.Value)).ConfigureAwait(false);
     return ExitCode.Ok;
 }
 

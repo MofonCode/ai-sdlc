@@ -1,8 +1,8 @@
 ---
 name: propose
-description: Read what a solution's record says it is missing -- a rule its findings keep citing, a choice its approved cycles settled, or the roles a palette declares -- and propose entries a person may adopt. Proposes and never places. Use when somebody asks what keeps going wrong across cycles, wants to add one of this solution's own constraints, wants to record a decision, or needs a palette.
+description: Read what a solution's record says it is missing -- a rule its findings keep citing, a choice its approved cycles settled, or the roles a theme declares -- and propose entries a person may adopt. Proposes and never places. Use when somebody asks what keeps going wrong across cycles, wants to add one of this solution's own constraints, wants to record a decision, or needs a theme.
 compatibility: Requires the sdlc binary on PATH, from the MofonCode.Sdlc.Cli dotnet tool, and a git repository. Every command here is that binary, so without it the first step fails.
-argument-hint: "constraints | decisions | palette"
+argument-hint: "constraints | decisions | theme"
 allowed-tools: Bash(sdlc *)
 ---
 
@@ -11,13 +11,13 @@ allowed-tools: Bash(sdlc *)
 ```
 sdlc propose constraints
 sdlc propose decisions
-sdlc propose palette
+sdlc propose theme
 ```
 
 **Three subjects, three different records, one rule.** A constraint is **mined backward** from the
 findings — the same rule blocking three cycles says a rule is missing. A decision is **captured
 forward**, because a choice that never collided with a rule produced no finding to mine: a colour, a
-layout convention, a code-style choice is nowhere in the history. A palette is neither; it is a
+layout convention, a code-style choice is nowhere in the history. A theme is neither; it is a
 register, and what gets proposed is the shape rather than the values.
 
 Pick the subject the person asked for. If they asked for none, ask rather than guess — the three read
@@ -220,18 +220,18 @@ alternatives it already weighed.
 
 ---
 
-# `palette`
+# `theme`
 
 ```
-sdlc propose palette
+sdlc propose theme
 ```
 
 **Roles, not values.** `cancel` is a role; `blue-400` is a value wearing a role's clothes. The difference
 is what survives a rebrand — values change, roles do not — and it is what lets a stage look one up rather
 than guess.
 
-**This never proposes a colour.** For a solution with no palette it prints the skeleton of roles for a
-person to fill; for one that has a palette it names the roles left empty and stops. A colour is a
+**This never proposes a colour.** For a solution with no theme it prints the skeleton of roles for a
+person to fill; for one that has a theme it names the roles left empty and stops. A colour is a
 brand's or a designer's, and inventing one is the only proposal here nobody asked for. Do not fill the
 values in yourself, and do not offer to.
 
@@ -241,14 +241,14 @@ Three things to say when you show it:
   trusted, and it is always the copy.
 - **Add the roles this solution needs and delete the ones it does not.** A long skeleton is a guess with
   the authority of a default.
-- **Set `"settled": true` once somebody has decided.** That is what separates a palette somebody chose
+- **Set `"settled": true` once somebody has decided.** That is what separates a theme somebody chose
   from one nobody has filled in — including the case where a role is deliberately empty because it does
   not apply.
 
 **It is not protected, unlike the other two.** Nobody is judged against a colour, so there is no loop to
-close: an ordinary cycle may declare `.sdlc/palette.json` and change a value as declared work. Say that
+close: an ordinary cycle may declare `.sdlc/theme.json` and change a value as declared work. Say that
 rather than implying a refusal that will not come.
 
-**Enforcement is a linter, not a constraint.** *A colour or font family that is not in the palette* is
+**Enforcement is a linter, not a constraint.** *A colour or font family that is not in the theme* is
 mechanically decidable, so it belongs below a constraint and can fail a build, which a constraint cannot.
-If somebody wants the palette enforced, that is where to send them.
+If somebody wants the theme enforced, that is where to send them.

@@ -50,7 +50,7 @@ and prints the invocation — because a tool must never send somebody somewhere 
 | `status` | shows where a cycle has got to | `<id> [artifact]` | after any stage, or when somebody asks | anyone, constantly |
 | `constraints` | shows the rules in force, all tiers resolved | `[artifact]` | before writing or judging anything | every stage skill, as its first step |
 | `suggestions` | lists the open non-blocking findings, and what the builds noticed | `[id]` | looking for what was noticed and not acted on | a person |
-| `propose` | reads a record and proposes entries a person may adopt, with the evidence behind each | `constraints \| decisions \| palette` | asking what keeps going wrong across cycles, recording a choice, or needing a palette | a person |
+| `propose` | reads a record and proposes entries a person may adopt, with the evidence behind each | `constraints \| decisions \| theme` | asking what keeps going wrong across cycles, recording a choice, or needing a theme | a person |
 
 **"Who starts it" is not "who runs it".** Every one of these is executed by an agent — that is what a
 skill is. What differs is who decides it should happen, and two of them are a person's decision in a way
@@ -469,7 +469,7 @@ somebody already took and hands back a finished file; `propose` is for one they 
 from the record.
 
 One subject today, `constraints`, and the grammar is deliberately the same as `draft`'s so the family
-can grow — a decision record and a palette are the obvious next two, and neither is built.
+can grow — a decision record and a theme are the obvious next two, and neither is built.
 
 **The licence, which is the whole design in one line:** a tool may propose a rule when it brings the
 evidence, and may not shape a rule somebody just typed. Every candidate arrives with the cycles and
@@ -510,14 +510,14 @@ an intent's `Fixed decisions` and a plan's `Shape and departures`, and skips a c
 reopened or whose work was stopped. The approval is the whole provenance story: it hashes the three
 planning documents against a person's name, so a passage from one is prose a person signed.
 
-`propose palette` is neither mined nor captured. A palette is a **register**, so what gets proposed is the
+`propose theme` is neither mined nor captured. A theme is a **register**, so what gets proposed is the
 shape — the roles — and never a value: a colour is a brand's, and a tool inventing one is the only
 proposal here nobody asked for.
 
 **Departing is legal from two of the three, and silence is what gets caught.** `CON_19` asks a plan
 contradicting a recorded decision to say what that decision would have cost, the same shape `CON_15`
-takes for the declared stack. The palette is the one nothing in governance objects to, because *a colour
-outside the palette* is mechanical and belongs to a linter, which can fail a build where a constraint
+takes for the declared stack. The theme is the one nothing in governance objects to, because *a colour
+outside the theme* is mechanical and belongs to a linter, which can fail a build where a constraint
 cannot.
 
 ---

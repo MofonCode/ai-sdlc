@@ -3,7 +3,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using FluentResults;
 
-namespace Sdlc.Core.Palettes;
+namespace Sdlc.Core.Themes;
 
 /// <summary>
 /// One semantic slot and what fills it.
@@ -19,11 +19,11 @@ namespace Sdlc.Core.Palettes;
 public sealed record Slot(string Role, string? Value);
 
 /// <summary>
-/// A solution's palette: the roles its surfaces use, and the one place their values live.
+/// A solution's theme: the roles its surfaces use, and the one place their values live.
 /// </summary>
 /// <remarks>
 /// <para><strong>A register, not a decision.</strong> There is no argument in a hex code — just a list
-/// that has to stay consistent. The <em>reason</em> for a palette (a brand, a contrast target) is a
+/// that has to stay consistent. The <em>reason</em> for a theme (a brand, a contrast target) is a
 /// decision and belongs in <c>decisions.md</c>; what belongs here is the values, so each sits in one
 /// place and neither duplicates the other.</para>
 ///
@@ -35,23 +35,29 @@ public sealed record Slot(string Role, string? Value);
 ///
 /// <para><strong>It is not protected, unlike the rule file and the decision record.</strong> Nobody is
 /// judged against a colour: no constraint reads this, so an agent that writes it cannot satisfy a rule by
-/// doing so. Changing a value is ordinary declared work in a cycle. What <c>propose palette</c> is for is
+/// doing so. Changing a value is ordinary declared work in a cycle. What <c>propose theme</c> is for is
 /// a well-formed one arriving in the first place.</para>
 ///
-/// <para><strong>Blank says which kind of blank it is.</strong> An empty palette could mean <em>not
+/// <para><strong>Blank says which kind of blank it is.</strong> An empty theme could mean <em>not
 /// decided yet</em> or <em>deliberately none</em>, and those read identically in a file of empty values.
 /// <see cref="Settled"/> is the line that separates them, because guessing wrong in either direction
 /// wastes a conversation.</para>
 /// </remarks>
 /// <param name="Settled">
-/// Whether somebody has decided this is the palette. False in a skeleton nobody has filled; true says
+/// Whether somebody has decided this is the theme. False in a skeleton nobody has filled; true says
 /// the values are the answer, including when a solution deliberately has none.
 /// </param>
+/// <remarks>
+/// <strong>One theme, not a set of them.</strong> This is a flat map of role to value, so it cannot
+/// express light and dark. That is a known cost of the name (D-71): supporting two would need a level
+/// above the roles, which is a change to the file rather than a flag — so the answer to "add dark mode"
+/// is that the shape changes, and it is said here rather than discovered by whoever asks.
+/// </remarks>
 /// <param name="Slots">The roles, in the order the file lists them.</param>
-public sealed record Palette(bool Settled, IReadOnlyList<Slot> Slots)
+public sealed record Theme(bool Settled, IReadOnlyList<Slot> Slots)
 {
-    /// <summary>The file a palette lives in, inside the framework's directory.</summary>
-    public const string FileName = "palette.json";
+    /// <summary>The file a theme lives in, inside the framework's directory.</summary>
+    public const string FileName = "theme.json";
 
     // Camel case on the way out, case-insensitive on the way in. This file is read by a front end as
     // well as by the gate, so it is spelled the way JSON is spelled there rather than the snake case the
@@ -105,12 +111,12 @@ public sealed record Palette(bool Settled, IReadOnlyList<Slot> Slots)
         [.. Slots.Where(slot => string.IsNullOrWhiteSpace(slot.Value)).Select(slot => slot.Role)];
 
     /// <summary>
-    /// Reads a palette.
+    /// Reads a theme.
     /// </summary>
     /// <param name="json">The file's contents.</param>
     /// <param name="source">What to call it in an error message.</param>
-    /// <returns>The palette, or a failure saying what is wrong with it.</returns>
-    public static Result<Palette> Read(string json, string source)
+    /// <returns>The theme, or a failure saying what is wrong with it.</returns>
+    public static Result<Theme> Read(string json, string source)
     {
         ArgumentNullException.ThrowIfNull(json);
         ArgumentException.ThrowIfNullOrWhiteSpace(source);
@@ -123,16 +129,16 @@ public sealed record Palette(bool Settled, IReadOnlyList<Slot> Slots)
         }
         catch (JsonException error)
         {
-            return Result.Fail<Palette>(string.Create(
+            return Result.Fail<Theme>(string.Create(
                 CultureInfo.InvariantCulture,
                 $"{source}: is not valid JSON. {error.Message}"));
         }
 
         if (shape?.Roles is null)
         {
-            return Result.Fail<Palette>(string.Create(
+            return Result.Fail<Theme>(string.Create(
                 CultureInfo.InvariantCulture,
-                $"{source}: has no 'roles' object. A palette with no roles declares nothing."));
+                $"{source}: has no 'roles' object. A theme with no roles declares nothing."));
         }
 
         List<IError> errors = [];
@@ -150,35 +156,35 @@ public sealed record Palette(bool Settled, IReadOnlyList<Slot> Slots)
         }
 
         return errors.Count > 0
-            ? Result.Fail<Palette>(errors)
-            : Result.Ok(new Palette(shape.Settled, slots));
+            ? Result.Fail<Theme>(errors)
+            : Result.Ok(new Theme(shape.Settled, slots));
     }
 
     /// <summary>
-    /// Writes a palette as the file holds it.
+    /// Writes a theme as the file holds it.
     /// </summary>
     /// <remarks>
     /// Here rather than in the proposer, so what a skeleton looks like and what a reader accepts are one
     /// definition. A proposer composing its own JSON is how the two drift apart.
     /// </remarks>
-    /// <param name="palette">The palette to write.</param>
+    /// <param name="theme">The theme to write.</param>
     /// <returns>The JSON, ending in a newline.</returns>
-    public static string Write(Palette palette)
+    public static string Write(Theme theme)
     {
-        ArgumentNullException.ThrowIfNull(palette);
+        ArgumentNullException.ThrowIfNull(theme);
 
         Shape shape = new()
         {
-            Settled = palette.Settled,
-            Roles = palette.Slots.ToDictionary(slot => slot.Role, slot => slot.Value, StringComparer.Ordinal),
+            Settled = theme.Settled,
+            Roles = theme.Slots.ToDictionary(slot => slot.Role, slot => slot.Value, StringComparer.Ordinal),
         };
 
         return JsonSerializer.Serialize(shape, _options) + Environment.NewLine;
     }
 
     /// <summary>A skeleton: every role in <see cref="Skeleton"/>, no values, and not settled.</summary>
-    /// <returns>The palette a solution starts from.</returns>
-    public static Palette Empty() =>
+    /// <returns>The theme a solution starts from.</returns>
+    public static Theme Empty() =>
         new(Settled: false, [.. Skeleton.Select(role => new Slot(role, null))]);
 
     // Constructed by System.Text.Json through reflection, which is why it looks unused.

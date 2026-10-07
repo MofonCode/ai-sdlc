@@ -91,7 +91,7 @@ sdlc findings <id>
 sdlc suggestions
 sdlc propose constraints
 sdlc decisions
-sdlc palette
+sdlc theme
 sdlc cycles
 sdlc cycles --claims
 sdlc cycles --landable
@@ -107,10 +107,10 @@ never acted on. `propose constraints` reads the whole history and says which rul
 citing — recurrence across cycles is its entire signal, so there is nothing to ask it about one. Both
 print and keep a copy under `.sdlc/reports/`, which nothing reads back.
 
-`decisions` and `palette` are the other two records a stage reads: one so it does not re-decide something
+`decisions` and `theme` are the other two records a stage reads: one so it does not re-decide something
 already argued, the other so it does not invent a colour. **Only the constraints bind** — a plan may
-depart from a decision or a palette and break no rule. What reading them buys is that the departure is
-taken knowingly. `sdlc propose decisions` and `sdlc propose palette` are how entries arrive.
+depart from a decision or a theme and break no rule. What reading them buys is that the departure is
+taken knowingly. `sdlc propose decisions` and `sdlc propose theme` are how entries arrive.
 
 ## Stopping
 

@@ -143,7 +143,7 @@ belongs in them — `sdlc draft approval`, `draft abandon`, `draft profile`, `dr
 wording is argued from the record rather than dictated: `sdlc propose constraints` from the findings, and
 `sdlc propose decisions` from what an approved cycle stated.
 
-`.sdlc/palette.json` is a solution file and is **not** on that list: nobody is judged against a colour, so
+`.sdlc/theme.json` is a solution file and is **not** on that list: nobody is judged against a colour, so
 a cycle may declare it and change a value like any other file. The pre-tool
 hook denies every agent write to all six, by file path and by shell command alike, with no exception.
 **A refusal there is the design working, not a configuration problem to route around.** The hook matches

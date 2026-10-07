@@ -206,15 +206,15 @@ public sealed class PublicSurfaceTests
         "Sdlc.Core.Decisions.ReadDecisions+Query",
         "Sdlc.Core.Decisions.ReadDecisions+Response",
 
-        // 'sdlc palette' and 'sdlc propose palette': the register, its one slot shape, the operation
-        // that reads it and the renderer that both shows and proposes one. Palette is public rather
-        // than internal because ReadPalette.Response exposes it and Sdlc.Cli renders it.
-        "Sdlc.Core.Palettes.Palette",
-        "Sdlc.Core.Palettes.PaletteRenderer",
-        "Sdlc.Core.Palettes.ReadPalette",
-        "Sdlc.Core.Palettes.ReadPalette+Query",
-        "Sdlc.Core.Palettes.ReadPalette+Response",
-        "Sdlc.Core.Palettes.Slot",
+        // 'sdlc theme' and 'sdlc propose theme': the register, its one slot shape, the operation
+        // that reads it and the renderer that both shows and proposes one. Theme is public rather
+        // than internal because ReadTheme.Response exposes it and Sdlc.Cli renders it.
+        "Sdlc.Core.Themes.Theme",
+        "Sdlc.Core.Themes.ThemeRenderer",
+        "Sdlc.Core.Themes.ReadTheme",
+        "Sdlc.Core.Themes.ReadTheme+Query",
+        "Sdlc.Core.Themes.ReadTheme+Response",
+        "Sdlc.Core.Themes.Slot",
         "Sdlc.Core.Git.GitRepository",
         "Sdlc.Core.Git.IRepository",
         // The four added with D-46. Each host's facts are one row in a table rather than a switch

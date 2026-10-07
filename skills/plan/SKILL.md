@@ -33,7 +33,7 @@ plan that cannot be built.
 
 ```
 sdlc decisions
-sdlc palette
+sdlc theme
 ```
 
 `.sdlc/techstack.md` declares what this solution is built from — `CON_15` judges you against it.
@@ -42,7 +42,7 @@ a plan whose approach contradicts a standing entry says what the recorded decisi
 it before you choose a shape rather than after, because a plan that has not read it cannot tell whether
 it is departing — and that is the whole failure the rule exists to catch.
 
-`sdlc palette` is the one nothing judges. Read it anyway if this change touches a surface or a report:
+`sdlc theme` is the one nothing judges. Read it anyway if this change touches a surface or a report:
 it holds the roles and values somebody chose, and a value invented beside them is the drift a register
 exists to prevent. It is also not protected, so changing one is ordinary declared work — just declare
 the file.
@@ -208,8 +208,8 @@ rewritten by the thing it was checking.>
 <Never name one of the six files only a person writes -- approval.md, abandoned.md, constraints.md,
 decisions.md, solution.md, techstack.md. The schema refuses a plan that declares one, because the build
 is denied the write and the plan could not be carried out as written. Changing the declared stack is its
-own act, outside a cycle: 'sdlc draft techstack' and a rename. The palette is not one of them -- a
-cycle may declare .sdlc/palette.json and change a value like any other file.
+own act, outside a cycle: 'sdlc draft techstack' and a rename. The theme is not one of them -- a
+cycle may declare .sdlc/theme.json and change a value like any other file.
 
 A file holding a rule is different: you may declare one and change it. The evidence comparison reports
 every such file under GOVERNING whether or not the plan declared it, and CON_18 asks Shape and

@@ -780,12 +780,12 @@ Five files in `.sdlc/`, split by **mutability**:
 | `decisions.md` | a person, by hand | the hook denies every agent write (D-70) |
 | `techstack.md` | a cycle whose plan declares it | the ordinary declared-file gate |
 | `solution.md` | `init`, and a cycle for `profile` alone | the hook denies every agent write |
-| `palette.json` | a cycle whose plan declares it | the ordinary declared-file gate (D-71) |
+| `theme.json` | a cycle whose plan declares it | the ordinary declared-file gate (D-71) |
 
 **Three are rule sources and two are not, and that is what decides the protection.** A plan is judged
 against the constraints and the declared stack, so an agent able to write either could satisfy a rule by
 editing it rather than arguing for it. `decisions.md` is protected for a sharper reason — a stage *reads*
-it for alignment, so an agent that could write it could invent doctrine and then align to it. The palette
+it for alignment, so an agent that could write it could invent doctrine and then align to it. The theme
 is protected by nothing because nothing reads a colour that way: there is no loop to close, and a hook
 rule nothing needs is one somebody later carves an exception into.
 
@@ -820,7 +820,7 @@ same shape `CON_15` takes for the declared stack, and a separate rule rather tha
 what is forbidden changed (§7.4). D-72, which reverses the half of D-70 that shipped the record binding
 nothing.
 
-### 8.1.2 `palette.json`
+### 8.1.2 `theme.json`
 
 A **register**, not an argument: the roles a solution's surfaces use, and the one place their values live.
 Roles rather than colour names, so a value may change and a role may not. Machine-readable, because one
@@ -1612,9 +1612,9 @@ they print verbatim.
 | `cycles --landable` | every cycle, saying which may be landed |
 | `suggestions [<id>]` | the open non-blocking findings, across cycles |
 | `decisions [--brief\|--all]` | the choices this solution has settled, so a cycle reads what was argued rather than arguing it again — D-70 |
-| `palette` | the roles this solution's surfaces use and the values that fill them — D-71 |
+| `theme` | the roles this solution's surfaces use and the values that fill them — D-71 |
 | `propose decisions` | what an approved cycle stated, handed over for a person to record — D-70 |
-| `propose palette` | the roles a palette declares, or the ones left empty in the one there is — D-71 |
+| `propose theme` | the roles a theme declares, or the ones left empty in the one there is — D-71 |
 | `landable <id>` | whether one cycle may be landed, without landing it |
 | `verify-chain <id>` | the whole chain, as the pull-request check runs it — §13 |
 | `scaffold <id>` | writes the solution skeleton into an approved cycle — D-35 |
@@ -1651,7 +1651,7 @@ collision check, and the filesystem makes that atomic (D-10).
   techstack.md              what this solution is built from
   constraints.md            this solution's own LOC_nn, hand-edited
   decisions.md              its own DEC_nn: the choices it has settled, hand-edited (D-70)
-  palette.json              the roles its surfaces use and the values that fill them (D-71)
+  theme.json              the roles its surfaces use and the values that fill them (D-71)
   README.md                 terminology, flow and commands
   reports/                  what suggestions and propose printed last, kept because a person works
                             through one of these rather than reading it once. Ignored by a
@@ -1831,8 +1831,8 @@ block, then remediate, then exhaust the budget.
    here; do you want a rule about null-checking at boundaries?"* leaves the person deciding, which is the
    line §9 actually draws. Open because the choice is between three defensible shapes rather than
    because the gap is in doubt.
-9. **Whether a palette is per solution or shared across them.** D-71 ships it per solution, at
-   `.sdlc/palette.json`. A design system shared by several solutions is the obvious case for the other
+9. **Whether a theme is per solution or shared across them.** D-71 ships it per solution, at
+   `.sdlc/theme.json`. A design system shared by several solutions is the obvious case for the other
    answer, and it is a profile question rather than a solution one: a profile already carries the
    conventions new work follows, and a shared register would sit beside them. Nothing blocks it; no
    solution has wanted it yet.
@@ -4633,7 +4633,7 @@ plugin contributor can change the library, and there is no channel from a soluti
 recurrence meets the bar and no solution-level rule could reach it, the report says so in one line and
 points at the plugin's issue tracker — rare by construction, because the bar gates it.
 
-**What it does not do, stated plainly.** It proposes no decisions and no palette, though `propose` is a
+**What it does not do, stated plainly.** It proposes no decisions and no theme, though `propose` is a
 family and both are the obvious next subjects. **A decision cannot be mined** — see §19 item 3 — so that is
 different mechanism rather than a second section of this one. It also says nothing about which *stage* a
 problem was caused at, which is the `caused-by` half of §19 item 3 and still open.
@@ -4748,12 +4748,20 @@ a rewritten reason *is* a different reason. Either the entry stands as written o
   that a default has moved, and recognising that two prose passages are the same departure is a judgement.
   The proposer hands the passages over; it does not claim they match.
 
-### D-71 — A palette is a register of roles, machine-readable, and protected by nothing
+### D-71 — A theme is a register of roles, machine-readable, and protected by nothing
+
+**Named `theme` rather than `palette`, and the name is load-bearing in one direction.** It was
+`palette.json` when it shipped, which undersold it: the register carries `font-body`, `font-heading` and
+`font-mono` as well as colours, and a palette is colours. **The cost is that "theme" invites light and
+dark.** The shape is one flat map of role to value and cannot express two themes; supporting them means a
+level above the roles — `themes.light.surface` — which is a change to the file rather than a flag. So
+when somebody asks for dark mode the honest answer is that the shape changes, and that is a consequence
+of the name chosen here rather than something discovered later.
 
 **Governs:** §8, §8.1.2, §15.2, §16, §19
 
-**Decision.** A solution with a front-end surface or a report keeps `.sdlc/palette.json`: semantic
-**roles** mapped to values, with a `settled` flag. `sdlc palette` renders it; `sdlc propose palette`
+**Decision.** A solution with a front-end surface or a report keeps `.sdlc/theme.json`: semantic
+**roles** mapped to values, with a `settled` flag. `sdlc theme` renders it; `sdlc propose theme`
 prints the skeleton of roles for a solution that has none and names the empty roles in one that does. It
 **never proposes a value.** The file is not protected, nothing enforces its existence, and enforcement
 where a solution wants it is a linter.
@@ -4765,14 +4773,14 @@ when it builds a page, which a flat list of hex codes does not.
 **Why JSON rather than prose, and why that is the whole design.** A markdown page of hex codes that a
 stylesheet also holds is two places the truth lives, and the one that goes stale is always the one a tool
 trusts. JSON is importable by every front-end toolchain, so a stylesheet reads *this* file rather than
-copying out of it, and the same bytes feed a linter. The *reason* for a palette — a brand, a contrast
+copying out of it, and the same bytes feed a linter. The *reason* for a theme — a brand, a contrast
 target — is a decision and belongs in `decisions.md`, so values and reasons sit in one place each.
 
 **Why a tool never proposes a colour.** A colour is a brand's or a designer's. A skeleton of roles is
-bookkeeping; a palette of invented values is a tool making the one decision nobody delegated to it, and it
+bookkeeping; a theme of invented values is a tool making the one decision nobody delegated to it, and it
 would be adopted by somebody skimming.
 
-**Why `settled` exists.** An empty palette could mean *not decided yet* or *deliberately none*, and those
+**Why `settled` exists.** An empty theme could mean *not decided yet* or *deliberately none*, and those
 read identically in a file of empty values. One flag separates them, and it also covers the ordinary case
 of a role left empty because it does not apply to this solution.
 
@@ -4789,19 +4797,19 @@ front-end surface, and §2.1 is the rule against a check that cannot really chec
 
 **Rejected.**
 
-- *A markdown palette beside the other governance files* — the first shape proposed. Refused because the
+- *A markdown theme beside the other governance files* — the first shape proposed. Refused because the
   values would be duplicated into a stylesheet within a month, and the prose copy is the one a tool
   trusts.
 - *Generating CSS custom properties from it* — the honest way to have one source and native CSS. It is
   build machinery, and inventing a generator for every front-end toolchain is a much larger thing than
   this earns. Importing JSON is already native everywhere that matters.
 - *A `solution.md` key saying whether a solution has surfaces* — a fifth key to let a check assert the
-  palette exists. The check would then have to decide what counts as a UI, which nothing here can do
+  theme exists. The check would then have to decide what counts as a UI, which nothing here can do
   honestly: §2.1's failure mode is a directory that appears enforced and is not.
 - *A long skeleton covering every role a design system might want* — guesswork with the authority of a
   default. The roles a solution needs are the ones it adds; the sixteen shipped are the ones a surface
   cannot avoid choosing.
-- *A constraint forbidding a literal colour outside the palette* — admissible on the first and third
+- *A constraint forbidding a literal colour outside the theme* — admissible on the first and third
   admission tests and refused by the second: a linter decides it, and a linter fails a build where a
   constraint cannot.
 
@@ -4862,6 +4870,6 @@ contradiction of something a person wrote is not decoration.
 - *A schema rule instead* — a schema can check that a plan has a `Shape and departures` section, which it
   already does. It cannot tell whether what is in there addresses the decision the plan contradicts, which
   is the whole content of this rule.
-- *Making the palette bind the same way* — refused for the reason D-71 gives: *a colour outside the
-  palette* is mechanically decidable, so §2.3 puts it in a linter, which fails a build where a constraint
+- *Making the theme bind the same way* — refused for the reason D-71 gives: *a colour outside the
+  theme* is mechanically decidable, so §2.3 puts it in a linter, which fails a build where a constraint
   cannot.

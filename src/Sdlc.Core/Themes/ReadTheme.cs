@@ -4,10 +4,10 @@ using MofonCode.Core;
 using Sdlc.Core.Cycles;
 using Sdlc.Core.Solutions;
 
-namespace Sdlc.Core.Palettes;
+namespace Sdlc.Core.Themes;
 
 /// <summary>
-/// Reads the palette a solution's surfaces use. Reads; never writes.
+/// Reads the theme a solution's surfaces use. Reads; never writes.
 /// </summary>
 /// <remarks>
 /// What a stage runs before it builds a page or a report, so a colour or a typeface comes from the one
@@ -15,35 +15,35 @@ namespace Sdlc.Core.Palettes;
 /// does for the rules and <c>sdlc decisions</c> for the settled choices — rendered on demand, never
 /// copied into an artifact.
 /// <para>
-/// A solution with no front-end surface has no palette and that is not a failure. §2.1's rule applies:
+/// A solution with no front-end surface has no theme and that is not a failure. §2.1's rule applies:
 /// a check that claims to verify a UI solution has one would have to decide what counts as a UI, which
 /// nothing here can do — so absence is reported and never judged.
 /// </para>
 /// </remarks>
-public static class ReadPalette
+public static class ReadTheme
 {
     /// <summary>Registers this operation's handler.</summary>
     /// <param name="services">The collection to add to.</param>
     /// <returns>The same collection, for chaining.</returns>
-    public static IServiceCollection AddReadPaletteRequestHandler(this IServiceCollection services)
+    public static IServiceCollection AddReadThemeRequestHandler(this IServiceCollection services)
     {
         ArgumentNullException.ThrowIfNull(services);
 
         return services.AddTransient<IRequestHandler<Query, Response>, Handler>();
     }
 
-    /// <summary>Asks for this solution's palette.</summary>
+    /// <summary>Asks for this solution's theme.</summary>
     public sealed record Query : IRequest<Response>;
 
     /// <summary>
-    /// What the palette holds.
+    /// What the theme holds.
     /// </summary>
-    /// <param name="Palette">The palette, or null when the solution has none.</param>
+    /// <param name="Theme">The theme, or null when the solution has none.</param>
     /// <param name="Path">Where it lives, whether or not it is there yet.</param>
-    public sealed record Response(Palette? Palette, string Path)
+    public sealed record Response(Theme? Theme, string Path)
     {
-        /// <summary>Whether the solution has a palette at all.</summary>
-        public bool Recorded => Palette is not null;
+        /// <summary>Whether the solution has a theme at all.</summary>
+        public bool Recorded => Theme is not null;
     }
 
     /// <param name="solution">The root of the solution being read.</param>
@@ -54,7 +54,7 @@ public static class ReadPalette
         {
             ArgumentNullException.ThrowIfNull(request);
 
-            string path = Path.Combine(solution.Path, Cycle.SdlcDirectoryName, Palette.FileName);
+            string path = Path.Combine(solution.Path, Cycle.SdlcDirectoryName, Theme.FileName);
 
             if (!File.Exists(path))
             {
@@ -62,7 +62,7 @@ public static class ReadPalette
             }
 
             string json = await File.ReadAllTextAsync(path, cancellationToken).ConfigureAwait(false);
-            Result<Palette> read = Palette.Read(json, path);
+            Result<Theme> read = Theme.Read(json, path);
 
             return read.IsFailed
                 ? read.ToResult<Response>()
