@@ -13,7 +13,7 @@ What is documented elsewhere, and why it is not here:
 
 | | |
 |---|---|
-| the seventeen skills: what each is, how it is invoked, who starts it | [`../skills/README.md`](../skills/README.md), beside the skills themselves |
+| the eighteen skills: what each is, how it is invoked, who starts it | [`../skills/README.md`](../skills/README.md), beside the skills themselves |
 | the design, and every decision behind it with what each one rejected | [`../CONCEPT.md`](../CONCEPT.md) |
 | the rules in force | `sdlc constraints` renders them, all tiers resolved. A copy would be a second place they live |
 | what the code is and how it fits together | [`../src/README.md`](../src/README.md) |

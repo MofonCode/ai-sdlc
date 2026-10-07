@@ -56,7 +56,10 @@ public static class ProtectedPaths
             return new ProtectedFile(
                 "this solution's own constraints",
                 "A cycle judged by the constraints it is changing is the same deadlock as the framework "
-                + "governing itself. Constraints are edited by a person, by hand.");
+                + "governing itself. Constraints are edited by a person, by hand. Run "
+                + "'sdlc propose constraints' and hand back what it prints: it reads this solution's "
+                + "whole history, says which rules its findings keep citing, and prints an empty entry "
+                + "at the next free id when the record holds no pattern.");
         }
 
         if (string.Equals(fileName, Cycle.TechStackFileName, StringComparison.OrdinalIgnoreCase))

@@ -71,18 +71,3 @@ rather than wrong numbers**, which is the failure worth preferring.
 
 Pass `-Transcript` for a specific session rather than the newest; without it, the newest transcript that
 actually invoked a skill is read, because a repository accumulates sessions that never ran one.
-
----
-
-## Keeping this current
-
-A tool added here and not described above is one nobody finds, and a tool removed and left on this page
-sends somebody to a command that does not exist. **Update this file in the same change** that adds,
-removes or renames one.
-
-The membership half is checked rather than promised: the suite asserts that everything in this directory
-which is not build output has a section here, and that this file names nothing that is gone. What no test
-holds is whether the description is still true — read the tool when you change it.
-
-[`../AGENTS.md`](../AGENTS.md) has the full table of which document to update for which kind of change,
-and the scaffold-template procedure in the shape a session reads before changing one.

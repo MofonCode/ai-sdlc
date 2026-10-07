@@ -22,7 +22,7 @@ sdlc doctor             # check this installation and this repository
 | | |
 |---|---|
 | this package | the `sdlc` command: the gate every host hook, git hook and pipeline step calls |
-| the plugin | the seventeen skills that write and judge the artifacts, which need language |
+| the plugin | the eighteen skills that write and judge the artifacts, which need language |
 
 Install only this and you get a working gate and no stages — `sdlc help` lists what the binary does on
 its own, and every stage name typed at it answers with the invocation to use instead of "unknown

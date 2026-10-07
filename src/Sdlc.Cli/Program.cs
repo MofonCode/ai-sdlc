@@ -15,6 +15,8 @@ using Sdlc.Core.Findings;
 using Sdlc.Core.Hooks;
 using Sdlc.Core.Init;
 using Sdlc.Core.Landing;
+using Sdlc.Core.Proposals;
+using Sdlc.Core.Reports;
 using Sdlc.Core.Solutions;
 
 // Constraint and artifact text is passed through verbatim, so the stream has to carry what the files
@@ -61,6 +63,7 @@ try
         "verify-chain" => await VerifyChainCommand(line).ConfigureAwait(false),
         "landable" => await AskLandable(line).ConfigureAwait(false),
         "draft" => await Draft(line).ConfigureAwait(false),
+        "propose" => await Propose(line).ConfigureAwait(false),
         "status" => await WithCycle(line, "status", (w, id) => Status(w, line, id)).ConfigureAwait(false),
         "findings" => await WithCycle(line, "findings", (w, id) => Findings(w, line, id)).ConfigureAwait(false),
         "suggestions" => await Workspace.Run(line, w => Suggestions(w, line)).ConfigureAwait(false),
@@ -509,7 +512,11 @@ static async Task<int> Draft(CommandLine line)
             .ConfigureAwait(false),
         "abandon" => await WithCycle(rest, "draft abandon", (w, id) => DraftAbandon(w, id))
             .ConfigureAwait(false),
-        "constraint" => await Workspace.Run(rest, DraftConstraint).ConfigureAwait(false),
+        // Answered rather than refused, for the reason a stage name typed at the binary is answered:
+        // a tool must never send somebody somewhere it does not go. This was a drafter until the verbs
+        // were split by who owns the decision, and it was the one member of this family that handed
+        // back a blank rather than a finished file -- which is why nobody could remember what it did.
+        "constraint" or "constraints" => await MovedToPropose().ConfigureAwait(false),
         "profile" => await Workspace.Run(rest, w => DraftProfile(w, rest)).ConfigureAwait(false),
         "solution" => await Workspace.Run(rest, DraftSolution).ConfigureAwait(false),
         "techstack" => await Workspace.Run(rest, DraftTechStack).ConfigureAwait(false),
@@ -582,10 +589,103 @@ static async Task<int> DraftTechStack(Workspace workspace) =>
         .Send<WriteTechStackDraft.Command, DraftResult>(new WriteTechStackDraft.Command())
         .ConfigureAwait(false)).ConfigureAwait(false);
 
-static async Task<int> DraftConstraint(Workspace workspace) =>
-    await PrintDraft(await workspace
-        .Send<ConstraintText.Query, DraftResult>(new ConstraintText.Query())
-        .ConfigureAwait(false)).ConfigureAwait(false);
+// A rename is only kind if the old spelling says where the thing went.
+static async Task<int> MovedToPropose()
+{
+    await Console.Error.WriteLineAsync(
+        "A constraint is proposed rather than drafted: 'sdlc propose constraints'. Drafting is for a "
+        + "decision you have already taken, and the drafters hand back a finished file. Proposing is "
+        + "for one you have not: it reads this solution's whole history, says which rules its findings "
+        + "keep citing, and prints an empty entry at the next free id when the record holds no pattern.")
+        .ConfigureAwait(false);
+    return ExitCode.Usage;
+}
+
+// The second verb. 'draft' is a decision somebody already took; 'propose' is one the record is pushing
+// them toward. Identical grammar on purpose -- a subject after the verb, one skill behind both -- so the
+// only thing to remember is which side of the decision you are on.
+static async Task<int> Propose(CommandLine line)
+{
+    if (line.Arguments.Count == 0)
+    {
+        await Console.Error.WriteLineAsync("Propose what? " + Usage.Proposals).ConfigureAwait(false);
+        return ExitCode.Usage;
+    }
+
+    CommandLine rest = line.WithoutFirstArgument();
+
+    return line.Arguments[0].ToLowerInvariant() switch
+    {
+        "constraints" or "constraint" => await Workspace.Run(rest, ProposeRules).ConfigureAwait(false),
+        _ => await UnknownProposal(line.Arguments[0]).ConfigureAwait(false),
+    };
+}
+
+static async Task<int> UnknownProposal(string what)
+{
+    await Console.Error.WriteLineAsync(
+        $"There is nothing called '{what}' to propose. {Usage.Proposals}").ConfigureAwait(false);
+    return ExitCode.Usage;
+}
+
+// Two modes, both proposing. With a pattern in the history it reports the evidence; with none it prints
+// an empty entry at the next free id with the admission tests beside it -- the shape, when it cannot
+// propose the rule. A young solution and a well-behaved one both land in the second, which is how a
+// person adding a rule by hand on day one is served by this command rather than a second one.
+static async Task<int> ProposeRules(Workspace workspace)
+{
+    Result<ProposeConstraints.Response> result = await workspace
+        .Send<ProposeConstraints.Query, ProposeConstraints.Response>(new ProposeConstraints.Query())
+        .ConfigureAwait(false);
+
+    if (result.IsFailed)
+    {
+        return await Report(result, ExitCode.Refused).ConfigureAwait(false);
+    }
+
+    if (!result.Value.HasMaterial)
+    {
+        await Console.Out.WriteAsync(ProposalsRenderer.Render(result.Value)).ConfigureAwait(false);
+        await Console.Out.WriteLineAsync().ConfigureAwait(false);
+
+        return await PrintDraft(await workspace
+            .Send<ConstraintText.Query, DraftResult>(new ConstraintText.Query())
+            .ConfigureAwait(false)).ConfigureAwait(false);
+    }
+
+    string report = ProposalsRenderer.Render(result.Value);
+    await Console.Out.WriteAsync(report).ConfigureAwait(false);
+    await Kept(workspace, "constraints", report).ConfigureAwait(false);
+
+    // Zero whether or not anything was found. Nothing here refuses anything, and a non-zero exit would
+    // make a solution with nothing to answer for look like a failing one in a pipeline.
+    return ExitCode.Ok;
+}
+
+// Both reports keep a copy, because a person works from a file rather than from scrollback and these are
+// long. Nothing reads one back, which is the whole difference between a report and a record -- so a
+// failure to write one is said and never fatal: the answer was already printed.
+static async Task<int> Kept(Workspace workspace, string kind, string body)
+{
+    try
+    {
+        string path = await ReportFile
+            .Write(workspace.SolutionRoot, kind, body, TimeProvider.System.GetUtcNow(), CancellationToken.None)
+            .ConfigureAwait(false);
+
+        await Console.Out.WriteLineAsync("  kept at " + path).ConfigureAwait(false);
+    }
+    catch (IOException error)
+    {
+        await Console.Out.WriteLineAsync("  not kept: " + error.Message).ConfigureAwait(false);
+    }
+    catch (UnauthorizedAccessException error)
+    {
+        await Console.Out.WriteLineAsync("  not kept: " + error.Message).ConfigureAwait(false);
+    }
+
+    return ExitCode.Ok;
+}
 
 static async Task<int> DraftProfile(Workspace workspace, CommandLine line)
 {
@@ -675,7 +775,13 @@ static async Task<int> Suggestions(Workspace workspace, CommandLine line)
 
     // Zero whether or not anything was found. Nothing here refuses anything, and a non-zero exit would
     // make a tidy solution look like a failing one in a pipeline.
-    await Console.Out.WriteAsync(SuggestionsRenderer.Render(result.Value)).ConfigureAwait(false);
+    string listing = SuggestionsRenderer.Render(result.Value);
+    await Console.Out.WriteAsync(listing).ConfigureAwait(false);
+
+    // Kept like the proposals report. This listing was short enough for a terminal when a solution held
+    // one cycle; across fifty it is not, and the thing a person does with it is work through it.
+    await Kept(workspace, "suggestions", listing).ConfigureAwait(false);
+
     return ExitCode.Ok;
 }
 

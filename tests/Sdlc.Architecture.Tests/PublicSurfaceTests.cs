@@ -166,6 +166,24 @@ public sealed class PublicSurfaceTests
         "Sdlc.Core.Findings.Suggestions+Query",
         "Sdlc.Core.Findings.Suggestions+Response",
         "Sdlc.Core.Findings.SuggestionsRenderer",
+
+        // 'sdlc propose constraints': the operation, the three shapes it hands back, and its renderer.
+        // Public for the reason the suggestions listing is -- Sdlc.Cli dispatches the request and renders
+        // the response -- and the three records are part of that response rather than types of their own
+        // standing. The renderer is here and not in Constraints because this reads the findings as well
+        // as the rules, and a namespace that depended on both would put a cycle between the two.
+        "Sdlc.Core.Proposals.ProposalsRenderer",
+        "Sdlc.Core.Proposals.ProposeConstraints",
+        "Sdlc.Core.Proposals.ProposeConstraints+Query",
+        "Sdlc.Core.Proposals.ProposeConstraints+Response",
+        "Sdlc.Core.Proposals.Recurrence",
+        "Sdlc.Core.Proposals.Stopped",
+        "Sdlc.Core.Proposals.Uncited",
+
+        // Writes the copy of a report a person works from. Public because Sdlc.Cli calls it after
+        // printing, and deliberately not an operation through the mediator: nothing reads a report back,
+        // so there is no state here for a handler to own.
+        "Sdlc.Core.Reports.ReportFile",
         "Sdlc.Core.Git.GitRepository",
         "Sdlc.Core.Git.IRepository",
         // The four added with D-46. Each host's facts are one row in a table rather than a switch

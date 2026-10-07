@@ -216,7 +216,7 @@ public sealed class PluginTests
     [TestMethod]
     public void The_root_manifest_conforms_to_the_agent_plugins_schema()
     {
-        // The portable half of the package. One manifest at the root makes the seventeen skills
+        // The portable half of the package. One manifest at the root makes the skills
         // discoverable by every client that implements Agent Plugins 1.0, out of the same `skills/`
         // directory Claude Code already reads -- so there is no second copy to go stale. The schema
         // is closed and `additionalProperties` is false, which means a field nobody checked is a
@@ -435,7 +435,7 @@ public sealed class PluginTests
         string[] verbs =
         [
             "sdlc constraints", "sdlc status", "sdlc gate", "sdlc draft approval",
-            "sdlc draft abandon", "sdlc draft constraint", "sdlc draft profile",
+            "sdlc draft abandon", "sdlc draft profile", "sdlc propose constraints",
             "sdlc suggestions", "sdlc verify-chain", "sdlc init", "sdlc new",
         ];
 
@@ -718,7 +718,7 @@ public sealed class PluginTests
             string name = Path.GetFileName(Path.GetDirectoryName(path))!;
 
             // The thin wrappers over commands are not stages, and the binary answers them properly.
-            if (name is "constraints" or "status" or "suggestions" or "draft" or "init")
+            if (name is "constraints" or "status" or "suggestions" or "draft" or "propose" or "init")
             {
                 continue;
             }
@@ -786,10 +786,10 @@ public sealed class PluginTests
 
         int constraints = parsed.Value.Count(constraint => constraint.IsInForce);
 
-        Assert.AreEqual(17, skills, "The readme says seventeen skills.");
+        Assert.AreEqual(18, skills, "The readme says eighteen skills.");
         Assert.AreEqual(16, constraints, "The readme says sixteen global constraints.");
 
-        StringAssert.Contains(readme, "seventeen skills");
+        StringAssert.Contains(readme, "eighteen skills");
         StringAssert.Contains(readme, "sixteen global constraints");
     }
 

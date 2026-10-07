@@ -341,12 +341,21 @@ Five files only a person writes:
 |---|---|
 | `approval.md` | a gate decision — three hashes, who, when, and a reason on anything but an approval |
 | `abandoned.md` | why the cycle stopped |
-| `constraints.md` | a proposed `LOC_nn` |
+| `constraints.md` | a proposed `LOC_nn` — **proposed rather than drafted**, D-69 |
 | `solution.md` | the `profile` line, on migration |
 
-One verb drafts them all: `sdlc draft approval <id>`, `draft abandon <id>`, `draft constraint`,
-`draft profile <name>`. `draft approval` also takes `--deny` and `--changes-requested` (D-11). Each
-produces a ready-made entry; the person reads it, decides, and places it.
+One verb drafts four of them: `sdlc draft approval <id>`, `draft abandon <id>`, `draft profile <name>`,
+`draft solution`, `draft techstack`. `draft approval` also takes `--deny` and `--changes-requested`
+(D-11). Each produces a ready-made entry; the person reads it, decides, and places it.
+
+**The fifth is the exception, and the verbs split on it (D-69).** A constraint's wording *is* the
+decision, so there is no finished entry to hand back and the drafter printed a blank form — the one
+member of the family that did. `sdlc propose constraints` replaces it: it reads the solution's whole
+history and argues from the record, and prints the empty form only when the record holds no pattern.
+What separates the two verbs is who made the decision — **`draft` is for one already taken, `propose`
+for one the record is pushing toward** — and the licence that makes proposing legitimate is that it
+arrives with its evidence: a tool may propose a rule when it brings the record, and may not shape a
+rule somebody just typed.
 
 **A gate decision is placed by renaming a file, and the other three by hand (D-52).** `draft approval`
 writes the complete ledger — `approval.<decision>.draft.md`, named for what it records — beside the
@@ -1517,6 +1526,7 @@ headings a person wrote.
 | `resolve-conflict` | resolves collisions on files that cannot be claimed exclusively |
 | `land` | pushes, opens the pull request, links the work item |
 | `draft` | prints a protected file's entry for a person to place — §5.3 |
+| `propose` | reads the whole history and proposes `LOC_` entries, with the evidence — D-69 |
 | `status` | prints the stage panel, and the state of a cycle or of all cycles |
 | `constraints` | renders the effective constraint set, all tiers |
 | `suggestions` | lists accumulated non-blocking findings |
@@ -1555,7 +1565,8 @@ they print verbatim.
 | `status <id> [--stage] [--brief]` | the stage panel — §14. `--brief` is the between-stages form: the counts, what the artifact says, and the next command |
 | `findings <id> [--stage] [--round]` | what the interrogations said about one cycle, per artifact, each finding at the disposition that stands |
 | `gate <id>` | whether a cycle's build may run. Exits 1 if not |
-| `draft approval\|abandon\|constraint\|profile\|solution\|techstack` | prints or writes what belongs in a file only a person writes — §5.3 |
+| `draft approval\|abandon\|profile\|solution\|techstack` | prints or writes what belongs in a file only a person writes — §5.3 |
+| `propose constraints` | what the history says the rules are missing, with the cycles and finding ids behind each — D-69 |
 | `evidence <id>` | records the diff, its base commit, and the normalised test summary — §4.5 |
 | `cycles [--stage\|--approved\|--verified]` | every cycle this solution holds, newest first, with what each is about and where it stands |
 | `cycles --claims` | which cycles may be built together, and what collides — §10.1 |
@@ -1597,6 +1608,10 @@ collision check, and the filesystem makes that atomic (D-10).
   techstack.md              what this solution is built from
   constraints.md            this solution's own LOC_nn, hand-edited
   README.md                 terminology, flow and commands
+  reports/                  what suggestions and propose printed last, kept because a person works
+                            through one of these rather than reading it once. Ignored by a
+                            .gitignore the directory carries itself, and read back by nothing --
+                            which is the whole difference between a report and a record (D-69)
   cycles/
     20260929_1456_32/
       intent.md
@@ -1713,13 +1728,24 @@ block, then remediate, then exhaust the budget.
 2. **`CON_15`, held rather than open.** *A plan's blast radius matches what it changes* — admissible
    on all three tests, and held until `tier` is in use so the constraint describes the rule rather
    than its first example.
-3. **The cross-cycle learning loop, deferred by decision.** v02 built `retro` and `absorb-retro` with
-   a corpus, an importer that refuses to overwrite differing content, and signals computed read-only;
-   v03 removed them and recorded the cost — *"nothing aggregates automatically."* The data to
-   aggregate already exists in the findings rounds. Three things to carry forward if it returns: the
-   completion-certificate trap, where an artifact's existence means `done` and a mistaken one
-   silently loses work; `caused-by` / `caused-at-stage`, which is how the process learns **which
-   stage leaks**; and the private/public boundary, which v02 never had to answer.
+3. **The cross-cycle learning loop, half closed.** v02 built `retro` and `absorb-retro` with a
+   corpus, an importer that refuses to overwrite differing content, and signals computed read-only;
+   v03 removed them and recorded the cost — *"nothing aggregates automatically."* `propose
+   constraints` closes the half that pays for itself (D-69): the findings rounds are aggregated
+   across cycles, and a rule cited in three distinct cycles is reported with its evidence. The
+   completion-certificate trap is answered by being stateless — nothing records which cycles have
+   been absorbed, so there is no artifact whose existence means `done`.
+
+   **Two of the three carried-forward items are still open, and one is now narrower.** `caused-by` /
+   `caused-at-stage` is how the process would learn **which stage leaks**, and nothing records it:
+   this reports which *rule* recurs, which is a different question. The private/public boundary is
+   untouched and stays untouched while nothing leaves the solution — a report is local and read by
+   nothing, so no corpus exists to have a boundary. What is newly visible is that **a decision cannot
+   be mined**: a colour, a layout convention or a code-style choice never collides with a constraint,
+   so it produces no finding and no amount of history review will surface it. Constraints are mined
+   backward from findings; decisions would have to be captured forward at the moment of choice, from
+   an intent's `Fixed decisions` and a plan's `Shape and departures`. That is a second mechanism and
+   it is not built.
 4. **The coverage delta against the target branch.** §13 described this as taken and nothing reported
    it. It is cheap only in the sense that it breaks no rule: a delta needs the target branch's own
    coverage to compare against, so it is a second run or a stored artifact rather than one more step
@@ -1747,6 +1773,67 @@ block, then remediate, then exhaust the budget.
    round — the interrogate skill does. `sdlc doctor` is where it belongs: it already reports and never
    repairs, and a heading that no longer matches the constraint it cites is exactly the quiet kind of
    wrong it exists to surface.
+8. **Where an adopted codebase's first rules come from.** `propose constraints` mines cycle history
+   (D-69), and a repository adopted with existing code has none — so on the day it most wants rules it
+   gets the empty form. Three paths, none chosen. *The interview that already exists*: §9 has `init` ask
+   what matters and propose a `LOC_` set from the answers, which is the only honest source on day one,
+   and the cheap reconciliation is for the file to land empty **unless** the interview produced
+   something. *The profile's rules as a menu*: an adopted solution runs `standard: existing`, so `PRO_`
+   conventions do not apply to it, and "which of these do you want as `LOC_` for new work" beats a blank
+   page and costs nothing — every item was already argued by somebody. *Evidence-sourced questions,
+   never evidence-sourced rules*: §9 rightly refuses to read the repository to decide what to forbid,
+   but reading it to ask a better question is a different act — *"there are forty suppressions of CA1062
+   here; do you want a rule about null-checking at boundaries?"* leaves the person deciding, which is the
+   line §9 actually draws. Open because the choice is between three defensible shapes rather than
+   because the gap is in doubt.
+9. **A decision record, which would be `propose decisions`.** The half of the cross-cycle gap D-69 does
+   not reach, and the reason it is a second mechanism is in §19 item 3: **a decision cannot be mined.** A
+   colour, a layout convention, a code-style choice or a pattern like the draft-then-rename shape never
+   collides with a constraint, so it produces no finding and no history review will surface it.
+   Constraints are mined backward; decisions have to be captured forward, at the moment of choice.
+
+   **The capture points already exist and nothing collects them.** An intent's `Fixed decisions` — a
+   person's own words, and item 6 is that nothing reads them. A plan's `Shape and departures`. And every
+   `CON_15` departure argument, where the *same* departure argued in three cycles is the signal that a
+   declared default has actually moved. Provenance would come from the approval: a decision taken from an
+   approved, landed plan carries a person's signature through the ledger hash, so nothing would be
+   recorded that no person approved — which is the answer to the authorship problem a hand-maintained
+   charter has.
+
+   **It would bind nothing, and needs no new rule.** An entry read as a declared default is already
+   covered by `CON_15`, which makes a plan say why it departs in either direction. A record that bound
+   would be a fourth rule tier with no ids, no revisions and no admission test. What is undecided is
+   where it lives: derived on demand from the approved artifacts, which cannot go stale and can hold
+   nothing unapproved, or an accumulating file, which can hold what no cycle ever said. And an unbounded
+   one in every cycle's context fights §2.5, so it would want rendering for a scope the way
+   `sdlc constraints --for` does rather than copying.
+
+   Where a decision *does* forbid something, that half is a constraint or an architecture test and the
+   two are separate artifacts of one choice — the decision says why, the rule forbids the alternative.
+   Expect roughly one `LOC_` for every five or six decisions.
+10. **A palette, which would be `propose palette`.** The register case, for a solution with at least one
+    front-end surface or a report, and the one piece of this a team hits on day one.
+
+    **Roles rather than values** — ok button, cancel button, background, primary, secondary, font
+    families — because the shape survives a rebrand and gives a stage something to *look up* when it
+    builds a page, which a flat list of hex codes does not. **Not prose, and one source only:** a file of
+    role-to-value pairs both a person and the build can read. A markdown page of hex codes that the
+    stylesheet also holds is two places the truth lives, and the one that goes stale is always the one a
+    tool trusts. The rationale — why these colours, what contrast target — belongs in item 9's record, so
+    values and reasons sit in one place each.
+
+    **Enforcement is a linter, not a constraint.** *A colour or font family appears that is not in the
+    palette* is mechanically decidable, so §2.3 puts it below a constraint, and a linter fails a build
+    where a constraint cannot. And **an agent may propose the initial palette**, unlike a rule: nobody is
+    judged against a colour, so the never-author line protecting the rule file does not reach here.
+
+    `init` could write the skeleton without breaking D-35 — a tokens file is data, the same class as
+    `.editorconfig` and the props files, which adoption already writes and which constrain nothing until
+    code exists. Two things undecided: whether its existence needs a fifth `solution.md` key or is just
+    the file being there, where presence is cheaper and §2.1 warns against building a check that cannot
+    really check; and whether a palette is per solution or shared across them as a profile concern, which
+    is what a design system would want. A blank one also has to distinguish *not decided yet* from
+    *deliberately none*, which one line in the skeleton settles.
 
 ---
 
@@ -3220,7 +3307,7 @@ was paired with removing elsewhere. They go in with the work that consumes them.
 
 **Decision.** A root `plugin.json` makes this an Agent Plugins 1.0 plugin alongside the Claude Code
 plugin it already was. Both systems discover skills in `skills/` at the package root, so there is one
-copy of the seventeen and nothing translates between them. Every skill additionally declares the
+copy of them and nothing translates between them. Every skill additionally declares the
 specification's optional `compatibility` field, naming the binary it needs. The readme says the Copilot
 install has never been run, because it has not.
 
@@ -3230,7 +3317,7 @@ written and stopped being true in August 2026: Agent Plugins 1.0 is an open stan
 AWS, Microsoft, Cursor, Vercel and Google, with a published closed schema and six implementing clients.
 There is nothing left to guess.
 
-**Why it cost one file.** The seventeen skills were written for one host and already satisfy the open
+**Why it cost one file.** The skills were written for one host and already satisfy the open
 Agent Skills specification — names lowercase-hyphen and matching their directories, descriptions well
 inside the limits — and Claude Code puts plugin component folders at the package root, exactly where the
 standard looks. So the whole of the work was a manifest with two required fields. Nothing moved, which is
@@ -3249,7 +3336,7 @@ plugin command, while a client that discovered the skill by matching its descrip
 would ever mention a .NET tool. The field is the only place that fact can travel with the skill.
 
 **Why conformance is reported as untried.** The package now satisfies a schema, and a schema is not a
-session. Nobody has run `copilot plugin marketplace add` against this repository and watched seventeen
+session. Nobody has run `copilot plugin marketplace add` against this repository and watched the
 skills appear, and the gap between "conforms" and "works" is exactly where D-32 put the Azure DevOps
 pipeline — so it is recorded on the same terms, in the readme, where somebody deciding whether to adopt
 reads it.
@@ -3259,7 +3346,7 @@ reads it.
 - *Copying the skills into each governed solution's `.agents/skills/`* — rejected, and it was the plan
   until the standard turned up. `.agents/skills/` is the cross-client path for skills belonging to **one
   repository**; the framework is installed once and governs many, so per-solution copies would put
-  seventeen directories of framework text into every adopted repository, to be refreshed by `init`
+  a directory of framework text per skill into every adopted repository, to be refreshed by `init`
   forever. A package installed once is the shape the thing already has.
 - *`.github/skills/` instead* — rejected as the same idea, narrower: it is Copilot-only where
   `.agents/skills/` is at least a cross-client convention, and both are beaten by a package.
@@ -4381,7 +4468,7 @@ argument was about.
 **The draft is a byte copy, which is the whole guarantee.** Renaming it applies what somebody changed and
 nothing else — nothing merged, nothing regenerated, nothing silently dropped. An agent may edit the draft,
 because only `techstack.md` is denied and `techstack.draft.md` is an ordinary file; what an agent cannot do
-is place it. The drafter proposes no rows, for the reason `sdlc draft constraint` takes no statement: which
+is place it. The drafter proposes no rows, for the reason a constraint's wording is never typed into a tool: which
 packages a solution declares is a judgement about how a team works, and a tool filling them in would be
 making that judgement while looking like bookkeeping.
 
@@ -4466,3 +4553,119 @@ question: this one is for model work in Python, and pretending it is .NET-shaped
 `Scaffolds` exists to prevent. *Twenty-four Python templates now* — guesswork with the authority of a
 default. *Composing the help text from the profile list* — `Usage.Text` is a const, so the suite holds the
 two together instead, the same way the readme's counts are asserted rather than trusted.
+
+### D-69 — A constraint is proposed from the record, never drafted, and never written by a tool
+
+**Governs:** §5.3, §8.1, §15, §15.2, §16, §19
+
+**Decision.** `sdlc draft constraint` is retired and `sdlc propose constraints` replaces it. The verbs
+split on **who made the decision**: `draft` hands back a finished file for a decision somebody already
+took; `propose` reads the record and argues for one they have not. Identical grammar — a subject after
+the verb, one skill behind each — so the only thing to remember is which side of the decision you are on.
+
+The new command reads every findings round in the cycles directory, blocking and suggestion alike and
+closed included, plus every stopped cycle's hand-written reason and the existing rule set. It reports
+rules cited in **three or more distinct cycles**, findings that rested on no rule, the stopped cycles'
+reasons, the next free id, and what a person has already refused under a `## Considered and rejected`
+heading in the solution's own rule file. It proposes; it writes nothing that binds, and the hook still
+denies every agent write to that file. Where the record holds no pattern it prints the empty form at the
+next free id with the three admission tests — the shape, when it cannot propose the rule. Both that
+command and `suggestions` keep a copy of what they printed under `.sdlc/reports/`.
+
+**Why the drafter had to go rather than sit beside it.** It was the one member of its family that handed
+back a blank. Every other drafter produces finished bytes and a rename or a paste; that one produced an
+empty form, which is why nobody could remember what it did — the name described the family it was filed
+under rather than the thing it performed. Two commands both producing constraint text, one of them empty,
+is the confusion the split fixes.
+
+**Why a tool may now propose wording at all, having refused to before.** The old refusal was *"a tool
+accepting a statement on the command line would be proposing the rule"*, and it was right about the thing
+it was looking at: a drafter taking `"no direct bus publish"` as an argument would have rubber-stamped a
+sentence somebody typed into the shape of a rule, with no evidence and no argument. An evidenced proposal
+is a different act. So the rule that replaces it is narrower and statable: **a tool may propose a rule
+when it brings the evidence, and may not shape a rule somebody just typed.** `init` has always worked
+this way — §9 has it interview and then propose a `LOC_` set from the answers — so the licence is not
+new, only its second source.
+
+**Why distinct cycles, and why three.** Three findings against one rule inside a single cycle is one
+artifact going round the loop; the same rule blocking three separate cycles is a solution walking into the
+same wall. Two is coincidence, three is a pattern. There is deliberately **no floor** on how much history
+a solution must have first: three blocked cycles out of a solution's first four *is* a pattern, and a
+floor would suppress the most useful report this can produce at exactly the moment a rule is cheapest to
+add. A floor was in the plan and was dropped for that reason.
+
+**Why it reads what `suggestions` cannot.** That command folds a history down to what is still **open**
+and non-blocking, which is right for a list of work to pick up. A closed blocker that recurred across
+three cycles is the strongest evidence here, and folding first would discard every recurrence that was
+dealt with properly — which is most of them. The two commands therefore read the same files and can never
+be one command.
+
+**Why candidates are labelled and never numbered.** Pre-assigning `LOC_07`, `LOC_08` and `LOC_09` to
+three proposals and having a person accept only the middle one leaves a gap, and §7.4 makes a gap the
+record of a constraint that was **removed**. A proposal nobody took would be indistinguishable from a rule
+somebody retired. So the next free id is stated once and the person numbers what they accept.
+
+**Why removal is never printed.** A rule out of force keeps its place on the page with `Superseded-by`, so
+a finding that cited it stays readable. Whatever the report prints is what gets pasted, which makes the
+printed text the place that rule is really enforced — a report offering an entry to cut would get the
+entry cut. §7.4 already names deleting a superseded entry as the regression nothing else would notice.
+
+**Why a refusal needs a home.** Without one the same two candidates return on every run forever, which
+teaches people to skim the report. The section is hand-written like everything else in that file, and the
+parser ignores it — it recognises only `## LOC_nn — statement` headings. The refusals are **echoed**
+rather than silently applied, because a suppressed candidate would make the report's silence ambiguous:
+nothing found, or something found and hidden.
+
+**Why it is stateless, and why a report is not a record.** Nothing records which cycles have been
+absorbed. Such a marker is §19 item 3's completion-certificate trap — a mistaken one silently loses the
+learning and looks identical to a correct one — and it is the same reason `CycleIndex` globs rather than
+keeping a manifest. The kept reports are the same judgement applied to output: **nothing reads one back,
+ever.** The directory carries its own ignore file rather than an entry merged into the repository's, which
+keeps the whole thing a file the framework named under D-40 and means an existing solution gets the ignore
+the first time it writes a report rather than needing an adoption re-run. Tracking them would be worse
+than untidy — an untracked report in the tree reaches a build's diff as a file no plan declared, which is
+`CON_07.2`.
+
+**Why `LOC_` only.** A `CON_` proposal in somebody else's repository is advice they cannot act on: only a
+plugin contributor can change the library, and there is no channel from a solution to it (§2.7). Where a
+recurrence meets the bar and no solution-level rule could reach it, the report says so in one line and
+points at the plugin's issue tracker — rare by construction, because the bar gates it.
+
+**What it does not do, stated plainly.** It proposes no decisions and no palette, though `propose` is a
+family and both are the obvious next subjects. **A decision cannot be mined** — see §19 item 3 — so that is
+different mechanism rather than a second section of this one. It also says nothing about which *stage* a
+problem was caused at, which is the `caused-by` half of §19 item 3 and still open.
+
+**Rejected.**
+
+- *Regenerating the rule file from the cycles* — the first shape proposed, and the dangerous one. A
+  generator writing "the correct current rule set" drops superseded entries, because they are not current
+  rules and read as clutter, and closes id gaps into a tidy sequence. Nothing notices: the replacements are
+  all present, the file looks right, the count looks plausible. §7.4 names exactly this as the regression
+  nothing else would catch.
+- *Copy-then-amend, with the file written for a rename* — the improved version of the same idea, and still
+  refused. `draft techstack` is safe as a rename because the draft is a **byte copy** and the rename
+  applies one edit with nothing merged and nothing regenerated; a regenerated rule file is merged and
+  regenerated by definition. It would also make whole-file replacement the review step for the one file
+  whose rules are typed by the person accountable for them.
+- *Add, change and remove as three symmetric operations* — `remove` is not a legal operation on this file,
+  and `change` is two different acts that §7.4 says cannot be told apart mechanically: a revision replaces
+  wording and leaves no predecessor, a supersession keeps the old entry. An agent calling a real change a
+  revision loses the old rule for good.
+- *Deriving rules from one cycle's plan, at the end of a cycle or on `verify`* — three reasons. A plan is a
+  proposal about one change, so a rule derived from it is a local choice promoted to bind all future work.
+  There is a loop in it: plans are written by an agent and judged by the constraints, so an agent's choice
+  this cycle would become the rule its own work is judged by next cycle — the same loop the declared stack
+  is protected to prevent, one hop longer. And `verify` is the stage that reacts to test results, which is
+  the one place that must never reach a rule document.
+- *A mode of `suggestions`* — "suggestion" is already a finding severity (D-30), and that command lists
+  findings *of that severity*. A proposed constraint is not one, so the name would collide in exactly the
+  conversations where finding vocabulary has to be precise.
+- *Renaming today's `suggestions` to free the name* — it is the one command whose name is an exact match
+  for a domain term. Renaming it would take a precisely-named command and make it vague in order to give
+  the word to something it does not describe.
+- *Keeping the evidence and the form in two commands* — the report argues, the drafter supplies the frame,
+  the person assembles. Refused on reflection: the only thing the drafter uniquely knew was the next free
+  id, which this has to read anyway, so the second step contained no decision and bought nothing but
+  friction.
+- *A floor of roughly ten landed cycles* — in the plan, then dropped. See above.

@@ -158,7 +158,7 @@ updating, removing, and the four things that catch people. And if something refu
 | [`docs/guides/first-cycle.md`](docs/guides/first-cycle.md) | one cycle end to end, in fourteen steps |
 | [`docs/guides/cycle-commands.md`](docs/guides/cycle-commands.md) | every command for one cycle, on one screen |
 | [`docs/guides/when-it-blocks.md`](docs/guides/when-it-blocks.md) | every refusal, and the remedy for each |
-| [`skills/README.md`](skills/README.md) | the seventeen skills: what each is, when it runs, and who starts it |
+| [`skills/README.md`](skills/README.md) | the eighteen skills: what each is, when it runs, and who starts it |
 | `sdlc constraints` | the rules in force, all tiers resolved. Run it rather than reading a copy of them |
 
 One more worth knowing about. `.sdlc/README.md`, written into your repository by `sdlc init`, is the whole flow on one page that

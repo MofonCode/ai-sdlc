@@ -13,6 +13,7 @@ using Sdlc.Core.Git;
 using Sdlc.Core.Hooks;
 using Sdlc.Core.Init;
 using Sdlc.Core.Landing;
+using Sdlc.Core.Proposals;
 using Sdlc.Core.Solutions;
 
 namespace Sdlc.Core;
@@ -104,6 +105,10 @@ public static class SdlcServices
         services.AddVerifyChainRequestHandler();
 
         services.AddSuggestionsRequestHandler();
+
+        // Reads the whole history rather than one cycle, and proposes rather than places: the only
+        // operation that forms an opinion about the rules, and still writes nothing that binds.
+        services.AddProposeConstraintsRequestHandler();
 
         services.AddInitialiseRequestHandler();
         services.AddScaffoldSolutionRequestHandler();

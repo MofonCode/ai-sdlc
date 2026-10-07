@@ -189,11 +189,12 @@ itself on findings about work nobody is defending.
 Then, for each answer that survives, propose a constraint:
 
 ```
-sdlc draft constraint
+sdlc propose constraints
 ```
 
-It prints the next free `LOC_` id with its four parts empty, and the three admission tests. Fill the parts
-in from the answer and show it. **All three tests must pass**, and test two rejects most candidates:
+A repository being adopted has no cycles, so this is the empty-handed mode: it prints the next free
+`LOC_` id with its four parts empty, and the three admission tests. Fill the parts in from the answer
+and show it. **All three tests must pass**, and test two rejects most candidates:
 
 1. its `Forbids` clause names something that becomes illegal
 2. **no analyzer, schema or hook could decide it**

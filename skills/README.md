@@ -1,4 +1,4 @@
-# The seventeen skills
+# The eighteen skills
 
 Every skill in the plugin: what it is, how it is invoked, when it runs, and who decides it should.
 
@@ -40,7 +40,7 @@ and prints the invocation — because a tool must never send somebody somewhere 
 | `interrogate` | judges one artifact against the rules, in a fresh process. Never edits | `<id> <artifact>` | an artifact has just been written or changed | the stage skill's loop, or a person |
 | `refine` | applies an artifact's findings to that artifact. Never judges | `<id> <artifact>` | a round raised blocking findings | the stage skill's loop, or a person |
 | `steer` | carries a mid-cycle correction down the chain | `<id> "what to change"` | a person changes their mind before the gate | a person |
-| `draft` | prints what belongs in a file only a person writes | `approval <id>`, and five more | at the gate, to stop a cycle, to add a rule, or to change the declared stack | a person |
+| `draft` | prints what belongs in a file only a person writes | `approval <id>`, and four more | at the gate, to stop a cycle, or to change the declared stack | a person |
 | `build` | implements the plan, builds, tests, records the evidence | `<id>` | the gate is satisfied | a person, or `batch-build` |
 | `verify` | adjudicates the build against the spec, from the evidence alone | `<id>` | the build recorded evidence | a person, or `batch-build` |
 | `remediate` | applies a blocked verification's findings to source and tests | `<id>` | verify recorded `blocked` | a person, or `batch-build` |
@@ -50,6 +50,7 @@ and prints the invocation — because a tool must never send somebody somewhere 
 | `status` | shows where a cycle has got to | `<id> [artifact]` | after any stage, or when somebody asks | anyone, constantly |
 | `constraints` | shows the rules in force, all tiers resolved | `[artifact]` | before writing or judging anything | every stage skill, as its first step |
 | `suggestions` | lists the open non-blocking findings, and what the builds noticed | `[id]` | looking for what was noticed and not acted on | a person |
+| `propose` | reads the whole history and proposes `LOC_` entries, with the evidence behind each | `constraints` | asking what keeps going wrong across cycles, or adding a rule | a person |
 
 **"Who starts it" is not "who runs it".** Every one of these is executed by an agent — that is what a
 skill is. What differs is who decides it should happen, and two of them are a person's decision in a way
@@ -57,7 +58,7 @@ the framework enforces rather than requests: `init` writes the hook configuratio
 agent, so the hook denies an agent the command; `land` is the only stage that reaches outside the
 repository, so it asks before every push.
 
-**All seventeen are model-invocable.** Nothing in the manifest stops an agent reaching for one on its
+**All eighteen are model-invocable.** Nothing in the manifest stops an agent reaching for one on its
 own, and that is deliberate — what protects the decisions is the hook denying the five protected files
 and `sdlc init`, plus the pull-request check, rather than a flag in a skill's frontmatter. A guard that
 lives in the manifest is a guard the manifest can lose. `../docs/guides/when-it-blocks.md` has what
@@ -242,16 +243,19 @@ the hash of the artifact above it, so editing the intent makes the spec's latest
 
 ### `draft`
 
-**Prints or writes what belongs in one of the five files only a person writes.** One rule: a tool never
-places them, a person does. Two of the five write a complete file beside the real one so that placing
+**Prints or writes what belongs in four of the five files only a person writes.** One rule: a tool never
+places them, a person does. Two of the four write a complete file beside the real one so that placing
 it is a rename rather than a paste -- which matters because a block printed for pasting went unpasted
 through a whole cycle, leaving every plan in that solution reading a placeholder.
+
+**The fifth is `propose`'s, and the verbs split on it.** A constraint's wording *is* the decision, so
+there was no finished entry to hand back and this printed a blank form — the one member of the family
+that did, and the reason nobody could remember what it was for. See `propose` below.
 
 | Drafter | What it is for |
 |---|---|
 | `draft approval <id>` | the gate decision, covering all three planning documents, with a hash of each. Written as a complete file beside the ledger, named for its decision, and placed by renaming it |
 | `draft abandon <id>` | why a cycle stopped. Terminal, and the reason is left empty because the file is rejected without one |
-| `draft constraint` | the next free `LOC_` id with its four parts empty, and the three admission tests |
 | `draft profile <name>` | all three `solution.md` keys, not only the one that changes |
 | `sdlc draft solution` | the whole `solution.md`, written beside itself for a rename. Keys carried through as recorded and prose through unchanged, so renaming can neither reclassify the solution nor cost anybody what they wrote |
 
@@ -453,9 +457,51 @@ cycle's build wrote were invisible to the command that answers what has been not
 No ranking and no ages, because a suggestion's age says nothing about its worth and a tool that sorted by
 age would quietly argue that the oldest matters most.
 
-**This is the whole of the learning loop today.** Iteration 2 built a corpus with computed signals across
-cycles; iteration 3 removed them and recorded the cost plainly. Nothing aggregates automatically, and that
-is a deliberate deferral rather than an oversight.
+**It aggregates nothing, on purpose.** What keeps going wrong *across* cycles is `propose constraints`,
+below. This answers a narrower question — what is outstanding — and the two read the same files for
+opposite halves of them.
+
+### `propose`
+
+**Reads what a solution's whole history says about the rules it is missing, and proposes entries a
+person may adopt.** The second verb beside `draft`, split by who made the decision: `draft` is for one
+somebody already took and hands back a finished file; `propose` is for one they have not, and argues
+from the record.
+
+One subject today, `constraints`, and the grammar is deliberately the same as `draft`'s so the family
+can grow — a decision record and a palette are the obvious next two, and neither is built.
+
+**The licence, which is the whole design in one line:** a tool may propose a rule when it brings the
+evidence, and may not shape a rule somebody just typed. Every candidate arrives with the cycles and
+finding ids behind it, so a person refuses one on the record rather than on taste. There is no way to
+pass wording in.
+
+**Three or more distinct cycles.** Two is coincidence, three is a pattern — and distinct *cycles*, not
+findings: three findings against one rule inside a single cycle is one artifact going round the loop.
+There is no minimum history, because three blocked cycles out of a solution's first four is a real
+pattern and a floor would suppress the most useful report it can produce.
+
+**It reads what `suggestions` deliberately cannot** — closed findings, and blocking ones. A blocker
+raised and answered in three separate cycles is the strongest evidence a rule is missing, and folding a
+history down to what is still open discards exactly that.
+
+**Four sections, and the fourth is usually the biggest:** add, reword, supersede, and *belongs below a
+constraint* — where mechanical candidates are routed to an analyzer, an architecture test or
+`BannedSymbols.txt`. That is a better home rather than a refusal: all three fail a build, which a
+constraint cannot.
+
+**Nothing is printed that would delete a rule.** A rule out of force keeps its place with
+`Superseded-by`, and whatever the report prints is what gets pasted — which makes the printed text the
+place that is really enforced.
+
+**A refusal has a home**, under a hand-written `Considered and rejected` heading in the solution's own
+rule file. The command reads it and stays quiet about what is in it. Without that, the same two
+candidates come back on every run forever.
+
+**Empty-handed is an ordinary answer.** With no pattern in the record it prints the next free `LOC_` id
+with its four parts empty and the three admission tests beside them — the shape, when it cannot propose
+the rule. That is the state of a young solution, of a well-behaved one, and of a person adding a rule by
+hand on day one.
 
 ---
 

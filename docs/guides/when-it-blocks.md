@@ -220,12 +220,13 @@ running, so a rule with no exception has nowhere for a bypass to live.
 |---|---|
 | writing `approval.md`, or moving anything onto it | an approval is a person's act, and a recorded one means something because no tool could have recorded it. `sdlc draft approval` writes a draft beside it; renaming that draft is the decision |
 | writing `abandoned.md` | an agent stuck on a blocking finding has an obvious escape — abandon and start clean. A hand-written reason keeps the objections that killed it on the record |
-| writing `constraints.md` | a cycle judged by the constraints it is changing is the same deadlock as the framework governing itself |
+| writing `constraints.md` | a cycle judged by the constraints it is changing is the same deadlock as the framework governing itself. `sdlc propose constraints` reads the history and proposes an entry; pasting it is the decision |
 | writing `solution.md` | the origin is a historical fact that must never change. Per-key protection would be the first conditional rule, which is where a bypass would live |
 | running `sdlc init` | adoption writes the hook configuration that constrains the agent, the pipeline that gates the merge, and the file saying where this code came from |
 
 **If your agent reports one of these as a broken tool, it is reading the mechanism as a malfunction.** The
-refusal message names the drafter to run instead. Run it yourself, and place what it produces.
+refusal message names the command to run instead — a drafter for four of these files, `propose` for the
+rule file. Run it yourself, and place what it produces.
 
 **Reading these files is allowed.** Refusing `cat approval.md` would make the gate obstructive without
 making it safer.

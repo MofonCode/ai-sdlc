@@ -32,7 +32,7 @@ the cheapest way to discover that what you were about to add already lives somew
 
 | Index | Describes |
 |---|---|
-| [`skills/README.md`](skills/README.md) | the seventeen skills: what each is, how it is invoked, when it runs, who starts it |
+| [`skills/README.md`](skills/README.md) | the eighteen skills: what each is, how it is invoked, when it runs, who starts it |
 | [`docs/guides/README.md`](docs/guides/README.md) | the four guides: what each covers, when to read it, what it leaves to another |
 | [`tools/README.md`](tools/README.md) | the two tools that check what the suite cannot, and when to run each |
 | [`src/README.md`](src/README.md) | what `Sdlc.Core` and `Sdlc.Cli` are, how one invocation flows, where a new thing goes |
@@ -138,7 +138,9 @@ than refused: it says the stage is a skill and names the invocation.
 
 **Five files only a person writes**, in a governed solution: `approval.md`, `abandoned.md`,
 `constraints.md`, `solution.md`. No tool writes them. A tool prints what belongs in them —
-`sdlc draft approval`, `draft abandon`, `draft constraint`, `draft profile` — and a person places it.
+`sdlc draft approval`, `draft abandon`, `draft profile` — and a person places it. A constraint is the
+one of the five that is **proposed** rather than drafted — `sdlc propose constraints` — because its
+wording is argued from the record rather than dictated.
 The pre-tool
 hook denies every agent write to all four, by file path and by shell command alike, with no exception.
 **A refusal there is the design working, not a configuration problem to route around.** The hook matches

@@ -11,7 +11,17 @@ internal static class Usage
     /// the flag that makes it work, which is the confusion the whole draft pattern exists to avoid.
     /// </remarks>
     public const string Drafters =
-        "One of: approval <id>, abandon <id>, constraint, profile <name>, solution, techstack.";
+        "One of: approval <id>, abandon <id>, profile <name>, solution, techstack. "
+        + "A constraint is proposed rather than drafted: 'sdlc propose constraints'.";
+
+    /// <summary>
+    /// Which proposals exist, for a message about one that does not.
+    /// </summary>
+    /// <remarks>
+    /// One subject today and the verb is plural-ready on purpose: the record has more than rules to say
+    /// something about. Only what is built is offered, for the same reason the drafters are.
+    /// </remarks>
+    public const string Proposals = "One of: constraints.";
 
     /// <summary>The usage text, written to standard output for help and to standard error for a
     /// usage error.</summary>
@@ -36,7 +46,6 @@ internal static class Usage
             draft approval <id>      Write the gate decision beside the ledger, for a person to
                                      rename onto it. Writes no approval.
             draft abandon <id>       Print the record that stops a cycle, for a person to place.
-            draft constraint         Print the next free LOC_ id, with its four parts empty.
             draft profile <name>     Print the solution.md keys for a profile migration.
             draft techstack          Copy the declared stack beside itself, for an edit a person
                                      renames into place.
@@ -54,6 +63,11 @@ internal static class Usage
                                      disposition that stands.
             suggestions [<id>]       List the open non-blocking findings and what the builds
                                      noticed, for one cycle or all.
+            propose constraints      Read this solution's whole history and say which rules its
+                                     findings keep citing, with the cycles and finding ids behind
+                                     each. Proposes; writes nothing that binds. Where the record
+                                     holds no pattern it prints an empty entry at the next free
+                                     LOC_ id with the three admission tests beside it.
             doctor                   Check this installation and this repository: the rules, git,
                                      adoption, every host's hook config, and the pipeline that is
                                      the guarantee. Reports and never repairs. Exits 1 if anything
@@ -173,6 +187,22 @@ internal static class Usage
 
         Where a decision already stands, the draft reproduces it above the new entry, so the rename
         replaces the ledger without losing what it held.
+
+        Two verbs, split by who made the decision
+            'draft' is for a decision you have already taken: it hands back a finished file and the
+            rename or the paste that places it. 'propose' is for one you have not: it reads the
+            record and argues. A tool may propose a rule when it brings the evidence, and may not
+            shape a rule somebody just typed -- which is why there is no way to pass wording in.
+
+            'suggestions' is neither. It lists what a reader already raised and nobody acted on,
+            and forms no opinion of its own.
+
+        Reports
+            'suggestions' and 'propose' both print their answer and keep a copy under
+            .sdlc/reports/, because a person works through one of these rather than reading it
+            once. Nothing reads one back, ever: the directory ignores itself, and a report found
+            later is already out of date if a cycle has run since. Re-run the command rather than
+            trusting one.
 
         The stages
             Writing an intent, a spec or a plan, judging one against the rules, building, verifying

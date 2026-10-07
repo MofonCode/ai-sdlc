@@ -1,19 +1,20 @@
 ---
 name: draft
-description: Print what belongs in one of the five files only a person writes -- an approval, an abandonment, a solution constraint, the declared stack, or a profile migration. Use when a person needs to approve, refuse, stop a cycle, add a rule, change the declared stack, or change profile.
+description: Print what belongs in one of the files only a person writes -- an approval, an abandonment, the declared stack, the solution document, or a profile migration. Use when a person needs to approve, refuse, stop a cycle, change the declared stack, or change profile. For a solution's own constraints, the skill is propose.
 compatibility: Requires the sdlc binary on PATH, from the MofonCode.Sdlc.Cli dotnet tool, and a git repository. Every command here is that binary, so without it the first step fails.
-argument-hint: "approval <id> | abandon <id> | constraint | profile <name> | solution | techstack"
+argument-hint: "approval <id> | abandon <id> | profile <name> | solution | techstack"
 allowed-tools: Bash(sdlc *), Bash(git *)
 ---
 
 # Draft a file only a person writes
 
-Five files, one rule: **a tool never places them, a person does.**
+Five protected files, one rule: **a tool never places them, a person does.** This drafter serves four
+of them; the fifth, `constraints.md`, is served by `propose` rather than drafted, for the reason at the
+foot of this page.
 
 ```
 sdlc draft approval <id>     [--changes-requested | --deny | --reopen]
 sdlc draft abandon <id>
-sdlc draft constraint
 sdlc draft profile <name>
 sdlc draft solution
 sdlc draft techstack
@@ -29,8 +30,8 @@ and prints it with the rename that records it. **`draft solution` does the same 
 document**, carrying its four keys through as recorded and any prose already there through
 unchanged -- so the rename can neither reclassify the solution nor cost somebody what they wrote. **And
 `draft techstack` copies the declared stack beside itself**, so an edit to it is a rename too. The other
-three -- `abandon`, `constraint` and `profile` -- still print for a person to place by hand. Show the
-rename command and do not run it: it is denied, and it is the decision.
+two -- `abandon` and `profile` -- still print for a person to place by hand. Show the rename command and
+do not run it: it is denied, and it is the decision.
 
 ## You cannot place it, and should not offer to
 
@@ -84,9 +85,12 @@ five, because such a plan cannot be carried out as written — the build is deni
 evidence comparison would report it as undelivered, which reads as a missing edit rather than an
 impossible declaration.
 
-**`constraint`** — the next free `LOC_` id with its four parts empty, and the three admission tests
-beside them. It takes no statement, because the wording is the thing being decided and a tool accepting
-one on the command line would be proposing the rule.
+**A constraint is not drafted, and that is the one asymmetry here.** Every drafter above hands back a
+finished file for a decision somebody already took. A rule is the opposite: its wording *is* the
+decision, so there was nothing to hand back and this printed a blank form — the one member of the
+family that did. It moved to `sdlc propose constraints`, which argues from the record instead. The
+licence that makes the difference: **a tool may propose a rule when it brings the evidence, and may not
+shape a rule somebody just typed.** If somebody asks you to draft a constraint, send them there.
 
 **`profile`** — all three `solution.md` keys, not just the one that changes. The origin is a historical
 fact that decides whether a profile's defaults bind, and the platform decides whether a pull-request check

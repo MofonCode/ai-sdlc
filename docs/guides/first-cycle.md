@@ -328,6 +328,22 @@ were "the suite did not actually run" and "this criterion's proof rests entirely
 source". Both substantive; neither cited a rule that forbade the current state, which is the only thing
 that made them suggestions.
 
+Once a few cycles have run, the other half of the same question:
+
+```pwsh
+sdlc propose constraints
+```
+
+Not what is outstanding, but what keeps happening. It reads every cycle's findings — including the
+blockers that were answered, which `suggestions` deliberately never shows — and reports the rules cited
+in three or more **distinct** cycles, with the cycles and finding ids behind each. Two is coincidence;
+three is a pattern. On a first cycle it has nothing to say and prints the next free `LOC_` id with its
+four parts empty instead, which is also how a rule gets added by hand before any history exists.
+
+It proposes and never places. Pasting an accepted entry into `.sdlc/constraints.md` is a person's job,
+because a cycle judged by the constraints it is changing is the same deadlock as the framework governing
+itself.
+
 With several cycles approved and waiting, `/sdlc:batch-build` completes them all, concurrently where
 their declared files do not collide. Everything unattended rests on the remediation bound — a cycle that
 stops making progress stops rather than landing — so the first batch runs are worth watching.

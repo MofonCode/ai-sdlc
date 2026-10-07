@@ -75,16 +75,3 @@ They describe the framework from outside: what to type, what it will say, and wh
 [`../../CONCEPT.md`](../../CONCEPT.md).
 
 Where a guide says something has not been exercised, that is load-bearing and is not to be tidied away.
-
-## Keeping this current
-
-A guide describes a surface, so it goes stale the moment that surface moves — and this index goes stale
-the moment a guide is added, renamed or removed. **Update it in the same change**, never in a follow-up.
-
-The membership half is checked rather than promised: the suite asserts that every guide on disk is named
-here and in the root [`../../README.md`](../../README.md), and that neither names one that does not
-exist. So adding a guide and forgetting this table fails the build. What no test can hold is whether a
-description above is still true of the document it describes — read the guide when you change it.
-
-[`../../AGENTS.md`](../../AGENTS.md) has the full table of which document to update for which kind of
-change.

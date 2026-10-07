@@ -89,6 +89,7 @@ sdlc status <id> --brief
 sdlc constraints --for plan --brief
 sdlc findings <id>
 sdlc suggestions
+sdlc propose constraints
 sdlc cycles
 sdlc cycles --claims
 sdlc cycles --landable
@@ -98,6 +99,11 @@ sdlc cycles --landable
 command. `findings <id>` is what the interrogations said, per artifact, each finding at the disposition
 that stands. `cycles` lists everything this solution holds, newest first — `--claims` and `--landable`
 are the two questions that used to be their own verbs.
+
+**Neither of the last two belongs to a cycle.** `suggestions` is what was raised and never acted on, and
+`propose constraints` reads the whole history and says which rules the findings keep citing — recurrence
+across cycles is its entire signal, so there is nothing to ask it about one. Both print and keep a copy
+under `.sdlc/reports/`, which nothing reads back.
 
 ## Stopping
 

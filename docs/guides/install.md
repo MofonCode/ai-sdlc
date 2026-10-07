@@ -7,13 +7,13 @@ hook says so and lets the push through, which is the louder of the two failures.
 
 | | What it is | Missing means |
 |---|---|---|
-| the plugin | seventeen skills, and on Claude Code two hooks, `PreToolUse` and `Stop` | no stages, and on Claude Code no deterministic layer |
+| the plugin | eighteen skills, and on Claude Code two hooks, `PreToolUse` and `Stop` | no stages, and on Claude Code no deterministic layer |
 | the `sdlc` binary | a .NET tool named `sdlc` | every skill's first command fails |
 
 **One package, two plugin systems.** The root `plugin.json` makes it an
 [Agent Plugins 1.0](https://agent-plugins.org/specification) plugin, which is what Copilot, VS Code,
 Cursor, Codex and Kiro read; `.claude-plugin/plugin.json` is what Claude Code reads. Both find the
-seventeen skills in the same `skills/` directory, so there is no second copy to go stale. Hooks are
+eighteen skills in the same `skills/` directory, so there is no second copy to go stale. Hooks are
 **not** part of that standard — it covers skills and MCP servers only — so on every host the hooks arrive
 through `sdlc init` writing them into the repository, and on Claude Code additionally through the plugin.
 
