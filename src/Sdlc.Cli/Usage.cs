@@ -64,7 +64,8 @@ internal static class Usage
             suggestions [<id>]       List the open non-blocking findings and what the builds
                                      noticed, for one cycle or all.
             decisions                The choices this solution has already settled, so a cycle reads
-                                     what was argued rather than arguing it again. Binds nothing.
+                                     what was argued rather than arguing it again. CON_19 asks a plan
+                                     departing from one to say what it would have cost.
             palette                  The roles this solution's surfaces use and the values that
                                      fill them -- the one place a colour or a typeface lives.
             propose constraints      Read this solution's whole history and say which rules its
@@ -218,10 +219,10 @@ internal static class Usage
             something. 'palette' stops it inventing a colour. All three are rendered on demand and
             never copied into an artifact, because a copy is a second place the truth lives.
 
-            Only the first binds. A plan may depart from a decision or a palette and break no rule
-            -- what reading them buys is that a departure is taken knowingly rather than by
-            forgetting the argument was already had. Where one of them needs to bind, that half is
-            a constraint, an architecture test or a linter.
+            A plan may depart from any of the three. Departing from a rule is impossible, from a
+            recorded decision it is legal but CON_19 asks what the decision would have cost, and
+            from the palette nothing in governance objects at all -- that one is a linter's job,
+            because it is mechanical. Silence is what the rules catch, never the departure.
 
         Reports
             'suggestions' and 'propose' both print their answer and keep a copy under

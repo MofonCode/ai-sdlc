@@ -40,7 +40,7 @@ the cheapest way to discover that what you were about to add already lives somew
 | Where | What |
 |---|---|
 | [`CONCEPT.md`](CONCEPT.md) | the design, and every decision behind it with what each one rejected |
-| [`CONSTRAINTS.md`](CONSTRAINTS.md) | the sixteen global constraints, each with what it forbids and why |
+| [`CONSTRAINTS.md`](CONSTRAINTS.md) | the seventeen global constraints, each with what it forbids and why |
 | `CONCEPT.raw.md` | the original longhand draft, preserved unedited |
 | `src/Sdlc.Core/` | the gate's logic: constraints, cycles, approvals, findings, hooks, evidence, the chain |
 | `src/Sdlc.Cli/` | the one binary every skill on every host calls |

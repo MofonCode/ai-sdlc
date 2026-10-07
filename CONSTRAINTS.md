@@ -306,3 +306,23 @@ default; this asks the same of a plan that changes the rule instead of meeting i
 project-reference rule into roughly 3,100 lines across nine projects for a single button, rejected the
 simpler shape citing that rule, and then amended the rule anyway — and the amendment reached a reviewer as
 one row among thirty-nine in a file table, with nothing said about what the rule had cost.
+
+## CON_19 — A plan says why it departs from a decision the solution has recorded
+
+**Applies to:** a plan, at approval.
+
+**Forbids:** a plan whose approach contradicts a standing entry in the solution's `decisions.md` —
+taking the alternative that entry weighed and set aside — without saying in `Shape and departures`
+what the recorded decision would have cost here.
+
+**Why:** a decision is recorded so a later cycle does not argue it again from nothing, and the cost of
+the record going unread is not that somebody disagrees with it. It is that nobody knows they are
+disagreeing. The entry names the alternatives that were real and what each would have cost, so a plan
+reaching for one of them is either correcting a decision that has stopped fitting or repeating an
+argument somebody already had and lost — and those need opposite responses from the person at the gate.
+Without this the two are indistinguishable, because both arrive as a plan that simply does the other
+thing. **Departing stays legal**, as it does under `CON_15`: a decision that cannot be revisited is a
+cage, and the first case it genuinely does not fit would see the record ignored rather than amended. What
+this forbids is departing in silence. No analyzer can decide it — whether an approach contradicts a
+paragraph of prose is a judgement about language, and the record's own `Instead of` clause is what makes
+the judgement possible rather than a guess.

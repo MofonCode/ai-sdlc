@@ -92,12 +92,12 @@ public readonly record struct DecisionId
 /// says why, the rule forbids the alternative. Expect roughly one <c>LOC_</c> for every five or six of
 /// these.</para>
 ///
-/// <para><strong>It binds nothing today, and the gap is deliberate.</strong> <c>CON_15</c> makes a plan
-/// say why it departs from a declared default, but its <c>Forbids</c> clause names the declared stack
-/// specifically — so a plan departing from one of these breaks no rule. What the record buys is that a
-/// cycle can read what was already settled instead of re-litigating it. Making it bind would take a new
-/// global constraint rather than a reworded one, because what is forbidden would change (§7.4), and
-/// that is a person's to write.</para>
+/// <para><strong>Departing is legal; departing in silence is not.</strong> <c>CON_19</c> asks a plan
+/// whose approach contradicts a standing entry to say in <c>Shape and departures</c> what the recorded
+/// decision would have cost here — the same shape <c>CON_15</c> takes for the declared stack, and a
+/// separate rule rather than a reworded one because what is forbidden changed (§7.4). A decision that
+/// cannot be revisited is a cage; what the rule catches is a plan reaching for the alternative this
+/// entry already weighed without anyone noticing that is what it did (D-72).</para>
 /// </remarks>
 /// <param name="Id">The decision's identity.</param>
 /// <param name="Statement">The choice in one line, as the heading states it.</param>

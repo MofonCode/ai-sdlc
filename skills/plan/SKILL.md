@@ -29,13 +29,29 @@ Unlike the spec, this stage **must** read the codebase. A plan that does not kno
 cannot say which files change, and a file table invented from the spec alone is the fastest way to a
 plan that cannot be built.
 
-Read `.sdlc/techstack.md` too. It declares what this solution is built from.
+**Then read the two records this stage is judged against, and the one it is not.**
+
+```
+sdlc decisions
+sdlc palette
+```
+
+`.sdlc/techstack.md` declares what this solution is built from — `CON_15` judges you against it.
+`sdlc decisions` prints the choices somebody already settled and **`CON_19` judges you against those**:
+a plan whose approach contradicts a standing entry says what the recorded decision would have cost. Read
+it before you choose a shape rather than after, because a plan that has not read it cannot tell whether
+it is departing — and that is the whole failure the rule exists to catch.
+
+`sdlc palette` is the one nothing judges. Read it anyway if this change touches a surface or a report:
+it holds the roles and values somebody chose, and a value invented beside them is the drift a register
+exists to prevent. It is also not protected, so changing one is ordinary declared work — just declare
+the file.
 
 ## Two kinds of claim, and only one is judged
 
 | Section | Kind | Judged by |
 |---|---|---|
-| `Shape and departures` | a **decision** — which approach | `CON_06`, `CON_15` |
+| `Shape and departures` | a **decision** — which approach | `CON_06`, `CON_15`, `CON_19` |
 | `Files` | an **estimate** — which files, how large | nothing; it is a signal |
 
 That distinction matters when you are tempted to pad the file table defensively. Declaring files you
@@ -59,6 +75,19 @@ in `Shape and departures`.
 **"In work that calls for it" is the scope.** A plan touching one endpoint is not silent about the
 message bus by failing to mention it. A plan standing up an HTTP surface is silent about the api
 description row by failing to mention that.
+
+`CON_19` is the same shape, pointed at the decision record. If your approach takes an alternative a
+standing `DEC_` entry weighed and set aside, say what the recorded decision would have cost here.
+
+**Departing is legal — that is the half to hold on to.** A decision that cannot be revisited is a cage,
+and a record nobody may contradict would be ignored the first time it genuinely did not fit. What the
+rule forbids is taking the alternative without saying so, because then the person at the gate cannot
+tell whether you are correcting a decision that has stopped fitting or re-running an argument somebody
+already had. Those need opposite responses, and both arrive looking identical.
+
+**An entry's `Instead of` clause is how you tell.** It names the alternatives that were weighed, so if
+your approach is one of them you are departing, whatever else has changed. If it is not, you are not —
+a decision about publishing does not constrain a plan about pagination.
 
 You may depart from anything. A default that cannot be departed from is a cage, and the first
 genuinely unsuitable case would see the whole file ignored. What is forbidden is departing in

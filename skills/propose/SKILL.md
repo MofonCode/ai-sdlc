@@ -209,11 +209,14 @@ pasting it is the person's act.
 
 ## What the record does not do
 
-**It binds nothing.** `CON_15` makes a plan say why it departs from a declared default, but its `Forbids`
-clause names the declared stack specifically — so a plan departing from a recorded decision breaks no
-rule. Say so if somebody expects enforcement: what reading the record buys is that a departure is taken
-knowingly rather than by forgetting the argument was already had. Making it bind would take a new global
-constraint, which is a person's to write.
+**It does not forbid departing.** `CON_19` asks a plan whose approach contradicts a standing entry to say
+in `Shape and departures` what the recorded decision would have cost here — the same shape `CON_15` takes
+for the declared stack. A decision that cannot be revisited is a cage, and the first case it genuinely
+does not fit would see the record ignored rather than amended.
+
+So when you write an entry, remember a plan will be judged against it. `Instead of` is what makes that
+judgement possible: a reader deciding whether a plan contradicts this entry needs to know which
+alternatives it already weighed.
 
 ---
 

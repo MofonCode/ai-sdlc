@@ -514,10 +514,11 @@ planning documents against a person's name, so a passage from one is prose a per
 shape — the roles — and never a value: a colour is a brand's, and a tool inventing one is the only
 proposal here nobody asked for.
 
-**Only the constraints bind.** A plan may depart from a decision or a palette and break no rule;
-`CON_15` names the declared stack specifically. What reading them buys is that a departure is taken
-knowingly rather than by forgetting the argument was already had. Where one needs to bind, that half is a
-constraint, an architecture test or a linter.
+**Departing is legal from two of the three, and silence is what gets caught.** `CON_19` asks a plan
+contradicting a recorded decision to say what that decision would have cost, the same shape `CON_15`
+takes for the declared stack. The palette is the one nothing in governance objects to, because *a colour
+outside the palette* is mechanical and belongs to a linter, which can fail a build where a constraint
+cannot.
 
 ---
 

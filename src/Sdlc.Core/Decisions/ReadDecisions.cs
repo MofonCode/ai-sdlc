@@ -20,10 +20,10 @@ namespace Sdlc.Core.Decisions;
 /// constraint set is: a copy is a second place the truth lives, and <c>CON_09</c> forbids an artifact
 /// restating another document's content as its own authority.</para>
 ///
-/// <para><strong>It binds nothing.</strong> A plan may depart from any of these. What it may not do is
-/// depart without knowing it had — and that is what reading this prevents, rather than any rule.
-/// <c>CON_15</c> does not reach these entries: its <c>Forbids</c> clause names the declared stack
-/// specifically.</para>
+/// <para><strong>A plan may depart from any of these, and must say so.</strong> <c>CON_19</c> is the
+/// rule: an approach contradicting a standing entry says what the recorded decision would have cost
+/// here. So reading this is not advisory — a plan written without it is a plan that cannot tell whether
+/// it is departing, which is the one thing the rule forbids (D-72).</para>
 /// </remarks>
 public static class ReadDecisions
 {

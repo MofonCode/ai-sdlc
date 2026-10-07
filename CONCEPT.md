@@ -715,6 +715,7 @@ carrying a corrected error in it forever is the worse of the two losses.
 | `CON_16` | a spec covers every outcome its intent asks for, and all of each one | spec |
 | `CON_17` | a spec says what somebody is told when the action fails | spec |
 | `CON_18` | a plan that changes a rule the cycle is judged by says what the rule would have cost | plan |
+| `CON_19` | a plan says why it departs from a decision the solution has recorded | plan |
 
 `CON_04` and `CON_13` are not in this table because they no longer bind. `CON_04` required every
 stated outcome to have a criterion and said nothing about a criterion covering only part of one,
@@ -813,8 +814,11 @@ something nobody chose. **A decision forbids nothing** — where a choice does, 
 or an architecture test, and the two are separate artifacts of one choice. Ids are monotonic and a
 reversed entry takes a new id while the old one stays on the page, as §20's own preamble has it.
 
-**Not enforced.** `CON_15` names `techstack.md` specifically, so a plan departing from a recorded
-decision breaks no rule — see D-70 for why that gap is deliberate and what making it bind would cost.
+**Departing is legal; departing in silence is not.** `CON_19` asks a plan whose approach contradicts a
+standing entry to say in `Shape and departures` what the recorded decision would have cost here — the
+same shape `CON_15` takes for the declared stack, and a separate rule rather than a reworded one because
+what is forbidden changed (§7.4). D-72, which reverses the half of D-70 that shipped the record binding
+nothing.
 
 ### 8.1.2 `palette.json`
 
@@ -1827,18 +1831,11 @@ block, then remediate, then exhaust the budget.
    here; do you want a rule about null-checking at boundaries?"* leaves the person deciding, which is the
    line §9 actually draws. Open because the choice is between three defensible shapes rather than
    because the gap is in doubt.
-9. **Whether a recorded decision should ever bind.** D-70 ships the record binding nothing, because
-   `CON_15`'s `Forbids` clause names `techstack.md` specifically: a plan departing from a recorded
-   decision breaks no rule. What the record buys today is that a cycle reads what was already argued
-   instead of arguing it again, which was the whole ask. Making a departure illegal would take a **new**
-   global constraint rather than a reworded one, because what is forbidden would change (§7.4) — and a
-   global rule is a person's to write, in the framework's own library. Open because nobody has decided
-   whether the enforcement is wanted, not because the mechanism is unclear.
-10. **Whether a palette is per solution or shared across them.** D-71 ships it per solution, at
-    `.sdlc/palette.json`. A design system shared by several solutions is the obvious case for the other
-    answer, and it is a profile question rather than a solution one: a profile already carries the
-    conventions new work follows, and a shared register would sit beside them. Nothing blocks it; no
-    solution has wanted it yet.
+9. **Whether a palette is per solution or shared across them.** D-71 ships it per solution, at
+   `.sdlc/palette.json`. A design system shared by several solutions is the obvious case for the other
+   answer, and it is a profile question rather than a solution one: a profile already carries the
+   conventions new work follows, and a shared register would sit beside them. Nothing blocks it; no
+   solution has wanted it yet.
 
 ---
 
@@ -4686,6 +4683,11 @@ and hands the passages over for a person to record. Entries carry `DEC_nn` ids, 
 reused, with four parts: `Decided`, `Because`, `Instead of`, `From`. A reversed decision takes a new id
 and the old entry stays on the page. **The record binds nothing.**
 
+**Reversed in part by D-72**, which makes a plan say what a recorded decision would have cost before
+departing from it. Everything else in this entry stands; what was overtaken is the last sentence above
+and the *why it binds nothing* paragraph below, and both are left as written because a commit citing this
+id should still mean what it meant.
+
 **Why a record at all.** A constraint stops a cycle doing something; a decision stops it *re-deciding*
 something. Cycle forty cannot see that cycle seven chose an outbox over two-phase commit and why, because
 the reasoning sits in one plan's `Shape and departures` and nothing reads across cycles. That is the gap,
@@ -4716,7 +4718,7 @@ item 9 both claimed an entry would be covered by `CON_15` as a declared default.
 `CON_15`'s `Forbids` clause names `techstack.md` specifically, so a plan departing from a recorded
 decision breaks no rule today. Making it bind takes a **new** global constraint rather than a reworded
 one, because what is forbidden would change (§7.4), and a global rule is a person's to write. The gap is
-recorded rather than papered over, and whether the enforcement is even wanted is §19 item 9.
+recorded rather than papered over. The enforcement was wanted, and D-72 is where it was decided.
 
 **What the four parts are for, and why `Instead of` is required.** It is what separates a decision from a
 fact. An entry whose alternatives were never real records something nobody chose, and reading it costs
@@ -4730,7 +4732,7 @@ a rewritten reason *is* a different reason. Either the entry stands as written o
 
 **Rejected.**
 
-- *A derived view over the approved artifacts, with no file* — the shape §19 item 9 leaned toward, and it
+- *A derived view over the approved artifacts, with no file* — the shape an open question leaned toward, and it
   cannot go stale, which is a real advantage. Refused because it can only ever hold what some cycle
   happened to say, and most of what wants recording never passes through a cycle: a theme, a code-style
   choice, a convention invented once and applied everywhere since. A record that structurally cannot hold
@@ -4802,3 +4804,64 @@ front-end surface, and §2.1 is the rule against a check that cannot really chec
 - *A constraint forbidding a literal colour outside the palette* — admissible on the first and third
   admission tests and refused by the second: a linter decides it, and a linter fails a build where a
   constraint cannot.
+
+### D-72 — A plan says why it departs from a recorded decision, and that is a new constraint
+
+**Governs:** §7.5, §8.1.1, §19
+
+**Decision.** `CON_19` is added to the global library: a plan whose approach contradicts a standing entry
+in the solution's `decisions.md` says in `Shape and departures` what the recorded decision would have cost
+here. **Departing stays legal**; departing in silence does not. This reverses the half of D-70 that
+shipped the record binding nothing, and D-70 is left as written.
+
+**Why a new constraint and not a reworded `CON_15`.** §7.4 decides it with no judgement needed: *a change
+to what is forbidden is a new constraint.* Today a plan may contradict a recorded decision and breach
+nothing; under this rule it may not do so silently. That is something becoming illegal, which is the
+definition separating a supersession from a revision — a revision is better words for the same `Forbids`.
+
+**Why two parallel rules rather than one covering both records.** `CON_15` could have been superseded by a
+rule naming "a declared default or a recorded decision". Refused on §7.2's first test: `CON_15`'s
+`Forbids` names `techstack.md` concretely enough that an example could be written, and the merged version
+would have to generalise to the point where a reader has to decide which record is meant before they can
+tell whether the rule fires. It would also have put `CON_15` out of force across the drafter's text, the
+plan skill and three documents that cite it — churn with nothing bought, since a finding has to say which
+record it is about either way.
+
+**Why departing stays legal, which is the half worth stating.** A decision that cannot be revisited is a
+cage, and the first case it genuinely does not fit would see the record ignored rather than amended —
+exactly the failure `CON_15`'s own `Why` describes for a declared default. What this catches is nobody
+noticing. An entry names the alternatives that were real, so a plan reaching for one of them is either
+correcting a decision that has stopped fitting or repeating an argument somebody already had and lost, and
+those need opposite responses from the person at the gate. Without the rule both arrive as a plan that
+simply does the other thing.
+
+**Why `Instead of` is what makes the rule decidable.** A reader judging a plan against an entry has to
+know which alternatives that entry weighed. Without the clause the rule would ask whether a plan
+contradicts a paragraph, with nothing saying what contradicting it would look like — so the clause being
+required (D-70) is what this rule rests on, and the two are a pair.
+
+**Why no analyzer could decide it.** Whether an approach contradicts a paragraph of prose is a judgement
+about language. §7.2's second test is the one that disqualifies most candidates and it passes here, which
+is also why this is a constraint rather than a schema rule about the record.
+
+**What it costs, stated plainly.** The global library grows to seventeen rules in force, and every one is
+read at every interrogation of the artifact it applies to. This one applies to a plan, which already
+carries `CON_06`, `CON_14`, `CON_15` and `CON_18` — the most-governed document in the chain. It also fires
+only in a solution that has a decision record, so for most solutions it is a rule that can never trigger,
+which is the shape `CON_11` exists to be suspicious of. It is admitted anyway because the record it
+governs is the one a stage reads for alignment: a rule that fires rarely and prevents a silent
+contradiction of something a person wrote is not decoration.
+
+**Rejected.**
+
+- *Leaving the record advisory* — what shipped in D-70, and reversed on a request. The argument for it was
+  that reading the record is what prevents an unknowing departure. True, and it rests on a stage choosing
+  to read something nothing requires it to read, which is the advisory layer §2.1 puts at the bottom for
+  a reason.
+- *Rewording `CON_15` to cover both records* — refused above, on §7.4 and on concreteness.
+- *A schema rule instead* — a schema can check that a plan has a `Shape and departures` section, which it
+  already does. It cannot tell whether what is in there addresses the decision the plan contradicts, which
+  is the whole content of this rule.
+- *Making the palette bind the same way* — refused for the reason D-71 gives: *a colour outside the
+  palette* is mechanically decidable, so §2.3 puts it in a linter, which fails a build where a constraint
+  cannot.

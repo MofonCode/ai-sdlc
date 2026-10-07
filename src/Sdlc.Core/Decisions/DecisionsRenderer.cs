@@ -89,10 +89,11 @@ public static class DecisionsRenderer
         }
 
         output.AppendLine();
-        output.AppendLine("A plan may depart from any of these. Nothing here forbids anything -- what the");
-        output.AppendLine("record buys is that a departure is taken knowingly rather than by forgetting the");
-        output.AppendLine("argument was already had. Where a decision needs to bind, that half is a");
-        output.AppendLine("constraint or an architecture test.");
+        output.AppendLine("A plan may depart from any of these, and CON_19 asks it to say what the recorded");
+        output.AppendLine("decision would have cost here. Departing is legal; departing in silence is not. An");
+        output.AppendLine("entry names the alternatives that were real, so a plan reaching for one of them is");
+        output.AppendLine("either correcting a decision that has stopped fitting or repeating an argument");
+        output.AppendLine("somebody already had -- and those need opposite responses at the gate.");
 
         if (response.Superseded > 0 && detail == DecisionDetail.Brief)
         {
