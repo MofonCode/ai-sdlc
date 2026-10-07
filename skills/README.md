@@ -50,7 +50,7 @@ and prints the invocation — because a tool must never send somebody somewhere 
 | `status` | shows where a cycle has got to | `<id> [artifact]` | after any stage, or when somebody asks | anyone, constantly |
 | `constraints` | shows the rules in force, all tiers resolved | `[artifact]` | before writing or judging anything | every stage skill, as its first step |
 | `suggestions` | lists the open non-blocking findings, and what the builds noticed | `[id]` | looking for what was noticed and not acted on | a person |
-| `propose` | reads the whole history and proposes `LOC_` entries, with the evidence behind each | `constraints` | asking what keeps going wrong across cycles, or adding a rule | a person |
+| `propose` | reads a record and proposes entries a person may adopt, with the evidence behind each | `constraints \| decisions \| palette` | asking what keeps going wrong across cycles, recording a choice, or needing a palette | a person |
 
 **"Who starts it" is not "who runs it".** Every one of these is executed by an agent — that is what a
 skill is. What differs is who decides it should happen, and two of them are a person's decision in a way
@@ -59,7 +59,7 @@ agent, so the hook denies an agent the command; `land` is the only stage that re
 repository, so it asks before every push.
 
 **All eighteen are model-invocable.** Nothing in the manifest stops an agent reaching for one on its
-own, and that is deliberate — what protects the decisions is the hook denying the five protected files
+own, and that is deliberate — what protects the decisions is the hook denying the six protected files
 and `sdlc init`, plus the pull-request check, rather than a flag in a skill's frontmatter. A guard that
 lives in the manifest is a guard the manifest can lose. `../docs/guides/when-it-blocks.md` has what
 the hook actually denies today, and what it does not.
@@ -243,7 +243,7 @@ the hash of the artifact above it, so editing the intent makes the spec's latest
 
 ### `draft`
 
-**Prints or writes what belongs in four of the five files only a person writes.** One rule: a tool never
+**Prints or writes what belongs in four of the six files only a person writes.** One rule: a tool never
 places them, a person does. Two of the four write a complete file beside the real one so that placing
 it is a rename rather than a paste -- which matters because a block printed for pasting went unpasted
 through a whole cycle, leaving every plan in that solution reading a placeholder.
@@ -502,6 +502,22 @@ candidates come back on every run forever.
 with its four parts empty and the three admission tests beside them — the shape, when it cannot propose
 the rule. That is the state of a young solution, of a well-behaved one, and of a person adding a rule by
 hand on day one.
+
+**Two more subjects, two different records.** `propose decisions` is **captured forward** rather than
+mined, because a choice that never collided with a rule produced no finding to mine — a colour, a layout
+convention, a code-style choice is nowhere in the history. It reads what **approved** cycles stated, from
+an intent's `Fixed decisions` and a plan's `Shape and departures`, and skips a cycle whose approval was
+reopened or whose work was stopped. The approval is the whole provenance story: it hashes the three
+planning documents against a person's name, so a passage from one is prose a person signed.
+
+`propose palette` is neither mined nor captured. A palette is a **register**, so what gets proposed is the
+shape — the roles — and never a value: a colour is a brand's, and a tool inventing one is the only
+proposal here nobody asked for.
+
+**Only the constraints bind.** A plan may depart from a decision or a palette and break no rule;
+`CON_15` names the declared stack specifically. What reading them buys is that a departure is taken
+knowingly rather than by forgetting the argument was already had. Where one needs to bind, that half is a
+constraint, an architecture test or a linter.
 
 ---
 

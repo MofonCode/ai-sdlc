@@ -21,7 +21,7 @@ internal static class Usage
     /// One subject today and the verb is plural-ready on purpose: the record has more than rules to say
     /// something about. Only what is built is offered, for the same reason the drafters are.
     /// </remarks>
-    public const string Proposals = "One of: constraints.";
+    public const string Proposals = "One of: constraints, decisions, palette.";
 
     /// <summary>The usage text, written to standard output for help and to standard error for a
     /// usage error.</summary>
@@ -63,11 +63,22 @@ internal static class Usage
                                      disposition that stands.
             suggestions [<id>]       List the open non-blocking findings and what the builds
                                      noticed, for one cycle or all.
+            decisions                The choices this solution has already settled, so a cycle reads
+                                     what was argued rather than arguing it again. Binds nothing.
+            palette                  The roles this solution's surfaces use and the values that
+                                     fill them -- the one place a colour or a typeface lives.
             propose constraints      Read this solution's whole history and say which rules its
                                      findings keep citing, with the cycles and finding ids behind
                                      each. Proposes; writes nothing that binds. Where the record
                                      holds no pattern it prints an empty entry at the next free
                                      LOC_ id with the three admission tests beside it.
+            propose decisions        Read what this solution's approved cycles stated -- an intent's
+                                     fixed decisions, a plan's shape and departures -- and hand the
+                                     passages over for a person to record. Approved cycles only:
+                                     an approval is what makes a passage something a person signed.
+            propose palette          Print the roles a palette declares, for a solution that has
+                                     none, or name the ones left empty in the one it has. Never
+                                     proposes a value: a colour is a brand's, not a tool's.
             doctor                   Check this installation and this repository: the rules, git,
                                      adoption, every host's hook config, and the pipeline that is
                                      the guarantee. Reports and never repairs. Exits 1 if anything
@@ -156,6 +167,11 @@ internal static class Usage
         Newest first, always. The order a person scans is the order the work happened in, and a
         second order would be a second way to read one answer.
 
+        Options for decisions
+            --brief                  Ids and statements only, without the clauses.
+            --all                    Include the reversed entries, which stay on the page so a cycle
+                                     that cited one is still readable. Without it, what stands.
+
         Options for findings
             --stage <artifact>       One document: intent, spec, plan or verify. Defaults to all four.
             --round <n>              One round. Defaults to every round. A finding is still shown at
@@ -196,6 +212,16 @@ internal static class Usage
 
             'suggestions' is neither. It lists what a reader already raised and nobody acted on,
             and forms no opinion of its own.
+
+        Three records, and what each stops
+            'constraints' stops a cycle doing something. 'decisions' stops it re-deciding
+            something. 'palette' stops it inventing a colour. All three are rendered on demand and
+            never copied into an artifact, because a copy is a second place the truth lives.
+
+            Only the first binds. A plan may depart from a decision or a palette and break no rule
+            -- what reading them buys is that a departure is taken knowingly rather than by
+            forgetting the argument was already had. Where one of them needs to bind, that half is
+            a constraint, an architecture test or a linter.
 
         Reports
             'suggestions' and 'propose' both print their answer and keep a copy under

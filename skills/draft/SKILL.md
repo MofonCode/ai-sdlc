@@ -8,9 +8,9 @@ allowed-tools: Bash(sdlc *), Bash(git *)
 
 # Draft a file only a person writes
 
-Five protected files, one rule: **a tool never places them, a person does.** This drafter serves four
-of them; the fifth, `constraints.md`, is served by `propose` rather than drafted, for the reason at the
-foot of this page.
+Six protected files, one rule: **a tool never places them, a person does.** This drafter serves four
+of them. The other two — this solution's own rules and its decision record — are served by `propose`
+rather than drafted, for the reason at the foot of this page.
 
 ```
 sdlc draft approval <id>     [--changes-requested | --deny | --reopen]
@@ -42,7 +42,7 @@ nowhere for a bypass to live.
 
 The rename that places an approval is denied too, in every spelling -- `mv`, `Move-Item`,
 `Rename-Item`, `Copy-Item`, and through any shell the host offers. So do not offer to run it, do not
-offer a shell command that would write any of the five, and do not read the refusal as a configuration
+offer a shell command that would write any of them, and do not read the refusal as a configuration
 problem. If the person asks you to place it, the answer is that you cannot, and that this is the
 mechanism rather than an obstacle: a decision means something precisely because no tool could have
 recorded it.
@@ -80,17 +80,19 @@ here is a default the solution is adopting or dropping, not a package one cycle 
 that reaches for something undeclared departs and says what the declared default would have cost, which is
 an argument rather than an edit to this file.
 
-**A plan may not declare it either.** The schema refuses a plan whose `Files` section names any of the
-five, because such a plan cannot be carried out as written — the build is denied the write, and the
+**A plan may not declare it either.** The schema refuses a plan whose `Files` section names any of
+them, because such a plan cannot be carried out as written — the build is denied the write, and the
 evidence comparison would report it as undelivered, which reads as a missing edit rather than an
 impossible declaration.
 
-**A constraint is not drafted, and that is the one asymmetry here.** Every drafter above hands back a
+**Two of the six are not drafted, and that is the asymmetry here.** Every drafter above hands back a
 finished file for a decision somebody already took. A rule is the opposite: its wording *is* the
 decision, so there was nothing to hand back and this printed a blank form — the one member of the
-family that did. It moved to `sdlc propose constraints`, which argues from the record instead. The
-licence that makes the difference: **a tool may propose a rule when it brings the evidence, and may not
-shape a rule somebody just typed.** If somebody asks you to draft a constraint, send them there.
+family that did. A recorded decision has the same shape. Both moved to `propose`, which argues from the
+record instead: `sdlc propose constraints` from the findings, `sdlc propose decisions` from what an
+approved cycle stated. The licence that makes the difference: **a tool may propose when it brings the
+evidence, and may not shape what somebody just typed.** If somebody asks you to draft either, send
+them there.
 
 **`profile`** — all three `solution.md` keys, not just the one that changes. The origin is a historical
 fact that decides whether a profile's defaults bind, and the platform decides whether a pull-request check

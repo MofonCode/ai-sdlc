@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Text;
 using Sdlc.Core.Constraints;
 using Sdlc.Core.Cycles;
+using Sdlc.Core.Decisions;
 
 namespace Sdlc.Core.Proposals;
 
@@ -273,6 +274,148 @@ public static class ProposalsRenderer
         output.AppendLine(Indent + "because a cycle judged by the constraints it is changing is the same deadlock as");
         output.AppendLine(Indent + "the framework governing itself.");
     }
+
+    /// <summary>
+    /// Renders what the approved cycles stated, for a person to turn into entries.
+    /// </summary>
+    /// <remarks>
+    /// A second method on this renderer rather than a renderer of its own, because both answer the same
+    /// question in the same shape — here is the record, here is what you might adopt, nothing is adopted
+    /// yet. What differs is only which record was read.
+    /// <para>
+    /// As with the rules, the four parts are printed empty. The wording is the decision, and a renderer
+    /// that filled in <c>Because</c> from a plan's prose would be writing the half that cannot be
+    /// recovered later — the reason a passage exists is rarely in the passage.
+    /// </para>
+    /// </remarks>
+    /// <param name="response">What the approved cycles held.</param>
+    /// <returns>The rendered text, ending in a newline.</returns>
+    public static string Render(ProposeDecisions.Response response)
+    {
+        ArgumentNullException.ThrowIfNull(response);
+
+        StringBuilder output = new();
+
+        output.AppendLine(string.Create(
+            CultureInfo.InvariantCulture,
+            $"{Indent}{Cycles(response.Cycles)} held, {Approved(response)}. {response.NextId} is the next free id."));
+
+        output.AppendLine(string.Create(
+            CultureInfo.InvariantCulture,
+            $"{Indent}{Standing(response.Standing.Count)} already recorded."));
+
+        if (response.Standing.Count > 0)
+        {
+            output.AppendLine();
+
+            foreach (Decision decision in response.Standing)
+            {
+                output.AppendLine(string.Create(
+                    CultureInfo.InvariantCulture,
+                    $"{Field}{decision.Id,-9} {decision.Statement}"));
+            }
+        }
+
+        Candidates(output, response);
+        DecisionClosing(output, response);
+
+        return output.ToString();
+    }
+
+    /// <summary>
+    /// The passages, grouped by the cycle that stated them.
+    /// </summary>
+    /// <remarks>
+    /// Labelled by cycle and section rather than numbered, for the reason a rule candidate is: the next
+    /// free id is stated once, and a person numbers what they accept. The passage is printed as the
+    /// artifact holds it, never summarised — a paraphrase is a second version of what somebody approved.
+    /// </remarks>
+    private static void Candidates(StringBuilder output, ProposeDecisions.Response response)
+    {
+        if (response.Candidates.Count == 0)
+        {
+            return;
+        }
+
+        output.AppendLine();
+        output.AppendLine(string.Create(
+            CultureInfo.InvariantCulture,
+            $"{Indent}Stated in an approved cycle — {response.Candidates.Count}"));
+
+        foreach (IGrouping<CycleId, Candidate> group in response.Candidates
+            .GroupBy(candidate => candidate.Cycle)
+            .OrderBy(group => group.Key.ToString(), StringComparer.Ordinal))
+        {
+            output.AppendLine();
+            output.AppendLine(Field + group.Key.ToString());
+
+            foreach (Candidate candidate in group)
+            {
+                output.AppendLine(string.Create(
+                    CultureInfo.InvariantCulture,
+                    $"{Body}{Section(candidate.Source)}"));
+                output.AppendLine(Body + "    " + candidate.Passage);
+            }
+        }
+    }
+
+    /// <summary>
+    /// The three admission tests for a decision, which invert the first of a constraint's.
+    /// </summary>
+    /// <remarks>
+    /// Printed whatever was found, like the rules' tests. The third is the one that routes work away from
+    /// this record and into something that can fail a build, which is the direction the layering in §2.3
+    /// always runs.
+    /// </remarks>
+    private static void DecisionClosing(StringBuilder output, ProposeDecisions.Response response)
+    {
+        output.AppendLine();
+
+        if (!response.HasMaterial)
+        {
+            output.AppendLine(Indent + "No approved cycle has stated anything. A decision is captured at the moment");
+            output.AppendLine(Indent + "a choice is made, so there is nothing to recover here -- record one by hand as");
+            output.AppendLine(Indent + "the choice is taken, rather than waiting for a cycle to have said it.");
+            return;
+        }
+
+        output.AppendLine(Indent + "None of this is a decision yet. Three tests, all of which have to pass:");
+        output.AppendLine();
+        output.AppendLine(Field + "1. the alternatives were real -- somebody could have chosen otherwise");
+        output.AppendLine(Field + "2. the reason is not recoverable from the code");
+        output.AppendLine(Field + "3. it forbids nothing");
+        output.AppendLine();
+        output.AppendLine(Indent + "Test one is what separates a decision from a fact: an entry whose alternatives");
+        output.AppendLine(Indent + "were never real records something nobody chose. Test three is the one that sends");
+        output.AppendLine(Indent + "work elsewhere -- where a choice does forbid something, that half is a constraint");
+        output.AppendLine(Indent + "or an architecture test, and the two are separate artifacts of one choice: the");
+        output.AppendLine(Indent + "decision says why, the rule forbids the alternative.");
+        output.AppendLine();
+        output.AppendLine(Indent + "Nothing here writes the record. A stage reads it for alignment, so an agent that");
+        output.AppendLine(Indent + "could write it could invent doctrine and then align to it.");
+    }
+
+    private static string Section(DecisionSource source) => source switch
+    {
+        DecisionSource.Intent => "intent  fixed decisions",
+        DecisionSource.Plan => "plan    shape and departures",
+        _ => throw new ArgumentOutOfRangeException(nameof(source), source, "Unknown source."),
+    };
+
+    private static string Approved(ProposeDecisions.Response response)
+    {
+        int approved = response.Cycles - response.Unapproved;
+
+        return response.Unapproved == 0
+            ? string.Create(CultureInfo.InvariantCulture, $"{approved} approved")
+            : string.Create(
+                CultureInfo.InvariantCulture,
+                $"{approved} approved and {response.Unapproved} not read for having no standing approval");
+    }
+
+    private static string Standing(int number) => number == 1
+        ? "1 decision"
+        : string.Create(CultureInfo.InvariantCulture, $"{number} decisions");
 
     private static string Ids(IReadOnlyList<ConstraintId> ids) =>
         string.Join(", ", ids.Select(id => id.ToString()));

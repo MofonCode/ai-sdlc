@@ -1,8 +1,8 @@
 ---
 name: propose
-description: Read what a solution's whole history says about the rules it is missing, and propose entries a person may adopt. Proposes and never places. Use when somebody asks what keeps going wrong across cycles, wants to add one of this solution's own constraints, or is looking for rules worth having.
+description: Read what a solution's record says it is missing -- a rule its findings keep citing, a choice its approved cycles settled, or the roles a palette declares -- and propose entries a person may adopt. Proposes and never places. Use when somebody asks what keeps going wrong across cycles, wants to add one of this solution's own constraints, wants to record a decision, or needs a palette.
 compatibility: Requires the sdlc binary on PATH, from the MofonCode.Sdlc.Cli dotnet tool, and a git repository. Every command here is that binary, so without it the first step fails.
-argument-hint: "constraints"
+argument-hint: "constraints | decisions | palette"
 allowed-tools: Bash(sdlc *)
 ---
 
@@ -10,7 +10,18 @@ allowed-tools: Bash(sdlc *)
 
 ```
 sdlc propose constraints
+sdlc propose decisions
+sdlc propose palette
 ```
+
+**Three subjects, three different records, one rule.** A constraint is **mined backward** from the
+findings — the same rule blocking three cycles says a rule is missing. A decision is **captured
+forward**, because a choice that never collided with a rule produced no finding to mine: a colour, a
+layout convention, a code-style choice is nowhere in the history. A palette is neither; it is a
+register, and what gets proposed is the shape rather than the values.
+
+Pick the subject the person asked for. If they asked for none, ask rather than guess — the three read
+different files and a wrong guess wastes a turn.
 
 **Two verbs, split by who made the decision.** `draft` is for a decision somebody already took: it
 hands back a finished file and the rename or the paste that places it. `propose` is for one they have
@@ -25,6 +36,10 @@ the record rather than on taste.
 Run the command and show what it prints **verbatim**. Then do the reading it cannot: the sections
 below. Everything you add goes under its own heading so nothing you wrote is mistaken for something
 the command found.
+
+---
+
+# `constraints`
 
 ## What the command gives you, and what it deliberately does not
 
@@ -127,3 +142,110 @@ So never cite a report as current. If one is on disk and you want what it says, 
 per-item, no opinion. This reads the whole history including **closed blockers**, which is where the
 strongest evidence lives and which that command deliberately never shows. If somebody wants to know
 what is outstanding, send them there instead.
+
+---
+
+# `decisions`
+
+```
+sdlc propose decisions
+```
+
+**Only approved cycles are read, and that is the whole provenance story.** An approval records a hash of
+the intent, the spec and the plan against a person's name, so a passage from an approved cycle is one a
+person signed off on those exact bytes. An unapproved cycle's prose is a draft; putting it in a record
+later cycles align to is how an agent's invention becomes doctrine.
+
+So the command skips a cycle with no standing approval, one whose approval was **reopened** — the ledger
+is append-only and the last entry stands — and one that was **stopped**, because a choice lifted out of
+abandoned work is the opposite of settled.
+
+**Two sections, handed over whole.** An intent's `Fixed decisions` (a person's own words, which §19 item
+6 notes nothing reads today) and a plan's `Shape and departures`. Paragraphs rather than lines, because a
+decision is a sentence or two.
+
+## Your job on each passage
+
+Decide whether it holds a real choice, then write the four parts:
+
+| Part | What it carries |
+|---|---|
+| `Decided` | what was chosen, concretely enough to act on |
+| `Because` | the reason that is **not recoverable from the code** |
+| `Instead of` | the alternatives that were real, and what each would have cost |
+| `From` | the cycle it was settled in — the provenance |
+
+**`Instead of` is the load-bearing one**, and it is the one you will be tempted to leave thin. It is what
+separates a decision from a fact: an entry whose alternatives were never real records something nobody
+chose, and reading it costs attention at every cycle for nothing. `Because` is the half that cannot be
+recovered later — a passage usually says *what* without saying *why*, and if the why is not in the
+passage, ask rather than invent one.
+
+## The three tests, which invert a constraint's
+
+1. the alternatives were real — somebody could have chosen otherwise
+2. the reason is not recoverable from the code
+3. **it forbids nothing**
+
+Test three is the one that sends work elsewhere. Where a choice does forbid something, that half is a
+constraint or an architecture test, and the two are separate artifacts of one choice — the decision says
+why, the rule forbids the alternative. Expect roughly one `LOC_` for every five or six decisions.
+
+## Ids, reversal, and what you must not print
+
+`DEC_nn`, monotonic, assigned once and never reused. Label candidates and state the next free id once,
+for the reason a rule candidate is labelled: a gap left by a proposal nobody accepted is
+indistinguishable from an entry somebody retired.
+
+**A reversed decision takes a new id and the old entry stays on the page**, so a cycle that cited it is
+still readable. Never print an entry to delete — print the `Superseded-by` line to add.
+
+## You cannot place it
+
+`decisions.md` is protected like the rule file, and for a sharper reason: a stage **reads** the record for
+alignment, so an agent that could write it could invent doctrine and then align to it. Every agent write
+is denied by file path and by shell command alike. Hand back what the command printed and say that
+pasting it is the person's act.
+
+## What the record does not do
+
+**It binds nothing.** `CON_15` makes a plan say why it departs from a declared default, but its `Forbids`
+clause names the declared stack specifically — so a plan departing from a recorded decision breaks no
+rule. Say so if somebody expects enforcement: what reading the record buys is that a departure is taken
+knowingly rather than by forgetting the argument was already had. Making it bind would take a new global
+constraint, which is a person's to write.
+
+---
+
+# `palette`
+
+```
+sdlc propose palette
+```
+
+**Roles, not values.** `cancel` is a role; `blue-400` is a value wearing a role's clothes. The difference
+is what survives a rebrand — values change, roles do not — and it is what lets a stage look one up rather
+than guess.
+
+**This never proposes a colour.** For a solution with no palette it prints the skeleton of roles for a
+person to fill; for one that has a palette it names the roles left empty and stops. A colour is a
+brand's or a designer's, and inventing one is the only proposal here nobody asked for. Do not fill the
+values in yourself, and do not offer to.
+
+Three things to say when you show it:
+
+- **Import the file; never copy values out of it.** Two places the truth lives means the stale one gets
+  trusted, and it is always the copy.
+- **Add the roles this solution needs and delete the ones it does not.** A long skeleton is a guess with
+  the authority of a default.
+- **Set `"settled": true` once somebody has decided.** That is what separates a palette somebody chose
+  from one nobody has filled in — including the case where a role is deliberately empty because it does
+  not apply.
+
+**It is not protected, unlike the other two.** Nobody is judged against a colour, so there is no loop to
+close: an ordinary cycle may declare `.sdlc/palette.json` and change a value as declared work. Say that
+rather than implying a refusal that will not come.
+
+**Enforcement is a linter, not a constraint.** *A colour or font family that is not in the palette* is
+mechanically decidable, so it belongs below a constraint and can fail a build, which a constraint cannot.
+If somebody wants the palette enforced, that is where to send them.

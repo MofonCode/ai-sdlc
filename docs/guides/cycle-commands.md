@@ -90,6 +90,8 @@ sdlc constraints --for plan --brief
 sdlc findings <id>
 sdlc suggestions
 sdlc propose constraints
+sdlc decisions
+sdlc palette
 sdlc cycles
 sdlc cycles --claims
 sdlc cycles --landable
@@ -100,10 +102,15 @@ command. `findings <id>` is what the interrogations said, per artifact, each fin
 that stands. `cycles` lists everything this solution holds, newest first — `--claims` and `--landable`
 are the two questions that used to be their own verbs.
 
-**Neither of the last two belongs to a cycle.** `suggestions` is what was raised and never acted on, and
-`propose constraints` reads the whole history and says which rules the findings keep citing — recurrence
-across cycles is its entire signal, so there is nothing to ask it about one. Both print and keep a copy
-under `.sdlc/reports/`, which nothing reads back.
+**The last four belong to the solution rather than to a cycle.** `suggestions` is what was raised and
+never acted on. `propose constraints` reads the whole history and says which rules the findings keep
+citing — recurrence across cycles is its entire signal, so there is nothing to ask it about one. Both
+print and keep a copy under `.sdlc/reports/`, which nothing reads back.
+
+`decisions` and `palette` are the other two records a stage reads: one so it does not re-decide something
+already argued, the other so it does not invent a colour. **Only the constraints bind** — a plan may
+depart from a decision or a palette and break no rule. What reading them buys is that the departure is
+taken knowingly. `sdlc propose decisions` and `sdlc propose palette` are how entries arrive.
 
 ## Stopping
 

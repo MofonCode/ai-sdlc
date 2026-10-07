@@ -136,13 +136,16 @@ the response-factory ban has a test of its own.
 cannot be decided that way. Typing a stage name at the binary — `sdlc spec <id>` — is answered rather
 than refused: it says the stage is a skill and names the invocation.
 
-**Five files only a person writes**, in a governed solution: `approval.md`, `abandoned.md`,
-`constraints.md`, `solution.md`. No tool writes them. A tool prints what belongs in them —
-`sdlc draft approval`, `draft abandon`, `draft profile` — and a person places it. A constraint is the
-one of the five that is **proposed** rather than drafted — `sdlc propose constraints` — because its
-wording is argued from the record rather than dictated.
-The pre-tool
-hook denies every agent write to all four, by file path and by shell command alike, with no exception.
+**Six files only a person writes**, in a governed solution: `approval.md`, `abandoned.md`,
+`constraints.md`, `decisions.md`, `solution.md`, `techstack.md`. No tool writes them. A tool prints what
+belongs in them — `sdlc draft approval`, `draft abandon`, `draft profile`, `draft solution`,
+`draft techstack` — and a person places it. **Two are proposed rather than drafted**, because their
+wording is argued from the record rather than dictated: `sdlc propose constraints` from the findings, and
+`sdlc propose decisions` from what an approved cycle stated.
+
+`.sdlc/palette.json` is a solution file and is **not** on that list: nobody is judged against a colour, so
+a cycle may declare it and change a value like any other file. The pre-tool
+hook denies every agent write to all six, by file path and by shell command alike, with no exception.
 **A refusal there is the design working, not a configuration problem to route around.** The hook matches
 the text of the command, not the paths it resolves, so a commit message naming a protected file is
 refused too: pass it with `git commit -F`.
@@ -162,6 +165,7 @@ a follow-up is a thing somebody has to remember, and the document is wrong in th
 | changes the flow a person walks through | [`docs/guides/first-cycle.md`](docs/guides/first-cycle.md) |
 | adds, removes or renames a guide | [`docs/guides/README.md`](docs/guides/README.md) **and** the Where to read more table in [`README.md`](README.md) — the suite holds that the two name the same set |
 | adds, removes or renames a tool under `tools/` | [`tools/README.md`](tools/README.md) — its row and its own section |
+| adds or removes a file only a person writes | `ProtectedPaths` (its description, its reason, and `Names`), the count in [`README.md`](README.md), [`skills/README.md`](skills/README.md), [`skills/draft/SKILL.md`](skills/draft/SKILL.md), the denial table in [`docs/guides/when-it-blocks.md`](docs/guides/when-it-blocks.md), and `CONCEPT.md` §5.3 and §8 |
 | moves the project boundary, an operation's shape, or where a new thing goes | [`src/README.md`](src/README.md) |
 | adds or removes a supported host, or changes what one supports | the hosts table in [`README.md`](README.md), and `CONCEPT.md` D-46 if the reasoning moves |
 | changes the layout, the build, the enforced properties, or what to keep current | this file |

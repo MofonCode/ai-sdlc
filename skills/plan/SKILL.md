@@ -176,10 +176,11 @@ rewritten by the thing it was checking.>
 
 <Ordering reasoning goes here too, when order matters: which file has to land first and why.>
 
-<Never name one of the five files only a person writes -- approval.md, abandoned.md, constraints.md,
-solution.md, techstack.md. The schema refuses a plan that declares one, because the build is denied the
-write and the plan could not be carried out as written. Changing the declared stack is its own act,
-outside a cycle: 'sdlc draft techstack' and a rename.
+<Never name one of the six files only a person writes -- approval.md, abandoned.md, constraints.md,
+decisions.md, solution.md, techstack.md. The schema refuses a plan that declares one, because the build
+is denied the write and the plan could not be carried out as written. Changing the declared stack is its
+own act, outside a cycle: 'sdlc draft techstack' and a rename. The palette is not one of them -- a
+cycle may declare .sdlc/palette.json and change a value like any other file.
 
 A file holding a rule is different: you may declare one and change it. The evidence comparison reports
 every such file under GOVERNING whether or not the plan declared it, and CON_18 asks Shape and

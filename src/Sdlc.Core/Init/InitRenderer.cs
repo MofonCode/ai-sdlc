@@ -75,6 +75,7 @@ public static class InitRenderer
         output.AppendLine(Indent + "Next");
         output.AppendLine(Indent + "    sdlc constraints            the rules now in force");
         output.AppendLine(Indent + "    sdlc propose constraints    what the history says the rules are missing");
+        output.AppendLine(Indent + "    sdlc decisions              the choices this solution has settled");
         output.AppendLine();
 
         // Said rather than done. A hook written into .git/hooks would exist on one machine and silently not

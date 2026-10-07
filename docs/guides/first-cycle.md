@@ -22,7 +22,7 @@ sdlc init
 
 It picks its own mode from what it finds: **greenfield** for a repository holding no code, **onboard** for
 existing code with no `.sdlc/`, **update** when `.sdlc/` is already there. Update refreshes only what the
-framework owns — the hook configs, the pipeline, `.sdlc/README.md` — and never the five files only a
+framework owns — the hook configs, the pipeline, `.sdlc/README.md` — and never the six files only a
 person writes.
 
 It writes and then **commits** what it wrote. That is deliberate: an untracked file is untracked when the
@@ -71,7 +71,7 @@ every later run. A file you already had is kept rather than replaced.
 It records the choice as `standard: profile` in `solution.md`, which is what every plan reads to know
 whether to match the surrounding code or the profile. The `origin` stays `adopted` either way — where
 this code came from is a fact, not a preference. On a repository that is already governed the flag writes
-the files and prints that key block for you to place by hand, because `solution.md` is one of the four
+the files and prints that key block for you to place by hand, because `solution.md` is one of the six
 files only a person writes.
 
 **No code lands, and no projects.** Adoption writes what governs code and stops there. The solution file,

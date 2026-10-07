@@ -1,6 +1,7 @@
 using System.Globalization;
 using Sdlc.Core.Constraints;
 using Sdlc.Core.Cycles;
+using Sdlc.Core.Decisions;
 
 namespace Sdlc.Core.Hooks;
 
@@ -72,6 +73,16 @@ public static class ProtectedPaths
                 + "rewrites it after. Run 'sdlc draft techstack', edit the draft, and rename it.");
         }
 
+        if (string.Equals(fileName, DecisionParser.FileName, StringComparison.OrdinalIgnoreCase))
+        {
+            return new ProtectedFile(
+                "the choices this solution has already settled",
+                "A stage reads the decision record for alignment, so an agent that could write it could "
+                + "invent doctrine and then align to it - which is the one failure this record exists to "
+                + "avoid. Provenance is the point: an entry traced to an approved cycle carries a "
+                + "person's signature. Run 'sdlc propose decisions' and hand back what it prints.");
+        }
+
         if (string.Equals(fileName, Cycle.SolutionFileName, StringComparison.OrdinalIgnoreCase))
         {
             return new ProtectedFile(
@@ -91,6 +102,7 @@ public static class ProtectedPaths
         "approval.md",
         "abandoned.md",
         FileConstraintDocuments.SolutionConstraintsFileName,
+        DecisionParser.FileName,
         Cycle.SolutionFileName,
         Cycle.TechStackFileName,
     ];

@@ -12,7 +12,9 @@ using Sdlc.Core.Findings;
 using Sdlc.Core.Git;
 using Sdlc.Core.Hooks;
 using Sdlc.Core.Init;
+using Sdlc.Core.Decisions;
 using Sdlc.Core.Landing;
+using Sdlc.Core.Palettes;
 using Sdlc.Core.Proposals;
 using Sdlc.Core.Solutions;
 
@@ -109,6 +111,18 @@ public static class SdlcServices
         // Reads the whole history rather than one cycle, and proposes rather than places: the only
         // operation that forms an opinion about the rules, and still writes nothing that binds.
         services.AddProposeConstraintsRequestHandler();
+
+        // The other two subjects of the same verb. Constraints are mined backward from findings;
+        // decisions are captured forward from what an approved cycle stated, because a choice that
+        // never collided with a rule produced no finding to mine. A palette is neither -- it is a
+        // register, and what is proposed is the shape rather than the values.
+        services.AddProposeDecisionsRequestHandler();
+
+        // The reading halves. A constraint stops a cycle doing something; a decision stops it
+        // re-deciding something, and a palette stops it inventing a colour. All three are rendered on
+        // demand and never copied into an artifact, which is what CON_09 is about.
+        services.AddReadDecisionsRequestHandler();
+        services.AddReadPaletteRequestHandler();
 
         services.AddInitialiseRequestHandler();
         services.AddScaffoldSolutionRequestHandler();

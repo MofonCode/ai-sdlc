@@ -47,7 +47,7 @@ So three layers, and only the last is a guarantee:
 
 Five files are a person's alone — the approval, the abandonment, a solution's own constraints, the declared stack, and the
 file saying what the solution is. No tool writes them. This one prints what belongs in them and a
-person pastes it, and the pre-tool hook denies every agent write to all four, by file path and by shell
+person pastes it, and the pre-tool hook denies every agent write to all six, by file path and by shell
 command alike. **A blocking finding cannot be waived by any mechanism.**
 
 ## Hosts

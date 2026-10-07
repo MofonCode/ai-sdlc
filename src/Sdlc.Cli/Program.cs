@@ -14,7 +14,9 @@ using Sdlc.Core.Evidence;
 using Sdlc.Core.Findings;
 using Sdlc.Core.Hooks;
 using Sdlc.Core.Init;
+using Sdlc.Core.Decisions;
 using Sdlc.Core.Landing;
+using Sdlc.Core.Palettes;
 using Sdlc.Core.Proposals;
 using Sdlc.Core.Reports;
 using Sdlc.Core.Solutions;
@@ -67,6 +69,8 @@ try
         "status" => await WithCycle(line, "status", (w, id) => Status(w, line, id)).ConfigureAwait(false),
         "findings" => await WithCycle(line, "findings", (w, id) => Findings(w, line, id)).ConfigureAwait(false),
         "suggestions" => await Workspace.Run(line, w => Suggestions(w, line)).ConfigureAwait(false),
+        "decisions" => await Workspace.Run(line, w => Decisions(w, line)).ConfigureAwait(false),
+        "palette" => await Workspace.Run(line, PaletteCommand).ConfigureAwait(false),
         "doctor" => await Workspace.Run(line, Doctor).ConfigureAwait(false),
         "hook" => await Hook(line).ConfigureAwait(false),
         _ when Stages.IsSkill(line.Verb) => await Skill(line).ConfigureAwait(false),
@@ -494,7 +498,7 @@ static async Task<int> VerifyChain(Workspace workspace, CycleId id)
 
 // One verb drafts every file a person writes by hand. They follow one rule -- a tool never writes
 // them, a tool prints what to put in them -- so they are one verb rather than four commands, and the
-// hook rule that denies every agent write to all four stays absolute rather than conditional.
+// hook rule that denies every agent write to all of them stays absolute rather than conditional.
 static async Task<int> Draft(CommandLine line)
 {
     if (line.Arguments.Count == 0)
@@ -617,6 +621,8 @@ static async Task<int> Propose(CommandLine line)
     return line.Arguments[0].ToLowerInvariant() switch
     {
         "constraints" or "constraint" => await Workspace.Run(rest, ProposeRules).ConfigureAwait(false),
+        "decisions" or "decision" => await Workspace.Run(rest, ProposeChoices).ConfigureAwait(false),
+        "palette" => await Workspace.Run(rest, ProposePalette).ConfigureAwait(false),
         _ => await UnknownProposal(line.Arguments[0]).ConfigureAwait(false),
     };
 }
@@ -659,6 +665,88 @@ static async Task<int> ProposeRules(Workspace workspace)
 
     // Zero whether or not anything was found. Nothing here refuses anything, and a non-zero exit would
     // make a solution with nothing to answer for look like a failing one in a pipeline.
+    return ExitCode.Ok;
+}
+
+// Captured forward rather than mined. A choice that never collided with a rule produced no finding, so
+// there is nothing in the history to count -- what can be read is the place a choice was stated, and only
+// in a cycle a person approved.
+static async Task<int> ProposeChoices(Workspace workspace)
+{
+    Result<ProposeDecisions.Response> result = await workspace
+        .Send<ProposeDecisions.Query, ProposeDecisions.Response>(new ProposeDecisions.Query())
+        .ConfigureAwait(false);
+
+    if (result.IsFailed)
+    {
+        return await Report(result, ExitCode.Refused).ConfigureAwait(false);
+    }
+
+    string report = ProposalsRenderer.Render(result.Value);
+    await Console.Out.WriteAsync(report).ConfigureAwait(false);
+
+    // Only kept when there was something to work through. A page saying nothing was stated is not a
+    // thing anybody returns to, and a directory of those is how a report stops being read.
+    if (result.Value.HasMaterial)
+    {
+        await Kept(workspace, "decisions", report).ConfigureAwait(false);
+    }
+
+    return ExitCode.Ok;
+}
+
+// A register rather than an argument, so what is proposed is the shape and never the values. A tool
+// choosing a brand's colours would be the one proposal here nobody asked for.
+static async Task<int> ProposePalette(Workspace workspace)
+{
+    Result<ReadPalette.Response> result = await workspace
+        .Send<ReadPalette.Query, ReadPalette.Response>(new ReadPalette.Query())
+        .ConfigureAwait(false);
+
+    if (result.IsFailed)
+    {
+        return await Report(result, ExitCode.Refused).ConfigureAwait(false);
+    }
+
+    await Console.Out.WriteAsync(PaletteRenderer.Propose(result.Value)).ConfigureAwait(false);
+    return ExitCode.Ok;
+}
+
+// What a stage reads so it does not re-decide something. Rendered on demand and never copied into an
+// artifact, for the reason the constraint set is not: a copy is a second place the truth lives.
+static async Task<int> Decisions(Workspace workspace, CommandLine line)
+{
+    bool all = line.HasOption("all");
+
+    Result<ReadDecisions.Response> result = await workspace
+        .Send<ReadDecisions.Query, ReadDecisions.Response>(new ReadDecisions.Query(all))
+        .ConfigureAwait(false);
+
+    if (result.IsFailed)
+    {
+        return await Report(result, ExitCode.Refused).ConfigureAwait(false);
+    }
+
+    await Console.Out.WriteAsync(DecisionsRenderer.Render(
+        result.Value,
+        line.HasOption("brief") ? DecisionDetail.Brief : DecisionDetail.Full)).ConfigureAwait(false);
+
+    return ExitCode.Ok;
+}
+
+// The palette as it stands, for a stage about to build a surface.
+static async Task<int> PaletteCommand(Workspace workspace)
+{
+    Result<ReadPalette.Response> result = await workspace
+        .Send<ReadPalette.Query, ReadPalette.Response>(new ReadPalette.Query())
+        .ConfigureAwait(false);
+
+    if (result.IsFailed)
+    {
+        return await Report(result, ExitCode.Refused).ConfigureAwait(false);
+    }
+
+    await Console.Out.WriteAsync(PaletteRenderer.Render(result.Value)).ConfigureAwait(false);
     return ExitCode.Ok;
 }
 

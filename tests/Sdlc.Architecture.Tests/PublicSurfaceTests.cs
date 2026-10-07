@@ -184,6 +184,37 @@ public sealed class PublicSurfaceTests
         // printing, and deliberately not an operation through the mediator: nothing reads a report back,
         // so there is no state here for a handler to own.
         "Sdlc.Core.Reports.ReportFile",
+
+        // 'sdlc propose decisions': the operation, its response, and the two shapes that response
+        // carries. DecisionSource is public because Candidate exposes it.
+        "Sdlc.Core.Proposals.Candidate",
+        "Sdlc.Core.Proposals.DecisionSource",
+        "Sdlc.Core.Proposals.ProposeDecisions",
+        "Sdlc.Core.Proposals.ProposeDecisions+Query",
+        "Sdlc.Core.Proposals.ProposeDecisions+Response",
+
+        // 'sdlc decisions': the record a stage reads so it does not re-decide something, its model, its
+        // parser and its renderer. The parser is public for the same reason ConstraintParser is -- the
+        // proposer and the reader both parse the one document, and a second reader would be a second
+        // answer to what the file says.
+        "Sdlc.Core.Decisions.Decision",
+        "Sdlc.Core.Decisions.DecisionDetail",
+        "Sdlc.Core.Decisions.DecisionId",
+        "Sdlc.Core.Decisions.DecisionParser",
+        "Sdlc.Core.Decisions.DecisionsRenderer",
+        "Sdlc.Core.Decisions.ReadDecisions",
+        "Sdlc.Core.Decisions.ReadDecisions+Query",
+        "Sdlc.Core.Decisions.ReadDecisions+Response",
+
+        // 'sdlc palette' and 'sdlc propose palette': the register, its one slot shape, the operation
+        // that reads it and the renderer that both shows and proposes one. Palette is public rather
+        // than internal because ReadPalette.Response exposes it and Sdlc.Cli renders it.
+        "Sdlc.Core.Palettes.Palette",
+        "Sdlc.Core.Palettes.PaletteRenderer",
+        "Sdlc.Core.Palettes.ReadPalette",
+        "Sdlc.Core.Palettes.ReadPalette+Query",
+        "Sdlc.Core.Palettes.ReadPalette+Response",
+        "Sdlc.Core.Palettes.Slot",
         "Sdlc.Core.Git.GitRepository",
         "Sdlc.Core.Git.IRepository",
         // The four added with D-46. Each host's facts are one row in a table rather than a switch
