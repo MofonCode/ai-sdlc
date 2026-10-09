@@ -1,6 +1,6 @@
 # ai-sdlc
 
-**Version 0.13.0** · iteration 4 · .NET 10 · MIT
+**Version 0.14.0** · iteration 4 · .NET 10 · MIT
 
 **A plugin that makes an AI coding agent work the way a careful team does** — write down what the change
 is for, agree what *done* means, plan it, have a person approve it, and only then write code.
@@ -27,9 +27,9 @@ What that gives you:
 ```
 +----- steer -----+
 v                 |
-intent -> spec -> plan -> build -> verify -> land
+intent -> spec -> plan -> build -> verify -> pr
                             ^         |
-                            +- remediate (at most 3) -+
+                            +- remediate (while it progresses) -+
 ```
 
 | Stage | Produces | The question it answers |
@@ -39,7 +39,7 @@ intent -> spec -> plan -> build -> verify -> land
 | **plan** | `plan.md` | how will it be met, and what will prove each criterion? |
 | **build** | code, and recorded evidence | the plan implemented, with the diff and the test output saved |
 | **verify** | `verify.md` | does that evidence actually show each criterion met? |
-| **land** | a pull request | a person reviews it and merges |
+| **pr** | a pull request | a person reviews it and merges |
 
 **The three planning documents are always required.** Each is written, then read by a **fresh process
 that never saw it being made** — so it has nothing to defend — and revised until a reading raises nothing
@@ -56,9 +56,11 @@ they are approved again.
   and re-reading everything downstream of what it touched. It changes **how, not what**: a correction that
   changes the problem is a different cycle, and it will tell you so. It refuses once you have approved,
   because the plan is hash-locked from that moment.
-- **`/sdlc:remediate`** fixes code and tests against a verification that failed, and gets **at most three
-  passes**. Then the cycle stops and escalates rather than thrashing — which is the only reason an
-  unattended run is safe to start.
+- **`/sdlc:remediate`** fixes code and tests against a verification that failed, and runs **while each
+  pass reduces what is open**. It stops when a pass undoes what an earlier one answered, or when two in
+  a row reduce nothing — then the cycle escalates rather than thrashing, which is the only reason an
+  unattended run is safe to start. **The bound is on progress, not on passes** (D-66): a blind count of
+  three failed an honest cycle that needed a fourth and spent all three on one that was going nowhere.
 
 ## What stops an agent talking its way past it
 
@@ -116,7 +118,7 @@ sdlc constraints
 ```
 
 It should print the seventeen global constraints in force and say it read them from
-`global  embedded in sdlc 0.13.0`. **Use this rather than `sdlc help` as the smoke test** — `help` and
+`global  embedded in sdlc 0.14.0`. **Use this rather than `sdlc help` as the smoke test** — `help` and
 `version` are the only commands that need nothing from the installation, so they are the two that cannot
 tell you whether it worked. Then `claude plugin details sdlc@ai-sdlc` should say `Skills (18)` and
 `Hooks (2)`: **a hook count below two is a failed install**, not a detail, because the deterministic layer
@@ -126,12 +128,15 @@ is simply not loaded and every cycle will still appear to work.
 adopts it there, one repository at a time. Start a new agent session first, because skills load at
 startup.
 
-```pwsh
-sdlc init
+```
+/sdlc:init
 ```
 
-A person runs this and an agent cannot: adoption is a decision about how a team works, and it writes the
-hook configuration that constrains the agent.
+**Start with the skill.** It asks which profile governs the solution and where the code will live, then
+hands you the adoption command to run yourself — a person runs that and an agent cannot, because
+adoption is a decision about how a team works and it writes the hook configuration that constrains the
+agent. The order matters: the files recording those answers are protected the moment they exist, so
+answering afterwards costs a draft and a rename.
 
 **5. Start a cycle.** In your agent, not the shell:
 
@@ -144,7 +149,10 @@ then the build runs.
 
 **Want the whole walkthrough, or the variations?**
 [`docs/guides/first-cycle.md`](docs/guides/first-cycle.md) is one cycle from an empty directory to an
-open pull request. [`docs/guides/install.md`](docs/guides/install.md) has every install path — Copilot,
+open pull request, and
+[`docs/guides/dice-worked-example.md`](docs/guides/dice-worked-example.md) is that same walk with a
+six-sided die in it — every command, no remote required — so there is something to type at every prompt
+and something that runs at the end. [`docs/guides/install.md`](docs/guides/install.md) has every install path — Copilot,
 updating, removing, and the four things that catch people. And if something refuses,
 [`docs/guides/when-it-blocks.md`](docs/guides/when-it-blocks.md) has every refusal with its remedy.
 
@@ -154,9 +162,11 @@ updating, removing, and the four things that catch people. And if something refu
 
 | | |
 |---|---|
+| [`docs/README.md`](docs/README.md) | **the components** — every concept the framework names, defined once: what it is, what uses it, where it lives |
 | [`docs/guides/README.md`](docs/guides/README.md) | **the guides, indexed** — what each covers and when to read it |
 | [`docs/guides/install.md`](docs/guides/install.md) | installing the plugin and the binary, updating, and removing |
-| [`docs/guides/first-cycle.md`](docs/guides/first-cycle.md) | one cycle end to end, in fourteen steps |
+| [`docs/guides/first-cycle.md`](docs/guides/first-cycle.md) | one cycle end to end, stage by stage |
+| [`docs/guides/dice-worked-example.md`](docs/guides/dice-worked-example.md) | **that walk with one solution in it** — a d6 over HTTP, every command, in a repository with no remote |
 | [`docs/guides/cycle-commands.md`](docs/guides/cycle-commands.md) | every command for one cycle, on one screen |
 | [`docs/guides/when-it-blocks.md`](docs/guides/when-it-blocks.md) | every refusal, and the remedy for each |
 | [`skills/README.md`](skills/README.md) | the eighteen skills: what each is, when it runs, and who starts it |
@@ -201,14 +211,14 @@ Antigravity's turn end is deliberately left ungoverned.
 ## Where it stands
 
 **The planning half is complete and exercised end to end**: adoption, a cycle, the three documents,
-interrogation rounds, a placed approval, recorded evidence, a verification, the chain, and the landing
-decision.
+interrogation rounds, a placed approval, recorded evidence, a verification, the chain, and the
+pull-request decision.
 
 What is honest to say about the rest:
 
 - **Bounded remediation is implemented and tested, but exercised in fixtures far more than in anger.**
   Everything unattended rests on it, so the first batch runs are worth watching.
-- **`land` and `batch-build` have no command behind the push.** The refusal is in the binary and tested;
+- **`pr` and `batch-build` have no command behind the push.** The refusal is in the binary and tested;
   the push itself uses the platform's own CLI.
 - **The Copilot install has never been run**, though nothing is guessed any more: the package conforms to
   [Agent Plugins 1.0](https://agent-plugins.org/specification) and the suite asserts that it does, so the

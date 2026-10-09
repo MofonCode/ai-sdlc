@@ -290,7 +290,7 @@ public static class VerifyChain
         /// <c>pass</c>. <c>CON_08</c> does not catch it either, because it governs claims that are
         /// <em>in</em> the criteria section rather than absences recorded elsewhere. And unlike the plan
         /// stage there is nothing downstream: D-27 permits that exit on the grounds that verify still
-        /// blocks, and here verify is the last judgement before landing.
+        /// blocks, and here verify is the last judgement before the pull request.
         /// </para>
         /// <para>
         /// <strong>A check rather than a constraint, and that is the library's own rule rather than a
@@ -470,7 +470,7 @@ public static class VerifyChain
 
             // Through the parser, like the schema. A line scan read `outcome: "pass"` -- valid YAML
             // the schema accepts -- as the four characters plus its quotes, so a legitimately passing
-            // cycle could not merge and `landable` agreed with the wrong answer. F-06.
+            // cycle could not merge and `pr-ready` agreed with the wrong answer. F-06.
             string? outcome = Frontmatter.Key(split.Value.Yaml, "outcome");
 
             // Compared against the schema's own allowed set rather than the literal "pass", so what

@@ -78,7 +78,7 @@ public static class ApprovalGate
         /// <remarks>
         /// §5.4's clean-round requirement, which <c>ReadCycleStatus.ArtifactState.IsClear</c> has
         /// always applied and this did not -- so deleting the <c>findings/</c> directory outright left
-        /// the gate, <c>verify-chain</c> and <c>landable</c> all passing, with no round having ever
+        /// the gate, <c>verify-chain</c> and <c>pr-ready</c> all passing, with no round having ever
         /// existed. The advisory reader was stricter than the guarantee; <c>ApprovalText</c> refuses
         /// this too, and it is advice a person can decline.
         /// </remarks>

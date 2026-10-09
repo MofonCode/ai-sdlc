@@ -2,60 +2,60 @@ using System.Globalization;
 using FluentResults;
 using Sdlc.Core.Cycles;
 using Sdlc.Core.Findings;
-using Sdlc.Core.Landing;
+using Sdlc.Core.PullRequests;
 
 namespace Sdlc.Tests;
 
 /// <summary>
-/// Whether a cycle may be landed, and the remediation bound that decides it.
+/// Whether a cycle may open a pull request, and the remediation bound that decides it.
 /// </summary>
 /// <remarks>
 /// Iteration 3 called bounded remediation its largest untested claim: the state machine existed entirely on
-/// paper and landing had never refused a cycle. Everything unattended rests on it -- a batch is only safe to
-/// run unwatched because a cycle that cannot be made to pass stops instead of landing. So these tests drive
-/// it to escalated on purpose, which is the thing that had never been done.
+/// paper and the check had never refused a cycle. Everything unattended rests on it -- a batch is only safe
+/// to run unwatched because a cycle that cannot be made to pass stops instead of opening a pull request. So
+/// these tests drive it to escalated on purpose, which is the thing that had never been done.
 /// </remarks>
 [TestClass]
-public sealed class LandingTests
+public sealed class PullRequestTests
 {
     [TestMethod]
-    public async Task A_verified_cycle_whose_chain_holds_may_be_landed()
+    public async Task A_verified_cycle_whose_chain_holds_may_open_a_pull_request()
     {
         using CycleWorkspace workspace = Passing();
 
-        Land.Response landable = await Ask(workspace);
+        PullRequest.Response answer = await Ask(workspace);
 
-        Assert.IsTrue(landable.MayLand, landable.Explanation);
+        Assert.IsTrue(answer.MayOpen, answer.Explanation);
     }
 
     [TestMethod]
-    public async Task A_cycle_nobody_verified_may_not_be_landed()
+    public async Task A_cycle_nobody_verified_may_not_open_one()
     {
         using var workspace = CycleWorkspace.Create();
         workspace.WriteAllArtifacts();
 
-        Land.Response landable = await Ask(workspace);
+        PullRequest.Response answer = await Ask(workspace);
 
-        Assert.AreEqual(Land.LandRefusal.NotVerified, landable.Refusal);
+        Assert.AreEqual(PullRequest.PullRequestRefusal.NotVerified, answer.Refusal);
     }
 
     [TestMethod]
     [DataRow("blocked")]
     [DataRow("escalated")]
-    public async Task A_cycle_that_did_not_pass_may_not_be_landed(string outcome)
+    public async Task A_cycle_that_did_not_pass_may_not_open_one(string outcome)
     {
         // The verdict is the only thing standing between unattended building and unreviewed work reaching a
         // pull request.
         using CycleWorkspace workspace = Passing();
         workspace.WriteVerify(outcome);
 
-        Land.Response landable = await Ask(workspace);
+        PullRequest.Response answer = await Ask(workspace);
 
-        Assert.AreEqual(Land.LandRefusal.NotPassed, landable.Refusal, landable.Explanation);
+        Assert.AreEqual(PullRequest.PullRequestRefusal.NotPassed, answer.Refusal, answer.Explanation);
     }
 
     [TestMethod]
-    public async Task A_cycle_whose_passes_stop_reducing_anything_is_escalated_and_never_lands()
+    public async Task A_cycle_whose_passes_stop_reducing_anything_is_escalated_and_never_opens_one()
     {
         // The state iteration 3 never reached. Four verify rounds with the same blocker standing through
         // all of them: the last two passes reduced nothing, so the loop is not getting anywhere.
@@ -66,12 +66,12 @@ public sealed class LandingTests
             workspace.WriteBlockingRound(ArtifactKind.Verify, round, "F_01", "CON_08");
         }
 
-        Land.Response landable = await Ask(workspace);
+        PullRequest.Response answer = await Ask(workspace);
 
-        Assert.AreEqual(Land.LandRefusal.Escalated, landable.Refusal, landable.Explanation);
-        StringAssert.Contains(landable.Explanation, "the last two passes reduced nothing");
+        Assert.AreEqual(PullRequest.PullRequestRefusal.Escalated, answer.Refusal, answer.Explanation);
+        StringAssert.Contains(answer.Explanation, "the last two passes reduced nothing");
         StringAssert.Contains(
-            landable.Explanation,
+            answer.Explanation,
             "makes an unattended batch safe",
             "The refusal has to say why it exists, or it reads as the tool being obstructive.");
     }
@@ -207,26 +207,26 @@ public sealed class LandingTests
         using CycleWorkspace workspace = Passing();
         File.Delete(workspace.Cycle.ApprovalPath);
 
-        Land.Response landable = await Ask(workspace);
+        PullRequest.Response answer = await Ask(workspace);
 
-        Assert.AreEqual(Land.LandRefusal.ChainBroken, landable.Refusal, landable.Explanation);
-        StringAssert.Contains(landable.Explanation, "saves a round trip");
+        Assert.AreEqual(PullRequest.PullRequestRefusal.ChainBroken, answer.Refusal, answer.Explanation);
+        StringAssert.Contains(answer.Explanation, "saves a round trip");
     }
 
     [TestMethod]
-    public async Task The_sweep_lists_every_cycle_and_not_only_the_ones_it_would_land()
+    public async Task The_sweep_lists_every_cycle_and_not_only_the_ones_it_would_open_one_for()
     {
         // A list of only the eligible ones hides the surprise that matters most: a cycle from last week
         // still sitting there verified, which the sweep picks up because every passed cycle is eligible.
         using CycleWorkspace passing = Passing();
 
-        Land.Response ready = await Ask(passing);
-        Land.Response skipped = new(passing.Cycle, Land.LandRefusal.Escalated, "spent its budget", null);
+        PullRequest.Response ready = await Ask(passing);
+        PullRequest.Response skipped = new(passing.Cycle, PullRequest.PullRequestRefusal.Escalated, "spent its budget", null);
 
-        string rendered = LandRenderer.RenderSweep([ready, skipped]);
+        string rendered = PullRequestRenderer.RenderSweep([ready, skipped]);
 
-        StringAssert.Contains(rendered, "1 to land of 2 examined");
-        StringAssert.Contains(rendered, "land  ");
+        StringAssert.Contains(rendered, "1 ready of 2 examined");
+        StringAssert.Contains(rendered, "pr    ");
         StringAssert.Contains(rendered, "skip  ");
         StringAssert.Contains(rendered, "from last week");
     }
@@ -236,10 +236,10 @@ public sealed class LandingTests
     {
         using var workspace = CycleWorkspace.Create();
 
-        string rendered = LandRenderer.RenderSweep(
-            [new Land.Response(workspace.Cycle, Land.LandRefusal.NotVerified, "not verified", null)]);
+        string rendered = PullRequestRenderer.RenderSweep(
+            [new PullRequest.Response(workspace.Cycle, PullRequest.PullRequestRefusal.NotVerified, "not verified", null)]);
 
-        StringAssert.Contains(rendered, "Nothing to land.");
+        StringAssert.Contains(rendered, "Nothing ready for a pull request.");
         Assert.IsFalse(
             rendered.Contains("Each of these opens a pull request", StringComparison.Ordinal),
             "A confirmation about pushing nothing is a confirmation that teaches people to click through.");
@@ -250,8 +250,8 @@ public sealed class LandingTests
     {
         using var workspace = CycleWorkspace.Create();
 
-        string rendered = LandRenderer.RenderSweep(
-            [new Land.Response(workspace.Cycle, Land.LandRefusal.None, "fine", null)]);
+        string rendered = PullRequestRenderer.RenderSweep(
+            [new PullRequest.Response(workspace.Cycle, PullRequest.PullRequestRefusal.None, "fine", null)]);
 
         Assert.IsTrue(rendered.All(char.IsAscii), rendered);
     }
@@ -276,12 +276,12 @@ public sealed class LandingTests
         return workspace;
     }
 
-    private static async Task<Land.Response> Ask(CycleWorkspace workspace)
+    private static async Task<PullRequest.Response> Ask(CycleWorkspace workspace)
     {
         using var gate = Gate.For(workspace.Root);
 
-        Result<Land.Response> result = await gate
-            .Send<Land.Query, Land.Response>(new Land.Query(workspace.Cycle.Id));
+        Result<PullRequest.Response> result = await gate
+            .Send<PullRequest.Query, PullRequest.Response>(new PullRequest.Query(workspace.Cycle.Id));
 
         Assert.IsTrue(result.IsSuccess, string.Join("; ", result.Errors.Select(e => e.Message)));
         return result.Value;

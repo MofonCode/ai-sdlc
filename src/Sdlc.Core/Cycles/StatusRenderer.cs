@@ -312,7 +312,7 @@ public static class StatusRenderer
                 "the gate is satisfied"),
 
             string pass when pass.Equals("pass", StringComparison.OrdinalIgnoreCase) => (
-                string.Create(CultureInfo.InvariantCulture, $"sdlc land {id}"),
+                string.Create(CultureInfo.InvariantCulture, $"sdlc pr {id}"),
                 "verified clean"),
 
             string blocked when blocked.Equals("blocked", StringComparison.OrdinalIgnoreCase) => (

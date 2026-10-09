@@ -159,7 +159,7 @@ public sealed class ClaimGraphTests
     {
         // §10.1 says the graph is built from the approved cycles in this working copy. The handler
         // applied no approval filter, no abandonment filter and no already-verified filter, so an
-        // abandoned cycle's plan claimed its files forever and every landed cycle narrowed the graph
+        // abandoned cycle's plan claimed its files forever and every merged cycle narrowed the graph
         // for every future batch. batch-build reads this to plan a run. F-13.
         using var solution = Solution.Create();
 
@@ -200,7 +200,7 @@ public sealed class ClaimGraphTests
         ComputeClaimGraph.Response graph = await Compute(solution);
 
         Assert.AreEqual(1, graph.Claims.Count);
-        Assert.AreEqual(0, graph.Collisions.Count, "A landed cycle must not serialise a future batch.");
+        Assert.AreEqual(0, graph.Collisions.Count, "A merged cycle must not serialise a future batch.");
         StringAssert.Contains(graph.Skipped.Single().Why, "verified");
     }
 

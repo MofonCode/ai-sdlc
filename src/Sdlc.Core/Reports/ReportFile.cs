@@ -9,7 +9,7 @@ namespace Sdlc.Core.Reports;
 /// <remarks>
 /// <para><strong>A report is not a record, and the difference is load-bearing.</strong> Every other file
 /// the framework writes is read back by something — the gate reads the rounds, <c>verify</c> reads the
-/// evidence, <c>land</c> reads the ledger. Nothing reads one of these, ever. The moment a tool did, a
+/// evidence, <c>pr</c> reads the ledger. Nothing reads one of these, ever. The moment a tool did, a
 /// stale one would be state that a tool trusts, which is the trap iteration 2's corpus fell into and
 /// §19 item 3 still carries forward: an artifact whose existence means <em>done</em> silently loses work when
 /// it is mistaken.</para>

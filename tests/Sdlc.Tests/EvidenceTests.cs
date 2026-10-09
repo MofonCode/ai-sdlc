@@ -508,7 +508,7 @@ public sealed class EvidenceTests
     public async Task Recording_refuses_when_git_cannot_say_where_the_branch_diverged()
     {
         // The diff is measured from that commit. Measuring from the default branch's tip would show every
-        // commit somebody else landed while this cycle was open as part of this change.
+        // commit somebody else merged while this cycle was open as part of this change.
         using var workspace = CycleWorkspace.Create();
         workspace.WritePlan(proofs: 1);
 

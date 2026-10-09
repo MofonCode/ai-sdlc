@@ -117,7 +117,7 @@ public static class ComputeClaimGraph
 
                 // §10.1 says the graph is built from the approved cycles in this working copy, and the
                 // handler applied no filter at all -- so an abandoned cycle's plan kept claiming its
-                // files forever and every landed cycle narrowed the graph for every future batch. Not
+                // files forever and every merged cycle narrowed the graph for every future batch. Not
                 // a safety hole, since the gate refuses an unapproved build, but the graph is what
                 // decides concurrency, and D-15 calls over-serialising self-correcting for a wide
                 // claim rather than for a cycle that should not be in the set. F-13.

@@ -110,7 +110,7 @@ public static class Suggestions
         /// What one cycle's builds wrote down and left alone.
         /// </summary>
         /// <remarks>
-        /// Read from the cycle's own branch, measured from where it diverged, so a landed cycle whose
+        /// Read from the cycle's own branch, measured from where it diverged, so a merged cycle whose
         /// branch is gone contributes nothing rather than failing. Silence here is not an error: a cycle
         /// that has not been built yet has no commits to read, which is the ordinary case for most of the
         /// cycles this command walks.

@@ -39,7 +39,7 @@ merge, and it depends on no host.
 |---|---|
 | .NET SDK | 10.0.100 or later. `global.json` pins it with `rollForward: latestFeature` |
 | git | the gates key on a branch, and a build records a diff |
-| `gh` or `az` | only for `land`, which uses the platform's own CLI to open the pull request. Not needed at all on a solution adopted with `--platform local`, which has no remote to push to |
+| `gh` or `az` | only for `pr`, which uses the platform's own CLI to open the pull request. Not needed at all on a solution adopted with `--platform local`, which has no remote to push to |
 
 ## The binary
 
@@ -222,7 +222,7 @@ claude plugin details sdlc@ai-sdlc
 
 **The two should report the same version.** They are fetched separately, so they can drift — and a skill
 calling a verb an older binary does not have is what that drift eventually produces. Expect
-`Skills (17)` and `Hooks (2) PreToolUse, Stop`. **If the hook count is below two, treat it as a
+`Skills (18)` and `Hooks (2) PreToolUse, Stop`. **If the hook count is below two, treat it as a
 failed install rather than a detail** — the deterministic layer is not loaded, nothing is denied, and
 every cycle will still appear to work.
 

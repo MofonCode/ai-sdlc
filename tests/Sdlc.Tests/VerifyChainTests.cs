@@ -136,7 +136,7 @@ public sealed class VerifyChainTests
     {
         // A quoted scalar is valid YAML and ArtifactSchema accepted it, while the chain check compared
         // the raw text after `outcome:` and saw the quotes. So a legitimately passing cycle could not
-        // merge, and `landable` read the outcome through the same check and agreed with the wrong
+        // merge, and `pr-ready` read the outcome through the same check and agreed with the wrong
         // answer. Both now go through Frontmatter.Key. F-06.
         using CycleWorkspace workspace = Sound();
         workspace.WriteVerify(outcome);
@@ -218,7 +218,7 @@ public sealed class VerifyChainTests
         // adjudicated as unmet, and before this check every other one still passed: the plan has its
         // proof entry, the hashes match, the rounds are current and the outcome says pass. CON_08 does
         // not reach it either -- it governs claims in the criteria section, not absences recorded
-        // elsewhere -- and verify is the last judgement before landing, so nothing downstream catches
+        // elsewhere -- and verify is the last judgement before the pull request, so nothing downstream catches
         // what D-27 assumes something will.
         using CycleWorkspace workspace = Sound();
 
@@ -287,7 +287,7 @@ public sealed class VerifyChainTests
     {
         // The layer the promise rests on. verify-chain delegates the gate to ApprovalGate's handler,
         // so F-04's two holes were holes here too: moving findings/ aside left the chain holding and
-        // `landable` saying the cycle was verified. Asserted here as well as at the gate, because this
+        // `pr-ready` saying the cycle was verified. Asserted here as well as at the gate, because this
         // is the check nothing can get past.
         using CycleWorkspace workspace = Sound();
 

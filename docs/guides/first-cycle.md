@@ -8,19 +8,42 @@ know. Everything below is one cycle in one repository; nothing here is specific 
 
 ## 1. Adopt the repository
 
-Adoption is a decision about how a team works, so **you run this and an agent cannot.** The pre-tool hook
-denies `sdlc init` to an agent by command rather than by file path, which is why asking your agent to run
-it produces a refusal rather than a cycle.
+Adoption is a decision about how a team works, so **you run the command and an agent cannot.** The
+pre-tool hook denies it to an agent by command rather than by file path, which is why asking your agent
+to run it produces a refusal rather than a cycle.
 
 ```pwsh
 git init
 ```
 
-```pwsh
-sdlc init
+**Start with the skill rather than the command.**
+
+```
+/sdlc:init
 ```
 
-It picks its own mode from what it finds: **greenfield** for a repository holding no code, **onboard** for
+It asks the three things the command needs told and cannot guess — which profile governs the solution,
+where the code will live, and in a repository that already holds code whether new work follows the
+profile's conventions — and then hands you the line to run, `!` and all. On Claude Code that prefix runs
+the rest of the line as your own command rather than as a tool call of the agent's, so the gate never
+sees it and what it prints lands in the conversation where the agent can read the mode and the file list
+back without you pasting them.
+
+**The order is load-bearing, not politeness.** `solution.md` and `techstack.md` are created by the
+command and protected the moment they exist, so an answer given after the fact costs a draft and a
+rename rather than a sentence. The two that bite hardest:
+
+| | |
+|---|---|
+| `--profile` | `dotnet-default` or `ml-tensorflow`. It decides what the declared stack starts as, and whether `sdlc scaffold` has a skeleton to write at all — `ml-tensorflow` has none |
+| `--platform` | `github`, `azure-devops`, or `local` for a repository with no remote yet. `local` writes no pipeline, so **no pull-request check governs a merge** and the pre-push hook is the only mechanical layer |
+
+**If the code will live on a remote, create the remote before adopting.** Re-running adoption once one
+exists writes the pipeline, but `solution.md` is protected by then, so the platform keys are printed for
+you to place by hand — and until they are placed the record still says `local`, which is what `doctor`
+and the `pr` skill both read.
+
+The command picks its own mode from what it finds: **greenfield** for a repository holding no code, **onboard** for
 existing code with no `.sdlc/`, **update** when `.sdlc/` is already there. Update refreshes only what the
 framework owns — the hook configs, the pipeline, `.sdlc/README.md` — and never the six files only a
 person writes.
@@ -39,7 +62,13 @@ What lands:
 | `.sdlc/hooks/pre-push` | written, **not installed**. See below |
 | `.claude/settings.json` | the `PreToolUse` and `Stop` hooks that call the gate, **merged** into whatever is already there |
 | `.github/hooks/sdlc.json` | the same two moments, in Copilot's shape: `preToolUse` and `agentStop` |
-| `.github/workflows/sdlc-verify.yml` | `sdlc verify-chain`. **The only guarantee** |
+| `.agents/hooks.json` | the tool-call moment in Antigravity's shape, in its `sdlc` section. Its turn end is deliberately not governed — `install.md` has why |
+| `AGENTS.md` | how to work in this repository, written for an agent. Created if absent, printed for merging if you already had one |
+| `.github/workflows/sdlc-verify.yml` | the chain check. **The only guarantee** — and written only where a platform was recorded. `--platform local` writes no pipeline at all |
+
+**Every host's configuration is written whichever host you use.** A file is inert on a machine without
+that host, and a teammate who opens the repository in a different agent is then governed without having
+to adopt again.
 
 Adoption rewrites a file only where the framework's own name is in the path, so `.sdlc/**` and the two
 `sdlc`-named files above are refreshed on every run. `.claude/settings.json` is shared with you and with
@@ -91,16 +120,30 @@ whole promise — nothing merges unless the chain is complete, approved and hash
 promise only while branch policy requires it. Until then the file is advisory and the directory looks
 enforced without being enforced, which is the failure mode this design is written against.
 
-Finally, the interview:
+**Then back to the skill, which picks up where the command stopped.** It asks what matters in this
+solution and proposes its first `LOC_` constraints — asking you rather than reading the codebase on
+purpose, because reading an existing repository to decide what to forbid would make adoption a judgement
+on code nobody is defending, and the first cycle would spend itself on findings about work that predates
+the framework. A greenfield repository has no history to ask about, so it asks a different set: what the
+solution is for, what every surface should look like, what *done to a good standard* means here, and
+what somebody will judge it on that no test can check.
 
-```
-/sdlc:init
+**Place the two placeholders before the first cycle, not after it.** `solution.md` and `techstack.md`
+are protected, so nothing can fill them for you — the skill runs the drafters and prints the rename:
+
+```pwsh
+sdlc draft solution
 ```
 
-The command did the mechanical half. The skill asks what matters in this solution and proposes its first
-`LOC_` constraints. It asks you rather than reading the codebase on purpose: reading an existing
-repository to decide what to forbid would make adoption a judgement on code nobody is defending, and the
-first cycle would spend itself on findings about work that predates the framework.
+```pwsh
+sdlc draft techstack
+```
+
+This is the step with the highest cost for being skipped, and it is not hypothetical. A dice roller
+adopted with the placeholder left in place, built a cycle later, came out as a numeral in a bare `<p>`
+with every gate green. Nobody had been asked what good looked like, so nobody had been told, and no
+rule was broken by any of it. `solution.md` is the only file in the solution that says what good looks
+like, and a plan that reads *Replace this with a paragraph a newcomer could read* has been told nothing.
 
 ## 2. Read the rules before writing anything
 
@@ -123,11 +166,35 @@ It prints the id on standard output, so a skill can capture it, and everything y
 beside it. Creating the directory *is* the collision check: at allocation there is no directory to be
 already there, so a look-then-create would leave the race it was written to close.
 
+**`/sdlc:intent` runs this itself, so on the ordinary path you do not.** The command is here because it
+is the stage, and because a batch of cycles is opened before any of them is interviewed — but typing it
+and *then* invoking the intent skill allocates a second id and a second directory, and the claim
+succeeds both times, so nothing complains. The work goes into one of them and the id you wrote down
+names the other.
+
 Switch to the branch it names:
 
 ```pwsh
-git switch -c sdlc/20260929_1456_32
+git switch -c cycle/20260929_1456_32
 ```
+
+**The prefix is `cycle/` and it is not cosmetic.** Get it wrong and two different things happen, which
+is why it is worth knowing which.
+
+**The turn-end hook goes silent, and that is the half with no message.** It reads the cycle out of the
+branch you are on, and a branch that is not a cycle branch is not governed work — a spike, a document,
+a configuration change — so it allows the turn rather than firing where it would be obstructive for no
+gain. You keep building and lose the two send-backs it exists for: a recorded suite with a failure in
+it, and code that has moved since the evidence was recorded.
+
+**`sdlc evidence` then refuses, and it refuses loudly.** It derives the branch from the cycle id rather
+than from where you happen to be, so it looks for `cycle/<id>`, finds nothing to measure from, and says
+git could not say where that branch diverged from the default branch. **The message names a branch you
+do not have**, which is the one confusing part of this — the remedy is to rename the branch you are on,
+not to go looking for why git lost one.
+
+The pull-request check would fail too, for the same reason and just as loudly, but you do not get that
+far: the recording stops first.
 
 ## 4. Intent, spec, plan
 
@@ -224,7 +291,8 @@ Then check it took:
 sdlc gate 20260929_1456_32
 ```
 
-Eight things can refuse here, each with a different next step. `when-it-blocks.md` has all eight.
+Eleven things can refuse here, each with a different next step. `when-it-blocks.md` lists them all
+with the remedy for each.
 
 ## 6. Build and verify
 
@@ -241,7 +309,11 @@ It checks the suite actually ran rather than that the runner exited zero. A tria
 verification to `dotnet test` exiting zero without running anything, because the runner was not
 configured.
 
-On a new solution's first cycle, this is also where the skeleton arrives, because the plan declared it:
+**The two binary commands in this stage are the skill's, not yours.** It runs both itself; they are
+written out here because what each records is what verify and the pull-request check later read, and a
+cycle that lost one of them fails at the gate rather than here.
+
+On a new solution's first cycle, the skeleton arrives first, because the plan declared it:
 
 ```pwsh
 sdlc scaffold 20260929_1456_32
@@ -254,14 +326,24 @@ like one. It refuses unless this cycle is approved, so the skeleton is a change 
 other, and it writes only what is absent — a second run keeps what is there rather than overwriting it.
 Every cycle after this one writes its own code.
 
+Then the code is committed, and the evidence recorded from it:
+
 ```pwsh
-sdlc evidence 20260929_1456_32
+sdlc evidence 20260929_1456_32 --tests <the directory holding the results files> --build-log <path>
 ```
 
 Records the diff, the commit it is measured from, the runner's own output, and one normalised test summary
 into `evidence/`. This exits zero even when tests failed: recording what happened succeeded, and what to
 make of it belongs to verify. A non-zero exit here would make the build step look like the thing that
 refused.
+
+**Point `--tests` at the directory, not at one file.** Each test project writes its own results, and a
+summary built from one of them is a verification reading part of the suite.
+
+**Then the evidence directory is committed too, and that is a second commit rather than an afterthought.**
+Verify and the pull-request check both read the evidence out of the repository, so evidence that exists
+only in a working tree is evidence the chain cannot see — and the failure surfaces two stages later as a
+chain that does not hold.
 
 ```
 /sdlc:verify 20260929_1456_32
@@ -293,21 +375,28 @@ whatever the code happens to do. The recovery is `sdlc draft approval <id> --reo
 approval with a recorded reason. It does not verify its own remediation.
 
 `escalated` is computed rather than declared: it is what running out of budget makes of a blocked cycle.
-An escalated cycle never lands.
+An escalated cycle never opens a pull request.
 
-## 7. Land
+## 7. Pull request
 
 ```pwsh
-sdlc landable 20260929_1456_32
+sdlc pr-ready 20260929_1456_32
 ```
 
 ```
-/sdlc:land 20260929_1456_32
+/sdlc:pr 20260929_1456_32
 ```
 
 The only stage that reaches outside the repository, and it asks before every push. Everything before this
 is local and reversible; a pull request notifies people, appears in a queue, and withdrawing it is
 something somebody has to notice happened.
+
+**It checks first whether there is anywhere to push.** A solution recorded as `local`, or one whose
+`git remote -v` prints nothing, stops here — the one refusal that is not about the cycle, because the
+work may be perfectly ready and have no destination. The skill walks through creating the remote
+rather than creating it for you, and says the part that is easy to miss: a remote alone installs no
+guarantee, so adoption is re-run afterwards to get the pipeline. This is the cost of adopting before the
+remote existed, and step 1 is where it is avoided.
 
 The body is the cycle rather than a summary somebody invented: the problem in the intent's own words, the
 criteria with the verification's verdict on each, the tier, the risk section, and anything still in an
@@ -346,12 +435,13 @@ itself.
 
 With several cycles approved and waiting, `/sdlc:batch-build` completes them all, concurrently where
 their declared files do not collide. Everything unattended rests on the remediation bound — a cycle that
-stops making progress stops rather than landing — so the first batch runs are worth watching.
+stops making progress stops rather than opening one — so the first batch runs are worth watching.
 
 ## Where to go next
 
 | | |
 |---|---|
+| this same walk with one solution in it, end to end | `dice-worked-example.md` |
 | every command for one cycle, on one screen | `cycle-commands.md` |
 | what to do when something refuses | `when-it-blocks.md` |
 | what each skill is and who starts it | `../../skills/README.md` |

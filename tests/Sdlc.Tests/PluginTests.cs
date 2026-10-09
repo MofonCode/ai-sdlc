@@ -733,7 +733,7 @@ public sealed class PluginTests
     [TestMethod]
     public void Every_source_that_lists_the_skills_agrees_with_the_ones_on_disk()
     {
-        // Three places say which skills exist, and each drifts from disk differently. A skill added and
+        // Four places say which skills exist, and each drifts from disk differently. A skill added and
         // written down nowhere reads as undocumented to the next session, which then works from
         // recollection. One written down and never built sends a person to a slash command that does not
         // answer. One with a row and no section of its own is the shape that reads complete and is not --
@@ -764,11 +764,25 @@ public sealed class PluginTests
 
         string index = File.ReadAllText(Path.Combine(Root, "skills", "README.md"));
 
+        // The components document summarises the skills in one row each and sends a reader to the index
+        // for the rest. That is a fourth list, so it is held here rather than promised: a summary that
+        // silently loses a skill is worse than no summary, because it reads complete.
+        string components = File.ReadAllText(Path.Combine(Root, "docs", "README.md"));
+
+        // Scoped to its skills section, because that document is tables end to end and an unscoped
+        // match reads the four solution keys as skills.
+        int skills = components.IndexOf("## 10. The skills", StringComparison.Ordinal);
+        Assert.IsTrue(skills >= 0, "The components document's skills section has moved or been renamed.");
+
+        int after = components.IndexOf("\n## ", skills, StringComparison.Ordinal);
+        string summary = after > skills ? components[skills..after] : components[skills..];
+
         (string Source, HashSet<string> Listed)[] sources =
         [
             ("the concept's skills inventory (§15)", NamesMatching(concept[start..end], @"^\| `(?<name>[a-z-]+)`")),
             ("the skills index's table", NamesMatching(index, @"^\| `(?<name>[a-z-]+)` \|")),
             ("the skills index's own sections", NamesMatching(index, @"^### `(?<name>[a-z-]+)`")),
+            ("the components document's skills table", NamesMatching(summary, @"^\| `(?<name>[a-z-]+)` \|")),
         ];
 
         foreach ((string source, HashSet<string> listed) in sources)
@@ -1092,16 +1106,16 @@ public sealed class PluginTests
     }
 
     [TestMethod]
-    public void The_land_skill_carries_the_same_caveat_the_pipeline_does()
+    public void The_pr_skill_carries_the_same_caveat_the_pipeline_does()
     {
         // D-32's own reasoning, applied consistently: the caveat goes where somebody meets the path. The
         // generated pipeline warns and the skill did not, which would have left an agent confidently
         // running an untried command and reading the failure as its own mistake.
-        string land = File.ReadAllText(Path.Combine(Root, "skills", "land", "SKILL.md"));
+        string pr = File.ReadAllText(Path.Combine(Root, "skills", "pr", "SKILL.md"));
 
-        StringAssert.Contains(land, "az repos pr create");
+        StringAssert.Contains(pr, "az repos pr create");
         StringAssert.Contains(
-            land,
+            pr,
             "never been run",
             "The skill names the Azure DevOps command, so it has to say the path is untried.");
     }

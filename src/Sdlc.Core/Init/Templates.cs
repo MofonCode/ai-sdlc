@@ -33,7 +33,7 @@ public enum Platform
     /// having a broken GitHub install is a difference <c>doctor</c> has to be able to see (D-53).</para>
     /// <para>It exists because the alternative was worse: somebody trying the framework on a repository
     /// with no remote had to pick a platform they were not using, which wrote a pipeline for a service
-    /// nothing would ever send it to -- and then <c>land</c> reached for a tool with nowhere to push.</para>
+    /// nothing would ever send it to -- and then <c>pr</c> reached for a tool with nowhere to push.</para>
     /// </remarks>
     Local,
 }
@@ -185,7 +185,7 @@ public static class Templates
             "## The chain",
             string.Empty,
             "```",
-            "intent -> spec -> plan -> build -> verify -> land",
+            "intent -> spec -> plan -> build -> verify -> pr",
             "                    ^        |",
             "                    +- remediate (at most 3) -+",
             "```",
@@ -286,7 +286,7 @@ public static class Templates
             "sdlc propose decisions                what an approved cycle settled, to record",
             "sdlc theme                          the roles its surfaces use, and their values",
             "sdlc propose theme                  the roles a theme declares, or the empty ones",
-            "sdlc landable <id> | --all            may a cycle be landed?",
+            "sdlc pr-ready <id> | --all            may a cycle open a pull request?",
             "sdlc verify-chain <id>                the whole chain, as the pipeline checks it",
             "```",
             string.Empty,
@@ -317,7 +317,7 @@ public static class Templates
             "git config core.hooksPath .sdlc/hooks",
             "```",
             string.Empty,
-            "The stages -- intent, spec, plan, build, verify, land -- are skills rather than commands: they",
+            "The stages -- intent, spec, plan, build, verify, pr -- are skills rather than commands: they",
             "need language, so an agent runs them and this binary checks what they produced. Typing one,",
             "such as `sdlc spec <id>`, says so and names the invocation.",
             string.Empty,
@@ -649,7 +649,7 @@ public static class Templates
     /// The pre-push hook, which is the last local chance to catch a cycle that will be refused anyway.
     /// </summary>
     /// <remarks>
-    /// A cycle branch that is not landable will be refused by the pull-request check, so pushing it costs a
+    /// A cycle branch that is not ready will be refused by the pull-request check, so pushing it costs a
     /// round trip through CI to learn what a local command could have said in a second. This is the fast
     /// version of that answer and nothing more -- it is bypassable with <c>--no-verify</c>, like every git
     /// hook, which is exactly why the guarantee lives in the pipeline instead.
@@ -667,7 +667,7 @@ public static class Templates
         "\n",
         [
             "#!/bin/sh",
-            "# Written by 'sdlc init'. Refuses to push a cycle branch that is not landable, because the",
+            "# Written by 'sdlc init'. Refuses to push a cycle branch that is not ready, because the",
             "# pull-request check would refuse it anyway and learning that here takes a second rather than",
             "# a round trip through CI.",
             "#",
@@ -686,9 +686,9 @@ public static class Templates
             "    continue",
             "  fi",
             string.Empty,
-            "  if ! sdlc landable \"$cycle\" >&2; then",
+            "  if ! sdlc pr-ready \"$cycle\" >&2; then",
             "    echo >&2",
-            "    echo \"Not pushing cycle/$cycle. Run 'sdlc landable $cycle' for the whole answer, or\" >&2",
+            "    echo \"Not pushing cycle/$cycle. Run 'sdlc pr-ready $cycle' for the whole answer, or\" >&2",
             "    echo \"push with --no-verify if you mean to open a pull request that will be refused.\" >&2",
             "    exit 1",
             "  fi",

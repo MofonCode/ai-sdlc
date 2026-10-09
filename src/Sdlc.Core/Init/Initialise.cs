@@ -248,7 +248,7 @@ public static class Initialise
             // alone, so re-running init with a new platform wrote the pipeline and left the recorded
             // platform untouched with nothing printed -- which contradicts what --platform's own help
             // says, and left doctor reporting "no pull-request check governs a merge" after the check
-            // existed and the land skill refusing a cycle that had somewhere to go. A document that has
+            // existed and the pr skill refusing a cycle that had somewhere to go. A document that has
             // gone stale against the repository, with nothing to notice: the same defect as a verify
             // document outliving its evidence.
             Platform wantedPlatform = request.Platform ?? recorded?.Platform ?? Platform.GitHub;

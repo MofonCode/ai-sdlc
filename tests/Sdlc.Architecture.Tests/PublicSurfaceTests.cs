@@ -252,11 +252,11 @@ public sealed class PublicSurfaceTests
         "Sdlc.Core.Init.ScaffoldSolution+Command",
         "Sdlc.Core.Init.ScaffoldSolution+Response",
         "Sdlc.Core.Init.Templates",
-        "Sdlc.Core.Landing.Land",
-        "Sdlc.Core.Landing.Land+LandRefusal",
-        "Sdlc.Core.Landing.Land+Query",
-        "Sdlc.Core.Landing.Land+Response",
-        "Sdlc.Core.Landing.LandRenderer",
+        "Sdlc.Core.PullRequests.PullRequest",
+        "Sdlc.Core.PullRequests.PullRequest+PullRequestRefusal",
+        "Sdlc.Core.PullRequests.PullRequest+Query",
+        "Sdlc.Core.PullRequests.PullRequest+Response",
+        "Sdlc.Core.PullRequests.PullRequestRenderer",
         // Public because two assemblies need the stamped release version and they would otherwise
         // read it twice: 'sdlc version' in the CLI, and the pipeline template here that pins the
         // binary a pull request restores.

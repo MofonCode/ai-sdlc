@@ -1,12 +1,12 @@
 ---
-name: land
+name: pr
 description: Push a verified cycle and open its pull request. The only stage that touches the remote. Use after a verification passed, or with --all to sweep every cycle that is ready.
 compatibility: Requires the sdlc binary on PATH, from the MofonCode.Sdlc.Cli dotnet tool, and a git repository. Every command here is that binary, so without it the first step fails.
 argument-hint: "<cycle id> | --all"
 allowed-tools: Bash(sdlc *), Bash(git *), Bash(gh *), Bash(az *), Read, Glob, Grep
 ---
 
-# Land a verified cycle
+# Open a pull request for a verified cycle
 
 The only stage that reaches outside the repository. Everything before this is local and reversible; a
 pull request notifies people, appears in a queue, and withdrawing it is something somebody has to notice
@@ -15,7 +15,7 @@ happened.
 ## Ask first, every time
 
 ```
-sdlc landable <id>
+sdlc pr-ready <id>
 ```
 
 It refuses for four reasons, and each is final rather than advisory:
@@ -27,7 +27,7 @@ It refuses for four reasons, and each is final rather than advisory:
 | escalated | remediation stopped making progress with findings still open |
 | chain broken | it verified, and something has changed since |
 
-**Do not land past a refusal.** The chain-broken one in particular: the pull-request check would refuse
+**Do not push past a refusal.** The chain-broken one in particular: the pull-request check would refuse
 it anyway, so pushing would cost a round trip through CI to learn what you were just told.
 
 ## First: is there anywhere to push?
@@ -39,7 +39,7 @@ git remote -v
 
 `.sdlc/solution.md` records the platform. **If it says `local`, or `git remote -v` prints nothing, stop
 before pushing** — there is nowhere to push and nothing to open a pull request against. This is the one
-refusal that is not about the cycle: the work may be perfectly landable and have no destination.
+refusal that is not about the cycle: the work may be perfectly ready and have no destination.
 
 Say so, and offer to set one up. Walk the person through it rather than running it for them — creating a
 repository under somebody's account is theirs to do:
@@ -78,9 +78,9 @@ required in branch policy** — a pipeline that runs and is not required is a pi
 and that is the difference between the guarantee and a green tick. `sdlc doctor` marks that part
 `elsewhere` because no binary can confirm it.
 
-**A local cycle can still be built, verified and committed.** Only landing needs a remote. What it does
-not have is the pull-request check, which `CONCEPT.md` §13 calls the only non-bypassable layer — the
-pre-push hook is local and `--no-verify` walks past it. Say that plainly rather than letting somebody
+**A local cycle can still be built, verified and committed.** Only the pull request needs a remote. What
+it does not have is the pull-request check, which `CONCEPT.md` §13 calls the only non-bypassable layer —
+the pre-push hook is local and `--no-verify` walks past it. Say that plainly rather than letting somebody
 believe a local cycle is governed to the same standard.
 
 ## Push and open the pull request
@@ -121,19 +121,20 @@ check means, that is the honest answer.
 ## Sweeping
 
 ```
-sdlc cycles --landable
+sdlc cycles --pr-ready
 ```
 
-It lists **every** cycle and what each one is, not only the ones it would land. Show that list verbatim
-and **ask once before the first push.**
+It lists **every** cycle and what each one is, not only the ones it would open one for. Show that list
+verbatim and **ask once before the first push.**
 
 Why ask at all, given the approval already said the plan was agreed: because the question is about
 **volume**, not permission. Every cycle that ever passed is eligible, including one from last week that
-somebody has forgotten, and "land 8 cycles?" is a question nobody can answer honestly without the list.
+somebody has forgotten, and "open 8 pull requests?" is a question nobody can answer honestly without the
+list.
 
 Then:
 
-- land them one at a time, in cycle-id order
+- open them one at a time, in cycle-id order
 - **a failure on one does not stop the others.** Each cycle is independent; report the failure and carry on
 - **report each pull request individually**, with its link. A count is not something a person can check
 

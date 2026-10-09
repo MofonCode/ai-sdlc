@@ -105,7 +105,7 @@ is the only mechanical layer and `--no-verify` walks past it. **The rest answers
 the line.** Everything else is unchanged: cycles are
 planned, approved, built and verified exactly the same way. Only the guarantee is missing, and `sdlc
 doctor` says so every time it runs. When a remote exists, re-running adoption with a platform writes the
-pipeline, and the `land` skill walks through creating the remote.
+pipeline, and the `pr` skill walks through creating the remote.
 
 Give the person the line, `!` and all. When they have run it, read what it printed — it says which mode
 ran, what the origin was decided to be, and every file it touched or deliberately left.

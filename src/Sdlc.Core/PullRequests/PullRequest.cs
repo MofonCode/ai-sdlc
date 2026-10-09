@@ -7,23 +7,23 @@ using Sdlc.Core.Cycles;
 using Sdlc.Core.Findings;
 using Sdlc.Core.Solutions;
 
-namespace Sdlc.Core.Landing;
+namespace Sdlc.Core.PullRequests;
 
-/// <summary>Says whether a cycle may be landed, without landing it.</summary>
-public static class Land
+/// <summary>Says whether a cycle may open a pull request, without opening one.</summary>
+public static class PullRequest
 {
     /// <summary>Registers this operation's handler.</summary>
     /// <param name="services">The collection to add to.</param>
     /// <returns>The same collection, for chaining.</returns>
-    public static IServiceCollection AddLandRequestHandler(this IServiceCollection services)
+    public static IServiceCollection AddPullRequestHandler(this IServiceCollection services)
     {
         ArgumentNullException.ThrowIfNull(services);
 
         return services.AddTransient<IRequestHandler<Query, Response>, Handler>();
     }
 
-    /// <summary>Why a cycle may not be landed.</summary>
-    public enum LandRefusal
+    /// <summary>Why a cycle may not open a pull request.</summary>
+    public enum PullRequestRefusal
     {
         /// <summary>Nothing refuses it.</summary>
         None,
@@ -41,37 +41,37 @@ public static class Land
         ChainBroken,
     }
 
-    /// <summary>Whether a cycle may be landed, and why not.</summary>
+    /// <summary>Whether a cycle may open a pull request, and why not.</summary>
     /// <param name="Cycle">The cycle.</param>
-    /// <param name="Refusal">Why not, or <see cref="LandRefusal.None"/>.</param>
+    /// <param name="Refusal">Why not, or <see cref="PullRequestRefusal.None"/>.</param>
     /// <param name="Explanation">What to tell the person.</param>
     /// <param name="Chain">What the chain check found, when it was reached.</param>
     public sealed record Response(
         Cycle Cycle,
-        LandRefusal Refusal,
+        PullRequestRefusal Refusal,
         string Explanation,
         VerifyChain.Response? Chain)
     {
-        /// <summary>Whether the cycle may be landed.</summary>
-        public bool MayLand => Refusal == LandRefusal.None;
+        /// <summary>Whether the cycle may open a pull request.</summary>
+        public bool MayOpen => Refusal == PullRequestRefusal.None;
     }
 
-    /// <summary>Asks whether a cycle may be landed, without landing it.</summary>
+    /// <summary>Asks whether a cycle may open a pull request, without opening one.</summary>
     /// <param name="Id">The cycle to check.</param>
     public sealed record Query(CycleId Id) : IRequest<Response>;
 
     /// <summary>
-    /// Decides whether a cycle may be landed.
+    /// Decides whether a cycle may open a pull request.
     /// </summary>
     /// <remarks>
-    /// Landing is the only thing that touches the remote, which is why this is a question of its own rather
+    /// Opening a pull request is the only thing that touches the remote, which is why this is a question of its own rather
     /// than part of the build. Three things it checks beyond the chain:
     /// <para>
     /// <strong>The verdict is a pass.</strong> Not "no failures recorded" -- an actual pass. The verdict is the
     /// only thing standing between unattended building and unreviewed work reaching a pull request.
     /// </para>
     /// <para>
-    /// <strong>An escalated cycle never lands.</strong> A cycle that could not be made to pass within its
+    /// <strong>An escalated cycle never opens one.</strong> A cycle that could not be made to pass within its
     /// remediation budget stops, and that stopping is what makes an unattended batch safe to run at all.
     /// </para>
     /// <para>
@@ -80,7 +80,7 @@ public static class Land
     /// costs a person nothing and saves a round trip through CI.
     /// </para>
     /// </remarks>
-    /// <param name="solution">The solution being landed from.</param>
+    /// <param name="solution">The solution the pull request is opened from.</param>
     private sealed class Handler(SolutionRoot solution, Mediator mediator) : IRequestHandler<Query, Response>
     {
         /// <inheritdoc />
@@ -93,9 +93,9 @@ public static class Land
 
             if (!cycle.Exists || !File.Exists(verify))
             {
-                return Verdict(cycle, LandRefusal.NotVerified, string.Create(
+                return Verdict(cycle, PullRequestRefusal.NotVerified, string.Create(
                     CultureInfo.InvariantCulture,
-                    $"Cycle {cycle.Id} has not been verified. There is nothing to land until a verification says what the build did."));
+                    $"Cycle {cycle.Id} has not been verified. There is nothing to open a pull request for until a verification says what the build did."));
             }
 
             Result<RemediationState> budget = await RemediationBudget
@@ -112,9 +112,9 @@ public static class Land
                 // The phrase comes from RemediationBudget.Describe, which exists to build exactly
                 // this and was built here a second time instead -- including its own pluralisation,
                 // which is what a duplicated sentence always grows.
-                return Verdict(cycle, LandRefusal.Escalated, string.Create(
+                return Verdict(cycle, PullRequestRefusal.Escalated, string.Create(
                     CultureInfo.InvariantCulture,
-                    $"Cycle {cycle.Id} is {RemediationBudget.Describe(budget.Value)}. A cycle that has stopped making progress stops rather than landing, and that stopping is what makes an unattended batch safe to run."));
+                    $"Cycle {cycle.Id} is {RemediationBudget.Describe(budget.Value)}. A cycle that has stopped making progress stops rather than opening a pull request, and that stopping is what makes an unattended batch safe to run."));
             }
 
             Result<VerifyChain.Response> chain = await mediator
@@ -137,7 +137,7 @@ public static class Land
             {
                 return Verdict(
                     cycle,
-                    LandRefusal.NotPassed,
+                    PullRequestRefusal.NotPassed,
                     string.Create(
                         CultureInfo.InvariantCulture,
                         $"Cycle {cycle.Id} did not pass verification. {verified.Detail}"),
@@ -148,7 +148,7 @@ public static class Land
             {
                 return Verdict(
                     cycle,
-                    LandRefusal.ChainBroken,
+                    PullRequestRefusal.ChainBroken,
                     string.Create(
                         CultureInfo.InvariantCulture,
                         $"Cycle {cycle.Id} verified, and its chain does not hold. The pull-request check would refuse it, so refusing here saves a round trip:{Environment.NewLine}{string.Join(Environment.NewLine, chain.Value.Failures.Select(failure => "  - " + failure.Name))}"),
@@ -157,7 +157,7 @@ public static class Land
 
             return Verdict(
                 cycle,
-                LandRefusal.None,
+                PullRequestRefusal.None,
                 string.Create(
                     CultureInfo.InvariantCulture,
                     $"Cycle {cycle.Id} verified and its chain holds."),
@@ -166,7 +166,7 @@ public static class Land
 
         private static Result<Response> Verdict(
             Cycle cycle,
-            LandRefusal refusal,
+            PullRequestRefusal refusal,
             string explanation,
             VerifyChain.Response? chain = null) =>
             Result.Ok(new Response(cycle, refusal, explanation, chain));

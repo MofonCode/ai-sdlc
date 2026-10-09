@@ -17,7 +17,7 @@ No id lists every cycle, which is usually the question being asked.
 Show what it prints verbatim.
 
 A cycle contributes `Noticed:` lines only from its own branch, measured from where it diverged. A cycle
-that has not been built yet has no commits to read, and a landed cycle whose branch is gone contributes
+that has not been built yet has no commits to read, and a merged cycle whose branch is gone contributes
 nothing — neither is an error, and neither is worth remarking on.
 
 ## Non-blocking is not trivial

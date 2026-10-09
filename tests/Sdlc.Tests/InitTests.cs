@@ -1213,7 +1213,7 @@ public sealed class InitTests
         // The whole point of the local platform: adopt with no remote, come back when there is one.
         // That return trip wrote the pipeline and nothing else -- the platform never entered the
         // calculation, so the record stayed local, doctor kept reporting that no check governs a merge
-        // while the check sat on disk, and the land skill kept refusing a cycle that had somewhere to go.
+        // while the check sat on disk, and the pr skill kept refusing a cycle that had somewhere to go.
         using var solution = Scratch.Create();
         await Adopt(solution, tracked: [], platform: Platform.Local);
 

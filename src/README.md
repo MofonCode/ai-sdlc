@@ -72,7 +72,7 @@ had been calling the static method all along. That test found it on its first ru
 ## Deciding and presenting are separate
 
 Every folder pairs an operation with a renderer — `EffectiveConstraints` with `ConstraintRenderer`,
-`ReadCycleStatus` with `StatusRenderer`, `Land` with `LandRenderer`. A renderer is a **static pure function
+`ReadCycleStatus` with `StatusRenderer`, `PullRequest` with `PullRequestRenderer`. A renderer is a **static pure function
 from a response to a string**, holding no dependency and reading no disk.
 
 Two things follow. A test asserts exact output without building a container, and one response can be

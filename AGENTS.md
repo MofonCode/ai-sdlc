@@ -3,7 +3,7 @@
 This file is for an agent changing ai-sdlc. [`README.md`](README.md) describes the product for a person —
 read it if you need to know what the framework *is*; read this to know how to work on it.
 
-**One sentence of context:** a change moves through **intent → spec → plan → build → verify → land**,
+**One sentence of context:** a change moves through **intent → spec → plan → build → verify → pr**,
 each phase producing a file the next phase reads, each file challenged against a fixed set of rules
 before it advances, and a person approving the three planning documents before any code is written.
 Nothing advances on assertion.
@@ -33,7 +33,8 @@ the cheapest way to discover that what you were about to add already lives somew
 | Index | Describes |
 |---|---|
 | [`skills/README.md`](skills/README.md) | the eighteen skills: what each is, how it is invoked, when it runs, who starts it |
-| [`docs/guides/README.md`](docs/guides/README.md) | the four guides: what each covers, when to read it, what it leaves to another |
+| [`docs/README.md`](docs/README.md) | the components: every concept the framework names, defined once. Start here when a term is unfamiliar |
+| [`docs/guides/README.md`](docs/guides/README.md) | the five guides: what each covers, when to read it, what it leaves to another |
 | [`tools/README.md`](tools/README.md) | the two tools that check what the suite cannot, and when to run each |
 | [`src/README.md`](src/README.md) | what `Sdlc.Core` and `Sdlc.Cli` are, how one invocation flows, where a new thing goes |
 
@@ -158,7 +159,8 @@ a follow-up is a thing somebody has to remember, and the document is wrong in th
 
 | If the change | update |
 |---|---|
-| adds, removes or renames a skill, or changes what one takes or refuses | [`skills/README.md`](skills/README.md) — the skill's row, its own section, and the count in the heading if it moved |
+| adds, removes or renames a skill, or changes what one takes or refuses | [`skills/README.md`](skills/README.md) — the skill's row, its own section, and the count in the heading if it moved — **and the skills table in [`docs/README.md`](docs/README.md)**, which the suite holds against disk alongside the other two |
+| adds or renames a concept the framework has a name for | [`docs/README.md`](docs/README.md), which defines each one once. A concept defined nowhere is one the next session works out from the code |
 | changes a command's behaviour or options | `src/Sdlc.Cli/Usage.cs`, which is what `sdlc help` prints, and [`docs/guides/cycle-commands.md`](docs/guides/cycle-commands.md) |
 | changes what a correct install produces — a hook, a skill count, a version, either plugin manifest | [`docs/guides/install.md`](docs/guides/install.md), **including the table at the top**, and the Getting started steps in [`README.md`](README.md) |
 | adds, removes or reworks a refusal | [`docs/guides/when-it-blocks.md`](docs/guides/when-it-blocks.md) |
@@ -183,7 +185,7 @@ they are already in the directory.
 **[`README.md`](README.md) is for a person deciding whether to use this; this file is for an agent
 changing it.** Product description, install, status and honest gaps belong there; the map, the build, the
 enforced properties and the table above belong here. Neither grows a copy of the other. The one accepted
-exception is the root README's Where to read more table, which names the four guides as well as the
+exception is the root README's Where to read more table, which names the five guides as well as the
 guides' own index — and that duplication is paid for mechanically rather than promised.
 
 ### What is mechanised, and what is not

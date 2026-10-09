@@ -1,6 +1,6 @@
 {
   "name": "ai-sdlc",
-  "description": "The ai-sdlc process framework: a constraint-governed cycle from intent to landed change.",
+  "description": "The ai-sdlc process framework: a constraint-governed cycle from intent to merged change.",
   "owner": {
     "name": "MofonCode"
   },

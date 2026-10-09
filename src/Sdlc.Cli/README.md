@@ -3,7 +3,7 @@
 `sdlc` is the deterministic half of [ai-sdlc](https://github.com/MofonCode/ai-sdlc): a constraint-governed
 lifecycle for software written with an agent.
 
-A change moves through **intent → spec → plan → build → verify → land**. Each phase produces a file the
+A change moves through **intent → spec → plan → build → verify → pr**. Each phase produces a file the
 next phase reads, each file is challenged against a fixed set of rules before it advances, and a person
 approves the three planning documents together — against a hash of each — before any code is written.
 Nothing merges unless the chain is complete, approved and hash-matched.

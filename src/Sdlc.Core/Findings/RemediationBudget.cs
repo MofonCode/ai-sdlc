@@ -49,12 +49,12 @@ public sealed record RemediationState(
         && last.All(reduced => !reduced);
 
     /// <summary>
-    /// Whether the cycle cannot be made to pass and should stop rather than land.
+    /// Whether the cycle cannot be made to pass and should stop rather than open a pull request.
     /// </summary>
     /// <remarks>
     /// <para>This is the state the whole unattended half of the design rests on, and the state iteration 3
     /// never reached. A batch is only safe to run unwatched because a cycle that cannot be made to pass
-    /// stops instead of landing.</para>
+    /// stops instead of opening one.</para>
     /// <para><strong>It is a predicate on progress now, not a count of passes.</strong> A hard three
     /// failed an honest cycle that needed a fourth pass and let a cycle making no progress at all spend
     /// all three. There is deliberately no ceiling behind the predicate (D-66), so termination rests on
@@ -136,7 +136,7 @@ public static class RemediationBudget
     /// What to tell somebody about where remediation stands.
     /// </summary>
     /// <remarks>
-    /// The one place this phrase is built. <see cref="Landing.Land"/> assembled its own escalation
+    /// The one place this phrase is built. <see cref="PullRequests.PullRequest"/> assembled its own escalation
     /// sentence instead, down to its own pluralisation of "finding" -- two sentences saying the same
     /// thing, and the one a person read was not the one the suite checked.
     /// </remarks>

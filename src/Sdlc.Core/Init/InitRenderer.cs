@@ -161,7 +161,7 @@ public static class InitRenderer
                 string.Create(
                     CultureInfo.InvariantCulture,
                     $"a person writes it, so it still says platform: {SolutionDocument.NameOf(report.Platform)}. While it does, doctor"),
-                "reports which guarantee is installed from the record rather than from disk, and the land",
+                "reports which guarantee is installed from the record rather than from disk, and the pr",
                 "skill reads the same key before it pushes. Place the block above and they agree again.",
             ]);
         }

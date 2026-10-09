@@ -44,8 +44,8 @@ and prints the invocation — because a tool must never send somebody somewhere 
 | `build` | implements the plan, builds, tests, records the evidence | `<id>` | the gate is satisfied | a person, or `batch-build` |
 | `verify` | adjudicates the build against the spec, from the evidence alone | `<id>` | the build recorded evidence | a person, or `batch-build` |
 | `remediate` | applies a blocked verification's findings to source and tests | `<id>` | verify recorded `blocked` | a person, or `batch-build` |
-| `land` | pushes, opens the pull request, links the work item | `<id> \| --all` | a verification passed | **a person**, asked before every push |
-| `batch-build` | completes every approved cycle, concurrently where the claims allow | `[--land]` | several cycles are approved and waiting | a person |
+| `pr` | pushes, opens the pull request, links the work item | `<id> | --all` | a verification passed | **a person**, asked before every push |\| --all` | a verification passed | **a person**, asked before every push |
+| `batch-build` | completes every approved cycle, concurrently where the claims allow | `[--pr]` | several cycles are approved and waiting | a person |
 | `resolve-conflict` | resolves a collision on a file no cycle can claim exclusively | `<file path>` | a batch run reports one | a person, or `batch-build` |
 | `status` | shows where a cycle has got to | `<id> [artifact]` | after any stage, or when somebody asks | anyone, constantly |
 | `constraints` | shows the rules in force, all tiers resolved | `[artifact]` | before writing or judging anything | every stage skill, as its first step |
@@ -55,7 +55,7 @@ and prints the invocation — because a tool must never send somebody somewhere 
 **"Who starts it" is not "who runs it".** Every one of these is executed by an agent — that is what a
 skill is. What differs is who decides it should happen, and two of them are a person's decision in a way
 the framework enforces rather than requests: `init` writes the hook configuration that constrains the
-agent, so the hook denies an agent the command; `land` is the only stage that reaches outside the
+agent, so the hook denies an agent the command; `pr` is the only stage that reaches outside the
 repository, so it asks before every push.
 
 **All eighteen are model-invocable.** Nothing in the manifest stops an agent reaching for one on its
@@ -95,7 +95,7 @@ protected — and adoption says plainly that until they place it, the recorded s
 pull-request check governs a merge, so the pre-push hook is the only mechanical layer and `--no-verify`
 walks past it — the choice is recorded in `solution.md` so `doctor` can report it as a choice rather than
 as a broken install, and so nobody mistakes a local solution for one governed to the same standard. Once
-there is a remote, re-run `init` with a platform; the `land` skill walks through creating one.
+there is a remote, re-run `init` with a platform; the `pr` skill walks through creating one.
 
 **A person runs it, and the hook denies an agent the command.** The skill's part is the two halves a
 command cannot do: asking what matters here, and proposing the `LOC_` rules that follow from the answers.
@@ -343,16 +343,16 @@ bias the whole separation exists to remove.
 
 ---
 
-## Landing and unattended runs
+## Pull requests and unattended runs
 
-### `land`
+### `pr`
 
 **Pushes a verified cycle and opens its pull request.** The only stage that reaches outside the
 repository.
 
 Everything before this is local and reversible; a pull request notifies people, appears in a queue, and
-withdrawing it is something somebody has to notice happened. So it asks `sdlc landable` first, every
-time, and does not land past a refusal — the pull-request check would refuse it anyway, so pushing would
+withdrawing it is something somebody has to notice happened. So it asks `sdlc pr-ready` first, every
+time, and does not push past a refusal — the pull-request check would refuse it anyway, so pushing would
 cost a round trip through CI to learn what it was just told.
 
 The body is the cycle rather than a summary somebody invented: the intent's problem in the intent's words,
@@ -365,8 +365,8 @@ not look, and they are different jobs.
 
 With `--all` it lists every cycle and what each one is, then asks once before the first push. The question
 is about volume rather than permission: every cycle that ever passed is eligible, including one from last
-week that somebody has forgotten, and "land 8 cycles?" is a question nobody can answer honestly without
-the list.
+week that somebody has forgotten, and "open 8 pull requests?" is a question nobody can answer honestly
+without the list.
 
 ### `batch-build`
 
@@ -375,11 +375,11 @@ their declared files do not collide. A local skill, executed rather than subscri
 queue and no daemon.
 
 **Everything here rests on the remediation bound.** A cycle that cannot be made to pass stops rather
-than landing, and that stopping is the only reason this is safe to run without watching. The bound is a
-progress rule rather than a pass count: remediation continues while each pass reduces what is open, and
-stops when a pass undoes earlier work or two in a row reduce nothing. **There is no ceiling behind it
-(D-66)**, so a loop that keeps showing small improvements can run for a long time -- which is the one
-thing to watch on an unattended batch.
+than opening a pull request, and that stopping is the only reason this is safe to run without watching.
+The bound is a progress rule rather than a pass count: remediation continues while each pass reduces
+what is open, and stops when a pass undoes earlier work or two in a row reduce nothing. **There is no
+ceiling behind it (D-66)**, so a loop that keeps showing small improvements can run for a long time --
+which is the one thing to watch on an unattended batch.
 
 It reads the claim graph from `sdlc cycles --claims` rather than working it out: the graph is a set intersection
 over a file table, which the binary does the same way every time, and a graph derived by reading plans
@@ -389,9 +389,9 @@ cycle-id order.
 
 **It schedules around collisions rather than resolving them.** A merge you did not have to do is worth
 more than a merge you did well. A sibling's failure does not discard the cycles that completed — each can
-be landed individually.
+open its own pull request.
 
-Plain `batch-build` never pushes. `--land` composes the two and asks once before the run rather than at
+Plain `batch-build` never pushes. `--pr` composes the two and asks once before the run rather than at
 the end, because the question is about volume and a person should answer it before waiting rather than
 after.
 
@@ -528,6 +528,7 @@ cannot.
 |---|---|
 | installing the plugin and the binary | `../docs/guides/install.md` |
 | a cycle from an empty directory to a pull request | `../docs/guides/first-cycle.md` |
+| that cycle with one solution in it, prompt by prompt | `../docs/guides/dice-worked-example.md` |
 | every command for one cycle, on one screen | `../docs/guides/cycle-commands.md` |
 | what to do when something refuses | `../docs/guides/when-it-blocks.md` |
 | the design, and every decision behind it | `../CONCEPT.md` §15 |

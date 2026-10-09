@@ -41,8 +41,8 @@ internal static class Usage
             gate <id>                Say whether a cycle's build may run. Exits 1 if not.
             verify-chain <id>        Re-establish the whole chain from the repository. Exits 1 if
                                      it does not hold. This is the pull-request check.
-            landable <id>            Say whether a cycle may be landed, without landing it. Exits 1
-                                     if not. For every cycle, 'cycles --landable'.
+            pr-ready <id>            Say whether a cycle may open a pull request, without opening
+                                     one. Exits 1 if not. For every cycle, 'cycles --pr-ready'.
             draft approval <id>      Write the gate decision beside the ledger, for a person to
                                      rename onto it. Writes no approval.
             draft abandon <id>       Print the record that stops a cycle, for a person to place.
@@ -125,14 +125,14 @@ internal static class Usage
                                      merge -- the pre-push hook is the only mechanical layer and it
                                      is bypassable. The choice is recorded in solution.md so doctor
                                      reports it as a choice rather than a broken install. Re-run
-                                     init with a platform once there is a remote; the land skill
+                                     init with a platform once there is a remote; the pr skill
                                      walks through creating one.
 
                                      On a repository already governed, re-running writes the
                                      pipeline and prints the solution.md keys for a person to
                                      place, because that file is protected. Until they are placed
-                                     the record still says the old platform, and doctor and land
-                                     both read the record.
+                                     the record still says the old platform, and doctor and the pr
+                                     skill both read the record.
 
                                      Omitting the option is not the same as passing github: on a
                                      governed repository it means keep what is recorded, so a
@@ -161,7 +161,7 @@ internal static class Usage
             --stage <artifact>       Only cycles whose furthest document is this one.
             --approved               Only cycles a person has approved.
             --verified               Only cycles whose verification passed.
-            --landable               Every cycle, saying which may be landed and why not.
+            --pr-ready               Every cycle, saying which may open one and why not.
             --claims                 The claim graph: which cycles may be built together, in groups,
                                      and what collides.
 
@@ -233,9 +233,9 @@ internal static class Usage
 
         The stages
             Writing an intent, a spec or a plan, judging one against the rules, building, verifying
-            and landing are skills rather than commands: they need language, so your agent runs
-            them and this binary checks what they produced. Typing one here says so, and names the
-            invocation. 'sdlc help' lists what the binary does on its own.
+            and opening the pull request are skills rather than commands: they need language, so your
+            agent runs them and this binary checks what they produced. Typing one here says so, and
+            names the invocation. 'sdlc help' lists what the binary does on its own.
 
         Exit codes
             0  the command did what was asked

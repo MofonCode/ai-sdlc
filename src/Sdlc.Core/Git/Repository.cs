@@ -68,7 +68,7 @@ public interface IRepository
     /// </summary>
     /// <remarks>
     /// A merge base rather than the default branch's current tip. Measuring from the tip would show every
-    /// commit somebody else landed while this cycle was open as part of this change, and a diff that wide
+    /// commit somebody else merged while this cycle was open as part of this change, and a diff that wide
     /// makes the declared-file comparison meaningless and the proof unreadable.
     /// </remarks>
     /// <param name="workingDirectory">Where to ask from.</param>

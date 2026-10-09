@@ -2,7 +2,7 @@
 name: batch-build
 description: Complete every approved cycle in this working copy -- build and verify each, concurrently where their declared files do not collide. Use when several cycles are approved and waiting.
 compatibility: Requires the sdlc binary on PATH, from the MofonCode.Sdlc.Cli dotnet tool, and a git repository. Every command here is that binary, so without it the first step fails.
-argument-hint: "[--land]"
+argument-hint: "[--pr]"
 allowed-tools: Bash(sdlc *), Bash(git *), Bash(dotnet *), Read, Write, Edit, Glob, Grep
 ---
 
@@ -14,11 +14,11 @@ copy, builds and verifies each, and reports. There is no shared queue and no dae
 ## Read this first
 
 **Everything here rests on the remediation bound.** A cycle that cannot be made to pass stops rather
-than landing, and that stopping is the only reason this is safe to run without watching. The bound is a
-progress rule rather than a pass count: remediation continues while each pass reduces what is open, and
-stops when a pass undoes earlier work or two in a row reduce nothing. **There is no ceiling behind it
-(D-66)**, so a loop that keeps showing small improvements can run for a long time -- which is the one
-thing to watch on an unattended batch.
+than opening a pull request, and that stopping is the only reason this is safe to run without watching.
+The bound is a progress rule rather than a pass count: remediation continues while each pass reduces
+what is open, and stops when a pass undoes earlier work or two in a row reduce nothing. **There is no
+ceiling behind it (D-66)**, so a loop that keeps showing small improvements can run for a long time --
+which is the one thing to watch on an unattended batch.
 
 The bound is implemented and tested, but it has been exercised in fixtures far more than in anger — so
 the first few batch runs are worth watching, and a cycle that escalates is worth reading rather than
@@ -27,7 +27,7 @@ re-running.
 ## 1. Find the work and read the claim graph
 
 ```
-sdlc cycles --landable
+sdlc cycles --pr-ready
 sdlc cycles --claims
 ```
 
@@ -102,20 +102,21 @@ and it works because service-free plans have nothing to collide on. §10.2 recor
 ## 4. Build and verify each
 
 Per cycle, in its worktree: the build stage, then the verify stage. **Verify as well as build** — a batch
-that cannot say which cycles succeeded cannot land the ones that did, so "completed" means verified.
+that cannot say which cycles succeeded cannot open pull requests for the ones that did, so "completed"
+means verified.
 
 Four outcomes, and they are this run's rather than a verify document's — `not attempted` is the one that
 could never be written into one:
 
 | Outcome | What it is |
 |---|---|
-| `passed` | built, verified, ready to land. Its verify outcome was `pass` |
+| `passed` | built, verified, ready for a pull request. Its verify outcome was `pass` |
 | `blocked` | a criterion unmet, and remediation is still reducing what is open |
 | `escalated` | remediation stopped: a pass undid earlier work, or two in a row reduced nothing. A person picks this up |
 | not attempted | downstream of a failure in the claim graph, so it reaches no verify document at all |
 
-**A sibling's failure does not discard the cycles that completed.** Each can be landed individually, and
-reporting them as a batch failure would throw away work that is fine.
+**A sibling's failure does not discard the cycles that completed.** Each can open its own pull request,
+and reporting them as a batch failure would throw away work that is fine.
 
 ## 5. Report, and stop
 
@@ -123,19 +124,20 @@ reporting them as a batch failure would throw away work that is fine.
 nine is nine lines, which is the point — a reader is scanning for the ones that did not pass. Then:
 
 ```
-sdlc cycles --landable
+sdlc cycles --pr-ready
 ```
 
 Show it verbatim and stop.
 
-**Plain `batch-build` never pushes.** Landing is a separate decision and the person makes it.
+**Plain `batch-build` never pushes.** The pull request is a separate decision and the person makes it.
 
-## With `--land`
+## With `--pr`
 
-Compose the two: land each completed cycle as it finishes. **Ask once, before the run** — not at the end
-— because the question is about volume and the person should answer it before waiting rather than after.
+Compose the two: open a pull request for each completed cycle as it finishes. **Ask once, before the
+run** — not at the end — because the question is about volume and the person should answer it before
+waiting rather than after.
 
-Everything in the land skill still applies: `sdlc landable` before each push, a failure on one does not
+Everything in the pr skill still applies: `sdlc pr-ready` before each push, a failure on one does not
 stop the others, and each pull request reported individually with its link.
 
 ## When a file cannot be claimed exclusively

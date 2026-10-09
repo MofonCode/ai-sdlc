@@ -91,7 +91,7 @@ public static class TurnEndGate
             if (!cycle.Exists || cycle.IsAbandoned)
             {
                 // The branch exists and the cycle does not, or it was stopped deliberately. Whether that
-                // is a problem is 'sdlc gate' and 'sdlc landable' business; this is not the place to
+                // is a problem is 'sdlc gate' and 'sdlc pr-ready' business; this is not the place to
                 // answer it, and answering it here would mean two rules about the same thing.
                 return Result.Ok(HookVerdict.Allowed);
             }

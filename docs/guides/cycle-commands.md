@@ -67,8 +67,8 @@ this solution, and the `LOC_` rules it proposes.
 | `sdlc evidence <id>` | binary | records the diff, the base commit, the test summary |
 | `/sdlc:verify <id>` | agent, fresh process | adjudicates from the evidence alone, writes `verify.md` |
 | `/sdlc:remediate <id>` | agent | only when verify wrote `blocked`. Runs while each pass reduces what is open |
-| `sdlc landable <id>` | binary | whether it may be landed. Exits 1 if not |
-| `/sdlc:land <id>` | agent | pushes and opens the pull request. Asks first |
+| `sdlc pr-ready <id>` | binary | whether it may open a pull request. Exits 1 if not |
+| `/sdlc:pr <id>` | agent | pushes and opens the pull request. Asks first |
 | `sdlc verify-chain <id>` | binary | the pull-request check. The only non-bypassable layer |
 
 The interrogate-refine loop repeats until a round raises nothing blocking. Round numbers climb;
@@ -94,12 +94,12 @@ sdlc decisions
 sdlc theme
 sdlc cycles
 sdlc cycles --claims
-sdlc cycles --landable
+sdlc cycles --pr-ready
 ```
 
 `status --brief` is the between-stages form: the cycle, its counts, what the artifact says, and the next
 command. `findings <id>` is what the interrogations said, per artifact, each finding at the disposition
-that stands. `cycles` lists everything this solution holds, newest first — `--claims` and `--landable`
+that stands. `cycles` lists everything this solution holds, newest first — `--claims` and `--pr-ready`
 are the two questions that used to be their own verbs.
 
 **The last four belong to the solution rather than to a cycle.** `suggestions` is what was raised and
@@ -138,8 +138,15 @@ one. Terminal.
     evidence/
         base.sha
         diff.patch
-        tests.json
+        tests.json         <- the normalised summary. The only one verify reads
+        tests.1.trx        <- one per test project, kept as the runner wrote them
+        build.log
 ```
+
+Two more names appear only where something happened. `approval.<decision>.draft.md` sits beside the
+ledger until somebody renames it or deletes it — a draft nobody renamed records nothing, including a
+`denied` one. And `abandoned.md` replaces the rest of the cycle's future: it is terminal, and it is a
+person's file like the approval.
 
 ## Where to go next
 
@@ -147,5 +154,6 @@ one. Terminal.
 |---|---|
 | installing both halves | `install.md` |
 | a cycle walked end to end, with what to expect | `first-cycle.md` |
+| that walk with one solution in it, from install to a pull request | `dice-worked-example.md` |
 | what to do when something refuses | `when-it-blocks.md` |
 | what each skill is and who starts it | `../../skills/README.md` |

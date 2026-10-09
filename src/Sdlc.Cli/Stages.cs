@@ -28,7 +28,7 @@ internal static class Stages
         ["build"] = "implements the plan and records what happened as evidence",
         ["verify"] = "adjudicates the build against the spec, from the evidence alone",
         ["remediate"] = "applies a blocked verification's findings to source and tests",
-        ["land"] = "pushes, opens the pull request, and links the work item",
+        ["pr"] = "pushes, opens the pull request, and links the work item",
         ["batch-build"] = "completes every approved cycle, concurrently where the claims allow",
         ["resolve-conflict"] = "resolves a collision on a file no cycle can claim exclusively",
     };

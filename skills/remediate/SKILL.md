@@ -27,7 +27,7 @@ whatever the code happens to do, and the whole chain exists to stop that one inv
 if you break it anyway is slower and certain — this cycle is approved, so its three documents are
 hash-locked, and editing one makes `sdlc gate` refuse the build and `sdlc verify-chain` refuse the
 merge, both naming which document moved. **You cannot edit your way past a criterion; you can only turn
-a cycle that would have landed into one that cannot.**
+a cycle that would have opened a pull request into one that cannot.**
 
 So when the honest conclusion is "the criterion is wrong", say it and stop. Do not make the code satisfy
 a criterion you believe is mistaken, and do not edit the criterion. The move is
@@ -37,7 +37,7 @@ documents can be rewritten and re-approved. That is the recovery path, and it le
 ## Know whether the loop is still getting anywhere
 
 ```
-sdlc landable <id>
+sdlc pr-ready <id>
 ```
 
 A pass is a verify findings round after the first, counted from what happened rather than from a counter
@@ -58,8 +58,8 @@ than finding one more thing to adjust.
 
 **The one that should stop you cold is a regression.** If a pass broke something an earlier pass fixed,
 do not reach for a fix: a loop that is undoing its own work is not going to finish, and what a person
-needs to see is what the pass actually did. Escalation refuses the landing and somebody picks it up, and
-that stopping is what makes an unattended batch safe to run at all.
+needs to see is what the pass actually did. Escalation refuses the pull request and somebody picks it up,
+and that stopping is what makes an unattended batch safe to run at all.
 
 ## Work the findings
 

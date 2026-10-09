@@ -209,7 +209,7 @@ public sealed class StatusRendererTests
 
     [TestMethod]
     [DataRow(null, "sdlc build", "the gate is satisfied")]
-    [DataRow("pass", "sdlc land", "verified clean")]
+    [DataRow("pass", "sdlc pr", "verified clean")]
     [DataRow("blocked", "sdlc remediate", "a criterion is not met")]
     [DataRow("escalated", "sdlc status", "needs a person")]
     public async Task An_approved_cycle_is_pointed_at_the_step_its_verification_calls_for(
@@ -244,7 +244,7 @@ public sealed class StatusRendererTests
     public async Task A_verify_document_with_an_outcome_nobody_recognises_points_back_at_verify()
     {
         // Rather than guessing. An outcome the panel cannot read is a verification to look at, and saying
-        // "land it" on one would be the worst possible guess.
+        // "open a pull request" on one would be the worst possible guess.
         using var workspace = CycleWorkspace.Create();
         workspace.WriteAllArtifacts();
 

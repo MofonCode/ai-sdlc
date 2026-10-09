@@ -424,7 +424,7 @@ public sealed class ApprovalGateTests
     [TestMethod]
     public async Task A_document_with_no_round_at_all_refuses_the_build()
     {
-        // Deleting findings/ outright left the gate, verify-chain and landable all passing, with no
+        // Deleting findings/ outright left the gate, verify-chain and pr-ready all passing, with no
         // round having ever existed. ReadCycleStatus.ArtifactState.IsClear has always required
         // Rounds > 0 and ApprovalText refuses it, so the advisory reader was stricter than the
         // guarantee -- and the printer is advice a person can decline. §5.4.

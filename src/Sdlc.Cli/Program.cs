@@ -15,7 +15,7 @@ using Sdlc.Core.Findings;
 using Sdlc.Core.Hooks;
 using Sdlc.Core.Init;
 using Sdlc.Core.Decisions;
-using Sdlc.Core.Landing;
+using Sdlc.Core.PullRequests;
 using Sdlc.Core.Themes;
 using Sdlc.Core.Proposals;
 using Sdlc.Core.Reports;
@@ -63,7 +63,7 @@ try
         "constraints" => await Workspace.Run(line, w => Constraints(w, line)).ConfigureAwait(false),
         "gate" => await WithCycle(line, "gate", Gate).ConfigureAwait(false),
         "verify-chain" => await VerifyChainCommand(line).ConfigureAwait(false),
-        "landable" => await AskLandable(line).ConfigureAwait(false),
+        "pr-ready" => await AskPrReady(line).ConfigureAwait(false),
         "draft" => await Draft(line).ConfigureAwait(false),
         "propose" => await Propose(line).ConfigureAwait(false),
         "status" => await WithCycle(line, "status", (w, id) => Status(w, line, id)).ConfigureAwait(false),
@@ -252,28 +252,28 @@ static async Task<int> NewCycle(Workspace workspace)
     return ExitCode.Ok;
 }
 
-// Whether a cycle may be landed, without landing it. Pushing and opening the pull request is the land
+// Whether a cycle may open a pull request, without opening one. Pushing and opening it is the pr
 // skill's, because it needs the platform's own tool and a sentence a person wrote; what the binary owns is
-// the refusal, which has to be the same whether one cycle is landed or eight.
-static async Task<int> AskLandable(CommandLine line)
+// the refusal, which has to be the same whether one cycle opens one or eight.
+static async Task<int> AskPrReady(CommandLine line)
 {
-    // --all moved to 'sdlc cycles --landable', where every other "what is in this solution" question
+    // --all moved to 'sdlc cycles --pr-ready', where every other "what is in this solution" question
     // lives. Answered rather than refused: it was documented, people copied it, and a flag that stopped
     // working with no explanation is how a working install reads as a broken one.
     if (line.HasOption("all"))
     {
         await Console.Error.WriteLineAsync(
-            "'landable --all' is now 'sdlc cycles --landable', beside the rest of what a solution holds. "
-            + "'sdlc landable <id>' is unchanged.")
+            "'pr-ready --all' is now 'sdlc cycles --pr-ready', beside the rest of what a solution holds. "
+            + "'sdlc pr-ready <id>' takes one cycle.")
             .ConfigureAwait(false);
 
         return ExitCode.Usage;
     }
 
-    return await WithCycle(line, "landable", async (workspace, id) =>
+    return await WithCycle(line, "pr-ready", async (workspace, id) =>
         {
-            Result<Land.Response> result = await workspace
-                .Send<Land.Query, Land.Response>(new Land.Query(id))
+            Result<PullRequest.Response> result = await workspace
+                .Send<PullRequest.Query, PullRequest.Response>(new PullRequest.Query(id))
                 .ConfigureAwait(false);
 
             if (result.IsFailed)
@@ -281,22 +281,22 @@ static async Task<int> AskLandable(CommandLine line)
                 return await Report(result, ExitCode.Failed).ConfigureAwait(false);
             }
 
-            await Console.Out.WriteAsync(LandRenderer.Render(result.Value)).ConfigureAwait(false);
-            return result.Value.MayLand ? ExitCode.Ok : ExitCode.Refused;
+            await Console.Out.WriteAsync(PullRequestRenderer.Render(result.Value)).ConfigureAwait(false);
+            return result.Value.MayOpen ? ExitCode.Ok : ExitCode.Refused;
         }).ConfigureAwait(false);
 }
 
-// Every cycle is examined, and every one is listed -- landable or not. A list of only the eligible ones
+// Every cycle is examined, and every one is listed -- ready or not. A list of only the eligible ones
 // hides the surprise that matters most: a cycle from last week still sitting there verified, which the
 // sweep picks up because every passed cycle is eligible.
 static async Task<int> Sweep(Workspace workspace)
 {
-    List<Land.Response> candidates = [];
+    List<PullRequest.Response> candidates = [];
 
     foreach (Cycle cycle in CycleIndex.All(workspace.SolutionRoot))
     {
-        Result<Land.Response> result = await workspace
-            .Send<Land.Query, Land.Response>(new Land.Query(cycle.Id))
+        Result<PullRequest.Response> result = await workspace
+            .Send<PullRequest.Query, PullRequest.Response>(new PullRequest.Query(cycle.Id))
             .ConfigureAwait(false);
 
         if (result.IsFailed)
@@ -307,9 +307,9 @@ static async Task<int> Sweep(Workspace workspace)
         candidates.Add(result.Value);
     }
 
-    await Console.Out.WriteAsync(LandRenderer.RenderSweep(candidates)).ConfigureAwait(false);
+    await Console.Out.WriteAsync(PullRequestRenderer.RenderSweep(candidates)).ConfigureAwait(false);
 
-    // Zero whether or not anything is landable. Nothing refused here; a sweep over a tidy solution with
+    // Zero whether or not anything is ready. Nothing refused here; a sweep over a tidy solution with
     // nothing ready is a correct answer rather than a failure.
     return ExitCode.Ok;
 }
@@ -328,7 +328,7 @@ static async Task<int> Skill(CommandLine line)
 // each run, and what it decides is what runs concurrently.
 // Every cycle a solution holds, newest first -- and the two questions that used to be their own verbs.
 // One verb, because all three answer "what is in this solution and what can I do with it"; a person who
-// knew about 'claims' and not 'landable --all' had no way to discover the second from the first.
+// knew about 'claims' and not 'pr-ready --all' had no way to discover the second from the first.
 //
 // The two folded modes keep their own renderers rather than collapsing into the list. A claim graph is a
 // grouping with collisions and a sweep is a list with a warning about notifying people; flattening either
@@ -352,7 +352,7 @@ static async Task<int> Cycles(Workspace workspace, CommandLine line)
         return ExitCode.Ok;
     }
 
-    if (line.HasOption("landable"))
+    if (line.HasOption("pr-ready"))
     {
         return await Sweep(workspace).ConfigureAwait(false);
     }
@@ -817,7 +817,7 @@ static async Task<int> PrintDraft(Result<DraftResult> result)
 // adoption especially, which the pre-tool hook denies to an agent, so a doctor that offered to fix
 // things would be a second path into the files adoption writes.
 //
-// Exits 1 when something is wrong, which is what `gate`, `landable` and `verify-chain` do for the same
+// Exits 1 when something is wrong, which is what `gate`, `pr-ready` and `verify-chain` do for the same
 // kind of question: a script asking "is this sound" wants an exit code and not a parse.
 static async Task<int> Doctor(Workspace workspace)
 {

@@ -22,9 +22,17 @@ cycle does not advance.
 
 ---
 
-## `sdlc gate` — the eight ways a build is refused
+## `sdlc gate` — every way a build is refused
 
-`sdlc gate <id>` exits 1 and says which of these it is. In rough order of how early you hit them:
+`sdlc gate <id>` exits 1 and says which of these it is. In rough order of how early you hit them, and
+this is the whole list:
+
+| | |
+|---|---|
+| no cycle · abandoned · a planning document is missing | nothing to gate |
+| not approved · the ledger cannot be read · the standing decision refuses it | the gate was not passed |
+| a findings round cannot be read · a document was never interrogated | **the loop cannot be shown to have run** |
+| a document changed since it was approved · a blocking finding is open · a findings round is stale | the approval no longer covers what is there |
 
 ### no cycle
 
@@ -87,6 +95,24 @@ the gate's job is to make sure somebody saw it.
 This is also what you hit after editing a planning document post-approval to "just fix a typo". There is
 no size threshold, deliberately.
 
+### a findings round cannot be read
+
+A round file exists and will not parse.
+
+**Next:** fix the file, or delete that round and interrogate again. What it will not do is skip the
+artifact — **"could not tell" must never read as "clean".** That is not hypothetical: overwriting one
+round file with `{}` once made every blocker for that document disappear from the gate and from
+`verify-chain`, which is a one-command waiver for the one thing that cannot be waived by any mechanism.
+
+### a document was never interrogated
+
+A planning document has no findings round at all — most often because `findings/` was deleted.
+
+**Next:** `/sdlc:interrogate <id> <artifact>` for whichever the message names. An artifact nobody
+challenged is not a clean artifact, and deleting the directory used to leave the gate, `verify-chain`
+and `pr-ready` all passing with no round having ever existed. The drafter refuses this too, but that is
+advice a person can decline to take; this is the layer that does not negotiate.
+
 ### a blocking finding is open
 
 The one with no way out but to answer it.
@@ -118,7 +144,7 @@ documents by hand.
 
 ---
 
-## `sdlc evidence` — the seven ways a recording is refused
+## `sdlc evidence` — every way a recording is refused
 
 `sdlc evidence <id>` writes what the build produced. It refuses rather than writing something partial,
 because verify reads what it writes and nothing else, so a half-recorded run is a verdict nobody can
@@ -142,6 +168,16 @@ are kept either way, so the history of what was challenged survives.
 
 The diff is measured from the merge base with the default branch. Without it there is nothing to measure.
 
+**Read the branch name in the message before anything else, because the commonest cause is that you are
+not on it.** The branch is derived from the cycle id rather than from where you are standing, so the
+message names `cycle/<id>` whether or not such a branch exists — and a cycle whose work went onto a
+branch spelled any other way lands here. The remedy is to rename the branch you are on, not to hunt for
+what happened to one you never created.
+
+That misspelling costs more than this refusal: the turn-end hook reads the cycle out of the current
+branch too, and a branch it cannot parse is not governed work, so it allows every turn in the meantime.
+Nothing was being checked while the building happened, and this is the first thing that says so.
+
 ### an empty patch beside a changed file
 
 Files outside `.sdlc/` changed and the patch came back empty, which cannot both be true. This was a real
@@ -163,7 +199,7 @@ one. **Next:** rename one of them, or run the projects separately.
 
 ---
 
-## `sdlc landable` — the four ways a landing is refused
+## `sdlc pr-ready` — the four ways a pull request is refused
 
 ### not verified
 
@@ -182,10 +218,11 @@ the only thing standing between unattended building and unreviewed work reaching
 ### escalated
 
 Remediation stopped getting anywhere with blockers still open: either a pass undid what an earlier one
-answered, or two passes in a row reduced nothing. **An escalated cycle never lands**, and that stopping is
-the only reason an unattended batch is safe to run at all. There is no pass count to run out of — the
-refusal says which of the two stopped it, and they want different things from you: a regression means
-looking at what the last pass actually did, and a stall means asking whether the finding is answerable.
+answered, or two passes in a row reduced nothing. **An escalated cycle never opens a pull request**, and
+that stopping is the only reason an unattended batch is safe to run at all. There is no pass count to run
+out of — the refusal says which of the two stopped it, and they want different things from you: a
+regression means looking at what the last pass actually did, and a stall means asking whether the finding
+is answerable.
 
 **Next:** a person decides. Either the criterion is wrong, in which case
 `sdlc draft approval <id> --reopen` withdraws the approval with a recorded reason and the documents can be
@@ -217,7 +254,7 @@ belongs there.
 
 ---
 
-## The pre-tool hook — the five things an agent is denied
+## The pre-tool hook — the seven things an agent is denied
 
 These are denied at the tool call, by file path and by shell command alike. The rules are absolute rather
 than conditional, and that is the point: there is no mode, no flag, and no check on which skill is
@@ -230,11 +267,18 @@ running, so a rule with no exception has nowhere for a bypass to live.
 | writing `constraints.md` | a cycle judged by the constraints it is changing is the same deadlock as the framework governing itself. `sdlc propose constraints` reads the history and proposes an entry; pasting it is the decision |
 | writing `decisions.md` | a stage reads the decision record for alignment, so an agent that could write it could invent doctrine and then align to it. `sdlc propose decisions` reads the approved cycles and proposes an entry; pasting it is the decision |
 | writing `solution.md` | the origin is a historical fact that must never change. Per-key protection would be the first conditional rule, which is where a bypass would live |
-| running `sdlc init` | adoption writes the hook configuration that constrains the agent, the pipeline that gates the merge, and the file saying where this code came from |
+| writing `techstack.md` | it is the second rule source a plan is read against, and `CON_15` judges every plan against it — so an agent able to edit it could satisfy that rule by adding the row it wanted instead of arguing for it. `sdlc draft techstack` copies it beside itself; renaming the draft is the decision |
+| running the adoption command | adoption writes the hook configuration that constrains the agent, the pipeline that gates the merge, and the file saying where this code came from |
 
 **If your agent reports one of these as a broken tool, it is reading the mechanism as a malfunction.** The
 refusal message names the command to run instead — a drafter for four of these files, `propose` for the
 rule file and the decision record. Run it yourself, and place what it produces.
+
+**The last one matches the verb rather than parsing the line**, so even asking the adoption command for
+its own help is refused and `sdlc help` is the way to read its options. The same scan is why a refusal
+can arrive for a command that only *mentions* a protected file — the hook reads the shell command, not
+the paths it would touch, so a commit message naming one is denied. `git commit -F` with the message in
+a file is the way past that, and it is the rule working rather than a hole.
 
 **The theme is deliberately not on this list.** `.sdlc/theme.json` is a solution file like the ones
 above and no agent write to it is denied, because nobody is judged against a colour: no constraint reads
@@ -255,7 +299,7 @@ they are the skill's own discipline rather than something denied at the call. Wh
 slower and certain: an approved cycle's three documents are hash-locked, so a planning document edited
 after approval makes `sdlc gate` refuse the build and `sdlc verify-chain` refuse the merge, each naming
 which document moved. **You cannot edit your way past a criterion; you can only turn a cycle that would
-have landed into one that cannot.**
+have opened a pull request into one that cannot.**
 
 ---
 
@@ -352,6 +396,7 @@ published.
 | | |
 |---|---|
 | a cycle walked end to end | `first-cycle.md` |
+| the same walk with one solution in it | `dice-worked-example.md` |
 | every command for one cycle, on one screen | `cycle-commands.md` |
 | what each skill is and who starts it | `../../skills/README.md` |
 | installing, updating, removing | `install.md` |

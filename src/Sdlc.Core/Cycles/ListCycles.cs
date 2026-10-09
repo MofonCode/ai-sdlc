@@ -44,7 +44,7 @@ public sealed record CycleSummary(
 /// would be a second way to read one answer, and the one nobody chose would still have to be tested.</para>
 /// <para><strong>Every cycle is listed, and the filters narrow rather than tidy.</strong> A default that
 /// hid abandoned or stalled cycles would hide the surprise that matters most -- the cycle from last week
-/// still sitting at spec -- which is the same reason the landable sweep lists cycles it will not land.</para>
+/// still sitting at spec -- which is the same reason the pr-ready sweep lists cycles it will not open.</para>
 /// </remarks>
 public static class ListCycles
 {

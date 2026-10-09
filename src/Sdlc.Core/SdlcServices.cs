@@ -13,7 +13,7 @@ using Sdlc.Core.Git;
 using Sdlc.Core.Hooks;
 using Sdlc.Core.Init;
 using Sdlc.Core.Decisions;
-using Sdlc.Core.Landing;
+using Sdlc.Core.PullRequests;
 using Sdlc.Core.Themes;
 using Sdlc.Core.Proposals;
 using Sdlc.Core.Solutions;
@@ -131,7 +131,7 @@ public static class SdlcServices
 
         services.AddComputeClaimGraphRequestHandler();
 
-        services.AddLandRequestHandler();
+        services.AddPullRequestHandler();
 
         services.AddRecordEvidenceRequestHandler();
 
