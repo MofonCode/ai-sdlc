@@ -202,11 +202,18 @@ you were just told.
 **Next:** `sdlc verify-chain <id>`, which prints every check — passing and failing both, because a reader
 looking at a failed check needs to know what held. The checks are: the cycle exists, no shape problems,
 the chain is complete, the approval, the gate is satisfied, every criterion has a proof, every named test
-passed, the change was verified.
+passed, every criterion is adjudicated, the change was verified.
 
 **"every named test passed" is the one that surprises people.** Each proof in the plan names its test in
 backticks, and this reads those names out of the plan and confirms each one ran and passed according to
 the normalised summary — not according to anything the build said about itself.
+
+**"every criterion is adjudicated" is the other one.** Each criterion the spec states needs an entry
+under `Criteria` in `verify.md`, numbered to match. A criterion whose proof could not be reached is
+adjudicated **not met**; moving it to `## Open` as a limit of the proof is what this refuses, because
+that region is for what a document cannot settle and whether a criterion was met is the one thing a
+verify is for. A real limit — what the evidence does not reach *beyond* a criterion that was met — still
+belongs there.
 
 ---
 

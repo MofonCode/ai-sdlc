@@ -52,6 +52,14 @@ Question two is also checked mechanically by `sdlc verify-chain`, so a verdict o
 whose named test did not pass will be refused at the merge. Agreeing with the evidence costs you
 nothing; disagreeing with it costs the cycle a round trip.
 
+**Every criterion the spec states gets an entry under `Criteria`, numbered to match.** A criterion whose
+proof could not be reached is **not met** — it does not move to `## Open` as a limit of the proof. That
+region is for what this document cannot settle, and whether a criterion was met is the one thing a verify
+is for. `sdlc verify-chain` checks this too, so a verify that leaves one out is refused at the merge
+however the outcome reads. A genuine limit still belongs under `## Open`: the template below shows one,
+and the difference is that it bounds a criterion that was met rather than standing in for one that
+was not.
+
 ## Cite everything
 
 `CON_08` forbids a statement with no cited build output, test result or diff hunk — and equally forbids
