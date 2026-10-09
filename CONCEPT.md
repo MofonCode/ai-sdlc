@@ -792,14 +792,16 @@ somewhere and trusted everywhere. A signal like the other two, under D-15: it re
 
 ## 8. The solution's own files
 
-Five files in `.sdlc/`, split by **mutability**:
+Five files in `.sdlc/`, split by **protection** — four only a person writes, and one an ordinary cycle
+changes. Mutability was the stated axis for a while and stopped separating anything once D-67 and D-70
+protected two more:
 
 | File | Changed by | Protection |
 |---|---|---|
 | `constraints.md` | a person, by hand | the hook denies every agent write |
 | `decisions.md` | a person, by hand | the hook denies every agent write (D-70) |
 | `techstack.md` | a person, by hand | the hook denies every agent write (D-67) |
-| `solution.md` | `init`, and a cycle for `profile` alone | the hook denies every agent write |
+| `solution.md` | `init` creates it; a person, by hand, after that | the hook denies every agent write |
 | `theme.json` | a cycle whose plan declares it | the ordinary declared-file gate (D-71) |
 
 **Protection is decided by two questions, and the rows split four to one.**
@@ -1637,6 +1639,22 @@ which is the ordinary case.
 | `verify` | evidence exists | no evidence | `verify.md` |
 | `remediate` | verify blocked | not blocked; the loop has regressed or stalled (D-66) | code and tests only |
 | `land` | verify passed | not passed; escalated | push, pull request |
+| `batch-build` | an approved cycle in this working copy | nothing; a cycle downstream of a failure in the claim graph is reported `not attempted` (§10.1) | code, evidence and a verify document per cycle. Never pushes (D-22) |
+| `status` | nothing; a cycle id for the per-cycle form | the cycle does not exist | nothing; it prints |
+| `constraints` | nothing | nothing | nothing; it prints |
+| `suggestions` | nothing | nothing | nothing; it prints, and keeps a copy under `.sdlc/reports/` (D-69) |
+
+**Where a skill requires nothing, the row says so rather than being left out.** An absent row and a row
+saying `nothing` are not the same claim, and the first is what lets a skill quietly check the wrong
+precondition — which is the whole of D-20. It is the same rule `## Open` follows when it is empty (§4.1),
+that `Rejected` follows with "nothing" as a real answer (§20), and that D-64 settled for `conflicts`.
+
+**Two skills are missing from this table deliberately, because nothing has written their preconditions
+down yet.** `resolve-conflict` is scoped to the files no cycle can claim exclusively (§10.1) and nothing
+says what it requires to run or refuses on; `propose` has three subjects that answer differently — D-69
+prints an empty form where the record holds no pattern, D-70 reads only approved cycles, D-71 prints a
+skeleton for a solution with no theme — so it is one row or three, and that is undecided. Named here
+rather than omitted, for the reason in the paragraph above.
 
 **A stage skill whose artifact already exists refuses and names what you probably meant** —
 `interrogate` to judge it, or `steer` to change it (D-18).
