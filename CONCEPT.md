@@ -180,12 +180,18 @@ Steering changes *how*, not *what*. A comment that changes the problem is a diff
 
 ## 4. Artifacts
 
-### 4.1 Every artifact is an envelope carrying a body
+### 4.1 Every governed document is an envelope carrying a body
 
-| Part | Holds | Same across artifacts | Governed by |
+**Five artifacts, four of them documents.** A constraint's `Applies to` names one of five subjects, and
+`sdlc constraints --for` narrows on the same five: `intent`, `spec`, `plan` and `verify` — the governed
+documents — plus `diff`, which is the change itself. **The rest of §4 is about the four.** The envelope,
+the body and `## Open` are properties of a document; a diff has none of them, and `CON_07.2` and
+`CON_11` are the two rules whose subject it is.
+
+| Part | Holds | Same across documents | Governed by |
 |---|---|---|---|
 | **envelope** | `framework_version`, `cycle`, and the `## Open` region | yes, identically | the envelope schema; `CON_14` governs `Open` on three of the four (§19) |
-| **body** | the artifact-specific sections | no, deliberately | a body schema per kind; the constraints bind this |
+| **body** | the sections particular to that document | no, deliberately | a body schema per kind; the constraints bind this |
 
 ```
 framework_version: 1.0.0
@@ -198,7 +204,7 @@ cycle: 20260929_1456_32
 in the file — any other key, any other section — is body, and a key or section nothing declared is a
 violation rather than a tolerated extra (D-31).
 
-**The test for where a field goes:** same on every artifact, with the same meaning and the same
+**The test for where a field goes:** same on every document, with the same meaning and the same
 consumer, goes in the envelope. Differs per artifact because a different consumer reads it, goes in
 the body (D-07, D-07a).
 
@@ -980,8 +986,12 @@ copy, builds **and verifies** each, and reports. There is no shared queue (D-22)
 table, so the binary does it the same way every time — and a graph a session worked out by reading plans
 would come out slightly differently each run, while what it decides is what runs concurrently.
 
-Four per-cycle outcomes: `passed`, `blocked`, `escalated`, and **not attempted** — a cycle downstream
-of a failure in the claim graph.
+**Four per-cycle outcomes, and they are the run's rather than the document's.** `passed` means the
+cycle's verify outcome was `pass`; `blocked` and `escalated` borrow that document's meaning; and **not
+attempted** is a cycle downstream of a failure in the claim graph, which reaches no verify document at
+all. That last value is why the two sets are not one: a verify outcome is `pass`, `blocked` or
+`escalated` and nothing else — the schema holds those three and `verify-chain` compares against the set
+rather than a literal — so a run needs its own vocabulary for a cycle it never got to.
 
 **It schedules around collisions rather than resolving them.** Plans declare the files they claim, so
 a collision is known before anything is built. `resolve-conflict` remains, scoped to files that
@@ -1372,16 +1382,21 @@ conditional (§11.1) and no profile ships one, so there was nothing for a defaul
 §10.2 is where the run-mode contract lives; a profile that one day ships an AppHost template would
 carry defaults for it as part of that template rather than as a category of its own.
 
-**`dotnet-default` is carried by the binary; any other profile is a NuGet package** — D-33. The
-default has to work on a machine with no feed configured and no network, because it is what adoption
-uses, and a restore that can fail is a first command that can fail. Everything beyond the default is
-restorable, versioned, from nuget.org for a public profile and an Azure Artifacts feed for a private
-one — which is the mechanism the `mofoncode` profile needs and the default does not.
+**Every profile the framework ships is carried by the binary** — D-33, as D-68 widened it. The reason is
+about adoption rather than about which profile is which: a profile adoption writes has to work on a
+machine with no feed configured and no network, and a restore that can fail is a first command that can
+fail. That holds for `dotnet-default` and for `ml-tensorflow` equally, which is why the second one could
+be added without touching the argument.
 
-The cost, named: a change to `dotnet-default` is a release of the binary rather than of a package. That
-is the right way round. The default is the thing every solution starts from, so it moves rarely and in
-step with the gate that reads it; a profile that wants its own cadence is exactly the case the package
-mechanism is for.
+**A profile from outside would be a NuGet package — restorable, versioned, on its own cadence — and
+there is no such profile.** The mechanism is recorded rather than built: there is no feed, and §11.3 says
+of the private profile that nothing house-specific has been identified yet. So this is a mechanism
+waiting for content, stated as one, and the first profile that genuinely wants its own release cadence is
+what would build it.
+
+The cost of embedding, named: a change to a shipped profile is a release of the binary rather than of a
+package. That is the right way round. A shipped profile is what solutions start from, so it moves rarely
+and in step with the gate that reads it.
 
 **Versions are resolved at `init` and recorded, never guessed in a document:** take the latest stable
 release compatible with the target framework, write it into `Directory.Packages.props`, and let the
@@ -3283,13 +3298,26 @@ for the alternative, and this one is not hypothetical: it was reached for, with 
 available, because the record was missing. The cost of the omission was nearly a 1093-line
 restructure of the document the framework is specified in.
 
-**What it costs, stated plainly.** §20 is 61% of `CONCEPT.md` and the longest entry (D-38) is 191
-lines, which is longer than most sections it governs. It was 43% and 51 entries when this was decided,
-so the threshold named below has been passed and not yet examined. A reader scrolling past it to reach §19 pays
-for the choice, and the file will keep growing in the half nobody reads front to back. `Governs` is
-what makes that bearable rather than solved — if it stops being bearable, the thing to re-examine is
-whether entries whose rule §1–18 now states can be reduced to a statement, a pointer and their
-`Rejected` list, which is leaning without moving anything.
+**What it costs, stated plainly.** §20 is most of `CONCEPT.md` and the longest entry (D-38) is longer
+than most sections it governs. A reader scrolling past it to reach §19 pays for the choice, and the file
+will keep growing in the half nobody reads front to back. `Governs` is what makes that bearable rather
+than solved — if it stops being bearable, the thing to re-examine is whether entries whose rule §1–18
+now states can be reduced to a statement, a pointer and their `Rejected` list, which is leaning without
+moving anything.
+
+**Corrected 2026-10-09: the threshold fired, the remedy was measured, and it does not work.** This said
+43% when it was decided and the appendix reached 61%, so the condition above was met. The lean it names
+was then measured: the seven entries whose rule §1–18 now states in full — D-02, D-05, D-06, D-07, D-08,
+D-20 and D-31 — come to 131 lines of §20's 3,138. Reducing all seven to a statement and a `Rejected`
+list recovers about 4%, taking 61% to roughly 59%.
+
+So the trigger was designed against a cause that turned out not to be the cause. The size is not in old
+absorbed entries; it is in the recent long ones, and those are long because they carry arguments worth
+keeping — D-38 is the scaffolded layout entire. **The proportion is therefore not the thing to watch,
+and this entry no longer states one**: a ratio that cannot be acted on is a number somebody will argue
+about instead of the thing that matters, which is the same objection D-66 makes to a ceiling nobody
+reaches. What keeps the appendix navigable is `Governs` and the one-fact-one-owner rule, both of which
+hold at any size. A length cap on an entry was the other candidate and is refused under `Rejected`.
 
 **Rejected.**
 
@@ -3302,6 +3330,12 @@ whether entries whose rule §1–18 now states can be reduced to a statement, a 
 - *Deleting absorbed entries to shorten the appendix* — rejected. Ids are permanent, and the
   `Rejected` lists are the half that exists nowhere else.
 - *Renumbering or merging ids* — rejected for the same reason, more strongly.
+- *A cap on how long one entry may be* — the candidate that targets the real cause, and refused. The
+  length of an entry is the length of its argument: D-38 is 191 lines because it decides the whole
+  scaffolded layout, and the `Rejected` lists are the half that exists nowhere else. A cap would be met
+  by splitting one argument across two ids, which costs a reader the thing `Governs` exists to give them
+  and buys nothing — the same shape as the ceiling D-66 removed, where the number gets argued about
+  instead of the rule that actually decides.
 
 ### D-45 — A pull request with no governed cycle is refused, and exempting one is branch policy
 

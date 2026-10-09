@@ -24,7 +24,7 @@ It refuses for four reasons, and each is final rather than advisory:
 |---|---|
 | not verified | there is no verification yet |
 | did not pass | the verdict was `blocked` or `escalated` |
-| escalated | the remediation budget ran out with findings still open |
+| escalated | remediation stopped making progress with findings still open |
 | chain broken | it verified, and something has changed since |
 
 **Do not land past a refusal.** The chain-broken one in particular: the pull-request check would refuse

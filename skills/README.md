@@ -318,8 +318,8 @@ Per criterion: which test did the plan name, does the summary say it ran and pas
 actually establish the criterion? The third question is where judgement lives, and where the verification
 may disagree with the plan — a test that passed but does not reach its criterion is **not met**.
 
-It writes `pass` or `blocked`. **`escalated` is computed, not declared**: it is what the remediation
-budget running out makes of a blocked cycle.
+It writes `pass` or `blocked`. **`escalated` is computed, not declared**: it is what a remediation loop
+that stopped making progress makes of a blocked cycle (D-66).
 
 ### `remediate`
 

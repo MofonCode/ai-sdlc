@@ -104,14 +104,15 @@ and it works because service-free plans have nothing to collide on. §10.2 recor
 Per cycle, in its worktree: the build stage, then the verify stage. **Verify as well as build** — a batch
 that cannot say which cycles succeeded cannot land the ones that did, so "completed" means verified.
 
-Four outcomes:
+Four outcomes, and they are this run's rather than a verify document's — `not attempted` is the one that
+could never be written into one:
 
 | Outcome | What it is |
 |---|---|
-| `passed` | built, verified, ready to land |
-| `blocked` | a criterion unmet, with remediation passes left |
-| `escalated` | the budget ran out. A person picks this up |
-| not attempted | downstream of a failure in the claim graph |
+| `passed` | built, verified, ready to land. Its verify outcome was `pass` |
+| `blocked` | a criterion unmet, and remediation is still reducing what is open |
+| `escalated` | remediation stopped: a pass undid earlier work, or two in a row reduced nothing. A person picks this up |
+| not attempted | downstream of a failure in the claim graph, so it reaches no verify document at all |
 
 **A sibling's failure does not discard the cycles that completed.** Each can be landed individually, and
 reporting them as a batch failure would throw away work that is fine.

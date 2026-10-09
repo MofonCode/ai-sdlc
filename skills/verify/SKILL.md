@@ -71,12 +71,14 @@ nothing about 50,000, and recording that limit is honest; claiming the criterion
 | outcome | When |
 |---|---|
 | `pass` | every criterion met, each on cited evidence |
-| `blocked` | at least one criterion not met, and remediation has passes left |
-| `escalated` | not yours to choose — it is what the budget running out makes of a blocked cycle |
+| `blocked` | at least one criterion not met, and remediation is still reducing what is open |
+| `escalated` | not yours to choose — it is what a remediation loop that stopped progressing makes of a blocked cycle |
 
-**`escalated` is computed, not declared.** Three remediation passes are allowed; the passes are the
-verify findings rounds after the first. Write `blocked` and let the count decide. A cycle you marked
-escalated yourself would be one somebody has to work out the arithmetic of.
+**`escalated` is computed, not declared.** There is no pass ceiling: remediation continues while each
+pass strictly reduces the open blocking findings, and stops when one undoes earlier work or two in a row
+reduce nothing (D-66). The passes are the verify findings rounds after the first. Write `blocked` and let
+the progress decide. A cycle you marked escalated yourself would be one somebody has to work out the
+reasoning of.
 
 ## Write it
 
