@@ -10,6 +10,11 @@ The original longhand draft is preserved unedited in [`CONCEPT.raw.md`](CONCEPT.
 time, with what was rejected. No section repeats a reason, and no decision repeats a design — one
 fact, one owner. A statement in the design carries a `(D-nn)` marker where a decision governs it.
 
+**Where a term is defined.** This document argues; it does not define. [`docs/README.md`](docs/README.md)
+is the components document — every concept the framework names, with what it is, what uses it and where
+it lives, in one or two sentences each. Read it first if a word here is unfamiliar, and put a new
+concept's definition there rather than in the section that happens to introduce it.
+
 Iteration 3 shipped as `0.8.3` and is archived on the `archive/v03` branch of this repository.
 Where this document says a thing already exists, that is where it exists.
 
@@ -1647,6 +1652,12 @@ which is the ordinary case.
 | `status` | prints the stage panel, and the state of a cycle or of all cycles |
 | `constraints` | renders the effective constraint set, all tiers |
 | `suggestions` | lists accumulated non-blocking findings |
+
+**Three documents list these, and the suite holds all three against disk.** This inventory,
+[`skills/README.md`](skills/README.md) — which is the skills' own surface, with a row and a section
+each — and the summary in [`docs/README.md`](docs/README.md). A skill added to one and not the others
+reads as undocumented to the next session, which then works from recollection, so the agreement is
+mechanical rather than promised.
 
 ### 15.1 Preconditions
 
