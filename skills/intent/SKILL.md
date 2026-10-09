@@ -22,8 +22,9 @@ sdlc new
 ```
 
 It prints the id on standard output and the branch command beside it. Do not allocate the id yourself:
-creating the directory **is** the collision check, and two cycles opened in the same second would
-otherwise write into one directory.
+the command **claims** the id as it allocates it, and that claim is the collision check — two cycles
+opened in the same second would otherwise write into one directory. Creating the directory is not the
+check and cannot be, because it succeeds on a directory that is already there.
 
 Then create the branch it names: `git switch -c cycle/<id>`.
 

@@ -113,7 +113,7 @@ The process is exercised by running cycles in `dice-trial`.
 ```
 intent -> spec -> plan -> build -> verify -> land
                             ^         |
-                            +- remediate (<= 3) -+
+                            +- remediate (while reducing) -+
 ```
 
 | Phase | Answers | Produces |
@@ -134,7 +134,9 @@ verify      -> remediate -> verify           the code, while each pass reduces w
 
 **Neither loop counts rounds, and both stop on oscillation.** An artifact loop stops when one rule has
 been answered and raised again three times (D-65); a remediation loop stops when a pass undoes earlier
-work, or two in a row reduce nothing (D-66). Then the outcome is `escalated` and landing refuses it. The
+work, or two in a row reduce nothing (D-66). **A remediation halt sets the verify outcome to `escalated`,
+and landing refuses it. An artifact-loop halt reports and hands back to a person:** what decides whether
+the artifact advances is still its open blockers, which already refuse the build (D-65). The
 reason neither is a count: on the intent that ran eleven rounds, round seven found that the headline
 change was unreachable and round eleven found that no success criterion failed if it were skipped
 entirely — and a cap low enough to catch a loop going in circles would have stopped it at four.
@@ -182,7 +184,7 @@ Steering changes *how*, not *what*. A comment that changes the problem is a diff
 
 | Part | Holds | Same across artifacts | Governed by |
 |---|---|---|---|
-| **envelope** | `framework_version`, `cycle`, and the `## Open` region | yes, identically | the envelope schema; `CON_14` governs `Open` |
+| **envelope** | `framework_version`, `cycle`, and the `## Open` region | yes, identically | the envelope schema; `CON_14` governs `Open` on three of the four (§19) |
 | **body** | the artifact-specific sections | no, deliberately | a body schema per kind; the constraints bind this |
 
 ```
@@ -211,13 +213,13 @@ separating "the part that is judged".
 | Artifact | Body | What consumes each |
 |---|---|---|
 | `intent` | `Problem` | `CON_01`; `spec` derives criteria from it |
-| | `Wanted outcomes` | `CON_04` — this is its left-hand side |
+| | `Wanted outcomes` | `CON_16` — this is its left-hand side |
 | | `Fixed decisions` | `CON_01` routes decisions-already-taken here; `plan` cites them; `steer` writes here |
-| | `Must not change` | `CON_04`, which names it |
+| | `Must not change` | `CON_16`, which names it |
 | | `type` | the change classification; later artifacts read it |
-| `spec` | `Acceptance criteria` | `CON_03`, `CON_04`, `CON_05`, `CON_06`, `CON_12`, and `verify` |
-| | `Out of scope` | `CON_05`; a disposal destination (§5.4) |
-| `plan` | `Shape and departures` | `CON_13` |
+| `spec` | `Acceptance criteria` | `CON_03`, `CON_05`, `CON_06`, `CON_12`, `CON_16`, `CON_17`, and `verify` |
+| | `Out of scope` | `CON_05`, `CON_16`; a disposal destination (§5.4) |
+| `plan` | `Shape and departures` | `CON_15`, `CON_18`, `CON_19` |
 | | `Files` | the blast-radius signal and the claim graph; ordering reasoning lives here |
 | | `Proof` | `CON_06`, and `verify`'s criterion table |
 | | `Risk` | the person at the gate |
@@ -241,11 +243,20 @@ things it is not, each with its own home: work nobody has done yet (a later cycl
 goes in the artifact's decisions region marked unconfirmed: `Fixed decisions` on an intent, `Shape
 and departures` on a plan. A spec has neither and needs neither.
 
+**`CON_14` governs this region on an intent, a spec and a plan, and nothing governs it on a verify.**
+D-03 is what makes that a gap rather than a detail: the open region is the compliant exit, which makes
+it the exploitable one, and `CON_14` is the only control. On a verify the temptation is specific —
+recording a criterion as a limit of the proof rather than as unmet — and the chain would still hold,
+because `verify-chain` asks that every criterion has a proof entry and that the outcome reads `pass`.
+**The gap is routed to a mechanical check rather than to a rule**, because §7.2's second admission test
+refuses a constraint that a schema could decide and *whether every criterion is adjudicated in
+`Criteria`* is presence, which D-05 already establishes a parser decides. Not built; §19 holds it.
+
 ### 4.4 The plan holds two kinds of claim
 
 | Section | Kind | Judged by |
 |---|---|---|
-| `Shape and departures` | a **decision** — which approach | `CON_06`, `CON_13` |
+| `Shape and departures` | a **decision** — which approach | `CON_15`, `CON_18`, `CON_19` |
 | `Files` | an **estimate** — which files, how large | nothing; it is a signal |
 
 A plan holds a file table, never diffs. Line-level change is the build artifact — the branch and
@@ -284,8 +295,10 @@ because a person reading a plan is reading it against the spec it cites.
 **The gate is local, and only local.** A code owner merges the pull request, never the agent that
 authored it.
 
-`solution.md` and the constraint set are approved by being hand-edited; neither is part of a cycle
-gate.
+`constraints.md`, `decisions.md`, `techstack.md` and `solution.md` are approved by being hand-edited — a
+person places each, and none is part of a cycle gate (§5.3). `theme.json` is the exception and is changed
+by an ordinary cycle that declares it, so the planning approval covers it like any other declared file
+(D-71).
 
 ### 5.2 The approval ledger
 
@@ -343,6 +356,7 @@ Six files only a person writes:
 | `abandoned.md` | why the cycle stopped |
 | `constraints.md` | a proposed `LOC_nn` — **proposed rather than drafted**, D-69 |
 | `decisions.md` | a proposed `DEC_nn` — proposed from the approved record, D-70 |
+| `techstack.md` | a stack change — the file copied beside itself, for a person to rename, D-67 |
 | `solution.md` | the `profile` line, on migration |
 
 One verb drafts four of them: `sdlc draft approval <id>`, `draft abandon <id>`, `draft profile <name>`,
@@ -402,7 +416,7 @@ Three mechanical checks need no reading comprehension:
    a reason, or under `Open` citing the intent item (D-05)
 2. every spec criterion maps to at least one file and one named test in the plan
 3. every changed file is declared in the plan, and every declared file changed — recorded as a
-   signal, not a gate (§7.6)
+   signal, not a gate (§7.7)
 
 With every intent item disposed, anything still open at plan time is by construction out of scope or
 explicitly deferred: anything in scope got a criterion, and `CON_06` and `CON_12` require every
@@ -424,9 +438,9 @@ coin twice.
 **What the reader is given is the constraints, the artifact, and the artifact above it — plus
 `techstack.md` when the artifact is a plan.** The line being drawn is between a rule source and the
 cycle's own history: the first is what the document is judged against and predates the cycle, the
-second is what the new process was opened to withhold. `CON_13` is a rule entirely about conformance
-to the stack file, so a reader without it could only object to a departure the plan admitted to
-(D-58).
+second is what the new process was opened to withhold. `CON_15` is a rule entirely about conformance
+to the stack file, so a reader without it could object neither to a departure the plan admitted to nor
+to a declared default the plan silently left unapplied (D-58).
 
 ### 6.1 Findings are data
 
@@ -446,8 +460,8 @@ to the stack file, so a reader without it could only object to a departure the p
       "severity": "blocking",
       "disposition": "open",
       "cites": {
-        "id": "CON_04",
-        "heading": "a spec covers every outcome its intent asks for"
+        "id": "CON_16",
+        "heading": "a spec covers every outcome its intent asks for, and all of each one"
       },
       "statement": "...what is wrong, in full",
       "locus": "...where in the artifact",
@@ -516,8 +530,11 @@ is now `answered` — or `withdrawn`, where the objection was dropped rather tha
 reader raises again stays open whatever anyone says about it, and so does one nobody can place in
 either case. This is the only exit from a blocking finding, because D-27 removes every other one.
 
-**How many rounds is the owner's call, and there is no cap.** The panel reports what each round found
-and the cost of a round, and attaches no recommendation about continuing.
+**How many rounds is the owner's call, and there is no cap** — but the loop is not unwatched. The panel
+reports what each round found and the cost of a round, and its `Loop` line names a rule that has been
+answered and raised again: at two points it tells the refiner it is refighting old ground and what the
+rule is caught against, and at three the loop stops and hands back (D-65). What it never says is that the
+rules conflict, which the counter cannot tell from a refiner repeating a mistake.
 
 ### 6.2 A round records the upstream it judged against
 
@@ -559,8 +576,9 @@ and identical behaviour on every host. A person editing an artifact by hand need
 
 ### 6.4 The loop's three exits
 
-Each stage skill loops until a round is clean or nothing further can be settled. Every finding has
-exactly three exits:
+Each stage skill loops until the round is clean, a reader reports a conflict, or the loop is stuck —
+with "stuck" decided by the oscillation counter rather than by the session doing the work (D-65). Every
+finding has exactly three exits:
 
 | Exit | When | Where it shows |
 |---|---|---|
@@ -691,9 +709,7 @@ rather than retired, which D-27 argued and recorded.
 Nothing was lost by not superseding it. A supersession keeps an old rule readable so a **live** finding
 stays judgeable against it, and there is no such finding: no finding has ever cited `CON_10`, and the
 act it governed cannot occur, so none can be written. Preserving its wording would have protected
-nobody — and the only wording a revision has actually replaced was `CON_07`'s original `Why`, which
-claimed a hook enforced the declared file set when no hook ever has. A rule library is read as current;
-carrying a corrected error in it forever is the worse of the two losses.
+nobody.
 
 ### 7.5 The set
 
@@ -717,13 +733,15 @@ carrying a corrected error in it forever is the worse of the two losses.
 | `CON_18` | a plan that changes a rule the cycle is judged by says what the rule would have cost | plan |
 | `CON_19` | a plan says why it departs from a decision the solution has recorded | plan |
 
-`CON_04` and `CON_13` are not in this table because they no longer bind. `CON_04` required every
+**Two ids are absent because they no longer bind**, and each is explained once below.
+
+`CON_04` required every
 stated outcome to have a criterion and said nothing about a criterion covering only part of one,
 which is the commoner failure and the harder to see: a narrowed criterion still traces to its
 outcome and still passes a coverage check. `CON_16` replaces it and covers both, with the
 remainder going in `Out of scope` where no test can reach it (D-61).
 
-`CON_13` is not in this table because it no longer binds: it forbade a plan reaching for an
+`CON_13` forbade a plan reaching for an
 undeclared package, pattern or layer without saying what the declared default would have cost, and
 said nothing about a plan leaving a declared default unapplied. That half was the one that went
 unnoticed — the rule objected to the author who was adding and not to the author who was leaving
@@ -735,7 +753,9 @@ the rule it was judged under (D-59).
 sample, the cause was traced to the sample rather than the constraint, and the fix was made by
 reading rather than re-running.
 
-`CON_04` and `CON_05` stay separate — a gap and creep fail differently and are remedied differently.
+`CON_16` and `CON_05` stay separate — a gap, creep and narrowing fail differently and are remedied
+differently: a gap sends you back for another criterion, creep sends you to delete one, and narrowing
+sends you to widen the one that is already there (D-61).
 
 ### 7.6 Where the "must be provable" principle lives
 
@@ -778,16 +798,27 @@ Five files in `.sdlc/`, split by **mutability**:
 |---|---|---|
 | `constraints.md` | a person, by hand | the hook denies every agent write |
 | `decisions.md` | a person, by hand | the hook denies every agent write (D-70) |
-| `techstack.md` | a cycle whose plan declares it | the ordinary declared-file gate |
+| `techstack.md` | a person, by hand | the hook denies every agent write (D-67) |
 | `solution.md` | `init`, and a cycle for `profile` alone | the hook denies every agent write |
 | `theme.json` | a cycle whose plan declares it | the ordinary declared-file gate (D-71) |
 
-**Three are rule sources and two are not, and that is what decides the protection.** A plan is judged
-against the constraints and the declared stack, so an agent able to write either could satisfy a rule by
-editing it rather than arguing for it. `decisions.md` is protected for a sharper reason — a stage *reads*
-it for alignment, so an agent that could write it could invent doctrine and then align to it. The theme
-is protected by nothing because nothing reads a colour that way: there is no loop to close, and a hook
-rule nothing needs is one somebody later carves an exception into.
+**Protection is decided by two questions, and the rows split four to one.**
+
+*Is something judged against it?* `constraints.md` and `techstack.md` are the two rule sources a plan is
+read against, so an agent able to write either could satisfy a rule by editing it rather than arguing for
+it. *Does a stage take its brief from it?* `decisions.md`, which is the sharper case — nothing judges a
+plan against the record, and an agent that could write it could invent doctrine and then align to it.
+
+**`solution.md` answers no to both and is protected anyway, for the reason that makes every hook rule
+absolute (D-09, generalised by D-43).** The origin is a historical fact that must never change, and the
+alternative is per-key protection — the framework's first conditional hook rule, which is where a bypass
+would live. That is a rule about the mechanism rather than about this file: a hook rule with a condition
+is a rule somebody can arrange to be exempt from, so the whole file is protected and the rule set still
+states in one sentence. It is the third question a candidate for protection has to answer.
+
+`theme.json` answers no to all three. Nothing judges a colour, no stage takes its brief from one, and a
+hook rule nothing needs is one somebody later carves an exception into — which is the same argument from
+the other end.
 
 `.sdlc/README.md` is framework-owned, regenerated by `init` in update mode, unprotected. So is
 `.sdlc/hooks/pre-push`, which refuses to push a cycle branch that is not landable.
@@ -831,11 +862,18 @@ is a linter under §2.3 rather than a constraint.
 
 ### 8.2 `techstack.md`
 
-What this solution is built from, and what a plan builds with. **Not enforced:** no global constraint
-may name a language, framework or package, so nothing here binds by itself. A solution that wants a
-default to bind adds a `LOC_` constraint or an architecture test.
+What this solution is built from, and what a plan builds with. **No global constraint names anything in
+it** — stack neutrality (§7.2) forbids that — so no row here is mandatory by itself. What binds is the
+**arguing**: `CON_15` makes a plan say why it departs from a declared default, in either direction —
+reaching for something undeclared, or leaving something declared unapplied in work that calls for it.
+Departing stays legal; departing in silence does not.
 
-**A plan may depart from any default. Silence about departing is what is illegal** — `CON_13`.
+**A solution that wants a row to be mandatory adds a `LOC_` constraint or an architecture test.** One row
+already is: liveness, which the scaffold writes and a fitness function keeps, because the cost of
+omitting it is paid by somebody who did not omit it (§11.1, D-54).
+
+**The file itself is a person's, not a cycle's** (D-67). A plan may not declare it, and the plan schema
+refuses one that does; `sdlc draft techstack` copies the file beside itself for a person to rename.
 
 ### 8.3 `solution.md`
 
@@ -1091,7 +1129,7 @@ providers call into JavaScript, and bUnit's strict default throws on the first u
 reads as a broken component rather than a missing registration.
 
 **Liveness is the one row here that binds — D-54.** Every other row is a default a plan may depart from
-by saying why (`CON_13`); this one the scaffold writes and a fitness function keeps, because the cost of
+by saying why (`CON_15`); this one the scaffold writes and a fitness function keeps, because the cost of
 omitting it is paid in production by somebody who did not omit it. It is deliberately not an `ApiResult`
 endpoint: the caller is a load balancer, which has never heard of this solution's envelope.
 
@@ -1373,11 +1411,15 @@ What differs is vocabulary.
 | Claude Code | `PreToolUse` | `Stop` | `.claude/settings.json` or plugin | `permissionDecision: "deny"` |
 | GitHub Copilot | `preToolUse` | `agentStop` | `.github/hooks/*.json` | `permissionDecision`; takes `bash` **and** `powershell` |
 | OpenAI Codex CLI | `PreToolUse` | not checked | `.codex/config.toml` | `permissionDecision` + reason |
-| Antigravity | `PreToolUse` | not checked | `.agents/hooks.json` or a plugin | same, plus `ask` / `force_ask` |
+| Antigravity | `PreToolUse` | `Stop`, ungoverned | `.agents/hooks.json` or a plugin | same, plus `ask` / `force_ask` |
 
-**"Not checked" is a real entry and is never filled in by inference.** This table said Copilot had no
-turn-end event, which was never true, and the claim travelled into the generated configuration, the
-command line, the guides and the readme before anybody re-read the host's documentation. D-46.
+**The turn-end column takes three values, not two.** An event name means the framework governs the
+moment. **"Not checked"** means nobody has read that host's documentation, and **is never filled in by
+inference** — this table said Copilot had no turn-end event, which was never true, and the claim
+travelled into the generated configuration, the command line, the guides and the readme before anybody
+re-read the host's documentation (D-46). **"Ungoverned"** means the event was read and deliberately left
+alone: Antigravity's `Stop` has no `stop_hook_active` equivalent, so a refusal there could loop forever,
+and the command line refuses the combination by name (D-51).
 
 **Claude Code and Copilot govern both moments; Antigravity governs the tool call only.** The first two
 use the same two permission fields — nested on Claude Code, at the top level on Copilot — and send a turn
@@ -1522,7 +1564,8 @@ document says about itself, and the next step.
             3 sections: Acceptance criteria, Out of scope, Open
 
   Checks    r1: 2 blocking - r2: 1 blocking
-            F_01   CON_04      blocking
+            F_01   CON_16      blocking
+                a spec covers every outcome its intent asks for, and all of each one
                 the decided delivery has no criterion at all
 
   Gate      not approved yet
@@ -1544,6 +1587,14 @@ Four rules:
 The `Says` line is read from the document — its first heading and its section headings. A
 command-line tool cannot summarise content, and inventing one would be worse than showing the
 headings a person wrote.
+
+**A citation is shown as its id and the rule's own line, never the id alone** (D-63). This panel is
+where somebody meets a blocker when deciding what to do about it, and an id with no words beside it says
+a rule was broken without saying which.
+
+**A `Loop` row appears only when the oscillation counter has something to say** — a rule answered and
+raised again, with what it is caught against (D-65). It is absent above because nothing has relapsed,
+which is the ordinary case.
 
 ---
 
@@ -1575,7 +1626,7 @@ headings a person wrote.
 | Skill | Requires | Refuses when | Writes |
 |---|---|---|---|
 | `init` | a git repository | not a repository | the scaffolding, per mode |
-| `intent` | nothing | an intent exists | `intent.md`, creating the cycle directory |
+| `intent` | nothing | an intent exists, or the id it was handed is already claimed | `intent.md`, into the directory `sdlc new` opened |
 | `spec` | a clean intent | intent missing or not clean; a spec exists | `spec.md` |
 | `plan` | a clean spec | spec missing or not clean; a plan exists | `plan.md` |
 | `interrogate` | the artifact exists | it does not | a findings round |
@@ -1584,7 +1635,7 @@ headings a person wrote.
 | `draft approval` | three documents, each with a round | any missing, uninterrogated, holding an open blocker, or judged against an upstream that has changed | nothing; it prints |
 | `build` | the gate satisfied | the gate refuses | code, evidence |
 | `verify` | evidence exists | no evidence | `verify.md` |
-| `remediate` | verify blocked | not blocked; three passes spent | code and tests only |
+| `remediate` | verify blocked | not blocked; the loop has regressed or stalled (D-66) | code and tests only |
 | `land` | verify passed | not passed; escalated | push, pull request |
 
 **A stage skill whose artifact already exists refuses and names what you probably meant** —
@@ -1599,7 +1650,7 @@ they print verbatim.
 | Command | Does |
 |---|---|
 | `init` | adopts the framework — three modes, §9. Human-invoked; the hook denies an agent running it |
-| `new` | allocates a cycle id and creates its directory, which **is** the collision check (D-10) |
+| `new` | opens a cycle: allocates the id, creates its directory, and **claims** the id with a marker the filesystem refuses to create twice — the claim is the collision check, not the directory (D-10) |
 | `constraints [--for <artifact>]` | renders the effective set, all tiers. How the rules reach a session |
 | `status <id> [--stage] [--brief]` | the stage panel — §14. `--brief` is the between-stages form: the counts, what the artifact says, and the next command |
 | `findings <id> [--stage] [--round]` | what the interrogations said about one cycle, per artifact, each finding at the disposition that stands |
@@ -1638,8 +1689,10 @@ the install is broken.
 is landed or eight, so the binary owns it; pushing and writing a pull-request body needs the platform's
 own tool and a sentence somebody wrote, so the skill owns that.
 
-`intent` creates the cycle directory as its first act and fails if it exists. Creating it **is** the
-collision check, and the filesystem makes that atomic (D-10).
+`intent` opens the cycle as its first act by running `sdlc new`, rather than allocating an id itself.
+That command creates the directory and then **claims** the id with a `.opened` marker opened so that the
+filesystem refuses a second one — which is the collision check, and is atomic. Creating the directory is
+not: it succeeds on one that is already there (D-10).
 
 ---
 
@@ -1658,7 +1711,15 @@ collision check, and the filesystem makes that atomic (D-10).
                             .gitignore the directory carries itself, and read back by nothing --
                             which is the whole difference between a report and a record (D-69)
   cycles/
+    .gitignore              ignores every cycle's .opened, and keeps itself tracked. Written by
+                            `sdlc new` when the first cycle is opened, so an existing solution
+                            gets it without an adoption re-run (D-10, the shape D-69 settled)
     20260929_1456_32/
+      .opened               the marker that claims this id. Created so that the filesystem refuses
+                            a second one, which **is** the collision check -- creating the
+                            directory is not, because that succeeds on one already there. Nothing
+                            reads its contents; its existence is the whole of the information, and
+                            it is local state rather than history, so it is not committed (D-10)
       intent.md
       spec.md
       plan.md
@@ -1761,6 +1822,13 @@ block, then remediate, then exhaust the budget.
 
 ## 19. Open questions
 
+**A candidate here never carries an id.** D-69 settled this for the rules `propose constraints`
+reports and the reasoning is the same wherever a rule is waiting: *"§7.4 makes a gap the record of a
+constraint that was **removed**. A proposal nobody took would be indistinguishable from a rule somebody
+retired."* An id on a candidate is worse than a gap, because it can also be issued to something else
+while the candidate waits — which is what happened to item 2 below. So a held rule is described, the
+next free id is looked up when somebody adopts it, and nothing here reserves a number.
+
 1. **Which `PRO_nn` conventions become analyzers?** Narrowed from three to two, and the blocker is
    gone: the kernel has been read and it ships no analyzers (§11.3). **Mediator dispatch no longer
    needs one** — a handler is private inside its holder (§11.3.1), so nothing can reach past the
@@ -1770,9 +1838,22 @@ block, then remediate, then exhaust the budget.
    than "analyzer or not": a fitness function over the assemblies decides the mechanical part of both
    with no analyzer project, no diagnostic ids and no packaging — which is what the no-pragma rule
    turned out to want when it was built (§11.4).
-2. **`CON_15`, held rather than open.** *A plan's blast radius matches what it changes* — admissible
-   on all three tests, and held until `tier` is in use so the constraint describes the rule rather
-   than its first example.
+2. **A blast-radius constraint, held and unnumbered.** *A plan's blast radius matches what it
+   changes* — held until `tier` is in use, so the constraint would describe the rule rather than its
+   first example. **Deliberately carries no id**, by the rule above. It held `CON_15` for a while,
+   which D-59 then issued to the declared-default rule — two rules under one number, which §7.4
+   forbids outright and which no later edit can repair once a finding has cited the ambiguous id.
+
+   **Before anybody adopts it, it has to be reconciled with D-15, which appears to foreclose it.**
+   That entry demoted the declared-versus-changed comparison from a gate to a signal and said what
+   replaces it: *"build fails, tests fail, or the proof is not met. Outcome-based rather than
+   process-based."* A rule requiring a plan's blast radius to match what it changes is that
+   comparison promoted back to a process-based blocker. There is a second problem with the wording:
+   a constraint judges a plan **at approval**, when there is no change to compare the declared set
+   against — and the comparison after the fact is `CON_07.2`, which already binds. So this is either
+   a reversal of D-15, which §20 says needs a new id and an argument, or it is already covered. It is
+   recorded here rather than dropped because deciding which is a person's call; what is not open is
+   that it may not quietly become a rule.
 3. **The cross-cycle learning loop, half closed.** v02 built `retro` and `absorb-retro` with a
    corpus, an importer that refuses to overwrite differing content, and signals computed read-only;
    v03 removed them and recorded the cost — *"nothing aggregates automatically."* `propose
@@ -1837,16 +1918,28 @@ block, then remediate, then exhaust the budget.
    conventions new work follows, and a shared register would sit beside them. Nothing blocks it; no
    solution has wanted it yet.
 
+10. **Nothing judges a verify document's open region, and the check that would is not built.** §4.3
+    carries the gap and where it is routed: §7.2 refuses a constraint for a question a schema could
+    decide, so this wants a chain check asserting every spec criterion is adjudicated in `Criteria`
+    rather than recorded as a limit under `Open` — presence, which D-05 already establishes a parser
+    decides. What is undecided is only where it lives. `verify-chain` is the obvious home, because it
+    already reads every criterion and the outcome; the body schema is the other, and would catch it
+    one step earlier at the cost of the schema knowing what the spec says. Open because the placement
+    is undecided, not because the gap is in doubt.
+
 ---
 
 ## 20. Decisions
 
 Ids are a monotonic sequence of their own, separate from `CON_nn`: a constraint judges an artifact, a
 decision explains the framework. Assigned once, never reused. **A reversed decision is superseded by
-a new id rather than edited**, so a commit citing `D-14` still means what it meant.
+a new id rather than edited**, so a commit citing `D-14` still means what it meant. **An entry whose
+reasoning stands while a fact inside it has gone stale is corrected and dated instead** — a different
+act, and D-73 says which is which and why confusing them puts a live decision out of force.
 
-**This is reference material, not reading.** Fifty-one entries and about half this document, so the
-way in is a lookup rather than the top. `AGENTS.md` carries the two commands; in short, a section's
+**This is reference material, not reading.** Most of this document, so the way in is a lookup rather
+than the top. The count is deliberately not stated here — it drifts every time an entry is added, which
+is why the readme does not state it either; D-44 carries the proportion and what it costs. `AGENTS.md` carries the two commands; in short, a section's
 trailing `(D-nn)` marker answers "what constrains this", and an entry's `Governs` answers the reverse.
 **Read `Rejected` first when proposing something** — it is where the alternative you are reaching for
 has usually already been weighed, which is the whole reason the field exists.
@@ -2015,21 +2108,43 @@ rarely, so protecting both costs one manual line per migration. The alternatives
 `origin` or introduce the framework's **first conditional hook rule**, which is where a bypass would
 live. Every hook rule staying absolute means the whole rule set states in one sentence.
 
-**And it completes a pattern.** Five protected files follow one rule — a tool never writes them, a
-tool drafts what to put in them — so it is **one verb, not four commands**.
+**And it completes a pattern.** The protected files follow one rule — a tool never writes them, a tool
+drafts what to put in them — so it is **one verb, not a command each**. **Corrected 2026-10-09:** this
+said five files and four commands, which was the set when it was written; D-67 and D-70 made it six
+files and five drafting commands, and two of the six are proposed rather than drafted (D-69, D-70).
+§5.3 owns both counts. The pattern is what this entry is about and it is unchanged by the arithmetic.
 
 **Rejected.** Per-key protection: the hook sees a path, never a before-and-after. Leaving it
 unprotected: makes `origin` agent-rewritable. Splitting into two files.
 
-### D-10 — The intent skill creates the cycle directory, and fails if it exists
+### D-10 — Opening a cycle claims its id, and the filesystem decides the collision
 
-**Governs:** §15.2
+**Governs:** §15.2, §16
 
 **Why.** The claim that an existing directory catches a collision was false, because at allocation
-there was no directory. Creating it **is** the check, and the filesystem makes that atomic.
+there was no directory. Claiming the id as it is allocated **is** the check, and the filesystem makes
+that atomic.
+
+**Corrected 2026-10-09.** The decision stands and so does its reasoning; two facts in it did not.
+
+*The mechanism.* This entry said *"Creating it **is** the check"*, and creating a directory cannot be:
+`Directory.CreateDirectory` succeeds on a directory that is already there, so it has no failure to
+collide on. The claim is a `.opened` marker opened with `FileMode.CreateNew`, which throws when the file
+exists — one atomic operation the filesystem decides, which is what this decision always asked for. The
+directory is created first and harmlessly; an existing one is not the collision, the claim is.
+
+*The component.* The heading said the **intent skill** creates the directory. `sdlc new` does, and the
+intent skill runs it (§15.2). The heading is corrected because §20 makes the heading the decision, and a
+heading naming a mechanism that cannot work is the worst place in the entry for it to sit.
+
+The `Rejected` list gained the option that was actually taken and had to be undone — see below. §16 owns
+the marker and is now named in `Governs`.
 
 **Rejected.** Deleting the claim, which leaves a collision to surface as a confusing merge. Checking
-without creating, which leaves a race.
+without creating, which leaves a race. **Creating the directory and treating that as the claim** —
+which is what shipped for a while and is equally racy by a different route: it cannot fail on an
+existing directory, so two cycles opened in the same second both proceed and write into one. That it
+read as satisfying this entry is the reason the correction above exists.
 
 ### D-11 — A refusal is drafted too
 
@@ -2392,6 +2507,13 @@ the work actually lives, the half with no pipeline.
 `init` writes its files directly. The NuGet mechanism in §11.5 stands for every other profile — a
 private house profile, a profile for another stack — and those are restorable and versioned on their
 own cadence.
+
+**Superseded in part by D-68.** This entry drew the line at the *default* profile, which was the whole
+of the embedded set when it was written. D-68 ships a second embedded profile, `ml-tensorflow`, so
+"every other profile is a package" is no longer true as stated — what survives is the reasoning, which
+is about a restore that can fail rather than about which profile is which: a profile adoption depends on
+cannot need a feed. The package mechanism stays open and has no user yet. §11.5 carries the current
+rule.
 
 **Why.** The two halves of a profile reach a solution differently and only one of them can be a
 package today. Prose defaults are *extracted and injected* into a plan, because a session inside a
@@ -3088,9 +3210,12 @@ bypass would live; this generalises that from one file to the mechanism.
 **What the guarantee actually is, stated so nobody has to rediscover it.** Three layers, and the first
 is the only one at the keystroke:
 
-- `approval.md`, `abandoned.md`, `constraints.md` and `solution.md` — denied absolutely, in file writes
-  and in shell commands alike. These work *because* they have no exception: there is no approve command
-  for one to be carved out for.
+- `approval.md`, `abandoned.md`, `constraints.md`, `decisions.md`, `techstack.md` and `solution.md` —
+  denied absolutely, in file writes and in shell commands alike. These work *because* they have no
+  exception: there is no approve command for one to be carved out for. **Corrected 2026-10-09:** this
+  list named four, which was the protected set when it was written; D-67 added the declared stack and
+  D-70 the decision record. §5.3 owns the set, and a reader who took this list at its word — which the
+  heading above invites — learned a guarantee a third short.
 - Everything else in §6.3's table — the skills' own discipline, stated in each skill as a rule rather
   than a railing.
 - A planning document edited after approval — caught by the gate, because the ledger records the three
@@ -3140,8 +3265,9 @@ for the alternative, and this one is not hypothetical: it was reached for, with 
 available, because the record was missing. The cost of the omission was nearly a 1093-line
 restructure of the document the framework is specified in.
 
-**What it costs, stated plainly.** §20 is 43% of `CONCEPT.md` and the longest entry (D-38) is 188
-lines, which is longer than most sections it governs. A reader scrolling past it to reach §19 pays
+**What it costs, stated plainly.** §20 is 61% of `CONCEPT.md` and the longest entry (D-38) is 191
+lines, which is longer than most sections it governs. It was 43% and 51 entries when this was decided,
+so the threshold named below has been passed and not yet examined. A reader scrolling past it to reach §19 pays
 for the choice, and the file will keep growing in the half nobody reads front to back. `Governs` is
 what makes that bearable rather than solved — if it stops being bearable, the thing to re-examine is
 whether entries whose rule §1–18 now states can be reduced to a statement, a pointer and their
@@ -3752,7 +3878,8 @@ would go stale.
 registration or the route is gone. `techstack.md` declares it, and it is the one row there that binds.
 
 **Why enforced rather than declared.** A `techstack.md` row is a default a plan may depart from by saying
-why (`CON_13`), which is right for a database or a UI framework and wrong here, because the cost of the
+why (`CON_13` — named here because that is the rule this decision was taken against; `CON_15` is the rule
+today, and D-59 records why), which is right for a database or a UI framework and wrong here, because the cost of the
 omission is not paid by the person who chose it. A process with no liveness route is one an orchestrator
 cannot distinguish from a process that is up and broken, so it keeps routing traffic to it — and that is
 discovered in production by somebody who did not delete the line. That asymmetry is exactly what a
@@ -4499,7 +4626,7 @@ job once, and after that it would be a tool declaring a stack.
 
 ### D-68 — A profile selects one flat stack table, and says when it has no skeleton
 
-**Governs:** §8
+**Governs:** §8.3, §11.5
 
 **Decision.** `StackProfiles` ships two embedded profiles, `dotnet-default` and `ml-tensorflow`. The
 `profile` key selects which declared stack adoption writes. Rows are composed in the framework from a
@@ -4713,8 +4840,9 @@ satisfy a rule by editing it. Nothing judges a plan against this record — and 
 agent-written, because a **stage reads it for alignment**. An agent that could write it could invent
 doctrine and then align to it, which is a tighter loop than the one the other two guard against.
 
-**Why it binds nothing, stated plainly because the plan expected otherwise.** The working plan and §19
-item 9 both claimed an entry would be covered by `CON_15` as a declared default. That is wrong:
+**Why it binds nothing, stated plainly because the plan expected otherwise.** The working plan and the
+open question that became D-72 both claimed an entry would be covered by `CON_15` as a declared
+default. That is wrong:
 `CON_15`'s `Forbids` clause names `techstack.md` specifically, so a plan departing from a recorded
 decision breaks no rule today. Making it bind takes a **new** global constraint rather than a reworded
 one, because what is forbidden would change (§7.4), and a global rule is a person's to write. The gap is
@@ -4873,3 +5001,69 @@ contradiction of something a person wrote is not decoration.
 - *Making the theme bind the same way* — refused for the reason D-71 gives: *a colour outside the
   theme* is mechanically decidable, so §2.3 puts it in a linter, which fails a build where a constraint
   cannot.
+
+### D-73 — A decision whose facts went stale is corrected and dated, not superseded
+
+**Governs:** §20
+
+**Decision.** Four forms, and which applies turns on **what moved**:
+
+| Form | When | What happens to the entry |
+|---|---|---|
+| `Superseded by` / `Superseded in part by` | a later entry **decided differently** | text untouched; the later id carries the reasoning |
+| `Reversed in part by` | the **conclusion** was reversed | text untouched; the later id says what reversed and why |
+| **`Corrected <date>`** | the decision and its reasoning stand, and a **fact inside the entry** — a list, a count, a mechanism, a path — no longer describes what is true | the fact is brought current and a dated line says what changed and which section owns it. No reasoning is rewritten and no id is issued |
+| a quotation left as read | the entry **quotes** something that was wrong when quoted | the quotation stays, annotated: it is the wording the decision was taken against |
+
+**And an entry states a fact that lives elsewhere at its peril.** Where a count or a list has an owner
+in §1–18, prefer naming the section over repeating it — `Governs` already points that way. Applied when
+an entry is next touched rather than swept through seventy-two of them: the value is per entry, and a
+sweep is the large edit D-44 declined.
+
+**Why.** The preamble covered reversal and nothing else, so an entry whose *reasoning* stood while a
+list inside it went short had no recorded form — and three entries improvised three different ones.
+D-15 annotated a wrong quotation, D-28 wrote `Superseded in part by D-40`, D-70 wrote
+`Reversed in part by D-72`. None of the three describes the case that actually recurs: D-43 states what
+the keystroke layer denies *"so nobody has to rediscover it"* and named four files, because D-67 and
+D-70 had not yet protected the other two. Nothing was decided differently and nothing was reversed. The
+list was simply true when written, and a reader who did what the heading invited learned a guarantee a
+third short.
+
+**Why the distinction is load-bearing rather than tidy.** The other three forms all say *the decision
+moved*, and a reader meeting one goes looking for the entry that replaced it. On a stale fact there is
+no such entry, so a supersession note sends them hunting for something that does not exist and quietly
+puts a live decision out of force on the page. A correction says the opposite thing — this still binds,
+and one fact in it has been brought current.
+
+**Why dated.** The date is what separates a correction from an edit. §20's whole promise is that a
+commit citing an id still means what it meant, and an undated change to an entry's text is
+indistinguishable from the silent rewrite the preamble forbids. A date and a named cause make the
+change auditable against the commit that made it.
+
+**Why a quotation is the exception.** D-15 quotes `CON_07` revision 1, which claimed a hook enforced
+the declared file set when none ever had. That is not a stale fact — it was false when written, and it
+is the wording the decision was taken against. Correcting it would make the record describe a
+conversation nobody had. The test is whether the entry asserts the fact or reports having read it.
+
+**Why this earns an id at all.** §20's test is *"foreclosing an alternative somebody would otherwise
+reach for"*, and three entries reached for three different alternatives — which is the strongest
+evidence available that the alternative is reachable. The preamble does carry format rules without ids,
+but those state what the fields *are*; this is a procedure for a recurring situation with a `Rejected`
+list worth keeping, which is what an entry is for.
+
+**Rejected.**
+
+- *No id, in the preamble beside the other format rules* — the first answer, and withdrawn. It reads as
+  a field convention where it is a procedure, and it would leave the three forms already improvised
+  with nowhere to be recorded as weighed.
+- *Calling it a supersession* — it says a decision changed when none did, and it puts a binding entry
+  out of force on the page. A reader then looks for the replacement and finds nothing.
+- *Calling it a reversal* — the same, more strongly: a commit citing the id would stop meaning what it
+  meant, which is the one thing the monotonic rule exists to guarantee.
+- *Editing the stale fact in place with no date and no cause* — the cheapest, and it is the silent
+  rewrite the preamble already forbids. The record would describe a conversation nobody had.
+- *Deleting the stale fact and leaving no trace* — loses why the entry said it, and makes a corrected
+  entry indistinguishable from one that never claimed anything.
+- *A sweep removing every count and list from all seventy-two entries now* — the thorough version, and
+  declined on D-44's grounds: a 72-entry restructure of the file the framework is specified in, for a
+  benefit that arrives per entry. The rule above applies it as entries are touched instead.

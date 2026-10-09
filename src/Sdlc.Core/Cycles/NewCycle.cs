@@ -65,6 +65,33 @@ public static class NewCycle
         /// </remarks>
         private const string ClaimFileName = ".opened";
 
+        /// <summary>
+        /// What the cycles directory's own ignore file says.
+        /// </summary>
+        /// <remarks>
+        /// <para><strong>The claim is local state, not history.</strong> Its whole job is to make two
+        /// <c>sdlc new</c> invocations in the same second collide in one working copy, which the
+        /// filesystem decides and git has no part in. Committing it would put a file no plan declared
+        /// into the first cycle's diff, which the evidence comparison reports as <c>UNDECLARED</c> on
+        /// every cycle forever.</para>
+        ///
+        /// <para>One file in the cycles directory rather than one per cycle, because a pattern with no
+        /// slash matches at any depth below the ignore file — so every cycle is covered by the one
+        /// written when the first cycle is opened. The negation keeps the ignore itself tracked, so a
+        /// clone arrives already ignoring claims rather than ignoring them only here. Same shape and
+        /// same reasoning as <c>ReportFile</c>, which D-69 settled: the directory ignores itself, and an
+        /// existing solution gets it the first time something writes there rather than needing an
+        /// adoption re-run.</para>
+        /// </remarks>
+        private static readonly string[] _ignore =
+        [
+            "# A cycle's .opened marker claims its id: creating it is what makes two cycles opened in",
+            "# the same second collide. That is local state the filesystem decides, not history -- and",
+            "# committing it would put a file no plan declared into a build's diff.",
+            ".opened",
+            "!.gitignore",
+        ];
+
         /// <inheritdoc />
         public Task<Result<Cycle>> Handle(Command request, CancellationToken cancellationToken)
         {
@@ -76,6 +103,18 @@ public static class NewCycle
             try
             {
                 Directory.CreateDirectory(cycle.Directory);
+
+                // Written before the claim, so the first cycle a solution opens is already covered. If
+                // it is absent the solution predates this and gets it now, which is why it is checked
+                // rather than written once at adoption.
+                string ignore = Path.Combine(
+                    Path.GetDirectoryName(cycle.Directory)!,
+                    ".gitignore");
+
+                if (!File.Exists(ignore))
+                {
+                    File.WriteAllLines(ignore, _ignore);
+                }
 
                 // CreateNew is the whole mechanism: it throws if the file is there, and the filesystem
                 // decides that, so two processes in the same second cannot both win. Closed at once --
