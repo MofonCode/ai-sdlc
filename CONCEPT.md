@@ -249,14 +249,21 @@ things it is not, each with its own home: work nobody has done yet (a later cycl
 goes in the artifact's decisions region marked unconfirmed: `Fixed decisions` on an intent, `Shape
 and departures` on a plan. A spec has neither and needs neither.
 
-**`CON_14` governs this region on an intent, a spec and a plan, and nothing governs it on a verify.**
+**`CON_14` governs this region on an intent, a spec and a plan, and no constraint governs it on a
+verify — a chain check does.**
 D-03 is what makes that a gap rather than a detail: the open region is the compliant exit, which makes
-it the exploitable one, and `CON_14` is the only control. On a verify the temptation is specific —
-recording a criterion as a limit of the proof rather than as unmet — and the chain would still hold,
-because `verify-chain` asks that every criterion has a proof entry and that the outcome reads `pass`.
-**The gap is routed to a mechanical check rather than to a rule**, because §7.2's second admission test
-refuses a constraint that a schema could decide and *whether every criterion is adjudicated in
-`Criteria`* is presence, which D-05 already establishes a parser decides. Not built; §19 holds it.
+it the exploitable one, and `CON_14` is the only control on the three it binds. On a verify the
+temptation is specific — recording a criterion as a limit of the proof rather than as unmet — and every
+other check in the chain would still pass, because the plan has its proof entry and the outcome reads
+`pass`. `CON_08` does not reach it either: it governs claims *in* `Criteria`, not absences recorded
+elsewhere.
+
+**A mechanical check rather than a rule, which is the library's own routing rather than a preference.**
+§7.2's second admission test refuses a constraint that a schema or hook could decide, and *whether every
+criterion is adjudicated* is presence — which D-05 already establishes a parser decides. It lives in
+`verify-chain` rather than the body schema because a schema validates one document and has no access to
+the spec, while correlating two documents is what that layer already does for the proof entries. §13
+carries the check.
 
 ### 4.4 The plan holds two kinds of claim
 
@@ -1542,6 +1549,9 @@ implies.
 - all three recorded hashes match the bytes on disk
 - every findings round's `upstream_sha256` matches its upstream now
 - every spec criterion has a proof entry that cites it
+- **every spec criterion is adjudicated in `verify.md`'s `Criteria`**, rather than recorded under
+  `## Open` as a limit of the proof — the one exit `CON_14` does not cover, because it binds an intent,
+  a spec and a plan and not a verify (§4.3)
 - the outcome in `verify.md` is `pass`
 
 **What it deliberately does not check.** The comparison of declared files against changed files.
@@ -1952,14 +1962,14 @@ next free id is looked up when somebody adopts it, and nothing here reserves a n
    conventions new work follows, and a shared register would sit beside them. Nothing blocks it; no
    solution has wanted it yet.
 
-10. **Nothing judges a verify document's open region, and the check that would is not built.** §4.3
-    carries the gap and where it is routed: §7.2 refuses a constraint for a question a schema could
-    decide, so this wants a chain check asserting every spec criterion is adjudicated in `Criteria`
-    rather than recorded as a limit under `Open` — presence, which D-05 already establishes a parser
-    decides. What is undecided is only where it lives. `verify-chain` is the obvious home, because it
-    already reads every criterion and the outcome; the body schema is the other, and would catch it
-    one step earlier at the cost of the schema knowing what the spec says. Open because the placement
-    is undecided, not because the gap is in doubt.
+10. **Nothing judges a verify document's open region — closed, as a chain check.** `CON_14` binds an
+    intent, a spec and a plan, so a verify could record a criterion as a limit of the proof rather than
+    adjudicate it unmet and still hold the chain. §7.2 refuses a constraint for a question a parser
+    decides, so it became a `verify-chain` check: every spec criterion is adjudicated in `Criteria`
+    (§13). Exercised against a real cycle's five-criterion spec in both directions. What remains open
+    is narrower and belongs to `CON_14` rather than here: the region is still unjudged on a verify for
+    anything that is **not** a criterion, and whether that wants a rule is undecided — nobody has seen
+    it abused.
 
 ---
 

@@ -218,12 +218,83 @@ internal sealed class CycleWorkspace : IDisposable
             string.Empty,
             "## Criteria",
             string.Empty,
-            "1. Met. Thing_does_the_thing_1 passed.",
-            string.Empty,
-            "## " + ArtifactSchema.OpenSection,
         ];
 
+        // Adjudicates every criterion the spec on disk actually states, rather than a fixed one. This
+        // wrote a single entry for as long as nothing compared the two, and a verify that adjudicates
+        // one of three criteria and records a pass is the exact shape `every criterion is adjudicated`
+        // refuses -- so the fixture was building an invalid document and the suite could not see it.
+        // Read rather than passed in, so a test that writes more criteria cannot drift from its verify.
+        foreach (int number in AdjudicatedCriteria())
+        {
+            lines.Add(string.Create(
+                CultureInfo.InvariantCulture,
+                $"{number}. Met. Thing_does_the_thing_{number} passed."));
+        }
+
+        lines.AddRange(string.Empty, "## " + ArtifactSchema.OpenSection);
+
         WriteRaw(Cycle.PathOf(ArtifactKind.Verify), string.Join('\n', lines) + "\n");
+    }
+
+    /// <summary>
+    /// Writes a verify document that adjudicates only the criteria named, for the gap in between.
+    /// </summary>
+    /// <param name="outcome">The outcome value.</param>
+    /// <param name="numbers">Which criteria to adjudicate. Anything the spec states and this omits is
+    /// what `every criterion is adjudicated` refuses.</param>
+    public void WriteVerifyAdjudicating(string outcome, params int[] numbers)
+    {
+        ArgumentNullException.ThrowIfNull(numbers);
+
+        List<string> lines =
+        [
+            "---",
+            "framework_version: " + Cycle.FrameworkVersion,
+            "cycle: " + Cycle.Id,
+            "outcome: " + outcome,
+            "---",
+            string.Empty,
+            "# a verify",
+            string.Empty,
+            "## Criteria",
+            string.Empty,
+        ];
+
+        foreach (int number in numbers)
+        {
+            lines.Add(string.Create(
+                CultureInfo.InvariantCulture,
+                $"{number}. Met. Thing_does_the_thing_{number} passed."));
+        }
+
+        lines.AddRange(string.Empty, "## " + ArtifactSchema.OpenSection);
+
+        WriteRaw(Cycle.PathOf(ArtifactKind.Verify), string.Join('\n', lines) + "\n");
+    }
+
+    /// <summary>
+    /// The criterion numbers a verify document should adjudicate: whatever the spec on disk states.
+    /// </summary>
+    /// <remarks>
+    /// Falls back to a single criterion where no spec has been written, which is the shape of the tests
+    /// that write a verify alone to exercise the outcome key.
+    /// </remarks>
+    /// <returns>The numbers, in order.</returns>
+    private IReadOnlyList<int> AdjudicatedCriteria()
+    {
+        string spec = Cycle.PathOf(ArtifactKind.Spec);
+
+        if (!File.Exists(spec))
+        {
+            return [1];
+        }
+
+        IReadOnlyDictionary<int, string> criteria = ArtifactSections.NumberedItems(
+            File.ReadAllText(spec),
+            "Acceptance criteria");
+
+        return criteria.Count == 0 ? [1] : [.. criteria.Keys.Order()];
     }
 
     /// <summary>Writes all three planning documents.</summary>

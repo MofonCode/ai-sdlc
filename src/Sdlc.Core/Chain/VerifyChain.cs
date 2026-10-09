@@ -110,6 +110,7 @@ public static class VerifyChain
             await Gate(cycle, checks, cancellationToken).ConfigureAwait(false);
             await Proof(cycle, checks, cancellationToken).ConfigureAwait(false);
             await Proven(cycle, checks, cancellationToken).ConfigureAwait(false);
+            await Adjudicated(cycle, checks, cancellationToken).ConfigureAwait(false);
             await Outcome(cycle, checks, cancellationToken).ConfigureAwait(false);
 
             return Result.Ok(new Response(cycle, checks));
@@ -271,6 +272,78 @@ public static class VerifyChain
                         CultureInfo.InvariantCulture,
                         $"{criteria.Count} criteria, each with a proof entry")
                     : string.Join(Environment.NewLine, problems)));
+        }
+
+        /// <summary>
+        /// Every criterion the spec states is adjudicated in the verify document's own section.
+        /// </summary>
+        /// <remarks>
+        /// <para><strong>The open region is the compliant exit, which makes it the exploitable one.</strong>
+        /// D-03 says so and names <c>CON_14</c> as the only control — and <c>CON_14</c> applies to an
+        /// intent, a spec and a plan, not to a verify. So the one artifact whose open entries §4.3 singles
+        /// out by name, limits of the proof, is the one artifact no constraint reads.
+        /// </para>
+        /// <para>
+        /// Without this a criterion whose proof did not reach could be recorded under <c>## Open</c> as a
+        /// limit rather than adjudicated as unmet, and every other check here would still pass: the plan
+        /// has its proof entry, the hashes match, the rounds are current, and the outcome says
+        /// <c>pass</c>. <c>CON_08</c> does not catch it either, because it governs claims that are
+        /// <em>in</em> the criteria section rather than absences recorded elsewhere. And unlike the plan
+        /// stage there is nothing downstream: D-27 permits that exit on the grounds that verify still
+        /// blocks, and here verify is the last judgement before landing.
+        /// </para>
+        /// <para>
+        /// <strong>A check rather than a constraint, and that is the library's own rule rather than a
+        /// preference.</strong> §7.2's second admission test refuses a constraint that a schema or a hook
+        /// could decide, and whether every criterion is adjudicated is <em>presence</em> — which D-05
+        /// already established a parser decides. It lives here rather than in the body schema because a
+        /// schema validates one document's shape and has no access to the spec; correlating two documents
+        /// is what this layer already does, one method above.
+        /// </para>
+        /// <para>
+        /// It reports rather than inspecting nothing when either document is missing or the spec has no
+        /// numbered criteria: both are already reported by the checks above, and saying it twice would
+        /// read as two problems.
+        /// </para>
+        /// </remarks>
+        private static async Task Adjudicated(
+            Cycle cycle,
+            List<ChainCheck> checks,
+            CancellationToken cancellationToken)
+        {
+            string specPath = cycle.PathOf(ArtifactKind.Spec);
+            string verifyPath = cycle.PathOf(ArtifactKind.Verify);
+
+            if (!File.Exists(specPath) || !File.Exists(verifyPath))
+            {
+                return;
+            }
+
+            IReadOnlyDictionary<int, string> criteria = ArtifactSections.NumberedItems(
+                await File.ReadAllTextAsync(specPath, cancellationToken).ConfigureAwait(false),
+                "Acceptance criteria");
+
+            if (criteria.Count == 0)
+            {
+                return;
+            }
+
+            IReadOnlyDictionary<int, string> adjudicated = ArtifactSections.NumberedItems(
+                await File.ReadAllTextAsync(verifyPath, cancellationToken).ConfigureAwait(false),
+                "Criteria");
+
+            List<int> unjudged = [.. criteria.Keys.Where(number => !adjudicated.ContainsKey(number)).Order()];
+
+            checks.Add(new ChainCheck(
+                "every criterion is adjudicated",
+                unjudged.Count == 0,
+                unjudged.Count == 0
+                    ? string.Create(
+                        CultureInfo.InvariantCulture,
+                        $"{criteria.Count} criteria, each adjudicated")
+                    : string.Create(
+                        CultureInfo.InvariantCulture,
+                        $"criteria the verify does not adjudicate: {string.Join(", ", unjudged)}. A criterion whose proof did not reach is adjudicated as unmet, not moved to '## Open' as a limit of the proof -- that exit is for what an artifact cannot settle, and whether a criterion was met is the one thing a verify is for.")));
         }
 
         /// <summary>

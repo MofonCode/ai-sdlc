@@ -211,6 +211,47 @@ public sealed class VerifyChainTests
     }
 
     [TestMethod]
+    public async Task A_criterion_the_verify_does_not_adjudicate_breaks_the_chain()
+    {
+        // The exit D-03 names, pointed at the one artifact CON_14 does not cover. A criterion whose
+        // proof did not reach is recorded under `## Open` as a limit of the proof rather than
+        // adjudicated as unmet, and before this check every other one still passed: the plan has its
+        // proof entry, the hashes match, the rounds are current and the outcome says pass. CON_08 does
+        // not reach it either -- it governs claims in the criteria section, not absences recorded
+        // elsewhere -- and verify is the last judgement before landing, so nothing downstream catches
+        // what D-27 assumes something will.
+        using CycleWorkspace workspace = Sound();
+
+        workspace.WriteVerifyAdjudicating("pass", 1, 2);
+
+        VerifyChain.Response response = await Check(workspace);
+
+        VerifyChain.ChainCheck adjudicated = response.Checks.Single(check => check.Name == "every criterion is adjudicated");
+
+        Assert.IsFalse(adjudicated.Passed, adjudicated.Detail);
+        StringAssert.Contains(adjudicated.Detail, "3", "The refusal has to name which criterion.");
+        StringAssert.Contains(
+            adjudicated.Detail,
+            "not moved to '## Open'",
+            "And say what the author should have done instead, or it reads as a format complaint.");
+    }
+
+    [TestMethod]
+    public async Task A_verify_that_adjudicates_every_criterion_holds()
+    {
+        // The other half, and the one that matters for whether this check is safe to put in the
+        // non-bypassable layer: a verify doing its job must not be refused by it.
+        using CycleWorkspace workspace = Sound();
+
+        VerifyChain.Response response = await Check(workspace);
+
+        VerifyChain.ChainCheck adjudicated = response.Checks.Single(check => check.Name == "every criterion is adjudicated");
+
+        Assert.IsTrue(adjudicated.Passed, adjudicated.Detail);
+        StringAssert.Contains(adjudicated.Detail, "3 criteria");
+    }
+
+    [TestMethod]
     public async Task The_chain_says_what_it_cannot_prove_even_when_it_holds()
     {
         // Stated on a pass rather than only on a failure: a team reads this at the moment they are
