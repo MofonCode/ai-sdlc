@@ -1658,18 +1658,19 @@ which is the ordinary case.
 | `status` | nothing; a cycle id for the per-cycle form | the cycle does not exist | nothing; it prints |
 | `constraints` | nothing | nothing | nothing; it prints |
 | `suggestions` | nothing | nothing | nothing; it prints, and keeps a copy under `.sdlc/reports/` (D-69) |
+| `resolve-conflict` | a reported collision on a file in the enumerated set (§10.1) | the file is not in that set — a scheduling failure to report rather than a merge to perform; or two settings carry one key with different values | that shared file only |
+| `propose` | nothing | nothing; an unreadable rule file, decision record or theme is reported rather than worked around | nothing that binds; it prints, and keeps a copy under `.sdlc/reports/` (D-69) |
 
 **Where a skill requires nothing, the row says so rather than being left out.** An absent row and a row
 saying `nothing` are not the same claim, and the first is what lets a skill quietly check the wrong
 precondition — which is the whole of D-20. It is the same rule `## Open` follows when it is empty (§4.1),
 that `Rejected` follows with "nothing" as a real answer (§20), and that D-64 settled for `conflicts`.
 
-**Two skills are missing from this table deliberately, because nothing has written their preconditions
-down yet.** `resolve-conflict` is scoped to the files no cycle can claim exclusively (§10.1) and nothing
-says what it requires to run or refuses on; `propose` has three subjects that answer differently — D-69
-prints an empty form where the record holds no pattern, D-70 reads only approved cycles, D-71 prints a
-skeleton for a solution with no theme — so it is one row or three, and that is undecided. Named here
-rather than omitted, for the reason in the paragraph above.
+**`propose` is one row and not three.** Its subjects read different corpora — findings rounds for a
+rule, approved cycles for a decision, the theme for a theme — and none of them refuses on an empty one.
+A solution with no history, no approved cycle or no theme gets an empty report or a skeleton, which is
+D-69's statelessness rather than a precondition: nothing records what has been absorbed, so there is
+nothing for a missing corpus to invalidate.
 
 **A stage skill whose artifact already exists refuses and names what you probably meant** —
 `interrogate` to judge it, or `steer` to change it (D-18).
