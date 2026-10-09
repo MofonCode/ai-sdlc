@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using System.Text.RegularExpressions;
 using FluentResults;
 using Sdlc.Core.Hooks;
 
@@ -242,56 +243,54 @@ public sealed class HookTests
     }
 
     [TestMethod]
-    public void Writing_an_approval_ledger_is_denied_and_the_refusal_says_what_to_do_instead()
+    public void Every_refusal_names_the_command_that_is_the_way_through()
     {
-        ToolCall call = Read(
-            $$"""{ "tool_name": "Write", "tool_input": { "file_path": "{{ApprovalPath}}" } }""",
-            HookHost.Claude);
+        // A refusal has to name the way through, or protecting the file just blocks the legitimate act.
+        // This replaced three tests that each named one file and checked one fragment of its reason:
+        // between them they covered two of the six protected files, and the two the record gained last
+        // -- the declared stack and the decision record -- had no test on their reason at all. Asserting
+        // the set is what makes a seventh covered the day it is added, which is the argument
+        // Every_protected_file_is_denied_through_both_rules already makes about the denial itself.
+        //
+        // Deliberately absolute: every protected file, no exemption list. The one file this was arguable
+        // for is the abandonment record, because abandoning is the one protected act an agent itself
+        // wants -- and withholding the command there made abandoning ON THE RECORD harder without making
+        // abandoning harder. ProtectedPaths carries that reasoning. An exemption here would be the
+        // conditional rule D-09 says is where a bypass lives, and it would hide the next gap.
+        //
+        // The command is read out of the reason rather than compared against a table of expected
+        // commands, because a table here would be a second list of the drafters -- and the one that
+        // mattered would be whichever the author had not read (D-67).
+        foreach (string name in ProtectedPaths.Names)
+        {
+            ToolCall call = Read(
+                JsonSerializer.Serialize(new
+                {
+                    tool_name = "Write",
+                    tool_input = new { file_path = ".sdlc/cycles/20260929_1456_32/" + name },
+                }),
+                HookHost.Claude);
 
-        HookVerdict verdict = HookPolicy.Decide(call);
+            string reason = HookPolicy.Decide(call).Reason;
 
-        Assert.AreEqual(HookDecision.Deny, verdict.Decision);
-        StringAssert.Contains(verdict.Reason, "no agent may write it");
-        StringAssert.Contains(verdict.Reason, "sdlc draft approval");
-    }
+            Match named = Regex.Match(reason, @"Run '(?<command>sdlc [^']+)'");
 
-    [TestMethod]
-    public void Writing_an_abandonment_record_is_denied()
-    {
-        ToolCall call = Read(
-            """{ "tool_name": "Write", "tool_input": { "file_path": ".sdlc/cycles/20260929_1456_32/abandoned.md" } }""",
-            HookHost.Claude);
+            Assert.IsTrue(
+                named.Success,
+                $"The refusal about {name} names no command. A person meets this text as an error and "
+                + "has to be told what to run instead, or the protection reads as a dead end:\n\n"
+                + reason);
 
-        Assert.AreEqual(HookDecision.Deny, HookPolicy.Decide(call).Decision);
-    }
+            // And the command it names has to be one the tool offers. A refusal pointing at a verb that
+            // was renamed sends somebody looking for the flag that makes it work, which is the confusion
+            // Usage.Drafters exists to avoid -- so the offer and the refusal are held together here.
+            string command = named.Groups["command"].Value["sdlc ".Length..];
 
-    [TestMethod]
-    public void Writing_the_solution_constraints_is_denied()
-    {
-        ToolCall call = Read(
-            """{ "tool_name": "Edit", "tool_input": { "file_path": ".sdlc/constraints.md" } }""",
-            HookHost.Claude);
-
-        HookVerdict verdict = HookPolicy.Decide(call);
-
-        Assert.AreEqual(HookDecision.Deny, verdict.Decision);
-        StringAssert.Contains(verdict.Reason, "deadlock");
-    }
-
-    [TestMethod]
-    public void Writing_the_solution_file_is_denied()
-    {
-        ToolCall call = Read(
-            """{ "tool_name": "Edit", "tool_input": { "file_path": ".sdlc/solution.md" } }""",
-            HookHost.Claude);
-
-        HookVerdict verdict = HookPolicy.Decide(call);
-
-        Assert.AreEqual(HookDecision.Deny, verdict.Decision);
-        StringAssert.Contains(
-            verdict.Reason,
-            "draft profile",
-            "A refusal has to name the way through, or protecting the file just blocks a migration.");
+            StringAssert.Contains(
+                Sdlc.Cli.Usage.Text,
+                command,
+                $"The refusal about {name} says to run '{command}', which the usage text does not offer.");
+        }
     }
 
     [TestMethod]

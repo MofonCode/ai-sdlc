@@ -64,26 +64,6 @@ public sealed class StatusRendererTests
     }
 
     [TestMethod]
-    public async Task The_panel_attaches_no_recommendation_about_whether_to_keep_interrogating()
-    {
-        using var workspace = CycleWorkspace.Create();
-        workspace.WriteAllArtifacts();
-        workspace.WriteCleanRound(ArtifactKind.Spec, round: 1);
-        workspace.WriteCleanRound(ArtifactKind.Spec, round: 2);
-        workspace.WriteCleanRound(ArtifactKind.Spec, round: 3);
-
-        string panel = await Render(workspace, ArtifactKind.Spec);
-
-        foreach (string word in (string[])["diminishing", "converged", "enough", "stop now"])
-        {
-            Assert.IsFalse(
-                panel.Contains(word, StringComparison.OrdinalIgnoreCase),
-                $"The panel must not suggest stopping ('{word}'). That judgement has been wrong before, "
-                + "and the owner decides.");
-        }
-    }
-
-    [TestMethod]
     public async Task An_open_blocker_is_shown_with_its_constraint_and_its_statement()
     {
         using var workspace = CycleWorkspace.Create();

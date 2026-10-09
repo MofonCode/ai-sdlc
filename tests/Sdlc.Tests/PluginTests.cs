@@ -686,55 +686,75 @@ public sealed class PluginTests
     }
 
     [TestMethod]
-    public void Every_stage_the_panel_can_name_is_a_verb_the_binary_answers()
+    public void Every_stage_the_binary_names_as_a_skill_is_one_the_plugin_ships()
     {
-        // The panel ends with the literal next command, so a stage it names and the binary rejects would
-        // make the most-read output in the plugin wrong -- and the person would conclude the install is
-        // broken rather than that the stage is a skill.
-        string renderer = File.ReadAllText(
-            Path.Combine(Root, "src", "Sdlc.Core", "Cycles", "StatusRenderer.cs"));
+        // The panel ends with the literal next command, so a stage the binary explains as a skill and the
+        // plugin does not ship sends a person to a skill their host has never heard of -- "a tool must
+        // never send somebody somewhere it does not go", which is what Stages' own remarks are about.
+        //
+        // This replaced two tests that both ran the other way, disk -> binary, and both needed a list to
+        // do it. The direction was the defect rather than the lists:
+        //
+        //   Every_stage_the_panel_can_name_is_a_verb_the_binary_answers asked six hardcoded stages
+        //   whether the binary knew them, and skipped any stage it could not find named in
+        //   StatusRenderer.cs. The renderer builds that command by interpolation, so it carries the
+        //   literal "sdlc {name}" exactly once and never names intent, spec or plan at all -- meaning
+        //   half the stages were asserted solely because that one string existed, and renaming it to
+        //   $"sdlc {stage}" would have silently skipped them while the test stayed green.
+        //
+        //   Every_skill_in_the_plugin_is_one_the_binary_knows_about asked the same question of every
+        //   skill on disk, which needs six names excluded because six skills are legitimately not
+        //   stages. That exclusion list is the shape D-09 refuses: a new non-stage skill fails it
+        //   spuriously, and a stage renamed into it stops being checked at all.
+        //
+        // Read from the binary instead and neither list is needed, because Stages.Skills IS the set. The
+        // other direction is not lost: the skills on disk are held to CONCEPT.md's inventory and to the
+        // skills index by Every_source_that_lists_the_skills_agrees_with_the_ones_on_disk.
+        IReadOnlyCollection<string> stages = Sdlc.Cli.Stages.Skills;
 
-        foreach (string stage in (string[])["intent", "spec", "plan", "interrogate", "refine", "build"])
+        Assert.IsTrue(
+            stages.Count > 0,
+            "The binary names no stage skills, so this would pass with every skill directory deleted.");
+
+        HashSet<string> shipped = new(
+            Skills().Select(path => Path.GetFileName(Path.GetDirectoryName(path))!),
+            StringComparer.Ordinal);
+
+        foreach (string stage in stages)
         {
-            if (!renderer.Contains("sdlc {name}", StringComparison.Ordinal)
-                && !renderer.Contains("sdlc " + stage, StringComparison.Ordinal))
-            {
-                continue;
-            }
-
             Assert.IsTrue(
-                Sdlc.Cli.Stages.IsSkill(stage),
-                $"The panel can print 'sdlc {stage}' and the binary would call it unknown.");
+                shipped.Contains(stage),
+                $"The binary explains '{stage}' as a skill and tells a person to ask their agent for it, "
+                + "and the plugin ships no such skill.");
         }
     }
 
-    [TestMethod]
-    public void Every_skill_in_the_plugin_is_one_the_binary_knows_about()
-    {
-        // Two lists that could disagree: the skills on disk, and what the binary says when somebody types
-        // one. The one that goes stale is the binary's, because adding a skill is a file and nothing fails.
-        foreach (string path in Skills())
-        {
-            string name = Path.GetFileName(Path.GetDirectoryName(path))!;
-
-            // The thin wrappers over commands are not stages, and the binary answers them properly.
-            if (name is "constraints" or "status" or "suggestions" or "draft" or "propose" or "init")
-            {
-                continue;
-            }
-
-            Assert.IsTrue(
-                Sdlc.Cli.Stages.IsSkill(name),
-                $"The plugin ships a '{name}' skill that the binary does not know is a skill.");
-        }
-    }
 
     [TestMethod]
-    public void The_skills_on_disk_are_exactly_the_ones_the_concept_inventories()
+    public void Every_source_that_lists_the_skills_agrees_with_the_ones_on_disk()
     {
-        // Two lists that drift silently: a skill added to the plugin and never written down reads as
-        // undocumented, and one written down and never built sends a person to a slash command that does
-        // not answer. The inventory is a table in the concept, so this compares against the table.
+        // Three places say which skills exist, and each drifts from disk differently. A skill added and
+        // written down nowhere reads as undocumented to the next session, which then works from
+        // recollection. One written down and never built sends a person to a slash command that does not
+        // answer. One with a row and no section of its own is the shape that reads complete and is not --
+        // AGENTS.md says a skill change updates its row, its own section and the count in the heading, and
+        // the first two are structural, so this is where they are held.
+        //
+        // One test over a table rather than one test per source, because the extraction, the set
+        // comparison and the both-directions reporting were written out three times and the only thing
+        // that differed was where the names came from. The failure message names the source, which is
+        // what a test name was carrying before.
+        //
+        // Every row is symmetric. The sections row used to assert one direction only, so a section for a
+        // skill nobody ships stayed on the page with nothing to notice.
+        HashSet<string> disk = new(
+            Skills().Select(path => Path.GetFileName(Path.GetDirectoryName(path))!),
+            StringComparer.Ordinal);
+
+        Assert.IsTrue(
+            disk.Count > 0,
+            "No skills were found on disk, so every comparison below would pass against an empty set.");
+
         string concept = File.ReadAllText(Path.Combine(Root, "CONCEPT.md"));
 
         int start = concept.IndexOf("## 15. Skills", StringComparison.Ordinal);
@@ -742,26 +762,65 @@ public sealed class PluginTests
 
         Assert.IsTrue(start >= 0 && end > start, "The concept no longer has a skills inventory to check.");
 
-        HashSet<string> inventoried = new(
-            System.Text.RegularExpressions.Regex
-                .Matches(concept[start..end], @"^\| `(?<name>[a-z-]+)`", System.Text.RegularExpressions.RegexOptions.Multiline)
-                .Select(match => match.Groups["name"].Value),
-            StringComparer.Ordinal);
+        string index = File.ReadAllText(Path.Combine(Root, "skills", "README.md"));
 
-        HashSet<string> shipped = new(
-            Skills().Select(path => Path.GetFileName(Path.GetDirectoryName(path))!),
-            StringComparer.Ordinal);
+        (string Source, HashSet<string> Listed)[] sources =
+        [
+            ("the concept's skills inventory (§15)", NamesMatching(concept[start..end], @"^\| `(?<name>[a-z-]+)`")),
+            ("the skills index's table", NamesMatching(index, @"^\| `(?<name>[a-z-]+)` \|")),
+            ("the skills index's own sections", NamesMatching(index, @"^### `(?<name>[a-z-]+)`")),
+        ];
 
-        Assert.AreEqual(
-            0,
-            shipped.Except(inventoried, StringComparer.Ordinal).Count(),
-            "Shipped and not inventoried: " + string.Join(", ", shipped.Except(inventoried, StringComparer.Ordinal)));
+        foreach ((string source, HashSet<string> listed) in sources)
+        {
+            Assert.IsTrue(
+                listed.Count > 0,
+                $"Nothing was extracted from {source}, so it would agree with any set of skills at all. "
+                + "The document moved or its shape changed.");
 
-        Assert.AreEqual(
-            0,
-            inventoried.Except(shipped, StringComparer.Ordinal).Count(),
-            "Inventoried and not shipped: " + string.Join(", ", inventoried.Except(shipped, StringComparer.Ordinal)));
+            Assert.AreEqual(
+                0,
+                disk.Except(listed, StringComparer.Ordinal).Count(),
+                $"Shipped and missing from {source}: "
+                + string.Join(", ", disk.Except(listed, StringComparer.Ordinal)));
+
+            Assert.AreEqual(
+                0,
+                listed.Except(disk, StringComparer.Ordinal).Count(),
+                $"Named in {source} and not shipped: "
+                + string.Join(", ", listed.Except(disk, StringComparer.Ordinal)));
+        }
     }
+
+    /// <summary>Every markdown document in the repository that a reader could follow a link out of.</summary>
+    /// <remarks>
+    /// Shared by the two rules that read links, so widening the exclusions widens both. It asserts the
+    /// count rather than returning whatever it found: a sweep that silently matched nothing is the vacuous
+    /// success these rules exist to refuse, and the exclusions are the likeliest cause.
+    /// </remarks>
+    /// <returns>The full path of each document.</returns>
+    private static string[] Documents()
+    {
+        string[] documents = [.. Directory
+            .EnumerateFiles(Root, "*.md", SearchOption.AllDirectories)
+            .Where(path => !Ignored(Path.GetRelativePath(Root, path)))];
+
+        Assert.IsTrue(
+            documents.Length > 20,
+            "Almost no documents were read, so the caller is passing by finding nothing. The tree moved "
+            + "or the exclusions are swallowing it.");
+
+        return documents;
+    }
+
+    /// <summary>The <c>name</c> group of every match, as a set.</summary>
+    /// <param name="text">What to read.</param>
+    /// <param name="pattern">A multiline pattern carrying a <c>name</c> group.</param>
+    /// <returns>Every distinct name the pattern found.</returns>
+    private static HashSet<string> NamesMatching(string text, string pattern) =>
+        new(
+            Regex.Matches(text, pattern, RegexOptions.Multiline).Select(match => match.Groups["name"].Value),
+            StringComparer.Ordinal);
 
     [TestMethod]
     public void The_readme_counts_what_the_repository_actually_ships()
@@ -845,25 +904,6 @@ public sealed class PluginTests
     }
 
     [TestMethod]
-    public void Every_guide_the_readme_sends_somebody_to_exists()
-    {
-        // The design's own rule applied to its documentation: a pointer that goes nowhere is the
-        // directory that appears enforced and is not. A reader who clicks one dead link stops trusting
-        // the rest of the table, which is the whole value of having one.
-        string readme = File.ReadAllText(Path.Combine(Root, "README.md"));
-
-        foreach (System.Text.RegularExpressions.Match match in System.Text.RegularExpressions.Regex
-            .Matches(readme, @"`(?<path>docs/[A-Za-z0-9/._-]+\.md)`"))
-        {
-            string relative = match.Groups["path"].Value.Replace('/', Path.DirectorySeparatorChar);
-
-            Assert.IsTrue(
-                File.Exists(Path.Combine(Root, relative)),
-                $"The readme points at {match.Groups["path"].Value}, which does not exist.");
-        }
-    }
-
-    [TestMethod]
     public void Every_markdown_path_a_document_names_exists()
     {
         // The readme's rule applied to every document in the repository rather than only the guides.
@@ -884,21 +924,14 @@ public sealed class PluginTests
         string guides = Path.Combine(Root, "docs", "guides");
         Assert.IsTrue(Directory.Exists(guides), "The guides directory is gone.");
 
-        string[] documents = [.. Directory
-            .EnumerateFiles(Root, "*.md", SearchOption.AllDirectories)
-            .Where(path => !Ignored(Path.GetRelativePath(Root, path)))];
-
-        Assert.IsTrue(
-            documents.Length > 20,
-            "Almost no documents were read, so this is passing by finding nothing. The tree moved or "
-            + "the exclusions are swallowing it.");
+        string[] documents = Documents();
 
         foreach (string path in documents)
         {
             string directory = Path.GetDirectoryName(path)!;
 
             foreach (System.Text.RegularExpressions.Match match in System.Text.RegularExpressions.Regex
-                .Matches(File.ReadAllText(path), @"`(?<path>[A-Za-z0-9/.-]*[/-][A-Za-z0-9/.-]*\.md)`"))
+                .Matches(File.ReadAllText(path), @"`(?<path>[A-Za-z0-9/._-]*[/-][A-Za-z0-9/._-]*\.md)`"))
             {
                 string named = match.Groups["path"].Value;
 
@@ -920,55 +953,6 @@ public sealed class PluginTests
                     + $"{Path.GetRelativePath(Root, resolved)} and does not exist.");
             }
         }
-    }
-
-    [TestMethod]
-    public void The_skills_index_names_every_skill_on_disk()
-    {
-        // Each directory holding documents carries an index, and an index is only worth opening if it is
-        // complete. The membership half of that is countable, so it is asserted rather than promised --
-        // the same argument as the readme's counts, applied to the list those counts are about.
-        //
-        // Both directions, because they fail differently and both quietly. A skill added and not written
-        // down reads as undocumented to the next session, which then works from recollection. A skill
-        // removed and left on the page sends somebody to a slash command that does not answer.
-        //
-        // The row and the section are both required. AGENTS.md says a skill change updates its row, its
-        // own section and the count in the heading; the first two are structural and this is where they
-        // are held. A skill with a row and no section is the shape that reads complete and is not.
-        string index = File.ReadAllText(Path.Combine(Root, "skills", "README.md"));
-
-        HashSet<string> disk = new(
-            Skills().Select(path => Path.GetFileName(Path.GetDirectoryName(path))!),
-            StringComparer.Ordinal);
-
-        HashSet<string> rows = new(
-            Regex.Matches(index, @"^\| `(?<name>[a-z-]+)` \|", RegexOptions.Multiline)
-                .Select(match => match.Groups["name"].Value),
-            StringComparer.Ordinal);
-
-        HashSet<string> sections = new(
-            Regex.Matches(index, @"^### `(?<name>[a-z-]+)`", RegexOptions.Multiline)
-                .Select(match => match.Groups["name"].Value),
-            StringComparer.Ordinal);
-
-        Assert.AreEqual(
-            0,
-            disk.Except(rows, StringComparer.Ordinal).Count(),
-            "Shipped and not in the index's table: "
-            + string.Join(", ", disk.Except(rows, StringComparer.Ordinal)));
-
-        Assert.AreEqual(
-            0,
-            rows.Except(disk, StringComparer.Ordinal).Count(),
-            "In the index's table and not shipped: "
-            + string.Join(", ", rows.Except(disk, StringComparer.Ordinal)));
-
-        Assert.AreEqual(
-            0,
-            disk.Except(sections, StringComparer.Ordinal).Count(),
-            "Shipped and given no section of its own in the index: "
-            + string.Join(", ", disk.Except(sections, StringComparer.Ordinal)));
     }
 
     [TestMethod]
@@ -1123,7 +1107,7 @@ public sealed class PluginTests
     }
 
     [TestMethod]
-    public void Every_path_agents_md_links_to_exists_with_the_case_it_states()
+    public void Every_markdown_link_a_document_states_resolves_with_the_case_it_states()
     {
         // The readme's rule pointed at the file a session reads before it knows anything else. A dead
         // link here is worse than one in a guide: the reader is deciding where to look, and it will not
@@ -1136,35 +1120,57 @@ public sealed class PluginTests
         // case-sensitively when the file is rendered on the host, so a link that works in every editor
         // here is dead for the reader who met this repository through a browser. That reader is the one
         // with the least context to recover from it.
-        string agents = File.ReadAllText(Path.Combine(Root, "AGENTS.md"));
+        // Scoped to every document rather than to AGENTS.md, because the argument above is about what a
+        // browser does and the readme is the document most likely to be read in one. AGENTS.md was the
+        // scope only because its dead link is what prompted the rule. The sibling rule above reads
+        // backticked paths, which is a different syntax and does not check case, so neither subsumes the
+        // other.
+        string[] documents = Documents();
+        int inspected = 0;
 
-        string[] targets = [.. System.Text.RegularExpressions.Regex
-            .Matches(agents, @"\]\((?<path>[^)\s#]+)\)")
-            .Select(match => match.Groups["path"].Value)
-            .Where(path => !path.StartsWith("http", StringComparison.OrdinalIgnoreCase))
-            .Distinct(StringComparer.Ordinal)];
+        foreach (string document in documents)
+        {
+            string directory = Path.GetDirectoryName(document)!;
+            string relative = Path.GetRelativePath(Root, document);
+
+            string[] targets = [.. Regex
+                .Matches(File.ReadAllText(document), @"\]\((?<path>[^)\s#]+)\)")
+                .Select(match => match.Groups["path"].Value)
+                .Where(path => !path.StartsWith("http", StringComparison.OrdinalIgnoreCase)
+                    && !path.StartsWith("mailto:", StringComparison.OrdinalIgnoreCase))
+                .Distinct(StringComparer.Ordinal)];
+
+            foreach (string target in targets)
+            {
+                // Resolved from the document that names it, the way a reader following it would.
+                string full = Path.GetFullPath(
+                    Path.Combine(directory, target.Replace('/', Path.DirectorySeparatorChar)));
+
+                inspected++;
+
+                Assert.IsTrue(
+                    File.Exists(full) || Directory.Exists(full),
+                    $"{relative} links to {target}, which does not exist.");
+
+                // A link to a directory may carry a trailing slash -- `guides/` -- and GetFileName returns
+                // nothing for a path that ends in a separator, which made the case check compare against
+                // an empty name and fail on a link that was perfectly good. Trimmed first, so the
+                // comparison is against the last real segment either way.
+                string trimmed = Path.TrimEndingDirectorySeparator(full);
+                string name = Path.GetFileName(trimmed);
+
+                Assert.IsTrue(
+                    Directory.EnumerateFileSystemEntries(Path.GetDirectoryName(trimmed)!, name)
+                        .Any(entry => string.Equals(Path.GetFileName(entry), name, StringComparison.Ordinal)),
+                    $"{relative} links to {target}, which exists under a different capitalisation. That "
+                    + "resolves in a clone and is a dead link when the file is rendered on the host.");
+            }
+        }
 
         Assert.IsTrue(
-            targets.Length > 0,
-            "AGENTS.md links to nothing. It is the repository's map, so an empty one is a regression "
-            + "rather than a matter of taste.");
-
-        foreach (string target in targets)
-        {
-            string full = Path.Combine(Root, target.Replace('/', Path.DirectorySeparatorChar));
-
-            Assert.IsTrue(
-                File.Exists(full) || Directory.Exists(full),
-                $"AGENTS.md links to {target}, which does not exist.");
-
-            string name = Path.GetFileName(full);
-
-            Assert.IsTrue(
-                Directory.EnumerateFileSystemEntries(Path.GetDirectoryName(full)!, name)
-                    .Any(entry => string.Equals(Path.GetFileName(entry), name, StringComparison.Ordinal)),
-                $"AGENTS.md links to {target}, which exists under a different capitalisation. That "
-                + "resolves in a clone and is a dead link when the file is rendered on the host.");
-        }
+            inspected > 0,
+            "No markdown links were checked at all, so this would pass however they were written. "
+            + "AGENTS.md alone used to carry enough of them for that to be impossible.");
     }
 
     [TestMethod]

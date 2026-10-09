@@ -16,9 +16,11 @@ namespace Sdlc.Architecture.Tests;
 /// project has to reference what it inspects; the rules in <see cref="StructureTests"/> are the ones
 /// that must not, and they read files instead.
 /// <para>
-/// Both rules assert they actually inspected something. A reflection rule whose assembly failed to
-/// load enumerates nothing, finds no violations and passes — which is the same vacuous success
-/// <c>RepoFiles</c> is written against, arriving through a different mechanism.
+/// Every rule here asserts it actually inspected something. A reflection rule whose assembly failed
+/// to load enumerates nothing, finds no violations and passes — which is the same vacuous success
+/// <c>RepoFiles</c> is written against, arriving through a different mechanism. Stated as "every"
+/// rather than as a count, because a count beside the thing it counts goes stale the next time a
+/// rule is added and reads as deliberate while it does.
 /// </para>
 /// </remarks>
 [TestClass]
@@ -115,9 +117,15 @@ public sealed class ConventionTests
     /// <remarks>
     /// <para><strong>.editorconfig says this and enforces nothing.</strong> Naming surfaces as
     /// IDE1006, which <c>EnforceCodeStyleInBuild</c> does not cover - it is an IDE-only diagnostic.
-    /// Fifteen fields in this repository broke the rule while the build reported zero warnings, which
+    /// Nineteen fields in this repository broke the rule while the build reported zero warnings, which
     /// is the "appears enforced and is not" failure sitting inside the file that is meant to be the
     /// compiler layer. This is what makes it real.</para>
+    ///
+    /// <para><strong>Four of those nineteen are why this reflects rather than greps.</strong> A grep
+    /// over the source found fifteen; the rule found <c>HookProtocol.Spellings</c> and <c>Events</c> and
+    /// <c>DeclaredFiles.Backticked</c> and <c>Quoted</c> as well. That is the class remark's point about
+    /// a regular expression answering a different question that looks the same, measured rather than
+    /// argued - so the count here is the violations, not what the cheaper method could see.</para>
     ///
     /// <para>The prefix is the point rather than the capitalisation: a reader scanning a method body
     /// can tell an assignment to the instance from an assignment to a local without checking a

@@ -45,11 +45,20 @@ public static class ProtectedPaths
 
         if (string.Equals(fileName, "abandoned.md", StringComparison.OrdinalIgnoreCase))
         {
+            // This is the one protected act the agent itself usually wants, so naming the drafter looks
+            // like paving the exit. It is not, and the silence was the worse of the two: the hook denies
+            // the write and cannot deny the decision, `draft abandon` is named in five other places an
+            // agent can read, and the guard that actually works is the drafter printing a reason that
+            // fails to parse until a person writes one. Withholding the command made abandoning ON THE
+            // RECORD harder without making abandoning harder, and the record is the whole point of the
+            // file. The friction also landed on the wrong party: every host renders this text as the
+            // error a person reads.
             return new ProtectedFile(
                 "a cycle's abandonment record",
                 "Abandoning a cycle is a decision, not an exit. An agent stuck on a blocking finding has "
                 + "an obvious escape - abandon and start clean - and a hand-written reason is what keeps "
-                + "the objections that killed it on the record.");
+                + "the objections that killed it on the record. Run 'sdlc draft abandon <id>' and write "
+                + "the reason by hand.");
         }
 
         if (string.Equals(fileName, FileConstraintDocuments.SolutionConstraintsFileName, StringComparison.OrdinalIgnoreCase))

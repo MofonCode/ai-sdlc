@@ -10,7 +10,7 @@ public sealed class ArtifactOutlineTests
     {
         ArtifactOutline outline = ArtifactOutlineReader.Read("""
             ---
-            id: 20260929_1456_32
+            cycle: 20260929_1456_32
             ---
 
             # Players with no die have no way to get an impartial roll
@@ -32,7 +32,7 @@ public sealed class ArtifactOutlineTests
         ArtifactOutline outline = ArtifactOutlineReader.Read("""
             ---
             # this is a yaml comment
-            id: 20260929_1456_32
+            cycle: 20260929_1456_32
             ---
 
             # The real heading
@@ -53,7 +53,7 @@ public sealed class ArtifactOutlineTests
     [TestMethod]
     public void A_document_with_no_headings_yields_an_empty_outline_rather_than_failing()
     {
-        ArtifactOutline outline = ArtifactOutlineReader.Read("---\nid: x\n---\n\nJust prose.\n");
+        ArtifactOutline outline = ArtifactOutlineReader.Read("---\ncycle: 20260929_1456_32\n---\n\nJust prose.\n");
 
         Assert.IsNull(outline.Headline);
         Assert.AreEqual(0, outline.Sections.Count);

@@ -38,6 +38,22 @@ internal static class Stages
     /// <returns>True when it is a skill rather than an unknown command.</returns>
     public static bool IsSkill(string verb) => _skills.ContainsKey(verb);
 
+    /// <summary>Every verb this class will explain as a skill.</summary>
+    /// <remarks>
+    /// <para><strong>Nothing in the binary calls this, and it stays by D-48's first exception:</strong> the
+    /// dictionary above is the single statement of which stages are skills rather than commands, and the
+    /// suite is what holds it to the skills actually shipped. Every verb here is a verb the status panel
+    /// can print as the next command, so one that no skill answers sends a person somewhere this tool does
+    /// not go — the failure the remarks on this class are written against.</para>
+    ///
+    /// <para>Asserting it needs the whole set rather than one lookup. <see cref="IsSkill"/> can only
+    /// confirm a verb somebody already named, so a test built on it has to carry its own list of verbs to
+    /// ask about — and that list was the defect: it named six of the twelve, and three of those were only
+    /// reached through a string match on the renderer's source that a rename would have silently
+    /// broken.</para>
+    /// </remarks>
+    public static IReadOnlyCollection<string> Skills => _skills.Keys;
+
     /// <summary>
     /// Explains that a stage is a skill, and how to invoke it.
     /// </summary>
