@@ -148,19 +148,39 @@ rather than a constraint, which is the right answer and worth saying out loud.
 **Three of those four questions are about history, and a greenfield repository has none.** The honest
 answers are *nothing*, *nothing* and *nothing* — so a brand-new solution gets zero solution constraints
 by construction, and nothing anywhere records what it is meant to look like when it is finished. A
-dice-roller adopted this way, built a cycle later, came out as a numeral in a bare `<p>` with every gate
+status page adopted this way, built a cycle later, came out as a numeral in a bare `<p>` with every gate
 green: nobody had asked, so nobody had been told.
 
-Keep question one. Replace two, three and four with questions that have answers before there is a past:
+Keep question one. Replace two, three and four with the single question that has an answer before there
+is a past:
 
 1. **What is this solution for, in a sentence a newcomer could read?**
 2. **What should every screen in this solution look and behave like?** A component library, a design
    somebody is working to, an existing product it has to sit beside — or plain and unstyled, which is a
    legitimate answer and a different one from nobody having asked.
-3. **What does "done to a good standard" mean here?** The thing a reviewer would send back that no test
-   would have caught.
-4. **What will somebody judge this on that no test can check?** This is the one that earns its place
-   later, because `CON_12` keeps it out of a spec and the person is then the only reader it has.
+
+**Two questions, and resist the third.** What *done to a good standard* means, and what a reviewer would
+send back that no test caught, are already put to every change by the global tier: `CON_16` requires a
+spec to cover every outcome its intent asks for and all of each one, `CON_17` requires it to say what
+somebody is told when the action fails, and `CON_05` keeps out scope nobody asked for. Asking them at
+adoption spends a person's attention on rules already in force, and invites an answer about the change
+they have in mind rather than about the solution — which is the intent's question, one stage later,
+where there is a change to ask it about.
+
+### Never ask
+
+- **Anything that belongs to a single change.** What one piece of work must achieve is the intent's
+  question and the thresholds that prove it are the spec's. An adoption interview is only about what
+  holds for every cycle.
+- **Anything a rule in force already asks.** Run `sdlc constraints` before proposing one rather than
+  only at step 5, because a question the global or profile tier already puts to every spec buys nothing
+  here, and a `LOC_` that restates a tier above it is decoration that costs attention at every
+  interrogation.
+- **Anything whose answer you would be inferring.** The repository name, the directory path and the
+  `AGENTS.md` title are not evidence of what the solution is — `sdlc init` writes that title from the
+  folder name, so quoting it back is the question repeated, not an answer. Ask question one open-ended,
+  in plain text, and offer no candidate answers to choose between: a subject you guessed is one a person
+  has to correct instead of supply.
 
 ### Where each answer goes, which is not all the same place
 
@@ -169,18 +189,33 @@ tests.** Sort before you propose:
 
 | An answer about | Goes in | Because |
 |---|---|---|
-| what the solution is and the standard expected of it | `solution.md`, the paragraph under the four keys | every plan reads it, and it binds nothing by itself |
+| what the solution is and who for | the paragraph under the four keys, which `sdlc draft solution` writes | it is there for people: no stage reads that prose, and it binds nothing |
 | which component library, which packages, which project may reference what | an architecture test | test two below rejects it — an analyzer *can* decide it, so a constraint is the wrong tier |
-| whether a judgement was made and recorded — that a visual treatment was considered, that an unhappy path was specified | a `LOC_` constraint | it needs reading comprehension, which is exactly what test two admits |
+| the names a visual treatment is expressed in | a theme, which `sdlc propose theme` drafts | roles survive a rebrand where values do not, and a stage can look a role up |
+| whether a judgement was made and recorded — that a visual treatment was considered | a `LOC_` constraint | it needs reading comprehension, which is exactly what test two admits |
+
+**Where an answer reaches none of those four, record it nowhere, and say so.** There is no fifth home,
+and inventing one — prose a stage is told to read, a rule without the four parts — would put a rule
+somewhere no revision, no id and no admission test reaches. The three tiers, the decision record and the
+declared stack are the whole of where a rule may live; `sdlc constraints` renders the tiers and
+`sdlc decisions` the record.
+
+**`DEC_` is not available here, and that is structural.** `sdlc propose decisions` reads only approved
+cycles, and a repository being adopted has none — so at adoption the live homes are a `LOC_`, an
+architecture test and a theme. A choice worth recording as a decision is recorded a cycle later, from
+the cycle that settled it.
 
 `solution.md` is protected, so you cannot write it -- and you no longer have to hand over a block to
 paste either. **Run `sdlc draft solution`.** It writes the whole file beside the real one, keeping the four
 keys exactly as recorded, and prints the single rename that places it. Show what it prints verbatim.
 
-**Do not let the file stay a placeholder.** It is the only file in the solution that says what good
-looks like, and a plan that reads `Replace this with a paragraph a newcomer could read` has been told
-nothing. That is not hypothetical: a block printed for pasting went unpasted through a whole cycle,
-which is why the drafter writes a file now.
+**Do not let the file stay a placeholder, and do not oversell what it does.** No stage reads the
+paragraph — the four keys above it are what resolve the profile, record the origin, decide which
+conventions new work follows and say whether a pull-request check governs a merge. It is still worth
+writing, because it is the one place a person joining this repository learns what it is for, and
+`Replace this with a paragraph a newcomer could read` tells them nothing. That is not hypothetical: a
+block printed for pasting went unpasted through a whole cycle, which is why the drafter writes a file
+now.
 
 **Ask the person, do not read the codebase.** Reading an existing repository to decide what to forbid
 would make adoption a judgement on code that predates the framework, and the first cycle would spend

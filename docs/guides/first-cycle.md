@@ -124,9 +124,10 @@ enforced without being enforced, which is the failure mode this design is writte
 solution and proposes its first `LOC_` constraints — asking you rather than reading the codebase on
 purpose, because reading an existing repository to decide what to forbid would make adoption a judgement
 on code nobody is defending, and the first cycle would spend itself on findings about work that predates
-the framework. A greenfield repository has no history to ask about, so it asks a different set: what the
-solution is for, what every surface should look like, what *done to a good standard* means here, and
-what somebody will judge it on that no test can check.
+the framework. A greenfield repository has no history to ask about, so it asks a shorter set — two
+questions: what the solution is for, and what every surface should look and behave like. It does not ask
+what *done to a good standard* means, because `CON_16`, `CON_17` and `CON_05` already put that question
+to every spec, one change at a time, where there is a change to ask it about.
 
 **Place the two placeholders before the first cycle, not after it.** `solution.md` and `techstack.md`
 are protected, so nothing can fill them for you — the skill runs the drafters and prints the rename:

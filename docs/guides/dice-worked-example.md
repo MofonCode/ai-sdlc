@@ -113,6 +113,12 @@ hands you the line to run. Answer it like this:
 | which profile | `dotnet-default`. It is the one with a skeleton — `ml-tensorflow` ships none |
 | where the code lives | `local`. There is no remote |
 | what the solution is for | a six-sided die, rolled over HTTP |
+| what every screen should look and behave like | nothing is on a screen here — it is an endpoint returning JSON. Say that, because *no screens* is an answer and differs from nobody having asked |
+
+Those are the two interview questions on a greenfield repository, and there is no third. It does not ask
+what *done to a good standard* means: `CON_16`, `CON_17` and `CON_05` already put that to every spec,
+one change at a time. If it asks you anything beyond these — what a reviewer would send back, what this
+will be judged on — it has gone past its own skill.
 
 The line it hands back is the adoption command with `--profile dotnet-default --platform local`, and it
 comes with a leading `!`. **Run it yourself** — the hook denies adoption to an agent, and on Claude Code

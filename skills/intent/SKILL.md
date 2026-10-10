@@ -101,9 +101,10 @@ One question: *"when you say nothing fancy — do you mean keep the scope small,
 A person who means both says both, and that is a better answer than the one you would have guessed.
 
 **What the solution should look like is not this document's business.** If the answer is about
-appearance in general rather than about this piece of work, it belongs in `.sdlc/solution.md`, where
-every future plan reads it, rather than in an intent that has to be rewritten next cycle. Say so, and
-carry on.
+appearance in general rather than about this piece of work, it belongs to the solution rather than to an
+intent that would be rewritten next cycle — as a `LOC_` constraint where a plan has to record the
+judgement, or as a theme's role names. Say which, say that the `init` skill is where those are proposed,
+and carry on.
 
 ## 4. Write it
 
