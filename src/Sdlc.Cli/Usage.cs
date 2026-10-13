@@ -37,8 +37,11 @@ internal static class Usage
                                      until a declared stack is in place -- 'draft techstack'.
             scaffold <id>            Write the solution skeleton -- a solution file, its projects, the
                                      architecture tests and a reference slice -- and the .NET build
-                                     settings it compiles under. Refuses without an approved plan:
-                                     adoption writes no code.
+                                     settings it compiles under. On a solution adopted into existing
+                                     code, never the skeleton: only the build settings files that
+                                     cycle's plan declares. Writes what is absent and leaves what is
+                                     there. Refuses without an approved plan: adoption writes no
+                                     code and no build settings.
             constraints              Render the constraint set in force.
             gate <id>                Say whether a cycle's build may run. Exits 1 if not.
             verify-chain <id>        Re-establish the whole chain from the repository. Exits 1 if
@@ -51,14 +54,17 @@ internal static class Usage
             draft techstack          Write the declared stack beside itself, for an edit a person
                                      renames into place: a copy of it, or the framework's default
                                      where there is none yet, with every stack rule listed and on.
-                                     Also reports the options menu: every concern the shipped
-                                     profiles know about, what each declares, and every stack rule.
-                                     The menu is never renamed into place.
+                                     The default also lists the five .NET build settings files, one
+                                     row each: on where the repository held no code, off where it
+                                     did. Also reports the options menu: every concern the shipped
+                                     profiles know about, what each declares, every stack rule, and
+                                     what each build settings file does and costs. The menu is
+                                     never renamed into place.
             draft solution           Write the whole solution.md beside itself, for a person
                                      to rename onto it. Carries the three keys through as
                                      recorded and the prose through unchanged, so the rename
                                      cannot reclassify the solution or cost anybody what they
-                                     wrote.
+                                     wrote. --standard changes that one key, and says so.
             evidence <id>            Record what a build produced: the diff, its base commit, and a
                                      normalised test summary. Verify reads only this.
             cycles                   List every cycle this solution holds, newest first: what each
@@ -73,6 +79,10 @@ internal static class Usage
                                      departing from one to say what it would have cost.
             theme                  The roles this solution's surfaces use and the values that
                                      fill them -- the one place a colour or a typeface lives.
+            stack                    What this solution declares it is built from: its defaults,
+                                     the stack rules switched on, and each build settings file --
+                                     whether the stack takes it and whether it is on disk. Names
+                                     the gap and closes none: a cycle's plan does that.
             propose constraints      Read this solution's whole history and say which rules its
                                      findings keep citing, with the cycles and finding ids behind
                                      each. Proposes; writes nothing that binds. Where the record
@@ -106,25 +116,15 @@ internal static class Usage
                                      declares that nothing is pinned: no default for a plan to depart
                                      from, no stack rule in force, every plan choosing freely.
 
+        Options for draft solution
+            --standard <name>        Change which conventions new work follows: profile, or existing.
+                                     The one key a draft may move, and only when asked. profile makes
+                                     the framework's patterns the default a plan departs from;
+                                     existing makes it the surrounding code. Neither says anything
+                                     about the code already there, and neither writes a file -- the
+                                     .NET build settings are rows in the declared stack.
+
         Options for init
-            --adopt-standard         Hold this solution's new work to the profile's conventions, in a
-                                     repository that existed first. Writes the stack files adoption
-                                     otherwise leaves to the skeleton -- .editorconfig, the two props
-                                     files, global.json -- and records standard: profile.
-
-                                     A person's decision rather than a default, because it applies a
-                                     convention to code that never agreed to one:
-                                     Directory.Build.props makes warnings errors, so the next build
-                                     can fail on files nobody has touched. Nothing is overwritten --
-                                     a file the repository already had is kept -- and the code
-                                     already there is not migrated by this. A cycle does that.
-
-                                     On a scaffolded solution it only writes those files sooner --
-                                     'sdlc scaffold' brings them with the skeleton, and the standard
-                                     is the profile's already. On a repository already governed, the stack
-                                     files are written and the solution.md key is printed for a
-                                     person to place, because that file is protected.
-
             --platform <name>        Where the code lives: github, azure-devops, or local for a
                                      repository with no remote yet. Default: github.
 
@@ -225,6 +225,10 @@ internal static class Usage
             'constraints' stops a cycle doing something. 'decisions' stops it re-deciding
             something. 'theme' stops it inventing a colour. All three are rendered on demand and
             never copied into an artifact, because a copy is a second place the truth lives.
+
+            'stack' is read beside them and is not a fourth: it prints the declared stack, which
+            CON_15 already judges a plan against, and adds the one comparison a file listing can
+            decide -- which build settings the stack takes against which are on disk.
 
             A plan may depart from any of the three. Departing from a rule is impossible, from a
             recorded decision it is legal but CON_19 asks what the decision would have cost, and

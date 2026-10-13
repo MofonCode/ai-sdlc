@@ -1,6 +1,7 @@
 using System.Globalization;
 using Sdlc.Core.Cycles;
 using Sdlc.Core.Init;
+using Sdlc.Core.Solutions;
 
 // Writes what a governed solution looks like on its first cycle, so that `dotnet build` and
 // `dotnet test` can be run against it.
@@ -11,7 +12,7 @@ using Sdlc.Core.Init;
 // and kills the generated solution's first build, and then a CA1859 that warnings-as-errors turns
 // into an error. Neither was visible until a solution was generated and built by hand.
 //
-// It writes both halves, because neither compiles without the other: the stack files (which carry the
+// It writes both halves, because neither compiles without the other: the build settings (which carry the
 // analyzer policy and the package versions) and the skeleton. `sdlc scaffold` writes both, behind an
 // approved plan.
 if (args.Length is 0 or > 2 || args[0] is "-h" or "--help")
@@ -82,4 +83,5 @@ void Write(string relative, string contents)
 // asserting the two agreed -- so a sixth file added to the list would have left this harness building
 // a solution that no longer matched what `sdlc scaffold` produces: the harness passing and the real thing
 // broken, which is the failure it was built to prevent, one level up. F-22.
-static IEnumerable<(string Path, string Contents)> Stack() => Initialise.StackFiles();
+static IEnumerable<(string Path, string Contents)> Stack() =>
+    BuildSettings.All.Select(setting => (setting.OnDisk, setting.Contents));

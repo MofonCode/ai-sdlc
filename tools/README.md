@@ -33,7 +33,7 @@ shipped a `--` inside an XML comment, which is illegal and kills the generated s
 and then a CA1859 that warnings-as-errors turns into an error. Neither was visible until a solution was
 generated and built by hand.
 
-It writes both halves, because neither compiles without the other: the stack files, which carry the
+It writes both halves, because neither compiles without the other: the build settings, which carry the
 analyzer policy and the package versions, and the skeleton. `sdlc scaffold` writes both behind an
 approved plan. It **refuses a directory that is not empty** rather than merging into one — a harness that
 wrote half a solution over existing files would produce a build failure nobody could attribute.

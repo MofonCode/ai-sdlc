@@ -2,7 +2,7 @@
 name: draft
 description: Print what belongs in one of the files only a person writes -- an approval, an abandonment, the declared stack, or the solution document. Use when a person needs to approve, refuse, stop a cycle, or declare or change what the solution is built from and which stack rules it is held to. For a solution's own constraints, the skill is propose.
 compatibility: Requires the sdlc binary on PATH, from the MofonCode.Sdlc.Cli dotnet tool, and a git repository. Every command here is that binary, so without it the first step fails.
-argument-hint: "approval <id> | abandon <id> | solution | techstack [--empty]"
+argument-hint: "approval <id> | abandon <id> | solution [--standard profile|existing] | techstack [--empty]"
 allowed-tools: Bash(sdlc *), Bash(git *)
 ---
 
@@ -15,7 +15,7 @@ rather than drafted, for the reason at the foot of this page.
 ```
 sdlc draft approval <id>     [--changes-requested | --deny | --reopen]
 sdlc draft abandon <id>
-sdlc draft solution
+sdlc draft solution          [--standard profile|existing]
 sdlc draft techstack         [--empty]
 ```
 
@@ -27,7 +27,9 @@ person who has to place the file. Then stop.
 writes `approval.<decision>.draft.md` into the cycle directory -- a complete file, not a fragment --
 and prints it with the rename that records it. **`draft solution` does the same for the solution
 document**, carrying its three keys through as recorded and any prose already there through
-unchanged -- so the rename can neither reclassify the solution nor cost somebody what they wrote. **And
+unchanged -- so the rename can neither reclassify the solution nor cost somebody what they wrote.
+`--standard` is the one exception, and only when a person asks for it by name: it moves which
+conventions new work follows, and the printed instructions say which way. **And
 `draft techstack` writes the declared stack beside itself** — a copy of it, or the framework's default
 where none is placed yet — and writes the options menu as a report, so declaring or changing it is a
 rename too: of the draft, never of the menu. `abandon` still prints for a person to place by hand. Show the rename command and
@@ -75,20 +77,29 @@ edit the draft; only the real file is denied. What the draft starts as depends o
 | | The draft is |
 |---|---|
 | a declared stack is in place | a **byte copy** of it. The rename applies what somebody changed and nothing else, with nothing merged and nothing regenerated |
-| none is in place yet | the **framework's default**: every row it would pin, and every stack rule it ships switched on. Adoption writes no declared stack, so this is where the first one comes from, and no cycle opens until it is renamed into place |
+| none is in place yet | the **framework's default**: every row it would pin, every stack rule it ships switched on, and the five build settings files — `true` where the repository held no code, `false` where it did. Adoption writes no declared stack, so this is where the first one comes from, and no cycle opens until it is renamed into place |
 | `--empty` was given | **nothing.** Renamed into place it declares that nothing is pinned, no stack rule applies, and every plan chooses freely |
 
-**The file holds two tables, and what is in them is exactly what binds.** The first pins choices: a row
-is a default every plan is read against, and no row leaves that choice to each plan. The second, under
-`## Rules`, lists the stack rules — the ones that may name a framework — with `true` or `false` beside
-each and what the rule holds a plan to. Only the ones marked `true` apply; a rule with no row does not.
-So declining a rule is setting its row to `false`, and nothing about the stack is selected from anywhere
-else.
+**The file holds three tables, and what is in them is exactly what binds.** The first pins choices: a
+row is a default every plan is read against, and no row leaves that choice to each plan. The second,
+under `## Rules`, lists the stack rules — the ones that may name a framework — with `true` or `false`
+beside each and what the rule holds a plan to. Only the ones marked `true` apply; a rule with no row
+does not. So declining a rule is setting its row to `false`, and nothing about the stack is selected
+from anywhere else.
+
+**The third, under `## Build settings`, lists the five .NET build settings files the same way** — a file
+name, `true` or `false`, and what the file does. `true` declares that the solution takes it. **A row
+writes nothing**: the file arrives in a cycle whose approved plan declares it, from `sdlc scaffold`.
+When a person switches one on in an existing codebase, say what it costs in one line —
+`Directory.Build.props` makes warnings errors, so a build can fail on files nobody has touched — and
+that the menu has the rest. Do not switch one on yourself in the draft: on a codebase that predates the
+files, that is a team's decision.
 
 **It writes a second file, and that one is never placed.** The menu is a report under `.sdlc/reports/`:
 every concern the shipped profiles know about with what each declares for it, the alternatives this
-framework has argued, the choices it refused, every stack rule it ships, and an empty table for a
-solution starting over rather than amending a row. The command prints its path. Point a person at it and leave it where it is — a
+framework has argued, the choices it refused, every stack rule it ships, every build settings file
+with what it does and what it costs a codebase that predates it, and an empty table for a solution
+starting over rather than amending a row. The command prints its path. Point a person at it and leave it where it is — a
 declared stack carrying answers the solution has **not** chosen is one a plan can reach into and
 truthfully not be departing from anything, which is the deadlock protecting the file closed.
 `sdlc doctor` reports a declared stack that ended up with the menu inside it.

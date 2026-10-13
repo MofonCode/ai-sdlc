@@ -33,7 +33,7 @@ and prints the invocation — because a tool must never send somebody somewhere 
 
 | Skill | What it is | Takes | When | Who starts it |
 |---|---|---|---|---|
-| `init` | adopts the framework into a repository | `[--platform github\|azure-devops\|local] [--adopt-standard]` | once per repository | **a person**, and the hook denies an agent |
+| `init` | adopts the framework into a repository | `[--platform github\|azure-devops\|local]` | once per repository | **a person**, and the hook denies an agent |
 | `intent` | interviews a person into the problem the change exists to solve | `[a sentence]` | opening a cycle | a person |
 | `spec` | derives testable acceptance criteria from the intent | `<id>` | the intent has a clean round | a person |
 | `plan` | decides how, and what will prove each criterion | `<id>` | the spec has a clean round | a person |
@@ -76,26 +76,27 @@ in this solution, proposes its first constraints, and walks the person through d
 **Adoption decides nothing about the stack, and asks one question: where the code will live.** There is
 no profile to choose. `sdlc init` writes no declared stack and no `.NET` build settings; the skill's
 fourth step runs `sdlc draft techstack`, which writes a draft of the framework's default — every row it
-would pin and every stack rule it ships, switched on — for a person to cut down and rename. No cycle
+would pin, every stack rule it ships switched on, and the five build settings files, on where the
+repository held no code and off where it did — for a person to cut down and rename. No cycle
 opens until that file is placed, and an empty one is a legitimate answer.
 
 Three modes, decided by what it finds: **greenfield** for a repository holding no code, **onboard** for
 existing code with no `.sdlc/`, **update** when `.sdlc/` already exists. Update refreshes only what the
 framework owns, which is everything not protected — hook configs, the pipeline, `.sdlc/README.md`.
 
-**`--adopt-standard` is how an existing codebase opts in to the profile's conventions, and the skill
-offers it only when a person raises it.** An adopted solution holds new work to the code already around
-it, which is the default and usually right. The flag records `standard: profile` instead and writes the
-build settings a new solution gets with its skeleton — `.editorconfig`, both props files, `global.json`. It is a person's decision rather than a default because
-it applies a convention to code that never agreed to one: `Directory.Build.props` makes warnings errors,
-so the next build can fail on files nobody has touched. Nothing is overwritten — a file the repository
-already had is kept — and the code already there is not migrated by the flag. A cycle does that, planned
-and approved like any other work.
+**Holding an existing codebase to the framework's conventions is not an option on adoption, and the
+skill raises it only when a person does.** An adopted solution holds new work to the code already
+around it, which is the default and usually right. Moving off that is two separate choices, each made
+after adoption: `sdlc draft solution --standard profile` changes which patterns a plan defaults to, and
+the `.NET` build settings — `.editorconfig`, the three props files, `global.json` — are rows in the
+declared stack, switched off in an adopted repository's first draft. Switching one on is a person's
+decision because it applies a convention to code that never agreed to one: `Directory.Build.props`
+makes warnings errors, so a build can fail on files nobody has touched. A row writes nothing — a cycle
+whose plan declares the file brings it, planned and approved like any other work — and a file the
+repository already had is kept.
 
 **The origin does not move.** Where the code came from is a historical fact; which conventions its new
-work follows is a decision, and those are now two keys rather than one. On a repository already governed
-the flag writes the files and prints the `solution.md` block for a person to place, because that file is
-protected — and adoption says plainly that until they place it, the recorded standard still stands.
+work follows is a decision, and those are two keys rather than one.
 
 **`--platform local` is for a repository with no remote yet**, and it writes no pipeline. That means no
 pull-request check governs a merge, so the pre-push hook is the only mechanical layer and `--no-verify`
@@ -155,6 +156,13 @@ approves, so it is the one a reviewer reads most closely.
 Unlike the spec, this stage must read the codebase — a file table invented from the spec alone is the
 fastest way to a plan that cannot be built. It holds two kinds of claim and only one is judged: the
 approach in `Shape and departures` is a decision, and the file table is an estimate that nothing gates.
+
+**It reads the declared stack and compares it with what is there.** `sdlc stack` prints what the
+solution declares and ends with the one difference a file listing can decide: the build settings files
+the stack takes that are not on disk. The rest of the comparison — a declared default the code does not
+use, or something the code uses that the stack never mentions — is the plan's to make by reading. A
+build settings gap is closed only by a plan whose intent asks for it, which declares the missing files
+and plans for what they break; a plan about anything else names the gap in a sentence and leaves it.
 
 The constraint to watch is proof adequacy. *What would have to be true for this check to pass while the
 criterion is still unmet?* If that question has an answer, the proof is not adequate yet — and an
@@ -262,8 +270,8 @@ that did, and the reason nobody could remember what it was for. See `propose` be
 |---|---|
 | `draft approval <id>` | the gate decision, covering all three planning documents, with a hash of each. Written as a complete file beside the ledger, named for its decision, and placed by renaming it |
 | `draft abandon <id>` | why a cycle stopped. Terminal, and the reason is left empty because the file is rejected without one |
-| `sdlc draft solution` | the whole `solution.md`, written beside itself for a rename. Keys carried through as recorded and prose through unchanged, so renaming can neither reclassify the solution nor cost anybody what they wrote |
-| `sdlc draft techstack` | the declared stack for a rename — a byte copy of it, the framework's default where none is placed yet, or nothing with `--empty` — **and the options menu as a report**: every concern the shipped profiles know about with what each declares, and every stack rule the framework ships. What is in the placed file is exactly what binds: a row pins a choice, and a rule applies only where its row says `true`. The menu is written fresh every run and never renamed into place: a declared stack listing answers the solution has not chosen is one a plan can reach into and truthfully not be departing from anything |
+| `sdlc draft solution` | the whole `solution.md`, written beside itself for a rename. Keys carried through as recorded and prose through unchanged, so renaming can neither reclassify the solution nor cost anybody what they wrote. `--standard profile\|existing` moves that one key, and says so |
+| `sdlc draft techstack` | the declared stack for a rename — a byte copy of it, the framework's default where none is placed yet, or nothing with `--empty` — **and the options menu as a report**: every concern the shipped profiles know about with what each declares, every stack rule the framework ships, and every build settings file with what it does and what it costs. What is in the placed file is exactly what binds: a row pins a choice, a rule applies only where its row says `true`, and a build settings file is the solution's only where its row says `true`. The menu is written fresh every run and never renamed into place: a declared stack listing answers the solution has not chosen is one a plan can reach into and truthfully not be departing from anything |
 
 Every agent write to `approval.md`, `abandoned.md`, `constraints.md`, `decisions.md`, `solution.md` and
 `techstack.md` is denied at the tool call — by file path and by shell command alike. There is no flag, no mode, and no approve command for
@@ -294,6 +302,12 @@ It asks `sdlc gate <id>` and stops if the gate refuses — there are eight ways 
 different next step. It implements what the plan decided and only that: creep inside an approved file is
 what reaches review dressed as approved work, which is where it is least likely to be questioned.
 Something worth fixing that the plan did not describe gets left alone and reported as a suggestion.
+
+**`sdlc scaffold <id>` is how two kinds of file arrive, and the plan is what asks for either.** On a new
+solution's first cycle it writes the skeleton and the build settings it compiles under. On a solution
+adopted into existing code it writes only the build settings files the plan declares — and where
+`Directory.Build.props` is one of them, the build that follows can fail on code the cycle never
+touched, which the plan was required to have planned for.
 
 Warnings are errors, enforced by the build props rather than by instruction. And it checks that the suite
 actually ran: a trial cycle lost its whole verification to `dotnet test` exiting zero without running

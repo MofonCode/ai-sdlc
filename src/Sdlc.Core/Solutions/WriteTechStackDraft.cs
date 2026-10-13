@@ -112,10 +112,29 @@ public static class WriteTechStackDraft
                 ? Start.Empty
                 : File.Exists(path) ? Start.Copy : Start.Default;
 
+            // Read only where the default is being written, because that is the one draft whose
+            // contents depend on it: the build-settings rows start on where nothing predates them and
+            // off where code does (D-77). A copy is a copy, and an empty draft has no rows to start.
+            SolutionOrigin origin = SolutionOrigin.Scaffolded;
+
+            if (start == Start.Default)
+            {
+                Result<SolutionDocument> document = await SolutionDocument
+                    .ReadFile(solution.Path, cancellationToken)
+                    .ConfigureAwait(false);
+
+                if (document.IsFailed)
+                {
+                    return document.ToResult<DraftResult>();
+                }
+
+                origin = document.Value.Origin;
+            }
+
             string current = start switch
             {
                 Start.Copy => await File.ReadAllTextAsync(path, cancellationToken).ConfigureAwait(false),
-                Start.Default => Init.Templates.TechStack(),
+                Start.Default => Init.Templates.TechStack(origin),
                 _ => string.Empty,
             };
 
@@ -134,7 +153,9 @@ public static class WriteTechStackDraft
                 clock.GetUtcNow(),
                 cancellationToken).ConfigureAwait(false);
 
-            return Result.Ok(DraftResult.Drafted(current, Instructions(path, draftPath, optionsPath, start)));
+            return Result.Ok(DraftResult.Drafted(
+                current,
+                Instructions(path, draftPath, optionsPath, start, origin)));
         }
 
         /// <summary>What a draft was written from.</summary>
@@ -152,8 +173,9 @@ public static class WriteTechStackDraft
 
         /// <summary>What the draft starts as, in the words the rename depends on.</summary>
         /// <param name="start">What it was written from.</param>
+        /// <param name="origin">Where the solution's code came from.</param>
         /// <returns>The lines that follow the rename command.</returns>
-        private static string[] Describe(Start start) => start switch
+        private static string[] Describe(Start start, SolutionOrigin origin) => start switch
         {
             Start.Copy =>
             [
@@ -166,6 +188,20 @@ public static class WriteTechStackDraft
                 "every stack rule it ships switched on. Delete the rows that are not true of this solution",
                 "and set a rule to false to decline it. Renaming it untouched declares that default.",
                 "Until it is renamed into place, no cycle opens.",
+                string.Empty,
+                .. origin == SolutionOrigin.Adopted
+                    ? (string[])
+                    [
+                        "The build settings rows start false, because this repository held code before the",
+                        "framework did: Directory.Build.props makes warnings errors, so switching it on can",
+                        "fail a build over files nobody has touched. Set a row to true to take that file,",
+                        "and a cycle whose plan declares it brings it. The menu says what each one costs.",
+                    ]
+                    :
+                    [
+                        "The build settings rows start true: nothing here predates them, and the solution",
+                        "skeleton does not compile without them. They arrive with it, on the first cycle.",
+                    ],
             ],
             _ =>
             [
@@ -175,7 +211,12 @@ public static class WriteTechStackDraft
             ],
         };
 
-        private static string Instructions(string path, string draftPath, string optionsPath, Start start) => string.Join(
+        private static string Instructions(
+            string path,
+            string draftPath,
+            string optionsPath,
+            Start start,
+            SolutionOrigin origin) => string.Join(
             Environment.NewLine,
             [
                 string.Create(CultureInfo.InvariantCulture, $"Written to {draftPath}"),
@@ -184,12 +225,13 @@ public static class WriteTechStackDraft
                 string.Empty,
                 string.Create(CultureInfo.InvariantCulture, $"    mv -f \"{draftPath}\" \"{path}\""),
                 string.Empty,
-                .. Describe(start),
+                .. Describe(start, origin),
                 string.Empty,
                 string.Create(CultureInfo.InvariantCulture, $"The menu is at {optionsPath}:"),
                 "every concern the shipped profiles know about, what each declares for it, the",
-                "alternatives this framework has argued, the stack rules it ships, and an empty table for a",
-                "solution starting over. Open it beside the draft and copy across what you want.",
+                "alternatives this framework has argued, the stack rules it ships, each build settings",
+                "file with what it does and what it costs, and an empty table for a solution starting",
+                "over. Open it beside the draft and copy across what you want.",
                 string.Empty,
                 "It is a report rather than a file in '.sdlc/' itself -- written fresh every run, read back",
                 "by nothing, safe to delete, and in a directory that ignores itself so a copy left behind",

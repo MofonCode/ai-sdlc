@@ -92,9 +92,10 @@ declared yet.
 sdlc draft techstack
 ```
 
-It writes `.sdlc/techstack.draft.md`: the framework's default, whole — every row it would pin, and under
-`## Rules` every stack rule it ships, each marked `true`. **What ends up in the file is exactly what
-binds**, so cut it down to what is true of this solution and rename it into place:
+It writes `.sdlc/techstack.draft.md`: the framework's default, whole — every row it would pin, under
+`## Rules` every stack rule it ships, each marked `true`, and under `## Build settings` the five files
+below. **What ends up in the file is exactly what binds**, so cut it down to what is true of this
+solution and rename it into place:
 
 ```pwsh
 mv -f .sdlc/techstack.draft.md .sdlc/techstack.md
@@ -107,9 +108,8 @@ person's file: `the-stack.md` is what it is and how to change it.
 
 ### The build settings
 
-The files that decide how .NET code is written — yours to amend. They arrive **with the solution
-skeleton**, from `sdlc scaffold` in the first cycle, and in an existing codebase only if you asked with
-`--adopt-standard`:
+The files that decide how .NET code is written — yours to amend. They are rows in the declared stack,
+one per file, and **a cycle brings them**; adoption writes none:
 
 | | |
 |---|---|
@@ -119,18 +119,27 @@ skeleton**, from `sdlc scaffold` in the first cycle, and in an existing codebase
 | `global.json` | the SDK, and the test runner without which the suite silently does not run |
 | `tests/Directory.Build.props` | the six rules relaxed for test code, each with its reason |
 
-An existing codebase gets none of them by default: the framework proposes a shape for new work and
-does not rewrite the conventions of a codebase that predates it. `sdlc init --adopt-standard` is how you say you
-want them anyway, and it is a decision rather than a default — `Directory.Build.props` makes warnings
-errors, so the next build can fail on files nobody has touched. Narrow a severity or scope a rule to a
-directory when it does; each of these is created once and never rewritten, so your amendments survive
-every later run. A file you already had is kept rather than replaced.
+**In a new repository** the rows start `true`, and all five arrive with the solution skeleton, from
+`sdlc scaffold` in the first cycle.
 
-It records the choice as `standard: profile` in `solution.md`, which is what every plan reads to know
-whether to match the surrounding code or the profile. The `origin` stays `adopted` either way — where
-this code came from is a fact, not a preference. On a repository that is already governed the flag writes
-the files and prints that key block for you to place by hand, because `solution.md` is one of the six
-files only a person writes.
+**In an existing codebase** the rows start `false`: the framework proposes a shape for new work and
+does not rewrite the conventions of a codebase that predates it. Taking one is a decision rather than a
+default — `Directory.Build.props` makes warnings errors, so a build can fail on files nobody has
+touched. To take one:
+
+1. Set its row to `true` in the draft, and rename the draft into place. `sdlc stack` now shows it as
+   declared and missing.
+2. Run a cycle whose intent is to adopt it. Its plan declares the file, and after you approve,
+   `sdlc scaffold <id>` writes it — and only the files that plan named.
+
+The fallout lands inside that cycle, where it is planned for. Narrow a severity or scope a rule to a
+directory when a build fails; each of these is created once and never rewritten, so your amendments
+survive every later run. A file you already had is kept rather than replaced.
+
+**Which conventions new work follows is a separate choice**, recorded as `standard` in `solution.md`.
+Every plan reads it to know whether to match the surrounding code or the profile. An existing codebase
+starts on `existing`; `sdlc draft solution --standard profile` writes the change for you to rename into
+place. The `origin` stays `adopted` either way — where this code came from is a fact, not a preference.
 
 **No code lands, and no projects.** Adoption writes what governs code and stops there. The solution file,
 the projects, the architecture tests and the reference slice arrive in your first cycle, behind an intent,
@@ -262,7 +271,10 @@ layers can actually run.
 ```
 
 Unlike the spec, this one **must** read the codebase: a file table invented from the spec alone is the
-fastest way to a plan that cannot be built. It is the last document before you approve, so it is the one
+fastest way to a plan that cannot be built. It also runs `sdlc stack`, and compares what the solution
+declares it is built from with what is there. A build settings file the stack takes and the repository
+lacks is closed by this plan only if the intent asked for it; otherwise the plan names it and leaves
+it. It is the last document before you approve, so it is the one
 to read closely — and the thing to read for is proof adequacy. Ask of each check: *what would have to be
 true for this to pass while the criterion is still unmet?* If that question has an answer, the proof is
 not adequate, and an inadequate proof is worse than none because it produces a green verification instead
@@ -348,14 +360,16 @@ configured.
 written out here because what each records is what verify and the pull-request check later read, and a
 cycle that lost one of them fails at the gate rather than here.
 
-On a new solution's first cycle, the skeleton arrives first, because the plan declared it:
+On a new solution's first cycle, the skeleton arrives first, because the plan declared it. In an
+existing codebase the same command writes no skeleton — only the build settings files the plan declared,
+when it declared any:
 
 ```pwsh
 sdlc scaffold 20260929_1456_32
 ```
 
-A solution file, a core project, an HTTP project, two test projects, and a reference slice written in
-the shape every operation should have -- including the one conversion every response leaves through,
+The five build settings files, a solution file, a core project, an HTTP project, two test projects, and
+a reference slice written in the shape every operation should have -- including the one conversion every response leaves through,
 which is what makes the banned response factories a rule that can fire rather than a file that looks
 like one. It refuses unless this cycle is approved, so the skeleton is a change like any
 other, and it writes only what is absent — a second run keeps what is there rather than overwriting it.

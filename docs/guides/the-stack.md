@@ -1,7 +1,7 @@
 # What a solution is built from
 
-The declared stack: what it pins, which stack rules it switches on, where its first draft comes from,
-and how to change it. **This is reference rather than a walkthrough** — read the part you need and leave
+The declared stack: what it pins, which stack rules it switches on, which build settings files it
+takes, where its first draft comes from, and how to change it. **This is reference rather than a walkthrough** — read the part you need and leave
 the rest.
 
 It states no rule. `sdlc constraints` renders those, all tiers resolved, which is the only place they
@@ -11,7 +11,7 @@ are complete.
 
 | | What it is | Who writes it |
 |---|---|---|
-| `.sdlc/techstack.md` | the declared stack: what this solution chose for each concern, and which stack rules it is held to | a person, by renaming a draft into place. Nothing else, ever |
+| `.sdlc/techstack.md` | the declared stack: what this solution chose for each concern, which stack rules it is held to, and which build settings files it takes | a person, by renaming a draft into place. Nothing else, ever |
 
 **It is protected.** Every agent write to it is denied at the tool call, by file path and by shell
 command alike. There is no flag and no mode — the declared stack is one of the two rule sources a plan
@@ -25,7 +25,7 @@ there** — `sdlc new` refuses and names the command.
 **What is in the file is exactly what binds.** Nothing about the stack is selected from anywhere else:
 no solution records a profile, and `solution.md` says nothing about what the code is built from.
 
-## The two tables
+## The three tables
 
 ```markdown
 ## Defaults
@@ -39,12 +39,19 @@ no solution records a profile, and `solution.md` says nothing about what the cod
 | Rule | On | What it holds a plan to |
 |---|---|---|
 | `PRO_03` | true | A proof about stored data runs against the store the solution declares |
+
+## Build settings
+
+| File | On | What it does |
+|---|---|---|
+| `Directory.Build.props` | true | Makes warnings errors, sets the analyser level and wires the banned-API list, for every project |
 ```
 
 | Table | A row means | No row means |
 |---|---|---|
 | defaults — two columns | this choice is **pinned**: a plan reaching for something else has to say what the pinned one would have cost | that choice is left to each plan |
 | rules — three columns | `true`: every plan is judged against the rule. `false`: the solution was offered it and declined | the rule does not apply |
+| build settings — three columns, under their own heading | `true`: this solution takes the file. `false`: it was offered and declined | the stack says nothing about that file |
 
 **A default does not bind by itself.** What a row buys is an argument at the one gate before code
 exists. To make one actually bind, a solution adds a `LOC_` constraint or an architecture test.
@@ -53,9 +60,13 @@ exists. To make one actually bind, a solution adds a `LOC_` constraint or an arc
 for the reader — nothing is judged against that sentence, and `sdlc constraints` prints the rule in
 full with what it forbids and why.
 
-**The two are told apart by their width.** A rule row has three cells and a default has two, so
-neither reader counts the other's rows: a rule is not a default a plan can argue its way past, and a
-default is not a rule.
+**A default and a rule are told apart by their width.** A rule row has three cells and a default has
+two, so neither reader counts the other's rows: a rule is not a default a plan can argue its way past,
+and a default is not a rule.
+
+**A build settings row is told apart by where it sits.** A rule has an id to recognise it by and a file
+name has nothing, so those rows are read from under `## Build settings` and nowhere else. Move the
+table under another heading and the stack says nothing about the files.
 
 ## An empty file is an answer
 
@@ -81,6 +92,11 @@ With no declared stack in place, the draft is **the framework's default, whole**
 `dotnet-default` profile declares, and every stack rule the framework ships, each marked `true`. The
 framework ships three.
 
+It also lists the five build settings files, one row each — **`true` where the repository held no code
+before the framework, `false` where it did.** `Directory.Build.props` makes warnings errors, so on an
+existing codebase switching it on can fail a build over files nobody has touched. That has to be
+something a team chose, never something it got by renaming a draft unread.
+
 The edit is subtraction:
 
 | The solution | What to do to the draft |
@@ -103,7 +119,7 @@ The same command. With a declared stack in place the draft is a **byte copy** of
 | | What it is |
 |---|---|
 | `.sdlc/techstack.draft.md` | what you rename. A byte copy of the declared stack; or the default where there is none; or nothing, with `--empty` |
-| `.sdlc/reports/<when>-stack-options.md` | the **menu**. Every concern the shipped profiles know about and what each declares, the alternatives this framework has argued, the choices it refused, every stack rule it ships, and an empty table for a solution starting over. The command prints the path |
+| `.sdlc/reports/<when>-stack-options.md` | the **menu**. Every concern the shipped profiles know about and what each declares, the alternatives this framework has argued, the choices it refused, every stack rule it ships, every build settings file with what it does and what it costs, and an empty table for a solution starting over. The command prints the path |
 
 The rename is the act:
 
@@ -189,18 +205,72 @@ document belongs in a schema or a hook.
 upgrading the binary never changes what a plan is judged against. `sdlc doctor` names a shipped rule the
 file does not list, so it is declined rather than merely unseen.
 
-## The skeleton and the build settings
+## The build settings
 
-`sdlc scaffold <id>` writes the .NET solution skeleton — a solution file, five projects, an
-architecture suite — **and the build settings it compiles under**: `.editorconfig`, the two props
-files, `global.json`. Adoption writes neither.
+Five files decide how .NET code is built. Each is created once, never rewritten, and yours to amend.
 
-Nothing in the declared stack decides whether the skeleton may be written. It runs only behind a plan
-a person approved, and a plan declaring those files says the solution is .NET. Where the declared stack
-pins something else, that plan had to argue the departure to be approved at all.
+| File | What it does |
+|---|---|
+| `.editorconfig` | the code conventions: formatting and style a build can enforce, and naming an editor guides |
+| `Directory.Build.props` | makes warnings errors, sets the analyser level and wires the banned-API list, for every project |
+| `Directory.Packages.props` | central package versions, so a project cannot pick its own |
+| `global.json` | pins the SDK and selects the test runner, without which the suite silently does not run |
+| `tests/Directory.Build.props` | the six analyser rules relaxed for test code, each with its reason |
 
-**An existing codebase gets the build settings only by asking**, with `sdlc init --adopt-standard`,
-because they apply a convention to code that never agreed to one.
+The options menu says more about each: what is in it, what switching it on costs a codebase that
+predates it, and which other file it is useless without.
+
+**A row declares; it writes nothing.** Adoption writes none of these, and neither does switching a row
+on. The file arrives inside a cycle:
+
+1. Set the row to `true` in a draft and rename it into place.
+2. `sdlc stack` now shows the file as `declared, MISSING`.
+3. A cycle whose plan declares the file is approved.
+4. `sdlc scaffold <id>` writes it. A file the repository already has is kept as it is.
+
+**Why a cycle rather than the row.** The file arriving is the moment a build can start failing on code
+nobody touched. Inside a cycle that is the declared scope of one change a person approved, and the
+fallout is that cycle's to fix. Written on the strength of a row, it would land in whichever build ran
+next, as a file that cycle's plan never declared.
+
+**Whether a given cycle closes the gap is its intent's to say.** A plan about something else names the
+gap and leaves it. Closing it is a change with a scope of its own.
+
+### The skeleton
+
+`sdlc scaffold <id>` also writes the .NET solution skeleton — a solution file, five projects, an
+architecture suite — on a solution that held no code, **together with all five build settings**,
+whatever the rows say, because the skeleton does not compile without them.
+
+A solution adopted into existing code never gets the skeleton: it has a shape already. What it can be
+given is the build settings its plan declares, and nothing else.
+
+Nothing in the declared stack decides whether either may be written. Both run only behind a plan a
+person approved, and a plan declaring those files says the solution is .NET. Where the declared stack
+pins something else, or switches a file's row off, that plan had to argue the departure to be approved
+at all.
+
+## What `sdlc stack` shows
+
+```pwsh
+sdlc stack
+```
+
+The declared defaults, the stack rules with which are on, and each build settings file with what the
+stack says about it and whether it is on disk. It ends with the gap: the files the stack takes that are
+not there.
+
+| It says | Meaning |
+|---|---|
+| `declared, present` | the stack takes it and a file of that name is here |
+| `declared, MISSING` | the stack takes it and a cycle has not brought it yet |
+| `declined`, with or without one here | a row switches it off. One that is here is this repository's own |
+| `no row`, with or without one here | the stack says nothing about it |
+
+**Present means a file of that name exists, and nothing more.** Each is yours to amend and a repository
+may have had its own first, so there is no framework's version to compare against.
+
+**It names the gap and closes none.** The plan stage reads it before choosing a shape.
 
 ## A solution adopted before this
 
@@ -219,7 +289,8 @@ and rename it. `sdlc draft solution` writes the solution document without the ol
 sdlc doctor
 ```
 
-It reports a `declared stack` check and never repairs it — rewriting a person's file would be the gate
+It reports a `declared stack` check, and a `build settings` check where the stack lists any, and
+never repairs either — rewriting a person's file would be the gate
 deciding what a team is built from.
 
 | What it finds | Outcome |
@@ -230,6 +301,8 @@ deciding what a team is built from.
 | a rule row naming an id this release does not ship | a problem — the row switches on nothing |
 | nothing in the file at all | **sound** — it pins nothing, which is a solution's to decide |
 | rows and rules | **sound**, with how many rows are declared and how many listed rules are on |
+| build settings rows | a second check, `build settings`: **sound**, with how many of the five the stack takes and which are not on disk yet. A declared file that has not arrived is not a problem — a cycle brings it |
+| a build settings row naming a file this release does not ship | a problem — the row takes nothing |
 | a shipped rule the file does not list | **sound**, and named |
 | no rule listed, and an old `profile:` line still in `solution.md` | **sound**, and it says where the rules still come from |
 
@@ -242,4 +315,4 @@ deciding what a team is built from.
 | that walk with one solution in it | `dice-worked-example.md` |
 | every command for one cycle | `cycle-commands.md` |
 | what to do when something refuses | `when-it-blocks.md` |
-| every design decision behind this | `../../CONCEPT.md`, §8.2, §11 and D-67, D-68, D-74, D-75, D-76 |
+| every design decision behind this | `../../CONCEPT.md`, §8.2, §11 and D-67, D-68, D-74, D-75, D-76, D-77 |

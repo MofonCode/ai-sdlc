@@ -517,12 +517,12 @@ public sealed class InitTests
     [TestMethod]
     [DataRow(false)]
     [DataRow(true)]
-    public async Task Adoption_writes_no_build_settings_unless_it_is_asked_to(bool holdsCode)
+    public async Task Adoption_writes_no_build_settings_in_any_mode(bool holdsCode)
     {
-        // They are .NET -- warnings as errors in a props file, an SDK pin -- and adoption no longer
-        // knows what a solution is built from, so writing them unasked would be deciding the stack on
-        // the way past. A new solution gets them from 'sdlc scaffold', with the skeleton they
-        // constrain; an existing one keeps its own conventions unless its team asks.
+        // They are .NET -- warnings as errors in a props file, an SDK pin -- and adoption does not
+        // know what a solution is built from, so writing them would be deciding the stack on the way
+        // past. There is no option that makes it: the declared stack lists the ones a solution takes,
+        // and 'sdlc scaffold' writes them inside a cycle whose approved plan declares them. D-77.
         string[] tracked = holdsCode ? ["src/App/Program.cs"] : [];
 
         using var solution = Scratch.Create();
@@ -538,143 +538,44 @@ public sealed class InitTests
     }
 
     [TestMethod]
-    public async Task Adopting_the_standard_writes_the_stack_files_into_an_existing_codebase()
+    public async Task An_existing_codebase_keeps_its_own_standard_and_is_told_where_the_two_choices_live()
     {
-        // D-56. The opt-in an adopted solution had no way to express: the files land, and the record
-        // says so, while the origin stays the historical fact it is.
+        // The flag that used to answer both is gone, and the two things it did were never one
+        // decision. So the report names each home at the one moment somebody is reading: the standard
+        // is a draft of the solution document, the build settings are rows in the declared stack.
         using var solution = Scratch.Create();
-
-        Initialise.Response report = await Adopt(
-            solution,
-            tracked: ["src/App/Program.cs"],
-            adoptStandard: true);
-
-        Assert.AreEqual(SolutionOrigin.Adopted, report.Origin, "Where the code came from does not move.");
-        Assert.AreEqual(SolutionStandard.Profile, report.Standard);
-        Assert.IsFalse(report.StandardPending, "Adoption wrote the document itself, so nothing is pending.");
-
-        foreach (string file in Stack)
-        {
-            Assert.IsTrue(
-                File.Exists(Path.Combine(solution.Root, file)),
-                file + " is what the opt-in buys. Without it the flag records a standard nothing applies.");
-        }
-
-        SolutionDocument document = (await SolutionDocument.ReadFile(solution.Root, CancellationToken.None)).Value;
-
-        Assert.AreEqual(SolutionStandard.Profile, document.Standard);
-        Assert.AreEqual(
-            SolutionOrigin.Adopted,
-            document.Origin,
-            "The flag records a standard. It must not quietly rewrite the origin to get there.");
-    }
-
-    [TestMethod]
-    public async Task Adopting_the_standard_keeps_a_stack_file_the_repository_already_had()
-    {
-        // The one thing that makes the opt-in safe to offer at all: it fills gaps and overwrites
-        // nothing. A team's own .editorconfig is the file most likely to be there already, and
-        // replacing it would be adoption deciding a rule the team had already argued about.
-        using var solution = Scratch.Create();
-        string path = Path.Combine(solution.Root, ".editorconfig");
-        await File.WriteAllTextAsync(path, "root = true\n\n# ours, from before\n");
-
-        Initialise.Response report = await Adopt(
-            solution,
-            tracked: ["src/App/Program.cs", ".editorconfig"],
-            adoptStandard: true);
-
-        Assert.AreEqual(
-            Initialise.InitChange.Kept,
-            report.Actions.Single(action => action.Path == ".editorconfig").Change);
-
-        StringAssert.Contains(await File.ReadAllTextAsync(path), "# ours, from before");
-
-        Assert.IsTrue(
-            File.Exists(Path.Combine(solution.Root, "Directory.Build.props")),
-            "The files it did not have still arrive. Keeping one is not declining the opt-in.");
-    }
-
-    [TestMethod]
-    public async Task Adopting_the_standard_on_a_governed_solution_writes_the_files_and_prints_the_key()
-    {
-        // Where a migration is actually decided: months after adoption, on a solution.md that
-        // already exists. That file is protected - created and never modified - so the flag does the
-        // half it can and prints the half it cannot. The report has to say so, because this is the
-        // one state where the files on disk and the rule a plan reads disagree.
-        using var solution = Scratch.Create();
-        await Adopt(solution, tracked: ["src/App/Program.cs"]);
-
-        Initialise.Response report = await Adopt(
-            solution,
-            tracked: ["src/App/Program.cs"],
-            adoptStandard: true);
-
-        Assert.AreEqual(Initialise.InitMode.Update, report.Mode);
-        Assert.IsTrue(report.StandardPending);
-        Assert.AreEqual(
-            SolutionStandard.Existing,
-            report.Standard,
-            "What the document still says. Reporting the wanted value here would claim a migration that "
-            + "has not happened.");
-
-        Assert.IsTrue(
-            File.Exists(Path.Combine(solution.Root, "Directory.Build.props")),
-            "The flag has to do something on an update, or the only way to migrate is to hand-edit first.");
-
-        string keys = report.Printed[Path.Combine(Cycle.SdlcDirectoryName, Cycle.SolutionFileName)];
-
-        StringAssert.Contains(keys, "standard: profile");
-        StringAssert.Contains(keys, "origin: adopted");
-        StringAssert.Contains(keys, "platform: github");
-        Assert.IsFalse(
-            keys.Contains("profile: dotnet", StringComparison.Ordinal),
-            "Three keys. Nothing records a profile any more, so a printed block must not reintroduce one.");
-
-        string rendered = InitRenderer.Render(report);
-
-        StringAssert.Contains(
-            rendered,
-            "standard: existing",
-            "A reader has to be told the record still disagrees with the files.");
-    }
-
-    [TestMethod]
-    public async Task A_plain_refresh_writes_no_build_settings_whatever_the_document_records()
-    {
-        // The defect this closes. A refresh used to consult the profile named on the command line
-        // rather than anything recorded, so re-running adoption on a solution declared on another stack
-        // wrote .NET settings into it. Only the flag writes them now, and a refresh is not the flag.
-        using var solution = Scratch.Create();
-        await Adopt(solution, tracked: ["src/App/Program.cs"], adoptStandard: true);
-
-        File.Delete(Path.Combine(solution.Root, "global.json"));
 
         Initialise.Response report = await Adopt(solution, tracked: ["src/App/Program.cs"]);
 
-        Assert.AreEqual(SolutionStandard.Profile, report.Standard);
-        Assert.IsFalse(report.StandardPending);
-        Assert.IsFalse(
-            File.Exists(Path.Combine(solution.Root, "global.json")),
-            "A file somebody deleted came back on a refresh that did not ask for it.");
-    }
-
-    [TestMethod]
-    public async Task Adoption_warns_that_the_profile_stack_makes_warnings_errors()
-    {
-        // The cost of the opt-in, said at the one moment somebody is reading. It applies a convention
-        // to code that never agreed to one, and the first build is where that lands.
-        using var solution = Scratch.Create();
-
-        Initialise.Response report = await Adopt(
-            solution,
-            tracked: ["src/App/Program.cs"],
-            adoptStandard: true);
+        Assert.AreEqual(SolutionOrigin.Adopted, report.Origin);
+        Assert.AreEqual(SolutionStandard.Existing, report.Standard);
 
         string rendered = InitRenderer.Render(report);
 
-        StringAssert.Contains(rendered, "warnings");
-        StringAssert.Contains(rendered, "files nobody has touched");
+        StringAssert.Contains(rendered, "sdlc draft solution --standard profile");
+        StringAssert.Contains(rendered, "sdlc draft techstack");
+        StringAssert.Contains(
+            rendered,
+            "warnings errors",
+            "What switching the build settings on costs is said before anybody switches them on.");
+    }
+
+    [TestMethod]
+    public async Task A_refresh_carries_the_recorded_standard_and_prints_nothing_about_it()
+    {
+        // Adoption creates the solution document and never modifies it, and there is no longer an
+        // option that asks it to. A person moves the standard by renaming a draft, so a re-run reports
+        // what is recorded and has no pending key to print.
+        using var solution = Scratch.Create();
+        await Adopt(solution, tracked: ["src/App/Program.cs"]);
+
+        Initialise.Response report = await Adopt(solution, tracked: ["src/App/Program.cs"]);
+
+        Assert.AreEqual(Initialise.InitMode.Update, report.Mode);
+        Assert.AreEqual(SolutionStandard.Existing, report.Standard);
+        Assert.IsFalse(
+            report.Printed.ContainsKey(Path.Combine(Cycle.SdlcDirectoryName, Cycle.SolutionFileName)),
+            "Nothing asked for a change to the document, so there is no block for a person to place.");
     }
 
     [TestMethod]
@@ -715,26 +616,6 @@ public sealed class InitTests
             0,
             code.Length,
             "Adoption left code on disk: " + string.Join(", ", code) + ". It belongs to a cycle.");
-    }
-
-    [TestMethod]
-    public async Task A_stack_file_a_person_amended_is_not_rewritten_by_update()
-    {
-        // These are a person's to amend. Update refreshes what the framework owns, and it does not own
-        // the rules a team has since argued about.
-        using var solution = Scratch.Create();
-        await Adopt(solution, tracked: ["src/App/Program.cs"], adoptStandard: true);
-
-        string path = Path.Combine(solution.Root, ".editorconfig");
-        await File.WriteAllTextAsync(path, "root = true\n\n# ours now\n");
-
-        Initialise.Response report = await Adopt(solution, tracked: ["src/App/Program.cs"], adoptStandard: true);
-
-        Assert.AreEqual(
-            Initialise.InitChange.Kept,
-            report.Actions.Single(action => action.Path == ".editorconfig").Change);
-
-        StringAssert.Contains(await File.ReadAllTextAsync(path), "# ours now");
     }
 
     [TestMethod]
@@ -1308,14 +1189,12 @@ public sealed class InitTests
     private static async Task<Initialise.Response> Adopt(
         Scratch solution,
         IReadOnlyList<string> tracked,
-        Platform? platform = Platform.GitHub,
-        bool adoptStandard = false)
+        Platform? platform = Platform.GitHub)
     {
         using Gate gate = Adopter(solution, new FakeRepository { Tracked = tracked });
 
         Result<Initialise.Response> result = await gate
-            .Send<Initialise.Command, Initialise.Response>(
-                new Initialise.Command(platform, adoptStandard));
+            .Send<Initialise.Command, Initialise.Response>(new Initialise.Command(platform));
 
         Assert.IsTrue(result.IsSuccess, string.Join("; ", result.Errors.Select(e => e.Message)));
         return result.Value;
@@ -1325,7 +1204,7 @@ public sealed class InitTests
     /// The files that decide how code is written, by path.
     /// </summary>
     /// <remarks>
-    /// Named here rather than read from <see cref="Initialise.StackFiles"/> on purpose: a test that asks
+    /// Named here rather than read from <see cref="BuildSettings.All"/> on purpose: a test that asks
     /// the thing under test what it should have written asserts nothing. The harness has the same list for
     /// the opposite reason, and F-22 is the fitness function that keeps the two honest.
     /// </remarks>

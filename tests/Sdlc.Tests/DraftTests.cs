@@ -399,7 +399,7 @@ public sealed class DraftTests
             Cycle.SdlcDirectoryName,
             WriteTechStackDraft.DraftFileName));
 
-        Assert.AreEqual(Sdlc.Core.Init.Templates.TechStack(), written);
+        Assert.AreEqual(Sdlc.Core.Init.Templates.TechStack(SolutionOrigin.Adopted), written);
         StringAssert.Contains(written, "| ORM | EF Core |", "An adopted repository starts from the default too.");
 
         Assert.IsFalse(
@@ -435,6 +435,74 @@ public sealed class DraftTests
                 WriteTechStackDraft.DraftFileName)));
 
         StringAssert.Contains(draft.Instructions, "nothing is pinned");
+    }
+
+    [TestMethod]
+    [DataRow(SolutionOrigin.Adopted, false)]
+    [DataRow(SolutionOrigin.Scaffolded, true)]
+    public async Task The_first_stack_draft_starts_the_build_settings_off_where_code_came_first(
+        SolutionOrigin origin,
+        bool on)
+    {
+        // D-77. Directory.Build.props makes warnings errors, so on a codebase that predates the
+        // framework it can fail a build over files nobody touched. That has to be something a team
+        // switched on -- never something it got by renaming a draft unread. Where nothing predates
+        // the files there is nothing for them to break, and the skeleton does not compile without them.
+        using var workspace = CycleWorkspace.Create();
+        workspace.WriteSolution(origin);
+
+        DraftResult draft = await TechStack(workspace);
+
+        Assert.IsTrue(draft.MayDraft, draft.Instructions);
+
+        IReadOnlyList<BuildSettings.Row> rows = BuildSettings.Rows(await File.ReadAllTextAsync(Path.Combine(
+            workspace.Root,
+            Cycle.SdlcDirectoryName,
+            WriteTechStackDraft.DraftFileName)));
+
+        CollectionAssert.AreEqual(
+            BuildSettings.All.Select(setting => setting.Path).ToArray(),
+            rows.Select(row => row.File).ToArray(),
+            "One row per file the framework ships, so what a solution takes is on the page.");
+
+        Assert.IsTrue(rows.All(row => row.On == on));
+        Assert.IsTrue(
+            rows.All(row => row.What.Length > 0),
+            "Every row says what its file does. A table of five names is not something to choose from.");
+
+        StringAssert.Contains(draft.Instructions, on ? "start true" : "start false");
+    }
+
+    [TestMethod]
+    public async Task A_solution_draft_moves_the_standard_only_when_asked_and_says_which_way()
+    {
+        // What 'sdlc init --adopt-standard' used to record, without the five files it wrote alongside.
+        // The origin is a historical fact and stays; the standard is the one key a team may revisit,
+        // and a draft that moves it has to say so rather than repeat that nothing changes.
+        using var workspace = CycleWorkspace.Create();
+        workspace.WriteSolution(SolutionOrigin.Adopted);
+
+        using var gate = Gate.For(workspace.Root);
+
+        DraftResult draft = Ok(await gate.Send<WriteSolutionDraft.Command, DraftResult>(
+            new WriteSolutionDraft.Command(SolutionStandard.Profile)));
+
+        Assert.IsTrue(draft.MayDraft, draft.Instructions);
+        StringAssert.Contains(draft.Entry, "origin: adopted");
+        StringAssert.Contains(draft.Entry, "standard: profile");
+        StringAssert.Contains(draft.Instructions, "standard goes from existing to profile");
+
+        Assert.IsFalse(
+            draft.Instructions.Contains("cannot", StringComparison.Ordinal),
+            "The reassurance that a rename cannot reclassify the solution is untrue of this draft.");
+
+        Assert.IsFalse(
+            File.Exists(Path.Combine(workspace.Root, "Directory.Build.props")),
+            "It records which conventions new work follows. It writes no build settings.");
+
+        DraftResult plain = await Solution(workspace);
+
+        StringAssert.Contains(plain.Entry, "standard: existing", "Unasked, the recorded key is carried.");
     }
 
     private static async Task<DraftResult> Solution(CycleWorkspace workspace)

@@ -262,6 +262,24 @@ public sealed class PublicSurfaceTests
         // binary a pull request restores.
         "Sdlc.Core.Release",
         "Sdlc.Core.SdlcServices",
+        // The five .NET build settings files, as one list: what each is, what it costs, and which of
+        // them a declared stack takes. Public because the scaffold harness writes the same files the
+        // binary does and must not keep its own copy of the list, and because the suite asserts what
+        // a hand-edited table reads as. Setting and Row are public because the list and the reader
+        // expose them. D-77.
+        "Sdlc.Core.Solutions.BuildSettings",
+        "Sdlc.Core.Solutions.BuildSettings+Row",
+        "Sdlc.Core.Solutions.BuildSettings+Setting",
+
+        // 'sdlc stack': the operation, the per-file state it returns, and its renderer. Public for
+        // the reason every other operation's request and response are -- Sdlc.Cli dispatches one and
+        // renders the other.
+        "Sdlc.Core.Solutions.ReadStackDeclaration",
+        "Sdlc.Core.Solutions.ReadStackDeclaration+Declaration",
+        "Sdlc.Core.Solutions.ReadStackDeclaration+Query",
+        "Sdlc.Core.Solutions.ReadStackDeclaration+Response",
+        "Sdlc.Core.Solutions.ReadStackDeclaration+SettingState",
+        "Sdlc.Core.Solutions.StackRenderer",
         "Sdlc.Core.Solutions.SolutionDocument",
         "Sdlc.Core.Solutions.SolutionOrigin",
         "Sdlc.Core.Solutions.SolutionRoot",

@@ -1,6 +1,6 @@
 # ai-sdlc
 
-**Version 0.16.0** · iteration 4 · .NET 10 · MIT
+**Version 0.17.0** · iteration 4 · .NET 10 · MIT
 
 **A plugin that makes an AI coding agent work the way a careful team does** — write down what the change
 is for, agree what *done* means, plan it, have a person approve it, and only then write code.
@@ -118,7 +118,7 @@ sdlc constraints
 ```
 
 It should print the seventeen global constraints in force and say it read them from
-`global  embedded in sdlc 0.16.0`. **Use this rather than `sdlc help` as the smoke test** — `help` and
+`global  embedded in sdlc 0.17.0`. **Use this rather than `sdlc help` as the smoke test** — `help` and
 `version` are the only commands that need nothing from the installation, so they are the two that cannot
 tell you whether it worked. Then `claude plugin details sdlc@ai-sdlc` should say `Skills (18)` and
 `Hooks (2)`: **a hook count below two is a failed install**, not a detail, because the deterministic layer
@@ -138,8 +138,9 @@ and it writes the hook configuration that constrains the agent. The order matter
 that answer is protected the moment it exists, so answering afterwards costs a draft and a rename.
 
 **Then declare the stack.** Adoption decides nothing about what the solution is built from. `sdlc draft
-techstack` writes a draft of the framework's default — every row it would pin, and every stack rule it
-ships, switched on — and you cut it down and rename it into place. What is in that file is exactly what
+techstack` writes a draft of the framework's default — every row it would pin, every stack rule it
+ships switched on, and the five .NET build settings files, switched on only where the repository held
+no code — and you cut it down and rename it into place. What is in that file is exactly what
 binds; an empty one pins nothing; and no cycle opens until it is there.
 
 **5. Start a cycle.** In your agent, not the shell:
@@ -173,7 +174,7 @@ updating, removing, and the four things that catch people. And if something refu
 | [`docs/guides/dice-worked-example.md`](docs/guides/dice-worked-example.md) | **that walk with one solution in it** — a d6 over HTTP, every command, in a repository with no remote |
 | [`docs/guides/cycle-commands.md`](docs/guides/cycle-commands.md) | every command for one cycle, on one screen |
 | [`docs/guides/when-it-blocks.md`](docs/guides/when-it-blocks.md) | every refusal, and the remedy for each |
-| [`docs/guides/the-stack.md`](docs/guides/the-stack.md) | what a solution is built from — the declared stack, the stack rules it switches on, and how to change either |
+| [`docs/guides/the-stack.md`](docs/guides/the-stack.md) | what a solution is built from — the declared stack, the stack rules it switches on, the build settings files it takes, and how to change any of them |
 | [`skills/README.md`](skills/README.md) | the eighteen skills: what each is, when it runs, and who starts it |
 | `sdlc constraints` | the rules in force, all tiers resolved. Run it rather than reading a copy of them |
 
@@ -232,6 +233,11 @@ What is honest to say about the rest:
   longer writes the declared stack or the .NET build settings: a person places the first from a draft,
   and the second arrive with the skeleton. The suite holds each step; no real adoption has gone through
   them in order yet.
+- **Taking the build settings into an existing codebase has never been done for real.** They are rows
+  in the declared stack now, switched off on a repository that held code, and a cycle whose plan
+  declares one brings it. The suite holds that `sdlc scaffold` writes exactly what the plan names and
+  that `sdlc stack` reports the gap. Nobody has yet run the cycle that switches warnings-as-errors on
+  over real code and fixed what it broke, which is the whole of what the route is for.
 - **`standard: profile` is named after something no solution records any more.** The key still means
   what it meant — new work follows the framework's conventions rather than the surrounding code — and
   the value was left alone because every existing `solution.md` is protected and already says it.

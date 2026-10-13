@@ -26,7 +26,10 @@ namespace Sdlc.Core.Solutions;
 /// <para><strong>The three keys are carried through as recorded, never recomputed.</strong> The origin
 /// is a historical fact, the standard decides which conventions new work follows, and the platform
 /// decides whether a pull-request check governs the merge (D-53). A draft that defaulted any of them
-/// would reclassify a solution by being renamed. A <c>profile</c> line from before the declared stack
+/// would reclassify a solution by being renamed. The one exception is asked for by name:
+/// <c>--standard</c> moves that key and nothing else, and the draft says so in as many words, because
+/// which conventions new work follows is the one of the three a team is entitled to revisit (D-77).
+/// A <c>profile</c> line from before the declared stack
 /// listed its own rules is not carried: the draft is where that line stops existing (D-76).</para>
 ///
 /// <para><strong>The binary writes the draft, never a skill</strong> — the same rule
@@ -53,7 +56,15 @@ public static class WriteSolutionDraft
     }
 
     /// <summary>Asks for the solution document to be drafted to disk.</summary>
-    public sealed record Command : IRequest<DraftResult>;
+    /// <param name="Standard">
+    /// The standard the draft should carry, when a person is changing it. Null carries the recorded
+    /// one through, which is every draft but the one somebody asked to move. It is the one key that
+    /// may move at all: the origin is a historical fact, and the platform changes with a pipeline
+    /// that <c>sdlc init --platform</c> writes. An option here rather than on adoption, because
+    /// adoption used to take it together with five .NET files and the two were never one decision
+    /// (D-77).
+    /// </param>
+    public sealed record Command(SolutionStandard? Standard = null) : IRequest<DraftResult>;
 
     private sealed class Handler(SolutionRoot solution) : IRequestHandler<Command, DraftResult>
     {
@@ -86,6 +97,7 @@ public static class WriteSolutionDraft
             string current = await File.ReadAllTextAsync(path, cancellationToken).ConfigureAwait(false);
             string body = BodyOf(current);
             bool untouched = body.Contains(Placeholder, StringComparison.Ordinal);
+            SolutionStandard standard = request.Standard ?? document.Standard;
 
             string draft = string.Join(
                 Environment.NewLine,
@@ -93,7 +105,7 @@ public static class WriteSolutionDraft
                     "---",
                     .. SolutionDocument.Keys(
                         document.Origin,
-                        document.Standard,
+                        standard,
                         document.Platform),
                     "---",
                     string.Empty,
@@ -107,7 +119,9 @@ public static class WriteSolutionDraft
 
             await File.WriteAllTextAsync(draftPath, draft, cancellationToken).ConfigureAwait(false);
 
-            return Result.Ok(DraftResult.Drafted(draft, Instructions(path, draftPath, untouched)));
+            return Result.Ok(DraftResult.Drafted(
+                draft,
+                Instructions(path, draftPath, untouched, document.Standard, standard)));
         }
 
         /// <summary>
@@ -161,7 +175,45 @@ public static class WriteSolutionDraft
                 : normalised[(closing + Environment.NewLine.Length + fence.Length)..].TrimStart();
         }
 
-        private static string Instructions(string path, string draftPath, bool untouched) => string.Join(
+        /// <summary>
+        /// What the draft says about the keys, which is the half of it a rename can change.
+        /// </summary>
+        /// <remarks>
+        /// Two different sentences, because they are opposite promises. An ordinary draft cannot
+        /// reclassify the solution; one that was asked to move the standard does exactly that, and has
+        /// to say which way and what follows from it rather than repeat the reassurance.
+        /// </remarks>
+        private static string[] Keys(SolutionStandard recorded, SolutionStandard drafted) =>
+            recorded == drafted
+                ?
+                [
+                    "The three keys are carried through as recorded and not recomputed, so this cannot",
+                    "reclassify the solution by being renamed. Which stack rules apply is not in this file:",
+                    "the declared stack lists them, and 'sdlc draft techstack' is how that changes.",
+                ]
+                :
+                [
+                    string.Create(
+                        CultureInfo.InvariantCulture,
+                        $"The draft changes one key: standard goes from {SolutionDocument.NameOf(recorded)} to {SolutionDocument.NameOf(drafted)}, because that"),
+                    "was asked for. The origin and the platform are carried through as recorded.",
+                    string.Empty,
+                    drafted == SolutionStandard.Profile
+                        ? "Renamed into place, every plan takes the profile's patterns by default and says why"
+                        : "Renamed into place, every plan matches the surrounding code by default and says why",
+                    drafted == SolutionStandard.Profile
+                        ? "when it departs from them. It says nothing about the code already here, and it"
+                        : "when it departs toward the profile. It says nothing about the code already here, and it",
+                    "writes no file: the .NET build settings are rows in the declared stack, switched on",
+                    "with 'sdlc draft techstack' and brought by a cycle whose plan declares them.",
+                ];
+
+        private static string Instructions(
+            string path,
+            string draftPath,
+            bool untouched,
+            SolutionStandard recorded,
+            SolutionStandard drafted) => string.Join(
             Environment.NewLine,
             [
                 string.Create(CultureInfo.InvariantCulture, $"Written to {draftPath}"),
@@ -178,9 +230,7 @@ public static class WriteSolutionDraft
                     : "you wrote. Edit it in the draft or after the rename, whichever you prefer.",
                 untouched ? "been told nothing about what good looks like here." : string.Empty,
                 string.Empty,
-                "The three keys are carried through as recorded and not recomputed, so this cannot",
-                "reclassify the solution by being renamed. Which stack rules apply is not in this file:",
-                "the declared stack lists them, and 'sdlc draft techstack' is how that changes.",
+                .. Keys(recorded, drafted),
                 string.Empty,
                 "Nothing here places it. Every agent write to that file is denied, and the rename is the act.",
             ]);

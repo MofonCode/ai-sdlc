@@ -123,6 +123,10 @@ public static class SdlcServices
         services.AddReadDecisionsRequestHandler();
         services.AddReadThemeRequestHandler();
 
+        // And the fourth: what the solution declares it is built from, with the one comparison a file
+        // listing can decide -- which build settings it takes against which are on disk.
+        services.AddReadStackDeclarationRequestHandler();
+
         services.AddInitialiseRequestHandler();
         services.AddScaffoldSolutionRequestHandler();
 

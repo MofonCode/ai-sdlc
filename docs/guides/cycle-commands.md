@@ -71,12 +71,15 @@ clone. Both are named with who to ask.
 sdlc init
 ```
 
-In a repository that already holds code, one option is worth knowing before you run it:
-`--adopt-standard` holds new work to the profile's conventions rather than to the code already there. It
-writes the build settings a new solution gets with its skeleton — `.editorconfig`, both props files,
-`global.json` — and records `standard: profile`. It overwrites nothing and migrates nothing; the cost is
-that `Directory.Build.props` makes warnings errors, so the next build can fail on files nobody has
-touched. `sdlc help` has the whole of it.
+It decides nothing about the stack. In a repository that already holds code, two choices used to ride
+on one option here and each has its own home now:
+
+| To | Run |
+|---|---|
+| hold new work to the profile's conventions rather than to the code already there | `sdlc draft solution --standard profile`, and rename the draft |
+| take the .NET build settings — `.editorconfig`, the three props files, `global.json` | `sdlc draft techstack`, set those rows to `true`, and rename the draft. A cycle whose plan declares the files brings them |
+
+Neither migrates the code already there. `the-stack.md` has what each file costs.
 
 Then, in your agent: `/sdlc:init` for the half a command cannot do — the interview about what matters in
 this solution, and the `LOC_` rules it proposes.
@@ -98,7 +101,8 @@ this solution, and the `LOC_` rules it proposes.
 | `/sdlc:refine <id> plan` | agent | applies them to `plan.md` |
 | `sdlc draft approval <id>` | binary | writes `approval.<decision>.draft.md`. **You rename it** |
 | `sdlc gate <id>` | binary | whether the build may run. Exits 1 if not |
-| `sdlc scaffold <id>` | binary | the solution skeleton, on a new solution's first cycle only. Refuses unless the gate passes |
+| `sdlc stack` | binary | what the solution declares it is built from, and which build settings it takes that are not on disk. The plan stage reads it |
+| `sdlc scaffold <id>` | binary | the solution skeleton, on a new solution's first cycle; on an adopted one, only the build settings the plan declares. Refuses unless the gate passes |
 | `/sdlc:build <id>` | agent | implements, builds, tests |
 | `sdlc evidence <id>` | binary | records the diff, the base commit, the test summary |
 | `/sdlc:verify <id>` | agent, fresh process | adjudicates from the evidence alone, writes `verify.md` |
@@ -128,6 +132,7 @@ sdlc suggestions
 sdlc propose constraints
 sdlc decisions
 sdlc theme
+sdlc stack
 sdlc cycles
 sdlc cycles --claims
 sdlc cycles --pr-ready

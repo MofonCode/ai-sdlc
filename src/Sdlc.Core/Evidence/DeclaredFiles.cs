@@ -50,8 +50,14 @@ public static class DeclaredFiles
 
     // A path in a Files table or list: inside backticks, which is how a plan writes one, so prose about a
     // file is not mistaken for a declaration of it.
+    //
+    // Three shapes: a name with an extension, anything with a slash, and a dotfile at the root. The
+    // third was missing, so a plan declaring `.editorconfig` -- a file the comparison itself reports
+    // as governing -- had it come back as undeclared, and 'sdlc scaffold' could not see that an
+    // adopted solution's plan had asked for it. Lower case only, which is what a dotfile is and what
+    // keeps a backticked `.NET` in the same section from being read as a path.
     private static readonly Regex _quoted = new(
-        @"`(?<path>[^`\s]+\.[A-Za-z0-9]+|[^`\s]*/[^`\s]*)`",
+        @"`(?<path>[^`\s]+\.[A-Za-z0-9]+|[^`\s]*/[^`\s]*|\.[a-z][a-z0-9_-]*)`",
         RegexOptions.CultureInvariant | RegexOptions.ExplicitCapture,
         TimeSpan.FromSeconds(1));
 

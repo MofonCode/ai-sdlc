@@ -127,6 +127,11 @@ public static class Diagnose
             checks.Add(await Adoption(cancellationToken).ConfigureAwait(false));
             checks.Add(await DeclaredStack(cancellationToken).ConfigureAwait(false));
 
+            if (await BuildSettingsDeclared(cancellationToken).ConfigureAwait(false) is { } settings)
+            {
+                checks.Add(settings);
+            }
+
             foreach (SupportedHost host in SupportedHosts.All)
             {
                 checks.Add(HookConfig(host));
@@ -347,6 +352,69 @@ public static class Diagnose
                 string.Create(
                     CultureInfo.InvariantCulture,
                     $"{rows.Count} rows declared, {on} of {rules.Count} listed stack rules on{tail}"));
+        }
+
+        /// <summary>
+        /// Where the build settings a declared stack takes stand against what is on disk.
+        /// </summary>
+        /// <remarks>
+        /// <para><strong>A declared file that is not there is information, never fault.</strong> A row
+        /// writes nothing: the file arrives through a cycle whose approved plan declares it, so the
+        /// interval between switching a row on and that cycle landing is the design working. Calling
+        /// it a problem would fail this command on every solution that had just decided to take one,
+        /// which is the moment somebody is most likely to run it (D-77).</para>
+        ///
+        /// <para><strong>A row naming a file nothing ships is the fault</strong>, for the reason an
+        /// unknown rule id is: it reads as a solution having taken something and takes nothing.</para>
+        ///
+        /// <para>Null where there is nothing to say -- no declared stack, which the check above has
+        /// already reported, or one with no build-settings rows at all.</para>
+        /// </remarks>
+        /// <param name="cancellationToken">Token observed while reading.</param>
+        /// <returns>The check, or null when the declared stack says nothing about build settings.</returns>
+        private async Task<Check?> BuildSettingsDeclared(CancellationToken cancellationToken)
+        {
+            Result<ReadStackDeclaration.Response> read = await mediator
+                .Send<ReadStackDeclaration.Query, ReadStackDeclaration.Response>(new ReadStackDeclaration.Query(), cancellationToken)
+                .ConfigureAwait(false);
+
+            if (read.IsFailed || !read.Value.Placed)
+            {
+                return null;
+            }
+
+            ReadStackDeclaration.Response stack = read.Value;
+
+            if (stack.Unknown.Count > 0)
+            {
+                return new Check(
+                    "build settings",
+                    CheckOutcome.Problem,
+                    string.Create(
+                        CultureInfo.InvariantCulture,
+                        $"the declared stack lists {string.Join(", ", stack.Unknown)}, which this release does not ship, so that row takes nothing"),
+                    "'sdlc draft techstack' writes the menu with every build settings file this release ships. Correct the name in the draft or delete the row, and rename it");
+            }
+
+            int declared = stack.Settings.Count(state => state.Declaration == ReadStackDeclaration.Declaration.Declared);
+
+            if (stack.Settings.All(state => state.Declaration == ReadStackDeclaration.Declaration.NoRow))
+            {
+                return null;
+            }
+
+            string tail = stack.Gap.Count == 0
+                ? declared == 0 ? string.Empty : ", all of them here"
+                : string.Create(
+                    CultureInfo.InvariantCulture,
+                    $". Not here yet: {string.Join(", ", stack.Gap.Select(setting => setting.Path))} -- a cycle whose approved plan declares one brings it, and 'sdlc stack' shows the comparison");
+
+            return new Check(
+                "build settings",
+                CheckOutcome.Sound,
+                string.Create(
+                    CultureInfo.InvariantCulture,
+                    $"{declared} of {stack.Settings.Count} taken by the declared stack{tail}"));
         }
 
         /// <summary>

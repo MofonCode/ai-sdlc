@@ -84,19 +84,13 @@ public static class Initialise
     /// <param name="Standard">What the solution document says, or will say, about the standard.</param>
     /// <param name="Actions">Every file touched or deliberately left, in writing order.</param>
     /// <param name="Printed">File contents that were not written, keyed by the path they belong at.</param>
-    /// <param name="StandardPending">
-    /// Whether <c>--adopt-standard</c> asked for a standard the recorded document does not say. True on
-    /// exactly one path: the flag against a <c>solution.md</c> that already exists. Protected files are
-    /// created and never modified, so the stack files are written and the key is printed for a person to
-    /// place -- and until they do, <see cref="Standard"/> is what every plan is held to.
-    /// </param>
     /// <param name="PlatformPending">
-    /// Whether <c>--platform</c> asked for a platform the recorded document does not say. The same one
-    /// path as <see cref="StandardPending"/>, and kept separate from it because the consequence differs:
-    /// a pending standard means plans are held to the surrounding code, a pending platform means the
-    /// pipeline is on disk and nothing knows it governs the merge. Both were once invisible -- the
-    /// platform did not enter the calculation at all, so re-running init wrote the pipeline and printed
-    /// nothing, and the recorded platform stayed <c>local</c> forever.
+    /// Whether <c>--platform</c> asked for a platform the recorded document does not say. True on
+    /// exactly one path: the option against a <c>solution.md</c> that already exists. Protected files
+    /// are created and never modified, so the pipeline is written and the keys are printed for a person
+    /// to place -- and until they do, the pipeline is on disk and nothing knows it governs the merge.
+    /// It was once invisible: the platform did not enter the calculation at all, so re-running init
+    /// wrote the pipeline and printed nothing, and the recorded platform stayed <c>local</c> forever.
     /// </param>
     /// <param name="Platform">
     /// What the solution document says, or will say, about where the code lives. The counterpart to
@@ -115,7 +109,6 @@ public static class Initialise
         SolutionStandard Standard,
         IReadOnlyList<InitAction> Actions,
         IReadOnlyDictionary<string, string> Printed,
-        bool StandardPending = false,
         bool PlatformPending = false,
         Platform Platform = Platform.GitHub,
         bool StackDeclared = true)
@@ -133,7 +126,10 @@ public static class Initialise
     /// <remarks>
     /// It takes nothing about the stack. Which technologies a solution is built from, and which stack
     /// rules it is held to, are declared afterwards in a file a person places -- so adoption has no
-    /// profile to be told and cannot record one that later disagrees with that file (D-76).
+    /// profile to be told and cannot record one that later disagrees with that file (D-76). That
+    /// includes the .NET build settings: an option here used to write them into an existing codebase,
+    /// which was adoption deciding a stack question before the stack was declared, whatever the stack
+    /// went on to say. They are rows in the declared stack now, and a cycle brings them (D-77).
     /// </remarks>
     /// <param name="Platform">
     /// Where the code lives, which decides the pipeline. <strong>Null means the caller did not say</strong>,
@@ -142,50 +138,7 @@ public static class Initialise
     /// re-running init to pick up a template would propose migrating a deliberately local solution onto
     /// a platform nobody asked for.
     /// </param>
-    /// <param name="AdoptStandard">
-    /// Whether an existing codebase is opting in to the profile's conventions for its new work. It
-    /// writes the stack files now, which nothing else at adoption does, and records
-    /// <c>standard: profile</c>.
-    /// </param>
-    public sealed record Command(Platform? Platform = null, bool AdoptStandard = false)
-        : IRequest<Response>;
-
-    /// <summary>
-    /// The files that decide how .NET code is written here.
-    /// </summary>
-    /// <remarks>
-    /// <strong>Exposed because something else needs the same list, and a second copy of it is how
-    /// the harness comes to build a solution nobody will ever get.</strong>
-    /// <c>tools/Sdlc.ScaffoldHarness</c> writes these before the skeleton so that what it compiles
-    /// is what adoption produces -- and it listed them by hand, with nothing asserting the two
-    /// agreed. A sixth file added here would have left CI green and the real thing broken, which is
-    /// the failure the harness exists to prevent, one level up. F-22.
-    /// <para>
-    /// <strong>Two things write them, and adoption on its own is neither.</strong> They are .NET build
-    /// settings, so they belong to a stack nobody has declared yet when adoption runs. A new solution
-    /// gets them from <c>sdlc scaffold</c>, with the skeleton they exist to constrain and behind the
-    /// same approved plan (D-76). An adopted repository gets them only by asking:
-    /// <c>--adopt-standard</c> is that asking, and it is a person's decision rather than a default,
-    /// because these files apply a convention to code that never agreed to one --
-    /// <c>Directory.Build.props</c> makes warnings errors, so the next build can fail on files nobody
-    /// has touched. D-56.
-    /// </para>
-    /// <para>
-    /// Each is created once and never rewritten, update included -- they are a person's to amend, and a
-    /// cycle that changes one is a cycle like any other. Which is also what keeps the opt-in from
-    /// overwriting anything: an <c>.editorconfig</c> the repository already had is kept.
-    /// </para>
-    /// </remarks>
-    /// <returns>Each file's path relative to the solution root, and its contents.</returns>
-    public static IReadOnlyList<(string Path, string Contents)> StackFiles() =>
-    [
-        (".editorconfig", Templates.EditorConfig()),
-        ("Directory.Build.props", Templates.BuildProps()),
-        ("Directory.Packages.props", Templates.PackageProps()),
-        ("global.json", Templates.GlobalJson()),
-        (System.IO.Path.Combine("tests", "Directory.Build.props"), Templates.TestBuildProps()),
-    ];
-
+    public sealed record Command(Platform? Platform = null) : IRequest<Response>;
 
     /// <summary>
     /// Writes the framework into a repository, in one of three modes.
@@ -231,30 +184,23 @@ public static class Initialise
             SolutionDocument? recorded = await Recorded(mode, cancellationToken).ConfigureAwait(false);
             SolutionOrigin origin = recorded?.Origin ?? Decided(mode);
 
+            // Recorded, or what the origin implies. Adoption never changes it on a document that
+            // exists: which conventions new work follows is a person's decision, made by renaming a
+            // draft -- 'sdlc draft solution --standard' -- like every other change to that file (D-77).
+            SolutionStandard standard = recorded?.Standard ?? SolutionDocument.DefaultFor(origin);
+
             // What this run asks for, and what the file will actually say. The two differ on exactly one
-            // path -- the flag against a solution.md that already exists -- because the document is
-            // protected and adoption creates it without ever rewriting it. There, the stack files are
-            // written and the key is printed for a person to place, which is the same arrangement every
-            // other protected file has rather than a special case for this one. D-56.
-            SolutionStandard wanted = request.AdoptStandard
-                ? SolutionStandard.Profile
-                : recorded?.Standard ?? SolutionDocument.DefaultFor(origin);
-
-            SolutionStandard standard = recorded?.Standard ?? wanted;
-
-            // The platform the same way, and it used to not be. `pending` was computed from the standard
-            // alone, so re-running init with a new platform wrote the pipeline and left the recorded
-            // platform untouched with nothing printed -- which contradicts what --platform's own help
-            // says, and left doctor reporting "no pull-request check governs a merge" after the check
-            // existed and the pr skill refusing a cycle that had somewhere to go. A document that has
-            // gone stale against the repository, with nothing to notice: the same defect as a verify
-            // document outliving its evidence.
+            // path -- the option against a solution.md that already exists -- because the document is
+            // protected and adoption creates it without ever rewriting it. There the pipeline is
+            // written and the keys are printed for a person to place, which is the same arrangement
+            // every other protected file has. It used to print nothing: re-running init with a new
+            // platform wrote the pipeline and left the recorded platform untouched, which left doctor
+            // reporting "no pull-request check governs a merge" after the check existed and the pr
+            // skill refusing a cycle that had somewhere to go.
             Platform wantedPlatform = request.Platform ?? recorded?.Platform ?? Platform.GitHub;
             Platform platform = recorded?.Platform ?? wantedPlatform;
 
-            bool standardPending = standard != wanted;
             bool platformPending = platform != wantedPlatform;
-            bool pending = standardPending || platformPending;
 
             List<InitAction> actions = [];
             Dictionary<string, string> printed = new(StringComparer.Ordinal);
@@ -269,14 +215,14 @@ public static class Initialise
                 actions,
                 cancellationToken).ConfigureAwait(false);
 
-            if (pending)
+            if (platformPending)
             {
                 // The whole key block, not the one line that changes. A person pasting a partial block
                 // loses whichever key was left out of it, and the one that silently reclassifies a
                 // solution is the platform.
                 printed[document] = string.Join(
                     Environment.NewLine,
-                    SolutionDocument.Keys(origin, wanted, wantedPlatform))
+                    SolutionDocument.Keys(origin, standard, wantedPlatform))
                     + Environment.NewLine;
             }
 
@@ -373,35 +319,11 @@ public static class Initialise
                     cancellationToken).ConfigureAwait(false);
             }
 
-            // The stack files, and only when this run asks for them with --adopt-standard. They are .NET
-            // -- warnings as errors in a props file, a global.json pinning an SDK -- and adoption no
-            // longer knows what a solution is built from, so writing them unasked would be deciding the
-            // stack on the way past. A new solution gets them from 'sdlc scaffold', with the skeleton
-            // they constrain; an adopted one keeps its own conventions unless its team asks here.
-            //
-            // Keyed on what this run asks for rather than on what the document records, so the flag does
-            // something on an update -- which is where a migration is actually decided, months after
-            // adoption. The cost is the one state the renderer has to say out loud: the files are here
-            // and the recorded key still says otherwise until a person places it. It also means a plain
-            // refresh writes none of them, whatever the document records: this used to consult the
-            // profile named on the command line rather than the one recorded, so re-running adoption
-            // could write .NET settings into a solution declared on another stack.
-            //
-            // This is not a baseline. Nothing is marked forgiven and no existing violation is recorded --
-            // the files declare what new work follows, and the warnings they raise on old code are the
-            // cost of the opt-in, carried by whoever opted in.
-            //
-            // Written by the binary rather than restored from a package -- D-33.
-            //
-            // Created once and never rewritten. These are a person's to amend, and a cycle that changes
-            // one is a cycle like any other.
-            if (request.AdoptStandard)
-            {
-                foreach ((string path, string contents) in StackFiles())
-                {
-                    await Once(path, contents, actions, cancellationToken).ConfigureAwait(false);
-                }
-            }
+            // No build settings, in any mode. They are .NET -- warnings as errors in a props file, a
+            // global.json pinning an SDK -- and adoption does not know what a solution is built from,
+            // so writing them here would be deciding the stack on the way past. The declared stack
+            // lists the ones a solution takes, and 'sdlc scaffold' writes them inside a cycle whose
+            // approved plan declares them (D-77).
 
             // Written under .sdlc rather than into .git/hooks, because .git is not tracked -- a hook written
             // there would exist on one machine and silently not on anybody else's, which is the shape of
@@ -420,7 +342,6 @@ public static class Initialise
                 standard,
                 actions,
                 printed,
-                standardPending,
                 platformPending,
                 platform,
                 stackDeclared));
@@ -531,24 +452,6 @@ public static class Initialise
                     relative,
                     InitChange.Kept,
                     "only a person writes this, and it already exists"));
-                return;
-            }
-
-            await Write(path, contents, cancellationToken).ConfigureAwait(false);
-            actions.Add(new InitAction(relative, InitChange.Created));
-        }
-
-        private async Task Once(
-            string relative,
-            string contents,
-            List<InitAction> actions,
-            CancellationToken cancellationToken)
-        {
-            string path = Path.Combine(solution.Path, relative);
-
-            if (File.Exists(path))
-            {
-                actions.Add(new InitAction(relative, InitChange.Kept, "a cycle owns this once it exists"));
                 return;
             }
 

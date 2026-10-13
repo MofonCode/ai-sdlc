@@ -131,9 +131,16 @@ public static class Templates
     /// <para><strong>One flat table of defaults, always.</strong> The profile composes its rows from a
     /// shared platform set plus its own, and that composition happens here rather than in the solution
     /// -- what lands on disk is a table a person owns and edits, never a derived file (D-68).</para>
+    /// <para><strong>The build settings start on where nothing predates them, and off where code
+    /// does.</strong> <c>Directory.Build.props</c> makes warnings errors, so on a codebase that existed
+    /// first it can fail a build over files nobody touched. That has to be something a team switched
+    /// on, never something it got by renaming a draft unread (D-77).</para>
     /// </remarks>
+    /// <param name="origin">
+    /// Where the solution's code came from, which decides how the build-settings rows start.
+    /// </param>
     /// <returns>The draft's contents.</returns>
-    public static string TechStack()
+    public static string TechStack(SolutionOrigin origin = SolutionOrigin.Scaffolded)
     {
         StackProfile profile = StackProfiles.Default;
 
@@ -162,6 +169,17 @@ public static class Templates
             .. StackRules.Table(
                 ShippedProfileLibrary.Rules().Select(rule => (ShippedProfileLibrary.RowId(rule), rule.Statement)),
                 on: true),
+            string.Empty,
+            BuildSettings.Heading,
+            string.Empty,
+            "The files that decide how .NET code is built here, one row each. `true` declares that this",
+            "solution takes the file; `false`, or no row at all, that it does not. A row writes nothing:",
+            "a cycle whose approved plan declares the file brings it, with `sdlc scaffold`, and",
+            "`sdlc stack` shows which are declared and not there yet. Each is created once and is yours",
+            "to amend afterwards. The solution skeleton arrives with all five whatever these rows say,",
+            "because it does not compile without them.",
+            string.Empty,
+            .. BuildSettings.Table(on: origin == SolutionOrigin.Scaffolded),
             string.Empty,
             .. profile.Notes,
         ]);
@@ -214,7 +232,7 @@ public static class Templates
             "| File | What it holds | Who writes it |",
             "|---|---|---|",
             "| `solution.md` | where this code came from, which conventions new work follows, and where it is pushed | a person, by hand |",
-            "| `techstack.md` | what the solution is built from, and which stack rules it is held to | a person, by hand |",
+            "| `techstack.md` | what the solution is built from, which stack rules it is held to, and which build settings files it takes | a person, by hand |",
             "| `constraints.md` | this solution's own rules | a person, by hand |",
             "| `cycles/<id>/intent.md` | why the change exists | the intent stage |",
             "| `cycles/<id>/spec.md` | what done means | the spec stage |",
@@ -238,18 +256,25 @@ public static class Templates
             "the declared default would have cost, which is an argument rather than an edit here. Changing",
             "a default is its own act: `sdlc draft techstack`, then a rename.",
             string.Empty,
-            "**It holds two tables.** The first pins choices: a row is a default every plan is read",
+            "**It holds three tables.** The first pins choices: a row is a default every plan is read",
             "against, and no row leaves that choice to each plan. The second lists the stack rules --",
             "the ones that may name a framework -- with `true` or `false` beside each, and only the ones",
-            "marked `true` bind. **An empty file is a legitimate answer**: nothing is pinned, no stack",
-            "rule applies, and every plan chooses freely.",
+            "marked `true` bind. The third lists the .NET build settings files the same way: `true`",
+            "declares that this solution takes the file. **An empty file is a legitimate answer**:",
+            "nothing is pinned, no stack rule applies, and every plan chooses freely.",
             string.Empty,
-            "**That command writes two files.** `techstack.draft.md` is what you rename: a byte copy of",
+            "**A build settings row writes nothing.** `Directory.Build.props` makes warnings errors, so",
+            "the file arriving is the moment a build can fail on code nobody touched. It arrives inside a",
+            "cycle whose approved plan declares it -- `sdlc scaffold <id>` writes the build settings a",
+            "plan names and leaves alone any already there -- so that moment is one change a person",
+            "approved. `sdlc stack` shows which files the stack takes and which are not on disk yet.",
+            string.Empty,
+            "**`sdlc draft techstack` writes two files.** `techstack.draft.md` is what you rename: a byte copy of",
             "the declared stack, or the default when there is none yet, or nothing at all with `--empty`.",
             "The other is the menu, written as a report under `reports/` with its path printed -- every",
             "concern the shipped profiles know about with what each declares for it, the alternatives the",
-            "framework has argued, every stack rule it ships, and an empty table for a solution starting",
-            "over. It is written fresh every run, read back by nothing, and **never renamed into place**:",
+            "framework has argued, every stack rule it ships, each build settings file with what it does",
+            "and what it costs, and an empty table for a solution starting over. It is written fresh every run, read back by nothing, and **never renamed into place**:",
             "a declared stack listing answers this solution has not chosen is one a plan can reach into",
             "and truthfully not be departing from anything. `sdlc doctor` reports a declared stack with",
             "the menu inside it, one with a row left half-filled, and one that is not there.",
@@ -302,7 +327,9 @@ public static class Templates
             string.Empty,
             "```",
             "sdlc new                              open a cycle",
-            "sdlc scaffold <id>                    write the solution skeleton, once a plan is approved",
+            "sdlc scaffold <id>                    write the solution skeleton, or the build settings a",
+            "                                      plan declares, once that plan is approved",
+            "sdlc stack                            what the stack declares, and what is not on disk yet",
             "sdlc constraints [--for <artifact>]   the rules in force",
             "sdlc status <id> [--stage <name>]     where a cycle has got to",
             "sdlc gate <id>                        may this cycle's build run?",
@@ -311,14 +338,16 @@ public static class Templates
             "sdlc draft solution                   the solution document, beside itself",
             "sdlc draft techstack                  the declared stack beside itself, and the menu",
             "sdlc evidence <id>                    record what a build produced",
-            "sdlc claims                           which cycles may be built together",
+            "sdlc cycles                           every cycle here, newest first",
+            "sdlc cycles --claims                  which cycles may be built together",
             "sdlc suggestions [<id>]               the open non-blocking findings",
             "sdlc propose constraints              what the history says the rules are missing",
             "sdlc decisions [--brief|--all]        the choices this solution has settled",
             "sdlc propose decisions                what an approved cycle settled, to record",
             "sdlc theme                          the roles its surfaces use, and their values",
             "sdlc propose theme                  the roles a theme declares, or the empty ones",
-            "sdlc pr-ready <id> | --all            may a cycle open a pull request?",
+            "sdlc pr-ready <id>                    may a cycle open a pull request?",
+            "sdlc cycles --pr-ready                every cycle, saying which may open one",
             "sdlc verify-chain <id>                the whole chain, as the pipeline checks it",
             "```",
             string.Empty,

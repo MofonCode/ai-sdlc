@@ -163,7 +163,8 @@ sdlc draft techstack
 
 The draft is the framework's default, and for a d6 over HTTP it needs nothing changed: the rows that
 matter here are MSTest on Microsoft.Testing.Platform for the unit layer and ASP.NET Core for the api,
-and the three stack rules under `## Rules` are all marked `true`. Rename it as it is:
+the three stack rules under `## Rules` are all marked `true`, and so are the five files under
+`## Build settings` — this repository held no code, so nothing predates them. Rename it as it is:
 
 ```pwsh
 Move-Item .sdlc/techstack.draft.md .sdlc/techstack.md
@@ -286,8 +287,9 @@ the criterion is unmet.
 ```
 
 Unlike the spec, this one **must** read the code — and there is almost none yet, so what it reads is the
-skeleton it is about to ask for. Expect it to declare `sdlc scaffold`: the solution file, the five
-projects and the reference slice arrive in this cycle behind an approval like everything else.
+skeleton it is about to ask for. It runs `sdlc stack` first, which shows the five build settings files
+as declared and missing. Expect it to declare `sdlc scaffold`: the solution file, the five projects, the
+reference slice and those build settings arrive in this cycle behind an approval like everything else.
 
 **It is the last document before you approve, so read it for proof adequacy.** Ask of each check: *what
 would have to be true for this to pass while the criterion is still unmet?* On this work the answer to
@@ -347,8 +349,8 @@ sdlc scaffold <id>
 ```
 
 The skeleton, because the plan declared it — a solution file, five projects, the architecture suite and
-a reference slice written in the shape every operation should have. It refuses unless this cycle is
-approved, and writes only what is absent.
+a reference slice written in the shape every operation should have — and the five build settings files
+it compiles under. It refuses unless this cycle is approved, and writes only what is absent.
 
 ```pwsh
 dotnet test

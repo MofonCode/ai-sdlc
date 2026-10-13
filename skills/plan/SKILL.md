@@ -32,11 +32,14 @@ plan that cannot be built.
 **Then read the two records this stage is judged against, and the one it is not.**
 
 ```
+sdlc stack
 sdlc decisions
 sdlc theme
 ```
 
-`.sdlc/techstack.md` declares what this solution is built from — `CON_15` judges you against it.
+`sdlc stack` prints what this solution declares it is built from — `CON_15` judges you against it. It
+is `.sdlc/techstack.md` as the binary reads it: the defaults it pins, the stack rules switched on, and
+each build settings file with whether the stack takes it and whether it is on disk.
 `sdlc decisions` prints the choices somebody already settled and **`CON_19` judges you against those**:
 a plan whose approach contradicts a standing entry says what the recorded decision would have cost. Read
 it before you choose a shape rather than after, because a plan that has not read it cannot tell whether
@@ -46,6 +49,40 @@ it is departing — and that is the whole failure the rule exists to catch.
 it holds the roles and values somebody chose, and a value invented beside them is the drift a register
 exists to prevent. It is also not protected, so changing one is ordinary declared work — just declare
 the file.
+
+## Compare what is declared with what is there
+
+**You have now read both halves — the declared stack and the code — so say where they differ before
+you choose a shape.** A plan written without that comparison cannot tell whether it is following a
+default, departing from one, or building on something the stack never mentioned.
+
+| What to compare | Who decides it | What you do with a difference |
+|---|---|---|
+| a build settings file the stack takes that is not on disk | the binary: `sdlc stack` ends with it, as `Gap` | see the two cases below |
+| a declared default the code does not use — the stack says EF Core and the repository talks to its database another way | you, by reading | it is a departure waiting to happen. If this work touches that concern, `CON_15` applies and you say which way you are going and what the other would have cost |
+| something the code uses that the stack does not declare | you, by reading | not a finding against the code. Name it in `Shape and departures` if this work builds on it, so the person at the gate sees a choice the stack never recorded |
+
+**A gap is closed by a plan, and only by one whose intent asks for it.**
+
+| The intent | What the plan does about a build settings gap |
+|---|---|
+| asks for it — adopting the build settings, or the first cycle of a new solution, whose skeleton needs them | declares the missing files in `Files`, by the exact paths `sdlc stack` prints, and plans for what they break. `sdlc scaffold <id>` writes the ones the plan declares once it is approved |
+| is about something else | names the gap in `Shape and departures` in one sentence, and leaves it. `CON_05` kept it out of the spec, so no criterion asks for it and a plan that brought it would be building what nothing here proves |
+
+**Why the second row is strict.** `Directory.Build.props` makes warnings errors. Declared by a plan
+about one endpoint, it turns that cycle into a repair of every warning in the codebase, for a reason no
+criterion in its spec mentions. Closing the gap is a change with its own intent.
+
+**When you do declare one, plan for the fallout.** State which files it brings, what each will start
+refusing — existing warnings, package references that carry their own version, formatting — and whether
+this cycle fixes those or narrows the setting so they are not errors yet. Either is legitimate; saying
+neither is a plan whose first build fails for a reason it did not predict. Two of the five hold rules
+this cycle is then judged by, so `CON_18` applies to declaring them: `sdlc constraints --for plan` has
+what it asks `Shape and departures` to say. Changing one of these files
+later is governed work too: the template's own comment on the `Files` section, below, names them.
+
+**"In work that calls for it" still bounds the other two rows.** A solution that declares a message bus
+it has not built yet is not a finding against a plan for a static page.
 
 ## Two kinds of claim, and only one is judged
 
@@ -102,7 +139,12 @@ silence, because then the stack file and the codebase disagree and only the diff
 
 `existing` is where an adopted solution starts: a profile proposes a shape for new work and does not
 rewrite the conventions of a codebase that predates it. `profile` is where a scaffolded one starts, and
-where an adopted one arrives when its team opted in with `sdlc init --adopt-standard`.
+where an adopted one arrives when its team moved it, by renaming a draft from
+`sdlc draft solution --standard profile`.
+
+**The key and the build settings are separate.** `standard: profile` says which patterns a plan
+defaults to. It does not mean the build settings files are there — those are rows in the declared
+stack, and `sdlc stack` says which are on disk.
 
 **If the key is absent, derive it from `origin`** — `scaffolded` means `profile`, `adopted` means
 `existing`. That is what the framework decided on origin alone before the key existed, so an older

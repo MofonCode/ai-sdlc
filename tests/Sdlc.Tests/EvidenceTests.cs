@@ -224,6 +224,32 @@ public sealed class EvidenceTests
     }
 
     [TestMethod]
+    public void A_dotfile_at_the_root_is_a_declared_file_and_a_framework_name_is_not()
+    {
+        // `.editorconfig` has no extension and no slash, so it matched neither shape a path was read
+        // by -- and a plan that declared it had it reported back as undeclared, by the same comparison
+        // that lists it under GOVERNING. 'sdlc scaffold' reads this section to decide which build
+        // settings an adopted solution's plan asked for, so the miss became a file never written.
+        IReadOnlyList<string> declared = DeclaredFiles.Read("""
+            # a plan
+
+            ## Files
+
+            | File | Change |
+            |---|---|
+            | `.editorconfig` | new, the conventions |
+            | `global.json` | new, pins `.NET` 10 |
+
+            ## Open
+            """);
+
+        CollectionAssert.AreEqual(
+            new[] { ".editorconfig", "global.json" },
+            declared.ToArray(),
+            "A dotfile is declared. A backticked `.NET` in the same table is a word, not a path.");
+    }
+
+    [TestMethod]
     public void A_plan_with_no_files_section_declares_nothing_rather_than_failing()
     {
         Assert.AreEqual(0, DeclaredFiles.Read("# a plan with no sections at all").Count);

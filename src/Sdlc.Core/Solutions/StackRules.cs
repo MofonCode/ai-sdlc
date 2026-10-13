@@ -91,7 +91,8 @@ public static class StackRules
     /// <remarks>
     /// Anything that is not plainly yes is no. A person owns this file, so a cell will sooner or later
     /// say something this did not expect, and reading an unrecognised word as on would bind a solution
-    /// to a rule on the strength of a typo.
+    /// to a rule on the strength of a typo. Shared with the build-settings rows, which are switched
+    /// the same way and must not come to read a cell differently.
     /// </remarks>
-    private static bool IsOn(string cell) => cell.Trim().ToUpperInvariant() is "TRUE" or "YES" or "ON";
+    internal static bool IsOn(string cell) => cell.Trim().ToUpperInvariant() is "TRUE" or "YES" or "ON";
 }

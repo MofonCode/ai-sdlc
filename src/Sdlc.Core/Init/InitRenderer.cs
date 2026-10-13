@@ -112,7 +112,7 @@ public static class InitRenderer
     /// <param name="path">The path the block belongs at.</param>
     /// <returns>The sentence that follows the path.</returns>
     private static string Preamble(Initialise.Response report, string path) =>
-        (report.StandardPending || report.PlatformPending)
+        report.PlatformPending
         && path.Replace('\\', '/').EndsWith(Cycle.SdlcDirectoryName + "/" + Cycle.SolutionFileName, StringComparison.Ordinal)
             ? "already exists, and only a person writes it. Replace its frontmatter keys with these:"
             : "was not written. Here is what belongs in it, to merge by hand:";
@@ -121,47 +121,14 @@ public static class InitRenderer
     /// What the run bought that a file listing does not show.
     /// </summary>
     /// <remarks>
-    /// Both of these are consequences of <c>--adopt-standard</c>, and both are things a reader finds out
-    /// later and badly if adoption does not say them: a build that now fails on code nobody touched, and
-    /// a recorded standard that still disagrees with the files on disk.
+    /// One thing, and it is something a reader finds out later and badly if adoption does not say it:
+    /// a pipeline on disk that the record does not know governs the merge.
     /// </remarks>
     /// <param name="report">What adoption did.</param>
     /// <returns>The lines, empty when there is nothing to say.</returns>
     private static string[] Cautions(Initialise.Response report)
     {
         List<string> lines = [];
-
-        bool applied = report.Origin == SolutionOrigin.Adopted
-            && Initialise.StackFiles().Any(file => report.Actions.Any(action =>
-                string.Equals(action.Path, file.Path, StringComparison.Ordinal)
-                && action.Change == Initialise.InitChange.Created));
-
-        if (applied)
-        {
-            lines.AddRange([
-                string.Empty,
-                "The profile's stack files were written into a codebase that predates them, which is what",
-                "--adopt-standard asks for and nothing here softens. Directory.Build.props makes warnings",
-                "errors, so the next build can fail on files nobody has touched.",
-                string.Empty,
-                "Each of them is yours to amend -- adoption creates one once and never rewrites it, update",
-                "included -- so narrowing a severity or scoping a rule to a directory is the move, rather",
-                "than giving the opt-in back. A file this repository already had was kept, not replaced.",
-            ]);
-        }
-
-        if (report.StandardPending)
-        {
-            lines.AddRange([
-                string.Empty,
-                "The files are written and the record is not. .sdlc/solution.md already exists and only a",
-                string.Create(
-                    CultureInfo.InvariantCulture,
-                    $"person writes it, so it still says standard: {SolutionDocument.NameOf(report.Standard)} and every plan is still held to"),
-                "the surrounding code. Place the block above and the two agree again; until then this is",
-                "the one state where the files on disk and the rule a plan reads disagree.",
-            ]);
-        }
 
         if (report.PlatformPending)
         {
@@ -216,18 +183,6 @@ public static class InitRenderer
             "this solution -- down to nothing, if each plan should choose freely -- and rename it.",
         ],
 
-        Initialise.InitMode.Onboard when report.Standard == SolutionStandard.Profile =>
-        [
-            "This repository already held code, so the solution is adopted -- the origin says so and never",
-            "changes. But the standard recorded is the profile's, which --adopt-standard asked for: its",
-            "patterns are this solution's patterns for new work, and a plan that departs from them has to",
-            "say why.",
-            string.Empty,
-            "Nothing here is in violation on its first day. Constraints govern a change, never code that",
-            "came before adoption, so there is no baseline to record and nothing to forgive. The code",
-            "already here is not being migrated by this command -- a cycle does that, like any other work.",
-        ],
-
         Initialise.InitMode.Onboard =>
         [
             "This repository already held code, so the solution is adopted: where it has an existing",
@@ -237,9 +192,11 @@ public static class InitRenderer
             "Nothing here is in violation on its first day. Constraints govern a change, never code that",
             "came before adoption, so there is no baseline to record and nothing to forgive.",
             string.Empty,
-            "To hold new work to the profile's conventions instead, re-run adoption with --adopt-standard.",
-            "That is a decision rather than a default, because it applies a convention to a codebase that",
-            "never agreed to one.",
+            "To hold new work to the profile's conventions instead, 'sdlc draft solution --standard profile'",
+            "writes that change for you to rename into place. The .NET build settings are separate, and",
+            "are rows in the declared stack: 'sdlc draft techstack' lists them switched off here, because",
+            "Directory.Build.props makes warnings errors and that can fail a build over files nobody has",
+            "touched. Switch one on and a cycle whose plan declares the file brings it.",
         ],
 
         Initialise.InitMode.Update =>
@@ -272,9 +229,9 @@ public static class InitRenderer
         StringBuilder output = new();
 
         output.AppendLine();
-        output.AppendLine(string.Create(
-            CultureInfo.InvariantCulture,
-            $"{Indent}scaffolded {report.Name}"));
+        output.AppendLine(report.Skeleton
+            ? string.Create(CultureInfo.InvariantCulture, $"{Indent}scaffolded {report.Name}")
+            : Indent + "wrote the build settings this cycle's plan declares");
         output.AppendLine();
 
         foreach (string path in report.Written)
@@ -293,12 +250,34 @@ public static class InitRenderer
 
         output.AppendLine();
 
-        foreach (string line in report.Written.Count == 0
+        foreach (string line in report.Written.Count == 0 && !report.Skeleton
             ? (string[])
+            [
+                "Nothing was written: every build settings file the plan declares was already there. A",
+                "file this repository has is kept as it is, whoever wrote it -- overwriting is the one",
+                "thing this must not do.",
+            ]
+            : report.Written.Count == 0
+            ?
             [
                 "Nothing was written: every file was already there. This has run before, or the",
                 "solution has grown past the skeleton. Overwriting is the one thing a scaffold must",
                 "not do, so it left them alone.",
+            ]
+            : !report.Skeleton
+            ?
+            [
+                "No skeleton: this solution's origin is adopted, so it has a shape already. These are the",
+                "build settings the plan declared and nothing else, and a file this repository already",
+                "had was kept as it is.",
+                string.Empty,
+                "Directory.Build.props makes warnings errors, so where it was written the next build can",
+                "fail on files this cycle has not touched. That is what the plan declared and a person",
+                "approved. Each of these is created once and never rewritten, so narrowing a severity or",
+                "scoping a rule to a directory is an ordinary edit to it.",
+                string.Empty,
+                "These files are part of this cycle's change. Build, test, and record the evidence, or",
+                "there are settings on disk that no verification covers.",
             ]
             :
             [

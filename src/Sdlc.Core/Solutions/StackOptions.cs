@@ -222,6 +222,7 @@ public static class StackOptions
             on: false));
 
         lines.Add(string.Empty);
+        lines.AddRange(Settings());
         lines.AddRange(Skeleton());
 
         return string.Join(Environment.NewLine, lines) + Environment.NewLine;
@@ -304,6 +305,46 @@ public static class StackOptions
         : string.Create(
             CultureInfo.InvariantCulture,
             $"{answer.Choice} — {string.Join(", ", answer.Profiles.Select(name => "`" + name + "`"))}");
+
+    /// <summary>
+    /// The build-settings files the framework ships: a row each, then what each one is.
+    /// </summary>
+    /// <remarks>
+    /// <para><strong>A row says what a file does; the paragraph under it says what it costs.</strong>
+    /// The row is what gets copied into the draft, so it has to fit a cell. What a person needs before
+    /// switching one on does not: what is in the file, what it does to a codebase that predates it, and
+    /// which other file it is useless without. A draft that started every row at <c>false</c> on an
+    /// adopted repository would otherwise be five names and no way to choose between them (D-77).</para>
+    ///
+    /// <para>Shown switched off for the reason the rules are: listing one is not choosing it.</para>
+    /// </remarks>
+    /// <returns>The section's lines.</returns>
+    private static IEnumerable<string> Settings() =>
+    [
+        "## Build settings this framework ships",
+        string.Empty,
+        "The files that decide how .NET code is built. A declared stack lists the ones it takes under",
+        "`" + BuildSettings.Heading + "`, each with `true` or `false`; a file with no row there is not declared.",
+        "Shown switched off here because listing one is not choosing it -- copy a row into the draft",
+        "and set it to `true` to take the file.",
+        string.Empty,
+        "**A row writes nothing.** A cycle whose approved plan declares the file brings it, with",
+        "`sdlc scaffold`, so the cost of switching one on lands inside a cycle somebody planned and",
+        "approved. `sdlc stack` shows which are declared and not there yet. Each is created once, never",
+        "rewritten, and a person's to amend -- and one this repository already has is kept as it is.",
+        string.Empty,
+        .. BuildSettings.Table(on: false),
+        string.Empty,
+        .. BuildSettings.All.SelectMany(setting => (string[])
+        [
+            "### `" + setting.Path + "`",
+            string.Empty,
+            setting.Summary + ".",
+            string.Empty,
+            setting.Detail,
+            string.Empty,
+        ]),
+    ];
 
     /// <summary>
     /// An empty table of the default profile's concerns, to copy wholesale.

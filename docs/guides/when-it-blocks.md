@@ -156,6 +156,42 @@ with every approval hash matching. Only the round knows what it read, which is w
 if the spec changed. `/sdlc:steer` does this for you, which is the reason to use it rather than editing
 documents by hand.
 
+## `sdlc scaffold` — the two ways it is refused
+
+`sdlc scaffold <id>` writes the solution skeleton on a solution that held no code, and on one adopted
+into existing code only the build settings files its plan declares.
+
+### the gate refuses the cycle
+
+It asks the gate the same question the build stage asks, so the message is the gate's own and the
+remedy is whichever one above matches it. Nothing is written for a cycle that is not approved.
+
+### an adopted solution whose plan declares no build settings
+
+The solution's origin is `adopted`, so it already has a shape and the skeleton would lay a second one
+over it. What scaffold can write for it is the build settings, and only the ones the approved plan
+names in its `Files` section. This plan named none.
+
+**It is not refused for the row being `false`, and a row being `true` is not enough.** The plan is what
+a person approved for this cycle. A file that makes warnings errors does not arrive on the strength of
+a row, in a cycle about something else.
+
+**Next:** `sdlc stack` shows which files the declared stack takes and which are missing. If this cycle
+is meant to bring one, the plan declares it — `sdlc draft approval <id> --reopen`, add the file, and
+approve again. If it is not, there is nothing for scaffold to do here: build without it.
+
+---
+
+## `sdlc init` — two options that went away
+
+Both are answered with a sentence rather than run, because a line kept from before would otherwise do
+something different from what it says.
+
+| Option | What it did | Where that lives now |
+|---|---|---|
+| `--profile` | chose the stack at adoption | `sdlc draft techstack`, and a rename |
+| `--adopt-standard` | wrote the five .NET build settings into an existing codebase and recorded `standard: profile` | the files are rows in the declared stack, brought by a cycle whose plan declares them; the key is `sdlc draft solution --standard profile`, and a rename |
+
 ---
 
 ## `sdlc evidence` — every way a recording is refused

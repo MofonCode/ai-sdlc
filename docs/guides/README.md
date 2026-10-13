@@ -13,7 +13,7 @@ the command sheet open and the refusal index to hand. Nothing here needs reading
 | [`dice-worked-example.md`](dice-worked-example.md) | that same cycle with one small solution in it: every command, and the answer to give at every prompt | alongside your first cycle, if you want something that runs at the end |
 | [`cycle-commands.md`](cycle-commands.md) | the short path from an unadopted repository to a pull request, then every command for one cycle on one screen | while working |
 | [`when-it-blocks.md`](when-it-blocks.md) | every refusal the framework produces, what each means, and the remedy | when something stops |
-| [`the-stack.md`](the-stack.md) | what a solution is built from: the declared stack, the stack rules it switches on, and how to change either | when declaring the stack, or when a default or a rule is wrong for this solution |
+| [`the-stack.md`](the-stack.md) | what a solution is built from: the declared stack, the stack rules it switches on, the build settings files it takes, and how to change any of them | when declaring the stack, when a default or a rule is wrong for this solution, or when taking the .NET build settings into an existing codebase |
 
 ---
 
@@ -93,10 +93,11 @@ copy here would be a second place they live.
 
 ## `the-stack.md`
 
-**What a solution is built from, and how to change it.** The declared stack and who owns it, its two
-tables — the choices it pins and the stack rules it switches on — where the first draft comes from now
-that adoption writes none, what an empty one means, the draft and the menu that go beside it, what a
-profile still is, and what `sdlc doctor` says about all of it.
+**What a solution is built from, and how to change it.** The declared stack and who owns it, its three
+tables — the choices it pins, the stack rules it switches on and the build settings files it takes —
+where the first draft comes from now that adoption writes none, what an empty one means, the draft and
+the menu that go beside it, what a profile still is, how a build settings file reaches a repository
+through a cycle, what `sdlc stack` shows, and what `sdlc doctor` says about all of it.
 
 It is reference rather than a walkthrough — the one guide written to be read in parts. It exists because
 the declared stack is the second rule source every plan is read against and was the only one with no
@@ -106,7 +107,7 @@ nowhere else.
 What it does not cover: the rules themselves. `sdlc constraints` renders those, and this guide states
 none — including the one about departing from a declared default, which it names and leaves to the
 command. The reasoning behind a declared stack that lists its own rules is `../../CONCEPT.md` D-76,
-cited rather than repeated.
+and behind one that lists its build settings D-77, both cited rather than repeated.
 
 ---
 

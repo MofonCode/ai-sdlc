@@ -907,12 +907,20 @@ refuses one that does; `sdlc draft techstack` copies the file beside itself for 
 `## Rules`, one row a rule: a `PRO_` id, `true` or `false`, and what the rule holds a plan to. A
 solution is judged against exactly the ones marked `true`; `false`, or no row, is a rule that does not
 apply. So what a person reads in this file is the whole of what the stack contributes to a plan's
-judgement — nothing is selected by a name recorded elsewhere. The two tables are told apart by their
-width: a rule row has three cells and a default has two.
+judgement — nothing is selected by a name recorded elsewhere. Those two tables are told apart by
+their width: a rule row has three cells and a default has two.
+
+**And it lists the build settings files the solution takes** (D-77). Under `## Build settings`, one row
+a file: its name, `true` or `false`, and what it does. `true` declares that the solution takes the file;
+`false`, or no row, that it does not. Those rows are read from under that heading and nowhere else,
+because a file name has no prefix to recognise it by. **A row declares and writes nothing** — the file
+arrives inside a cycle whose approved plan declares it (§9), and `sdlc stack` reports which declared
+files are not on disk.
 
 **`init` does not create it.** The first draft is the default profile's rows with every shipped rule
 switched on, written by the drafter where no file is in place; a person cuts it down and renames it,
-and `sdlc new` refuses until it is there. **An empty file is a legitimate answer** — nothing pinned, no
+and `sdlc new` refuses until it is there. Its build settings rows start `true` on a scaffolded solution
+and `false` on an adopted one (D-77). **An empty file is a legitimate answer** — nothing pinned, no
 stack rule in force, every plan choosing freely — and is different from a missing one, which is nobody
 having decided.
 
@@ -925,7 +933,7 @@ file that lists no rule.
 | Key | What consumes it |
 |---|---|
 | `origin` | `intent`, to know whether "this repository holds no solution at all" is true |
-| `standard` | `plan`, to know whether new work follows the profile's conventions or the surrounding code's. Absent derives from `origin` (D-56) |
+| `standard` | `plan`, to know whether new work follows the profile's conventions or the surrounding code's. Absent derives from `origin` (D-56). A person moves it by renaming a draft from `sdlc draft solution --standard` (D-77) |
 | `platform` | `doctor`, to tell a local solution from a broken install, and `pr`, to know whether there is anywhere to push. Absent reads as `github` (D-53) |
 
 **`origin` and `standard` are two keys because they answer two questions and only one of them may
@@ -933,6 +941,10 @@ move.** Where the code came from is a historical fact. Which conventions its new
 decision a team is entitled to revisit, and an adopted solution that wants the profile's conventions
 needs somewhere to say so — D-56. The origin did both jobs until then, which left the opt-in
 inexpressible: a team could want it and the file could only record that the code was old.
+
+**The key says which patterns a plan defaults to, and nothing about which files are on disk.** The
+build settings are a separate declaration, in `techstack.md` (§8.2). An option on adoption used to make
+both at once, and they were never one decision — D-77.
 
 There is deliberately no baseline field. Constraints govern the change, never code that predates
 adoption, so an existing repository is not in violation on its first day. **`standard: profile` is not
@@ -952,24 +964,31 @@ model-invoked. Three modes (D-28):
 | **onboard** | existing code, no `.sdlc/` | writes the governance only, `origin: adopted`, `standard: existing` |
 | **update** | `.sdlc/` exists | refreshes only what the framework owns (D-40) |
 
-**`--adopt-standard` is how an onboarded solution asks for the stack settings anyway**, and it records
-`standard: profile` rather than touching the origin — D-56. It is a flag rather than a default because
-it applies a convention to code that never agreed to one: `Directory.Build.props` makes warnings
-errors, so the next build can fail on files nobody has touched. Nothing is overwritten, because each
-stack file is created once and never rewritten. On **update** the files are written and the key is
-printed for a person to place, since `solution.md` is protected — and the report says which half
-happened, because that is the one state where the files on disk and the rule a plan reads disagree.
+**`init` decides nothing about the stack** — D-76, D-77. It takes no profile, writes no
+`techstack.md`, and writes no .NET build settings in any mode. What a solution is built from is declared
+afterwards, in a file a person places. `--profile` and `--adopt-standard` are both answered with a
+sentence naming where the thing went.
 
-**`init` decides nothing about the stack** — D-76. It takes no profile, writes no `techstack.md`, and
-writes the .NET build settings only when `--adopt-standard` asks for them. What a solution is built
-from is declared afterwards, in a file a person places.
+**An onboarded solution that wants the framework's conventions makes two choices, after adoption**
+(D-77). Which patterns a plan defaults to is `standard`, moved by renaming a draft from
+`sdlc draft solution --standard profile`. Which build settings files it takes is a row each in
+`techstack.md`, and they start `false` there because they apply a convention to code that never agreed
+to one: `Directory.Build.props` makes warnings errors, so a build can fail on files nobody has touched.
 
 **`init` writes no code, and no projects** — D-35. The solution itself — a solution file, its projects,
 the banned-API list, the architecture tests and a reference slice — is `sdlc scaffold`, which refuses
-unless a cycle's plan has been approved, and which now also writes the files that constrain how that
-code is written (`.editorconfig`, the two props files, `global.json`): they constrain nothing until
-code exists, so they arrive with it. Code arriving at adoption would be the one thing in a
-governed repository with no chain behind it.
+unless a cycle's plan has been approved, and which also writes the files that constrain how that code
+is written (`.editorconfig`, the three props files, `global.json`): they constrain nothing until code
+exists, so they arrive with it. Code arriving at adoption would be the one thing in a governed
+repository with no chain behind it.
+
+**The build settings reach an adopted solution the same way, and only the ones its plan declares**
+(D-77). `sdlc scaffold` never writes the skeleton there — the repository has a shape already — and
+writes exactly the build settings files the approved plan's `Files` section names, leaving alone any
+already present. A row in `techstack.md` is not enough to write one, and a row saying `false` does not
+forbid a plan that argues for it: the plan is what a person approved for that cycle. So the moment a
+build can start failing on untouched code is the declared scope of one approved change, rather than a
+side effect of adoption or of whichever build ran next.
 
 **What update may touch is decided by whose name is on the file — D-40.** It rewrites what the
 framework named: `.sdlc/README.md`, `.github/hooks/sdlc.json`, `.github/workflows/sdlc-verify.yml` and
@@ -1284,7 +1303,8 @@ that predates it. A scaffolded solution starts on `profile`, an adopted one on `
 
 That extends to what the profile *writes*: an `.editorconfig`, a `BannedSymbols.txt` and a fitness
 function arrive with the skeleton, from `sdlc scaffold` (D-76). An adopted solution gets the build
-settings when its team asks, with `--adopt-standard`, and not otherwise — D-56.
+settings when its team asks — by switching their rows on in `techstack.md` and running a cycle whose
+plan declares them — and not otherwise (D-77).
 
 **What is still not done is a baseline**, which remains a non-goal (§18) for the same reason constraints
 carry no baseline field (§8.3): an existing repository is not in violation on its first day, and nothing
@@ -1760,11 +1780,12 @@ they print verbatim.
 | `suggestions [<id>]` | the open non-blocking findings, across cycles |
 | `decisions [--brief\|--all]` | the choices this solution has settled, so a cycle reads what was argued rather than arguing it again — D-70 |
 | `theme` | the roles this solution's surfaces use and the values that fill them — D-71 |
+| `stack` | what the solution declares it is built from, and which build settings files it takes that are not on disk. Names the gap and closes none — D-77 |
 | `propose decisions` | what an approved cycle stated, handed over for a person to record — D-70 |
 | `propose theme` | the roles a theme declares, or the ones left empty in the one there is — D-71 |
 | `pr-ready <id>` | whether one cycle may open a pull request, without opening one |
 | `verify-chain <id>` | the whole chain, as the pull-request check runs it — §13 |
-| `scaffold <id>` | writes the solution skeleton into an approved cycle — D-35 |
+| `scaffold <id>` | writes the solution skeleton into an approved cycle — D-35 — or, on an adopted solution, only the build settings files that cycle's plan declares — D-77 |
 | `hook --host <name>` | judges one tool call — §12 |
 | `version` | the three versions and which is which — the package, the plugin, and the artifact envelope |
 | `doctor` | checks this install and this repository, and says which half is missing. Exits 1 if anything is wrong |
@@ -1912,10 +1933,11 @@ block, then remediate, then exhaust the budget.
 - **Supporting ChatGPT as a host.**
 - **Plans detailed to the line.**
 - **A device end-to-end layer** — §11.2.
-- **Baselining existing problems at adoption.** `--adopt-standard` is not this: it writes the files
-  that declare a convention and records nothing as forgiven (D-56).
-- **Migrating existing code as part of adoption.** The opt-in declares the standard; a cycle moves the
-  code.
+- **Baselining existing problems at adoption.** Taking the build settings into an existing codebase is
+  not this: the cycle that brings them records nothing as forgiven, and what they break is that cycle's
+  to fix or to narrow in the file (D-56, D-77).
+- **Migrating existing code as part of adoption.** `standard` declares what new work follows; a cycle
+  moves the code.
 
 ---
 
@@ -3102,6 +3124,11 @@ and prints them.
 | `azure-pipelines.yml`, `AGENTS.md` | nothing, once one exists | printed for a person to place |
 | `.sdlc/solution.md`, the stack files | nothing, once one exists | created, then never touched |
 
+**Corrected 2026-10-13:** the last row named the stack files as something adoption creates, which was
+true when written. Adoption writes none of them now; a cycle brings them, from `sdlc scaffold` (D-76,
+D-77), and §9 owns where they come from. The rule this entry states is unchanged, and they are still
+created once and never rewritten.
+
 **What this replaces.** D-28 said update *"needs no list of exclusions: it updates what it owns, and
 what it owns is everything not protected"*, and §9 repeated it. That defines ownership as the
 file-level complement of the protected set, which holds only while every unprotected file is one the
@@ -4080,6 +4107,12 @@ quiet a CLI costs more in the reading than the warning costs in the using.
 
 **Governs:** §8.3, §9, §11.3
 
+**Superseded in part by D-77.** The key, its two values and what it decides all stand. The flag does
+not: `sdlc init --adopt-standard` is gone, the stack files it wrote are rows in `techstack.md` brought
+by a cycle, and the key is moved by a draft. Two things below read differently as a result — the one
+incoherent state no longer exists, and the rejected alternative of declaring this in `techstack.md` is
+what D-77 does, for reasons that entry gives.
+
 **Decision.** `solution.md` takes a fourth key, `standard`, with values `existing` and `profile`. It
 decides which conventions a plan holds new work to; `origin` no longer decides that and only supplies
 the value when the key is absent — `scaffolded` reads as `profile`, `adopted` as `existing`, so every
@@ -5054,8 +5087,10 @@ nothing needs is a rule somebody later carves an exception into, which is how an
 absolute. So a cycle changes a value by declaring the file, like any other declared work.
 
 **Why `init` could write the skeleton without breaking D-35.** A tokens file is data, not code — the same
-class as `.editorconfig` and the two props files, which adoption already writes and which constrain
-nothing until code exists. It is not written today because adoption cannot tell whether a solution has a
+class as `.editorconfig` and the props files, which constrain nothing until code exists.
+**Corrected 2026-10-13:** this said adoption already writes those files, which was true when written.
+Adoption writes none of them now and a cycle brings them (D-76, D-77); §9 owns where they come from.
+The argument is that a tokens file is data rather than code, and it is unchanged. It is not written today because adoption cannot tell whether a solution has a
 front-end surface, and §2.1 is the rule against a check that cannot really check.
 
 **Rejected.**
@@ -5355,6 +5390,10 @@ somebody to stop reading it, which is the failure `CheckOutcome.Elsewhere` alrea
 
 **Governs:** §5.3, §7.3, §8.2, §8.3, §9, §11.5
 
+**Corrected 2026-10-13:** this says the file holds two tables, which was the count when it was written.
+D-77 added a third, for the build settings files, and §8.2 owns the count. Everything this entry
+decides about the first two stands, including that the skeleton brings the build settings.
+
 **Decision.** `techstack.md` holds two tables and nothing about the stack is selected from anywhere
 else. The first pins choices, as before. The second, under `## Rules`, lists stack rules one row each —
 a `PRO_` id, `true` or `false`, and what the rule holds a plan to — and a solution is judged against
@@ -5452,3 +5491,109 @@ for a word. Worth doing with the next change to that file's keys, not for its ow
   the menu with it. It stays as menu content and governs nothing.
 - *Empty rows for an adopted repository's first draft.* The argument for them was about a file written
   into place, and no longer applies to a draft.
+
+### D-77 — The build settings are rows in the declared stack, and a cycle brings them
+
+**Governs:** §8.2, §8.3, §9, §11.3, §15.2, §18
+
+**Decision.** `techstack.md` takes a third table, `## Build settings`: one row for each of the five
+.NET build settings files, with `true` or `false` and what the file does. `sdlc init --adopt-standard`
+is removed and answered with a sentence. `sdlc scaffold <id>` writes build settings on an adopted
+solution — never the skeleton — and only the files the cycle's approved plan declares. The first stack
+draft starts those rows `true` on a scaffolded solution and `false` on an adopted one. `sdlc stack`
+prints the declared stack and which of the files it takes are not on disk. `standard` stays in
+`solution.md` and is moved by `sdlc draft solution --standard`.
+
+**Why.** D-76 said adoption decides nothing about the stack and moved these files to the skeleton, and
+left one thing behind: a flag on adoption that wrote five .NET files into an existing codebase. That
+flag ran before the stack was declared, so it chose .NET settings for a solution nobody had described
+yet, and it never read the stack once there was one — `sdlc init --adopt-standard` in a repository
+declared on another language wrote a `global.json` into it. D-76 named that defect for a plain refresh
+and fixed it there; the flag kept it.
+
+**The flag also did two things that were never one decision.** It recorded which conventions a plan
+defaults to, which applies to any stack, and it wrote files that only mean something on .NET. One
+switch for both meant a team could not have the first without the second.
+
+**Why the files arrive through a cycle rather than on the strength of a row.** `Directory.Build.props`
+makes warnings errors, so the file landing is the moment a build can fail on code nobody touched.
+Written at adoption, or by whatever ran next after a row was switched on, that failure belongs to
+nobody: no intent asked for it, no plan declared the file, and the evidence comparison reports it as
+undeclared in a cycle about something else. Inside a cycle whose plan declares it, the same failure is
+the planned scope of one change a person approved. This is D-35's argument for code, applied to the
+files that judge code.
+
+**Why the plan is the authority and the binary does not read the row.** D-76 already made the approval
+stand in for a flag: a plan declaring .NET files says the solution is .NET, and where the declared
+stack says otherwise the plan had to argue the departure under `CON_15` to be approved. A second check
+in the binary would be a second answer to a question the gate has answered. So a row switched off does
+not forbid a plan that argues for the file, and a row switched on writes nothing without one.
+
+**Why rows rather than one switch.** D-76 rejected `dotnet: true` in the stack file as a pointer
+somebody has to look up, which bakes one stack into the file's format. A row per file puts what a
+solution takes on the page, makes keeping your own `.editorconfig` an edit to one line, and carries
+what each file does beside its name. The options menu carries the rest — what is in each file, what it
+costs a codebase that predates it, and which other file it is useless without — because a draft that
+starts five rows at `false` is otherwise five names and nothing to choose by.
+
+**Why the rows start `false` on an adopted repository.** Every other part of the first draft starts
+switched on, and D-76 accepted that a default renamed unread is a risk said out loud rather than
+designed away. This one is different in kind: a rule switched on by accident produces a finding
+somebody reads; warnings-as-errors switched on by accident produces a repository that does not build.
+
+**Why this takes up what D-56 rejected.** D-56 weighed declaring the opt-in in `techstack.md` and
+refused, for two reasons: the file was unprotected and cycle-owned, and it declared what a solution
+*is* rather than which rules bind it. D-67 protected the file and D-76 made one of its tables select
+rules, so neither holds. The third reason — that a per-area record would describe a precision the
+mechanism does not have — is not disturbed: the rows are whole-repository, as the files are.
+
+**Why `sdlc stack` is a command.** Whether a declared file is on disk is a file listing, and what a file
+listing can decide the binary owns (§15.2). A plan stage working it out by reading would get it right
+most of the time, and this is the comparison that decides whether a plan declares a file that makes
+warnings errors. The rest of the comparison — whether the code uses what the defaults declare — needs
+reading the code, and stays with the stage that reads it.
+
+**Why a plan closes the gap only when its intent asks.** A declared file that is missing is visible to
+every plan written afterwards. If each one picked it up, the first cycle after a row was switched on
+would absorb a repair of every warning in the codebase, whatever it was about. `CON_05` keeps that out
+of a spec whose intent did not ask for it, so no criterion would stand behind the work and nothing in
+the cycle would prove it. So a plan about something else names the gap and leaves it.
+
+**What the incoherent state became.** D-56 named one state where the files on disk and the rule a plan
+reads disagreed: the flag on an update wrote the files and could only print the key. That state is
+gone, because nothing writes both. What replaces it is deliberate and visible: a row switched on with
+no file yet, which `sdlc stack` and `doctor` both report, and which `doctor` does not call a fault —
+the interval before the cycle lands is the design working.
+
+**What this costs.** Taking the build settings into an existing codebase is slower: a draft, a rename
+and a cycle, where it was one flag. A scaffolded solution's skeleton still arrives with all five files
+whatever its rows say, because it does not compile without them — so on that path a row switched off
+is a statement the skeleton overrides, and the draft's own text says so. And `scaffold` now means two
+things, which its refusal on an adopted solution has to explain.
+
+**Found on the way.** A plan declaring `.editorconfig` was reported as not declaring it: the reader
+recognised a path by an extension or a slash, and a dotfile at the root has neither. The same
+comparison lists that file as governing. Fixed in the reader, because `scaffold` reads the same
+section to decide what an adopted solution's plan asked for.
+
+**Rejected.**
+
+- *Running `sdlc scaffold` before every build, writing whatever is missing.* The first shape proposed.
+  The files would reach a cycle's diff undeclared, the fallout would land in whichever cycle built
+  next, concurrent builds would each write the same five files, and the skeleton would come back every
+  time a team deleted its reference slice. Fixing the first of those needs an exemption from the
+  declared-files comparison, which is an exception carved into a signal that has none.
+- *One switch in the stack file.* D-76 rejected it for the rules, and the reasons transfer.
+- *A standalone command that reads the stack and writes the files outside a cycle.* Closes the
+  ordering fault and the other-language fault, and leaves the one that matters: a file that makes
+  warnings errors, arriving with no plan behind it.
+- *Making the binary refuse a plan that declares a file whose row is `false`.* A second gate on a
+  question `CON_15` already puts to the plan, and the first place a declared default would bind
+  mechanically — which §8.2 says is a `LOC_` constraint's or an architecture test's job.
+- *Moving `standard` into the stack file as well.* It would put every stack choice in one file, and it
+  is the one key every solution has whatever it is built on. Left where it is, with D-76's note that
+  the value `profile` is misnamed still standing.
+- *Starting the rows `true` everywhere, like the rest of the draft.* The cost of an unread rename is
+  not a finding here; it is a broken build.
+- *Reading the presence of the files as the declaration.* D-56 rejected it and the reason stands: an
+  old repository plausibly has its own `.editorconfig`, so presence proves nothing about intent.

@@ -48,14 +48,16 @@ A solution is one governed repository. Everything below lives in it.
 | **solution** | the repository the framework governs, found by walking up for `.sdlc/` | — |
 | **`.sdlc/`** | everything the framework keeps about this solution | the repository root |
 | **`solution.md`** | what this solution is, in three keys and a paragraph. **A person's file** | `.sdlc/solution.md` |
-| **`techstack.md`** / the declared stack | what the solution is built from, as a table of concerns and choices, and which stack rules it is held to, as a table of rule ids marked `true` or `false`. **What is in it is exactly what binds**, and an empty one pins nothing. The second rule source a plan is read against. Adoption does not write it: a person places it from a draft, and no cycle opens until they have. **A person's file** | `.sdlc/techstack.md` |
+| **`techstack.md`** / the declared stack | what the solution is built from, as a table of concerns and choices; which stack rules it is held to, as a table of rule ids marked `true` or `false`; and which build settings files it takes, as a table of file names marked the same way. **What is in it is exactly what binds**, and an empty one pins nothing. The second rule source a plan is read against. Adoption does not write it: a person places it from a draft, and no cycle opens until they have. **A person's file** | `.sdlc/techstack.md` |
 | **stack default** | one row of it: a concern, and what this solution chooses for it | — |
 | **stack rule row** | one row of its second table: a `PRO_` id, `true` or `false`, and what the rule holds a plan to. `true` binds; `false`, or no row, does not | — |
+| **build settings row** | one row of its third table, under `## Build settings`: a file name, `true` or `false`, and what the file does. `true` declares that the solution takes the file; `false`, or no row, that it does not. **A row writes nothing** — a cycle brings the file | — |
+| **the gap** | the build settings files the declared stack takes that are not on disk. `sdlc stack` names it and nothing closes it but a cycle whose approved plan declares the file | — |
 | **stack profile** | a named set of default rows. Two exist: `dotnet-default`, which a first stack draft is written from, and `ml-tensorflow`, which only the options menu draws on. **No solution records one** — a profile is where a draft starts, not something that governs afterwards | in the binary |
-| **the options menu** | every concern the shipped profiles know about with what each declares for it, the alternatives the framework has argued, the ones it refused, every stack rule it ships, and an empty table for a solution starting over. Written by `sdlc draft techstack` as a report, read by nothing, and **never renamed into place** | `.sdlc/reports/` |
+| **the options menu** | every concern the shipped profiles know about with what each declares for it, the alternatives the framework has argued, the ones it refused, every stack rule it ships, every build settings file with what it does and what it costs a codebase that predates it, and an empty table for a solution starting over. Written by `sdlc draft techstack` as a report, read by nothing, and **never renamed into place** | `.sdlc/reports/` |
 | **`.sdlc/README.md`** | the whole flow on one page, inside the solution, so it travels with the code | written by adoption |
 | **`AGENTS.md`** | how to work in this repository, written for an agent | the repository root |
-| **the stack files** | the `.NET` conventions a build enforces: `.editorconfig`, `Directory.Build.props`, `Directory.Packages.props`, `global.json`, `tests/Directory.Build.props`. Written with the solution skeleton, or by `--adopt-standard`; never by adoption alone. Created once, never rewritten, a person's to amend | the repository root |
+| **the build settings** | the `.NET` conventions a build enforces: `.editorconfig`, `Directory.Build.props`, `Directory.Packages.props`, `global.json`, `tests/Directory.Build.props`. Each is a row in the declared stack. Written by `sdlc scaffold` inside a cycle — all five with the solution skeleton, or on an adopted solution the ones its approved plan declares — and never by adoption. Created once, never rewritten, a person's to amend | the repository root |
 | **reports** | a copy of what `suggestions`, `propose` and `draft techstack` printed, because a person works through one rather than reading it once. **Nothing ever reads one back**, and the directory ignores itself — so a copy left behind never reaches a later cycle's diff as a file no plan declared | `.sdlc/reports/` |
 
 ### The three keys in `solution.md`
@@ -63,7 +65,7 @@ A solution is one governed repository. Everything below lives in it.
 | Key | Values | What it decides |
 |---|---|---|
 | `origin` | `scaffolded`, `adopted` | where the code came from. **A historical fact that never changes** |
-| `standard` | `profile`, `existing` | whether new work follows the profile's patterns or the surrounding code |
+| `standard` | `profile`, `existing` | whether new work follows the profile's patterns or the surrounding code. The one key a person may move: `sdlc draft solution --standard` writes the change to rename into place |
 | `platform` | `github`, `azure-devops`, `local` | whether a pipeline is written, and so whether a check governs a merge |
 
 **There is no `profile` key.** A solution adopted before the declared stack listed its own rules may still carry one; it is read only as a fallback, for a stack file that lists no rule, so that upgrading the binary does not drop the rules that solution was held to.
@@ -73,11 +75,10 @@ A solution is one governed repository. Everything below lives in it.
 | | What it is |
 |---|---|
 | **adoption** | `sdlc init`: writing what governs code into a repository, and committing it. Denied to an agent |
-| **greenfield** | the mode for a repository holding no code. Gets `origin: scaffolded`; the stack files arrive with the skeleton |
-| **onboard** | the mode for existing code with no `.sdlc/`. Gets no stack files by default, and `origin: adopted` |
+| **greenfield** | the mode for a repository holding no code. Gets `origin: scaffolded`; the build settings arrive with the skeleton |
+| **onboard** | the mode for existing code with no `.sdlc/`. Gets `origin: adopted` and `standard: existing`, and no build settings: their rows start `false` in the first stack draft |
 | **update** | the mode when `.sdlc/` is already there. Refreshes what the framework owns and never a person's file |
-| **`--adopt-standard`** | asks for the profile's conventions in a repository that existed first. Records `standard: profile` |
-| **the solution skeleton** | `sdlc scaffold`: a solution file, five projects, the architecture suite, and the stack files they compile under. Refuses unless the cycle is approved, so **no code arrives without a chain behind it** |
+| **the solution skeleton** | `sdlc scaffold` on a solution that held no code: a solution file, five projects, the architecture suite, and the build settings they compile under. Refuses unless the cycle is approved, so **no code arrives without a chain behind it**. An adopted solution never gets it |
 | **the reference slice** | one worked operation in the skeleton, written to be copied, because an agent takes the shape of the code beside it more reliably than an instruction |
 | **the response envelope** | the one shape every response leaves through. An architecture test fails the build on an endpoint returning anything else |
 

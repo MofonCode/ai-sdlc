@@ -22,7 +22,7 @@ namespace Sdlc.Tests;
 public sealed class ScaffoldSolutionTests
 {
     [TestMethod]
-    public async Task An_adopted_solution_is_refused_because_it_already_has_a_shape()
+    public async Task An_adopted_solution_never_gets_the_skeleton_and_is_told_what_it_can_be_given()
     {
         using var workspace = CycleWorkspace.Create();
         workspace.WriteSolution(SolutionOrigin.Adopted);
@@ -35,7 +35,93 @@ public sealed class ScaffoldSolutionTests
             "An approved plan is not a licence to lay a second layout over a codebase that predates the "
             + "framework. Origin is what decides that, and it decides it here too.");
 
-        StringAssert.Contains(Explain(result), "adopted");
+        string message = Explain(result);
+        StringAssert.Contains(message, "adopted");
+        StringAssert.Contains(
+            message,
+            "Directory.Build.props",
+            "The refusal names what this does write for an adopted solution, so it is not a dead end.");
+
+        Assert.AreEqual(
+            0,
+            Directory.EnumerateFiles(workspace.Root, "*.slnx", SearchOption.AllDirectories).Count(),
+            "Refused means nothing was written.");
+    }
+
+    [TestMethod]
+    public async Task An_adopted_solution_gets_exactly_the_build_settings_its_approved_plan_declares()
+    {
+        // D-77. What adoption's --adopt-standard option did, with no cycle behind it, now arrives the
+        // way code does. Directory.Build.props makes warnings errors, so the file landing is the
+        // moment a build can fail on code nobody touched -- and that has to be the declared scope of
+        // one approved cycle. The plan is the authority: two files declared, two written.
+        using var workspace = CycleWorkspace.Create();
+        workspace.WriteSolution(SolutionOrigin.Adopted);
+        ApproveDeclaring(workspace, "Directory.Build.props", "Directory.Packages.props");
+
+        Result<ScaffoldSolution.Response> result = await Run(workspace);
+
+        Assert.IsTrue(result.IsSuccess, Explain(result));
+        Assert.IsFalse(result.Value.Skeleton, "An adopted solution has a shape already.");
+
+        CollectionAssert.AreEquivalent(
+            (string[])["Directory.Build.props", "Directory.Packages.props"],
+            result.Value.Written.ToArray());
+
+        Assert.IsFalse(
+            File.Exists(Path.Combine(workspace.Root, "global.json")),
+            "The framework ships it and this plan did not declare it, so it is not this cycle's to bring.");
+
+        Assert.AreEqual(
+            0,
+            Directory.EnumerateFiles(workspace.Root, "*.csproj", SearchOption.AllDirectories).Count(),
+            "No project, no solution file, no reference slice.");
+
+        StringAssert.Contains(
+            InitRenderer.RenderScaffold(result.Value),
+            "warnings errors",
+            "The cost is said where the file is written, to whoever is reading the build's output.");
+    }
+
+    [TestMethod]
+    public async Task A_build_settings_file_an_adopted_repository_already_has_is_kept()
+    {
+        // The one thing that makes this safe to offer at all: it fills gaps and overwrites nothing. A
+        // team's own .editorconfig is the file most likely to be there already, and replacing it would
+        // be the framework deciding a rule the team had already argued about.
+        using var workspace = CycleWorkspace.Create();
+        workspace.WriteSolution(SolutionOrigin.Adopted);
+        ApproveDeclaring(workspace, ".editorconfig", "tests/Directory.Build.props");
+
+        string own = Path.Combine(workspace.Root, ".editorconfig");
+        await File.WriteAllTextAsync(own, "root = true\n\n# ours, from before\n");
+
+        Result<ScaffoldSolution.Response> result = await Run(workspace);
+
+        Assert.IsTrue(result.IsSuccess, Explain(result));
+        CollectionAssert.Contains(result.Value.Kept.ToArray(), ".editorconfig");
+        StringAssert.Contains(await File.ReadAllTextAsync(own), "# ours, from before");
+
+        Assert.IsTrue(
+            File.Exists(Path.Combine(workspace.Root, "tests", "Directory.Build.props")),
+            "A path the plan wrote with a forward slash is the same file on any machine.");
+    }
+
+    [TestMethod]
+    public async Task A_row_switched_on_writes_nothing_without_a_plan_that_declares_the_file()
+    {
+        // The row declares what the solution takes; the plan is what a person approved for this
+        // cycle. If the row were enough, any approved cycle about anything would bring a file that
+        // makes warnings errors, and it would reach that cycle's diff as one its plan never named.
+        using var workspace = CycleWorkspace.Create();
+        workspace.WriteSolution(SolutionOrigin.Adopted);
+        workspace.WriteTechStack(Templates.TechStack(SolutionOrigin.Scaffolded));
+        Approve(workspace);
+
+        Result<ScaffoldSolution.Response> result = await Run(workspace);
+
+        Assert.IsTrue(result.IsFailed);
+        Assert.IsFalse(File.Exists(Path.Combine(workspace.Root, "Directory.Build.props")));
     }
 
     [TestMethod]
@@ -85,7 +171,7 @@ public sealed class ScaffoldSolutionTests
         CollectionAssert.AreEquivalent(
             (string[])
             [
-                .. Initialise.StackFiles().Select(file => file.Path),
+                .. BuildSettings.All.Select(setting => setting.OnDisk),
                 .. Scaffold.Files(written.Name).Select(file => file.Key),
             ],
             written.Written.ToArray(),
@@ -142,7 +228,9 @@ public sealed class ScaffoldSolutionTests
 
         Assert.IsTrue(result.IsSuccess, Explain(result));
 
-        foreach ((string path, _) in Initialise.StackFiles().Where(file => file.Path != ".editorconfig"))
+        foreach (string path in BuildSettings.All
+            .Where(setting => setting.Path != ".editorconfig")
+            .Select(setting => setting.OnDisk))
         {
             CollectionAssert.Contains(result.Value.Written.ToArray(), path);
             Assert.IsTrue(File.Exists(Path.Combine(workspace.Root, path)), path + " is not on disk.");
@@ -181,9 +269,24 @@ public sealed class ScaffoldSolutionTests
         string.Join("; ", result.Errors.Select(error => error.Message));
 
     /// <summary>Takes a cycle all the way to a standing approval the gate accepts.</summary>
-    private static void Approve(CycleWorkspace workspace)
+    private static void Approve(CycleWorkspace workspace) => Approve(workspace, declared: null);
+
+    /// <summary>Approves a cycle whose plan declares the files named.</summary>
+    /// <param name="workspace">The workspace.</param>
+    /// <param name="files">The paths the plan's Files section names, as a plan writes them.</param>
+    private static void ApproveDeclaring(CycleWorkspace workspace, params string[] files) =>
+        Approve(workspace, string.Join('\n', files.Select(file => "- `" + file + "` new")));
+
+    private static void Approve(CycleWorkspace workspace, string? declared)
     {
         workspace.WriteAllArtifacts();
+
+        // The plan again, with a Files section that says something. Every section carries the same
+        // body, which is harmless: the paths are read from the Files section alone.
+        if (declared is not null)
+        {
+            workspace.WriteArtifact(ArtifactKind.Plan, declared);
+        }
 
         foreach (ArtifactKind kind in Cycle.PlanningDocuments)
         {

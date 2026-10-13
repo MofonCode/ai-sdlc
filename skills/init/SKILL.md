@@ -2,7 +2,7 @@
 name: init
 description: Adopt the framework into a repository -- run the scaffolding, interview the team about what matters in this solution, and propose its first constraints. Use when somebody asks to set up ai-sdlc here.
 compatibility: Requires the sdlc binary on PATH, from the MofonCode.Sdlc.Cli dotnet tool, and a git repository. Every command here is that binary, so without it the first step fails.
-argument-hint: "[--platform github|azure-devops|local] [--adopt-standard]"
+argument-hint: "[--platform github|azure-devops|local]"
 allowed-tools: Bash(sdlc *), Bash(git *), Read, Glob, Grep
 ---
 
@@ -61,17 +61,19 @@ is no profile to choose and `sdlc init` refuses `--profile` with a sentence sayi
 codebase keeps its own conventions unless somebody asks otherwise, which is the default the command
 already takes.
 
-**`--adopt-standard` exists, and you offer it only when a person raises it** — when they say an existing
-codebase should be held to the framework's conventions from now on. Then say what it does and what it
-costs, one line each: it writes `.editorconfig`, both props files and `global.json` and records
-`standard: profile`; and `Directory.Build.props` makes warnings errors, so a build can start failing on
-files nobody has touched. **The rest of this paragraph answers a follow-up.** That is the opt-in
-working, not a fault — the remedy is to narrow a severity or scope a rule to a directory, because each
-of those files is created once and never rewritten. Nothing is overwritten: an `.editorconfig` the
-repository already had is kept. It does not migrate the code already there, which is a cycle like any
-other work, and it does not change the origin. On a repository already governed it writes the files and
-prints the three `solution.md` keys for a person to place, because that file is protected — show that
-block verbatim.
+**There is no option for holding an existing codebase to the framework's conventions, and you raise
+the subject only when a person does.** It is two separate choices, each made after adoption, and
+`sdlc init` answers the old `--adopt-standard` with a sentence saying so:
+
+| A person wants | It is | What to say it costs, in one line |
+|---|---|---|
+| new work to follow the framework's patterns rather than the surrounding code | `sdlc draft solution --standard profile`, and a rename | every plan now argues when it matches the old code instead of the profile |
+| the `.NET` build settings — `.editorconfig`, the three props files, `global.json` | rows in the declared stack, set to `true` in step 4; a cycle whose plan declares the files brings them | `Directory.Build.props` makes warnings errors, so a build can start failing on files nobody has touched |
+
+**The rest answers a follow-up.** Neither migrates the code already there, which is a cycle like any
+other work, and neither changes the origin. A build settings file is created once and never rewritten,
+so narrowing a severity or scoping a rule to a directory is an ordinary edit to it, and one the
+repository already had is kept.
 
 **Say what local costs in one line, once:** no pull-request check governs a merge, so the pre-push hook
 is the only mechanical layer and `--no-verify` walks past it. **The rest answers a follow-up and is not
@@ -97,8 +99,8 @@ entitled to change it.
 
 | standard | What a plan does by default | Where it comes from |
 |---|---|---|
-| `profile` | takes the profile's patterns, and says why when it departs | every scaffolded solution, and an adopted one that asked |
-| `existing` | matches the surrounding code, and says why when it departs toward the profile | an adopted solution, unless it asked |
+| `profile` | takes the profile's patterns, and says why when it departs | every scaffolded solution, and an adopted one whose team moved it with `sdlc draft solution --standard profile` |
+| `existing` | matches the surrounding code, and says why when it departs toward the profile | every adopted solution, until its team moves it |
 
 Nothing is in violation on its first day either way. Constraints govern a change, never code that came
 before adoption, so there is no baseline to record and nothing to forgive — `standard: profile` included,
@@ -235,10 +237,11 @@ Two files adoption leaves for a person, and one it writes:
 sdlc draft techstack
 ```
 
-The draft is the framework's default, whole: every row it would pin, and under `## Rules` every stack
-rule it ships, each marked `true`. **What ends up in the file is exactly what binds** — a row pins a
-choice, no row leaves that choice to each plan, and a rule applies only where its row says `true`. So
-the edit is subtraction:
+The draft is the framework's default, whole: every row it would pin, under `## Rules` every stack
+rule it ships, each marked `true`, and under `## Build settings` the five `.NET` build settings files.
+**What ends up in the file is exactly what binds** — a row pins a choice, no row leaves that choice to
+each plan, a rule applies only where its row says `true`, and a build settings file is this solution's
+only where its row does. So the edit is subtraction:
 
 | The solution | What to do to the draft |
 |---|---|
@@ -264,9 +267,19 @@ ask: it is the second rule source a plan is read against, and `CON_15` judges ev
 an agent able to edit it could satisfy that rule by adding the row it wanted instead of arguing for it —
 or drop a stack rule by switching its row off.
 
-**The `.NET` build settings are not written here.** `.editorconfig`, the props files and `global.json`
-arrive with the solution skeleton, from `sdlc scaffold` in the first cycle, behind that cycle's approved
-plan. A solution on another stack never gets them.
+**The `.NET` build settings are not written here, and the draft lists them.** `.editorconfig`, the
+three props files and `global.json` are rows under `## Build settings`, and how they start depends on
+the origin:
+
+| origin | The rows start | Because |
+|---|---|---|
+| `scaffolded` | `true` | nothing predates them, and they arrive with the solution skeleton from `sdlc scaffold` in the first cycle |
+| `adopted` | `false` | `Directory.Build.props` makes warnings errors, so on existing code a build can fail on files nobody has touched |
+
+**On an adopted repository, leave them `false` unless the person asks**, and do not switch one on from
+what you read in the codebase — that it is .NET does not mean its team wants warnings as errors. When
+they do ask, a row set to `true` writes nothing: a later cycle whose plan declares the file brings it.
+A solution on another stack deletes the rows and never gets the files.
 
 ## 5. Report
 

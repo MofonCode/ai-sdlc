@@ -71,6 +71,7 @@ try
         "suggestions" => await Workspace.Run(line, w => Suggestions(w, line)).ConfigureAwait(false),
         "decisions" => await Workspace.Run(line, w => Decisions(w, line)).ConfigureAwait(false),
         "theme" => await Workspace.Run(line, ThemeCommand).ConfigureAwait(false),
+        "stack" => await Workspace.Run(line, StackCommand).ConfigureAwait(false),
         "doctor" => await Workspace.Run(line, Doctor).ConfigureAwait(false),
         "hook" => await Hook(line).ConfigureAwait(false),
         _ when Stages.IsSkill(line.Verb) => await Skill(line).ConfigureAwait(false),
@@ -131,11 +132,23 @@ static async Task<int> Init(Workspace workspace, CommandLine line)
         return ExitCode.Usage;
     }
 
-    // A flag, not a value: there is no --adopt-standard=false to misread, and the absence of the option
-    // is the answer every existing solution already gave.
+    // Answered for the same reason. The flag did two things that were never one decision: it wrote
+    // five .NET files into an existing codebase and it recorded which conventions new work follows.
+    // Each has a home now, and neither is adoption (D-77).
+    if (line.HasOption("adopt-standard"))
+    {
+        await Console.Error.WriteLineAsync(
+            "'sdlc init' no longer takes --adopt-standard, because adoption no longer decides anything "
+            + "about the stack. The .NET build settings are rows in the declared stack: run 'sdlc draft "
+            + "techstack', set the rows you want to true, and a cycle whose plan declares those files "
+            + "brings them. To hold new work to the profile's conventions, 'sdlc draft solution "
+            + "--standard profile' writes that change for you to rename into place.")
+            .ConfigureAwait(false);
+        return ExitCode.Usage;
+    }
+
     Result<Initialise.Response> result = await workspace
-        .Send<Initialise.Command, Initialise.Response>(
-            new Initialise.Command(platform, line.HasOption("adopt-standard")))
+        .Send<Initialise.Command, Initialise.Response>(new Initialise.Command(platform))
         .ConfigureAwait(false);
 
     if (result.IsFailed)
@@ -177,9 +190,10 @@ static async Task<int> Init(Workspace workspace, CommandLine line)
     return ExitCode.Ok;
 }
 
-// The solution skeleton, and the gate is what permits it. Adoption writes the files that constrain
-// how code is written; the code itself arrives behind an approved plan like every line after it -- so
-// this asks the same question the build stage asks and refuses with the same reason.
+// The solution skeleton, or the build settings an adopted solution's plan declares, and the gate is
+// what permits either. Adoption writes neither: code arrives behind an approved plan like every line
+// after it, and so do the files that make warnings errors -- so this asks the same question the build
+// stage asks and refuses with the same reason.
 static async Task<int> ScaffoldSolution(Workspace workspace, CycleId id)
 {
     Result<Sdlc.Core.Init.ScaffoldSolution.Response> result = await workspace
@@ -533,7 +547,7 @@ static async Task<int> Draft(CommandLine line)
         // back a blank rather than a finished file -- which is why nobody could remember what it did.
         "constraint" or "constraints" => await MovedToPropose().ConfigureAwait(false),
         "profile" => await ProfileIsTheStack().ConfigureAwait(false),
-        "solution" => await Workspace.Run(rest, DraftSolution).ConfigureAwait(false),
+        "solution" => await DraftSolution(rest).ConfigureAwait(false),
         "techstack" => await Workspace.Run(rest, w => DraftTechStack(w, rest)).ConfigureAwait(false),
         _ => await UnknownDraft(line.Arguments[0]).ConfigureAwait(false),
     };
@@ -594,13 +608,37 @@ static async Task<int> DraftAbandon(Workspace workspace, CycleId id)
 // Writes rather than prints, for the reason the approval drafter does: a block to paste is a block
 // that does not get pasted, and a real adoption left the file on its shipped placeholder because
 // of exactly that.
-static async Task<int> DraftSolution(Workspace workspace) =>
-    await PrintDraft(await workspace
-        .Send<WriteSolutionDraft.Command, DraftResult>(new WriteSolutionDraft.Command())
-        .ConfigureAwait(false)).ConfigureAwait(false);
+//
+// --standard is the one key a draft may move, and only when asked by name. A value rather than a flag,
+// because there are two and a person moving back to 'existing' is as entitled to as one moving on.
+static async Task<int> DraftSolution(CommandLine line)
+{
+    SolutionStandard? standard = null;
 
-// --empty is a flag for the reason --adopt-standard is: its absence is the answer everybody already
-// gave, and a stack that pins nothing is a decision somebody should have to type.
+    if (line.TryOption("standard", out string? named))
+    {
+        switch (named.Trim().ToUpperInvariant())
+        {
+            case "PROFILE":
+                standard = SolutionStandard.Profile;
+                break;
+            case "EXISTING":
+                standard = SolutionStandard.Existing;
+                break;
+            default:
+                await Console.Error.WriteLineAsync(
+                    $"'{named}' is not a standard. One of: profile, existing.").ConfigureAwait(false);
+                return ExitCode.Usage;
+        }
+    }
+
+    return await Workspace.Run(line, async workspace => await PrintDraft(await workspace
+        .Send<WriteSolutionDraft.Command, DraftResult>(new WriteSolutionDraft.Command(standard))
+        .ConfigureAwait(false)).ConfigureAwait(false)).ConfigureAwait(false);
+}
+
+// --empty is a flag because its absence is the answer everybody already gave, and a stack that pins
+// nothing is a decision somebody should have to type.
 static async Task<int> DraftTechStack(Workspace workspace, CommandLine line) =>
     await PrintDraft(await workspace
         .Send<WriteTechStackDraft.Command, DraftResult>(
@@ -775,6 +813,25 @@ static async Task<int> ThemeCommand(Workspace workspace)
     }
 
     await Console.Out.WriteAsync(ThemeRenderer.Render(result.Value)).ConfigureAwait(false);
+    return ExitCode.Ok;
+}
+
+// What the solution declares it is built from, for a stage about to choose a shape -- with the one
+// comparison here a file listing can decide: which build settings the stack takes against which are
+// on disk. Zero whether or not there is a gap. A declared file that has not arrived is a plan somebody
+// has yet to write, not a refusal.
+static async Task<int> StackCommand(Workspace workspace)
+{
+    Result<ReadStackDeclaration.Response> result = await workspace
+        .Send<ReadStackDeclaration.Query, ReadStackDeclaration.Response>(new ReadStackDeclaration.Query())
+        .ConfigureAwait(false);
+
+    if (result.IsFailed)
+    {
+        return await Report(result, ExitCode.Refused).ConfigureAwait(false);
+    }
+
+    await Console.Out.WriteAsync(StackRenderer.Render(result.Value)).ConfigureAwait(false);
     return ExitCode.Ok;
 }
 

@@ -52,10 +52,23 @@ commit is read by whoever reviews the pull request, which is the person who can 
 **If the plan declares the solution skeleton, run `sdlc scaffold <id>`.** The first cycle of a new
 solution has no projects to change yet, so its plan declares the ones the skeleton supplies — a solution
 file, a core project, an HTTP project, two test projects and a reference slice — and the `.NET` build
-settings they compile under: `.editorconfig`, the props files and `global.json`. The binary writes them,
-and refuses unless this cycle is approved; transcribing several hundred lines of template through a plan
-document would invite corruption and prove nothing. Everything after that first cycle you write
+settings they compile under: `.editorconfig`, the three props files and `global.json`. The binary writes
+them, and refuses unless this cycle is approved; transcribing several hundred lines of template through
+a plan document would invite corruption and prove nothing. Everything after that first cycle you write
 yourself.
+
+**Run it too when the plan declares a build settings file the repository does not have** — on a
+solution adopted into existing code, that is the only thing it writes. It writes exactly the build
+settings files the plan's `Files` section names and leaves alone any that are already there, so do not
+write one of them by hand from memory: the binary's copy is the one the framework ships.
+
+**Expect the next build to fail where `Directory.Build.props` was one of them.** It makes warnings
+errors, so code this cycle never touched can now refuse to compile. That is what the plan declared and
+a person approved, and the plan said which way it goes: fix what fails, or narrow the setting in the
+file — a severity in `.editorconfig`, a line in `WarningsNotAsErrors` with its reason. **Not a pragma
+in source, and not removing the file**: either would deliver something other than what was approved.
+If the fallout is wider than the plan predicted, stop and say so; that is a plan that needs reopening,
+not a build to push through.
 
 **Write the tests the plan named.** The proof entries name tests in backticks, and `verify-chain`
 checks that each one ran and passed. A test with a different name than the plan committed to will fail
