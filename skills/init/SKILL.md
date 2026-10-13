@@ -75,8 +75,8 @@ other work, and neither changes the origin. A build settings file is created onc
 so narrowing a severity or scoping a rule to a directory is an ordinary edit to it, and one the
 repository already had is kept.
 
-**Say what local costs in one line, once:** no pull-request check governs a merge, so the pre-push hook
-is the only mechanical layer and `--no-verify` walks past it. **The rest answers a follow-up and is not
+**Say what local costs in one line, once:** no pull-request check governs a merge, so nothing
+mechanical decides what reaches the default branch. **The rest answers a follow-up and is not
 the line.** Everything else is unchanged: cycles are
 planned, approved, built and verified exactly the same way. Only the guarantee is missing, and `sdlc
 doctor` says so every time it runs. When a remote exists, re-running adoption with a platform writes the

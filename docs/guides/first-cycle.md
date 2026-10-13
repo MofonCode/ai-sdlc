@@ -38,7 +38,7 @@ sentence. The one that bites:
 
 | | |
 |---|---|
-| `--platform` | `github`, `azure-devops`, or `local` for a repository with no remote yet. `local` writes no pipeline, so **no pull-request check governs a merge** and the pre-push hook is the only mechanical layer |
+| `--platform` | `github`, `azure-devops`, or `local` for a repository with no remote yet. `local` writes no pipeline, so **no pull-request check governs a merge** and nothing mechanical decides what reaches the default branch |
 
 **Adoption is not told what the solution is built from, and decides nothing about it.** There is no
 profile to choose. The stack is the next step, below, and it is yours to declare.
@@ -63,7 +63,6 @@ What lands:
 |---|---|
 | `.sdlc/solution.md` | what this solution is, where its code came from, and which conventions new work follows. **A person's file** |
 | `.sdlc/README.md` | the whole flow in one page, inside the solution |
-| `.sdlc/hooks/pre-push` | written, **not installed**. See below |
 | `.claude/settings.json` | the `PreToolUse` and `Stop` hooks that call the gate, **merged** into whatever is already there |
 | `.github/hooks/sdlc.json` | the same two moments, in Copilot's shape: `preToolUse` and `agentStop` |
 | `.agents/hooks.json` | the tool-call moment in Antigravity's shape, in its `sdlc` section. Its turn end is deliberately not governed — `install.md` has why |
@@ -146,14 +145,7 @@ the projects, the architecture tests and the reference slice arrive in your firs
 a spec, a plan and an approval like everything else — otherwise the first code in a governed repository
 would be the only thing in it with no chain behind it.
 
-**The pre-push hook is written and not installed**, because a hook under `.git` would be a file the
-framework placed somewhere git does not track and nobody would find later. Install it yourself:
-
-```pwsh
-git config core.hooksPath .sdlc/hooks
-```
-
-**Then do the one thing adoption cannot do for you: make the check required.** The pipeline step is the
+**Do the one thing adoption cannot do for you: make the check required.** The pipeline step is the
 whole promise — nothing merges unless the chain is complete, approved and hash-matched — and it is a
 promise only while branch policy requires it. Until then the file is advisory and the directory looks
 enforced without being enforced, which is the failure mode this design is written against.

@@ -56,7 +56,7 @@ typed**, including the ones a skill runs for you, because what those record is w
 read.
 
 **The solution is local** — no remote, no pipeline, no pull request — so the walk stays on one machine,
-and the guide says what that costs: the pre-push hook is then the only mechanical layer. Giving it a
+and the guide says what that costs: nothing mechanical decides what reaches the default branch. Giving it a
 remote afterwards is its last section.
 
 What it does not cover: the blocked paths. It is the happy path deliberately — a refine after a blocking

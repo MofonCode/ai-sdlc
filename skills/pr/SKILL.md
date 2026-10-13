@@ -79,9 +79,9 @@ and that is the difference between the guarantee and a green tick. `sdlc doctor`
 `elsewhere` because no binary can confirm it.
 
 **A local cycle can still be built, verified and committed.** Only the pull request needs a remote. What
-it does not have is the pull-request check, which `CONCEPT.md` §13 calls the only non-bypassable layer —
-the pre-push hook is local and `--no-verify` walks past it. Say that plainly rather than letting somebody
-believe a local cycle is governed to the same standard.
+it does not have is the pull-request check, which `CONCEPT.md` §13 calls the only non-bypassable layer,
+and nothing on one machine stands in for it. Say that plainly rather than letting somebody believe a
+local cycle is governed to the same standard.
 
 ## Push and open the pull request
 

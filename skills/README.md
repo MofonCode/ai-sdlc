@@ -99,8 +99,8 @@ repository already had is kept.
 work follows is a decision, and those are two keys rather than one.
 
 **`--platform local` is for a repository with no remote yet**, and it writes no pipeline. That means no
-pull-request check governs a merge, so the pre-push hook is the only mechanical layer and `--no-verify`
-walks past it — the choice is recorded in `solution.md` so `doctor` can report it as a choice rather than
+pull-request check governs a merge and nothing mechanical decides what reaches the default branch —
+the choice is recorded in `solution.md` so `doctor` can report it as a choice rather than
 as a broken install, and so nobody mistakes a local solution for one governed to the same standard. Once
 there is a remote, re-run `init` with a platform; the `pr` skill walks through creating one.
 

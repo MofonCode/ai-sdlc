@@ -42,7 +42,7 @@ So three layers, and only the last is a guarantee:
 | Layer | Mechanism | Who can get past it |
 |---|---|---|
 | advisory | skill and instruction text | the agent, constantly |
-| local | this binary, a pre-tool hook, a turn-end hook, git hooks | anyone with a shell |
+| local | this binary, a pre-tool hook, a turn-end hook | anyone with a shell |
 | **non-bypassable** | `sdlc verify-chain` as a pull-request check | nobody without repository admin |
 
 Five files are a person's alone — the approval, the abandonment, a solution's own constraints, the declared stack, and the

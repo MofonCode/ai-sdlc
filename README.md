@@ -69,7 +69,7 @@ Three layers, and only the last is a guarantee:
 | Layer | What it is | Who can get past it |
 |---|---|---|
 | advisory | the instructions the agent reads | the agent, constantly |
-| local | the `sdlc` binary, a pre-tool hook, a turn-end hook, git hooks | anyone with a shell |
+| local | the `sdlc` binary, a pre-tool hook, a turn-end hook | anyone with a shell |
 | **non-bypassable** | `sdlc verify-chain` as a pull-request check | nobody without repository admin |
 
 The promise made to a team is the third one. The local layer exists to make it cheap to satisfy, not to

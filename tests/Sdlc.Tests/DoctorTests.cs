@@ -73,9 +73,9 @@ public sealed class DoctorTests
                 .Where(check => check.Outcome == CheckOutcome.Problem)
                 .Select(check => check.Subject + " - " + check.Detail)));
 
-        // The honest category, and the reason `Sound` ignores it. Both of these are true of a correct
-        // install, so counting either as a problem would make every correct install exit non-zero --
-        // and counting either as sound would claim something nobody established.
+        // The honest category, and the reason `Sound` ignores it. This is true of a correct install, so
+        // counting it as a problem would make every correct install exit non-zero -- and counting it as
+        // sound would claim something nobody established.
         string[] elsewhere =
         [
             .. report.Checks
@@ -84,9 +84,9 @@ public sealed class DoctorTests
         ];
 
         CollectionAssert.AreEquivalent(
-            new[] { "the pre-push hook", "the skills" },
+            new[] { "the skills" },
             elsewhere,
-            "A binary cannot ask a host what it loaded, and cannot read another clone's git config.");
+            "A binary cannot ask a host what it loaded.");
     }
 
     [TestMethod]

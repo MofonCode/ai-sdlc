@@ -129,8 +129,8 @@ internal static class Usage
                                      repository with no remote yet. Default: github.
 
                                      local writes no pipeline, so no pull-request check governs a
-                                     merge -- the pre-push hook is the only mechanical layer and it
-                                     is bypassable. The choice is recorded in solution.md so doctor
+                                     merge and nothing mechanical decides what reaches the default
+                                     branch. The choice is recorded in solution.md so doctor
                                      reports it as a choice rather than a broken install. Re-run
                                      init with a platform once there is a remote; the pr skill
                                      walks through creating one.

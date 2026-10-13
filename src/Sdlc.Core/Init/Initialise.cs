@@ -325,14 +325,10 @@ public static class Initialise
             // lists the ones a solution takes, and 'sdlc scaffold' writes them inside a cycle whose
             // approved plan declares them (D-77).
 
-            // Written under .sdlc rather than into .git/hooks, because .git is not tracked -- a hook written
-            // there would exist on one machine and silently not on anybody else's, which is the shape of
-            // enforcement this design is written against. The person installs it, and init says how.
-            await Owned(
-                Path.Combine(Cycle.SdlcDirectoryName, "hooks", "pre-push"),
-                Templates.PrePushHook(),
-                actions,
-                cancellationToken).ConfigureAwait(false);
+            // No git hook either. A pre-push hook was written here and never installed -- installing is
+            // core.hooksPath, which is per clone and untracked -- so it looked like enforcement and ran
+            // nowhere, and where it did run it refused a push of work in progress. What may merge is the
+            // pull-request check's to decide, and the pr skill asks 'sdlc pr-ready' before it pushes (D-78).
 
             await Agents(actions, printed, cancellationToken).ConfigureAwait(false);
 

@@ -22,7 +22,7 @@ That is a named test rather than an intention: `The_core_references_no_other_pro
 dependencies are `MofonCode.Core` for the mediator and `YamlDotNet` for the frontmatter and the ledgers.
 
 `Sdlc.Cli` is packed as a dotnet tool, so `sdlc` is one command on `PATH` and the same binary the pre-tool
-hook, the git hooks and the pipeline all call. Its types are `internal` — an application exposes no API —
+hook, the turn-end hook and the pipeline all call. Its types are `internal` — an application exposes no API —
 and the suite reaches them through `InternalsVisibleTo`, because going through the process boundary to test
 argument parsing would test the shell more than the parser.
 

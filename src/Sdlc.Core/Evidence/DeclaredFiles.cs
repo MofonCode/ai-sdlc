@@ -81,11 +81,10 @@ public static class DeclaredFiles
         ".agents/hooks.json",
     };
 
-    // Matched as a prefix, because each is a directory whose every file is a rule: the pre-push hook, the
-    // host's hook manifests, and the pipeline that installs the gate and calls it (D-37).
+    // Matched as a prefix, because each is a directory whose every file is a rule: the host's hook
+    // manifests, and the pipeline that installs the gate and calls it (D-37).
     private static readonly string[] _governingPrefixes =
     [
-        Cycle.SdlcDirectoryName + "/hooks/",
         ".github/hooks/",
         ".github/workflows/",
     ];

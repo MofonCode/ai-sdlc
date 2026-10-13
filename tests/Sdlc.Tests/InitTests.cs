@@ -451,24 +451,29 @@ public sealed class InitTests
     }
 
     [TestMethod]
-    public async Task The_pre_push_hook_is_written_but_not_installed()
+    public async Task Adoption_writes_no_git_hook_and_asks_for_none_to_be_installed()
     {
-        // A hook written into .git/hooks would exist on one machine and silently not on anybody else's, and
-        // a check that is absent where nobody looks is worse than no check. So it lands under .sdlc, which
-        // is tracked, and the report says how to point git at it.
+        // A pre-push hook was written here and left for a person to install per clone, so it looked like
+        // enforcement and ran nowhere -- and where it did run it refused a push of work in progress. What
+        // may merge is the pull-request check's to decide (D-78).
         using var solution = Scratch.Create();
 
         Initialise.Response report = await Adopt(solution, tracked: []);
 
-        Assert.IsTrue(
-            File.Exists(Path.Combine(solution.Root, Cycle.SdlcDirectoryName, "hooks", "pre-push")),
+        Assert.IsFalse(
+            Directory.Exists(Path.Combine(solution.Root, Cycle.SdlcDirectoryName, "hooks")),
             string.Join("; ", report.Actions.Select(action => action.Path)));
 
         Assert.IsFalse(
             Directory.Exists(Path.Combine(solution.Root, ".git", "hooks")),
             "Adoption must not write into .git, which is not tracked.");
 
-        StringAssert.Contains(InitRenderer.Render(report), "git config core.hooksPath .sdlc/hooks");
+        string rendered = InitRenderer.Render(report);
+
+        Assert.IsFalse(
+            rendered.Contains("hooksPath", StringComparison.Ordinal)
+            || rendered.Contains("pre-push", StringComparison.Ordinal),
+            "A step nobody has to take is a step the report must not name.");
     }
 
     [TestMethod]
@@ -850,34 +855,6 @@ public sealed class InitTests
         host.EntryShape == HookEntryShape.Direct
             ? entry["bash"]!.GetValue<string>()
             : entry["hooks"]!.AsArray()[0]!["command"]!.GetValue<string>();
-
-    [TestMethod]
-    public void The_pre_push_hook_has_unix_line_endings_and_ignores_branches_that_are_not_cycles()
-    {
-        // CRLF in a shell script fails on Linux with a message about the interpreter, which is a confusing
-        // way to learn that a hook was written on Windows.
-        string hook = Templates.PrePushHook();
-
-        Assert.IsFalse(
-            hook.Contains('\r'),
-            "The hook carries a carriage return, which fails on Linux as an interpreter error.");
-        StringAssert.StartsWith(hook, "#!/bin/sh");
-
-        StringAssert.Contains(
-            hook,
-            "refs/heads/cycle/*",
-            "A developer pushing a spike should not meet a governance hook at all.");
-
-        StringAssert.Contains(
-            hook,
-            "--no-verify",
-            "The hook has to say it is bypassable, or somebody will mistake it for the guarantee.");
-
-        StringAssert.Contains(
-            hook,
-            "not on PATH",
-            "A missing binary warns visibly rather than failing closed or passing silently.");
-    }
 
     [TestMethod]
     public void The_untested_pipeline_says_so_in_the_file_it_generates()

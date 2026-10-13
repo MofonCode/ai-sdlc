@@ -29,7 +29,7 @@ public enum Platform
     /// <remarks>
     /// <para><strong>This is the one platform where the guarantee is not installed, and it is recorded so
     /// that fact can be stated rather than inferred.</strong> §13's pull-request check is the only
-    /// non-bypassable layer; the pre-push hook is local and <c>--no-verify</c> walks past it. A solution
+    /// non-bypassable layer, and nothing on one machine stands in for it (D-78). A solution
     /// with no pipeline is therefore governed by habit, and the difference between choosing that and
     /// having a broken GitHub install is a difference <c>doctor</c> has to be able to see (D-53).</para>
     /// <para>It exists because the alternative was worse: somebody trying the framework on a repository
@@ -358,7 +358,7 @@ public static class Templates
             "| Layer | How | Who can get past it |",
             "|---|---|---|",
             "| advisory | skill and instruction text | the agent, constantly |",
-            "| local | the `sdlc` binary, a pre-tool hook, a turn-end hook, git hooks | anyone with a shell |",
+            "| local | the `sdlc` binary, a pre-tool hook, a turn-end hook | anyone with a shell |",
             "| non-bypassable | `sdlc verify-chain` as a pull-request check | nobody without repo admin |",
             string.Empty,
             "The promise is the third layer: nothing merges unless the chain is complete, approved and",
@@ -371,12 +371,9 @@ public static class Templates
             "enforcement rather than something a reviewer finds afterwards -- nothing can report done over a",
             "red suite. It never runs a build itself: it reads what `sdlc evidence` wrote.",
             string.Empty,
-            "The pre-push hook in `hooks/` is written and not installed, because a hook under `.git` would",
-            "exist on one machine and silently not on anybody else's. To use it, per clone:",
-            string.Empty,
-            "```",
-            "git config core.hooksPath .sdlc/hooks",
-            "```",
+            "Nothing here checks a push. Push a cycle branch as often as you like: what may merge is the",
+            "pull-request check's to decide, and on a solution with no remote nothing mechanical decides",
+            "it at all -- `sdlc doctor` says so on every run.",
             string.Empty,
             "The stages -- intent, spec, plan, build, verify, pr -- are skills rather than commands: they",
             "need language, so an agent runs them and this binary checks what they produced. Typing one,",
@@ -705,59 +702,6 @@ public static class Templates
 
         _ => throw new ArgumentOutOfRangeException(nameof(platform)),
     };
-
-    /// <summary>
-    /// The pre-push hook, which is the last local chance to catch a cycle that will be refused anyway.
-    /// </summary>
-    /// <remarks>
-    /// A cycle branch that is not ready will be refused by the pull-request check, so pushing it costs a
-    /// round trip through CI to learn what a local command could have said in a second. This is the fast
-    /// version of that answer and nothing more -- it is bypassable with <c>--no-verify</c>, like every git
-    /// hook, which is exactly why the guarantee lives in the pipeline instead.
-    /// <para>
-    /// It stays out of the way of everything else. A push of any branch that is not a cycle branch passes
-    /// straight through, because a developer pushing a spike should not meet a governance hook at all.
-    /// </para>
-    /// </remarks>
-    /// <returns>
-    /// The hook's contents, joined with a line feed rather than the platform's separator. A shell script
-    /// with CRLF endings fails on Linux with a message about the interpreter, which is a confusing way to
-    /// learn that a hook was written on Windows.
-    /// </returns>
-    public static string PrePushHook() => string.Join(
-        "\n",
-        [
-            "#!/bin/sh",
-            "# Written by 'sdlc init'. Refuses to push a cycle branch that is not ready, because the",
-            "# pull-request check would refuse it anyway and learning that here takes a second rather than",
-            "# a round trip through CI.",
-            "#",
-            "# Bypassable with --no-verify, like every git hook. That is why the guarantee is the pipeline.",
-            string.Empty,
-            "while read -r _local_ref _local_sha remote_ref _remote_sha; do",
-            "  case \"$remote_ref\" in",
-            "    refs/heads/cycle/*) ;;",
-            "    *) continue ;;",
-            "  esac",
-            string.Empty,
-            "  cycle=${remote_ref#refs/heads/cycle/}",
-            string.Empty,
-            "  if ! command -v sdlc >/dev/null 2>&1; then",
-            "    echo \"sdlc is not on PATH, so $cycle was not checked before this push.\" >&2",
-            "    continue",
-            "  fi",
-            string.Empty,
-            "  if ! sdlc pr-ready \"$cycle\" >&2; then",
-            "    echo >&2",
-            "    echo \"Not pushing cycle/$cycle. Run 'sdlc pr-ready $cycle' for the whole answer, or\" >&2",
-            "    echo \"push with --no-verify if you mean to open a pull request that will be refused.\" >&2",
-            "    exit 1",
-            "  fi",
-            "done",
-            string.Empty,
-            "exit 0",
-            string.Empty,
-        ]);
 
     /// <summary>The commit message for what adoption created.</summary>
     /// <param name="mode">Which mode ran.</param>

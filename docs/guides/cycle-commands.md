@@ -17,8 +17,8 @@ Adopt it, once:
    costs a hand-placed platform key later, because `solution.md` is protected by then
 2. `/sdlc:init`, which asks the one thing the command cannot guess — where the code will live — and
    then hands you the adoption command to run yourself
-3. `git config core.hooksPath .sdlc/hooks`, and **make the pipeline's check required** in branch policy.
-   Until it is required, the one guarantee is advisory
+3. **make the pipeline's check required** in branch policy. Until it is required, the one guarantee is
+   advisory
 4. `sdlc draft solution` and `sdlc draft techstack` — place both **before** the first cycle. A plan that
    reads *Replace this with a paragraph a newcomer could read* has been told nothing, and **`sdlc new`
    refuses until the declared stack is placed**: adoption does not write it, the draft is the
@@ -61,9 +61,10 @@ so it is usable in a script, and every problem it prints names the command that 
 **It reports and never repairs.** The remedies are commands a person runs — adoption especially, which
 the hook denies to an agent.
 
-Two things it marks `elsewhere` rather than passing or failing, because they are not a binary's to
-answer: whether a host actually loaded the skills, and whether the pre-push hook is installed in this
-clone. Both are named with who to ask.
+One thing it marks `elsewhere` rather than passing or failing, because it is not a binary's to
+answer: whether a host actually loaded the skills. It is named with who to ask. On a local solution
+the guarantee is marked the same way — there is no pipeline, by choice, and nothing mechanical decides
+what reaches the default branch.
 
 ## Once per repository
 

@@ -2,8 +2,8 @@
 
 **Two things have to be present, and they fail differently.** The plugin carries the skills and both
 hooks; the `sdlc` binary is the gate those skills and hooks call. Without the plugin, nothing
-asks for a cycle. Without the binary, the skills ask for something that is not there — and the pre-push
-hook says so and lets the push through, which is the louder of the two failures.
+asks for a cycle. Without the binary, the skills ask for something that is not there, which is the
+louder of the two failures.
 
 | | What it is | Missing means |
 |---|---|---|
@@ -203,12 +203,11 @@ sdlc doctor
 It checks the rules, git, adoption, every host's hook configuration and whether a pipeline here runs
 `sdlc verify-chain`, and it exits 1 if anything is wrong. Each problem names the command that fixes it.
 
-What it deliberately does **not** claim is the half a binary cannot see. Two things come back marked
-`elsewhere` with who to ask, rather than counted as passes:
+What it deliberately does **not** claim is the half a binary cannot see. One thing comes back marked
+`elsewhere` with who to ask, rather than counted as a pass:
 
 - **whether a host loaded the skills** — no binary can ask a host what it loaded, and this is the silent
   failure of the two, because an agent with no skills behaves exactly like an agent nobody asked.
-- **whether the pre-push hook is installed** — that is `core.hooksPath`, which is per clone and untracked.
 
 So the rest of this section is still worth doing on a new machine.
 

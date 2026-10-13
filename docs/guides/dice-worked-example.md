@@ -12,8 +12,8 @@ the sheet. **Nothing here states a rule**; `sdlc constraints` renders those.
 ## What this is, and what it is not
 
 **This solution is local.** No remote, no pipeline, no pull request. That keeps the walk to one machine
-and one terminal, and it costs the guarantee: with no pull-request check, **the pre-push hook is the
-only mechanical layer and `--no-verify` walks past it**. Everything else is identical — cycles are
+and one terminal, and it costs the guarantee: with no pull-request check, **nothing mechanical decides
+what reaches the default branch**. Everything else is identical — cycles are
 planned, interrogated, approved, built and verified exactly the same way. The last section has the two
 commands that give the solution a remote when you want one.
 
@@ -125,11 +125,7 @@ that prefix runs the rest of the line as your own command, so what it prints lan
 where the agent can read the file list back.
 
 It picks greenfield mode, writes what governs code, and commits it. `first-cycle.md` has the table of
-what each file is. Then install the hook it wrote but deliberately did not install:
-
-```pwsh
-git config core.hooksPath .sdlc/hooks
-```
+what each file is.
 
 ## 4. Place the two protected files
 
@@ -185,9 +181,9 @@ small to be what earns a rule.
 sdlc doctor
 ```
 
-Expect everything `ok`, the platform reported as a recorded choice rather than a broken install, and two
-marked `elsewhere` — whether the host loaded the skills, and whether the pre-push hook is installed in
-this clone. You did the second in step 3.
+Expect everything `ok`, the platform reported as a recorded choice rather than a broken install, and
+whether the host loaded the skills marked `elsewhere`, because a binary cannot ask a host what it
+loaded.
 
 ## 5. The intent
 

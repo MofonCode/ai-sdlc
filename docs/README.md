@@ -210,8 +210,8 @@ that acceptance would clear. It is answered, or the cycle does not advance.
 
 | Layer | What it is | Who can walk past it |
 |---|---|---|
-| advisory | the two agent hooks | anyone whose host did not load them, or whose workspace is untrusted |
-| local | the pre-push hook, written by adoption and **installed by you** (`core.hooksPath`) | anyone with `--no-verify` |
+| advisory | skill and instruction text | the agent, constantly |
+| local | the `sdlc` binary and the two agent hooks | anyone with a shell, and anyone whose host did not load the hooks or whose workspace is untrusted |
 | **non-bypassable** | the chain check as a required pull-request check | nobody without repository admin |
 
 ## 9. Enforcement

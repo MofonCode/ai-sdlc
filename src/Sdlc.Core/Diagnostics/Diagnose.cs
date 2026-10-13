@@ -138,7 +138,6 @@ public static class Diagnose
             }
 
             checks.Add(Pipeline(await RecordedPlatform(cancellationToken).ConfigureAwait(false)));
-            checks.Add(PrePush());
             checks.Add(Plugin());
 
             return Result.Ok(new Response(checks));
@@ -521,15 +520,15 @@ public static class Diagnose
         {
             // Local records that there is no pipeline, so the absence of one is the install working. It
             // is still reported rather than passed silently: what is missing is the only non-bypassable
-            // layer, and a solution that said nothing about that would let somebody believe the pre-push
-            // hook was the guarantee. The hook is local and '--no-verify' walks past it.
+            // layer, and a solution that said nothing about that would let somebody believe a local cycle
+            // was governed to the same standard. Nothing on this machine stands in for it (D-78).
             if (platform == Platform.Local)
             {
                 return new Check(
                     "the guarantee",
                     CheckOutcome.Elsewhere,
-                    "this solution is local, so no pipeline check governs a merge. The pre-push hook is "
-                    + "the only mechanical layer and it is bypassable",
+                    "this solution is local, so no pipeline check governs a merge and nothing "
+                    + "mechanical decides what reaches the default branch",
                     "when there is a remote, 'sdlc init --platform github' or '--platform azure-devops' "
                     + "writes the pipeline, and a person makes the check required in branch policy");
             }
@@ -558,31 +557,6 @@ public static class Diagnose
                     "the guarantee",
                     CheckOutcome.Sound,
                     Path.GetRelativePath(solution.Path, found).Replace('\\', '/') + " runs it");
-        }
-
-        /// <summary>
-        /// The pre-push hook, which is written and never installed.
-        /// </summary>
-        /// <remarks>
-        /// Whether it is installed is <c>core.hooksPath</c>, which is per clone and not tracked -- so
-        /// the file being there says nothing about whether it runs. Reporting the file as sound would
-        /// be the dishonest half of that.
-        /// </remarks>
-        private Check PrePush()
-        {
-            string path = Path.Combine(solution.Path, Cycle.SdlcDirectoryName, "hooks", "pre-push");
-
-            return File.Exists(path)
-                ? new Check(
-                    "the pre-push hook",
-                    CheckOutcome.Elsewhere,
-                    "written. Whether it runs is core.hooksPath, which is per clone and untracked",
-                    "git config core.hooksPath " + Cycle.SdlcDirectoryName + "/hooks")
-                : new Check(
-                    "the pre-push hook",
-                    CheckOutcome.Problem,
-                    Cycle.SdlcDirectoryName + "/hooks/pre-push is missing",
-                    "a person runs 'sdlc init' here, which writes it");
         }
 
         /// <summary>

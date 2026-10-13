@@ -315,7 +315,6 @@ public sealed class EvidenceTests
                 ".github/workflows/ci.yml",
                 ".sdlc/constraints.md",
                 ".sdlc/techstack.md",
-                ".sdlc/hooks/pre-push",
                 "src/Dice/Roll.cs",
                 "Directory.Packages.props",
             ]);
@@ -329,7 +328,6 @@ public sealed class EvidenceTests
                 ".github/hooks/sdlc.json",
                 ".github/workflows/ci.yml",
                 ".sdlc/constraints.md",
-                ".sdlc/hooks/pre-push",
                 ".sdlc/techstack.md",
                 "BannedSymbols.txt",
                 "Directory.Build.props",

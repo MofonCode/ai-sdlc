@@ -86,15 +86,6 @@ public static class InitRenderer
         output.AppendLine(Indent + "    sdlc constraints            the rules now in force");
         output.AppendLine(Indent + "    sdlc propose constraints    what the history says the rules are missing");
         output.AppendLine(Indent + "    sdlc decisions              the choices this solution has settled");
-        output.AppendLine();
-
-        // Said rather than done. A hook written into .git/hooks would exist on one machine and silently not
-        // on anybody else's, and a check that is absent where nobody looks is worse than no check.
-        output.AppendLine(Indent + "The pre-push hook is written but not installed -- .git is not tracked, so a hook");
-        output.AppendLine(Indent + "placed there would exist on your machine and silently not on anybody else's. To");
-        output.AppendLine(Indent + "install it, per clone:");
-        output.AppendLine();
-        output.AppendLine(Indent + "    git config core.hooksPath .sdlc/hooks");
 
         return output.ToString();
     }
