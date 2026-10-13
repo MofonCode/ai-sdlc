@@ -229,105 +229,47 @@ public sealed class DraftTests
     }
 
     [TestMethod]
-    public async Task A_profile_migration_prints_both_keys_and_leaves_the_origin_alone()
+    public async Task A_solution_draft_leaves_out_a_profile_line_from_before_the_stack_listed_its_rules()
     {
+        // The file is protected, so no tool can take the old line out of it -- but the draft is the
+        // whole file rewritten for a rename, and that is the one place the line can stop existing.
+        // Carrying it through would keep a key alive that nothing writes and one fallback reads.
         using var workspace = CycleWorkspace.Create();
-        workspace.WriteSolution("dotnet-default", SolutionOrigin.Adopted);
+        workspace.WriteSolution(SolutionOrigin.Adopted, legacyProfile: "dotnet-default");
 
-        DraftResult draft = await Profile(workspace, "ml-tensorflow");
+        DraftResult draft = await Solution(workspace);
 
         Assert.IsTrue(draft.MayDraft, draft.Instructions);
-
-        Result<SolutionDocument> read = SolutionDocument.Read(
-            "---\n" + draft.Entry + "---\n",
-            "solution.md");
-
-        Assert.IsTrue(read.IsSuccess, string.Join("; ", read.Errors.Select(e => e.Message)));
-        Assert.AreEqual("ml-tensorflow", read.Value.Profile);
-        Assert.AreEqual(
-            SolutionOrigin.Adopted,
-            read.Value.Origin,
-            "The origin is a historical fact. Printing one key and leaving a person to preserve the "
-            + "other by hand is how it gets lost.");
-    }
-
-    [TestMethod]
-    public async Task A_profile_migration_says_what_it_costs_in_rules()
-    {
-        // This message promised for three iterations that a different profile resolved a different set
-        // of PRO_ rules, at a time when no profile shipped any and nothing passed the profile tier a
-        // document -- so the set never moved and `sdlc constraints` printed the same thing afterwards.
-        // Now it does move, and a person leaving dotnet-default is losing rules rather than swapping
-        // them, which is the half of the migration the old wording hid behind "a different set".
-        using var workspace = CycleWorkspace.Create();
-        workspace.WriteSolution("dotnet-default", SolutionOrigin.Adopted);
-
-        DraftResult draft = await Profile(workspace, "ml-tensorflow");
-
-        Assert.IsTrue(draft.MayDraft, draft.Instructions);
-        StringAssert.Contains(
-            draft.Instructions,
-            "3 rules",
-            "The profile being left ships three, and the count is read from the document rather than "
-            + "written into the message, so a rule added to a profile cannot leave this wrong.");
-        StringAssert.Contains(
-            draft.Instructions,
-            "no rules of its own",
-            "And the one being moved onto ships none, which is a loss worth saying out loud.");
+        Assert.IsFalse(
+            draft.Entry!.Contains("profile: dotnet-default", StringComparison.Ordinal),
+            "The draft still carries the line that used to select the stack rules.");
+        StringAssert.Contains(draft.Entry, "origin: adopted", "The origin is a historical fact and is carried.");
         StringAssert.Contains(
             draft.Instructions,
             "draft techstack",
-            "The declared stack does not move with the key. A person expecting a migration that does "
-            + "not happen is the whole reason this sentence is here.");
+            "And it says where the thing that line decided is decided now.");
     }
 
     [TestMethod]
-    public async Task Migrating_to_the_profile_already_in_use_is_refused()
+    public void A_solution_document_reads_with_or_without_the_old_profile_line()
     {
-        using var workspace = CycleWorkspace.Create();
-        workspace.WriteSolution("dotnet-default", SolutionOrigin.Scaffolded);
+        // Three keys now. A file written before that still reads, or upgrading the binary would make
+        // every existing solution look corrupted -- and the old line is kept only as what it is.
+        Result<SolutionDocument> current = SolutionDocument.Read("---\norigin: adopted\n---\n", "the document");
+        Result<SolutionDocument> older = SolutionDocument.Read(
+            "---\nprofile: dotnet-default\norigin: adopted\n---\n",
+            "the document");
 
-        DraftResult draft = await Profile(workspace, "dotnet-default");
+        Assert.IsTrue(current.IsSuccess, string.Join("; ", current.Errors.Select(e => e.Message)));
+        Assert.IsNull(current.Value.LegacyProfile);
 
-        Assert.IsFalse(draft.MayDraft);
-        StringAssert.Contains(draft.Instructions, "already on");
-    }
+        Assert.IsTrue(older.IsSuccess, string.Join("; ", older.Errors.Select(e => e.Message)));
+        Assert.AreEqual("dotnet-default", older.Value.LegacyProfile);
 
-    [TestMethod]
-    public async Task A_profile_migration_in_a_repository_with_no_solution_file_says_to_run_init()
-    {
-        using var workspace = CycleWorkspace.Create();
-
-        using var gate = Gate.For(workspace.Root);
-
-        Result<DraftResult> result = await gate
-            .Send<ProfileText.Query, DraftResult>(new ProfileText.Query("ml-tensorflow"));
-
-        Assert.IsTrue(result.IsFailed);
-        StringAssert.Contains(string.Join("; ", result.Errors.Select(e => e.Message)), "sdlc init");
-    }
-
-    [TestMethod]
-    public async Task A_migration_onto_a_profile_that_does_not_exist_is_refused_and_names_the_ones_that_do()
-    {
-        // The keys this prints are the ones a person is about to place by hand, so a name that selects
-        // nothing would leave the solution declaring a stack it never got. Naming what exists is the half
-        // that matters: a refusal that only says no sends somebody looking for a flag.
-        using var workspace = CycleWorkspace.Create();
-        workspace.WriteSolution("dotnet-default", SolutionOrigin.Adopted);
-
-        using var gate = Gate.For(workspace.Root);
-
-        Result<DraftResult> result = await gate
-            .Send<ProfileText.Query, DraftResult>(new ProfileText.Query("tensorflow-ish"));
-
-        Assert.IsTrue(result.IsFailed);
-
-        string message = string.Join("; ", result.Errors.Select(e => e.Message));
-
-        StringAssert.Contains(message, "tensorflow-ish");
-        StringAssert.Contains(message, "dotnet-default", "And every profile that does exist.");
-        StringAssert.Contains(message, "ml-tensorflow");
+        Assert.IsFalse(
+            SolutionDocument.Keys(SolutionOrigin.Adopted, SolutionStandard.Existing, Sdlc.Core.Init.Platform.Local)
+                .Any(key => key.StartsWith("profile:", StringComparison.Ordinal)),
+            "Nothing writes the line any more.");
     }
 
     [TestMethod]
@@ -394,6 +336,7 @@ public sealed class DraftTests
         // The whole guarantee of the rename. Nothing is merged and nothing is regenerated, so placing the
         // draft applies what somebody changed in it and cannot cost them anything else.
         using var workspace = CycleWorkspace.Create();
+        workspace.WriteSolution(SolutionOrigin.Adopted);
 
         string path = Path.Combine(workspace.Root, Cycle.SdlcDirectoryName, Cycle.TechStackFileName);
         const string Declared = "# What this solution is built from\n\n| Concern | Choice |\n|---|---|\n| api | ASP.NET Core |\n";
@@ -427,15 +370,71 @@ public sealed class DraftTests
     [TestMethod]
     public async Task A_stack_draft_refuses_where_the_solution_was_never_adopted()
     {
-        // Adoption creates it from the profile's template, and that is the one moment anything but a
-        // person writes it. With no file there is nothing to copy, and inventing one here would be the
-        // tool declaring a stack.
+        // Adoption is what makes a repository a governed solution. Without it there is nothing for a
+        // stack to be declared in, and writing a draft into a bare directory would start a governed
+        // tree nobody adopted.
         using var workspace = CycleWorkspace.Create();
 
         DraftResult draft = await TechStack(workspace);
 
         Assert.IsFalse(draft.MayDraft);
-        StringAssert.Contains(draft.Instructions, "has not been adopted");
+        StringAssert.Contains(draft.Instructions, "sdlc init");
+    }
+
+    [TestMethod]
+    public async Task The_first_stack_draft_is_the_frameworks_default_because_adoption_wrote_none()
+    {
+        // Adoption no longer creates the declared stack, so this is where one comes from: every row of
+        // the default and every shipped rule switched on, for a person to cut down. Safe as a draft
+        // where it was not as a file -- it is read before it is placed.
+        using var workspace = CycleWorkspace.Create();
+        workspace.WriteSolution(SolutionOrigin.Adopted);
+
+        DraftResult draft = await TechStack(workspace);
+
+        Assert.IsTrue(draft.MayDraft, draft.Instructions);
+
+        string written = await File.ReadAllTextAsync(Path.Combine(
+            workspace.Root,
+            Cycle.SdlcDirectoryName,
+            WriteTechStackDraft.DraftFileName));
+
+        Assert.AreEqual(Sdlc.Core.Init.Templates.TechStack(), written);
+        StringAssert.Contains(written, "| ORM | EF Core |", "An adopted repository starts from the default too.");
+
+        Assert.IsFalse(
+            File.Exists(Path.Combine(workspace.Root, Cycle.SdlcDirectoryName, Cycle.TechStackFileName)),
+            "Only the draft. Nothing here places it, which is the whole of why it is safe to propose rows.");
+
+        StringAssert.Contains(
+            draft.Instructions,
+            "no cycle opens",
+            "And it says what is waiting on the rename.");
+    }
+
+    [TestMethod]
+    public async Task An_empty_stack_draft_is_written_on_request_whether_or_not_one_is_declared()
+    {
+        // A declared stack with nothing in it is a legitimate answer: nothing pinned, no stack rule in
+        // force. Getting there by deleting two tables by hand is how half of one gets left behind.
+        using var workspace = CycleWorkspace.Create();
+        workspace.WriteSolution(SolutionOrigin.Scaffolded);
+        workspace.WriteTechStack();
+
+        using var gate = Gate.For(workspace.Root);
+
+        DraftResult draft = Ok(await gate.Send<WriteTechStackDraft.Command, DraftResult>(
+            new WriteTechStackDraft.Command(Empty: true)));
+
+        Assert.IsTrue(draft.MayDraft, draft.Instructions);
+        Assert.AreEqual(
+            string.Empty,
+            await File.ReadAllTextAsync(Path.Combine(
+                workspace.Root,
+                Cycle.SdlcDirectoryName,
+                WriteTechStackDraft.DraftFileName)));
+
+        StringAssert.Contains(draft.Instructions, "nothing is pinned");
     }
 
     private static async Task<DraftResult> Solution(CycleWorkspace workspace)
@@ -455,13 +454,6 @@ public sealed class DraftTests
 
         return Ok(await gate
             .Send<WriteTechStackDraft.Command, DraftResult>(new WriteTechStackDraft.Command()));
-    }
-
-    private static async Task<DraftResult> Profile(CycleWorkspace workspace, string profile)
-    {
-        using var gate = Gate.For(workspace.Root);
-
-        return Ok(await gate.Send<ProfileText.Query, DraftResult>(new ProfileText.Query(profile)));
     }
 
     private static DraftResult Ok(Result<DraftResult> result)

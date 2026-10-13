@@ -1,6 +1,3 @@
-using FluentResults;
-using Sdlc.Core.Cycles;
-using Sdlc.Core.Diagnostics;
 using Sdlc.Core.Init;
 using Sdlc.Core.Solutions;
 
@@ -51,21 +48,6 @@ public sealed class StackProfileTests
             + "would hand a solution a stack it never chose.");
 
     [TestMethod]
-    public void A_refusal_names_every_profile_that_exists()
-    {
-        // A refusal that only says no sends somebody looking for the flag that makes it work, which is
-        // the confusion the whole draft pattern exists to avoid.
-        string message = StackProfiles.Unknown("pytorch");
-
-        StringAssert.Contains(message, "pytorch");
-
-        foreach (StackProfile profile in StackProfiles.All)
-        {
-            StringAssert.Contains(message, profile.Name);
-        }
-    }
-
-    [TestMethod]
     public void Every_profile_shares_the_platform_rows_and_declares_them_once()
     {
         // The only composition there is, and the reason it exists: where data lives and how
@@ -111,36 +93,10 @@ public sealed class StackProfileTests
     }
 
     [TestMethod]
-    public void The_dotnet_profile_ships_a_skeleton_and_the_tensorflow_one_says_it_does_not()
+    public void A_first_stack_draft_is_one_flat_table_of_the_default_profiles_rows()
     {
-        // The honesty rule. The scaffold is twenty-four .NET templates, so a profile declaring another
-        // language either ships its own or says it has none -- and saying so is what stops a solution
-        // getting a layout its own stack file contradicts.
-        Assert.IsTrue(StackProfiles.Find("dotnet-default")!.Scaffolds);
-        Assert.IsFalse(StackProfiles.Find("ml-tensorflow")!.Scaffolds);
-    }
-
-    [TestMethod]
-    public void A_profile_with_no_skeleton_says_so_in_the_file_a_plan_reads()
-    {
-        // Where it matters. The stack file is the first thing a plan is handed about the solution, so the
-        // absence belongs there rather than only in a command's refusal.
-        string stack = Templates.TechStack(
-            StackProfiles.Find("ml-tensorflow")!,
-            SolutionOrigin.Scaffolded);
-
-        StringAssert.Contains(stack, "declares no solution skeleton");
-        StringAssert.Contains(
-            stack,
-            "architecture suite is missing",
-            "And names the material gap, because it is the only mechanical enforcement of shape there is.");
-    }
-
-    [TestMethod]
-    public void A_scaffolded_stack_file_is_one_flat_table_of_the_profiles_rows()
-    {
-        StackProfile profile = StackProfiles.Find("ml-tensorflow")!;
-        string stack = Templates.TechStack(profile, SolutionOrigin.Scaffolded);
+        StackProfile profile = StackProfiles.Default;
+        string stack = Templates.TechStack();
 
         StringAssert.Contains(stack, "| Concern | Choice |");
 
@@ -149,82 +105,98 @@ public sealed class StackProfileTests
             StringAssert.Contains(
                 stack,
                 $"| {row.Concern} | {row.Choice} |",
-                "Every declared default reaches the file verbatim.");
+                "Every declared default reaches the draft verbatim.");
         }
 
         Assert.IsFalse(
-            stack.Contains("C#, .NET", StringComparison.Ordinal),
-            "And nothing from the other profile. One profile governs a solution.");
-    }
+            stack.Contains("TensorFlow", StringComparison.Ordinal),
+            "And nothing from the other profile. Its rows are in the menu, for somebody to copy across.");
 
-    [TestMethod]
-    public void An_adopted_stack_file_declares_nothing_and_still_carries_the_profiles_reasoning()
-    {
-        // Reading an existing repository to guess what it is built from would write a guess down as a
-        // declaration, and the first plan to depart from a wrong guess would be judged against it. The
-        // notes still come, because a solution that has not taken the defaults still has to know what it
-        // would be departing from.
-        string stack = Templates.TechStack(
-            StackProfiles.Find("dotnet-default")!,
-            SolutionOrigin.Adopted);
-
-        StringAssert.Contains(stack, "nothing is declared here yet");
-        Assert.IsFalse(stack.Contains("| ORM | EF Core |", StringComparison.Ordinal));
         StringAssert.Contains(stack, "## Notes worth keeping");
     }
 
     [TestMethod]
-    public async Task Doctor_reports_a_recorded_profile_that_answers_to_nothing()
+    public void A_first_stack_draft_lists_every_shipped_stack_rule_switched_on()
     {
-        // Adoption and 'draft profile' both refuse an unknown name, so reaching this state means a
-        // solution adopted before profiles resolved to anything, or one hand-edited since. It reads fine
-        // and every gate still works, which is what makes it worth reporting: the failure is quiet. No
-        // profile supplies the defaults, so CON_15 has nothing to bite on and a plan departs from nothing.
-        using var workspace = CycleWorkspace.Create();
-        workspace.WriteSolution("dotnet-defualt", SolutionOrigin.Adopted);
+        // What a person reads is what binds. The rules used to follow from a profile name recorded in
+        // another file, so nothing in the declared stack said a plan would be held to them -- now each
+        // is a row, and declining one is an edit to the line that says it is on.
+        IReadOnlyList<StackRules.Row> rules = StackRules.Rows(Templates.TechStack());
 
-        using var gate = Gate.For(workspace.Root);
+        CollectionAssert.AreEqual(
+            (string[])["PRO_01", "PRO_02", "PRO_03"],
+            rules.Select(rule => rule.Id).ToArray());
 
-        Result<Diagnose.Response> result = await gate
-            .Send<Diagnose.Query, Diagnose.Response>(new Diagnose.Query());
-
-        Assert.IsTrue(result.IsSuccess, string.Join("; ", result.Errors.Select(e => e.Message)));
-
-        Check adoption = result.Value.Checks.First(check => check.Subject == "adoption");
-
-        Assert.AreEqual(CheckOutcome.Problem, adoption.Outcome, adoption.Detail);
-        StringAssert.Contains(adoption.Detail, "dotnet-defualt");
-        StringAssert.Contains(adoption.Remedy!, "draft profile", "And names the act that fixes it.");
-    }
-
-    [TestMethod]
-    public void The_help_text_names_every_profile_that_exists()
-    {
-        // A list in help is a claim somebody will act on, and the first wrong one makes the rest not worth
-        // reading. The usage text is a const so it cannot compose this itself, which is exactly why the
-        // suite holds the two together.
-        foreach (StackProfile profile in StackProfiles.All)
+        foreach (StackRules.Row rule in rules)
         {
-            StringAssert.Contains(
-                Sdlc.Cli.Usage.Text,
-                profile.Name,
-                $"'sdlc help' does not mention {profile.Name}, so nobody would know to ask for it.");
+            Assert.IsTrue(rule.On, $"{rule.Id} is listed off in a draft of the default.");
+            Assert.IsFalse(
+                string.IsNullOrWhiteSpace(rule.Title),
+                $"{rule.Id} has no description beside it, so the row says a rule is on and not which.");
         }
     }
 
     [TestMethod]
-    public void Every_profile_explains_itself_in_one_line_and_carries_notes()
+    public void A_rule_row_is_never_counted_as_a_declared_default()
+    {
+        // Two tables in one file, read by two readers. A rule a plan could "depart from" by arguing
+        // would be a rule that binds nobody, and a default counted as a rule would switch on nothing.
+        string stack = Templates.TechStack();
+
+        Assert.AreEqual(
+            StackProfiles.Default.Defaults.Count,
+            StackTable.Rows(stack).Count,
+            "The rules table has three cells and a declared default has two, which is what keeps them apart.");
+    }
+
+    [TestMethod]
+    [DataRow("true", true)]
+    [DataRow("TRUE", true)]
+    [DataRow("yes", true)]
+    [DataRow("on", true)]
+    [DataRow("false", false)]
+    [DataRow("", false)]
+    [DataRow("maybe", false)]
+    [DataRow("ture", false)]
+    public void A_cell_that_is_not_plainly_yes_leaves_its_rule_off(string cell, bool expected)
+    {
+        // A person owns this file, so a cell will sooner or later say something nobody expected. Reading
+        // an unrecognised word as on would bind a solution to a rule on the strength of a typo.
+        IReadOnlyList<StackRules.Row> rules = StackRules.Rows($"| `PRO_02` | {cell} | names the seam |\n");
+
+        Assert.AreEqual(1, rules.Count);
+        Assert.AreEqual("PRO_02", rules[0].Id, "With or without the backticks a rendered table shows.");
+        Assert.AreEqual(expected, rules[0].On);
+    }
+
+    [TestMethod]
+    public void The_command_line_no_longer_offers_a_profile_to_choose()
+    {
+        // The option recorded a profile at adoption, before anybody had said what the solution was built
+        // from, and a refresh consulted it rather than the one recorded. Nothing records a profile now,
+        // so help that still listed the option would be describing a choice nobody is given.
+        Assert.IsFalse(
+            Sdlc.Cli.Usage.Text.Contains("--profile", StringComparison.Ordinal),
+            "'sdlc help' still documents --profile, which 'sdlc init' answers with a refusal.");
+
+        Assert.IsFalse(
+            Sdlc.Cli.Usage.Text.Contains("draft profile", StringComparison.Ordinal),
+            "'sdlc help' still documents 'draft profile', which is gone.");
+    }
+
+    [TestMethod]
+    public void Every_profile_explains_itself_in_one_line_and_the_default_carries_notes()
     {
         foreach (StackProfile profile in StackProfiles.All)
         {
             Assert.IsFalse(
                 string.IsNullOrWhiteSpace(profile.Summary),
                 $"{profile.Name} has no summary, so a listing of profiles would show a bare name.");
-
-            Assert.IsTrue(
-                profile.Notes.Count > 0,
-                $"{profile.Name} carries no notes. The table holds choices and the notes hold the "
-                + "reasoning a plan needs, which no row can.");
         }
+
+        Assert.IsTrue(
+            StackProfiles.Default.Notes.Count > 0,
+            "The default carries no notes. The table holds choices and the notes hold the reasoning a "
+            + "plan needs, which no row can -- and the default is the one a draft is written from.");
     }
 }

@@ -22,6 +22,20 @@ cycle does not advance.
 
 ---
 
+## `sdlc new` — the one way a cycle is refused
+
+### no declared stack
+
+`.sdlc/techstack.md` is not there. Adoption does not write it — a person places it — so this is where
+every solution stands between adopting and renaming the first draft, and where a deleted file leaves
+one. A cycle opened now would reach its plan with nothing to be read against and no stack rule in
+force: every gate green, and the argument the stack file exists to force never made.
+
+**Next:** `sdlc draft techstack`. The draft is the framework's default — cut it down to what is true of
+this solution — or run it with `--empty` to pin nothing. Then rename the draft into place yourself. An
+empty file opens a cycle; a missing one does not, because one is a decision and the other is nobody
+having made it.
+
 ## `sdlc gate` — every way a build is refused
 
 `sdlc gate <id>` exits 1 and says which of these it is. In rough order of how early you hit them, and
@@ -267,7 +281,7 @@ running, so a rule with no exception has nowhere for a bypass to live.
 | writing `constraints.md` | a cycle judged by the constraints it is changing is the same deadlock as the framework governing itself. `sdlc propose constraints` reads the history and proposes an entry; pasting it is the decision |
 | writing `decisions.md` | a stage reads the decision record for alignment, so an agent that could write it could invent doctrine and then align to it. `sdlc propose decisions` reads the approved cycles and proposes an entry; pasting it is the decision |
 | writing `solution.md` | the origin is a historical fact that must never change. Per-key protection would be the first conditional rule, which is where a bypass would live |
-| writing `techstack.md` | it is the second rule source a plan is read against, and `CON_15` judges every plan against it — so an agent able to edit it could satisfy that rule by adding the row it wanted instead of arguing for it. `sdlc draft techstack` copies it beside itself; renaming the draft is the decision |
+| writing `techstack.md` | it is the second rule source a plan is read against, and `CON_15` judges every plan against it — so an agent able to edit it could satisfy that rule by adding the row it wanted instead of arguing for it, or drop a stack rule by switching its row off. `sdlc draft techstack` writes a draft beside it; renaming the draft is the decision |
 | running the adoption command | adoption writes the hook configuration that constrains the agent, the pipeline that gates the merge, and the file saying where this code came from |
 
 **If your agent reports one of these as a broken tool, it is reading the mechanism as a malfunction.** The
@@ -376,14 +390,14 @@ work. No binary can check this for you, which is why `doctor` names the command 
 **The session predates the install.** Skills and hooks load at startup. Reinstall, then start a new
 session.
 
-**The declared stack declares nothing.** `CON_15` asks a plan to say why it departs from a declared
-default, so a stack file of empty rows is a rule with nothing to bite on — and a plan reaching for
-anything at all is departing from no default. An adopted solution's file opens with four empty rows and
-an instruction to fill them in from what the repository actually uses, and nothing used to look at
-whether anybody did. Every stage passes, every gate opens, and the only thing missing is the argument.
-`sdlc doctor` reports it as `declared stack`, names the rows that are open, and `sdlc draft techstack`
-reports the options menu with what each shipped profile declares for every concern, beside the draft to
-edit.
+**The declared stack says less than it looks like it says.** `CON_15` asks a plan to say why it departs
+from a declared default, so a row with a concern and no choice is a rule with nothing to bite on, and a
+rule row naming an id this release does not ship switches on nothing while reading as if it did. Every
+stage passes, every gate opens, and the only thing missing is the argument. `sdlc doctor` reports both as
+`declared stack` and names the row. **An empty file is not this**: a person placing a stack with nothing
+in it has decided that nothing is pinned, and `doctor` says so as sound. `sdlc draft techstack` writes
+the options menu — what each shipped profile declares for every concern, and every stack rule — beside
+the draft to edit.
 
 **The check is not required.** `sdlc verify-chain` in the pipeline is the only non-bypassable layer, and
 it is only a guarantee while branch policy makes it required. A pipeline that runs it and a merge that

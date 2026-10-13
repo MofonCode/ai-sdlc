@@ -435,7 +435,7 @@ public sealed class PluginTests
         string[] verbs =
         [
             "sdlc constraints", "sdlc status", "sdlc gate", "sdlc draft approval",
-            "sdlc draft abandon", "sdlc draft profile", "sdlc propose constraints",
+            "sdlc draft abandon", "sdlc draft techstack", "sdlc propose constraints",
             "sdlc suggestions", "sdlc verify-chain", "sdlc init", "sdlc new",
         ];
 
@@ -907,15 +907,9 @@ public sealed class PluginTests
             Assert.IsTrue(
                 text.Contains("ships " + words[rules], StringComparison.OrdinalIgnoreCase)
                 || text.Contains("ships " + words[rules] + " rules", StringComparison.OrdinalIgnoreCase),
-                $"{Path.GetRelativePath(Root, path)} does not say that '{Profile}' ships {words[rules]} "
-                + "rules. Either it stopped saying how many, in which case take it off this list, or it "
+                $"{Path.GetRelativePath(Root, path)} does not say that the framework ships {words[rules]} "
+                + "stack rules. Either it stopped saying how many, in which case take it off this list, or it "
                 + "is now wrong about a number a reader will check.");
-
-            Assert.IsTrue(
-                text.Contains("ships none", StringComparison.OrdinalIgnoreCase),
-                $"{Path.GetRelativePath(Root, path)} does not say that a profile ships none. "
-                + "'ml-tensorflow' shipping no rules is the half a person moving onto it is losing, and "
-                + "a document that names only the full tier hides the cost of the migration.");
         }
     }
 

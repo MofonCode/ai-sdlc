@@ -361,7 +361,7 @@ public sealed class InitTests
         using Gate gate = Adopter(solution, new FakeRepository { Repository = false });
 
         Result<Initialise.Response> result = await gate
-            .Send<Initialise.Command, Initialise.Response>(new Initialise.Command("dotnet-default", Platform.GitHub));
+            .Send<Initialise.Command, Initialise.Response>(new Initialise.Command(Platform.GitHub));
 
         Assert.IsTrue(result.IsFailed);
         StringAssert.Contains(result.Errors[0].Message, "git init");
@@ -371,25 +371,40 @@ public sealed class InitTests
     }
 
     [TestMethod]
-    public async Task A_scaffolded_techstack_carries_the_profile_defaults_and_an_adopted_one_does_not()
+    [DataRow(false)]
+    [DataRow(true)]
+    public async Task Adoption_writes_no_declared_stack_and_says_what_does(bool holdsCode)
     {
-        // Reading a repository to guess what it is built from would write a guess down as a declaration,
-        // and the first plan to depart from a wrong guess would be judged against it.
-        using var fresh = Scratch.Create();
-        await Adopt(fresh, tracked: []);
+        // It used to be the one protected file a tool created with its contents already decided -- from
+        // a profile named on the command line, before anybody had said what the solution was built
+        // from. A person places it now, new repository or old, and adoption only says what to run.
+        string[] tracked = holdsCode ? ["src/App/Program.cs"] : [];
 
-        using var existing = Scratch.Create();
-        await Adopt(existing, tracked: ["src/App/Program.cs"]);
+        using var solution = Scratch.Create();
 
-        string scaffolded = await File.ReadAllTextAsync(
-            Path.Combine(fresh.Root, Cycle.SdlcDirectoryName, "techstack.md"));
+        Initialise.Response report = await Adopt(solution, tracked);
 
-        string adopted = await File.ReadAllTextAsync(
-            Path.Combine(existing.Root, Cycle.SdlcDirectoryName, "techstack.md"));
+        string stack = Path.Combine(solution.Root, Cycle.SdlcDirectoryName, Cycle.TechStackFileName);
 
-        StringAssert.Contains(scaffolded, "MSTest on Microsoft.Testing.Platform");
-        Assert.IsFalse(adopted.Contains("MSTest", StringComparison.Ordinal));
-        StringAssert.Contains(adopted, "Left empty on purpose");
+        Assert.IsFalse(File.Exists(stack), "Adoption decided what this solution is built from.");
+        Assert.IsFalse(report.StackDeclared);
+        Assert.IsFalse(
+            report.Actions.Any(action => action.Path.EndsWith(Cycle.TechStackFileName, StringComparison.Ordinal)),
+            "Not created and not listed as kept: it is not adoption's file to mention as its own.");
+
+        StringAssert.Contains(
+            InitRenderer.Render(report),
+            "sdlc draft techstack",
+            "The next thing to do, said first, because no cycle opens until it is done.");
+
+        // And once a person has placed one, a refresh stops saying so.
+        await File.WriteAllTextAsync(stack, string.Empty);
+
+        Initialise.Response again = await Adopt(solution, tracked);
+
+        Assert.IsTrue(again.StackDeclared, "An empty file is a declared stack: it declares that nothing is pinned.");
+        Assert.IsFalse(InitRenderer.Render(again).Contains("No cycle opens", StringComparison.Ordinal));
+        Assert.AreEqual(string.Empty, await File.ReadAllTextAsync(stack), "And a refresh leaves it exactly as placed.");
     }
 
     [TestMethod]
@@ -500,32 +515,25 @@ public sealed class InitTests
     }
 
     [TestMethod]
-    public async Task A_scaffolded_solution_gets_the_stack_files_and_an_adopted_one_gets_none()
+    [DataRow(false)]
+    [DataRow(true)]
+    public async Task Adoption_writes_no_build_settings_unless_it_is_asked_to(bool holdsCode)
     {
-        // D-33: the default profile is carried by the binary, so adoption needs no feed and no
-        // network. And the standard decides whether it binds - an adopted repository that has not
-        // asked keeps its own conventions, because the profile proposes a shape for new work and
-        // does not rewrite one that predates it.
-        using var fresh = Scratch.Create();
-        await Adopt(fresh, tracked: []);
+        // They are .NET -- warnings as errors in a props file, an SDK pin -- and adoption no longer
+        // knows what a solution is built from, so writing them unasked would be deciding the stack on
+        // the way past. A new solution gets them from 'sdlc scaffold', with the skeleton they
+        // constrain; an existing one keeps its own conventions unless its team asks.
+        string[] tracked = holdsCode ? ["src/App/Program.cs"] : [];
 
-        foreach (string file in Stack)
-        {
-            Assert.IsTrue(
-                File.Exists(Path.Combine(fresh.Root, file)),
-                file + " is what makes a stated convention enforceable, so a scaffolded solution starts with it.");
-        }
+        using var solution = Scratch.Create();
 
-        using var existing = Scratch.Create();
-        Initialise.Response report = await Adopt(existing, tracked: ["src/App/Program.cs"]);
-
-        Assert.AreEqual(SolutionStandard.Existing, report.Standard);
+        await Adopt(solution, tracked);
 
         foreach (string file in Stack)
         {
             Assert.IsFalse(
-                File.Exists(Path.Combine(existing.Root, file)),
-                file + " would rewrite the conventions of a codebase that predates the framework.");
+                File.Exists(Path.Combine(solution.Root, file)),
+                file + " was written by an adoption nobody told what the solution is built from.");
         }
     }
 
@@ -619,7 +627,9 @@ public sealed class InitTests
         StringAssert.Contains(keys, "standard: profile");
         StringAssert.Contains(keys, "origin: adopted");
         StringAssert.Contains(keys, "platform: github");
-        StringAssert.Contains(keys, "profile: dotnet-default");
+        Assert.IsFalse(
+            keys.Contains("profile: dotnet", StringComparison.Ordinal),
+            "Three keys. Nothing records a profile any more, so a printed block must not reintroduce one.");
 
         string rendered = InitRenderer.Render(report);
 
@@ -630,10 +640,11 @@ public sealed class InitTests
     }
 
     [TestMethod]
-    public async Task A_recorded_profile_standard_keeps_filling_the_stack_on_update()
+    public async Task A_plain_refresh_writes_no_build_settings_whatever_the_document_records()
     {
-        // Once the key says profile, the files are this solution's by declaration, so a later update
-        // supplies one that was never written - without the flag having to be remembered every time.
+        // The defect this closes. A refresh used to consult the profile named on the command line
+        // rather than anything recorded, so re-running adoption on a solution declared on another stack
+        // wrote .NET settings into it. Only the flag writes them now, and a refresh is not the flag.
         using var solution = Scratch.Create();
         await Adopt(solution, tracked: ["src/App/Program.cs"], adoptStandard: true);
 
@@ -643,7 +654,9 @@ public sealed class InitTests
 
         Assert.AreEqual(SolutionStandard.Profile, report.Standard);
         Assert.IsFalse(report.StandardPending);
-        Assert.IsTrue(File.Exists(Path.Combine(solution.Root, "global.json")));
+        Assert.IsFalse(
+            File.Exists(Path.Combine(solution.Root, "global.json")),
+            "A file somebody deleted came back on a refresh that did not ask for it.");
     }
 
     [TestMethod]
@@ -710,12 +723,12 @@ public sealed class InitTests
         // These are a person's to amend. Update refreshes what the framework owns, and it does not own
         // the rules a team has since argued about.
         using var solution = Scratch.Create();
-        await Adopt(solution, tracked: []);
+        await Adopt(solution, tracked: ["src/App/Program.cs"], adoptStandard: true);
 
         string path = Path.Combine(solution.Root, ".editorconfig");
         await File.WriteAllTextAsync(path, "root = true\n\n# ours now\n");
 
-        Initialise.Response report = await Adopt(solution, tracked: []);
+        Initialise.Response report = await Adopt(solution, tracked: ["src/App/Program.cs"], adoptStandard: true);
 
         Assert.AreEqual(
             Initialise.InitChange.Kept,
@@ -1234,7 +1247,7 @@ public sealed class InitTests
         string keys = report.Printed[Path.Combine(Cycle.SdlcDirectoryName, Cycle.SolutionFileName)];
 
         StringAssert.Contains(keys, "platform: github", "The block carries the platform being moved to.");
-        StringAssert.Contains(keys, "profile: dotnet-default", "All four keys, never the one that moved.");
+        Assert.IsFalse(keys.Contains("profile: dotnet", StringComparison.Ordinal), "And no key nothing records.");
         StringAssert.Contains(keys, "origin: scaffolded");
         StringAssert.Contains(keys, "standard: profile");
 
@@ -1292,79 +1305,17 @@ public sealed class InitTests
             "sdlc-verify.yml")));
     }
 
-    [TestMethod]
-    public async Task Adoption_writes_the_stack_the_chosen_profile_declares()
-    {
-        using var solution = Scratch.Create();
-
-        await Adopt(solution, tracked: [], profile: "ml-tensorflow");
-
-        string stack = await File.ReadAllTextAsync(
-            Path.Combine(solution.Root, Cycle.SdlcDirectoryName, Cycle.TechStackFileName));
-
-        StringAssert.Contains(stack, "| machine learning | TensorFlow, through Keras |");
-        StringAssert.Contains(stack, "| cloud | Azure |", "The platform rows are shared, so they come too.");
-        Assert.IsFalse(
-            stack.Contains("Blazor", StringComparison.Ordinal),
-            "And nothing from the other profile. The profile key now selects something.");
-    }
-
-    [TestMethod]
-    public async Task A_profile_with_no_conventions_to_write_gets_none_rather_than_the_dotnet_ones()
-    {
-        // Warnings-as-errors in a props file and an SDK pin in global.json are .NET. A profile declaring
-        // Python has nothing to put in them, and writing them anyway would be the profile contradicting
-        // its own declarations -- the same dishonesty the scaffold refusal exists to prevent.
-        using var solution = Scratch.Create();
-
-        Initialise.Response report = await Adopt(solution, tracked: [], profile: "ml-tensorflow");
-
-        foreach (string path in (string[])["Directory.Build.props", "global.json", ".editorconfig"])
-        {
-            Assert.IsFalse(
-                File.Exists(Path.Combine(solution.Root, path)),
-                $"{path} was written for a profile that declares no skeleton.");
-        }
-
-        Assert.AreEqual(SolutionStandard.Profile, report.Standard, "The standard is still the profile's.");
-    }
-
-    [TestMethod]
-    public async Task Adoption_refuses_a_profile_that_does_not_exist_instead_of_recording_it()
-    {
-        // Nothing resolves an external profile, so a solution recording a name that selects nothing would
-        // declare a stack it never got -- and the first plan judged against it would be judged against an
-        // empty table nobody chose.
-        using var solution = Scratch.Create();
-        using Gate gate = Adopter(solution, new FakeRepository { Tracked = [] });
-
-        Result<Initialise.Response> result = await gate
-            .Send<Initialise.Command, Initialise.Response>(
-                new Initialise.Command("dotnet-defualt", Platform.GitHub, false));
-
-        Assert.IsTrue(result.IsFailed);
-
-        string message = string.Join("; ", result.Errors.Select(e => e.Message));
-
-        StringAssert.Contains(message, "dotnet-defualt", "The refusal quotes what was asked for.");
-        StringAssert.Contains(message, "dotnet-default", "And names what exists.");
-        Assert.IsFalse(
-            Directory.Exists(Path.Combine(solution.Root, Cycle.SdlcDirectoryName)),
-            "Nothing was written. The name is resolved before anything lands on disk.");
-    }
-
     private static async Task<Initialise.Response> Adopt(
         Scratch solution,
         IReadOnlyList<string> tracked,
         Platform? platform = Platform.GitHub,
-        bool adoptStandard = false,
-        string profile = "dotnet-default")
+        bool adoptStandard = false)
     {
         using Gate gate = Adopter(solution, new FakeRepository { Tracked = tracked });
 
         Result<Initialise.Response> result = await gate
             .Send<Initialise.Command, Initialise.Response>(
-                new Initialise.Command(profile, platform, adoptStandard));
+                new Initialise.Command(platform, adoptStandard));
 
         Assert.IsTrue(result.IsSuccess, string.Join("; ", result.Errors.Select(e => e.Message)));
         return result.Value;

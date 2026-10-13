@@ -243,8 +243,10 @@ public sealed class DoctorTests
     }
 
     [TestMethod]
-    public async Task A_declared_stack_that_is_gone_says_what_recreates_it()
+    public async Task A_declared_stack_that_is_not_there_says_what_writes_the_draft()
     {
+        // Adoption writes none, so this is the state every solution is in between adopting and a person
+        // renaming the first draft -- and the state a deleted file leaves. No cycle opens in it.
         using var solution = Scratch.Create();
         await Adopt(solution);
 
@@ -254,36 +256,101 @@ public sealed class DoctorTests
         Check stack = report.Checks.Single(check => check.Subject == "declared stack");
 
         Assert.AreEqual(CheckOutcome.Problem, stack.Outcome);
-        StringAssert.Contains(stack.Detail, "CON_15");
-        StringAssert.Contains(stack.Remedy!, "sdlc init");
+        StringAssert.Contains(stack.Detail, "no cycle opens");
+        StringAssert.Contains(stack.Remedy!, "draft techstack");
+        Assert.IsFalse(
+            stack.Remedy!.Contains("sdlc init", StringComparison.Ordinal),
+            "Adoption does not write this file any more, so sending somebody back to it fixes nothing.");
     }
 
     [TestMethod]
-    public async Task A_table_that_has_moved_away_from_its_profile_is_information_rather_than_fault()
+    public async Task An_empty_declared_stack_is_a_decision_and_not_a_fault()
     {
-        // A profile migration moves solution.md and leaves the declared stack exactly as it was, by
-        // design -- two acts, and nothing reconciles them. So a solution can record one profile and
-        // declare another's stack indefinitely. Worth saying; not worth failing, because a person owns
-        // that file and departing from the profile is what CON_15 exists to let them argue for.
+        // A person placed a file with nothing in it: nothing pinned, no stack rule on, every plan
+        // choosing freely. This was a problem while adoption wrote the file itself, because then empty
+        // meant nobody had got round to it. Now the rename is the statement.
+        using var solution = Scratch.Create();
+        await Adopt(solution);
+        await Declare(solution, string.Empty);
+
+        Diagnose.Response report = await Diagnosis(solution);
+        Check stack = report.Checks.Single(check => check.Subject == "declared stack");
+
+        Assert.AreEqual(CheckOutcome.Sound, stack.Outcome, stack.Detail);
+        StringAssert.Contains(stack.Detail, "pins nothing");
+        StringAssert.Contains(stack.Detail, "chooses freely");
+    }
+
+    [TestMethod]
+    public async Task The_default_stack_reports_its_rows_and_every_rule_it_switches_on()
+    {
         using var solution = Scratch.Create();
         await Adopt(solution);
 
+        Diagnose.Response report = await Diagnosis(solution);
+        Check stack = report.Checks.Single(check => check.Subject == "declared stack");
+
+        Assert.AreEqual(CheckOutcome.Sound, stack.Outcome, stack.Detail);
+        StringAssert.Contains(stack.Detail, "3 of 3 listed stack rules on");
+        Assert.IsFalse(
+            stack.Detail.Contains("also ships", StringComparison.Ordinal),
+            "Every shipped rule is listed, so there is nothing unlisted to mention.");
+    }
+
+    [TestMethod]
+    public async Task A_shipped_rule_the_stack_does_not_list_is_information_rather_than_fault()
+    {
+        // What is listed is what binds, so a release adding a rule changes nothing for a solution
+        // already adopted until somebody adds the row. Worth saying, so the rule is declined rather
+        // than merely unseen; not worth failing, because not being held to it is a solution's to choose.
+        using var solution = Scratch.Create();
+        await Adopt(solution);
+        await Declare(solution, "| api | ASP.NET Core |\n| `PRO_01` | true | browser |\n| `PRO_02` | false | kernel |\n");
+
+        Diagnose.Response report = await Diagnosis(solution);
+        Check stack = report.Checks.Single(check => check.Subject == "declared stack");
+
+        Assert.AreEqual(CheckOutcome.Sound, stack.Outcome, stack.Detail);
+        StringAssert.Contains(stack.Detail, "1 of 2 listed stack rules on");
+        StringAssert.Contains(stack.Detail, "PRO_03", "The one it does not list, by name.");
+    }
+
+    [TestMethod]
+    public async Task A_rule_row_naming_an_id_nothing_ships_is_reported()
+    {
+        // The quiet one: a row that reads as a solution being held to a rule and holds it to nothing.
+        using var solution = Scratch.Create();
+        await Adopt(solution);
+        await Declare(solution, "| api | ASP.NET Core |\n| `PRO_91` | true | a rule nobody wrote |\n");
+
+        Diagnose.Response report = await Diagnosis(solution);
+        Check stack = report.Checks.Single(check => check.Subject == "declared stack");
+
+        Assert.AreEqual(CheckOutcome.Problem, stack.Outcome);
+        StringAssert.Contains(stack.Detail, "PRO_91");
+        StringAssert.Contains(stack.Remedy!, "draft techstack");
+    }
+
+    [TestMethod]
+    public async Task A_stack_from_before_rules_were_rows_is_told_where_its_rules_still_come_from()
+    {
+        // It lists none and is still held to the ones its old profile line names. Saying "0 of 0" and
+        // stopping would read as having none, which is the opposite of what the gate does with it.
+        using var solution = Scratch.Create();
+        await Adopt(solution);
+        await Declare(solution, "| Concern | Choice |\n|---|---|\n| ORM | EF Core |\n");
+
         await File.WriteAllTextAsync(
-            Path.Combine(solution.Root, Cycle.SdlcDirectoryName, Cycle.TechStackFileName),
-            "| Concern | Choice |\n|---|---|\n| machine learning | TensorFlow, through Keras |\n",
+            Sdlc.Core.Solutions.SolutionDocument.PathIn(solution.Root),
+            "---\nprofile: dotnet-default\norigin: adopted\n---\n",
             TestContext.CancellationToken);
 
         Diagnose.Response report = await Diagnosis(solution);
         Check stack = report.Checks.Single(check => check.Subject == "declared stack");
 
-        Assert.AreEqual(
-            CheckOutcome.Sound,
-            stack.Outcome,
-            "Departing from the profile is a solution's to do. Reporting it as a fault would have the "
-            + "panel crying wolf at every customised stack.");
-
-        StringAssert.Contains(stack.Detail, "differing");
+        Assert.AreEqual(CheckOutcome.Sound, stack.Outcome, stack.Detail);
         StringAssert.Contains(stack.Detail, "dotnet-default");
+        StringAssert.Contains(stack.Detail, "draft techstack", "And how they become visible in this file.");
     }
 
     /// <summary>The test context, for the cancellation token the analysers require to be passed on.</summary>
@@ -314,10 +381,18 @@ public sealed class DoctorTests
 
         Result<Initialise.Response> result = await gate
             .Send<Initialise.Command, Initialise.Response>(
-                new Initialise.Command("dotnet-default", Platform.GitHub));
+                new Initialise.Command(Platform.GitHub));
 
         Assert.IsTrue(result.IsSuccess, string.Join("; ", result.Errors.Select(e => e.Message)));
+
+        // Adoption writes no declared stack; a person places one. Every check here is about a solution
+        // somebody finished adopting, so the default is placed the way a rename would place it.
+        await Declare(solution, Templates.TechStack());
     }
+
+    private static Task Declare(Scratch solution, string stack) => File.WriteAllTextAsync(
+        Path.Combine(solution.Root, Cycle.SdlcDirectoryName, Cycle.TechStackFileName),
+        stack);
 
     /// <summary>A scratch directory to adopt into and then inspect.</summary>
     private sealed class Scratch : IDisposable

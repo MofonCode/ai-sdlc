@@ -6,7 +6,8 @@ using Sdlc.Core.Solutions;
 namespace Sdlc.Tests;
 
 /// <summary>
-/// Asserts the profile tier: the rules a profile ships, and that a solution recording it gets them.
+/// Asserts the profile tier: the stack rules the framework ships, and that a solution is judged
+/// against exactly the ones its declared stack switches on.
 /// </summary>
 /// <remarks>
 /// <para>The tier was wired and empty for three iterations. <c>FileConstraintDocuments</c> took a
@@ -163,48 +164,117 @@ public sealed class ProfileLibraryTests
     }
 
     [TestMethod]
-    public async Task A_solution_on_this_profile_resolves_the_profile_tier()
+    public async Task A_declared_stack_with_every_rule_on_resolves_all_of_them()
     {
-        // The whole of what was missing. The key selected a declared stack and a scaffold and nothing
-        // else, so this is the assertion that the profile a solution records now decides which rules it
-        // is judged against.
+        // The default a first draft is written from. What the tier hands on is the embedded document,
+        // so a resource dropped from the project file fails here where every test reading the file on
+        // disk would still pass.
         using var workspace = CycleWorkspace.Create();
-        workspace.WriteSolution(Profile, SolutionOrigin.Adopted);
+        workspace.WriteSolution(SolutionOrigin.Adopted);
+        workspace.WriteTechStack();
 
-        FileConstraintDocuments documents = new(RepoPaths.Library, workspace.Root);
-        IReadOnlyList<ConstraintDocument> sources =
-            await documents.Enumerate(TestContext.CancellationToken);
+        ConstraintDocument profile = (await Resolve(workspace))
+            .Single(source => source.Tier == ConstraintTier.Profile);
 
-        ConstraintDocument profile = sources.Single(source => source.Tier == ConstraintTier.Profile);
+        CollectionAssert.AreEqual(
+            Library.Select(rule => rule.Id.ToString()).ToArray(),
+            Parse(profile).Select(rule => rule.Id.ToString()).ToArray(),
+            "Every rule the default lists as on is one the solution is judged against.");
 
-        Assert.AreEqual(
-            await File.ReadAllTextAsync(RepoPaths.ProfileLibrary(Profile), TestContext.CancellationToken),
-            profile.Text,
-            "The embedded document is not the one in this repository. A resource dropped from the "
-            + "project file leaves every other test here passing, because they all read the file.");
-
-        StringAssert.Contains(profile.Source, Profile, "The source names which profile asserted them.");
+        StringAssert.Contains(profile.Source, "techstack.md", "The source names the file that switched them on.");
         StringAssert.Contains(profile.Source, Release.Version, "And which release carries them.");
         Assert.IsFalse(File.Exists(profile.Source), "It is deliberately not a path.");
     }
 
     [TestMethod]
-    public async Task A_solution_on_a_profile_that_ships_no_rules_resolves_no_profile_tier()
+    public async Task A_rule_the_declared_stack_switches_off_is_not_one_a_plan_is_judged_against()
     {
-        // Absent rather than empty, and the difference is what a person reads: `ml-tensorflow` ships no
-        // rules because nothing has been built from it, and a rule written ahead of the first real
-        // solution would be a guess with the authority of a constraint. An empty document would print
-        // as a tier that resolved and found nothing, which is what a dropped resource looks like.
+        // The whole of the change. A person reads three rows, sets one to false, and that rule stops
+        // binding -- where a profile name in another file used to bring all three with nothing in the
+        // solution saying so.
         using var workspace = CycleWorkspace.Create();
-        workspace.WriteSolution("ml-tensorflow", SolutionOrigin.Adopted);
+        workspace.WriteSolution(SolutionOrigin.Adopted);
+        workspace.WriteTechStack(
+            "| language | C# |\n\n"
+            + "| Rule | On | What it holds a plan to |\n|---|---|---|\n"
+            + "| `PRO_01` | true | browser |\n"
+            + "| `PRO_02` | false | kernel |\n"
+            + "| `PRO_03` | true | stored data |\n");
 
-        FileConstraintDocuments documents = new(RepoPaths.Library, workspace.Root);
-        IReadOnlyList<ConstraintDocument> sources =
-            await documents.Enumerate(TestContext.CancellationToken);
+        ConstraintDocument profile = (await Resolve(workspace))
+            .Single(source => source.Tier == ConstraintTier.Profile);
+
+        CollectionAssert.AreEqual(
+            (string[])["PRO_01", "PRO_03"],
+            Parse(profile).Select(rule => rule.Id.ToString()).ToArray());
 
         Assert.IsFalse(
-            sources.Any(source => source.Tier == ConstraintTier.Profile),
-            "A profile with no document has no rules, rather than an empty set of them.");
+            profile.Text.Contains(Library.Single(rule => rule.Id.Number == 2).Statement, StringComparison.Ordinal),
+            "A rule that is off is absent from the document, not present and marked. The interrogation "
+            + "is handed this text, and a rule on the page is a rule a reader applies.");
+    }
+
+    [TestMethod]
+    [DataRow("")]
+    [DataRow("| language | Python |\n")]
+    [DataRow("| `PRO_01` | false | browser |\n")]
+    public async Task A_declared_stack_that_switches_no_rule_on_resolves_no_profile_tier(string stack)
+    {
+        // Absent rather than empty, and the difference is what a person reads: an empty document would
+        // print as a tier that resolved and found nothing, which is what a dropped resource looks like.
+        // The first case is the open stack -- a file a person placed with nothing in it.
+        using var workspace = CycleWorkspace.Create();
+        workspace.WriteSolution(SolutionOrigin.Adopted);
+        workspace.WriteTechStack(stack);
+
+        Assert.IsFalse((await Resolve(workspace)).Any(source => source.Tier == ConstraintTier.Profile));
+    }
+
+    [TestMethod]
+    public async Task A_solution_with_no_declared_stack_resolves_no_profile_tier()
+    {
+        // No cycle opens in this state, so no plan is judged in it. It still must not throw: every
+        // caller of this is a gate, and `sdlc doctor` is what reports the missing file by name.
+        using var workspace = CycleWorkspace.Create();
+        workspace.WriteSolution(SolutionOrigin.Adopted);
+
+        Assert.IsFalse((await Resolve(workspace)).Any(source => source.Tier == ConstraintTier.Profile));
+    }
+
+    [TestMethod]
+    public async Task A_solution_adopted_before_rules_were_rows_keeps_the_ones_its_old_profile_line_names()
+    {
+        // The upgrade path. Its stack file declares defaults and lists no rule, and its solution document
+        // still carries the line that used to select them -- a protected file no tool can rewrite. If
+        // that line stopped being read, upgrading the binary would drop every rule the solution was
+        // being judged against, silently: the failure this file exists to keep closed.
+        using var workspace = CycleWorkspace.Create();
+        workspace.WriteSolution(SolutionOrigin.Adopted, legacyProfile: Profile);
+        workspace.WriteTechStack("| Concern | Choice |\n|---|---|\n| ORM | EF Core |\n");
+
+        ConstraintDocument profile = (await Resolve(workspace))
+            .Single(source => source.Tier == ConstraintTier.Profile);
+
+        Assert.AreEqual(Library.Count, Parse(profile).Count);
+    }
+
+    [TestMethod]
+    public async Task An_old_profile_line_is_not_read_once_the_stack_lists_its_own_rules_or_is_emptied()
+    {
+        // The line is a fallback and nothing more. The moment the declared stack says anything about
+        // rules, that is the answer -- and a file a person emptied means nothing is pinned, so a rule
+        // arriving from another file would contradict the one they emptied.
+        using var workspace = CycleWorkspace.Create();
+        workspace.WriteSolution(SolutionOrigin.Adopted, legacyProfile: Profile);
+
+        workspace.WriteTechStack("| ORM | EF Core |\n| `PRO_01` | true | browser |\n");
+        Assert.AreEqual(
+            1,
+            Parse((await Resolve(workspace)).Single(source => source.Tier == ConstraintTier.Profile)).Count,
+            "One row on, so one rule -- not the three the old line names.");
+
+        workspace.WriteTechStack(string.Empty);
+        Assert.IsFalse((await Resolve(workspace)).Any(source => source.Tier == ConstraintTier.Profile));
     }
 
     [TestMethod]
@@ -255,7 +325,7 @@ public sealed class ProfileLibraryTests
         try
         {
             using var workspace = CycleWorkspace.Create();
-            workspace.WriteSolution(Profile, SolutionOrigin.Adopted);
+            workspace.WriteSolution(SolutionOrigin.Adopted);
 
             FileConstraintDocuments documents = new(RepoPaths.Library, workspace.Root, path);
             IReadOnlyList<ConstraintDocument> sources =
@@ -279,7 +349,8 @@ public sealed class ProfileLibraryTests
         // last word, and a profile's come after the framework's. Asserted on the documents rather than
         // on the rendered set, because this is the order everything downstream reads them in.
         using var workspace = CycleWorkspace.Create();
-        workspace.WriteSolution(Profile, SolutionOrigin.Adopted);
+        workspace.WriteSolution(SolutionOrigin.Adopted);
+        workspace.WriteTechStack();
         workspace.WriteSolutionConstraints(1);
 
         FileConstraintDocuments documents = new(RepoPaths.Library, workspace.Root);
@@ -290,6 +361,18 @@ public sealed class ProfileLibraryTests
             new[] { ConstraintTier.Global, ConstraintTier.Profile, ConstraintTier.Solution },
             sources.Select(source => source.Tier).ToArray(),
             "Global, then profile, then the solution's own.");
+    }
+
+    private async Task<IReadOnlyList<ConstraintDocument>> Resolve(CycleWorkspace workspace) =>
+        await new FileConstraintDocuments(RepoPaths.Library, workspace.Root)
+            .Enumerate(TestContext.CancellationToken);
+
+    private static IReadOnlyList<Constraint> Parse(ConstraintDocument document)
+    {
+        Result<IReadOnlyList<Constraint>> parsed = ConstraintParser.Parse(document.Text, document.Source);
+
+        Assert.IsTrue(parsed.IsSuccess, string.Join("; ", parsed.Errors.Select(e => e.Message)));
+        return parsed.Value;
     }
 
     /// <summary>The test context, for the cancellation token the analysers require to be passed on.</summary>

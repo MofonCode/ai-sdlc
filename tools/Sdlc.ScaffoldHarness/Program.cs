@@ -11,9 +11,9 @@ using Sdlc.Core.Init;
 // and kills the generated solution's first build, and then a CA1859 that warnings-as-errors turns
 // into an error. Neither was visible until a solution was generated and built by hand.
 //
-// It writes both halves, because neither compiles without the other: the stack files adoption writes
-// (which carry the analyzer policy and the package versions) and the skeleton `sdlc scaffold` writes
-// behind an approved plan.
+// It writes both halves, because neither compiles without the other: the stack files (which carry the
+// analyzer policy and the package versions) and the skeleton. `sdlc scaffold` writes both, behind an
+// approved plan.
 if (args.Length is 0 or > 2 || args[0] is "-h" or "--help")
 {
     Console.Error.WriteLine(
@@ -47,9 +47,9 @@ Directory.CreateDirectory(Path.Combine(target, Cycle.SdlcDirectoryName));
 
 int written = 0;
 
-// What `init` writes into a greenfield solution: the files that constrain how code is written. They
-// carry warnings-as-errors, the analyzer level and the central package versions, so the skeleton does
-// not compile -- or does not compile under the policy a consumer gets -- without them.
+// The files that constrain how code is written, which `sdlc scaffold` writes ahead of the skeleton.
+// They carry warnings-as-errors, the analyzer level and the central package versions, so the skeleton
+// does not compile -- or does not compile under the policy a consumer gets -- without them.
 foreach ((string path, string contents) in Stack())
 {
     Write(path, contents);
@@ -79,7 +79,7 @@ void Write(string relative, string contents)
 }
 
 // Asked for rather than listed. This file used to carry its own copy of the five, with nothing
-// asserting the two agreed -- so a sixth file added to adoption would have left this harness building
-// a solution that no longer matched what `sdlc init` produces: the harness passing and the real thing
+// asserting the two agreed -- so a sixth file added to the list would have left this harness building
+// a solution that no longer matched what `sdlc scaffold` produces: the harness passing and the real thing
 // broken, which is the failure it was built to prevent, one level up. F-22.
 static IEnumerable<(string Path, string Contents)> Stack() => Initialise.StackFiles();

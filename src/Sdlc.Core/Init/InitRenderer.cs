@@ -73,6 +73,16 @@ public static class InitRenderer
 
         output.AppendLine();
         output.AppendLine(Indent + "Next");
+
+        // First, and only while it is missing. Adoption writes no declared stack -- a person places
+        // it -- and no cycle opens without one, so this is the next thing to do rather than one of
+        // several things worth knowing.
+        if (!report.StackDeclared)
+        {
+            output.AppendLine(Indent + "    sdlc draft techstack        what this solution is built from. No cycle opens");
+            output.AppendLine(Indent + "                                until you have renamed the draft into place");
+        }
+
         output.AppendLine(Indent + "    sdlc constraints            the rules now in force");
         output.AppendLine(Indent + "    sdlc propose constraints    what the history says the rules are missing");
         output.AppendLine(Indent + "    sdlc decisions              the choices this solution has settled");
@@ -94,7 +104,7 @@ public static class InitRenderer
     /// </summary>
     /// <remarks>
     /// The generic sentence is right for a pipeline, where what is printed is the whole file. It is wrong
-    /// for the solution document, where what is printed is four frontmatter keys and the rest of the file
+    /// for the solution document, where what is printed is three frontmatter keys and the rest of the file
     /// is a team's own prose -- a reader told "here is what belongs in it" would paste the keys over the
     /// paragraph describing their solution.
     /// </remarks>
@@ -104,7 +114,7 @@ public static class InitRenderer
     private static string Preamble(Initialise.Response report, string path) =>
         (report.StandardPending || report.PlatformPending)
         && path.Replace('\\', '/').EndsWith(Cycle.SdlcDirectoryName + "/" + Cycle.SolutionFileName, StringComparison.Ordinal)
-            ? "already exists, and only a person writes it. Replace its four frontmatter keys with these:"
+            ? "already exists, and only a person writes it. Replace its frontmatter keys with these:"
             : "was not written. Here is what belongs in it, to merge by hand:";
 
     /// <summary>
@@ -200,6 +210,10 @@ public static class InitRenderer
         [
             "This repository held no code, so the solution is scaffolded: the profile's patterns are",
             "this solution's patterns, and a plan that departs from them has to say why.",
+            string.Empty,
+            "What it is built from is not decided here. 'sdlc draft techstack' writes a draft of the",
+            "framework's default stack with every stack rule switched on; delete what is not true of",
+            "this solution -- down to nothing, if each plan should choose freely -- and rename it.",
         ],
 
         Initialise.InitMode.Onboard when report.Standard == SolutionStandard.Profile =>
@@ -234,7 +248,7 @@ public static class InitRenderer
                 CultureInfo.InvariantCulture,
                 $"The solution was already governed, stays {SolutionDocument.NameOf(report.Origin)}, and is on the {SolutionDocument.NameOf(report.Standard)} standard."),
             "Only what the framework owns was refreshed -- the hook configs, the pipeline, and the README.",
-            "The five files only a person writes were not touched, by the same rule the hook uses rather",
+            "The six files only a person writes were not touched, by the same rule the hook uses rather",
             "than by a second list.",
         ],
 

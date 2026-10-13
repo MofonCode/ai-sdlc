@@ -104,6 +104,11 @@ public static class Initialise
     /// told which value is still standing, and a renderer that assumed one would be wrong in every
     /// direction but the common one.
     /// </param>
+    /// <param name="StackDeclared">
+    /// Whether a declared stack is in place. Adoption never writes one -- a person places it, from a
+    /// draft -- so on a first run this is false and the report says what to run next, because no cycle
+    /// opens until it is there (D-76).
+    /// </param>
     public sealed record Response(
         InitMode Mode,
         SolutionOrigin Origin,
@@ -112,7 +117,8 @@ public static class Initialise
         IReadOnlyDictionary<string, string> Printed,
         bool StandardPending = false,
         bool PlatformPending = false,
-        Platform Platform = Platform.GitHub)
+        Platform Platform = Platform.GitHub,
+        bool StackDeclared = true)
     {
         /// <summary>The paths that were written, for the commit to stage.</summary>
         public IReadOnlyList<string> Written =>
@@ -124,7 +130,11 @@ public static class Initialise
     }
 
     /// <summary>Adopts the framework into a repository.</summary>
-    /// <param name="Profile">The profile that will govern the solution.</param>
+    /// <remarks>
+    /// It takes nothing about the stack. Which technologies a solution is built from, and which stack
+    /// rules it is held to, are declared afterwards in a file a person places -- so adoption has no
+    /// profile to be told and cannot record one that later disagrees with that file (D-76).
+    /// </remarks>
     /// <param name="Platform">
     /// Where the code lives, which decides the pipeline. <strong>Null means the caller did not say</strong>,
     /// which is not the same as saying <c>github</c>: on a first adoption the two coincide, but on a
@@ -134,15 +144,14 @@ public static class Initialise
     /// </param>
     /// <param name="AdoptStandard">
     /// Whether an existing codebase is opting in to the profile's conventions for its new work. It
-    /// writes the stack files an adopted solution otherwise never gets, and records
-    /// <c>standard: profile</c>. Nothing on a scaffolded solution, which is on the profile's standard
-    /// already.
+    /// writes the stack files now, which nothing else at adoption does, and records
+    /// <c>standard: profile</c>.
     /// </param>
-    public sealed record Command(string Profile, Platform? Platform = null, bool AdoptStandard = false)
+    public sealed record Command(Platform? Platform = null, bool AdoptStandard = false)
         : IRequest<Response>;
 
     /// <summary>
-    /// The files that decide how code is written here, written where the profile's standard is in force.
+    /// The files that decide how .NET code is written here.
     /// </summary>
     /// <remarks>
     /// <strong>Exposed because something else needs the same list, and a second copy of it is how
@@ -152,11 +161,14 @@ public static class Initialise
     /// agreed. A sixth file added here would have left CI green and the real thing broken, which is
     /// the failure the harness exists to prevent, one level up. F-22.
     /// <para>
-    /// An adopted repository gets none of them unless it asks: the profile proposes a shape for new work
-    /// and does not rewrite the conventions of a codebase that predates it. <c>--adopt-standard</c> is
-    /// that asking, and it is a person's decision rather than a default, because these files apply a
-    /// convention to code that never agreed to one -- <c>Directory.Build.props</c> makes warnings errors,
-    /// so the next build can fail on files nobody has touched. D-56.
+    /// <strong>Two things write them, and adoption on its own is neither.</strong> They are .NET build
+    /// settings, so they belong to a stack nobody has declared yet when adoption runs. A new solution
+    /// gets them from <c>sdlc scaffold</c>, with the skeleton they exist to constrain and behind the
+    /// same approved plan (D-76). An adopted repository gets them only by asking:
+    /// <c>--adopt-standard</c> is that asking, and it is a person's decision rather than a default,
+    /// because these files apply a convention to code that never agreed to one --
+    /// <c>Directory.Build.props</c> makes warnings errors, so the next build can fail on files nobody
+    /// has touched. D-56.
     /// </para>
     /// <para>
     /// Each is created once and never rewritten, update included -- they are a person's to amend, and a
@@ -185,12 +197,13 @@ public static class Initialise
     /// is the exact failure this design is written against: a directory that appears enforced and is not.
     /// </para>
     /// <para><strong>Update needs no list of what it may touch.</strong> It updates what it owns, and what
-    /// it owns is everything not protected. So the five files only a person writes are safe by the same rule
+    /// it owns is everything not protected. So the six files only a person writes are safe by the same rule
     /// the hook uses, rather than by a second list that could drift from it.
     /// </para>
-    /// <para><strong>It never modifies a protected file, in any mode.</strong> It will create one that does
-    /// not exist, because adoption is the moment those files come into being. The distinction matters because
-    /// an agent can invoke a command even where it cannot write a file, and create-but-never-modify is the
+    /// <para><strong>It never modifies a protected file, in any mode.</strong> It creates exactly one,
+    /// <c>solution.md</c>, when it does not exist, because adoption is the moment that file comes into
+    /// being and its keys are facts adoption is the one to observe. The distinction matters because an
+    /// agent can invoke a command even where it cannot write a file, and create-but-never-modify is the
     /// version of that which cannot destroy a person's work.
     /// </para>
     /// </remarks>
@@ -205,21 +218,6 @@ public static class Initialise
             CancellationToken cancellationToken)
         {
             ArgumentNullException.ThrowIfNull(request);
-
-            if (string.IsNullOrWhiteSpace(request.Profile))
-            {
-                return Result.Fail<Response>(
-                    "Which profile? Give its name, as in 'sdlc init --profile dotnet-default'.");
-            }
-
-            // Resolved before anything is written, so an unknown name refuses rather than recording
-            // itself. Nothing resolves an external profile, so a solution carrying a name that selects
-            // nothing would declare a stack it never got -- and the first plan judged against it would
-            // be judged against an empty table nobody chose.
-            if (StackProfiles.Find(request.Profile) is not { } profile)
-            {
-                return Result.Fail<Response>(StackProfiles.Unknown(request.Profile));
-            }
 
             if (!repository.IsRepository(solution.Path))
             {
@@ -267,31 +265,30 @@ public static class Initialise
             // invoking this command unable to destroy anything a person wrote.
             await Protected(
                 document,
-                Templates.Solution(request.Profile, origin, standard, wantedPlatform),
+                Templates.Solution(origin, standard, wantedPlatform),
                 actions,
                 cancellationToken).ConfigureAwait(false);
 
             if (pending)
             {
-                // The whole key block, not the one line that changes, and the recorded profile and
-                // platform rather than this run's -- the same reason draft profile prints all four. A
-                // person pasting a partial block loses whichever key was left out of it, and the one
-                // that silently reclassifies a solution is the platform.
+                // The whole key block, not the one line that changes. A person pasting a partial block
+                // loses whichever key was left out of it, and the one that silently reclassifies a
+                // solution is the platform.
                 printed[document] = string.Join(
                     Environment.NewLine,
-                    SolutionDocument.Keys(recorded!.Profile, origin, wanted, wantedPlatform))
+                    SolutionDocument.Keys(origin, wanted, wantedPlatform))
                     + Environment.NewLine;
             }
 
-            // Protected, like solution.md: created from the profile's template at adoption and never
-            // written by anything again. It is the second rule source a plan is read against, so an agent
-            // able to edit it could satisfy CON_15 by adding the row it wanted rather than arguing for it.
-            // A change after this is 'sdlc draft techstack' and a rename.
-            await Protected(
-                Path.Combine(Cycle.SdlcDirectoryName, Cycle.TechStackFileName),
-                Templates.TechStack(profile, origin),
-                actions,
-                cancellationToken).ConfigureAwait(false);
+            // The declared stack is not written here, and that is the change D-76 makes. It used to be
+            // the one protected file a tool created with its contents already decided -- from a profile
+            // named on this command line, before anybody had said what the solution was built from. A
+            // person places it now, from 'sdlc draft techstack', and this only reports whether they
+            // have: no cycle opens until it is there.
+            bool stackDeclared = File.Exists(Path.Combine(
+                solution.Path,
+                Cycle.SdlcDirectoryName,
+                Cycle.TechStackFileName));
 
             // Framework-owned: rewritten every time, which is how a solution's scaffolding stops rotting
             // across versions.
@@ -376,33 +373,29 @@ public static class Initialise
                     cancellationToken).ConfigureAwait(false);
             }
 
-            // The stack files, and only where the profile's standard is the one in force. That is every
-            // scaffolded solution, and an adopted one whose team asked with --adopt-standard. An adopted
-            // solution that has not asked keeps its own conventions, because the profile proposes a shape
-            // for new work and does not rewrite one that predates it.
+            // The stack files, and only when this run asks for them with --adopt-standard. They are .NET
+            // -- warnings as errors in a props file, a global.json pinning an SDK -- and adoption no
+            // longer knows what a solution is built from, so writing them unasked would be deciding the
+            // stack on the way past. A new solution gets them from 'sdlc scaffold', with the skeleton
+            // they constrain; an adopted one keeps its own conventions unless its team asks here.
             //
             // Keyed on what this run asks for rather than on what the document records, so the flag does
             // something on an update -- which is where a migration is actually decided, months after
             // adoption. The cost is the one state the renderer has to say out loud: the files are here
-            // and the recorded key still says otherwise until a person places it.
+            // and the recorded key still says otherwise until a person places it. It also means a plain
+            // refresh writes none of them, whatever the document records: this used to consult the
+            // profile named on the command line rather than the one recorded, so re-running adoption
+            // could write .NET settings into a solution declared on another stack.
             //
             // This is not a baseline. Nothing is marked forgiven and no existing violation is recorded --
             // the files declare what new work follows, and the warnings they raise on old code are the
             // cost of the opt-in, carried by whoever opted in.
             //
-            // Written by the binary rather than restored from a package -- D-33. Adoption has to work
-            // with no feed configured and no network, because a default profile that needed a restore
-            // would make the first command one that can fail.
+            // Written by the binary rather than restored from a package -- D-33.
             //
-            // Created once and never rewritten, including by update. These are a person's to amend, and
-            // a cycle that changes one is a cycle like any other.
-            // And only where the profile has conventions to write. These four files are .NET -- warnings
-            // as errors in a props file, a global.json pinning an SDK -- so a profile that declares another
-            // language has nothing to put in them. Writing them anyway would be the profile contradicting
-            // its own declarations, which is the same dishonesty the scaffold refusal exists to prevent.
-            // The profile's own notes say the skeleton and its conventions are absent, so a reader of the
-            // stack file meets that fact where it matters.
-            if (wanted == SolutionStandard.Profile && profile.Scaffolds)
+            // Created once and never rewritten. These are a person's to amend, and a cycle that changes
+            // one is a cycle like any other.
+            if (request.AdoptStandard)
             {
                 foreach ((string path, string contents) in StackFiles())
                 {
@@ -429,7 +422,8 @@ public static class Initialise
                 printed,
                 standardPending,
                 platformPending,
-                platform));
+                platform,
+                stackDeclared));
         }
 
         /// <summary>Where a platform's pull-request pipeline goes.</summary>

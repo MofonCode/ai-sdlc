@@ -11,7 +11,7 @@ internal static class Usage
     /// the flag that makes it work, which is the confusion the whole draft pattern exists to avoid.
     /// </remarks>
     public const string Drafters =
-        "One of: approval <id>, abandon <id>, profile <name>, solution, techstack. "
+        "One of: approval <id>, abandon <id>, solution, techstack. "
         + "A constraint is proposed rather than drafted: 'sdlc propose constraints'.";
 
     /// <summary>
@@ -33,10 +33,12 @@ internal static class Usage
 
         Commands
             init                     Adopt the framework into this repository. Run by a person.
-            new                      Open a cycle: allocate its id and create its directory.
+            new                      Open a cycle: allocate its id and create its directory. Refuses
+                                     until a declared stack is in place -- 'draft techstack'.
             scaffold <id>            Write the solution skeleton -- a solution file, its projects, the
-                                     architecture tests and a reference slice. Refuses without an
-                                     approved plan: adoption writes no code.
+                                     architecture tests and a reference slice -- and the .NET build
+                                     settings it compiles under. Refuses without an approved plan:
+                                     adoption writes no code.
             constraints              Render the constraint set in force.
             gate <id>                Say whether a cycle's build may run. Exits 1 if not.
             verify-chain <id>        Re-establish the whole chain from the repository. Exits 1 if
@@ -46,13 +48,14 @@ internal static class Usage
             draft approval <id>      Write the gate decision beside the ledger, for a person to
                                      rename onto it. Writes no approval.
             draft abandon <id>       Print the record that stops a cycle, for a person to place.
-            draft profile <name>     Print the solution.md keys for a profile migration.
-            draft techstack          Copy the declared stack beside itself, for an edit a person
-                                     renames into place, and report the options menu: every concern
-                                     the shipped profiles know about and what each declares. The
-                                     menu is never renamed into place.
+            draft techstack          Write the declared stack beside itself, for an edit a person
+                                     renames into place: a copy of it, or the framework's default
+                                     where there is none yet, with every stack rule listed and on.
+                                     Also reports the options menu: every concern the shipped
+                                     profiles know about, what each declares, and every stack rule.
+                                     The menu is never renamed into place.
             draft solution           Write the whole solution.md beside itself, for a person
-                                     to rename onto it. Carries the four keys through as
+                                     to rename onto it. Carries the three keys through as
                                      recorded and the prose through unchanged, so the rename
                                      cannot reclassify the solution or cost anybody what they
                                      wrote.
@@ -98,15 +101,15 @@ internal static class Usage
         Common options
             --solution <path>        The solution to work in. Defaults to the working directory.
 
+        Options for draft techstack
+            --empty                  Write the draft with nothing in it. Renamed into place, it
+                                     declares that nothing is pinned: no default for a plan to depart
+                                     from, no stack rule in force, every plan choosing freely.
+
         Options for init
-            --profile <name>         Which profile governs the solution: what its declared stack starts
-                                     as, whether a scaffold has a skeleton to write, and which PRO_
-                                     rules it is judged against. One of: dotnet-default, ml-tensorflow.
-                                     A name nothing answers to is refused rather than recorded.
-                                     Default: dotnet-default.
             --adopt-standard         Hold this solution's new work to the profile's conventions, in a
-                                     repository that existed first. Writes the stack files an adopted
-                                     solution otherwise never gets -- .editorconfig, the two props
+                                     repository that existed first. Writes the stack files adoption
+                                     otherwise leaves to the skeleton -- .editorconfig, the two props
                                      files, global.json -- and records standard: profile.
 
                                      A person's decision rather than a default, because it applies a
@@ -116,8 +119,9 @@ internal static class Usage
                                      a file the repository already had is kept -- and the code
                                      already there is not migrated by this. A cycle does that.
 
-                                     Nothing on a scaffolded solution, which is on the profile's
-                                     standard already. On a repository already governed, the stack
+                                     On a scaffolded solution it only writes those files sooner --
+                                     'sdlc scaffold' brings them with the skeleton, and the standard
+                                     is the profile's already. On a repository already governed, the stack
                                      files are written and the solution.md key is printed for a
                                      person to place, because that file is protected.
 

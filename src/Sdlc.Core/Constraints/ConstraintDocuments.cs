@@ -42,10 +42,10 @@ public interface IConstraintDocuments
 /// tier, and is absent until someone writes the first local rule.
 /// </param>
 /// <param name="profilePath">
-/// A profile constraint document supplied as a file, which wins over the one the binary carries. Null
-/// is the normal case: the profile tier resolves from the profile <c>solution.md</c> names, out of the
+/// A stack-rule document supplied as a file, which wins over the ones the binary carries. Null is the
+/// normal case: the tier resolves from the rules the solution's declared stack switches on, out of the
 /// documents embedded in this build — see <see cref="ShippedProfileLibrary"/>. The parameter stays
-/// because an external profile package, if one is ever built, arrives as a path.
+/// because an external rule package, if one is ever built, arrives as a path.
 /// </param>
 public sealed class FileConstraintDocuments(
     string? libraryPath,
@@ -82,11 +82,9 @@ public sealed class FileConstraintDocuments(
             await Add(ConstraintTier.Global, libraryPath, required: true).ConfigureAwait(false);
         }
 
-        // The profile tier, which resolved to nothing at all until this read the profile's name: the
-        // key existed, the parameter existed, and nothing ever passed it -- so `sdlc constraints`
-        // printed the same set on every profile while three documents told a person it would change.
-        // A path still wins, for the seam an external profile package would use; otherwise the rules
-        // come from the profile solution.md names, out of this build.
+        // The profile tier: the rules that may name a language, framework or package. A path still
+        // wins, for the seam an external rule package would use; otherwise they are the ones the
+        // solution's declared stack switches on, out of this build (D-76).
         if (!string.IsNullOrWhiteSpace(profilePath))
         {
             await Add(ConstraintTier.Profile, profilePath, required: false).ConfigureAwait(false);
@@ -133,27 +131,59 @@ public sealed class FileConstraintDocuments(
 
         async Task AddShippedProfile(CancellationToken token)
         {
-            // An unreadable or absent solution document leaves the tier absent rather than failing.
-            // Every caller of this is a gate about to judge an artifact, and a solution whose own
-            // document cannot be read has a larger problem that `sdlc doctor` reports by name -- while
-            // a throw here would turn it into every command failing with a message about constraints.
-            Result<Solutions.SolutionDocument> read = await Solutions.SolutionDocument
-                .ReadFile(solutionRoot, token)
-                .ConfigureAwait(false);
+            // The declared stack says which rules bind, a row each. No file is no rules, and so is a
+            // file that switches none on -- an absent tier rather than a failure, because every caller
+            // of this is a gate about to judge an artifact and `sdlc doctor` is what reports a
+            // solution with no declared stack by name.
+            string stack = Path.Combine(
+                solutionRoot,
+                Cycles.Cycle.SdlcDirectoryName,
+                Cycles.Cycle.TechStackFileName);
 
-            if (read.IsFailed)
+            if (!File.Exists(stack))
             {
                 return;
             }
 
-            if (ShippedProfileLibrary.Text(read.Value.Profile) is not { } text)
+            string declared = await File.ReadAllTextAsync(stack, token).ConfigureAwait(false);
+            IReadOnlyList<Solutions.StackRules.Row> rows = Solutions.StackRules.Rows(declared);
+
+            HashSet<string> on = new(
+                rows.Where(row => row.On).Select(row => row.Id),
+                StringComparer.OrdinalIgnoreCase);
+
+            // A solution adopted before the rules were rows. Its stack file declares defaults and names
+            // no rule, and its solution.md still carries the profile line that used to select them --
+            // so that line is honoured, or upgrading the binary would silently drop every rule the
+            // solution was being judged against. Only for a file that declares something: an empty one
+            // is a person saying nothing is pinned, and a rule arriving from another file would
+            // contradict the one they emptied.
+            if (rows.Count == 0 && Solutions.StackTable.Rows(declared).Count > 0)
+            {
+                Result<Solutions.SolutionDocument> read = await Solutions.SolutionDocument
+                    .ReadFile(solutionRoot, token)
+                    .ConfigureAwait(false);
+
+                if (read.IsSuccess
+                    && ShippedProfileLibrary.Text(read.Value.LegacyProfile) is { } legacy)
+                {
+                    documents.Add(new ConstraintDocument(
+                        ConstraintTier.Profile,
+                        ShippedProfileLibrary.Source,
+                        legacy));
+                }
+
+                return;
+            }
+
+            if (ShippedProfileLibrary.Selected(on) is not { } text)
             {
                 return;
             }
 
             documents.Add(new ConstraintDocument(
                 ConstraintTier.Profile,
-                ShippedProfileLibrary.Source(read.Value.Profile),
+                ShippedProfileLibrary.Source,
                 text));
         }
     }

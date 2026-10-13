@@ -47,35 +47,37 @@ A solution is one governed repository. Everything below lives in it.
 |---|---|---|
 | **solution** | the repository the framework governs, found by walking up for `.sdlc/` | — |
 | **`.sdlc/`** | everything the framework keeps about this solution | the repository root |
-| **`solution.md`** | what this solution is, in four keys and a paragraph. **A person's file** | `.sdlc/solution.md` |
-| **`techstack.md`** / the declared stack | what the solution is built from, as a table of concerns and choices. The second rule source a plan is read against. **A person's file** | `.sdlc/techstack.md` |
+| **`solution.md`** | what this solution is, in three keys and a paragraph. **A person's file** | `.sdlc/solution.md` |
+| **`techstack.md`** / the declared stack | what the solution is built from, as a table of concerns and choices, and which stack rules it is held to, as a table of rule ids marked `true` or `false`. **What is in it is exactly what binds**, and an empty one pins nothing. The second rule source a plan is read against. Adoption does not write it: a person places it from a draft, and no cycle opens until they have. **A person's file** | `.sdlc/techstack.md` |
 | **stack default** | one row of it: a concern, and what this solution chooses for it | — |
-| **stack profile** | a named set of defaults, templates and `PRO_` rules. Two exist: `dotnet-default`, which has a skeleton, and `ml-tensorflow`, which has none | in the binary |
-| **the options menu** | every concern the shipped profiles know about with what each declares for it, the alternatives the framework has argued, the ones it refused, and an empty table for a solution starting over. Written by `sdlc draft techstack` as a report, read by nothing, and **never renamed into place** | `.sdlc/reports/` |
+| **stack rule row** | one row of its second table: a `PRO_` id, `true` or `false`, and what the rule holds a plan to. `true` binds; `false`, or no row, does not | — |
+| **stack profile** | a named set of default rows. Two exist: `dotnet-default`, which a first stack draft is written from, and `ml-tensorflow`, which only the options menu draws on. **No solution records one** — a profile is where a draft starts, not something that governs afterwards | in the binary |
+| **the options menu** | every concern the shipped profiles know about with what each declares for it, the alternatives the framework has argued, the ones it refused, every stack rule it ships, and an empty table for a solution starting over. Written by `sdlc draft techstack` as a report, read by nothing, and **never renamed into place** | `.sdlc/reports/` |
 | **`.sdlc/README.md`** | the whole flow on one page, inside the solution, so it travels with the code | written by adoption |
 | **`AGENTS.md`** | how to work in this repository, written for an agent | the repository root |
-| **the stack files** | the conventions a build enforces: `.editorconfig`, `Directory.Build.props`, `Directory.Packages.props`, `global.json`, `tests/Directory.Build.props`. Created once, never rewritten, a person's to amend | the repository root |
+| **the stack files** | the `.NET` conventions a build enforces: `.editorconfig`, `Directory.Build.props`, `Directory.Packages.props`, `global.json`, `tests/Directory.Build.props`. Written with the solution skeleton, or by `--adopt-standard`; never by adoption alone. Created once, never rewritten, a person's to amend | the repository root |
 | **reports** | a copy of what `suggestions`, `propose` and `draft techstack` printed, because a person works through one rather than reading it once. **Nothing ever reads one back**, and the directory ignores itself — so a copy left behind never reaches a later cycle's diff as a file no plan declared | `.sdlc/reports/` |
 
-### The four keys in `solution.md`
+### The three keys in `solution.md`
 
 | Key | Values | What it decides |
 |---|---|---|
-| `profile` | `dotnet-default`, `ml-tensorflow` | which declared stack adoption writes, whether a scaffold has a skeleton to write, and which `PRO_` rules resolve. **It does not move the declared stack after adoption** — that is `sdlc draft techstack`, a separate act, and nothing reconciles the two |
 | `origin` | `scaffolded`, `adopted` | where the code came from. **A historical fact that never changes** |
 | `standard` | `profile`, `existing` | whether new work follows the profile's patterns or the surrounding code |
 | `platform` | `github`, `azure-devops`, `local` | whether a pipeline is written, and so whether a check governs a merge |
+
+**There is no `profile` key.** A solution adopted before the declared stack listed its own rules may still carry one; it is read only as a fallback, for a stack file that lists no rule, so that upgrading the binary does not drop the rules that solution was held to.
 
 ### Adoption
 
 | | What it is |
 |---|---|
 | **adoption** | `sdlc init`: writing what governs code into a repository, and committing it. Denied to an agent |
-| **greenfield** | the mode for a repository holding no code. Gets the stack files, and `origin: scaffolded` |
+| **greenfield** | the mode for a repository holding no code. Gets `origin: scaffolded`; the stack files arrive with the skeleton |
 | **onboard** | the mode for existing code with no `.sdlc/`. Gets no stack files by default, and `origin: adopted` |
 | **update** | the mode when `.sdlc/` is already there. Refreshes what the framework owns and never a person's file |
 | **`--adopt-standard`** | asks for the profile's conventions in a repository that existed first. Records `standard: profile` |
-| **the solution skeleton** | `sdlc scaffold`: a solution file, five projects, the architecture suite. Refuses unless the cycle is approved, so **no code arrives without a chain behind it** |
+| **the solution skeleton** | `sdlc scaffold`: a solution file, five projects, the architecture suite, and the stack files they compile under. Refuses unless the cycle is approved, so **no code arrives without a chain behind it** |
 | **the reference slice** | one worked operation in the skeleton, written to be copied, because an agent takes the shape of the code beside it more reliably than an instruction |
 | **the response envelope** | the one shape every response leaves through. An architecture test fails the build on an endpoint returning anything else |
 
@@ -124,11 +126,11 @@ place the truth lives. Only the first of them binds.
 | | What it is | Where |
 |---|---|---|
 | **constraint** | one rule, in four clauses. Stops a cycle doing something | rendered by `sdlc constraints` |
-| **constraint id** | `CON_nn` global, `PRO_nn` profile, `LOC_nn` solution — resolved in that order, so a solution's rules are the last word |
+| **constraint id** | `CON_nn` global, `PRO_nn` stack rule, `LOC_nn` solution — resolved in that order, so a solution's rules are the last word |
 | **revision** | a rule rewritten keeps its number and gains one: `CON_07.2`. The one it replaced stays on the page so a cycle that cited it is still readable |
 | **the four clauses** | the statement, what it applies to and when, what it **forbids**, and why. `CON_11` forbids a rule with no Forbids clause |
 | **the shipped library** | the global set, embedded in the binary. `SDLC_CONSTRAINTS` points at another and refuses rather than falling back if it is not there |
-| **a profile's rules** | the `PRO_` set of the profile a solution records, embedded in the binary and found by that name. **The one tier where a rule may name a language, framework or package** — the global set may not, which is what the tier is for. `dotnet-default` ships three; `ml-tensorflow` ships none |
+| **stack rules** | the `PRO_` set, embedded in the binary, of which a solution is held to exactly the ones its declared stack marks `true`. **The one tier where a rule may name a language, framework or package** — the global set may not, which is what the tier is for. The framework ships three |
 | **the three admission tests** | what a proposed rule must pass: it forbids something, **no analyzer could decide it**, and it is incompatible with at least one plausible implementation |
 | **decision** | a choice this solution already settled, so a cycle reads what was argued rather than arguing it again. Does not bind — `CON_19` only asks a plan departing from one to say what it would have cost. **A person's file** | `.sdlc/decisions.md` |
 | **theme** | the roles this solution's surfaces use and the values that fill them — sixteen slots, the one place a colour or a typeface lives. Binds nothing: a departure is a linter's job | `.sdlc/theme.json` |

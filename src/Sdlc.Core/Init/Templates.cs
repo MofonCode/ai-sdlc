@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using Sdlc.Core.Constraints;
 using Sdlc.Core.Cycles;
 using Sdlc.Core.Hooks;
 using Sdlc.Core.Solutions;
@@ -91,63 +92,77 @@ public static class Templates
     public static IReadOnlyList<Platform> Hosted { get; } = [Platform.GitHub, Platform.AzureDevOps];
 
     /// <summary>The solution document, which carries the three keys and nothing else.</summary>
-    /// <param name="profile">The profile that governs the solution.</param>
     /// <param name="origin">Where the code came from.</param>
+    /// <param name="standard">Which conventions new work follows.</param>
     /// <param name="platform">Where it is pushed, which decides whether a pipeline was written.</param>
     /// <returns>The file's contents.</returns>
     public static string Solution(
-        string profile,
         SolutionOrigin origin,
         SolutionStandard standard,
         Platform platform) => string.Join(
         Environment.NewLine,
         [
             "---",
-            .. SolutionDocument.Keys(profile, origin, standard, platform),
+            .. SolutionDocument.Keys(origin, standard, platform),
             "---",
             string.Empty,
             "# What this solution is",
             string.Empty,
             "Replace this with a paragraph a newcomer could read: what the solution does, and who for.",
-            "Nothing reads this prose -- the four keys above are what resolve the profile, record where",
-            "this code came from, decide which conventions new work follows, and say whether a",
-            "pull-request check governs a merge -- so it is here for people.",
+            "Nothing reads this prose -- the three keys above are what record where this code came",
+            "from, decide which conventions new work follows, and say whether a pull-request check",
+            "governs a merge -- so it is here for people.",
             string.Empty,
         ]);
 
     /// <summary>
-    /// The tech stack document, as the chosen profile declares it.
+    /// The first draft of a declared stack: the default profile's rows, and every shipped rule on.
     /// </summary>
     /// <remarks>
-    /// <para>A scaffolded solution starts from the profile's defaults. An adopted one starts empty, with a
-    /// note saying so: reading an existing repository to decide what it is built from would be a guess
-    /// written down as a declaration, and the first plan to depart from a wrong guess would be judged
-    /// against it. The profile's notes come either way, because they are the reasoning behind the defaults
-    /// and a solution that has not taken them still has to know what it is departing from.</para>
-    /// <para><strong>One flat table, always.</strong> The profile composes its rows from a shared platform
-    /// set plus its own, and that composition happens here rather than in the solution -- what lands on
-    /// disk is a table a person owns and edits, never a derived file (D-68).</para>
+    /// <para><strong>A draft, never the file.</strong> Adoption used to write this straight into place,
+    /// which made it the one moment a tool wrote a protected file -- and forced an adopted repository
+    /// to start with empty rows, because a guess written down as a declaration is worse than nothing.
+    /// As a draft that argument goes away: a person reads it, deletes what is not true of their
+    /// solution, and renames it, so every solution can start from the same full table (D-76).</para>
+    /// <para><strong>Everything the default brings is on the page.</strong> The rules that name a
+    /// framework are rows here rather than a consequence of a name recorded somewhere else, so what
+    /// somebody reads is exactly what a plan will be judged against, and switching one off is an edit
+    /// to the line that says it is on.</para>
+    /// <para><strong>One flat table of defaults, always.</strong> The profile composes its rows from a
+    /// shared platform set plus its own, and that composition happens here rather than in the solution
+    /// -- what lands on disk is a table a person owns and edits, never a derived file (D-68).</para>
     /// </remarks>
-    /// <param name="profile">The profile governing the solution.</param>
-    /// <param name="origin">Where the code came from.</param>
-    /// <returns>The file's contents.</returns>
-    public static string TechStack(StackProfile profile, SolutionOrigin origin)
+    /// <returns>The draft's contents.</returns>
+    public static string TechStack()
     {
-        ArgumentNullException.ThrowIfNull(profile);
+        StackProfile profile = StackProfiles.Default;
 
         return string.Join(
         Environment.NewLine,
         [
             "# What this solution is built from",
             string.Empty,
-            "A plan may depart from anything here, in either direction -- reaching for something this",
-            "file does not declare, or leaving something it declares unapplied in work that calls for",
-            "it. Saying nothing about departing is what is forbidden, which is `CON_15` -- so this file",
-            "is a declaration of defaults rather than a set of rules. Nothing in it binds by itself: no",
-            "global constraint may name a framework. To make a default bind, add a `LOC_` constraint or",
-            "an architecture test.",
+            "A plan may depart from anything in the first table, in either direction -- reaching for",
+            "something it does not declare, or leaving something it declares unapplied in work that",
+            "calls for it. Saying nothing about departing is what is forbidden, which is `CON_15` -- so",
+            "those rows are a declaration of defaults rather than a set of rules. To make a default",
+            "bind, add a `LOC_` constraint or an architecture test.",
             string.Empty,
-            .. origin == SolutionOrigin.Scaffolded ? Declared(profile) : _adopted,
+            "**Delete what is not true of this solution.** A row pins a choice and no row leaves it to",
+            "each plan, so a file with nothing in it is a legitimate answer: nothing is pinned, no stack",
+            "rule applies, and every plan chooses freely.",
+            string.Empty,
+            .. Declared(profile),
+            StackRules.Heading,
+            string.Empty,
+            "The rules that may name a language, framework or package, one row each. `true` holds every",
+            "plan to the rule; `false`, or no row at all, does not. `sdlc constraints` prints each one",
+            "in full, with what it forbids and why.",
+            string.Empty,
+            .. StackRules.Table(
+                ShippedProfileLibrary.Rules().Select(rule => (ShippedProfileLibrary.RowId(rule), rule.Statement)),
+                on: true),
+            string.Empty,
             .. profile.Notes,
         ]);
     }
@@ -198,8 +213,8 @@ public static class Templates
             string.Empty,
             "| File | What it holds | Who writes it |",
             "|---|---|---|",
-            "| `solution.md` | the profile, where this code came from, and which conventions new work follows | a person, by hand |",
-            "| `techstack.md` | what the solution is built from | a person, by hand |",
+            "| `solution.md` | where this code came from, which conventions new work follows, and where it is pushed | a person, by hand |",
+            "| `techstack.md` | what the solution is built from, and which stack rules it is held to | a person, by hand |",
             "| `constraints.md` | this solution's own rules | a person, by hand |",
             "| `cycles/<id>/intent.md` | why the change exists | the intent stage |",
             "| `cycles/<id>/spec.md` | what done means | the spec stage |",
@@ -214,21 +229,30 @@ public static class Templates
             "in them and the person places it. The pre-tool hook denies every agent write to all five,",
             "with no exception -- which is what lets the rule be stated in one sentence.",
             string.Empty,
-            "`techstack.md` is created once, from the profile's template, and never written again by",
-            "anything. It is the second rule source a plan is read against, and `CON_15` judges every plan",
+            "`techstack.md` is placed by a person and never written by anything. Adoption does not",
+            "create it: `sdlc draft techstack` writes a first draft from the framework's default, you",
+            "delete what is not true here, and the rename places it. **No cycle opens until it is",
+            "there.** It is the second rule source a plan is read against, and `CON_15` judges every plan",
             "against it -- so an agent able to edit it could satisfy that rule by adding the row it wanted",
             "instead of arguing for it. A plan that reaches for something undeclared departs and says what",
             "the declared default would have cost, which is an argument rather than an edit here. Changing",
             "a default is its own act: `sdlc draft techstack`, then a rename.",
             string.Empty,
-            "**That command writes two files.** `techstack.draft.md` is the byte copy you rename. The",
-            "other is the menu, written as a report under `reports/` with its path printed -- every",
+            "**It holds two tables.** The first pins choices: a row is a default every plan is read",
+            "against, and no row leaves that choice to each plan. The second lists the stack rules --",
+            "the ones that may name a framework -- with `true` or `false` beside each, and only the ones",
+            "marked `true` bind. **An empty file is a legitimate answer**: nothing is pinned, no stack",
+            "rule applies, and every plan chooses freely.",
+            string.Empty,
+            "**That command writes two files.** `techstack.draft.md` is what you rename: a byte copy of",
+            "the declared stack, or the default when there is none yet, or nothing at all with `--empty`.",
+            "The other is the menu, written as a report under `reports/` with its path printed -- every",
             "concern the shipped profiles know about with what each declares for it, the alternatives the",
-            "framework has argued, and an empty table for a solution starting over. It is written fresh",
-            "every run, read back by nothing, and **never renamed into place**: a declared stack listing",
-            "answers this solution has not chosen is one a plan can reach into and truthfully not be",
-            "departing from anything. `sdlc doctor` reports a declared stack with the menu inside it, and",
-            "one whose rows are still empty.",
+            "framework has argued, every stack rule it ships, and an empty table for a solution starting",
+            "over. It is written fresh every run, read back by nothing, and **never renamed into place**:",
+            "a declared stack listing answers this solution has not chosen is one a plan can reach into",
+            "and truthfully not be departing from anything. `sdlc doctor` reports a declared stack with",
+            "the menu inside it, one with a row left half-filled, and one that is not there.",
             string.Empty,
             "## What an artifact looks like",
             string.Empty,
@@ -284,7 +308,6 @@ public static class Templates
             "sdlc gate <id>                        may this cycle's build run?",
             "sdlc draft approval <id>              the gate entry, for a person to paste",
             "sdlc draft abandon <id>               the record that stops a cycle",
-            "sdlc draft profile <name>             the keys for a profile migration",
             "sdlc draft solution                   the solution document, beside itself",
             "sdlc draft techstack                  the declared stack beside itself, and the menu",
             "sdlc evidence <id>                    record what a build produced",
@@ -757,7 +780,7 @@ public static class Templates
     public static string EditorConfig() => string.Join(
         Environment.NewLine,
         [
-            "# Written by 'sdlc init' from the dotnet-default profile. Yours to amend: a cycle that",
+            "# Written by 'sdlc' with the default .NET skeleton. Yours to amend: a cycle that",
             "# changes it is a cycle like any other, and the diff is the record.",
             "#",
             "# WHAT ENFORCES WHAT, because this is the thing most easily assumed wrong:",
@@ -880,7 +903,7 @@ public static class Templates
         [
             "<Project>",
             string.Empty,
-            "  <!-- Written by 'sdlc init' from the dotnet-default profile. Yours to amend. -->",
+            "  <!-- Written by 'sdlc' with the default .NET skeleton. Yours to amend. -->",
             string.Empty,
             "  <PropertyGroup>",
             "    <TargetFramework>net10.0</TargetFramework>",
@@ -956,7 +979,7 @@ public static class Templates
         [
             "<Project>",
             string.Empty,
-            "  <!-- Written by 'sdlc init' from the dotnet-default profile. A new package reference is a",
+            "  <!-- Written by 'sdlc' with the default .NET skeleton. A new package reference is a",
             "       deliberate act: it is added here with its version, and the diff records it. -->",
             string.Empty,
             "  <PropertyGroup>",
@@ -1031,7 +1054,7 @@ public static class Templates
         [
             "<Project>",
             string.Empty,
-            "  <!-- Written by 'sdlc init' from the dotnet-default profile. Yours to amend. -->",
+            "  <!-- Written by 'sdlc' with the default .NET skeleton. Yours to amend. -->",
             string.Empty,
             "  <!-- Inherit rather than replace: a Directory.Build.props in a subdirectory shadows the",
             "       one above it, so without this import a test project loses the target framework, the",
@@ -1088,26 +1111,4 @@ public static class Templates
             "}",
             string.Empty,
         ]);
-
-
-
-    private static readonly string[] _adopted =
-    [
-        "## Defaults",
-        string.Empty,
-        "This solution existed before the framework, so nothing is declared here yet. Fill the table in",
-        "from what the repository actually uses.",
-        string.Empty,
-        "| Concern | Choice |",
-        "|---|---|",
-        "| language, framework | |",
-        "| testing | |",
-        "| data | |",
-        "| hosting | |",
-        string.Empty,
-        "Left empty on purpose. Reading the repository to guess what it is built from would write a guess",
-        "down as a declaration, and the first plan to depart from a wrong guess would be judged against",
-        "it. An empty row declares nothing, which is honest; a wrong row declares something false.",
-        string.Empty,
-    ];
 }

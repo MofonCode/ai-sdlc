@@ -112,7 +112,18 @@ static async Task<int> Constraints(Workspace workspace, CommandLine line)
 // because they need language rather than a file listing.
 static async Task<int> Init(Workspace workspace, CommandLine line)
 {
-    string profile = line.TryOption("profile", out string? named) ? named : "dotnet-default";
+    // Answered rather than ignored. The option chose a profile for adoption to record, and adoption
+    // records none now -- so a line somebody kept from before would otherwise run, do something
+    // different from what it says, and leave them believing a stack had been declared.
+    if (line.HasOption("profile"))
+    {
+        await Console.Error.WriteLineAsync(
+            "'sdlc init' no longer takes --profile, because adoption no longer decides what a solution "
+            + "is built from. Run it without the option, then 'sdlc draft techstack': the draft starts "
+            + "from the framework's default, and what you rename into place is what binds.")
+            .ConfigureAwait(false);
+        return ExitCode.Usage;
+    }
 
     if (!TryPlatform(line, out Platform? platform, out string? complaint))
     {
@@ -124,7 +135,7 @@ static async Task<int> Init(Workspace workspace, CommandLine line)
     // is the answer every existing solution already gave.
     Result<Initialise.Response> result = await workspace
         .Send<Initialise.Command, Initialise.Response>(
-            new Initialise.Command(profile, platform, line.HasOption("adopt-standard")))
+            new Initialise.Command(platform, line.HasOption("adopt-standard")))
         .ConfigureAwait(false);
 
     if (result.IsFailed)
@@ -521,9 +532,9 @@ static async Task<int> Draft(CommandLine line)
         // were split by who owns the decision, and it was the one member of this family that handed
         // back a blank rather than a finished file -- which is why nobody could remember what it did.
         "constraint" or "constraints" => await MovedToPropose().ConfigureAwait(false),
-        "profile" => await Workspace.Run(rest, w => DraftProfile(w, rest)).ConfigureAwait(false),
+        "profile" => await ProfileIsTheStack().ConfigureAwait(false),
         "solution" => await Workspace.Run(rest, DraftSolution).ConfigureAwait(false),
-        "techstack" => await Workspace.Run(rest, DraftTechStack).ConfigureAwait(false),
+        "techstack" => await Workspace.Run(rest, w => DraftTechStack(w, rest)).ConfigureAwait(false),
         _ => await UnknownDraft(line.Arguments[0]).ConfigureAwait(false),
     };
 }
@@ -588,10 +599,27 @@ static async Task<int> DraftSolution(Workspace workspace) =>
         .Send<WriteSolutionDraft.Command, DraftResult>(new WriteSolutionDraft.Command())
         .ConfigureAwait(false)).ConfigureAwait(false);
 
-static async Task<int> DraftTechStack(Workspace workspace) =>
+// --empty is a flag for the reason --adopt-standard is: its absence is the answer everybody already
+// gave, and a stack that pins nothing is a decision somebody should have to type.
+static async Task<int> DraftTechStack(Workspace workspace, CommandLine line) =>
     await PrintDraft(await workspace
-        .Send<WriteTechStackDraft.Command, DraftResult>(new WriteTechStackDraft.Command())
+        .Send<WriteTechStackDraft.Command, DraftResult>(
+            new WriteTechStackDraft.Command(line.HasOption("empty")))
         .ConfigureAwait(false)).ConfigureAwait(false);
+
+// The same kindness for a command that went away. A solution no longer records a profile, so there is
+// no migration to draft -- but somebody who has typed this before is trying to change which stack rules
+// apply, and that is still a thing they can do, one file over.
+static async Task<int> ProfileIsTheStack()
+{
+    await Console.Error.WriteLineAsync(
+        "A solution no longer records a profile, so there is no profile migration to draft. Which "
+        + "technologies are pinned and which stack rules apply are both rows in the declared stack: "
+        + "run 'sdlc draft techstack', edit the draft -- the menu written beside it lists every row and "
+        + "rule this release ships -- and rename it into place.")
+        .ConfigureAwait(false);
+    return ExitCode.Usage;
+}
 
 // A rename is only kind if the old spelling says where the thing went.
 static async Task<int> MovedToPropose()
@@ -773,21 +801,6 @@ static async Task<int> Kept(Workspace workspace, string kind, string body)
     }
 
     return ExitCode.Ok;
-}
-
-static async Task<int> DraftProfile(Workspace workspace, CommandLine line)
-{
-    if (line.Arguments.Count == 0)
-    {
-        await Console.Error.WriteLineAsync(
-            "Which profile? Give its package name, as in 'sdlc draft profile dotnet-default'.")
-            .ConfigureAwait(false);
-        return ExitCode.Usage;
-    }
-
-    return await PrintDraft(await workspace
-        .Send<ProfileText.Query, DraftResult>(new ProfileText.Query(line.Arguments[0]))
-        .ConfigureAwait(false)).ConfigureAwait(false);
 }
 
 // A drafter that produced nothing is a refusal rather than a failure, so its explanation goes to

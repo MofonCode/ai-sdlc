@@ -29,7 +29,7 @@ public sealed class StackOptionsTests
     {
         // Derived rather than authored, which is what stops it disagreeing with the tables it came
         // from. A second catalogue of choices would drift the first time a profile gained a row.
-        string menu = StackOptions.Render(StackProfiles.Find(StackProfiles.DefaultName));
+        string menu = StackOptions.Render();
 
         foreach (StackProfile profile in StackProfiles.All)
         {
@@ -53,7 +53,7 @@ public sealed class StackOptionsTests
         // The case the whole menu is for. One profile per solution and no stacking (D-68), so a
         // solution wanting a row another profile declares copies it in -- and until now, finding out
         // what that row said meant reading the framework's source.
-        string menu = StackOptions.Render(StackProfiles.Find(StackProfiles.DefaultName));
+        string menu = StackOptions.Render();
 
         // The menu's row rather than the empty table's, which carries the same concern with no answer.
         string machineLearning = menu
@@ -78,7 +78,7 @@ public sealed class StackOptionsTests
         // shared set, so that two profiles cannot come to disagree about Terraform by being edited
         // separately. The first version of this credited whichever profile mentioned a choice first,
         // which read as the others having no answer for it: the exact opposite of what those rows mean.
-        string menu = StackOptions.Render(StackProfiles.Find(StackProfiles.DefaultName));
+        string menu = StackOptions.Render();
 
         string[] shared = [.. StackProfiles.All
             .Select(profile => profile.Defaults)
@@ -107,7 +107,7 @@ public sealed class StackOptionsTests
     {
         // Both halves matter. The sentence is for the person; the marker is what `sdlc doctor` keys on
         // when somebody pastes the menu into the real file anyway.
-        string menu = StackOptions.Render(StackProfiles.Find(StackProfiles.DefaultName));
+        string menu = StackOptions.Render();
 
         StringAssert.Contains(menu, StackOptions.Marker);
         StringAssert.Contains(menu, "never renamed into place");
@@ -123,7 +123,7 @@ public sealed class StackOptionsTests
         // The one authored part, and the reason it is allowed: these are answers the concept document
         // weighs and no profile declares, so deriving them from the tables would lose them. Each
         // carries its reasoning -- a candidate with only a name in a menu reads as an endorsement.
-        string menu = StackOptions.Render(StackProfiles.Find(StackProfiles.DefaultName));
+        string menu = StackOptions.Render();
 
         StringAssert.Contains(menu, "Microsoft.FluentUI.AspNetCore.Components");
         StringAssert.Contains(menu, "breadth of the component set");
@@ -132,38 +132,37 @@ public sealed class StackOptionsTests
     }
 
     [TestMethod]
-    public void The_empty_table_holds_this_profiles_concerns_with_the_answers_taken_out()
+    public void The_empty_table_holds_the_default_profiles_concerns_with_the_answers_taken_out()
     {
         // For a solution starting over rather than amending one row. It is here and not in the draft
-        // deliberately: a blank draft would make the rename a wholesale replacement and drop every row
-        // nobody retyped, from the one file every plan is judged against.
-        StackProfile profile = StackProfiles.Find("ml-tensorflow")!;
-        string menu = StackOptions.Render(profile);
+        // deliberately: a draft of an existing file is a byte copy, and a blank form in its place would
+        // drop every row nobody retyped from the one file every plan is judged against. The default's
+        // concerns, because no solution records a profile for it to be anybody else's.
+        string menu = StackOptions.Render();
 
         string[] lines = menu.Split('\n');
 
-        foreach (StackDefault row in profile.Defaults)
+        foreach (StackDefault row in StackProfiles.Default.Defaults)
         {
             Assert.IsTrue(
                 lines.Any(line => line.Trim() == "| " + row.Concern + " | |"),
                 $"The empty table has no row for '{row.Concern}'.");
         }
-
-        StringAssert.Contains(menu, "ml-tensorflow");
     }
 
     [TestMethod]
-    public void A_solution_whose_profile_cannot_be_read_gets_no_empty_table_rather_than_another_profiles()
+    public void The_menu_lists_every_stack_rule_this_release_ships_and_switches_none_of_them_on()
     {
-        // Offering the default profile's concerns to a solution that records something else would be
-        // the menu guessing, which is the one thing it does not do.
-        string menu = StackOptions.Render(null);
+        // Where somebody whose stack is not the default finds the rows to copy in. Off, because the
+        // menu recommends nothing: a rule shown as on is one a person pastes without deciding.
+        IReadOnlyList<StackRules.Row> rules = StackRules.Rows(StackOptions.Render());
 
-        StringAssert.Contains(menu, "could not be read");
-        StringAssert.Contains(menu, "sdlc doctor");
-        Assert.IsFalse(
-            menu.Contains("| language, framework | |", StringComparison.Ordinal),
-            "No skeleton at all, rather than one belonging to a profile this solution did not record.");
+        CollectionAssert.AreEqual(
+            StackRules.Rows(Sdlc.Core.Init.Templates.TechStack()).Select(rule => rule.Id).ToArray(),
+            rules.Select(rule => rule.Id).ToArray(),
+            "The same rules a default draft lists, so the two cannot come to disagree.");
+
+        Assert.IsFalse(rules.Any(rule => rule.On), "Listing a rule is not choosing it.");
     }
 
     [TestMethod]
@@ -172,7 +171,7 @@ public sealed class StackOptionsTests
         // The two files together, which is the design: the draft is what gets renamed and stays a byte
         // copy, and the menu is what a person reads while editing it.
         using var workspace = CycleWorkspace.Create();
-        workspace.WriteSolution(StackProfiles.DefaultName, SolutionOrigin.Adopted);
+        workspace.WriteSolution(SolutionOrigin.Adopted);
 
         string path = Path.Combine(workspace.Root, Cycle.SdlcDirectoryName, Cycle.TechStackFileName);
         const string Declared = "# What this solution is built from\n\n| Concern | Choice |\n|---|---|\n| api | ASP.NET Core |\n";
@@ -222,7 +221,7 @@ public sealed class StackOptionsTests
         // CON_07.2 fires on. ReportFile already carries that whole argument and the directory that
         // ignores itself; the menu matches its definition exactly.
         using var workspace = CycleWorkspace.Create();
-        workspace.WriteSolution(StackProfiles.DefaultName, SolutionOrigin.Adopted);
+        workspace.WriteSolution(SolutionOrigin.Adopted);
 
         string path = Path.Combine(workspace.Root, Cycle.SdlcDirectoryName, Cycle.TechStackFileName);
         await File.WriteAllTextAsync(path, "| Concern | Choice |\n|---|---|\n| api | ASP.NET Core |\n", TestContext.CancellationToken);

@@ -40,7 +40,7 @@ and prints the invocation — because a tool must never send somebody somewhere 
 | `interrogate` | judges one artifact against the rules, in a fresh process. Never edits | `<id> <artifact>` | an artifact has just been written or changed | the stage skill's loop, or a person |
 | `refine` | applies an artifact's findings to that artifact. Never judges | `<id> <artifact>` | a round raised blocking findings | the stage skill's loop, or a person |
 | `steer` | carries a mid-cycle correction down the chain | `<id> "what to change"` | a person changes their mind before the gate | a person |
-| `draft` | prints what belongs in a file only a person writes | `approval <id>`, and four more | at the gate, to stop a cycle, or to change the declared stack | a person |
+| `draft` | prints what belongs in a file only a person writes | `approval <id>`, and three more | at the gate, to stop a cycle, or to declare or change the stack | a person |
 | `build` | implements the plan, builds, tests, records the evidence | `<id>` | the gate is satisfied | a person, or `batch-build` |
 | `verify` | adjudicates the build against the spec, from the evidence alone | `<id>` | the build recorded evidence | a person, or `batch-build` |
 | `remediate` | applies a blocked verification's findings to source and tests | `<id>` | verify recorded `blocked` | a person, or `batch-build` |
@@ -71,16 +71,22 @@ the hook actually denies today, and what it does not.
 ### `init`
 
 **Adopts the framework into a repository**: runs the scaffolding, interviews the team about what matters
-in this solution, and proposes its first constraints.
+in this solution, proposes its first constraints, and walks the person through declaring the stack.
+
+**Adoption decides nothing about the stack, and asks one question: where the code will live.** There is
+no profile to choose. `sdlc init` writes no declared stack and no `.NET` build settings; the skill's
+fourth step runs `sdlc draft techstack`, which writes a draft of the framework's default — every row it
+would pin and every stack rule it ships, switched on — for a person to cut down and rename. No cycle
+opens until that file is placed, and an empty one is a legitimate answer.
 
 Three modes, decided by what it finds: **greenfield** for a repository holding no code, **onboard** for
 existing code with no `.sdlc/`, **update** when `.sdlc/` already exists. Update refreshes only what the
 framework owns, which is everything not protected — hook configs, the pipeline, `.sdlc/README.md`.
 
-**`--adopt-standard` is how an existing codebase opts in to the profile's conventions.** An adopted
-solution holds new work to the code already around it, which is the default and usually right. The flag
-records `standard: profile` instead and writes the stack files an adopted solution otherwise never gets —
-`.editorconfig`, both props files, `global.json`. It is a person's decision rather than a default because
+**`--adopt-standard` is how an existing codebase opts in to the profile's conventions, and the skill
+offers it only when a person raises it.** An adopted solution holds new work to the code already around
+it, which is the default and usually right. The flag records `standard: profile` instead and writes the
+build settings a new solution gets with its skeleton — `.editorconfig`, both props files, `global.json`. It is a person's decision rather than a default because
 it applies a convention to code that never agreed to one: `Directory.Build.props` makes warnings errors,
 so the next build can fail on files nobody has touched. Nothing is overwritten — a file the repository
 already had is kept — and the code already there is not migrated by the flag. A cycle does that, planned
@@ -244,7 +250,7 @@ the hash of the artifact above it, so editing the intent makes the spec's latest
 ### `draft`
 
 **Prints or writes what belongs in four of the six files only a person writes.** One rule: a tool never
-places them, a person does. Two of the four write a complete file beside the real one so that placing
+places them, a person does. Three of the four write a complete file beside the real one so that placing
 it is a rename rather than a paste -- which matters because a block printed for pasting went unpasted
 through a whole cycle, leaving every plan in that solution reading a placeholder.
 
@@ -256,9 +262,8 @@ that did, and the reason nobody could remember what it was for. See `propose` be
 |---|---|
 | `draft approval <id>` | the gate decision, covering all three planning documents, with a hash of each. Written as a complete file beside the ledger, named for its decision, and placed by renaming it |
 | `draft abandon <id>` | why a cycle stopped. Terminal, and the reason is left empty because the file is rejected without one |
-| `draft profile <name>` | all three `solution.md` keys, not only the one that changes |
 | `sdlc draft solution` | the whole `solution.md`, written beside itself for a rename. Keys carried through as recorded and prose through unchanged, so renaming can neither reclassify the solution nor cost anybody what they wrote |
-| `sdlc draft techstack` | a byte copy of the declared stack for a rename, **and the options menu as a report** — every concern the shipped profiles know about with what each declares. The menu is written fresh every run and never renamed into place: a declared stack listing answers the solution has not chosen is one a plan can reach into and truthfully not be departing from anything |
+| `sdlc draft techstack` | the declared stack for a rename — a byte copy of it, the framework's default where none is placed yet, or nothing with `--empty` — **and the options menu as a report**: every concern the shipped profiles know about with what each declares, and every stack rule the framework ships. What is in the placed file is exactly what binds: a row pins a choice, and a rule applies only where its row says `true`. The menu is written fresh every run and never renamed into place: a declared stack listing answers the solution has not chosen is one a plan can reach into and truthfully not be departing from anything |
 
 Every agent write to `approval.md`, `abandoned.md`, `constraints.md`, `decisions.md`, `solution.md` and
 `techstack.md` is denied at the tool call — by file path and by shell command alike. There is no flag, no mode, and no approve command for
@@ -434,8 +439,8 @@ confidently wrong.
 
 ### `constraints`
 
-**Shows the rules in force for this solution, all tiers resolved** — the global `CON_` set, the profile's
-`PRO_`, and the solution's own `LOC_`, in that order, so a solution's own rules are the last word.
+**Shows the rules in force for this solution, all tiers resolved** — the global `CON_` set, the `PRO_`
+stack rules its declared stack switches on, and the solution's own `LOC_`, in that order, so a solution's own rules are the last word.
 
 Running this is the first step of every skill that writes or judges an artifact, and it is not a
 convenience: the constraints live in the framework and are never copied into a solution, so a session that

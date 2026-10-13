@@ -113,8 +113,46 @@ public sealed class NewCycleTests
         StringAssert.Contains(await File.ReadAllTextAsync(ignore), "scratch/");
     }
 
+    [TestMethod]
+    public async Task No_cycle_opens_until_a_person_has_placed_a_declared_stack()
+    {
+        // Adoption writes none, so without this a first cycle could reach its plan with nothing to be
+        // read against and no stack rule in force -- every gate green, and the argument the stack file
+        // exists to force never made. Refused here, before an id is spent on it.
+        using var workspace = CycleWorkspace.Create();
+
+        using var gate = Gate.For(
+            workspace.Root,
+            services => services.AddSingleton<TimeProvider>(new FakeClock(Instant)));
+
+        Result<Cycle> result = await gate.Send<NewCycle.Command, Cycle>(new NewCycle.Command());
+
+        Assert.IsTrue(result.IsFailed, "A cycle opened in a solution that declares no stack.");
+
+        string message = string.Join("; ", result.Errors.Select(error => error.Message));
+
+        StringAssert.Contains(message, "sdlc draft techstack", "It names the command that writes the draft.");
+        StringAssert.Contains(message, "--empty", "And the way to say nothing is pinned, which is an answer.");
+
+        Assert.IsFalse(
+            Directory.Exists(Path.Combine(
+                workspace.Root,
+                Cycle.SdlcDirectoryName,
+                Cycle.CyclesDirectoryName,
+                "20261009_1407_09")),
+            "Nothing was claimed. A refusal that had already created the directory would leave an id spent.");
+    }
+
+    /// <summary>Opens a cycle in a solution whose stack a person has declared.</summary>
+    /// <remarks>
+    /// Declared as empty, which is the smallest thing that passes and the case worth holding: a file
+    /// with nothing in it is a person saying nothing is pinned, and that is a decision rather than the
+    /// absence of one.
+    /// </remarks>
     private static async Task<Cycle> Open(CycleWorkspace workspace)
     {
+        workspace.WriteTechStack(string.Empty);
+
         using var gate = Gate.For(
             workspace.Root,
             services => services.AddSingleton<TimeProvider>(new FakeClock(Instant)));

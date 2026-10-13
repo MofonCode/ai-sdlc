@@ -208,51 +208,41 @@ public static class Diagnose
                     "adoption",
                     CheckOutcome.Problem,
                     string.Join("; ", document.Errors.Select(error => error.Message)),
-                    "only a person writes " + Cycle.SolutionFileName + ". 'sdlc draft profile <name>' prints what belongs in it");
+                    "only a person writes " + Cycle.SolutionFileName + ". 'sdlc draft solution' writes what belongs in it beside it");
             }
 
-            string recorded = string.Create(
-                CultureInfo.InvariantCulture,
-                $"profile {document.Value.Profile}, origin {SolutionDocument.NameOf(document.Value.Origin)}, standard {SolutionDocument.NameOf(document.Value.Standard)}, platform {SolutionDocument.NameOf(document.Value.Platform)}");
-
-            // Adoption and 'draft profile' both refuse a name nothing answers to, so this is a solution
-            // adopted before profiles resolved to anything, or one hand-edited since. It reads fine and
-            // every gate still works -- what is missing is quieter than that: the profile's defaults are
-            // not declared anywhere, so CON_15 has nothing to bite on and a plan departs from nothing.
-            // Reported rather than repaired, like everything else here.
-            if (StackProfiles.Find(document.Value.Profile) is null)
-            {
-                return new Check(
-                    "adoption",
-                    CheckOutcome.Problem,
-                    string.Create(
-                        CultureInfo.InvariantCulture,
-                        $"{recorded} -- and no profile answers to '{document.Value.Profile}', so nothing supplies its defaults"),
-                    "'sdlc draft profile <name>' prints the keys for a move onto one that exists. The declared stack is a separate file and a separate act: 'sdlc draft techstack'");
-            }
-
-            return new Check("adoption", CheckOutcome.Sound, recorded);
+            return new Check(
+                "adoption",
+                CheckOutcome.Sound,
+                string.Create(
+                    CultureInfo.InvariantCulture,
+                    $"origin {SolutionDocument.NameOf(document.Value.Origin)}, standard {SolutionDocument.NameOf(document.Value.Standard)}, platform {SolutionDocument.NameOf(document.Value.Platform)}"));
         }
 
         /// <summary>
-        /// Whether the declared stack says anything, and whether it still matches the recorded profile.
+        /// Whether a declared stack is in place, and what it pins and switches on.
         /// </summary>
         /// <remarks>
-        /// <para><strong>Three quiet failures, and every one of them leaves a working gate.</strong> The
-        /// declared stack is the second rule source a plan is read against, and <c>CON_15</c> asks a
-        /// plan to argue for departing from it — so a file that declares nothing makes that rule bite on
-        /// nothing, and a plan reaching for anything at all is departing from no default. Nothing else
-        /// in the framework can see that: every stage passes, every gate opens, and the one thing
-        /// missing is the argument.</para>
+        /// <para><strong>Missing is the fault; empty is an answer.</strong> A person places this file,
+        /// and no cycle opens without it, so its absence means nobody has yet said what the solution is
+        /// built from. A file with nothing in it is different: that is a person declaring that nothing
+        /// is pinned and each plan chooses freely, which is theirs to decide. This reported an empty
+        /// table as a problem while adoption wrote the file itself, because then empty meant nobody had
+        /// got round to it; now the rename is the statement (D-76).</para>
         ///
-        /// <para><strong>Drift is reported as information, never as fault.</strong> A person owns this
-        /// file and departing from the profile is legitimate — that is the whole of <c>CON_15</c>. What
-        /// is worth saying is that a profile migration moves <c>solution.md</c> and leaves this file
-        /// exactly as it was, by design, and nothing reconciles the two: a solution can record one
-        /// profile and declare another's stack indefinitely with no complaint from anywhere.</para>
+        /// <para><strong>The quiet failures that are left each leave a working gate.</strong> A row
+        /// with no answer pins nothing while looking like a decision; the options menu pasted in offers
+        /// a plan answers the solution never chose; a rule row naming an id this build does not ship
+        /// switches on nothing while reading as if it did. Every stage passes in all three.</para>
         ///
-        /// <para>Reported and never repaired, like everything else here. Rewriting a person's file to
-        /// agree with a profile would be the gate deciding what a team is built from.</para>
+        /// <para><strong>A shipped rule the file does not list is information, never fault.</strong>
+        /// What is listed is what binds, so a release that adds a rule changes nothing for a solution
+        /// already adopted until somebody adds its row. That is the right way round -- an upgrade of
+        /// the binary should not change what a plan is judged against -- and it is worth saying so the
+        /// new rule is declined rather than merely unseen.</para>
+        ///
+        /// <para>Reported and never repaired, like everything else here. Rewriting a person's file
+        /// would be the gate deciding what a team is built from.</para>
         /// </remarks>
         /// <param name="cancellationToken">Token observed while reading.</param>
         /// <returns>What the declared stack is in, as one check.</returns>
@@ -268,8 +258,8 @@ public static class Diagnose
                 return new Check(
                     "declared stack",
                     CheckOutcome.Problem,
-                    Cycle.TechStackFileName + " is not there, so CON_15 judges every plan against nothing",
-                    "a person runs 'sdlc init' here: it recreates a protected file that has gone, from the profile's template");
+                    Cycle.TechStackFileName + " is not there, so nothing says what this solution is built from and no cycle opens",
+                    "'sdlc draft techstack' writes a draft of the framework's default, or of nothing with --empty; a person renames it into place");
             }
 
             string text = await File.ReadAllTextAsync(path, cancellationToken).ConfigureAwait(false);
@@ -288,14 +278,26 @@ public static class Diagnose
             }
 
             IReadOnlyList<StackTable.Row> rows = StackTable.Rows(text);
+            IReadOnlyList<StackRules.Row> rules = StackRules.Rows(text);
 
-            if (rows.Count == 0)
+            string[] shipped = [.. Constraints.ShippedProfileLibrary.Rules()
+                .Select(Constraints.ShippedProfileLibrary.RowId)];
+
+            // A row that switches on a rule nothing ships reads as a solution being held to something
+            // and holds it to nothing. A typo, or a rule a later release retired.
+            string[] unknown = [.. rules
+                .Select(rule => rule.Id)
+                .Where(id => !shipped.Contains(id, StringComparer.OrdinalIgnoreCase))];
+
+            if (unknown.Length > 0)
             {
                 return new Check(
                     "declared stack",
                     CheckOutcome.Problem,
-                    "it declares no rows at all, so CON_15 judges every plan against nothing",
-                    "'sdlc draft techstack' writes the draft and the menu beside it; fill the table in and rename the draft");
+                    string.Create(
+                        CultureInfo.InvariantCulture,
+                        $"it lists {string.Join(", ", unknown)}, which this release does not ship, so that row switches on nothing"),
+                    "'sdlc draft techstack' writes the menu with every stack rule this release ships. Correct the id in the draft or delete the row, and rename it");
             }
 
             string[] undeclared = [.. rows
@@ -313,48 +315,68 @@ public static class Diagnose
                     "'sdlc draft techstack' writes the menu beside the draft, with what each profile declares for every concern. A row this solution has no use for is better deleted than left empty");
             }
 
-            string drift = await Drift(rows, cancellationToken).ConfigureAwait(false);
+            int on = rules.Count(rule => rule.On);
+
+            // Nothing in it at all: a person placed an empty file, which declares that nothing is
+            // pinned. Said in full, because "0 rows" reads as a fault and this is not one.
+            if (rows.Count == 0 && rules.Count == 0)
+            {
+                return new Check(
+                    "declared stack",
+                    CheckOutcome.Sound,
+                    "it pins nothing and switches on no stack rule, so every plan chooses freely -- which is a solution's to decide");
+            }
+
+            string[] unlisted = [.. shipped.Where(id => !rules.Any(rule =>
+                string.Equals(rule.Id, id, StringComparison.OrdinalIgnoreCase)))];
+
+            // A solution adopted before the rules were rows lists none of them and is still held to the
+            // ones its solution.md names, so it is told where they come from rather than that it is
+            // missing every one.
+            string tail = rules.Count == 0
+                ? await Legacy(shipped.Length, cancellationToken).ConfigureAwait(false)
+                : unlisted.Length == 0
+                    ? string.Empty
+                    : string.Create(
+                        CultureInfo.InvariantCulture,
+                        $". This release also ships {string.Join(", ", unlisted)}, which it does not list and so is not held to");
 
             return new Check(
                 "declared stack",
                 CheckOutcome.Sound,
-                string.Create(CultureInfo.InvariantCulture, $"{rows.Count} rows declared{drift}"));
+                string.Create(
+                    CultureInfo.InvariantCulture,
+                    $"{rows.Count} rows declared, {on} of {rules.Count} listed stack rules on{tail}"));
         }
 
         /// <summary>
-        /// How far the declared rows have moved from the profile the solution records.
+        /// What to say about a declared stack that lists no rule at all.
         /// </summary>
         /// <remarks>
-        /// Only concerns both the table and the profile name are compared, so a row a solution dropped
-        /// because it has no use for it counts as nothing. The opposite reading — every concern the
-        /// profile declares and the table does not — would report an adopted solution as drifting from a
-        /// profile it was never built to, which is the panel crying wolf.
+        /// Two solutions look like that. One was adopted before the rules were rows: its
+        /// <c>solution.md</c> still names a profile, and it is still held to that profile's rules, so
+        /// saying it lists none would read as having none. The other chose its rows and no rules. They
+        /// are told apart by the line that used to select them, which is the only thing still reading
+        /// it.
         /// </remarks>
-        /// <param name="rows">The declared rows.</param>
+        /// <param name="shipped">How many stack rules this release ships.</param>
         /// <param name="cancellationToken">Token observed while reading.</param>
-        /// <returns>A clause to append to the detail, or an empty string when nothing differs.</returns>
-        private async Task<string> Drift(
-            IReadOnlyList<StackTable.Row> rows,
-            CancellationToken cancellationToken)
+        /// <returns>A clause to append to the detail.</returns>
+        private async Task<string> Legacy(int shipped, CancellationToken cancellationToken)
         {
             Result<SolutionDocument> document = await SolutionDocument
                 .ReadFile(solution.Path, cancellationToken)
                 .ConfigureAwait(false);
 
-            if (document.IsFailed || StackProfiles.Find(document.Value.Profile) is not { } profile)
-            {
-                return string.Empty;
-            }
-
-            int differ = profile.Defaults.Count(declared => rows.Any(row =>
-                string.Equals(row.Concern, declared.Concern, StringComparison.OrdinalIgnoreCase)
-                && !string.Equals(row.Choice, declared.Choice, StringComparison.OrdinalIgnoreCase)));
-
-            return differ == 0
-                ? string.Empty
-                : string.Create(
+            return document.IsSuccess && StackProfiles.Find(document.Value.LegacyProfile) is { } profile
+                ? string.Create(
                     CultureInfo.InvariantCulture,
-                    $", {differ} differing from what '{profile.Name}' declares -- which is a solution's to do, and nothing reconciles the two");
+                    $". It lists none, so the rules still come from the '{profile.Name}' line in {Cycle.SolutionFileName}, where they used to be selected. 'sdlc draft techstack' writes the menu with the rows to copy in, which is what makes them visible here")
+                : shipped == 0
+                    ? string.Empty
+                    : string.Create(
+                        CultureInfo.InvariantCulture,
+                        $". This release ships {shipped}, none of which it is held to");
         }
 
         /// <summary>

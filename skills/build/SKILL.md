@@ -50,8 +50,9 @@ and the commit message is where it survives. Your report is read once, by whoeve
 commit is read by whoever reviews the pull request, which is the person who can act on it.
 
 **If the plan declares the solution skeleton, run `sdlc scaffold <id>`.** The first cycle of a new
-solution has no projects to change yet, so its plan declares the ones the profile supplies — a solution
-file, a core project, an HTTP project, two test projects and a reference slice. The binary writes them,
+solution has no projects to change yet, so its plan declares the ones the skeleton supplies — a solution
+file, a core project, an HTTP project, two test projects and a reference slice — and the `.NET` build
+settings they compile under: `.editorconfig`, the props files and `global.json`. The binary writes them,
 and refuses unless this cycle is approved; transcribing several hundred lines of template through a plan
 document would invite corruption and prove nothing. Everything after that first cycle you write
 yourself.

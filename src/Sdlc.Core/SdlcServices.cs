@@ -100,7 +100,6 @@ public static class SdlcServices
 
         // Self-registering, inside the operation's own holder. That is not a style choice: the
         // handler is private in there, so nothing written out here could name it.
-        services.AddProfileTextRequestHandler();
         services.AddWriteSolutionDraftRequestHandler();
         services.AddWriteTechStackDraftRequestHandler();
 

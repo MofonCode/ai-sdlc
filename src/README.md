@@ -216,7 +216,7 @@ exists with the capitalisation it states.
 | a stage that needs language | a skill, not a command. `Stages.cs` is the list the binary answers for, so a person typing `sdlc spec` is told which invocation to use rather than "unknown command" |
 | support for another host | a row in `SupportedHosts`, a branch in each of `HookProtocol`'s two write methods, and a captured payload in `HookTests`. Nothing anywhere else — not `Templates`, not `Initialise`, not a message in the command line. If the change reaches `HookPolicy`, the abstraction has leaked |
 | a global constraint | `../CONSTRAINTS.md`. No code — `sdlc constraints` renders it, and nothing else may hold a copy |
-| a profile's own constraint | `Sdlc.Core/Constraints/Profiles/<profile>.md`. No code either: the document is found by the profile's name, so a profile's first rule is a new file and a profile with no file has no rules. It is the one tier where a rule may name a language, framework or package |
+| a stack rule | `Sdlc.Core/Constraints/Profiles/<profile>.md`. No code either: the document is found by the profile's name, so a profile's first rule is a new file. It is the one tier where a rule may name a language, framework or package. **Its id must be unique across every document there**, because a solution switches a rule on by naming the id in its declared stack — and it appears in a first stack draft and the options menu with no further wiring |
 | a check on the installation | a `Check` in `Diagnostics/Diagnose`. If the answer is not the binary's to give, it is `CheckOutcome.Elsewhere` naming who to ask — never a pass |
 
 Two rules cut across all of those. **A refusal is a failed `Result` carrying a reason a person can act on**,

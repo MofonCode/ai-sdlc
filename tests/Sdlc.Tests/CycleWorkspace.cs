@@ -527,13 +527,26 @@ internal sealed class CycleWorkspace : IDisposable
             $"---\ncycle: {Cycle.Id}\nby: Peter Almanzar\nat: 2026-10-01T12:00:00Z\n---\n\n# Why this cycle stopped\n\nSuperseded by a narrower intent.\n"));
 
     /// <summary>Writes the solution document.</summary>
-    /// <param name="profile">The profile that governs the solution.</param>
     /// <param name="origin">Where the code came from.</param>
-    public void WriteSolution(string profile, SolutionOrigin origin) => WriteRaw(
+    /// <param name="legacyProfile">
+    /// A <c>profile</c> line, as a solution adopted before the declared stack listed its own rules
+    /// still carries. Null writes the three keys adoption writes now.
+    /// </param>
+    public void WriteSolution(SolutionOrigin origin, string? legacyProfile = null) => WriteRaw(
         SolutionDocument.PathIn(Root),
         string.Create(
             CultureInfo.InvariantCulture,
-            $"---\nprofile: {profile}\norigin: {SolutionDocument.NameOf(origin)}\n---\n\n# a solution\n"));
+            $"---\n{(legacyProfile is null ? string.Empty : "profile: " + legacyProfile + "\n")}origin: {SolutionDocument.NameOf(origin)}\n---\n\n# a solution\n"));
+
+    /// <summary>
+    /// Places a declared stack, as a person would by renaming a draft.
+    /// </summary>
+    /// <param name="text">
+    /// What the file holds. Null is the framework's default: its rows, and every shipped stack rule on.
+    /// </param>
+    public void WriteTechStack(string? text = null) => WriteRaw(
+        Path.Combine(Root, Cycle.SdlcDirectoryName, Cycle.TechStackFileName),
+        text ?? Sdlc.Core.Init.Templates.TechStack());
 
     /// <summary>
     /// Writes a solution constraints file holding the numbered constraints given.

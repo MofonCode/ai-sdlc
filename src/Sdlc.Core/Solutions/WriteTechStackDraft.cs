@@ -31,9 +31,20 @@ namespace Sdlc.Core.Solutions;
 /// silently drop. An agent may edit the draft, because only <c>techstack.md</c> is denied and
 /// <c>techstack.draft.md</c> is an ordinary file; what an agent cannot do is place it.</para>
 ///
-/// <para><strong>It proposes no rows.</strong> Which packages and patterns a solution declares is a
-/// judgement about how a team works, and a tool that filled them in would be making that judgement while
-/// looking like bookkeeping. The profile's template is where defaults come from, once at creation.</para>
+/// <para><strong>Where there is nothing to copy, the draft is the framework's default.</strong> Adoption
+/// does not create the declared stack any more, so the first run of this is where it comes from: the
+/// default profile's rows with every shipped stack rule switched on, for a person to cut down to what
+/// is true of their solution. That is the one time this proposes rows, and it is safe for the reason a
+/// file written straight into place was not -- it is a draft, read before it is placed (D-76).</para>
+///
+/// <para><strong>And it can be empty on request.</strong> A declared stack with nothing in it is a
+/// legitimate answer: nothing pinned, no stack rule in force, every plan choosing freely. Getting
+/// there by deleting two tables by hand is how somebody leaves half of one behind, so <c>--empty</c>
+/// writes the draft with nothing in it.</para>
+///
+/// <para><strong>After that it proposes no rows.</strong> Which packages and patterns a solution
+/// declares is a judgement about how a team works, and a tool that filled them in would be making that
+/// judgement while looking like bookkeeping.</para>
 /// </remarks>
 public static class WriteTechStackDraft
 {
@@ -68,7 +79,11 @@ public static class WriteTechStackDraft
     }
 
     /// <summary>Asks for the stack document to be drafted to disk.</summary>
-    public sealed record Command : IRequest<DraftResult>;
+    /// <param name="Empty">
+    /// Whether the draft is written with nothing in it, for a solution that pins nothing. Otherwise it
+    /// is a copy of the declared stack, or the framework's default where there is none yet.
+    /// </param>
+    public sealed record Command(bool Empty = false) : IRequest<DraftResult>;
 
     private sealed class Handler(SolutionRoot solution, TimeProvider clock)
         : IRequestHandler<Command, DraftResult>
@@ -83,14 +98,27 @@ public static class WriteTechStackDraft
             string directory = Path.Combine(solution.Path, Cycle.SdlcDirectoryName);
             string path = Path.Combine(directory, Cycle.TechStackFileName);
 
-            if (!File.Exists(path))
+            // Adoption is what makes a repository a governed solution, and it no longer writes this
+            // file -- so the directory is the test rather than the file. Without it there is no solution
+            // for a stack to be declared in.
+            if (!File.Exists(SolutionDocument.PathIn(solution.Path)))
             {
                 return Result.Ok(DraftResult.Refused(string.Create(
                     CultureInfo.InvariantCulture,
-                    $"There is no {path} to draft from. This solution has not been adopted yet, and adoption is what creates it -- from the profile's template, which is the one moment anything but a person writes it.")));
+                    $"There is no governed solution at {solution.Path} to declare a stack for. A person runs 'sdlc init' first; this is the step after it.")));
             }
 
-            string current = await File.ReadAllTextAsync(path, cancellationToken).ConfigureAwait(false);
+            Start start = request.Empty
+                ? Start.Empty
+                : File.Exists(path) ? Start.Copy : Start.Default;
+
+            string current = start switch
+            {
+                Start.Copy => await File.ReadAllTextAsync(path, cancellationToken).ConfigureAwait(false),
+                Start.Default => Init.Templates.TechStack(),
+                _ => string.Empty,
+            };
+
             string draftPath = Path.Combine(directory, DraftFileName);
 
             await File.WriteAllTextAsync(draftPath, current, cancellationToken).ConfigureAwait(false);
@@ -102,34 +130,52 @@ public static class WriteTechStackDraft
             string optionsPath = await ReportFile.Write(
                 solution.Path,
                 OptionsReportKind,
-                StackOptions.Render(await ProfileOf(cancellationToken).ConfigureAwait(false)),
+                StackOptions.Render(),
                 clock.GetUtcNow(),
                 cancellationToken).ConfigureAwait(false);
 
-            return Result.Ok(DraftResult.Drafted(current, Instructions(path, draftPath, optionsPath)));
+            return Result.Ok(DraftResult.Drafted(current, Instructions(path, draftPath, optionsPath, start)));
         }
 
-        /// <summary>
-        /// The profile this solution records, for the menu's empty table.
-        /// </summary>
-        /// <remarks>
-        /// Null when the solution document cannot be read or names a profile nothing answers to. The
-        /// draft itself does not depend on it — a person amending one row should not be refused because
-        /// another file is wrong — so the menu leaves that section out and names the command that
-        /// reports it.
-        /// </remarks>
-        /// <param name="cancellationToken">Token observed while reading.</param>
-        /// <returns>The profile, or null.</returns>
-        private async Task<StackProfile?> ProfileOf(CancellationToken cancellationToken)
+        /// <summary>What a draft was written from.</summary>
+        private enum Start
         {
-            Result<SolutionDocument> read = await SolutionDocument
-                .ReadFile(solution.Path, cancellationToken)
-                .ConfigureAwait(false);
+            /// <summary>A byte copy of the declared stack already in place.</summary>
+            Copy,
 
-            return read.IsSuccess ? StackProfiles.Find(read.Value.Profile) : null;
+            /// <summary>The framework's default, because no declared stack is in place yet.</summary>
+            Default,
+
+            /// <summary>Nothing, because the person asked for a stack that pins nothing.</summary>
+            Empty,
         }
 
-        private static string Instructions(string path, string draftPath, string optionsPath) => string.Join(
+        /// <summary>What the draft starts as, in the words the rename depends on.</summary>
+        /// <param name="start">What it was written from.</param>
+        /// <returns>The lines that follow the rename command.</returns>
+        private static string[] Describe(Start start) => start switch
+        {
+            Start.Copy =>
+            [
+                "The draft starts as a byte copy of the file, so the rename applies what you changed and",
+                "nothing else. Nothing is merged and nothing is regenerated.",
+            ],
+            Start.Default =>
+            [
+                "No stack is declared here yet, so the draft is the framework's default: its rows, and",
+                "every stack rule it ships switched on. Delete the rows that are not true of this solution",
+                "and set a rule to false to decline it. Renaming it untouched declares that default.",
+                "Until it is renamed into place, no cycle opens.",
+            ],
+            _ =>
+            [
+                "The draft is empty, which is what was asked for. Renamed into place it declares that",
+                "nothing is pinned: no default for a plan to depart from, no stack rule in force, and",
+                "every plan choosing freely. Rows can be added later, the same way.",
+            ],
+        };
+
+        private static string Instructions(string path, string draftPath, string optionsPath, Start start) => string.Join(
             Environment.NewLine,
             [
                 string.Create(CultureInfo.InvariantCulture, $"Written to {draftPath}"),
@@ -138,13 +184,12 @@ public static class WriteTechStackDraft
                 string.Empty,
                 string.Create(CultureInfo.InvariantCulture, $"    mv -f \"{draftPath}\" \"{path}\""),
                 string.Empty,
-                "The draft starts as a byte copy of the file, so the rename applies what you changed and",
-                "nothing else. Nothing is merged and nothing is regenerated.",
+                .. Describe(start),
                 string.Empty,
                 string.Create(CultureInfo.InvariantCulture, $"The menu is at {optionsPath}:"),
                 "every concern the shipped profiles know about, what each declares for it, the",
-                "alternatives this framework has argued, and an empty table for a solution starting over.",
-                "Open it beside the draft and copy across what you want.",
+                "alternatives this framework has argued, the stack rules it ships, and an empty table for a",
+                "solution starting over. Open it beside the draft and copy across what you want.",
                 string.Empty,
                 "It is a report rather than a file in '.sdlc/' itself -- written fresh every run, read back",
                 "by nothing, safe to delete, and in a directory that ignores itself so a copy left behind",

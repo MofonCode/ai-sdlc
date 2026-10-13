@@ -262,8 +262,6 @@ public sealed class PublicSurfaceTests
         // binary a pull request restores.
         "Sdlc.Core.Release",
         "Sdlc.Core.SdlcServices",
-        "Sdlc.Core.Solutions.ProfileText",
-        "Sdlc.Core.Solutions.ProfileText+Query",
         "Sdlc.Core.Solutions.SolutionDocument",
         "Sdlc.Core.Solutions.SolutionOrigin",
         "Sdlc.Core.Solutions.SolutionRoot",
@@ -283,6 +281,12 @@ public sealed class PublicSurfaceTests
         // offers every concern the profiles declare and recommends none of them, and that a table a
         // person hand-edited still reads.
         "Sdlc.Core.Solutions.StackOptions",
+
+        // The reader for the other table in a declared stack: which stack rules it switches on.
+        // Public for the reason StackTable is -- the suite asserts that a rule row is never counted
+        // as a declared default, and that a cell which is not plainly yes leaves its rule off.
+        "Sdlc.Core.Solutions.StackRules",
+        "Sdlc.Core.Solutions.StackRules+Row",
         "Sdlc.Core.Solutions.StackTable",
         "Sdlc.Core.Solutions.StackTable+Row",
         "Sdlc.Core.Solutions.WriteSolutionDraft",

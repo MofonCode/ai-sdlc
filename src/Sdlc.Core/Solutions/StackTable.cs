@@ -6,9 +6,8 @@ namespace Sdlc.Core.Solutions;
 /// Reads the rows out of a declared stack.
 /// </summary>
 /// <remarks>
-/// <para><strong>Read, never written.</strong> The declared stack is a person's file: adoption creates
-/// it from the profile's template and the only thing that changes it afterwards is a person renaming a
-/// draft over it (D-67). So this parses and nothing here emits — a writer would be the seam an agent
+/// <para><strong>Read, never written.</strong> The declared stack is a person's file: the only thing
+/// that places it or changes it is a person renaming a draft over it (D-67, D-76). So this parses and nothing here emits — a writer would be the seam an agent
 /// could satisfy <c>CON_15</c> through, by adding the row it wanted instead of arguing for it.</para>
 ///
 /// <para><strong>Tolerant on purpose.</strong> A person owns the file, so it will have rows this did

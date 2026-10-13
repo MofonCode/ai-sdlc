@@ -26,21 +26,22 @@ git init
 /sdlc:init
 ```
 
-It asks the three things the command needs told and cannot guess — which profile governs the solution,
-where the code will live, and in a repository that already holds code whether new work follows the
-profile's conventions — and then hands you the line to run, `!` and all. On Claude Code that prefix runs
+It asks the one thing the command needs told and cannot guess — where the code will live — and then
+hands you the line to run, `!` and all. On Claude Code that prefix runs
 the rest of the line as your own command rather than as a tool call of the agent's, so the gate never
 sees it and what it prints lands in the conversation where the agent can read the mode and the file list
 back without you pasting them.
 
-**The order is load-bearing, not politeness.** `solution.md` and `techstack.md` are created by the
-command and protected the moment they exist, so an answer given after the fact costs a draft and a
-rename rather than a sentence. The two that bite hardest:
+**The order is load-bearing, not politeness.** `solution.md` is created by the command and protected
+the moment it exists, so an answer given after the fact costs a draft and a rename rather than a
+sentence. The one that bites:
 
 | | |
 |---|---|
-| `--profile` | `dotnet-default` or `ml-tensorflow`. It decides what the declared stack starts as, and whether `sdlc scaffold` has a skeleton to write at all — `ml-tensorflow` has none |
 | `--platform` | `github`, `azure-devops`, or `local` for a repository with no remote yet. `local` writes no pipeline, so **no pull-request check governs a merge** and the pre-push hook is the only mechanical layer |
+
+**Adoption is not told what the solution is built from, and decides nothing about it.** There is no
+profile to choose. The stack is the next step, below, and it is yours to declare.
 
 **If the code will live on a remote, create the remote before adopting.** Re-running adoption once one
 exists writes the pipeline, but `solution.md` is protected by then, so the platform keys are printed for
@@ -60,8 +61,7 @@ What lands:
 
 | | |
 |---|---|
-| `.sdlc/solution.md` | what this solution is, which profile governs it, and which conventions new work follows. **A person's file** |
-| `.sdlc/techstack.md` | the stack, for a session that has not read the code. **A person's file** from here on — `the-stack.md` is what it is and how to change it |
+| `.sdlc/solution.md` | what this solution is, where its code came from, and which conventions new work follows. **A person's file** |
 | `.sdlc/README.md` | the whole flow in one page, inside the solution |
 | `.sdlc/hooks/pre-push` | written, **not installed**. See below |
 | `.claude/settings.json` | the `PreToolUse` and `Stop` hooks that call the gate, **merged** into whatever is already there |
@@ -83,8 +83,33 @@ is written to it and the entries are printed for you to place. On Azure DevOps t
 so an existing one is printed rather than replaced. Nothing verifies a chain until it is in a pipeline
 that runs, and `init` says so.
 
-And the files that decide how code is written here — the profile's defaults, yours to amend. In
-**greenfield** mode always, and in **onboard** only if you asked with `--adopt-standard`:
+**What does not land: the declared stack, and the build settings.** Both belong to a stack nobody has
+declared yet.
+
+### Declare the stack
+
+```pwsh
+sdlc draft techstack
+```
+
+It writes `.sdlc/techstack.draft.md`: the framework's default, whole — every row it would pin, and under
+`## Rules` every stack rule it ships, each marked `true`. **What ends up in the file is exactly what
+binds**, so cut it down to what is true of this solution and rename it into place:
+
+```pwsh
+mv -f .sdlc/techstack.draft.md .sdlc/techstack.md
+```
+
+A row pins a choice; no row leaves it to each plan; a rule applies only where its row says `true`. To
+pin nothing at all — when the stack is part of what the first cycles are working out — run it with
+`--empty` and rename that. **No cycle opens until the file is placed**, and from then on it is a
+person's file: `the-stack.md` is what it is and how to change it.
+
+### The build settings
+
+The files that decide how .NET code is written — yours to amend. They arrive **with the solution
+skeleton**, from `sdlc scaffold` in the first cycle, and in an existing codebase only if you asked with
+`--adopt-standard`:
 
 | | |
 |---|---|
@@ -94,8 +119,8 @@ And the files that decide how code is written here — the profile's defaults, y
 | `global.json` | the SDK, and the test runner without which the suite silently does not run |
 | `tests/Directory.Build.props` | the six rules relaxed for test code, each with its reason |
 
-An **onboard** gets none of them by default: the profile proposes a shape for new work and does not
-rewrite the conventions of a codebase that predates it. `sdlc init --adopt-standard` is how you say you
+An existing codebase gets none of them by default: the framework proposes a shape for new work and
+does not rewrite the conventions of a codebase that predates it. `sdlc init --adopt-standard` is how you say you
 want them anyway, and it is a decision rather than a default — `Directory.Build.props` makes warnings
 errors, so the next build can fail on files nobody has touched. Narrow a severity or scope a rule to a
 directory when it does; each of these is created once and never rewritten, so your amendments survive
@@ -133,8 +158,9 @@ questions: what the solution is for, and what every surface should look and beha
 what *done to a good standard* means, because `CON_16`, `CON_17` and `CON_05` already put that question
 to every spec, one change at a time, where there is a change to ask it about.
 
-**Place the two placeholders before the first cycle, not after it.** `solution.md` and `techstack.md`
-are protected, so nothing can fill them for you — the skill runs the drafters and prints the rename:
+**Place both protected files before the first cycle, not after it.** `solution.md` holds a
+placeholder and `techstack.md` does not exist yet, and nothing can place either for you — the skill runs
+the drafters and prints the rename:
 
 ```pwsh
 sdlc draft solution
@@ -156,14 +182,14 @@ like, and a plan that reads *Replace this with a paragraph a newcomer could read
 sdlc constraints
 ```
 
-The global `CON_` set, the profile's `PRO_`, then this solution's own `LOC_` — in that order, so a
+The global `CON_` set, the `PRO_` stack rules, then this solution's own `LOC_` — in that order, so a
 solution's rules are the last word. **Constraints live in the framework and are never copied into a
 solution**, so this command is how they reach a session. Every stage skill runs it first, and one that
 did not is working from recollection.
 
-The profile tier is the one that moves with the `profile` key, and not every profile fills it:
-`dotnet-default` ships three rules that have to name a framework, and `ml-tensorflow` ships none.
-`the-stack.md` has why.
+The middle tier is the one your declared stack decides: the framework ships three rules that have to
+name a framework, and a solution is held to exactly the ones its stack file marks `true`. A stack that
+lists none has no such tier in this output. `the-stack.md` has why.
 
 ## 3. Open the cycle
 

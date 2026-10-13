@@ -9,7 +9,7 @@ time from these, plus the profile's own, plus the solution's `.sdlc/constraints.
 | Tier | Id | Resolves in |
 |---|---|---|
 | global | `CON_nn` | this file |
-| profile | `PRO_nn` | the profile `solution.md` records, carried by the binary |
+| profile | `PRO_nn` | the stack rules a solution's `techstack.md` switches on, carried by the binary |
 | solution | `LOC_nn` | the solution being worked on |
 
 **Ids are a monotonic sequence.** Assigned once, never reused, never backfilled. A removed
@@ -52,7 +52,7 @@ that survives every implementation is decoration however true it sounds — see 
 to keep this list from becoming that, and which applies to itself.
 
 **Stack neutrality.** These bind solutions on any stack, so none of them may name a language,
-framework or package. Stack specifics live in the profile and in analyzers.
+framework or package. Stack specifics live in the stack rules and in analyzers.
 
 ---
 

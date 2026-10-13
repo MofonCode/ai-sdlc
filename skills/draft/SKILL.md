@@ -1,8 +1,8 @@
 ---
 name: draft
-description: Print what belongs in one of the files only a person writes -- an approval, an abandonment, the declared stack, the solution document, or a profile migration. Use when a person needs to approve, refuse, stop a cycle, change the declared stack, or change profile. For a solution's own constraints, the skill is propose.
+description: Print what belongs in one of the files only a person writes -- an approval, an abandonment, the declared stack, or the solution document. Use when a person needs to approve, refuse, stop a cycle, or declare or change what the solution is built from and which stack rules it is held to. For a solution's own constraints, the skill is propose.
 compatibility: Requires the sdlc binary on PATH, from the MofonCode.Sdlc.Cli dotnet tool, and a git repository. Every command here is that binary, so without it the first step fails.
-argument-hint: "approval <id> | abandon <id> | profile <name> | solution | techstack"
+argument-hint: "approval <id> | abandon <id> | solution | techstack [--empty]"
 allowed-tools: Bash(sdlc *), Bash(git *)
 ---
 
@@ -15,9 +15,8 @@ rather than drafted, for the reason at the foot of this page.
 ```
 sdlc draft approval <id>     [--changes-requested | --deny | --reopen]
 sdlc draft abandon <id>
-sdlc draft profile <name>
 sdlc draft solution
-sdlc draft techstack
+sdlc draft techstack         [--empty]
 ```
 
 Show what it prints **verbatim**, including the instructions under the block. **Add nothing of your
@@ -27,11 +26,11 @@ person who has to place the file. Then stop.
 **An approval is written to a file beside the ledger and placed by renaming it.** `draft approval`
 writes `approval.<decision>.draft.md` into the cycle directory -- a complete file, not a fragment --
 and prints it with the rename that records it. **`draft solution` does the same for the solution
-document**, carrying its four keys through as recorded and any prose already there through
+document**, carrying its three keys through as recorded and any prose already there through
 unchanged -- so the rename can neither reclassify the solution nor cost somebody what they wrote. **And
-`draft techstack` copies the declared stack beside itself** and writes the options menu beside the copy,
-so an edit to it is a rename too — of the draft, never of the menu. The other
-two -- `abandon` and `profile` -- still print for a person to place by hand. Show the rename command and
+`draft techstack` writes the declared stack beside itself** — a copy of it, or the framework's default
+where none is placed yet — and writes the options menu as a report, so declaring or changing it is a
+rename too: of the draft, never of the menu. `abandon` still prints for a person to place by hand. Show the rename command and
 do not run it: it is denied, and it is the decision.
 
 ## You cannot place it, and should not offer to
@@ -70,14 +69,26 @@ command to revive it. The reason is history rather than safety — an agent stuc
 an obvious escape in abandoning and starting clean, and a hand-written reason is what keeps the objection
 that killed the cycle on the record.
 
-**`techstack`** — a byte copy of the declared stack, beside itself, for an edit a person renames into
-place. You may edit the draft; only the real file is denied. The copy is the guarantee: the rename applies
-what somebody changed and nothing else, with nothing merged and nothing regenerated.
+**`techstack`** — the declared stack, beside itself, for an edit a person renames into place. You may
+edit the draft; only the real file is denied. What the draft starts as depends on what is there:
+
+| | The draft is |
+|---|---|
+| a declared stack is in place | a **byte copy** of it. The rename applies what somebody changed and nothing else, with nothing merged and nothing regenerated |
+| none is in place yet | the **framework's default**: every row it would pin, and every stack rule it ships switched on. Adoption writes no declared stack, so this is where the first one comes from, and no cycle opens until it is renamed into place |
+| `--empty` was given | **nothing.** Renamed into place it declares that nothing is pinned, no stack rule applies, and every plan chooses freely |
+
+**The file holds two tables, and what is in them is exactly what binds.** The first pins choices: a row
+is a default every plan is read against, and no row leaves that choice to each plan. The second, under
+`## Rules`, lists the stack rules — the ones that may name a framework — with `true` or `false` beside
+each and what the rule holds a plan to. Only the ones marked `true` apply; a rule with no row does not.
+So declining a rule is setting its row to `false`, and nothing about the stack is selected from anywhere
+else.
 
 **It writes a second file, and that one is never placed.** The menu is a report under `.sdlc/reports/`:
 every concern the shipped profiles know about with what each declares for it, the alternatives this
-framework has argued, the choices it refused, and an empty table for a solution starting over rather
-than amending a row. The command prints its path. Point a person at it and leave it where it is — a
+framework has argued, the choices it refused, every stack rule it ships, and an empty table for a
+solution starting over rather than amending a row. The command prints its path. Point a person at it and leave it where it is — a
 declared stack carrying answers the solution has **not** chosen is one a plan can reach into and
 truthfully not be departing from anything, which is the deadlock protecting the file closed.
 `sdlc doctor` reports a declared stack that ended up with the menu inside it.
@@ -88,7 +99,8 @@ reports directory ignores itself, which is the whole reason it exists.
 
 It is protected for the reason the solution's own constraints are. The declared stack is the second rule
 source a plan is read against, and `CON_15` judges every plan against it — so an agent able to edit it
-could satisfy that rule by adding the row it wanted rather than arguing for it. **What belongs in a change
+could satisfy that rule by adding the row it wanted rather than arguing for it, or drop a stack rule by
+switching its row off. **What belongs in a change
 here is a default the solution is adopting or dropping, not a package one cycle happened to need.** A plan
 that reaches for something undeclared departs and says what the declared default would have cost, which is
 an argument rather than an edit to this file.
@@ -107,10 +119,9 @@ approved cycle stated. The licence that makes the difference: **a tool may propo
 evidence, and may not shape what somebody just typed.** If somebody asks you to draft either, send
 them there.
 
-**`profile`** — all three `solution.md` keys, not just the one that changes. The origin is a historical
-fact that decides whether a profile's defaults bind, and the platform decides whether a pull-request check
-governs a merge at all; printing one key while leaving a person to preserve the others by hand is how they
-get lost.
+**There is no `draft profile` any more.** A solution records no profile: which technologies are pinned
+and which stack rules apply are both rows in the declared stack, so the act that used to be a profile
+migration is an edit to that draft. The binary answers the old spelling with a sentence saying so.
 
 ## Two things to say when you show an approval
 

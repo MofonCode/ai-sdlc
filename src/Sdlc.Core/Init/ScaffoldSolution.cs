@@ -90,18 +90,13 @@ public static class ScaffoldSolution
                     + "like any other departure.");
             }
 
-            // A profile that declares another language has no skeleton here, and the twenty-four
-            // templates below are .NET. Writing them would hand a solution a layout its own stack file
-            // contradicts -- a profile lying about itself, which is worse than a profile with no scaffold.
-            // So this refuses and says so, which is one honest sentence instead of twenty-four misleading
-            // files.
-            if (StackProfiles.Find(read.Value.Profile) is { Scaffolds: false } declared)
-            {
-                return Result.Fail<Response>(string.Create(
-                    CultureInfo.InvariantCulture,
-                    $"The '{declared.Name}' profile declares no solution skeleton, so there is nothing to scaffold. Its declared stack is in .sdlc/{Cycle.TechStackFileName} and its notes say what is absent. Start the solution the way that stack is built, and let the plan declare the files it adds."));
-            }
-
+            // Nothing here asks what the solution declares it is built from, and that is deliberate. A
+            // profile name used to answer it -- one that shipped no skeleton was refused -- and there is
+            // no profile to ask any more (D-76). What stands in its place is the approval below: this
+            // skeleton is .NET, a plan that declares these files says so, and a person approved that
+            // plan. Where the declared stack pins something else, the same plan had to argue the
+            // departure to get there, which is CON_15 doing the work the flag did.
+            //
             // The same question the build stage asks, so a refusal here reads identically. This is
             // what keeps the first code in the repository behind an approved plan.
             Result<ApprovalGate.Response> gate = await mediator
@@ -129,7 +124,19 @@ public static class ScaffoldSolution
             List<string> written = [];
             List<string> kept = [];
 
-            foreach ((string relative, string contents) in Scaffold.Files(name))
+            // The files that constrain how the code is written arrive with the code they constrain.
+            // Adoption wrote them, when adoption was told a profile; it is told nothing about the stack
+            // now, and they do nothing until there is a project to apply to -- so nothing is lost by
+            // their arriving here, and a solution on another stack never gets five .NET files to delete
+            // (D-76). First, because the skeleton does not compile under the policy a consumer gets
+            // without them.
+            IEnumerable<KeyValuePair<string, string>> files =
+            [
+                .. Initialise.StackFiles().Select(file => KeyValuePair.Create(file.Path, file.Contents)),
+                .. Scaffold.Files(name),
+            ];
+
+            foreach ((string relative, string contents) in files)
             {
                 string path = Path.Combine(solution.Path, relative);
 

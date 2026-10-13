@@ -1,5 +1,3 @@
-using System.Globalization;
-
 namespace Sdlc.Core.Solutions;
 
 /// <summary>One declared default: a concern, and what this profile chooses for it.</summary>
@@ -8,40 +6,33 @@ namespace Sdlc.Core.Solutions;
 public sealed record StackDefault(string Concern, string Choice);
 
 /// <summary>
-/// What a profile supplies to a solution that adopts it.
+/// A named set of declared defaults the framework ships.
 /// </summary>
 /// <remarks>
-/// <para><strong>A profile is a starting point, not a layer.</strong> One profile governs a solution and
-/// its defaults are emitted as one flat table that a person then owns. Stacking two was considered and
-/// rejected: merging tables on a concern key needs precedence rules, and worse, it makes
-/// <c>techstack.md</c> a <em>derived</em> file -- so the thing every plan is judged against would be
-/// generated rather than written, and "a person places it" would stop meaning anything (D-68).</para>
+/// <para><strong>A profile is a starting point, not a layer, and no solution records one.</strong> The
+/// default profile is what the first draft of a declared stack is written from, and every profile is
+/// what the options menu offers rows out of. After that the table is a person's: nothing in a governed
+/// repository names a profile, and what binds is what the declared stack itself says (D-76). Stacking
+/// two was considered and rejected: merging tables on a concern key needs precedence rules, and worse,
+/// it makes <c>techstack.md</c> a <em>derived</em> file -- so the thing every plan is judged against
+/// would be generated rather than written, and "a person places it" would stop meaning anything
+/// (D-68).</para>
 ///
 /// <para><strong>Overlap between profiles is handled here, where it is cheap.</strong> Two profiles that
 /// share their platform choices share one set of rows rather than repeating twenty that then
 /// drift. Composition happens while authoring the framework; what reaches a solution is always one flat
 /// table, and nothing in a governed repository knows a composition took place.</para>
-///
-/// <para><strong><see cref="Scaffolds"/> is what keeps a profile honest.</strong> The scaffold is
-/// twenty-four .NET templates and an architecture suite written against them. A profile that declares a
-/// different language and let <c>sdlc scaffold</c> run would get a .NET solution contradicting its own
-/// declarations -- a profile lying about itself, which is worse than no profile. So a profile says whether
-/// it ships a skeleton, and the one that does not refuses instead of writing the wrong one.</para>
 /// </remarks>
-/// <param name="Name">The profile's name, as <c>solution.md</c> records it.</param>
+/// <param name="Name">The profile's name, as the options menu credits it.</param>
 /// <param name="Summary">One line about what the profile is for, for a listing.</param>
-/// <param name="Scaffolds">
-/// Whether the framework can write this profile's solution skeleton and the files that hold its
-/// conventions. False means adoption records the declarations and writes no code.
-/// </param>
 /// <param name="Defaults">The declared defaults, in the order they are written.</param>
 /// <param name="Notes">
-/// What the stack file says under its table: the reasoning a plan needs that a row cannot hold.
+/// What a stack draft says under its tables: the reasoning a plan needs that a row cannot hold. Empty
+/// for a profile no draft is written from.
 /// </param>
 public sealed record StackProfile(
     string Name,
     string Summary,
-    bool Scaffolds,
     IReadOnlyList<StackDefault> Defaults,
     IReadOnlyList<string> Notes);
 
@@ -49,15 +40,11 @@ public sealed record StackProfile(
 /// <remarks>
 /// <para><strong>Embedded rather than restored from a package</strong>, for D-33's reason: adoption has to
 /// work with no feed configured and no network, so a default that needed a restore would make the first
-/// command one that can fail. Whether profiles ever become packages is a separate question; this is the
-/// shape that lets the <c>profile</c> key select something today.</para>
-/// <para><strong>An unknown name is refused rather than recorded.</strong> Nothing resolves an external
-/// profile, so a solution recording one would carry a name that selects nothing and declare a stack it
-/// never got. Easy to relax the day a profile can come from somewhere else.</para>
+/// command one that can fail. Whether profiles ever become packages is a separate question.</para>
 /// </remarks>
 public static class StackProfiles
 {
-    /// <summary>The profile a solution gets when nobody chooses one.</summary>
+    /// <summary>The name of the profile a first stack draft is written from.</summary>
     public const string DefaultName = "dotnet-default";
 
     /// <summary>
@@ -163,48 +150,9 @@ public static class StackProfiles
         string.Empty,
     ];
 
-    /// <summary>
-    /// What the TensorFlow profile's stack file says under its table.
-    /// </summary>
-    /// <remarks>
-    /// Shorter than the dotnet profile's on purpose. That one earned its length from a real run and the
-    /// review that followed it; this one has not been built from yet, and notes written ahead of a real
-    /// solution would be guesses carrying the authority of a default.
-    /// </remarks>
-    private static readonly string[] _tensorFlowNotes =
-    [
-        "## Notes worth keeping",
-        string.Empty,
-        "**This profile declares no solution skeleton.** `sdlc scaffold` refuses rather than writing one,",
-        "and says so. The dotnet profile's skeleton is twenty-four templates and an architecture suite",
-        "written against them, and it earned its shape from a solution that was actually built; writing",
-        "a Python equivalent before anything has been built from this profile would be guesswork with the",
-        "authority of a default. The first real solution here is what the skeleton should be written from.",
-        string.Empty,
-        "**So the architecture suite is missing, and that is the material gap.** It is the only mechanical",
-        "enforcement of shape the framework has. Until this profile ships one, shape is held by review and",
-        "by whatever a plan's proof names -- which is weaker, and worth knowing rather than discovering.",
-        "A solution that wants a rule enforced here adds its own check and declares it.",
-        string.Empty,
-        "**Notebooks are for exploration and are kept out of the import path.** A notebook that something",
-        "imports is a module nobody tests and nobody reviews line by line. What a notebook establishes",
-        "moves into the package before anything depends on it.",
-        string.Empty,
-        "**Test results normalise at the build step, not in the gate.** Verification reads the normalised",
-        "summary and never a runner's native output, so a pytest run feeds the same chain a dotnet run",
-        "does. That is why nothing above names a results format.",
-        string.Empty,
-        "**The platform rows are shared with the dotnet profile** -- the same Azure, the same Terraform,",
-        "the same data stores. Where data lives and how infrastructure is described are decisions about",
-        "the platform rather than about the language, so they are declared once in the framework and the",
-        "two profiles cannot drift apart on them.",
-        string.Empty,
-    ];
-
     private static readonly StackProfile _dotnet = new(
         DefaultName,
-        "C# and .NET across api, web, desktop and Android. Ships a solution skeleton.",
-        Scaffolds: true,
+        "C# and .NET across api, web, desktop and Android. What a first stack draft is written from.",
         [
             new("language, framework", "C#, .NET"),
             new("unit and integration testing", "MSTest on Microsoft.Testing.Platform"),
@@ -230,8 +178,7 @@ public static class StackProfiles
 
     private static readonly StackProfile _tensorflow = new(
         "ml-tensorflow",
-        "Python and TensorFlow for model work, on the same Azure platform. Declares no skeleton yet.",
-        Scaffolds: false,
+        "Python and TensorFlow for model work, on the same Azure platform. Rows for the options menu.",
         [
             new("language", "Python"),
             new("machine learning", "TensorFlow, through Keras"),
@@ -248,9 +195,10 @@ public static class StackProfiles
             .. _platform,
             new("tracing, metrics and logs", "OpenTelemetry, exported to Azure Monitor"),
         ],
-        _tensorFlowNotes);
+        []);
 
-
+    /// <summary>The profile a first stack draft is written from.</summary>
+    public static StackProfile Default => _dotnet;
 
     /// <summary>Every profile, in the order a listing shows them, the default first.</summary>
     public static IReadOnlyList<StackProfile> All { get; } = [_dotnet, _tensorflow];
@@ -258,7 +206,7 @@ public static class StackProfiles
     /// <summary>
     /// Finds a profile by name, or null when nothing answers to it.
     /// </summary>
-    /// <param name="name">The name to resolve, as <c>solution.md</c> would record it.</param>
+    /// <param name="name">The name to resolve.</param>
     /// <returns>The profile, or null.</returns>
     public static StackProfile? Find(string? name) => string.IsNullOrWhiteSpace(name)
         ? null
@@ -266,17 +214,4 @@ public static class StackProfiles
             profile.Name,
             name.Trim(),
             StringComparison.OrdinalIgnoreCase));
-
-    /// <summary>
-    /// What to say when a name resolves to nothing.
-    /// </summary>
-    /// <remarks>
-    /// Names what exists rather than only refusing. A refusal that does not say what the valid answers are
-    /// sends somebody looking for a flag, which is the confusion the whole draft pattern exists to avoid.
-    /// </remarks>
-    /// <param name="name">The name that resolved to nothing.</param>
-    /// <returns>One sentence naming every profile that exists.</returns>
-    public static string Unknown(string? name) => string.Create(
-        CultureInfo.InvariantCulture,
-        $"There is no profile called '{name}'. This framework ships {string.Join(" and ", All.Select(profile => profile.Name))}.");
 }

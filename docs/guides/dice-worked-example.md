@@ -110,7 +110,6 @@ hands you the line to run. Answer it like this:
 
 | It asks | Answer |
 |---|---|
-| which profile | `dotnet-default`. It is the one with a skeleton — `ml-tensorflow` ships none |
 | where the code lives | `local`. There is no remote |
 | what the solution is for | a six-sided die, rolled over HTTP |
 | what every screen should look and behave like | nothing is on a screen here — it is an endpoint returning JSON. Say that, because *no screens* is an answer and differs from nobody having asked |
@@ -120,8 +119,8 @@ what *done to a good standard* means: `CON_16`, `CON_17` and `CON_05` already pu
 one change at a time. If it asks you anything beyond these — what a reviewer would send back, what this
 will be judged on — it has gone past its own skill.
 
-The line it hands back is the adoption command with `--profile dotnet-default --platform local`, and it
-comes with a leading `!`. **Run it yourself** — the hook denies adoption to an agent, and on Claude Code
+The line it hands back is the adoption command with `--platform local`, and it comes with a leading
+`!`. It does not ask what the die is built from: adoption decides nothing about the stack. **Run it yourself** — the hook denies adoption to an agent, and on Claude Code
 that prefix runs the rest of the line as your own command, so what it prints lands in the conversation
 where the agent can read the file list back.
 
@@ -132,10 +131,11 @@ what each file is. Then install the hook it wrote but deliberately did not insta
 git config core.hooksPath .sdlc/hooks
 ```
 
-## 4. Fill in the two protected files
+## 4. Place the two protected files
 
-Adoption writes `.sdlc/solution.md` and `.sdlc/techstack.md` from the profile's templates and protects
-them immediately, so nothing can fill them for you. **Do this before the cycle, not after.**
+Adoption writes `.sdlc/solution.md` with a placeholder and does not write `.sdlc/techstack.md` at all.
+Both are protected, so nothing can place them for you. **Do this before the cycle, not after** — the
+cycle will not open without the second.
 `solution.md` is the only file in the solution that says what good looks like, and a plan that reads
 *Replace this with a paragraph a newcomer could read* has been told nothing.
 
@@ -143,7 +143,7 @@ them immediately, so nothing can fill them for you. **Do this before the cycle, 
 sdlc draft solution
 ```
 
-It writes the whole file beside the real one, carries the four keys through as recorded, and prints the
+It writes the whole file beside the real one, carries the three keys through as recorded, and prints the
 rename that places it:
 
 ```pwsh
@@ -155,9 +155,22 @@ The paragraph for this solution is about a line:
 > A six-sided die, rolled over HTTP. One endpoint, one face, no history and no storage. Responses are
 > the solution's envelope and nothing else; there is no user interface and none is wanted.
 
-The declared stack needs nothing changed — the profile has already filled it, and the rows that matter
-here are MSTest on Microsoft.Testing.Platform for the unit layer and ASP.NET Core for the api. If you do
-want to edit it, `sdlc draft techstack` copies it beside itself and prints the same kind of rename.
+Then the stack:
+
+```pwsh
+sdlc draft techstack
+```
+
+The draft is the framework's default, and for a d6 over HTTP it needs nothing changed: the rows that
+matter here are MSTest on Microsoft.Testing.Platform for the unit layer and ASP.NET Core for the api,
+and the three stack rules under `## Rules` are all marked `true`. Rename it as it is:
+
+```pwsh
+Move-Item .sdlc/techstack.draft.md .sdlc/techstack.md
+```
+
+What is in that file is now exactly what binds. A solution that was not .NET would have cut the draft
+down first, or drafted an empty one with `--empty`.
 
 ```pwsh
 sdlc propose constraints

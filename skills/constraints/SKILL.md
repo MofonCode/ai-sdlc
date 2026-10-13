@@ -42,16 +42,17 @@ whether a finding is cheap or expensive in this case. Read it before deciding a 
 | Tier | Id | Where it lives |
 |---|---|---|
 | global | `CON_nn` | the framework |
-| profile | `PRO_nn` | the profile `solution.md` records, carried by the binary |
+| profile | `PRO_nn` | the stack rules `.sdlc/techstack.md` switches on, carried by the binary |
 | solution | `LOC_nn` | `.sdlc/constraints.md` |
 
 Resolved in that order, so a solution's own rules are the last word.
 
-**The profile tier moves with the `profile` key, and not every profile fills it.** `dotnet-default`
-ships rules that have to name a framework — the global set may not, which is what the tier is for.
-`ml-tensorflow` ships none, because nothing has been built from it yet and a rule written ahead of the
-first real solution would be a guess with the authority of a constraint. So a profile migration changes
-what binds, and the output of this command after one is the only place to read what.
+**The profile tier is whatever the declared stack switches on, one row a rule.** These are the rules
+that have to name a framework — the global set may not, which is what the tier is for. The declared
+stack lists each under `## Rules` with `true` or `false` beside it: `true` binds, `false` or no row does
+not, and a stack with nothing in it has no such rules at all. So a tier line missing from this
+command's output is a solution that switched none on, and a change to that file changes what binds —
+the output here is the only place to read the result in full.
 
 ## Ids and revisions
 

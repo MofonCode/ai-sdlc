@@ -78,8 +78,9 @@ public static class ProtectedPaths
                 "what this solution is built from",
                 "The declared stack is the second rule source a plan is read against, and CON_15 judges "
                 + "every plan against it - so an agent that could write it could satisfy that rule by "
-                + "adding the row it wanted. Adoption creates it from the profile's template and nothing "
-                + "rewrites it after. Run 'sdlc draft techstack', edit the draft, and rename it.");
+                + "adding the row it wanted, or drop a stack rule by switching its row off. A person "
+                + "places it and nothing else writes it. Run 'sdlc draft techstack', edit the draft, "
+                + "and rename it.");
         }
 
         if (string.Equals(fileName, DecisionParser.FileName, StringComparison.OrdinalIgnoreCase))
@@ -95,11 +96,11 @@ public static class ProtectedPaths
         if (string.Equals(fileName, Cycle.SolutionFileName, StringComparison.OrdinalIgnoreCase))
         {
             return new ProtectedFile(
-                "what this solution is and which profile governs it",
-                "The origin is a historical fact that must never change, and the profile is a choice "
-                + "revisited rarely. Protecting the file costs one manual line per migration and keeps "
-                + "every hook rule absolute - per-key protection would be the first conditional rule, "
-                + "which is where a bypass would live. Run 'sdlc draft profile <name>'.");
+                "what this solution is and where its code came from",
+                "The origin is a historical fact that must never change, and the standard and the "
+                + "platform are choices revisited rarely. Protecting the file costs one rename per "
+                + "change and keeps every hook rule absolute - per-key protection would be the first "
+                + "conditional rule, which is where a bypass would live. Run 'sdlc draft solution'.");
         }
 
         return null;

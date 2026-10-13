@@ -15,12 +15,14 @@ Adopt it, once:
 
 1. `git init` — and **create the remote first** if the code will live on one. Adopting before one exists
    costs a hand-placed platform key later, because `solution.md` is protected by then
-2. `/sdlc:init`, which asks the three things the command cannot guess and then hands you the adoption
-   command to run yourself
+2. `/sdlc:init`, which asks the one thing the command cannot guess — where the code will live — and
+   then hands you the adoption command to run yourself
 3. `git config core.hooksPath .sdlc/hooks`, and **make the pipeline's check required** in branch policy.
    Until it is required, the one guarantee is advisory
 4. `sdlc draft solution` and `sdlc draft techstack` — place both **before** the first cycle. A plan that
-   reads *Replace this with a paragraph a newcomer could read* has been told nothing
+   reads *Replace this with a paragraph a newcomer could read* has been told nothing, and **`sdlc new`
+   refuses until the declared stack is placed**: adoption does not write it, the draft is the
+   framework's default for you to cut down, and `--empty` drafts one that pins nothing
 5. back to `/sdlc:init` for the interview and the `LOC_` rules it proposes
 
 Then the cycle:
@@ -71,7 +73,7 @@ sdlc init
 
 In a repository that already holds code, one option is worth knowing before you run it:
 `--adopt-standard` holds new work to the profile's conventions rather than to the code already there. It
-writes the stack files an adopted solution otherwise never gets — `.editorconfig`, both props files,
+writes the build settings a new solution gets with its skeleton — `.editorconfig`, both props files,
 `global.json` — and records `standard: profile`. It overwrites nothing and migrates nothing; the cost is
 that `Directory.Build.props` makes warnings errors, so the next build can fail on files nobody has
 touched. `sdlc help` has the whole of it.
@@ -84,7 +86,7 @@ this solution, and the `LOC_` rules it proposes.
 | | What runs it | What it does |
 |---|---|---|
 | `sdlc constraints` | binary | the rules in force, all tiers resolved |
-| `sdlc new` | binary | allocates the id, creates the directory, names the branch |
+| `sdlc new` | binary | allocates the id, creates the directory, names the branch. Refuses while no declared stack is placed |
 | `/sdlc:intent` | agent | interviews you into `intent.md` |
 | `/sdlc:interrogate <id> intent` | agent, fresh process | writes `findings/intent.r1.json` |
 | `/sdlc:refine <id> intent` | agent | applies those findings to `intent.md` |

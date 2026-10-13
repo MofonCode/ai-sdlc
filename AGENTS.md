@@ -42,7 +42,7 @@ the cheapest way to discover that what you were about to add already lives somew
 |---|---|
 | [`CONCEPT.md`](CONCEPT.md) | the design, and every decision behind it with what each one rejected |
 | [`CONSTRAINTS.md`](CONSTRAINTS.md) | the seventeen global constraints, each with what it forbids and why |
-| `src/Sdlc.Core/Constraints/Profiles/` | one document per profile: its `PRO_` rules, the only tier where a rule may name a language, framework or package. Embedded in the binary, found by the profile's name |
+| `src/Sdlc.Core/Constraints/Profiles/` | the stack rules, one document per profile: `PRO_` ids, the only tier where a rule may name a language, framework or package. Embedded in the binary; a solution is held to the ones its declared stack marks `true`, so an id is unique across every document here |
 | `CONCEPT.raw.md` | the original longhand draft, preserved unedited |
 | `src/Sdlc.Core/` | the gate's logic: constraints, cycles, approvals, findings, hooks, evidence, the chain |
 | `src/Sdlc.Cli/` | the one binary every skill on every host calls |
@@ -59,7 +59,7 @@ It is the current authority on every design question. Read it before proposing a
 framework works, and cite the decision you are revisiting.
 
 **Do not load the whole file to find one decision.** §1–18 state what is true and read front to back; §20
-is an appendix of 51 decisions and about half the document, and it is reference material you query rather
+is an appendix of every decision and about half the document, and it is reference material you query rather
 than read. Three lookups, in the directions anybody actually travels:
 
 ```sh
@@ -71,7 +71,7 @@ awk '/^### D-/{d=$2} /^..Governs:/{print d" "$0}' CONCEPT.md | grep '11.3'
 sed -n '/^### D-38/,/^### D-39/p' CONCEPT.md
 
 # I do not yet know which decision I want. The whole list, one line each, sorted by the section it
-# governs - 51 lines rather than 1600, so neighbours are the decisions that constrain each other:
+# governs - one line each rather than the whole appendix, so neighbours are the decisions that constrain each other:
 awk '/^### D-/{h=$0; sub("^### ","",h)}
      /^..Governs:/{g=$0; sub("..Governs:.. ","",g); print g "  |  " h}' CONCEPT.md | sort
 ```
@@ -140,8 +140,8 @@ than refused: it says the stage is a skill and names the invocation.
 
 **Six files only a person writes**, in a governed solution: `approval.md`, `abandoned.md`,
 `constraints.md`, `decisions.md`, `solution.md`, `techstack.md`. No tool writes them. A tool prints what
-belongs in them — `sdlc draft approval`, `draft abandon`, `draft profile`, `draft solution`,
-`draft techstack` — and a person places it. **Two are proposed rather than drafted**, because their
+belongs in them — `sdlc draft approval`, `draft abandon`, `draft solution`, `draft techstack` — and a
+person places it. **Two are proposed rather than drafted**, because their
 wording is argued from the record rather than dictated: `sdlc propose constraints` from the findings, and
 `sdlc propose decisions` from what an approved cycle stated.
 
@@ -167,7 +167,7 @@ a follow-up is a thing somebody has to remember, and the document is wrong in th
 | adds, removes or reworks a refusal | [`docs/guides/when-it-blocks.md`](docs/guides/when-it-blocks.md) |
 | changes the flow a person walks through | [`docs/guides/first-cycle.md`](docs/guides/first-cycle.md) |
 | adds, removes or renames a guide | [`docs/guides/README.md`](docs/guides/README.md) — its table row, its own `##` section, and the count in the opening line — **and** the Where to read more table in [`README.md`](README.md). The suite holds that the index's headings and that table name the same set as the directory |
-| adds or changes what a profile declares, or the rules it ships | `Solutions/StackProfile` for the rows, `Constraints/Profiles/<profile>.md` for the rules, and [`docs/guides/the-stack.md`](docs/guides/the-stack.md), which is where a person reads both. A rule count stated in a document is held by the suite |
+| adds or changes what a profile declares, or a stack rule | `Solutions/StackProfile` for the rows, `Constraints/Profiles/<profile>.md` for the rules, and [`docs/guides/the-stack.md`](docs/guides/the-stack.md), which is where a person reads both. A rule count stated in a document is held by the suite. **A new rule reaches no existing solution until its row is added there** — say so wherever the release is described |
 | adds, removes or renames a tool under `tools/` | [`tools/README.md`](tools/README.md) — its row and its own section |
 | adds or removes a file only a person writes | `ProtectedPaths` (its description, its reason, and `Names`), the count in [`README.md`](README.md), [`skills/README.md`](skills/README.md), [`skills/draft/SKILL.md`](skills/draft/SKILL.md), the denial table in [`docs/guides/when-it-blocks.md`](docs/guides/when-it-blocks.md), and `CONCEPT.md` §5.3 and §8 |
 | moves the project boundary, an operation's shape, or where a new thing goes | [`src/README.md`](src/README.md) |

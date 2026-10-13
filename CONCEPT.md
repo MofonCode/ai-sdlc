@@ -374,11 +374,12 @@ Six files only a person writes:
 | `abandoned.md` | why the cycle stopped |
 | `constraints.md` | a proposed `LOC_nn` — **proposed rather than drafted**, D-69 |
 | `decisions.md` | a proposed `DEC_nn` — proposed from the approved record, D-70 |
-| `techstack.md` | a stack change — the file copied beside itself, for a person to rename, D-67 |
-| `solution.md` | the `profile` line, on migration |
+| `techstack.md` | the declared stack — the file copied beside itself, or the framework's default where none is placed yet, for a person to rename, D-67 and D-76 |
+| `solution.md` | the whole document, beside itself — its three keys carried through and its prose unchanged, D-62 |
 
-One verb drafts four of them: `sdlc draft approval <id>`, `draft abandon <id>`, `draft profile <name>`,
-`draft solution`, `draft techstack`. `draft approval` also takes `--deny` and `--changes-requested`
+One verb drafts four of them: `sdlc draft approval <id>`, `draft abandon <id>`, `draft solution`,
+`draft techstack`. There was a fifth drafter, `draft profile`, until no solution recorded a profile
+(D-76). `draft approval` also takes `--deny` and `--changes-requested`
 (D-11). Each produces a ready-made entry; the person reads it, decides, and places it.
 
 **Two of the six are the exception, and the verbs split on them (D-69, D-70).** A constraint's wording
@@ -661,7 +662,7 @@ tier or nowhere.
 | Tier | Id | Lives in |
 |---|---|---|
 | global | `CON_nn` | the plugin's library |
-| profile | `PRO_nn` | the profile `solution.md` records, carried by the binary (D-74) |
+| profile | `PRO_nn` | the stack rules `techstack.md` marks `true`, carried by the binary (D-74, D-76) |
 | solution | `LOC_nn` | `.sdlc/constraints.md` |
 
 Global, then profile, then solution. The effective set is rendered on demand by
@@ -825,7 +826,7 @@ protected two more:
 |---|---|---|
 | `constraints.md` | a person, by hand | the hook denies every agent write |
 | `decisions.md` | a person, by hand | the hook denies every agent write (D-70) |
-| `techstack.md` | a person, by hand | the hook denies every agent write (D-67) |
+| `techstack.md` | a person, by renaming a draft — `init` does not create it (D-76) | the hook denies every agent write (D-67) |
 | `solution.md` | `init` creates it; a person, by hand, after that | the hook denies every agent write |
 | `theme.json` | a cycle whose plan declares it | the ordinary declared-file gate (D-71) |
 
@@ -902,15 +903,29 @@ omitting it is paid by somebody who did not omit it (§11.1, D-54).
 **The file itself is a person's, not a cycle's** (D-67). A plan may not declare it, and the plan schema
 refuses one that does; `sdlc draft techstack` copies the file beside itself for a person to rename.
 
+**It also lists the stack rules the solution is held to, and that table does bind** (D-76). Under
+`## Rules`, one row a rule: a `PRO_` id, `true` or `false`, and what the rule holds a plan to. A
+solution is judged against exactly the ones marked `true`; `false`, or no row, is a rule that does not
+apply. So what a person reads in this file is the whole of what the stack contributes to a plan's
+judgement — nothing is selected by a name recorded elsewhere. The two tables are told apart by their
+width: a rule row has three cells and a default has two.
+
+**`init` does not create it.** The first draft is the default profile's rows with every shipped rule
+switched on, written by the drafter where no file is in place; a person cuts it down and renames it,
+and `sdlc new` refuses until it is there. **An empty file is a legitimate answer** — nothing pinned, no
+stack rule in force, every plan choosing freely — and is different from a missing one, which is nobody
+having decided.
+
 ### 8.3 `solution.md`
 
-Four keys.
+Three keys. There was a fourth, `profile`, until the declared stack listed its own rules (D-76); a
+solution adopted before that may still carry the line, and it is read only as a fallback for a stack
+file that lists no rule.
 
 | Key | What consumes it |
 |---|---|
-| `profile` | `init` and `plan`, to resolve which profile package applies |
 | `origin` | `intent`, to know whether "this repository holds no solution at all" is true |
-| `standard` | `plan`, to know whether new work follows the profile's conventions or the surrounding code's, and `init`, to know whether to write the stack files. Absent derives from `origin` (D-56) |
+| `standard` | `plan`, to know whether new work follows the profile's conventions or the surrounding code's. Absent derives from `origin` (D-56) |
 | `platform` | `doctor`, to tell a local solution from a broken install, and `pr`, to know whether there is anywhere to push. Absent reads as `github` (D-53) |
 
 **`origin` and `standard` are two keys because they answer two questions and only one of them may
@@ -933,7 +948,7 @@ model-invoked. Three modes (D-28):
 
 | Mode | When | What it does |
 |---|---|---|
-| **greenfield** | a new solution | writes the governance and the stack settings, `origin: scaffolded`, `standard: profile` |
+| **greenfield** | a new solution | writes the governance only, `origin: scaffolded`, `standard: profile` |
 | **onboard** | existing code, no `.sdlc/` | writes the governance only, `origin: adopted`, `standard: existing` |
 | **update** | `.sdlc/` exists | refreshes only what the framework owns (D-40) |
 
@@ -945,11 +960,15 @@ stack file is created once and never rewritten. On **update** the files are writ
 printed for a person to place, since `solution.md` is protected — and the report says which half
 happened, because that is the one state where the files on disk and the rule a plan reads disagree.
 
-**`init` writes no code, and no projects** — D-35. A scaffolded solution gets the files that constrain
-how code is written (`.editorconfig`, the two props files, `global.json`), and every one of them
-constrains nothing until code exists. The solution itself — a solution file, its projects, the
-banned-API list, the architecture tests and a reference slice — is `sdlc scaffold`, which refuses
-unless a cycle's plan has been approved. Code arriving at adoption would be the one thing in a
+**`init` decides nothing about the stack** — D-76. It takes no profile, writes no `techstack.md`, and
+writes the .NET build settings only when `--adopt-standard` asks for them. What a solution is built
+from is declared afterwards, in a file a person places.
+
+**`init` writes no code, and no projects** — D-35. The solution itself — a solution file, its projects,
+the banned-API list, the architecture tests and a reference slice — is `sdlc scaffold`, which refuses
+unless a cycle's plan has been approved, and which now also writes the files that constrain how that
+code is written (`.editorconfig`, the two props files, `global.json`): they constrain nothing until
+code exists, so they arrive with it. Code arriving at adoption would be the one thing in a
 governed repository with no chain behind it.
 
 **What update may touch is decided by whose name is on the file — D-40.** It rewrites what the
@@ -973,8 +992,9 @@ codebase: reading an existing repository to decide what to forbid would make ado
 code that predates the framework.
 
 **`origin` is decided by `git ls-files`, and it is about code rather than commits.** A repository
-holding only an empty commit, a README or a licence is `scaffolded`. `techstack.md` comes from the
-profile's defaults when scaffolded, and is read from the repository when adopted.
+holding only an empty commit, a README or a licence is `scaffolded`. `techstack.md` is drafted from the
+default profile either way, and on an adopted repository the skill edits that draft from what the
+repository actually uses before a person places it (D-76).
 
 **`AGENTS.md`** is lean and under 200 lines: a short summary of what the solution is; references —
 a relative path plus a one-line description — to `techstack.md`, the build and test procedure, and
@@ -1113,7 +1133,9 @@ run rather than at the end (D-24). Plain `batch-build` never pushes.
 
 ## 11. Tech stack and profiles
 
-Strongly opinionated, and the opinion is a swappable **profile**.
+Strongly opinionated, and the opinion is a **profile** a solution starts from and then owns: the
+default is what a first stack draft is written from, and nothing in a governed solution records one
+(D-76).
 
 ### 11.1 `dotnet-default`
 
@@ -1261,8 +1283,8 @@ wins**, and the profile proposes a shape for new work without rewriting the conv
 that predates it. A scaffolded solution starts on `profile`, an adopted one on `existing`.
 
 That extends to what the profile *writes*: an `.editorconfig`, a `BannedSymbols.txt` and a fitness
-function are written only where the standard is the profile's. An adopted solution gets them when its
-team asks, with `--adopt-standard`, and not otherwise — D-56.
+function arrive with the skeleton, from `sdlc scaffold` (D-76). An adopted solution gets the build
+settings when its team asks, with `--adopt-standard`, and not otherwise — D-56.
 
 **What is still not done is a baseline**, which remains a non-goal (§18) for the same reason constraints
 carry no baseline field (§8.3): an existing repository is not in violation on its first day, and nothing
@@ -1402,7 +1424,9 @@ a document, and so the profile tier resolved to nothing for every solution on ev
 `draft profile` told a person that a different profile resolved a different set of rules, the component
 dictionary said the `profile` key decided which rules resolved, and the first-cycle guide listed the
 tier as though it had content. D-74 fills it: `dotnet-default` ships three rules, a profile's document is
-found by its name, and `ml-tensorflow` ships none deliberately. What makes the tier worth having is
+found by its name, and `ml-tensorflow` ships none deliberately. **D-76 changes what selects them**: not a
+profile a solution records, but the rows of its own declared stack, one a rule, each marked `true` or
+`false`. What makes the tier worth having is
 §7.2's stack-neutrality clause — a global constraint may not name a language, framework or package, so a
 judgement that cannot be made without a name has nowhere else to live.
 
@@ -2178,6 +2202,10 @@ collides with `Must not change` and with "constraints".
 
 **Governs:** §5.3
 
+**Superseded in part by D-76.** No solution records a profile, so there is no profile change to draft
+and `draft profile` is gone. What this entry is about — the file is protected whole, and a tool drafts
+what belongs in it — stands, and `draft solution` (D-62) is the drafter.
+
 **Why.** `origin` is a historical fact that must never change and `profile` is a choice revisited
 rarely, so protecting both costs one manual line per migration. The alternatives either expose
 `origin` or introduce the framework's **first conditional hook rule**, which is where a bypass would
@@ -2652,6 +2680,10 @@ made a kernel-free scaffold look necessary.
 ### D-35 — `init` writes no code; the solution comes from an approved plan
 
 **Governs:** §9, §15.2
+
+**Superseded in part by D-76.** The table below puts the build settings at adoption. They are written
+by `sdlc scaffold` now, with the skeleton, because adoption is no longer told what a solution is built
+from. The line this entry draws — adoption writes no code — is unchanged.
 
 **Decision.** Adoption writes the governance and the files that constrain how code is written, and
 stops there. The solution file, the projects, the architecture test project and the reference slice
@@ -4670,6 +4702,10 @@ same size, which is ordinary progress.
 
 **Governs:** §5.3, §8
 
+**Superseded in part by D-76.** Adoption no longer creates the file: a person places it from a draft,
+which starts from the framework's default where no file is in place. The drafter proposing no rows
+holds for every draft after the first. Why the file is protected, and the byte copy, stand.
+
 **Decision.** `techstack.md` becomes the fifth protected file. Adoption creates it from the profile's
 template and nothing writes it again: every agent write is denied by file path and by shell command,
 exactly as for the other four. A change after that is `sdlc draft techstack`, which copies the file beside
@@ -4722,6 +4758,10 @@ job once, and after that it would be a tool declaring a stack.
 ### D-68 — A profile selects one flat stack table, and says when it has no skeleton
 
 **Governs:** §8.3, §11.5
+
+**Superseded in part by D-76.** The `profile` key, the `--profile` option, the refusal of an unknown
+name and `Scaffolds` are gone: no solution records a profile. One flat table a person owns, no
+stacking, and overlap handled in the framework all stand.
 
 **Decision.** `StackProfiles` ships two embedded profiles, `dotnet-default` and `ml-tensorflow`. The
 `profile` key selects which declared stack adoption writes. Rows are composed in the framework from a
@@ -5167,6 +5207,10 @@ list worth keeping, which is what an entry is for.
 
 **Governs:** §7.2, §7.3, §11.5
 
+**Superseded in part by D-76.** The tier no longer resolves from a profile a solution records. A
+solution is judged against the rules its declared stack marks `true`, and ids are unique across every
+profile's document rather than per profile. The three rules and the reasons for them stand.
+
 **Decision.** `PRO_nn` constraints become real. Each profile may ship one document, embedded in the
 binary and resolved by the profile's own name, so that giving a profile its first rule is adding a file
 and a profile with no file has no rules rather than an empty set. The profile tier resolves from the
@@ -5225,6 +5269,10 @@ rules during the framework's own development needs a rebuild.
 ### D-75 — The stack options menu is a second file, and nothing ever renames it
 
 **Governs:** §8, §11.5, §16
+
+**Superseded in part by D-76.** `doctor` no longer counts rows differing from a recorded profile —
+there is none — and an empty declared stack is sound rather than a problem. The menu also lists every
+stack rule, and its empty table is the default profile's. The menu being a report nothing renames stands.
 
 **Decision.** `sdlc draft techstack` writes two files. The draft stays what it was — a byte copy of the
 declared stack, which a person renames into place. The second is **a report** under `.sdlc/reports/`:
@@ -5302,3 +5350,105 @@ somebody to stop reading it, which is the failure `CheckOutcome.Elsewhere` alrea
   governed solution — `.sdlc/` holds tracked records, so it could not use the reports directory's blanket
   `*` and would need a named entry maintained alongside the constant. D-69's directory already exists and
   already argues the case.
+
+### D-76 — The declared stack lists its own rules, a person places it, and no solution records a profile
+
+**Governs:** §5.3, §7.3, §8.2, §8.3, §9, §11.5
+
+**Decision.** `techstack.md` holds two tables and nothing about the stack is selected from anywhere
+else. The first pins choices, as before. The second, under `## Rules`, lists stack rules one row each —
+a `PRO_` id, `true` or `false`, and what the rule holds a plan to — and a solution is judged against
+exactly the ones marked `true`. Adoption does not write the file: `sdlc draft techstack` writes a first
+draft of the default profile's rows with every shipped rule switched on, a person cuts it down and
+renames it, and `sdlc new` refuses to open a cycle until it is there. A file with nothing in it is a
+legitimate declared stack: nothing pinned, no stack rule in force. `solution.md` drops to three keys;
+`sdlc init --profile` and `sdlc draft profile` are gone and answered with a sentence; the .NET build
+settings are written by `sdlc scaffold` with the skeleton rather than by adoption.
+
+**Why.** The `profile` key did three jobs and was visible in none of them. It seeded the declared stack
+once, at adoption; it selected the `PRO_` tier on every interrogation; and it was the yes-or-no that let
+the .NET skeleton and build settings be written. A person reading their own stack file could not see the
+second or third — recording `dotnet-default` brought three rules with nothing in the solution saying so,
+and the file's own header said nothing in it bound by itself. And the key was asked for at the wrong
+moment: on the adoption command line, before anybody had said what the solution was built from, with
+the answer protected the instant it was written.
+
+**It was also two sources of truth, and they had already disagreed.** A refresh resolved the profile
+from the command line rather than from the recorded document, so a plain `sdlc init` on a scaffolded
+solution recording `ml-tensorflow` would have written `.editorconfig`, the props files and `global.json`
+into a Python repository. Nothing failed on it because no test re-ran adoption without the flag on that
+profile. Removing the option removes the second source rather than reconciling it.
+
+**Why the rules are rows rather than a name.** A flag such as `rules: dotnet-default` in the stack file
+was the first shape considered, and it has the fault the profile had: it is a pointer somebody has to
+look up. The expanded form puts what binds on the page, makes declining one rule an edit to the line
+that says it is on, and costs one thing — an id has to be unique across every shipped document, because
+a row names a rule by id alone. D-74 numbered each profile's rules from 01; one document ships rules
+today, so the change is free now and a constraint on the next.
+
+**Why the approval stands in for the skeleton flag.** `StackProfile.Scaffolds` existed so a profile
+declaring Python could not be handed twenty-four .NET templates. There is no profile to ask, and nothing
+needs to be: `sdlc scaffold` already runs only behind a plan a person approved, and a plan declaring
+those files says the solution is .NET. Where the declared stack pins something else, that plan had to
+argue the departure under `CON_15` to be approved at all. The same reasoning moves the build settings:
+D-35 put them at adoption because they constrain nothing until code exists, which is equally the reason
+nothing is lost by their arriving with the code — and at adoption they are a decision about a stack
+nobody has declared.
+
+**Why every draft starts from the default, adopted repositories included.** D-67 gave an adopted
+solution four empty rows, because the file was written straight into place and a guess written down as
+a declaration is worse than nothing. A draft is not a declaration. It is read and cut down before it is
+placed, and the adoption skill edits it from the repository first — the one place reading the codebase
+is right. The risk that remains is a default renamed unread onto a codebase that is not .NET, and it is
+said out loud in the skill and in the drafter's own output rather than designed away.
+
+**Why an empty file is the open state, and needs no marker.** While adoption wrote the file, empty meant
+nobody had got round to it, and `doctor` was right to call it a problem. Now a person places it, so the
+rename is the statement: present and empty is a decision that nothing is pinned, absent is nobody
+having decided. That is the distinction D-53 drew for `platform: local` — recorded rather than inferred
+— and here the record is the file's existence. The cost, named: on an empty stack nothing keeps the
+second cycle from choosing a different framework from the first.
+
+**Why `sdlc new` is where the missing file is refused.** A cycle that reached its plan with no declared
+stack would be judged against nothing, with no stack rule in force and every gate green — the failure
+D-74 describes, a tier that resolves to nothing looking exactly like one that was dropped. Refusing at
+the plan would spend an intent and a spec first. Refusing at the open spends nothing, and the remedy is
+one command and one rename.
+
+**What an existing solution keeps.** Its `solution.md` still carries a `profile:` line no tool may take
+out, and its stack file lists no rule. That line is read as a fallback — only for a stack file that
+declares defaults and lists no rule — so upgrading the binary drops nothing a solution was held to. It
+ends the moment the stack file says anything about rules, or is emptied. `doctor` says where such a
+solution's rules still come from, and `draft solution` writes the document without the line.
+
+**What this costs.** A rule a later release adds reaches no existing solution until somebody adds its
+row; `doctor` names it so it is declined rather than unseen, and that is the right way round — an
+upgrade of the binary should not change what a plan is judged against. The third column of a rule row
+can go stale against the rule's wording; nothing binds on it, and `sdlc constraints` prints the rule
+itself. And the declared stack is no longer only "a declaration of defaults": one table of it selects
+rules, which every sentence that said nothing in the file binds had to be rewritten to say.
+
+**What is left undone, deliberately.** `standard: profile` is still spelled that way, though no solution
+records a profile. The key means what it meant — new work follows the framework's conventions rather
+than the surrounding code — and renaming the value would touch every existing protected `solution.md`
+for a word. Worth doing with the next change to that file's keys, not for its own sake.
+
+**Rejected.**
+
+- *Dropping the skill's question and keeping the `--profile` option.* Delivers the default without
+  asking and leaves both sources of truth, the invisible rule selection and the refresh defect.
+- *A named flag in the stack file — `rules: dotnet-default`, or `dotnet: true`.* The profile key moved
+  one file over. Still a pointer, and the boolean bakes one stack into the file's format.
+- *Inferring the rules from the `language, framework` row.* A typo or a reworded cell silently turns
+  the tier off, in a file a person edits by hand — a tier that resolves to nothing and says nothing.
+- *A marker line for the open state.* The placed file already is the statement; a marker would be a
+  second one that could disagree with it.
+- *Keeping the build settings at adoption, on the default.* A solution on another stack deletes five
+  files once. Cheaper to build, and it is adoption deciding the stack on the way past.
+- *A new skill between adoption and the first cycle.* Everything that happens there already has a home
+  — the stack in `draft`, rules and a theme in `propose` — so it would orchestrate three skills and add
+  a nineteenth to every index. Worth revisiting if adoption still reads as overloaded.
+- *Removing `ml-tensorflow`.* The options menu is derived from the profiles, so its rows would leave
+  the menu with it. It stays as menu content and governs nothing.
+- *Empty rows for an adopted repository's first draft.* The argument for them was about a file written
+  into place, and no longer applies to a draft.

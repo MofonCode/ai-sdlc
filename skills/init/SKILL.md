@@ -40,7 +40,7 @@ loads these instructions a second time. That loop is three identical rounds befo
 Hand over the line with a leading `!`:
 
 ```
-! sdlc init [--profile <name>] [--platform github|azure-devops|local] [--adopt-standard]
+! sdlc init [--platform github|azure-devops|local]
 ```
 
 On Claude Code the `!` prefix runs the rest of the line as the person's own command rather than as a tool
@@ -50,57 +50,28 @@ conversation and you can read the mode, the origin and the file list back withou
 bare line sends the person to another terminal and the output has to be copied in by hand. On a host with
 no such prefix, say to run it in a terminal at the repository root and paste what it prints.
 
-**Ask which profile governs the solution**, because it decides what the declared stack starts as, which
-`PRO_` rules the solution is judged against, and whether a scaffold has a skeleton to write — and the
-stack file is protected the moment it is created, so a wrong answer costs a draft and a rename rather
-than an edit. Two exist:
+**Ask one thing before you hand over the line: where the code will live**, because the answer decides
+whether a pipeline is written and there is no good default for somebody who has not said. If the
+repository has no remote yet — `git remote -v` prints nothing — `local` is the honest answer: a pipeline
+for a service nothing will ever send it to is a file that looks like a gate and is reachable by nothing.
 
-| Profile | What it declares | Skeleton |
-|---|---|---|
-| `dotnet-default` | C# and .NET across api, web, desktop and Android | yes -- `sdlc scaffold` writes it |
-| `ml-tensorflow` | Python and TensorFlow for model work, on the same Azure platform | **no** -- `sdlc scaffold` refuses and says so |
+**Do not ask what the solution is built from, and do not ask which conventions new work follows.**
+Adoption decides neither. The stack is declared afterwards, in step 4, in a file a person places — there
+is no profile to choose and `sdlc init` refuses `--profile` with a sentence saying so. And an existing
+codebase keeps its own conventions unless somebody asks otherwise, which is the default the command
+already takes.
 
-**Say what the second one costs before they choose it**, in one line: it ships no solution skeleton, no
-architecture suite and no `PRO_` rules, so shape is held by review rather than by a failing build. That
-is honest rather than lesser -- the .NET skeleton earned its shape from a solution that was actually
-built, and a Python one written ahead of any real solution would be guesswork with the authority of a
-default; the same argument keeps rules out of it. The platform rows are shared, so either profile
-declares the same Azure, Terraform and data stores.
-
-**A name nothing answers to is refused rather than recorded**, before anything is written. So a typo
-costs a re-run and never a solution that declares a stack it did not get.
-
-**Ask where the code will live before you hand over the line**, because the answer decides whether a
-pipeline is written and there is no good default for somebody who has not said. If the repository has no
-remote yet — `git remote -v` prints nothing — `local` is the honest answer: a pipeline for a service
-nothing will ever send it to is a file that looks like a gate and is reachable by nothing.
-
-**In a repository that already holds code, ask one more question before you hand the line over:
-should new work follow the profile's conventions, or the code already here?** It is the only question in
-this skill whose answer writes files, and the answer is not guessable — a team six months into a rewrite
-answers differently from a team maintaining something stable.
-
-| Answer | Flag | What it does |
-|---|---|---|
-| the code already here | none | the default. Nothing extra is written |
-| the profile's conventions | `--adopt-standard` | writes `.editorconfig`, both props files and `global.json`, and records `standard: profile` |
-
-**Say what the flag costs before they choose it, in one line**, because the cost lands on the next build
-rather than on this command: `Directory.Build.props` makes warnings errors, so a build can start failing
-on files nobody has touched. **The rest of this paragraph is the answer if they ask, not part of the
-line.** That is the opt-in working, not a fault — and the remedy is to narrow a severity or
-scope a rule to a directory, because each of those files is created once and never rewritten, so an
-amendment survives every later run. Nothing is overwritten either: an `.editorconfig` the repository
-already had is kept.
-
-**Two things the flag does not do**, one line each because somebody will assume otherwise.
-It does not migrate the code already there — that is a cycle, with an intent and an approval, like any
-other work. And it does not change the origin, which stays `adopted` for the life of the repository.
-
-**On a repository that is already governed, it writes the files and prints the key.** `solution.md` is
-protected, so adoption creates it and never rewrites it. The report prints the four keys for a person to
-place, and says that until they do, the recorded standard is what every plan is held to. Show that block
-verbatim and let them paste it — the same rule as every other protected file.
+**`--adopt-standard` exists, and you offer it only when a person raises it** — when they say an existing
+codebase should be held to the framework's conventions from now on. Then say what it does and what it
+costs, one line each: it writes `.editorconfig`, both props files and `global.json` and records
+`standard: profile`; and `Directory.Build.props` makes warnings errors, so a build can start failing on
+files nobody has touched. **The rest of this paragraph answers a follow-up.** That is the opt-in
+working, not a fault — the remedy is to narrow a severity or scope a rule to a directory, because each
+of those files is created once and never rewritten. Nothing is overwritten: an `.editorconfig` the
+repository already had is kept. It does not migrate the code already there, which is a cycle like any
+other work, and it does not change the origin. On a repository already governed it writes the files and
+prints the three `solution.md` keys for a person to place, because that file is protected — show that
+block verbatim.
 
 **Say what local costs in one line, once:** no pull-request check governs a merge, so the pre-push hook
 is the only mechanical layer and `--no-verify` walks past it. **The rest answers a follow-up and is not
@@ -191,7 +162,7 @@ tests.** Sort before you propose:
 
 | An answer about | Goes in | Because |
 |---|---|---|
-| what the solution is and who for | the paragraph under the four keys, which `sdlc draft solution` writes | it is there for people: no stage reads that prose, and it binds nothing |
+| what the solution is and who for | the paragraph under the three keys, which `sdlc draft solution` writes | it is there for people: no stage reads that prose, and it binds nothing |
 | which component library, which packages, which project may reference what | an architecture test | test two below rejects it — an analyzer *can* decide it, so a constraint is the wrong tier |
 | the names a visual treatment is expressed in | a theme, which `sdlc propose theme` drafts | roles survive a rebrand where values do not, and a stage can look a role up |
 | whether a judgement was made and recorded — that a visual treatment was considered | a `LOC_` constraint | it needs reading comprehension, which is exactly what test two admits |
@@ -208,12 +179,12 @@ architecture test and a theme. A choice worth recording as a decision is recorde
 the cycle that settled it.
 
 `solution.md` is protected, so you cannot write it -- and you no longer have to hand over a block to
-paste either. **Run `sdlc draft solution`.** It writes the whole file beside the real one, keeping the four
+paste either. **Run `sdlc draft solution`.** It writes the whole file beside the real one, keeping the three
 keys exactly as recorded, and prints the single rename that places it. Show what it prints verbatim.
 
 **Do not let the file stay a placeholder, and do not oversell what it does.** No stage reads the
-paragraph — the four keys above it are what resolve the profile, record the origin, decide which
-conventions new work follows and say whether a pull-request check governs a merge. It is still worth
+paragraph — the three keys above it are what record the origin, decide which conventions new work
+follows and say whether a pull-request check governs a merge. It is still worth
 writing, because it is the one place a person joining this repository learns what it is for, and
 `Replace this with a paragraph a newcomer could read` tells them nothing. That is not hypothetical: a
 block printed for pasting went unpasted through a whole cycle, which is why the drafter writes a file
@@ -248,27 +219,54 @@ paste.
 solutions, and three constraints nobody believes in cost attention at every interrogation for the life of
 the repository.
 
-## 4. Fill in what the scaffolding left blank
+## 4. Declare the stack, and fill in what the scaffolding left blank
 
-Three files are written with placeholders, and they are placeholders on purpose:
+Two files adoption leaves for a person, and one it writes:
 
 | File | What to offer |
 |---|---|
-| `.sdlc/solution.md` | the paragraph from question 1. Protected, so run `sdlc draft solution` and show the rename |
-| `.sdlc/techstack.md` | protected, and created once from the profile's template. On an adopted solution the table is empty -- run `sdlc draft techstack`, fill the draft from what you can read, and show the rename |
-| the stack files | written only where the standard is the profile's. Each is a person's to amend, and a cycle that changes one is a cycle like any other |
+| `.sdlc/solution.md` | written with a placeholder paragraph. Protected, so run `sdlc draft solution` with the paragraph from question 1 and show the rename |
+| `.sdlc/techstack.md` | **not written at all.** Run `sdlc draft techstack`, cut the draft down to what is true here, and show the rename. No cycle opens until it is placed |
 | `AGENTS.md` | written if absent, printed for merging if present |
 
-`techstack.md` is the one place reading the codebase is right — it declares what the solution *is* rather
-than what it *should be*, so being wrong there is a correctable fact rather than a rule applied to
-innocent code.
+**The declared stack is the step that cannot be skipped.** `sdlc new` refuses until the file exists.
 
-**But you cannot place it.** It is protected, like the other four: created once at adoption from the
-profile's template and never written by anything again. So the move is `sdlc draft techstack`, which copies
-it beside itself; fill the draft in from what you read, show what it printed, and let the person rename it.
-The reason it is protected is worth saying once if they ask: it is the second rule source a plan is read
-against, and `CON_15` judges every plan against it, so an agent able to edit it could satisfy that rule by
-adding the row it wanted instead of arguing for it.
+```
+sdlc draft techstack
+```
+
+The draft is the framework's default, whole: every row it would pin, and under `## Rules` every stack
+rule it ships, each marked `true`. **What ends up in the file is exactly what binds** — a row pins a
+choice, no row leaves that choice to each plan, and a rule applies only where its row says `true`. So
+the edit is subtraction:
+
+| The solution | What to do to the draft |
+|---|---|
+| is built on the default stack | nothing. Rename it as it is |
+| is .NET with different choices | change or delete the rows that are not true of it |
+| is built on something else | delete the rows that do not apply, write in what it uses, and set to `false` any rule that names a framework it does not have |
+| should pin nothing yet | `sdlc draft techstack --empty`, and rename that. Nothing is pinned, no stack rule applies, and every plan chooses freely |
+
+**On a repository that already holds code, edit the draft from what you can read before you show the
+rename.** This is the one place reading the codebase is right — the file declares what the solution
+*is* rather than what it *should be* — and it matters here because the draft starts as a stack this
+repository may not use at all. A default renamed unread onto a codebase that is not .NET declares
+something false, and every plan after it is read against that.
+
+**An empty stack is a legitimate answer, and say what it costs in one line**: nothing keeps the second
+cycle from choosing a different framework from the first, because there is no declared default for it to
+depart from. That is the trade for deciding the stack inside the work rather than before it, and rows
+can be added later the same way.
+
+**You cannot place it.** It is protected, like the other five, and nothing but a person's rename ever
+writes it. Show what the command printed and let them rename. The reason is worth saying once if they
+ask: it is the second rule source a plan is read against, and `CON_15` judges every plan against it, so
+an agent able to edit it could satisfy that rule by adding the row it wanted instead of arguing for it —
+or drop a stack rule by switching its row off.
+
+**The `.NET` build settings are not written here.** `.editorconfig`, the props files and `global.json`
+arrive with the solution skeleton, from `sdlc scaffold` in the first cycle, behind that cycle's approved
+plan. A solution on another stack never gets them.
 
 ## 5. Report
 

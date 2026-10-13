@@ -97,6 +97,21 @@ public static class NewCycle
         {
             ArgumentNullException.ThrowIfNull(request);
 
+            // No cycle opens until a person has said what the solution is built from. Adoption does
+            // not write the declared stack any more, so without this a first cycle could reach its plan
+            // with nothing for CON_15 to read it against and no stack rule in force -- every gate
+            // green, and the one argument the stack file exists to force never made. An empty file
+            // passes: that is a person declaring that nothing is pinned, which is a decision, where a
+            // missing file is nobody having made one (D-76).
+            string stack = Path.Combine(solution.Path, Cycle.SdlcDirectoryName, Cycle.TechStackFileName);
+
+            if (!File.Exists(stack))
+            {
+                return Task.FromResult(Result.Fail<Cycle>(string.Create(
+                    CultureInfo.InvariantCulture,
+                    $"There is no {stack}, so nothing says what this solution is built from and a plan would be judged against nothing. Run 'sdlc draft techstack', cut the draft down to what is true here -- or run it with --empty to pin nothing -- and rename it into place. Only a person places that file.")));
+            }
+
             var id = CycleId.Allocate(time);
             Cycle cycle = new(id, solution.Path);
 

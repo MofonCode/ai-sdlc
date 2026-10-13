@@ -48,13 +48,13 @@ public sealed record Cycle(CycleId Id, string SolutionRoot)
     public const string CyclesDirectoryName = "cycles";
 
     /// <summary>
-    /// The file saying what this solution is and which profile governs it.
+    /// The file saying what this solution is and where its code came from.
     /// </summary>
     /// <remarks>
     /// Not a cycle's file, and here because this is where the framework's directory layout is named.
-    /// It carries three keys and no more: the profile that resolves which package applies, the origin
-    /// that decides whether a profile's defaults bind or the existing standard wins, and the platform
-    /// that says whether a pull-request check governs a merge at all.
+    /// It carries three keys and no more: the origin that records where the code came from, the
+    /// standard that says which conventions new work follows, and the platform that says whether a
+    /// pull-request check governs a merge at all.
     /// </remarks>
     public const string SolutionFileName = "solution.md";
 

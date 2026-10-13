@@ -1,6 +1,6 @@
 # ai-sdlc
 
-**Version 0.15.0** · iteration 4 · .NET 10 · MIT
+**Version 0.16.0** · iteration 4 · .NET 10 · MIT
 
 **A plugin that makes an AI coding agent work the way a careful team does** — write down what the change
 is for, agree what *done* means, plan it, have a person approve it, and only then write code.
@@ -118,7 +118,7 @@ sdlc constraints
 ```
 
 It should print the seventeen global constraints in force and say it read them from
-`global  embedded in sdlc 0.15.0`. **Use this rather than `sdlc help` as the smoke test** — `help` and
+`global  embedded in sdlc 0.16.0`. **Use this rather than `sdlc help` as the smoke test** — `help` and
 `version` are the only commands that need nothing from the installation, so they are the two that cannot
 tell you whether it worked. Then `claude plugin details sdlc@ai-sdlc` should say `Skills (18)` and
 `Hooks (2)`: **a hook count below two is a failed install**, not a detail, because the deterministic layer
@@ -132,11 +132,15 @@ startup.
 /sdlc:init
 ```
 
-**Start with the skill.** It asks which profile governs the solution and where the code will live, then
-hands you the adoption command to run yourself — a person runs that and an agent cannot, because
-adoption is a decision about how a team works and it writes the hook configuration that constrains the
-agent. The order matters: the files recording those answers are protected the moment they exist, so
-answering afterwards costs a draft and a rename.
+**Start with the skill.** It asks where the code will live, then hands you the adoption command to run
+yourself — a person runs that and an agent cannot, because adoption is a decision about how a team works
+and it writes the hook configuration that constrains the agent. The order matters: the file recording
+that answer is protected the moment it exists, so answering afterwards costs a draft and a rename.
+
+**Then declare the stack.** Adoption decides nothing about what the solution is built from. `sdlc draft
+techstack` writes a draft of the framework's default — every row it would pin, and every stack rule it
+ships, switched on — and you cut it down and rename it into place. What is in that file is exactly what
+binds; an empty one pins nothing; and no cycle opens until it is there.
 
 **5. Start a cycle.** In your agent, not the shell:
 
@@ -169,7 +173,7 @@ updating, removing, and the four things that catch people. And if something refu
 | [`docs/guides/dice-worked-example.md`](docs/guides/dice-worked-example.md) | **that walk with one solution in it** — a d6 over HTTP, every command, in a repository with no remote |
 | [`docs/guides/cycle-commands.md`](docs/guides/cycle-commands.md) | every command for one cycle, on one screen |
 | [`docs/guides/when-it-blocks.md`](docs/guides/when-it-blocks.md) | every refusal, and the remedy for each |
-| [`docs/guides/the-stack.md`](docs/guides/the-stack.md) | what a solution is built from — the declared stack, the profile that seeds it, and how to change either |
+| [`docs/guides/the-stack.md`](docs/guides/the-stack.md) | what a solution is built from — the declared stack, the stack rules it switches on, and how to change either |
 | [`skills/README.md`](skills/README.md) | the eighteen skills: what each is, when it runs, and who starts it |
 | `sdlc constraints` | the rules in force, all tiers resolved. Run it rather than reading a copy of them |
 
@@ -219,11 +223,18 @@ What is honest to say about the rest:
 
 - **Bounded remediation is implemented and tested, but exercised in fixtures far more than in anger.**
   Everything unattended rests on it, so the first batch runs are worth watching.
-- **The profile constraint tier has content for one profile and has never judged a real plan.**
-  `dotnet-default` ships three `PRO_` rules, resolved from the profile a solution records, and
-  `ml-tensorflow` ships none — nothing has been built from that profile, so a rule there would be a
-  guess with the authority of a constraint. The three were written from convictions this framework has
-  paid for rather than from findings a cycle raised, which is the weaker provenance and worth saying.
+- **The stack rules are .NET only and have never judged a real plan.** The framework ships three
+  `PRO_` rules, and a solution is held to the ones its declared stack marks `true`. None is written for
+  another stack — nothing has been built on one, so a rule there would be a guess with the authority of
+  a constraint. The three were written from convictions this framework has paid for rather than from
+  findings a cycle raised, which is the weaker provenance and worth saying.
+- **Declaring the stack after adoption has not been walked by anybody but its author.** Adoption no
+  longer writes the declared stack or the .NET build settings: a person places the first from a draft,
+  and the second arrive with the skeleton. The suite holds each step; no real adoption has gone through
+  them in order yet.
+- **`standard: profile` is named after something no solution records any more.** The key still means
+  what it meant — new work follows the framework's conventions rather than the surrounding code — and
+  the value was left alone because every existing `solution.md` is protected and already says it.
 - **`pr` and `batch-build` have no command behind the push.** The refusal is in the binary and tested;
   the push itself uses the platform's own CLI.
 - **The Copilot install has never been run**, though nothing is guessed any more: the package conforms to

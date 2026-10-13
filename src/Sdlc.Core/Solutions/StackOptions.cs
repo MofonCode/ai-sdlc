@@ -117,14 +117,15 @@ public static class StackOptions
     ];
 
     /// <summary>
-    /// Renders the menu for a solution.
+    /// Renders the menu.
     /// </summary>
-    /// <param name="profile">
-    /// The profile the solution records, used for the empty table at the end. Null when it could not be
-    /// read, which leaves that section out rather than offering another profile's concerns.
-    /// </param>
+    /// <remarks>
+    /// The same for every solution. It used to end with an empty table of the concerns the solution's
+    /// recorded profile declared, and no solution records a profile any more -- so that table is the
+    /// default profile's, which is the one a first draft is written from (D-76).
+    /// </remarks>
     /// <returns>The document's text.</returns>
-    public static string Render(StackProfile? profile)
+    public static string Render()
     {
         List<string> lines =
         [
@@ -204,8 +205,24 @@ public static class StackOptions
                 $"| {refused.Concern} | {refused.Candidate} | {refused.Why} |"));
         }
 
+        lines.AddRange(
+            string.Empty,
+            "## Stack rules this framework ships",
+            string.Empty,
+            "The rules that may name a language, framework or package. A declared stack lists the ones",
+            "it is held to under `" + StackRules.Heading + "`, each with `true` or `false`; a rule with no row",
+            "there does not apply. Shown switched off here because listing one is not choosing it --",
+            "copy a row into the draft and set it to `true` to be held to it. `sdlc constraints` prints",
+            "the ones in force in full.",
+            string.Empty);
+
+        lines.AddRange(StackRules.Table(
+            Constraints.ShippedProfileLibrary.Rules().Select(rule =>
+                (Constraints.ShippedProfileLibrary.RowId(rule), rule.Statement)),
+            on: false));
+
         lines.Add(string.Empty);
-        lines.AddRange(Skeleton(profile));
+        lines.AddRange(Skeleton());
 
         return string.Join(Environment.NewLine, lines) + Environment.NewLine;
     }
@@ -289,31 +306,19 @@ public static class StackOptions
             $"{answer.Choice} — {string.Join(", ", answer.Profiles.Select(name => "`" + name + "`"))}");
 
     /// <summary>
-    /// An empty table of this profile's concerns, to copy wholesale.
+    /// An empty table of the default profile's concerns, to copy wholesale.
     /// </summary>
     /// <remarks>
-    /// For the solution that wants to start over rather than amend -- an adopted one, whose declared
-    /// stack opens with four empty rows and an instruction to fill them in from what the repository
-    /// actually uses. It is here rather than in the draft on purpose: a blank draft would make the
-    /// rename a wholesale replacement, and every row somebody did not retype would be dropped from the
-    /// one file every plan is judged against, silently. Copied into the draft it is a deliberate act
-    /// sitting in front of the person before they place it.
+    /// For the solution that wants to start over rather than amend -- one whose stack shares the
+    /// default's concerns and none of its answers. It is here rather than in the draft on purpose: a
+    /// draft of an existing file is a byte copy, and replacing it with a blank form would drop every
+    /// row somebody did not retype from the one file every plan is judged against, silently. Copied
+    /// into the draft it is a deliberate act sitting in front of the person before they place it.
     /// </remarks>
-    /// <param name="profile">The solution's profile, or null when it could not be read.</param>
     /// <returns>The section's lines.</returns>
-    private static IEnumerable<string> Skeleton(StackProfile? profile)
+    private static IEnumerable<string> Skeleton()
     {
-        if (profile is null)
-        {
-            return
-            [
-                "## An empty table to start from",
-                string.Empty,
-                "Not written: this solution's profile could not be read, so there is no set of concerns to",
-                "lay out. `sdlc doctor` says what is wrong with the solution document.",
-                string.Empty,
-            ];
-        }
+        StackProfile profile = StackProfiles.Default;
 
         return
         [

@@ -1,7 +1,8 @@
 # `dotnet-default` constraints
 
-The rules a solution on this profile is judged against, on top of the global set. They resolve between
-the global `CON_` library and the solution's own local rules, so a `LOC_` rule is still the last word.
+The stack rules this profile ships. A solution is judged against the ones its declared stack marks
+`true`, on top of the global set. They resolve between the global `CON_` library and the solution's own
+local rules, so a `LOC_` rule is still the last word.
 
 **These may name a language, framework or package, and that is what the tier is for.** The global
 library forbids itself from naming one — *"Stack neutrality. These bind solutions on any stack, so none
@@ -9,9 +10,10 @@ of them may name a language, framework or package. Stack specifics live in the p
 analyzers."* A rule that needs a name has nowhere else to go: an analyzer decides a question about
 code, and these are questions about a plan.
 
-**Ids are a monotonic sequence of their own.** `PRO_01` is this profile's first rule and is unrelated
-to `CON_01`. Assigned once, never reused; a gap is the record of a removed rule. A bare id is
-revision 1.
+**Ids are a monotonic sequence of their own, shared by every profile's document.** `PRO_01` is
+unrelated to `CON_01`, and no other profile may reuse it: a solution switches a rule on by naming its id
+in its declared stack, so one id must mean one rule. Assigned once, never reused; a gap is the record of
+a removed rule. A bare id is revision 1.
 
 **Four parts, all required**, as in the global library: the heading states the rule, `Applies to` says
 which artifact and at what moment, `Forbids` names what becomes illegal, and `Why` says what goes wrong
@@ -23,8 +25,9 @@ plausible implementation. The second test is what keeps this list short — a ru
 an analyzer, and a mechanical rule about an artifact belongs in a schema or a hook. Three rules
 survived it, which is the honest number rather than a disappointing one.
 
-**This profile's declared defaults are not here.** They are in the solution's declared stack, which a
-person owns, and departing from one is `CON_15`'s business rather than a rule here. What these three
+**This profile's declared defaults are not here.** They are rows in the solution's declared stack,
+which a person owns, and departing from one is `CON_15`'s business rather than a rule here. The rules
+below are rows in that same file, in its second table. What these three
 govern is the case where a plan satisfies every declared default and still proves nothing.
 
 ---

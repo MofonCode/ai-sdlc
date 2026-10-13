@@ -46,10 +46,10 @@ public enum SolutionStandard
 }
 
 /// <summary>
-/// What a solution is, which profile governs it, and where it is pushed.
+/// What a solution is, where its code came from, and where it is pushed.
 /// </summary>
 /// <remarks>
-/// <para>Four keys and no more. There is deliberately no baseline field: constraints govern a change
+/// <para>Three keys and no more. There is deliberately no baseline field: constraints govern a change
 /// rather than code that predates adoption, so an existing repository is not in violation on its first
 /// day and has nothing to record as forgiven. <c>standard</c> is not one either -- it says which
 /// conventions new work follows, and nothing at all about the code already there.</para>
@@ -60,15 +60,20 @@ public enum SolutionStandard
 /// solution adopted before the key existed chose by default, so reading it any other way would silently
 /// reclassify them (D-53).</para>
 /// </remarks>
-/// <param name="Profile">The stack profile package that applies.</param>
 /// <param name="Origin">Where the code came from.</param>
 /// <param name="Standard">Which conventions this solution's new work follows.</param>
 /// <param name="Platform">Where it is pushed, and whether a pull-request check governs the merge.</param>
+/// <param name="LegacyProfile">
+/// The <c>profile</c> line of a solution adopted before the declared stack listed its own rules, or
+/// null. Nothing writes it any more and nothing but the rule resolution reads it: that line used to
+/// select the stack rules, the file is protected so no tool can take it out, and a solution still
+/// carrying one keeps the rules it names until its declared stack lists them itself (D-76).
+/// </param>
 public sealed record SolutionDocument(
-    string Profile,
     SolutionOrigin Origin,
     SolutionStandard Standard,
-    Platform Platform = Platform.GitHub)
+    Platform Platform = Platform.GitHub,
+    string? LegacyProfile = null)
 {
     /// <summary>
     /// What the standard is when the key is absent.
@@ -93,23 +98,20 @@ public sealed record SolutionDocument(
     /// </summary>
     /// <remarks>
     /// <strong>One home for the block, because three callers write it and a key added to two of them is
-    /// a migration that silently does not take.</strong> Adoption writes it, <c>draft profile</c> prints
-    /// it for a hand-edit, and adoption prints it again when a flag asks for a standard the protected
-    /// file will not let it change. Each had its own list, with nothing asserting the three agreed --
-    /// the shape F-22 names, one level down.
+    /// a migration that silently does not take.</strong> Adoption writes it, <c>draft solution</c> writes
+    /// it beside the real file, and adoption prints it again when a flag asks for a standard the
+    /// protected file will not let it change. Each had its own list, with nothing asserting the three
+    /// agreed -- the shape F-22 names, one level down.
     /// </remarks>
-    /// <param name="profile">The profile package.</param>
     /// <param name="origin">Where the code came from.</param>
     /// <param name="standard">Which conventions new work follows.</param>
     /// <param name="platform">Where it is pushed.</param>
     /// <returns>One line per key, without the fences.</returns>
     public static string[] Keys(
-        string profile,
         SolutionOrigin origin,
         SolutionStandard standard,
         Platform platform) =>
     [
-        "profile: " + profile,
         "origin: " + NameOf(origin),
         "standard: " + NameOf(standard),
         "platform: " + NameOf(platform),
@@ -150,12 +152,6 @@ public sealed record SolutionDocument(
 
         List<IError> errors = [];
 
-        if (string.IsNullOrWhiteSpace(shape?.Profile))
-        {
-            errors.Add(new Error(
-                $"{source}: no profile. Nothing can resolve which constraints and templates apply without one."));
-        }
-
         if (!TryReadOrigin(shape?.Origin, out SolutionOrigin origin))
         {
             errors.Add(new Error(string.Create(
@@ -183,7 +179,11 @@ public sealed record SolutionDocument(
 
         return errors.Count > 0
             ? Result.Fail<SolutionDocument>(errors)
-            : Result.Ok(new SolutionDocument(shape!.Profile!.Trim(), origin, standard, platform));
+            : Result.Ok(new SolutionDocument(
+                origin,
+                standard,
+                platform,
+                string.IsNullOrWhiteSpace(shape?.Profile) ? null : shape.Profile.Trim()));
     }
 
     /// <summary>

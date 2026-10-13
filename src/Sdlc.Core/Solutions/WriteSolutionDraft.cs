@@ -23,11 +23,11 @@ namespace Sdlc.Core.Solutions;
 /// placeholder is replaced, and then by a prompt rather than by invented prose — this knows what the
 /// keys are and has nothing to say about what the solution is for.</para>
 ///
-/// <para><strong>The four keys are carried through as recorded, never recomputed.</strong> The origin
+/// <para><strong>The three keys are carried through as recorded, never recomputed.</strong> The origin
 /// is a historical fact, the standard decides which conventions new work follows, and the platform
 /// decides whether a pull-request check governs the merge (D-53). A draft that defaulted any of them
-/// would reclassify a solution by being renamed. Changing one is a different act with its own
-/// drafter: <c>sdlc draft profile</c>.</para>
+/// would reclassify a solution by being renamed. A <c>profile</c> line from before the declared stack
+/// listed its own rules is not carried: the draft is where that line stops existing (D-76).</para>
 ///
 /// <para><strong>The binary writes the draft, never a skill</strong> — the same rule
 /// <see cref="Approvals.WriteApprovalDraft"/> is written under. Every agent write to
@@ -92,7 +92,6 @@ public static class WriteSolutionDraft
                 [
                     "---",
                     .. SolutionDocument.Keys(
-                        document.Profile,
                         document.Origin,
                         document.Standard,
                         document.Platform),
@@ -116,7 +115,7 @@ public static class WriteSolutionDraft
         /// </summary>
         /// <remarks>
         /// A prompt rather than invented prose, and rather than the shipped placeholder again. This
-        /// knows the four keys and knows nothing about what the solution is for, so writing a paragraph
+        /// knows the three keys and knows nothing about what the solution is for, so writing a paragraph
         /// here would be the tool asserting something only a person can say — and a plausible-looking
         /// sentence nobody wrote is worse than a blank, because it reads as settled.
         /// </remarks>
@@ -179,8 +178,9 @@ public static class WriteSolutionDraft
                     : "you wrote. Edit it in the draft or after the rename, whichever you prefer.",
                 untouched ? "been told nothing about what good looks like here." : string.Empty,
                 string.Empty,
-                "The four keys are carried through as recorded and not recomputed, so this cannot",
-                "reclassify the solution by being renamed. To change the profile, use 'sdlc draft profile'.",
+                "The three keys are carried through as recorded and not recomputed, so this cannot",
+                "reclassify the solution by being renamed. Which stack rules apply is not in this file:",
+                "the declared stack lists them, and 'sdlc draft techstack' is how that changes.",
                 string.Empty,
                 "Nothing here places it. Every agent write to that file is denied, and the rename is the act.",
             ]);
