@@ -11,7 +11,7 @@ the command sheet open and the refusal index to hand. Nothing here needs reading
 | [`install.md`](install.md) | the plugin, the binary, updating, removing, and the four things that catch people | once per machine, before anything else |
 | [`first-cycle.md`](first-cycle.md) | one cycle from an empty directory to a pull request, stage by stage | once, front to back |
 | [`dice-worked-example.md`](dice-worked-example.md) | that same cycle with one small solution in it: every command, and the answer to give at every prompt | alongside your first cycle, if you want something that runs at the end |
-| [`cycle-commands.md`](cycle-commands.md) | every command for one cycle, in order, on one screen | while working |
+| [`cycle-commands.md`](cycle-commands.md) | the short path from an unadopted repository to a pull request, then every command for one cycle on one screen | while working |
 | [`when-it-blocks.md`](when-it-blocks.md) | every refusal the framework produces, what each means, and the remedy | when something stops |
 | [`the-stack.md`](the-stack.md) | what a solution is built from: the declared stack, the profile that seeds it, and how to change either | when a default is wrong for this solution, or a profile is |
 
@@ -67,9 +67,13 @@ program. It also states no rule; it reads them like everything else.
 
 **Every command for one cycle, in order, on one screen.** The reference you keep open rather than read.
 
-Each entry says whether the binary or an agent runs it, because that split is the one people get wrong:
-**a command is deterministic and the binary owns it; a skill needs language and an agent runs it.** The
-binary never writes a planning document and a skill never decides a gate.
+**It opens with the short path** — fourteen numbered lines from an unadopted repository to an open pull
+request, including the four setup steps that are easiest to skip and cost the most. That is the one to
+hand somebody, or to scan when you know the flow and want the next command rather than the reason for it.
+
+Each entry below it says whether the binary or an agent runs it, because that split is the one people get
+wrong: **a command is deterministic and the binary owns it; a skill needs language and an agent runs it.**
+The binary never writes a planning document and a skill never decides a gate.
 
 What it does not cover: what each skill is, who starts it, and what it refuses. That is
 [`../../skills/README.md`](../../skills/README.md), and this one is the order they go in.

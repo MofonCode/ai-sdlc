@@ -44,7 +44,7 @@ and prints the invocation — because a tool must never send somebody somewhere 
 | `build` | implements the plan, builds, tests, records the evidence | `<id>` | the gate is satisfied | a person, or `batch-build` |
 | `verify` | adjudicates the build against the spec, from the evidence alone | `<id>` | the build recorded evidence | a person, or `batch-build` |
 | `remediate` | applies a blocked verification's findings to source and tests | `<id>` | verify recorded `blocked` | a person, or `batch-build` |
-| `pr` | pushes, opens the pull request, links the work item | `<id> | --all` | a verification passed | **a person**, asked before every push |\| --all` | a verification passed | **a person**, asked before every push |
+| `pr` | pushes, opens the pull request, links the work item | `<id> \| --all` | a verification passed | **a person**, asked before every push |
 | `batch-build` | completes every approved cycle, concurrently where the claims allow | `[--pr]` | several cycles are approved and waiting | a person |
 | `resolve-conflict` | resolves a collision on a file no cycle can claim exclusively | `<file path>` | a batch run reports one | a person, or `batch-build` |
 | `status` | shows where a cycle has got to | `<id> [artifact]` | after any stage, or when somebody asks | anyone, constantly |

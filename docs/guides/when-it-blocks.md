@@ -292,7 +292,7 @@ The shell rule is deliberately broad — it looks for the file names near a writ
 parsing a command line. A false refusal on a command that merely mentions one of these files costs you a
 rephrasing; a miss costs the guarantee.
 
-**Five is the whole list, and the limit is structural.** The hook sees a tool call and not which skill
+**Seven is the whole list, and the limit is structural.** The hook sees a tool call and not which skill
 made it, so it cannot deny an edit that is wrong only because of where it came from — `remediate`
 touching `spec.md`, or `refine` touching source. Those rules are real and the skills state them, but
 they are the skill's own discipline rather than something denied at the call. What catches a breach is

@@ -6,6 +6,40 @@ One screen. What each one is, and whether the binary or an agent runs it.
 binary never writes a planning document and a skill never decides a gate. `../../skills/README.md` has
 what each skill is and who starts it; this is the order they go in.
 
+## The short path
+
+A repository nobody has adopted, to an open pull request. **Everything below this section is the detail
+behind one of these lines**, and `first-cycle.md` is the same walk with what each stage refuses.
+
+Adopt it, once:
+
+1. `git init` — and **create the remote first** if the code will live on one. Adopting before one exists
+   costs a hand-placed platform key later, because `solution.md` is protected by then
+2. `/sdlc:init`, which asks the three things the command cannot guess and then hands you the adoption
+   command to run yourself
+3. `git config core.hooksPath .sdlc/hooks`, and **make the pipeline's check required** in branch policy.
+   Until it is required, the one guarantee is advisory
+4. `sdlc draft solution` and `sdlc draft techstack` — place both **before** the first cycle. A plan that
+   reads *Replace this with a paragraph a newcomer could read* has been told nothing
+5. back to `/sdlc:init` for the interview and the `LOC_` rules it proposes
+
+Then the cycle:
+
+6. `sdlc constraints`
+7. `/sdlc:intent <the problem in a sentence>` — it allocates the cycle itself and runs its own
+   interrogate-refine loop
+8. `git switch -c cycle/<id>` — the `cycle/` prefix is load-bearing
+9. `/sdlc:spec <id>`, then its loop
+10. `/sdlc:plan <id>`, then its loop. The last document before you approve, so the one to read closely
+11. `sdlc draft approval <id>`, **rename the draft onto the ledger yourself**, then `sdlc gate <id>`
+12. `/sdlc:build <id>` — scaffolds on a new solution's first cycle, implements, tests, records the
+    evidence
+13. `/sdlc:verify <id>`, and `/sdlc:remediate <id>` only where it wrote `blocked`
+14. `/sdlc:pr <id>`, which asks before it pushes
+
+`sdlc status <id>` between any two of these prints the next command, and `/sdlc:steer <id> "..."` is the
+change of mind before 11.
+
 ## Once per machine
 
 ```pwsh

@@ -6,6 +6,10 @@ arrive at it early.
 **This assumes both halves are installed** — `install.md` covers that, and `sdlc version` is how you
 know. Everything below is one cycle in one repository; nothing here is specific to what the change is.
 
+**If you have done this before, the short path at the top of `cycle-commands.md` is this same walk in
+fourteen numbered lines** — the commands with none of the reasoning, which is what you want on the second
+cycle rather than the first.
+
 ## 1. Adopt the repository
 
 Adoption is a decision about how a team works, so **you run the command and an agent cannot.** The
@@ -447,7 +451,7 @@ stops making progress stops rather than opening one — so the first batch runs 
 | | |
 |---|---|
 | this same walk with one solution in it, end to end | `dice-worked-example.md` |
-| every command for one cycle, on one screen | `cycle-commands.md` |
+| this walk as fourteen numbered lines, then every command for one cycle on one screen | `cycle-commands.md` |
 | what to do when something refuses | `when-it-blocks.md` |
 | what this solution is built from, and how to change it | `the-stack.md` |
 | what each skill is and who starts it | `../../skills/README.md` |

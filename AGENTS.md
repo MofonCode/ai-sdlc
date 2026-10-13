@@ -34,7 +34,7 @@ the cheapest way to discover that what you were about to add already lives somew
 |---|---|
 | [`skills/README.md`](skills/README.md) | the eighteen skills: what each is, how it is invoked, when it runs, who starts it |
 | [`docs/README.md`](docs/README.md) | the components: every concept the framework names, defined once. Start here when a term is unfamiliar |
-| [`docs/guides/README.md`](docs/guides/README.md) | the five guides: what each covers, when to read it, what it leaves to another |
+| [`docs/guides/README.md`](docs/guides/README.md) | the guides: what each covers, when to read it, what it leaves to another |
 | [`tools/README.md`](tools/README.md) | the two tools that check what the suite cannot, and when to run each |
 | [`src/README.md`](src/README.md) | what `Sdlc.Core` and `Sdlc.Cli` are, how one invocation flows, where a new thing goes |
 
@@ -187,7 +187,7 @@ they are already in the directory.
 **[`README.md`](README.md) is for a person deciding whether to use this; this file is for an agent
 changing it.** Product description, install, status and honest gaps belong there; the map, the build, the
 enforced properties and the table above belong here. Neither grows a copy of the other. The one accepted
-exception is the root README's Where to read more table, which names the five guides as well as the
+exception is the root README's Where to read more table, which names every guide as well as the
 guides' own index — and that duplication is paid for mechanically rather than promised.
 
 ### What is mechanised, and what is not
