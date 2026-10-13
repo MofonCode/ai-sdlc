@@ -15,6 +15,26 @@ about it. Finding that out is the work.
 Run `sdlc constraints --for intent` first and keep what it prints in front of you. That is the set in
 force for this solution, which is not the same as the set you remember.
 
+## Keep a task list, if your host has one
+
+If your host gives you a task list, open one before the first step, with these items, and mark each
+done as it finishes. If it does not, carry on without one — nothing below depends on it.
+
+1. open the cycle and its branch
+2. turn the request into a problem
+3. establish the type, and interview
+4. pin down the one word
+5. write the intent
+6. interrogate and refine until a round is clean
+7. report and hand back
+
+**The loop is one item, however many rounds it takes.** A list that grows a line per round reads as
+progress while an artifact goes round in circles.
+
+**This stage only.** Nothing after the hand-back goes on the list: whether the next stage runs is a
+person's decision, and `sdlc status <id>` names it. **The list is a view, never the record.** What is done is what
+is on disk and what the binary reports, so where the two disagree the list is the one that is wrong.
+
 ## 1. Open the cycle
 
 ```

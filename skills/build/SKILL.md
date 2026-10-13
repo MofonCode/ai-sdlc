@@ -26,6 +26,29 @@ finding still open, or a round that judged a document which has moved since. Rea
 **A blocking finding cannot be waived.** If that is the refusal, there is no flag and no override. The
 finding is answered, or the cycle does not advance.
 
+## Keep a task list, if your host has one
+
+If your host gives you a task list, open one once the gate has said the build may run, with these
+items, and mark each done as it finishes. If it does not, carry on without one — nothing below depends
+on it.
+
+1. switch to the cycle's branch
+2. implement the plan: **one item for each entry in its `Files` section**, and none for anything it
+   does not declare
+3. build and test, clean
+4. commit the change
+5. record the evidence
+6. commit the evidence
+7. report and hand back
+
+**The plan decides what is on the list, not the other way round.** An item you want to add that the
+plan does not declare is the plan being departed from, and that is a correction for a person to make
+rather than a line to tick.
+
+**This stage only.** Nothing after the hand-back goes on the list: whether the next stage runs is a
+person's decision, and `sdlc status <id>` names it. **The list is a view, never the record.** What is done is what
+is on disk and what the binary reports, so where the two disagree the list is the one that is wrong.
+
 ## Work on the cycle's branch
 
 ```

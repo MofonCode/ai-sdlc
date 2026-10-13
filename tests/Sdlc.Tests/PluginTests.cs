@@ -338,6 +338,48 @@ public sealed class PluginTests
     }
 
     [TestMethod]
+    public void A_skill_that_keeps_a_task_list_ends_it_at_the_hand_back_and_never_calls_it_the_record()
+    {
+        // Five long skills open a task list where the host has one. Two sentences are what keep that
+        // from undoing the design: the list holds one stage and nothing past its hand-back, so it never
+        // shows a stage a person has not decided to run, and it is a view rather than the record, so a
+        // tick is never mistaken for a placed file or recorded evidence. Held per skill, because each
+        // skill is loaded alone and a rule stated only in the index is one an agent never reads. D-80.
+        string[] keeping = ["build", "init", "intent", "plan", "spec"];
+
+        List<string> found = [];
+
+        foreach (string path in Skills())
+        {
+            string text = File.ReadAllText(path);
+            string name = Path.GetFileName(Path.GetDirectoryName(path)!);
+
+            if (!text.Contains("## Keep a task list", StringComparison.Ordinal))
+            {
+                continue;
+            }
+
+            found.Add(name);
+
+            StringAssert.Contains(text, "## Keep a task list, if your host has one", name);
+            StringAssert.Contains(text, "carry on without one", name + " must still work on a host with no task list.");
+            StringAssert.Contains(text, "**This stage only.**", name);
+            StringAssert.Contains(text, "**The list is a view, never the record.**", name);
+        }
+
+        found.Sort(StringComparer.Ordinal);
+
+        CollectionAssert.AreEqual(
+            keeping,
+            found,
+            "The skills index and CONCEPT.md D-80 name these five. A sixth is a decision, not an edit.");
+
+        string index = File.ReadAllText(Path.Combine(Root, "skills", "README.md"));
+
+        StringAssert.Contains(index, "**Five of them keep a task list where the host has one**: `init`, `intent`, `spec`, `plan` and");
+    }
+
+    [TestMethod]
     public void No_skill_restates_a_constraint_instead_of_running_the_command()
     {
         // A copy of a rule in a skill is a second place it lives, and the copy is always the one that goes

@@ -15,6 +15,28 @@ pipeline that gates the merge, and the file saying where this code came from.
 So your part is the two halves a command cannot do: asking what matters here, and proposing the rules that
 follow from the answers.
 
+## Keep a task list, if your host has one
+
+If your host gives you a task list, open one before the first step, with these items, and mark each
+done as it finishes. If it does not, carry on without one — nothing below depends on it.
+
+1. check what is being adopted into
+2. where the code will live, and the adoption command run by the person
+3. the interview
+4. the solution paragraph: drafted, and renamed into place by the person
+5. constraints: proposed for the person to place, or none survived
+6. the declared stack: drafted, cut down, and renamed into place by the person
+7. the report
+
+**Items 4 and 6 are done when `sdlc doctor` stops naming them, not when a draft is written.** A draft
+nobody renamed is the step still open. **Item 5 is done by being considered**: "none survived the
+admission tests" completes it, and it is on the list so that it is decided rather than forgotten.
+
+**This stage only.** Nothing after the hand-back goes on the list: whether the next stage runs is a
+person's decision, and `sdlc doctor`'s closing block names it. **The list is a view, never the record.**
+What is done is what is on disk and what the binary reports, so where the two disagree the list is the
+one that is wrong.
+
 ## 1. Check what you are adopting into
 
 ```

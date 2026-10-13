@@ -25,6 +25,24 @@ sdlc status <cycle id> --stage intent
 - **A spec already exists?** Stop, and name what the person probably meant: `/sdlc:interrogate <id>
   spec` to challenge it, or `/sdlc:steer <id> "..."` to change it. Do not overwrite a spec.
 
+## Keep a task list, if your host has one
+
+If your host gives you a task list, open one once nothing above refuses, with these items, and mark
+each done as it finishes. If it does not, carry on without one — nothing below depends on it.
+
+1. read the intent
+2. derive the criteria: every outcome covered whole, and each one able to fail
+3. dispose of every open item the intent carries
+4. write the spec
+5. interrogate and refine until a round is clean
+6. hand back
+
+**The loop is one item, however many rounds it takes.**
+
+**This stage only.** Nothing after the hand-back goes on the list: whether the next stage runs is a
+person's decision, and `sdlc status <id>` names it. **The list is a view, never the record.** What is done is what
+is on disk and what the binary reports, so where the two disagree the list is the one that is wrong.
+
 ## Read the intent as the only input
 
 Read `intent.md`. That is the source. Do not read the request that started the cycle, do not read the

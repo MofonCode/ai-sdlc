@@ -23,6 +23,27 @@ sdlc status <cycle id> --stage spec
 No spec, or a spec that is not clean: stop. A plan already there: stop, and name `/sdlc:interrogate
 <id> plan` or `/sdlc:steer <id> "..."`.
 
+## Keep a task list, if your host has one
+
+If your host gives you a task list, open one once nothing above refuses, with these items, and mark
+each done as it finishes. If it does not, carry on without one — nothing below depends on it.
+
+1. read the spec, then the code
+2. compare what the stack declares with what is there
+3. decide the shape, and argue each departure
+4. a proof for every criterion
+5. the tier
+6. write the plan
+7. interrogate and refine until a round is clean
+8. hand back
+
+**The loop is one item, however many rounds it takes.** And the approval is not an item: a person
+places it, after this skill has stopped.
+
+**This stage only.** Nothing after the hand-back goes on the list: whether the next stage runs is a
+person's decision, and `sdlc status <id>` names it. **The list is a view, never the record.** What is done is what
+is on disk and what the binary reports, so where the two disagree the list is the one that is wrong.
+
 ## Read the spec, and then read the code
 
 Unlike the spec, this stage **must** read the codebase. A plan that does not know what is there

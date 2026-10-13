@@ -1718,6 +1718,9 @@ which is the ordinary case.
 | `constraints` | renders the effective constraint set, all tiers |
 | `suggestions` | lists accumulated non-blocking findings |
 
+**Five of them keep a task list where the host has one** — `init`, `intent`, `spec`, `plan` and
+`build` — each of its own steps and nothing past its hand-back (D-80).
+
 **Three documents list these, and the suite holds all three against disk.** This inventory,
 [`skills/README.md`](skills/README.md) — which is the skills' own surface, with a row and a section
 each — and the summary in [`docs/README.md`](docs/README.md). A skill added to one and not the others
@@ -5712,3 +5715,46 @@ for something that breaks nothing.
 - *Proposing constraints as a step.* It is a branch the `init` skill takes when an interview answer
   survives the admission tests, and for most solutions none does (§9). A step that is usually skipped
   teaches people to skip steps.
+
+### D-80 — Five skills keep a task list where the host has one, and it stops at the hand-back
+
+**Governs:** §15
+
+**Decision.** `init`, `intent`, `spec`, `plan` and `build` each tell the agent to open a task list of
+that skill's own steps, if its host has one, and to mark each done as it finishes. The list holds
+nothing after the skill's hand-back. It is never the record: what is done is what is on disk and what
+`sdlc doctor` and `sdlc status` report. A host with no task list runs every step unchanged.
+
+**Why.** These five are the long ones a person sits through — an interview, a loop of rounds, an
+implementation — and the steps that get dropped in them are the quiet ones: the paragraph left on its
+placeholder, the constraints never considered, the evidence recorded and not committed. A visible
+list makes a skipped step something a person can see while there is still time to say so.
+
+**Why it stops at the hand-back.** A skill stops and a person decides whether the next stage runs. A
+list showing spec, plan and build under an intent that has just converged invites the agent to carry
+on, and tells the person the decision is already made. So each list ends on the hand-back, and the
+next stage is named where it always was, by the status panel.
+
+**Why it is never the record.** The agent writes the list and the agent ticks it, in one session, on
+one host. That is the advisory layer of §2.1 with a tick box on it. In `init` two items are closed
+only when `doctor` stops naming them, because a draft written is not a draft placed; in `build` the
+items come from the plan's `Files` section, so the list cannot widen what was approved.
+
+**Why "if your host has one".** Each host has its own tool for this under its own name, some have
+none, and a skill ships to all of them unchanged (D-47). Naming a tool would make a skill fail or
+quietly do less on every other host.
+
+**Rejected.**
+
+- *A task list for the whole cycle, opened by `intent`.* The shape first asked for. It shows six stages
+  nobody has yet agreed to run, and it is a second answer to what `sdlc status` already says.
+- *The binary writing a checklist file into the cycle.* A file is a record, and this one would be ticked
+  by the thing it is checking. The record of a stage is its artifact, its rounds and its evidence.
+- *Every skill keeping one.* `status`, `constraints`, `draft`, `suggestions` and `propose` are one
+  command and a report. `interrogate`, `refine`, `verify` and `remediate` each already write what
+  they did as findings or a verdict, and `pr`, `steer`, `batch-build` and `resolve-conflict` are
+  short or already report per cycle. A list on a two-step skill is noise that trains people to stop
+  reading lists.
+- *One item per interrogation round.* The list would grow while the artifact went in circles, which
+  reads as progress at exactly the moment it is not.
+- *Naming the host's tool in the skill.* Three hosts, three names, and a fourth host tomorrow.
