@@ -445,9 +445,10 @@ public static class Templates
             "**Do not restate the rules here.** Run `sdlc constraints` to see what is in force. A copy in",
             "this file would be a second place they live, and the copy is the one that goes stale.",
             string.Empty,
-            "**Four files are a person's to write**: `approval.md`, `abandoned.md`, `constraints.md` and",
-            "`solution.md`. Every agent write to them is denied. Run the matching `sdlc draft` command and",
-            "give the person what it prints.",
+            "**Six files are a person's to write**: `approval.md`, `abandoned.md`, `constraints.md`,",
+            "`decisions.md`, `solution.md` and `techstack.md`. Every agent write to them is denied. Run the",
+            "matching `sdlc draft` command -- or `sdlc propose` for `constraints.md` and `decisions.md` --",
+            "and give the person what it prints.",
             string.Empty,
         ]);
 

@@ -559,6 +559,23 @@ public sealed class InitTests
     }
 
     [TestMethod]
+    public void The_agent_file_names_every_file_only_a_person_writes()
+    {
+        // It said four for as long as there had been six. The hook reads its list from ProtectedPaths,
+        // so this does too -- a seventh file fails here rather than being left out of the one place an
+        // agent is told what it may not write.
+        string agents = Templates.Agents("a solution");
+
+        foreach (string name in ProtectedPaths.Names)
+        {
+            StringAssert.Contains(agents, "`" + name + "`");
+        }
+
+        StringAssert.Contains(agents, "**Six files are a person's to write**");
+        Assert.AreEqual(6, ProtectedPaths.Names.Count, "The count in the sentence is written out, so it moves with the list.");
+    }
+
+    [TestMethod]
     public void The_solution_readme_shows_the_format_version_being_stamped()
     {
         // The readme's example envelope is the shape a person checks their own artifact against, so a
