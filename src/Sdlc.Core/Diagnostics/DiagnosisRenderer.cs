@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Text;
+using Sdlc.Core.Solutions;
 
 namespace Sdlc.Core.Diagnostics;
 
@@ -57,6 +58,19 @@ public static class DiagnosisRenderer
         output.AppendLine(response.Sound
             ? "  Nothing here is wrong. What is marked 'elsewhere' is somebody else's to confirm."
             : "  Exits 1. Every problem above names what fixes it.");
+
+        // The same block adoption ends with, from the same list. A missing declared stack is a
+        // problem above as well -- that is the fault; this is the order to do things in.
+        if (response.Setup is { } setup
+            && Setup.Render(setup, "Run 'sdlc doctor' again once it is placed, for the step after it.") is { Count: > 0 } next)
+        {
+            output.AppendLine();
+
+            foreach (string line in next)
+            {
+                output.AppendLine(line);
+            }
+        }
 
         return output.ToString();
     }

@@ -98,10 +98,11 @@ public static class Initialise
     /// told which value is still standing, and a renderer that assumed one would be wrong in every
     /// direction but the common one.
     /// </param>
-    /// <param name="StackDeclared">
-    /// Whether a declared stack is in place. Adoption never writes one -- a person places it, from a
-    /// draft -- so on a first run this is false and the report says what to run next, because no cycle
-    /// opens until it is there (D-76).
+    /// <param name="Setup">
+    /// What a person still has to place before the first cycle, read after everything above was
+    /// written. Adoption writes the solution document with a placeholder and no declared stack at all
+    /// (D-76), so on a first run both are left and the report names the first (D-79). Null renders no
+    /// next step.
     /// </param>
     public sealed record Response(
         InitMode Mode,
@@ -111,7 +112,7 @@ public static class Initialise
         IReadOnlyDictionary<string, string> Printed,
         bool PlatformPending = false,
         Platform Platform = Platform.GitHub,
-        bool StackDeclared = true)
+        SetupState? Setup = null)
     {
         /// <summary>The paths that were written, for the commit to stage.</summary>
         public IReadOnlyList<string> Written =>
@@ -229,12 +230,8 @@ public static class Initialise
             // The declared stack is not written here, and that is the change D-76 makes. It used to be
             // the one protected file a tool created with its contents already decided -- from a profile
             // named on this command line, before anybody had said what the solution was built from. A
-            // person places it now, from 'sdlc draft techstack', and this only reports whether they
-            // have: no cycle opens until it is there.
-            bool stackDeclared = File.Exists(Path.Combine(
-                solution.Path,
-                Cycle.SdlcDirectoryName,
-                Cycle.TechStackFileName));
+            // person places it now, from 'sdlc draft techstack', and the report's next step says so
+            // when it is the one left: no cycle opens until it is there.
 
             // Framework-owned: rewritten every time, which is how a solution's scaffolding stops rotting
             // across versions.
@@ -340,7 +337,7 @@ public static class Initialise
                 printed,
                 platformPending,
                 platform,
-                stackDeclared));
+                await Setup.Read(solution.Path, cancellationToken).ConfigureAwait(false)));
         }
 
         /// <summary>Where a platform's pull-request pipeline goes.</summary>

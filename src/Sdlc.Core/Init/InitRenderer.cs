@@ -11,7 +11,7 @@ namespace Sdlc.Core.Init;
 /// <remarks>
 /// Adoption runs once and is read closely, because it is the moment a team decides whether to trust the
 /// thing. So it says what mode it ran in and why that matters, lists every file including the ones it
-/// deliberately left alone, and ends with the next command -- and it prints what it would not write,
+/// deliberately left alone, and ends with the one next step -- and it prints what it would not write,
 /// rather than mentioning that something was skipped.
 /// </remarks>
 public static class InitRenderer
@@ -71,21 +71,18 @@ public static class InitRenderer
             output.AppendLine(line.Length == 0 ? string.Empty : Indent + line);
         }
 
-        output.AppendLine();
-        output.AppendLine(Indent + "Next");
-
-        // First, and only while it is missing. Adoption writes no declared stack -- a person places
-        // it -- and no cycle opens without one, so this is the next thing to do rather than one of
-        // several things worth knowing.
-        if (!report.StackDeclared)
+        // One step, never the list of commands worth knowing: what is left is said in a sentence and
+        // the first of it is named. The command sheet is in the README this just wrote (D-79).
+        if (report.Setup is { } setup
+            && Setup.Render(setup, "'sdlc doctor' names the step after this one.") is { Count: > 0 } next)
         {
-            output.AppendLine(Indent + "    sdlc draft techstack        what this solution is built from. No cycle opens");
-            output.AppendLine(Indent + "                                until you have renamed the draft into place");
-        }
+            output.AppendLine();
 
-        output.AppendLine(Indent + "    sdlc constraints            the rules now in force");
-        output.AppendLine(Indent + "    sdlc propose constraints    what the history says the rules are missing");
-        output.AppendLine(Indent + "    sdlc decisions              the choices this solution has settled");
+            foreach (string line in next)
+            {
+                output.AppendLine(line);
+            }
+        }
 
         return output.ToString();
     }
@@ -168,10 +165,6 @@ public static class InitRenderer
         [
             "This repository held no code, so the solution is scaffolded: the profile's patterns are",
             "this solution's patterns, and a plan that departs from them has to say why.",
-            string.Empty,
-            "What it is built from is not decided here. 'sdlc draft techstack' writes a draft of the",
-            "framework's default stack with every stack rule switched on; delete what is not true of",
-            "this solution -- down to nothing, if each plan should choose freely -- and rename it.",
         ],
 
         Initialise.InitMode.Onboard =>

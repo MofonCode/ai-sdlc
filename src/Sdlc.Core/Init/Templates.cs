@@ -326,6 +326,7 @@ public static class Templates
             "## Commands",
             string.Empty,
             "```",
+            "sdlc doctor                           is this install sound, and what is left to place",
             "sdlc new                              open a cycle",
             "sdlc scaffold <id>                    write the solution skeleton, or the build settings a",
             "                                      plan declares, once that plan is approved",

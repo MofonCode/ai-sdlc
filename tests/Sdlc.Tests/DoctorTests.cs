@@ -181,6 +181,35 @@ public sealed class DoctorTests
     }
 
     [TestMethod]
+    public async Task The_panel_ends_with_the_same_one_step_adoption_does()
+    {
+        // Each step ends in a rename, which runs nothing, so what adoption printed is stale the moment
+        // the first draft is placed. This is the command that answers "what now" (D-79).
+        using var solution = Scratch.Create();
+
+        Assert.IsNull(
+            (await Diagnosis(solution)).Setup,
+            "A repository nobody adopted has one thing to do, and the adoption check already says it.");
+
+        await Adopt(solution);
+
+        string stack = Path.Combine(solution.Root, Cycle.SdlcDirectoryName, Cycle.TechStackFileName);
+        await File.WriteAllTextAsync(stack, string.Empty);
+
+        string panel = DiagnosisRenderer.Render(await Diagnosis(solution));
+
+        StringAssert.Contains(panel, "One thing is yours to place before the first cycle: a paragraph");
+        StringAssert.Contains(panel, "sdlc draft solution");
+
+        File.Delete(stack);
+
+        string both = DiagnosisRenderer.Render(await Diagnosis(solution));
+
+        StringAssert.Contains(both, "Two things are yours to place before the first cycle");
+        StringAssert.Contains(both, "Exits 1", "The missing stack is still the fault; the block is only the order.");
+    }
+
+    [TestMethod]
     public async Task An_adopted_solution_reports_what_its_declared_stack_declares()
     {
         // The second rule source a plan is read against, and until now nothing looked at it. A gate

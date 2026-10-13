@@ -71,7 +71,9 @@ the hook actually denies today, and what it does not.
 ### `init`
 
 **Adopts the framework into a repository**: runs the scaffolding, interviews the team about what matters
-in this solution, proposes its first constraints, and walks the person through declaring the stack.
+in this solution, proposes its first constraints, and walks the person through declaring the stack. It
+follows the one next step adoption's report names rather than a list of its own, and ends on the one
+`sdlc doctor` names.
 
 **Adoption decides nothing about the stack, and asks one question: where the code will live.** There is
 no profile to choose. `sdlc init` writes no declared stack and no `.NET` build settings; the skill's

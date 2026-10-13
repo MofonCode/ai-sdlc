@@ -99,8 +99,10 @@ internal static class Usage
                                      adoption, every host's hook config, and the pipeline that is
                                      the guarantee. Reports and never repairs. Exits 1 if anything
                                      is wrong. What a binary cannot see -- whether a host loaded
-                                     the skills, whether a git hook is installed in this clone --
-                                     is marked 'elsewhere' and names who to ask.
+                                     the skills, whether the pipeline's check is required -- is
+                                     marked 'elsewhere' and names who to ask. Before the first
+                                     cycle it ends with what a person still has to place, and the
+                                     one command that is next.
             hook --host <name>       Judge a tool call, or a turn that is ending. Reads the host's
                                      payload on stdin and writes its decision on stdout.
                                      Hosts: claude, copilot, antigravity.

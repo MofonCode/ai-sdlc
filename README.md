@@ -1,6 +1,6 @@
 # ai-sdlc
 
-**Version 0.17.0** · iteration 4 · .NET 10 · MIT
+**Version 0.18.0** · iteration 4 · .NET 10 · MIT
 
 **A plugin that makes an AI coding agent work the way a careful team does** — write down what the change
 is for, agree what *done* means, plan it, have a person approve it, and only then write code.
@@ -118,7 +118,7 @@ sdlc constraints
 ```
 
 It should print the seventeen global constraints in force and say it read them from
-`global  embedded in sdlc 0.17.0`. **Use this rather than `sdlc help` as the smoke test** — `help` and
+`global  embedded in sdlc 0.18.0`. **Use this rather than `sdlc help` as the smoke test** — `help` and
 `version` are the only commands that need nothing from the installation, so they are the two that cannot
 tell you whether it worked. Then `claude plugin details sdlc@ai-sdlc` should say `Skills (18)` and
 `Hooks (2)`: **a hook count below two is a failed install**, not a detail, because the deterministic layer
@@ -136,6 +136,10 @@ startup.
 yourself — a person runs that and an agent cannot, because adoption is a decision about how a team works
 and it writes the hook configuration that constrains the agent. The order matters: the file recording
 that answer is protected the moment it exists, so answering afterwards costs a draft and a rename.
+
+**Then place the two things adoption leaves to you, one at a time.** Its report ends with a single next
+step rather than a list of commands, and `sdlc doctor` names the one after it. First a paragraph saying
+what the solution is: `sdlc draft solution` writes the file beside itself, and you rename it into place.
 
 **Then declare the stack.** Adoption decides nothing about what the solution is built from. `sdlc draft
 techstack` writes a draft of the framework's default — every row it would pin, every stack rule it
@@ -241,6 +245,12 @@ What is honest to say about the rest:
 - **`standard: profile` is named after something no solution records any more.** The key still means
   what it meant — new work follows the framework's conventions rather than the surrounding code — and
   the value was left alone because every existing `solution.md` is protected and already says it.
+- **A local solution has no mechanical check over a merge, and nothing checks a push anywhere.** The
+  pre-push hook is gone (`CONCEPT.md` D-78): it was written and never installed, and where it ran it
+  refused a push of work in progress. A solution adopted before 0.18.0 still has the file, and a clone
+  that set `core.hooksPath` still runs it until somebody deletes the file or unsets the key.
+- **Adoption ending on one next step has been read by its author and by nobody else.** The suite holds
+  the order and the wording at each step; no adoption has been walked through it by somebody new.
 - **`pr` and `batch-build` have no command behind the push.** The refusal is in the binary and tested;
   the push itself uses the platform's own CLI.
 - **The Copilot install has never been run**, though nothing is guessed any more: the package conforms to

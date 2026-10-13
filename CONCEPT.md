@@ -1023,6 +1023,12 @@ leaves the file alone.
 so the diff records the whole file as new, and a plan that says it *changes* that file can never
 match — the first cycle would fail `CON_07.2` for something adoption did.
 
+**Its report ends with one next step.** What a person still has to place before the first cycle is
+said in a sentence — a paragraph in `solution.md`, then the declared stack — and one command is named:
+the first of those not yet done. `sdlc doctor` ends with the same block from the same list, because
+each step finishes with a rename and a rename runs nothing. Once both are placed the step is the first
+cycle, and once a cycle exists the block is gone (D-79).
+
 It creates no empty directories.
 
 ---
@@ -1786,11 +1792,11 @@ they print verbatim.
 | `scaffold <id>` | writes the solution skeleton into an approved cycle — D-35 — or, on an adopted solution, only the build settings files that cycle's plan declares — D-77 |
 | `hook --host <name>` | judges one tool call — §12 |
 | `version` | the three versions and which is which — the package, the plugin, and the artifact envelope |
-| `doctor` | checks this install and this repository, and says which half is missing. Exits 1 if anything is wrong |
+| `doctor` | checks this install and this repository, and says which half is missing. Exits 1 if anything is wrong. Before the first cycle it ends with the one next step — §9 |
 
 **`doctor` reports and never repairs**, and the third of its three outcomes is the point: what a binary
-cannot see — whether a host loaded the skills, whether a git hook is installed in this clone, whether a
-pipeline step is a *required* check — is marked `elsewhere` and names who to ask, rather than being
+cannot see — whether a host loaded the skills, whether a pipeline step is a *required* check — is
+marked `elsewhere` and names who to ask, rather than being
 counted as sound. A command that said an install worked when nobody had established it is the failure
 this document opens by naming.
 
@@ -5655,3 +5661,54 @@ remove it: it was never installed by the framework, so removing it is not the fr
   copy of that rule is the same uninstalled file with a different pattern in it.
 - *Removing the file from existing solutions on update.* Update rewrites what the framework owns and
   deletes nothing. A stale hook that still works is not worth the first deletion.
+
+### D-79 — Adoption ends with one next step, and `doctor` names the one after it
+
+**Governs:** §9, §15.2
+
+**Decision.** `sdlc init` ends its report with a sentence saying what a person still has to place
+before the first cycle, and one command: the first step not yet done. There are two steps, in this
+order — a paragraph in `solution.md` saying what the solution is, from `sdlc draft solution`, then the
+declared stack, from `sdlc draft techstack`. `sdlc doctor` ends with the same block, read from the same
+list. When both are placed and no cycle exists the step is the first cycle; once a cycle exists
+neither command prints the block. `Solutions/Setup` is the one list, and it reads disk every time.
+
+**Why.** The report ended with four commands under "Next", and a fifth instruction below them. One was
+the step. `sdlc constraints` and `sdlc decisions` are views, and in a repository adopted a minute ago
+the second shows nothing. `sdlc propose constraints` was described as "what the history says the rules
+are missing" to somebody with no history. A person reading that has five things and has to work out
+which one is theirs to do — and the one thing they had to do that was not there at all was the
+paragraph, which a cycle once went through with the placeholder still in it.
+
+**Why the paragraph comes first, when the stack is the one that blocks.** What a solution is built from
+follows from what it is. It is also the `init` skill's first question, so with the stack named first
+the command said one thing and the skill, in the same conversation, asked another. The stack is still
+named in the sentence, and the block says no cycle opens without it when it is the step left.
+
+**Why `doctor` and not something adoption remembers.** Each step ends with a person renaming a draft
+into place, and a rename runs nothing. So "what now" after the first step cannot come from what
+adoption printed. `doctor` already reads this repository's state and already reports a missing stack;
+it prints the block from disk, which also makes it right when somebody places the stack first.
+
+**A missing stack is still a problem in `doctor`, and the block does not change that.** The check is
+the fault and exits 1; the block is the order to do things in. The placeholder paragraph is not a
+check: no stage reads that prose, so calling it a problem would fail every freshly adopted repository
+for something that breaks nothing.
+
+**Rejected.**
+
+- *The stack first, since it is the only step that blocks a cycle.* The order the report had. It puts
+  the answer that depends on the other one first, and it disagrees with the skill.
+- *Listing every step with a number against each.* A shorter list is still a list, and the report's
+  job at that moment is to say what to do now.
+- *Keeping the views under "Next" as things worth knowing.* They are in the command sheet adoption
+  writes into `.sdlc/README.md`, which is where somebody looking for a command looks.
+- *A new command for it — `sdlc next`.* `doctor` is already what a person runs to ask what state the
+  repository is in, and a second command would be a second answer to keep in step with it.
+- *`sdlc status` with no cycle id.* The status panel is about one cycle, and before the first one there
+  is no cycle for it to be about.
+- *Making the placeholder paragraph a `doctor` problem so the exit code carries it.* Nothing reads the
+  prose. A non-zero exit for it would make `doctor` unusable in a script on every new repository.
+- *Proposing constraints as a step.* It is a branch the `init` skill takes when an interview answer
+  survives the admission tests, and for most solutions none does (§9). A step that is usually skipped
+  teaches people to skip steps.

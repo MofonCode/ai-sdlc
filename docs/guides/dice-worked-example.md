@@ -131,7 +131,8 @@ what each file is.
 
 Adoption writes `.sdlc/solution.md` with a placeholder and does not write `.sdlc/techstack.md` at all.
 Both are protected, so nothing can place them for you. **Do this before the cycle, not after** — the
-cycle will not open without the second.
+cycle will not open without the second. Adoption's report ended by naming the first as its one next
+step, and after each rename `sdlc doctor` names the one that follows.
 `solution.md` is the only file in the solution that says what good looks like, and a plan that reads
 *Replace this with a paragraph a newcomer could read* has been told nothing.
 

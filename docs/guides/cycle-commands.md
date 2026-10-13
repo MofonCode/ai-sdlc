@@ -19,7 +19,8 @@ Adopt it, once:
    then hands you the adoption command to run yourself
 3. **make the pipeline's check required** in branch policy. Until it is required, the one guarantee is
    advisory
-4. `sdlc draft solution` and `sdlc draft techstack` — place both **before** the first cycle. A plan that
+4. `sdlc draft solution`, then `sdlc draft techstack` — place both **before** the first cycle, in the
+   order adoption's report and `sdlc doctor` name them, one at a time. A plan that
    reads *Replace this with a paragraph a newcomer could read* has been told nothing, and **`sdlc new`
    refuses until the declared stack is placed**: adoption does not write it, the draft is the
    framework's default for you to cut down, and `--empty` drafts one that pins nothing
@@ -60,6 +61,11 @@ so it is usable in a script, and every problem it prints names the command that 
 
 **It reports and never repairs.** The remedies are commands a person runs — adoption especially, which
 the hook denies to an agent.
+
+**Before the first cycle it also says what now.** It ends with what a person still has to place — the
+paragraph in `solution.md`, then the declared stack — and names the one command that is next, the same
+block adoption's report ends with. Once both are placed it names the first cycle, and once a cycle
+exists it says nothing: `sdlc status <id>` names the next command from there.
 
 One thing it marks `elsewhere` rather than passing or failing, because it is not a binary's to
 answer: whether a host actually loaded the skills. It is named with who to ask. On a local solution

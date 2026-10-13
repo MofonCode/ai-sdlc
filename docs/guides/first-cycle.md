@@ -161,7 +161,9 @@ to every spec, one change at a time, where there is a change to ask it about.
 
 **Place both protected files before the first cycle, not after it.** `solution.md` holds a
 placeholder and `techstack.md` does not exist yet, and nothing can place either for you — the skill runs
-the drafters and prints the rename:
+the drafters and prints the rename. **Adoption's report ends by naming the first of them and only the
+first**: what the solution is comes before what it is built from. A rename runs nothing, so after each
+one `sdlc doctor` is what names the next:
 
 ```pwsh
 sdlc draft solution

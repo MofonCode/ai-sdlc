@@ -85,6 +85,12 @@ pipeline, and the `pr` skill walks through creating the remote.
 Give the person the line, `!` and all. When they have run it, read what it printed — it says which mode
 ran, what the origin was decided to be, and every file it touched or deliberately left.
 
+**It ends with one next step, and on a first adoption that step is yours to carry out with them.** It
+says what a person still has to place before the first cycle and names a single command: `sdlc draft
+solution` first, because what a solution is comes before what it is built from. That is question 1
+below, so the command and this skill agree about what comes next. **Do not run `sdlc draft techstack`
+ahead of it** — the report names it in the sentence and deliberately not as the step.
+
 **The origin is the part worth stopping on**, because it is the one thing here with lasting consequences
 and it never changes again:
 
@@ -285,11 +291,14 @@ A solution on another stack deletes the rows and never gets the files.
 
 ```
 sdlc constraints
+sdlc doctor
 ```
 
-Show it verbatim — that is the set now in force. Then **at most five lines of your own**, one line each
-and only these: which mode ran, what the origin is, which files are placeholders, and what a person has
-to place before the first cycle.
+Show the first verbatim — that is the set now in force. From the second, show **the closing block
+verbatim**: what a person still has to place before the first cycle, and the one command that is next.
+It is read from disk, so it is right about a rename you did not see happen, and a list of your own
+would be a second answer to the same question. Then **at most two lines of your own**: which mode ran,
+and what the origin is.
 
 **Nothing about what any of it means.** Adoption is the stage with a standing temptation to explain the
 framework it has just installed, and `.sdlc/README.md` is the whole of that explanation — written, in the

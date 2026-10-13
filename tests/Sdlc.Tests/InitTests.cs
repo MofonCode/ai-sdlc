@@ -387,24 +387,106 @@ public sealed class InitTests
         string stack = Path.Combine(solution.Root, Cycle.SdlcDirectoryName, Cycle.TechStackFileName);
 
         Assert.IsFalse(File.Exists(stack), "Adoption decided what this solution is built from.");
-        Assert.IsFalse(report.StackDeclared);
+        Assert.IsFalse(report.Setup!.Steps.Single(step => step.Command == "sdlc draft techstack").Done);
         Assert.IsFalse(
             report.Actions.Any(action => action.Path.EndsWith(Cycle.TechStackFileName, StringComparison.Ordinal)),
             "Not created and not listed as kept: it is not adoption's file to mention as its own.");
 
         StringAssert.Contains(
             InitRenderer.Render(report),
-            "sdlc draft techstack",
-            "The next thing to do, said first, because no cycle opens until it is done.");
+            "a declared stack",
+            "What is left is said, even though the step named first is the one before it.");
 
         // And once a person has placed one, a refresh stops saying so.
         await File.WriteAllTextAsync(stack, string.Empty);
 
         Initialise.Response again = await Adopt(solution, tracked);
 
-        Assert.IsTrue(again.StackDeclared, "An empty file is a declared stack: it declares that nothing is pinned.");
-        Assert.IsFalse(InitRenderer.Render(again).Contains("No cycle opens", StringComparison.Ordinal));
+        Assert.IsTrue(
+            again.Setup!.Steps.Single(step => step.Command == "sdlc draft techstack").Done,
+            "An empty file is a declared stack: it declares that nothing is pinned.");
+        Assert.IsFalse(InitRenderer.Render(again).Contains("a declared stack", StringComparison.Ordinal));
         Assert.AreEqual(string.Empty, await File.ReadAllTextAsync(stack), "And a refresh leaves it exactly as placed.");
+    }
+
+    [TestMethod]
+    public async Task Adoption_ends_with_one_step_and_each_placement_moves_it_on()
+    {
+        // It ended with four commands under "Next": one step, two views that show nothing in a
+        // repository adopted a minute ago, and one that reads a history not yet written. A person was
+        // left to work out which was theirs to do. Now what is left is a sentence and one command is
+        // named -- in the order the answers depend on, which is the order the skill asks in (D-79).
+        using var solution = Scratch.Create();
+
+        string first = InitRenderer.Render(await Adopt(solution, tracked: []));
+
+        StringAssert.Contains(first, "Two things are yours to place before the first cycle");
+        Assert.AreEqual("sdlc draft solution", NextCommand(first));
+        StringAssert.Contains(first, "'sdlc doctor' names the step after this one.");
+
+        foreach (string view in new[] { "sdlc constraints", "sdlc propose constraints", "sdlc decisions", "sdlc draft techstack" })
+        {
+            Assert.IsFalse(
+                first.Contains(view, StringComparison.Ordinal),
+                view + " is not the next step, so the report ending on it is a second thing to choose between.");
+        }
+
+        // A person writes their paragraph and renames the draft. Nothing runs when they do.
+        string document = Path.Combine(solution.Root, Cycle.SdlcDirectoryName, Cycle.SolutionFileName);
+        string placed = (await File.ReadAllTextAsync(document))
+            .Replace(WriteSolutionDraft.Placeholder, "A die, rolled over HTTP. For", StringComparison.Ordinal);
+        await File.WriteAllTextAsync(document, placed);
+
+        string second = InitRenderer.Render(await Adopt(solution, tracked: []));
+
+        StringAssert.Contains(second, "One thing is yours to place before the first cycle");
+        Assert.AreEqual("sdlc draft techstack", NextCommand(second));
+        StringAssert.Contains(second, "No cycle opens until it is placed");
+        Assert.IsFalse(second.Contains("names the step after", StringComparison.Ordinal), "There is no step after the last.");
+
+        await File.WriteAllTextAsync(
+            Path.Combine(solution.Root, Cycle.SdlcDirectoryName, Cycle.TechStackFileName),
+            string.Empty);
+
+        string third = InitRenderer.Render(await Adopt(solution, tracked: []));
+
+        StringAssert.Contains(third, "Nothing is left to place");
+        Assert.AreEqual("sdlc intent", NextCommand(third));
+
+        // From the first cycle on, the status panel names the next command for each cycle.
+        Directory.CreateDirectory(Path.Combine(
+            solution.Root, Cycle.SdlcDirectoryName, Cycle.CyclesDirectoryName, "20260929_1456_32"));
+
+        string governed = InitRenderer.Render(await Adopt(solution, tracked: []));
+
+        Assert.IsFalse(governed.Contains("Next", StringComparison.Ordinal), governed);
+    }
+
+    [TestMethod]
+    public async Task The_stack_placed_first_still_leaves_the_paragraph_as_the_step()
+    {
+        // The list is read from disk rather than counted off, so doing the second step first does not
+        // make the report claim the first is done.
+        using var solution = Scratch.Create();
+        await Adopt(solution, tracked: []);
+
+        await File.WriteAllTextAsync(
+            Path.Combine(solution.Root, Cycle.SdlcDirectoryName, Cycle.TechStackFileName),
+            string.Empty);
+
+        string rendered = InitRenderer.Render(await Adopt(solution, tracked: []));
+
+        StringAssert.Contains(rendered, "One thing is yours to place before the first cycle: a paragraph");
+        Assert.AreEqual("sdlc draft solution", NextCommand(rendered));
+    }
+
+    /// <summary>The command on the line under "Next", which is the one step the report names.</summary>
+    private static string NextCommand(string rendered)
+    {
+        string[] lines = rendered.ReplaceLineEndings("\n").Split('\n');
+        string step = lines[Array.FindIndex(lines, line => line.Trim() == "Next") + 1];
+
+        return step.Trim().Split("  ", StringSplitOptions.RemoveEmptyEntries)[0];
     }
 
     [TestMethod]
@@ -558,7 +640,7 @@ public sealed class InitTests
         string rendered = InitRenderer.Render(report);
 
         StringAssert.Contains(rendered, "sdlc draft solution --standard profile");
-        StringAssert.Contains(rendered, "sdlc draft techstack");
+        StringAssert.Contains(rendered, "'sdlc draft techstack' lists them switched off");
         StringAssert.Contains(
             rendered,
             "warnings errors",

@@ -78,6 +78,7 @@ A solution is one governed repository. Everything below lives in it.
 | **greenfield** | the mode for a repository holding no code. Gets `origin: scaffolded`; the build settings arrive with the skeleton |
 | **onboard** | the mode for existing code with no `.sdlc/`. Gets `origin: adopted` and `standard: existing`, and no build settings: their rows start `false` in the first stack draft |
 | **update** | the mode when `.sdlc/` is already there. Refreshes what the framework owns and never a person's file |
+| **the next step** | what adoption's report and `sdlc doctor` both end with until the first cycle opens: what a person still has to place, in one sentence, and the one command that is next — the paragraph in `solution.md`, then the declared stack. Read from disk every time, because a rename runs nothing |
 | **the solution skeleton** | `sdlc scaffold` on a solution that held no code: a solution file, five projects, the architecture suite, and the build settings they compile under. Refuses unless the cycle is approved, so **no code arrives without a chain behind it**. An adopted solution never gets it |
 | **the reference slice** | one worked operation in the skeleton, written to be copied, because an agent takes the shape of the code beside it more reliably than an instruction |
 | **the response envelope** | the one shape every response leaves through. An architecture test fails the build on an endpoint returning anything else |
@@ -272,5 +273,5 @@ These are not files. They are the shapes that recur, and knowing them explains m
 | **rendered, never copied** | the constraints, the decisions and the theme reach a session by being rendered, because a copy inside an artifact is a second place the truth lives |
 | **derived, not declared** | `escalated` is what running out of budget makes of a cycle, not something anything writes |
 | **the human-in-the-loop hand-back** | a skill stops rather than chaining into the next stage. Chaining on would remove the decision point while appearing helpful |
-| **`elsewhere`** | what a binary cannot answer and does not pretend to: whether a host loaded the skills, whether a git hook is installed in this clone. `doctor` marks these and names who to ask |
+| **`elsewhere`** | what a binary cannot answer and does not pretend to: whether a host loaded the skills, whether the pipeline's check is required. `doctor` marks these and names who to ask |
 | **the admission question for a proof** | *what would have to be true for this to pass while the criterion is still unmet?* If that has an answer, the proof is inadequate — and **an inadequate proof is worse than none**, because it produces a green verification instead of an obvious gap |

@@ -26,8 +26,8 @@ public enum CheckOutcome
     /// <remarks>
     /// <strong>The category that keeps this command honest.</strong> Half of what a person wants to
     /// know about an install is on the other side of a boundary the binary cannot see across -- whether
-    /// the host loaded the plugin, whether a git hook is installed in this clone, whether a pipeline
-    /// step is a <em>required</em> check. Reporting those as sound would make the panel a thing that
+    /// the host loaded the plugin, whether a pipeline step is a <em>required</em> check. Reporting
+    /// those as sound would make the panel a thing that
     /// says an install works when nobody has established that, which is the failure this whole
     /// framework is written against. Reporting them as problems would make the panel cry wolf. So they
     /// are a third thing, and they do not count against the exit code.
@@ -75,7 +75,12 @@ public static class Diagnose
 
     /// <summary>What was found.</summary>
     /// <param name="Checks">Every check, in the order a person reads them.</param>
-    public sealed record Response(IReadOnlyList<Check> Checks)
+    /// <param name="Setup">
+    /// What a person still has to place before the first cycle, or null where the repository is not
+    /// adopted. Each step ends in a rename, which runs nothing, so this is where "what now" is
+    /// answered after the first one (D-79).
+    /// </param>
+    public sealed record Response(IReadOnlyList<Check> Checks, SetupState? Setup = null)
     {
         /// <summary>
         /// Whether anything is wrong.
@@ -140,7 +145,9 @@ public static class Diagnose
             checks.Add(Pipeline(await RecordedPlatform(cancellationToken).ConfigureAwait(false)));
             checks.Add(Plugin());
 
-            return Result.Ok(new Response(checks));
+            return Result.Ok(new Response(
+                checks,
+                await Setup.Read(solution.Path, cancellationToken).ConfigureAwait(false)));
         }
 
         private static Check Binary() => new(
@@ -571,6 +578,6 @@ public static class Diagnose
             "the skills",
             CheckOutcome.Elsewhere,
             "a host loads these, and a binary cannot ask it what it loaded",
-            "on Claude Code: 'claude plugin details sdlc@ai-sdlc'. Expect Skills (17) and Hooks (2)");
+            "on Claude Code: 'claude plugin details sdlc@ai-sdlc'. Expect Skills (18) and Hooks (2)");
     }
 }
