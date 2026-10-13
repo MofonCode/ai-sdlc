@@ -1,6 +1,6 @@
 # The guides
 
-Five documents, written for somebody using the framework rather than changing it. This file is the index:
+Six documents, written for somebody using the framework rather than changing it. This file is the index:
 what each one covers, when you would read it, and what it deliberately leaves to another.
 
 **They are in the order a person meets them.** Install once per machine, walk one cycle once, then keep
@@ -13,6 +13,7 @@ the command sheet open and the refusal index to hand. Nothing here needs reading
 | [`dice-worked-example.md`](dice-worked-example.md) | that same cycle with one small solution in it: every command, and the answer to give at every prompt | alongside your first cycle, if you want something that runs at the end |
 | [`cycle-commands.md`](cycle-commands.md) | every command for one cycle, in order, on one screen | while working |
 | [`when-it-blocks.md`](when-it-blocks.md) | every refusal the framework produces, what each means, and the remedy | when something stops |
+| [`the-stack.md`](the-stack.md) | what a solution is built from: the declared stack, the profile that seeds it, and how to change either | when a default is wrong for this solution, or a profile is |
 
 ---
 
@@ -85,6 +86,24 @@ a directory that appears enforced and is not is worse than one that never preten
 
 What it does not cover: the rules themselves. `sdlc constraints` renders those, all tiers resolved, and a
 copy here would be a second place they live.
+
+## `the-stack.md`
+
+**What a solution is built from, and how to change it.** The declared stack and who owns it, the two
+profiles the framework ships and what each declares, what adoption writes on day one, the draft and the
+menu that go beside it, what a profile migration moves and what it leaves alone, and what `sdlc doctor`
+says about all of it.
+
+It is reference rather than a walkthrough — the one guide written to be read in parts. It exists because
+the declared stack is the second rule source every plan is read against and was the only one with no
+document of its own: what the shipped profiles declare was readable in the framework's source and
+nowhere else, and the fact that changing profile leaves the declared stack exactly as it was had never
+been written down anywhere a person would look.
+
+What it does not cover: the rules themselves. `sdlc constraints` renders those, and this guide states
+none — including the one about departing from a declared default, which it names and leaves to the
+command. The reasoning behind one profile per solution is `../../CONCEPT.md` D-68, cited rather than
+repeated.
 
 ---
 

@@ -647,14 +647,21 @@ Three tests, all of which must pass:
 Rules about code go to analyzers — and where an existing analyzer already decides it, that analyzer
 is used rather than a rule written. Mechanical rules about artifacts go to schemas or hooks.
 
-**Stack neutrality.** No constraint may name a language, framework or package.
+**Stack neutrality, and it belongs to the global tier alone.** No `CON_nn` may name a language,
+framework or package: they bind solutions on any stack, so one that named a tool would be a rule most
+solutions are judged against for no reason. That is a constraint on the global library rather than on
+the idea of a constraint — **`PRO_nn` is where a rule may name one, and that is what the tier is for.**
+Said unqualified here until D-74, which is the wording that would have had somebody reject the first
+profile rule written. A judgement that cannot be made without naming a tool — which layer proves a
+criterion about a browser, which substitute makes a proof of stored data worthless — has the profile
+tier or nowhere.
 
 ### 7.3 Tiers and resolution
 
 | Tier | Id | Lives in |
 |---|---|---|
 | global | `CON_nn` | the plugin's library |
-| profile | `PRO_nn` | the stack profile package |
+| profile | `PRO_nn` | the profile `solution.md` records, carried by the binary (D-74) |
 | solution | `LOC_nn` | `.sdlc/constraints.md` |
 
 Global, then profile, then solution. The effective set is rendered on demand by
@@ -1389,6 +1396,16 @@ profile actually wants enforced needs a fitness function beside it.
 **Templates plus constraints.** Package set and versions, analyzer set, `Directory.Build.props` and
 `Directory.Packages.props` fragments, project templates, pipeline templates, and its own `PRO_nn`.
 
+**The `PRO_nn` half was empty for three iterations, and three documents said otherwise.**
+`FileConstraintDocuments` took a profile path, nothing in the product ever passed it, no profile shipped
+a document, and so the profile tier resolved to nothing for every solution on every profile — while
+`draft profile` told a person that a different profile resolved a different set of rules, the component
+dictionary said the `profile` key decided which rules resolved, and the first-cycle guide listed the
+tier as though it had content. D-74 fills it: `dotnet-default` ships three rules, a profile's document is
+found by its name, and `ml-tensorflow` ships none deliberately. What makes the tier worth having is
+§7.2's stack-neutrality clause — a global constraint may not name a language, framework or package, so a
+judgement that cannot be made without a name has nowhere else to live.
+
 **No profile carries AppHost run-mode defaults, and this listed them until F-24.** An AppHost is
 conditional (§11.1) and no profile ships one, so there was nothing for a default to be a default of.
 §10.2 is where the run-mode contract lives; a profile that one day ships an AppHost template would
@@ -1761,10 +1778,13 @@ not: it succeeds on one that is already there (D-10).
   decisions.md              its own DEC_nn: the choices it has settled, hand-edited (D-70)
   theme.json              the roles its surfaces use and the values that fill them (D-71)
   README.md                 terminology, flow and commands
-  reports/                  what suggestions and propose printed last, kept because a person works
-                            through one of these rather than reading it once. Ignored by a
-                            .gitignore the directory carries itself, and read back by nothing --
-                            which is the whole difference between a report and a record (D-69)
+  reports/                  what suggestions, propose and `draft techstack` printed last, kept
+                            because a person works through one of these rather than reading it
+                            once. Ignored by a .gitignore the directory carries itself, and read
+                            back by nothing -- which is the whole difference between a report and a
+                            record (D-69). The stack options menu is one of these: it outlives the
+                            rename it was written for, so a copy anywhere else would reach a later
+                            cycle's diff as a file no plan declared (D-75)
   cycles/
     .gitignore              ignores every cycle's .opened, and keeps itself tracked. Written by
                             `sdlc new` when the first cycle is opened, so an existing solution
@@ -5142,3 +5162,143 @@ list worth keeping, which is what an entry is for.
 - *A sweep removing every count and list from all seventy-two entries now* — the thorough version, and
   declined on D-44's grounds: a 72-entry restructure of the file the framework is specified in, for a
   benefit that arrives per entry. The rule above applies it as entries are touched instead.
+
+### D-74 — The profile tier is filled, and a profile's rules are found by its name
+
+**Governs:** §7.2, §7.3, §11.5
+
+**Decision.** `PRO_nn` constraints become real. Each profile may ship one document, embedded in the
+binary and resolved by the profile's own name, so that giving a profile its first rule is adding a file
+and a profile with no file has no rules rather than an empty set. The profile tier resolves from the
+profile a solution records, between the global library and the solution's own. An explicit path still
+wins, which is the seam an external profile package would arrive through. `dotnet-default` ships three
+rules; `ml-tensorflow` ships none.
+
+**And stack neutrality is narrowed to the tier it belongs to.** §7.2 said *"No constraint may name a
+language, framework or package"* unqualified. That is true of the global library and false of the tier
+whose whole purpose is to hold the rules that need a name — and stated that broadly it is the sentence
+that would have had somebody reject the first profile rule written as a violation of the framework.
+
+**Why.** The tier was wired and empty, and three documents told a person otherwise: `draft profile`
+printed *"a different profile resolves a different set of PRO_ constraints and templates, so run
+'sdlc constraints' afterwards"*, the component dictionary said the `profile` key decided which rules
+resolved, and the first-cycle guide listed the tier as though it had content. None of it was true. The
+parameter existed, no caller passed it, no profile shipped a document, and `sdlc constraints` printed an
+identical set before and after a migration. **A tier that resolves to nothing is indistinguishable from
+one whose document was dropped from the build** — the same class of failure as D-41's packed tool
+shipping no library at all, and it survived three iterations because every test read the library from
+disk.
+
+The alternative was to correct the wording and leave the tier reserved, which §10.2 does honestly for
+the AppHost environment variables. Rejected because the two cases are not alike: §10.2 says in as many
+words that nothing reads them, and these three said the opposite at the one moment a person is deciding.
+
+**Why three rules, which is the part that looks thin and is not.** §7.2's second admission test is that
+no analyzer, schema or hook could decide it, and most candidates for a stack rule fail it — *one folder
+per feature* is a fitness function, *commands go through the mediator* is an analyzer, *liveness is
+mapped* is already an architecture test (§11.1). What survives is the judgement half of three
+convictions this framework has paid for: a criterion about the browser proven by parsing an HTTP
+response, a plan naming the kernel and selecting none of it, and a proof about stored data run against
+an in-memory provider. Each needs a package name in its `Forbids` clause and so could not have been
+written anywhere else.
+
+**Why no file-wins fallback, unlike the global library.** D-41 keeps a discovered file ahead of the
+embedded copy so that editing the global library here takes effect with no rebuild. A profile's rules
+get no such chain: the global set is edited constantly and a profile carries three rules that move
+rarely, and a second discovery order would be two ways to answer one question — which is exactly how
+`ProtectedPaths` ended up with a front door and an open back door. The cost, named: changing a profile's
+rules during the framework's own development needs a rebuild.
+
+**Rejected.**
+
+- *Rules in `StackProfile` as string arrays*, beside the `Notes` already there. A constraint document is
+  parsed, validated against the four-part shape and rendered; as a C# array it would be the one
+  constraint library no reader could read as a document, and the suite's shape assertions would run over
+  something no author ever saw whole.
+- *One document for every profile, with the applicable rules selected inside it.* A selection rule, in a
+  file, about which of its own entries apply — and the first profile wanting a rule the others must not
+  have would need a syntax for that. A file per profile makes the question disappear.
+- *Writing rules for `ml-tensorflow` too, so the tier looks uniform.* Nothing has been built from that
+  profile. A rule written ahead of the first real solution is a guess carrying the authority of a
+  constraint, which is the argument that already keeps a skeleton out of it (D-68).
+
+### D-75 — The stack options menu is a second file, and nothing ever renames it
+
+**Governs:** §8, §11.5, §16
+
+**Decision.** `sdlc draft techstack` writes two files. The draft stays what it was — a byte copy of the
+declared stack, which a person renames into place. The second is **a report** under `.sdlc/reports/`:
+every concern the shipped profiles know about with what each declares for it, the alternatives this framework has
+argued, the choices it refused, and an empty table of the recorded profile's concerns for a solution
+starting over rather than amending a row. The menu is derived from the shipped profiles, rewritten on
+every run, read back by nothing, and never renamed into place. `sdlc doctor` gains a `declared stack`
+check that reports a row declaring nothing, a file with no rows, a file carrying the menu, and how far
+the table has moved from the recorded profile.
+
+**Why a menu at all.** D-68 settled that a solution wanting rows another profile declares copies them
+in — a one-time edit against permanent merge machinery. What it did not settle was how anybody finds out
+what those rows say: the tables live in the framework's source, and an adopted solution's declared stack
+opens with four empty rows and an instruction to fill them in from what the repository actually uses.
+Open question 8 makes the same argument for a profile's rules as a menu — every item was already argued
+by somebody, which beats a blank page and costs nothing.
+
+**Why it is a report rather than a file beside the draft, which is where this first put it.** The menu
+outlives the rename — nothing deletes it — so an untracked copy would sit in `.sdlc/` indefinitely. And
+`evidence` stages untracked paths with `--intent-to-add` before diffing, excluding only ignored ones, so
+that copy would reach **every later cycle's diff as a file no plan declared** — which is what `CON_07.2`
+fires on. D-69's reports directory already carries exactly that argument and the `.gitignore` that
+answers it, and the menu matches its definition without stretching it: a copy of what a command printed,
+worked through rather than read once, and read back by nothing. The cost is one directory of separation
+from the draft, paid for by the drafter printing the full path.
+
+**Why it is a separate file rather than a section of the draft.** Two reasons, and the second decides
+it. The draft is a byte copy, and that is the whole guarantee of the rename (D-67): candidates inside it
+would make placing it apply more than what somebody changed. Worse, they would survive into the declared
+stack — and a declared stack listing answers the solution has **not** chosen is one a plan can reach into
+and truthfully not be departing from anything, which is precisely the deadlock protecting that file
+closed. The marker at the top of the menu is what lets `doctor` report the one remaining route in, a
+person pasting it.
+
+**Why the empty table is in the menu and not the draft.** It was asked for as the draft itself — a blank
+form to fill in. Refused, and the refusal is the useful part of this entry: the declared stack is never
+blank, because adoption writes it from the template, so a blank draft would make the rename a wholesale
+replacement — and every row nobody retyped would be dropped from the one file every plan is judged
+against, silently, discovered by a later plan that had stopped departing from anything. In the menu it is
+a deliberate copy sitting in the draft in front of the person before they place it.
+
+**Why derived rather than authored.** Every answer in the menu is a row some profile actually declares,
+so the menu cannot come to disagree with the tables it was built from. Two short sections are authored —
+an alternative the framework weighed and a choice it refused — because those are argued in §11 and no
+profile declares them, so derivation would lose them. Each carries its reasoning: D-67's argument against
+a drafter proposing rows is that a tool filling a table in makes a judgement while looking like
+bookkeeping, and a candidate with only a name beside it in a menu reads as an endorsement.
+
+**Why drift is information and not a fault.** A profile migration moves the solution document and leaves
+the declared stack exactly as it was, by design, and nothing reconciles the two — so a solution can
+record one profile and declare another's stack indefinitely. Worth saying, because a person expects a
+migration that does not happen; not worth failing, because the file is theirs and departing is what
+`CON_15` exists to let them argue for. A panel that cried wolf at every customised stack would teach
+somebody to stop reading it, which is the failure `CheckOutcome.Elsewhere` already exists to avoid.
+
+**Rejected.**
+
+- *A resolution chain — one default profile plus override bundles, merged when the stack is read.* The
+  shape this started as. It makes the declared stack a derived file, which is the whole of what D-68
+  refused: the thing every plan is judged against would be generated rather than written, and *a person
+  places it* would stop meaning anything.
+- *An overlay applied once at adoption.* Materialised, so nothing is derived at read time — but the
+  precedence rule then lives in code and the person inherits a merge they did not make and cannot see.
+  Strictly worse than the menu for more machinery.
+- *A third composed profile per useful combination.* Admissible, and where overlap between profiles is
+  already handled (D-68). Declined for now because it needs a new profile per combination and nothing
+  has asked for one; the menu serves the same need without a new name.
+- *Printing the menu to the terminal instead of writing it.* Keeps the byte-copy guarantee absolutely
+  intact and was the safe answer. Refused because a person then edits one surface while reading another,
+  and a file is what makes the menu available while the draft sits open.
+- *Gating the rename on a check that the menu is absent.* Nothing is in the write path: a person renames
+  by hand, so there is no command to refuse. `doctor` reports it instead, which is what `doctor` is for.
+- *Keeping the menu at `.sdlc/techstack.options.md` and ignoring it with an entry of its own.* The shape
+  the first implementation had, and the ignore would have been a new framework-owned file in every
+  governed solution — `.sdlc/` holds tracked records, so it could not use the reports directory's blanket
+  `*` and would need a named entry maintained alongside the constant. D-69's directory already exists and
+  already argues the case.

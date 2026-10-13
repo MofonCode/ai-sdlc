@@ -9,7 +9,7 @@ time from these, plus the profile's own, plus the solution's `.sdlc/constraints.
 | Tier | Id | Resolves in |
 |---|---|---|
 | global | `CON_nn` | this file |
-| profile | `PRO_nn` | the stack profile package |
+| profile | `PRO_nn` | the profile `solution.md` records, carried by the binary |
 | solution | `LOC_nn` | the solution being worked on |
 
 **Ids are a monotonic sequence.** Assigned once, never reused, never backfilled. A removed

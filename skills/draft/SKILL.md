@@ -29,14 +29,15 @@ writes `approval.<decision>.draft.md` into the cycle directory -- a complete fil
 and prints it with the rename that records it. **`draft solution` does the same for the solution
 document**, carrying its four keys through as recorded and any prose already there through
 unchanged -- so the rename can neither reclassify the solution nor cost somebody what they wrote. **And
-`draft techstack` copies the declared stack beside itself**, so an edit to it is a rename too. The other
+`draft techstack` copies the declared stack beside itself** and writes the options menu beside the copy,
+so an edit to it is a rename too — of the draft, never of the menu. The other
 two -- `abandon` and `profile` -- still print for a person to place by hand. Show the rename command and
 do not run it: it is denied, and it is the decision.
 
 ## You cannot place it, and should not offer to
 
-Every agent write to `approval.md`, `abandoned.md`, `constraints.md`, `solution.md` and `techstack.md`
-is denied at the tool call — by file path and by shell command alike. There is no flag, no mode, and no approve command
+Every agent write to `approval.md`, `abandoned.md`, `constraints.md`, `decisions.md`, `solution.md` and
+`techstack.md` is denied at the tool call — by file path and by shell command alike. There is no flag, no mode, and no approve command
 for an exception to be carved out of, which is why the rule can be stated in one sentence and has
 nowhere for a bypass to live.
 
@@ -72,6 +73,18 @@ that killed the cycle on the record.
 **`techstack`** — a byte copy of the declared stack, beside itself, for an edit a person renames into
 place. You may edit the draft; only the real file is denied. The copy is the guarantee: the rename applies
 what somebody changed and nothing else, with nothing merged and nothing regenerated.
+
+**It writes a second file, and that one is never placed.** The menu is a report under `.sdlc/reports/`:
+every concern the shipped profiles know about with what each declares for it, the alternatives this
+framework has argued, the choices it refused, and an empty table for a solution starting over rather
+than amending a row. The command prints its path. Point a person at it and leave it where it is — a
+declared stack carrying answers the solution has **not** chosen is one a plan can reach into and
+truthfully not be departing from anything, which is the deadlock protecting the file closed.
+`sdlc doctor` reports a declared stack that ended up with the menu inside it.
+
+**A report rather than a file in `.sdlc/` itself, because it outlives the rename.** Nothing deletes it,
+and an untracked copy would reach every later cycle's diff as a file no plan declared — `CON_07.2`. The
+reports directory ignores itself, which is the whole reason it exists.
 
 It is protected for the reason the solution's own constraints are. The declared stack is the second rule
 source a plan is read against, and `CON_15` judges every plan against it — so an agent able to edit it

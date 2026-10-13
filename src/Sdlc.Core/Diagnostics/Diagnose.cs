@@ -125,6 +125,7 @@ public static class Diagnose
             }
 
             checks.Add(await Adoption(cancellationToken).ConfigureAwait(false));
+            checks.Add(await DeclaredStack(cancellationToken).ConfigureAwait(false));
 
             foreach (SupportedHost host in SupportedHosts.All)
             {
@@ -231,6 +232,129 @@ public static class Diagnose
             }
 
             return new Check("adoption", CheckOutcome.Sound, recorded);
+        }
+
+        /// <summary>
+        /// Whether the declared stack says anything, and whether it still matches the recorded profile.
+        /// </summary>
+        /// <remarks>
+        /// <para><strong>Three quiet failures, and every one of them leaves a working gate.</strong> The
+        /// declared stack is the second rule source a plan is read against, and <c>CON_15</c> asks a
+        /// plan to argue for departing from it — so a file that declares nothing makes that rule bite on
+        /// nothing, and a plan reaching for anything at all is departing from no default. Nothing else
+        /// in the framework can see that: every stage passes, every gate opens, and the one thing
+        /// missing is the argument.</para>
+        ///
+        /// <para><strong>Drift is reported as information, never as fault.</strong> A person owns this
+        /// file and departing from the profile is legitimate — that is the whole of <c>CON_15</c>. What
+        /// is worth saying is that a profile migration moves <c>solution.md</c> and leaves this file
+        /// exactly as it was, by design, and nothing reconciles the two: a solution can record one
+        /// profile and declare another's stack indefinitely with no complaint from anywhere.</para>
+        ///
+        /// <para>Reported and never repaired, like everything else here. Rewriting a person's file to
+        /// agree with a profile would be the gate deciding what a team is built from.</para>
+        /// </remarks>
+        /// <param name="cancellationToken">Token observed while reading.</param>
+        /// <returns>What the declared stack is in, as one check.</returns>
+        private async Task<Check> DeclaredStack(CancellationToken cancellationToken)
+        {
+            string path = Path.Combine(
+                solution.Path,
+                Cycle.SdlcDirectoryName,
+                Cycle.TechStackFileName);
+
+            if (!File.Exists(path))
+            {
+                return new Check(
+                    "declared stack",
+                    CheckOutcome.Problem,
+                    Cycle.TechStackFileName + " is not there, so CON_15 judges every plan against nothing",
+                    "a person runs 'sdlc init' here: it recreates a protected file that has gone, from the profile's template");
+            }
+
+            string text = await File.ReadAllTextAsync(path, cancellationToken).ConfigureAwait(false);
+
+            // The menu, pasted into the real file. It is written beside the draft and never over it for
+            // exactly this reason: a declared stack listing answers the solution has not chosen lets a
+            // plan reach for one and truthfully not be departing from anything, which is the deadlock
+            // protecting this file closed.
+            if (text.Contains(StackOptions.Marker, StringComparison.Ordinal))
+            {
+                return new Check(
+                    "declared stack",
+                    CheckOutcome.Problem,
+                    "it carries the options menu, which lists answers this solution has not chosen",
+                    "delete everything from the options marker down. The menu is a report under '.sdlc/reports/', which is never renamed into place");
+            }
+
+            IReadOnlyList<StackTable.Row> rows = StackTable.Rows(text);
+
+            if (rows.Count == 0)
+            {
+                return new Check(
+                    "declared stack",
+                    CheckOutcome.Problem,
+                    "it declares no rows at all, so CON_15 judges every plan against nothing",
+                    "'sdlc draft techstack' writes the draft and the menu beside it; fill the table in and rename the draft");
+            }
+
+            string[] undeclared = [.. rows
+                .Where(row => string.IsNullOrWhiteSpace(row.Choice))
+                .Select(row => row.Concern)];
+
+            if (undeclared.Length > 0)
+            {
+                return new Check(
+                    "declared stack",
+                    CheckOutcome.Problem,
+                    string.Create(
+                        CultureInfo.InvariantCulture,
+                        $"{undeclared.Length} of {rows.Count} rows declare nothing: {string.Join(", ", undeclared)}"),
+                    "'sdlc draft techstack' writes the menu beside the draft, with what each profile declares for every concern. A row this solution has no use for is better deleted than left empty");
+            }
+
+            string drift = await Drift(rows, cancellationToken).ConfigureAwait(false);
+
+            return new Check(
+                "declared stack",
+                CheckOutcome.Sound,
+                string.Create(CultureInfo.InvariantCulture, $"{rows.Count} rows declared{drift}"));
+        }
+
+        /// <summary>
+        /// How far the declared rows have moved from the profile the solution records.
+        /// </summary>
+        /// <remarks>
+        /// Only concerns both the table and the profile name are compared, so a row a solution dropped
+        /// because it has no use for it counts as nothing. The opposite reading — every concern the
+        /// profile declares and the table does not — would report an adopted solution as drifting from a
+        /// profile it was never built to, which is the panel crying wolf.
+        /// </remarks>
+        /// <param name="rows">The declared rows.</param>
+        /// <param name="cancellationToken">Token observed while reading.</param>
+        /// <returns>A clause to append to the detail, or an empty string when nothing differs.</returns>
+        private async Task<string> Drift(
+            IReadOnlyList<StackTable.Row> rows,
+            CancellationToken cancellationToken)
+        {
+            Result<SolutionDocument> document = await SolutionDocument
+                .ReadFile(solution.Path, cancellationToken)
+                .ConfigureAwait(false);
+
+            if (document.IsFailed || StackProfiles.Find(document.Value.Profile) is not { } profile)
+            {
+                return string.Empty;
+            }
+
+            int differ = profile.Defaults.Count(declared => rows.Any(row =>
+                string.Equals(row.Concern, declared.Concern, StringComparison.OrdinalIgnoreCase)
+                && !string.Equals(row.Choice, declared.Choice, StringComparison.OrdinalIgnoreCase)));
+
+            return differ == 0
+                ? string.Empty
+                : string.Create(
+                    CultureInfo.InvariantCulture,
+                    $", {differ} differing from what '{profile.Name}' declares -- which is a solution's to do, and nothing reconciles the two");
         }
 
         /// <summary>

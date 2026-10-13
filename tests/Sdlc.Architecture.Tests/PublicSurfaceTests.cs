@@ -277,6 +277,14 @@ public sealed class PublicSurfaceTests
         "Sdlc.Core.Solutions.StackDefault",
         "Sdlc.Core.Solutions.StackProfile",
         "Sdlc.Core.Solutions.StackProfiles",
+
+        // The menu written beside the draft, and the reader that tells doctor what a declared stack
+        // says. Public because the drafter renders one and the suite asserts both -- that the menu
+        // offers every concern the profiles declare and recommends none of them, and that a table a
+        // person hand-edited still reads.
+        "Sdlc.Core.Solutions.StackOptions",
+        "Sdlc.Core.Solutions.StackTable",
+        "Sdlc.Core.Solutions.StackTable+Row",
         "Sdlc.Core.Solutions.WriteSolutionDraft",
         "Sdlc.Core.Solutions.WriteSolutionDraft+Command",
         "Sdlc.Core.Solutions.WriteTechStackDraft",

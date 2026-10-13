@@ -22,6 +22,17 @@ internal static class RepoPaths
     /// <summary>This repository's own banned-API list, the one its build reads.</summary>
     public static string BannedSymbols => Path.Combine(Root, "BannedSymbols.txt");
 
+    /// <summary>One profile's constraint document, as the build embeds it.</summary>
+    /// <param name="profile">The profile's name, which is also the file's.</param>
+    /// <returns>The path, whether or not a document is there — a profile need not ship one.</returns>
+    public static string ProfileLibrary(string profile) => Path.Combine(
+        Root,
+        "src",
+        "Sdlc.Core",
+        "Constraints",
+        "Profiles",
+        profile + ".md");
+
     private static string Find()
     {
         string? directory = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);

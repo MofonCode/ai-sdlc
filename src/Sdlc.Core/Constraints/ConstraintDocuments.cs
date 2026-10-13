@@ -1,4 +1,5 @@
 using System.Globalization;
+using FluentResults;
 
 namespace Sdlc.Core.Constraints;
 
@@ -41,9 +42,10 @@ public interface IConstraintDocuments
 /// tier, and is absent until someone writes the first local rule.
 /// </param>
 /// <param name="profilePath">
-/// The profile package's constraint document, when a profile supplies one. No profile package ships
-/// yet, so this is normally null — the tier exists in the model so that adding one later is a new
-/// source rather than a redesign.
+/// A profile constraint document supplied as a file, which wins over the one the binary carries. Null
+/// is the normal case: the profile tier resolves from the profile <c>solution.md</c> names, out of the
+/// documents embedded in this build — see <see cref="ShippedProfileLibrary"/>. The parameter stays
+/// because an external profile package, if one is ever built, arrives as a path.
 /// </param>
 public sealed class FileConstraintDocuments(
     string? libraryPath,
@@ -80,7 +82,20 @@ public sealed class FileConstraintDocuments(
             await Add(ConstraintTier.Global, libraryPath, required: true).ConfigureAwait(false);
         }
 
-        await Add(ConstraintTier.Profile, profilePath, required: false).ConfigureAwait(false);
+        // The profile tier, which resolved to nothing at all until this read the profile's name: the
+        // key existed, the parameter existed, and nothing ever passed it -- so `sdlc constraints`
+        // printed the same set on every profile while three documents told a person it would change.
+        // A path still wins, for the seam an external profile package would use; otherwise the rules
+        // come from the profile solution.md names, out of this build.
+        if (!string.IsNullOrWhiteSpace(profilePath))
+        {
+            await Add(ConstraintTier.Profile, profilePath, required: false).ConfigureAwait(false);
+        }
+        else
+        {
+            await AddShippedProfile(cancellationToken).ConfigureAwait(false);
+        }
+
         await Add(
             ConstraintTier.Solution,
             Path.Combine(solutionRoot, Cycles.Cycle.SdlcDirectoryName, SolutionConstraintsFileName),
@@ -114,6 +129,32 @@ public sealed class FileConstraintDocuments(
 
             string text = await File.ReadAllTextAsync(path, cancellationToken).ConfigureAwait(false);
             documents.Add(new ConstraintDocument(tier, path, text));
+        }
+
+        async Task AddShippedProfile(CancellationToken token)
+        {
+            // An unreadable or absent solution document leaves the tier absent rather than failing.
+            // Every caller of this is a gate about to judge an artifact, and a solution whose own
+            // document cannot be read has a larger problem that `sdlc doctor` reports by name -- while
+            // a throw here would turn it into every command failing with a message about constraints.
+            Result<Solutions.SolutionDocument> read = await Solutions.SolutionDocument
+                .ReadFile(solutionRoot, token)
+                .ConfigureAwait(false);
+
+            if (read.IsFailed)
+            {
+                return;
+            }
+
+            if (ShippedProfileLibrary.Text(read.Value.Profile) is not { } text)
+            {
+                return;
+            }
+
+            documents.Add(new ConstraintDocument(
+                ConstraintTier.Profile,
+                ShippedProfileLibrary.Source(read.Value.Profile),
+                text));
         }
     }
 }

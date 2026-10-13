@@ -42,6 +42,7 @@ the cheapest way to discover that what you were about to add already lives somew
 |---|---|
 | [`CONCEPT.md`](CONCEPT.md) | the design, and every decision behind it with what each one rejected |
 | [`CONSTRAINTS.md`](CONSTRAINTS.md) | the seventeen global constraints, each with what it forbids and why |
+| `src/Sdlc.Core/Constraints/Profiles/` | one document per profile: its `PRO_` rules, the only tier where a rule may name a language, framework or package. Embedded in the binary, found by the profile's name |
 | `CONCEPT.raw.md` | the original longhand draft, preserved unedited |
 | `src/Sdlc.Core/` | the gate's logic: constraints, cycles, approvals, findings, hooks, evidence, the chain |
 | `src/Sdlc.Cli/` | the one binary every skill on every host calls |
@@ -165,7 +166,8 @@ a follow-up is a thing somebody has to remember, and the document is wrong in th
 | changes what a correct install produces — a hook, a skill count, a version, either plugin manifest | [`docs/guides/install.md`](docs/guides/install.md), **including the table at the top**, and the Getting started steps in [`README.md`](README.md) |
 | adds, removes or reworks a refusal | [`docs/guides/when-it-blocks.md`](docs/guides/when-it-blocks.md) |
 | changes the flow a person walks through | [`docs/guides/first-cycle.md`](docs/guides/first-cycle.md) |
-| adds, removes or renames a guide | [`docs/guides/README.md`](docs/guides/README.md) **and** the Where to read more table in [`README.md`](README.md) — the suite holds that the two name the same set |
+| adds, removes or renames a guide | [`docs/guides/README.md`](docs/guides/README.md) — its table row, its own `##` section, and the count in the opening line — **and** the Where to read more table in [`README.md`](README.md). The suite holds that the index's headings and that table name the same set as the directory |
+| adds or changes what a profile declares, or the rules it ships | `Solutions/StackProfile` for the rows, `Constraints/Profiles/<profile>.md` for the rules, and [`docs/guides/the-stack.md`](docs/guides/the-stack.md), which is where a person reads both. A rule count stated in a document is held by the suite |
 | adds, removes or renames a tool under `tools/` | [`tools/README.md`](tools/README.md) — its row and its own section |
 | adds or removes a file only a person writes | `ProtectedPaths` (its description, its reason, and `Names`), the count in [`README.md`](README.md), [`skills/README.md`](skills/README.md), [`skills/draft/SKILL.md`](skills/draft/SKILL.md), the denial table in [`docs/guides/when-it-blocks.md`](docs/guides/when-it-blocks.md), and `CONCEPT.md` §5.3 and §8 |
 | moves the project boundary, an operation's shape, or where a new thing goes | [`src/README.md`](src/README.md) |

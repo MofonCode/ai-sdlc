@@ -4,6 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 using MofonCode.Core;
 using Sdlc.Core.Cycles;
 using Sdlc.Core.Drafts;
+using Sdlc.Core.Reports;
 
 namespace Sdlc.Core.Solutions;
 
@@ -39,6 +40,23 @@ public static class WriteTechStackDraft
     /// <summary>The name the draft is written under, beside the file it is for.</summary>
     public const string DraftFileName = "techstack.draft.md";
 
+    /// <summary>What the menu is filed as under <c>.sdlc/reports/</c>.</summary>
+    /// <remarks>
+    /// <para>A second file rather than a section of the draft, because the draft is a byte copy and the
+    /// rename is what places it: candidates inside it would survive into the one file every plan is read
+    /// against, where a plan could reach for one and truthfully not be departing from anything.</para>
+    ///
+    /// <para><strong>And a report rather than a file beside the draft, which is where this first put
+    /// it.</strong> The menu outlives the rename — nothing deletes it — so an untracked copy would sit
+    /// in <c>.sdlc/</c> indefinitely, and <c>evidence</c> stages untracked paths with
+    /// <c>--intent-to-add</c> before diffing. It would therefore reach every later cycle's diff as a
+    /// file no plan declared, which is what <c>CON_07.2</c> fires on. <c>ReportFile</c> already carries
+    /// that argument and the directory that ignores itself, and the menu matches its definition exactly:
+    /// a copy of what a command printed, worked through rather than read once, and read back by nothing.
+    /// </para>
+    /// </remarks>
+    public const string OptionsReportKind = "stack-options";
+
     /// <summary>Registers this operation's handler.</summary>
     /// <param name="services">The collection to add to.</param>
     /// <returns>The same collection, for chaining.</returns>
@@ -52,7 +70,8 @@ public static class WriteTechStackDraft
     /// <summary>Asks for the stack document to be drafted to disk.</summary>
     public sealed record Command : IRequest<DraftResult>;
 
-    private sealed class Handler(SolutionRoot solution) : IRequestHandler<Command, DraftResult>
+    private sealed class Handler(SolutionRoot solution, TimeProvider clock)
+        : IRequestHandler<Command, DraftResult>
     {
         /// <inheritdoc />
         public async Task<Result<DraftResult>> Handle(
@@ -76,10 +95,41 @@ public static class WriteTechStackDraft
 
             await File.WriteAllTextAsync(draftPath, current, cancellationToken).ConfigureAwait(false);
 
-            return Result.Ok(DraftResult.Drafted(current, Instructions(path, draftPath)));
+            // The menu, as a report and never over the real file. Written on every run rather than
+            // created once: it is derived from the profiles this build ships, so a kept copy would
+            // offer answers a later release had changed its mind about -- which is the whole of what a
+            // report is, and why the directory it lands in ignores itself.
+            string optionsPath = await ReportFile.Write(
+                solution.Path,
+                OptionsReportKind,
+                StackOptions.Render(await ProfileOf(cancellationToken).ConfigureAwait(false)),
+                clock.GetUtcNow(),
+                cancellationToken).ConfigureAwait(false);
+
+            return Result.Ok(DraftResult.Drafted(current, Instructions(path, draftPath, optionsPath)));
         }
 
-        private static string Instructions(string path, string draftPath) => string.Join(
+        /// <summary>
+        /// The profile this solution records, for the menu's empty table.
+        /// </summary>
+        /// <remarks>
+        /// Null when the solution document cannot be read or names a profile nothing answers to. The
+        /// draft itself does not depend on it — a person amending one row should not be refused because
+        /// another file is wrong — so the menu leaves that section out and names the command that
+        /// reports it.
+        /// </remarks>
+        /// <param name="cancellationToken">Token observed while reading.</param>
+        /// <returns>The profile, or null.</returns>
+        private async Task<StackProfile?> ProfileOf(CancellationToken cancellationToken)
+        {
+            Result<SolutionDocument> read = await SolutionDocument
+                .ReadFile(solution.Path, cancellationToken)
+                .ConfigureAwait(false);
+
+            return read.IsSuccess ? StackProfiles.Find(read.Value.Profile) : null;
+        }
+
+        private static string Instructions(string path, string draftPath, string optionsPath) => string.Join(
             Environment.NewLine,
             [
                 string.Create(CultureInfo.InvariantCulture, $"Written to {draftPath}"),
@@ -90,6 +140,17 @@ public static class WriteTechStackDraft
                 string.Empty,
                 "The draft starts as a byte copy of the file, so the rename applies what you changed and",
                 "nothing else. Nothing is merged and nothing is regenerated.",
+                string.Empty,
+                string.Create(CultureInfo.InvariantCulture, $"The menu is at {optionsPath}:"),
+                "every concern the shipped profiles know about, what each declares for it, the",
+                "alternatives this framework has argued, and an empty table for a solution starting over.",
+                "Open it beside the draft and copy across what you want.",
+                string.Empty,
+                "It is a report rather than a file in '.sdlc/' itself -- written fresh every run, read back",
+                "by nothing, safe to delete, and in a directory that ignores itself so a copy left behind",
+                "never reaches a later cycle's diff as a file no plan declared. It is never renamed over",
+                "the real file: a declared stack carrying answers this solution has not chosen would let a",
+                "plan reach for one and truthfully not be departing from anything.",
                 string.Empty,
                 "What belongs in a change here is a default this solution is adopting or dropping -- not a",
                 "package one cycle happened to need. A plan that reaches for something undeclared satisfies",

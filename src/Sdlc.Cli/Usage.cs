@@ -48,7 +48,9 @@ internal static class Usage
             draft abandon <id>       Print the record that stops a cycle, for a person to place.
             draft profile <name>     Print the solution.md keys for a profile migration.
             draft techstack          Copy the declared stack beside itself, for an edit a person
-                                     renames into place.
+                                     renames into place, and report the options menu: every concern
+                                     the shipped profiles know about and what each declares. The
+                                     menu is never renamed into place.
             draft solution           Write the whole solution.md beside itself, for a person
                                      to rename onto it. Carries the four keys through as
                                      recorded and the prose through unchanged, so the rename
@@ -97,10 +99,11 @@ internal static class Usage
             --solution <path>        The solution to work in. Defaults to the working directory.
 
         Options for init
-            --profile <name>         Which profile governs the solution, and so what its declared stack
-                                     starts as. One of: dotnet-default, ml-tensorflow. A name nothing
-                                     answers to is refused rather than recorded. Default:
-                                     dotnet-default.
+            --profile <name>         Which profile governs the solution: what its declared stack starts
+                                     as, whether a scaffold has a skeleton to write, and which PRO_
+                                     rules it is judged against. One of: dotnet-default, ml-tensorflow.
+                                     A name nothing answers to is refused rather than recorded.
+                                     Default: dotnet-default.
             --adopt-standard         Hold this solution's new work to the profile's conventions, in a
                                      repository that existed first. Writes the stack files an adopted
                                      solution otherwise never gets -- .editorconfig, the two props

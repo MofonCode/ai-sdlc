@@ -258,9 +258,10 @@ that did, and the reason nobody could remember what it was for. See `propose` be
 | `draft abandon <id>` | why a cycle stopped. Terminal, and the reason is left empty because the file is rejected without one |
 | `draft profile <name>` | all three `solution.md` keys, not only the one that changes |
 | `sdlc draft solution` | the whole `solution.md`, written beside itself for a rename. Keys carried through as recorded and prose through unchanged, so renaming can neither reclassify the solution nor cost anybody what they wrote |
+| `sdlc draft techstack` | a byte copy of the declared stack for a rename, **and the options menu as a report** — every concern the shipped profiles know about with what each declares. The menu is written fresh every run and never renamed into place: a declared stack listing answers the solution has not chosen is one a plan can reach into and truthfully not be departing from anything |
 
-Every agent write to `approval.md`, `abandoned.md`, `constraints.md` and `solution.md` is denied at the
-tool call — by file path and by shell command alike. There is no flag, no mode, and no approve command for
+Every agent write to `approval.md`, `abandoned.md`, `constraints.md`, `decisions.md`, `solution.md` and
+`techstack.md` is denied at the tool call — by file path and by shell command alike. There is no flag, no mode, and no approve command for
 an exception to be carved out of, which is why the rule states in one sentence and has nowhere for a
 bypass to live. The denial covers the rename that places an approval, in every spelling and through every
 shell the host offers, so the skill does not offer to run it and does not read the refusal as a

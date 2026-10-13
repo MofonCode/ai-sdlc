@@ -361,7 +361,7 @@ could loop. Its tool calls are governed normally.
 
 ## When nothing refuses and it should have
 
-The dangerous direction. Four ways the gate goes quiet — and **`sdlc doctor` is the command for this
+The dangerous direction. Five ways the gate goes quiet — and **`sdlc doctor` is the command for this
 section**: it checks every host's hook configuration, adoption, and whether a pipeline here runs the one
 check that is the guarantee, and exits 1 if any of it is wrong. The two causes it cannot see are marked
 `elsewhere` rather than passed, and they are the first two below.
@@ -375,6 +375,15 @@ work. No binary can check this for you, which is why `doctor` names the command 
 
 **The session predates the install.** Skills and hooks load at startup. Reinstall, then start a new
 session.
+
+**The declared stack declares nothing.** `CON_15` asks a plan to say why it departs from a declared
+default, so a stack file of empty rows is a rule with nothing to bite on — and a plan reaching for
+anything at all is departing from no default. An adopted solution's file opens with four empty rows and
+an instruction to fill them in from what the repository actually uses, and nothing used to look at
+whether anybody did. Every stage passes, every gate opens, and the only thing missing is the argument.
+`sdlc doctor` reports it as `declared stack`, names the rows that are open, and `sdlc draft techstack`
+reports the options menu with what each shipped profile declares for every concern, beside the draft to
+edit.
 
 **The check is not required.** `sdlc verify-chain` in the pipeline is the only non-bypassable layer, and
 it is only a guarantee while branch policy makes it required. A pipeline that runs it and a merge that
@@ -398,6 +407,7 @@ published.
 | a cycle walked end to end | `first-cycle.md` |
 | the same walk with one solution in it | `dice-worked-example.md` |
 | every command for one cycle, on one screen | `cycle-commands.md` |
+| what this solution is built from, and how to change it | `the-stack.md` |
 | what each skill is and who starts it | `../../skills/README.md` |
 | installing, updating, removing | `install.md` |
 | the seventeen global constraints, each with what it forbids | `../../CONSTRAINTS.md` |

@@ -2,6 +2,7 @@ using System.Globalization;
 using FluentResults;
 using Microsoft.Extensions.DependencyInjection;
 using MofonCode.Core;
+using Sdlc.Core.Constraints;
 using Sdlc.Core.Drafts;
 
 namespace Sdlc.Core.Solutions;
@@ -114,13 +115,42 @@ public static class ProfileText
                     "work to the profile's conventions, 'existing' to the surrounding code. Moving it to",
                     "'profile' wants the stack files too, which 'sdlc init --adopt-standard' writes.",
                     string.Empty,
-                    "A different profile resolves a different set of PRO_ constraints and templates, so run",
-                    "'sdlc constraints' afterwards to see what now applies.",
+                    string.Create(
+                        CultureInfo.InvariantCulture,
+                        $"The profile tier of the constraints moves with this key. '{document.Profile}' ships {Rules(document.Profile)}"),
+                    string.Create(
+                        CultureInfo.InvariantCulture,
+                        $"and '{wanted}' ships {Rules(wanted)}, so run 'sdlc constraints' afterwards and read what now"),
+                    "applies. The declared stack does not move: it is a person's file, created once, and",
+                    "'sdlc draft techstack' is the separate act that changes it.",
                     string.Empty,
                     "Nothing here writes that file. The hook denies every agent write to it.",
                 ]);
 
             return Result.Ok(DraftResult.Drafted(entry, instructions));
+        }
+
+        /// <summary>
+        /// What a profile ships in rules, as a phrase a sentence can hold.
+        /// </summary>
+        /// <remarks>
+        /// Counted rather than asserted, because the number moves when a profile gains a rule and a
+        /// hard-coded one in a message is the kind of wrong nothing fails on. Naming it at all is the
+        /// point: this message used to promise that a different profile resolved a different set of
+        /// rules, at a time when no profile shipped any and the set never moved.
+        /// </remarks>
+        /// <param name="profile">The profile to describe.</param>
+        /// <returns>Either a count with its noun, or that it ships none.</returns>
+        private static string Rules(string profile)
+        {
+            int count = ShippedProfileLibrary.Count(profile);
+
+            return count switch
+            {
+                0 => "no rules of its own",
+                1 => "1 rule",
+                _ => string.Create(CultureInfo.InvariantCulture, $"{count} rules"),
+            };
         }
     }
 }

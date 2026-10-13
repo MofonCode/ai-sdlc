@@ -5,6 +5,7 @@ using Sdlc.Core.Diagnostics;
 using Sdlc.Core.Git;
 using Sdlc.Core.Hooks;
 using Sdlc.Core.Init;
+using Sdlc.Core.Solutions;
 
 namespace Sdlc.Tests;
 
@@ -178,6 +179,115 @@ public sealed class DoctorTests
             "elsewhere",
             "The marker has to appear, or the one honest category reads as a pass.");
     }
+
+    [TestMethod]
+    public async Task An_adopted_solution_reports_what_its_declared_stack_declares()
+    {
+        // The second rule source a plan is read against, and until now nothing looked at it. A gate
+        // works perfectly over a stack file that says nothing, which is what makes this quiet.
+        using var solution = Scratch.Create();
+        await Adopt(solution);
+
+        Diagnose.Response report = await Diagnosis(solution);
+        Check stack = report.Checks.Single(check => check.Subject == "declared stack");
+
+        Assert.AreEqual(CheckOutcome.Sound, stack.Outcome, stack.Detail);
+        StringAssert.Contains(stack.Detail, "rows declared");
+    }
+
+    [TestMethod]
+    public async Task A_row_that_declares_nothing_is_reported_with_the_concern_it_left_open()
+    {
+        // An adopted solution's stack file opens with four empty rows and an instruction to fill them
+        // in. Nothing ever checked whether anybody did, so CON_15 could be judging every plan against
+        // four blanks -- and a plan reaching for anything at all departs from no declared default.
+        using var solution = Scratch.Create();
+        await Adopt(solution);
+
+        await File.WriteAllTextAsync(
+            Path.Combine(solution.Root, Cycle.SdlcDirectoryName, Cycle.TechStackFileName),
+            "| Concern | Choice |\n|---|---|\n| api | ASP.NET Core |\n| cache | |\n",
+            TestContext.CancellationToken);
+
+        Diagnose.Response report = await Diagnosis(solution);
+        Check stack = report.Checks.Single(check => check.Subject == "declared stack");
+
+        Assert.AreEqual(CheckOutcome.Problem, stack.Outcome);
+        StringAssert.Contains(stack.Detail, "cache", "Named, or a person has to hunt for the blank row.");
+        StringAssert.Contains(stack.Remedy!, "draft techstack");
+    }
+
+    [TestMethod]
+    public async Task A_declared_stack_carrying_the_options_menu_is_reported()
+    {
+        // The hazard the two-file design exists to avoid, reached the one way left open: a person
+        // pasting the menu into the real file. A declared stack listing answers the solution has not
+        // chosen is one a plan can reach into and truthfully not be departing from anything.
+        using var solution = Scratch.Create();
+        await Adopt(solution);
+
+        string path = Path.Combine(solution.Root, Cycle.SdlcDirectoryName, Cycle.TechStackFileName);
+
+        await File.WriteAllTextAsync(
+            path,
+            await File.ReadAllTextAsync(path, TestContext.CancellationToken)
+                + "\n" + StackOptions.Marker + "\n# Stack options\n",
+            TestContext.CancellationToken);
+
+        Diagnose.Response report = await Diagnosis(solution);
+        Check stack = report.Checks.Single(check => check.Subject == "declared stack");
+
+        Assert.AreEqual(CheckOutcome.Problem, stack.Outcome);
+        StringAssert.Contains(stack.Detail, "options menu");
+        StringAssert.Contains(stack.Remedy!, "reports");
+    }
+
+    [TestMethod]
+    public async Task A_declared_stack_that_is_gone_says_what_recreates_it()
+    {
+        using var solution = Scratch.Create();
+        await Adopt(solution);
+
+        File.Delete(Path.Combine(solution.Root, Cycle.SdlcDirectoryName, Cycle.TechStackFileName));
+
+        Diagnose.Response report = await Diagnosis(solution);
+        Check stack = report.Checks.Single(check => check.Subject == "declared stack");
+
+        Assert.AreEqual(CheckOutcome.Problem, stack.Outcome);
+        StringAssert.Contains(stack.Detail, "CON_15");
+        StringAssert.Contains(stack.Remedy!, "sdlc init");
+    }
+
+    [TestMethod]
+    public async Task A_table_that_has_moved_away_from_its_profile_is_information_rather_than_fault()
+    {
+        // A profile migration moves solution.md and leaves the declared stack exactly as it was, by
+        // design -- two acts, and nothing reconciles them. So a solution can record one profile and
+        // declare another's stack indefinitely. Worth saying; not worth failing, because a person owns
+        // that file and departing from the profile is what CON_15 exists to let them argue for.
+        using var solution = Scratch.Create();
+        await Adopt(solution);
+
+        await File.WriteAllTextAsync(
+            Path.Combine(solution.Root, Cycle.SdlcDirectoryName, Cycle.TechStackFileName),
+            "| Concern | Choice |\n|---|---|\n| machine learning | TensorFlow, through Keras |\n",
+            TestContext.CancellationToken);
+
+        Diagnose.Response report = await Diagnosis(solution);
+        Check stack = report.Checks.Single(check => check.Subject == "declared stack");
+
+        Assert.AreEqual(
+            CheckOutcome.Sound,
+            stack.Outcome,
+            "Departing from the profile is a solution's to do. Reporting it as a fault would have the "
+            + "panel crying wolf at every customised stack.");
+
+        StringAssert.Contains(stack.Detail, "differing");
+        StringAssert.Contains(stack.Detail, "dotnet-default");
+    }
+
+    /// <summary>The test context, for the cancellation token the analysers require to be passed on.</summary>
+    public TestContext TestContext { get; set; } = null!;
 
     /// <summary>Every host the enum declares, so the per-host check runs per host.</summary>
     public static IEnumerable<object[]> Hosts =>

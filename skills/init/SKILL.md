@@ -50,20 +50,22 @@ conversation and you can read the mode, the origin and the file list back withou
 bare line sends the person to another terminal and the output has to be copied in by hand. On a host with
 no such prefix, say to run it in a terminal at the repository root and paste what it prints.
 
-**Ask which profile governs the solution**, because it decides what the declared stack starts as and
-the stack file is protected the moment it is created -- so a wrong answer costs a draft and a rename
-rather than an edit. Two exist:
+**Ask which profile governs the solution**, because it decides what the declared stack starts as, which
+`PRO_` rules the solution is judged against, and whether a scaffold has a skeleton to write — and the
+stack file is protected the moment it is created, so a wrong answer costs a draft and a rename rather
+than an edit. Two exist:
 
 | Profile | What it declares | Skeleton |
 |---|---|---|
 | `dotnet-default` | C# and .NET across api, web, desktop and Android | yes -- `sdlc scaffold` writes it |
 | `ml-tensorflow` | Python and TensorFlow for model work, on the same Azure platform | **no** -- `sdlc scaffold` refuses and says so |
 
-**Say what the second one costs before they choose it**, in one line: it ships no solution skeleton and
-no architecture suite, so shape is held by review rather than by a failing build. That is honest rather
-than lesser -- the .NET skeleton earned its shape from a solution that was actually built, and a Python
-one written ahead of any real solution would be guesswork with the authority of a default. The platform
-rows are shared, so either profile declares the same Azure, Terraform and data stores.
+**Say what the second one costs before they choose it**, in one line: it ships no solution skeleton, no
+architecture suite and no `PRO_` rules, so shape is held by review rather than by a failing build. That
+is honest rather than lesser -- the .NET skeleton earned its shape from a solution that was actually
+built, and a Python one written ahead of any real solution would be guesswork with the authority of a
+default; the same argument keeps rules out of it. The platform rows are shared, so either profile
+declares the same Azure, Terraform and data stores.
 
 **A name nothing answers to is refused rather than recorded**, before anything is written. So a typo
 costs a re-run and never a solution that declares a stack it did not get.

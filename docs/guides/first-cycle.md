@@ -57,7 +57,7 @@ What lands:
 | | |
 |---|---|
 | `.sdlc/solution.md` | what this solution is, which profile governs it, and which conventions new work follows. **A person's file** |
-| `.sdlc/techstack.md` | the stack, for a session that has not read the code |
+| `.sdlc/techstack.md` | the stack, for a session that has not read the code. **A person's file** from here on — `the-stack.md` is what it is and how to change it |
 | `.sdlc/README.md` | the whole flow in one page, inside the solution |
 | `.sdlc/hooks/pre-push` | written, **not installed**. See below |
 | `.claude/settings.json` | the `PreToolUse` and `Stop` hooks that call the gate, **merged** into whatever is already there |
@@ -156,6 +156,10 @@ The global `CON_` set, the profile's `PRO_`, then this solution's own `LOC_` —
 solution's rules are the last word. **Constraints live in the framework and are never copied into a
 solution**, so this command is how they reach a session. Every stage skill runs it first, and one that
 did not is working from recollection.
+
+The profile tier is the one that moves with the `profile` key, and not every profile fills it:
+`dotnet-default` ships three rules that have to name a framework, and `ml-tensorflow` ships none.
+`the-stack.md` has why.
 
 ## 3. Open the cycle
 
@@ -445,5 +449,6 @@ stops making progress stops rather than opening one — so the first batch runs 
 | this same walk with one solution in it, end to end | `dice-worked-example.md` |
 | every command for one cycle, on one screen | `cycle-commands.md` |
 | what to do when something refuses | `when-it-blocks.md` |
+| what this solution is built from, and how to change it | `the-stack.md` |
 | what each skill is and who starts it | `../../skills/README.md` |
 | installing, updating, removing | `install.md` |

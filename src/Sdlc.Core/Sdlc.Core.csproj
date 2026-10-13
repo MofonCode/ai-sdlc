@@ -30,4 +30,17 @@
     <EmbeddedResource Include="..\..\CONSTRAINTS.md" LogicalName="Sdlc.Core.CONSTRAINTS.md" />
   </ItemGroup>
 
+  <!-- A profile's own rules, one document per profile, embedded for both of the reasons above at once:
+       they reach a solution the moment it records the profile's name, and a tier that resolved from a
+       restore is a tier that can fail to resolve at a gate. The logical name is set explicitly rather
+       than inferred, so the lookup is by profile name - `dotnet-default` resolves `dotnet-default.md` -
+       and giving a profile its first rule is adding a file rather than wiring anything. WithCulture is
+       off for the reason the templates give above: MSBuild reads a culture out of a second-to-last
+       extension, and a profile named for a language is exactly where that would bite. -->
+  <ItemGroup>
+    <EmbeddedResource Include="Constraints\Profiles\*.md"
+                      LogicalName="Sdlc.Core.Profiles.%(Filename).md"
+                      WithCulture="false" />
+  </ItemGroup>
+
 </Project>

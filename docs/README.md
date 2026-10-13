@@ -8,7 +8,7 @@ treatment elsewhere, the entry points at it rather than repeating it.
 
 | | |
 |---|---|
-| [`guides/`](guides/) | the five guides. [`guides/README.md`](guides/README.md) is their index — what each covers and when to read it |
+| [`guides/`](guides/) | the six guides. [`guides/README.md`](guides/README.md) is their index — what each covers and when to read it |
 | [`../skills/README.md`](../skills/README.md) | the eighteen skills in full: what each is, how it is invoked, who starts it |
 | [`../CONCEPT.md`](../CONCEPT.md) | the design, and every decision behind it with what each one rejected |
 | `sdlc constraints` | the rules in force, all tiers resolved. A copy here would be a second place they live |
@@ -50,17 +50,18 @@ A solution is one governed repository. Everything below lives in it.
 | **`solution.md`** | what this solution is, in four keys and a paragraph. **A person's file** | `.sdlc/solution.md` |
 | **`techstack.md`** / the declared stack | what the solution is built from, as a table of concerns and choices. The second rule source a plan is read against. **A person's file** | `.sdlc/techstack.md` |
 | **stack default** | one row of it: a concern, and what this solution chooses for it | — |
-| **stack profile** | a named set of defaults and templates. Two exist: `dotnet-default`, which has a skeleton, and `ml-tensorflow`, which has none | in the binary |
+| **stack profile** | a named set of defaults, templates and `PRO_` rules. Two exist: `dotnet-default`, which has a skeleton, and `ml-tensorflow`, which has none | in the binary |
+| **the options menu** | every concern the shipped profiles know about with what each declares for it, the alternatives the framework has argued, the ones it refused, and an empty table for a solution starting over. Written by `sdlc draft techstack` as a report, read by nothing, and **never renamed into place** | `.sdlc/reports/` |
 | **`.sdlc/README.md`** | the whole flow on one page, inside the solution, so it travels with the code | written by adoption |
 | **`AGENTS.md`** | how to work in this repository, written for an agent | the repository root |
 | **the stack files** | the conventions a build enforces: `.editorconfig`, `Directory.Build.props`, `Directory.Packages.props`, `global.json`, `tests/Directory.Build.props`. Created once, never rewritten, a person's to amend | the repository root |
-| **reports** | a copy of what `suggestions` and `propose` printed, because a person works through one rather than reading it once. **Nothing ever reads one back** | `.sdlc/reports/` |
+| **reports** | a copy of what `suggestions`, `propose` and `draft techstack` printed, because a person works through one rather than reading it once. **Nothing ever reads one back**, and the directory ignores itself — so a copy left behind never reaches a later cycle's diff as a file no plan declared | `.sdlc/reports/` |
 
 ### The four keys in `solution.md`
 
 | Key | Values | What it decides |
 |---|---|---|
-| `profile` | `dotnet-default`, `ml-tensorflow` | which `PRO_` rules and templates resolve |
+| `profile` | `dotnet-default`, `ml-tensorflow` | which declared stack adoption writes, whether a scaffold has a skeleton to write, and which `PRO_` rules resolve. **It does not move the declared stack after adoption** — that is `sdlc draft techstack`, a separate act, and nothing reconciles the two |
 | `origin` | `scaffolded`, `adopted` | where the code came from. **A historical fact that never changes** |
 | `standard` | `profile`, `existing` | whether new work follows the profile's patterns or the surrounding code |
 | `platform` | `github`, `azure-devops`, `local` | whether a pipeline is written, and so whether a check governs a merge |
@@ -127,6 +128,7 @@ place the truth lives. Only the first of them binds.
 | **revision** | a rule rewritten keeps its number and gains one: `CON_07.2`. The one it replaced stays on the page so a cycle that cited it is still readable |
 | **the four clauses** | the statement, what it applies to and when, what it **forbids**, and why. `CON_11` forbids a rule with no Forbids clause |
 | **the shipped library** | the global set, embedded in the binary. `SDLC_CONSTRAINTS` points at another and refuses rather than falling back if it is not there |
+| **a profile's rules** | the `PRO_` set of the profile a solution records, embedded in the binary and found by that name. **The one tier where a rule may name a language, framework or package** — the global set may not, which is what the tier is for. `dotnet-default` ships three; `ml-tensorflow` ships none |
 | **the three admission tests** | what a proposed rule must pass: it forbids something, **no analyzer could decide it**, and it is incompatible with at least one plausible implementation |
 | **decision** | a choice this solution already settled, so a cycle reads what was argued rather than arguing it again. Does not bind — `CON_19` only asks a plan departing from one to say what it would have cost. **A person's file** | `.sdlc/decisions.md` |
 | **theme** | the roles this solution's surfaces use and the values that fill them — sixteen slots, the one place a colour or a typeface lives. Binds nothing: a departure is a linter's job | `.sdlc/theme.json` |
@@ -161,7 +163,7 @@ One gate, covering all three planning documents, immediately before the build.
 | **the approval ledger** | the record that a person approved this cycle, with a hash of each of the three documents. **A person's file, and no tool writes it** | `approval.md` |
 | **gate decision** | `approved`, `changes-requested`, `denied`, `reopened`. A refusal is drafted on the same terms as an approval and is rejected if it says nothing about why |
 | **the draft-and-rename pattern** | a drafter writes a complete file *beside* the real one and prints the rename. **Renaming is the decision**; a draft nobody renamed records nothing |
-| **draft file names** | `approval.<decision>.draft.md`, `solution.draft.md`, `techstack.draft.md`. The decision is in the name, so a denial and an approval cannot look identical at the moment of the move |
+| **draft file names** | `approval.<decision>.draft.md`, `solution.draft.md`, `techstack.draft.md`. The decision is in the name, so a denial and an approval cannot look identical at the moment of the move. The options menu `draft techstack` writes alongside the last of these is **not** a draft and is not here: it is a report, nothing renames it, and a declared stack carrying it is something `sdlc doctor` reports |
 | **the gate** | `sdlc gate <id>`: whether the build may run. Exits 1 if not |
 | **the six files only a person writes** | `approval.md`, `abandoned.md`, `constraints.md`, `decisions.md`, `solution.md`, `techstack.md`. Every agent write to one is denied, by path and by command alike |
 

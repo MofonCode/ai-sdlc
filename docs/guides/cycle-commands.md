@@ -18,8 +18,8 @@ sdlc version
 sdlc doctor
 ```
 
-Checks this installation and this repository: the rules, git, adoption, every host's hook configuration,
-and whether a pipeline here runs the one check that is the guarantee. **Exits 1 if anything is wrong**,
+Checks this installation and this repository: the rules, git, adoption, the declared stack, every
+host's hook configuration, and whether a pipeline here runs the one check that is the guarantee. **Exits 1 if anything is wrong**,
 so it is usable in a script, and every problem it prints names the command that fixes it.
 
 **It reports and never repairs.** The remedies are commands a person runs — adoption especially, which
@@ -156,4 +156,5 @@ person's file like the approval.
 | a cycle walked end to end, with what to expect | `first-cycle.md` |
 | that walk with one solution in it, from install to a pull request | `dice-worked-example.md` |
 | what to do when something refuses | `when-it-blocks.md` |
+| what this solution is built from, and how to change it | `the-stack.md` |
 | what each skill is and who starts it | `../../skills/README.md` |

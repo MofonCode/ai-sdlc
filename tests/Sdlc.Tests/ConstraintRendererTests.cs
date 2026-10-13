@@ -23,6 +23,31 @@ public sealed class ConstraintRendererTests
     }
 
     [TestMethod]
+    public void A_profile_tier_is_rendered_with_the_profile_that_asserted_its_rules()
+    {
+        // What a person reads after a profile migration, and the only place the change is visible. The
+        // source line names the profile rather than a path, because the profile's rules are carried by
+        // the binary -- so "where did this rule come from" is answered by which profile asserted it.
+        EffectiveConstraints.Response set = new(
+            [Rule("CON_01", "An intent states the problem"), Rule("PRO_01", "A browser criterion is proven in one", "a plan, at approval.")],
+            [
+                new ConstraintDocument(ConstraintTier.Global, "CONSTRAINTS.md", string.Empty),
+                new ConstraintDocument(ConstraintTier.Profile, "the dotnet-default profile, embedded in sdlc 0.0.0", string.Empty),
+            ],
+            []);
+
+        string output = ConstraintRenderer.Render(set, ConstraintDetail.Full);
+
+        StringAssert.Contains(output, "PRO_01");
+        StringAssert.Contains(output, "profile");
+        StringAssert.Contains(
+            output,
+            "the dotnet-default profile",
+            "The tier line says which profile's rules these are, or a reader cannot tell what a "
+            + "migration would cost them.");
+    }
+
+    [TestMethod]
     public void The_full_rendering_carries_every_clause_because_a_session_judges_against_them()
     {
         string output = ConstraintRenderer.Render(

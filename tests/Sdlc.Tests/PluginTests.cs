@@ -867,6 +867,59 @@ public sealed class PluginTests
     }
 
     [TestMethod]
+    public void Every_document_stating_how_many_rules_a_profile_ships_states_the_right_number()
+    {
+        // The documents got this wrong for three iterations in the other direction: three of them said
+        // the profile tier resolved rules while no profile shipped any, and nothing failed because
+        // nothing compared a document to the tier. The count is small enough to be tempting to write in
+        // prose, so it is held here -- in all four places, because the one that goes stale is whichever
+        // was not on somebody's list.
+        string[] paths =
+        [
+            Path.Combine(Root, "docs", "README.md"),
+            Path.Combine(Root, "docs", "guides", "the-stack.md"),
+            Path.Combine(Root, "docs", "guides", "first-cycle.md"),
+            Path.Combine(Root, "CONCEPT.md"),
+        ];
+
+        const string Profile = "dotnet-default";
+
+        Result<IReadOnlyList<Constraint>> parsed = ConstraintParser.Parse(
+            File.ReadAllText(RepoPaths.ProfileLibrary(Profile)),
+            RepoPaths.ProfileLibrary(Profile));
+
+        Assert.IsTrue(parsed.IsSuccess, string.Join("; ", parsed.Errors.Select(error => error.Message)));
+
+        int rules = parsed.Value.Count(rule => rule.IsInForce);
+
+        Assert.AreEqual(
+            3,
+            rules,
+            "The number every document below states. A deliberate addition updates it here and in each "
+            + "of them, which is the point of asserting it rather than trusting it.");
+
+        string[] words = ["none", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine"];
+
+        foreach (string path in paths)
+        {
+            string text = File.ReadAllText(path);
+
+            Assert.IsTrue(
+                text.Contains("ships " + words[rules], StringComparison.OrdinalIgnoreCase)
+                || text.Contains("ships " + words[rules] + " rules", StringComparison.OrdinalIgnoreCase),
+                $"{Path.GetRelativePath(Root, path)} does not say that '{Profile}' ships {words[rules]} "
+                + "rules. Either it stopped saying how many, in which case take it off this list, or it "
+                + "is now wrong about a number a reader will check.");
+
+            Assert.IsTrue(
+                text.Contains("ships none", StringComparison.OrdinalIgnoreCase),
+                $"{Path.GetRelativePath(Root, path)} does not say that a profile ships none. "
+                + "'ml-tensorflow' shipping no rules is the half a person moving onto it is losing, and "
+                + "a document that names only the full tier hides the cost of the migration.");
+        }
+    }
+
+    [TestMethod]
     public void The_binary_and_the_plugin_carry_the_same_release_version()
     {
         // Two halves of one install, fetched separately. They disagreed silently until the props set a

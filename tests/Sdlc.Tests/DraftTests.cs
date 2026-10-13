@@ -252,6 +252,36 @@ public sealed class DraftTests
     }
 
     [TestMethod]
+    public async Task A_profile_migration_says_what_it_costs_in_rules()
+    {
+        // This message promised for three iterations that a different profile resolved a different set
+        // of PRO_ rules, at a time when no profile shipped any and nothing passed the profile tier a
+        // document -- so the set never moved and `sdlc constraints` printed the same thing afterwards.
+        // Now it does move, and a person leaving dotnet-default is losing rules rather than swapping
+        // them, which is the half of the migration the old wording hid behind "a different set".
+        using var workspace = CycleWorkspace.Create();
+        workspace.WriteSolution("dotnet-default", SolutionOrigin.Adopted);
+
+        DraftResult draft = await Profile(workspace, "ml-tensorflow");
+
+        Assert.IsTrue(draft.MayDraft, draft.Instructions);
+        StringAssert.Contains(
+            draft.Instructions,
+            "3 rules",
+            "The profile being left ships three, and the count is read from the document rather than "
+            + "written into the message, so a rule added to a profile cannot leave this wrong.");
+        StringAssert.Contains(
+            draft.Instructions,
+            "no rules of its own",
+            "And the one being moved onto ships none, which is a loss worth saying out loud.");
+        StringAssert.Contains(
+            draft.Instructions,
+            "draft techstack",
+            "The declared stack does not move with the key. A person expecting a migration that does "
+            + "not happen is the whole reason this sentence is here.");
+    }
+
+    [TestMethod]
     public async Task Migrating_to_the_profile_already_in_use_is_refused()
     {
         using var workspace = CycleWorkspace.Create();
