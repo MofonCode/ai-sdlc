@@ -576,6 +576,29 @@ public sealed class InitTests
     }
 
     [TestMethod]
+    public void The_solution_readme_names_every_file_only_a_person_writes()
+    {
+        // Its table listed five and its hooks paragraph said four, while the hook denied six. Held
+        // against the same list the hook reads, for the reason the agent file is.
+        string readme = Templates.Readme();
+
+        foreach (string name in ProtectedPaths.Names)
+        {
+            Assert.IsTrue(
+                readme.ReplaceLineEndings("\n").Split('\n').Any(line =>
+                    line.StartsWith('|')
+                    && line.Contains(name + "`", StringComparison.Ordinal)
+                    && line.EndsWith("| a person, by hand |", StringComparison.Ordinal)),
+                name + " has no row saying a person writes it.");
+        }
+
+        StringAssert.Contains(readme, "Six of those are written only by a person.");
+        StringAssert.Contains(readme, "denies every agent write to all six");
+        StringAssert.Contains(readme, "one of the six files only a");
+        Assert.AreEqual(6, ProtectedPaths.Names.Count, "The counts in those sentences are written out, so they move with the list.");
+    }
+
+    [TestMethod]
     public void The_solution_readme_shows_the_format_version_being_stamped()
     {
         // The readme's example envelope is the shape a person checks their own artifact against, so a
