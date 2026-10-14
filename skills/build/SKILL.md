@@ -122,8 +122,9 @@ second case, found on the .NET 10 SDK: `dotnet test --nologo` is not an option t
 Platform runner accepts, so the flag is passed through to the test application, which then runs
 nothing — every project reports "Zero tests ran" in under a fifth of a second. Drop the flag.
 
-**The turn end is checked.** A hook asks the gate before you finish, and it sends the turn back when the
-recorded evidence shows a failing suite or when the working tree has moved since the build was recorded.
+**The turn end is checked.** A hook asks the gate before you finish, and it sends the turn back in three
+cases: the recorded evidence shows a failing suite, there are changes and no evidence recorded at all, or
+the working tree has moved since the build was recorded.
 It is not a rule to remember — it is why there is no point reporting done over a red build.
 
 ## Commit the change on the branch

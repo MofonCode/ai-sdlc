@@ -67,7 +67,7 @@ sdlc init --platform github
 sdlc init --platform azure-devops
 ```
 
-That writes the pull-request check, and **prints the four `solution.md` keys for the person to place** —
+That writes the pull-request check, and **prints the three `solution.md` keys for the person to place** —
 it cannot write them itself, because that file is one of the six only a person writes. Until they are
 pasted the record still says `platform: local`, so `doctor` still reports no check governs a merge and
 this skill still stops at the question above. Hand over what `init` printed and say it is the step that

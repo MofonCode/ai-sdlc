@@ -56,10 +56,10 @@ public static class Suggestions
     /// <c>dotnet test</c> did not actually run the suite, and that a criterion's proof rested entirely on a
     /// substituted source -- and both would have been lost without somewhere to read them back from.
     /// <para>
-    /// This is the whole of the cross-cycle learning loop that exists today. Iteration 2 built a corpus with
-    /// an importer and computed signals; iteration 3 removed them and recorded the cost as "nothing
-    /// aggregates automatically". The data to aggregate is in the rounds, which is what this reads -- a
-    /// listing rather than an analysis, and deliberately so until there is a question worth answering.
+    /// A listing rather than an analysis, and deliberately so: it answers what is outstanding. What keeps
+    /// recurring across cycles is <c>propose constraints</c>, which reads the same rounds for the other
+    /// half of them -- the answered blockers included -- and reports a rule cited in three distinct
+    /// cycles (D-69). Neither records which stage a problem was caused at; that half is still open.
     /// </para>
     /// </remarks>
     /// <param name="solution">The root of the solution being read.</param>

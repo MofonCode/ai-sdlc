@@ -54,15 +54,21 @@ Mixing them would make a build's observation look like a finding nobody disposit
 Reading only the rounds was a real hole: the dice-roller cycle's build wrote three `Noticed:` lines and
 the command that answers *what have we noticed and not acted on* listed none of them.
 
-## This is the whole of the learning loop today
+## What this is not: the cross-cycle question
 
-Iteration 2 built a corpus with an importer and computed signals across cycles. Iteration 3 removed them
-and recorded the cost plainly: nothing aggregates automatically. The data is in the findings rounds and
-the cycle branches' commits, which is what this reads.
+This answers *what is outstanding* — what was noticed and nobody acted on. **It aggregates nothing, on
+purpose.** If someone asks "what keeps going wrong across our cycles", that is a different question with
+its own command:
 
-So if someone asks "what keeps going wrong across our cycles", the honest answer is that this listing is
-what exists, and the aggregation is a deliberate deferral rather than an oversight. Three things would
-have to be settled before it returns: the trap where an artifact's existence means done, so a mistaken
-one silently loses work; a way to record which stage a problem was *caused* at, which is how the process
-learns where it leaks; and the boundary between what a private solution contributes and what a public
-corpus may hold.
+```
+sdlc propose constraints
+```
+
+It reads every cycle's findings — including the blockers that were answered, which this listing never
+shows — and reports a rule cited in three or more distinct cycles, with the cycles and finding ids behind
+each, as a candidate for one of this solution's own constraints (`CONCEPT.md` D-69). The two read the
+same rounds for opposite halves of them, so send the question to the one that answers it rather than
+reading a pattern into this listing yourself.
+
+**What neither answers is which stage a problem was *caused* at** — how the process would learn where it
+leaks. Nothing records that today, and saying so is better than guessing at it from the listing.
