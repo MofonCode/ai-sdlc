@@ -32,8 +32,9 @@ done as it finishes. If it does not, carry on without one — nothing below depe
 progress while an artifact goes round in circles.
 
 **This stage only.** Nothing after the hand-back goes on the list: whether the next stage runs is a
-person's decision, and `sdlc status <id>` names it. **The list is a view, never the record.** What is done is what
-is on disk and what the binary reports, so where the two disagree the list is the one that is wrong.
+person's decision, and `sdlc status <id>` names it. **The list is a view, never the record.** What is
+done is what is on disk and what the binary reports, so where the two disagree the list is the one
+that is wrong.
 
 ## 1. Open the cycle
 

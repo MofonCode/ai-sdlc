@@ -45,9 +45,14 @@ on it.
 plan does not declare is the plan being departed from, and that is a correction for a person to make
 rather than a line to tick.
 
+**Inside a batch, keep none.** When the batch-build skill is running this stage, its list has one line
+for this cycle and that line is the whole of what this stage shows. Seven more per cycle would bury
+the one thing somebody glancing at a batch is looking for.
+
 **This stage only.** Nothing after the hand-back goes on the list: whether the next stage runs is a
-person's decision, and `sdlc status <id>` names it. **The list is a view, never the record.** What is done is what
-is on disk and what the binary reports, so where the two disagree the list is the one that is wrong.
+person's decision, and `sdlc status <id>` names it. **The list is a view, never the record.** What is
+done is what is on disk and what the binary reports, so where the two disagree the list is the one
+that is wrong.
 
 ## Work on the cycle's branch
 

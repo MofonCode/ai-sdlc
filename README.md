@@ -252,9 +252,10 @@ What is honest to say about the rest:
 - **Adoption ending on one next step has been read by its author and by nobody else.** The suite holds
   the order and the wording at each step; no adoption has been walked through it by somebody new.
 - **The task lists have not been watched on any host.** `init`, `intent`, `spec`, `plan` and `build`
-  each ask the agent to keep a list of the stage's steps where its host has one (`CONCEPT.md` D-80).
-  The suite holds the wording; whether each host's agent opens one, and stops it at the hand-back, is
-  something only a session shows.
+  each ask the agent to keep a list of the stage's steps where its host has one, and `batch-build` one
+  line per cycle (`CONCEPT.md` D-80). The suite holds the wording; whether each host's agent opens
+  one, stops a stage's at the hand-back, and leaves an escalated cycle unticked is something only a
+  session shows.
 - **`pr` and `batch-build` have no command behind the push.** The refusal is in the binary and tested;
   the push itself uses the platform's own CLI.
 - **The Copilot install has never been run**, though nothing is guessed any more: the package conforms to

@@ -1718,8 +1718,9 @@ which is the ordinary case.
 | `constraints` | renders the effective constraint set, all tiers |
 | `suggestions` | lists accumulated non-blocking findings |
 
-**Five of them keep a task list where the host has one** — `init`, `intent`, `spec`, `plan` and
-`build` — each of its own steps and nothing past its hand-back (D-80).
+**Six of them keep a task list where the host has one.** `init`, `intent`, `spec`, `plan` and `build`
+each list their own steps and nothing past the hand-back; `batch-build` lists one line per cycle
+(D-80).
 
 **Three documents list these, and the suite holds all three against disk.** This inventory,
 [`skills/README.md`](skills/README.md) — which is the skills' own surface, with a row and a section
@@ -5716,14 +5717,17 @@ for something that breaks nothing.
   survives the admission tests, and for most solutions none does (§9). A step that is usually skipped
   teaches people to skip steps.
 
-### D-80 — Five skills keep a task list where the host has one, and it stops at the hand-back
+### D-80 — Six skills keep a task list where the host has one, and a stage's stops at the hand-back
 
 **Governs:** §15
 
 **Decision.** `init`, `intent`, `spec`, `plan` and `build` each tell the agent to open a task list of
 that skill's own steps, if its host has one, and to mark each done as it finishes. The list holds
-nothing after the skill's hand-back. It is never the record: what is done is what is on disk and what
-`sdlc doctor` and `sdlc status` report. A host with no task list runs every step unchanged.
+nothing after the skill's hand-back. `batch-build` opens one too, shaped differently: one line per
+cycle, ticked only when that cycle's outcome is `passed`, and `build` keeps none of its own while a
+batch is running it. No list is ever the record: what is done is what is on disk and what `sdlc
+doctor`, `sdlc status` and `sdlc cycles --pr-ready` report. A host with no task list runs every step
+unchanged.
 
 **Why.** These five are the long ones a person sits through — an interview, a loop of rounds, an
 implementation — and the steps that get dropped in them are the quiet ones: the paragraph left on its
@@ -5740,6 +5744,18 @@ one host. That is the advisory layer of §2.1 with a tick box on it. In `init` t
 only when `doctor` stops naming them, because a draft written is not a draft placed; in `build` the
 items come from the plan's `Files` section, so the list cannot widen what was approved.
 
+**Why the batch has one, when it is meant to run unattended.** Unattended is not unobserved. The
+first batches are worth watching, and remediation has no ceiling (D-66), so the question somebody
+glancing in has is which cycle is still going — and without a list that is answered only by the report
+at the end. There is no hand-back to protect inside a batch either: starting the run was the
+decision, so every cycle on the list is one a person already agreed to.
+
+**Why its tick means `passed` and not "finished".** A batch has four outcomes and a tick box has two
+states. Ticking a cycle that escalated would show a column of ticks over a run that needs a person,
+so the other three outcomes are written onto an unticked line. And the build stage stands down
+inside a batch because seven lines per cycle would bury the one line per cycle that is the point —
+which also bounds the list at the size of the batch.
+
 **Why "if your host has one".** Each host has its own tool for this under its own name, some have
 none, and a skill ships to all of them unchanged (D-47). Naming a tool would make a skill fail or
 quietly do less on every other host.
@@ -5752,9 +5768,12 @@ quietly do less on every other host.
   by the thing it is checking. The record of a stage is its artifact, its rounds and its evidence.
 - *Every skill keeping one.* `status`, `constraints`, `draft`, `suggestions` and `propose` are one
   command and a report. `interrogate`, `refine`, `verify` and `remediate` each already write what
-  they did as findings or a verdict, and `pr`, `steer`, `batch-build` and `resolve-conflict` are
-  short or already report per cycle. A list on a two-step skill is noise that trains people to stop
-  reading lists.
+  they did as findings or a verdict, and `pr`, `steer` and `resolve-conflict` are short or already
+  report per cycle. A list on a two-step skill is noise that trains people to stop reading lists.
+- *No list for `batch-build`, because it already reports one line per cycle.* Where this entry first
+  stood. The report arrives when the run ends, and the run is the long thing.
+- *Nesting each cycle's build steps under its line in a batch.* Seven or more lines per cycle, so a
+  batch of nine is a list nobody scans.
 - *One item per interrogation round.* The list would grow while the artifact went in circles, which
   reads as progress at exactly the moment it is not.
 - *Naming the host's tool in the skill.* Three hosts, three names, and a fourth host tomorrow.

@@ -64,12 +64,14 @@ and `sdlc init`, plus the pull-request check, rather than a flag in a skill's fr
 lives in the manifest is a guard the manifest can lose. `../docs/guides/when-it-blocks.md` has what
 the hook actually denies today, and what it does not.
 
-**Five of them keep a task list where the host has one**: `init`, `intent`, `spec`, `plan` and
-`build`. Each lists its own steps and nothing past its hand-back, so the list never shows a stage a
-person has not yet decided to run. It is the agent's view of one session and never the record — what
-is done is what is on disk and what `sdlc doctor` and `sdlc status` report — and a host without a task
-list loses nothing, because no step depends on one. `../CONCEPT.md` D-80 has why it stops at the
-hand-back and why the other thirteen have none.
+**Six of them keep a task list where the host has one.** `init`, `intent`, `spec`, `plan` and `build`
+each list their own steps and nothing past the hand-back, so the list never shows a stage a person
+has not yet decided to run. `batch-build` lists one line per cycle, ticked only when that cycle
+passed, and `build` keeps none of its own while a batch is running it. Every one is the agent's view
+of a session and never the record — what is done is what is on disk and what `sdlc doctor`, `sdlc
+status` and `sdlc cycles --pr-ready` report — and a host without a task list loses nothing, because
+no step depends on one. `../CONCEPT.md` D-80 has why a stage's list stops at the hand-back, why the
+batch's is shaped differently, and why the other twelve have none.
 
 ---
 

@@ -39,6 +39,28 @@ groups may run together, and every collision with the files it is about.
 the same way every time; a graph you derived by reading plans would come out slightly differently each run,
 and what it decides is what runs concurrently.
 
+## Keep a task list, if your host has one
+
+If your host gives you a task list, open one now that the work is known. If it does not,
+carry on without one — nothing below depends on it.
+
+**One line per cycle.** Every cycle this run will build, by id, in the order it will run — and nothing
+else. No line per stage, per group or per remediation pass: a batch of nine is nine lines, and a
+person glancing in is scanning for the one that has not moved.
+
+**A tick means `passed`, and nothing else does.** Mark a cycle in progress when its build starts and
+leave it there through verification and remediation, because the line that stays in progress is the
+one worth noticing — remediation has no ceiling. Tick it only when its outcome is `passed`. For
+`blocked`, `escalated` and not attempted, **leave it unticked and write the outcome onto the line**. A
+tick on a cycle that escalated says the opposite of what happened.
+
+**The build stage keeps no list of its own inside a batch.** Its skill says so, and this is why: the
+batch's line for a cycle is the whole of what that cycle shows.
+
+**The list is a view, never the record.** It lives in this session, and a run that dies takes it
+along. The outcomes are in each cycle's verify document, and `sdlc cycles --pr-ready` at the end is
+what says which passed.
+
 ## 2. Run the groups
 
 - Each group from `sdlc cycles --claims` runs in **parallel**, each cycle in its own git worktree.
