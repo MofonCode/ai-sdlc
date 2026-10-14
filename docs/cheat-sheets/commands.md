@@ -10,7 +10,7 @@ an agent runs it, and it never decides a gate. `skills.md` lists the skills.
 
 A repository nobody has adopted, to an open pull request.
 
-Adopt it, once — `../guides/initializing-the-codebase.md`:
+Adopt it, once — `../guides/adopting-the-framework.md`:
 
 1. `git init` — and **create the remote first** if the code will live on one
 2. `/sdlc:init` — asks where the code lives, then hands you the adoption command to run yourself

@@ -152,7 +152,7 @@ the solution paragraph and the declared stack — and possibly a proposed `LOC_`
 ends on `sdlc doctor`'s closing block, which names what is still to place and the one command after it.
 
 **Next.** `/sdlc:intent`, once `sdlc doctor` names nothing left to place.
-[Initializing the codebase](../docs/guides/initializing-the-codebase.md) and
+[Adopting the framework](../docs/guides/adopting-the-framework.md) and
 [declaring the stack](../docs/guides/declaring-the-stack.md) walk through it.
 
 ---
@@ -968,7 +968,7 @@ behind it, and the next free id stated once. A young solution gets the empty ent
 | every command, on one screen | [`../docs/cheat-sheets/commands.md`](../docs/cheat-sheets/commands.md) |
 | every refusal, on one screen | [`../docs/cheat-sheets/refusals.md`](../docs/cheat-sheets/refusals.md) |
 | installing the plugin and the binary | [`../docs/guides/installing-the-plugin.md`](../docs/guides/installing-the-plugin.md) |
-| adopting the framework into a repository | [`../docs/guides/initializing-the-codebase.md`](../docs/guides/initializing-the-codebase.md) |
+| adopting the framework into a repository | [`../docs/guides/adopting-the-framework.md`](../docs/guides/adopting-the-framework.md) |
 | declaring what the solution is built from | [`../docs/guides/declaring-the-stack.md`](../docs/guides/declaring-the-stack.md) |
 | a cycle from intent to pull request | [`../docs/guides/running-a-cycle.md`](../docs/guides/running-a-cycle.md) |
 | a blocking finding or a blocked verification | [`../docs/guides/handling-blockers.md`](../docs/guides/handling-blockers.md) |

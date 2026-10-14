@@ -3,7 +3,7 @@
 One cycle with one small solution in it, command by command. A six-sided die, rolled from a page in a
 browser, in a repository with no remote.
 
-**The guides are the stage reference** — `../guides/initializing-the-codebase.md` and
+**The guides are the stage reference** — `../guides/adopting-the-framework.md` and
 `../guides/running-a-cycle.md` say what each stage is, what it refuses if you arrive early, and why the
 flow is shaped this way. This is the same walk with something to type at every prompt and something that
 runs at the end. Where another guide covers a step, this one points at it rather than restating:
@@ -155,7 +155,7 @@ The line it hands back is the adoption command with `--platform local`, and it c
 that prefix runs the rest of the line as your own command, so what it prints lands in the conversation
 where the agent can read the file list back.
 
-It picks greenfield mode, writes what governs code, and commits it. `../guides/initializing-the-codebase.md`
+It picks greenfield mode, writes what governs code, and commits it. `../guides/adopting-the-framework.md`
 has the table of what each file is.
 
 ## 4. Place the two protected files

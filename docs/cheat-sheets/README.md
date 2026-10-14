@@ -22,7 +22,7 @@ short path — adoption in five lines and a cycle in nine — then a table per m
 once per repository, the cycle, any time, stopping. Ends with what a cycle leaves on disk.
 
 The reasoning behind each line is in `../guides/running-a-cycle.md` and
-`../guides/initializing-the-codebase.md`.
+`../guides/adopting-the-framework.md`.
 
 ## `skills.md`
 

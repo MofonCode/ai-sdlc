@@ -8,7 +8,7 @@ treatment elsewhere, the entry points at it rather than repeating it.
 
 | | |
 |---|---|
-| [`guides/README.md`](guides/README.md) | **the guides** — six, one task each: installing, initializing, declaring the stack, running a cycle, handling blockers, handling refusals |
+| [`guides/README.md`](guides/README.md) | **the guides** — six, one task each: installing, adopting the framework, declaring the stack, running a cycle, handling blockers, handling refusals |
 | [`cheat-sheets/README.md`](cheat-sheets/README.md) | **the cheat sheets** — every command, every skill and every refusal, one line each |
 | [`samples/README.md`](samples/README.md) | **the samples** — one solution walked end to end, every command and every answer |
 | [`../skills/README.md`](../skills/README.md) | **the skills in depth** — when, why, how and what for each of the eighteen |

@@ -10,7 +10,7 @@ whole thing end to end with a real solution in it**, `../samples/rolling-a-die.m
 | Guide | Covers | Read it |
 |---|---|---|
 | [`installing-the-plugin.md`](installing-the-plugin.md) | the plugin and the binary: installing, updating, removing, on each host, and the four things that catch people | once per machine, before anything else |
-| [`initializing-the-codebase.md`](initializing-the-codebase.md) | adoption, the interview, placing `solution.md`, the first constraints, and the files your solution owns | once per repository |
+| [`adopting-the-framework.md`](adopting-the-framework.md) | adoption, the interview, placing `solution.md`, the first constraints, and the files your solution owns | once per repository |
 | [`declaring-the-stack.md`](declaring-the-stack.md) | what a solution is built from: the declared stack, the stack rules it switches on, the build settings files it takes, and how to change any of them | right after adoption, and whenever a default or a rule is wrong for this solution |
 | [`running-a-cycle.md`](running-a-cycle.md) | one cycle from the rules to a pull request, stage by stage — the happy path | once, front to back, then when you need a stage again |
 | [`handling-blockers.md`](handling-blockers.md) | a blocking finding on a document, or a blocked verification: what each is and how it is answered | when a loop hands back, or a verification says `blocked` |
@@ -32,10 +32,10 @@ source for changing the framework itself, each host's path, and what a correct i
 count, a skill count, a version. **Those numbers are the verification step**, which is why a change to
 what an install produces belongs in this guide and in its table at the top, not only in the prose.
 
-What it does not cover: adopting a repository. Installing governs nothing, and adoption is per
+What it does not cover: adopting the framework. Installing governs nothing, and adoption is per
 repository — that is the next guide.
 
-## `initializing-the-codebase.md`
+## `adopting-the-framework.md`
 
 **Putting a repository under the framework.** The init skill and the `sdlc init` command, which do
 opposite halves of the job; what the command writes and commits; making the pipeline's check required;

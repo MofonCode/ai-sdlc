@@ -307,10 +307,10 @@ dotnet tool uninstall --global MofonCode.Sdlc.Cli
 Removing either leaves every `.sdlc/` directory untouched. The artifacts are a repository's own record,
 not the plugin's, and they stay readable without it.
 
-## Adopting a repository
+## Adopting the framework
 
 Installing puts the framework on your machine. It governs nothing until a repository adopts it, which is
-`sdlc init` — a person's command, denied to an agent, and covered in `initializing-the-codebase.md`.
+`sdlc init` — a person's command, denied to an agent, and covered in `adopting-the-framework.md`.
 
 ## Four things that catch people
 

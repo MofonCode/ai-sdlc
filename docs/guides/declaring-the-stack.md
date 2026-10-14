@@ -2,7 +2,7 @@
 
 The declared stack: what it pins, which stack rules it switches on, which build settings files it
 takes, where its first draft comes from, and how to change it. **You place it once, right after
-adoption, and no cycle opens until you have** — `initializing-the-codebase.md` is the step before. After
+adoption, and no cycle opens until you have** — `adopting-the-framework.md` is the step before. After
 that it is something you come back to when a default or a rule turns out wrong for this solution, so
 read the part you need and leave the rest.
 
@@ -318,7 +318,7 @@ deciding what a team is built from.
 | | |
 |---|---|
 | the rules in force, all tiers resolved | `sdlc constraints` |
-| the step before: adoption, and placing `solution.md` | `initializing-the-codebase.md` |
+| the step before: adoption, and placing `solution.md` | `adopting-the-framework.md` |
 | one cycle end to end | `running-a-cycle.md` |
 | that walk with one solution in it | `../samples/rolling-a-die.md` |
 | every command for one cycle | `../cheat-sheets/commands.md` |

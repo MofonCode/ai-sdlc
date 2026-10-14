@@ -4,7 +4,7 @@ One governed change, from why it exists to a pull request: every stage, and what
 you arrive at it early.
 
 **This assumes the repository is adopted and both protected files are placed** —
-`initializing-the-codebase.md` and `declaring-the-stack.md` are the steps before, and `sdlc doctor` says
+`adopting-the-framework.md` and `declaring-the-stack.md` are the steps before, and `sdlc doctor` says
 whether they are done. Nothing here is specific to what the change is.
 
 **This is the happy path.** When an interrogation raises a blocking finding or a verification records
@@ -251,7 +251,7 @@ something somebody has to notice happened.
 work may be perfectly ready and have no destination. The skill walks through creating the remote
 rather than creating it for you, and says the part that is easy to miss: a remote alone installs no
 guarantee, so adoption is re-run afterwards to get the pipeline. This is the cost of adopting before the
-remote existed, and `initializing-the-codebase.md` is where it is avoided.
+remote existed, and `adopting-the-framework.md` is where it is avoided.
 
 The body is the cycle rather than a summary somebody invented: the problem in the intent's own words, the
 criteria with the verification's verdict on each, the tier, the risk section, and anything still in an

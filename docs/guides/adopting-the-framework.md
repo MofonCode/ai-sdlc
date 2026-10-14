@@ -1,4 +1,4 @@
-# Initializing the codebase
+# Adopting the framework
 
 Putting a repository under the framework: the command that writes what governs code, the interview that
 says what matters here, and the two files a person places before the first cycle can open.
