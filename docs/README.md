@@ -11,7 +11,7 @@ treatment elsewhere, the entry points at it rather than repeating it.
 | [`guides/README.md`](guides/README.md) | **the guides** — six, one task each: installing, adopting the framework, declaring the stack, running a cycle, handling blockers, handling refusals |
 | [`cheat-sheets/README.md`](cheat-sheets/README.md) | **the cheat sheets** — every command, every skill and every refusal, one line each |
 | [`samples/README.md`](samples/README.md) | **the samples** — one solution walked end to end, every command and every answer |
-| [`../skills/README.md`](../skills/README.md) | **the skills in depth** — when, why, how and what for each of the eighteen |
+| [`../skills/README.md`](../skills/README.md) | **the skills as a reference** — syntax, parameters, output, refusals and remarks for each of the eighteen |
 | [`../CONCEPT.md`](../CONCEPT.md) | the design, and every decision behind it with what each one rejected |
 | `sdlc constraints` | the rules in force, all tiers resolved. A copy here would be a second place they live |
 | `sdlc help` | every command the binary answers to, with its options |
@@ -40,6 +40,8 @@ Both have to be present and they fail differently. `guides/installing-the-plugin
 |---|---|
 | the release version | the binary and the plugin. Set once in `Directory.Build.props`; the suite asserts it matches `plugin.json` |
 | the artifact format version | the file envelope, written into every artifact as `framework_version`. Stays put across releases that change no format |
+
+**See also:** [Installing the plugin](guides/installing-the-plugin.md)
 
 ## 2. The solution
 
@@ -85,6 +87,8 @@ A solution is one governed repository. Everything below lives in it.
 | **the reference slice** | one worked operation in the skeleton, written to be copied, because an agent takes the shape of the code beside it more reliably than an instruction |
 | **the response envelope** | the one shape every response leaves through. An architecture test fails the build on an endpoint returning anything else |
 
+**See also:** [Adopting the framework](guides/adopting-the-framework.md) · [Declaring the stack](guides/declaring-the-stack.md)
+
 ## 3. The cycle
 
 One governed change, from why it exists to a pull request.
@@ -122,6 +126,8 @@ One governed change, from why it exists to a pull request.
 | **schema violation** | one thing wrong with that shape — a key, a section, or the document |
 | **content hash** | an artifact's bytes, normalised for what a platform may change. What makes a stale judgement detectable |
 
+**See also:** [Running a cycle](guides/running-a-cycle.md) · [Commands](cheat-sheets/commands.md)
+
 ## 4. The rules, and the two records beside them
 
 **Three records are rendered on demand and never copied into an artifact**, because a copy is a second
@@ -142,6 +148,8 @@ place the truth lives. Only the first of them binds.
 There are **17 global constraints in force**; `CON_04` and `CON_13` are superseded by `CON_16` and
 `CON_15` and kept on the page. `sdlc constraints` is the authority, and it says which.
 
+**See also:** [`constraints`](../skills/README.md#constraints) · [`propose`](../skills/README.md#propose) · [Declaring the stack](guides/declaring-the-stack.md) · [`CONSTRAINTS.md`](../CONSTRAINTS.md)
+
 ## 5. Interrogation
 
 How an artifact is challenged. Rounds accumulate and are never rewritten.
@@ -159,6 +167,8 @@ How an artifact is challenged. Rounds accumulate and are never rewritten.
 | **conflict** | two rules no version of one artifact can satisfy. Reported as a conflict rather than resolved by picking a side |
 | **stale round** | a round that judged a document which has moved since. Detected by the hash it recorded |
 | **noticed** | something a build saw, left alone, and wrote down, because creep inside an approved file reaches review dressed as approved work |
+
+**See also:** [`interrogate`](../skills/README.md#interrogate) · [`refine`](../skills/README.md#refine) · [Handling blockers](guides/handling-blockers.md)
 
 ## 6. The gate
 
@@ -185,6 +195,8 @@ is how.
 finding on a planning document, or a `blocked` verification. A **refusal** is a command or hook
 declining to go on, exit code 1. An open blocker causes refusals; it is not one.
 
+**See also:** [`draft`](../skills/README.md#draft) · [Handling refusals](guides/handling-refusals.md)
+
 ## 7. Evidence and verification
 
 | | What it is | Where |
@@ -200,6 +212,8 @@ declining to go on, exit code 1. An open blocker causes refusals; it is not one.
 | **remediation** | applying a blocked verification's findings to source and tests. **Never a planning document** | `/sdlc:remediate` |
 | **remediation budget** | how many passes have run and how many blockers stood after each. It stops when a pass undoes an earlier answer or two in a row reduce nothing — **no number of tries to run out of, and no ceiling** |
 | **escalation** | what running out of budget makes of a blocked cycle. **Computed, never declared.** An escalated cycle never opens a pull request |
+
+**See also:** [`build`](../skills/README.md#build) · [`verify`](../skills/README.md#verify) · [`remediate`](../skills/README.md#remediate) · [Handling blockers](guides/handling-blockers.md)
 
 ## 8. The pull request, and the guarantee
 
@@ -222,6 +236,8 @@ declining to go on, exit code 1. An open blocker causes refusals; it is not one.
 | local | the `sdlc` binary and the two agent hooks | anyone with a shell, and anyone whose host did not load the hooks or whose workspace is untrusted |
 | **non-bypassable** | the chain check as a required pull-request check | nobody without repository admin |
 
+**See also:** [`pr`](../skills/README.md#pr) · [Running a cycle](guides/running-a-cycle.md)
+
 ## 9. Enforcement
 
 | | What it is |
@@ -238,6 +254,8 @@ declining to go on, exit code 1. An open blocker causes refusals; it is not one.
 | **adoption writes every host's configuration** | a file is inert on a machine without that host, and a teammate opening the repository in a different agent is governed without adopting again |
 | **exit codes** | `0` did what was asked · `1` **a rule refused it** · `2` the command line was not understood · `3` **the gate itself failed** |
 | **refusal versus failure** | a refusal is the gate working and a failure is the gate broken. Different exit codes on purpose, so a hook never reports its own bug as a governed stop |
+
+**See also:** [Handling refusals](guides/handling-refusals.md) · [Refusals](cheat-sheets/refusals.md)
 
 ## 10. The skills
 
@@ -284,3 +302,10 @@ These are not files. They are the shapes that recur, and knowing them explains m
 | **the human-in-the-loop hand-back** | a skill stops rather than chaining into the next stage. Chaining on would remove the decision point while appearing helpful |
 | **`elsewhere`** | what a binary cannot answer and does not pretend to: whether a host loaded the skills, whether the pipeline's check is required. `doctor` marks these and names who to ask |
 | **the admission question for a proof** | *what would have to be true for this to pass while the criterion is still unmet?* If that has an answer, the proof is inadequate — and **an inadequate proof is worse than none**, because it produces a green verification instead of an obvious gap |
+
+## See also
+
+- [The guides](guides/README.md) — what to do, and in what order
+- [The cheat sheets](cheat-sheets/README.md) — one line per thing
+- [The skills reference](../skills/README.md) — each skill in full
+- [`CONCEPT.md`](../CONCEPT.md) — the design, and every decision behind it

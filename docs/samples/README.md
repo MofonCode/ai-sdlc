@@ -26,3 +26,9 @@ What it does not cover: the blocked paths. It is the happy path deliberately —
 finding and a remediate after a blocked verification belong in a second sample rather than a bigger dice
 program, and `../guides/handling-blockers.md` covers both until one exists. It states no rule; it reads
 them like everything else.
+
+## See also
+
+- [The guides](../guides/README.md) — one task each, with the why
+- [The cheat sheets](../cheat-sheets/README.md) — one line per thing
+- [The components](../README.md) — every concept the framework names, defined once

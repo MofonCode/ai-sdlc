@@ -222,3 +222,10 @@ exists with the capitalisation it states.
 Two rules cut across all of those. **A refusal is a failed `Result` carrying a reason a person can act on**,
 never an exception and never a bare boolean. And **nothing restates a constraint** — not a skill, not a
 guide, not this file.
+
+## See also
+
+- [`AGENTS.md`](../AGENTS.md) — how to work in this repository, and what to keep current
+- [`../tools/README.md`](../tools/README.md) — the two tools that check what the suite cannot
+- [`CONCEPT.md`](../CONCEPT.md) — the design, and every decision behind it
+- [The components](../docs/README.md) — every concept the framework names, defined once

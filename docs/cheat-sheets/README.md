@@ -6,7 +6,7 @@ reasoning** — a cheat sheet that explains itself has become a guide.
 | Cheat sheet | Holds |
 |---|---|
 | [`commands.md`](commands.md) | the short path from an unadopted repository to a pull request, then every command for one cycle |
-| [`skills.md`](skills.md) | the eighteen skills: what each takes, what it does, who starts it |
+| [`skills.md`](skills.md) | every skill: what each takes, what it does, who starts it |
 | [`refusals.md`](refusals.md) | every refusal and hook denial: what you were told, and what to do |
 
 **Each is held to its source by the suite**, because a short list that silently loses a line reads
@@ -18,7 +18,7 @@ sheet against the entries in the refusals guide.
 ## `commands.md`
 
 **Every command for one cycle, in order**, and whether the binary or an agent runs it. Opens with the
-short path — adoption in five lines and a cycle in nine — then a table per moment: once per machine,
+short path — adoption in five lines and a cycle in nine — then one table grouped by moment: once per machine,
 once per repository, the cycle, any time, stopping. Ends with what a cycle leaves on disk.
 
 The reasoning behind each line is in `../guides/running-a-cycle.md` and
@@ -28,7 +28,7 @@ The reasoning behind each line is in `../guides/running-a-cycle.md` and
 
 **The skills in the order a cycle meets them**, one row each: its name, what it takes, what it does, and
 who decides it should run. Each name links to the skill's full entry in `../../skills/README.md`, which
-is where when, why, how and what live.
+is where the syntax, refusals and reasoning live.
 
 ## `refusals.md`
 
@@ -37,3 +37,10 @@ what refused. Each name links to its entry in `../guides/handling-refusals.md`.
 
 What it does not cover: answering a blocking finding or a blocked verification, which is a walk rather
 than a line — `../guides/handling-blockers.md`.
+
+## See also
+
+- [The guides](../guides/README.md) — the reasoning behind each line
+- [The samples](../samples/README.md) — one solution, every command
+- [The components](../README.md) — every concept the framework names, defined once
+- [The skills reference](../../skills/README.md)

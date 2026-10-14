@@ -91,3 +91,10 @@ They describe the framework from outside: what to type, what it will say, and wh
 [`../../CONCEPT.md`](../../CONCEPT.md).
 
 Where a guide says something has not been exercised, that is load-bearing and is not to be tidied away.
+
+## See also
+
+- [The cheat sheets](../cheat-sheets/README.md) — these guides as one line per thing
+- [The samples](../samples/README.md) — one solution, every command
+- [The components](../README.md) — every concept the framework names, defined once
+- [The skills reference](../../skills/README.md)

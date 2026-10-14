@@ -94,6 +94,14 @@ Two halves have to be present and they fail differently. The **plugin** carries 
 the **`sdlc` binary** is the gate they call. Without the plugin nothing asks for a cycle; without the
 binary every skill's first command fails.
 
+### Prerequisites
+
+- the .NET 10 SDK, to pack and install the binary
+- git
+- the GitHub CLI, `gh`, signed in with access to this repository — it is private
+- an agent host: Claude Code is shown below, and [Will it work with my agent?](#will-it-work-with-my-agent)
+  lists the others
+
 **1. Install the binary.** There is no published feed yet, so it is packed from a clone:
 
 ```pwsh
@@ -185,7 +193,7 @@ refusal with its remedy.
 | [`docs/cheat-sheets/skills.md`](docs/cheat-sheets/skills.md) | the eighteen skills, one line each |
 | [`docs/cheat-sheets/refusals.md`](docs/cheat-sheets/refusals.md) | every refusal, one line each |
 | [`docs/samples/rolling-a-die.md`](docs/samples/rolling-a-die.md) | **the whole walk with one solution in it** — a d6 rolled from a page, every command, in a repository with no remote |
-| [`skills/README.md`](skills/README.md) | the eighteen skills in depth: when, why, how and what for each |
+| [`skills/README.md`](skills/README.md) | the eighteen skills as a reference: syntax, parameters, output, refusals and remarks for each |
 | `sdlc constraints` | the rules in force, all tiers resolved. Run it rather than reading a copy of them |
 
 One more worth knowing about. `.sdlc/README.md`, written into your repository by `sdlc init`, is the whole flow on one page that

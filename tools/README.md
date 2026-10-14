@@ -71,3 +71,8 @@ rather than wrong numbers**, which is the failure worth preferring.
 
 Pass `-Transcript` for a specific session rather than the newest; without it, the newest transcript that
 actually invoked a skill is read, because a repository accumulates sessions that never ran one.
+
+## See also
+
+- [`AGENTS.md`](../AGENTS.md) — building, testing, and changing a scaffold template
+- [`../src/README.md`](../src/README.md) — what the two projects are, and where a new thing goes

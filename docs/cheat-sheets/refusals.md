@@ -16,13 +16,13 @@ verification — is something found wrong, and it causes some of these.
 
 ## Opening a cycle — `sdlc new`
 
-| Refusal | Do |
+| Refusal | Resolution |
 |---|---|
 | [no declared stack](../guides/handling-refusals.md#no-declared-stack) | `sdlc draft techstack`, cut it down, rename it into place |
 
 ## Before a build — `sdlc gate`
 
-| Refusal | Do |
+| Refusal | Resolution |
 |---|---|
 | [no cycle](../guides/handling-refusals.md#no-cycle) | `sdlc new`, or check the id |
 | [abandoned](../guides/handling-refusals.md#abandoned) | open a new cycle; an abandoned one does not reopen |
@@ -38,7 +38,7 @@ verification — is something found wrong, and it causes some of these.
 
 ## Writing the skeleton — `sdlc scaffold`
 
-| Refusal | Do |
+| Refusal | Resolution |
 |---|---|
 | [the gate refuses the cycle](../guides/handling-refusals.md#the-gate-refuses-the-cycle) | whichever gate remedy above matches the message |
 | [an adopted solution whose plan declares no build settings](../guides/handling-refusals.md#an-adopted-solution-whose-plan-declares-no-build-settings) | `sdlc stack`; a cycle whose plan declares the files brings them |
@@ -52,7 +52,7 @@ verification — is something found wrong, and it causes some of these.
 
 ## Recording evidence — `sdlc evidence`
 
-| Refusal | Do |
+| Refusal | Resolution |
 |---|---|
 | [no cycle, or no plan](../guides/handling-refusals.md#no-cycle-or-no-plan) | check the id; the cycle needs a `plan.md` |
 | [a verdict already stands](../guides/handling-refusals.md#a-verdict-already-stands) | delete `verify.md`, record again, verify again |
@@ -63,7 +63,7 @@ verification — is something found wrong, and it causes some of these.
 
 ## Opening a pull request — `sdlc pr-ready`
 
-| Refusal | Do |
+| Refusal | Resolution |
 |---|---|
 | [not verified](../guides/handling-refusals.md#not-verified) | `sdlc evidence <id>` if needed, then `/sdlc:verify <id>` |
 | [the verification did not pass](../guides/handling-refusals.md#the-verification-did-not-pass) | `/sdlc:remediate <id>` |
@@ -91,9 +91,15 @@ A command that only *mentions* one of these files is denied too. For a commit me
 
 ## Sent back at turn end — the turn-end hook
 
-| Refusal | Do |
+| Refusal | Resolution |
 |---|---|
 | [the recorded suite has a failure](../guides/handling-refusals.md#the-recorded-suite-has-a-failure) | fix the code, run the suite, record again. **Not the test** |
 | [there are changes and no recorded evidence](../guides/handling-refusals.md#there-are-changes-and-no-recorded-evidence) | `sdlc evidence <id> --tests <dir> --build-log <log>` |
 | [the working tree has moved since the evidence](../guides/handling-refusals.md#the-working-tree-has-moved-since-the-evidence) | build and test what is there now, and record it |
 | [when it says nothing](../guides/handling-refusals.md#when-it-says-nothing) | expected off a `cycle/` branch and before a plan; the pipeline check is the guarantee |
+
+## See also
+
+- [Handling refusals](../guides/handling-refusals.md) — every refusal in full, with why
+- [Handling blockers](../guides/handling-blockers.md) — a blocking finding or a blocked verification, which cause some of these
+- [Commands](commands.md) — every command for one cycle

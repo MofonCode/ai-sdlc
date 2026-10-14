@@ -32,7 +32,7 @@ the cheapest way to discover that what you were about to add already lives somew
 
 | Index | Describes |
 |---|---|
-| [`skills/README.md`](skills/README.md) | the eighteen skills in depth: when, why, how and what for each |
+| [`skills/README.md`](skills/README.md) | the eighteen skills as a reference: syntax, parameters, output, refusals and remarks for each |
 | [`docs/README.md`](docs/README.md) | the components: every concept the framework names, defined once. Start here when a term is unfamiliar |
 | [`docs/guides/README.md`](docs/guides/README.md) | the guides, one task each: what each covers, when to read it, what it leaves to another |
 | [`docs/cheat-sheets/README.md`](docs/cheat-sheets/README.md) | the cheat sheets: one line per command, skill and refusal, each held to its source by the suite |

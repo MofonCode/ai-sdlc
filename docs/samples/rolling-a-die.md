@@ -11,6 +11,14 @@ runs at the end. Where another guide covers a step, this one points at it rather
 `../cheat-sheets/commands.md` for the sheet. **Nothing here states a rule**; `sdlc constraints` renders
 those.
 
+In this tutorial, you:
+
+- make a repository and adopt it
+- place the solution document and the declared stack
+- write the intent, spec and plan, and approve them
+- build the cycle and verify it
+- roll the die in a browser
+
 ## What this is, and what it is not
 
 **This solution is local.** No remote, no pipeline, no pull request. That keeps the walk to one machine
@@ -64,6 +72,14 @@ The file names inside them are the plan's to choose, so expect this shape rather
 
 Plus changes to three files the scaffold already wrote: `Services.cs` registers the handler, `Program.cs`
 maps the endpoint and admits the page's origin, and the solution file gains the three new projects.
+
+## Prerequisites
+
+- the .NET 10 SDK
+- git
+- both halves of the framework — the `sdlc` binary and the plugin — installed as
+  [Installing the plugin](../guides/installing-the-plugin.md) describes. Step 1 checks them
+- a browser, to see it roll
 
 ---
 
@@ -556,13 +572,14 @@ sdlc pr-ready <id>
 It asks before the push. **It is not approving the merge** — a code owner does that, and never the agent
 that wrote the change.
 
-## Where to go next
+## Next steps
 
-| | |
-|---|---|
-| the same walk with no solution in it, stage by stage | `../guides/running-a-cycle.md` |
-| a blocking finding, or a blocked verification | `../guides/handling-blockers.md` |
-| every command for one cycle, on one screen | `../cheat-sheets/commands.md` |
-| what to do when something refuses | `../guides/handling-refusals.md` |
-| installing both halves | `../guides/installing-the-plugin.md` |
-| what each skill is and who starts it | `../../skills/README.md` |
+- [Running a cycle](../guides/running-a-cycle.md) — the same walk with no solution in it, stage by stage, for your own work
+
+## See also
+
+- [Handling blockers](../guides/handling-blockers.md) — a blocking finding, or a blocked verification
+- [Handling refusals](../guides/handling-refusals.md) — what to do when something refuses
+- [Installing the plugin](../guides/installing-the-plugin.md) — installing both halves
+- [Commands](../cheat-sheets/commands.md) — every command for one cycle, on one screen
+- [The skills reference](../../skills/README.md) — what each skill is and who starts it
