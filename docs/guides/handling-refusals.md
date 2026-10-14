@@ -1,6 +1,12 @@
-# When something refuses
+# Handling refusals
 
-Every refusal the framework produces, what it means, and what to do next.
+Every refusal the framework produces, what it means, and what to do next. `../cheat-sheets/refusals.md`
+is the same list as one line each.
+
+**A refusal is a command or hook declining to go on.** It is not the same thing as a blocker — a
+blocking finding on a document, or a `blocked` verification — though an open blocker is one of the
+things that causes refusals. Where the remedy for a refusal is answering a blocker, the entry below says
+so and `handling-blockers.md` has the walk.
 
 **A refusal is the gate working. A failure is the gate broken.** Those are different exit codes on
 purpose, so a hook never reports its own bug as a governed stop:
@@ -131,17 +137,12 @@ advice a person can decline to take; this is the layer that does not negotiate.
 
 The one with no way out but to answer it.
 
-**Next:** `/sdlc:refine <id> <artifact>` applies the findings to the artifact. Every finding ends in
-exactly one of three exits and there is no fourth — **healed** (the artifact changes), **assumed**
-(recorded in the decisions region, marked unconfirmed), or **asked** (recorded in `## Open`, and the
-skill stops and asks you).
+**Next:** `/sdlc:refine <id> <artifact>`, then a fresh interrogation. `handling-blockers.md` is the
+whole walk: the three exits a finding can leave by, what refine may not do, and what to do when the loop
+hands back.
 
-What refine may *not* do is answer a finding by making the artifact vaguer. "Fourteen seconds" becoming
-"slow" removes the problem from the page while leaving the belief in it, and that is the single move the
-exit rules exist to forbid.
-
-Reaching this refusal at all means the blocker was raised after the approval entry was printed, or the
-entry was written by hand — the printer refuses to produce one while a blocker is open. The check lives
+Reaching this refusal at all means the blocking finding was raised after the approval entry was printed,
+or the entry was written by hand — the printer refuses to produce one while a blocking finding is open. The check lives
 in both places because the printer is advice a person can decline to take and the gate is the layer that
 does not negotiate.
 
@@ -272,14 +273,15 @@ answered, or two passes in a row reduced nothing. **An escalated cycle never ope
 that stopping is the only reason an unattended batch is safe to run at all. There is no pass count to run
 out of — the refusal says which of the two stopped it, and they want different things from you: a
 regression means looking at what the last pass actually did, and a stall means asking whether the finding
-is answerable.
+is answerable. `handling-blockers.md` has what to do with an escalated cycle.
 
 **Next:** a person decides. Either the criterion is wrong, in which case
 `sdlc draft approval <id> --reopen` withdraws the approval with a recorded reason and the documents can be
 rewritten, or the work is harder than the plan thought and the cycle is abandoned with
 `sdlc draft abandon <id>`.
 
-**Do not raise the budget.** Three passes then stop is the bound everything unattended rests on.
+**There is no budget to raise.** The bound is progress rather than a pass count (D-66), and it is what
+everything unattended rests on.
 
 ### the chain does not hold
 
@@ -454,10 +456,12 @@ published.
 
 | | |
 |---|---|
-| a cycle walked end to end | `first-cycle.md` |
-| the same walk with one solution in it | `dice-worked-example.md` |
-| every command for one cycle, on one screen | `cycle-commands.md` |
-| what this solution is built from, and how to change it | `the-stack.md` |
+| a blocking finding or a blocked verification, and how to answer it | `handling-blockers.md` |
+| every refusal as one line | `../cheat-sheets/refusals.md` |
+| a cycle walked end to end | `running-a-cycle.md` |
+| the same walk with one solution in it | `../samples/rolling-a-die.md` |
+| every command for one cycle, on one screen | `../cheat-sheets/commands.md` |
+| what this solution is built from, and how to change it | `declaring-the-stack.md` |
 | what each skill is and who starts it | `../../skills/README.md` |
-| installing, updating, removing | `install.md` |
+| installing, updating, removing | `installing-the-plugin.md` |
 | the seventeen global constraints, each with what it forbids | `../../CONSTRAINTS.md` |

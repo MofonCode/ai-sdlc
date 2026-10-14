@@ -3,13 +3,15 @@
 Every concept the framework has a name for, defined once: what it is, what uses it, and where it lives.
 
 **This is a dictionary, not a walkthrough and not a rule set.** It says what a thing *is*; the guides say
-what to *type* and in what order, and `sdlc constraints` renders the rules. Where something has a fuller
+what to *do* and in what order, the cheat sheets give the line, and `sdlc constraints` renders the rules. Where something has a fuller
 treatment elsewhere, the entry points at it rather than repeating it.
 
 | | |
 |---|---|
-| [`guides/`](guides/) | the six guides. [`guides/README.md`](guides/README.md) is their index — what each covers and when to read it |
-| [`../skills/README.md`](../skills/README.md) | the eighteen skills in full: what each is, how it is invoked, who starts it |
+| [`guides/README.md`](guides/README.md) | **the guides** — six, one task each: installing, initializing, declaring the stack, running a cycle, handling blockers, handling refusals |
+| [`cheat-sheets/README.md`](cheat-sheets/README.md) | **the cheat sheets** — every command, every skill and every refusal, one line each |
+| [`samples/README.md`](samples/README.md) | **the samples** — one solution walked end to end, every command and every answer |
+| [`../skills/README.md`](../skills/README.md) | **the skills in depth** — when, why, how and what for each of the eighteen |
 | [`../CONCEPT.md`](../CONCEPT.md) | the design, and every decision behind it with what each one rejected |
 | `sdlc constraints` | the rules in force, all tiers resolved. A copy here would be a second place they live |
 | `sdlc help` | every command the binary answers to, with its options |
@@ -22,7 +24,7 @@ prose with no list under it is the thing that goes stale first.
 
 ## 1. The two halves
 
-Both have to be present and they fail differently. `guides/install.md` is the whole of installing them.
+Both have to be present and they fail differently. `guides/installing-the-plugin.md` is the whole of installing them.
 
 | | What it is | Where |
 |---|---|---|
@@ -79,7 +81,7 @@ A solution is one governed repository. Everything below lives in it.
 | **onboard** | the mode for existing code with no `.sdlc/`. Gets `origin: adopted` and `standard: existing`, and no build settings: their rows start `false` in the first stack draft |
 | **update** | the mode when `.sdlc/` is already there. Refreshes what the framework owns and never a person's file |
 | **the next step** | what adoption's report and `sdlc doctor` both end with until the first cycle opens: what a person still has to place, in one sentence, and the one command that is next — the paragraph in `solution.md`, then the declared stack. Read from disk every time, because a rename runs nothing |
-| **the solution skeleton** | `sdlc scaffold` on a solution that held no code: a solution file, five projects, the architecture suite, and the build settings they compile under. Refuses unless the cycle is approved, so **no code arrives without a chain behind it**. An adopted solution never gets it |
+| **the solution skeleton** | `sdlc scaffold` on a solution that held no code: a solution file, six projects, the architecture suite, and the build settings they compile under. Refuses unless the cycle is approved, so **no code arrives without a chain behind it**. An adopted solution never gets it |
 | **the reference slice** | one worked operation in the skeleton, written to be copied, because an agent takes the shape of the code beside it more reliably than an instruction |
 | **the response envelope** | the one shape every response leaves through. An architecture test fails the build on an endpoint returning anything else |
 
@@ -171,12 +173,17 @@ One gate, covering all three planning documents, immediately before the build.
 | **the gate** | `sdlc gate <id>`: whether the build may run. Exits 1 if not |
 | **the six files only a person writes** | `approval.md`, `abandoned.md`, `constraints.md`, `decisions.md`, `solution.md`, `techstack.md`. Every agent write to one is denied, by path and by command alike |
 
-**Eleven things refuse at the gate**, and `guides/when-it-blocks.md` is where each is looked up: no
+**Eleven things refuse at the gate**, and `guides/handling-refusals.md` is where each is looked up: no
 cycle · abandoned · a planning document missing · not approved · an unreadable ledger · a standing
 refusal · an unreadable round · never interrogated · a hash mismatch · an open blocker · a stale round.
 
 **A blocking finding cannot be waived by any mechanism.** There is no field for it and no refusal code
-that acceptance would clear. It is answered, or the cycle does not advance.
+that acceptance would clear. It is answered, or the cycle does not advance — `guides/handling-blockers.md`
+is how.
+
+**A blocker and a refusal are different things.** A **blocker** is something found wrong: a blocking
+finding on a planning document, or a `blocked` verification. A **refusal** is a command or hook
+declining to go on, exit code 1. An open blocker causes refusals; it is not one.
 
 ## 7. Evidence and verification
 
@@ -260,7 +267,8 @@ never decides a gate.
 | `suggestions` | lists the open non-blocking findings a solution has accumulated |
 
 **For what each one refuses, who starts it, and what it reads and writes, go to
-[`../skills/README.md`](../skills/README.md).** That file is the skills' own surface and this is a
+[`../skills/README.md`](../skills/README.md);** [`cheat-sheets/skills.md`](cheat-sheets/skills.md) adds what
+each takes. That file is the skills' own surface and this is a
 summary of it.
 
 ## 11. Patterns worth naming
@@ -271,7 +279,7 @@ These are not files. They are the shapes that recur, and knowing them explains m
 |---|---|
 | **draft, propose, suggestions** | three verbs split by who made the decision. **Draft** hands back a finished file for a decision you have already taken. **Propose** reads the record and argues for one you have not — a tool may propose a rule when it brings the evidence, and may not shape a rule somebody just typed. **Suggestions** forms no opinion: it lists what a reader raised and nobody acted on |
 | **rendered, never copied** | the constraints, the decisions and the theme reach a session by being rendered, because a copy inside an artifact is a second place the truth lives |
-| **derived, not declared** | `escalated` is what running out of budget makes of a cycle, not something anything writes |
+| **derived, not declared** | `escalated` is what a remediation loop that stopped making progress makes of a cycle, not something anything writes |
 | **the task list** | the host's own list of steps, which six skills open where a host has one. `init`, `intent`, `spec`, `plan` and `build` list one stage's steps and nothing past its hand-back; `batch-build` lists one line per cycle, ticked only when that cycle passed. A view of one session, never the record: `sdlc doctor`, `sdlc status` and `sdlc cycles --pr-ready` say what is done |
 | **the human-in-the-loop hand-back** | a skill stops rather than chaining into the next stage. Chaining on would remove the decision point while appearing helpful |
 | **`elsewhere`** | what a binary cannot answer and does not pretend to: whether a host loaded the skills, whether the pipeline's check is required. `doctor` marks these and names who to ask |

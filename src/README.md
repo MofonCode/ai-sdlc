@@ -192,7 +192,7 @@ Then the one exception to the request-and-handler rule, and the only place in th
 - **`TurnEndGate` is a request and a handler**, because it reads git and the recorded evidence and decides.
   That is a real operation.
 
-Which moment is governed on which host is a user-facing fact, and `../docs/guides/install.md` has it.
+Which moment is governed on which host is a user-facing fact, and `../docs/guides/installing-the-plugin.md` has it.
 
 ## What the suite holds about the structure
 

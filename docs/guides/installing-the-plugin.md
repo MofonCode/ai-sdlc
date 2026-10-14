@@ -1,4 +1,6 @@
-# Installing, updating and removing
+# Installing the plugin and the binary
+
+Installing, updating and removing both halves, on each host.
 
 **Two things have to be present, and they fail differently.** The plugin carries the skills and both
 hooks; the `sdlc` binary is the gate those skills and hooks call. Without the plugin, nothing
@@ -308,7 +310,7 @@ not the plugin's, and they stay readable without it.
 ## Adopting a repository
 
 Installing puts the framework on your machine. It governs nothing until a repository adopts it, which is
-`sdlc init` — a person's command, denied to an agent, and covered in `first-cycle.md`.
+`sdlc init` — a person's command, denied to an agent, and covered in `initializing-the-codebase.md`.
 
 ## Four things that catch people
 

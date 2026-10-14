@@ -1,8 +1,10 @@
-# What a solution is built from
+# Declaring what a solution is built from
 
 The declared stack: what it pins, which stack rules it switches on, which build settings files it
-takes, where its first draft comes from, and how to change it. **This is reference rather than a walkthrough** — read the part you need and leave
-the rest.
+takes, where its first draft comes from, and how to change it. **You place it once, right after
+adoption, and no cycle opens until you have** — `initializing-the-codebase.md` is the step before. After
+that it is something you come back to when a default or a rule turns out wrong for this solution, so
+read the part you need and leave the rest.
 
 It states no rule. `sdlc constraints` renders those, all tiers resolved, which is the only place they
 are complete.
@@ -236,10 +238,15 @@ next, as a file that cycle's plan never declared.
 **Whether a given cycle closes the gap is its intent's to say.** A plan about something else names the
 gap and leaves it. Closing it is a change with a scope of its own.
 
+**When a newly arrived file fails the build, amend it inside that cycle.** Narrow a severity, or scope a
+rule to a directory. Each file is created once and never rewritten, so your amendments survive every
+later run.
+
 ### The skeleton
 
-`sdlc scaffold <id>` also writes the .NET solution skeleton — a solution file, five projects, an
-architecture suite — on a solution that held no code, **together with all five build settings**,
+`sdlc scaffold <id>` also writes the .NET solution skeleton — a solution file, six projects (four
+under `src/` and two test projects, one of them the architecture suite) and a reference slice — on a
+solution that held no code, **together with all five build settings**,
 whatever the rows say, because the skeleton does not compile without them.
 
 A solution adopted into existing code never gets the skeleton: it has a shape already. What it can be
@@ -311,8 +318,9 @@ deciding what a team is built from.
 | | |
 |---|---|
 | the rules in force, all tiers resolved | `sdlc constraints` |
-| one cycle end to end | `first-cycle.md` |
-| that walk with one solution in it | `dice-worked-example.md` |
-| every command for one cycle | `cycle-commands.md` |
-| what to do when something refuses | `when-it-blocks.md` |
+| the step before: adoption, and placing `solution.md` | `initializing-the-codebase.md` |
+| one cycle end to end | `running-a-cycle.md` |
+| that walk with one solution in it | `../samples/rolling-a-die.md` |
+| every command for one cycle | `../cheat-sheets/commands.md` |
+| what to do when something refuses | `handling-refusals.md` |
 | every design decision behind this | `../../CONCEPT.md`, §8.2, §11 and D-67, D-68, D-74, D-75, D-76, D-77 |

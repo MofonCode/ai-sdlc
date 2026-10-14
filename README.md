@@ -157,13 +157,14 @@ That interviews you into the intent. `/sdlc:spec` and `/sdlc:plan` follow, you a
 then the build runs.
 
 **Want the whole walkthrough, or the variations?**
-[`docs/guides/first-cycle.md`](docs/guides/first-cycle.md) is one cycle from an empty directory to an
+[`docs/guides/running-a-cycle.md`](docs/guides/running-a-cycle.md) is one cycle from the rules to an
 open pull request, and
-[`docs/guides/dice-worked-example.md`](docs/guides/dice-worked-example.md) is that same walk with a
-six-sided die in it — every command, no remote required — so there is something to type at every prompt
-and something that runs at the end. [`docs/guides/install.md`](docs/guides/install.md) has every install path — Copilot,
-updating, removing, and the four things that catch people. And if something refuses,
-[`docs/guides/when-it-blocks.md`](docs/guides/when-it-blocks.md) has every refusal with its remedy.
+[`docs/samples/rolling-a-die.md`](docs/samples/rolling-a-die.md) is the whole walk with a six-sided die
+in it — every command, no remote required — so there is something to type at every prompt and something
+that runs at the end. [`docs/guides/installing-the-plugin.md`](docs/guides/installing-the-plugin.md) has
+every install path — Copilot, updating, removing, and the four things that catch people. And if
+something refuses, [`docs/guides/handling-refusals.md`](docs/guides/handling-refusals.md) has every
+refusal with its remedy.
 
 ## Where to read more
 
@@ -173,13 +174,18 @@ updating, removing, and the four things that catch people. And if something refu
 |---|---|
 | [`docs/README.md`](docs/README.md) | **the components** — every concept the framework names, defined once: what it is, what uses it, where it lives |
 | [`docs/guides/README.md`](docs/guides/README.md) | **the guides, indexed** — what each covers and when to read it |
-| [`docs/guides/install.md`](docs/guides/install.md) | installing the plugin and the binary, updating, and removing |
-| [`docs/guides/first-cycle.md`](docs/guides/first-cycle.md) | one cycle end to end, stage by stage |
-| [`docs/guides/dice-worked-example.md`](docs/guides/dice-worked-example.md) | **that walk with one solution in it** — a d6 over HTTP, every command, in a repository with no remote |
-| [`docs/guides/cycle-commands.md`](docs/guides/cycle-commands.md) | every command for one cycle, on one screen |
-| [`docs/guides/when-it-blocks.md`](docs/guides/when-it-blocks.md) | every refusal, and the remedy for each |
-| [`docs/guides/the-stack.md`](docs/guides/the-stack.md) | what a solution is built from — the declared stack, the stack rules it switches on, the build settings files it takes, and how to change any of them |
-| [`skills/README.md`](skills/README.md) | the eighteen skills: what each is, when it runs, and who starts it |
+| [`docs/guides/installing-the-plugin.md`](docs/guides/installing-the-plugin.md) | installing the plugin and the binary, updating, and removing |
+| [`docs/guides/initializing-the-codebase.md`](docs/guides/initializing-the-codebase.md) | adopting a repository, placing `solution.md`, and the files your solution owns |
+| [`docs/guides/declaring-the-stack.md`](docs/guides/declaring-the-stack.md) | what a solution is built from — the declared stack, the stack rules it switches on, the build settings files it takes, and how to change any of them |
+| [`docs/guides/running-a-cycle.md`](docs/guides/running-a-cycle.md) | one cycle end to end, stage by stage |
+| [`docs/guides/handling-blockers.md`](docs/guides/handling-blockers.md) | a blocking finding or a blocked verification, and how each is answered |
+| [`docs/guides/handling-refusals.md`](docs/guides/handling-refusals.md) | every refusal, and the remedy for each |
+| [`docs/cheat-sheets/README.md`](docs/cheat-sheets/README.md) | **the cheat sheets** — one line per thing |
+| [`docs/cheat-sheets/commands.md`](docs/cheat-sheets/commands.md) | every command for one cycle, on one screen |
+| [`docs/cheat-sheets/skills.md`](docs/cheat-sheets/skills.md) | the eighteen skills, one line each |
+| [`docs/cheat-sheets/refusals.md`](docs/cheat-sheets/refusals.md) | every refusal, one line each |
+| [`docs/samples/rolling-a-die.md`](docs/samples/rolling-a-die.md) | **the whole walk with one solution in it** — a d6 rolled from a page, every command, in a repository with no remote |
+| [`skills/README.md`](skills/README.md) | the eighteen skills in depth: when, why, how and what for each |
 | `sdlc constraints` | the rules in force, all tiers resolved. Run it rather than reading a copy of them |
 
 One more worth knowing about. `.sdlc/README.md`, written into your repository by `sdlc init`, is the whole flow on one page that

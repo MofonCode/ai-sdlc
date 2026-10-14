@@ -826,6 +826,10 @@ public sealed class PluginTests
 
         string index = File.ReadAllText(Path.Combine(Root, "skills", "README.md"));
 
+        // The cheat sheet is the one-line list now, and the index carries the depth. Every row there
+        // starts with the skill's name as a link to its section here, so that is what is read.
+        string sheet = File.ReadAllText(Path.Combine(Root, "docs", "cheat-sheets", "skills.md"));
+
         // The components document summarises the skills in one row each and sends a reader to the index
         // for the rest. That is a fourth list, so it is held here rather than promised: a summary that
         // silently loses a skill is worse than no summary, because it reads complete.
@@ -842,7 +846,7 @@ public sealed class PluginTests
         (string Source, HashSet<string> Listed)[] sources =
         [
             ("the concept's skills inventory (§15)", NamesMatching(concept[start..end], @"^\| `(?<name>[a-z-]+)`")),
-            ("the skills index's table", NamesMatching(index, @"^\| `(?<name>[a-z-]+)` \|")),
+            ("the skills cheat sheet", NamesMatching(sheet, @"^\| \[`(?<name>[a-z-]+)`\]")),
             ("the skills index's own sections", NamesMatching(index, @"^### `(?<name>[a-z-]+)`")),
             ("the components document's skills table", NamesMatching(summary, @"^\| `(?<name>[a-z-]+)` \|")),
         ];
@@ -939,8 +943,8 @@ public sealed class PluginTests
         string[] paths =
         [
             Path.Combine(Root, "docs", "README.md"),
-            Path.Combine(Root, "docs", "guides", "the-stack.md"),
-            Path.Combine(Root, "docs", "guides", "first-cycle.md"),
+            Path.Combine(Root, "docs", "guides", "declaring-the-stack.md"),
+            Path.Combine(Root, "docs", "guides", "running-a-cycle.md"),
             Path.Combine(Root, "CONCEPT.md"),
         ];
 
@@ -1079,68 +1083,173 @@ public sealed class PluginTests
     }
 
     [TestMethod]
-    public void The_guides_index_and_the_readme_name_every_guide_on_disk()
+    public void Every_document_folder_index_and_the_readme_name_every_document_on_disk()
     {
-        // Two lists of the same four files, and the duplication is deliberate: a reader landing on the
-        // repository front page should see what is there without a click, and a reader already in
-        // docs/guides/ should not have to climb out to find out what is beside them. AGENTS.md records
-        // that as the one accepted exception to a list living in a single place -- and the price of the
-        // exception is this test, because an exception paid for by a promise is the copy that goes stale.
+        // Two lists of the same files per folder, and the duplication is deliberate: a reader landing on
+        // the repository front page should see what is there without a click, and a reader already in
+        // one of these folders should not have to climb out to find out what is beside them. AGENTS.md
+        // records that as an accepted exception to a list living in a single place -- and the price of
+        // the exception is this test, because an exception paid for by a promise is the copy that goes
+        // stale.
+        //
+        // One rule over the three folders rather than one test each, because a guide, a cheat sheet and
+        // a sample drift from their indexes the same way. A fourth kind of document is a fourth folder
+        // and a fourth entry here, which is what keeps it from arriving undescribed.
         //
         // The index's own list is taken from its section headings rather than from its table. Both have
-        // to be there and the heading is the half a reader scrolls to, so keying on it means a guide
+        // to be there and the heading is the half a reader scrolls to, so keying on it means a document
         // described in a table row and nowhere else fails rather than passing as documented.
-        string guides = Path.Combine(Root, "docs", "guides");
-
-        HashSet<string> disk = new(
-            Directory.EnumerateFiles(guides, "*.md")
-                .Select(Path.GetFileName)
-                .Where(name => !string.Equals(name, "README.md", StringComparison.Ordinal))!,
-            StringComparer.Ordinal);
-
-        Assert.IsTrue(disk.Count > 0, "No guides were found, so this would pass by finding nothing.");
-
-        string index = File.ReadAllText(Path.Combine(guides, "README.md"));
-
-        HashSet<string> named = new(
-            Regex.Matches(index, @"^## `(?<file>[a-z0-9-]+\.md)`", RegexOptions.Multiline)
-                .Select(match => match.Groups["file"].Value),
-            StringComparer.Ordinal);
-
-        Assert.AreEqual(
-            0,
-            disk.Except(named, StringComparer.Ordinal).Count(),
-            "On disk and not described by docs/guides/README.md: "
-            + string.Join(", ", disk.Except(named, StringComparer.Ordinal)));
-
-        Assert.AreEqual(
-            0,
-            named.Except(disk, StringComparer.Ordinal).Count(),
-            "Described by docs/guides/README.md and gone: "
-            + string.Join(", ", named.Except(disk, StringComparer.Ordinal)));
-
-        // And the root readme's own table, which is the second list. Every guide it names is already
-        // asserted to exist; what was missing is the other direction -- a guide nobody added to it.
         string readme = File.ReadAllText(Path.Combine(Root, "README.md"));
 
-        HashSet<string> front = new(
-            Regex.Matches(readme, @"`docs/guides/(?<file>[a-z0-9-]+\.md)`")
-                .Select(match => match.Groups["file"].Value),
+        foreach (string folder in (string[])["guides", "cheat-sheets", "samples"])
+        {
+            string directory = Path.Combine(Root, "docs", folder);
+
+            HashSet<string> disk = new(
+                Directory.EnumerateFiles(directory, "*.md")
+                    .Select(Path.GetFileName)
+                    .Where(name => !string.Equals(name, "README.md", StringComparison.Ordinal))!,
+                StringComparer.Ordinal);
+
+            Assert.IsTrue(
+                disk.Count > 0,
+                $"Nothing was found in docs/{folder}/, so this would pass by finding nothing.");
+
+            string index = File.ReadAllText(Path.Combine(directory, "README.md"));
+
+            HashSet<string> named = new(
+                Regex.Matches(index, @"^## `(?<file>[a-z0-9-]+\.md)`", RegexOptions.Multiline)
+                    .Select(match => match.Groups["file"].Value),
+                StringComparer.Ordinal);
+
+            Assert.AreEqual(
+                0,
+                disk.Except(named, StringComparer.Ordinal).Count(),
+                $"On disk and not described by docs/{folder}/README.md: "
+                + string.Join(", ", disk.Except(named, StringComparer.Ordinal)));
+
+            Assert.AreEqual(
+                0,
+                named.Except(disk, StringComparer.Ordinal).Count(),
+                $"Described by docs/{folder}/README.md and gone: "
+                + string.Join(", ", named.Except(disk, StringComparer.Ordinal)));
+
+            // And the root readme's own table, which is the second list. Every document it names is
+            // already asserted to exist; what this adds is the other direction -- one nobody added to it.
+            HashSet<string> front = new(
+                Regex.Matches(readme, $@"`docs/{folder}/(?<file>[a-z0-9-]+\.md)`")
+                    .Select(match => match.Groups["file"].Value),
+                StringComparer.Ordinal);
+
+            front.Remove("README.md");
+
+            Assert.AreEqual(
+                0,
+                disk.Except(front, StringComparer.Ordinal).Count(),
+                $"In docs/{folder}/ and missing from the Where to read more table in README.md: "
+                + string.Join(", ", disk.Except(front, StringComparer.Ordinal)));
+
+            Assert.AreEqual(
+                0,
+                front.Except(disk, StringComparer.Ordinal).Count(),
+                $"In the Where to read more table in README.md and gone from docs/{folder}/: "
+                + string.Join(", ", front.Except(disk, StringComparer.Ordinal)));
+        }
+    }
+
+    [TestMethod]
+    public void The_skills_cheat_sheet_states_what_each_skill_takes_as_the_skill_declares_it()
+    {
+        // A cheat sheet is a copy by nature, so it is held to the thing it copies. The name of each skill
+        // is held by the sources rule above; this holds the one column a reader types from. The skill's
+        // own argument-hint is what a host shows when it offers the skill, so a cheat sheet that drifted
+        // from it would teach a different invocation from the one the host prompts for.
+        string sheet = File.ReadAllText(Path.Combine(Root, "docs", "cheat-sheets", "skills.md"));
+
+        var rows = Regex
+            .Matches(sheet, @"^\| \[`(?<name>[a-z-]+)`\]\([^)]*\) \| `(?<takes>[^`]*)` \|", RegexOptions.Multiline)
+            .ToDictionary(
+                match => match.Groups["name"].Value,
+                match => match.Groups["takes"].Value.Replace(@"\|", "|", StringComparison.Ordinal),
+                StringComparer.Ordinal);
+
+        Assert.IsTrue(rows.Count > 0, "No rows were read from the skills cheat sheet; its shape changed.");
+
+        foreach (string path in Skills())
+        {
+            string name = Path.GetFileName(Path.GetDirectoryName(path))!;
+
+            // Quoted in the frontmatter, and an embedded quote is escaped there; the sheet shows neither.
+            // One quote off each end rather than Trim: a value ending in an escaped quote ends in two.
+            string quoted = Value(Frontmatter(path), "argument-hint", path);
+            string hint = (quoted.Length >= 2 && quoted[0] == '"' && quoted[^1] == '"' ? quoted[1..^1] : quoted)
+                .Replace("\\\"", "\"", StringComparison.Ordinal);
+
+            Assert.IsTrue(rows.TryGetValue(name, out string? takes), $"The skills cheat sheet has no row for {name}.");
+
+            Assert.AreEqual(
+                hint,
+                takes,
+                $"The skills cheat sheet says {name} takes something other than its argument-hint. Change "
+                + "the row to match the skill, or the skill and the row together.");
+        }
+    }
+
+    [TestMethod]
+    public void The_refusals_cheat_sheet_names_every_refusal_the_guide_describes()
+    {
+        // The same price for the same exception. Every entry in the refusals guide is a heading a reader
+        // can land on, and every line of the cheat sheet links to one by name. Compared in both
+        // directions, so a refusal added to the guide and not the sheet fails as loudly as a line left
+        // pointing at an entry that was removed -- and each link's anchor is checked against the heading
+        // it names, because a dead anchor still renders as a link.
+        string guide = File.ReadAllText(Path.Combine(Root, "docs", "guides", "handling-refusals.md"));
+        string sheet = File.ReadAllText(Path.Combine(Root, "docs", "cheat-sheets", "refusals.md"));
+
+        HashSet<string> entries = new(
+            Regex.Matches(guide, @"^### (?<name>.+?)\s*$", RegexOptions.Multiline)
+                .Select(match => match.Groups["name"].Value),
             StringComparer.Ordinal);
 
-        front.Remove("README.md");
+        MatchCollection links = Regex.Matches(
+            sheet,
+            @"\[(?<name>[^\]]+)\]\(\.\./guides/handling-refusals\.md#(?<anchor>[^)]+)\)");
+
+        HashSet<string> lines = new(links.Select(match => match.Groups["name"].Value), StringComparer.Ordinal);
+
+        Assert.IsTrue(entries.Count > 0, "No entries were read from the refusals guide; its shape changed.");
+        Assert.IsTrue(lines.Count > 0, "No lines were read from the refusals cheat sheet; its shape changed.");
 
         Assert.AreEqual(
             0,
-            disk.Except(front, StringComparer.Ordinal).Count(),
-            "On disk and missing from the Where to read more table in README.md: "
-            + string.Join(", ", disk.Except(front, StringComparer.Ordinal)));
+            entries.Except(lines, StringComparer.Ordinal).Count(),
+            "In the refusals guide and missing from the cheat sheet: "
+            + string.Join(", ", entries.Except(lines, StringComparer.Ordinal)));
 
         Assert.AreEqual(
             0,
-            front.Except(disk, StringComparer.Ordinal).Count(),
-            "In the Where to read more table in README.md and gone: "
-            + string.Join(", ", front.Except(disk, StringComparer.Ordinal)));
+            lines.Except(entries, StringComparer.Ordinal).Count(),
+            "In the refusals cheat sheet and not an entry in the guide: "
+            + string.Join(", ", lines.Except(entries, StringComparer.Ordinal)));
+
+        foreach (Match link in links)
+        {
+            // The slug a renderer gives a heading: lower case, punctuation dropped, spaces to hyphens. The
+            // headings are lower case already, so the case is asserted on the anchor rather than folded.
+            string anchor = link.Groups["anchor"].Value;
+            string slug = Regex
+                .Replace(link.Groups["name"].Value, "[^A-Za-z0-9 -]", string.Empty)
+                .Replace(' ', '-');
+
+            Assert.IsFalse(
+                anchor.Any(char.IsUpper),
+                $"The anchor for '{link.Groups["name"].Value}' has capitals, and a rendered heading's never does.");
+
+            Assert.IsTrue(
+                string.Equals(slug, anchor, StringComparison.OrdinalIgnoreCase),
+                $"The refusals cheat sheet links '{link.Groups["name"].Value}' to an anchor its heading "
+                + "does not produce, so the link lands at the top of the guide.");
+        }
     }
 
     [TestMethod]
