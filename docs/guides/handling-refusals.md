@@ -183,15 +183,17 @@ approve again. If it is not, there is nothing for scaffold to do here: build wit
 
 ---
 
-## `sdlc init` — two options that went away
+## `sdlc init` — the one way adoption is refused
 
-Both are answered with a sentence rather than run, because a line kept from before would otherwise do
-something different from what it says.
+### an option it does not take
 
-| Option | What it did | Where that lives now |
-|---|---|---|
-| `--profile` | chose the stack at adoption | `sdlc draft techstack`, and a rename |
-| `--adopt-standard` | wrote the five .NET build settings into an existing codebase and recorded `standard: profile` | the files are rows in the declared stack, brought by a cycle whose plan declares them; the key is `sdlc draft solution --standard profile`, and a rename |
+`sdlc init` takes `--platform` and `--solution`, and nothing else. Any other option is refused before
+anything is written, with exit code `2`, rather than ignored — adoption writes the hook configuration and
+the pipeline, so a run that silently dropped part of the line would leave you believing you had asked
+for something you had not.
+
+**Next:** run it without the option. `sdlc help`, under *Options for init*, lists what it takes. Which
+stack the solution is built from is not adoption's: `sdlc draft techstack` afterwards.
 
 ---
 

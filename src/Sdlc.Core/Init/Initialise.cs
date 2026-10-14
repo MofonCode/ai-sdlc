@@ -302,8 +302,6 @@ public static class Initialise
                     Templates.Pipeline(wantedPlatform),
                     actions,
                     cancellationToken).ConfigureAwait(false);
-
-                Superseded(Path.Combine(".github", "workflows", "pull-request.yml"), actions);
             }
             else
             {
@@ -472,37 +470,6 @@ public static class Initialise
 
             await Write(path, contents, cancellationToken).ConfigureAwait(false);
             actions.Add(new InitAction(relative, existed ? InitChange.Updated : InitChange.Created));
-        }
-
-        /// <summary>
-        /// Names a pipeline an earlier adoption wrote at the name the framework used to claim.
-        /// </summary>
-        /// <remarks>
-        /// The GitHub workflow moved to <c>sdlc-verify.yml</c> (D-40), which leaves the old file behind
-        /// still running the same check on every pull request. Deleting somebody's workflow is not a
-        /// thing adoption should do, and saying nothing would leave two pipelines doing one job with
-        /// no explanation of why. So it is named, and a person removes it.
-        /// <para>
-        /// Only when the file holds the gate's own command. A <c>pull-request.yml</c> that is a team's
-        /// own workflow is none of adoption's business, and the whole point of the rename is that the
-        /// framework stops having an opinion about that name.
-        /// </para>
-        /// </remarks>
-        private void Superseded(string relative, List<InitAction> actions)
-        {
-            string path = Path.Combine(solution.Path, relative);
-
-            if (!File.Exists(path)
-                || !File.ReadAllText(path).Contains("sdlc verify-chain", StringComparison.Ordinal))
-            {
-                return;
-            }
-
-            actions.Add(new InitAction(
-                relative,
-                InitChange.Kept,
-                "an earlier adoption wrote this, and the framework's pipeline is now sdlc-verify.yml. "
-                + "Nothing here deletes a workflow -- remove it yourself, or two pipelines run the same check"));
         }
 
         /// <summary>

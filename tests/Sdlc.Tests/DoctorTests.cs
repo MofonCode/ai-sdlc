@@ -361,10 +361,10 @@ public sealed class DoctorTests
     }
 
     [TestMethod]
-    public async Task A_stack_from_before_rules_were_rows_is_told_where_its_rules_still_come_from()
+    public async Task A_stack_that_lists_no_rule_is_told_it_is_held_to_none_whatever_the_old_line_says()
     {
-        // It lists none and is still held to the ones its old profile line names. Saying "0 of 0" and
-        // stopping would read as having none, which is the opposite of what the gate does with it.
+        // An old profile line no longer selects anything (D-81), so a solution still carrying one is
+        // told plainly that it is held to none of the rules this release ships.
         using var solution = Scratch.Create();
         await Adopt(solution);
         await Declare(solution, "| Concern | Choice |\n|---|---|\n| ORM | EF Core |\n");
@@ -378,8 +378,8 @@ public sealed class DoctorTests
         Check stack = report.Checks.Single(check => check.Subject == "declared stack");
 
         Assert.AreEqual(CheckOutcome.Sound, stack.Outcome, stack.Detail);
-        StringAssert.Contains(stack.Detail, "dotnet-default");
-        StringAssert.Contains(stack.Detail, "draft techstack", "And how they become visible in this file.");
+        StringAssert.Contains(stack.Detail, "none of which it is held to");
+        Assert.IsFalse(stack.Detail.Contains("dotnet-default", StringComparison.Ordinal), "The old line is not read.");
     }
 
     /// <summary>The test context, for the cancellation token the analysers require to be passed on.</summary>

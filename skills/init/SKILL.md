@@ -79,13 +79,12 @@ for a service nothing will ever send it to is a file that looks like a gate and 
 
 **Do not ask what the solution is built from, and do not ask which conventions new work follows.**
 Adoption decides neither. The stack is declared afterwards, in step 4, in a file a person places — there
-is no profile to choose and `sdlc init` refuses `--profile` with a sentence saying so. And an existing
+is no profile to choose, and `sdlc init` refuses any option but `--platform`. And an existing
 codebase keeps its own conventions unless somebody asks otherwise, which is the default the command
 already takes.
 
 **There is no option for holding an existing codebase to the framework's conventions, and you raise
-the subject only when a person does.** It is two separate choices, each made after adoption, and
-`sdlc init` answers the old `--adopt-standard` with a sentence saying so:
+the subject only when a person does.** It is two separate choices, each made after adoption:
 
 | A person wants | It is | What to say it costs, in one line |
 |---|---|---|

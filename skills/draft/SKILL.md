@@ -130,9 +130,8 @@ approved cycle stated. The licence that makes the difference: **a tool may propo
 evidence, and may not shape what somebody just typed.** If somebody asks you to draft either, send
 them there.
 
-**There is no `draft profile` any more.** A solution records no profile: which technologies are pinned
-and which stack rules apply are both rows in the declared stack, so the act that used to be a profile
-migration is an edit to that draft. The binary answers the old spelling with a sentence saying so.
+**A solution records no profile.** Which technologies are pinned and which stack rules apply are both
+rows in the declared stack, so changing either is an edit to the `techstack` draft.
 
 ## Two things to say when you show an approval
 

@@ -233,7 +233,7 @@ public sealed class DraftTests
     {
         // The file is protected, so no tool can take the old line out of it -- but the draft is the
         // whole file rewritten for a rename, and that is the one place the line can stop existing.
-        // Carrying it through would keep a key alive that nothing writes and one fallback reads.
+        // Carrying it through would keep a key alive that nothing writes and nothing reads.
         using var workspace = CycleWorkspace.Create();
         workspace.WriteSolution(SolutionOrigin.Adopted, legacyProfile: "dotnet-default");
 
@@ -254,17 +254,15 @@ public sealed class DraftTests
     public void A_solution_document_reads_with_or_without_the_old_profile_line()
     {
         // Three keys now. A file written before that still reads, or upgrading the binary would make
-        // every existing solution look corrupted -- and the old line is kept only as what it is.
+        // every existing solution look corrupted -- and the old line is ignored, because nothing reads it.
         Result<SolutionDocument> current = SolutionDocument.Read("---\norigin: adopted\n---\n", "the document");
         Result<SolutionDocument> older = SolutionDocument.Read(
             "---\nprofile: dotnet-default\norigin: adopted\n---\n",
             "the document");
 
         Assert.IsTrue(current.IsSuccess, string.Join("; ", current.Errors.Select(e => e.Message)));
-        Assert.IsNull(current.Value.LegacyProfile);
-
         Assert.IsTrue(older.IsSuccess, string.Join("; ", older.Errors.Select(e => e.Message)));
-        Assert.AreEqual("dotnet-default", older.Value.LegacyProfile);
+        Assert.AreEqual(current.Value, older.Value, "The old line changes nothing about what is read.");
 
         Assert.IsFalse(
             SolutionDocument.Keys(SolutionOrigin.Adopted, SolutionStandard.Existing, Sdlc.Core.Init.Platform.Local)

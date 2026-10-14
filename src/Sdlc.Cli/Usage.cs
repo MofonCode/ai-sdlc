@@ -148,6 +148,9 @@ internal static class Usage
                                      re-run to pick up a new template never proposes moving a
                                      local solution onto a platform nobody asked for.
 
+            Any other option is refused before anything is written, rather than
+            ignored.
+
         Options for hook
             --event <name>           Which moment: pre-tool-use or turn-end. Defaults to
                                      pre-tool-use. Each host's own name for a moment is accepted

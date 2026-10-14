@@ -29,8 +29,8 @@ namespace Sdlc.Core.Solutions;
 /// would reclassify a solution by being renamed. The one exception is asked for by name:
 /// <c>--standard</c> moves that key and nothing else, and the draft says so in as many words, because
 /// which conventions new work follows is the one of the three a team is entitled to revisit (D-77).
-/// A <c>profile</c> line from before the declared stack
-/// listed its own rules is not carried: the draft is where that line stops existing (D-76).</para>
+/// Any other line is not carried: the draft is written from the three keys, so a key nothing reads
+/// stops existing there.</para>
 ///
 /// <para><strong>The binary writes the draft, never a skill</strong> — the same rule
 /// <see cref="Approvals.WriteApprovalDraft"/> is written under. Every agent write to

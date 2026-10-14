@@ -113,15 +113,16 @@ static async Task<int> Constraints(Workspace workspace, CommandLine line)
 // because they need language rather than a file listing.
 static async Task<int> Init(Workspace workspace, CommandLine line)
 {
-    // Answered rather than ignored. The option chose a profile for adoption to record, and adoption
-    // records none now -- so a line somebody kept from before would otherwise run, do something
-    // different from what it says, and leave them believing a stack had been declared.
-    if (line.HasOption("profile"))
+    // Refused rather than ignored. Adoption writes the hook configuration and the pipeline, so a line
+    // that ran while silently dropping part of what it said would leave somebody believing they had
+    // asked for something they had not (D-81).
+    IReadOnlyList<string> unknown = line.OptionsOtherThan("platform", "solution");
+
+    if (unknown.Count > 0)
     {
         await Console.Error.WriteLineAsync(
-            "'sdlc init' no longer takes --profile, because adoption no longer decides what a solution "
-            + "is built from. Run it without the option, then 'sdlc draft techstack': the draft starts "
-            + "from the framework's default, and what you rename into place is what binds.")
+            $"'sdlc init' does not take {string.Join(", ", unknown.Select(name => "--" + name))}. "
+            + "Its options are in 'sdlc help', under 'Options for init'.")
             .ConfigureAwait(false);
         return ExitCode.Usage;
     }
@@ -129,21 +130,6 @@ static async Task<int> Init(Workspace workspace, CommandLine line)
     if (!TryPlatform(line, out Platform? platform, out string? complaint))
     {
         await Console.Error.WriteLineAsync(complaint).ConfigureAwait(false);
-        return ExitCode.Usage;
-    }
-
-    // Answered for the same reason. The flag did two things that were never one decision: it wrote
-    // five .NET files into an existing codebase and it recorded which conventions new work follows.
-    // Each has a home now, and neither is adoption (D-77).
-    if (line.HasOption("adopt-standard"))
-    {
-        await Console.Error.WriteLineAsync(
-            "'sdlc init' no longer takes --adopt-standard, because adoption no longer decides anything "
-            + "about the stack. The .NET build settings are rows in the declared stack: run 'sdlc draft "
-            + "techstack', set the rows you want to true, and a cycle whose plan declares those files "
-            + "brings them. To hold new work to the profile's conventions, 'sdlc draft solution "
-            + "--standard profile' writes that change for you to rename into place.")
-            .ConfigureAwait(false);
         return ExitCode.Usage;
     }
 
@@ -282,19 +268,6 @@ static async Task<int> NewCycle(Workspace workspace)
 // the refusal, which has to be the same whether one cycle opens one or eight.
 static async Task<int> AskPrReady(CommandLine line)
 {
-    // --all moved to 'sdlc cycles --pr-ready', where every other "what is in this solution" question
-    // lives. Answered rather than refused: it was documented, people copied it, and a flag that stopped
-    // working with no explanation is how a working install reads as a broken one.
-    if (line.HasOption("all"))
-    {
-        await Console.Error.WriteLineAsync(
-            "'pr-ready --all' is now 'sdlc cycles --pr-ready', beside the rest of what a solution holds. "
-            + "'sdlc pr-ready <id>' takes one cycle.")
-            .ConfigureAwait(false);
-
-        return ExitCode.Usage;
-    }
-
     return await WithCycle(line, "pr-ready", async (workspace, id) =>
         {
             Result<PullRequest.Response> result = await workspace
@@ -541,12 +514,6 @@ static async Task<int> Draft(CommandLine line)
             .ConfigureAwait(false),
         "abandon" => await WithCycle(rest, "draft abandon", (w, id) => DraftAbandon(w, id))
             .ConfigureAwait(false),
-        // Answered rather than refused, for the reason a stage name typed at the binary is answered:
-        // a tool must never send somebody somewhere it does not go. This was a drafter until the verbs
-        // were split by who owns the decision, and it was the one member of this family that handed
-        // back a blank rather than a finished file -- which is why nobody could remember what it did.
-        "constraint" or "constraints" => await MovedToPropose().ConfigureAwait(false),
-        "profile" => await ProfileIsTheStack().ConfigureAwait(false),
         "solution" => await DraftSolution(rest).ConfigureAwait(false),
         "techstack" => await Workspace.Run(rest, w => DraftTechStack(w, rest)).ConfigureAwait(false),
         _ => await UnknownDraft(line.Arguments[0]).ConfigureAwait(false),
@@ -644,32 +611,6 @@ static async Task<int> DraftTechStack(Workspace workspace, CommandLine line) =>
         .Send<WriteTechStackDraft.Command, DraftResult>(
             new WriteTechStackDraft.Command(line.HasOption("empty")))
         .ConfigureAwait(false)).ConfigureAwait(false);
-
-// The same kindness for a command that went away. A solution no longer records a profile, so there is
-// no migration to draft -- but somebody who has typed this before is trying to change which stack rules
-// apply, and that is still a thing they can do, one file over.
-static async Task<int> ProfileIsTheStack()
-{
-    await Console.Error.WriteLineAsync(
-        "A solution no longer records a profile, so there is no profile migration to draft. Which "
-        + "technologies are pinned and which stack rules apply are both rows in the declared stack: "
-        + "run 'sdlc draft techstack', edit the draft -- the menu written beside it lists every row and "
-        + "rule this release ships -- and rename it into place.")
-        .ConfigureAwait(false);
-    return ExitCode.Usage;
-}
-
-// A rename is only kind if the old spelling says where the thing went.
-static async Task<int> MovedToPropose()
-{
-    await Console.Error.WriteLineAsync(
-        "A constraint is proposed rather than drafted: 'sdlc propose constraints'. Drafting is for a "
-        + "decision you have already taken, and the drafters hand back a finished file. Proposing is "
-        + "for one you have not: it reads this solution's whole history, says which rules its findings "
-        + "keep citing, and prints an empty entry at the next free id when the record holds no pattern.")
-        .ConfigureAwait(false);
-    return ExitCode.Usage;
-}
 
 // The second verb. 'draft' is a decision somebody already took; 'propose' is one the record is pushing
 // them toward. Identical grammar on purpose -- a subject after the verb, one skill behind both -- so the

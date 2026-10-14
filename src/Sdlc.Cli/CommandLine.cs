@@ -92,6 +92,37 @@ internal sealed class CommandLine
     /// <returns>True when it was given.</returns>
     public bool HasOption(string name) => _options.ContainsKey(name);
 
+    /// <summary>The options given that are not among those named, in the order a person would read them.</summary>
+    /// <remarks>
+    /// The parser accepts any option, because most verbs ignoring one they do not read costs nothing. A
+    /// verb where it does cost something asks this, so an option it does not take is refused rather than
+    /// silently dropped.
+    /// </remarks>
+    /// <param name="known">The option names the verb takes, without leading dashes.</param>
+    /// <returns>Every other option given, without leading dashes.</returns>
+    public IReadOnlyList<string> OptionsOtherThan(params ReadOnlySpan<string> known)
+    {
+        List<string> other = [];
+
+        foreach (string name in _options.Keys)
+        {
+            bool taken = false;
+
+            foreach (string candidate in known)
+            {
+                taken |= string.Equals(name, candidate, StringComparison.OrdinalIgnoreCase);
+            }
+
+            if (!taken)
+            {
+                other.Add(name);
+            }
+        }
+
+        other.Sort(StringComparer.Ordinal);
+        return other;
+    }
+
     /// <summary>Reads an option's value.</summary>
     /// <param name="name">The option name, without leading dashes.</param>
     /// <param name="value">The value, when the option was given with one.</param>

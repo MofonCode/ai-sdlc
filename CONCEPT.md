@@ -925,8 +925,7 @@ having decided.
 ### 8.3 `solution.md`
 
 Three keys. There was a fourth, `profile`, until the declared stack listed its own rules (D-76); a
-solution adopted before that may still carry the line, and it is read only as a fallback for a stack
-file that lists no rule.
+solution adopted before that may still carry the line, and nothing reads it (D-81).
 
 | Key | What consumes it |
 |---|---|
@@ -964,8 +963,7 @@ model-invoked. Three modes (D-28):
 
 **`init` decides nothing about the stack** — D-76, D-77. It takes no profile, writes no
 `techstack.md`, and writes no .NET build settings in any mode. What a solution is built from is declared
-afterwards, in a file a person places. `--profile` and `--adopt-standard` are both answered with a
-sentence naming where the thing went.
+afterwards, in a file a person places. An option `init` does not take is refused, never ignored (D-81).
 
 **An onboarded solution that wants the framework's conventions makes two choices, after adoption**
 (D-77). Which patterns a plan defaults to is `standard`, moved by renaming a draft from
@@ -3120,6 +3118,9 @@ fails open.
 ### D-40 — The framework owns files it named, and entries inside files it shares
 
 **Governs:** §9
+
+**Superseded in part by D-81.** Adoption no longer names a `pull-request.yml` an earlier adoption left
+behind. Everything else stands.
 
 **Decision.** Adoption rewrites a file only where the framework's own name is in the path. Where the
 path belongs to the host or the platform, it owns its entries and merges them in, or it writes nothing
@@ -5398,6 +5399,11 @@ somebody to stop reading it, which is the failure `CheckOutcome.Elsewhere` alrea
 
 **Governs:** §5.3, §7.3, §8.2, §8.3, §9, §11.5
 
+**Superseded in part by D-81.** `sdlc init --profile` and `sdlc draft profile` are no longer answered
+with a sentence: the first is refused as an option `init` does not take, the second as a drafter that
+does not exist. And an old `profile` line is no longer read as a fallback for a stack file that lists no
+rule: such a solution is held to none. Everything else stands.
+
 **Corrected 2026-10-13:** this says the file holds two tables, which was the count when it was written.
 D-77 added a third, for the build settings files, and §8.2 owns the count. Everything this entry
 decides about the first two stands, including that the skeleton brings the build settings.
@@ -5503,6 +5509,9 @@ for a word. Worth doing with the next change to that file's keys, not for its ow
 ### D-77 — The build settings are rows in the declared stack, and a cycle brings them
 
 **Governs:** §8.2, §8.3, §9, §11.3, §15.2, §18
+
+**Superseded in part by D-81.** `--adopt-standard` is no longer answered with a sentence; it is refused
+as an option `init` does not take. Everything else stands.
 
 **Decision.** `techstack.md` takes a third table, `## Build settings`: one row for each of the five
 .NET build settings files, with `true` or `false` and what the file does. `sdlc init --adopt-standard`
@@ -5777,3 +5786,52 @@ quietly do less on every other host.
 - *One item per interrogation round.* The list would grow while the artifact went in circles, which
   reads as progress at exactly the moment it is not.
 - *Naming the host's tool in the skill.* Three hosts, three names, and a fourth host tomorrow.
+
+### D-81 — What a release removed is gone, and `init` refuses an option it does not take
+
+**Governs:** §8.3, §9, §15.2
+
+**Decision.** The binary keeps no answer for a command or option it no longer has. `sdlc init --profile`,
+`sdlc init --adopt-standard`, `sdlc draft profile`, `sdlc draft constraint` and `sdlc pr-ready --all`
+each printed a sentence naming where the thing went; all five are gone. `sdlc draft` refuses a drafter
+that does not exist, and `sdlc pr-ready` asks for a cycle id. `init` refuses any option other than
+`--platform` and `--solution`, naming what it was given and pointing at `sdlc help`.
+
+The same goes for two readings kept for solutions adopted before a change. An old `profile` line in
+`solution.md` is no longer read as a fallback for a stack file that lists no rule (D-76): the rules come from
+the declared stack alone, and a stack that lists none holds the solution to none — `doctor` says so, as
+it does for any such stack. And adoption no longer names a `pull-request.yml` an earlier adoption left
+behind (D-40).
+
+**Why.** Each answer was written for somebody with a line kept from before the change, and every one of
+them dates from a release this framework has moved several past. A redirect is code, a test surface and a
+paragraph in three documents, and it describes something a new reader never met — the refusals sheet
+listed two options nobody adopting today would think to type, and a reader took it for a live command.
+What made the answers necessary for `init` was that the parser accepts any option, so removing one
+would have left `init --profile dotnet-default` adopting the repository while saying nothing about the
+part it dropped. Refusing what `init` does not take closes that without the binary remembering what
+used to be there. The other three removals fall through to refusals that already existed.
+
+**Why the two readings go too.** Both kept a solution adopted several releases ago working exactly as it
+had, at the cost of a branch in the rule resolution, a branch in `doctor`, a notice in adoption and the
+paragraphs explaining each. The project is moving from one person's machine to a team, and every
+solution that matters has either moved to a stack file that lists its rules or can do so with one draft
+and one rename.
+
+**Why only `init`.** Adoption is the one command whose run is hard to take back: it writes the hook
+configuration, the pipeline and the record of where the code came from, and it is a person's to run
+(§5.3). Every other verb that ignores an option it does not read costs a re-run at most.
+
+**Rejected.**
+
+- *Keeping the answers indefinitely.* Each is a small kindness and they accumulate; the documents
+  describing them read as a list of commands to anybody who never used the old ones.
+- *Removing the answers and letting `init` ignore unknown options.* Adoption would run on a line that
+  asked for something it no longer does, which is the failure the answers existed to prevent.
+- *Keeping the profile fallback until every solution has moved.* Nothing can tell when that has
+  happened, so it would never be removed. `doctor` reporting a stack held to no rule is the notice.
+- *Refusing to read a `solution.md` that still carries the line.* Every such solution would look corrupted
+  on upgrade, over a key that now means nothing. The reader ignores keys it does not know.
+- *Refusing unknown options on every verb.* The right shape eventually, but it needs each verb's
+  options declared in one place, and `sdlc help` is the only list today. Worth doing when a second verb
+  has the same cost.

@@ -63,17 +63,10 @@ public enum SolutionStandard
 /// <param name="Origin">Where the code came from.</param>
 /// <param name="Standard">Which conventions this solution's new work follows.</param>
 /// <param name="Platform">Where it is pushed, and whether a pull-request check governs the merge.</param>
-/// <param name="LegacyProfile">
-/// The <c>profile</c> line of a solution adopted before the declared stack listed its own rules, or
-/// null. Nothing writes it any more and nothing but the rule resolution reads it: that line used to
-/// select the stack rules, the file is protected so no tool can take it out, and a solution still
-/// carrying one keeps the rules it names until its declared stack lists them itself (D-76).
-/// </param>
 public sealed record SolutionDocument(
     SolutionOrigin Origin,
     SolutionStandard Standard,
-    Platform Platform = Platform.GitHub,
-    string? LegacyProfile = null)
+    Platform Platform = Platform.GitHub)
 {
     /// <summary>
     /// What the standard is when the key is absent.
@@ -179,11 +172,7 @@ public sealed record SolutionDocument(
 
         return errors.Count > 0
             ? Result.Fail<SolutionDocument>(errors)
-            : Result.Ok(new SolutionDocument(
-                origin,
-                standard,
-                platform,
-                string.IsNullOrWhiteSpace(shape?.Profile) ? null : shape.Profile.Trim()));
+            : Result.Ok(new SolutionDocument(origin, standard, platform));
     }
 
     /// <summary>
@@ -343,8 +332,6 @@ public sealed record SolutionDocument(
     // through reflection, which is why it looks dead. F-18.
     private sealed class Shape
     {
-        public string? Profile { get; set; }
-
         public string? Origin { get; set; }
 
         public string? Standard { get; set; }

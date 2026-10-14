@@ -72,7 +72,7 @@ A solution is one governed repository. Everything below lives in it.
 | `standard` | `profile`, `existing` | whether new work follows the profile's patterns or the surrounding code. The one key a person may move: `sdlc draft solution --standard` writes the change to rename into place |
 | `platform` | `github`, `azure-devops`, `local` | whether a pipeline is written, and so whether a check governs a merge |
 
-**There is no `profile` key.** A solution adopted before the declared stack listed its own rules may still carry one; it is read only as a fallback, for a stack file that lists no rule, so that upgrading the binary does not drop the rules that solution was held to.
+**There is no `profile` key.** A solution adopted before the declared stack listed its own rules may still carry one, and nothing reads it: the rules come from the declared stack alone.
 
 ### Adoption
 

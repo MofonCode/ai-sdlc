@@ -1,6 +1,6 @@
 # ai-sdlc
 
-**Version 0.19.1** · iteration 4 · .NET 10 · MIT
+**Version 0.20.0** · iteration 4 · .NET 10 · MIT
 
 **A plugin that makes an AI coding agent work the way a careful team does** — write down what the change
 is for, agree what *done* means, plan it, have a person approve it, and only then write code.
@@ -126,7 +126,7 @@ sdlc constraints
 ```
 
 It should print the seventeen global constraints in force and say it read them from
-`global  embedded in sdlc 0.19.1`. **Use this rather than `sdlc help` as the smoke test** — `help` and
+`global  embedded in sdlc 0.20.0`. **Use this rather than `sdlc help` as the smoke test** — `help` and
 `version` are the only commands that need nothing from the installation, so they are the two that cannot
 tell you whether it worked. Then `claude plugin details sdlc@ai-sdlc` should say `Skills (18)` and
 `Hooks (2)`: **a hook count below two is a failed install**, not a detail, because the deterministic layer
@@ -263,6 +263,9 @@ What is honest to say about the rest:
   pre-push hook is gone (`CONCEPT.md` D-78): it was written and never installed, and where it ran it
   refused a push of work in progress. A solution adopted before 0.18.0 still has the file, and a clone
   that set `core.hooksPath` still runs it until somebody deletes the file or unsets the key.
+- **A solution adopted before 0.16.0 that never listed its stack rules is held to none from 0.20.0.**
+  Its old `profile:` line in `solution.md` is no longer read (`CONCEPT.md` D-81). `sdlc doctor` says
+  so; `sdlc draft techstack` and a rename put the rules back.
 - **Adoption ending on one next step has been read by its author and by nobody else.** The suite holds
   the order and the wording at each step; no adoption has been walked through it by somebody new.
 - **The task lists have not been watched on any host.** `init`, `intent`, `spec`, `plan` and `build`

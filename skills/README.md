@@ -116,7 +116,7 @@ framework owns, which is everything not protected — hook configs, the pipeline
 | Condition | Result | What to do |
 |---|---|---|
 | outside a git repository | `sdlc init` refuses, and the skill says so before handing the line over | `git init`, which the skill offers |
-| `--profile` or `--adopt-standard` | `sdlc init` answers with a sentence saying why: neither choice is made at adoption any more | `sdlc draft solution --standard profile`, or a row in the declared stack — see Remarks |
+| any option other than `--platform` | `sdlc init` refuses before writing anything, rather than ignoring it | run it without; the stack is declared afterwards — see Remarks |
 
 #### Example
 
@@ -722,7 +722,7 @@ stack, or the solution document.
 | Condition | Result | What to do |
 |---|---|---|
 | a blocking finding is open, a document is missing, one has never been interrogated, or a round judged a document that has changed since | `draft approval` refuses to print | answer it; if it genuinely cannot be answered, `draft abandon` and a new cycle |
-| `draft profile` | there is no such draft any more, and the binary says so | — |
+| a drafter that does not exist | refuses, and lists the four that do | — |
 | the rename that places the file | shown, and never run or offered: the hook denies it in every spelling and through every shell | run it yourself |
 
 #### Example

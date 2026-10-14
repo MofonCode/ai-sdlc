@@ -242,39 +242,23 @@ public sealed class ProfileLibraryTests
     }
 
     [TestMethod]
-    public async Task A_solution_adopted_before_rules_were_rows_keeps_the_ones_its_old_profile_line_names()
+    public async Task An_old_profile_line_selects_no_rules()
     {
-        // The upgrade path. Its stack file declares defaults and lists no rule, and its solution document
-        // still carries the line that used to select them -- a protected file no tool can rewrite. If
-        // that line stopped being read, upgrading the binary would drop every rule the solution was
-        // being judged against, silently: the failure this file exists to keep closed.
+        // Rules come from the declared stack alone (D-81). A solution document still carrying the line
+        // that used to select them is held to nothing by it, whatever its stack file lists.
         using var workspace = CycleWorkspace.Create();
         workspace.WriteSolution(SolutionOrigin.Adopted, legacyProfile: Profile);
+
         workspace.WriteTechStack("| Concern | Choice |\n|---|---|\n| ORM | EF Core |\n");
-
-        ConstraintDocument profile = (await Resolve(workspace))
-            .Single(source => source.Tier == ConstraintTier.Profile);
-
-        Assert.AreEqual(Library.Count, Parse(profile).Count);
-    }
-
-    [TestMethod]
-    public async Task An_old_profile_line_is_not_read_once_the_stack_lists_its_own_rules_or_is_emptied()
-    {
-        // The line is a fallback and nothing more. The moment the declared stack says anything about
-        // rules, that is the answer -- and a file a person emptied means nothing is pinned, so a rule
-        // arriving from another file would contradict the one they emptied.
-        using var workspace = CycleWorkspace.Create();
-        workspace.WriteSolution(SolutionOrigin.Adopted, legacyProfile: Profile);
+        Assert.IsFalse(
+            (await Resolve(workspace)).Any(source => source.Tier == ConstraintTier.Profile),
+            "A stack that lists no rule is held to none, whatever the solution document says.");
 
         workspace.WriteTechStack("| ORM | EF Core |\n| `PRO_01` | true | browser |\n");
         Assert.AreEqual(
             1,
             Parse((await Resolve(workspace)).Single(source => source.Tier == ConstraintTier.Profile)).Count,
-            "One row on, so one rule -- not the three the old line names.");
-
-        workspace.WriteTechStack(string.Empty);
-        Assert.IsFalse((await Resolve(workspace)).Any(source => source.Tier == ConstraintTier.Profile));
+            "One row on, so one rule -- not the ones the old line names.");
     }
 
     [TestMethod]

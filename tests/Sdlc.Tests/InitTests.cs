@@ -279,38 +279,6 @@ public sealed class InitTests
     }
 
     [TestMethod]
-    public async Task A_pipeline_an_earlier_adoption_wrote_at_the_old_name_is_named_not_deleted()
-    {
-        // The GitHub workflow moved to sdlc-verify.yml, so an earlier adoption's pull-request.yml is
-        // left behind running the same check. Deleting a workflow is not adoption's to do, and silence
-        // would leave two pipelines doing one job. A team's own pull-request.yml is not mentioned at
-        // all, which is the whole point of the rename.
-        using var mine = Scratch.Create();
-        string ours = Path.Combine(mine.Root, ".github", "workflows", "pull-request.yml");
-        Directory.CreateDirectory(Path.GetDirectoryName(ours)!);
-        await File.WriteAllTextAsync(ours, "steps:\n  - run: sdlc verify-chain \"$ID\"\n");
-
-        Initialise.Response report = await Adopt(mine, tracked: ["src/App/Program.cs"]);
-        Initialise.InitAction named = report.Actions
-            .Single(action => action.Path.Replace('\\', '/') == ".github/workflows/pull-request.yml");
-
-        Assert.AreEqual(Initialise.InitChange.Kept, named.Change);
-        StringAssert.Contains(named.Why!, "sdlc-verify.yml");
-        Assert.IsTrue(File.Exists(ours), "Adoption does not delete a workflow.");
-
-        using var theirs = Scratch.Create();
-        string unrelated = Path.Combine(theirs.Root, ".github", "workflows", "pull-request.yml");
-        Directory.CreateDirectory(Path.GetDirectoryName(unrelated)!);
-        await File.WriteAllTextAsync(unrelated, "steps:\n  - run: dotnet test\n");
-
-        Initialise.Response quiet = await Adopt(theirs, tracked: ["src/App/Program.cs"]);
-
-        Assert.IsFalse(
-            quiet.Actions.Any(action => action.Path.Replace('\\', '/') == ".github/workflows/pull-request.yml"),
-            "A workflow that is not the framework's is not adoption's to comment on.");
-    }
-
-    [TestMethod]
     public async Task Every_file_adoption_rewrites_on_every_run_is_named_by_the_framework()
     {
         // The rule D-40 records, asserted rather than remembered. A file the framework rewrites has to

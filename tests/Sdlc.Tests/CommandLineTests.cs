@@ -115,6 +115,22 @@ public sealed class CommandLineTests
     }
 
     [TestMethod]
+    public void The_options_a_verb_does_not_take_are_named_so_it_can_refuse_them()
+    {
+        // 'init' refuses an option it does not take rather than running without it. An option that
+        // takes a value must not leave the value behind as a positional argument either.
+        var line = CommandLine.Parse(["init", "--Platform", "local", "--profile", "dotnet-default", "--adopt-standard"]);
+
+        CollectionAssert.AreEqual(
+            new[] { "adopt-standard", "profile" },
+            line.OptionsOtherThan("platform", "solution").ToArray(),
+            "Matched without regard to case, and listed in a stable order.");
+
+        Assert.AreEqual(0, line.Arguments.Count);
+        Assert.AreEqual(0, CommandLine.Parse(["init", "--platform", "github"]).OptionsOtherThan("platform", "solution").Count);
+    }
+
+    [TestMethod]
     public void Dropping_a_sub_verb_from_a_line_that_has_none_is_not_an_error()
     {
         CommandLine rest = CommandLine.Parse(["draft"]).WithoutFirstArgument();

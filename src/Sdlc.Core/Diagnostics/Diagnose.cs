@@ -341,11 +341,12 @@ public static class Diagnose
             string[] unlisted = [.. shipped.Where(id => !rules.Any(rule =>
                 string.Equals(rule.Id, id, StringComparison.OrdinalIgnoreCase)))];
 
-            // A solution adopted before the rules were rows lists none of them and is still held to the
-            // ones its solution.md names, so it is told where they come from rather than that it is
-            // missing every one.
             string tail = rules.Count == 0
-                ? await Legacy(shipped.Length, cancellationToken).ConfigureAwait(false)
+                ? shipped.Length == 0
+                    ? string.Empty
+                    : string.Create(
+                        CultureInfo.InvariantCulture,
+                        $". This release ships {shipped.Length}, none of which it is held to")
                 : unlisted.Length == 0
                     ? string.Empty
                     : string.Create(
@@ -421,36 +422,6 @@ public static class Diagnose
                 string.Create(
                     CultureInfo.InvariantCulture,
                     $"{declared} of {stack.Settings.Count} taken by the declared stack{tail}"));
-        }
-
-        /// <summary>
-        /// What to say about a declared stack that lists no rule at all.
-        /// </summary>
-        /// <remarks>
-        /// Two solutions look like that. One was adopted before the rules were rows: its
-        /// <c>solution.md</c> still names a profile, and it is still held to that profile's rules, so
-        /// saying it lists none would read as having none. The other chose its rows and no rules. They
-        /// are told apart by the line that used to select them, which is the only thing still reading
-        /// it.
-        /// </remarks>
-        /// <param name="shipped">How many stack rules this release ships.</param>
-        /// <param name="cancellationToken">Token observed while reading.</param>
-        /// <returns>A clause to append to the detail.</returns>
-        private async Task<string> Legacy(int shipped, CancellationToken cancellationToken)
-        {
-            Result<SolutionDocument> document = await SolutionDocument
-                .ReadFile(solution.Path, cancellationToken)
-                .ConfigureAwait(false);
-
-            return document.IsSuccess && StackProfiles.Find(document.Value.LegacyProfile) is { } profile
-                ? string.Create(
-                    CultureInfo.InvariantCulture,
-                    $". It lists none, so the rules still come from the '{profile.Name}' line in {Cycle.SolutionFileName}, where they used to be selected. 'sdlc draft techstack' writes the menu with the rows to copy in, which is what makes them visible here")
-                : shipped == 0
-                    ? string.Empty
-                    : string.Create(
-                        CultureInfo.InvariantCulture,
-                        $". This release ships {shipped}, none of which it is held to");
         }
 
         /// <summary>

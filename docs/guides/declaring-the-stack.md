@@ -170,8 +170,7 @@ A named set of default rows, carried by the binary. Two ship:
 | `ml-tensorflow` | Python and TensorFlow for model work, on the same Azure platform | the options menu, for rows to copy across |
 
 **No solution records a profile.** One is where a draft starts and where the menu's rows come from; it
-governs nothing afterwards. There is no `--profile` option on `sdlc init` and no `sdlc draft profile` —
-both are answered with a sentence pointing here.
+governs nothing afterwards, and nothing asks you to choose one.
 
 **The two share their platform rows** — the same cloud, the same infrastructure tooling, the same data
 stores — declared once inside the framework so they cannot drift apart. Nothing in a governed
@@ -281,14 +280,13 @@ may have had its own first, so there is no framework's version to compare agains
 
 ## A solution adopted before this
 
-Its `solution.md` still carries a `profile:` line, and its declared stack lists no rule. Nothing can
-take the line out — the file is protected — so **it is still read, as a fallback**: a stack file that
-declares defaults and lists no rule keeps the rules that line names. Upgrading the binary changes
-nothing about what such a solution is held to.
+Its `solution.md` may still carry a `profile:` line. **Nothing reads it any more**: the rules a solution
+is held to come from the declared stack alone, so a stack file that lists no rule holds it to none,
+whatever that line says.
 
-The fallback ends the moment the stack file says anything about rules, or is emptied. To make the rules
-visible where they bind, run `sdlc draft techstack`, copy the rule rows out of the menu into the draft,
-and rename it. `sdlc draft solution` writes the solution document without the old line.
+To be held to the rules that line used to select, run `sdlc draft techstack`, copy the rule rows out
+of the menu into the draft, and rename it. `sdlc draft solution` writes the solution document without
+the old line.
 
 ## What `sdlc doctor` says about it
 
@@ -311,7 +309,7 @@ deciding what a team is built from.
 | build settings rows | a second check, `build settings`: **sound**, with how many of the five the stack takes and which are not on disk yet. A declared file that has not arrived is not a problem — a cycle brings it |
 | a build settings row naming a file this release does not ship | a problem — the row takes nothing |
 | a shipped rule the file does not list | **sound**, and named |
-| no rule listed, and an old `profile:` line still in `solution.md` | **sound**, and it says where the rules still come from |
+| no rule listed | **sound**, and it says how many rules this release ships that the solution is held to none of |
 
 ## Where to go next
 

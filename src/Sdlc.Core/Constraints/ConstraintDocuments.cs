@@ -152,30 +152,6 @@ public sealed class FileConstraintDocuments(
                 rows.Where(row => row.On).Select(row => row.Id),
                 StringComparer.OrdinalIgnoreCase);
 
-            // A solution adopted before the rules were rows. Its stack file declares defaults and names
-            // no rule, and its solution.md still carries the profile line that used to select them --
-            // so that line is honoured, or upgrading the binary would silently drop every rule the
-            // solution was being judged against. Only for a file that declares something: an empty one
-            // is a person saying nothing is pinned, and a rule arriving from another file would
-            // contradict the one they emptied.
-            if (rows.Count == 0 && Solutions.StackTable.Rows(declared).Count > 0)
-            {
-                Result<Solutions.SolutionDocument> read = await Solutions.SolutionDocument
-                    .ReadFile(solutionRoot, token)
-                    .ConfigureAwait(false);
-
-                if (read.IsSuccess
-                    && ShippedProfileLibrary.Text(read.Value.LegacyProfile) is { } legacy)
-                {
-                    documents.Add(new ConstraintDocument(
-                        ConstraintTier.Profile,
-                        ShippedProfileLibrary.Source,
-                        legacy));
-                }
-
-                return;
-            }
-
             if (ShippedProfileLibrary.Selected(on) is not { } text)
             {
                 return;

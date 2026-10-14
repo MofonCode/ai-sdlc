@@ -529,8 +529,8 @@ internal sealed class CycleWorkspace : IDisposable
     /// <summary>Writes the solution document.</summary>
     /// <param name="origin">Where the code came from.</param>
     /// <param name="legacyProfile">
-    /// A <c>profile</c> line, as a solution adopted before the declared stack listed its own rules
-    /// still carries. Null writes the three keys adoption writes now.
+    /// A <c>profile</c> line, as a solution adopted before the declared stack listed its own rules may
+    /// still carry. Nothing reads it. Null writes the three keys adoption writes now.
     /// </param>
     public void WriteSolution(SolutionOrigin origin, string? legacyProfile = null) => WriteRaw(
         SolutionDocument.PathIn(Root),
