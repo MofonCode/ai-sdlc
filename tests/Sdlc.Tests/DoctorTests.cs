@@ -84,9 +84,26 @@ public sealed class DoctorTests
         ];
 
         CollectionAssert.AreEquivalent(
-            new[] { "the skills" },
+            new[] { "branch policy", "the skills" },
             elsewhere,
-            "A binary cannot ask a host what it loaded.");
+            "A binary cannot ask a host what it loaded, or a platform what its branch policy requires.");
+    }
+
+    [TestMethod]
+    public async Task On_azure_devops_the_branch_policy_is_named_as_what_runs_the_check()
+    {
+        // Azure Repos ignores a YAML pull-request trigger, so the pipeline runs only from a build
+        // validation policy. Without one there is no optional check, there is no check -- and a remedy
+        // that read the same as GitHub's would let somebody believe the pipeline was running.
+        using var solution = Scratch.Create();
+        await Adopt(solution, Platform.AzureDevOps);
+
+        Diagnose.Response report = await Diagnosis(solution);
+        Check policy = report.Checks.Single(check => check.Subject == "branch policy");
+
+        Assert.AreEqual(CheckOutcome.Elsewhere, policy.Outcome);
+        StringAssert.Contains(policy.Remedy!, "Build validation");
+        StringAssert.Contains(policy.Remedy!, "nothing runs");
     }
 
     [TestMethod]
@@ -402,7 +419,7 @@ public sealed class DoctorTests
         return result.Value;
     }
 
-    private static async Task Adopt(Scratch solution)
+    private static async Task Adopt(Scratch solution, Platform platform = Platform.GitHub)
     {
         using var gate = Gate.For(
             solution.Root,
@@ -410,7 +427,7 @@ public sealed class DoctorTests
 
         Result<Initialise.Response> result = await gate
             .Send<Initialise.Command, Initialise.Response>(
-                new Initialise.Command(Platform.GitHub));
+                new Initialise.Command(platform));
 
         Assert.IsTrue(result.IsSuccess, string.Join("; ", result.Errors.Select(e => e.Message)));
 

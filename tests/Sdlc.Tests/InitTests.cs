@@ -501,6 +501,28 @@ public sealed class InitTests
     }
 
     [TestMethod]
+    public void The_azure_devops_pipeline_names_the_policy_that_runs_it_and_no_trigger_that_cannot()
+    {
+        // Azure Repos ignores a 'pr:' block -- the keyword is for GitHub and Bitbucket -- and the template
+        // carried one beside 'trigger: none', so it ran on nothing while reading as a gate. What runs it is
+        // a build validation policy, which a person sets, so the file says how.
+        string pipeline = Templates.Pipeline(Platform.AzureDevOps);
+
+        string[] yaml =
+        [
+            .. pipeline
+                .ReplaceLineEndings()
+                .Split(Environment.NewLine)
+                .Where(line => !line.TrimStart().StartsWith('#')),
+        ];
+
+        Assert.IsFalse(
+            yaml.Any(line => line.TrimStart().StartsWith("pr:", StringComparison.Ordinal)),
+            "A 'pr:' trigger does nothing on Azure Repos, and reads as if it did.");
+        StringAssert.Contains(pipeline, "Build validation");
+    }
+
+    [TestMethod]
     public async Task Adoption_writes_no_git_hook_and_asks_for_none_to_be_installed()
     {
         // A pre-push hook was written here and left for a person to install per clone, so it looked like

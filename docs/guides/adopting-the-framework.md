@@ -101,6 +101,17 @@ policy requires it. Until then the file is advisory and the directory looks enfo
 enforced, which is the failure mode this design is written against. A `local` solution has no pipeline
 to require, and says so.
 
+| Platform | What to set |
+|---|---|
+| GitHub | a branch protection rule on the default branch that requires the `verify` status check |
+| Azure DevOps | **Repos > Branches > the default branch > Branch policies > Build validation**: add the `azure-pipelines.yml` pipeline, make it **Required**, and let it expire immediately when the branch is updated |
+
+**On Azure DevOps this is not only what makes the check required — it is what runs it.** Azure Repos
+ignores a `pr:` trigger written in YAML, so the pipeline has no trigger of its own, and the file says so
+at the top. Until the policy exists, no pull request is built, tested or verified, and nothing fails to
+tell you. `sdlc doctor` names this step under `branch policy`, marked `elsewhere`, because a binary
+cannot read the platform's policies.
+
 ## 5. The interview
 
 **Then back to the skill, which picks up where the command stopped.** It asks what matters in this

@@ -1592,6 +1592,13 @@ Generated at `init`, **per platform** — GitHub Actions or Azure Pipelines. ("H
 **The Azure Pipelines template has never run against a real server** (D-32). It carries a note saying so
 in the generated file, because a pipeline nobody has run looks exactly like a gate.
 
+**On Azure Repos the pipeline runs only from a build validation branch policy.** A `pr:` trigger in YAML
+is ignored there — the keyword is for GitHub and Bitbucket — so the template has `trigger: none`, no
+`pr:` block, and a comment naming the policy a person must add. Until 2026-10-15 it carried a `pr:`
+block, and so ran on nothing while reading as a gate: exactly the shape the note above warns about, found
+by reading the platform's documentation rather than by a run. `sdlc doctor` reports the policy as
+`elsewhere`, on both platforms.
+
 Every pull request installs the gate, builds, tests, **displays code coverage**, and runs
 `sdlc verify-chain`.
 

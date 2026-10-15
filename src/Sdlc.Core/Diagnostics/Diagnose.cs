@@ -142,7 +142,16 @@ public static class Diagnose
                 checks.Add(HookConfig(host));
             }
 
-            checks.Add(Pipeline(await RecordedPlatform(cancellationToken).ConfigureAwait(false)));
+            Platform platform = await RecordedPlatform(cancellationToken).ConfigureAwait(false);
+            Check pipeline = Pipeline(platform);
+
+            checks.Add(pipeline);
+
+            if (pipeline.Outcome == CheckOutcome.Sound)
+            {
+                checks.Add(BranchPolicy(platform));
+            }
+
             checks.Add(Plugin());
 
             return Result.Ok(new Response(
@@ -536,6 +545,33 @@ public static class Diagnose
                     CheckOutcome.Sound,
                     Path.GetRelativePath(solution.Path, found).Replace('\\', '/') + " runs it");
         }
+
+        /// <summary>
+        /// The half of the guarantee that lives on the platform, which this cannot see.
+        /// </summary>
+        /// <remarks>
+        /// A pipeline that runs <c>sdlc verify-chain</c> is a promise only while branch policy requires
+        /// it, and the policy is set on the platform rather than written into the repository. Only asked
+        /// once the pipeline itself is sound: with no pipeline, the problem already names the policy.
+        /// <para>
+        /// <strong>On Azure DevOps the policy is also what runs it.</strong> Azure Repos ignores a
+        /// <c>pr:</c> trigger in YAML, so the pipeline runs on a pull request only when a build
+        /// validation policy names it. Without one it is not an optional check -- it is no check, so the
+        /// remedy says so rather than reading the same as GitHub's.
+        /// </para>
+        /// </remarks>
+        /// <param name="platform">The recorded platform. Never local: a local solution has no pipeline.</param>
+        /// <returns>The check, always marked elsewhere.</returns>
+        private static Check BranchPolicy(Platform platform) => new(
+            "branch policy",
+            CheckOutcome.Elsewhere,
+            "the platform holds this, and a binary cannot ask it whether the check is required",
+            platform == Platform.AzureDevOps
+                ? "on Azure DevOps the pipeline runs only from a build validation policy, so without one "
+                  + "nothing runs: Repos > Branches > the default branch > Branch policies > Build "
+                  + "validation, add the pipeline and make it Required"
+                : "on GitHub: a branch protection rule on the default branch that requires the 'verify' "
+                  + "status check");
 
         /// <summary>
         /// The other half of the install, which this cannot see.

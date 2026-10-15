@@ -417,8 +417,9 @@ could loop. Its tool calls are governed normally.
 
 The dangerous direction. Five ways the gate goes quiet — and **`sdlc doctor` is the command for this
 section**: it checks every host's hook configuration, adoption, and whether a pipeline here runs the one
-check that is the guarantee, and exits 1 if any of it is wrong. The two causes it cannot see are marked
-`elsewhere` rather than passed, and they are the first two below.
+check that is the guarantee, and exits 1 if any of it is wrong. What it cannot see is marked `elsewhere`
+rather than passed: whether a host loaded the plugin, which is the first two causes below, and whether
+branch policy requires the check, which is the fifth.
 
 **A hook is not loaded.** `claude plugin details sdlc@ai-sdlc` must say `Hooks (2) PreToolUse, Stop`. **A
 count below two is a failed install, not a detail** — and the two fail differently. Without `PreToolUse`
@@ -444,6 +445,12 @@ it is only a guarantee while branch policy makes it required. A pipeline that ru
 does not wait for it is a directory that appears enforced and is not — which is worse than one that never
 pretended. Iteration 3 shipped a nightly job that needed an API key nobody had set, and warned and exited
 cleanly for weeks. That is the failure mode this design is written against.
+
+**On Azure DevOps it is worse: without the policy the check does not run at all.** Azure Repos ignores a
+`pr:` trigger in YAML, so `azure-pipelines.yml` runs on a pull request only when a build validation
+policy names it — Repos > Branches > the default branch > Branch policies > Build validation. Until then
+every pull request merges with nothing built, tested or verified, and nothing says so. `sdlc doctor`
+marks the policy `elsewhere` on both platforms and names this step, because no binary can read it.
 
 **One more, on the generated pipeline:** its first real step installs the gate, pinned to the release
 that generated it, and **that install does not resolve yet** because the package is not on a public feed.

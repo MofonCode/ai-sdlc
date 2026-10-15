@@ -575,6 +575,13 @@ public static class Templates
     /// a pipeline nobody has run looks exactly like a gate.
     /// </para>
     /// <para>
+    /// <strong>It has no trigger of its own, and says so.</strong> It carried a <c>pr:</c> block for a
+    /// while, which Azure Repos ignores: that keyword is for GitHub and Bitbucket, and on Azure Repos a
+    /// pipeline runs on a pull request only when a build validation branch policy names it. With
+    /// <c>trigger: none</c> beside it, the file ran on nothing and read as a gate. The step a person has
+    /// to take is now in the file, where the person reading it is.
+    /// </para>
+    /// <para>
     /// <strong>It installs the gate before it calls it.</strong> The first version did not, and assumed
     /// <c>sdlc</c> was on the runner's path -- so the one line the whole guarantee rests on would have
     /// reported command-not-found, from the step a reader trusts most. The install is pinned, because an
@@ -662,12 +669,13 @@ public static class Templates
                 "# run looks exactly like a gate, and a check that appears to enforce and does not is",
                 "# worse than one that never pretended.",
                 string.Empty,
+                "# This runs on pull requests, and only when a branch policy starts it. Azure Repos ignores a",
+                "# 'pr:' trigger written here -- that keyword is for GitHub and Bitbucket -- so until a person",
+                "# adds the policy, NOTHING HERE RUNS AT ALL and every pull request merges unchecked:",
+                "#",
+                "#   Repos > Branches > the default branch > Branch policies > Build validation: add this",
+                "#   pipeline, make it Required, and let it expire immediately when the branch is updated.",
                 "trigger: none",
-                string.Empty,
-                "pr:",
-                "  branches:",
-                "    include:",
-                "      - '*'",
                 string.Empty,
                 "pool:",
                 "  vmImage: ubuntu-latest",

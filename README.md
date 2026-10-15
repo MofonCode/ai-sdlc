@@ -283,7 +283,8 @@ What is honest to say about the rest:
   fresh clone the local layer is off until somebody marks it.
 - **The Azure DevOps pipeline has never run against a real server, by decision.** It ships with a note
   saying so in the generated file, where the first person to adopt there will read it (`CONCEPT.md`
-  D-32).
+  D-32). It runs only once a person adds a build validation branch policy — Azure Repos ignores a YAML
+  pull-request trigger — and the file, the adoption guide and `sdlc doctor` all say so.
 - **The binary is not on a feed.** Installing means cloning and packing — the single thing that would
   most improve a teammate's first hour.
 
