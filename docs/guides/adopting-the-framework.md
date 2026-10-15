@@ -104,7 +104,23 @@ to require, and says so.
 | Platform | What to set |
 |---|---|
 | GitHub | a branch protection rule on the default branch that requires the `verify` status check |
-| Azure DevOps | **Repos > Branches > the default branch > Branch policies > Build validation**: add the `azure-pipelines.yml` pipeline, make it **Required**, and let it expire immediately when the branch is updated |
+| Azure DevOps | **Repos > Branches > the default branch > Branch policies > Build validation**: add the `azure-pipelines.yml` pipeline, make it **Required**, and set **Build expiration** to **Immediately when the branch is updated** |
+
+**How often an open pull request is checked again.** A pull request is checked against the branch as it
+was when the check ran. Two pull requests can each pass and merge without a conflict and still break
+together — one renames a method the other calls — and only re-checking after the first merges catches
+that before the second does. What to set is a trade between CI minutes and how early you find out:
+
+| Setting | Re-checks | Finds the break |
+|---|---|---|
+| **Immediately when the branch is updated** (recommended) | every open pull request, each time anything merges | before the second pull request can merge |
+| **After n hours if the branch has been updated** | a pull request whose passing check is older than n hours | before merging, unless both merge inside the window |
+| **Never** | nothing | after both have merged, at the next build that includes them |
+
+On GitHub the nearest equivalents are **Require branches to be up to date before merging** on the
+protection rule, which makes a pull request's author bring it up to date and re-run the check, and a
+**merge queue**, which checks each pull request against everything queued ahead of it. Azure DevOps has
+no merge queue.
 
 **On Azure DevOps this is not only what makes the check required — it is what runs it.** Azure Repos
 ignores a `pr:` trigger written in YAML, so the pipeline has no trigger of its own, and the file says so
