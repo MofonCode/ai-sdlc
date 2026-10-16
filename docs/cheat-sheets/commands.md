@@ -77,6 +77,7 @@ before step 11.
 | `sdlc branch <id> <kind>` | binary | the git command that puts you on the cycle's `plan`, `build`, `build-unattended` or `forward` branch |
 | `sdlc factory` | binary | writes the factory's nightly pipeline for your platform. It never merges |
 | `sdlc lead show <reference>` | binary | a work item, issue, suggestion or file, in one shape for `intent --from` |
+| `sdlc operate --dry-run` | binary | what production raised, grouped and scrubbed, and what would be filed as a lead |
 | `sdlc sitrep` | binary | the morning's page: ready to merge and in what order, needs a person, held back, going stale |
 | `sdlc cycles --queued` | binary | what a build would take now, and what is held back and why |
 | `sdlc cycles --claims` | binary | which files each cycle claims |

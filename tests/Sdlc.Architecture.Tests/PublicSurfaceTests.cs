@@ -150,6 +150,21 @@ public sealed class PublicSurfaceTests
         "Sdlc.Core.Leads.ReadLead+Query",
         "Sdlc.Core.Leads.ReadLead+Response",
         "Sdlc.Core.Leads.TrackerItem",
+
+        // 'sdlc operate': production's errors filed as leads (D-89). The store and the filer are
+        // interfaces so the suite needs neither a network nor a CLI.
+        "Sdlc.Core.Operate.AppInsightsTelemetry",
+        "Sdlc.Core.Operate.BugToFile",
+        "Sdlc.Core.Operate.CliWorkFiler",
+        "Sdlc.Core.Operate.FiledSignature",
+        "Sdlc.Core.Operate.ITelemetry",
+        "Sdlc.Core.Operate.IWorkFiler",
+        "Sdlc.Core.Operate.RunOperate",
+        "Sdlc.Core.Operate.RunOperate+Command",
+        "Sdlc.Core.Operate.RunOperate+Lead",
+        "Sdlc.Core.Operate.RunOperate+Response",
+        "Sdlc.Core.Operate.Scrub",
+        "Sdlc.Core.Operate.TelemetryError",
         "Sdlc.Core.Cycles.CycleBranchKind",
 
         // 'sdlc branch <id> <kind>': which branch a kind of work starts on and from what.

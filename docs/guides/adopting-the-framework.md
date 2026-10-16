@@ -166,6 +166,7 @@ yours to write.**
 | `standard` | `profile`, `existing` | whether new work follows the profile's patterns or the surrounding code. Every plan reads it |
 | `platform` | `github`, `azure-devops`, `local` | whether a pipeline is written, and so whether a check governs a merge |
 | `integration_branch` | a branch name; `development` when absent | where approved plans wait and built cycles land. The factory builds from it, and a cycle's diff is measured from where it diverged from it — or from the default branch while it does not exist |
+| `telemetry` | `appinsights:<application id>`; absent for most | where Operate reads production's errors from, to file them as leads on the platform's tracker. Optional, and written only when set |
 
 ```pwsh
 sdlc draft solution

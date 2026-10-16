@@ -210,7 +210,11 @@ approval stands between it and any code.
 
 **What is built.** `sdlc lead show` reads `azuredevops:` and `github:` items through `az` and `gh`, so the
 binary never holds a token, and reads suggestions and files; `intent --from` interviews from it and records
-`lead:` in the intent's frontmatter. Jira, and Operate's scheduled run, are not built yet.
+`lead:` in the intent's frontmatter. `sdlc operate` reads Application Insights through `az`, ranks by
+frequency, scrubs, deduplicates against what it filed before — an open item, or one a person dismissed,
+stops a signature being filed again; one closed as done and recurring is filed again as a regression — and
+files bugs on the platform's tracker; the factory runs it before it builds. Jira, and telemetry stores
+other than Application Insights, are not built yet.
 
 ---
 
@@ -996,6 +1000,7 @@ solution adopted before that may still carry the line, and nothing reads it (D-8
 | `origin` | `intent`, to know whether "this repository holds no solution at all" is true |
 | `standard` | `plan`, to know whether new work follows the profile's conventions or the surrounding code's. Absent derives from `origin` (D-56). A person moves it by renaming a draft from `sdlc draft solution --standard` (D-77) |
 | `platform` | `doctor`, to tell a local solution from a broken install, and `pr`, to know whether there is anywhere to push. Absent reads as `github` (D-53) |
+| `telemetry` | `operate`, which reads production's errors from it and files them as leads on the platform's tracker. Optional and written only when set; most solutions have none (D-89) |
 | `integration_branch` | the factory, which builds from it, `pr`, which targets it, and evidence, which measures a cycle's diff from where it diverged from it. Absent reads as `development`; a solution with no such branch measures from its default branch (D-83) |
 
 **`origin` and `standard` are two keys because they answer two questions and only one of them may
@@ -1917,6 +1922,7 @@ they print verbatim.
 | `branch <id> <kind>` | the one git command that puts the working copy on the branch a kind of work happens on — `plan`, `build`, `build-unattended`, `forward` — from the right base (D-85) |
 | `factory` | writes the factory's pipeline for the recorded platform: nightly `batch-build --pr --unattended` against the integration branch, one run at a time, inside a time limit, proving the gate refuses before it builds (D-84) |
 | `lead show <reference>` | a lead — `azuredevops:`, `github:`, `suggestion:` or a path — fetched and printed in one shape, its outside text fenced as untrusted, for `intent --from` (D-89) |
+| `operate [--since <hours>h] [--dry-run]` | Operate: production's errors from the declared telemetry store, grouped by signature, scrubbed of personal data, deduplicated against what is filed, and filed as bugs on the platform's tracker (D-89) |
 | `sitrep` | the morning's page: what is ready to merge and in what order, what needs a person, what was held back, what is waiting and going stale (D-84, D-86) |
 | `cycles --queued` | what a build would take now, and every cycle held back with why — a `cycle/<id>/...` branch on the remote, or an approval the gate no longer accepts (D-85) |
 | `suggestions [<id>]` | the open non-blocking findings, across cycles |

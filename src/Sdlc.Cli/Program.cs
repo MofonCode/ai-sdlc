@@ -69,6 +69,7 @@ try
         "sitrep" => await Workspace.Run(line, SitrepCommand).ConfigureAwait(false),
         "factory" => await Workspace.Run(line, FactoryCommand).ConfigureAwait(false),
         "lead" => await LeadCommand(line).ConfigureAwait(false),
+        "operate" => await Workspace.Run(line, w => OperateCommand(w, line)).ConfigureAwait(false),
         "pr-ready" => await AskPrReady(line).ConfigureAwait(false),
         "draft" => await Draft(line).ConfigureAwait(false),
         "propose" => await Propose(line).ConfigureAwait(false),
@@ -673,6 +674,33 @@ static async Task<int> LeadCommand(CommandLine line)
         await Console.Out.WriteAsync(Sdlc.Core.Leads.ReadLead.Render(result.Value)).ConfigureAwait(false);
         return ExitCode.Ok;
     }).ConfigureAwait(false);
+}
+
+// Operate: production's errors, grouped, scrubbed, deduplicated and filed as leads (D-89). --since is
+// hours, defaulting to a day; --dry-run files nothing. Zero whatever it found: a quiet night is an answer.
+static async Task<int> OperateCommand(Workspace workspace, CommandLine line)
+{
+    int hours = 24;
+
+    if (line.TryOption("since", out string? since)
+        && (!int.TryParse(since.TrimEnd('h'), NumberStyles.Integer, CultureInfo.InvariantCulture, out hours) || hours < 1))
+    {
+        await Console.Error.WriteLineAsync("--since is a number of hours, as in --since 24h.").ConfigureAwait(false);
+        return ExitCode.Usage;
+    }
+
+    Result<Sdlc.Core.Operate.RunOperate.Response> result = await workspace
+        .Send<Sdlc.Core.Operate.RunOperate.Command, Sdlc.Core.Operate.RunOperate.Response>(
+            new Sdlc.Core.Operate.RunOperate.Command(TimeSpan.FromHours(hours), line.HasOption("dry-run")))
+        .ConfigureAwait(false);
+
+    if (result.IsFailed)
+    {
+        return await Report(result, ExitCode.Failed).ConfigureAwait(false);
+    }
+
+    await Console.Out.WriteAsync(Sdlc.Core.Operate.RunOperate.Render(result.Value)).ConfigureAwait(false);
+    return ExitCode.Ok;
 }
 
 // The morning's page. Zero whatever it says: a page full of blocked cycles is an accurate page, and a

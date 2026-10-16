@@ -69,11 +69,17 @@ public enum SolutionStandard
 /// default branch, because the branch named here is tried first and only when it exists.</para>
 /// <param name="Platform">Where it is pushed, and whether a pull-request check governs the merge.</param>
 /// <param name="IntegrationBranch">The integration branch: where plans wait and built cycles land.</param>
+/// <param name="Telemetry">
+/// Where production's errors are read from, as <c>appinsights:&lt;application id&gt;</c>, or null when the
+/// solution declares none (D-89). Optional, and written only when set: most solutions have no Operate run.
+/// The tracker Operate files into is the platform's own, so it needs no key of its own.
+/// </param>
 public sealed record SolutionDocument(
     SolutionOrigin Origin,
     SolutionStandard Standard,
     Platform Platform = Platform.GitHub,
-    string IntegrationBranch = SolutionDocument.DefaultIntegrationBranch)
+    string IntegrationBranch = SolutionDocument.DefaultIntegrationBranch,
+    string? Telemetry = null)
 {
     /// <summary>The integration branch a solution has when it names none. D-83.</summary>
     public const string DefaultIntegrationBranch = "development";
@@ -110,17 +116,20 @@ public sealed record SolutionDocument(
     /// <param name="standard">Which conventions new work follows.</param>
     /// <param name="platform">Where it is pushed.</param>
     /// <param name="integrationBranch">Where approved plans wait and built cycles land.</param>
+    /// <param name="telemetry">Where production's errors are read from, or null to leave the key out.</param>
     /// <returns>One line per key, without the fences.</returns>
     public static string[] Keys(
         SolutionOrigin origin,
         SolutionStandard standard,
         Platform platform,
-        string integrationBranch = DefaultIntegrationBranch) =>
+        string integrationBranch = DefaultIntegrationBranch,
+        string? telemetry = null) =>
     [
         "origin: " + NameOf(origin),
         "standard: " + NameOf(standard),
         "platform: " + NameOf(platform),
         "integration_branch: " + integrationBranch,
+        .. telemetry is null ? Array.Empty<string>() : ["telemetry: " + telemetry],
     ];
 
     /// <summary>
@@ -199,7 +208,12 @@ public sealed record SolutionDocument(
 
         return errors.Count > 0
             ? Result.Fail<SolutionDocument>(errors)
-            : Result.Ok(new SolutionDocument(origin, standard, platform, integration));
+            : Result.Ok(new SolutionDocument(
+                origin,
+                standard,
+                platform,
+                integration,
+                string.IsNullOrWhiteSpace(shape?.Telemetry) ? null : shape.Telemetry.Trim()));
     }
 
     /// <summary>
@@ -405,5 +419,7 @@ public sealed record SolutionDocument(
         public string? Platform { get; set; }
 
         public string? IntegrationBranch { get; set; }
+
+        public string? Telemetry { get; set; }
     }
 }

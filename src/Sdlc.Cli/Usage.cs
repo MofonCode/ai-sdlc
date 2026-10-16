@@ -68,6 +68,11 @@ internal static class Usage
                                      azuredevops:1234 or github:56 through az or gh, a
                                      suggestion:<cycle>/<finding>, or a file path. What came
                                      from outside is fenced as untrusted text. Jira is not read yet.
+            operate [--since <hours>h] [--dry-run]
+                                     Read production's errors from the telemetry store solution.md
+                                     declares, grouped by signature, personal data stripped, and
+                                     file each new one as a bug on the platform's tracker -- a lead.
+                                     Not filed again while open, or once a person dismissed it.
             sitrep                   The morning's page, in Markdown: built cycles ready to merge
                                      and in what order, with the ones expected to conflict;
                                      what needs a person; what was held back and why; what is

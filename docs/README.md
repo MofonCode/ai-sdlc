@@ -51,7 +51,7 @@ A solution is one governed repository. Everything below lives in it.
 |---|---|---|
 | **solution** | the repository the framework governs, found by walking up for `.sdlc/` | — |
 | **`.sdlc/`** | everything the framework keeps about this solution | the repository root |
-| **`solution.md`** | what this solution is, in four keys and a paragraph. **A person's file** | `.sdlc/solution.md` |
+| **`solution.md`** | what this solution is, in four keys — five with Operate's — and a paragraph. **A person's file** | `.sdlc/solution.md` |
 | **`techstack.md`** / the declared stack | what the solution is built from, as a table of concerns and choices; which stack rules it is held to, as a table of rule ids marked `true` or `false`; and which build settings files it takes, as a table of file names marked the same way. **What is in it is exactly what binds**, and an empty one pins nothing. The second rule source a plan is read against. Adoption does not write it: a person places it from a draft, and no cycle opens until they have. **A person's file** | `.sdlc/techstack.md` |
 | **stack default** | one row of it: a concern, and what this solution chooses for it | — |
 | **stack rule row** | one row of its second table: a `PRO_` id, `true` or `false`, and what the rule holds a plan to. `true` binds; `false`, or no row, does not | — |
@@ -64,7 +64,7 @@ A solution is one governed repository. Everything below lives in it.
 | **the build settings** | the `.NET` conventions a build enforces: `.editorconfig`, `Directory.Build.props`, `Directory.Packages.props`, `global.json`, `tests/Directory.Build.props`. Each is a row in the declared stack. Written by `sdlc scaffold` inside a cycle — all five with the solution skeleton, or on an adopted solution the ones its approved plan declares — and never by adoption. Created once, never rewritten, a person's to amend | the repository root |
 | **reports** | a copy of what `suggestions`, `propose` and `draft techstack` printed, because a person works through one rather than reading it once. **Nothing ever reads one back**, and the directory ignores itself — so a copy left behind never reaches a later cycle's diff as a file no plan declared | `.sdlc/reports/` |
 
-### The four keys in `solution.md`
+### The keys in `solution.md`
 
 | Key | Values | What it decides |
 |---|---|---|
@@ -72,6 +72,7 @@ A solution is one governed repository. Everything below lives in it.
 | `standard` | `profile`, `existing` | whether new work follows the profile's patterns or the surrounding code. The one key a person may move: `sdlc draft solution --standard` writes the change to rename into place |
 | `platform` | `github`, `azure-devops`, `local` | whether a pipeline is written, and so whether a check governs a merge |
 | `integration_branch` | a branch name; `development` when absent | where approved plans wait and built cycles land. The factory builds from it, and a cycle's diff is measured from where it diverged from it — or from the default branch while it does not exist |
+| `telemetry` | `appinsights:<application id>`; absent for most | where Operate reads production's errors from, to file them as leads on the platform's tracker. Optional, and written only when set |
 
 **There is no `profile` key.** A solution adopted before the declared stack listed its own rules may still carry one, and nothing reads it: the rules come from the declared stack alone.
 

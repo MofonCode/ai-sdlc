@@ -12,6 +12,7 @@ using Sdlc.Core.Factory;
 using Sdlc.Core.Findings;
 using Sdlc.Core.Git;
 using Sdlc.Core.Leads;
+using Sdlc.Core.Operate;
 using Sdlc.Core.Hooks;
 using Sdlc.Core.Init;
 using Sdlc.Core.Decisions;
@@ -68,6 +69,10 @@ public static class SdlcServices
 
         // Work trackers, read through the platforms' own CLIs so the binary never holds a token (D-89).
         services.TryAddSingleton<ITracker, CliTracker>();
+
+        // Operate's store and the tracker it files into, both through the platforms' CLIs (D-89).
+        services.TryAddSingleton<ITelemetry, AppInsightsTelemetry>();
+        services.TryAddSingleton<IWorkFiler, CliWorkFiler>();
 
         // Still a factory, and the one that should be: the library is a property of the framework's
         // installation rather than of the solution, so it is not a value a handler resolves. TryAdd
@@ -155,6 +160,9 @@ public static class SdlcServices
 
         // A lead, fetched and made one shape for 'intent --from' to interview from (D-89).
         services.AddReadLeadRequestHandler();
+
+        // Operate: production's errors, grouped, scrubbed, deduplicated, filed as leads.
+        services.AddRunOperateRequestHandler();
 
         services.AddPullRequestHandler();
 

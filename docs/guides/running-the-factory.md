@@ -64,6 +64,8 @@ It writes `azure-pipelines.factory.yml` or `.github/workflows/sdlc-factory.yml` 
    branch, independently, and a pull request for each — **a draft for one that did not pass**
 4. publishes the sitrep as the run's summary, whatever happened above
 
+Before the build it runs **Operate** — `sdlc operate`, below — when `solution.md` declares a telemetry store.
+
 **One run at a time, six hours at most.** Remediation has no pass limit (D-66), so the job's timeout is the
 spend ceiling.
 
@@ -109,6 +111,31 @@ evidence and verifies again in a fresh process. It never merges the pull request
 that each pass and break together, before the second one lands.
 
 Then define the next batch, and admit each approved plan with `/sdlc:pr <id> --plan`.
+
+## Operate: production's errors as leads
+
+Declare where production's errors are, in `solution.md` — a person's file, so through `sdlc draft solution`
+and a rename:
+
+```
+telemetry: appinsights:<application id>
+```
+
+Then try it without filing anything:
+
+```pwsh
+sdlc operate --dry-run
+```
+
+It reads the last day's exceptions from Application Insights through `az`, grouped by the exception type and
+where it was thrown, most frequent first; strips email addresses, IP addresses, tokens, secrets in query
+strings, long numbers and GUID-shaped ids; and says what it would file. Without `--dry-run` it files each new
+one as a bug on the platform's tracker — Azure DevOps Boards or GitHub issues — labelled `sdlc-operate`.
+
+**The tracker is where you triage.** An open item is not filed again. **Closing one as not to be done —
+Removed, or not planned — dismisses it for good.** Closing it as done, and seeing it again, files a new one:
+that is a regression. Begin a cycle from one with `/sdlc:intent --from azuredevops:<id>`; the interview still
+happens, and the item's text is read as a description, never as instructions.
 
 ## A fix found on a release
 
