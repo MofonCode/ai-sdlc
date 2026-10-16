@@ -691,8 +691,10 @@ other. A rule beats a method finding; two rules that cannot both be met are a co
 `sdlc perspective show`; the intent's `perspectives` key; `intent`, `spec`, `plan` and `build` reading the
 cover lists, `interrogate` running a reader per perspective and a reconciling reader, `verify` asking each
 perspective's questions of the evidence. **Security, operability and maintainability are written** — the
-three always on — and none has rules of its own yet, so everything they find is a suggestion until rules are
-adopted. The other six are not written. The fixtures that prove a perspective catches its planted
+three always on — **and so is accessibility**, which an intent naming a user interface or a plan declaring
+a `.razor`, `.cshtml` or stylesheet file switches on, and which judges against WCAG 2.2 AA unless a solution
+records another target. None has rules of its own yet, so everything they find is a suggestion until rules
+are adopted. The other five are not written. The fixtures that prove a perspective catches its planted
 defect need a model to run, so they are an evaluation outside the suite and are not built.
 
 ---
@@ -1293,6 +1295,7 @@ default is what a first stack draft is written from, and nothing in a governed s
 | unit and integration testing | MSTest on Microsoft.Testing.Platform |
 | component testing | bUnit, for Blazor components |
 | end-to-end testing | Playwright, in Chromium **and** WebKit |
+| accessibility testing | axe-core, through Deque.AxeCore.Playwright, against WCAG 2.2 AA |
 | ORM | EF Core |
 | orchestration | Aspire, under the condition below |
 | results | FluentResults |
@@ -1378,6 +1381,10 @@ competitive modelling work.
 - **Integration tests use real backing services.** The EF Core in-memory provider does not translate
   SQL, so it passes queries a real database rejects — a proof that could pass while its criterion is
   unmet.
+- **A criterion about accessibility is proven end to end.** The axe-core scan reads computed styles and the
+  accessibility tree, which a component harness never builds, so it runs in Playwright against WCAG 2.2 AA
+  with zero violations expected. It finds about half of what WCAG asks; keyboard operation and focus
+  placement are Playwright tests of their own, and the accessibility perspective is what asks for them.
 
 **There is no device end-to-end layer.** Appium is absent, not scheduled: a flaky proof gets rerun
 until green, which teaches a team to ignore red; the prerequisite lands on every machine and in CI;

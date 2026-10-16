@@ -297,8 +297,9 @@ What is honest to say about the rest:
   `sdlc operate` reads Application Insights through `az` and files through the same CLIs; none of that has
   touched a real tracker or a real telemetry store. Jira is not read yet.
 - **Perspectives have no rules yet.** Security, operability and maintainability are written as methods and
-  steer every stage, but none has a rule of its own, so everything they find is a suggestion; nothing proves
-  yet that a perspective's reader catches what it is meant to (`CONCEPT.md` §6.5).
+  steer every stage, and accessibility does the same for any change touching a user interface, but none has
+  a rule of its own, so everything they find is a suggestion; nothing proves yet that a perspective's reader
+  catches what it is meant to (`CONCEPT.md` §6.5). UI/UX and the four others are not written.
 
 ## Not goals
 
