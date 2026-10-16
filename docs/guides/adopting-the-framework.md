@@ -103,8 +103,8 @@ to require, and says so.
 
 | Platform | What to set |
 |---|---|
-| GitHub | a branch protection rule on the default branch that requires the `verify` status check |
-| Azure DevOps | **Repos > Branches > the default branch > Branch policies > Build validation**: add the `azure-pipelines.yml` pipeline, make it **Required**, and set **Build expiration** to **Immediately when the branch is updated** |
+| GitHub | a branch protection rule on the default branch, and on the integration branch once you have one, that requires the `verify` status check |
+| Azure DevOps | **Repos > Branches > the default branch — and the integration branch, `development`, once you have one — > Branch policies > Build validation**: add the `azure-pipelines.yml` pipeline, make it **Required**, and set **Build expiration** to **Immediately when the branch is updated** |
 
 **How often an open pull request is checked again.** A pull request is checked against the branch as it
 was when the check ran. Two pull requests can each pass and merge without a conflict and still break

@@ -67,6 +67,7 @@ try
         "admission" => await AdmissionCommand(line).ConfigureAwait(false),
         "branch" => await BranchCommand(line).ConfigureAwait(false),
         "sitrep" => await Workspace.Run(line, SitrepCommand).ConfigureAwait(false),
+        "factory" => await Workspace.Run(line, FactoryCommand).ConfigureAwait(false),
         "pr-ready" => await AskPrReady(line).ConfigureAwait(false),
         "draft" => await Draft(line).ConfigureAwait(false),
         "propose" => await Propose(line).ConfigureAwait(false),
@@ -620,6 +621,23 @@ static async Task<int> BranchCommand(CommandLine line)
         await Console.Error.WriteLineAsync(result.Value.Why).ConfigureAwait(false);
         return ExitCode.Ok;
     }).ConfigureAwait(false);
+}
+
+// The factory's pipeline, for the platform solution.md records. Its own command rather than part of
+// adoption, because a nightly agent is a choice a team makes after running cycles by hand (D-84).
+static async Task<int> FactoryCommand(Workspace workspace)
+{
+    Result<WriteFactoryPipeline.Response> result = await workspace
+        .Send<WriteFactoryPipeline.Command, WriteFactoryPipeline.Response>(new WriteFactoryPipeline.Command())
+        .ConfigureAwait(false);
+
+    if (result.IsFailed)
+    {
+        return await Report(result, ExitCode.Refused).ConfigureAwait(false);
+    }
+
+    await Console.Out.WriteAsync(WriteFactoryPipeline.Render(result.Value)).ConfigureAwait(false);
+    return ExitCode.Ok;
 }
 
 // The morning's page. Zero whatever it says: a page full of blocked cycles is an accurate page, and a

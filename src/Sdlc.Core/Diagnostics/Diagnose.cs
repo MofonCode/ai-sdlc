@@ -149,7 +149,9 @@ public static class Diagnose
 
             if (pipeline.Outcome == CheckOutcome.Sound)
             {
-                checks.Add(BranchPolicy(platform));
+                checks.Add(BranchPolicy(
+                    platform,
+                    await SolutionDocument.IntegrationBranchOf(solution.Path, cancellationToken).ConfigureAwait(false)));
             }
 
             checks.Add(Plugin());
@@ -562,16 +564,23 @@ public static class Diagnose
         /// </remarks>
         /// <param name="platform">The recorded platform. Never local: a local solution has no pipeline.</param>
         /// <returns>The check, always marked elsewhere.</returns>
-        private static Check BranchPolicy(Platform platform) => new(
+        /// <remarks>
+        /// <para>The reviewer is named too, as a warning rather than a requirement (D-84): who must approve
+        /// a pull request is the organisation's, but once a factory writes code overnight, a branch with no
+        /// required reviewer takes that code read by nobody but whoever clicks merge.</para>
+        /// </remarks>
+        private static Check BranchPolicy(Platform platform, string integration) => new(
             "branch policy",
             CheckOutcome.Elsewhere,
             "the platform holds this, and a binary cannot ask it whether the check is required",
-            platform == Platform.AzureDevOps
+            (platform == Platform.AzureDevOps
                 ? "on Azure DevOps the pipeline runs only from a build validation policy, so without one "
-                  + "nothing runs: Repos > Branches > the default branch > Branch policies > Build "
+                  + $"nothing runs: Repos > Branches > {integration} and the default branch > Branch policies > Build "
                   + "validation, add the pipeline and make it Required"
-                : "on GitHub: a branch protection rule on the default branch that requires the 'verify' "
-                  + "status check");
+                : $"on GitHub: a branch protection rule on {integration} and the default branch that requires the "
+                  + "'verify' status check")
+            + $". Who must review is yours to set; with no required reviewer on {integration}, code a factory "
+            + "wrote reaches it read by nobody but whoever merges it");
 
         /// <summary>
         /// The other half of the install, which this cannot see.

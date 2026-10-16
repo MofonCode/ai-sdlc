@@ -299,7 +299,7 @@ public static class Initialise
             {
                 await Owned(
                     PipelinePath(wantedPlatform),
-                    Templates.Pipeline(wantedPlatform),
+                    Templates.Pipeline(wantedPlatform, recorded?.IntegrationBranch ?? SolutionDocument.DefaultIntegrationBranch),
                     actions,
                     cancellationToken).ConfigureAwait(false);
             }
@@ -307,7 +307,7 @@ public static class Initialise
             {
                 await Introduced(
                     PipelinePath(wantedPlatform),
-                    Templates.Pipeline(wantedPlatform),
+                    Templates.Pipeline(wantedPlatform, recorded?.IntegrationBranch ?? SolutionDocument.DefaultIntegrationBranch),
                     "one already exists, and it is this repository's own CI rather than the framework's to replace. Nothing verifies a chain until this step runs in a pipeline",
                     actions,
                     printed,

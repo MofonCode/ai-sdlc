@@ -145,6 +145,10 @@ public static class SdlcServices
         // The morning's page, read from the cycles, the remote's branches, the claim graph and git.
         services.AddSitrepRequestHandler();
 
+        // The factory's pipeline, written on request rather than at adoption: a factory is a choice a team
+        // makes after running cycles by hand (D-84, D-91).
+        services.AddWriteFactoryPipelineRequestHandler();
+
         services.AddPullRequestHandler();
 
         services.AddRecordEvidenceRequestHandler();

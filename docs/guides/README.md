@@ -1,6 +1,6 @@
 # The guides
 
-Six guides, written for somebody using the framework rather than changing it, each answering one task.
+Seven guides, written for somebody using the framework rather than changing it, each answering one task.
 This file is the index: what each one covers, when you would read it, and what it leaves to another.
 
 **They are in the order a person meets them.** Install once per machine, initialize and declare once per
@@ -13,6 +13,7 @@ whole thing end to end with a real solution in it**, `../samples/rolling-a-die.m
 | [`adopting-the-framework.md`](adopting-the-framework.md) | adoption, the interview, placing `solution.md`, the first constraints, and the files your solution owns | once per repository |
 | [`declaring-the-stack.md`](declaring-the-stack.md) | what a solution is built from: the declared stack, the stack rules it switches on, the build settings files it takes, and how to change any of them | right after adoption, and whenever a default or a rule is wrong for this solution |
 | [`running-a-cycle.md`](running-a-cycle.md) | one cycle from the rules to a pull request, stage by stage — the happy path | once, front to back, then when you need a stage again |
+| [`running-the-factory.md`](running-the-factory.md) | many cycles built overnight: the integration branch, admitting plans, the factory's pipeline, and the morning's sitrep, merges and conflicts | when you are ready to let a pipeline build what you approved |
 | [`handling-blockers.md`](handling-blockers.md) | a blocking finding on a document, or a blocked verification: what each is and how it is answered | when a loop hands back, or a verification says `blocked` |
 | [`handling-refusals.md`](handling-refusals.md) | every refusal, hook denial and turn sent back, with the remedy for each | when something stops |
 
@@ -64,6 +65,16 @@ planning documents, the gate, build, verify, the pull request, and what to look 
 
 It is the happy path on purpose. Where a stage can stop, it says so in a sentence and points at the next
 two guides. It is also solution-agnostic — what to *answer* at each prompt is the sample's job.
+
+## `running-the-factory.md`
+
+**Many cycles, built overnight.** The integration branch and its policy, admitting a plan to it with
+`pr --plan`, writing the factory's pipeline with `sdlc factory` and what a person sets up for it, and the
+morning: reading the sitrep, merging one pull request at a time, resolving a conflict with
+`resolve-conflict`, picking up a draft. It closes with a fix found on a release.
+
+What it does not cover: the stages themselves, which are `running-a-cycle.md`, or promotion to main, which is
+the team's process and not the framework's.
 
 ## `handling-blockers.md`
 

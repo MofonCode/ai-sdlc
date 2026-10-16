@@ -549,8 +549,11 @@ public sealed class InitTests
         Assert.IsTrue(lines[test + 1].Contains("admission", StringComparison.Ordinal)
             || lines[test + 2].Contains("admission", StringComparison.Ordinal), "The tests are skipped for a plan alone.");
         Assert.IsFalse(
-            lines.Skip(chain).Take(4).Any(line => line.Contains("condition", StringComparison.Ordinal) || line.Contains("if:", StringComparison.Ordinal)),
-            "The check itself always runs: skipping it would make the admission step the bypass.");
+            lines.Skip(chain - 2).Take(6).Any(line => line.Contains("admission", StringComparison.Ordinal)),
+            "The check never depends on the admission step: skipping it there would make that step the bypass.");
+        Assert.IsTrue(
+            pipeline.Contains("development", StringComparison.Ordinal),
+            "D-86: the integration branch builds on every merge.");
     }
 
     [TestMethod]

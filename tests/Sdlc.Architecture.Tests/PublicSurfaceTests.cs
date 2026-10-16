@@ -133,6 +133,12 @@ public sealed class PublicSurfaceTests
         "Sdlc.Core.Factory.Sitrep+Response",
         "Sdlc.Core.Factory.Sitrep+Waiting",
         "Sdlc.Core.Factory.SitrepRenderer",
+
+        // 'sdlc factory': the factory's pipeline, for the recorded platform (D-84).
+        "Sdlc.Core.Factory.FactoryPipeline",
+        "Sdlc.Core.Factory.WriteFactoryPipeline",
+        "Sdlc.Core.Factory.WriteFactoryPipeline+Command",
+        "Sdlc.Core.Factory.WriteFactoryPipeline+Response",
         "Sdlc.Core.Cycles.CycleBranchKind",
 
         // 'sdlc branch <id> <kind>': which branch a kind of work starts on and from what.

@@ -596,8 +596,12 @@ public static class Templates
     /// </para>
     /// </remarks>
     /// <param name="platform">Which platform.</param>
+    /// <param name="integrationBranch">
+    /// The integration branch, which also builds on every push so a merge that broke it is named by the
+    /// build that follows it (D-86).
+    /// </param>
     /// <returns>The file's contents.</returns>
-    public static string Pipeline(Platform platform) => platform switch
+    public static string Pipeline(Platform platform, string integrationBranch = SolutionDocument.DefaultIntegrationBranch) => platform switch
     {
         Platform.GitHub => string.Join(
             Environment.NewLine,
@@ -606,6 +610,12 @@ public static class Templates
                 string.Empty,
                 "on:",
                 "  pull_request:",
+                string.Empty,
+                "  # The integration branch builds and tests on every merge, so a pull request that merged",
+                "  # cleanly and broke it is named by the build that follows it. The chain is checked on",
+                "  # pull requests only: a push has no pull request to read.",
+                "  push:",
+                $"    branches: [{integrationBranch}]",
                 string.Empty,
                 "jobs:",
                 "  verify:",
@@ -636,6 +646,7 @@ public static class Templates
                 "      # one source file included -- prints false and gets everything.",
                 "      - name: what this pull request carries",
                 "        id: carries",
+                "        if: github.event_name == 'pull_request'",
                 "        run: echo \"admission=$(sdlc admission \"${CYCLE_ID}\" --base \"${BASE_REF}\")\" >> \"$GITHUB_OUTPUT\"",
                 "        env:",
                 "          CYCLE_ID: ${{ github.head_ref }}",
@@ -665,6 +676,7 @@ public static class Templates
                 "      # kind, recorded where somebody can read it. DELETING THIS STEP is not the same",
                 "      # decision: it accepts them everywhere and leaves nothing saying so.",
                 "      - name: verify the artifact chain",
+                "        if: github.event_name == 'pull_request'",
                 "        run: sdlc verify-chain \"${CYCLE_ID}\" --base \"${BASE_REF}\"",
                 "        env:",
                 "          CYCLE_ID: ${{ github.head_ref }}",
@@ -688,13 +700,19 @@ public static class Templates
                 "# 'pr:' trigger written here -- that keyword is for GitHub and Bitbucket -- so until a person",
                 "# adds the policy, NOTHING HERE RUNS AT ALL and every pull request merges unchecked:",
                 "#",
-                "#   Repos > Branches > the default branch > Branch policies > Build validation: add this",
+                $"#   Repos > Branches > {integrationBranch}, and the default branch > Branch policies > Build validation: add this",
                 "#   pipeline, make it Required, and set Build expiration to 'Immediately when the branch",
                 "#   is updated'. That re-runs every open pull request each time one merges, which costs",
                 "#   CI minutes and is what catches two pull requests that merge cleanly and break",
                 "#   together. 'After n hours' and 'Never' spend less and catch it later; the adoption",
                 "#   guide sets out the choice.",
-                "trigger: none",
+                "#",
+                "# The integration branch also builds and tests on every merge, so a pull request that",
+                "# merged cleanly and broke it is named by the build that follows it. The chain is checked on",
+                "# pull requests only: a merge has no pull request to read.",
+                "trigger:",
+                "  branches:",
+                $"    include: [{integrationBranch}]",
                 string.Empty,
                 "pool:",
                 "  vmImage: ubuntu-latest",
@@ -724,6 +742,7 @@ public static class Templates
                 "  # included -- prints false and gets everything.",
                 "  - script: echo \"##vso[task.setvariable variable=admission]$(sdlc admission \"$(System.PullRequest.SourceBranch)\" --base \"$(System.PullRequest.TargetBranch)\")\"",
                 "    displayName: what this pull request carries",
+                "    condition: eq(variables['Build.Reason'], 'PullRequest')",
                 string.Empty,
                 "  - script: dotnet build --configuration Release",
                 "    displayName: build",
@@ -742,6 +761,7 @@ public static class Templates
                 "  # The guarantee. Every check lives in the binary, so this stays one line.",
                 "  - script: sdlc verify-chain \"$(System.PullRequest.SourceBranch)\" --base \"$(System.PullRequest.TargetBranch)\"",
                 "    displayName: verify the artifact chain",
+                "    condition: and(succeeded(), eq(variables['Build.Reason'], 'PullRequest'))",
                 string.Empty,
             ]),
 

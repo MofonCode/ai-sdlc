@@ -59,6 +59,11 @@ internal static class Usage
                                      build-unattended or forward -- creating it from the right
                                      base: the integration branch once the plan is admitted to
                                      it, the plan's own branch before that.
+            factory                  Write the factory's pipeline for the recorded platform: every
+                                     night, batch-build --pr --unattended against the integration
+                                     branch, one run at a time, six hours at most, proving the
+                                     gate refuses before it builds, and publishing the sitrep. It
+                                     never merges. Refuses on a local solution.
             sitrep                   The morning's page, in Markdown: built cycles ready to merge
                                      and in what order, with the ones expected to conflict;
                                      what needs a person; what was held back and why; what is
