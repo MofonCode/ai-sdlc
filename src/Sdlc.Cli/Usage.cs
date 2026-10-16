@@ -64,6 +64,10 @@ internal static class Usage
                                      branch, one run at a time, six hours at most, proving the
                                      gate refuses before it builds, and publishing the sitrep. It
                                      never merges. Refuses on a local solution.
+            lead show <reference>    Fetch a lead and print it in one shape for 'intent --from':
+                                     azuredevops:1234 or github:56 through az or gh, a
+                                     suggestion:<cycle>/<finding>, or a file path. What came
+                                     from outside is fenced as untrusted text. Jira is not read yet.
             sitrep                   The morning's page, in Markdown: built cycles ready to merge
                                      and in what order, with the ones expected to conflict;
                                      what needs a person; what was held back and why; what is

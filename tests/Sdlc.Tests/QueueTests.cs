@@ -45,6 +45,18 @@ public sealed class QueueTests
     }
 
     [TestMethod]
+    public async Task A_fix_for_a_release_is_held_back_from_a_batch()
+    {
+        // D-88: built by hand from the release branch, never by the factory from the integration branch.
+        using CycleWorkspace workspace = Approved(release: "release/1.4");
+
+        ListQueuedCycles.Response queue = await Read(workspace, new FakeRepository());
+
+        Assert.AreEqual(0, queue.Cycles.Count);
+        StringAssert.Contains(queue.Held.Single().Reason, "release/1.4");
+    }
+
+    [TestMethod]
     public async Task A_verified_cycle_is_not_queued()
     {
         using CycleWorkspace workspace = Approved();
@@ -80,11 +92,20 @@ public sealed class QueueTests
         StringAssert.Contains(QueuedRenderer.Render(queue), "could not be read");
     }
 
-    private static CycleWorkspace Approved()
+    private static CycleWorkspace Approved(string? release = null)
     {
         var workspace = CycleWorkspace.Create();
 
         workspace.WriteArtifact(ArtifactKind.Intent);
+
+        if (release is not null)
+        {
+            // Before the approval, so the hash covers it, as it would for a person who wrote it in.
+            string path = workspace.Cycle.PathOf(ArtifactKind.Intent);
+            string intent = File.ReadAllText(path);
+            int close = intent.IndexOf("\n---", 3, StringComparison.Ordinal);
+            CycleWorkspace.WriteRaw(path, intent[..close] + "\nrelease: " + release + intent[close..]);
+        }
         workspace.WriteSpec(criteria: 3);
         workspace.WritePlan(proofs: 3);
 

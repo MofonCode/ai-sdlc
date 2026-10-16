@@ -97,6 +97,23 @@ public sealed class StartBranchTests
     }
 
     [TestMethod]
+    public async Task A_fix_for_a_release_builds_from_the_release_and_takes_its_documents_from_the_plan()
+    {
+        // D-88: the intent names the release; the code starts there and the cycle's documents come along.
+        FakeRepository git = new();
+        git.Refs.Add("origin/development");
+        git.Refs.Add("origin/release/1.4");
+        git.Refs.Add("cycle/" + Id + "/plan");
+
+        Result<StartBranch.Response> result = await Send(git, CycleBranchKind.Build, release: "release/1.4");
+
+        Assert.IsTrue(result.IsSuccess, string.Join("; ", result.Errors.Select(e => e.Message)));
+        Assert.AreEqual(
+            "git switch --no-track -c cycle/" + Id + "/build origin/release/1.4 && git checkout cycle/" + Id + "/plan -- .sdlc/cycles/" + Id,
+            result.Value.Command);
+    }
+
+    [TestMethod]
     public async Task A_forward_needs_an_integration_branch_to_reach()
     {
         Result<StartBranch.Response> result = await Send(new FakeRepository(), CycleBranchKind.Forward);
@@ -112,9 +129,17 @@ public sealed class StartBranchTests
         return result.Value;
     }
 
-    private static async Task<Result<StartBranch.Response>> Send(FakeRepository git, CycleBranchKind kind)
+    private static async Task<Result<StartBranch.Response>> Send(FakeRepository git, CycleBranchKind kind, string? release = null)
     {
         using var workspace = CycleWorkspace.Create(Id);
+
+        if (release is not null)
+        {
+            CycleWorkspace.WriteRaw(
+                workspace.Cycle.PathOf(ArtifactKind.Intent),
+                "---\nframework_version: 1.0.0\ncycle: " + Id + "\ntype: bug fix\nrelease: " + release + "\n---\n\n# A fix\n");
+        }
+
         using var gate = Gate.For(workspace.Root, services => services.AddSingleton<IRepository>(git));
         Assert.IsTrue(CycleId.TryParse(Id, out CycleId? id));
 

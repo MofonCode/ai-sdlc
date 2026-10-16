@@ -68,6 +68,7 @@ try
         "branch" => await BranchCommand(line).ConfigureAwait(false),
         "sitrep" => await Workspace.Run(line, SitrepCommand).ConfigureAwait(false),
         "factory" => await Workspace.Run(line, FactoryCommand).ConfigureAwait(false),
+        "lead" => await LeadCommand(line).ConfigureAwait(false),
         "pr-ready" => await AskPrReady(line).ConfigureAwait(false),
         "draft" => await Draft(line).ConfigureAwait(false),
         "propose" => await Propose(line).ConfigureAwait(false),
@@ -638,6 +639,40 @@ static async Task<int> FactoryCommand(Workspace workspace)
 
     await Console.Out.WriteAsync(WriteFactoryPipeline.Render(result.Value)).ConfigureAwait(false);
     return ExitCode.Ok;
+}
+
+// A lead, fetched and fenced for 'intent --from' to interview from (D-89). 'show' is the one sub-verb today;
+// listing a tracker's open leads is still being shaped.
+static async Task<int> LeadCommand(CommandLine line)
+{
+    if (line.Arguments.Count < 2 || !string.Equals(line.Arguments[0], "show", StringComparison.OrdinalIgnoreCase))
+    {
+        await Console.Error.WriteLineAsync(
+            "Show which lead? As in 'sdlc lead show azuredevops:1234' -- or github:56, jira:PROJ-123, suggestion:<cycle>/<finding>, or a path.")
+            .ConfigureAwait(false);
+        return ExitCode.Usage;
+    }
+
+    if (!Sdlc.Core.Leads.LeadReference.TryParse(line.Arguments[1], out Sdlc.Core.Leads.LeadReference? reference, out string? problem))
+    {
+        await Console.Error.WriteLineAsync(problem).ConfigureAwait(false);
+        return ExitCode.Usage;
+    }
+
+    return await Workspace.Run(line, async workspace =>
+    {
+        Result<Sdlc.Core.Leads.ReadLead.Response> result = await workspace
+            .Send<Sdlc.Core.Leads.ReadLead.Query, Sdlc.Core.Leads.ReadLead.Response>(new Sdlc.Core.Leads.ReadLead.Query(reference))
+            .ConfigureAwait(false);
+
+        if (result.IsFailed)
+        {
+            return await Report(result, ExitCode.Failed).ConfigureAwait(false);
+        }
+
+        await Console.Out.WriteAsync(Sdlc.Core.Leads.ReadLead.Render(result.Value)).ConfigureAwait(false);
+        return ExitCode.Ok;
+    }).ConfigureAwait(false);
 }
 
 // The morning's page. Zero whatever it says: a page full of blocked cycles is an accurate page, and a

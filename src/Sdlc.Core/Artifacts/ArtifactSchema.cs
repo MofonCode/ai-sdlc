@@ -96,6 +96,22 @@ public static class ArtifactSchema
         _ => [],
     };
 
+    /// <summary>
+    /// The frontmatter keys one kind of artifact may carry and need not.
+    /// </summary>
+    /// <remarks>
+    /// An intent may record the lead it began from (D-89) — so the cycle's pull request can link and close the
+    /// item — and the release branch a fix is for (D-88). Most intents have neither, so neither is required;
+    /// both are checked when present, because a malformed one would be a link to nothing.
+    /// </remarks>
+    /// <param name="kind">Which artifact.</param>
+    /// <returns>Its optional keys, which may be none.</returns>
+    public static IReadOnlyList<string> OptionalKeysOf(ArtifactKind kind) => kind switch
+    {
+        ArtifactKind.Intent => ["lead", "release"],
+        _ => [],
+    };
+
     /// <summary>The values a change type may take.</summary>
     public static IReadOnlyList<string> ChangeTypes { get; } =
         ["new solution", "feature addition", "feature change", "bug fix"];
@@ -242,10 +258,19 @@ public static class ArtifactSchema
         CheckValue(kind, keys, "tier", Tiers, violations);
         CheckValue(kind, keys, "outcome", Outcomes, violations);
 
+        if (OptionalKeysOf(kind).Contains("lead", StringComparer.Ordinal)
+            && keys.TryGetValue("lead", out string? lead)
+            && !string.IsNullOrWhiteSpace(lead)
+            && !Leads.LeadReference.TryParse(lead, out _, out string? problem))
+        {
+            violations.Add(new SchemaViolation("lead", problem));
+        }
+
         foreach (string key in keys.Keys)
         {
             if (!EnvelopeKeys.Contains(key, StringComparer.Ordinal)
-                && !BodyKeysOf(kind).Contains(key, StringComparer.Ordinal))
+                && !BodyKeysOf(kind).Contains(key, StringComparer.Ordinal)
+                && !OptionalKeysOf(kind).Contains(key, StringComparer.Ordinal))
             {
                 violations.Add(new SchemaViolation(
                     key,

@@ -139,6 +139,17 @@ public sealed class PublicSurfaceTests
         "Sdlc.Core.Factory.WriteFactoryPipeline",
         "Sdlc.Core.Factory.WriteFactoryPipeline+Command",
         "Sdlc.Core.Factory.WriteFactoryPipeline+Response",
+
+        // 'sdlc lead show': a lead fetched and made one shape for 'intent --from' (D-89). The tracker is an
+        // interface for the reason IRepository is one: the suite must not need a network or a CLI.
+        "Sdlc.Core.Leads.CliTracker",
+        "Sdlc.Core.Leads.ITracker",
+        "Sdlc.Core.Leads.LeadReference",
+        "Sdlc.Core.Leads.LeadSource",
+        "Sdlc.Core.Leads.ReadLead",
+        "Sdlc.Core.Leads.ReadLead+Query",
+        "Sdlc.Core.Leads.ReadLead+Response",
+        "Sdlc.Core.Leads.TrackerItem",
         "Sdlc.Core.Cycles.CycleBranchKind",
 
         // 'sdlc branch <id> <kind>': which branch a kind of work starts on and from what.

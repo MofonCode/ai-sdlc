@@ -157,7 +157,11 @@ extension, that is why — say so plainly instead of trying variations. The gene
 - a link to or quote of the `Risk` section, which is the part written for them
 - anything in a `## Open` region, because a reviewer should meet the limits before they approve
 
-**Link the work item** if the solution tracks them, with the intent and spec details.
+**Link the work item.** When the intent's frontmatter records a `lead`, close it from the body: `AB#1234`
+for `azuredevops:1234`, `Fixes #56` for `github:56`. When it records a `release`, the pull request targets
+that branch instead of the integration branch, and after it opens, `sdlc branch <id> forward` starts the
+second one that carries the same fix into the integration branch — cherry-pick the cycle's commits onto it
+and open that pull request too (D-88).
 
 ## What you are not doing
 

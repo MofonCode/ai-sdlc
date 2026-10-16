@@ -88,6 +88,15 @@ public static class ListQueuedCycles
                 string? headline = await Headline(claim.Cycle, cancellationToken).ConfigureAwait(false);
                 CycleBranch[] taken = [.. branches[claim.Cycle]];
 
+                if (await new Cycle(claim.Cycle, solution.Path).ReleaseTarget(cancellationToken).ConfigureAwait(false) is { } release)
+                {
+                    held.Add(new HeldBack(
+                        claim.Cycle,
+                        headline,
+                        string.Create(CultureInfo.InvariantCulture, $"its intent names {release}: a fix for a release is built by hand from that branch, not by a batch")));
+                    continue;
+                }
+
                 if (taken.Length == 0)
                 {
                     queued.Add(new Queued(claim.Cycle, headline));

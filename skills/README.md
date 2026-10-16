@@ -208,7 +208,7 @@ Interviews a person into the intent, the first artifact of a cycle, and opens th
 #### Syntax
 
 ```
-/sdlc:intent [a sentence describing the work]
+/sdlc:intent [a sentence describing the work] [--from <lead>]
 ```
 
 #### Parameters
@@ -216,10 +216,11 @@ Interviews a person into the intent, the first artifact of a cycle, and opens th
 | Parameter | Description |
 |---|---|
 | `a sentence describing the work` | the request, as the person would put it. Optional |
+| `--from <lead>` | begin from a lead — `azuredevops:1234`, `github:56`, `suggestion:<cycle>/<finding>`, or a path — fetched by `sdlc lead show` and recorded in the intent as `lead:`. It seeds the interview and never replaces it |
 
 #### Output
 
-A cycle id, its branch `cycle/<id>`, and `intent.md` — problem, wanted outcomes, fixed decisions, what
+A cycle id, its plan branch `cycle/<id>/plan`, and `intent.md` — problem, wanted outcomes, fixed decisions, what
 must not change, and a `## Open` section that is required even when empty. It never asks how to build the
 thing, anything about the stack, or criteria in testable form; those belong to the plan, the declared
 stack and the spec.

@@ -218,6 +218,35 @@ public sealed record Cycle(CycleId Id, string SolutionRoot)
             string.Create(CultureInfo.InvariantCulture, $"{NameOf(kind)}.r{round}.json"));
     }
 
+    /// <summary>
+    /// The release branch the intent says this cycle's fix is for, or null when it names none (D-88).
+    /// </summary>
+    /// <remarks>
+    /// A release-targeted cycle is built by hand from that branch and back into it, and carried forward into
+    /// the integration branch by a pull request of its own, so the factory passes it over and
+    /// <c>sdlc branch</c> starts its build from the release.
+    /// </remarks>
+    /// <param name="cancellationToken">Token observed while reading.</param>
+    /// <returns>The branch, or null.</returns>
+    public async Task<string?> ReleaseTarget(CancellationToken cancellationToken)
+    {
+        string intent = PathOf(ArtifactKind.Intent);
+
+        if (!File.Exists(intent))
+        {
+            return null;
+        }
+
+        FluentResults.Result<Artifacts.FrontmatterDocument> read = Artifacts.Frontmatter.Read(
+            await File.ReadAllTextAsync(intent, cancellationToken).ConfigureAwait(false),
+            intent);
+
+        return read.IsSuccess && Artifacts.Frontmatter.Key(read.Value.Yaml, "release") is { } release
+            && !string.IsNullOrWhiteSpace(release)
+                ? release.Trim()
+                : null;
+    }
+
     /// <summary>Whether the cycle's directory exists yet.</summary>
     public bool Exists => System.IO.Directory.Exists(Directory);
 

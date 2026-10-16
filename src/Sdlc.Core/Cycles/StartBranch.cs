@@ -91,6 +91,28 @@ public static class StartBranch
                         : Result.Ok(Create(branch, integrationRef, $"A forward carries a release's fix into {integrationRef}, so it starts there."));
 
                 default:
+                    if (await new Cycle(request.Id, root).ReleaseTarget(cancellationToken).ConfigureAwait(false) is { } release)
+                    {
+                        // D-88: a fix for a release is built from the release and back into it. The code starts
+                        // there; the cycle's documents come from wherever the plan is.
+                        string? releaseRef = First(root, "origin/" + release, release);
+                        string? from = First(root, request.Id.BranchName(CycleBranchKind.Plan), "origin/" + request.Id.BranchName(CycleBranchKind.Plan), integrationRef ?? "HEAD");
+
+                        if (releaseRef is null)
+                        {
+                            return Result.Fail<Response>(string.Create(
+                                CultureInfo.InvariantCulture,
+                                $"The intent names {release} as the release this fix is for, and there is no such branch. Fetch it, or correct the intent."));
+                        }
+
+                        string directory = string.Join('/', Cycle.SdlcDirectoryName, Cycle.CyclesDirectoryName, request.Id.ToString());
+
+                        return Result.Ok(new Response(
+                            branch,
+                            "git switch --no-track -c " + branch + " " + releaseRef + " && git checkout " + from + " -- " + directory,
+                            $"The intent names {release}, so the build starts from it and takes the cycle's documents from {from}. Its pull request goes back into {release}, and 'sdlc branch {request.Id} forward' carries the fix into {integration}."));
+                    }
+
                     if (integrationRef is not null && repository.PathExistsAt(root, integrationRef, plan))
                     {
                         return Result.Ok(Create(branch, integrationRef, $"The plan has been admitted to {integrationRef}, so the build starts there."));

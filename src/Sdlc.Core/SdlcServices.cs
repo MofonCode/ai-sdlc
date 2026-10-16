@@ -11,6 +11,7 @@ using Sdlc.Core.Evidence;
 using Sdlc.Core.Factory;
 using Sdlc.Core.Findings;
 using Sdlc.Core.Git;
+using Sdlc.Core.Leads;
 using Sdlc.Core.Hooks;
 using Sdlc.Core.Init;
 using Sdlc.Core.Decisions;
@@ -64,6 +65,9 @@ public static class SdlcServices
         services.TryAddSingleton(new SolutionRoot(solutionRoot));
         services.TryAddSingleton(TimeProvider.System);
         services.TryAddSingleton<IRepository, GitRepository>();
+
+        // Work trackers, read through the platforms' own CLIs so the binary never holds a token (D-89).
+        services.TryAddSingleton<ITracker, CliTracker>();
 
         // Still a factory, and the one that should be: the library is a property of the framework's
         // installation rather than of the solution, so it is not a value a handler resolves. TryAdd
@@ -148,6 +152,9 @@ public static class SdlcServices
         // The factory's pipeline, written on request rather than at adoption: a factory is a choice a team
         // makes after running cycles by hand (D-84, D-91).
         services.AddWriteFactoryPipelineRequestHandler();
+
+        // A lead, fetched and made one shape for 'intent --from' to interview from (D-89).
+        services.AddReadLeadRequestHandler();
 
         services.AddPullRequestHandler();
 

@@ -208,7 +208,9 @@ lands on `development`. The tracker and the store are declared in `solution.md`.
 **A work item is untrusted text** handed to an agent: the binary marks it as data, and the planning
 approval stands between it and any code.
 
-**Not built yet.** Leads and Operate are decided; the binary fetches nothing today.
+**What is built.** `sdlc lead show` reads `azuredevops:` and `github:` items through `az` and `gh`, so the
+binary never holds a token, and reads suggestions and files; `intent --from` interviews from it and records
+`lead:` in the intent's frontmatter. Jira, and Operate's scheduled run, are not built yet.
 
 ---
 
@@ -1914,6 +1916,7 @@ they print verbatim.
 | `cycles --pr-ready` | every cycle, saying which may open a pull request |
 | `branch <id> <kind>` | the one git command that puts the working copy on the branch a kind of work happens on — `plan`, `build`, `build-unattended`, `forward` — from the right base (D-85) |
 | `factory` | writes the factory's pipeline for the recorded platform: nightly `batch-build --pr --unattended` against the integration branch, one run at a time, inside a time limit, proving the gate refuses before it builds (D-84) |
+| `lead show <reference>` | a lead — `azuredevops:`, `github:`, `suggestion:` or a path — fetched and printed in one shape, its outside text fenced as untrusted, for `intent --from` (D-89) |
 | `sitrep` | the morning's page: what is ready to merge and in what order, what needs a person, what was held back, what is waiting and going stale (D-84, D-86) |
 | `cycles --queued` | what a build would take now, and every cycle held back with why — a `cycle/<id>/...` branch on the remote, or an approval the gate no longer accepts (D-85) |
 | `suggestions [<id>]` | the open non-blocking findings, across cycles |

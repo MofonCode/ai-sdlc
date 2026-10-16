@@ -228,6 +228,20 @@ declining to go on, exit code 1. An open blocker causes refusals; it is not one.
 | **branch policy** | what makes the check a promise. Until a policy requires it the file is advisory, and the directory looks enforced without being enforced |
 | **the claim graph** | which cycles' plans declare the same files, so which pull requests will likely conflict and the order to merge them in. Advice, read by the sitrep; it no longer schedules builds |
 | **collision** | two cycles changing the same thing, met when the second one's pull request is merged | `/sdlc:resolve-conflict` |
+| **the admission check** | the pull-request check on a pull request carrying one cycle's planning documents and nothing else: the plan, its approval and its hashes, no build and no verify. Chosen by what the pull request changes, never by its branch name | `sdlc verify-chain <id> --base <branch>` |
+
+### The integration branch and the factory
+
+| | What it is | Where |
+|---|---|---|
+| **the phases** | Define (intent, spec, plan, to the approval), Build (build, verify, pull request) and Operate (reading what runs, filing leads). Labels over the stages, never commands | `CONCEPT.md` §3.3 |
+| **the integration branch** | where approved plans wait and built cycles land, `development` unless `solution.md` names another. Every change reaches it by a pull request; main receives only what a person promotes, which is the team's process | `integration_branch` in `solution.md` |
+| **a cycle's branches** | `cycle/<id>/plan`, `cycle/<id>/build`, `cycle/<id>/build-unattended`, `cycle/<id>/forward` — one per kind of work, each started from the right base | `sdlc branch <id> <kind>` |
+| **the queue** | the cycles a build would take now: approved, no verify, not abandoned, and no `cycle/<id>/...` branch on the remote. A listing, never a state file; deleting a branch re-queues its cycle | `sdlc cycles --queued` |
+| **the factory** | a pipeline that runs `batch-build --pr --unattended` against the integration branch every night. It finds, builds, verifies and opens pull requests, and **never merges** | `sdlc factory` |
+| **a draft pull request** | what a cycle that did not pass gets: its attempted code, verify and evidence, marked not ready, so a person picks it up rather than the factory building it again | `/sdlc:pr <id> --draft` |
+| **the sitrep** | the morning's page: what is ready to merge and in what order, what needs a person, what was held back and why, what is waiting and going stale | `sdlc sitrep` |
+| **a lead** | anything a person can hand `intent` to begin a cycle: `azuredevops:1234`, `github:56`, `suggestion:<cycle>/<finding>`, or a path. Its outside text is untrusted, and the interview still happens | `sdlc lead show <reference>`, `/sdlc:intent --from <lead>` |
 
 ### The three layers, and what each stops
 
