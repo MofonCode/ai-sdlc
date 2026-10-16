@@ -22,7 +22,7 @@ public sealed class FactoryPipelineTests
         stream.Load(new StringReader(pipeline));
         Assert.AreEqual(1, stream.Documents.Count);
 
-        int smoke = pipeline.IndexOf("prove the gate refuses", StringComparison.Ordinal);
+        int smoke = pipeline.IndexOf("the gate refuses", StringComparison.Ordinal);
         int build = pipeline.IndexOf("/sdlc:batch-build --pr --unattended", StringComparison.Ordinal);
         int sitrep = pipeline.IndexOf("sdlc sitrep", StringComparison.Ordinal);
 
@@ -30,6 +30,29 @@ public sealed class FactoryPipelineTests
         Assert.IsTrue(sitrep > build, "The run ends with the sitrep.");
         StringAssert.Contains(pipeline, "--version 9.9.9", "The gate it installs is pinned.");
         StringAssert.Contains(pipeline, "never run", "D-32: a pipeline nobody has run says so.");
+    }
+
+    [TestMethod]
+    [DataRow(Platform.GitHub)]
+    [DataRow(Platform.AzureDevOps)]
+    public void It_signs_in_with_either_credential_and_proves_it_before_the_gate(Platform platform)
+    {
+        // The gate check passes when the agent writes nothing, and an agent that cannot sign in writes
+        // nothing -- so the sign-in is proved first, or a broken credential would prove the gate.
+        string pipeline = FactoryPipeline.Text(platform, "development", "9.9.9");
+
+        int signIn = pipeline.IndexOf("Reply with the single word ready", StringComparison.Ordinal);
+        int gate = pipeline.IndexOf(".sdlc/approval.md containing", StringComparison.Ordinal);
+
+        Assert.IsTrue(signIn > 0 && gate > signIn, "The credential is proved before the gate is.");
+
+        foreach (string claude in pipeline.ReplaceLineEndings().Split(Environment.NewLine + Environment.NewLine)
+            .Where(step => step.Contains("claude -p", StringComparison.Ordinal)))
+        {
+            StringAssert.Contains(claude, "ANTHROPIC_API_KEY:", "Every step that runs the agent maps both secrets.");
+            StringAssert.Contains(claude, "CLAUDE_CODE_OAUTH_TOKEN:", "Every step that runs the agent maps both secrets.");
+            StringAssert.Contains(claude, "unset CLAUDE_CODE_OAUTH_TOKEN", "And leaves the agent exactly one.");
+        }
     }
 
     [TestMethod]

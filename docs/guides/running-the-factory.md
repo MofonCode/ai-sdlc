@@ -8,21 +8,14 @@ opening pull requests (`CONCEPT.md` D-84). Everything after the pull request is 
 resolving conflicts, merging, and promoting to main. It never merges, and it never writes a file only a
 person writes.
 
-**Neither factory pipeline has run against a real server yet.** The generated file says so at the top. Run
-it first against one throwaway approved cycle, and watch it.
+**Setting it up is `setting-up-the-factory.md`**, once, step by step: the credential, the feed, the
+integration branch, the pipeline and its permissions, and a watched first run. This guide starts where that
+one ends.
 
 ## 1. The integration branch
 
 Approved plans wait on an integration branch, and built cycles land back on it. It is `development` unless
-`solution.md` names another under `integration_branch`. Create it once, from the default branch:
-
-```pwsh
-git switch -c development
-git push -u origin development
-```
-
-Then give it the same build validation policy as the default branch — `adopting-the-framework.md` step 4 —
-because every change into it arrives by a pull request, and the pull-request check is what runs on them.
+`solution.md` names another under `integration_branch`, and every change into it arrives by a pull request.
 **Main is outside the guarantee from here on.** Promoting `development` to main — by a merge commit, from a
 stable point, usually through `release/<version>` — is your team's process, and the framework has no part in
 it (D-88).
@@ -57,9 +50,10 @@ It writes `azure-pipelines.factory.yml` or `.github/workflows/sdlc-factory.yml` 
 `solution.md` records, and refuses on a local solution. What the run does:
 
 1. checks out `development` and installs the pinned gate and the agent
-2. **proves the gate refuses**: it asks the headless agent to write a file only a person writes and fails
-   the run if the file appears, because a host whose hooks did not load would build all night with nothing
-   refusing anything
+2. **proves the agent signs in, then that the gate refuses**: it asks the headless agent to write a file
+   only a person writes and fails the run if the file appears, because a host whose hooks did not load would
+   build all night with nothing refusing anything. The sign-in comes first because an agent that cannot sign
+   in writes nothing either, and would pass
 3. runs `/sdlc:batch-build --pr --unattended`: every queued cycle on its own `cycle/<id>/build-unattended`
    branch, independently, and a pull request for each — **a draft for one that did not pass**
 4. publishes the sitrep as the run's summary, whatever happened above
@@ -69,12 +63,9 @@ Before the build it runs **Operate** — `sdlc operate`, below — when `solutio
 **One run at a time, six hours at most.** Remediation has no pass limit (D-66), so the job's timeout is the
 spend ceiling.
 
-What you set up, once, and the command prints it again:
-
-| Platform | Set up |
-|---|---|
-| Azure DevOps | a pipeline from the file; a secret variable `ANTHROPIC_API_KEY`; the build service allowed to contribute, create branches and contribute to pull requests; an **Exclusive lock** check on the `sdlc-factory` environment |
-| GitHub | secrets `ANTHROPIC_API_KEY` and `SDLC_FACTORY_TOKEN` — **not `GITHUB_TOKEN`**, because a pull request opened with it starts no workflow, so the check would never run on anything the factory opened |
+The agent signs in with **either** an API key (`ANTHROPIC_API_KEY`) or a subscription token from
+`claude setup-token` (`CLAUDE_CODE_OAUTH_TOKEN`); the API key wins when both are set. What you set up for
+it, once, is `setting-up-the-factory.md`, and the command prints the short version again.
 
 **Who reviews is your branch policy, not the framework's.** With no required reviewer on `development`,
 code the factory wrote reaches it read by nobody but whoever clicks merge.
@@ -148,6 +139,7 @@ again (D-88). The release branch needs the same build validation policy.
 
 | | |
 |---|---|
+| setting the factory up, once | `setting-up-the-factory.md` |
 | one cycle by hand, stage by stage | `running-a-cycle.md` |
 | a blocked verification, or an escalated one | `handling-blockers.md` |
 | something refused | `handling-refusals.md` |

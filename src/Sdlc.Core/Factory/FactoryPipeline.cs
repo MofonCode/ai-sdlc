@@ -48,8 +48,11 @@ public static class FactoryPipeline
                 "# request per cycle -- a draft for one that did not pass. It merges nothing: a person reviews and",
                 "# merges every pull request, one at a time, starting from the sitrep this run publishes.",
                 "#",
-                "# Two secrets, set in Settings > Secrets and variables > Actions:",
-                "#   ANTHROPIC_API_KEY  the model the headless agent runs on",
+                "# Secrets, set in Settings > Secrets and variables > Actions:",
+                "#   One way for the agent to sign in -- either, and the API key wins when both are set:",
+                "#     ANTHROPIC_API_KEY        billed per token to an Anthropic Console account",
+                "#     CLAUDE_CODE_OAUTH_TOKEN  from 'claude setup-token', billed to a Claude subscription. Check",
+                "#                              its terms and limits cover a team's nightly run",
                 "#   SDLC_FACTORY_TOKEN a token that may push branches and open pull requests. Not GITHUB_TOKEN:",
                 "#                      a pull request opened with it starts no workflow, so the pull-request",
                 "#                      check would never run on anything the factory opened.",
@@ -93,10 +96,12 @@ public static class FactoryPipeline
                 string.Empty,
                 "      # Enforcement lives below the agent. Prove it is there before the agent is trusted with",
                 "      # anything: ask it to write a file only a person writes, and stop if the file appears.",
-                "      - name: prove the gate refuses",
+                "      - name: prove the agent signs in and the gate refuses",
                 "        env:",
                 "          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}",
+                "          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}",
                 "        run: |",
+                .. Credential("          ", check: true),
                 "          claude -p 'Create the file .sdlc/approval.md containing the single word smoke. Do nothing else.' --permission-mode bypassPermissions || true",
                 "          if [ -e .sdlc/approval.md ]; then echo 'The gate did not refuse a protected write, so nothing would refuse anything tonight.'; exit 1; fi",
                 string.Empty,
@@ -112,8 +117,11 @@ public static class FactoryPipeline
                 "      - name: build the queue",
                 "        env:",
                 "          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}",
+                "          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}",
                 "          GH_TOKEN: ${{ secrets.SDLC_FACTORY_TOKEN }}",
-                "        run: claude -p '/sdlc:batch-build --pr --unattended' --permission-mode bypassPermissions",
+                "        run: |",
+                .. Credential("          ", check: false),
+                "          claude -p '/sdlc:batch-build --pr --unattended' --permission-mode bypassPermissions",
                 string.Empty,
                 "      # The morning starts from this page, whatever the run above did.",
                 "      - name: the sitrep",
@@ -138,7 +146,10 @@ public static class FactoryPipeline
                 "#",
                 "# What a person sets up, once:",
                 "#   - Pipelines > New pipeline > this file.",
-                "#   - A secret variable ANTHROPIC_API_KEY: the model the headless agent runs on.",
+                "#   - One secret variable for the agent to sign in -- either, and the API key wins when both",
+                "#     are set: ANTHROPIC_API_KEY, billed per token to an Anthropic Console account, or",
+                "#     CLAUDE_CODE_OAUTH_TOKEN, from 'claude setup-token' and billed to a Claude subscription.",
+                "#     Check the subscription's terms and limits cover a team's nightly run.",
                 "#   - The project's build service may contribute, create branches and contribute to pull",
                 "#     requests on this repository (Project settings > Repositories > Security).",
                 "#   - Pipelines > Environments > sdlc-factory > Approvals and checks > Exclusive lock. Without it",
@@ -175,9 +186,15 @@ public static class FactoryPipeline
                 "              inputs:",
                 "                useGlobalJson: true",
                 string.Empty,
+                "            # Signs the run in to this organization's Azure Artifacts feeds, which is where the gate",
+                "            # comes from until it is on a public feed: name the feed in nuget.config.",
+                "            - task: NuGetAuthenticate@1",
+                string.Empty,
                 "            - script: |",
                 $"                git switch {integrationBranch}",
                 $"                dotnet tool install --global MofonCode.Sdlc.Cli --version {version}",
+                "                az extension add --name azure-devops --only-show-errors",
+                "                az devops configure --defaults organization=\"$(System.CollectionUri)\" project=\"$(System.TeamProject)\"",
                 "                npm install --global @anthropic-ai/claude-code",
                 "                claude plugin marketplace add MofonCode/ai-sdlc",
                 "                claude plugin install sdlc@ai-sdlc",
@@ -188,11 +205,13 @@ public static class FactoryPipeline
                 "            # Enforcement lives below the agent. Prove it is there before the agent is trusted",
                 "            # with anything: ask it to write a file only a person writes, and stop if it appears.",
                 "            - script: |",
+                .. Credential("                ", check: true),
                 "                claude -p 'Create the file .sdlc/approval.md containing the single word smoke. Do nothing else.' --permission-mode bypassPermissions || true",
                 "                if [ -e .sdlc/approval.md ]; then echo 'The gate did not refuse a protected write, so nothing would refuse anything tonight.'; exit 1; fi",
-                "              displayName: prove the gate refuses",
+                "              displayName: prove the agent signs in and the gate refuses",
                 "              env:",
                 "                ANTHROPIC_API_KEY: $(ANTHROPIC_API_KEY)",
+                "                CLAUDE_CODE_OAUTH_TOKEN: $(CLAUDE_CODE_OAUTH_TOKEN)",
                 string.Empty,
                 "            # Operate: production's errors since the last run, filed as leads on the tracker.",
                 "            # Nothing to read when solution.md declares no telemetry store; it says so and moves on.",
@@ -203,10 +222,13 @@ public static class FactoryPipeline
                 "              env:",
                 "                AZURE_DEVOPS_EXT_PAT: $(System.AccessToken)",
                 string.Empty,
-                "            - script: claude -p '/sdlc:batch-build --pr --unattended' --permission-mode bypassPermissions",
+                "            - script: |",
+                .. Credential("                ", check: false),
+                "                claude -p '/sdlc:batch-build --pr --unattended' --permission-mode bypassPermissions",
                 "              displayName: build the queue",
                 "              env:",
                 "                ANTHROPIC_API_KEY: $(ANTHROPIC_API_KEY)",
+                "                CLAUDE_CODE_OAUTH_TOKEN: $(CLAUDE_CODE_OAUTH_TOKEN)",
                 "                AZURE_DEVOPS_EXT_PAT: $(System.AccessToken)",
                 string.Empty,
                 "            # The morning starts from this page, whatever the run above did.",
@@ -221,4 +243,33 @@ public static class FactoryPipeline
 
         _ => throw new ArgumentOutOfRangeException(nameof(platform), "A local solution has nowhere to run a factory."),
     };
+
+    /// <summary>
+    /// The lines that leave the agent exactly one credential, and on the first step prove it works.
+    /// </summary>
+    /// <remarks>
+    /// <para><strong>Either credential, and the choice is the pipeline's rather than the agent's.</strong> A
+    /// Console API key and a subscription token from <c>claude setup-token</c> both sign the CLI in; when both
+    /// secrets are set the API key is used and the token is unset, so which account pays does not depend on
+    /// the agent's own precedence.</para>
+    /// <para><strong>An unset secret is not always empty.</strong> GitHub passes an empty string, and Azure
+    /// DevOps leaves a mapped variable that does not exist as its own literal text, <c>$(NAME)</c>. Both
+    /// count as unset here. The pattern is written <c>\$\(</c> so Azure DevOps does not read it as a
+    /// variable to expand.</para>
+    /// <para><strong>The sign-in is proved before the gate.</strong> The gate check passes when the agent
+    /// writes nothing, and an agent that cannot sign in writes nothing, so without this a broken credential
+    /// would prove the gate and then fail every build.</para>
+    /// </remarks>
+    private static IEnumerable<string> Credential(string indent, bool check)
+    {
+        yield return indent + "# One credential: the API key when it is set, otherwise the subscription token.";
+        yield return indent + "case \"${ANTHROPIC_API_KEY:-}\" in ''|\\$\\(*) unset ANTHROPIC_API_KEY ;; *) unset CLAUDE_CODE_OAUTH_TOKEN ;; esac";
+        yield return indent + "case \"${CLAUDE_CODE_OAUTH_TOKEN:-}\" in ''|\\$\\(*) unset CLAUDE_CODE_OAUTH_TOKEN ;; esac";
+
+        if (check)
+        {
+            yield return indent + "if [ -z \"${ANTHROPIC_API_KEY:-}${CLAUDE_CODE_OAUTH_TOKEN:-}\" ]; then echo 'Set ANTHROPIC_API_KEY or CLAUDE_CODE_OAUTH_TOKEN as a secret: the agent has no way to sign in.'; exit 1; fi";
+            yield return indent + "claude -p 'Reply with the single word ready.' | grep -qi ready || { echo 'The agent did not answer, so its credential does not work. Nothing was built.'; exit 1; }";
+        }
+    }
 }

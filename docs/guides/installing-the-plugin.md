@@ -329,7 +329,8 @@ before the build, pinned so an unpinned governance tool cannot change what a rep
 between two runs. **The package is not on a public feed**, so until it is — or until a feed holding it
 is named in the solution's `nuget.config` — that step fails, and the pull request stops there. It fails
 loudly, early, and in the step whose comment says why, which is the whole reason the step exists rather
-than being left out (D-37).
+than being left out (D-37). On Azure DevOps, `setting-up-the-factory.md` step 2 puts the package on an Azure
+Artifacts feed, and both pipelines sign in to it.
 
 **Line endings differ between sources without meaning anything.** A directory install copies your working
 tree; a GitHub install checks out through `.gitattributes`. Comparing the two byte for byte shows every

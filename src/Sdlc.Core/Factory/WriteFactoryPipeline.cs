@@ -82,8 +82,8 @@ public static class WriteFactoryPipeline
         ArgumentNullException.ThrowIfNull(written);
 
         string setup = written.Platform == Platform.AzureDevOps
-            ? "Create a pipeline from it, add the secret variable ANTHROPIC_API_KEY, let the build service contribute, create branches and contribute to pull requests, and add an Exclusive lock check to the sdlc-factory environment."
-            : "Add the secrets ANTHROPIC_API_KEY and SDLC_FACTORY_TOKEN -- a token that may push and open pull requests, not GITHUB_TOKEN, whose pull requests start no workflow.";
+            ? "Create a pipeline from it, add one secret variable for the agent -- ANTHROPIC_API_KEY, or CLAUDE_CODE_OAUTH_TOKEN from 'claude setup-token' -- let the build service contribute, create branches and contribute to pull requests, and add an Exclusive lock check to the sdlc-factory environment."
+            : "Add one secret for the agent -- ANTHROPIC_API_KEY, or CLAUDE_CODE_OAUTH_TOKEN from 'claude setup-token' -- and SDLC_FACTORY_TOKEN, a token that may push and open pull requests, not GITHUB_TOKEN, whose pull requests start no workflow.";
 
         return string.Create(
             CultureInfo.InvariantCulture,
@@ -91,6 +91,7 @@ public static class WriteFactoryPipeline
             {(written.Rewritten ? "Rewrote" : "Wrote")} {written.Path}: the factory, nightly, one run at a time, six hours at most.
             {setup}
             It has never run. Commit it, run it once by hand against one throwaway approved cycle, and watch it.
+            docs/guides/setting-up-the-factory.md walks every step.
 
             """);
     }
