@@ -131,7 +131,10 @@ public static class TurnEndGate
             }
 
             string? baseCommit = await ReadBase(basePath, cancellationToken).ConfigureAwait(false)
-                ?? repository.MergeBase(solution.Path, id.Value.BranchName());
+                ?? repository.MergeBase(
+                    solution.Path,
+                    "HEAD",
+                    await SolutionDocument.IntegrationBranchOf(solution.Path, cancellationToken).ConfigureAwait(false));
 
             if (baseCommit is null)
             {

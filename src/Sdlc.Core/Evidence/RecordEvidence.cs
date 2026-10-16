@@ -134,13 +134,18 @@ public static class RecordEvidence
             Directory.CreateDirectory(cycle.EvidenceDirectory);
             List<string> written = [];
 
-            string? baseCommit = repository.MergeBase(solution.Path, cycle.Id.BranchName());
+            // HEAD rather than a branch named after the cycle: a build runs on cycle/<id>/build or
+            // cycle/<id>/build-unattended, or on the bare cycle/<id> of a cycle opened before those, and what
+            // is checked out is the build being recorded. D-85.
+            string integration = await SolutionDocument.IntegrationBranchOf(solution.Path, cancellationToken)
+                .ConfigureAwait(false);
+            string? baseCommit = repository.MergeBase(solution.Path, "HEAD", integration);
 
             if (baseCommit is null)
             {
                 return Result.Fail<Response>(string.Create(
                     CultureInfo.InvariantCulture,
-                    $"git could not say where {cycle.Id.BranchName()} diverged from the default branch. The diff is measured from that commit, so without it there is nothing to record."));
+                    $"git could not say where this branch diverged from {integration} or the default branch. The diff is measured from that commit, so without it there is nothing to record."));
             }
 
             await Write(cycle, BaseFileName, baseCommit + Environment.NewLine, written, cancellationToken)

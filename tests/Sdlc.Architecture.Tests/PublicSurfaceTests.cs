@@ -112,6 +112,11 @@ public sealed class PublicSurfaceTests
         "Sdlc.Core.Cycles.ArtifactKind",
         "Sdlc.Core.Cycles.Cycle",
         "Sdlc.Core.Cycles.CycleId",
+
+        // A cycle branch read back with its kind, D-85: plan, build, build-unattended, forward. Public
+        // because the factory's skip rule and the sitrep read the remote's branches through it.
+        "Sdlc.Core.Cycles.CycleBranch",
+        "Sdlc.Core.Cycles.CycleBranchKind",
         "Sdlc.Core.Cycles.CycleIndex",
         "Sdlc.Core.Cycles.NewCycle",
         "Sdlc.Core.Cycles.NewCycle+Command",

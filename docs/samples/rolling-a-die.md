@@ -187,7 +187,7 @@ step, and after each rename `sdlc doctor` names the one that follows.
 sdlc draft solution
 ```
 
-It writes the whole file beside the real one, carries the three keys through as recorded, and prints the
+It writes the whole file beside the real one, carries the four keys through as recorded, and prints the
 rename that places it:
 
 ```pwsh

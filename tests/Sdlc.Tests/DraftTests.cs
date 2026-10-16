@@ -284,6 +284,42 @@ public sealed class DraftTests
     }
 
     [TestMethod]
+    public void A_solution_document_names_its_integration_branch_or_reads_as_development()
+    {
+        // D-83: the factory checks this branch out and every diff is measured from it, so the framework
+        // has to know it. Absent, a file written before the key existed still reads.
+        Result<SolutionDocument> absent = SolutionDocument.Read("---\norigin: adopted\n---\n", "solution.md");
+        Result<SolutionDocument> named = SolutionDocument.Read(
+            "---\norigin: adopted\nintegration_branch: integration\n---\n",
+            "solution.md");
+
+        Assert.IsTrue(absent.IsSuccess, string.Join("; ", absent.Errors.Select(e => e.Message)));
+        Assert.AreEqual("development", absent.Value.IntegrationBranch);
+        Assert.IsTrue(named.IsSuccess, string.Join("; ", named.Errors.Select(e => e.Message)));
+        Assert.AreEqual("integration", named.Value.IntegrationBranch);
+
+        CollectionAssert.Contains(
+            SolutionDocument.Keys(SolutionOrigin.Adopted, SolutionStandard.Existing, Sdlc.Core.Init.Platform.GitHub),
+            "integration_branch: development",
+            "Every block a tool writes carries the key, or a draft renamed into place would drop it.");
+    }
+
+    [TestMethod]
+    [DataRow("has space")]
+    [DataRow("double..dot")]
+    [DataRow("-leading")]
+    [DataRow("trailing/")]
+    public void An_integration_branch_git_would_refuse_is_rejected(string name)
+    {
+        Result<SolutionDocument> read = SolutionDocument.Read(
+            "---\norigin: adopted\nintegration_branch: \"" + name + "\"\n---\n",
+            "solution.md");
+
+        Assert.IsTrue(read.IsFailed, name + " was accepted.");
+        StringAssert.Contains(read.Errors[0].Message, "integration_branch");
+    }
+
+    [TestMethod]
     public void Every_drafted_block_renders_with_what_to_do_about_it()
     {
         // A skill shows this verbatim, so its shape is a contract. A block with no instructions beside it

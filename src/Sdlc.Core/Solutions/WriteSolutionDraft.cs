@@ -106,7 +106,8 @@ public static class WriteSolutionDraft
                     .. SolutionDocument.Keys(
                         document.Origin,
                         standard,
-                        document.Platform),
+                        document.Platform,
+                        document.IntegrationBranch),
                     "---",
                     string.Empty,
                     untouched ? Prompt : body.TrimEnd(),

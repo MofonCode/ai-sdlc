@@ -104,6 +104,10 @@ public sealed class CycleIdTests
     [DataRow("cycle/20260929_1456_32")]
     [DataRow("refs/heads/cycle/20260929_1456_32")]
     [DataRow("  cycle/20260929_1456_32  ")]
+    [DataRow("cycle/20260929_1456_32/plan")]
+    [DataRow("refs/heads/cycle/20260929_1456_32/build")]
+    [DataRow("cycle/20260929_1456_32/build-unattended")]
+    [DataRow("cycle/20260929_1456_32/forward")]
     public void A_cycle_branch_is_read_however_a_platform_spells_it(string branch)
     {
         // Both generated pipelines hand one of these straight to 'sdlc verify-chain': GitHub's
@@ -119,6 +123,9 @@ public sealed class CycleIdTests
     [DataRow("cycles/20260929_1456_32")]
     [DataRow("cycle/not-an-id")]
     [DataRow("20260929_1456_32")]
+    [DataRow("cycle/20260929_1456_32/biuld")]
+    [DataRow("cycle/20260929_1456_32/")]
+    [DataRow("cycle/20260929_1456_32/build/extra")]
     [DataRow(null)]
     public void A_branch_that_is_not_a_cycle_branch_is_not_read_as_one(string? branch)
     {
@@ -126,5 +133,22 @@ public sealed class CycleIdTests
         // branch", and the turn-end gate asks it to find out whether it has any business at all.
         Assert.IsFalse(CycleId.TryParseBranch(branch, out CycleId? id));
         Assert.IsNull(id);
+    }
+
+    [TestMethod]
+    [DataRow(CycleBranchKind.Plan, "cycle/20260929_1456_32/plan")]
+    [DataRow(CycleBranchKind.Build, "cycle/20260929_1456_32/build")]
+    [DataRow(CycleBranchKind.BuildUnattended, "cycle/20260929_1456_32/build-unattended")]
+    [DataRow(CycleBranchKind.Forward, "cycle/20260929_1456_32/forward")]
+    public void Each_kind_of_work_has_its_own_branch_under_the_cycle(CycleBranchKind kind, string expected)
+    {
+        // D-85: everything about one cycle sits under cycle/<id>/, and the name round-trips, because the
+        // factory's skip rule reads back the branches it and a person pushed.
+        Assert.IsTrue(CycleId.TryParse("20260929_1456_32", out CycleId? id));
+
+        Assert.AreEqual(expected, id.Value.BranchName(kind));
+        Assert.IsTrue(CycleBranch.TryParse(expected, out CycleBranch? read));
+        Assert.AreEqual(kind, read.Kind);
+        Assert.AreEqual(expected, read.ToString());
     }
 }

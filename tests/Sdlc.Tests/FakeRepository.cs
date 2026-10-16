@@ -75,7 +75,7 @@ internal sealed class FakeRepository : IRepository
         return Result.Ok();
     }
 
-    public string? MergeBase(string workingDirectory, string branch) => Base;
+    public string? MergeBase(string workingDirectory, string branch, string integrationBranch) => Base;
 
     public string? Diff(string workingDirectory, string from, IReadOnlyList<string> exclude)
     {

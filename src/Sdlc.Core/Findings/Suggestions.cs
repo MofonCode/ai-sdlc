@@ -81,6 +81,8 @@ public static class Suggestions
             List<Suggestion> suggestions = [];
             List<Noticed> noticed = [];
             List<IError> errors = [];
+            string integration = await SolutionDocument.IntegrationBranchOf(solution.Path, cancellationToken)
+                .ConfigureAwait(false);
 
             foreach (Cycle cycle in cycles)
             {
@@ -98,7 +100,7 @@ public static class Suggestions
                     suggestions.AddRange(Standing(cycle, kind, history.Value));
                 }
 
-                noticed.AddRange(Noticed(cycle));
+                noticed.AddRange(Noticed(cycle, integration));
             }
 
             return errors.Count > 0
@@ -110,23 +112,27 @@ public static class Suggestions
         /// What one cycle's builds wrote down and left alone.
         /// </summary>
         /// <remarks>
-        /// Read from the cycle's own branch, measured from where it diverged, so a merged cycle whose
-        /// branch is gone contributes nothing rather than failing. Silence here is not an error: a cycle
-        /// that has not been built yet has no commits to read, which is the ordinary case for most of the
-        /// cycles this command walks.
+        /// Read from the cycle's own build branches, measured from where each diverged, so a merged cycle
+        /// whose branches are gone contributes nothing rather than failing. Silence here is not an error: a
+        /// cycle that has not been built yet has no commits to read, which is the ordinary case for most of
+        /// the cycles this command walks. Every branch a build can run on is read — by hand, unattended, or
+        /// the bare branch of a cycle opened before those (D-85) — and a line two of them carry is one.
         /// </remarks>
-        private IEnumerable<Noticed> Noticed(Cycle cycle)
+        private IEnumerable<Noticed> Noticed(Cycle cycle, string integration)
         {
-            string branch = cycle.Id.BranchName();
+            string[] branches =
+            [
+                cycle.Id.BranchName(CycleBranchKind.BuildUnattended),
+                cycle.Id.BranchName(CycleBranchKind.Build),
+                cycle.Id.BranchName(),
+            ];
 
-            if (repository.MergeBase(solution.Path, branch) is not { } divergence)
-            {
-                return [];
-            }
-
-            return repository
-                .CommitMessages(solution.Path, branch, divergence)
+            return branches
+                .SelectMany(branch => repository.MergeBase(solution.Path, branch, integration) is { } divergence
+                    ? repository.CommitMessages(solution.Path, branch, divergence)
+                    : [])
                 .SelectMany(Findings.Noticed.ReadAll)
+                .Distinct(StringComparer.Ordinal)
                 .Select(statement => new Noticed(cycle.Id, statement));
         }
 

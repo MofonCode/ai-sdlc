@@ -64,7 +64,7 @@ public interface IRepository
     Result Commit(string workingDirectory, IReadOnlyList<string> paths, string message);
 
     /// <summary>
-    /// Where a branch diverged from the default branch.
+    /// Where a branch diverged from the integration branch, or from the default branch when there is none.
     /// </summary>
     /// <remarks>
     /// A merge base rather than the default branch's current tip. Measuring from the tip would show every
@@ -72,9 +72,15 @@ public interface IRepository
     /// makes the declared-file comparison meaningless and the proof unreadable.
     /// </remarks>
     /// <param name="workingDirectory">Where to ask from.</param>
-    /// <param name="branch">The cycle's branch.</param>
+    /// <param name="branch">The cycle's branch, or <c>HEAD</c> for whatever is checked out.</param>
+    /// <param name="integrationBranch">
+    /// The solution's integration branch, tried first (D-83). A cycle branches from it and lands back on it,
+    /// so measuring from the default branch would count every cycle merged into it since the last
+    /// promotion as part of this change. Skipped when it does not exist, so a solution with none measures
+    /// from its default branch as before.
+    /// </param>
     /// <returns>The commit, or null when git cannot say.</returns>
-    string? MergeBase(string workingDirectory, string branch);
+    string? MergeBase(string workingDirectory, string branch, string integrationBranch);
 
     /// <summary>The diff from a commit to the working tree, including what is not yet committed.</summary>
     /// <param name="workingDirectory">Where to ask from.</param>
@@ -205,17 +211,19 @@ public sealed class GitRepository : IRepository
     }
 
     /// <inheritdoc />
-    public string? MergeBase(string workingDirectory, string branch)
+    public string? MergeBase(string workingDirectory, string branch, string integrationBranch)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(branch);
+        ArgumentException.ThrowIfNullOrWhiteSpace(integrationBranch);
 
-        // The default branch is whatever the remote says it is, falling back to the local main or master.
-        // Hard-coding one is how this breaks on the first repository that uses the other.
+        // The integration branch first, remote then local, because that is what a cycle branched from.
+        // Then the default branch, which is whatever the remote says it is, falling back to the local
+        // main or master. Hard-coding one is how this breaks on the first repository that uses the other.
         string? head = Run(workingDirectory, "symbolic-ref --short refs/remotes/origin/HEAD")?.Trim();
 
         string[] candidates = head is { Length: > 0 }
-            ? [head, "origin/main", "origin/master", "main", "master"]
-            : ["origin/main", "origin/master", "main", "master"];
+            ? ["origin/" + integrationBranch, integrationBranch, head, "origin/main", "origin/master", "main", "master"]
+            : ["origin/" + integrationBranch, integrationBranch, "origin/main", "origin/master", "main", "master"];
 
         foreach (string candidate in candidates)
         {

@@ -157,7 +157,7 @@ spec, one change at a time, where there is a change to ask it about.
 
 ## 6. Place `solution.md`
 
-`solution.md` holds three keys and a placeholder paragraph. **The keys record facts; the paragraph is
+`solution.md` holds four keys and a placeholder paragraph. **The keys record facts; the paragraph is
 yours to write.**
 
 | Key | Values | What it decides |
@@ -165,12 +165,13 @@ yours to write.**
 | `origin` | `scaffolded`, `adopted` | where the code came from. **A historical fact that never changes** |
 | `standard` | `profile`, `existing` | whether new work follows the profile's patterns or the surrounding code. Every plan reads it |
 | `platform` | `github`, `azure-devops`, `local` | whether a pipeline is written, and so whether a check governs a merge |
+| `integration_branch` | a branch name; `development` when absent | where approved plans wait and built cycles land. The factory builds from it, and a cycle's diff is measured from where it diverged from it — or from the default branch while it does not exist |
 
 ```pwsh
 sdlc draft solution
 ```
 
-It writes the whole file beside the real one, keeps the three keys as recorded, and prints the one rename
+It writes the whole file beside the real one, keeps the four keys as recorded, and prints the one rename
 that places it:
 
 ```pwsh
@@ -227,7 +228,7 @@ instead. The pre-tool hook denies every agent write to all six, by file path and
 
 | File | What it holds | Changes when | How it gets written |
 |---|---|---|---|
-| `.sdlc/solution.md` | the three keys and the paragraph | the paragraph whenever it stops being true; `standard` when you choose | `sdlc draft solution`, then your rename |
+| `.sdlc/solution.md` | the four keys and the paragraph | the paragraph whenever it stops being true; `standard` when you choose | `sdlc draft solution`, then your rename |
 | `.sdlc/techstack.md` | what the solution is built from, the stack rules it is held to, the build settings it takes | a default or a rule turns out wrong for this solution | `sdlc draft techstack`, then your rename — `declaring-the-stack.md` |
 | `.sdlc/constraints.md` | this solution's own `LOC_` rules, the last word over every other tier | a rule keeps being cited across cycles, or one stops earning its place | `sdlc propose constraints` proposes; you paste |
 | `.sdlc/decisions.md` | choices this solution already settled, so a cycle reads what was argued rather than arguing it again. Binds nothing | an approved cycle settles something worth not re-deciding | `sdlc propose decisions` reads approved cycles; you paste |

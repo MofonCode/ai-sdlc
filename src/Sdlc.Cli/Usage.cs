@@ -61,7 +61,7 @@ internal static class Usage
                                      what each build settings file does and costs. The menu is
                                      never renamed into place.
             draft solution           Write the whole solution.md beside itself, for a person
-                                     to rename onto it. Carries the three keys through as
+                                     to rename onto it. Carries the four keys through as
                                      recorded and the prose through unchanged, so the rename
                                      cannot reclassify the solution or cost anybody what they
                                      wrote. --standard changes that one key, and says so.

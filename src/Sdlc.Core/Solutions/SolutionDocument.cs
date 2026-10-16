@@ -49,7 +49,7 @@ public enum SolutionStandard
 /// What a solution is, where its code came from, and where it is pushed.
 /// </summary>
 /// <remarks>
-/// <para>Three keys and no more. There is deliberately no baseline field: constraints govern a change
+/// <para>Four keys and no more. There is deliberately no baseline field: constraints govern a change
 /// rather than code that predates adoption, so an existing repository is not in violation on its first
 /// day and has nothing to record as forgiven. <c>standard</c> is not one either -- it says which
 /// conventions new work follows, and nothing at all about the code already there.</para>
@@ -62,12 +62,22 @@ public enum SolutionStandard
 /// </remarks>
 /// <param name="Origin">Where the code came from.</param>
 /// <param name="Standard">Which conventions this solution's new work follows.</param>
+/// <para><strong><c>integration_branch</c> names where approved plans wait and built cycles land</strong>
+/// (D-83). The factory checks it out and targets it, and a cycle's diff is measured from where it
+/// diverged from it, so the framework has to know the name. Absent, it reads as
+/// <see cref="DefaultIntegrationBranch"/>; a solution with no such branch still measures from its
+/// default branch, because the branch named here is tried first and only when it exists.</para>
 /// <param name="Platform">Where it is pushed, and whether a pull-request check governs the merge.</param>
+/// <param name="IntegrationBranch">The integration branch: where plans wait and built cycles land.</param>
 public sealed record SolutionDocument(
     SolutionOrigin Origin,
     SolutionStandard Standard,
-    Platform Platform = Platform.GitHub)
+    Platform Platform = Platform.GitHub,
+    string IntegrationBranch = SolutionDocument.DefaultIntegrationBranch)
 {
+    /// <summary>The integration branch a solution has when it names none. D-83.</summary>
+    public const string DefaultIntegrationBranch = "development";
+
     /// <summary>
     /// What the standard is when the key is absent.
     /// </summary>
@@ -99,15 +109,18 @@ public sealed record SolutionDocument(
     /// <param name="origin">Where the code came from.</param>
     /// <param name="standard">Which conventions new work follows.</param>
     /// <param name="platform">Where it is pushed.</param>
+    /// <param name="integrationBranch">Where approved plans wait and built cycles land.</param>
     /// <returns>One line per key, without the fences.</returns>
     public static string[] Keys(
         SolutionOrigin origin,
         SolutionStandard standard,
-        Platform platform) =>
+        Platform platform,
+        string integrationBranch = DefaultIntegrationBranch) =>
     [
         "origin: " + NameOf(origin),
         "standard: " + NameOf(standard),
         "platform: " + NameOf(platform),
+        "integration_branch: " + integrationBranch,
     ];
 
     /// <summary>
@@ -170,9 +183,23 @@ public sealed record SolutionDocument(
                 $"{source}: standard is '{shape?.Standard}'. Expected existing or profile.")));
         }
 
+        // Absent is the default, for the reason the other added keys are: a file written before the key
+        // existed must still read. A value git would refuse as a branch name fails, because the factory
+        // would check it out and every diff would be measured from it.
+        string integration = string.IsNullOrWhiteSpace(shape?.IntegrationBranch)
+            ? DefaultIntegrationBranch
+            : shape.IntegrationBranch.Trim();
+
+        if (!IsBranchName(integration))
+        {
+            errors.Add(new Error(string.Create(
+                CultureInfo.InvariantCulture,
+                $"{source}: integration_branch is '{integration}', which git would not take as a branch name.")));
+        }
+
         return errors.Count > 0
             ? Result.Fail<SolutionDocument>(errors)
-            : Result.Ok(new SolutionDocument(origin, standard, platform));
+            : Result.Ok(new SolutionDocument(origin, standard, platform, integration));
     }
 
     /// <summary>
@@ -196,6 +223,28 @@ public sealed record SolutionDocument(
 
         string text = await File.ReadAllTextAsync(path, cancellationToken).ConfigureAwait(false);
         return Read(text, path);
+    }
+
+    /// <summary>
+    /// The integration branch a solution on disk names, or the default when it cannot be read.
+    /// </summary>
+    /// <remarks>
+    /// Never a failure. Every caller is measuring a diff, and a missing or malformed solution document is
+    /// reported by <c>doctor</c> and by every command that reads the whole file; refusing to measure over
+    /// it here would be a second report of the same thing from somewhere that cannot fix it.
+    /// </remarks>
+    /// <param name="solutionRoot">The solution's root.</param>
+    /// <param name="cancellationToken">Token observed while reading.</param>
+    /// <returns>The branch name.</returns>
+    public static async Task<string> IntegrationBranchOf(string solutionRoot, CancellationToken cancellationToken)
+    {
+        if (!File.Exists(PathIn(solutionRoot)))
+        {
+            return DefaultIntegrationBranch;
+        }
+
+        Result<SolutionDocument> read = await ReadFile(solutionRoot, cancellationToken).ConfigureAwait(false);
+        return read.IsSuccess ? read.Value.IntegrationBranch : DefaultIntegrationBranch;
     }
 
     /// <summary>Where the solution document lives inside a solution.</summary>
@@ -304,6 +353,23 @@ public sealed record SolutionDocument(
         }
     }
 
+    /// <summary>
+    /// Whether git would take a name as a branch, by the rules of <c>git check-ref-format</c> that a
+    /// person is likely to break.
+    /// </summary>
+    /// <param name="name">The name.</param>
+    /// <returns>True when it is usable.</returns>
+    private static bool IsBranchName(string name) =>
+        name.Length > 0
+        && !name.StartsWith('-')
+        && !name.StartsWith('/')
+        && !name.EndsWith('/')
+        && !name.EndsWith(".lock", StringComparison.Ordinal)
+        && !name.Contains("..", StringComparison.Ordinal)
+        && !name.Contains("//", StringComparison.Ordinal)
+        && !name.Contains("@{", StringComparison.Ordinal)
+        && !name.Any(c => char.IsWhiteSpace(c) || char.IsControl(c) || "~^:?*[\\".Contains(c, StringComparison.Ordinal));
+
     private static bool TryReadOrigin(string? text, out SolutionOrigin origin)
     {
         origin = default;
@@ -337,5 +403,7 @@ public sealed record SolutionDocument(
         public string? Standard { get; set; }
 
         public string? Platform { get; set; }
+
+        public string? IntegrationBranch { get; set; }
     }
 }

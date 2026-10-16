@@ -102,9 +102,19 @@ public readonly record struct CycleId
     /// <summary>The prefix every cycle branch carries.</summary>
     public const string BranchPrefix = "cycle/";
 
-    /// <summary>The branch a cycle's work happens on.</summary>
+    /// <summary>The bare branch an older cycle's work happened on.</summary>
+    /// <remarks>
+    /// Still read, for cycles already on one, and still what the turn-end gate and evidence fall back to
+    /// when they cannot tell which branch is the cycle's. Nothing new creates it: git stores branches as
+    /// paths, so <c>cycle/&lt;id&gt;</c> and <c>cycle/&lt;id&gt;/plan</c> cannot both exist. D-85.
+    /// </remarks>
     /// <returns>The branch name, as <c>cycle/&lt;id&gt;</c>.</returns>
     public string BranchName() => BranchPrefix + ToString();
+
+    /// <summary>The branch a given kind of work on this cycle happens on.</summary>
+    /// <param name="kind">Which kind of work.</param>
+    /// <returns>The branch name, as <c>cycle/&lt;id&gt;/&lt;kind&gt;</c>.</returns>
+    public string BranchName(CycleBranchKind kind) => BranchName() + "/" + CycleBranch.NameOf(kind);
 
     /// <summary>
     /// Reads the cycle out of a branch name.
@@ -124,17 +134,9 @@ public readonly record struct CycleId
     /// <returns>True when the branch is a cycle branch naming a well-formed id.</returns>
     public static bool TryParseBranch(string? branch, [NotNullWhen(true)] out CycleId? id)
     {
-        id = null;
-        string trimmed = branch?.Trim() ?? string.Empty;
-
-        const string FullyQualified = "refs/heads/";
-        if (trimmed.StartsWith(FullyQualified, StringComparison.OrdinalIgnoreCase))
-        {
-            trimmed = trimmed[FullyQualified.Length..];
-        }
-
-        return trimmed.StartsWith(BranchPrefix, StringComparison.OrdinalIgnoreCase)
-            && TryParse(trimmed[BranchPrefix.Length..], out id);
+        bool parsed = CycleBranch.TryParse(branch, out CycleBranch? read);
+        id = read?.Id;
+        return parsed;
     }
 
     /// <summary>Renders the id as it is written in paths, branches and citations.</summary>

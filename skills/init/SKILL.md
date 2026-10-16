@@ -191,7 +191,7 @@ tests.** Sort before you propose:
 
 | An answer about | Goes in | Because |
 |---|---|---|
-| what the solution is and who for | the paragraph under the three keys, which `sdlc draft solution` writes | it is there for people: no stage reads that prose, and it binds nothing |
+| what the solution is and who for | the paragraph under the four keys, which `sdlc draft solution` writes | it is there for people: no stage reads that prose, and it binds nothing |
 | which component library, which packages, which project may reference what | an architecture test | test two below rejects it — an analyzer *can* decide it, so a constraint is the wrong tier |
 | the names a visual treatment is expressed in | a theme, which `sdlc propose theme` drafts | roles survive a rebrand where values do not, and a stage can look a role up |
 | whether a judgement was made and recorded — that a visual treatment was considered | a `LOC_` constraint | it needs reading comprehension, which is exactly what test two admits |
@@ -212,7 +212,7 @@ paste either. **Run `sdlc draft solution`.** It writes the whole file beside the
 keys exactly as recorded, and prints the single rename that places it. Show what it prints verbatim.
 
 **Do not let the file stay a placeholder, and do not oversell what it does.** No stage reads the
-paragraph — the three keys above it are what record the origin, decide which conventions new work
+paragraph — the four keys above it are what record the origin, decide which conventions new work
 follows and say whether a pull-request check governs a merge. It is still worth
 writing, because it is the one place a person joining this repository learns what it is for, and
 `Replace this with a paragraph a newcomer could read` tells them nothing. That is not hypothetical: a

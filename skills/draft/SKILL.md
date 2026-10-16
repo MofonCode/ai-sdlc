@@ -26,7 +26,7 @@ person who has to place the file. Then stop.
 **An approval is written to a file beside the ledger and placed by renaming it.** `draft approval`
 writes `approval.<decision>.draft.md` into the cycle directory -- a complete file, not a fragment --
 and prints it with the rename that records it. **`draft solution` does the same for the solution
-document**, carrying its three keys through as recorded and any prose already there through
+document**, carrying its four keys through as recorded and any prose already there through
 unchanged -- so the rename can neither reclassify the solution nor cost somebody what they wrote.
 `--standard` is the one exception, and only when a person asks for it by name: it moves which
 conventions new work follows, and the printed instructions say which way. **And

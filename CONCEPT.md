@@ -408,7 +408,7 @@ Six files only a person writes:
 | `constraints.md` | a proposed `LOC_nn` — **proposed rather than drafted**, D-69 |
 | `decisions.md` | a proposed `DEC_nn` — proposed from the approved record, D-70 |
 | `techstack.md` | the declared stack — the file copied beside itself, or the framework's default where none is placed yet, for a person to rename, D-67 and D-76 |
-| `solution.md` | the whole document, beside itself — its three keys carried through and its prose unchanged, D-62 |
+| `solution.md` | the whole document, beside itself — its four keys carried through and its prose unchanged, D-62 |
 
 One verb drafts four of them: `sdlc draft approval <id>`, `draft abandon <id>`, `draft solution`,
 `draft techstack`. There was a fifth drafter, `draft profile`, until no solution recorded a profile
@@ -986,7 +986,7 @@ having decided.
 
 ### 8.3 `solution.md`
 
-Three keys. There was a fourth, `profile`, until the declared stack listed its own rules (D-76); a
+Four keys. There was another, `profile`, until the declared stack listed its own rules (D-76); a
 solution adopted before that may still carry the line, and nothing reads it (D-81).
 
 | Key | What consumes it |
@@ -994,6 +994,7 @@ solution adopted before that may still carry the line, and nothing reads it (D-8
 | `origin` | `intent`, to know whether "this repository holds no solution at all" is true |
 | `standard` | `plan`, to know whether new work follows the profile's conventions or the surrounding code's. Absent derives from `origin` (D-56). A person moves it by renaming a draft from `sdlc draft solution --standard` (D-77) |
 | `platform` | `doctor`, to tell a local solution from a broken install, and `pr`, to know whether there is anywhere to push. Absent reads as `github` (D-53) |
+| `integration_branch` | the factory, which builds from it, `pr`, which targets it, and evidence, which measures a cycle's diff from where it diverged from it. Absent reads as `development`; a solution with no such branch measures from its default branch (D-83) |
 
 **`origin` and `standard` are two keys because they answer two questions and only one of them may
 move.** Where the code came from is a historical fact. Which conventions its new work follows is a
@@ -1223,8 +1224,9 @@ what a person promotes, and the framework has no part in that (D-88).
 **The local approval is still the gate.** The plan's pull request admits a plan to the factory; it does not
 approve it. Its check is the admission check, chosen by the diff (D-87).
 
-**Line endings are pinned.** Cycle files travel between branches now, and the approval hashes bytes, so
-`.gitattributes` forces LF under `.sdlc/**`.
+**Line endings need nothing.** Cycle files travel between branches now, and a checkout may turn LF into
+CRLF on the way; the approval's hash is taken over canonicalised text for exactly that reason (§5.2), so
+a plan approved on one machine still matches on another.
 
 ### 10.5 The factory
 
@@ -5993,8 +5995,7 @@ Build ends where a person takes the result.
 An approved cycle's planning documents reach it by a pull request from `cycle/<id>/plan`, which deletes
 its branch on merge. Every built cycle is pull-requested back into it. It is the working head: main
 receives only what a person promotes from it (D-88). The local approval remains **the** gate (§5.1); the
-plan's pull request is admission to the factory, not a second approval. Cycle files travel between
-branches now, so `.gitattributes` forces LF under `.sdlc/**`, because the approval hashes the bytes.
+plan's pull request is admission to the factory, not a second approval.
 
 **This reverses a non-goal.** §18 listed *"a shared batch queue"*, and D-22's section said there is no
 shared queue. The integration branch is one, on purpose: a scheduled build needs one place to find
