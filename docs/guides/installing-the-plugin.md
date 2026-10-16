@@ -3,7 +3,8 @@
 Installing, updating and removing both halves, on each host.
 
 **Two things have to be present, and they fail differently.** The plugin carries the skills and both
-hooks; the `sdlc` binary is the gate those skills and hooks call. Without the plugin, nothing
+hooks; the `sdlc` binary is what those skills and hooks call to decide anything. There is no
+third thing to install: "the gate" elsewhere is one of the binary's checks, not a component. Without the plugin, nothing
 asks for a cycle. Without the binary, the skills ask for something that is not there, which is the
 louder of the two failures.
 
@@ -323,7 +324,7 @@ gate is silent, and a cycle appears to work while nothing is denied.
 **A session loads skills at startup.** Reinstall, then start a new session — an open one keeps what it
 already had.
 
-**The generated pipeline installs the gate, and that install does not resolve yet.** `init` writes a
+**The generated pipeline installs the `sdlc` binary, and that install does not resolve yet.** `init` writes a
 pull-request workflow that runs `dotnet tool install --global MofonCode.Sdlc.Cli --version <release>`
 before the build, pinned so an unpinned governance tool cannot change what a repository is judged by
 between two runs. **The package is not on a public feed**, so until it is — or until a feed holding it

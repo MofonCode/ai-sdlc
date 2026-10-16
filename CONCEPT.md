@@ -1726,7 +1726,7 @@ block, and so ran on nothing while reading as a gate: exactly the shape the note
 by reading the platform's documentation rather than by a run. `sdlc doctor` reports the policy as
 `elsewhere`, on both platforms.
 
-Every pull request installs the gate, builds, tests, **displays code coverage**, and runs
+Every pull request installs the `sdlc` binary, builds, tests, **displays code coverage**, and runs
 `sdlc verify-chain`.
 
 **The install is the first step and it is pinned** (D-37). Without it the templates called `sdlc` on a

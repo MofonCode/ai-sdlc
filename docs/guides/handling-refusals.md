@@ -456,9 +456,9 @@ policy names it — Repos > Branches > the default branch > Branch policies > Bu
 every pull request merges with nothing built, tested or verified, and nothing says so. `sdlc doctor`
 marks the policy `elsewhere` on both platforms and names this step, because no binary can read it.
 
-**One more, on the generated pipeline:** its first real step installs the gate, pinned to the release
-that generated it, and **that install does not resolve yet** because the package is not on a public feed.
-So a first pull request fails at `install the gate` rather than at `verify the artifact chain`. That is
+**One more, on the generated pipeline:** its first real step installs the `sdlc` binary, pinned to the
+release that generated it, and **that install does not resolve yet** because the package is not on a public
+feed. So a first pull request fails at `install sdlc` rather than at `verify the artifact chain`. That is
 the intended shape — the failure names the missing thing, before a build is spent, in a step whose
 comment says so (D-37). Name a feed holding the package in `nuget.config`, or wait for it to be
 published.

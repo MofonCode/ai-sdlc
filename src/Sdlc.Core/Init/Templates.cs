@@ -583,11 +583,11 @@ public static class Templates
     /// to take is now in the file, where the person reading it is.
     /// </para>
     /// <para>
-    /// <strong>It installs the gate before it calls it.</strong> The first version did not, and assumed
+    /// <strong>It installs the sdlc binary before it calls it.</strong> The first version did not, and assumed
     /// <c>sdlc</c> was on the runner's path -- so the one line the whole guarantee rests on would have
     /// reported command-not-found, from the step a reader trusts most. The install is pinned, because an
     /// unpinned governance tool can change what a repository is judged by without anybody choosing it,
-    /// and it runs before the build so a missing gate fails in seconds rather than after a full suite.
+    /// and it runs before the build so a missing binary fails in seconds rather than after a full suite.
     /// </para>
     /// <para>
     /// The package is not on a feed yet, and that step says so in the generated file on the same terms as
@@ -629,16 +629,18 @@ public static class Templates
                 "        with:",
                 "          global-json-file: global.json",
                 string.Empty,
-                "      # The binary the last step runs. Pinned, because an unpinned governance tool can",
-                "      # change what this repository is judged by without anybody choosing it. First, so",
-                "      # a missing gate fails in seconds rather than after a full build and test run.",
+                "      # The sdlc binary the last step runs. Pinned, because an unpinned governance tool can",
+                "      # change what this repository is judged by without anybody choosing it. First, so a",
+                "      # missing binary fails in seconds rather than after a full build and test run. An agent",
+                "      # that already carries this exact version uses it, and installs nothing.",
                 "      #",
                 "      # NOTE: MofonCode.Sdlc.Cli is not on a public feed yet, so this step does not",
                 "      # resolve until it is, or until a feed holding it is configured in nuget.config.",
                 "      # It fails here, loudly, rather than at 'sdlc verify-chain' -- which would report",
                 "      # command-not-found from the one line the whole guarantee rests on.",
-                "      - name: install the gate",
-                $"        run: dotnet tool install --global MofonCode.Sdlc.Cli --version {Release.Version}",
+                "      - name: install sdlc",
+                "        run: |",
+                .. InstallSdlc("          ", Release.Version),
                 string.Empty,
                 "      # A pull request carrying one cycle's planning documents and nothing else is a plan",
                 "      # being admitted to the integration branch. There is nothing to build, so the build and",
@@ -727,17 +729,19 @@ public static class Templates
                 "    inputs:",
                 "      useGlobalJson: true",
                 string.Empty,
-                "  # The binary the last step runs. Pinned, because an unpinned governance tool can change",
-                "  # what this repository is judged by without anybody choosing it. First, so a missing gate",
-                "  # fails in seconds rather than after a full build and test run.",
+                "  # The sdlc binary the last step runs. Pinned, because an unpinned governance tool can change",
+                "  # what this repository is judged by without anybody choosing it. First, so a missing binary",
+                "  # fails in seconds rather than after a full build and test run. An agent that already",
+                "  # carries this exact version uses it, and installs nothing.",
                 "  #",
                 "  # NOTE: MofonCode.Sdlc.Cli is not on a public feed yet, so this step does not resolve",
                 "  # until it is, or until a feed holding it is configured in nuget.config. The task below",
                 "  # signs the run in to this organization's Azure Artifacts feeds, and does nothing without one.",
                 "  - task: NuGetAuthenticate@1",
                 string.Empty,
-                $"  - script: dotnet tool install --global MofonCode.Sdlc.Cli --version {Release.Version}",
-                "    displayName: install the gate",
+                "  - script: |",
+                .. InstallSdlc("      ", Release.Version),
+                "    displayName: install sdlc",
                 string.Empty,
                 "  # A pull request carrying one cycle's planning documents and nothing else is a plan being",
                 "  # admitted to the integration branch. There is nothing to build, so the build and the tests",
@@ -775,6 +779,30 @@ public static class Templates
     /// <param name="mode">Which mode ran.</param>
     /// <param name="paths">What it wrote.</param>
     /// <returns>The message.</returns>
+    /// <summary>
+    /// The lines that put exactly one pinned version of the sdlc binary on a pipeline's agent.
+    /// </summary>
+    /// <remarks>
+    /// <strong>Used when it is already there, installed when it is not.</strong> A team running its own
+    /// agent, or its own image, may carry the binary already, and installing it on every run is time spent
+    /// on nothing. The version stays pinned either way: an agent carrying any other version, or none, gets
+    /// this one, because the version a pull request is judged by is not the agent's to decide.
+    /// </remarks>
+    /// <param name="indent">The indentation of the script block the lines go in.</param>
+    /// <param name="version">The pinned version.</param>
+    /// <returns>The lines.</returns>
+    internal static IEnumerable<string> InstallSdlc(string indent, string version)
+    {
+        yield return indent + string.Create(
+            CultureInfo.InvariantCulture,
+            $"if [ \"$(sdlc version 2>/dev/null | head -n 1)\" = \"sdlc {version}\" ]; then echo 'sdlc {version} is already on this agent.'; else");
+        yield return indent + "  dotnet tool uninstall --global MofonCode.Sdlc.Cli >/dev/null 2>&1 || true";
+        yield return indent + string.Create(
+            CultureInfo.InvariantCulture,
+            $"  dotnet tool install --global MofonCode.Sdlc.Cli --version {version}");
+        yield return indent + "fi";
+    }
+
     public static string CommitMessage(Initialise.InitMode mode, IReadOnlyList<string> paths)
     {
         ArgumentNullException.ThrowIfNull(paths);

@@ -82,7 +82,7 @@ public static class DeclaredFiles
     };
 
     // Matched as a prefix, because each is a directory whose every file is a rule: the host's hook
-    // manifests, and the pipeline that installs the gate and calls it (D-37).
+    // manifests, and the pipeline that installs the sdlc binary and calls it (D-37).
     private static readonly string[] _governingPrefixes =
     [
         ".github/hooks/",

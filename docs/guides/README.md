@@ -13,7 +13,7 @@ whole thing end to end with a real solution in it**, `../samples/rolling-a-die.m
 | [`adopting-the-framework.md`](adopting-the-framework.md) | adoption, the interview, placing `solution.md`, the first constraints, and the files your solution owns | once per repository |
 | [`declaring-the-stack.md`](declaring-the-stack.md) | what a solution is built from: the declared stack, the stack rules it switches on, the build settings files it takes, and how to change any of them | right after adoption, and whenever a default or a rule is wrong for this solution |
 | [`running-a-cycle.md`](running-a-cycle.md) | one cycle from the rules to a pull request, stage by stage — the happy path | once, front to back, then when you need a stage again |
-| [`setting-up-the-factory.md`](setting-up-the-factory.md) | the factory from nothing to a watched first run: the agent's credential, the feed, the integration branch, the pipeline and its permissions, and what to do when a step fails | once per solution, when you are ready to let a pipeline build |
+| [`setting-up-the-factory.md`](setting-up-the-factory.md) | the factory from nothing to a watched first run: the agent's credential, the tools on the agent, the integration branch, the pipeline and its permissions, and what to do when a step fails | once per solution, when you are ready to let a pipeline build |
 | [`running-the-factory.md`](running-the-factory.md) | many cycles built overnight: the integration branch, admitting plans, the factory's pipeline, and the morning's sitrep, merges and conflicts | every day the factory runs |
 | [`handling-blockers.md`](handling-blockers.md) | a blocking finding on a document, or a blocked verification: what each is and how it is answered | when a loop hands back, or a verification says `blocked` |
 | [`handling-refusals.md`](handling-refusals.md) | every refusal, hook denial and turn sent back, with the remedy for each | when something stops |
@@ -26,7 +26,7 @@ already know why.
 ## `installing-the-plugin.md`
 
 **Installing, updating and removing both halves.** The plugin carries the skills and both hooks; the
-`sdlc` binary is the gate those call. Without the plugin nothing asks for a cycle; without the binary
+`sdlc` binary is what those call. Without the plugin nothing asks for a cycle; without the binary
 every skill's first command fails.
 
 It opens with a table of what each half is and what missing it means, then covers the local-directory
@@ -70,7 +70,7 @@ two guides. It is also solution-agnostic — what to *answer* at each prompt is 
 ## `setting-up-the-factory.md`
 
 **The factory, set up once, step by step.** Choosing how the agent signs in — an API key or a subscription
-token, and what each costs — putting the gate on a feed the runner can read, creating and protecting the
+token, and what each costs — getting `sdlc`, Claude Code and the plugin onto the agent, or using your own agent that already has them, creating and protecting the
 integration branch, writing and committing the pipeline before the branch is protected, the pipeline's
 secret, permissions and lock on Azure DevOps or its secrets on GitHub, and a first run watched against a
 throwaway cycle, with what each step looks like when it passes. It ends with a table of failures, each

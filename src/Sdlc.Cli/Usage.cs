@@ -62,7 +62,7 @@ internal static class Usage
             factory                  Write the factory's pipeline for the recorded platform: every
                                      night, batch-build --pr --unattended against the integration
                                      branch, one run at a time, six hours at most, proving the
-                                     gate refuses before it builds, and publishing the sitrep. It
+                                     hooks refuse before it builds, and publishing the sitrep. It
                                      never merges. Refuses on a local solution.
             lead show <reference>    Fetch a lead and print it in one shape for 'intent --from':
                                      azuredevops:1234 or github:56 through az or gh, a

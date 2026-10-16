@@ -22,13 +22,13 @@ public sealed class FactoryPipelineTests
         stream.Load(new StringReader(pipeline));
         Assert.AreEqual(1, stream.Documents.Count);
 
-        int smoke = pipeline.IndexOf("the gate refuses", StringComparison.Ordinal);
+        int smoke = pipeline.IndexOf("the hooks refuse", StringComparison.Ordinal);
         int build = pipeline.IndexOf("/sdlc:batch-build --pr --unattended", StringComparison.Ordinal);
         int sitrep = pipeline.IndexOf("sdlc sitrep", StringComparison.Ordinal);
 
-        Assert.IsTrue(smoke > 0 && build > smoke, "The gate is proved before the agent is trusted with anything.");
+        Assert.IsTrue(smoke > 0 && build > smoke, "The hooks are proved before the agent is trusted with anything.");
         Assert.IsTrue(sitrep > build, "The run ends with the sitrep.");
-        StringAssert.Contains(pipeline, "--version 9.9.9", "The gate it installs is pinned.");
+        StringAssert.Contains(pipeline, "--version 9.9.9", "The sdlc it installs is pinned.");
         StringAssert.Contains(pipeline, "never run", "D-32: a pipeline nobody has run says so.");
     }
 
@@ -53,6 +53,31 @@ public sealed class FactoryPipelineTests
             StringAssert.Contains(claude, "CLAUDE_CODE_OAUTH_TOKEN:", "Every step that runs the agent maps both secrets.");
             StringAssert.Contains(claude, "unset CLAUDE_CODE_OAUTH_TOKEN", "And leaves the agent exactly one.");
         }
+    }
+
+    [TestMethod]
+    [DataRow(Platform.GitHub)]
+    [DataRow(Platform.AzureDevOps)]
+    public void An_agent_that_already_carries_the_tools_installs_nothing_and_stays_pinned(Platform platform)
+    {
+        // A team running its own agent may carry sdlc, Claude Code and the plugin already. Each is used when
+        // it is there, and sdlc only at the pinned version: any other version is replaced, because the
+        // version a pull request is judged by is not the agent's to decide.
+        foreach (string pipeline in new[]
+        {
+            FactoryPipeline.Text(platform, "development", "9.9.9"),
+            Templates.Pipeline(platform),
+        })
+        {
+            StringAssert.Contains(pipeline, "is already on this agent");
+            StringAssert.Contains(pipeline, "dotnet tool install --global MofonCode.Sdlc.Cli --version");
+        }
+
+        string factory = FactoryPipeline.Text(platform, "development", "9.9.9");
+
+        StringAssert.Contains(factory, "= \"sdlc 9.9.9\"", "Only the pinned version counts as already installed.");
+        StringAssert.Contains(factory, "command -v claude", "Claude Code is used when it is there.");
+        StringAssert.Contains(factory, "Version: 9.9.9", "And the plugin only at this release.");
     }
 
     [TestMethod]

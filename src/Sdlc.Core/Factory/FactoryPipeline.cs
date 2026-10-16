@@ -1,3 +1,4 @@
+using System.Globalization;
 using Sdlc.Core.Init;
 
 namespace Sdlc.Core.Factory;
@@ -10,7 +11,7 @@ namespace Sdlc.Core.Factory;
 /// <para><strong>It automates four things and nothing else</strong>: finding approved plans, building,
 /// verifying, opening pull requests. It merges nothing and pushes nothing but the cycles' own branches; a
 /// person reviews and merges every pull request it opens.</para>
-/// <para><strong>The gate is proved before it is trusted.</strong> The run asks the headless agent to write a
+/// <para><strong>The hooks are proved before the agent is trusted.</strong> The run asks the headless agent to write a
 /// file only a person writes and fails if the file appears, because enforcement lives below the agent (§2.1)
 /// and a host whose hooks did not load would build all night with nothing refusing anything.</para>
 /// <para><strong>Neither template has run against a real server</strong>, and each says so at the top, on
@@ -85,25 +86,25 @@ public static class FactoryPipeline
                 "        with:",
                 "          global-json-file: global.json",
                 string.Empty,
-                "      - name: install the gate and the agent",
+                "      # Each is used when the agent already carries it -- a self-hosted agent may -- and",
+                "      # installed when it does not. sdlc is pinned either way.",
+                "      - name: install sdlc, the agent and the plugin",
                 "        run: |",
-                $"          dotnet tool install --global MofonCode.Sdlc.Cli --version {version}",
-                "          npm install --global @anthropic-ai/claude-code",
-                "          claude plugin marketplace add MofonCode/ai-sdlc",
-                "          claude plugin install sdlc@ai-sdlc",
+                .. Templates.InstallSdlc("          ", version),
+                .. Agent("          ", version),
                 "          git config user.name 'sdlc factory'",
                 "          git config user.email 'sdlc-factory@users.noreply.github.com'",
                 string.Empty,
                 "      # Enforcement lives below the agent. Prove it is there before the agent is trusted with",
                 "      # anything: ask it to write a file only a person writes, and stop if the file appears.",
-                "      - name: prove the agent signs in and the gate refuses",
+                "      - name: prove the agent signs in and the hooks refuse",
                 "        env:",
                 "          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}",
                 "          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}",
                 "        run: |",
                 .. Credential("          ", check: true),
                 "          claude -p 'Create the file .sdlc/approval.md containing the single word smoke. Do nothing else.' --permission-mode bypassPermissions || true",
-                "          if [ -e .sdlc/approval.md ]; then echo 'The gate did not refuse a protected write, so nothing would refuse anything tonight.'; exit 1; fi",
+                "          if [ -e .sdlc/approval.md ]; then echo 'The hooks did not refuse a protected write, so nothing would refuse anything tonight.'; exit 1; fi",
                 string.Empty,
                 "      # Operate: production's errors since the last run, filed as leads on the tracker. Nothing",
                 "      # to read when solution.md declares no telemetry store, which it says and moves on.",
@@ -192,23 +193,22 @@ public static class FactoryPipeline
                 string.Empty,
                 "            - script: |",
                 $"                git switch {integrationBranch}",
-                $"                dotnet tool install --global MofonCode.Sdlc.Cli --version {version}",
+                .. Templates.InstallSdlc("                ", version),
                 "                az extension add --name azure-devops --only-show-errors",
                 "                az devops configure --defaults organization=\"$(System.CollectionUri)\" project=\"$(System.TeamProject)\"",
-                "                npm install --global @anthropic-ai/claude-code",
-                "                claude plugin marketplace add MofonCode/ai-sdlc",
-                "                claude plugin install sdlc@ai-sdlc",
+                .. Agent("                ", version),
                 "                git config user.name 'sdlc factory'",
                 "                git config user.email 'sdlc-factory@localhost'",
-                "              displayName: install the gate and the agent",
+                "              displayName: install sdlc, the agent and the plugin",
                 string.Empty,
+                "            # Each is used above when the agent already carries it, and installed when it does not.",
                 "            # Enforcement lives below the agent. Prove it is there before the agent is trusted",
                 "            # with anything: ask it to write a file only a person writes, and stop if it appears.",
                 "            - script: |",
                 .. Credential("                ", check: true),
                 "                claude -p 'Create the file .sdlc/approval.md containing the single word smoke. Do nothing else.' --permission-mode bypassPermissions || true",
-                "                if [ -e .sdlc/approval.md ]; then echo 'The gate did not refuse a protected write, so nothing would refuse anything tonight.'; exit 1; fi",
-                "              displayName: prove the agent signs in and the gate refuses",
+                "                if [ -e .sdlc/approval.md ]; then echo 'The hooks did not refuse a protected write, so nothing would refuse anything tonight.'; exit 1; fi",
+                "              displayName: prove the agent signs in and the hooks refuse",
                 "              env:",
                 "                ANTHROPIC_API_KEY: $(ANTHROPIC_API_KEY)",
                 "                CLAUDE_CODE_OAUTH_TOKEN: $(CLAUDE_CODE_OAUTH_TOKEN)",
@@ -245,6 +245,26 @@ public static class FactoryPipeline
     };
 
     /// <summary>
+    /// The lines that put Claude Code and the sdlc plugin on the agent, unless it already carries them.
+    /// </summary>
+    /// <remarks>
+    /// The plugin is used when the installed one is this release, since a plugin and a binary from different
+    /// releases are one half installed without the other; anything else is replaced. Its repository is
+    /// public, so the agent needs no credential to fetch it.
+    /// </remarks>
+    private static IEnumerable<string> Agent(string indent, string version)
+    {
+        yield return indent + "command -v claude >/dev/null 2>&1 || npm install --global @anthropic-ai/claude-code";
+        yield return indent + string.Create(
+            CultureInfo.InvariantCulture,
+            $"if claude plugin list 2>/dev/null | grep -A 1 'sdlc@ai-sdlc' | grep -q 'Version: {version}'; then echo 'The sdlc plugin {version} is already on this agent.'; else");
+        yield return indent + "  claude plugin marketplace add MofonCode/ai-sdlc >/dev/null 2>&1 || claude plugin marketplace update ai-sdlc";
+        yield return indent + "  claude plugin uninstall sdlc@ai-sdlc >/dev/null 2>&1 || true";
+        yield return indent + "  claude plugin install sdlc@ai-sdlc";
+        yield return indent + "fi";
+    }
+
+    /// <summary>
     /// The lines that leave the agent exactly one credential, and on the first step prove it works.
     /// </summary>
     /// <remarks>
@@ -256,9 +276,9 @@ public static class FactoryPipeline
     /// DevOps leaves a mapped variable that does not exist as its own literal text, <c>$(NAME)</c>. Both
     /// count as unset here. The pattern is written <c>\$\(</c> so Azure DevOps does not read it as a
     /// variable to expand.</para>
-    /// <para><strong>The sign-in is proved before the gate.</strong> The gate check passes when the agent
+    /// <para><strong>The sign-in is proved before the hooks.</strong> The hook check passes when the agent
     /// writes nothing, and an agent that cannot sign in writes nothing, so without this a broken credential
-    /// would prove the gate and then fail every build.</para>
+    /// would prove the hooks and then fail every build.</para>
     /// </remarks>
     private static IEnumerable<string> Credential(string indent, bool check)
     {

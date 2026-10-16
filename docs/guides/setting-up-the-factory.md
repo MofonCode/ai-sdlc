@@ -42,11 +42,27 @@ depends on anything else.
 
 Keep the value somewhere safe until step 6; you paste it there once and never see it again.
 
-## 2. Make the gate installable on the runner
+## 2. Get the tools onto the agent
 
-The pipeline installs the `sdlc` binary with `dotnet tool install`, pinned to your version. **The package
-is not on a public feed yet**, so the runner cannot find it until you put it on a feed it can read. On
-Azure DevOps, that is an **Azure Artifacts** feed in your project:
+A run needs three things on the machine that runs it: the `sdlc` binary, Claude Code, and the sdlc plugin.
+**The pipeline uses each one the agent already carries, and installs whatever is missing**, so there are
+two ways to do this step:
+
+| | Your own agent | Microsoft's hosted agents |
+|---|---|---|
+| What you do | install `sdlc`, Claude Code and the plugin on it once — `installing-the-plugin.md` — and register it in an agent pool | put the `sdlc` package on a feed the agent can read, below |
+| Each run | installs nothing, so it starts faster | installs all three |
+| When you upgrade | reinstall on the agent; until you do, the run installs the release it was written for | nothing |
+
+**`sdlc` is pinned either way.** An agent carrying a different version gets the one the pipeline was written
+for, because the version a pull request is judged by is not the agent's to decide. The plugin comes from the
+public `MofonCode/ai-sdlc` repository and Claude Code from npm, so neither needs a feed.
+
+On your own agent, point the pipeline at its pool — replace `vmImage: ubuntu-latest` with
+`name: <your pool>` under `pool:` — and skip to step 3.
+
+**On hosted agents, `sdlc` needs a feed**, because the package is not on a public one yet. On Azure DevOps,
+that is an **Azure Artifacts** feed in your project:
 
 1. **Artifacts > Create Feed.** Name it `sdlc`, scope it to the project.
 2. Build the package from the ai-sdlc repository:
@@ -73,8 +89,8 @@ Azure DevOps, that is an **Azure Artifacts** feed in your project:
    ```
 
 The pipeline signs itself in to the feed (`NuGetAuthenticate@1`), so nothing else is needed. **The
-pull-request pipeline installs the gate the same way**, so this also fixes that check if it has been
-failing at *install the gate*.
+pull-request pipeline installs `sdlc` the same way**, so this also fixes that check if it has been
+failing at *install sdlc*.
 
 ## 3. Create the integration branch
 
@@ -176,8 +192,8 @@ step of this guide to revisit:
 
 | Step | What a pass looks like |
 |---|---|
-| install the gate and the agent | the tool installs at your version; the plugin installs |
-| prove the agent signs in and the gate refuses | the agent answers, then is refused a write to `.sdlc/approval.md`, and the file never appears |
+| install sdlc, the agent and the plugin | each is installed at your version, or reported as already on this agent |
+| prove the agent signs in and the hooks refuse | the agent answers, then is refused a write to `.sdlc/approval.md`, and the file never appears |
 | operate | *This solution declares no telemetry store*, unless you declared one |
 | build the queue | one cycle built on `cycle/<id>/build-unattended`, and a pull request opened into `development` |
 | the sitrep | the run's summary: the cycle under **Ready to merge** — or under **Needs a person**, as a draft |
@@ -199,9 +215,9 @@ From here, `running-the-factory.md` is the routine: admit plans in the day, read
 |---|---|---|
 | *Set ANTHROPIC_API_KEY or CLAUDE_CODE_OAUTH_TOKEN as a secret* | the pipeline has no credential | step 6b — and check the variable is on **this** pipeline, spelled exactly |
 | *The agent did not answer, so its credential does not work* | the key was revoked, the token expired, or the subscription is out of usage | make a new one (step 1) and replace the secret |
-| *The gate did not refuse a protected write* | the plugin's hooks did not load, so nothing would refuse anything tonight | look at the install step's output for the plugin install; the run stopped before building, which is the point |
-| the tool install fails: *not found* or *401* | the feed is missing, not in `nuget.config`, or the build service cannot read it | step 2; on the feed, **⚙ > Permissions** — the build service needs *Feed Reader* |
-| the plugin install fails | the runner cannot read the plugin's repository | the runner fetches the plugin from GitHub; the repository has to be readable from it |
+| *The hooks did not refuse a protected write* | the plugin's hooks did not load, so nothing would refuse anything tonight | look at the install step's output for the plugin install; the run stopped before building, which is the point |
+| the `sdlc` install fails: *not found* or *401* | the feed is missing, not in `nuget.config`, or the build service cannot read it | step 2; on the feed, **⚙ > Permissions** — the build service needs *Feed Reader* |
+| the plugin install fails | the agent cannot reach GitHub | the plugin comes from the public `MofonCode/ai-sdlc` repository; an agent behind a firewall needs `github.com` allowed, or the plugin installed on it beforehand |
 | a push or a pull request is refused, *TF401027* | the build service lacks a permission | step 6c |
 | the sitrep lists nothing to merge | no approved plan was on `development` without a verify | `sdlc cycles --queued` says what is queued and what is held back, each with its reason — a forgotten `cycle/<id>/plan` branch on the remote holds its cycle back |
 | a second run is waiting | the Exclusive lock doing its job | nothing, unless the first is stuck; the six-hour limit ends it |

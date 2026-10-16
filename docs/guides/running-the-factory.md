@@ -49,8 +49,9 @@ sdlc factory
 It writes `azure-pipelines.factory.yml` or `.github/workflows/sdlc-factory.yml` for the platform
 `solution.md` records, and refuses on a local solution. What the run does:
 
-1. checks out `development` and installs the pinned gate and the agent
-2. **proves the agent signs in, then that the gate refuses**: it asks the headless agent to write a file
+1. checks out `development` and installs the pinned `sdlc`, Claude Code and the plugin — or uses them,
+   when the agent already carries them
+2. **proves the agent signs in, then that the hooks refuse**: it asks the headless agent to write a file
    only a person writes and fails the run if the file appears, because a host whose hooks did not load would
    build all night with nothing refusing anything. The sign-in comes first because an agent that cannot sign
    in writes nothing either, and would pass
