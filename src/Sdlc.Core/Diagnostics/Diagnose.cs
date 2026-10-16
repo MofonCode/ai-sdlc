@@ -137,6 +137,8 @@ public static class Diagnose
                 checks.Add(settings);
             }
 
+            checks.Add(await LineEndingsCheck(cancellationToken).ConfigureAwait(false));
+
             foreach (SupportedHost host in SupportedHosts.All)
             {
                 checks.Add(HookConfig(host));
@@ -159,6 +161,39 @@ public static class Diagnose
             return Result.Ok(new Response(
                 checks,
                 await Setup.Read(solution.Path, cancellationToken).ConfigureAwait(false)));
+        }
+
+        /// <summary>
+        /// Whether every text file is stored with one line ending, whoever committed it.
+        /// </summary>
+        /// <remarks>
+        /// A problem rather than a note, because the cost lands on review: once a solution is shared, a
+        /// commit from another platform shows every line of a file as changed. Adoption writes the rule
+        /// where there is no file, so this fires for a solution adopted before it did, or one whose own
+        /// file leaves it out.
+        /// </remarks>
+        private async Task<Check> LineEndingsCheck(CancellationToken cancellationToken)
+        {
+            string path = Path.Combine(solution.Path, LineEndings.FileName);
+            bool exists = File.Exists(path);
+
+            if (exists
+                && LineEndings.Normalises(await File.ReadAllTextAsync(path, cancellationToken).ConfigureAwait(false)))
+            {
+                return new Check("line endings", CheckOutcome.Sound, "normalised by " + LineEndings.FileName);
+            }
+
+            return exists
+                ? new Check(
+                    "line endings",
+                    CheckOutcome.Problem,
+                    LineEndings.FileName + " does not normalise every text file, so a commit from another platform can show a whole file changed",
+                    "add '" + LineEndings.Rule + "' to " + LineEndings.FileName + ", then commit 'git add --renormalize .'")
+                : new Check(
+                    "line endings",
+                    CheckOutcome.Problem,
+                    "there is no " + LineEndings.FileName + ", so a commit from another platform can show a whole file changed",
+                    "a person runs 'sdlc init', which writes it; then commit 'git add --renormalize .'");
         }
 
         private static Check Binary() => new(

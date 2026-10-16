@@ -90,6 +90,29 @@ public sealed class DoctorTests
     }
 
     [TestMethod]
+    public async Task A_solution_whose_line_endings_are_not_normalised_is_a_problem()
+    {
+        // A solution adopted before adoption wrote the rule, or one whose own file leaves it out. The cost
+        // is a review where a commit from another platform shows a whole file changed.
+        using var solution = Scratch.Create();
+        await Adopt(solution);
+        await File.WriteAllTextAsync(Path.Combine(solution.Root, LineEndings.FileName), "*.png binary\n");
+
+        Diagnose.Response report = await Diagnosis(solution);
+        Check check = report.Checks.Single(candidate => candidate.Subject == "line endings");
+
+        Assert.AreEqual(CheckOutcome.Problem, check.Outcome);
+        StringAssert.Contains(check.Remedy!, LineEndings.Rule);
+
+        File.Delete(Path.Combine(solution.Root, LineEndings.FileName));
+
+        check = (await Diagnosis(solution)).Checks.Single(candidate => candidate.Subject == "line endings");
+
+        Assert.AreEqual(CheckOutcome.Problem, check.Outcome);
+        StringAssert.Contains(check.Detail, "there is no");
+    }
+
+    [TestMethod]
     public async Task On_azure_devops_the_branch_policy_is_named_as_what_runs_the_check()
     {
         // Azure Repos ignores a YAML pull-request trigger, so the pipeline runs only from a build

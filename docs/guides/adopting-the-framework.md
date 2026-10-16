@@ -73,6 +73,7 @@ What lands:
 | `.github/hooks/sdlc.json` | the same two moments, in Copilot's shape: `preToolUse` and `agentStop` |
 | `.agents/hooks.json` | the tool-call moment in Antigravity's shape, in its `sdlc` section. Its turn end is deliberately not governed — `installing-the-plugin.md` has why |
 | `AGENTS.md` | how to work in this repository, written for an agent. Created if absent, printed for merging if you already had one |
+| `.gitattributes` | `* text=auto`: every text file stored with LF and checked out with your platform's endings, so a commit from another machine never shows a whole file changed. Created if absent; if yours lacks the line, it is printed for you to add |
 | `.github/workflows/sdlc-verify.yml` | the chain check. **The only guarantee** — and written only where a platform was recorded. `--platform local` writes no pipeline at all |
 
 **Every host's configuration is written whichever host you use.** A file is inert on a machine without
@@ -87,6 +88,11 @@ is written to it and the entries are printed for you to place. On Azure DevOps t
 `azure-pipelines.yml`, which is the path that platform looks for rather than a name the framework owns,
 so an existing one is printed rather than replaced. Nothing verifies a chain until it is in a pipeline
 that runs, and `init` says so.
+
+**Where there was code first, adding the line-endings rule shows files as changed** that were committed
+with CRLF endings. Commit `git add --renormalize .` once, on its own, so the change that follows does not
+carry a diff of every file. The approval is not affected either way: it hashes text with its line endings
+canonicalised.
 
 **What does not land: the declared stack, the build settings, and any code.** The first two belong to a
 stack nobody has declared yet. The solution file, the projects, the architecture tests and the reference

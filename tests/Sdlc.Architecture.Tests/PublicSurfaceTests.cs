@@ -307,6 +307,7 @@ public sealed class PublicSurfaceTests
         "Sdlc.Core.Hooks.TurnEndGate",
         "Sdlc.Core.Hooks.TurnEndGate+Query",
         "Sdlc.Core.Init.InitRenderer",
+        "Sdlc.Core.Init.LineEndings",
         "Sdlc.Core.Init.Initialise",
         "Sdlc.Core.Init.Initialise+Command",
         "Sdlc.Core.Init.Initialise+InitAction",

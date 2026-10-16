@@ -3291,6 +3291,7 @@ and prints them.
 | `.sdlc/**`, `.github/hooks/sdlc.json`, `.github/workflows/sdlc-verify.yml` | the whole file | rewritten on every run |
 | `.claude/settings.json` | two hook entries | merged; every other key and sibling hook kept |
 | `azure-pipelines.yml`, `AGENTS.md` | nothing, once one exists | printed for a person to place |
+| `.gitattributes` | nothing, once one exists | kept if it normalises line endings, otherwise the one line printed |
 | `.sdlc/solution.md`, the stack files | nothing, once one exists | created, then never touched |
 
 **Corrected 2026-10-13:** the last row named the stack files as something adoption creates, which was

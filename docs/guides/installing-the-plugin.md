@@ -202,8 +202,8 @@ favour of Antigravity CLI, so the configuration described a hook for a program t
 sdlc doctor
 ```
 
-It checks the rules, git, adoption, every host's hook configuration and whether a pipeline here runs
-`sdlc verify-chain`, and it exits 1 if anything is wrong. Each problem names the command that fixes it.
+It checks the rules, git, adoption, whether `.gitattributes` normalises line endings, every host's hook
+configuration and whether a pipeline here runs `sdlc verify-chain`, and it exits 1 if anything is wrong. Each problem names the command that fixes it.
 In a repository that has not opened its first cycle it ends with what is still yours to place and the
 one command that is next.
 

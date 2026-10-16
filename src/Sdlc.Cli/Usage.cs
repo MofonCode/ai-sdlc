@@ -138,8 +138,8 @@ internal static class Usage
                                      none, or name the ones left empty in the one it has. Never
                                      proposes a value: a colour is a brand's, not a tool's.
             doctor                   Check this installation and this repository: the rules, git,
-                                     adoption, every host's hook config, and the pipeline that is
-                                     the guarantee. Reports and never repairs. Exits 1 if anything
+                                     adoption, line endings, every host's hook config, and the
+                                     pipeline that is the guarantee. Reports and never repairs. Exits 1 if anything
                                      is wrong. What a binary cannot see -- whether a host loaded
                                      the skills, whether the pipeline's check is required -- is
                                      marked 'elsewhere' and names who to ask. Before the first

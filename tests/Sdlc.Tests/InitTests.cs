@@ -123,6 +123,64 @@ public sealed class InitTests
     }
 
     [TestMethod]
+    public async Task Adoption_writes_the_line_endings_rule_where_there_is_none()
+    {
+        // Once a solution is shared, a commit from another platform without normalisation shows every
+        // line of a file as changed. Where there was code first, the report says how to renormalise it.
+        using var solution = Scratch.Create();
+
+        Initialise.Response report = await Adopt(solution, tracked: ["src/App/Program.cs"]);
+
+        Initialise.InitAction action = report.Actions.Single(candidate => candidate.Path == LineEndings.FileName);
+
+        Assert.AreEqual(Initialise.InitChange.Created, action.Change);
+        StringAssert.Contains(action.Why!, "git add --renormalize .");
+        Assert.IsTrue(LineEndings.Normalises(
+            await File.ReadAllTextAsync(Path.Combine(solution.Root, LineEndings.FileName))));
+    }
+
+    [TestMethod]
+    public async Task An_existing_attributes_file_is_kept_and_the_missing_rule_printed()
+    {
+        // The file is the repository's own. One that already normalises is left alone; one that does not
+        // is left alone too, and the one line it lacks is printed for a person to add.
+        using var solution = Scratch.Create();
+        string path = Path.Combine(solution.Root, LineEndings.FileName);
+        await File.WriteAllTextAsync(path, "*.png binary\n");
+
+        Initialise.Response report = await Adopt(solution, tracked: ["src/App/Program.cs"]);
+
+        Assert.AreEqual(
+            Initialise.InitChange.Printed,
+            report.Actions.Single(action => action.Path == LineEndings.FileName).Change);
+        Assert.AreEqual("*.png binary\n", await File.ReadAllTextAsync(path));
+        StringAssert.Contains(report.Printed[LineEndings.FileName], LineEndings.Rule);
+
+        await File.WriteAllTextAsync(path, "* text=auto\n*.png binary\n");
+
+        Initialise.Response again = await Adopt(solution, tracked: ["src/App/Program.cs"]);
+
+        Assert.AreEqual(
+            Initialise.InitChange.Kept,
+            again.Actions.Single(action => action.Path == LineEndings.FileName).Change);
+    }
+
+    [TestMethod]
+    [DataRow("* text=auto", true)]
+    [DataRow("*   text", true)]
+    [DataRow("# * text=auto", false)]
+    [DataRow("*.cs text", false)]
+    [DataRow("* text=auto\n* -text", false)]
+    [DataRow("* binary\n* text=auto eol=lf", true)]
+    [DataRow("", false)]
+    public void Only_a_rule_for_every_file_counts_as_normalising(string contents, bool normalises)
+    {
+        // A narrower pattern leaves the rest of the tree to whoever committed it, and a later -text on
+        // every file undoes the rule, the way git reads the file.
+        Assert.AreEqual(normalises, LineEndings.Normalises(contents));
+    }
+
+    [TestMethod]
     public async Task Adoption_keeps_everything_in_a_settings_file_it_does_not_own()
     {
         // The framework owns two hook entries in .claude/settings.json. The host and the team own the
@@ -298,7 +356,7 @@ public sealed class InitTests
 
             string path = action.Path.Replace('\\', '/');
 
-            // AGENTS.md is created only when absent and printed otherwise. A host's settings file is
+            // AGENTS.md and .gitattributes are created only when absent and printed otherwise. A host's settings file is
             // merged into, and which files those are comes from the table rather than a list here --
             // so a host added with a shared configuration is exempt without anybody remembering, and
             // one added with a configuration the framework claims to own is not.
@@ -306,7 +364,7 @@ public sealed class InitTests
                 host.Ownership is ConfigOwnership.Shared or ConfigOwnership.Section
                 && string.Equals(host.ConfigPath, path, StringComparison.Ordinal));
 
-            if (path == Initialise.AgentsFileName || shared)
+            if (path is Initialise.AgentsFileName or LineEndings.FileName || shared)
             {
                 continue;
             }

@@ -326,6 +326,7 @@ public static class Initialise
             // pull-request check's to decide, and the pr skill asks 'sdlc pr-ready' before it pushes (D-78).
 
             await Agents(actions, printed, cancellationToken).ConfigureAwait(false);
+            await Attributes(mode, actions, printed, cancellationToken).ConfigureAwait(false);
 
             return Result.Ok(new Response(
                 mode,
@@ -589,6 +590,50 @@ public static class Initialise
 
             await Write(path, contents, cancellationToken).ConfigureAwait(false);
             actions.Add(new InitAction(AgentsFileName, InitChange.Created));
+        }
+
+        /// <summary>
+        /// Writes the line-endings rule, or prints it when the repository's own file lacks it.
+        /// </summary>
+        /// <remarks>
+        /// The file is the repository's, so an existing one is never rewritten -- it is kept when it
+        /// already normalises, and the one line is printed when it does not. Where there was code before
+        /// this, files committed with CRLF show as changed until they are renormalised, and the report
+        /// says so rather than leaving a person to find a status full of files nobody touched.
+        /// </remarks>
+        private async Task Attributes(
+            InitMode mode,
+            List<InitAction> actions,
+            Dictionary<string, string> printed,
+            CancellationToken cancellationToken)
+        {
+            string path = Path.Combine(solution.Path, LineEndings.FileName);
+
+            if (File.Exists(path))
+            {
+                string existing = await File.ReadAllTextAsync(path, cancellationToken).ConfigureAwait(false);
+
+                if (LineEndings.Normalises(existing))
+                {
+                    actions.Add(new InitAction(LineEndings.FileName, InitChange.Kept, "already normalises line endings"));
+                    return;
+                }
+
+                printed[LineEndings.FileName] = LineEndings.Rule + Environment.NewLine;
+                actions.Add(new InitAction(
+                    LineEndings.FileName,
+                    InitChange.Printed,
+                    "it is this repository's own and does not normalise line endings, so a commit from another platform can show a whole file changed. Add the line, then 'git add --renormalize .' and commit"));
+                return;
+            }
+
+            await Write(path, LineEndings.Contents(), cancellationToken).ConfigureAwait(false);
+            actions.Add(mode == InitMode.Greenfield
+                ? new InitAction(LineEndings.FileName, InitChange.Created)
+                : new InitAction(
+                    LineEndings.FileName,
+                    InitChange.Created,
+                    "files already committed with CRLF endings show as changed until 'git add --renormalize .' is committed"));
         }
 
         private static async Task Write(string path, string contents, CancellationToken cancellationToken)
