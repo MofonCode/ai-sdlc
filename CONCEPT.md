@@ -181,6 +181,35 @@ changed, and refuses on an approved cycle until a reopen is recorded (D-17).
 
 Steering changes *how*, not *what*. A comment that changes the problem is a different intent.
 
+### 3.3 Three phases: Define, Build, Operate
+
+| Phase | Stages | Who | Ends at |
+|---|---|---|---|
+| **Define** | intent, spec, plan | a person, locally | the planning approval (§5.1) |
+| **Build** | build, verify, pull request | the factory unattended, or a person by hand | a person merging the pull request |
+| **Operate** | — | a scheduled run | a lead a person may take into Define (§3.4) |
+
+**A phase is a label, never a command** (D-82). Nothing runs Define: each stage is still a moment where a
+person decides to continue, which is why D-16 has no `design` skill.
+
+### 3.4 Leads
+
+**A lead is anything a person can hand `intent` to begin a cycle** (D-89): a work item, a grouped error
+from production, an open suggestion, or a file. `intent --from <reference>` takes one, with a prefix spelled
+in full — `azuredevops:1234`, `github:56`, `jira:PROJ-123`, `suggestion:<cycle>/<finding>` — or a path.
+The binary fetches and normalises it, and the skill interviews from what it prints; the person still
+answers the interview. The intent records the reference, so the pull request can link and close the item.
+
+**Operate files work items; it writes no artifact of its own.** A scheduled run reads the solution's
+telemetry store, groups errors by a signature, strips personal data, and files a bug for each signature
+with no open item. The tracker then answers review, dismissal and deduplication, and nothing Operate does
+lands on `development`. The tracker and the store are declared in `solution.md`.
+
+**A work item is untrusted text** handed to an agent: the binary marks it as data, and the planning
+approval stands between it and any code.
+
+**Not built yet.** Leads and Operate are decided; the binary fetches nothing today.
+
 ---
 
 ## 4. Artifacts
@@ -288,6 +317,10 @@ lines rather than recollection. Where the evidence does not reach, `verify` says
 
 **Evidence is normalised at the boundary** (D-13). `build` writes both what the toolchain produced
 and one framework-defined summary — test name and outcome — and `verify` reads only the summary.
+
+**What is committed and what is published** (D-92). The summary (`tests.json`), the base commit and the
+chain are committed with the code. The toolchain's raw output — `build.log`, `tests.trx` — is ignored by
+git and published by the pipeline, the trx to the platform's test tab.
 
 `build` treats warnings as errors, enforced by `Directory.Build.props` rather than by instruction.
 
@@ -617,6 +650,35 @@ the page while leaving the belief in it.
 **It stops on convergence or on conflict, not on a count.** A round producing no new findings is
 convergence. Two constraints whose remedies exclude each other is a conflict, named and handed back.
 Three endings have to be distinguishable: converged, open, conflicting.
+
+### 6.5 Perspectives
+
+**A perspective is a method, not a label** (D-90): security, operability, maintainability, accessibility,
+UI/UX, infrastructure and cost, data and migrations, API compatibility, performance. Each is a document
+embedded in the binary, carrying four things:
+
+1. **a method** — how to examine. Security lists the trust boundaries and follows every input to where it
+   is used; operability asks, of each new way to fail, whether somebody could tell from the logs at 3 a.m.
+   what failed and for whom
+2. **the questions it asks at each stage**, intent through verify
+3. **its rules** — the only part that can block
+4. **the evidence it requires**, from the profile's build settings
+
+**It steers as well as judges.** `intent`, `spec`, `plan` and `build` read a short *cover this* list per
+active perspective, so a spec is written with its security criteria in it. `interrogate` runs one fresh
+process per active perspective, handed that perspective's full method and rules, then **one reconciling
+reader** over the round's findings. `verify` asks each perspective's questions of the evidence.
+
+**Which apply.** Security, operability and maintainability always. The intent names any others, seen in
+the interview and covered by the approval's hash; at plan, the declared files add any the intent missed,
+with a finding.
+
+**Blocking or a suggestion, as every finding is.** Only a finding citing a rule blocks; what a method finds
+beyond the rules is a suggestion, and a suggestion that keeps recurring is what `propose constraints` turns
+into a rule. **Two perspectives contradicting** apply neither: both become suggestions, each referring to the
+other. A rule beats a method finding; two rules that cannot both be met are a conflict (D-64).
+
+**Not built yet.**
 
 ---
 
@@ -1036,7 +1098,8 @@ It creates no empty directories.
 ### 10.1 `batch-build` completes cycles
 
 A local skill, executed rather than subscribed to. It collects the approved cycles in **this** working
-copy, builds **and verifies** each, and reports. There is no shared queue (D-22).
+copy, builds **and verifies** each, and reports. The working copy is the whole of what it sees; the
+shared queue is the integration branch a factory run checks out (D-83, §10.5).
 
 1. `sdlc cycles --claims` builds the claim graph from the declared plans and partitions it.
 2. Run each group in parallel, each cycle in its own git worktree.
@@ -1149,6 +1212,42 @@ and each pull request is reported individually.
 
 **`batch-build --pr`** composes the two, invoking `pr` per completed cycle, and asks before the
 run rather than at the end (D-24). Plain `batch-build` never pushes.
+
+### 10.4 The integration branch
+
+**Approved plans wait on `development`** (D-83), the name a solution records in `solution.md`. A person
+pull-requests a cycle's planning documents into it from `cycle/<id>/plan`, and the branch is deleted on
+merge; the factory builds from it; every built cycle is pull-requested back into it. Main receives only
+what a person promotes, and the framework has no part in that (D-88).
+
+**The local approval is still the gate.** The plan's pull request admits a plan to the factory; it does not
+approve it. Its check is the admission check, chosen by the diff (D-87).
+
+**Line endings are pinned.** Cycle files travel between branches now, and the approval hashes bytes, so
+`.gitattributes` forces LF under `.sdlc/**`.
+
+### 10.5 The factory
+
+**The factory finds approved plans, builds, verifies and opens pull requests — and nothing else** (D-84).
+It is `batch-build --pr` on a schedule, against `development`: the schedule is the confirmation, one run at
+a time holds a lock, and the job's timeout is the spend ceiling.
+
+**Every cycle it touches gets a pull request** (D-85): ready when it passed, a draft when it is `blocked` or
+`escalated`. A cycle's branches sit under `cycle/<id>/` — `plan`, `build`, `build-unattended`, `forward` —
+and any of them on the remote holds the cycle back. Deleting the branch puts it back in the queue.
+
+**Every cycle builds from the same base** (D-86). The claim graph predicts which pull requests will
+conflict and suggests a merge order; it no longer schedules. A person merges one pull request at a time,
+and resolves a conflict with `resolve-conflict` inside the cycle's declared files.
+
+**The morning starts from the sitrep**: what is ready to merge and in what order, what needs a person, what
+was held back and why, what is going stale, and the newest stable point on `development`. It is a binary
+command, and the factory publishes it as the run's summary.
+
+**The factory never merges, and it never writes a person's file.** A blocked cycle is recorded as blocked;
+abandoning it is a person's decision.
+
+**Not built yet.** §10.1 describes `batch-build` as it runs today.
 
 ---
 
@@ -1638,6 +1737,17 @@ proof is not met.
 **And what it must not claim.** With local-only approval it proves the entry exists and the hashes
 match. It cannot prove a second person approved, and it says so in its own output.
 
+**A plan's pull request gets the admission check** (D-87). When a pull request changes only one cycle's
+planning documents, `verify-chain` checks those documents, the approval and the hashes, and asks for no
+verify — so a plan can be admitted to `development` before it is built. Anything else gets the full chain.
+
+**Every open pull request is re-checked when another merges** (D-86). On Azure DevOps that is the build
+validation policy's expiration set to *Immediately*, which re-queues on its own; it is a platform setting
+and the adoption guide lays out the cheaper ones. `development` also builds on every merge, which names the
+merge that broke it.
+
+**The guarantee covers `development`** (D-88). Main's branch policy, and a release branch's, are the team's.
+
 Keeping every check inside `sdlc verify-chain` means each pipeline is about thirty lines of YAML
 wrapping one command.
 
@@ -1937,9 +2047,11 @@ block, then remediate, then exhaust the budget.
 - **Enforcing a coverage percentage.** Coverage is displayed.
 - **Making local approval unforgeable.** It cannot be; the pull request is where accountability lives.
 - **Governing ai-sdlc with ai-sdlc** — §2.7.
-- **Resolving merge conflicts as the primary strategy.** Collisions are scheduled around.
-- **Remote plan approval** — the local paste is the gate.
-- **A shared batch queue.**
+- ~~**Resolving merge conflicts as the primary strategy.**~~ Reversed by D-86: collisions are resolved at
+  merge, by a person, inside the cycle's declared files.
+- **Remote plan approval** — the local paste is the gate. A plan's pull request into `development`
+  admits it to the factory and approves nothing (D-83).
+- ~~**A shared batch queue.**~~ Reversed by D-83: the integration branch is one.
 - **Tooling for splitting work** — D-25.
 - **A combined design skill** — D-16.
 - **Waiving a blocking finding** — D-27.
@@ -2309,6 +2421,9 @@ invisible once the name is right, and a future reader shortening it back would r
 
 **Governs:** §4.5
 
+**Superseded in part by D-92.** The original output is still kept beside the summary while a build runs;
+it is no longer committed. The pipeline publishes it.
+
 **Why.** **The gate must not know about test platforms.** Reading evidence natively would put a `.trx`
 parser inside the gate, then a JUnit parser beside it, and the thing that owns *process* constraints
 starts owning *file formats*. Normalising in the build step puts the stack-specific part where the
@@ -2455,6 +2570,10 @@ verifying, which leaves "success" undefined.
 ### D-23 — `pr --all` sweeps every completed cycle, with one confirmation
 
 **Governs:** §10.3
+
+**Superseded in part by D-85.** The factory opens a **draft** pull request for a `blocked` or
+`escalated` cycle, which the last rejected option below foreclosed. `pr --all` by hand still opens one
+only for `passed`, and the check still refuses any chain that did not pass.
 
 **Why.** A batch of eight that completes and then needs eight manual invocations is a batch whose
 value evaporates at the last step. One confirmation before the first push, because a pull request is
@@ -5842,3 +5961,361 @@ configuration, the pipeline and the record of where the code came from, and it i
 - *Refusing unknown options on every verb.* The right shape eventually, but it needs each verb's
   options declared in one place, and `sdlc help` is the only list today. Worth doing when a second verb
   has the same cost.
+
+### D-82 — The cycle is grouped into three phases, Define, Build and Operate, and a phase is never a command
+
+**Governs:** §3.3
+
+**Decision.** **Define** is intent, spec and plan, ending at the planning approval. **Build** is build,
+verify and the pull request. **Operate** watches what is running and feeds new work back into Define as
+leads (D-89). The phases are labels over the stages that already exist: they appear in the documents and
+the stage panel, and nothing runs a phase.
+
+**Why.** The framework has grown work on both sides of the cycle it was written around — a factory that
+builds unattended (D-84) and a run that reads production (D-89) — and both need a name a person can hold
+for where they sit. The boundaries are ones that already exist: Define ends at the one gate (§5.1), and
+Build ends where a person takes the result.
+
+**Rejected.**
+
+- *"Design" for the first phase.* D-16 decided there is no `design` skill, and the word would read as
+  its return. It also collides with the UI/UX perspective (D-90).
+- *A command per phase* — `sdlc define` running intent, spec and plan. It is the chained orchestrator
+  D-16 rejected: the separate stages are where a person decides to continue.
+- *"Maintain" for the third.* Operate is narrower: it reads what runs and proposes; it maintains
+  nothing itself.
+
+### D-83 — Approved plans wait on an integration branch, `development`, and reach it by a reviewed pull request
+
+**Governs:** §10.4, §18
+
+**Decision.** A solution has an integration branch, `development` by default and named in `solution.md`.
+An approved cycle's planning documents reach it by a pull request from `cycle/<id>/plan`, which deletes
+its branch on merge. Every built cycle is pull-requested back into it. It is the working head: main
+receives only what a person promotes from it (D-88). The local approval remains **the** gate (§5.1); the
+plan's pull request is admission to the factory, not a second approval. Cycle files travel between
+branches now, so `.gitattributes` forces LF under `.sdlc/**`, because the approval hashes the bytes.
+
+**This reverses a non-goal.** §18 listed *"a shared batch queue"*, and D-22's section said there is no
+shared queue. The integration branch is one, on purpose: a scheduled build needs one place to find
+approved work, and a pipeline checks out one ref.
+
+**Why a branch rather than a queue service.** It needs nothing that isn't already there. Admission is a
+pull request the platform already reviews, the queue's contents are files the binary already reads, and
+"queued" is "merged into `development` with no verify" — a listing, not a state somebody maintains.
+
+**Why the name is a setting.** The factory checks it out and targets it, so the framework has to know
+it, and teams name it differently. A person's file holds it because it decides where governed code lands.
+
+**Rejected.**
+
+- *Merging plans straight into the default branch.* The pull-request check refuses a chain with no
+  verify, correctly — a plan with no code is not mergeable there.
+- *A dedicated `planned` branch holding only plans, with code delivered elsewhere.* Plans and code would
+  live on different branches, and keeping them in step became most of the design: status commits pushed
+  onto it, resets, recreating it from main.
+- *`develop`, GitFlow's name.* Weighed for familiarity; `development` was chosen, with `feature/...` and
+  `cycle/...` beside it, since a branch `development` cannot coexist with branches named `development/...`.
+- *Approving remotely, on the plan's pull request.* *"Remote plan approval"* stays a non-goal: the
+  pull request admits, the local paste approves.
+
+### D-84 — The factory automates four things — finding approved plans, building, verifying, opening pull requests — and nothing else
+
+**Governs:** §10.5
+
+**Decision.** The factory is `batch-build --pr` run on a schedule against `development`. It finds the
+approved cycles with no verify, builds and verifies each, and opens a pull request per cycle. Review,
+conflicts, merging and promotion are a person's, with tools for each (§10.5). **The factory never
+merges.** The schedule is the confirmation D-24 asks for, given non-interactively; one run holds an
+exclusive lock, so two never pick the same cycle; and the pipeline job's timeout is the spend ceiling.
+
+**Why the schedule can be the confirmation.** D-24 asked once before an unattended run because volume is
+a cost somebody should choose, and rejected no confirmation at all on exactly that ground. A schedule is
+that choice, made once, by a person, where it can be read. D-80 already argued the same of the batch's
+task list: starting the run was the decision.
+
+**Why the timeout is the ceiling, and not the gate.** D-66 removed the remediation ceiling and said that
+if an unattended batch is ever seen running away, the remedy is a ceiling put back deliberately. The job
+timeout is that, at the layer that owns the money: it stops the run, it writes no outcome, and it leaves
+the gate's progress rule as it is.
+
+**Why it never merges.** Merging what passed was weighed. Code would reach `development` read by nobody,
+the factory would need permission to push past branch policy, and two pull requests that pass apart and
+break together would land with nobody watching. Merging stays a person's act until practice shows it
+can be trusted to something else.
+
+**Rejected.**
+
+- *The factory merging the cycles that passed, leaving only conflicts and escalations as branches.* Above.
+- *A state file — `queued.md` — recording what the factory took.* Merging the plan queues it, and the
+  factory's branches and pull requests hold the rest (D-85). A file would mean the factory committing to
+  `development` every night, unreviewed.
+- *Claim and outcome commits pushed onto the shared branch*, and *a `factory/<id>` ref marking a claim.*
+  Both were the factory writing to a shared branch; under this decision it writes to none.
+- *One delivery branch per night, with a multi-cycle `verify-chain`.* A cycle is the unit of review and
+  of rejection; batching them makes rejecting one cost the rest.
+- *A scheduler or queue service.* A pipeline schedule and an exclusive lock are the whole of it.
+
+### D-85 — Every cycle the factory touches gets a pull request — a draft when it did not pass — and a cycle's branches sit under `cycle/<id>/`
+
+**Governs:** §10.3, §10.5, §16
+
+**Decision.** A cycle that passed gets a pull request ready for review. A `blocked` or `escalated` cycle
+gets a **draft** pull request carrying the attempted code, the verify and the evidence; its check goes
+red, which is accurate. A cycle's branches are named by the kind of work:
+
+| Branch | Who | What |
+|---|---|---|
+| `cycle/<id>/plan` | a person | the planning documents; deleted when its pull request merges |
+| `cycle/<id>/build` | a person | a build run by hand |
+| `cycle/<id>/build-unattended` | the factory | a batched build |
+| `cycle/<id>/forward` | the cycle | a release-targeted fix carried into `development` (D-88) |
+
+Any `cycle/<id>/...` branch on the remote holds the cycle back from the factory, and the sitrep names
+it and why. Deleting the branch puts the cycle back in the queue. The bare `cycle/<id>` stays readable
+for cycles already on one; nothing new creates it, since git cannot hold both forms at once.
+
+**Superseded in part: D-23.** That entry rejected *"opening one for a `blocked` cycle with a warning — the
+verdict is the only thing between unattended building and unreviewed work reaching a pull request."*
+The fear was work that should not merge being presented as though it might. A draft is the platform's
+own statement that it is not ready, and the check refuses a blocked or escalated chain at the merge
+regardless — so the verdict still stands between the work and the branch, and what changed is that the
+work is now somewhere a person looks.
+
+**Why a blocked cycle needs one.** Without it, its verify lives only on a throwaway pipeline agent, so
+nobody sees it, and the next run builds it again, every night, at full cost — `development` shows an
+approved cycle with no verify until something merges.
+
+**Why the branch is the claim.** The factory writes to no shared branch (D-84), so the only durable mark
+that it took a cycle is something it pushed. A branch costs nothing, needs no cleanup the pull request
+does not already do, and its name records how the cycle moved — which the pull request keeps after the
+branch is gone.
+
+**Rejected.**
+
+- *`build/<id>` for the factory beside `cycle/<id>` for the author.* Two roots for one cycle; under
+  `cycle/<id>/` everything about it is in one place.
+- *The factory reusing `cycle/<id>`.* It is the author's planning branch and may still exist after its
+  pull request merged, so its existence could not say whether the factory had taken the cycle.
+- *No pull request for a cycle that did not pass.* Above.
+
+### D-86 — Collisions are resolved at merge, one pull request at a time, by a person — the claim graph advises rather than schedules
+
+**Governs:** §10.1, §10.5, §15, §18
+
+**Decision.** Every cycle in a batch builds independently from the same base. The claim graph no longer
+serialises groups or rebases one onto another; it predicts which pull requests will conflict and suggests
+a merge order, in the sitrep. A person merges each pull request in turn, and resolves a conflict with
+`resolve-conflict`, which is widened from its enumerated list to any conflict on a cycle's pull request,
+**inside the cycle's declared files**, ending in fresh evidence and a fresh `verify`. Two of its rules
+stay: the same setting with two values stops, and migrations are regenerated, never merged. Every open
+pull request into `development` is re-checked when another merges (§13), and `development` itself builds
+on every merge.
+
+**This reverses a non-goal and a scope.** §18 listed *"resolving merge conflicts as the primary
+strategy"*, and `resolve-conflict` was enumerated because *"a skill that resolved whatever happened to
+conflict would quietly become the thing that merges real code."* That fear was an agent merging code
+nobody checks afterwards. Here every resolution is rebuilt, re-verified in a fresh process (D-01) and
+reviewed on its pull request before anything merges.
+
+**Why build independently.** Serialising and rebasing made a batch a stack: rejecting one pull request
+invalidated every one built on it, and a person reviewing the morning's work could not take them in any
+order. Independent builds cost a conflict at merge, which is where a person is.
+
+**Why it stays inside the declared files.** If fixing B after A's rename means editing a file B's plan
+never named, that is a change of plan, not a merge. It stops and hands back, and the person reaches for
+`steer`, a reopen or an abandonment.
+
+**Rejected.**
+
+- *Keeping the serialised schedule under the factory.* Above.
+- *The factory resolving conflicts unattended.* Deferred, not rejected: what practice should show first
+  is which conflicts recur and how often a resolution stays inside the declared files.
+- *Re-checking a pull request only when it conflicts.* It misses the case that matters — two pull
+  requests that merge cleanly and break together — until after both have landed.
+
+### D-87 — The pull-request check reads the diff: a plan alone gets the admission check, anything else the full chain
+
+**Governs:** §13
+
+**Decision.** When a pull request changes only one cycle's planning documents — intent, spec, plan,
+their findings rounds and the approval — `verify-chain` runs the **admission check**: every planning
+document's shape is sound, the standing decision is `approved`, the three hashes match, and every round's
+upstream matches. It builds nothing and asks for no verify. A pull request that changes anything else gets
+the full chain, as before.
+
+**Why the diff and not the branch name.** Whoever opens the pull request picks the branch name. One file
+outside the planning documents, and the full chain runs and fails — so a plan's pull request cannot carry
+code past the check.
+
+**Why there is a check at all.** The first instinct was none, since there is nothing to build. But a
+required check that never reports blocks the merge on GitHub, and the cost of a hash comparison is
+seconds. The factory refuses an unapproved or edited plan on its own, so what this guards is code arriving
+on a plan's pull request.
+
+**Rejected.**
+
+- *No check on a plan's pull request.* Above.
+- *Choosing by branch name — `cycle/<id>/plan` gets the light check.* A label the author chooses.
+- *Azure DevOps path filters excluding the planning documents from the policy.* Native, and correct on
+  that platform; GitHub has no equivalent, and the rule would live in two platforms' settings rather
+  than the binary.
+
+### D-88 — Main is outside the guarantee, and a fix for a release is carried forward into `development`
+
+**Governs:** §13, §18
+
+**Decision.** The guarantee covers what reaches `development`. Promotion to main — by merge commit, from
+a stable point, usually through `release/<version>` — is the team's process, and the framework has no
+part in it beyond saying, in the adoption guide, that main's branch policy is theirs. A fix found on a
+release is a cycle like any other, with the bug as its lead (D-89). Its intent may name a release branch;
+the cycle then runs from that branch and back into it, built by hand, and **opens a second pull request,
+from `cycle/<id>/forward`, carrying the same fix into `development`.**
+
+**Why the framework stops at `development`.** Promotion is where a team's release practice lives — QA,
+release branches, sign-off — and every team's is different. The framework's promise is about how a change
+is admitted and verified; once that has happened on `development`, what is promoted and when is a
+decision about the product, not the change.
+
+**Why the forward pull request is opened by the cycle.** The next release is cut from `development`, so a
+fix that reached only the release branch ships its bug again. A list of fixes awaiting a forward port is
+a list people learn to stop reading. A clean cherry-pick is checked by build and tests, as a clean merge
+is; one that conflicts goes through `resolve-conflict`, which ends in a fresh verify — because the record
+it carries verified the release's code, not `development`'s.
+
+**Rejected.**
+
+- *Fixing on `development` and cherry-picking onto the release.* Workable, and it remains open to a team;
+  it makes an urgent release wait for a full pass through `development`.
+- *A separate "sub-intent" artifact for a bug.* A bug is a small intent; a second kind of document would
+  need a second set of rules.
+- *`init` writing a step for main's branch policy.* It would put the framework back into the step it has
+  stepped out of.
+- *Squashing `development` into main.* Main and `development` would stop sharing history, and every
+  promotion would need a reset or a merge back.
+
+### D-89 — A lead is a reference to something in a tracker, and Operate files work items rather than writing its own artifact
+
+**Governs:** §3.4, §15
+
+**Decision.** A lead is anything a person can hand `intent` to begin a cycle, named by a prefix spelled in
+full: `azuredevops:1234`, `github:56`, `jira:PROJ-123`, `suggestion:<cycle>/<finding>`, or a path. Only
+those prefixes are read as one; anything else is a path. The binary fetches and normalises a lead —
+deterministic, so the binary's — and the skill interviews from that; the intent records the reference so
+the cycle's pull request can link and close the item. Operate is a scheduled run that queries the
+solution's telemetry store, groups errors by a signature, strips personal data, and files a work item for
+each signature with no open one. The tracker and the store are declared in `solution.md`; credentials
+never are.
+
+**Why the tracker is the intake.** A lead file of Operate's own would have needed three answers the
+tracker already has: review is triage on the board people already use, dismissal is closing the item,
+and deduplication is the signature on open items. And Operate files nothing into the repository, so
+nothing unreviewed lands on `development`.
+
+**Why through `intent` and not a new skill.** `intent --from` seeds the interview and the person still
+answers it. A lead-to-intent skill would skip the interview, which is the shape D-16 rejected.
+
+**Why a work item is untrusted.** A public issue is written by anybody, and it is handed to an agent. The
+binary marks it as data in what it prints, and the planning approval stands between it and any code.
+
+**Rejected.**
+
+- *A lead file committed to `development`.* Unreviewed commits on the shared branch, and dismissal would
+  need a person-only file of its own.
+- *A lead report under `.sdlc/reports/`.* Read back by nothing, so it cannot deduplicate across runs — kept
+  only for a solution with no tracker.
+- *Short prefixes — `ado:`, `gh:`.* Chosen against in favour of names a reader does not have to decode.
+- *Operate as a skill.* Querying, grouping, deduplicating and filing are all deterministic, so by §15.2
+  the run is the binary's.
+
+### D-90 — A perspective is a method that steers authoring and judges in a fresh reader of its own
+
+**Governs:** §6.5
+
+**Decision.** A perspective — security, operability, maintainability, accessibility, UI/UX, infrastructure
+and cost, data and migrations, API compatibility, performance — is a document embedded in the binary, the
+way a stack profile is. It carries a **method** for examining the work, the **questions** it asks at each
+stage from intent through verify, the **rules** it enforces, and the **evidence** it requires. Authoring
+stages read a short *cover this* list per active perspective; `interrogate` runs one fresh process per
+active perspective with its full method, then **one reconciling reader** over that round's findings;
+`verify` asks each perspective's questions of the evidence. Security, operability and maintainability are
+always on; the intent names any others, and the plan's declared files add what the intent missed. Only a
+finding citing a rule blocks; what a method finds beyond the rules is a suggestion.
+
+**When two perspectives' findings contradict**, neither is applied: both become suggestions, each with
+its reasoning and a reference to the other. A rule beats a method finding. Two rules that cannot both be
+met are a conflict, as D-64 already records one, and go to a person.
+
+**Why a method and not a label.** A filter over the rule set makes nobody look harder: a rule says what
+is forbidden, not how to find it. What a security reviewer brings is the method — trust boundaries traced,
+every input followed to where it is used.
+
+**Why it steers as well as judges.** A missing threat model found at verify costs a rebuild; written in at
+plan it costs nothing. A perspective that only judges finds what it could have prevented.
+
+**Why a reader per perspective.** One reader holding every rule spreads its attention, and a reader that
+has found three security problems tends to stop before the missing empty state. The reconciling reader
+comes after, so no reader is anchored by another's findings and order decides nothing.
+
+**Why the intent names them.** The spec is where perspectives add the most, and declared files first exist
+in the plan. An automatic step choosing them would decide unseen how much scrutiny a cycle gets; a line in
+the intent is seen in the interview and covered by the approval's hash.
+
+**Every perspective proves its cost.** It ships with fixtures — an artifact with a defect planted in it —
+and the suite holds that its reader finds it.
+
+**Rejected.**
+
+- *A skill per perspective.* Nine skills differing in what they read, with methods moved into skill text.
+- *One reader with every perspective.* Above.
+- *Subagents.* A subagent is spawned by the session that wrote the artifact; the fresh process exists so
+  the reader has no stake (D-01).
+- *A perspective as a tag on rules.* The first proposal: it changes what a reader is shown, not how it
+  looks.
+- *Each reader seeing the earlier readers' findings and removing what conflicts.* Order would decide whose
+  finding survives, later readers would be anchored, and the readers would run one at a time.
+- *A new tier for perspective rules.* The three tiers and the declared stack are already every place a rule
+  may live (§7.3).
+
+### D-91 — One repository, one binary, two plugins: the sdlc plugin is the engine and the factory runs it unattended
+
+**Governs:** §12, §16
+
+**Decision.** The factory ships as a second plugin from this repository, on the same release, using the
+same binary. Anything a person uses in a cycle — every stage, `intent --from`, `resolve-conflict`, the
+sitrep read locally — belongs to the sdlc plugin and works with no factory. The factory adds no stage and
+no rule: it adds what runs unattended or on a schedule — the pipeline templates, the headless runner,
+Operate's scheduled run. It requires the sdlc plugin rather than copying it.
+
+**Why one binary.** The factory depends on the core contracts — `verify-chain`, the claim graph, the
+evidence format, the artifact schemas — and two binaries would put version skew on exactly those.
+
+**Rejected.**
+
+- *Two repositories.* The same skew, across a release boundary. Worth revisiting only if a different team
+  owns the factory.
+- *One plugin.* A solution that never runs unattended would carry pipeline templates and a scheduler it
+  does not use.
+
+### D-92 — The toolchain's raw evidence is a pipeline artifact; the summary, the base and the chain stay committed
+
+**Governs:** §4.5
+
+**Superseded in part: D-13**, which kept the original beside the summary in the cycle's evidence. That
+stands locally, while a build runs; what changes is what is committed. `build.log` and `tests.trx` are
+ignored by git and published by the pipeline — the trx to the platform's test tab, so Azure DevOps shows
+the tests and the coverage. `tests.json`, `base.sha` and the chain stay committed, because the
+pull-request check reads `tests.json` and verify's citations rest on it.
+
+**Why.** Every cycle committed a build log nobody reads after the merge and a trx file the platform
+displays better than a diff does. The record that matters to a later reader — which tests ran and what
+they concluded — is the summary, and that stays with the code.
+
+**What it costs.** A verify statement citing the build output points at a pipeline artifact, which the
+platform keeps for a retention period rather than forever. `CON_08` is still met when the claim is made;
+a reader long after may not be able to open what it cited.
+
+**Rejected.**
+
+- *Committing everything, as before.* Noise in every cycle's diff, kept forever, for a file nobody reopens.
+- *Moving the summary out too.* `verify-chain` reads it, and `propose` and `suggestions` read the record.
