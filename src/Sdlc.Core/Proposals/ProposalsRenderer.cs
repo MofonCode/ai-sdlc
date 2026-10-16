@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Text;
 using Sdlc.Core.Constraints;
 using Sdlc.Core.Cycles;
+using Sdlc.Core.Findings;
 using Sdlc.Core.Decisions;
 
 namespace Sdlc.Core.Proposals;
@@ -46,7 +47,9 @@ public static class ProposalsRenderer
         Header(output, response);
         Recurrences(output, response);
         BelowBar(output, response);
+        Perspectives(output, response);
         Uncited(output, response);
+        Noticed(output, response);
         Stopped(output, response);
         Rejected(output, response);
         Closing(output, response);
@@ -164,11 +167,68 @@ public static class ProposalsRenderer
             {
                 output.AppendLine(string.Create(
                     CultureInfo.InvariantCulture,
-                    $"{Body}{Cycle.NameOf(finding.Artifact),-8}{finding.Id}"));
+                    $"{Body}{Cycle.NameOf(finding.Artifact),-8}{finding.Id}{Tag(finding.Perspective)}"));
                 output.AppendLine(Body + "    " + finding.Statement);
             }
         }
     }
+
+    /// <summary>
+    /// Which perspectives keep raising things no rule forbids, counted by distinct cycle.
+    /// </summary>
+    /// <remarks>
+    /// Before the statements, so a person reads where to look first. A perspective at the bar is marked,
+    /// and that is all: whether its statements are one objection is the skill's reading, not this count.
+    /// </remarks>
+    private static void Perspectives(StringBuilder output, ProposeConstraints.Response response)
+    {
+        if (response.Perspectives.Count == 0)
+        {
+            return;
+        }
+
+        output.AppendLine();
+        output.AppendLine(Indent + "Raised by a perspective, with no rule behind it");
+        output.AppendLine();
+
+        foreach (PerspectiveTally tally in response.Perspectives)
+        {
+            output.AppendLine(string.Create(
+                CultureInfo.InvariantCulture,
+                $"{Field}{tally.Perspective,-16}{Cycles(tally.Cycles.Count)}, {tally.Raised} raised{(tally.Cycles.Count >= ProposeConstraints.Bar ? "  -- at the bar" : string.Empty)}"));
+        }
+    }
+
+    /// <summary>
+    /// What the builds wrote down and left alone, from their commits.
+    /// </summary>
+    private static void Noticed(StringBuilder output, ProposeConstraints.Response response)
+    {
+        if (response.Noticed.Count == 0)
+        {
+            return;
+        }
+
+        output.AppendLine();
+        output.AppendLine(string.Create(
+            CultureInfo.InvariantCulture,
+            $"{Indent}Noticed in a build and left alone — {response.Noticed.Count}"));
+
+        foreach (IGrouping<CycleId, Noticed> group in response.Noticed
+            .GroupBy(line => line.Cycle)
+            .OrderBy(group => group.Key.ToString(), StringComparer.Ordinal))
+        {
+            output.AppendLine();
+            output.AppendLine(Field + group.Key.ToString());
+
+            foreach (Noticed line in group)
+            {
+                output.AppendLine(Body + (line.Perspective is { } perspective ? "[" + perspective + "] " : string.Empty) + line.Statement);
+            }
+        }
+    }
+
+    private static string Tag(string? perspective) => perspective is null ? string.Empty : "  [" + perspective + "]";
 
     /// <summary>
     /// The cycles somebody stopped, under their own heading.

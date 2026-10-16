@@ -50,6 +50,8 @@ It counts, groups and allocates. It forms no opinion.
 | rules cited in three or more **distinct cycles** | two is coincidence, three is a pattern |
 | rules cited in two cycles, as a count only | named so the report is honest, withheld so the bar means something |
 | findings that rested on **no rule** | a reader saw something real that nothing forbade |
+| each **perspective** that raised such things, by distinct cycle, marked at the bar | where a rule is most likely missing: perspectives have none until their suggestions earn them (D-90) |
+| what the builds **noticed** and left alone, tagged with a perspective where one asked | the other store of suggestions, from the commits |
 | cycles that **stopped**, with the hand-written reason | the best evidence in the repository, and the kind nothing can tally |
 | the next free `LOC_` id, what is in force, what is superseded | the bookkeeping |
 | what a person **already refused** | so you do not ask twice |
@@ -57,6 +59,12 @@ It counts, groups and allocates. It forms no opinion.
 Distinct cycles, not findings. Three findings against one rule inside a single cycle is one artifact
 going round the loop; the same rule blocking three separate cycles is a solution walking into the same
 wall.
+
+**A perspective at the bar is where to read first, not a candidate by itself.** The count says the
+perspective kept finding *something*; whether its findings and noticed lines are one objection worded
+differently is your reading. Group its statements by the problem underneath, and an objection that recurs
+across three cycles is an **Add** like any other — with the perspective named in its evidence, because
+that is the perspective whose suggestions earned it.
 
 ## Your four sections
 

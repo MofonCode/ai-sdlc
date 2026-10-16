@@ -79,6 +79,27 @@ public sealed class FindingsTests
     }
 
     [TestMethod]
+    public void A_finding_names_the_perspective_that_raised_it_and_only_a_real_one()
+    {
+        // Recurrence is counted by perspective name, so a misspelt one would be a perspective of its own
+        // with a count of one, and the real one would read as recurring less than it did.
+        Result<FindingsRound> named = FindingsReader.Read(
+            """{ "round": 1, "findings": [{ "id": "security.F_01", "severity": "suggestion", "disposition": "open", "perspective": "security", "statement": "something." }] }""",
+            "test");
+
+        Assert.IsTrue(named.IsSuccess, string.Join("; ", named.Errors.Select(e => e.Message)));
+        Assert.AreEqual("security", named.Value.Findings.Single().Perspective);
+
+        Result<FindingsRound> misspelt = FindingsReader.Read(
+            """{ "round": 1, "findings": [{ "id": "F_01", "severity": "suggestion", "disposition": "open", "perspective": "secruity", "statement": "something." }] }""",
+            "spec.r1.json");
+
+        Assert.IsTrue(misspelt.IsFailed);
+        Assert.IsTrue(misspelt.Errors.Any(e => e.Message.Contains("'secruity'", StringComparison.Ordinal)
+            && e.Message.Contains("maintainability", StringComparison.Ordinal)));
+    }
+
+    [TestMethod]
     public void Invalid_json_is_reported_with_the_source_named()
     {
         Result<FindingsRound> result = FindingsReader.Read("{ not json", "spec.r1.json");

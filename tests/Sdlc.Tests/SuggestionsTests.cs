@@ -199,6 +199,23 @@ public sealed class SuggestionsTests
         StringAssert.Contains(rendered, "the reference slice is still there");
     }
 
+    [TestMethod]
+    [DataRow("[security] the token is logged on failure.", "security", "the token is logged on failure.")]
+    [DataRow("the token is logged on failure.", null, "the token is logged on failure.")]
+    [DataRow("[not a tag] the token is logged.", null, "[not a tag] the token is logged.")]
+    [DataRow("[security]", null, "[security]")]
+    public void A_noticed_line_may_carry_the_perspective_that_asked_for_it(string line, string? perspective, string statement)
+    {
+        // The tag is how a build's suggestion reaches the per-perspective count. A bracket that cannot be
+        // a name, or a tag with nothing after it, is left as the statement rather than guessed at.
+        Assert.IsTrue(CycleId.TryParse("20261005_0424_24", out CycleId? id));
+
+        var noticed = Noticed.From(id.Value, line);
+
+        Assert.AreEqual(perspective, noticed.Perspective);
+        Assert.AreEqual(statement, noticed.Statement);
+    }
+
     private static async Task<IReadOnlyList<Suggestion>> Collect(
         CycleWorkspace workspace,
         bool all = false)

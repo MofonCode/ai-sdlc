@@ -58,9 +58,8 @@ public static class SuggestionsRenderer
                 .OrderBy(s => s.Artifact)
                 .ThenBy(s => s.Finding.Id, StringComparer.Ordinal))
             {
-                string cites = suggestion.Finding.Cites?.Id is { } id
-                    ? "  " + id
-                    : string.Empty;
+                string cites = (suggestion.Finding.Cites?.Id is { } id ? "  " + id : string.Empty)
+                    + (suggestion.Finding.Perspective is { } perspective ? "  [" + perspective + "]" : string.Empty);
 
                 output.AppendLine(string.Create(
                     CultureInfo.InvariantCulture,
@@ -113,7 +112,7 @@ public static class SuggestionsRenderer
 
             foreach (Noticed noticed in group)
             {
-                output.AppendLine(Indent + "        " + noticed.Statement);
+                output.AppendLine(Indent + "        " + (noticed.Perspective is { } perspective ? "[" + perspective + "] " : string.Empty) + noticed.Statement);
             }
         }
     }

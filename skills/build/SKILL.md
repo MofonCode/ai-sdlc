@@ -75,7 +75,9 @@ sdlc perspective show <name> --for build --cover
 
 Hardening the plan already decided, applied as you write — validation at the boundary, no secret in source,
 the evidence a perspective needs recorded with the rest. **It never widens the plan**: a perspective asking
-for something the plan did not describe is a `Noticed:` line, as anything else is.
+for something the plan did not describe is a `Noticed:` line, as anything else is — **tagged with the
+perspective**, `Noticed: [security] the token is logged when the call fails.`, so it counts for that
+perspective when `sdlc propose constraints` reads the history.
 
 ## Implement the plan, and only the plan
 

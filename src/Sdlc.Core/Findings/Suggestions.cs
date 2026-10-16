@@ -100,40 +100,12 @@ public static class Suggestions
                     suggestions.AddRange(Standing(cycle, kind, history.Value));
                 }
 
-                noticed.AddRange(Noticed(cycle, integration));
+                noticed.AddRange(Findings.Noticed.OfCycle(repository, solution.Path, cycle.Id, integration));
             }
 
             return errors.Count > 0
                 ? Result.Fail<Response>(errors)
                 : Result.Ok(new Response(suggestions, noticed));
-        }
-
-        /// <summary>
-        /// What one cycle's builds wrote down and left alone.
-        /// </summary>
-        /// <remarks>
-        /// Read from the cycle's own build branches, measured from where each diverged, so a merged cycle
-        /// whose branches are gone contributes nothing rather than failing. Silence here is not an error: a
-        /// cycle that has not been built yet has no commits to read, which is the ordinary case for most of
-        /// the cycles this command walks. Every branch a build can run on is read — by hand, unattended, or
-        /// the bare branch of a cycle opened before those (D-85) — and a line two of them carry is one.
-        /// </remarks>
-        private IEnumerable<Noticed> Noticed(Cycle cycle, string integration)
-        {
-            string[] branches =
-            [
-                cycle.Id.BranchName(CycleBranchKind.BuildUnattended),
-                cycle.Id.BranchName(CycleBranchKind.Build),
-                cycle.Id.BranchName(),
-            ];
-
-            return branches
-                .SelectMany(branch => repository.MergeBase(solution.Path, branch, integration) is { } divergence
-                    ? repository.CommitMessages(solution.Path, branch, divergence)
-                    : [])
-                .SelectMany(Findings.Noticed.ReadAll)
-                .Distinct(StringComparer.Ordinal)
-                .Select(statement => new Noticed(cycle.Id, statement));
         }
 
         /// <summary>

@@ -6,6 +6,7 @@ using MofonCode.Core;
 using Sdlc.Core.Constraints;
 using Sdlc.Core.Cycles;
 using Sdlc.Core.Findings;
+using Sdlc.Core.Git;
 using Sdlc.Core.Solutions;
 
 namespace Sdlc.Core.Proposals;
@@ -44,7 +45,23 @@ public sealed record Recurrence(
 /// <param name="Artifact">Which artifact it was raised against.</param>
 /// <param name="Id">The finding's id within that cycle and artifact.</param>
 /// <param name="Statement">What the reader said was wrong.</param>
-public sealed record Uncited(CycleId Cycle, ArtifactKind Artifact, string Id, string Statement);
+/// <param name="Perspective">The perspective whose reader raised it, or null for the round's own reader.</param>
+public sealed record Uncited(CycleId Cycle, ArtifactKind Artifact, string Id, string Statement, string? Perspective = null);
+
+/// <summary>
+/// How often one perspective raised something no rule forbade, counted by distinct cycle.
+/// </summary>
+/// <remarks>
+/// <strong>A count of where to look, not a claim that the items are one problem.</strong> A perspective
+/// has no rules until its suggestions earn them (D-90), so this is how a person sees which perspective
+/// keeps finding things: a perspective at <see cref="ProposeConstraints.Bar"/> or more cycles is where a
+/// rule is most likely missing. Whether its statements are the same objection worded differently is
+/// reading, and the skill does it.
+/// </remarks>
+/// <param name="Perspective">The perspective.</param>
+/// <param name="Cycles">The cycles it raised something in, oldest first.</param>
+/// <param name="Raised">How many findings and noticed lines it accounts for.</param>
+public sealed record PerspectiveTally(string Perspective, IReadOnlyList<CycleId> Cycles, int Raised);
 
 /// <summary>
 /// A cycle that stopped, and the reason somebody wrote by hand.
@@ -164,6 +181,13 @@ public static class ProposeConstraints
     /// <param name="Uncited">Findings that rested on no rule, which is where a missing rule shows.</param>
     /// <param name="Stopped">Cycles that ended, with the reasons somebody wrote.</param>
     /// <param name="Cycles">How many cycles the corpus held, so a thin report says why it is thin.</param>
+    /// <param name="Noticed">
+    /// What the builds wrote down and left alone, from their commits. Suggestions too, in the other store:
+    /// a perspective asking for something a plan did not describe is a tagged <c>Noticed:</c> line.
+    /// </param>
+    /// <param name="Perspectives">
+    /// Each perspective that raised something, counted by distinct cycle across both stores, most first.
+    /// </param>
     public sealed record Response(
         ConstraintId NextId,
         int InForce,
@@ -173,7 +197,9 @@ public static class ProposeConstraints
         IReadOnlyList<Recurrence> BelowBar,
         IReadOnlyList<Uncited> Uncited,
         IReadOnlyList<Stopped> Stopped,
-        int Cycles)
+        int Cycles,
+        IReadOnlyList<Noticed> Noticed,
+        IReadOnlyList<PerspectiveTally> Perspectives)
     {
         /// <summary>
         /// Whether the history yielded anything to argue about.
@@ -189,14 +215,15 @@ public static class ProposeConstraints
         /// command that printed candidates from two cycles would be teaching the bar is negotiable.
         /// </para>
         /// </remarks>
-        public bool HasMaterial => Recurrences.Count > 0 || Uncited.Count > 0 || Stopped.Count > 0;
+        public bool HasMaterial => Recurrences.Count > 0 || Uncited.Count > 0 || Stopped.Count > 0 || Noticed.Count > 0;
     }
 
     /// <summary>
     /// Walks every cycle and folds what the readers said into counts.
     /// </summary>
     /// <param name="solution">The root of the solution being read.</param>
-    private sealed class Handler(SolutionRoot solution) : IRequestHandler<Query, Response>
+    /// <param name="repository">Git, for the <c>Noticed:</c> lines the builds left in their commits.</param>
+    private sealed class Handler(SolutionRoot solution, IRepository repository) : IRequestHandler<Query, Response>
     {
         /// <inheritdoc />
         public async Task<Result<Response>> Handle(Query request, CancellationToken cancellationToken)
@@ -219,7 +246,10 @@ public static class ProposeConstraints
             List<Cited> cited = [];
             List<Uncited> uncited = [];
             List<Stopped> stopped = [];
+            List<Noticed> noticed = [];
             List<IError> errors = [];
+            string integration = await SolutionDocument.IntegrationBranchOf(solution.Path, cancellationToken)
+                .ConfigureAwait(false);
 
             foreach (Cycle cycle in cycles)
             {
@@ -237,6 +267,8 @@ public static class ProposeConstraints
 
                     Sort(cycle, kind, history.Value, cited, uncited);
                 }
+
+                noticed.AddRange(Noticed.OfCycle(repository, solution.Path, cycle.Id, integration));
 
                 if (cycle.IsAbandoned)
                 {
@@ -260,8 +292,25 @@ public static class ProposeConstraints
                 [.. grouped.Where(recurrence => recurrence.Cycles.Count is > 1 and < Bar)],
                 uncited,
                 stopped,
-                cycles.Count));
+                cycles.Count,
+                noticed,
+                [.. Tally(uncited, noticed)]));
         }
+
+        /// <summary>Counts each perspective's suggestions by distinct cycle, across both stores.</summary>
+        private static IEnumerable<PerspectiveTally> Tally(List<Uncited> uncited, List<Noticed> noticed) => uncited
+            .Where(finding => finding.Perspective is not null)
+            .Select(finding => (Perspective: finding.Perspective!, finding.Cycle))
+            .Concat(noticed
+                .Where(line => line.Perspective is not null)
+                .Select(line => (Perspective: line.Perspective!, line.Cycle)))
+            .GroupBy(entry => entry.Perspective, StringComparer.OrdinalIgnoreCase)
+            .Select(group => new PerspectiveTally(
+                group.Key,
+                [.. group.Select(entry => entry.Cycle).Distinct().OrderBy(id => id.ToString(), StringComparer.Ordinal)],
+                group.Count()))
+            .OrderByDescending(tally => tally.Cycles.Count)
+            .ThenBy(tally => tally.Perspective, StringComparer.Ordinal);
 
         /// <summary>
         /// Every mention of every finding, flattened into the two piles that matter.
@@ -303,7 +352,7 @@ public static class ProposeConstraints
                 // says did not exist.
                 if (finding.Disposition != Disposition.Withdrawn)
                 {
-                    uncited.Add(new Uncited(cycle.Id, kind, finding.Id, finding.Statement));
+                    uncited.Add(new Uncited(cycle.Id, kind, finding.Id, finding.Statement, finding.Perspective));
                 }
             }
         }

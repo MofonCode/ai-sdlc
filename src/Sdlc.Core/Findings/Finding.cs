@@ -115,6 +115,12 @@ public sealed record Citation(string? Id, string? Heading)
 /// <param name="Remedy">What would fix it.</param>
 /// <param name="DispositionBy">Who moved it off open, when someone did.</param>
 /// <param name="DispositionAt">When it was moved off open.</param>
+/// <param name="Perspective">
+/// The perspective whose reader raised it, or null for the round's own reader (D-90). A field rather than
+/// the id prefix the readers also carry, because a suggestion becomes a rule by recurring, and recurrence
+/// is counted per perspective: a prefix nothing checks is one a reconciling reader can drop, and then the
+/// count is quietly wrong.
+/// </param>
 public sealed record Finding(
     string Id,
     Severity Severity,
@@ -124,7 +130,8 @@ public sealed record Finding(
     string? Locus = null,
     string? Remedy = null,
     string? DispositionBy = null,
-    DateTimeOffset? DispositionAt = null)
+    DateTimeOffset? DispositionAt = null,
+    string? Perspective = null)
 {
     /// <summary>Whether this finding stops the artifact advancing as things stand.</summary>
     public bool IsOpenBlocker => Severity == Severity.Blocking && Disposition == Disposition.Open;

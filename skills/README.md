@@ -1461,7 +1461,10 @@ Three subjects, three different records. **None is placed by the skill** — `co
   artifact going round the loop. It reads what `suggestions` deliberately cannot, closed findings and
   blocking ones. Candidates come in four sections — add, reword, supersede, and *belongs below a
   constraint*, usually the biggest, routing mechanical candidates to an analyzer, an architecture test or
-  `BannedSymbols.txt`, all of which fail a build. **Nothing is printed that would delete a rule**; a rule
+  `BannedSymbols.txt`, all of which fail a build. **A perspective's suggestions are counted too**: each
+  perspective that raised something no rule forbade is listed with the distinct cycles it did so in, across
+  the findings rounds and the builds' tagged `Noticed:` lines, and marked at three — perspectives have no
+  rules until their suggestions earn them (D-90). **Nothing is printed that would delete a rule**; a rule
   out of force gains `Superseded-by`. A refusal has a home under a hand-written `Considered and rejected`
   heading, which the command reads and stays quiet about. **Empty-handed is an ordinary answer**: it
   prints the next free `LOC_` id with its four parts empty and the three admission tests beside them.

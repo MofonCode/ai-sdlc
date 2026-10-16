@@ -1,7 +1,10 @@
 using System.Globalization;
 using FluentResults;
+using Microsoft.Extensions.DependencyInjection;
 using Sdlc.Core.Constraints;
 using Sdlc.Core.Cycles;
+using Sdlc.Core.Findings;
+using Sdlc.Core.Git;
 using Sdlc.Core.Proposals;
 using Sdlc.Core.Reports;
 
@@ -100,6 +103,54 @@ public sealed class ProposeConstraintsTests
         Assert.AreEqual("F_07", only.Id);
         Assert.AreEqual(ArtifactKind.Spec, only.Artifact);
         Assert.AreNotEqual(0, only.Statement.Length, "The statement is the material the skill reads.");
+    }
+
+    [TestMethod]
+    public async Task A_perspective_raising_something_in_three_cycles_is_at_the_bar()
+    {
+        // A perspective has no rules until its suggestions earn them, so the count that matters is which
+        // perspective keeps finding things. Distinct cycles, as for a rule: two findings in one cycle are
+        // one cycle.
+        using var workspace = CycleWorkspace.Create();
+
+        foreach (string id in new[] { "20260901_0900_01", "20260902_0900_02", "20260903_0900_03" })
+        {
+            Round(Elsewhere(workspace, id), 1, Suggested("security.F_01", "security"));
+        }
+
+        Round(Elsewhere(workspace, "20260904_0900_04"), 1, Suggested("F_02", null));
+
+        ProposeConstraints.Response report = await Read(workspace);
+
+        PerspectiveTally only = report.Perspectives.Single();
+        Assert.AreEqual("security", only.Perspective);
+        Assert.AreEqual(3, only.Cycles.Count);
+        Assert.AreEqual(4, report.Uncited.Count, "The round's own reader's suggestion is still handed over.");
+        StringAssert.Contains(ProposalsRenderer.Render(report), "at the bar");
+    }
+
+    [TestMethod]
+    public async Task A_tagged_noticed_line_counts_for_its_perspective()
+    {
+        // The other store. A perspective asking a build for something its plan did not describe is a
+        // Noticed line, and those were read only by 'sdlc suggestions', so they never reached the count.
+        using var workspace = CycleWorkspace.Create();
+        Round(Elsewhere(workspace, "20260901_0900_01"), 1, Suggested("operability.F_01", "operability"));
+
+        FakeRepository git = new()
+        {
+            Base = "abc123",
+            Messages = ["Build it\n\nNoticed: [operability] the retry loop logs nothing when it gives up.\nNoticed: the README is out of date."],
+        };
+
+        ProposeConstraints.Response report = await Read(workspace, git);
+
+        Assert.IsTrue(report.Noticed.Any(line => line.Perspective == "operability"));
+        Assert.IsTrue(report.Noticed.Any(line => line.Perspective is null));
+
+        PerspectiveTally operability = report.Perspectives.Single();
+        Assert.AreEqual(2, operability.Cycles.Count, "The workspace's own cycle and the one with the round.");
+        StringAssert.Contains(ProposalsRenderer.Render(report), "[operability] the retry loop");
     }
 
     [TestMethod]
@@ -323,9 +374,11 @@ public sealed class ProposeConstraintsTests
     }
 
     /// <summary>Dispatches the request the way the application composes it.</summary>
-    private static async Task<ProposeConstraints.Response> Read(CycleWorkspace workspace)
+    private static async Task<ProposeConstraints.Response> Read(CycleWorkspace workspace, FakeRepository? git = null)
     {
-        using var gate = Gate.For(workspace.Root);
+        using Gate gate = git is null
+            ? Gate.For(workspace.Root)
+            : Gate.For(workspace.Root, services => services.AddSingleton<IRepository>(git));
 
         Result<ProposeConstraints.Response> result = await gate
             .Send<ProposeConstraints.Query, ProposeConstraints.Response>(new ProposeConstraints.Query());
@@ -397,6 +450,18 @@ public sealed class ProposeConstraintsTests
                 "findings": [{{finding}}]
               }
               """));
+
+    private static string Suggested(string id, string? perspective) => string.Create(
+        CultureInfo.InvariantCulture,
+        $$"""
+          {
+            "id": "{{id}}",
+            "severity": "suggestion",
+            "disposition": "open",
+            {{(perspective is null ? string.Empty : "\"perspective\": \"" + perspective + "\",")}}
+            "statement": "nothing says what a refused caller is told."
+          }
+          """);
 
     private static string Blocker(string id, string cites, string disposition) => string.Create(
         CultureInfo.InvariantCulture,

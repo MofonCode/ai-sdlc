@@ -239,6 +239,7 @@ public sealed class PublicSurfaceTests
         // the response -- and the three records are part of that response rather than types of their own
         // standing. The renderer is here and not in Constraints because this reads the findings as well
         // as the rules, and a namespace that depended on both would put a cycle between the two.
+        "Sdlc.Core.Proposals.PerspectiveTally",
         "Sdlc.Core.Proposals.ProposalsRenderer",
         "Sdlc.Core.Proposals.ProposeConstraints",
         "Sdlc.Core.Proposals.ProposeConstraints+Query",

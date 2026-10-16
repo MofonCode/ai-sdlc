@@ -681,7 +681,10 @@ with a finding.
 
 **Blocking or a suggestion, as every finding is.** Only a finding citing a rule blocks; what a method finds
 beyond the rules is a suggestion, and a suggestion that keeps recurring is what `propose constraints` turns
-into a rule. **Two perspectives contradicting** apply neither: both become suggestions, each referring to the
+into a rule. **So a suggestion carries the perspective that raised it** — a finding's `perspective` field,
+checked against the perspectives the binary carries, and a build's `Noticed: [name]` line — and
+`propose constraints` counts each perspective by the distinct cycles it raised something in, across both
+stores. A perspective starts with no rules, and this count is how it earns them. **Two perspectives contradicting** apply neither: both become suggestions, each referring to the
 other. A rule beats a method finding; two rules that cannot both be met are a conflict (D-64).
 
 **What is built.** The document format, embedded under `Perspectives/`; `sdlc perspectives <id>` and

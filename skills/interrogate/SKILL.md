@@ -157,7 +157,10 @@ sdlc perspective show <name> --for <artifact>
 
 — its method, the questions it asks of this artifact, the rules it may block on and the evidence it
 needs — then the artifact above in the chain and the artifact itself. Ask it for findings in the same JSON
-shape, with ids prefixed by the perspective: `security.F_01`.
+shape, with ids prefixed by the perspective — `security.F_01` — and **set `"perspective": "<name>"` on
+every one of them when you write the round.** The field is what `sdlc propose constraints` counts a
+perspective's suggestions by across cycles; the prefix is only for reading, and a round naming a perspective
+the binary does not carry is rejected when it is read back. The round's own reader leaves the field out.
 
 > **A perspective's finding blocks only when it cites a rule the perspective lists.** Everything else its
 > method finds is a `suggestion`. A suggestion that keeps recurring is what `sdlc propose constraints`
@@ -169,7 +172,7 @@ It decides nothing about the document. For each pair it names:
 
 | The pair | becomes |
 |---|---|
-| two findings neither citing a rule | **both suggestions**, neither applied: each keeps its statement and gains "contradicts `<the other id>`", so a person reviewing the round sees the contradiction and decides what becomes a future intent |
+| two findings neither citing a rule | **both suggestions**, neither applied: each keeps its statement and its `perspective`, and gains "contradicts `<the other id>`", so a person reviewing the round sees the contradiction and decides what becomes a future intent |
 | a finding citing a rule, and one that does not | the rule's finding stands; the other becomes a suggestion naming the rule it ran into |
 | two findings citing two rules | a `conflict` between the two rules, as the first reader would report one (D-64) |
 

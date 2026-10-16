@@ -2,9 +2,9 @@ using System.Globalization;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using FluentResults;
-using Sdlc.Core.Cycles;
-
 using Sdlc.Core.Constraints;
+using Sdlc.Core.Cycles;
+using Sdlc.Core.Perspectives;
 
 namespace Sdlc.Core.Findings;
 
@@ -47,6 +47,10 @@ public sealed record FindingsRound(
 /// <summary>Reads interrogation rounds off disk.</summary>
 public static class FindingsReader
 {
+    private static readonly Lazy<HashSet<string>> _perspectives = new(() => PerspectiveLibrary.All() is { IsSuccess: true } all
+        ? [.. all.Value.Select(perspective => perspective.Name)]
+        : []);
+
     private static readonly JsonSerializerOptions _options = new()
     {
         PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower,
@@ -122,6 +126,19 @@ public static class FindingsReader
                     return Result.Fail<FindingsRound>(string.Create(
                         CultureInfo.InvariantCulture,
                         $"{source}: finding {finding.Id} cites '{finding.Cites.Id}' and gives no heading. A citation carries the rule's one line beside its id, copied from the set the round was judged against, so that reading the finding does not mean resolving the id."));
+                }
+            }
+
+            // A perspective a finding names has to be one the binary carries. Recurrence is counted by
+            // perspective name, so a misspelt one would be a perspective of its own with a count of one,
+            // and the real one would read as recurring less than it did.
+            foreach (Finding finding in round.Findings.Where(finding => finding.Perspective is not null))
+            {
+                if (!_perspectives.Value.Contains(finding.Perspective!))
+                {
+                    return Result.Fail<FindingsRound>(string.Create(
+                        CultureInfo.InvariantCulture,
+                        $"{source}: finding {finding.Id} names perspective '{finding.Perspective}', which is not one the binary carries. Written so far: {string.Join(", ", _perspectives.Value.Order(StringComparer.Ordinal))}."));
                 }
             }
 
