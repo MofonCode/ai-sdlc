@@ -242,6 +242,7 @@ declining to go on, exit code 1. An open blocker causes refusals; it is not one.
 | **the factory** | a pipeline that runs `batch-build --pr --unattended` against the integration branch every night. It finds, builds, verifies and opens pull requests, and **never merges** | `sdlc factory` |
 | **a draft pull request** | what a cycle that did not pass gets: its attempted code, verify and evidence, marked not ready, so a person picks it up rather than the factory building it again | `/sdlc:pr <id> --draft` |
 | **the sitrep** | the morning's page: what is ready to merge and in what order, what needs a person, what was held back and why, what is waiting and going stale | `sdlc sitrep` |
+| **a perspective** | a way of examining a change — security, operability, maintainability, accessibility, UI/UX and others — that steers authoring with a short list per stage and judges in a fresh reader of its own. Only a finding citing a rule it lists blocks; the rest are suggestions | `sdlc perspectives <id>`, `sdlc perspective show <name> --for <stage>` |
 | **a lead** | anything a person can hand `intent` to begin a cycle: `azuredevops:1234`, `github:56`, `suggestion:<cycle>/<finding>`, or a path. Its outside text is untrusted, and the interview still happens | `sdlc lead show <reference>`, `/sdlc:intent --from <lead>` |
 
 ### The three layers, and what each stops

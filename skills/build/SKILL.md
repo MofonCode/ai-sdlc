@@ -66,6 +66,17 @@ the bare `cycle/<id>` of an older cycle. Inside a batch, `batch-build` has alrea
 `cycle/<id>/build-unattended`; stay there. Everything below measures the change from where this branch
 diverged, so building on the integration or default branch directly makes the diff meaningless.
 
+## Read what each perspective asks of a build
+
+```
+sdlc perspectives <id>
+sdlc perspective show <name> --for build --cover
+```
+
+Hardening the plan already decided, applied as you write — validation at the boundary, no secret in source,
+the evidence a perspective needs recorded with the rest. **It never widens the plan**: a perspective asking
+for something the plan did not describe is a `Noticed:` line, as anything else is.
+
 ## Implement the plan, and only the plan
 
 Read `plan.md`. Implement what `Shape and departures` decided and what `Proof` committed to.

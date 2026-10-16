@@ -165,6 +165,14 @@ public sealed class PublicSurfaceTests
         "Sdlc.Core.Operate.RunOperate+Response",
         "Sdlc.Core.Operate.Scrub",
         "Sdlc.Core.Operate.TelemetryError",
+
+        // 'sdlc perspective show' and 'sdlc perspectives': the method documents, and which a cycle gets (D-90).
+        "Sdlc.Core.Perspectives.ActivePerspectives",
+        "Sdlc.Core.Perspectives.ActivePerspectives+Active",
+        "Sdlc.Core.Perspectives.ActivePerspectives+Query",
+        "Sdlc.Core.Perspectives.ActivePerspectives+Response",
+        "Sdlc.Core.Perspectives.Perspective",
+        "Sdlc.Core.Perspectives.PerspectiveLibrary",
         "Sdlc.Core.Cycles.CycleBranchKind",
 
         // 'sdlc branch <id> <kind>': which branch a kind of work starts on and from what.

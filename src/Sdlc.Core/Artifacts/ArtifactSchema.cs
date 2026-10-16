@@ -101,14 +101,15 @@ public static class ArtifactSchema
     /// </summary>
     /// <remarks>
     /// An intent may record the lead it began from (D-89) — so the cycle's pull request can link and close the
-    /// item — and the release branch a fix is for (D-88). Most intents have neither, so neither is required;
+    /// item — the release branch a fix is for (D-88), and the perspectives beyond the three always on that the
+    /// change needs (D-90), named in the interview so the approval's hash covers them. Most intents have neither, so neither is required;
     /// both are checked when present, because a malformed one would be a link to nothing.
     /// </remarks>
     /// <param name="kind">Which artifact.</param>
     /// <returns>Its optional keys, which may be none.</returns>
     public static IReadOnlyList<string> OptionalKeysOf(ArtifactKind kind) => kind switch
     {
-        ArtifactKind.Intent => ["lead", "release"],
+        ArtifactKind.Intent => ["lead", "release", "perspectives"],
         _ => [],
     };
 

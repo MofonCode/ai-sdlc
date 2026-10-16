@@ -78,6 +78,8 @@ before step 11.
 | `sdlc factory` | binary | writes the factory's nightly pipeline for your platform. It never merges |
 | `sdlc lead show <reference>` | binary | a work item, issue, suggestion or file, in one shape for `intent --from` |
 | `sdlc operate --dry-run` | binary | what production raised, grouped and scrubbed, and what would be filed as a lead |
+| `sdlc perspectives <id>` | binary | which perspectives a cycle gets, and why |
+| `sdlc perspective show <name> --for <stage>` | binary | a perspective's method and questions for one stage; `--cover` for an author's list |
 | `sdlc sitrep` | binary | the morning's page: ready to merge and in what order, needs a person, held back, going stale |
 | `sdlc cycles --queued` | binary | what a build would take now, and what is held back and why |
 | `sdlc cycles --claims` | binary | which files each cycle claims |

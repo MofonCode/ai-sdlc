@@ -684,7 +684,13 @@ beyond the rules is a suggestion, and a suggestion that keeps recurring is what 
 into a rule. **Two perspectives contradicting** apply neither: both become suggestions, each referring to the
 other. A rule beats a method finding; two rules that cannot both be met are a conflict (D-64).
 
-**Not built yet.**
+**What is built.** The document format, embedded under `Perspectives/`; `sdlc perspectives <id>` and
+`sdlc perspective show`; the intent's `perspectives` key; `intent`, `spec`, `plan` and `build` reading the
+cover lists, `interrogate` running a reader per perspective and a reconciling reader, `verify` asking each
+perspective's questions of the evidence. **Security is the one perspective written**, and it has no rules of
+its own yet, so everything it finds is a suggestion until rules are adopted. Operability and maintainability
+are listed as always on and not yet written. The fixtures that prove a perspective catches its planted
+defect need a model to run, so they are an evaluation outside the suite and are not built.
 
 ---
 
@@ -1923,6 +1929,8 @@ they print verbatim.
 | `factory` | writes the factory's pipeline for the recorded platform: nightly `batch-build --pr --unattended` against the integration branch, one run at a time, inside a time limit, proving the gate refuses before it builds (D-84) |
 | `lead show <reference>` | a lead — `azuredevops:`, `github:`, `suggestion:` or a path — fetched and printed in one shape, its outside text fenced as untrusted, for `intent --from` (D-89) |
 | `operate [--since <hours>h] [--dry-run]` | Operate: production's errors from the declared telemetry store, grouped by signature, scrubbed of personal data, deduplicated against what is filed, and filed as bugs on the platform's tracker (D-89) |
+| `perspective show <name> --for <stage> [--cover]` | one perspective for one stage: its method and the questions a fresh reader asks, or with `--cover` the author's short list (D-90) |
+| `perspectives <id>` | which perspectives a cycle gets and why — always on, named by the intent, or brought by the plan's declared files (D-90) |
 | `sitrep` | the morning's page: what is ready to merge and in what order, what needs a person, what was held back, what is waiting and going stale (D-84, D-86) |
 | `cycles --queued` | what a build would take now, and every cycle held back with why — a `cycle/<id>/...` branch on the remote, or an approval the gate no longer accepts (D-85) |
 | `suggestions [<id>]` | the open non-blocking findings, across cycles |

@@ -138,7 +138,52 @@ person meeting the finding meets the rule with it.
 of what was actually judged -- so the line has to be the one that was read. A citation with no heading is
 rejected when the round is read back.
 
+## Then a reader per perspective
+
+The reader above judges the document against the rules. **A perspective brings a way of looking** —
+security traces trust boundaries, operability asks what a person on call could tell at 3 a.m. — and each
+runs in a fresh process of its own (`CONCEPT.md` §6.5, D-90):
+
+```
+sdlc perspectives <id>
+```
+
+For every perspective it lists as written, open **one more fresh process**, concurrently with the others —
+they share nothing. Hand it exactly this, and nothing else:
+
+```
+sdlc perspective show <name> --for <artifact>
+```
+
+— its method, the questions it asks of this artifact, the rules it may block on and the evidence it
+needs — then the artifact above in the chain and the artifact itself. Ask it for findings in the same JSON
+shape, with ids prefixed by the perspective: `security.F_01`.
+
+> **A perspective's finding blocks only when it cites a rule the perspective lists.** Everything else its
+> method finds is a `suggestion`. A suggestion that keeps recurring is what `sdlc propose constraints`
+> turns into a rule; a perspective reader inventing a blocker is the waiver of D-27 run backwards.
+
+Then **one reconciling reader**, in a fresh process of its own: hand it the artifact and every finding this
+round's readers raised, and nothing else, and ask only which pairs of findings cannot both be answered.
+It decides nothing about the document. For each pair it names:
+
+| The pair | becomes |
+|---|---|
+| two findings neither citing a rule | **both suggestions**, neither applied: each keeps its statement and gains "contradicts `<the other id>`", so a person reviewing the round sees the contradiction and decides what becomes a future intent |
+| a finding citing a rule, and one that does not | the rule's finding stands; the other becomes a suggestion naming the rule it ran into |
+| two findings citing two rules | a `conflict` between the two rules, as the first reader would report one (D-64) |
+
+**Why one reconciler after, and not readers that see each other.** A reader shown earlier findings is
+anchored by them, order would decide whose finding survives, and the readers would run one at a time. So
+they run blind and in parallel, and one reader reads the round whole.
+
+**A perspective listed as not written yet has nothing to run.** Say so in one line of the report; it is a
+gap, not a pass.
+
 ## Write the round
+
+**One round, whatever ran**: the rules reader's findings, every perspective's, and the reconciler's
+changes to them, in one file. A round is clean when every reader was silent.
 
 `.sdlc/cycles/<id>/findings/<artifact>.r<n>.json`:
 

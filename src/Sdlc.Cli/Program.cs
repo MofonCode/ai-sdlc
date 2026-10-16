@@ -70,6 +70,8 @@ try
         "factory" => await Workspace.Run(line, FactoryCommand).ConfigureAwait(false),
         "lead" => await LeadCommand(line).ConfigureAwait(false),
         "operate" => await Workspace.Run(line, w => OperateCommand(w, line)).ConfigureAwait(false),
+        "perspective" => await PerspectiveCommand(line).ConfigureAwait(false),
+        "perspectives" => await WithCycle(line, "perspectives", PerspectivesCommand).ConfigureAwait(false),
         "pr-ready" => await AskPrReady(line).ConfigureAwait(false),
         "draft" => await Draft(line).ConfigureAwait(false),
         "propose" => await Propose(line).ConfigureAwait(false),
@@ -700,6 +702,48 @@ static async Task<int> OperateCommand(Workspace workspace, CommandLine line)
     }
 
     await Console.Out.WriteAsync(Sdlc.Core.Operate.RunOperate.Render(result.Value)).ConfigureAwait(false);
+    return ExitCode.Ok;
+}
+
+// One perspective for one stage (D-90): the full method and questions for a fresh reader, or with --cover the
+// short list an author works from. A skill pastes what this prints and never restates it.
+static async Task<int> PerspectiveCommand(CommandLine line)
+{
+    if (line.Arguments.Count < 2 || !string.Equals(line.Arguments[0], "show", StringComparison.OrdinalIgnoreCase)
+        || !line.TryOption("for", out string? stage)
+        || !Sdlc.Core.Perspectives.Perspective.Stages.Contains(stage.ToLowerInvariant()))
+    {
+        await Console.Error.WriteLineAsync(
+            "Show which perspective, for which stage? As in 'sdlc perspective show security --for spec' -- intent, spec, plan, build or verify. Add --cover for an author's short list.")
+            .ConfigureAwait(false);
+        return ExitCode.Usage;
+    }
+
+    Result<Sdlc.Core.Perspectives.Perspective> found = Sdlc.Core.Perspectives.PerspectiveLibrary.Find(line.Arguments[1]);
+
+    if (found.IsFailed)
+    {
+        return await Report(found, ExitCode.Usage).ConfigureAwait(false);
+    }
+
+    await Console.Out.WriteAsync(Sdlc.Core.Perspectives.ActivePerspectives.RenderStage(found.Value, stage.ToLowerInvariant(), line.HasOption("cover")))
+        .ConfigureAwait(false);
+    return ExitCode.Ok;
+}
+
+static async Task<int> PerspectivesCommand(Workspace workspace, CycleId id)
+{
+    Result<Sdlc.Core.Perspectives.ActivePerspectives.Response> result = await workspace
+        .Send<Sdlc.Core.Perspectives.ActivePerspectives.Query, Sdlc.Core.Perspectives.ActivePerspectives.Response>(
+            new Sdlc.Core.Perspectives.ActivePerspectives.Query(id))
+        .ConfigureAwait(false);
+
+    if (result.IsFailed)
+    {
+        return await Report(result, ExitCode.Failed).ConfigureAwait(false);
+    }
+
+    await Console.Out.WriteAsync(Sdlc.Core.Perspectives.ActivePerspectives.Render(result.Value)).ConfigureAwait(false);
     return ExitCode.Ok;
 }
 

@@ -13,6 +13,7 @@ using Sdlc.Core.Findings;
 using Sdlc.Core.Git;
 using Sdlc.Core.Leads;
 using Sdlc.Core.Operate;
+using Sdlc.Core.Perspectives;
 using Sdlc.Core.Hooks;
 using Sdlc.Core.Init;
 using Sdlc.Core.Decisions;
@@ -163,6 +164,9 @@ public static class SdlcServices
 
         // Operate: production's errors, grouped, scrubbed, deduplicated, filed as leads.
         services.AddRunOperateRequestHandler();
+
+        // Which perspectives a cycle gets, and why each (D-90).
+        services.AddActivePerspectivesRequestHandler();
 
         services.AddPullRequestHandler();
 

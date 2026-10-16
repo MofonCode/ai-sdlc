@@ -60,6 +60,19 @@ however the outcome reads. A genuine limit still belongs under `## Open`: the te
 and the difference is that it bounds a criterion that was met rather than standing in for one that
 was not.
 
+## Ask each perspective's questions of the evidence
+
+```
+sdlc perspectives <id>
+sdlc perspective show <name> --for verify
+```
+
+By now each perspective's concerns are criteria in the spec, and those are adjudicated above like any other.
+What a perspective adds here is its questions of the **evidence** — did the abuse case get attempted and
+refused, did the vulnerable-package scan run and what did it report (D-90). An answer that breaks a rule the
+perspective lists is a blocking finding citing that rule; anything else it finds is a suggestion. It never
+adds a criterion the spec did not state.
+
 ## Cite everything
 
 `CON_08` forbids a statement with no cited build output, test result or diff hunk — and equally forbids

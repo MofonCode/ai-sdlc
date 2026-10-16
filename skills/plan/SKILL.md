@@ -14,6 +14,21 @@ most closely and the one where an inadequate claim is most expensive.
 
 Run `sdlc constraints --for plan` first.
 
+**Then what each perspective asks you to cover** (D-90):
+
+```
+sdlc perspectives <id>
+sdlc perspective show <name> --for plan --cover
+```
+
+For each perspective written for this cycle, its short list of what this plan must cover. Write those in
+as you go — a perspective that only judges finds what it could have prevented, and its own fresh reader
+will look for exactly these when the round runs.
+
+**A declared file can bring a perspective the intent did not name.** `sdlc perspectives <id>` says so — a
+`.razor` file brings UI/UX and accessibility. Cover it here, and expect the plan's interrogation to raise
+that the intent missed it.
+
 ## Refuse early
 
 ```

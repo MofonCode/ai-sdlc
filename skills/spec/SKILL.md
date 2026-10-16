@@ -13,6 +13,17 @@ nothing in it was invented here: each criterion traces to something the intent a
 
 Run `sdlc constraints --for spec` first.
 
+**Then what each perspective asks you to cover** (D-90):
+
+```
+sdlc perspectives <id>
+sdlc perspective show <name> --for spec --cover
+```
+
+For each perspective written for this cycle, its short list of what this spec must cover. Write those in
+as you go — a perspective that only judges finds what it could have prevented, and its own fresh reader
+will look for exactly these when the round runs.
+
 ## Refuse early
 
 ```

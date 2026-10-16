@@ -73,6 +73,12 @@ internal static class Usage
                                      declares, grouped by signature, personal data stripped, and
                                      file each new one as a bug on the platform's tracker -- a lead.
                                      Not filed again while open, or once a person dismissed it.
+            perspective show <name> --for <stage> [--cover]
+                                     One perspective for one stage -- intent, spec, plan, build or
+                                     verify: its method, the questions a fresh reader asks, its
+                                     rules and its evidence; with --cover, the author's short list.
+            perspectives <id>        Which perspectives a cycle gets and why: always on, named by
+                                     the intent, or brought by the plan's declared files.
             sitrep                   The morning's page, in Markdown: built cycles ready to merge
                                      and in what order, with the ones expected to conflict;
                                      what needs a person; what was held back and why; what is

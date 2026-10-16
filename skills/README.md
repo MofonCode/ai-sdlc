@@ -442,14 +442,15 @@ directly.
 
 ### `interrogate`
 
-Judges one artifact against the constraints in force, in a fresh process, and writes a findings round.
-Never edits.
+Judges one artifact against the constraints in force, in a fresh process, then once more per perspective
+the cycle gets — each in a fresh process of its own — reconciles what they found, and writes one findings
+round. Never edits.
 
 | | |
 |---|---|
 | Stage | the loop, whenever an artifact — intent, spec, plan or verify document — has just been written or changed |
 | Started by | the stage skill's loop, or a person |
-| Reads | the constraints in force, the artifact, and the artifact above it — and on a plan round, `techstack.md` as well |
+| Reads | the constraints in force, the artifact, and the artifact above it — and on a plan round, `techstack.md` as well; `sdlc perspectives` and each perspective's `sdlc perspective show` for its readers |
 | Writes | `.sdlc/cycles/<id>/findings/<artifact>.r<n>.json` |
 
 #### Syntax

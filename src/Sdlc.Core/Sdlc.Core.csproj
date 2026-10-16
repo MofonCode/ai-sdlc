@@ -37,6 +37,14 @@
        and giving a profile its first rule is adding a file rather than wiring anything. WithCulture is
        off for the reason the templates give above: MSBuild reads a culture out of a second-to-last
        extension, and a profile named for a language is exactly where that would bite. -->
+  <!-- The perspectives, one document each (D-90). The resource names are the list, so giving the
+       framework a perspective is adding a file. -->
+  <ItemGroup>
+    <EmbeddedResource Include="Perspectives\*.md"
+                      LogicalName="Sdlc.Core.Perspectives.%(Filename).md"
+                      WithCulture="false" />
+  </ItemGroup>
+
   <ItemGroup>
     <EmbeddedResource Include="Constraints\Profiles\*.md"
                       LogicalName="Sdlc.Core.Profiles.%(Filename).md"

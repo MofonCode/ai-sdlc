@@ -155,6 +155,13 @@ and carry on.
 
 ## 4. Write it
 
+**Which perspectives the change needs, beyond the three always on** — security, operability,
+maintainability. Ask, in the interview, which areas the change touches: a user interface brings `ui-ux` and
+`accessibility`; infrastructure, `infrastructure`; stored data and migrations, `data`; a public API, `api`;
+a stated performance budget, `performance`. Write what applies as `perspectives:`, comma-separated, and
+leave the key out when nothing beyond the three applies. **It only adds**: the three are always on, and the
+approval's hash covers what you wrote, so the person sees how much scrutiny the cycle asked for (D-90).
+
 `.sdlc/cycles/<id>/intent.md`, exactly this shape:
 
 ```markdown
@@ -162,6 +169,7 @@ and carry on.
 framework_version: 1.0.0
 cycle: <id>
 type: feature addition
+perspectives: ui-ux, accessibility
 ---
 
 # <the problem, in one line, as the person would say it>
