@@ -54,6 +54,10 @@ internal static class Usage
                                      Print true when a pull request carries only the cycle's
                                      planning documents, so a pipeline may skip the build and
                                      tests; false for anything else. Always exits 0.
+            cycles --queued          What a build would take now -- approved, no verify, not
+                                     abandoned -- and every cycle held back, with why: a
+                                     cycle/<id>/... branch on the remote, or an approval the
+                                     gate no longer accepts. Deleting the branch re-queues it.
             pr-ready <id>            Say whether a cycle may open a pull request, without opening
                                      one. Exits 1 if not. For every cycle, 'cycles --pr-ready'.
             draft approval <id>      Write the gate decision beside the ledger, for a person to

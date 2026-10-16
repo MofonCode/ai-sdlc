@@ -77,6 +77,12 @@ internal sealed class FakeRepository : IRepository
 
     public string? MergeBase(string workingDirectory, string branch, string integrationBranch) => Base;
 
+    /// <summary>What <see cref="RemoteBranches"/> reports, or null for there being no remote.</summary>
+    public IReadOnlyList<string>? Remote { get; set; } = [];
+
+    public IReadOnlyList<string>? RemoteBranches(string workingDirectory, string prefix) =>
+        Remote?.Where(branch => branch.StartsWith(prefix, StringComparison.Ordinal)).ToList();
+
     /// <summary>What <see cref="CommittedChanges"/> reports, or null for git not being able to say.</summary>
     public IReadOnlyList<string>? Committed { get; set; }
 

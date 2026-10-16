@@ -8,6 +8,7 @@ using Sdlc.Core.Cycles;
 using Sdlc.Core.Diagnostics;
 using Sdlc.Core.Drafts;
 using Sdlc.Core.Evidence;
+using Sdlc.Core.Factory;
 using Sdlc.Core.Findings;
 using Sdlc.Core.Git;
 using Sdlc.Core.Hooks;
@@ -133,6 +134,10 @@ public static class SdlcServices
         services.AddNewCycleRequestHandler();
 
         services.AddComputeClaimGraphRequestHandler();
+
+        // The factory's queue: the claim graph's buildable cycles, less any a branch on the remote holds
+        // back. A listing, never a state file (D-85).
+        services.AddListQueuedCyclesRequestHandler();
 
         services.AddPullRequestHandler();
 

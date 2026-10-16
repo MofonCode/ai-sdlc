@@ -116,6 +116,14 @@ public sealed class PublicSurfaceTests
         // A cycle branch read back with its kind, D-85: plan, build, build-unattended, forward. Public
         // because the factory's skip rule and the sitrep read the remote's branches through it.
         "Sdlc.Core.Cycles.CycleBranch",
+
+        // 'sdlc cycles --queued': what the factory would build and what it would pass over (D-85).
+        "Sdlc.Core.Factory.QueuedRenderer",
+        "Sdlc.Core.Factory.ListQueuedCycles",
+        "Sdlc.Core.Factory.ListQueuedCycles+HeldBack",
+        "Sdlc.Core.Factory.ListQueuedCycles+Query",
+        "Sdlc.Core.Factory.ListQueuedCycles+Queued",
+        "Sdlc.Core.Factory.ListQueuedCycles+Response",
         "Sdlc.Core.Cycles.CycleBranchKind",
         "Sdlc.Core.Cycles.CycleIndex",
         "Sdlc.Core.Cycles.NewCycle",

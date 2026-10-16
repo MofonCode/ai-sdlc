@@ -74,6 +74,7 @@ before step 11.
 | `sdlc findings <id>` | binary | what the interrogations said, each finding at the disposition that stands |
 | `sdlc constraints --for plan --brief` | binary | the rules one stage is judged against |
 | `sdlc cycles` | binary | every cycle, newest first |
+| `sdlc cycles --queued` | binary | what a build would take now, and what is held back and why |
 | `sdlc cycles --claims` | binary | which files each cycle claims |
 | `sdlc cycles --pr-ready` | binary | which cycles may open a pull request |
 | `sdlc suggestions` | binary | what was noticed and not acted on |

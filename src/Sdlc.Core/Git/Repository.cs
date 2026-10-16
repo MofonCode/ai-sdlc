@@ -102,6 +102,20 @@ public interface IRepository
     /// <returns>The paths, relative to the root.</returns>
     IReadOnlyList<string> ChangedFiles(string workingDirectory, string from);
 
+    /// <summary>
+    /// The branches on the remote whose names start with a prefix, or null when there is no remote or git
+    /// cannot reach it.
+    /// </summary>
+    /// <remarks>
+    /// The remote rather than local branches, because the factory's skip rule asks what somebody has
+    /// pushed — a pipeline agent's fresh clone has no local branches, and a person's has stale ones. Null
+    /// is distinct from empty: a solution that cannot see its remote holds nothing back, and says so.
+    /// </remarks>
+    /// <param name="workingDirectory">Where to ask from.</param>
+    /// <param name="prefix">The start of the branch names wanted, as in <c>cycle/</c>.</param>
+    /// <returns>The branch names, without <c>refs/heads/</c>.</returns>
+    IReadOnlyList<string>? RemoteBranches(string workingDirectory, string prefix);
+
     /// <summary>The paths that differ between two commits, committed changes only.</summary>
     /// <remarks>
     /// Separate from <see cref="ChangedFiles"/>, which measures to the working tree and counts untracked
@@ -320,6 +334,29 @@ public sealed class GitRepository : IRepository
         }
 
         return [.. paths.Order(StringComparer.Ordinal)];
+    }
+
+    /// <inheritdoc />
+    public IReadOnlyList<string>? RemoteBranches(string workingDirectory, string prefix)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(prefix);
+
+        const string Heads = "refs/heads/";
+        string? output = Run(workingDirectory, $"ls-remote --heads origin \"{Heads}{prefix}*\"");
+
+        if (output is null)
+        {
+            return null;
+        }
+
+        return
+        [
+            .. output
+                .Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                .Select(line => line.Split('\t'))
+                .Where(parts => parts.Length == 2 && parts[1].StartsWith(Heads, StringComparison.Ordinal))
+                .Select(parts => parts[1][Heads.Length..]),
+        ];
     }
 
     /// <inheritdoc />

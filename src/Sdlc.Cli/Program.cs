@@ -11,6 +11,7 @@ using Sdlc.Core.Cycles;
 using Sdlc.Core.Diagnostics;
 using Sdlc.Core.Drafts;
 using Sdlc.Core.Evidence;
+using Sdlc.Core.Factory;
 using Sdlc.Core.Findings;
 using Sdlc.Core.Hooks;
 using Sdlc.Core.Init;
@@ -354,6 +355,23 @@ static async Task<int> Cycles(Workspace workspace, CommandLine line)
     if (line.HasOption("pr-ready"))
     {
         return await Sweep(workspace).ConfigureAwait(false);
+    }
+
+    if (line.HasOption("queued"))
+    {
+        Result<ListQueuedCycles.Response> queue = await workspace
+            .Send<ListQueuedCycles.Query, ListQueuedCycles.Response>(new ListQueuedCycles.Query())
+            .ConfigureAwait(false);
+
+        if (queue.IsFailed)
+        {
+            return await Report(queue, ExitCode.Failed).ConfigureAwait(false);
+        }
+
+        await Console.Out.WriteAsync(QueuedRenderer.Render(queue.Value)).ConfigureAwait(false);
+
+        // Zero on an empty queue, and with cycles held back. Both are answers, not problems.
+        return ExitCode.Ok;
     }
 
     ArtifactKind? stage = line.TryOption("stage", out string? named)
