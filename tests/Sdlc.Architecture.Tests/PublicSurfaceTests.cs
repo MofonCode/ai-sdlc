@@ -307,6 +307,7 @@ public sealed class PublicSurfaceTests
         "Sdlc.Core.Hooks.TurnEnd",
         "Sdlc.Core.Hooks.TurnEndGate",
         "Sdlc.Core.Hooks.TurnEndGate+Query",
+        "Sdlc.Core.Init.FrameworkStamp",
         "Sdlc.Core.Init.InitRenderer",
         "Sdlc.Core.Init.LineEndings",
         "Sdlc.Core.Init.Initialise",
@@ -366,6 +367,9 @@ public sealed class PublicSurfaceTests
         // what a test asserts the draft against.
         // The profiles the framework ships, and the shape of one. Public because Templates composes a
         // stack file from a profile and the suite asserts what each one declares.
+        "Sdlc.Core.Solutions.StackCoverage",
+        "Sdlc.Core.Solutions.StackCoverage+Rule",
+        "Sdlc.Core.Solutions.StackCoverage+Unmentioned",
         "Sdlc.Core.Solutions.StackDefault",
         "Sdlc.Core.Solutions.StackProfile",
         "Sdlc.Core.Solutions.StackProfiles",

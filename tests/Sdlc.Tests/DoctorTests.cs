@@ -418,12 +418,98 @@ public sealed class DoctorTests
         Check stack = report.Checks.Single(check => check.Subject == "declared stack");
 
         Assert.AreEqual(CheckOutcome.Sound, stack.Outcome, stack.Detail);
-        StringAssert.Contains(stack.Detail, "none of which it is held to");
+        StringAssert.Contains(stack.Detail, "does not mention");
+        StringAssert.Contains(stack.Detail, "PRO_01");
         Assert.IsFalse(stack.Detail.Contains("dotnet-default", StringComparison.Ordinal), "The old line is not read.");
+    }
+
+    [TestMethod]
+    public async Task Framework_files_this_release_wrote_are_sound()
+    {
+        using var solution = Scratch.Create();
+        await Adopt(solution);
+
+        Check stamp = (await Diagnosis(solution)).Checks.Single(check => check.Subject == "framework files");
+
+        Assert.AreEqual(CheckOutcome.Sound, stamp.Outcome, stamp.Detail);
+        StringAssert.Contains(stamp.Detail, Sdlc.Core.Release.Version);
+    }
+
+    [TestMethod]
+    public async Task Framework_files_an_older_release_wrote_ask_a_person_to_run_init()
+    {
+        // The upgrade that reached the machine and not the repository: hooks and a pipeline a release
+        // behind the binary judging the cycles, and nothing else that could tell.
+        using var solution = Scratch.Create();
+        await Adopt(solution);
+        await Restamp(solution, FrameworkStamp.Line("0.0.1"));
+
+        Check stamp = (await Diagnosis(solution)).Checks.Single(check => check.Subject == "framework files");
+
+        Assert.AreEqual(CheckOutcome.Problem, stamp.Outcome);
+        StringAssert.Contains(stamp.Detail, "0.0.1");
+        StringAssert.Contains(stamp.Remedy!, "a person runs 'sdlc init'");
+    }
+
+    [TestMethod]
+    public async Task Framework_files_from_before_stamps_are_an_older_release()
+    {
+        using var solution = Scratch.Create();
+        await Adopt(solution);
+        await Restamp(solution, string.Empty);
+
+        Check stamp = (await Diagnosis(solution)).Checks.Single(check => check.Subject == "framework files");
+
+        Assert.AreEqual(CheckOutcome.Problem, stamp.Outcome);
+        StringAssert.Contains(stamp.Detail, "no release stamp");
+        StringAssert.Contains(stamp.Remedy!, "sdlc init");
+    }
+
+    [TestMethod]
+    public async Task Framework_files_a_newer_release_wrote_ask_for_the_binary_rather_than_init()
+    {
+        // Re-running init with the older binary would roll the hooks back; the remedy is the other half.
+        using var solution = Scratch.Create();
+        await Adopt(solution);
+        await Restamp(solution, FrameworkStamp.Line("999.0.0"));
+
+        Check stamp = (await Diagnosis(solution)).Checks.Single(check => check.Subject == "framework files");
+
+        Assert.AreEqual(CheckOutcome.Problem, stamp.Outcome);
+        StringAssert.Contains(stamp.Remedy!, "upgrade the binary");
+    }
+
+    [TestMethod]
+    public async Task A_default_the_stack_never_mentions_is_named_and_one_answered_none_is_not()
+    {
+        using var solution = Scratch.Create();
+        await Adopt(solution);
+
+        string stack = string.Join(
+            '\n',
+            Templates.TechStack().ReplaceLineEndings("\n").Split('\n')
+                .Where(line => !line.StartsWith("| accessibility testing |", StringComparison.Ordinal)))
+            .Replace("| ORM | EF Core |", "| ORM | none |", StringComparison.Ordinal);
+
+        await Declare(solution, stack);
+
+        Check check = (await Diagnosis(solution)).Checks.Single(c => c.Subject == "declared stack");
+
+        Assert.AreEqual(CheckOutcome.Sound, check.Outcome, "What was never asked is information, not a fault.");
+        StringAssert.Contains(check.Detail, "does not mention accessibility testing");
+        Assert.IsFalse(check.Detail.Contains("ORM", StringComparison.Ordinal), "A row that says none is an answer.");
     }
 
     /// <summary>The test context, for the cancellation token the analysers require to be passed on.</summary>
     public TestContext TestContext { get; set; } = null!;
+
+    private static async Task Restamp(Scratch solution, string line)
+    {
+        string path = Path.Combine(solution.Root, Cycle.SdlcDirectoryName, "README.md");
+        string text = await File.ReadAllTextAsync(path);
+
+        await File.WriteAllTextAsync(path, text.Replace(FrameworkStamp.Line(Sdlc.Core.Release.Version), line, StringComparison.Ordinal));
+    }
 
     /// <summary>Every host the enum declares, so the per-host check runs per host.</summary>
     public static IEnumerable<object[]> Hosts =>

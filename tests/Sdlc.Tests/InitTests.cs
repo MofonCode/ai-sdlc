@@ -64,6 +64,39 @@ public sealed class InitTests
     }
 
     [TestMethod]
+    public async Task Update_names_what_the_stack_never_mentions_and_writes_none_of_it()
+    {
+        // The half of an upgrade adoption cannot do, because the stack is a person's (D-93).
+        using var solution = Scratch.Create();
+        await Adopt(solution, tracked: []);
+
+        string path = Path.Combine(solution.Root, Cycle.SdlcDirectoryName, Cycle.TechStackFileName);
+        string stack = string.Join(
+            '\n',
+            Templates.TechStack().ReplaceLineEndings("\n").Split('\n')
+                .Where(line => !line.StartsWith("| accessibility testing |", StringComparison.Ordinal)));
+
+        await File.WriteAllTextAsync(path, stack);
+
+        Initialise.Response report = await Adopt(solution, tracked: []);
+
+        Assert.AreEqual(Initialise.InitMode.Update, report.Mode);
+        CollectionAssert.AreEqual(new[] { "accessibility testing" }, report.Unmentioned!.Names.ToArray());
+        StringAssert.Contains(InitRenderer.Render(report), "does not mention accessibility testing");
+        Assert.AreEqual(stack, await File.ReadAllTextAsync(path), "The stack is a person's file.");
+    }
+
+    [TestMethod]
+    public async Task A_first_adoption_compares_no_stack_because_there_is_none()
+    {
+        using var solution = Scratch.Create();
+
+        Initialise.Response report = await Adopt(solution, tracked: []);
+
+        Assert.IsNull(report.Unmentioned);
+    }
+
+    [TestMethod]
     public async Task Update_never_rewrites_a_file_only_a_person_writes()
     {
         // The rule needs no list of exclusions: update writes what the framework owns, and what it owns

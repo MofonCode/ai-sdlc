@@ -51,7 +51,7 @@ no solution records a profile, and `solution.md` says nothing about what the cod
 
 | Table | A row means | No row means |
 |---|---|---|
-| defaults — two columns | this choice is **pinned**: a plan reaching for something else has to say what the pinned one would have cost | that choice is left to each plan |
+| defaults — two columns | this choice is **pinned**: a plan reaching for something else has to say what the pinned one would have cost. `none` is a choice: this solution uses nothing for that concern. To leave one to each plan, say so in its row — `each plan decides` | nobody was asked. Nothing pins it, and `sdlc stack` names it when the default profile declares it |
 | rules — three columns | `true`: every plan is judged against the rule. `false`: the solution was offered it and declined | the rule does not apply |
 | build settings — three columns, under their own heading | `true`: this solution takes the file. `false`: it was offered and declined | the stack says nothing about that file |
 
@@ -99,13 +99,14 @@ before the framework, `false` where it did.** `Directory.Build.props` makes warn
 existing codebase switching it on can fail a build over files nobody has touched. That has to be
 something a team chose, never something it got by renaming a draft unread.
 
-The edit is subtraction:
+The edit is answering each row — **with `none` where it is not true, never by deleting it.** A deleted
+row reads as one nobody was asked about, so `sdlc stack` would offer it again at the next release:
 
 | The solution | What to do to the draft |
 |---|---|
 | is built on the default stack | nothing. Rename it as it is |
-| is .NET with different choices | change or delete the rows that are not true of it |
-| is built on something else | delete what does not apply, write in what it uses, and set to `false` any rule naming a framework it does not have |
+| is .NET with different choices | change the rows that differ, and write `none` in those that are not true of it |
+| is built on something else | write `none` in what does not apply, write in what it uses, and set to `false` any rule naming a framework it does not have |
 | should pin nothing yet | `sdlc draft techstack --empty`, and rename that |
 
 **Every solution starts from the same draft, new repository or old.** An adopted repository used to
@@ -153,7 +154,8 @@ cycle happened to need. That case is a departure, argued in the plan.
 ## Starting the table over
 
 The menu's last section is an empty table of every concern the default profile declares, with the
-answers taken out. Copy it into the draft, fill it in, and delete the rows this solution has no use for.
+answers taken out. Copy it into the draft, fill it in, and write `none` in the rows this solution has no
+use for.
 
 It is in the menu rather than in the draft on purpose. A draft of an existing file is a byte copy; a
 blank form in its place would make the rename a wholesale replacement, and every row nobody retyped
@@ -263,8 +265,9 @@ sdlc stack
 ```
 
 The declared defaults, the stack rules with which are on, and each build settings file with what the
-stack says about it and whether it is on disk. It ends with the gap: the files the stack takes that are
-not there.
+stack says about it and whether it is on disk. Then **what the stack does not mention** — a default
+the framework's profile declares, or a stack rule this release ships, with no row at all — and last
+the gap: the files the stack takes that are not there.
 
 | It says | Meaning |
 |---|---|
@@ -277,6 +280,28 @@ not there.
 may have had its own first, so there is no framework's version to compare against.
 
 **It names the gap and closes none.** The plan stage reads it before choosing a shape.
+
+## When a release adds a row or a rule
+
+A release can add a default to the profile — `accessibility testing` arrived in 0.23.0 — or a stack
+rule. **Neither reaches your stack by itself**: the file is yours, and an upgrade of the binary should
+never change what a plan is judged against. What happens instead is that the new row is **named**:
+
+| Where | What it says |
+|---|---|
+| `sdlc stack` | a `Not mentioned` list, each default with the profile's choice and each rule with what it holds a plan to |
+| `sdlc doctor` | the same names on the `declared stack` check, which stays sound — never asked is information, not a fault |
+| `sdlc draft techstack` | the same list under the rename command. The draft itself stays a byte copy: nothing is added to it |
+| the adoption report, on an update | the same names, and that the init skill walks them |
+
+**Answer each one in the draft**: a default takes the profile's choice, another, or `none`; a rule takes
+`true` or `false`. Then rename. A row that says no is an answer, so the next release does not ask again.
+`/sdlc:init` on a solution already governed does this with you, and reads the repository to say which
+ones apply — whether there is a user interface for the axe row to matter to, for instance.
+
+**A stack placed before 0.24.0 was told to delete what was not true.** The first time it is compared,
+every row it deleted is named, because a deleted row and an unasked one look the same. Answer each with
+`none` once and the list stays quiet after that.
 
 ## A solution adopted before this
 
@@ -295,8 +320,9 @@ sdlc doctor
 ```
 
 It reports a `declared stack` check, and a `build settings` check where the stack lists any, and
-never repairs either — rewriting a person's file would be the gate
-deciding what a team is built from.
+never repairs either — rewriting a person's file would be the gate deciding what a team is built from.
+A third, `framework files`, is about the files adoption owns rather than this one, and
+`installing-the-plugin.md` covers it under Update.
 
 | What it finds | Outcome |
 |---|---|
@@ -308,8 +334,7 @@ deciding what a team is built from.
 | rows and rules | **sound**, with how many rows are declared and how many listed rules are on |
 | build settings rows | a second check, `build settings`: **sound**, with how many of the five the stack takes and which are not on disk yet. A declared file that has not arrived is not a problem — a cycle brings it |
 | a build settings row naming a file this release does not ship | a problem — the row takes nothing |
-| a shipped rule the file does not list | **sound**, and named |
-| no rule listed | **sound**, and it says how many rules this release ships that the solution is held to none of |
+| a default the profile declares or a rule this release ships, with no row at all | **sound**, and each one named — it was never asked, which is information. A row saying `none` or `false` is an answer and is not named |
 
 ## Where to go next
 
@@ -321,4 +346,4 @@ deciding what a team is built from.
 | that walk with one solution in it | `../samples/rolling-a-die.md` |
 | every command for one cycle | `../cheat-sheets/commands.md` |
 | what to do when something refuses | `handling-refusals.md` |
-| every design decision behind this | `../../CONCEPT.md`, §8.2, §11 and D-67, D-68, D-74, D-75, D-76, D-77 |
+| every design decision behind this | `../../CONCEPT.md`, §8.2, §11 and D-67, D-68, D-74, D-75, D-76, D-77, D-93 |

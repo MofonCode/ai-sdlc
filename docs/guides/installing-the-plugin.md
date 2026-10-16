@@ -203,7 +203,8 @@ favour of Antigravity CLI, so the configuration described a hook for a program t
 sdlc doctor
 ```
 
-It checks the rules, git, adoption, whether `.gitattributes` normalises line endings, every host's hook
+It checks the rules, git, adoption, whether the framework's files were written by this release of the
+binary, whether `.gitattributes` normalises line endings, every host's hook
 configuration and whether a pipeline here runs `sdlc verify-chain`, and it exits 1 if anything is wrong. Each problem names the command that fixes it.
 In a repository that has not opened its first cycle it ends with what is still yours to place and the
 one command that is next.
@@ -293,6 +294,35 @@ dotnet tool install --global --add-source src\Sdlc.Cli\bin\pack MofonCode.Sdlc.C
 
 `sdlc version` reports the number, which does not move between local builds — so to tell whether a
 reinstall took, look at the file's timestamp or run a command only the newer build has.
+
+### Then each governed repository
+
+**Reinstalling updates this machine and no repository on it.** Every governed solution still has the
+hook configuration, the pipeline and the `.sdlc/README.md` an older release wrote, and its pipeline pins
+the older tool. In each one, a person runs adoption again — it picks update mode by itself, refreshes
+only what the framework owns, and touches none of the six files only a person writes:
+
+```pwsh
+sdlc init
+```
+
+```pwsh
+sdlc doctor
+```
+
+**`doctor` says when this is due.** `.sdlc/README.md` carries the release that wrote it, and the
+`framework files` check compares that with the binary:
+
+| It finds | Outcome, and what to do |
+|---|---|
+| this release | sound |
+| an older release, or no stamp at all — written before stamps were | a problem: a person runs adoption here |
+| a newer release than the binary | a problem: this machine's binary is the stale half, so upgrade it rather than re-running adoption, which would roll the files back |
+
+**What adoption cannot update is the declared stack**, because it is a person's file. A release that
+added a default or a stack rule is named instead — in the adoption report, by `sdlc stack` and by
+`doctor` — and `/sdlc:init` walks each one with you. `declaring-the-stack.md` covers it under When a
+release adds a row or a rule.
 
 ## Remove
 

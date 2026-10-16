@@ -44,7 +44,9 @@ namespace Sdlc.Core.Solutions;
 ///
 /// <para><strong>After that it proposes no rows.</strong> Which packages and patterns a solution
 /// declares is a judgement about how a team works, and a tool that filled them in would be making that
-/// judgement while looking like bookkeeping.</para>
+/// judgement while looking like bookkeeping. What it does instead, on a copy, is name what the stack
+/// does not mention -- the rows and rules a later release added -- under the rename command, and add
+/// none of it: the draft stays a byte copy, and whoever edits it answers each one (D-93).</para>
 /// </remarks>
 public static class WriteTechStackDraft
 {
@@ -155,7 +157,13 @@ public static class WriteTechStackDraft
 
             return Result.Ok(DraftResult.Drafted(
                 current,
-                Instructions(path, draftPath, optionsPath, start, origin)));
+                Instructions(
+                    path,
+                    draftPath,
+                    optionsPath,
+                    start,
+                    origin,
+                    start == Start.Copy ? StackCoverage.Of(current) : StackCoverage.Unmentioned.Nothing)));
         }
 
         /// <summary>What a draft was written from.</summary>
@@ -185,8 +193,10 @@ public static class WriteTechStackDraft
             Start.Default =>
             [
                 "No stack is declared here yet, so the draft is the framework's default: its rows, and",
-                "every stack rule it ships switched on. Delete the rows that are not true of this solution",
-                "and set a rule to false to decline it. Renaming it untouched declares that default.",
+                "every stack rule it ships switched on. Write 'none' as the choice in a row that is not",
+                "true of this solution rather than deleting it, and set a rule to false to decline it --",
+                "a row that says no is how a later release knows not to ask again. Renaming it untouched",
+                "declares that default.",
                 "Until it is renamed into place, no cycle opens.",
                 string.Empty,
                 .. origin == SolutionOrigin.Adopted
@@ -216,7 +226,8 @@ public static class WriteTechStackDraft
             string draftPath,
             string optionsPath,
             Start start,
-            SolutionOrigin origin) => string.Join(
+            SolutionOrigin origin,
+            StackCoverage.Unmentioned unmentioned) => string.Join(
             Environment.NewLine,
             [
                 string.Create(CultureInfo.InvariantCulture, $"Written to {draftPath}"),
@@ -227,6 +238,7 @@ public static class WriteTechStackDraft
                 string.Empty,
                 .. Describe(start, origin),
                 string.Empty,
+                .. unmentioned.IsEmpty ? [] : (string[])[.. StackCoverage.Describe(unmentioned, "    "), string.Empty],
                 string.Create(CultureInfo.InvariantCulture, $"The menu is at {optionsPath}:"),
                 "every concern the shipped profiles know about, what each declares for it, the",
                 "alternatives this framework has argued, the stack rules it ships, each build settings",

@@ -71,6 +71,18 @@ public static class InitRenderer
             output.AppendLine(line.Length == 0 ? string.Empty : Indent + line);
         }
 
+        // The half of an upgrade this run could not do, because the file is a person's. Named, with
+        // where the answers go, and nothing more: the skill walks them (D-93).
+        if (report.Unmentioned is { IsEmpty: false } unmentioned)
+        {
+            output.AppendLine();
+            output.AppendLine(string.Create(
+                CultureInfo.InvariantCulture,
+                $"{Indent}The declared stack does not mention {string.Join(", ", unmentioned.Names)}, which this release"));
+            output.AppendLine(Indent + "ships. Nothing here writes it: 'sdlc stack' lists them, '/sdlc:init' walks each with you,");
+            output.AppendLine(Indent + "and a row answering it -- 'none' or false included -- in a draft a person renames is the end.");
+        }
+
         // One step, never the list of commands worth knowing: what is left is said in a sentence and
         // the first of it is named. The command sheet is in the README this just wrote (D-79).
         if (report.Setup is { } setup

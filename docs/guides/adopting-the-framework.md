@@ -57,7 +57,7 @@ It picks its own mode from what it finds:
 |---|---|---|
 | **greenfield** | a repository holding no code. An ignore file, a readme, a licence and an `AGENTS.md` are furniture, not code | `origin: scaffolded` |
 | **onboard** | existing code with no `.sdlc/` | `origin: adopted`, `standard: existing` |
-| **update** | `.sdlc/` is already there | nothing new — it refreshes the hook configs, the pipeline and `.sdlc/README.md`, and never the six files only a person writes |
+| **update** | `.sdlc/` is already there | nothing new — it refreshes the hook configs, the pipeline and `.sdlc/README.md`, stamps the README with the release that wrote them, names what a newer release ships that the declared stack never mentions, and never writes the six files only a person writes. Run it after every upgrade of the binary; `sdlc doctor` says when it is due |
 
 It writes and then **commits** what it wrote. That is deliberate: an untracked file is untracked when the
 first cycle takes its diff, so the diff would record the whole file as new and a plan saying it changes

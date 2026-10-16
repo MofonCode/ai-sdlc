@@ -40,12 +40,12 @@ before step 11.
 |---|---|---|
 | **Once per machine** | | |
 | `sdlc version` | binary | which version of the gate this is, and which versions it expects beside it |
-| `sdlc doctor` | binary | checks the install and this repository; names the fix for each problem, and before the first cycle names what to place next. Exits 1 on a problem. Never repairs |
+| `sdlc doctor` | binary | checks the install and this repository; names the fix for each problem, and before the first cycle names what to place next. Says when adoption's files are a release behind the binary. Exits 1 on a problem. Never repairs |
 | **Once per repository** | | |
 | `sdlc init` | binary | adoption. **Yours to run**; the hook denies it to an agent |
 | `sdlc draft solution` | binary | the solution document, to rename into place |
 | `sdlc draft solution --standard profile` | binary | move new work onto the profile's conventions |
-| `sdlc draft techstack` | binary | the declared stack, to cut down and rename into place. `--empty` pins nothing |
+| `sdlc draft techstack` | binary | the declared stack, to answer row by row — `none` where a row is not true — and rename into place. Names what a later release added. `--empty` pins nothing |
 | `sdlc propose constraints` | binary | the next free `LOC_` id, or rules the findings keep citing |
 | **The cycle, in order** | | |
 | `sdlc constraints` | binary | the rules in force, all tiers resolved |
@@ -57,7 +57,7 @@ before step 11.
 | `/sdlc:plan <id>` | agent | decides how, and what proves each criterion, in `plan.md` |
 | `sdlc draft approval <id>` | binary | writes the approval draft. **You rename it** |
 | `sdlc gate <id>` | binary | whether the build may run. Exits 1 if not |
-| `sdlc stack` | binary | what the solution is built from, and the build settings not yet on disk |
+| `sdlc stack` | binary | what the solution is built from, what this release ships that it never mentions, and the build settings not yet on disk |
 | `sdlc scaffold <id>` | binary | the skeleton on a new solution's first cycle; otherwise the build settings the plan declares |
 | `/sdlc:build <id>` | agent | implements, builds, tests, records the evidence |
 | `sdlc evidence <id>` | binary | records the diff, the base commit and the test summary |

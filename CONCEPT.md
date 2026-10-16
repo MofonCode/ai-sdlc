@@ -1001,6 +1001,11 @@ and `false` on an adopted one (D-77). **An empty file is a legitimate answer** �
 stack rule in force, every plan choosing freely — and is different from a missing one, which is nobody
 having decided.
 
+**A row is declined by answering it, never by deleting it** (D-93). A default not true here says `none`,
+which pins using nothing; a rule says `false`. So a default the profile declares or a rule a release
+ships, with **no row at all**, is one nobody was asked about — and `sdlc stack`, `doctor`, the drafter
+and an update's report name it, while writing nothing. That is how a release reaches a person's file.
+
 ### 8.3 `solution.md`
 
 Four keys. There was another, `profile`, until the declared stack listed its own rules (D-76); a
@@ -1074,6 +1079,12 @@ so `.claude/settings.json` is merged — the two hook entries are added or refre
 including a team's permissions and their own hooks, is kept. And where the path belongs to the platform
 it writes only into an empty space: an existing `azure-pipelines.yml` is a repository's own CI, so the
 step is printed for a person to place rather than written over.
+
+**Update stamps what it wrote, and is run after every upgrade** (D-93). `.sdlc/README.md` carries the
+release that last wrote the framework's files, and `doctor` compares it with the binary — older or
+missing asks a person to run `init` here, newer asks for the binary. On an update the report also names
+what the release ships that the declared stack never mentions; that file is a person's, so the `init`
+skill walks each item and the answers land in a draft they rename.
 
 A file it rewrites has to be one it named, which is why the GitHub workflow is `sdlc-verify.yml`. It was
 `pull-request.yml`, and adoption replaced whatever was at that path and then committed it.
@@ -6363,3 +6374,70 @@ a reader long after may not be able to open what it cited.
 
 - *Committing everything, as before.* Noise in every cycle's diff, kept forever, for a file nobody reopens.
 - *Moving the summary out too.* `verify-chain` reads it, and `propose` and `suggestions` read the record.
+
+### D-93 — A row is declined by answering it, a release names what was never asked, and adoption stamps its release
+
+**Governs:** §8.2, §9
+
+**Closes the gap D-28 left open** — *"the judgement half, proposing changes to constraints and the tech
+stack, remains open"* — for the declared stack. Update mode refreshed what the framework owns; nothing
+told a solution what a release had added to the profile or the stack rules, and nothing told a person
+that a repository's framework files were a release behind the binary on their machine.
+
+**Decision.** Three parts.
+
+1. **A default is declined by writing `none`, never by deleting its row.** A rule was already declined
+   by `false`. So *no row at all* means one thing: nobody was asked.
+2. **What was never asked is named, and nothing writes it.** A default the default profile declares, or
+   a stack rule this release ships, with no row in the declared stack is listed by `sdlc stack`, named
+   on `doctor`'s `declared stack` check — sound, because it is information — named under the drafter's
+   rename command, and named at the end of an update's report. The `init` skill, on an update, reads the
+   repository and proposes an answer for each; the person decides, and the answers go into a draft they
+   rename. The draft stays a byte copy.
+3. **`.sdlc/README.md` carries the release that last wrote the framework's files**, and `doctor`'s
+   `framework files` check compares it with the binary: older or missing is a problem a person fixes by
+   running `init`; newer is a problem fixed by upgrading the binary, since re-running the older one would
+   roll the files back.
+
+**Why `none` rather than an "added in" version on every row.** A version history would let a tool say
+what is new since a solution last looked, at the cost of release metadata on every row and rule and a
+version recorded in a person's file — which adoption cannot write after creating it, so it would freeze
+at adoption while reading as current. Declining by answering needs neither: absence is exact. It also
+records the decision. *We use no ORM* was invisible when the row was deleted; now it is a row a plan
+reaching for one departs from.
+
+**Why against the default profile only.** It is the one profile a draft is written from (D-76). Every
+other profile's rows are in the options menu to copy across; a .NET solution asked about experiment
+tracking at every release would learn to stop reading the list.
+
+**Why the stamp lives in `.sdlc/README.md`.** Adoption rewrites every file it owns in one run, so one
+stamp speaks for all of them; that file is the framework's outright and is markdown. A hook configuration
+is a host's JSON with a schema of its own, and the pipeline already pins the version it installs.
+
+**What it costs.** A stack placed before this release was told to delete what was not true, so the first
+comparison names every row it deleted — a deleted row and an unasked one look the same. Each is answered
+once with `none`, and the list is quiet after that. The `init` skill says so before showing the list.
+
+**Rejected.**
+
+- *Reporting new rules only, and leaving new rows to the options menu.* No convention changes and nothing
+  is ever noisy — and it misses most of what a release adds, which is rows. The axe row in 0.23.0, the
+  case that raised this, would never have reached a solution adopted before it.
+- *The drafter adding unmentioned rows to the draft.* The draft is a byte copy so the rename applies only
+  what somebody changed (D-67); a tool filling in rows makes the judgement while looking like bookkeeping.
+  The skill proposes and a person answers instead.
+- *Migrations with up and down steps, as EF Core has.* EF owns the data it migrates; here a migration
+  could write only the framework's files, which update mode already regenerates whole, and could only
+  print a draft for a person's. A cycle's artifacts are signed — an approval hashes the planning
+  documents — so rewriting them into a new format would invalidate every approval; a format change is
+  read by the binary instead, which is what `framework_version` is for. And *down* is reinstalling the
+  older binary and running `init`, so a down step is compatibility code D-81 already declined to carry.
+  Revisit when a release changes the *shape* of a person's file — and then as a drafter and a `doctor`
+  check, not a numbered chain.
+- *A version in the solution document, or in the declared stack.* Adoption creates the solution document
+  once and never rewrites it, and a version in the stack is a field a person must remember to move. The
+  stack needs no version to say what is new.
+- *A migration skill of its own.* The judgement — does this row apply here — is the one the `init` skill
+  already makes when it edits a first draft from the repository. A second skill would make it twice.
+- *`init` interviewing again on an update.* Update mode is valuable because it is mechanical and
+  repeatable; the walk is the skill's, after the command, not the command's.

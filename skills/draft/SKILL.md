@@ -81,11 +81,12 @@ edit the draft; only the real file is denied. What the draft starts as depends o
 | `--empty` was given | **nothing.** Renamed into place it declares that nothing is pinned, no stack rule applies, and every plan chooses freely |
 
 **The file holds three tables, and what is in them is exactly what binds.** The first pins choices: a
-row is a default every plan is read against, and no row leaves that choice to each plan. The second,
-under `## Rules`, lists the stack rules — the ones that may name a framework — with `true` or `false`
-beside each and what the rule holds a plan to. Only the ones marked `true` apply; a rule with no row
-does not. So declining a rule is setting its row to `false`, and nothing about the stack is selected
-from anywhere else.
+row is a default every plan is read against, and a row not true here says `none` rather than being
+deleted — a concern with no row is one nobody was asked about, and the drafter names those a later
+release adds. The second, under `## Rules`, lists the stack rules — the ones that may name a framework —
+with `true` or `false` beside each and what the rule holds a plan to. Only the ones marked `true` apply;
+a rule with no row does not, and is named the same way. So declining a rule is setting its row to
+`false`, and nothing about the stack is selected from anywhere else.
 
 **The third, under `## Build settings`, lists the five .NET build settings files the same way** — a file
 name, `true` or `false`, and what the file does. `true` declares that the solution takes it. **A row

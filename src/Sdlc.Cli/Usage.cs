@@ -98,10 +98,13 @@ internal static class Usage
                                      where there is none yet, with every stack rule listed and on.
                                      The default also lists the five .NET build settings files, one
                                      row each: on where the repository held no code, off where it
-                                     did. Also reports the options menu: every concern the shipped
-                                     profiles know about, what each declares, every stack rule, and
-                                     what each build settings file does and costs. The menu is
-                                     never renamed into place.
+                                     did. A row not true here says 'none' rather than being
+                                     deleted. On a copy, names what this release ships that the
+                                     stack never mentions, and adds none of it. Also reports the
+                                     options menu: every concern the shipped profiles know about,
+                                     what each declares, every stack rule, and what each build
+                                     settings file does and costs. The menu is never renamed into
+                                     place.
             draft solution           Write the whole solution.md beside itself, for a person
                                      to rename onto it. Carries the four keys through as
                                      recorded and the prose through unchanged, so the rename
@@ -123,8 +126,10 @@ internal static class Usage
                                      fill them -- the one place a colour or a typeface lives.
             stack                    What this solution declares it is built from: its defaults,
                                      the stack rules switched on, and each build settings file --
-                                     whether the stack takes it and whether it is on disk. Names
-                                     the gap and closes none: a cycle's plan does that.
+                                     whether the stack takes it and whether it is on disk. Then
+                                     what this release ships that the stack never mentions: a row
+                                     saying 'none' or false is an answer, no row is never asked.
+                                     Names the gap and closes none: a cycle's plan does that.
             propose constraints      Read this solution's whole history and say which rules its
                                      findings keep citing, with the cycles and finding ids behind
                                      each. Proposes; writes nothing that binds. Where the record
@@ -138,7 +143,8 @@ internal static class Usage
                                      none, or name the ones left empty in the one it has. Never
                                      proposes a value: a colour is a brand's, not a tool's.
             doctor                   Check this installation and this repository: the rules, git,
-                                     adoption, line endings, every host's hook config, and the
+                                     adoption, which release wrote adoption's files against this
+                                     binary, line endings, every host's hook config, and the
                                      pipeline that is the guarantee. Reports and never repairs. Exits 1 if anything
                                      is wrong. What a binary cannot see -- whether a host loaded
                                      the skills, whether the pipeline's check is required -- is

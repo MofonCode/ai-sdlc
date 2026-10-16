@@ -75,13 +75,15 @@ public static class ReadStackDeclaration
     /// <param name="Rules">The stack-rule rows, in document order.</param>
     /// <param name="Settings">Every build-settings file the framework ships, with its state.</param>
     /// <param name="Unknown">Build-settings rows naming a file the framework does not ship.</param>
+    /// <param name="Unmentioned">What this release ships that the stack has no row for (D-93).</param>
     public sealed record Response(
         string Path,
         bool Placed,
         IReadOnlyList<StackTable.Row> Defaults,
         IReadOnlyList<StackRules.Row> Rules,
         IReadOnlyList<SettingState> Settings,
-        IReadOnlyList<string> Unknown)
+        IReadOnlyList<string> Unknown,
+        StackCoverage.Unmentioned Unmentioned)
     {
         /// <summary>The files the stack takes that are not on disk, in the order they are written.</summary>
         public IReadOnlyList<BuildSettings.Setting> Gap =>
@@ -114,7 +116,8 @@ public static class ReadStackDeclaration
                     setting,
                     DeclarationOf(setting, rows),
                     File.Exists(Path.Combine(solution.Path, setting.OnDisk))))],
-                [.. rows.Where(row => BuildSettings.Find(row.File) is null).Select(row => row.File)]));
+                [.. rows.Where(row => BuildSettings.Find(row.File) is null).Select(row => row.File)],
+                StackCoverage.Of(text)));
         }
 
         /// <summary>What the rows say about one file.</summary>

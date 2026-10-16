@@ -83,7 +83,9 @@ A solution is one governed repository. Everything below lives in it.
 | **adoption** | `sdlc init`: writing what governs code into a repository, and committing it. Denied to an agent |
 | **greenfield** | the mode for a repository holding no code. Gets `origin: scaffolded`; the build settings arrive with the skeleton |
 | **onboard** | the mode for existing code with no `.sdlc/`. Gets `origin: adopted` and `standard: existing`, and no build settings: their rows start `false` in the first stack draft |
-| **update** | the mode when `.sdlc/` is already there. Refreshes what the framework owns and never a person's file |
+| **update** | the mode when `.sdlc/` is already there. Refreshes what the framework owns and never a person's file, and names what the declared stack does not mention. Run after every upgrade of the binary |
+| **the release stamp** | the line in `.sdlc/README.md` saying which release last wrote the framework's files. `sdlc doctor` compares it with the binary, so an upgrade that reached the machine and not the repository is named |
+| **not mentioned** | a default the profile declares, or a stack rule a release ships, with no row in the declared stack at all — never asked, as against declined. A row saying `none` or `false` is an answer; `sdlc stack` lists what is not mentioned |
 | **the next step** | what adoption's report and `sdlc doctor` both end with until the first cycle opens: what a person still has to place, in one sentence, and the one command that is next — the paragraph in `solution.md`, then the declared stack. Read from disk every time, because a rename runs nothing |
 | **the solution skeleton** | `sdlc scaffold` on a solution that held no code: a solution file, six projects, the architecture suite, and the build settings they compile under. Refuses unless the cycle is approved, so **no code arrives without a chain behind it**. An adopted solution never gets it |
 | **the reference slice** | one worked operation in the skeleton, written to be copied, because an agent takes the shape of the code beside it more reliably than an instruction |

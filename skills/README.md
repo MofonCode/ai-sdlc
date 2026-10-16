@@ -101,7 +101,9 @@ hands over the command.
 
 Three modes, decided by what it finds: **greenfield** for a repository holding no code, **onboard** for
 existing code with no `.sdlc/`, **update** when `.sdlc/` already exists. Update refreshes only what the
-framework owns, which is everything not protected — hook configs, the pipeline, `.sdlc/README.md`.
+framework owns, which is everything not protected — hook configs, the pipeline, `.sdlc/README.md`. On an
+update the skill then walks what the release ships that the declared stack never mentions, deciding each
+with the person from what the repository holds, in a draft they rename.
 
 - **Writes** nothing itself. `sdlc init` writes the scaffolding; the drafts it asks for are renamed into
   place by a person, because `solution.md`, `techstack.md` and `constraints.md` are three of the six files

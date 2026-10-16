@@ -10,7 +10,7 @@ namespace Sdlc.Core.Solutions;
 /// In the binary for the reason the constraint renderer gives: a skill shows this verbatim, so
 /// formatting it at the call site would let hosts drift. It ends with the gap rather than with the
 /// tables, because the tables are a person's own file and the gap is the one thing here they could not
-/// have read off it.
+/// have read off it. What the stack does not mention comes just before the gap, for the same reason.
 /// </remarks>
 public static class StackRenderer
 {
@@ -89,6 +89,18 @@ public static class StackRenderer
         }
 
         output.AppendLine();
+
+        // Before the gap, because it is the half a release changes: the build settings compare the
+        // stack to the disk, and this compares it to what the binary ships.
+        if (StackCoverage.Describe(response.Unmentioned, Indent) is { Count: > 0 } unmentioned)
+        {
+            foreach (string line in unmentioned)
+            {
+                output.AppendLine(line);
+            }
+
+            output.AppendLine();
+        }
 
         foreach (string line in Gap(response))
         {

@@ -50,6 +50,10 @@ permit everything while the artifacts still looked governed. Offer `git init`.
 
 **Already governed?** `.sdlc/` exists, so this will be an update: the framework refreshes what it owns and
 touches nothing a person writes. Say so, because "init" on a working solution sounds alarming and is not.
+It is what a person runs after upgrading the binary — `sdlc doctor`'s `framework files` check says when
+it is due. **On an update, the interview and the first stack are already done**: hand over the command
+in step 2, then go to *On an update: answer what the release added*, then step 5. Your task list is those
+three.
 
 ## 2. Ask for the command to be run
 
@@ -266,15 +270,16 @@ sdlc draft techstack
 
 The draft is the framework's default, whole: every row it would pin, under `## Rules` every stack
 rule it ships, each marked `true`, and under `## Build settings` the five `.NET` build settings files.
-**What ends up in the file is exactly what binds** — a row pins a choice, no row leaves that choice to
-each plan, a rule applies only where its row says `true`, and a build settings file is this solution's
-only where its row does. So the edit is subtraction:
+**What ends up in the file is exactly what binds** — a row pins a choice, `none` included, a rule
+applies only where its row says `true`, and a build settings file is this solution's only where its row
+does. So the edit is answering each row, **with `none` where it is not true, never by deleting it**: a
+deleted row reads as one nobody was asked about, and the next release offers it again.
 
 | The solution | What to do to the draft |
 |---|---|
 | is built on the default stack | nothing. Rename it as it is |
-| is .NET with different choices | change or delete the rows that are not true of it |
-| is built on something else | delete the rows that do not apply, write in what it uses, and set to `false` any rule that names a framework it does not have |
+| is .NET with different choices | change the rows that differ, and write `none` in those that are not true of it |
+| is built on something else | write `none` in the rows that do not apply, write in what it uses, and set to `false` any rule that names a framework it does not have |
 | should pin nothing yet | `sdlc draft techstack --empty`, and rename that. Nothing is pinned, no stack rule applies, and every plan chooses freely |
 
 **On a repository that already holds code, edit the draft from what you can read before you show the
@@ -306,7 +311,47 @@ the origin:
 **On an adopted repository, leave them `false` unless the person asks**, and do not switch one on from
 what you read in the codebase — that it is .NET does not mean its team wants warnings as errors. When
 they do ask, a row set to `true` writes nothing: a later cycle whose plan declares the file brings it.
-A solution on another stack deletes the rows and never gets the files.
+A solution on another stack sets the rows `false` and never gets the files.
+
+## On an update: answer what the release added
+
+**Only on an update, and only when something is named.** A release can add a default to the profile or
+a stack rule, and neither reaches the declared stack by itself: the file is a person's. What the release
+did instead is name them — at the end of what `sdlc init` printed, and in full here:
+
+```
+sdlc stack
+```
+
+Its `Not mentioned` list is every default the profile declares and every stack rule this release ships
+that the stack has **no row for at all**. A row saying `none` or `false` is an answer and is not listed.
+**Nothing listed means nothing to do**: say so in a line and go to step 5.
+
+**For each item, read the repository and propose an answer**, one line each with what you read:
+
+| Item | Answers | What to read |
+|---|---|---|
+| a default | the profile's choice, another, or `none` | whether the repository already uses the concern at all — no `.razor`, `.cshtml` or stylesheet means `accessibility testing` has nothing to scan — and whether it uses something else for it |
+| a stack rule | `true` or `false` | what the rule holds a plan to, from the list, and whether the solution has the thing it names — a rule about the browser means nothing to a solution with no web host |
+
+**Propose, never decide.** The person answers each one, and an answer they give overrides what you read.
+Where the stack's other rows show a choice was made deliberately — no MAUI row, so no desktop host — say
+so, because it usually answers the new row too.
+
+**A stack placed before 0.24.0 lists the rows it deleted**, because a deleted row and an unasked one look
+the same. Say that once, before the list, so a long list reads as a one-time catch-up rather than a
+release that changed everything. Most of those answers are `none`, confirmed rather than re-argued.
+
+Then write the answers where the person can place them:
+
+```
+sdlc draft techstack
+```
+
+The draft is a byte copy and names the same list under the rename command. Add one row per answer to
+the table it belongs in — a default under `## Defaults`, a rule under `## Rules` — and nothing else.
+**You cannot place it**; show the `mv -f` line it printed and let the person rename. Then step 5, where
+`sdlc doctor` no longer names anything under `declared stack`.
 
 ## 5. Report
 

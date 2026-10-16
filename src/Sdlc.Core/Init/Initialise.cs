@@ -104,6 +104,11 @@ public static class Initialise
     /// (D-76), so on a first run both are left and the report names the first (D-79). Null renders no
     /// next step.
     /// </param>
+    /// <param name="Unmentioned">
+    /// On an update, what this release ships that the declared stack has no row for -- the half of an
+    /// upgrade adoption cannot write, because the file is a person's (D-93). Null where nothing was
+    /// compared: a first adoption, or a solution with no declared stack yet.
+    /// </param>
     public sealed record Response(
         InitMode Mode,
         SolutionOrigin Origin,
@@ -112,7 +117,8 @@ public static class Initialise
         IReadOnlyDictionary<string, string> Printed,
         bool PlatformPending = false,
         Platform Platform = Platform.GitHub,
-        SetupState? Setup = null)
+        SetupState? Setup = null,
+        StackCoverage.Unmentioned? Unmentioned = null)
     {
         /// <summary>The paths that were written, for the commit to stage.</summary>
         public IReadOnlyList<string> Written =>
@@ -336,7 +342,8 @@ public static class Initialise
                 printed,
                 platformPending,
                 platform,
-                await Setup.Read(solution.Path, cancellationToken).ConfigureAwait(false)));
+                await Setup.Read(solution.Path, cancellationToken).ConfigureAwait(false),
+                await Unmentioned(mode, cancellationToken).ConfigureAwait(false)));
         }
 
         /// <summary>Where a platform's pull-request pipeline goes.</summary>
@@ -388,6 +395,23 @@ public static class Initialise
 
             return !furniture.Contains(name, StringComparer.OrdinalIgnoreCase)
                 && !path.Replace('\\', '/').StartsWith(Cycle.SdlcDirectoryName + "/", StringComparison.Ordinal);
+        }
+
+        /// <summary>
+        /// What this release ships that the declared stack has no row for, on an update.
+        /// </summary>
+        /// <remarks>
+        /// Read and reported, never written: the stack is a person's file, and the refresh this run did is
+        /// the half of an upgrade a tool may do. Null on a first adoption, where there is no stack to compare,
+        /// and where none has been placed yet -- the next step already names drafting one (D-79, D-93).
+        /// </remarks>
+        private async Task<StackCoverage.Unmentioned?> Unmentioned(InitMode mode, CancellationToken cancellationToken)
+        {
+            string path = Path.Combine(solution.Path, Cycle.SdlcDirectoryName, Cycle.TechStackFileName);
+
+            return mode != InitMode.Update || !File.Exists(path)
+                ? null
+                : StackCoverage.Of(await File.ReadAllTextAsync(path, cancellationToken).ConfigureAwait(false));
         }
 
         /// <summary>

@@ -130,6 +130,7 @@ public static class Diagnose
             }
 
             checks.Add(await Adoption(cancellationToken).ConfigureAwait(false));
+            checks.Add(await Stamp(cancellationToken).ConfigureAwait(false));
             checks.Add(await DeclaredStack(cancellationToken).ConfigureAwait(false));
 
             if (await BuildSettingsDeclared(cancellationToken).ConfigureAwait(false) is { } settings)
@@ -277,6 +278,63 @@ public static class Diagnose
         }
 
         /// <summary>
+        /// Whether the framework's own files were written by this release.
+        /// </summary>
+        /// <remarks>
+        /// <para><strong>A problem in either direction.</strong> Older means the hook configuration and the
+        /// pipeline may be a release behind the binary judging the cycles -- an upgrade on this machine that
+        /// never reached this repository. Newer means somebody refreshed it with a later binary than this
+        /// one, which then judges with rules the files were not written for. Neither is visible any other
+        /// way, and both are fixed by one command (D-93).</para>
+        ///
+        /// <para><strong>No stamp is the same problem as an old one.</strong> The files were written before
+        /// stamps were, which is older than any release that writes one.</para>
+        /// </remarks>
+        private async Task<Check> Stamp(CancellationToken cancellationToken)
+        {
+            string path = Path.Combine(solution.Path, Cycle.SdlcDirectoryName, "README.md");
+
+            string? stamped = File.Exists(path)
+                ? FrameworkStamp.Read(await File.ReadAllTextAsync(path, cancellationToken).ConfigureAwait(false))
+                : null;
+
+            const string refresh = "a person runs 'sdlc init' here, which refreshes what the framework owns and touches nothing a person writes";
+
+            if (stamped is null)
+            {
+                return new Check(
+                    "framework files",
+                    CheckOutcome.Problem,
+                    Cycle.SdlcDirectoryName + "/README.md carries no release stamp, so the hook configuration and the pipeline were written before stamps were, by an older release than this one",
+                    refresh);
+            }
+
+            int compared = FrameworkStamp.Compare(stamped, Release.Version);
+
+            return compared switch
+            {
+                0 => new Check(
+                    "framework files",
+                    CheckOutcome.Sound,
+                    string.Create(CultureInfo.InvariantCulture, $"written by sdlc {stamped}, this release")),
+                < 0 => new Check(
+                    "framework files",
+                    CheckOutcome.Problem,
+                    string.Create(
+                        CultureInfo.InvariantCulture,
+                        $"written by sdlc {stamped}, and this binary is {Release.Version}, so the hook configuration and the pipeline may be a release behind"),
+                    refresh),
+                _ => new Check(
+                    "framework files",
+                    CheckOutcome.Problem,
+                    string.Create(
+                        CultureInfo.InvariantCulture,
+                        $"written by sdlc {stamped}, which is newer than this binary ({Release.Version})"),
+                    "upgrade the binary on this machine -- the install guide's Update section -- rather than re-running init with this one"),
+            };
+        }
+
+        /// <summary>
         /// Whether a declared stack is in place, and what it pins and switches on.
         /// </summary>
         /// <remarks>
@@ -292,11 +350,12 @@ public static class Diagnose
         /// a plan answers the solution never chose; a rule row naming an id this build does not ship
         /// switches on nothing while reading as if it did. Every stage passes in all three.</para>
         ///
-        /// <para><strong>A shipped rule the file does not list is information, never fault.</strong>
-        /// What is listed is what binds, so a release that adds a rule changes nothing for a solution
-        /// already adopted until somebody adds its row. That is the right way round -- an upgrade of
-        /// the binary should not change what a plan is judged against -- and it is worth saying so the
-        /// new rule is declined rather than merely unseen.</para>
+        /// <para><strong>A shipped rule or default the file does not mention is information, never
+        /// fault.</strong> What is listed is what binds, so a release that adds one changes nothing for a
+        /// solution already adopted until somebody adds its row. That is the right way round -- an
+        /// upgrade of the binary should not change what a plan is judged against -- and it is worth
+        /// saying so the new row is answered rather than merely unseen. A row saying <c>none</c> or
+        /// <c>false</c> is an answer, so only what was never asked is named (D-93).</para>
         ///
         /// <para>Reported and never repaired, like everything else here. Rewriting a person's file
         /// would be the gate deciding what a team is built from.</para>
@@ -369,7 +428,7 @@ public static class Diagnose
                     string.Create(
                         CultureInfo.InvariantCulture,
                         $"{undeclared.Length} of {rows.Count} rows declare nothing: {string.Join(", ", undeclared)}"),
-                    "'sdlc draft techstack' writes the menu beside the draft, with what each profile declares for every concern. A row this solution has no use for is better deleted than left empty");
+                    "'sdlc draft techstack' writes the menu beside the draft, with what each profile declares for every concern. A row this solution has no use for says 'none' rather than being left empty or deleted, so a later release knows not to ask");
             }
 
             int on = rules.Count(rule => rule.On);
@@ -384,20 +443,15 @@ public static class Diagnose
                     "it pins nothing and switches on no stack rule, so every plan chooses freely -- which is a solution's to decide");
             }
 
-            string[] unlisted = [.. shipped.Where(id => !rules.Any(rule =>
-                string.Equals(rule.Id, id, StringComparison.OrdinalIgnoreCase)))];
+            // Everything the stack has no row for, defaults and rules alike. A row that says no -- 'none',
+            // or false -- is an answer and is not listed; only what was never asked is (D-93).
+            StackCoverage.Unmentioned unmentioned = StackCoverage.Of(text);
 
-            string tail = rules.Count == 0
-                ? shipped.Length == 0
-                    ? string.Empty
-                    : string.Create(
-                        CultureInfo.InvariantCulture,
-                        $". This release ships {shipped.Length}, none of which it is held to")
-                : unlisted.Length == 0
-                    ? string.Empty
-                    : string.Create(
-                        CultureInfo.InvariantCulture,
-                        $". This release also ships {string.Join(", ", unlisted)}, which it does not list and so is not held to");
+            string tail = unmentioned.IsEmpty
+                ? string.Empty
+                : string.Create(
+                    CultureInfo.InvariantCulture,
+                    $". It does not mention {string.Join(", ", unmentioned.Names)}, which this release ships -- 'sdlc stack' lists them, and a row answering each, 'none' or false included, means nobody is asked again");
 
             return new Check(
                 "declared stack",
