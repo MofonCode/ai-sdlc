@@ -65,7 +65,8 @@ before step 11.
 | `/sdlc:remediate <id>` | agent | only on `blocked`; runs while each pass reduces what is open |
 | `sdlc pr-ready <id>` | binary | whether it may open a pull request. Exits 1 if not |
 | `/sdlc:pr <id>` | agent | pushes and opens the pull request. Asks first |
-| `sdlc verify-chain <id>` | binary | the pull-request check, and the only layer that cannot be bypassed |
+| `sdlc verify-chain <id> --base <branch>` | binary | the pull-request check, and the only layer that cannot be bypassed. A plan alone gets the admission check |
+| `sdlc admission <id> --base <branch>` | binary | `true` when a pull request carries only a plan, so the pipeline skips the build and the tests |
 | **At any point** | | |
 | `sdlc status <id>` | binary | the stage panel, the gate, and the literal next command |
 | `sdlc status <id> --brief` | binary | the same, between stages |

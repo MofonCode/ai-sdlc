@@ -77,6 +77,12 @@ internal sealed class FakeRepository : IRepository
 
     public string? MergeBase(string workingDirectory, string branch, string integrationBranch) => Base;
 
+    /// <summary>What <see cref="CommittedChanges"/> reports, or null for git not being able to say.</summary>
+    public IReadOnlyList<string>? Committed { get; set; }
+
+    /// <inheritdoc />
+    public IReadOnlyList<string>? CommittedChanges(string workingDirectory, string from, string until) => Committed;
+
     public string? Diff(string workingDirectory, string from, IReadOnlyList<string> exclude)
     {
         Excluded = exclude;

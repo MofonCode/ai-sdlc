@@ -63,6 +63,7 @@ try
         "constraints" => await Workspace.Run(line, w => Constraints(w, line)).ConfigureAwait(false),
         "gate" => await WithCycle(line, "gate", Gate).ConfigureAwait(false),
         "verify-chain" => await VerifyChainCommand(line).ConfigureAwait(false),
+        "admission" => await AdmissionCommand(line).ConfigureAwait(false),
         "pr-ready" => await AskPrReady(line).ConfigureAwait(false),
         "draft" => await Draft(line).ConfigureAwait(false),
         "propose" => await Propose(line).ConfigureAwait(false),
@@ -473,16 +474,22 @@ static async Task<int> VerifyChainCommand(CommandLine line)
         return ExitCode.Refused;
     }
 
-    return await Workspace.Run(line, workspace => VerifyChain(workspace, id.Value)).ConfigureAwait(false);
+    return await Workspace.Run(line, workspace => VerifyChain(workspace, line, id.Value)).ConfigureAwait(false);
 }
 
 // The non-bypassable layer. A pipeline runs this behind branch policy, so its exit code is the thing
 // standing between an unapproved chain and a merge -- which is why the whole report goes to standard
 // output whether it holds or not: a reader looking at a failed check needs what passed as well.
-static async Task<int> VerifyChain(Workspace workspace, CycleId id)
+//
+// --base names the pull request's target branch, and with it the check reads what the pull request
+// changes: one cycle's planning documents alone get the admission check (D-87). Without it, or when git
+// cannot say what changed, the full chain runs -- a pipeline that passes nothing is as strict as before.
+static async Task<int> VerifyChain(Workspace workspace, CommandLine line, CycleId id)
 {
+    IReadOnlyList<string>? changed = await ChangedAgainstBase(workspace, line).ConfigureAwait(false);
+
     Result<VerifyChain.Response> result = await workspace
-        .Send<VerifyChain.Query, VerifyChain.Response>(new VerifyChain.Query(id))
+        .Send<VerifyChain.Query, VerifyChain.Response>(new VerifyChain.Query(id, changed))
         .ConfigureAwait(false);
 
     if (result.IsFailed)
@@ -492,6 +499,66 @@ static async Task<int> VerifyChain(Workspace workspace, CycleId id)
 
     await Console.Out.WriteAsync(ChainRenderer.Render(result.Value)).ConfigureAwait(false);
     return result.Value.Holds ? ExitCode.Ok : ExitCode.Refused;
+}
+
+// What a pull request changes against the target branch --base names, or null when there is no --base
+// or git cannot say. Null means the full chain, everywhere it is read.
+static async Task<IReadOnlyList<string>?> ChangedAgainstBase(Workspace workspace, CommandLine line)
+{
+    if (!line.TryOption("base", out string? target))
+    {
+        return null;
+    }
+
+    const string FullyQualified = "refs/heads/";
+    string branch = target.StartsWith(FullyQualified, StringComparison.OrdinalIgnoreCase)
+        ? target[FullyQualified.Length..]
+        : target;
+
+    IReadOnlyList<string>? changed = workspace.Repository.MergeBase(workspace.SolutionRoot, "HEAD", branch) is { } divergence
+        ? workspace.Repository.CommittedChanges(workspace.SolutionRoot, divergence, "HEAD")
+        : null;
+
+    if (changed is null)
+    {
+        await Console.Error.WriteLineAsync(string.Create(
+            CultureInfo.InvariantCulture,
+            $"git could not say what this pull request changes against {branch}, so the full chain is checked."))
+            .ConfigureAwait(false);
+    }
+
+    return changed;
+}
+
+// 'true' when a pull request carries one cycle's planning documents and nothing else, so a pipeline can
+// skip the build and the tests and go straight to the admission check (D-87). 'false' for everything
+// else -- an ungoverned branch, no --base, a diff git cannot read -- because false means the full
+// pipeline, and the full pipeline is never the wrong answer, only the slower one. The word alone on
+// standard output, so a pipeline step can capture it; the platform's way of setting a variable stays in
+// the YAML, where each platform's knowledge already lives.
+static async Task<int> AdmissionCommand(CommandLine line)
+{
+    if (line.Arguments.Count == 0)
+    {
+        await Console.Error.WriteLineAsync(
+            "Which cycle? Give its id or its branch, as in 'sdlc admission cycle/20260929_1456_32/plan --base development'.")
+            .ConfigureAwait(false);
+        return ExitCode.Usage;
+    }
+
+    if (!CycleId.TryParse(line.Arguments[0], out CycleId? id) && !CycleId.TryParseBranch(line.Arguments[0], out id))
+    {
+        await Console.Out.WriteLineAsync("false").ConfigureAwait(false);
+        return ExitCode.Ok;
+    }
+
+    return await Workspace.Run(line, async workspace =>
+    {
+        IReadOnlyList<string>? changed = await ChangedAgainstBase(workspace, line).ConfigureAwait(false);
+        bool admission = changed is not null && Sdlc.Core.Chain.VerifyChain.AdmitsAsPlan(id.Value, changed);
+        await Console.Out.WriteLineAsync(admission ? "true" : "false").ConfigureAwait(false);
+        return ExitCode.Ok;
+    }).ConfigureAwait(false);
 }
 
 // One verb drafts every file a person writes by hand. They follow one rule -- a tool never writes

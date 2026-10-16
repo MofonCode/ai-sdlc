@@ -421,6 +421,106 @@ public sealed class VerifyChainTests
         StringAssert.Contains(proven.Detail, "proof 3 names no test");
     }
 
+    [TestMethod]
+    public async Task A_plan_alone_is_admitted_without_a_verify()
+    {
+        // D-87: a plan reaches the integration branch before it is built, so its pull request has no
+        // verify to show. Held to everything a plan can be held to, and nothing a build produces.
+        using CycleWorkspace workspace = Planned();
+
+        VerifyChain.Response verdict = await Check(workspace, PlanningPaths(workspace));
+
+        Assert.IsTrue(verdict.Admission, Describe(verdict));
+        Assert.IsTrue(verdict.Holds, Describe(verdict));
+        Assert.IsFalse(
+            verdict.Checks.Any(check => check.Name.Contains("verified", StringComparison.Ordinal)),
+            "The admission check asks for no verify: " + Describe(verdict));
+    }
+
+    [TestMethod]
+    public async Task A_plan_admitted_without_an_approval_does_not_hold()
+    {
+        using CycleWorkspace workspace = Planned();
+        File.Delete(workspace.Cycle.ApprovalPath);
+
+        VerifyChain.Response verdict = await Check(workspace, PlanningPaths(workspace));
+
+        Assert.IsTrue(verdict.Admission, Describe(verdict));
+        Assert.IsFalse(verdict.Holds, "A plan nobody approved is not admitted: " + Describe(verdict));
+    }
+
+    [TestMethod]
+    public async Task One_file_outside_the_plan_brings_back_the_full_chain()
+    {
+        // The diff decides, not the branch name: a plan's pull request carrying one source file is held
+        // to the whole chain, and with no verify it fails.
+        using CycleWorkspace workspace = Planned();
+
+        VerifyChain.Response verdict = await Check(
+            workspace,
+            [.. PlanningPaths(workspace), "src/Orders/OrderService.cs"]);
+
+        Assert.IsFalse(verdict.Admission, Describe(verdict));
+        Assert.IsFalse(verdict.Holds, Describe(verdict));
+    }
+
+    [TestMethod]
+    [DataRow("verify.md")]
+    [DataRow("evidence/tests.json")]
+    [DataRow("abandoned.md")]
+    public void A_build_or_a_stop_is_not_planning_paperwork(string inside)
+    {
+        Assert.IsTrue(CycleId.TryParse("20260929_1456_32", out CycleId? id));
+
+        Assert.IsFalse(VerifyChain.AdmitsAsPlan(id.Value, [".sdlc/cycles/20260929_1456_32/" + inside]));
+    }
+
+    [TestMethod]
+    public void Another_cycles_plan_and_an_empty_diff_are_not_admitted()
+    {
+        Assert.IsTrue(CycleId.TryParse("20260929_1456_32", out CycleId? id));
+
+        Assert.IsFalse(VerifyChain.AdmitsAsPlan(id.Value, [".sdlc/cycles/20260929_1456_33/plan.md"]));
+        Assert.IsFalse(VerifyChain.AdmitsAsPlan(id.Value, []));
+        Assert.IsTrue(VerifyChain.AdmitsAsPlan(
+            id.Value,
+            [".sdlc\\cycles\\20260929_1456_32\\findings\\plan.r1.json", ".sdlc/cycles/20260929_1456_32/approval.md"]));
+    }
+
+    private static CycleWorkspace Planned()
+    {
+        var workspace = CycleWorkspace.Create();
+
+        workspace.WriteArtifact(ArtifactKind.Intent);
+        workspace.WriteSpec(criteria: 3);
+        workspace.WritePlan(proofs: 3);
+
+        foreach (ArtifactKind kind in Cycle.PlanningDocuments)
+        {
+            workspace.WriteCleanRound(kind);
+        }
+
+        workspace.WriteApproval();
+        return workspace;
+    }
+
+    private static string[] PlanningPaths(CycleWorkspace workspace)
+    {
+        string root = ".sdlc/cycles/" + workspace.Cycle.Id + "/";
+        return [root + "intent.md", root + "spec.md", root + "plan.md", root + "approval.md", root + "findings/plan.r1.json"];
+    }
+
+    private static async Task<VerifyChain.Response> Check(CycleWorkspace workspace, IReadOnlyList<string> changed)
+    {
+        using var gate = Gate.For(workspace.Root);
+
+        Result<VerifyChain.Response> result = await gate
+            .Send<VerifyChain.Query, VerifyChain.Response>(new VerifyChain.Query(workspace.Cycle.Id, changed));
+
+        Assert.IsTrue(result.IsSuccess, string.Join("; ", result.Errors.Select(e => e.Message)));
+        return result.Value;
+    }
+
     private static async Task<VerifyChain.Response> Check(CycleWorkspace workspace)
     {
         using var gate = Gate.For(workspace.Root);

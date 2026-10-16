@@ -96,6 +96,19 @@ public static class ChainRenderer
             output.AppendLine();
         }
 
+        if (verdict.Holds && verdict.Admission)
+        {
+            output.AppendLine(Indent + "The plan may be admitted. Nothing is built yet; its build gets the full chain.");
+            output.AppendLine();
+
+            foreach (string line in Wrap(VerifyChain.Caveat))
+            {
+                output.AppendLine(Indent + line);
+            }
+
+            return output.ToString();
+        }
+
         if (verdict.Holds)
         {
             output.AppendLine(Indent + "The chain holds.");

@@ -44,8 +44,16 @@ internal static class Usage
                                      code and no build settings.
             constraints              Render the constraint set in force.
             gate <id>                Say whether a cycle's build may run. Exits 1 if not.
-            verify-chain <id>        Re-establish the whole chain from the repository. Exits 1 if
-                                     it does not hold. This is the pull-request check.
+            verify-chain <id> [--base <branch>]
+                                     Re-establish the whole chain from the repository. Exits 1 if
+                                     it does not hold. This is the pull-request check. --base is the
+                                     target branch: a pull request changing only the cycle's
+                                     planning documents then gets the admission check -- plan,
+                                     approval, hashes, no verify.
+            admission <id> --base <branch>
+                                     Print true when a pull request carries only the cycle's
+                                     planning documents, so a pipeline may skip the build and
+                                     tests; false for anything else. Always exits 0.
             pr-ready <id>            Say whether a cycle may open a pull request, without opening
                                      one. Exits 1 if not. For every cycle, 'cycles --pr-ready'.
             draft approval <id>      Write the gate decision beside the ledger, for a person to

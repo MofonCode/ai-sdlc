@@ -1909,7 +1909,8 @@ they print verbatim.
 | `propose decisions` | what an approved cycle stated, handed over for a person to record — D-70 |
 | `propose theme` | the roles a theme declares, or the ones left empty in the one there is — D-71 |
 | `pr-ready <id>` | whether one cycle may open a pull request, without opening one |
-| `verify-chain <id>` | the whole chain, as the pull-request check runs it — §13 |
+| `verify-chain <id> [--base <branch>]` | the whole chain, as the pull-request check runs it — §13. With the target branch, a pull request carrying only the cycle's planning documents gets the admission check (D-87) |
+| `admission <id> --base <branch>` | `true` when a pull request carries only the cycle's planning documents, so a pipeline skips the build and the tests; `false` otherwise. Always exits 0 (D-87) |
 | `scaffold <id>` | writes the solution skeleton into an approved cycle — D-35 — or, on an adopted solution, only the build settings files that cycle's plan declares — D-77 |
 | `hook --host <name>` | judges one tool call — §12 |
 | `version` | the three versions and which is which — the package, the plugin, and the artifact envelope |

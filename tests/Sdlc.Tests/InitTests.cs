@@ -523,6 +523,37 @@ public sealed class InitTests
     }
 
     [TestMethod]
+    [DataRow(Platform.GitHub)]
+    [DataRow(Platform.AzureDevOps)]
+    public void Each_pipeline_is_valid_yaml_and_skips_the_build_only_for_a_plan_being_admitted(Platform platform)
+    {
+        // The suite asserts strings in the templates, and a quoting mistake inside one of those strings
+        // is a pipeline that fails to load on its first run -- which on Azure DevOps nobody has done yet.
+        // So the YAML is parsed, and the steps the admission check skips are found by what they run.
+        string pipeline = Templates.Pipeline(platform);
+
+        YamlDotNet.RepresentationModel.YamlStream stream = [];
+        stream.Load(new StringReader(pipeline));
+        Assert.AreEqual(1, stream.Documents.Count);
+
+        StringAssert.Contains(pipeline, "sdlc admission", "D-87: the pipeline asks what the pull request carries.");
+        StringAssert.Contains(pipeline, "--base", "The check is told the target branch, or it cannot read the diff.");
+
+        string[] lines = pipeline.ReplaceLineEndings().Split(Environment.NewLine);
+        int build = Array.FindIndex(lines, line => line.Contains("dotnet build", StringComparison.Ordinal));
+        int test = Array.FindIndex(lines, line => line.Contains("dotnet test", StringComparison.Ordinal));
+        int chain = Array.FindIndex(lines, line => line.Contains("sdlc verify-chain", StringComparison.Ordinal));
+
+        Assert.IsTrue(lines[build + 1].Contains("admission", StringComparison.Ordinal)
+            || lines[build + 2].Contains("admission", StringComparison.Ordinal), "The build is skipped for a plan alone.");
+        Assert.IsTrue(lines[test + 1].Contains("admission", StringComparison.Ordinal)
+            || lines[test + 2].Contains("admission", StringComparison.Ordinal), "The tests are skipped for a plan alone.");
+        Assert.IsFalse(
+            lines.Skip(chain).Take(4).Any(line => line.Contains("condition", StringComparison.Ordinal) || line.Contains("if:", StringComparison.Ordinal)),
+            "The check itself always runs: skipping it would make the admission step the bypass.");
+    }
+
+    [TestMethod]
     public async Task Adoption_writes_no_git_hook_and_asks_for_none_to_be_installed()
     {
         // A pre-push hook was written here and left for a person to install per clone, so it looked like

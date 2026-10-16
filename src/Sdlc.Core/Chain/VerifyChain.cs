@@ -49,7 +49,11 @@ public static class VerifyChain
     /// <summary>What the chain check found.</summary>
     /// <param name="Cycle">The cycle that was checked.</param>
     /// <param name="Checks">Every check, in the order they ran.</param>
-    public sealed record Response(Cycle Cycle, IReadOnlyList<ChainCheck> Checks)
+    /// <param name="Admission">
+    /// Whether this was the admission check: the pull request carried only this cycle's planning documents,
+    /// so it was checked up to the approval and asked for no verify (D-87).
+    /// </param>
+    public sealed record Response(Cycle Cycle, IReadOnlyList<ChainCheck> Checks, bool Admission = false)
     {
         /// <summary>Whether every check held.</summary>
         public bool Holds => Checks.All(check => check.Passed);
@@ -60,7 +64,59 @@ public static class VerifyChain
 
     /// <summary>Asks whether a cycle's artifact chain is complete, approved and hash-matched.</summary>
     /// <param name="Id">The cycle to re-establish.</param>
-    public sealed record Query(CycleId Id) : IRequest<Response>;
+    /// <param name="Changed">
+    /// The paths the pull request changes, relative to the root, or null when nobody said. When every one
+    /// of them is this cycle's planning paperwork, the admission check runs instead of the full chain.
+    /// Null always means the full chain, so a pipeline that does not pass the target branch is as strict
+    /// as before.
+    /// </param>
+    public sealed record Query(CycleId Id, IReadOnlyList<string>? Changed = null) : IRequest<Response>;
+
+    /// <summary>
+    /// Whether a pull request's changes are one cycle's planning paperwork and nothing else.
+    /// </summary>
+    /// <remarks>
+    /// <strong>The diff decides, never the branch name</strong> (D-87): whoever opens the pull request picks
+    /// the name. One path outside the cycle's intent, spec, plan, findings rounds, approval and its own
+    /// ignore file — a source file, a verify, evidence, another cycle's anything — and the full chain runs
+    /// and fails, so a plan's pull request cannot carry code past the check. An empty diff admits nothing.
+    /// </remarks>
+    /// <param name="id">The cycle.</param>
+    /// <param name="changed">The changed paths, relative to the root, with either separator.</param>
+    /// <returns>True when the admission check applies.</returns>
+    public static bool AdmitsAsPlan(CycleId id, IReadOnlyList<string> changed)
+    {
+        ArgumentNullException.ThrowIfNull(changed);
+
+        string prefix = string.Join(
+            '/',
+            Cycle.SdlcDirectoryName,
+            Cycle.CyclesDirectoryName,
+            id.ToString()) + "/";
+
+        HashSet<string> paperwork = new(StringComparer.Ordinal)
+        {
+            Cycle.FileNameOf(ArtifactKind.Intent),
+            Cycle.FileNameOf(ArtifactKind.Spec),
+            Cycle.FileNameOf(ArtifactKind.Plan),
+            "approval.md",
+            ".gitignore",
+        };
+
+        return changed.Count > 0 && changed.All(path =>
+        {
+            string normalised = path.Replace('\\', '/').TrimStart('/');
+
+            if (!normalised.StartsWith(prefix, StringComparison.Ordinal))
+            {
+                return false;
+            }
+
+            string inside = normalised[prefix.Length..];
+            return paperwork.Contains(inside)
+                || (inside.StartsWith("findings/", StringComparison.Ordinal) && !inside.EndsWith('/'));
+        });
+    }
 
     /// <summary>
     /// Re-establishes a cycle's chain from the repository rather than from any agent's word.
@@ -106,7 +162,28 @@ public static class VerifyChain
                 return Result.Ok(new Response(cycle, checks));
             }
 
-            await Documents(cycle, checks, request.Id, cancellationToken).ConfigureAwait(false);
+            if (request.Changed is { } changed && AdmitsAsPlan(request.Id, changed))
+            {
+                // The admission check (D-87): a plan admitted to the integration branch before it is built.
+                // Everything a plan can be held to — its documents, the approval and its hashes, a proof for
+                // every criterion — and nothing a build produces.
+                checks.Add(new ChainCheck(
+                    "this pull request carries only the cycle's planning documents",
+                    true,
+                    string.Create(
+                        CultureInfo.InvariantCulture,
+                        $"{changed.Count} changed, all under the cycle's own directory, so it is checked for admission to the integration branch: the plan, its approval and its hashes. A verify is not asked for, because nothing has been built.")));
+
+                await Documents(cycle, checks, request.Id, [.. Cycle.PlanningDocuments], cancellationToken)
+                    .ConfigureAwait(false);
+                await Gate(cycle, checks, cancellationToken).ConfigureAwait(false);
+                await Proof(cycle, checks, cancellationToken).ConfigureAwait(false);
+
+                return Result.Ok(new Response(cycle, checks, Admission: true));
+            }
+
+            await Documents(cycle, checks, request.Id, [.. Cycle.PlanningDocuments, ArtifactKind.Verify], cancellationToken)
+                .ConfigureAwait(false);
             await Gate(cycle, checks, cancellationToken).ConfigureAwait(false);
             await Proof(cycle, checks, cancellationToken).ConfigureAwait(false);
             await Proven(cycle, checks, cancellationToken).ConfigureAwait(false);
@@ -121,9 +198,9 @@ public static class VerifyChain
             Cycle cycle,
             List<ChainCheck> checks,
             CycleId id,
+            List<ArtifactKind> required,
             CancellationToken cancellationToken)
         {
-            List<ArtifactKind> required = [.. Cycle.PlanningDocuments, ArtifactKind.Verify];
             List<string> missing = [];
             List<string> misshapen = [];
 

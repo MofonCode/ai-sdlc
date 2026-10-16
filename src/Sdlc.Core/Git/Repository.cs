@@ -102,6 +102,18 @@ public interface IRepository
     /// <returns>The paths, relative to the root.</returns>
     IReadOnlyList<string> ChangedFiles(string workingDirectory, string from);
 
+    /// <summary>The paths that differ between two commits, committed changes only.</summary>
+    /// <remarks>
+    /// Separate from <see cref="ChangedFiles"/>, which measures to the working tree and counts untracked
+    /// files. The pull-request check asks what a pull request carries, and on a pipeline agent that has
+    /// just built, the working tree holds whatever the build left there.
+    /// </remarks>
+    /// <param name="workingDirectory">Where to ask from.</param>
+    /// <param name="from">The commit to measure from.</param>
+    /// <param name="until">The commit to measure to.</param>
+    /// <returns>The paths, relative to the root, or null when git cannot say.</returns>
+    IReadOnlyList<string>? CommittedChanges(string workingDirectory, string from, string until);
+
     /// <summary>
     /// The full message of every commit a branch has that the base does not.
     /// </summary>
@@ -308,6 +320,19 @@ public sealed class GitRepository : IRepository
         }
 
         return [.. paths.Order(StringComparer.Ordinal)];
+    }
+
+    /// <inheritdoc />
+    public IReadOnlyList<string>? CommittedChanges(string workingDirectory, string from, string until)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(from);
+        ArgumentException.ThrowIfNullOrWhiteSpace(until);
+
+        string? output = Run(workingDirectory, $"diff --name-only {from} {until}");
+
+        return output is null
+            ? null
+            : [.. output.Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)];
     }
 
     /// <inheritdoc />
