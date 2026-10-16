@@ -1,81 +1,86 @@
 ---
 name: batch-build
-description: Complete every approved cycle in this working copy -- build and verify each, concurrently where their declared files do not collide. Use when several cycles are approved and waiting.
+description: Complete every queued cycle -- build and verify each on its own branch, independently, and report the sitrep. With --pr, open a pull request for each; with --unattended, run as the factory does, asking nothing. Use when several cycles are approved and waiting.
 compatibility: Requires the sdlc binary on PATH, from the MofonCode.Sdlc.Cli dotnet tool, and a git repository. Every command here is that binary, so without it the first step fails.
-argument-hint: "[--pr]"
-allowed-tools: Bash(sdlc *), Bash(git *), Bash(dotnet *), Read, Write, Edit, Glob, Grep
+argument-hint: "[--pr] [--unattended]"
+allowed-tools: Bash(sdlc *), Bash(git *), Bash(dotnet *), Bash(gh *), Bash(az *), Read, Write, Edit, Glob, Grep
 ---
 
-# Complete the approved cycles
+# Complete the queued cycles
 
-A local skill, executed rather than subscribed to. It collects the approved cycles in **this** working
-copy, builds and verifies each, and reports. There is no shared queue and no daemon.
+It collects the cycles waiting for a build, builds and verifies each on a branch of its own, and reports.
+Run by a person, it works from this working copy. Run by the factory, it works from a fresh checkout of the
+integration branch, on a schedule, asking nothing (`CONCEPT.md` §10.5, D-84).
 
 ## Read this first
 
 **Everything here rests on the remediation bound.** A cycle that cannot be made to pass stops rather
-than opening a pull request, and that stopping is the only reason this is safe to run without watching.
-The bound is a progress rule rather than a pass count: remediation continues while each pass reduces
-what is open, and stops when a pass undoes earlier work or two in a row reduce nothing. **There is no
-ceiling behind it (D-66)**, so a loop that keeps showing small improvements can run for a long time --
-which is the one thing to watch on an unattended batch.
+than reaching a ready pull request, and that stopping is the only reason this is safe to run without
+watching. The bound is a progress rule rather than a pass count: remediation continues while each pass
+reduces what is open, and stops when a pass undoes earlier work or two in a row reduce nothing. **There is
+no ceiling behind it (D-66)**, so a loop that keeps showing small improvements can run for a long time —
+which is why the factory's pipeline job has a timeout, and why the first few runs are worth watching.
 
-The bound is implemented and tested, but it has been exercised in fixtures far more than in anger — so
-the first few batch runs are worth watching, and a cycle that escalates is worth reading rather than
-re-running.
+**It builds; it never merges.** A person reviews and merges each pull request, one at a time (D-84, D-86).
 
-## 1. Find the work and read the claim graph
+## 1. Find the work
 
 ```
-sdlc cycles --pr-ready
+git fetch origin
+sdlc cycles --queued
 sdlc cycles --claims
 ```
 
-The first lists every cycle and its state; the ones to build are those whose gate is satisfied and which
-have no verification yet. The second computes the claim graph and prints it: what each cycle claims, which
-groups may run together, and every collision with the files it is about.
+The first lists what to build — approved, no verify, not abandoned, and no `cycle/<id>/...` branch on the
+remote — and every cycle held back, with why. **Build exactly the queued ones.** A held-back cycle is
+somebody else's or still moving; the sitrep at the end names it, and a person decides.
 
-**Do not work the graph out yourself.** It is a set intersection over a file table, which the binary does
-the same way every time; a graph you derived by reading plans would come out slightly differently each run,
-and what it decides is what runs concurrently.
+The second marks the cycles whose plans stand up a backing service, which is what caps concurrency
+(step 3). **It no longer schedules**: every cycle builds from the same base, and two that touch the same
+file meet at merge, where a person is (D-86).
+
+**Do not work either list out yourself.** The binary reads the same refs and the same plans the same way
+every time; a list derived by reading files would come out slightly differently each run.
 
 ## Keep a task list, if your host has one
 
 If your host gives you a task list, open one now that the work is known. If it does not,
 carry on without one — nothing below depends on it.
 
-**One line per cycle.** Every cycle this run will build, by id, in the order it will run — and nothing
-else. No line per stage, per group or per remediation pass: a batch of nine is nine lines, and a
-person glancing in is scanning for the one that has not moved.
+**One line per cycle.** Every cycle this run will build, by id — and nothing else. No line per stage or per
+remediation pass: a batch of nine is nine lines, and a person glancing in is scanning for the one that has
+not moved.
 
 **A tick means `passed`, and nothing else does.** Mark a cycle in progress when its build starts and
 leave it there through verification and remediation, because the line that stays in progress is the
 one worth noticing — remediation has no ceiling. Tick it only when its outcome is `passed`. For
-`blocked`, `escalated` and not attempted, **leave it unticked and write the outcome onto the line**. A
-tick on a cycle that escalated says the opposite of what happened.
+`blocked`, `escalated` and did not finish, **leave it unticked and write the outcome onto the line**.
 
-**The build stage keeps no list of its own inside a batch.** Its skill says so, and this is why: the
-batch's line for a cycle is the whole of what that cycle shows.
+**The build stage keeps no list of its own inside a batch.** Its skill says so: the batch's line for a
+cycle is the whole of what that cycle shows.
 
-**The list is a view, never the record.** It lives in this session, and a run that dies takes it
-along. The outcomes are in each cycle's verify document, and `sdlc cycles --pr-ready` at the end is
-what says which passed.
+**The list is a view, never the record.** The outcomes are in each cycle's verify document, on its branch.
 
-## 2. Run the groups
+## 2. One worktree and one branch per cycle
 
-- Each group from `sdlc cycles --claims` runs in **parallel**, each cycle in its own git worktree.
-- Cycles in different groups collide, so they run **in cycle-id order**, each rebased on the previous result.
+Every queued cycle builds **independently**, in its own git worktree, on its own branch:
 
-The order is taken rather than declared. Two cycles that genuinely depend on each other with nobody having
-said so means the second's build fails, a person learns, and they rerun. That is accepted: there is no
-dependency declaration, because the skill that would have produced one was removed with `split`.
+```
+git worktree add --detach ../wt-<id>
+sdlc branch <id> build-unattended
+```
 
-**Schedule around collisions rather than resolving them.** A merge you did not have to do is worth more
-than a merge you did well.
+Run the one command `sdlc branch` prints, inside that worktree. It creates
+`cycle/<id>/build-unattended` from the integration branch the plan was admitted to — or from the plan's own
+branch on a solution with none. **Never build on the integration branch itself, and never build two cycles
+in one worktree**: a verify could pass on another cycle's code.
 
-**EF Core migrations serialise, always.** Two branches that each add a migration snapshot the same parent
-model, and the merged chain breaks in a way that compiles and then fails at deploy — which is the worst
-shape a failure can take. `sdlc cycles --claims` flags a plan that mentions one.
+Independent means no cycle waits for another and none is rebased onto another. A pull request rejected in
+the morning costs the rest nothing.
+
+**EF Core migrations are the one thing to watch.** Two cycles that each add a migration snapshot the same
+parent model; each builds green alone, and the second to merge is regenerated, never merged
+(`resolve-conflict` says how). `sdlc cycles --claims` flags a plan that mentions one.
 
 ## 3. Cap concurrency by what a plan needs
 
@@ -93,78 +98,74 @@ SDLC_RUN_MODE=batch
 SDLC_RUN_ID=<eight hex characters, different for every cycle in the run>
 ```
 
-**Per cycle, not per run.** The collision below is between two app hosts running at the same time, so
-one id shared across the batch would not separate them. A fresh id per cycle invocation does.
-
-**You are setting them, not using them.** Whether anything reads them is the solution's business: an
-AppHost is conditional, so a solution has one only if it needs more than one process, and most do not.
-Export them anyway — a variable that is always present is one an AppHost can rely on, and the cost of
-setting it where nothing reads it is nothing.
-
-**What a solution's AppHost does with them**, which is the contract rather than your job:
-
-| | `local` | `batch` |
-|---|---|---|
-| host ports | stable | dynamic |
-| container names | stable | `{app}-{SDLC_RUN_ID}` |
-| container group | solution name | `{solution}-{SDLC_RUN_ID}` |
-| volumes | persistent, named | ephemeral, or named per run |
-| databases | persistent | named per run |
-| dashboard, OTLP endpoint | on | off |
+**Per cycle, not per run.** The collision is between two app hosts running at the same time, so one id
+shared across the batch would not separate them. **You are setting them, not using them**: whether anything
+reads them is the solution's AppHost's business, and `CONCEPT.md` §10.2 is the contract. Export them anyway.
 
 **Named volumes are a worse collision than ports.** Two concurrent app hosts calling `WithDataVolume()`
-share one volume — the same database files, two writers — and that fails strangely rather than loudly.
-The run id belongs on container names, volume names, database names and the container group, not
-only on ports.
-
-**If this solution has no AppHost, nothing reads these and the table constrains nothing** — which is
-the state every solution starts in. The cap above is then the only thing keeping concurrent runs apart,
-and it works because service-free plans have nothing to collide on. §10.2 records the gap.
+share one volume, and that fails strangely rather than loudly. If this solution has no AppHost, nothing reads
+the variables, and the cap above is what keeps concurrent runs apart.
 
 ## 4. Build and verify each
 
-Per cycle, in its worktree: the build stage, then the verify stage. **Verify as well as build** — a batch
-that cannot say which cycles succeeded cannot open pull requests for the ones that did, so "completed"
-means verified.
-
-Four outcomes, and they are this run's rather than a verify document's — `not attempted` is the one that
-could never be written into one:
+Per cycle, in its worktree: the build stage, then the verify stage, remediating while it makes progress.
+**Verify as well as build** — a batch that cannot say which cycles succeeded cannot tell a ready pull
+request from a draft.
 
 | Outcome | What it is |
 |---|---|
-| `passed` | built, verified, ready for a pull request. Its verify outcome was `pass` |
-| `blocked` | a criterion unmet, and remediation is still reducing what is open |
+| `passed` | built, verified, its verify outcome `pass` |
+| `blocked` | a criterion unmet, and remediation still reducing what is open when the run ended |
 | `escalated` | remediation stopped: a pass undid earlier work, or two in a row reduced nothing. A person picks this up |
-| not attempted | downstream of a failure in the claim graph, so it reaches no verify document at all |
+| did not finish | the build or the verify could not run to an outcome — the toolchain failed, the run was stopped |
 
-**A sibling's failure does not discard the cycles that completed.** Each can open its own pull request,
-and reporting them as a batch failure would throw away work that is fine.
+**A sibling's outcome changes nothing about another cycle.** Each is reported, and each gets its own pull
+request.
 
-## 5. Report, and stop
+**Commit everything the cycle wrote on its branch**, verify included, before anything is pushed. The
+branch is the record of the attempt.
 
-**One line per cycle**: its id, its outcome, and for anything not `passed`, what stopped it. A batch of
-nine is nine lines, which is the point — a reader is scanning for the ones that did not pass. Then:
+## 5. With `--pr`: a pull request for every cycle
+
+**Ask once, before the run** — not at the end — because the question is about volume and the person should
+answer it before waiting rather than after. With `--unattended`, ask nothing: the schedule that started the
+run was that decision, taken once by a person where it can be read (D-84).
+
+As each cycle finishes:
+
+| Outcome | Pull request |
+|---|---|
+| `passed` | `pr <id>`, ready for review |
+| `blocked`, `escalated` | `pr <id> --draft`: the attempted code, the verify and the evidence, marked as not ready. Its check goes red, which is accurate |
+| did not finish | none. Report it; nothing was verified, so there is nothing to review. Its branch, if pushed, holds it back until a person deletes the branch |
+
+**Every cycle that reached an outcome gets a pull request** (D-85). A blocked cycle with none would be
+invisible in the morning and built again the next night at full cost; its draft is where a person picks it
+up. A failure opening one does not stop the others.
+
+Everything in the `pr` skill applies: it asks `sdlc pr-ready` first, pushes the cycle's own branch, and
+targets the integration branch.
+
+**Never resolve a conflict between two cycles here.** They built independently and meet at merge.
+
+## 6. Report, and stop
+
+**One line per cycle**: its id, its outcome, its branch, its pull request's link if it has one, and for
+anything not `passed`, what stopped it. Then:
 
 ```
-sdlc cycles --pr-ready
+sdlc sitrep
 ```
 
-Show it verbatim and stop.
+Show it verbatim and stop. Unattended, it is also the run's summary: the pipeline publishes it, so the
+morning starts from that page.
 
-**Plain `batch-build` never pushes.** The pull request is a separate decision and the person makes it.
+**Plain `batch-build` never pushes.** Without `--pr` the branches stay local, and the person decides.
 
-## With `--pr`
+## What you may not do
 
-Compose the two: open a pull request for each completed cycle as it finishes. **Ask once, before the
-run** — not at the end — because the question is about volume and the person should answer it before
-waiting rather than after.
-
-Everything in the pr skill still applies: `sdlc pr-ready` before each push, a failure on one does not
-stop the others, and each pull request reported individually with its link.
-
-## When a file cannot be claimed exclusively
-
-Some files are touched by almost every cycle and cannot be partitioned on: project files,
-`Directory.Packages.props`, dependency-injection registration, `appsettings`, EF Core migrations,
-Terraform near state. Those go to the resolve-conflict stage, which is scoped to exactly that enumerated
-list rather than to whatever happens to conflict.
+- **Merge anything**, or push to the integration branch. Every change reaches it by a pull request a person
+  merges.
+- **Write a file only a person writes.** A cycle that cannot be made to pass is `blocked` or `escalated`;
+  abandoning it is a person's decision, drafted by `sdlc draft abandon` and placed by them.
+- **Build a held-back cycle**, or delete somebody's branch to free one.

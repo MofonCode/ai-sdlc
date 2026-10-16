@@ -219,17 +219,17 @@ are kept either way, so the history of what was challenged survives.
 
 ### git cannot say where the branch diverged
 
-The diff is measured from the merge base with the default branch. Without it there is nothing to measure.
+The diff is measured from where the branch checked out diverged from the integration branch, or from the
+default branch when there is none. Without that commit there is nothing to measure. The commonest cause is
+a branch with no history in common with either — a fresh clone that never fetched them, or work started
+from somewhere unrelated.
 
-**Read the branch name in the message before anything else, because the commonest cause is that you are
-not on it.** The branch is derived from the cycle id rather than from where you are standing, so the
-message names `cycle/<id>` whether or not such a branch exists — and a cycle whose work went onto a
-branch spelled any other way lands here. The remedy is to rename the branch you are on, not to hunt for
-what happened to one you never created.
+**Next:** `git fetch origin`, then ask again. If it still refuses, put the work on the branch
+`sdlc branch <id> build` prints, which starts from the right base.
 
-That misspelling costs more than this refusal: the turn-end hook reads the cycle out of the current
-branch too, and a branch it cannot parse is not governed work, so it allows every turn in the meantime.
-Nothing was being checked while the building happened, and this is the first thing that says so.
+A misspelt branch costs more than this refusal: the turn-end hook reads the cycle out of the current branch,
+and a branch it cannot parse is not governed work, so it allows every turn in the meantime. Nothing was
+being checked while the building happened.
 
 ### an empty patch beside a changed file
 
@@ -264,15 +264,18 @@ build has not recorded any.
 ### the verification did not pass
 
 The verdict is `blocked`. Not "no failures recorded" — an actual pass is required, because the verdict is
-the only thing standing between unattended building and unreviewed work reaching a pull request.
+the only thing standing between unattended building and work presented as ready for review.
 
-**Next:** `/sdlc:remediate <id>`.
+**Next:** `/sdlc:remediate <id>`. A batch run with `--pr` opens a **draft** pull request for it instead
+(D-85): marked not ready, its check red, so the attempt is somewhere a person looks rather than built again
+the next night. Remedy it on that branch and mark the draft ready once it passes.
 
 ### escalated
 
 Remediation stopped getting anywhere with blockers still open: either a pass undid what an earlier one
-answered, or two passes in a row reduced nothing. **An escalated cycle never opens a pull request**, and
-that stopping is the only reason an unattended batch is safe to run at all. There is no pass count to run
+answered, or two passes in a row reduced nothing. **An escalated cycle never opens a ready pull
+request** — a batch run opens a draft, which the check refuses to merge — and that stopping is the only
+reason an unattended batch is safe to run at all. There is no pass count to run
 out of — the refusal says which of the two stopped it, and they want different things from you: a
 regression means looking at what the last pass actually did, and a stall means asking whether the finding
 is answerable. `handling-blockers.md` has what to do with an escalated cycle.
@@ -359,7 +362,8 @@ have opened a pull request into one that cannot.**
 
 ## The turn-end hook — the three ways a turn is sent back
 
-Asked before an agent finishes, on a `cycle/<id>` branch only. It is what makes a warnings-as-errors
+Asked before an agent finishes, on a cycle branch only — `cycle/<id>/<kind>`, or an older cycle's bare
+`cycle/<id>`. It is what makes a warnings-as-errors
 build and an architecture test enforcement rather than something a reviewer finds afterwards: nothing can
 report done over a red suite.
 

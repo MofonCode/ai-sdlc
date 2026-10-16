@@ -1018,19 +1018,20 @@ investment bias the whole separation exists to remove.
 
 ### `pr`
 
-Pushes a verified cycle and opens its pull request. The only stage that touches the remote.
+Pushes a cycle's branch and opens its pull request into the integration branch. The only stage that
+touches the remote.
 
 | | |
 |---|---|
-| Stage | pull requests, after a verification passed |
-| Started by | a person, and **it asks before every push** |
-| Reads | `sdlc pr-ready`, and the cycle's documents for the body |
-| Writes | the pushed branch `cycle/<id>`, and a pull request |
+| Stage | pull requests: after a verification passed, after a plan is approved, or after a build that did not pass |
+| Started by | a person, and **it asks before every push**; or `batch-build --pr` |
+| Reads | `sdlc pr-ready` or `sdlc gate`, `integration_branch` in `solution.md`, and the cycle's documents for the body |
+| Writes | the pushed branch — `cycle/<id>/plan`, `build`, `build-unattended`, or an older cycle's bare `cycle/<id>` — and a pull request |
 
 #### Syntax
 
 ```
-/sdlc:pr <cycle id> | --all
+/sdlc:pr <cycle id> [--plan | --draft] | --all
 ```
 
 #### Parameters
@@ -1038,6 +1039,8 @@ Pushes a verified cycle and opens its pull request. The only stage that touches 
 | Parameter | Description |
 |---|---|
 | `<cycle id>` | the verified cycle to push |
+| `--plan` | an approved plan, before it is built: admission to the integration branch, asked of `sdlc gate`. Merging it deletes the branch |
+| `--draft` | a `blocked` or `escalated` build, as a draft carrying the attempted code, the verify and the evidence |
 | `--all` | every cycle that is ready, asking once before the first push |
 
 #### Output
@@ -1051,7 +1054,8 @@ item where the solution tracks them.
 
 | Condition | Result | What to do |
 |---|---|---|
-| `sdlc pr-ready` refuses: not verified, did not pass, escalated, or the chain broken since verification | refuses, and does not push past it | [Handling refusals](../docs/guides/handling-refusals.md) |
+| `sdlc pr-ready` refuses: not verified, did not pass, escalated, or the chain broken since verification | refuses, and does not push past it — except `--draft`, which opens a draft for did not pass or escalated, and nothing else | [Handling refusals](../docs/guides/handling-refusals.md) |
+| `--plan` and `sdlc gate` refuses | does not push the plan | [Handling refusals](../docs/guides/handling-refusals.md) |
 | the solution is `local` or has no remote | stops | it walks you through creating one, then re-running adoption with a platform, and making the check required in branch policy |
 | on Azure DevOps | shows the exact command before running it, because that path has never been run (D-32) | — |
 | with `--all`, one cycle fails | the others carry on | — |
@@ -1060,6 +1064,7 @@ item where the solution tracks them.
 
 ```
 /sdlc:pr 20261002_1414_12
+/sdlc:pr 20261002_1414_12 --plan
 /sdlc:pr --all
 ```
 
@@ -1092,33 +1097,34 @@ eligible, including one somebody has forgotten.
 
 ### `batch-build`
 
-Completes every approved cycle in this working copy — builds and verifies each, concurrently where their
-declared files do not collide.
+Completes every queued cycle — builds and verifies each on its own branch, independently — and reports the
+sitrep. Run by the factory, it is the whole of what the factory does (D-84).
 
 | | |
 |---|---|
-| Stage | unattended runs, when several cycles are approved and waiting in this working copy |
-| Started by | a person |
-| Reads | `sdlc cycles --pr-ready` for the work, and `sdlc cycles --claims` for the claim graph |
-| Writes | what `build`, `verify` and `remediate` write, for each cycle, each in its own worktree |
+| Stage | unattended runs, when several cycles are approved and waiting |
+| Started by | a person, or the factory on a schedule |
+| Reads | `sdlc cycles --queued` for the work, and `sdlc cycles --claims` for which plans stand up services |
+| Writes | what `build`, `verify` and `remediate` write, for each cycle, each in its own worktree on `cycle/<id>/build-unattended` |
 
 #### Syntax
 
 ```
-/sdlc:batch-build [--pr]
+/sdlc:batch-build [--pr] [--unattended]
 ```
 
 #### Parameters
 
 | Parameter | Description |
 |---|---|
-| `--pr` | composes it with the `pr` skill, asking once before the run |
+| `--pr` | opens a pull request for every cycle that reached an outcome — ready when it passed, a draft when it is `blocked` or `escalated` — asking once before the run |
+| `--unattended` | asks nothing: the schedule that started the run was the decision. Used by the factory's pipeline |
 
 #### Output
 
-Each cycle ends `passed`, `blocked`, `escalated` or not attempted. **A sibling's failure does not
-discard the cycles that completed** — each can open its own pull request. Its task list is one line per
-cycle, ticked only on `passed`.
+Each cycle ends `passed`, `blocked`, `escalated` or did not finish. **A sibling's outcome changes nothing
+about another cycle.** Its task list is one line per cycle, ticked only on `passed`. It ends with one line
+per cycle and the sitrep, verbatim.
 
 **Plain `batch-build` never pushes.** `--pr` asks once before the run rather than at the end, because the
 question is about volume and a person should answer it before waiting rather than after.
@@ -1127,107 +1133,107 @@ question is about volume and a person should answer it before waiting rather tha
 
 | Condition | Result | What to do |
 |---|---|---|
-| a cycle cannot be made to pass | stops that cycle rather than opening a pull request | [Handling blockers](../docs/guides/handling-blockers.md) |
-| a conflict on a file no cycle can claim exclusively | hands it on | [`resolve-conflict`](#resolve-conflict) |
+| a cycle cannot be made to pass | stops that cycle, and with `--pr` opens a draft rather than a ready pull request | [Handling blockers](../docs/guides/handling-blockers.md) |
+| a cycle is held back by a branch on the remote | does not build it; the sitrep says why | delete the branch to put it back in the queue |
 
 #### Example
 
 ```
 /sdlc:batch-build
 /sdlc:batch-build --pr
+/sdlc:batch-build --pr --unattended
 ```
 
 Expect a line per cycle that moves to done only when that cycle passed, and a closing report of one line
-per cycle naming what stopped anything that did not.
+per cycle, then the sitrep.
 
 #### Remarks
 
-A local skill, executed rather than subscribed to: there is no shared queue and no daemon.
-
 **Everything here rests on the remediation bound.** A cycle that cannot be made to pass stops rather
-than opening a pull request, and that stopping is the only reason this is safe to run without watching.
-**There is no ceiling behind it (D-66)**, so a loop that keeps showing small improvements can run for a
-long time — which is the one thing to watch on an unattended batch.
+than reaching a ready pull request, and that stopping is the only reason this is safe to run without
+watching. **There is no ceiling behind it (D-66)**, so the factory's pipeline job has a timeout.
 
-**It schedules around collisions rather than resolving them.** A merge you did not have to do is worth
-more than a merge you did well.
+**It builds; it never merges** (D-84). Every cycle builds from the same base, so two that touch the same
+file meet at merge, where a person resolves it with `resolve-conflict` (D-86).
 
 What it runs, in order:
 
-1. `sdlc cycles --pr-ready` for the work, and `sdlc cycles --claims` for the claim graph — read from the
-   binary rather than worked out, because a graph derived by reading plans would come out slightly
-   differently each run while deciding what runs concurrently
-2. runs each group in parallel, each cycle in its own worktree; cycles in different groups collide, so
-   they serialise in cycle-id order
+1. `git fetch`, `sdlc cycles --queued` for the work, and `sdlc cycles --claims` for the plans that stand up
+   services — read from the binary rather than worked out
+2. per cycle, a worktree and `sdlc branch <id> build-unattended`
 3. caps concurrency where a plan stands up a backing service, and exports `SDLC_RUN_MODE=batch` and a
    fresh `SDLC_RUN_ID` into each cycle's worktree
 4. per cycle, the build stage then the verify stage, remediating while it makes progress
-5. reports one line per cycle, then `sdlc cycles --pr-ready` verbatim, and stops
+5. with `--pr`, `pr <id>` or `pr <id> --draft` for each
+6. reports one line per cycle, then `sdlc sitrep` verbatim, and stops
 
 #### See also
 
 - [`build`](#build), [`verify`](#verify), [`remediate`](#remediate)
-- [`resolve-conflict`](#resolve-conflict), [`pr`](#pr)
+- [`pr`](#pr), [`resolve-conflict`](#resolve-conflict)
 
 ### `resolve-conflict`
 
-Resolves a collision on one of the few files no cycle can claim exclusively.
+Brings one cycle's pull request up to date with the integration branch when it conflicts, or goes red after
+another merge — inside the cycle's declared files, ending in fresh evidence and a fresh verify.
 
 | | |
 |---|---|
-| Stage | unattended runs, when a batch run reports a collision on one of those files |
-| Started by | a person, or `batch-build` |
-| Reads | the conflicted file, and both cycles |
-| Writes | the file with both sides kept, and fresh evidence for each cycle whose files it touched |
+| Stage | merging, when a pull request into the integration branch conflicts or its re-check fails |
+| Started by | a person |
+| Reads | the cycle's plan for its declared files, the integration branch, and the failure |
+| Writes | a merge commit on the cycle's branch, fresh evidence, and a fresh verify; pushes the branch |
 
 #### Syntax
 
 ```
-/sdlc:resolve-conflict <file path>
+/sdlc:resolve-conflict <cycle id>
 ```
 
 #### Parameters
 
 | Parameter | Description |
 |---|---|
-| `<file path>` | the conflicted file |
+| `<cycle id>` | the cycle whose pull request conflicts or went red |
 
 #### Output
 
-Both sides kept, on one of the files on the list: project files and `Directory.Packages.props`,
-dependency-injection registration, `appsettings`, EF Core migrations, Terraform near state. Both cycles'
-suites run, fresh evidence for each, and a report of at most four lines. **It never pushes.**
+The integration branch merged into the cycle's branch and the conflict resolved, the suite run, the old
+verify removed, fresh evidence recorded and a fresh verify run in its own process, the branch pushed, and a
+report of at most five lines. **It never merges the pull request.**
 
 #### Refusals
 
 | Condition | Result | What to do |
 |---|---|---|
-| a file not on the list | declines — that is a scheduling failure to report, not a merge to perform | — |
-| the same key with two different values | stops: that is not additive, it is two plans disagreeing about the solution | a person settles it |
-| two migrations | does not merge them: both snapshot the same parent model, and the merged chain compiles and then fails at deploy | rebase and regenerate; a batch run should have serialised them |
+| the resolution needs a file the plan never declared | aborts the merge and hands back: that is a change of plan, not a merge | `steer`, a reopen, or an abandonment |
+| the same setting with two different values | stops: two plans disagreeing about the solution | a person settles it |
+| two migrations from the same parent | does not merge them: takes the integration branch's and regenerates this cycle's | — |
 
 #### Example
 
 ```
-/sdlc:resolve-conflict src/Api/Api.csproj
+/sdlc:resolve-conflict 20261015_2002_17
 ```
 
-Expect both cycles' additions kept, both suites run, fresh evidence for each, and four lines saying what
-was kept from each and anything declined.
+Expect what conflicted, what was kept from each side, and the new verify outcome.
 
 #### Remarks
 
-**Enumerated rather than discovered.** A skill that resolved whatever happened to conflict would quietly
-become the thing that merges real code, and the moment it does, scheduling around collisions stops being
-the strategy. These files are additive by nature, which is why they can be resolved at all: two cycles
-each add a package, a registration, a setting, and the resolution is to keep both.
+**It edits, and does not judge its own work** (D-01, D-86). A resolution changes code, so the verify that
+passed is void; what proves nothing regressed is the suite and a fresh verify against the spec. That is
+what answers the old reason this skill was confined to a list of additive files — *a skill that resolved
+whatever happened to conflict would quietly become the thing that merges real code* — because every
+resolution is rebuilt, re-verified and reviewed on its pull request before anybody merges it.
 
-It keeps both sides, then runs `dotnet build` and `dotnet test` for both cycles, and re-records
-`sdlc evidence <id> --tests <results>` for each cycle whose files it touched.
+**It stays inside the declared files.** A conflict that cannot be resolved there is a change of plan.
+
+**It merges rather than rebases**, because the branch is already pushed and reviewed and is squashed when it
+lands.
 
 #### See also
 
-- [`batch-build`](#batch-build)
+- [`verify`](#verify), [`remediate`](#remediate), [`batch-build`](#batch-build)
 
 ---
 

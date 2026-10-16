@@ -1,18 +1,67 @@
 ---
 name: pr
-description: Push a verified cycle and open its pull request. The only stage that touches the remote. Use after a verification passed, or with --all to sweep every cycle that is ready.
+description: Push a cycle's branch and open its pull request into the integration branch. The only stage that touches the remote. Use after a verification passed, with --plan to admit an approved plan before it is built, with --draft for a cycle that did not pass, or with --all to sweep every cycle that is ready.
 compatibility: Requires the sdlc binary on PATH, from the MofonCode.Sdlc.Cli dotnet tool, and a git repository. Every command here is that binary, so without it the first step fails.
-argument-hint: "<cycle id> | --all"
+argument-hint: "<cycle id> [--plan | --draft] | --all"
 allowed-tools: Bash(sdlc *), Bash(git *), Bash(gh *), Bash(az *), Read, Glob, Grep
 ---
 
-# Open a pull request for a verified cycle
+# Open a pull request for a cycle
 
 The only stage that reaches outside the repository. Everything before this is local and reversible; a
 pull request notifies people, appears in a queue, and withdrawing it is something somebody has to notice
 happened.
 
-## Ask first, every time
+**Three kinds of pull request, and each has its own question first** (`CONCEPT.md` §10.4, §10.5):
+
+| Form | Carries | Asks first |
+|---|---|---|
+| `pr <id>` | a verified build | `sdlc pr-ready <id>` |
+| `pr <id> --plan` | an approved plan, before it is built — admission to the integration branch | `sdlc gate <id>` |
+| `pr <id> --draft` | a build that did not pass: `blocked` or `escalated` | `sdlc pr-ready <id>`, which must refuse for exactly that: did not pass, or escalated |
+
+## Where it goes
+
+**Into the integration branch.** Read `integration_branch` in `.sdlc/solution.md` with your file-reading
+tool — `development` when the key is absent — and check it exists on the remote:
+
+```
+git ls-remote --heads origin <integration branch>
+```
+
+If it does, every pull request targets it. If it does not, the solution has no integration branch yet and
+the pull request targets the default branch, as before.
+
+**From the cycle's own branch**, whichever one is checked out: `cycle/<id>/plan`, `cycle/<id>/build`,
+`cycle/<id>/build-unattended`, or the bare `cycle/<id>` of an older cycle. `sdlc branch <id> <kind>` is what
+put it there; do not invent a name.
+
+## A plan: `--plan`
+
+```
+sdlc gate <id>
+```
+
+**Push only past a satisfied gate.** A plan nobody approved, or one edited since, is refused by the
+pull-request check anyway. Then push `cycle/<id>/plan` and open the pull request so that **merging it
+deletes the branch** — on Azure DevOps `az repos pr create --delete-source-branch true`; on GitHub that is
+the repository setting *Automatically delete head branches*, so if you cannot tell it is on, say in the body
+that the branch must be deleted on merge. A plan branch left on the remote holds the cycle back from the
+factory, and the sitrep will say so.
+
+The body carries the intent's problem in its words, the spec's criteria, the plan's shape and its tier.
+Its check is the admission check: the plan, the approval and its hashes, and no build (D-87). **It is not a
+second approval** — the local approval is the gate; this admits the plan to the factory.
+
+## A cycle that did not pass: `--draft`
+
+Opened for a `blocked` or `escalated` cycle, usually by `batch-build` (D-85). **Refuse if `sdlc pr-ready`
+gives any other reason** — not verified, or the chain broken — because then there is nothing true to show.
+Open it as a draft (`gh pr create --draft`, `az repos pr create --draft true`), and lead the body with the
+outcome and the open findings, so the person picking it up starts from what stopped it. Its check will be red,
+which is accurate. A person remedies it on this branch and marks it ready.
+
+## A verified build: ask first, every time
 
 ```
 sdlc pr-ready <id>
@@ -86,8 +135,10 @@ local cycle is governed to the same standard.
 ## Push and open the pull request
 
 ```
-git push -u origin cycle/<id>
+git push -u origin HEAD
 ```
+
+`HEAD` is the cycle's own branch, checked out. Target the integration branch, as above.
 
 Then open the pull request with the platform's own tool — `gh pr create` on GitHub, `az repos pr create`
 on Azure DevOps. If neither is available, say so and give the person the branch name and the body to

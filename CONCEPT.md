@@ -1098,35 +1098,38 @@ It creates no empty directories.
 
 ### 10.1 `batch-build` completes cycles
 
-A local skill, executed rather than subscribed to. It collects the approved cycles in **this** working
-copy, builds **and verifies** each, and reports. The working copy is the whole of what it sees; the
-shared queue is the integration branch a factory run checks out (D-83, §10.5).
+A skill, executed rather than subscribed to. It collects the queued cycles, builds **and verifies** each,
+and reports. Run by a person it works from that working copy; run by the factory, from a fresh checkout of
+the integration branch (D-83, §10.5).
 
-1. `sdlc cycles --claims` builds the claim graph from the declared plans and partitions it.
-2. Run each group in parallel, each cycle in its own git worktree.
-3. Serialise across groups in cycle-id order, rebasing each on the previous result.
+1. `sdlc cycles --queued` lists the work: approved, no verify, not abandoned, and no `cycle/<id>/...` branch
+   on the remote (D-85).
+2. Every cycle builds **independently**, from the same base, in its own git worktree on its own
+   `cycle/<id>/build-unattended` branch. None waits for another or is rebased onto another (D-86).
+3. With `--pr`, every cycle that reached an outcome gets a pull request — a draft when it did not pass —
+   and the run ends with the sitrep.
 
 **The graph is computed by the binary, not derived by the skill.** It is a set intersection over a file
 table, so the binary does it the same way every time — and a graph a session worked out by reading plans
 would come out slightly differently each run, while what it decides is what runs concurrently.
 
 **Four per-cycle outcomes, and they are the run's rather than the document's.** `passed` means the
-cycle's verify outcome was `pass`; `blocked` and `escalated` borrow that document's meaning; and **not
-attempted** is a cycle downstream of a failure in the claim graph, which reaches no verify document at
+cycle's verify outcome was `pass`; `blocked` and `escalated` borrow that document's meaning; and **did not
+finish** is a cycle whose build or verify could not run to an outcome, which reaches no verify document at
 all. That last value is why the two sets are not one: a verify outcome is `pass`, `blocked` or
 `escalated` and nothing else — the schema holds those three and `verify-chain` compares against the set
-rather than a literal — so a run needs its own vocabulary for a cycle it never got to.
+rather than a literal — so a run needs its own vocabulary for a cycle it never finished. *Not attempted*,
+a cycle downstream of a failure in a serialised schedule, went with the schedule (D-86).
 
-**It schedules around collisions rather than resolving them.** Plans declare the files they claim, so
-a collision is known before anything is built. `resolve-conflict` remains, scoped to files that
-cannot be claimed exclusively and enumerated rather than discovered: `.csproj` and
-`Directory.Packages.props`, dependency-injection registration, `appsettings`, EF Core migrations,
-Terraform files near state.
+**Collisions are met at merge rather than scheduled around** (D-86). The claim graph still intersects
+the declared files, and the sitrep reads it as advice: which pull requests will likely conflict, and the
+order that keeps the conflicts fewest. A person merges one pull request at a time and resolves a conflict
+with `resolve-conflict`, inside the cycle's declared files.
 
-**EF Core migrations serialise.** Two branches that each add a migration snapshot the same parent
-model, and the merged chain breaks in a way that compiles and then fails at deploy.
+**EF Core migrations are regenerated, never merged.** Two branches that each add a migration snapshot the
+same parent model, and the merged chain breaks in a way that compiles and then fails at deploy.
 
-**A sibling's failure does not discard the cycles that completed.** Each can open its own pull request.
+**A sibling's outcome changes nothing about another cycle.** Each gets its own pull request.
 
 **Concurrency is capped by what a plan needs.** The claim graph carries a needs-backing-services bit,
 derived from whether the plan touches the app host or declares service dependencies. Service-free
@@ -1211,8 +1214,13 @@ for `passed`; it re-checks each cycle's gate rather than trusting the verdict; i
 push and **asks once** before the first push; a push failure on one cycle does not stop the others;
 and each pull request is reported individually.
 
-**`batch-build --pr`** composes the two, invoking `pr` per completed cycle, and asks before the
-run rather than at the end (D-24). Plain `batch-build` never pushes.
+**`batch-build --pr`** composes the two, invoking `pr` per completed cycle — `pr --draft` for one that
+is `blocked` or `escalated` (D-85) — and asks before the run rather than at the end (D-24); with
+`--unattended` the schedule was that question (D-84). Plain `batch-build` never pushes.
+
+**`pr --plan`** admits an approved plan to the integration branch before it is built, asked of the gate
+rather than of `pr-ready`, and merging it deletes the plan branch (D-83, D-87). Every pull request pushes the
+cycle's own branch and targets the integration branch, or the default branch while there is none.
 
 ### 10.4 The integration branch
 
@@ -1249,7 +1257,9 @@ command, and the factory publishes it as the run's summary.
 **The factory never merges, and it never writes a person's file.** A blocked cycle is recorded as blocked;
 abandoning it is a person's decision.
 
-**Not built yet.** §10.1 describes `batch-build` as it runs today.
+**What is built and what is not.** The queue, the branches, the admission check, the sitrep, and
+`batch-build` and `pr` working this way are built. The factory's own pipeline template — the schedule, the
+lock, the headless run — is not yet.
 
 ---
 
@@ -1826,9 +1836,9 @@ which is the ordinary case.
 | `remediate` | applies a blocked verify's findings to source and tests |
 | `build` | implements the plan; builds; tests; records evidence |
 | `verify` | adjudicates the build against the spec from evidence alone |
-| `batch-build` | completes approved cycles, concurrently where the claim graph allows |
-| `resolve-conflict` | resolves collisions on files that cannot be claimed exclusively |
-| `pr` | pushes, opens the pull request, links the work item |
+| `batch-build` | completes the queued cycles, each on its own branch and independently, and reports the sitrep — §10.1, D-86 |
+| `resolve-conflict` | brings a cycle's pull request up to date with the integration branch, inside its declared files, ending in a fresh verify — D-86 |
+| `pr` | pushes the cycle's branch, opens the pull request into the integration branch, links the work item; `--plan` admits an approved plan, `--draft` a build that did not pass — D-85 |
 | `draft` | prints a protected file's entry for a person to place — §5.3 |
 | `propose` | reads the whole history and proposes `LOC_` entries, with the evidence — D-69 |
 | `status` | prints the stage panel, and the state of a cycle or of all cycles |
@@ -1860,12 +1870,12 @@ mechanical rather than promised.
 | `build` | the gate satisfied | the gate refuses | code, evidence |
 | `verify` | evidence exists | no evidence | `verify.md` |
 | `remediate` | verify blocked | not blocked; the loop has regressed or stalled (D-66) | code and tests only |
-| `pr` | verify passed | not passed; escalated | push, pull request |
-| `batch-build` | an approved cycle in this working copy | nothing; a cycle downstream of a failure in the claim graph is reported `not attempted` (§10.1) | code, evidence and a verify document per cycle. Never pushes (D-22) |
+| `pr` | verify passed; with `--plan`, the gate satisfied; with `--draft`, verify blocked or escalated | not passed; escalated — except as `--draft`; the chain broken | push, pull request |
+| `batch-build` | a queued cycle (§10.1) | nothing; a cycle held back by a branch on the remote is not built, and the sitrep says why | code, evidence and a verify document per cycle, each on its own branch. Never pushes without `--pr` (D-22) |
 | `status` | nothing; a cycle id for the per-cycle form | the cycle does not exist | nothing; it prints |
 | `constraints` | nothing | nothing | nothing; it prints |
 | `suggestions` | nothing | nothing | nothing; it prints, and keeps a copy under `.sdlc/reports/` (D-69) |
-| `resolve-conflict` | a reported collision on a file in the enumerated set (§10.1) | the file is not in that set — a scheduling failure to report rather than a merge to perform; or two settings carry one key with different values | that shared file only |
+| `resolve-conflict` | a cycle whose pull request conflicts with the integration branch or went red after another merge | a resolution needing a file the plan never declared — a change of plan, handed back; or two settings carry one key with different values | the cycle's declared files, its evidence and its verify (D-86) |
 | `propose` | nothing | nothing; an unreadable rule file, decision record or theme is reported rather than worked around | nothing that binds; it prints, and keeps a copy under `.sdlc/reports/` (D-69) |
 
 **Where a skill requires nothing, the row says so rather than being left out.** An absent row and a row

@@ -42,29 +42,25 @@ and *then* invoking the intent skill allocates a second id and a second director
 succeeds both times, so nothing complains. The work goes into one of them and the id you wrote down
 names the other.
 
-Switch to the branch it names:
+Then the cycle's plan branch. Ask the binary rather than typing it:
 
 ```pwsh
-git switch -c cycle/20260929_1456_32
+sdlc branch 20260929_1456_32 plan
 ```
 
-**The prefix is `cycle/` and it is not cosmetic.** Get it wrong and two different things happen, which
-is why it is worth knowing which.
+It prints the one command to run — `git switch --no-track -c cycle/20260929_1456_32/plan origin/development`
+when the solution has its integration branch, or a plain `git switch -c` from where you are when it does not.
 
-**The turn-end hook goes silent, and that is the half with no message.** It reads the cycle out of the
-branch you are on, and a branch that is not a cycle branch is not governed work — a spike, a document,
-a configuration change — so it allows the turn rather than firing where it would be obstructive for no
-gain. You keep building and lose the two send-backs it exists for: a recorded suite with a failure in
-it, and code that has moved since the evidence was recorded.
+**A cycle's branches sit under `cycle/<id>/`, one per kind of work**: `plan` for the planning documents,
+`build` for a build you run by hand, `build-unattended` for one a batch runs, and `forward` for a release's
+fix carried into the integration branch. Ask `sdlc branch` for each; it knows which base each one starts
+from.
 
-**`sdlc evidence` then refuses, and it refuses loudly.** It derives the branch from the cycle id rather
-than from where you happen to be, so it looks for `cycle/<id>`, finds nothing to measure from, and says
-git could not say where that branch diverged from the default branch. **The message names a branch you
-do not have**, which is the one confusing part of this — the remedy is to rename the branch you are on,
-not to go looking for why git lost one.
-
-The pull-request check would fail too, for the same reason and just as loudly, but you do not get that
-far: the recording stops first.
+**The names are not cosmetic.** On a branch that is not a cycle branch the turn-end hook goes silent —
+that is the half with no message: it reads the cycle out of the branch you are on, so you keep building and
+lose the two send-backs it exists for, a recorded suite with a failure in it and code that has moved since
+the evidence was recorded. And the pull-request check reports that there is no chain at all, because it
+reads the cycle out of the pull request's branch the same way.
 
 ## 3. Intent, spec, plan
 
@@ -159,6 +155,25 @@ sdlc gate 20260929_1456_32
 Eleven things can refuse here, each with a different next step. `handling-refusals.md` lists them all
 with the remedy for each.
 
+### Admit the plan to the integration branch
+
+When the solution has an integration branch — `development`, unless `solution.md` names another — the
+approved plan goes there by its own pull request before anything is built:
+
+```
+/sdlc:pr 20260929_1456_32 --plan
+```
+
+It asks the gate first, pushes `cycle/<id>/plan`, and opens the pull request so that merging it deletes the
+branch. **It is admission, not a second approval**: the rename above was the approval. Its check reads what
+the pull request changes, and a pull request carrying only the cycle's planning documents gets the
+admission check — the documents, the approval and its hashes, no build and no verify. One source file in
+it and the full chain runs instead.
+
+Once it merges, the plan is queued: `sdlc cycles --queued` lists it, and a batch run or the factory picks it
+up. With no integration branch, skip this — the build starts from the plan branch, and one pull request
+carries the plan and the code together.
+
 ## 5. Build
 
 ```
@@ -166,7 +181,8 @@ with the remedy for each.
 ```
 
 The first stage that writes code and the first you are not expected to watch. It asks the gate and stops
-if the gate refuses. It implements what the plan decided **and only that** — something worth fixing that
+if the gate refuses, then puts itself on `cycle/<id>/build` with `sdlc branch` — from the integration
+branch once the plan is admitted there, from the plan branch before that. It implements what the plan decided **and only that** — something worth fixing that
 the plan did not describe gets left alone and reported as a suggestion, because creep inside an approved
 file is what reaches review dressed as approved work, where it is least likely to be questioned.
 
@@ -246,6 +262,11 @@ The only stage that reaches outside the repository, and it asks before every pus
 is local and reversible; a pull request notifies people, appears in a queue, and withdrawing it is
 something somebody has to notice happened.
 
+It pushes the cycle's own branch and targets the integration branch, or the default branch while there is
+none. **A person merges it**, squashed, one pull request at a time. When the next one conflicts, or goes red
+because an earlier merge broke it, `/sdlc:resolve-conflict <id>` brings it up to date inside the cycle's
+declared files and verifies it again.
+
 **It checks first whether there is anywhere to push.** A solution recorded as `local`, or one whose
 `git remote -v` prints nothing, stops here — the one refusal that is not about the cycle, because the
 work may be perfectly ready and have no destination. The skill walks through creating the remote
@@ -288,9 +309,18 @@ It proposes and never places. Pasting an accepted entry into `.sdlc/constraints.
 because a cycle judged by the constraints it is changing is the same deadlock as the framework governing
 itself.
 
-With several cycles approved and waiting, `/sdlc:batch-build` completes them all, concurrently where
-their declared files do not collide. Everything unattended rests on the remediation bound — a cycle that
-stops making progress stops rather than opening one — so the first batch runs are worth watching.
+With several cycles queued, `/sdlc:batch-build --pr` completes them all, each on its own
+`cycle/<id>/build-unattended` branch and independently, opens a pull request for each — a draft for one
+that did not pass — and ends with the sitrep:
+
+```pwsh
+sdlc sitrep
+```
+
+It is the morning's page, and worth running on its own: what is ready to merge and in what order, which
+pull requests are expected to conflict, what needs a person, what was held back and why, and what is
+waiting and going stale. Everything unattended rests on the remediation bound — a cycle that stops making
+progress stops rather than reaching a ready pull request — so the first batch runs are worth watching.
 
 ## Where to go next
 

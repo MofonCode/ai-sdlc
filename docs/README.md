@@ -226,8 +226,8 @@ declining to go on, exit code 1. An open blocker causes refusals; it is not one.
 | **the chain check** | `sdlc verify-chain`: re-establishing from the repository that the chain is **complete, approved and hash-matched**. It runs every check rather than stopping at the first |
 | **the pipeline** | where that check runs: `.github/workflows/sdlc-verify.yml`, or `azure-pipelines.yml`. **A solution recorded as `local` gets none** |
 | **branch policy** | what makes the check a promise. Until a policy requires it the file is advisory, and the directory looks enforced without being enforced |
-| **the claim graph** | which cycles may be built together and what collides, from the files each plan declared |
-| **collision** | two cycles claiming a file neither can own exclusively — a project file, DI registration, settings, a migration | `/sdlc:resolve-conflict` |
+| **the claim graph** | which cycles' plans declare the same files, so which pull requests will likely conflict and the order to merge them in. Advice, read by the sitrep; it no longer schedules builds |
+| **collision** | two cycles changing the same thing, met when the second one's pull request is merged | `/sdlc:resolve-conflict` |
 
 ### The three layers, and what each stops
 
@@ -274,11 +274,11 @@ never decides a gate.
 | `refine` | applies a round's findings to that artifact. Never judges |
 | `steer` | carries a mid-cycle correction down the chain, editing rather than regenerating |
 | `build` | implements an approved plan, builds, tests, and records the evidence |
-| `batch-build` | completes every approved cycle, concurrently where their declared files do not collide |
+| `batch-build` | completes every queued cycle, each on its own branch and independently, and reports the sitrep; `--pr` opens a pull request for each, a draft for one that did not pass |
 | `verify` | adjudicates a build against its spec from the recorded evidence alone |
 | `remediate` | applies a blocked verification's findings to source and tests |
-| `pr` | pushes a verified cycle and opens its pull request. **The only stage that touches the remote** |
-| `resolve-conflict` | resolves a collision on a file no cycle can claim exclusively |
+| `pr` | pushes a cycle's branch and opens its pull request into the integration branch — a verified build, an approved plan with `--plan`, a draft with `--draft`. **The only stage that touches the remote** |
+| `resolve-conflict` | brings a cycle's pull request up to date with the integration branch when it conflicts or goes red, inside its declared files, then verifies again |
 | `draft` | prints what belongs in a file only a person writes |
 | `propose` | reads the record and argues for an entry — a rule, a decision, a theme role |
 | `constraints` | shows the rules in force, all tiers resolved |

@@ -47,7 +47,15 @@ the command **claims** the id as it allocates it, and that claim is the collisio
 opened in the same second would otherwise write into one directory. Creating the directory is not the
 check and cannot be, because it succeeds on a directory that is already there.
 
-Then create the branch it names: `git switch -c cycle/<id>`.
+Then put the working copy on the cycle's plan branch:
+
+```
+sdlc branch <id> plan
+```
+
+Run the one command it prints. It creates `cycle/<id>/plan` from the integration branch, or from what is
+checked out when there is none. The intent, spec, plan and approval are written there, and its pull request
+— `pr <id> --plan`, once a person has approved — admits the plan to the integration branch.
 
 ## 2. Convert the request into a problem
 

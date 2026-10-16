@@ -54,14 +54,17 @@ person's decision, and `sdlc status <id>` names it. **The list is a view, never 
 done is what is on disk and what the binary reports, so where the two disagree the list is the one
 that is wrong.
 
-## Work on the cycle's branch
+## Work on the cycle's build branch
 
 ```
-git switch cycle/<id>
+sdlc branch <id> build
 ```
 
-If the branch does not exist, create it from the default branch. Everything below measures the change
-from where this branch diverged, so building on the default branch directly makes the diff meaningless.
+Run the one command it prints. It puts the working copy on `cycle/<id>/build` — created from the
+integration branch once the plan has been admitted to it, or from the plan's own branch before that — or on
+the bare `cycle/<id>` of an older cycle. Inside a batch, `batch-build` has already put you on
+`cycle/<id>/build-unattended`; stay there. Everything below measures the change from where this branch
+diverged, so building on the integration or default branch directly makes the diff meaningless.
 
 ## Implement the plan, and only the plan
 

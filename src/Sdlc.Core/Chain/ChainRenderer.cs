@@ -44,7 +44,8 @@ public static class ChainRenderer
         output.AppendLine(string.Create(CultureInfo.InvariantCulture, $"{Indent}chain - {reference}"));
         output.AppendLine();
         output.AppendLine(Indent + "  [no]  this branch is a governed cycle");
-        output.AppendLine(Indent + "        It is not named cycle/<id>, so there is no intent, spec or plan");
+        output.AppendLine(Indent + "        It is not a cycle branch - cycle/<id>/plan, build, build-unattended or");
+        output.AppendLine(Indent + "        forward - so there is no intent, spec or plan");
         output.AppendLine(Indent + "        behind it and nothing has verified this change. A cycle id is a");
         output.AppendLine(Indent + "        date, a 24-hour time and seconds, as in 20260929_1456_32.");
         output.AppendLine();

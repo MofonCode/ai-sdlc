@@ -244,14 +244,15 @@ loaded.
 
 **Pass no sentence.** The value of the stage is the questions, and a one-line request arrives already
 shaped as a solution. The skill opens the cycle itself — it runs `sdlc new`, so do not run that first or
-you will allocate a second id — and prints the branch to create:
+you will allocate a second id — and puts itself on the cycle's plan branch with the command
+`sdlc branch` prints:
 
 ```pwsh
-git switch -c cycle/<id>
+sdlc branch <id> plan
 ```
 
-**The prefix is `cycle/` and nothing else works.** The turn-end hook reads the cycle out of the current
-branch and silently governs nothing when it cannot parse one.
+**The branch is `cycle/<id>/plan`, and the name matters.** The turn-end hook reads the cycle out of the
+current branch and silently governs nothing when it cannot parse one.
 
 Nothing exists yet, so it asks in that tense:
 

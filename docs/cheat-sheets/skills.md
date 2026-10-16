@@ -27,9 +27,9 @@ there is no slash form: ask in a sentence, and include the cycle id.
 | [`verify`](../../skills/README.md#verify) | `<cycle id>` | judges the build against the spec from the evidence alone | a person, or `batch-build` |
 | [`remediate`](../../skills/README.md#remediate) | `<cycle id>` | fixes source and tests after a `blocked` verification | a person, or `batch-build` |
 | **Pull requests and unattended runs** | | | |
-| [`pr`](../../skills/README.md#pr) | `<cycle id> \| --all` | pushes and opens the pull request; asks before every push | a person\* |
-| [`batch-build`](../../skills/README.md#batch-build) | `[--pr]` | builds and verifies every approved cycle, concurrently where files allow | a person |
-| [`resolve-conflict`](../../skills/README.md#resolve-conflict) | `<file path>` | resolves a collision on a file no cycle can claim alone | a person, or `batch-build` |
+| [`pr`](../../skills/README.md#pr) | `<cycle id> [--plan \| --draft] \| --all` | pushes the cycle's branch and opens its pull request into the integration branch: a verified build, an approved plan, or a draft; asks before every push | a person\*, or `batch-build` |
+| [`batch-build`](../../skills/README.md#batch-build) | `[--pr] [--unattended]` | builds and verifies every queued cycle, each on its own branch, then reports the sitrep | a person, or the factory |
+| [`resolve-conflict`](../../skills/README.md#resolve-conflict) | `<cycle id>` | brings a pull request up to date with the integration branch when it conflicts or goes red, inside the declared files, then verifies again | a person |
 | **Reading and deciding** | | | |
 | [`status`](../../skills/README.md#status) | `<cycle id> [intent\|spec\|plan]` | where a cycle stands, and the next command | anyone |
 | [`constraints`](../../skills/README.md#constraints) | `[intent\|spec\|plan\|diff\|verify]` | the rules in force, all tiers resolved | every stage skill, first |
