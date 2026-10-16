@@ -124,6 +124,15 @@ public sealed class PublicSurfaceTests
         "Sdlc.Core.Factory.ListQueuedCycles+Query",
         "Sdlc.Core.Factory.ListQueuedCycles+Queued",
         "Sdlc.Core.Factory.ListQueuedCycles+Response",
+
+        // 'sdlc sitrep': the morning's page (D-84, D-86).
+        "Sdlc.Core.Factory.Sitrep",
+        "Sdlc.Core.Factory.Sitrep+Built",
+        "Sdlc.Core.Factory.Sitrep+Overlap",
+        "Sdlc.Core.Factory.Sitrep+Query",
+        "Sdlc.Core.Factory.Sitrep+Response",
+        "Sdlc.Core.Factory.Sitrep+Waiting",
+        "Sdlc.Core.Factory.SitrepRenderer",
         "Sdlc.Core.Cycles.CycleBranchKind",
 
         // 'sdlc branch <id> <kind>': which branch a kind of work starts on and from what.

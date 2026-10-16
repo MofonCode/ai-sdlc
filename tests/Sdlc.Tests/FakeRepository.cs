@@ -77,6 +77,20 @@ internal sealed class FakeRepository : IRepository
 
     public string? MergeBase(string workingDirectory, string branch, string integrationBranch) => Base;
 
+    /// <summary>The files <see cref="ReadAt"/> returns, keyed <c>reference:path</c>.</summary>
+    public Dictionary<string, string> Files { get; } = new(StringComparer.Ordinal);
+
+    /// <summary>What <see cref="LastCommitTouching"/> returns, keyed <c>reference:path</c>.</summary>
+    public Dictionary<string, (string Commit, DateTimeOffset When)> Touched { get; } = new(StringComparer.Ordinal);
+
+    public string? ReadAt(string workingDirectory, string reference, string path) =>
+        Files.TryGetValue(reference + ":" + path, out string? text) ? text : null;
+
+    public string? ShortCommit(string workingDirectory, string reference) => Refs.Contains(reference) ? "a1b2c3d" : null;
+
+    public (string Commit, DateTimeOffset When)? LastCommitTouching(string workingDirectory, string reference, string path) =>
+        Touched.TryGetValue(reference + ":" + path, out (string Commit, DateTimeOffset When) found) ? found : null;
+
     /// <summary>The references <see cref="RefExists"/> says exist.</summary>
     public HashSet<string> Refs { get; } = new(StringComparer.Ordinal);
 

@@ -59,6 +59,11 @@ internal static class Usage
                                      build-unattended or forward -- creating it from the right
                                      base: the integration branch once the plan is admitted to
                                      it, the plan's own branch before that.
+            sitrep                   The morning's page, in Markdown: built cycles ready to merge
+                                     and in what order, with the ones expected to conflict;
+                                     what needs a person; what was held back and why; what is
+                                     waiting and going stale. Fetch the remote first: a built
+                                     cycle is read from its own branch.
             cycles --queued          What a build would take now -- approved, no verify, not
                                      abandoned -- and every cycle held back, with why: a
                                      cycle/<id>/... branch on the remote, or an approval the

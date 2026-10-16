@@ -116,6 +116,26 @@ public interface IRepository
     /// <returns>The branch names, without <c>refs/heads/</c>.</returns>
     IReadOnlyList<string>? RemoteBranches(string workingDirectory, string prefix);
 
+    /// <summary>A file's contents as a given commit holds it, or null when it does not.</summary>
+    /// <param name="workingDirectory">Where to ask from.</param>
+    /// <param name="reference">The commit or branch to read from.</param>
+    /// <param name="path">The path, relative to the root, with forward slashes.</param>
+    /// <returns>The text, or null.</returns>
+    string? ReadAt(string workingDirectory, string reference, string path);
+
+    /// <summary>A commit's abbreviated hash, or null when git cannot resolve it.</summary>
+    /// <param name="workingDirectory">Where to ask from.</param>
+    /// <param name="reference">The commit or branch.</param>
+    /// <returns>The short hash, or null.</returns>
+    string? ShortCommit(string workingDirectory, string reference);
+
+    /// <summary>The newest commit reachable from a reference that touched a path, and when it was made.</summary>
+    /// <param name="workingDirectory">Where to ask from.</param>
+    /// <param name="reference">The branch to walk.</param>
+    /// <param name="path">The path, relative to the root, with forward slashes.</param>
+    /// <returns>The commit and its date, or null when none touched it.</returns>
+    (string Commit, DateTimeOffset When)? LastCommitTouching(string workingDirectory, string reference, string path);
+
     /// <summary>Whether a reference — a branch, a remote branch, a commit — exists.</summary>
     /// <param name="workingDirectory">Where to ask from.</param>
     /// <param name="reference">The reference, as in <c>origin/development</c>.</param>
@@ -347,6 +367,38 @@ public sealed class GitRepository : IRepository
         }
 
         return [.. paths.Order(StringComparer.Ordinal)];
+    }
+
+    /// <inheritdoc />
+    public string? ReadAt(string workingDirectory, string reference, string path)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(reference);
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
+
+        return Run(workingDirectory, $"show \"{reference}:{path}\"");
+    }
+
+    /// <inheritdoc />
+    public string? ShortCommit(string workingDirectory, string reference)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(reference);
+
+        return Run(workingDirectory, $"rev-parse --short \"{reference}\"")?.Trim() is { Length: > 0 } hash ? hash : null;
+    }
+
+    /// <inheritdoc />
+    public (string Commit, DateTimeOffset When)? LastCommitTouching(string workingDirectory, string reference, string path)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(reference);
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
+
+        string? line = Run(workingDirectory, $"log -1 --format=%H%x09%cI \"{reference}\" -- \"{path}\"")?.Trim();
+        string[] parts = line?.Split('\t') ?? [];
+
+        return parts.Length == 2
+            && DateTimeOffset.TryParse(parts[1], CultureInfo.InvariantCulture, DateTimeStyles.None, out DateTimeOffset when)
+                ? (parts[0], when)
+                : null;
     }
 
     /// <inheritdoc />

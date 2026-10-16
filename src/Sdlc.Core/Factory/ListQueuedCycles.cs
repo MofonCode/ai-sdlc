@@ -111,7 +111,7 @@ public static class ListQueuedCycles
                     held.Add(new HeldBack(
                         skipped.Cycle,
                         await Headline(skipped.Cycle, cancellationToken).ConfigureAwait(false),
-                        "it has an approval and the gate refuses it — run 'sdlc gate " + skipped.Cycle + "' for why"));
+                        "it has an approval and the gate refuses it - run 'sdlc gate " + skipped.Cycle + "' for why"));
                 }
             }
 

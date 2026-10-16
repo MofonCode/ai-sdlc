@@ -142,6 +142,9 @@ public static class SdlcServices
         // back. A listing, never a state file (D-85).
         services.AddListQueuedCyclesRequestHandler();
 
+        // The morning's page, read from the cycles, the remote's branches, the claim graph and git.
+        services.AddSitrepRequestHandler();
+
         services.AddPullRequestHandler();
 
         services.AddRecordEvidenceRequestHandler();
