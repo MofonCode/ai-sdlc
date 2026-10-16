@@ -687,9 +687,9 @@ other. A rule beats a method finding; two rules that cannot both be met are a co
 **What is built.** The document format, embedded under `Perspectives/`; `sdlc perspectives <id>` and
 `sdlc perspective show`; the intent's `perspectives` key; `intent`, `spec`, `plan` and `build` reading the
 cover lists, `interrogate` running a reader per perspective and a reconciling reader, `verify` asking each
-perspective's questions of the evidence. **Security is the one perspective written**, and it has no rules of
-its own yet, so everything it finds is a suggestion until rules are adopted. Operability and maintainability
-are listed as always on and not yet written. The fixtures that prove a perspective catches its planted
+perspective's questions of the evidence. **Security, operability and maintainability are written** — the
+three always on — and none has rules of its own yet, so everything they find is a suggestion until rules are
+adopted. The other six are not written. The fixtures that prove a perspective catches its planted
 defect need a model to run, so they are an evaluation outside the suite and are not built.
 
 ---

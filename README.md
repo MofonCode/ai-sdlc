@@ -288,6 +288,16 @@ What is honest to say about the rest:
   pull-request trigger — and the file, the adoption guide and `sdlc doctor` all say so.
 - **The binary is not on a feed.** Installing means cloning and packing — the single thing that would
   most improve a teammate's first hour.
+- **The integration branch and the factory are built and have never run for real.** The queue, the cycle
+  branches, the admission check, the sitrep, `batch-build --pr --unattended` and `sdlc factory` are held by
+  the suite and tried against scratch repositories; no factory pipeline has run on a server, and nobody has
+  spent a morning on a real sitrep (`CONCEPT.md` §10.4, §10.5).
+- **Leads and Operate have only met fakes.** `sdlc lead show` reads work items through `az` and `gh`, and
+  `sdlc operate` reads Application Insights through `az` and files through the same CLIs; none of that has
+  touched a real tracker or a real telemetry store. Jira is not read yet.
+- **Perspectives have no rules yet.** Security, operability and maintainability are written as methods and
+  steer every stage, but none has a rule of its own, so everything they find is a suggestion; nothing proves
+  yet that a perspective's reader catches what it is meant to (`CONCEPT.md` §6.5).
 
 ## Not goals
 
