@@ -116,6 +116,19 @@ public interface IRepository
     /// <returns>The branch names, without <c>refs/heads/</c>.</returns>
     IReadOnlyList<string>? RemoteBranches(string workingDirectory, string prefix);
 
+    /// <summary>Whether a reference — a branch, a remote branch, a commit — exists.</summary>
+    /// <param name="workingDirectory">Where to ask from.</param>
+    /// <param name="reference">The reference, as in <c>origin/development</c>.</param>
+    /// <returns>True when git can resolve it to a commit.</returns>
+    bool RefExists(string workingDirectory, string reference);
+
+    /// <summary>Whether a file exists at a path in a given commit.</summary>
+    /// <param name="workingDirectory">Where to ask from.</param>
+    /// <param name="reference">The commit or branch to look in.</param>
+    /// <param name="path">The path, relative to the root, with forward slashes.</param>
+    /// <returns>True when the commit holds the file.</returns>
+    bool PathExistsAt(string workingDirectory, string reference, string path);
+
     /// <summary>The paths that differ between two commits, committed changes only.</summary>
     /// <remarks>
     /// Separate from <see cref="ChangedFiles"/>, which measures to the working tree and counts untracked
@@ -334,6 +347,23 @@ public sealed class GitRepository : IRepository
         }
 
         return [.. paths.Order(StringComparer.Ordinal)];
+    }
+
+    /// <inheritdoc />
+    public bool RefExists(string workingDirectory, string reference)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(reference);
+
+        return Run(workingDirectory, $"rev-parse --verify --quiet \"{reference}^{{commit}}\"") is { Length: > 0 };
+    }
+
+    /// <inheritdoc />
+    public bool PathExistsAt(string workingDirectory, string reference, string path)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(reference);
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
+
+        return Run(workingDirectory, $"cat-file -e \"{reference}:{path}\"") is not null;
     }
 
     /// <inheritdoc />

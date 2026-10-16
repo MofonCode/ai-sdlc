@@ -65,6 +65,7 @@ try
         "gate" => await WithCycle(line, "gate", Gate).ConfigureAwait(false),
         "verify-chain" => await VerifyChainCommand(line).ConfigureAwait(false),
         "admission" => await AdmissionCommand(line).ConfigureAwait(false),
+        "branch" => await BranchCommand(line).ConfigureAwait(false),
         "pr-ready" => await AskPrReady(line).ConfigureAwait(false),
         "draft" => await Draft(line).ConfigureAwait(false),
         "propose" => await Propose(line).ConfigureAwait(false),
@@ -259,7 +260,7 @@ static async Task<int> NewCycle(Workspace workspace)
 
     await Console.Error.WriteLineAsync(string.Create(
         CultureInfo.InvariantCulture,
-        $"Opened {cycle.Directory}. Its branch is {cycle.Id.BranchName()}; create it with 'git switch -c {cycle.Id.BranchName()}'."))
+        $"Opened {cycle.Directory}. Its plan's branch is {cycle.Id.BranchName(CycleBranchKind.Plan)}; 'sdlc branch {cycle.Id} plan' prints the command that creates it."))
         .ConfigureAwait(false);
 
     return ExitCode.Ok;
@@ -575,6 +576,47 @@ static async Task<int> AdmissionCommand(CommandLine line)
         IReadOnlyList<string>? changed = await ChangedAgainstBase(workspace, line).ConfigureAwait(false);
         bool admission = changed is not null && Sdlc.Core.Chain.VerifyChain.AdmitsAsPlan(id.Value, changed);
         await Console.Out.WriteLineAsync(admission ? "true" : "false").ConfigureAwait(false);
+        return ExitCode.Ok;
+    }).ConfigureAwait(false);
+}
+
+// Which branch a kind of work on a cycle happens on, as the one git command that gets there. The command
+// alone on standard output, so a skill can run exactly what was decided; why, on standard error.
+static async Task<int> BranchCommand(CommandLine line)
+{
+    if (line.Arguments.Count < 2)
+    {
+        await Console.Error.WriteLineAsync(
+            "Which cycle, and which kind of work? As in 'sdlc branch 20260929_1456_32 build' -- plan, build, build-unattended or forward.")
+            .ConfigureAwait(false);
+        return ExitCode.Usage;
+    }
+
+    CycleBranchKind? kind = CycleBranch.Named.Cast<CycleBranchKind?>().FirstOrDefault(k =>
+        string.Equals(CycleBranch.NameOf(k!.Value), line.Arguments[1], StringComparison.OrdinalIgnoreCase));
+
+    if (kind is null)
+    {
+        await Console.Error.WriteLineAsync(string.Create(
+            CultureInfo.InvariantCulture,
+            $"'{line.Arguments[1]}' is not a kind of work. Ask for plan, build, build-unattended or forward."))
+            .ConfigureAwait(false);
+        return ExitCode.Usage;
+    }
+
+    return await WithCycle(line, "branch", async (workspace, id) =>
+    {
+        Result<StartBranch.Response> result = await workspace
+            .Send<StartBranch.Query, StartBranch.Response>(new StartBranch.Query(id, kind.Value))
+            .ConfigureAwait(false);
+
+        if (result.IsFailed)
+        {
+            return await Report(result, ExitCode.Refused).ConfigureAwait(false);
+        }
+
+        await Console.Out.WriteLineAsync(result.Value.Command).ConfigureAwait(false);
+        await Console.Error.WriteLineAsync(result.Value.Why).ConfigureAwait(false);
         return ExitCode.Ok;
     }).ConfigureAwait(false);
 }

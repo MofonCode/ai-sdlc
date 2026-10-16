@@ -125,6 +125,11 @@ public sealed class PublicSurfaceTests
         "Sdlc.Core.Factory.ListQueuedCycles+Queued",
         "Sdlc.Core.Factory.ListQueuedCycles+Response",
         "Sdlc.Core.Cycles.CycleBranchKind",
+
+        // 'sdlc branch <id> <kind>': which branch a kind of work starts on and from what.
+        "Sdlc.Core.Cycles.StartBranch",
+        "Sdlc.Core.Cycles.StartBranch+Query",
+        "Sdlc.Core.Cycles.StartBranch+Response",
         "Sdlc.Core.Cycles.CycleIndex",
         "Sdlc.Core.Cycles.NewCycle",
         "Sdlc.Core.Cycles.NewCycle+Command",

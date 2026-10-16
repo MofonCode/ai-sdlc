@@ -77,6 +77,17 @@ internal sealed class FakeRepository : IRepository
 
     public string? MergeBase(string workingDirectory, string branch, string integrationBranch) => Base;
 
+    /// <summary>The references <see cref="RefExists"/> says exist.</summary>
+    public HashSet<string> Refs { get; } = new(StringComparer.Ordinal);
+
+    /// <summary>The <c>reference:path</c> pairs <see cref="PathExistsAt"/> says exist.</summary>
+    public HashSet<string> PathsAt { get; } = new(StringComparer.Ordinal);
+
+    public bool RefExists(string workingDirectory, string reference) => Refs.Contains(reference);
+
+    public bool PathExistsAt(string workingDirectory, string reference, string path) =>
+        PathsAt.Contains(reference + ":" + path);
+
     /// <summary>What <see cref="RemoteBranches"/> reports, or null for there being no remote.</summary>
     public IReadOnlyList<string>? Remote { get; set; } = [];
 

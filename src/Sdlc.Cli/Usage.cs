@@ -54,6 +54,11 @@ internal static class Usage
                                      Print true when a pull request carries only the cycle's
                                      planning documents, so a pipeline may skip the build and
                                      tests; false for anything else. Always exits 0.
+            branch <id> <kind>       Print the one git command that puts the working copy on the
+                                     branch a kind of work happens on -- plan, build,
+                                     build-unattended or forward -- creating it from the right
+                                     base: the integration branch once the plan is admitted to
+                                     it, the plan's own branch before that.
             cycles --queued          What a build would take now -- approved, no verify, not
                                      abandoned -- and every cycle held back, with why: a
                                      cycle/<id>/... branch on the remote, or an approval the
