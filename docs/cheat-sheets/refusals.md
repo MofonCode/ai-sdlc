@@ -19,9 +19,11 @@ The two hooks return no exit code to you: they stop the agent's action, and the 
 | Refusal | Resolution |
 |---|---|
 | **Adopting — `sdlc init`** | |
-| [an option it does not take](../guides/handling-refusals.md#an-option-it-does-not-take) | exit `2`. Run it with `--platform` only; `sdlc draft techstack` afterwards for the stack |
+| [an option it does not take](../guides/handling-refusals.md#an-option-it-does-not-take) | exit `2`. Run it with `--platform` and `--integration-branch` only; the stack is the draft it writes |
+| [an integration branch the record disagrees with](../guides/handling-refusals.md#an-integration-branch-the-record-disagrees-with) | leave the option out, or change the key with `sdlc draft solution` and a rename |
 | **Opening a cycle — `sdlc new`** | |
-| [no declared stack](../guides/handling-refusals.md#no-declared-stack) | `sdlc draft techstack`, cut it down, rename it into place |
+| [no declared stack](../guides/handling-refusals.md#no-declared-stack) | fill in `techstack.draft.md`, rename it into place, commit it |
+| [uncommitted work](../guides/handling-refusals.md#uncommitted-work) | commit, stash or discard the files it names, then open again |
 | **Before a build — `sdlc gate`** | |
 | [no cycle](../guides/handling-refusals.md#no-cycle) | `sdlc new`, or check the id |
 | [abandoned](../guides/handling-refusals.md#abandoned) | open a new cycle; an abandoned one does not reopen |

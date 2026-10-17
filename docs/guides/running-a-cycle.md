@@ -3,13 +3,13 @@
 One governed change, from why it exists to a pull request: every stage, and what each one refuses if
 you arrive at it early.
 
-**This assumes the repository is adopted and both protected files are placed** —
-`adopting-the-framework.md` and `declaring-the-stack.md` are the steps before, and `sdlc doctor` says
-whether they are done. Nothing here is specific to what the change is.
+**This assumes the repository is adopted, and the drafts adoption left are placed and committed** —
+`adopting-the-framework.md` and `declaring-the-stack.md` are the steps before, and `sdlc doctor` exits 0
+when they are done. Nothing here is specific to what the change is.
 
 **This is the happy path.** When an interrogation raises a blocking finding or a verification records
 `blocked`, `handling-blockers.md` is the walk back. **If you have done this before**, the short path at
-the top of `../cheat-sheets/commands.md` is this same walk in fourteen numbered lines.
+the top of `../cheat-sheets/commands.md` is this same walk in numbered lines.
 
 ## 1. Read the rules before writing anything
 
@@ -26,35 +26,39 @@ The middle tier is the one your declared stack decides: the framework ships thre
 name a framework, and a solution is held to exactly the ones its stack file marks `true`. A stack that
 lists none has no such tier in this output. `declaring-the-stack.md` has why.
 
-## 2. Open the cycle
+## 2. Open the cycle — the intent skill does it
+
+```
+/sdlc:intent The dashboard takes fourteen seconds and people have stopped opening it
+```
+
+**You do not open the cycle or switch branches yourself.** The skill runs `sdlc new`, which allocates the
+id and claims it, then `sdlc branch <id> plan` and the `git switch` it prints, and says the id and the
+branch it is now on in one line. Then it interviews you — section 3.
+
+**It refuses while anything is uncommitted**, and names the files: a switch carries uncommitted changes
+with it, so they would reach the cycle's diff as work no plan declared. Commit, stash or discard them,
+and ask again. The skill asks you which rather than choosing.
+
+**What the skill runs, for when you need it by hand.** Opening a batch of cycles before interviewing any
+of them is the one ordinary reason:
 
 ```pwsh
 sdlc new
-```
-
-It prints the id on standard output, so a skill can capture it, and everything you need on standard error
-beside it. Creating the directory *is* the collision check: at allocation there is no directory to be
-already there, so a look-then-create would leave the race it was written to close.
-
-**`/sdlc:intent` runs this itself, so on the ordinary path you do not.** The command is here because it
-is the stage, and because a batch of cycles is opened before any of them is interviewed — but typing it
-and *then* invoking the intent skill allocates a second id and a second directory, and the claim
-succeeds both times, so nothing complains. The work goes into one of them and the id you wrote down
-names the other.
-
-Then the cycle's plan branch. Ask the binary rather than typing it:
-
-```pwsh
 sdlc branch 20260929_1456_32 plan
 ```
 
-It prints the one command to run — `git switch --no-track -c cycle/20260929_1456_32/plan origin/development`
-when the solution has its integration branch, or a plain `git switch -c` from where you are when it does not.
+`sdlc new` prints the id. **Do not type it and then invoke the intent skill** — the skill opens a cycle
+of its own, so that allocates a second id and a second directory, and the claim succeeds both times. The
+work goes into one of them and the id you wrote down names the other. `sdlc branch` prints the one
+command that switches — `git switch --no-track -c cycle/20260929_1456_32/plan origin/development` when
+the integration branch is on the remote, from the local one when it is not — and run twice it prints the
+plain switch to a branch that already exists.
 
 **A cycle's branches sit under `cycle/<id>/`, one per kind of work**: `plan` for the planning documents,
 `build` for a build you run by hand, `build-unattended` for one a batch runs, and `forward` for a release's
-fix carried into the integration branch. Ask `sdlc branch` for each; it knows which base each one starts
-from.
+fix carried into the integration branch. The skill for each stage asks `sdlc branch` for its own; it
+knows which base each one starts from.
 
 **The names are not cosmetic.** On a branch that is not a cycle branch the turn-end hook goes silent —
 that is the half with no message: it reads the cycle out of the branch you are on, so you keep building and
@@ -68,11 +72,9 @@ Three artifacts, all required, always. Each one is written, challenged in a **fr
 rules in force, and revised until a round raises nothing blocking. Each stage skill runs that loop itself;
 `handling-blockers.md` is what it is doing and what to do when it asks you something.
 
-```
-/sdlc:intent The dashboard takes fourteen seconds and people have stopped opening it
-```
-
-The only artifact written by interview. Expect to be asked questions rather than handed a draft, and
+**The intent** is the only artifact written by interview. **Nothing happens until you answer the
+questions** — the intent is written from your answers, so there is nothing to interrogate before then.
+Expect to be asked questions rather than handed a draft, and
 expect a request shaped as a solution to be turned back into a problem: "add a cache" becomes "the
 dashboard takes fourteen seconds and people stop opening it". If you have already decided something, say
 so — it is recorded under `Fixed decisions` with your name on it rather than argued with.

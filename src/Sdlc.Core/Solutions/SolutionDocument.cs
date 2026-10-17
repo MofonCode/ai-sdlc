@@ -230,14 +230,51 @@ public sealed record SolutionDocument(
 
         if (!File.Exists(path))
         {
-            return Result.Fail<SolutionDocument>(string.Create(
-                CultureInfo.InvariantCulture,
-                $"{path} does not exist. This repository holds no governed solution yet; run 'sdlc init'."));
+            string draft = DraftPathIn(solutionRoot);
+
+            return Result.Fail<SolutionDocument>(File.Exists(draft)
+                ? string.Create(
+                    CultureInfo.InvariantCulture,
+                    $"{path} has not been placed yet. Adoption wrote it as {draft}: fill in the paragraph there, then rename it into place.")
+                : string.Create(
+                    CultureInfo.InvariantCulture,
+                    $"{path} does not exist. This repository holds no governed solution yet; run 'sdlc init'."));
         }
 
         string text = await File.ReadAllTextAsync(path, cancellationToken).ConfigureAwait(false);
         return Read(text, path);
     }
+
+    /// <summary>
+    /// Reads the solution document, or the draft adoption wrote of it when a person has not placed it yet.
+    /// </summary>
+    /// <remarks>
+    /// For a caller that needs the <em>keys</em> and nothing else -- the origin, the platform, the
+    /// integration branch. Adoption writes the document as a draft (D-94), so between adoption and the
+    /// rename those keys exist only there. Reading the placed file alone would have a second run of
+    /// <c>sdlc init</c> find no recorded origin and decide a fresh one, which on a repository holding the
+    /// hooks adoption just committed would reclassify a new solution as adopted. Never used for whether a
+    /// solution is ready: that is the placed file's question, and <c>doctor</c> asks it.
+    /// </remarks>
+    /// <param name="solutionRoot">The solution's root.</param>
+    /// <param name="cancellationToken">Token observed while reading.</param>
+    /// <returns>The document, the draft's keys, or a failure when neither is readable.</returns>
+    public static async Task<Result<SolutionDocument>> ReadFileOrDraft(
+        string solutionRoot,
+        CancellationToken cancellationToken)
+    {
+        string draft = DraftPathIn(solutionRoot);
+
+        return File.Exists(PathIn(solutionRoot)) || !File.Exists(draft)
+            ? await ReadFile(solutionRoot, cancellationToken).ConfigureAwait(false)
+            : Read(await File.ReadAllTextAsync(draft, cancellationToken).ConfigureAwait(false), draft);
+    }
+
+    /// <summary>Where the draft of the solution document sits, beside the real one.</summary>
+    /// <param name="solutionRoot">The solution's root.</param>
+    /// <returns>The draft's absolute path.</returns>
+    public static string DraftPathIn(string solutionRoot) =>
+        Path.Combine(Path.GetDirectoryName(PathIn(solutionRoot)) ?? solutionRoot, WriteSolutionDraft.DraftFileName);
 
     /// <summary>
     /// The integration branch a solution on disk names, or the default when it cannot be read.
@@ -252,12 +289,12 @@ public sealed record SolutionDocument(
     /// <returns>The branch name.</returns>
     public static async Task<string> IntegrationBranchOf(string solutionRoot, CancellationToken cancellationToken)
     {
-        if (!File.Exists(PathIn(solutionRoot)))
+        if (!File.Exists(PathIn(solutionRoot)) && !File.Exists(DraftPathIn(solutionRoot)))
         {
             return DefaultIntegrationBranch;
         }
 
-        Result<SolutionDocument> read = await ReadFile(solutionRoot, cancellationToken).ConfigureAwait(false);
+        Result<SolutionDocument> read = await ReadFileOrDraft(solutionRoot, cancellationToken).ConfigureAwait(false);
         return read.IsSuccess ? read.Value.IntegrationBranch : DefaultIntegrationBranch;
     }
 

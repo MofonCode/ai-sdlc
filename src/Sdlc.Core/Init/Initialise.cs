@@ -2,9 +2,11 @@ using System.Globalization;
 using FluentResults;
 using Microsoft.Extensions.DependencyInjection;
 using MofonCode.Core;
+using Sdlc.Core.Constraints;
 using Sdlc.Core.Cycles;
 using Sdlc.Core.Git;
 using Sdlc.Core.Hooks;
+using Sdlc.Core.Reports;
 using Sdlc.Core.Solutions;
 
 namespace Sdlc.Core.Init;
@@ -70,6 +72,12 @@ public static class Initialise
 
         /// <summary>Nothing was written; the contents were printed for a person to place.</summary>
         Printed,
+
+        /// <summary>
+        /// A draft was written beside a file only a person writes, for them to fill in and rename. Never
+        /// committed: the draft is a proposal, and the rename is the act (D-94).
+        /// </summary>
+        Drafted,
     }
 
     /// <summary>One file adoption touched, or deliberately did not.</summary>
@@ -100,9 +108,17 @@ public static class Initialise
     /// </param>
     /// <param name="Setup">
     /// What a person still has to place before the first cycle, read after everything above was
-    /// written. Adoption writes the solution document with a placeholder and no declared stack at all
-    /// (D-76), so on a first run both are left and the report names the first (D-79). Null renders no
+    /// written. Adoption writes drafts of the solution document and the declared stack and places
+    /// neither, so on a first run both are left and the report names both (D-94). Null renders no
     /// next step.
+    /// </param>
+    /// <param name="IntegrationBranch">
+    /// Where approved plans wait and built cycles land: what the solution document records, or what this
+    /// run drafted into it. The command line creates it after the commit when it does not exist yet.
+    /// </param>
+    /// <param name="Branched">
+    /// Whether the integration branch was created by this run and switched to. Set by the command line,
+    /// which is what runs git, before it renders the report.
     /// </param>
     /// <param name="Unmentioned">
     /// On an update, what this release ships that the declared stack has no row for -- the half of an
@@ -118,7 +134,9 @@ public static class Initialise
         bool PlatformPending = false,
         Platform Platform = Platform.GitHub,
         SetupState? Setup = null,
-        StackCoverage.Unmentioned? Unmentioned = null)
+        StackCoverage.Unmentioned? Unmentioned = null,
+        string IntegrationBranch = SolutionDocument.DefaultIntegrationBranch,
+        bool Branched = false)
     {
         /// <summary>The paths that were written, for the commit to stage.</summary>
         public IReadOnlyList<string> Written =>
@@ -145,7 +163,12 @@ public static class Initialise
     /// re-running init to pick up a template would propose migrating a deliberately local solution onto
     /// a platform nobody asked for.
     /// </param>
-    public sealed record Command(Platform? Platform = null) : IRequest<Response>;
+    /// <param name="IntegrationBranch">
+    /// The integration branch to draft into the solution document, or null for the one recorded there --
+    /// <c>development</c> when nothing is (D-83). Refused when it disagrees with a recorded one: the
+    /// document is a person's, and this cannot change it (D-81).
+    /// </param>
+    public sealed record Command(Platform? Platform = null, string? IntegrationBranch = null) : IRequest<Response>;
 
     /// <summary>
     /// Writes the framework into a repository, in one of three modes.
@@ -160,16 +183,18 @@ public static class Initialise
     /// it owns is everything not protected. So the six files only a person writes are safe by the same rule
     /// the hook uses, rather than by a second list that could drift from it.
     /// </para>
-    /// <para><strong>It never modifies a protected file, in any mode.</strong> It creates exactly one,
-    /// <c>solution.md</c>, when it does not exist, because adoption is the moment that file comes into
-    /// being and its keys are facts adoption is the one to observe. The distinction matters because an
-    /// agent can invoke a command even where it cannot write a file, and create-but-never-modify is the
-    /// version of that which cannot destroy a person's work.
+    /// <para><strong>It never writes a protected file, in any mode.</strong> It drafts three beside where
+    /// they go -- the solution document, the declared stack and this solution's own constraints -- and a
+    /// person fills each in and renames it. It used to create <c>solution.md</c> outright with a
+    /// placeholder, which the next step then had a person overwrite with a draft carrying a different
+    /// placeholder: two texts that contradicted each other, and a rename that changed nothing (D-94).
+    /// A draft already there is left alone, because what is in it may be a person's work.
     /// </para>
     /// </remarks>
     /// <param name="solution">The repository to adopt into.</param>
     /// <param name="repository">How to ask git what it knows.</param>
-    private sealed class Handler(SolutionRoot solution, IRepository repository)
+    /// <param name="clock">When the stack's options menu is filed.</param>
+    private sealed class Handler(SolutionRoot solution, IRepository repository, TimeProvider clock)
         : IRequestHandler<Command, Response>
     {
         /// <inheritdoc />
@@ -209,16 +234,81 @@ public static class Initialise
 
             bool platformPending = platform != wantedPlatform;
 
+            // Recorded wins, as it does for every key. Asking for a different one is refused rather than
+            // printed: the platform has a pipeline this run writes, so printing its key is the half a
+            // person finishes, but a branch name this run would only draft has nothing to finish (D-81).
+            if (request.IntegrationBranch is { } asked
+                && recorded is not null
+                && !string.Equals(asked, recorded.IntegrationBranch, StringComparison.Ordinal))
+            {
+                return Result.Fail<Response>(string.Create(
+                    CultureInfo.InvariantCulture,
+                    $"The solution document already records '{recorded.IntegrationBranch}' as the integration branch, and only a person changes it. To move it, edit 'integration_branch' in the draft 'sdlc draft solution' writes, rename it into place, and create the branch."));
+            }
+
+            if (request.IntegrationBranch is { } named && (named.Length == 0 || named.Any(char.IsWhiteSpace)))
+            {
+                return Result.Fail<Response>(string.Create(
+                    CultureInfo.InvariantCulture,
+                    $"'{named}' is not a branch name git would take. Leave --integration-branch out for '{SolutionDocument.DefaultIntegrationBranch}'."));
+            }
+
+            string integration = recorded?.IntegrationBranch
+                ?? request.IntegrationBranch
+                ?? SolutionDocument.DefaultIntegrationBranch;
+
             List<InitAction> actions = [];
             Dictionary<string, string> printed = new(StringComparer.Ordinal);
 
             string document = Path.Combine(Cycle.SdlcDirectoryName, Cycle.SolutionFileName);
 
-            // Protected files are created and never modified, which is the one rule that makes an agent
-            // invoking this command unable to destroy anything a person wrote.
-            await Protected(
+            // The three files a person places before the first cycle are drafted, never written. Each
+            // draft sits beside where it goes, carries a note saying an agent cannot change the real
+            // file, and is renamed into place by a person -- so the next step names all of them rather
+            // than a command that writes one (D-94).
+            await Drafted(
                 document,
-                Templates.Solution(origin, standard, wantedPlatform),
+                WriteSolutionDraft.DraftFileName,
+                Templates.Solution(origin, standard, wantedPlatform, integration),
+                actions,
+                cancellationToken).ConfigureAwait(false);
+
+            bool stackDrafted = await Drafted(
+                Path.Combine(Cycle.SdlcDirectoryName, Cycle.TechStackFileName),
+                WriteTechStackDraft.DraftFileName,
+                Templates.TechStack(origin),
+                actions,
+                cancellationToken).ConfigureAwait(false);
+
+            // The menu goes with the stack's first draft, as it does from 'sdlc draft techstack': it is
+            // what somebody reads beside the draft to see what else a row could say.
+            if (stackDrafted)
+            {
+                string menu = await ReportFile.Write(
+                    solution.Path,
+                    WriteTechStackDraft.OptionsReportKind,
+                    StackOptions.Render(),
+                    clock.GetUtcNow(),
+                    cancellationToken).ConfigureAwait(false);
+
+                // On the draft's own line rather than one of its own: a report is ignored by git, and an
+                // action marked created is one the commit would try to stage.
+                actions[^1] = actions[^1] with
+                {
+                    Why = "the options menu to read beside it is " + Path.GetRelativePath(solution.Path, menu).Replace('\\', '/'),
+                };
+            }
+
+            await Drafted(
+                Path.Combine(Cycle.SdlcDirectoryName, FileConstraintDocuments.SolutionConstraintsFileName),
+                Setup.ConstraintsDraftFileName,
+                Templates.Constraints(),
+                actions,
+                cancellationToken).ConfigureAwait(false);
+
+            await Owned(
+                Path.Combine(Cycle.SdlcDirectoryName, ".gitignore"),
+                Templates.SdlcIgnore(),
                 actions,
                 cancellationToken).ConfigureAwait(false);
 
@@ -232,12 +322,6 @@ public static class Initialise
                     SolutionDocument.Keys(origin, standard, wantedPlatform))
                     + Environment.NewLine;
             }
-
-            // The declared stack is not written here, and that is the change D-76 makes. It used to be
-            // the one protected file a tool created with its contents already decided -- from a profile
-            // named on this command line, before anybody had said what the solution was built from. A
-            // person places it now, from 'sdlc draft techstack', and the report's next step says so
-            // when it is the one left: no cycle opens until it is there.
 
             // Framework-owned: rewritten every time, which is how a solution's scaffolding stops rotting
             // across versions.
@@ -305,7 +389,7 @@ public static class Initialise
             {
                 await Owned(
                     PipelinePath(wantedPlatform),
-                    Templates.Pipeline(wantedPlatform, recorded?.IntegrationBranch ?? SolutionDocument.DefaultIntegrationBranch),
+                    Templates.Pipeline(wantedPlatform, integration),
                     actions,
                     cancellationToken).ConfigureAwait(false);
             }
@@ -313,7 +397,7 @@ public static class Initialise
             {
                 await Introduced(
                     PipelinePath(wantedPlatform),
-                    Templates.Pipeline(wantedPlatform, recorded?.IntegrationBranch ?? SolutionDocument.DefaultIntegrationBranch),
+                    Templates.Pipeline(wantedPlatform, integration),
                     "one already exists, and it is this repository's own CI rather than the framework's to replace. Nothing verifies a chain until this step runs in a pipeline",
                     actions,
                     printed,
@@ -343,8 +427,10 @@ public static class Initialise
                 platformPending,
                 platform,
                 await Setup.Read(solution.Path, cancellationToken).ConfigureAwait(false),
-                await Unmentioned(mode, cancellationToken).ConfigureAwait(false)));
+                await Unmentioned(mode, cancellationToken).ConfigureAwait(false),
+                integration));
         }
+
 
         /// <summary>Where a platform's pull-request pipeline goes.</summary>
         /// <remarks>
@@ -434,8 +520,11 @@ public static class Initialise
                 return null;
             }
 
+            // The draft's keys count as recorded until the document is placed. Adoption committed its
+            // hooks, so a second run would otherwise find code-shaped files, no document, and decide the
+            // solution was adopted rather than new.
             Result<SolutionDocument> existing = await SolutionDocument
-                .ReadFile(solution.Path, cancellationToken)
+                .ReadFileOrDraft(solution.Path, cancellationToken)
                 .ConfigureAwait(false);
 
             return existing.IsSuccess ? existing.Value : null;
@@ -454,25 +543,44 @@ public static class Initialise
             ? SolutionOrigin.Scaffolded
             : SolutionOrigin.Adopted;
 
-        private async Task Protected(
+        /// <summary>
+        /// Drafts a file only a person writes, beside where it goes, unless it or its draft is already there.
+        /// </summary>
+        /// <remarks>
+        /// Neither is ever touched once it exists. The placed file is a person's by definition, and a draft
+        /// adoption left behind is one they may be halfway through filling in -- writing a fresh one over it
+        /// would throw that away, which is the destruction this command is written never to do.
+        /// </remarks>
+        /// <param name="relative">Where the real file goes, relative to the root.</param>
+        /// <param name="draftName">The draft's file name, written in the same directory.</param>
+        /// <param name="contents">What the draft starts as.</param>
+        /// <param name="actions">Where to record what happened.</param>
+        /// <param name="cancellationToken">Token observed while writing.</param>
+        /// <returns>True when a draft was written.</returns>
+        private async Task<bool> Drafted(
             string relative,
+            string draftName,
             string contents,
             List<InitAction> actions,
             CancellationToken cancellationToken)
         {
-            string path = Path.Combine(solution.Path, relative);
+            string draft = Path.Combine(Path.GetDirectoryName(relative) ?? string.Empty, draftName);
 
-            if (File.Exists(path))
+            if (File.Exists(Path.Combine(solution.Path, relative)))
             {
-                actions.Add(new InitAction(
-                    relative,
-                    InitChange.Kept,
-                    "only a person writes this, and it already exists"));
-                return;
+                actions.Add(new InitAction(relative, InitChange.Kept, "only a person writes this, and it is in place"));
+                return false;
             }
 
-            await Write(path, contents, cancellationToken).ConfigureAwait(false);
-            actions.Add(new InitAction(relative, InitChange.Created));
+            if (File.Exists(Path.Combine(solution.Path, draft)))
+            {
+                actions.Add(new InitAction(draft, InitChange.Kept, "a draft is already waiting, and what is in it may be yours"));
+                return false;
+            }
+
+            await Write(Path.Combine(solution.Path, draft), contents, cancellationToken).ConfigureAwait(false);
+            actions.Add(new InitAction(draft, InitChange.Drafted));
+            return true;
         }
 
         private async Task Owned(

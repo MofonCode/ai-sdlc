@@ -2,6 +2,7 @@ using System.Globalization;
 using FluentResults;
 using Microsoft.Extensions.DependencyInjection;
 using MofonCode.Core;
+using Sdlc.Core.Git;
 using Sdlc.Core.Solutions;
 
 namespace Sdlc.Core.Cycles;
@@ -52,7 +53,8 @@ public static class NewCycle
     /// </remarks>
     /// <param name="solution">The solution to open the cycle in.</param>
     /// <param name="time">Where the current moment comes from, so a test can fix it.</param>
-    private sealed class Handler(SolutionRoot solution, TimeProvider time)
+    /// <param name="repository">How to ask git whether anything is uncommitted.</param>
+    private sealed class Handler(SolutionRoot solution, TimeProvider time, IRepository repository)
         : IRequestHandler<Command, Cycle>
     {
         /// <summary>
@@ -109,7 +111,21 @@ public static class NewCycle
             {
                 return Task.FromResult(Result.Fail<Cycle>(string.Create(
                     CultureInfo.InvariantCulture,
-                    $"There is no {stack}, so nothing says what this solution is built from and a plan would be judged against nothing. Run 'sdlc draft techstack', cut the draft down to what is true here -- or run it with --empty to pin nothing -- and rename it into place. Only a person places that file.")));
+                    $"There is no {stack}, so nothing says what this solution is built from and a plan would be judged against nothing. Fill in the draft beside it -- adoption wrote techstack.draft.md, and 'sdlc draft techstack' writes it again if it is gone, or with --empty to pin nothing -- write 'none' in each row not true here, and rename it into place. Only a person places that file.")));
+            }
+
+            // Nor over work nobody has committed. The intent skill switches to the cycle's plan branch
+            // next, and a switch carries uncommitted changes with it -- so a placed stack, a half-written
+            // change, anything, would ride into the cycle and reach its diff as work no plan declared.
+            // Refused here rather than asked about in the skill, because a file listing decides it, and
+            // so that opening a cycle by hand gets the same answer. What to do with the changes -- commit,
+            // stash, discard -- is the person's, so this names them and decides nothing.
+            if (repository.IsRepository(solution.Path)
+                && repository.UncommittedChanges(solution.Path).Where(path => !IsBookkeeping(path)).ToArray() is { Length: > 0 } changed)
+            {
+                return Task.FromResult(Result.Fail<Cycle>(string.Create(
+                    CultureInfo.InvariantCulture,
+                    $"Nothing was opened: {changed.Length} {(changed.Length == 1 ? "file has" : "files have")} uncommitted changes, and a cycle's branch would carry {(changed.Length == 1 ? "it" : "them")} into the cycle as work no plan declared -- {string.Join(", ", changed.Take(8))}{(changed.Length > 8 ? ", and more" : string.Empty)}. Commit, stash or discard {(changed.Length == 1 ? "it" : "them")}, then open the cycle again.")));
             }
 
             var id = CycleId.Allocate(time);
@@ -156,6 +172,22 @@ public static class NewCycle
             }
 
             return Task.FromResult(Result.Ok(cycle));
+        }
+
+        /// <summary>
+        /// Whether an uncommitted path is an ignore file the framework writes into its own directory.
+        /// </summary>
+        /// <remarks>
+        /// This command writes the cycles directory's on the first cycle and a report writes its own, so
+        /// counting them would have the second cycle refused over a file the first one created. They hold
+        /// nobody's work, which is the only thing the refusal exists to protect.
+        /// </remarks>
+        private static bool IsBookkeeping(string path)
+        {
+            string normalised = path.Replace('\\', '/');
+
+            return normalised.StartsWith(Cycle.SdlcDirectoryName + "/", StringComparison.Ordinal)
+                && normalised.EndsWith("/.gitignore", StringComparison.Ordinal);
         }
     }
 }

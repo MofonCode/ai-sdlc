@@ -75,6 +75,21 @@ internal sealed class FakeRepository : IRepository
         return Result.Ok();
     }
 
+    /// <summary>Every branch <see cref="SwitchToNewBranch"/> was asked to create, in order.</summary>
+    public List<string> Created { get; } = [];
+
+    public Result SwitchToNewBranch(string workingDirectory, string branch)
+    {
+        Created.Add(branch);
+        Refs.Add(branch);
+        return Result.Ok();
+    }
+
+    /// <summary>What <see cref="UncommittedChanges"/> answers.</summary>
+    public IReadOnlyList<string> Uncommitted { get; init; } = [];
+
+    public IReadOnlyList<string> UncommittedChanges(string workingDirectory) => Uncommitted;
+
     public string? MergeBase(string workingDirectory, string branch, string integrationBranch) => Base;
 
     /// <summary>The files <see cref="ReadAt"/> returns, keyed <c>reference:path</c>.</summary>

@@ -15,6 +15,10 @@ about it. Finding that out is the work.
 Run `sdlc constraints --for intent` first and keep what it prints in front of you. That is the set in
 force for this solution, which is not the same as the set you remember.
 
+**Then read `.sdlc/solution.md`.** Its paragraph says what this solution is and who it is for, in the
+person's words, and an interview that asks what they already wrote there spends their attention on
+nothing. Ask from where it leaves off.
+
 ## Keep a task list, if your host has one
 
 If your host gives you a task list, open one before the first step, with these items, and mark each
@@ -36,16 +40,27 @@ person's decision, and `sdlc status <id>` names it. **The list is a view, never 
 done is what is on disk and what the binary reports, so where the two disagree the list is the one
 that is wrong.
 
-## 1. Open the cycle
+## 1. Open the cycle and switch to its branch
+
+**This is yours to do, all of it.** The person asked for an intent; opening the cycle and moving the
+working copy onto its branch are the mechanics of that, and a person who is shown a command here
+reasonably runs it a second time.
 
 ```
 sdlc new
 ```
 
-It prints the id on standard output and the branch command beside it. Do not allocate the id yourself:
-the command **claims** the id as it allocates it, and that claim is the collision check — two cycles
-opened in the same second would otherwise write into one directory. Creating the directory is not the
-check and cannot be, because it succeeds on a directory that is already there.
+It prints the id on standard output. Do not allocate the id yourself: the command **claims** the id as
+it allocates it, and that claim is the collision check — two cycles opened in the same second would
+otherwise write into one directory. Creating the directory is not the check and cannot be, because it
+succeeds on a directory that is already there.
+
+**It refuses while anything is uncommitted**, and names the files. The next step switches branches, and a
+switch carries uncommitted changes with it, so they would ride into this cycle as work no plan declared.
+**Show the person the files and ask what they want done with them** — commit, stash or discard — and
+then open the cycle again. Do not choose for them, and do not stash on their behalf: work you moved out of
+sight is work they have to find. A file they just placed, like a declared stack, usually wants committing
+on the branch it is on.
 
 Then put the working copy on the cycle's plan branch:
 
@@ -56,6 +71,9 @@ sdlc branch <id> plan
 Run the one command it prints. It creates `cycle/<id>/plan` from the integration branch, or from what is
 checked out when there is none. The intent, spec, plan and approval are written there, and its pull request
 — `pr <id> --plan`, once a person has approved — admits the plan to the integration branch.
+
+Then say both in one line — the cycle's id and the branch you are now on — so nobody runs either step
+again.
 
 ## 1a. Begin from a lead, when given one
 
@@ -93,6 +111,12 @@ plan honour the decision, and six months later it distinguishes a requirement fr
 ## 3. Establish the type, then interview
 
 Four questions, in roughly this order. Stop asking when an answer would only be a guess.
+
+**End the turn on the questions, and say that the intent waits on the answers.** Nothing is written until
+the person replies — the intent is written *from* the answers — so a person who goes on to the next
+command finds no intent to interrogate. One line says it: the cycle is open and its intent is not written
+yet. **Describe the state as that, never as the repository being empty**: a solution with a placed
+paragraph and a declared stack is not empty, and saying so tells the person their setup did not take.
 
 **Ask them in the tense the work is actually in.** The wording below is for something that exists and
 misbehaves. For a new solution nothing is broken yet, and asking how they would know it was *fixed*

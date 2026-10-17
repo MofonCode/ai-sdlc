@@ -355,6 +355,7 @@ public sealed class PublicSurfaceTests
         // step that is next. Public because adoption's response and doctor's both carry the state,
         // and the two renderers print the same block from it. D-79.
         "Sdlc.Core.Solutions.Setup",
+        "Sdlc.Core.Solutions.SetupProgress",
         "Sdlc.Core.Solutions.SetupState",
         "Sdlc.Core.Solutions.SetupStep",
         "Sdlc.Core.Solutions.SolutionDocument",

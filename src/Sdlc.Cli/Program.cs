@@ -125,7 +125,7 @@ static async Task<int> Init(Workspace workspace, CommandLine line)
     // Refused rather than ignored. Adoption writes the hook configuration and the pipeline, so a line
     // that ran while silently dropping part of what it said would leave somebody believing they had
     // asked for something they had not (D-81).
-    IReadOnlyList<string> unknown = line.OptionsOtherThan("platform", "solution");
+    IReadOnlyList<string> unknown = line.OptionsOtherThan("platform", "solution", "integration-branch");
 
     if (unknown.Count > 0)
     {
@@ -142,8 +142,10 @@ static async Task<int> Init(Workspace workspace, CommandLine line)
         return ExitCode.Usage;
     }
 
+    string? integration = line.TryOption("integration-branch", out string? branch) ? branch.Trim() : null;
+
     Result<Initialise.Response> result = await workspace
-        .Send<Initialise.Command, Initialise.Response>(new Initialise.Command(platform))
+        .Send<Initialise.Command, Initialise.Response>(new Initialise.Command(platform, integration))
         .ConfigureAwait(false);
 
     if (result.IsFailed)
@@ -152,24 +154,41 @@ static async Task<int> Init(Workspace workspace, CommandLine line)
     }
 
     Initialise.Response report = result.Value;
-    await Console.Out.WriteAsync(InitRenderer.Render(report)).ConfigureAwait(false);
 
-    if (report.Written.Count == 0)
-    {
-        return ExitCode.Ok;
-    }
-
-    // Committed rather than left in the working tree. An untracked file is untracked when the first
+    // Committed, then branched, then reported, so the report reads in the order things happened and
+    // ends with what is left for a person. A failure in either is said on standard error after it.
+    // Committed rather than left in the working tree: an untracked file is untracked when the first
     // cycle takes its diff, so the diff records the whole file as new and a plan saying it changes that
     // file can never match -- the first cycle would fail CON_07.2 for something adoption did.
     // Through the container, not `new GitRepository()`. Constructing the concrete type here meant
     // this one step could not be given a fake, so the only part of adoption that writes to git was
     // the only part no test could exercise -- while Workspace holds no closure precisely so that a
     // dependency can be substituted the way the application composes one.
-    Result commit = workspace.Repository.Commit(
-        workspace.SolutionRoot,
-        report.Written,
-        Templates.CommitMessage(report.Mode, report.Written));
+    Result commit = report.Written.Count == 0
+        ? Result.Ok()
+        : workspace.Repository.Commit(
+            workspace.SolutionRoot,
+            report.Written,
+            Templates.CommitMessage(report.Mode, report.Written));
+
+    // The integration branch, created from what adoption just committed when it does not exist yet, and
+    // switched to -- so the person's own commit of the files they place lands where approved plans wait,
+    // and a cycle's plan branch starts from it rather than from whatever was checked out. After the
+    // commit, so the default branch and the integration branch both hold the hooks. A branch that already
+    // exists, here or on the remote, is left alone along with whatever is checked out: switching someone's
+    // working copy is only this command's to do when it is the one making the branch (D-94).
+    bool missing = commit.IsSuccess
+        && !workspace.Repository.RefExists(workspace.SolutionRoot, report.IntegrationBranch)
+        && !workspace.Repository.RefExists(workspace.SolutionRoot, "origin/" + report.IntegrationBranch);
+
+    Result branched = missing
+        ? workspace.Repository.SwitchToNewBranch(workspace.SolutionRoot, report.IntegrationBranch)
+        : Result.Ok();
+
+    await Console.Out.WriteAsync(InitRenderer.Render(report with
+    {
+        Branched = missing && branched.IsSuccess,
+    })).ConfigureAwait(false);
 
     if (commit.IsFailed)
     {
@@ -177,6 +196,17 @@ static async Task<int> Init(Workspace workspace, CommandLine line)
             "The files are written, but git would not commit them: "
             + string.Join("; ", commit.Errors.Select(error => error.Message))
             + " Commit them by hand before the first cycle, or its diff will record them as new.")
+            .ConfigureAwait(false);
+
+        return ExitCode.Failed;
+    }
+
+    if (branched.IsFailed)
+    {
+        await Console.Error.WriteLineAsync(
+            string.Create(CultureInfo.InvariantCulture, $"The integration branch {report.IntegrationBranch} could not be created: ")
+            + string.Join("; ", branched.Errors.Select(error => error.Message))
+            + string.Create(CultureInfo.InvariantCulture, $" Create it with 'git switch -c {report.IntegrationBranch}' before the first cycle; until then 'sdlc doctor' reports it."))
             .ConfigureAwait(false);
 
         return ExitCode.Failed;
@@ -266,7 +296,7 @@ static async Task<int> NewCycle(Workspace workspace)
 
     await Console.Error.WriteLineAsync(string.Create(
         CultureInfo.InvariantCulture,
-        $"Opened {cycle.Directory}. Its plan's branch is {cycle.Id.BranchName(CycleBranchKind.Plan)}; 'sdlc branch {cycle.Id} plan' prints the command that creates it."))
+        $"Opened {cycle.Directory}. Its plan's branch is {cycle.Id.BranchName(CycleBranchKind.Plan)}: the intent skill switches to it, and 'sdlc branch {cycle.Id} plan' prints the command when you are opening one by hand."))
         .ConfigureAwait(false);
 
     return ExitCode.Ok;

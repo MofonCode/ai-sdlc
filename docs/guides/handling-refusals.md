@@ -28,19 +28,33 @@ cycle does not advance.
 
 ---
 
-## `sdlc new` — the one way a cycle is refused
+## `sdlc new` — the two ways a cycle is refused
+
+**Both refuse before an id is spent**, so nothing is left behind to clean up.
 
 ### no declared stack
 
-`.sdlc/techstack.md` is not there. Adoption does not write it — a person places it — so this is where
-every solution stands between adopting and renaming the first draft, and where a deleted file leaves
-one. A cycle opened now would reach its plan with nothing to be read against and no stack rule in
-force: every gate green, and the argument the stack file exists to force never made.
+`.sdlc/techstack.md` is not there. Adoption drafts it and a person places it, so this is where every
+solution stands between adopting and renaming the draft, and where a deleted file leaves one. A cycle
+opened now would reach its plan with nothing to be read against and no stack rule in force: every gate
+green, and the argument the stack file exists to force never made.
 
-**Next:** `sdlc draft techstack`. The draft is the framework's default — cut it down to what is true of
-this solution — or run it with `--empty` to pin nothing. Then rename the draft into place yourself. An
-empty file opens a cycle; a missing one does not, because one is a decision and the other is nobody
-having made it.
+**Next:** fill in `.sdlc/techstack.draft.md` — the framework's default, cut down to what is true of this
+solution — and rename it into place yourself, then commit it. If the draft is gone, `sdlc draft
+techstack` writes it again, or `sdlc draft techstack --empty` writes one that pins nothing. An empty file
+opens a cycle; a missing one does not, because one is a decision and the other is nobody having made it.
+
+### uncommitted work
+
+Something in the working tree is not committed, and the refusal names the files. Opening a cycle is
+followed by switching to its plan branch, and a switch carries uncommitted changes with it — so they
+would ride into the cycle and reach its diff as work no plan declared. The commonest case is the first
+cycle, straight after placing the files adoption drafted.
+
+**Next:** decide what each file is — commit it, stash it, or discard it — and open the cycle again. The
+intent skill asks you rather than choosing, because work moved out of sight is work you have to find. The
+framework's own ignore files under `.sdlc/` never count, and neither does anything git ignores, which
+includes the drafts.
 
 ## `sdlc gate` — every way a build is refused
 
@@ -183,17 +197,26 @@ approve again. If it is not, there is nothing for scaffold to do here: build wit
 
 ---
 
-## `sdlc init` — the one way adoption is refused
+## `sdlc init` — the two ways adoption is refused
 
 ### an option it does not take
 
-`sdlc init` takes `--platform` and `--solution`, and nothing else. Any other option is refused before
-anything is written, with exit code `2`, rather than ignored — adoption writes the hook configuration and
-the pipeline, so a run that silently dropped part of the line would leave you believing you had asked
-for something you had not.
+`sdlc init` takes `--platform`, `--integration-branch` and `--solution`, and nothing else. Any other
+option is refused before anything is written, with exit code `2`, rather than ignored — adoption writes
+the hook configuration and the pipeline, so a run that silently dropped part of the line would leave you
+believing you had asked for something you had not.
 
 **Next:** run it without the option. `sdlc help`, under *Options for init*, lists what it takes. Which
-stack the solution is built from is not adoption's: `sdlc draft techstack` afterwards.
+stack the solution is built from is not adoption's: fill in the draft it writes.
+
+### an integration branch the record disagrees with
+
+`--integration-branch` names a branch other than the one `solution.md` records. That file is a person's,
+so adoption cannot change the key, and a run that quietly kept the recorded branch would leave you
+believing you had moved it.
+
+**Next:** to move it, `sdlc draft solution`, change `integration_branch` in the draft, rename it into
+place, and create the branch. Otherwise run adoption without the option.
 
 ---
 
@@ -312,7 +335,8 @@ belongs there.
 
 ## The pre-tool hook — the seven things an agent is denied
 
-These are denied at the tool call, by file path and by shell command alike. The rules are absolute rather
+These are denied at the tool call, by file path and by shell command alike. `protected-files.md` says
+how the hook decides and what it deliberately leaves alone; this is why each one is a person's. The rules are absolute rather
 than conditional, and that is the point: there is no mode, no flag, and no check on which skill is
 running, so a rule with no exception has nowhere for a bypass to live.
 
@@ -322,7 +346,7 @@ running, so a rule with no exception has nowhere for a bypass to live.
 | writing `abandoned.md` | an agent stuck on a blocking finding has an obvious escape — abandon and start clean. A hand-written reason keeps the objections that killed it on the record |
 | writing `constraints.md` | a cycle judged by the constraints it is changing is the same deadlock as the framework governing itself. `sdlc propose constraints` reads the history and proposes an entry; pasting it is the decision |
 | writing `decisions.md` | a stage reads the decision record for alignment, so an agent that could write it could invent doctrine and then align to it. `sdlc propose decisions` reads the approved cycles and proposes an entry; pasting it is the decision |
-| writing `solution.md` | the origin is a historical fact that must never change. Per-key protection would be the first conditional rule, which is where a bypass would live |
+| writing `solution.md` | the origin is a historical fact that must never change. Per-key protection would be the first conditional rule, which is where a bypass would live. Adoption drafts it; after that `sdlc draft solution` does |
 | writing `techstack.md` | it is the second rule source a plan is read against, and `CON_15` judges every plan against it — so an agent able to edit it could satisfy that rule by adding the row it wanted instead of arguing for it, or drop a stack rule by switching its row off. `sdlc draft techstack` writes a draft beside it; renaming the draft is the decision |
 | running the adoption command | adoption writes the hook configuration that constrains the agent, the pipeline that gates the merge, and the file saying where this code came from |
 

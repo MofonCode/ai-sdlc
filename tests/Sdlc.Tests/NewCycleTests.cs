@@ -1,6 +1,7 @@
 using FluentResults;
 using Microsoft.Extensions.DependencyInjection;
 using Sdlc.Core.Cycles;
+using Sdlc.Core.Git;
 
 namespace Sdlc.Tests;
 
@@ -141,6 +142,55 @@ public sealed class NewCycleTests
                 Cycle.CyclesDirectoryName,
                 "20261009_1407_09")),
             "Nothing was claimed. A refusal that had already created the directory would leave an id spent.");
+    }
+
+    [TestMethod]
+    public async Task No_cycle_opens_over_uncommitted_work_and_the_refusal_names_it()
+    {
+        // The intent skill switches to the cycle's branch next, and a switch carries uncommitted changes
+        // with it -- so whatever was lying in the working tree would reach the cycle's diff as work no
+        // plan declared. Refused before an id is spent, naming the files, deciding nothing about them.
+        using var workspace = CycleWorkspace.Create();
+        workspace.WriteTechStack(string.Empty);
+
+        using var gate = Gate.For(
+            workspace.Root,
+            services => services
+                .AddSingleton<TimeProvider>(new FakeClock(Instant))
+                .AddSingleton<IRepository>(new FakeRepository { Uncommitted = [".sdlc/techstack.md", "src/Half.cs"] }));
+
+        Result<Cycle> result = await gate.Send<NewCycle.Command, Cycle>(new NewCycle.Command());
+
+        Assert.IsTrue(result.IsFailed, "A cycle opened over uncommitted work.");
+
+        string message = string.Join("; ", result.Errors.Select(error => error.Message));
+
+        StringAssert.Contains(message, ".sdlc/techstack.md");
+        StringAssert.Contains(message, "src/Half.cs");
+        StringAssert.Contains(message, "Commit, stash or discard");
+
+        Assert.IsFalse(
+            Directory.Exists(Path.Combine(workspace.Root, Cycle.SdlcDirectoryName, Cycle.CyclesDirectoryName, "20261009_1407_09")),
+            "Nothing was claimed.");
+    }
+
+    [TestMethod]
+    public async Task The_frameworks_own_ignore_files_do_not_hold_a_cycle_shut()
+    {
+        // This command writes the cycles directory's ignore on the first cycle. Counting it would have the
+        // second cycle refused over a file the first one created.
+        using var workspace = CycleWorkspace.Create();
+        workspace.WriteTechStack(string.Empty);
+
+        using var gate = Gate.For(
+            workspace.Root,
+            services => services
+                .AddSingleton<TimeProvider>(new FakeClock(Instant))
+                .AddSingleton<IRepository>(new FakeRepository { Uncommitted = [".sdlc/cycles/.gitignore", ".sdlc/reports/.gitignore"] }));
+
+        Result<Cycle> result = await gate.Send<NewCycle.Command, Cycle>(new NewCycle.Command());
+
+        Assert.IsTrue(result.IsSuccess, string.Join("; ", result.Errors.Select(error => error.Message)));
     }
 
     /// <summary>Opens a cycle in a solution whose stack a person has declared.</summary>

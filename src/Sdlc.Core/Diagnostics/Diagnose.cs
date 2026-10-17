@@ -130,6 +130,7 @@ public static class Diagnose
             }
 
             checks.Add(await Adoption(cancellationToken).ConfigureAwait(false));
+            checks.Add(await IntegrationBranch(cancellationToken).ConfigureAwait(false));
             checks.Add(await Stamp(cancellationToken).ConfigureAwait(false));
             checks.Add(await DeclaredStack(cancellationToken).ConfigureAwait(false));
 
@@ -266,7 +267,22 @@ public static class Diagnose
                     "adoption",
                     CheckOutcome.Problem,
                     string.Join("; ", document.Errors.Select(error => error.Message)),
-                    "only a person writes " + Cycle.SolutionFileName + ". 'sdlc draft solution' writes what belongs in it beside it");
+                    File.Exists(SolutionDocument.DraftPathIn(solution.Path))
+                        ? "only a person writes " + Cycle.SolutionFileName + ": fill in the paragraph in " + WriteSolutionDraft.DraftFileName + ", then rename it over " + Cycle.SolutionFileName
+                        : "only a person writes " + Cycle.SolutionFileName + ". 'sdlc draft solution' writes what belongs in it beside it");
+            }
+
+            // A problem rather than a step left, which D-79 had it as. Every plan reads this paragraph for
+            // what good looks like here, and a placeholder tells it nothing -- so a solution that carries
+            // one is not ready for a cycle, and saying so with the exit code is accurate (D-94).
+            if (WriteSolutionDraft.IsPlaceholder(
+                await File.ReadAllTextAsync(SolutionDocument.PathIn(solution.Path), cancellationToken).ConfigureAwait(false)))
+            {
+                return new Check(
+                    "adoption",
+                    CheckOutcome.Problem,
+                    Cycle.SolutionFileName + " still carries the template's text where the paragraph saying what this solution is goes, so every plan is told nothing about what good looks like here",
+                    "write the paragraph in " + Cycle.SolutionFileName + " -- only a person can");
             }
 
             return new Check(
@@ -335,6 +351,29 @@ public static class Diagnose
         }
 
         /// <summary>
+        /// Whether the integration branch the solution names exists, here or on the remote.
+        /// </summary>
+        /// <remarks>
+        /// Without it a cycle's plan branch starts from whatever happens to be checked out, and the plan's
+        /// pull request has nothing to merge into. Adoption creates it after its commit, so this fires on a
+        /// solution adopted before that, or one whose key was changed and the branch never made (D-94).
+        /// </remarks>
+        /// <param name="cancellationToken">Token observed while reading.</param>
+        /// <returns>The check.</returns>
+        private async Task<Check> IntegrationBranch(CancellationToken cancellationToken)
+        {
+            string branch = await SolutionDocument.IntegrationBranchOf(solution.Path, cancellationToken).ConfigureAwait(false);
+
+            return repository.RefExists(solution.Path, branch) || repository.RefExists(solution.Path, "origin/" + branch)
+                ? new Check("integration branch", CheckOutcome.Sound, branch + ", where approved plans wait and built cycles land")
+                : new Check(
+                    "integration branch",
+                    CheckOutcome.Problem,
+                    branch + " does not exist, so a cycle's plan branch starts from whatever is checked out and its pull request has nowhere to go",
+                    "'git switch -c " + branch + "' from the commit adoption made. Running adoption again creates it as well");
+        }
+
+        /// <summary>
         /// Whether a declared stack is in place, and what it pins and switches on.
         /// </summary>
         /// <remarks>
@@ -375,7 +414,9 @@ public static class Diagnose
                     "declared stack",
                     CheckOutcome.Problem,
                     Cycle.TechStackFileName + " is not there, so nothing says what this solution is built from and no cycle opens",
-                    "'sdlc draft techstack' writes a draft of the framework's default, or of nothing with --empty; a person renames it into place");
+                    File.Exists(Path.Combine(solution.Path, Cycle.SdlcDirectoryName, WriteTechStackDraft.DraftFileName))
+                        ? "fill in " + WriteTechStackDraft.DraftFileName + " -- 'none' in each row not true here -- then rename it over " + Cycle.TechStackFileName + ". Only a person can"
+                        : "'sdlc draft techstack' writes a draft of the framework's default, or of nothing with --empty; a person renames it into place");
             }
 
             string text = await File.ReadAllTextAsync(path, cancellationToken).ConfigureAwait(false);

@@ -221,32 +221,78 @@ public sealed class DoctorTests
     }
 
     [TestMethod]
-    public async Task The_panel_ends_with_the_same_one_step_adoption_does()
+    public async Task The_panel_ends_with_the_same_drafts_and_renames_adoption_does()
     {
         // Each step ends in a rename, which runs nothing, so what adoption printed is stale the moment
-        // the first draft is placed. This is the command that answers "what now" (D-79).
+        // the first draft is placed. This is the command that answers "what now" (D-94).
         using var solution = Scratch.Create();
 
         Assert.IsNull(
             (await Diagnosis(solution)).Setup,
             "A repository nobody adopted has one thing to do, and the adoption check already says it.");
 
-        await Adopt(solution);
-
-        string stack = Path.Combine(solution.Root, Cycle.SdlcDirectoryName, Cycle.TechStackFileName);
-        await File.WriteAllTextAsync(stack, string.Empty);
-
-        string panel = DiagnosisRenderer.Render(await Diagnosis(solution));
-
-        StringAssert.Contains(panel, "One thing is yours to place before the first cycle: a paragraph");
-        StringAssert.Contains(panel, "sdlc draft solution");
-
-        File.Delete(stack);
+        await Drafted(solution);
 
         string both = DiagnosisRenderer.Render(await Diagnosis(solution));
 
         StringAssert.Contains(both, "Two things are yours to place before the first cycle");
-        StringAssert.Contains(both, "Exits 1", "The missing stack is still the fault; the block is only the order.");
+        StringAssert.Contains(both, "mv -f .sdlc/solution.draft.md .sdlc/solution.md");
+        StringAssert.Contains(both, "mv -f .sdlc/techstack.draft.md .sdlc/techstack.md");
+        StringAssert.Contains(both, "mv -f .sdlc/constraints.draft.md .sdlc/constraints.md", "The optional draft rides along while it waits.");
+        StringAssert.Contains(both, "Exits 1", "Neither file is in place, which is the fault; the block is only the order.");
+
+        string sdlc = Path.Combine(solution.Root, Cycle.SdlcDirectoryName);
+        File.Move(Path.Combine(sdlc, WriteTechStackDraft.DraftFileName), Path.Combine(sdlc, Cycle.TechStackFileName));
+
+        string one = DiagnosisRenderer.Render(await Diagnosis(solution));
+
+        StringAssert.Contains(one, "One thing is yours to place before the first cycle: a paragraph");
+        Assert.IsFalse(one.Contains("techstack.draft.md", StringComparison.Ordinal), one);
+    }
+
+    [TestMethod]
+    public async Task A_solution_document_placed_with_the_template_still_in_it_is_a_problem()
+    {
+        // The failure this replaced: the drafter's prompt was not the placeholder the check knew, so an
+        // unfilled draft renamed into place read as written and doctor said nothing was left (D-94).
+        using var solution = Scratch.Create();
+        await Drafted(solution);
+
+        string sdlc = Path.Combine(solution.Root, Cycle.SdlcDirectoryName);
+        File.Move(Path.Combine(sdlc, WriteSolutionDraft.DraftFileName), Path.Combine(sdlc, Cycle.SolutionFileName));
+        File.Move(Path.Combine(sdlc, WriteTechStackDraft.DraftFileName), Path.Combine(sdlc, Cycle.TechStackFileName));
+
+        Diagnose.Response report = await Diagnosis(solution);
+        Check adoption = report.Checks.Single(check => check.Subject == "adoption");
+
+        Assert.AreEqual(CheckOutcome.Problem, adoption.Outcome);
+        StringAssert.Contains(adoption.Detail, "template's text");
+        Assert.IsFalse(report.Sound);
+
+        string panel = DiagnosisRenderer.Render(report);
+        StringAssert.Contains(panel, ".sdlc/solution.md");
+        StringAssert.Contains(panel, "still the template's text");
+        Assert.IsFalse(panel.Contains("Nothing is left to place", StringComparison.Ordinal), panel);
+    }
+
+    [TestMethod]
+    public async Task A_missing_integration_branch_is_a_problem_naming_the_command_that_makes_it()
+    {
+        using var solution = Scratch.Create();
+        await Adopt(solution);
+
+        Diagnose.Response report = await Diagnosis(solution, new FakeRepository());
+        Check branch = report.Checks.Single(check => check.Subject == "integration branch");
+
+        Assert.AreEqual(CheckOutcome.Problem, branch.Outcome);
+        StringAssert.Contains(branch.Remedy!, "git switch -c development");
+
+        Diagnose.Response remote = await Diagnosis(solution, new FakeRepository { Refs = { "origin/development" } });
+
+        Assert.AreEqual(
+            CheckOutcome.Sound,
+            remote.Checks.Single(check => check.Subject == "integration branch").Outcome,
+            "A clone that has the branch only on the remote has it.");
     }
 
     [TestMethod]
@@ -329,7 +375,20 @@ public sealed class DoctorTests
         StringAssert.Contains(stack.Remedy!, "draft techstack");
         Assert.IsFalse(
             stack.Remedy!.Contains("sdlc init", StringComparison.Ordinal),
-            "Adoption does not write this file any more, so sending somebody back to it fixes nothing.");
+            "Adoption does not write this file, so sending somebody back to it fixes nothing.");
+    }
+
+    [TestMethod]
+    public async Task A_declared_stack_with_its_draft_waiting_says_to_fill_it_in_and_rename_it()
+    {
+        using var solution = Scratch.Create();
+        await Drafted(solution);
+
+        Check stack = (await Diagnosis(solution)).Checks.Single(check => check.Subject == "declared stack");
+
+        Assert.AreEqual(CheckOutcome.Problem, stack.Outcome);
+        StringAssert.Contains(stack.Remedy!, WriteTechStackDraft.DraftFileName);
+        StringAssert.Contains(stack.Remedy!, "rename");
     }
 
     [TestMethod]
@@ -517,9 +576,11 @@ public sealed class DoctorTests
 
     private static async Task<Diagnose.Response> Diagnosis(Scratch solution, FakeRepository? git = null)
     {
+        // Adoption creates the integration branch after its commit, so a repository it finished with has
+        // one. A test about a missing branch passes a repository without it.
         using var gate = Gate.For(
             solution.Root,
-            services => services.AddSingleton<IRepository>(git ?? new FakeRepository()));
+            services => services.AddSingleton<IRepository>(git ?? new FakeRepository { Refs = { SolutionDocument.DefaultIntegrationBranch } }));
 
         Result<Diagnose.Response> result = await gate
             .Send<Diagnose.Query, Diagnose.Response>(new Diagnose.Query());
@@ -530,6 +591,24 @@ public sealed class DoctorTests
 
     private static async Task Adopt(Scratch solution, Platform platform = Platform.GitHub)
     {
+        await Drafted(solution, platform);
+
+        // Adoption places nothing a person writes; it drafts them. Every check here is about a solution
+        // somebody finished adopting, so the paragraph is written and both drafts are placed the way a
+        // rename would place them -- the stack as the default, the drafts gone.
+        string sdlc = Path.Combine(solution.Root, Cycle.SdlcDirectoryName);
+        string draft = Path.Combine(sdlc, WriteSolutionDraft.DraftFileName);
+
+        await File.WriteAllTextAsync(Path.Combine(sdlc, Cycle.SolutionFileName), Written(await File.ReadAllTextAsync(draft)));
+        File.Delete(draft);
+        File.Delete(Path.Combine(sdlc, WriteTechStackDraft.DraftFileName));
+
+        await Declare(solution, Templates.TechStack());
+    }
+
+    /// <summary>Adopts and stops there: the drafts waiting, nothing a person writes in place.</summary>
+    private static async Task Drafted(Scratch solution, Platform platform = Platform.GitHub)
+    {
         using var gate = Gate.For(
             solution.Root,
             services => services.AddSingleton<IRepository>(new FakeRepository()));
@@ -539,10 +618,15 @@ public sealed class DoctorTests
                 new Initialise.Command(platform));
 
         Assert.IsTrue(result.IsSuccess, string.Join("; ", result.Errors.Select(e => e.Message)));
+    }
 
-        // Adoption writes no declared stack; a person places one. Every check here is about a solution
-        // somebody finished adopting, so the default is placed the way a rename would place it.
-        await Declare(solution, Templates.TechStack());
+    /// <summary>A solution document with its prompt replaced by a paragraph, as a person would leave it.</summary>
+    private static string Written(string draft)
+    {
+        int from = draft.IndexOf(WriteSolutionDraft.Placeholder, StringComparison.Ordinal);
+        int to = draft.IndexOf("-->", from, StringComparison.Ordinal) + "-->".Length;
+
+        return draft[..from] + "A die, rolled over HTTP, for anyone settling an argument." + draft[to..];
     }
 
     private static Task Declare(Scratch solution, string stack) => File.WriteAllTextAsync(

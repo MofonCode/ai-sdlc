@@ -39,8 +39,59 @@ namespace Sdlc.Core.Solutions;
 /// </remarks>
 public static class WriteSolutionDraft
 {
-    /// <summary>What the shipped placeholder starts with, so a draft can tell it from real prose.</summary>
-    public const string Placeholder = "Replace this with a paragraph";
+    /// <summary>What the prompt starts with, so a document still carrying it can be told from real prose.</summary>
+    public const string Placeholder = "<!-- Replace this comment";
+
+    /// <summary>
+    /// What adoption wrote before it wrote a draft, which a solution adopted then may still carry.
+    /// </summary>
+    /// <remarks>
+    /// Recognised as well as <see cref="Placeholder"/>, and for a reason that was a real failure: the
+    /// check used to know only this one, while the draft replaced it with the prompt. Renaming an
+    /// unfilled draft into place therefore made the paragraph read as written, and <c>sdlc doctor</c>
+    /// said nothing was left to place over a document that still said nothing.
+    /// </remarks>
+    public const string LegacyPlaceholder = "Replace this with a paragraph";
+
+    /// <summary>
+    /// What a solution document says where the prose has never been written: a prompt rather than
+    /// invented prose.
+    /// </summary>
+    /// <remarks>
+    /// This knows the keys and knows nothing about what the solution is for, so writing a paragraph here
+    /// would be the tool asserting something only a person can say -- and a plausible-looking sentence
+    /// nobody wrote is worse than a blank, because it reads as settled. One text, which adoption writes
+    /// and the drafter writes, so there is one thing for <see cref="IsPlaceholder"/> to recognise.
+    /// </remarks>
+    public static string Prompt { get; } = string.Join(
+        Environment.NewLine,
+        [
+            "# What this solution is",
+            string.Empty,
+            .. Hooks.ProtectedPaths.Note,
+            string.Empty,
+            Placeholder + ", and delete the rest of it once you have. Two or three",
+            "     sentences a newcomer could read:",
+            string.Empty,
+            "       what the solution does, and who for;",
+            "       what somebody would judge it on that no test checks -- the standard a reviewer",
+            "       would send work back for;",
+            "       anything every screen or every endpoint is expected to do.",
+            string.Empty,
+            "     Every plan written in this solution reads this. Nothing else says what good looks",
+            "     like here, so a plan that finds a placeholder has been told nothing. -->",
+        ]);
+
+    /// <summary>Whether a solution document's prose is still the placeholder, in either wording.</summary>
+    /// <param name="text">The document, or its body.</param>
+    /// <returns>True when nobody has written the paragraph yet.</returns>
+    public static bool IsPlaceholder(string text)
+    {
+        ArgumentNullException.ThrowIfNull(text);
+
+        return text.Contains(Placeholder, StringComparison.Ordinal)
+            || text.Contains(LegacyPlaceholder, StringComparison.Ordinal);
+    }
 
     /// <summary>The name the draft is written under, beside the file it is for.</summary>
     public const string DraftFileName = "solution.draft.md";
@@ -79,9 +130,17 @@ public static class WriteSolutionDraft
 
             if (!File.Exists(path))
             {
-                return Result.Ok(DraftResult.Refused(string.Create(
-                    CultureInfo.InvariantCulture,
-                    $"There is no {path} to draft from. This solution has not been adopted yet, and adoption is what creates it.")));
+                string waiting = Path.Combine(Path.GetDirectoryName(path) ?? solution.Path, DraftFileName);
+
+                // Refused rather than drafted again over it: a draft adoption wrote is one a person may
+                // already be filling in, and writing a fresh one would throw their paragraph away.
+                return Result.Ok(DraftResult.Refused(File.Exists(waiting)
+                    ? string.Create(
+                        CultureInfo.InvariantCulture,
+                        $"{path} has not been placed yet. Adoption wrote its draft at {waiting}: fill in the paragraph there, then place it with 'mv -f \"{waiting}\" \"{path}\"'.")
+                    : string.Create(
+                        CultureInfo.InvariantCulture,
+                        $"There is no {path} to draft from. This solution has not been adopted yet, and 'sdlc init' is what drafts it.")));
             }
 
             Result<SolutionDocument> read = await SolutionDocument
@@ -96,7 +155,7 @@ public static class WriteSolutionDraft
             SolutionDocument document = read.Value;
             string current = await File.ReadAllTextAsync(path, cancellationToken).ConfigureAwait(false);
             string body = BodyOf(current);
-            bool untouched = body.Contains(Placeholder, StringComparison.Ordinal);
+            bool untouched = IsPlaceholder(body);
             SolutionStandard standard = request.Standard ?? document.Standard;
 
             string draft = string.Join(
@@ -111,7 +170,7 @@ public static class WriteSolutionDraft
                         document.Telemetry),
                     "---",
                     string.Empty,
-                    untouched ? Prompt : body.TrimEnd(),
+                    untouched ? Prompt : WithNote(body.TrimEnd()),
                     string.Empty,
                 ]);
 
@@ -126,31 +185,28 @@ public static class WriteSolutionDraft
                 Instructions(path, draftPath, untouched, document.Standard, standard)));
         }
 
-        /// <summary>
-        /// What a draft says where the prose has never been written.
-        /// </summary>
+        /// <summary>The person's prose with the guard note under its heading, when it has none yet.</summary>
         /// <remarks>
-        /// A prompt rather than invented prose, and rather than the shipped placeholder again. This
-        /// knows the three keys and knows nothing about what the solution is for, so writing a paragraph
-        /// here would be the tool asserting something only a person can say — and a plausible-looking
-        /// sentence nobody wrote is worse than a blank, because it reads as settled.
+        /// The one addition a carried body takes, and only once: a solution adopted before documents
+        /// carried the note gets it the next time it is drafted, and nothing it says is changed. Placed
+        /// under the first heading when there is one, which is where adoption writes it.
         /// </remarks>
-        private static string Prompt => string.Join(
-            Environment.NewLine,
-            [
-                "# What this solution is",
-                string.Empty,
-                "<!-- Replace this comment, and delete the rest of it once you have. Two or three",
-                "     sentences a newcomer could read:",
-                string.Empty,
-                "       what the solution does, and who for;",
-                "       what somebody would judge it on that no test checks -- the standard a reviewer",
-                "       would send work back for;",
-                "       anything every screen or every endpoint is expected to do.",
-                string.Empty,
-                "     Every plan written in this solution reads this. Nothing else says what good looks",
-                "     like here, so a plan that finds a placeholder has been told nothing. -->",
-            ]);
+        private static string WithNote(string body)
+        {
+            if (body.Contains(Hooks.ProtectedPaths.Note[0], StringComparison.Ordinal))
+            {
+                return body;
+            }
+
+            string note = string.Join(Environment.NewLine, Hooks.ProtectedPaths.Note);
+            string[] lines = body.ReplaceLineEndings().Split(Environment.NewLine);
+
+            return lines[0].StartsWith("# ", StringComparison.Ordinal)
+                ? string.Join(
+                    Environment.NewLine,
+                    [lines[0], string.Empty, note, string.Empty, .. lines.Skip(1).SkipWhile(string.IsNullOrWhiteSpace)])
+                : note + Environment.NewLine + Environment.NewLine + body;
+        }
 
         /// <summary>Everything after the frontmatter, which is the person's half of the file.</summary>
         /// <remarks>

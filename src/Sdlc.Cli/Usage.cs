@@ -33,8 +33,12 @@ internal static class Usage
 
         Commands
             init                     Adopt the framework into this repository. Run by a person.
+                                     Commits what it writes, creates the integration branch and
+                                     switches to it, and drafts the three files only a person
+                                     places -- solution, techstack, constraints -- beside them.
             new                      Open a cycle: allocate its id and create its directory. Refuses
-                                     until a declared stack is in place -- 'draft techstack'.
+                                     until a declared stack is in place, and while anything is
+                                     uncommitted. The intent skill runs it; you rarely type it.
             scaffold <id>            Write the solution skeleton -- a solution file, its projects, the
                                      architecture tests and a reference slice -- and the .NET build
                                      settings it compiles under. On a solution adopted into existing
@@ -195,6 +199,13 @@ internal static class Usage
                                      governed repository it means keep what is recorded, so a
                                      re-run to pick up a new template never proposes moving a
                                      local solution onto a platform nobody asked for.
+
+            --integration-branch <name>
+                                     Where approved plans wait and built cycles land. Default:
+                                     development. Drafted into solution.md, and created from
+                                     adoption's commit when it does not exist yet. Refused when
+                                     solution.md already records a different one: only a person
+                                     changes that file.
 
             Any other option is refused before anything is written, rather than
             ignored.

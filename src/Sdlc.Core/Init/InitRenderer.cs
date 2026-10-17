@@ -11,8 +11,8 @@ namespace Sdlc.Core.Init;
 /// <remarks>
 /// Adoption runs once and is read closely, because it is the moment a team decides whether to trust the
 /// thing. So it says what mode it ran in and why that matters, lists every file including the ones it
-/// deliberately left alone, and ends with the one next step -- and it prints what it would not write,
-/// rather than mentioning that something was skipped.
+/// deliberately left alone, and ends with the drafts left to place and how -- and it prints what it would
+/// not write, rather than mentioning that something was skipped.
 /// </remarks>
 public static class InitRenderer
 {
@@ -51,6 +51,15 @@ public static class InitRenderer
             }
         }
 
+        if (report.Branched)
+        {
+            output.AppendLine(string.Create(
+                CultureInfo.InvariantCulture,
+                $"{Indent}{"branched",-8}{report.IntegrationBranch}"));
+            output.AppendLine(Indent + "        created from what was just committed, and switched to: approved plans wait here,");
+            output.AppendLine(Indent + "        built cycles land here, and it is where you commit what you place");
+        }
+
         foreach (KeyValuePair<string, string> file in report.Printed)
         {
             output.AppendLine();
@@ -83,10 +92,10 @@ public static class InitRenderer
             output.AppendLine(Indent + "and a row answering it -- 'none' or false included -- in a draft a person renames is the end.");
         }
 
-        // One step, never the list of commands worth knowing: what is left is said in a sentence and
-        // the first of it is named. The command sheet is in the README this just wrote (D-79).
+        // The files left to place, each with its rename, never the list of commands worth knowing. The
+        // command sheet is in the README this just wrote (D-79, D-94).
         if (report.Setup is { } setup
-            && Setup.Render(setup, "'sdlc doctor' names the step after this one.") is { Count: > 0 } next)
+            && Setup.Render(setup) is { Count: > 0 } next)
         {
             output.AppendLine();
 
@@ -160,6 +169,7 @@ public static class InitRenderer
         Initialise.InitChange.Updated => "updated",
         Initialise.InitChange.Kept => "kept",
         Initialise.InitChange.Printed => "printed",
+        Initialise.InitChange.Drafted => "drafted",
         _ => "touched",
     };
 
@@ -188,9 +198,9 @@ public static class InitRenderer
             "Nothing here is in violation on its first day. Constraints govern a change, never code that",
             "came before adoption, so there is no baseline to record and nothing to forgive.",
             string.Empty,
-            "To hold new work to the profile's conventions instead, 'sdlc draft solution --standard profile'",
-            "writes that change for you to rename into place. The .NET build settings are separate, and",
-            "are rows in the declared stack: 'sdlc draft techstack' lists them switched off here, because",
+            "To hold new work to the profile's conventions instead, set 'standard: profile' in the",
+            "solution document's draft before you place it. The .NET build settings are separate, and",
+            "are rows in the declared stack: its draft lists them switched off here, because",
             "Directory.Build.props makes warnings errors and that can fail a build over files nobody has",
             "touched. Switch one on and a cycle whose plan declares the file brings it.",
         ],

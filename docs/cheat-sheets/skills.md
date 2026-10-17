@@ -10,7 +10,7 @@ there is no slash form: ask in a sentence, and include the cycle id.
 | Skill | Takes | Does | Started by |
 |---|---|---|---|
 | **Adoption** | | | |
-| [`init`](../../skills/README.md#init) | `[--platform github\|azure-devops\|local]` | interviews you about the solution and proposes its first constraints; hands you the adoption command | a person\* |
+| [`init`](../../skills/README.md#init) | `[--platform github\|azure-devops\|local] [--integration-branch <name>]` | interviews you about the solution and proposes its first constraints; hands you the adoption command, and walks the drafts it leaves | a person\* |
 | **The planning chain** | | | |
 | [`intent`](../../skills/README.md#intent) | `[a sentence describing the work, optional] [--from <lead>]` | opens a cycle and interviews you into why the work exists, from a lead if given one | a person |
 | [`spec`](../../skills/README.md#spec) | `<cycle id>` | derives testable acceptance criteria from the intent alone | a person |

@@ -40,15 +40,13 @@ public static class ConstraintText
     private sealed class Handler(SolutionRoot solution)
         : IRequestHandler<Query, DraftResult>
     {
-        // Shown only when the file does not exist yet, so a first constraint lands in a document that
-        // explains itself rather than one holding a bare heading.
+        // Shown only when neither the file nor adoption's draft of it exists, so a first constraint lands
+        // in a document that explains itself rather than one holding a bare heading. The same header the
+        // draft carries, note included, so the two never describe the file differently.
         private static readonly string[] _header =
         [
             string.Empty,
-            "    # This solution's own constraints",
-            string.Empty,
-            "    Rules that bind this solution and no other. Resolved after the global and profile tiers,",
-            "    so these are the last word.",
+            .. Init.Templates.ConstraintsHeader.Select(line => line.Length == 0 ? line : "    " + line),
             string.Empty,
             "    ---",
         ];
@@ -66,6 +64,8 @@ public static class ConstraintText
                 FileConstraintDocuments.SolutionConstraintsFileName);
 
             bool exists = File.Exists(path);
+            string draft = Path.Combine(Path.GetDirectoryName(path) ?? solution.Path, Solutions.Setup.ConstraintsDraftFileName);
+            bool drafted = !exists && File.Exists(draft);
             IReadOnlyList<Constraint> existing = [];
 
             if (exists)
@@ -107,8 +107,10 @@ public static class ConstraintText
                 [
                     exists
                         ? string.Create(CultureInfo.InvariantCulture, $"Open {path} and add the block above at the end.")
+                        : drafted
+                        ? string.Create(CultureInfo.InvariantCulture, $"Add the block above at the end of {draft}, which adoption wrote, then rename it over {path}.")
                         : string.Create(CultureInfo.InvariantCulture, $"Create {path} with the header below, then the block above."),
-                    .. exists ? [] : _header,
+                    .. exists || drafted ? [] : _header,
                     string.Empty,
                     existing.Count == 0
                         ? string.Create(CultureInfo.InvariantCulture, $"{id} is the first solution constraint.")

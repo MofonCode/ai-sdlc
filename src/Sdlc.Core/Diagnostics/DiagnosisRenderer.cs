@@ -62,7 +62,7 @@ public static class DiagnosisRenderer
         // The same block adoption ends with, from the same list. A missing declared stack is a
         // problem above as well -- that is the fault; this is the order to do things in.
         if (response.Setup is { } setup
-            && Setup.Render(setup, "Run 'sdlc doctor' again once it is placed, for the step after it.") is { Count: > 0 } next)
+            && Setup.Render(setup) is { Count: > 0 } next)
         {
             output.AppendLine();
 

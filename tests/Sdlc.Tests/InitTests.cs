@@ -3,6 +3,7 @@ using System.Xml.Linq;
 using FluentResults;
 using Microsoft.Extensions.DependencyInjection;
 using Sdlc.Core.Artifacts;
+using Sdlc.Core.Constraints;
 using Sdlc.Core.Cycles;
 using Sdlc.Core.Git;
 using Sdlc.Core.Hooks;
@@ -432,89 +433,91 @@ public sealed class InitTests
     [TestMethod]
     [DataRow(false)]
     [DataRow(true)]
-    public async Task Adoption_writes_no_declared_stack_and_says_what_does(bool holdsCode)
+    public async Task Adoption_drafts_the_declared_stack_and_never_places_it(bool holdsCode)
     {
-        // It used to be the one protected file a tool created with its contents already decided -- from
-        // a profile named on the command line, before anybody had said what the solution was built
-        // from. A person places it now, new repository or old, and adoption only says what to run.
+        // It used to be the one protected file a tool created with its contents already decided. Then
+        // it was written by nobody until a person ran a drafter. Now adoption drafts it beside where it
+        // goes, and a person renames it: one step fewer, and still the person's act (D-94).
         string[] tracked = holdsCode ? ["src/App/Program.cs"] : [];
 
         using var solution = Scratch.Create();
 
         Initialise.Response report = await Adopt(solution, tracked);
 
-        string stack = Path.Combine(solution.Root, Cycle.SdlcDirectoryName, Cycle.TechStackFileName);
+        string sdlc = Path.Combine(solution.Root, Cycle.SdlcDirectoryName);
+        string stack = Path.Combine(sdlc, Cycle.TechStackFileName);
+        string draft = Path.Combine(sdlc, WriteTechStackDraft.DraftFileName);
 
         Assert.IsFalse(File.Exists(stack), "Adoption decided what this solution is built from.");
-        Assert.IsFalse(report.Setup!.Steps.Single(step => step.Command == "sdlc draft techstack").Done);
+        Assert.AreEqual(
+            Templates.TechStack(holdsCode ? SolutionOrigin.Adopted : SolutionOrigin.Scaffolded),
+            await File.ReadAllTextAsync(draft),
+            "The same default 'sdlc draft techstack' writes, build settings rows and all.");
+        Assert.AreEqual(SetupProgress.Drafted, report.Setup!.Steps.Single(step => step.FileName == Cycle.TechStackFileName).Progress);
         Assert.IsFalse(
-            report.Actions.Any(action => action.Path.EndsWith(Cycle.TechStackFileName, StringComparison.Ordinal)),
-            "Not created and not listed as kept: it is not adoption's file to mention as its own.");
+            report.Written.Any(path => path.EndsWith(".draft.md", StringComparison.Ordinal)),
+            "A draft is never committed: it is a proposal, and the rename is the act.");
 
-        StringAssert.Contains(
-            InitRenderer.Render(report),
-            "a declared stack",
-            "What is left is said, even though the step named first is the one before it.");
-
-        // And once a person has placed one, a refresh stops saying so.
-        await File.WriteAllTextAsync(stack, string.Empty);
+        // A person places it. A refresh says nothing more about it and writes no second draft.
+        File.Move(draft, stack);
 
         Initialise.Response again = await Adopt(solution, tracked);
 
-        Assert.IsTrue(
-            again.Setup!.Steps.Single(step => step.Command == "sdlc draft techstack").Done,
-            "An empty file is a declared stack: it declares that nothing is pinned.");
+        Assert.IsTrue(again.Setup!.Steps.Single(step => step.FileName == Cycle.TechStackFileName).Done);
         Assert.IsFalse(InitRenderer.Render(again).Contains("a declared stack", StringComparison.Ordinal));
-        Assert.AreEqual(string.Empty, await File.ReadAllTextAsync(stack), "And a refresh leaves it exactly as placed.");
+        Assert.IsFalse(File.Exists(draft), "Nothing is drafted beside a file a person has placed.");
     }
 
     [TestMethod]
-    public async Task Adoption_ends_with_one_step_and_each_placement_moves_it_on()
+    public async Task Adoption_ends_with_every_draft_its_rename_and_the_commit()
     {
-        // It ended with four commands under "Next": one step, two views that show nothing in a
-        // repository adopted a minute ago, and one that reads a history not yet written. A person was
-        // left to work out which was theirs to do. Now what is left is a sentence and one command is
-        // named -- in the order the answers depend on, which is the order the skill asks in (D-79).
+        // It ended with one command, the drafter for the first step, and a person ran doctor between
+        // renames to learn the next. Adoption writes every draft now, so what is left is the same acts
+        // for each -- fill in, rename, commit -- and the report names them all (D-94).
         using var solution = Scratch.Create();
 
         string first = InitRenderer.Render(await Adopt(solution, tracked: []));
 
         StringAssert.Contains(first, "Two things are yours to place before the first cycle");
-        Assert.AreEqual("sdlc draft solution", NextCommand(first));
-        StringAssert.Contains(first, "'sdlc doctor' names the step after this one.");
+        StringAssert.Contains(first, "an agent's write to any of these files is denied");
+        StringAssert.Contains(first, "mv -f .sdlc/solution.draft.md .sdlc/solution.md");
+        StringAssert.Contains(first, "mv -f .sdlc/techstack.draft.md .sdlc/techstack.md");
+        StringAssert.Contains(first, "mv -f .sdlc/constraints.draft.md .sdlc/constraints.md");
+        StringAssert.Contains(first, "Move-Item -Force");
+        StringAssert.Contains(first, "Commit them");
 
-        foreach (string view in new[] { "sdlc constraints", "sdlc propose constraints", "sdlc decisions", "sdlc draft techstack" })
+        foreach (string view in new[] { "sdlc constraints", "sdlc decisions", "sdlc draft solution", "sdlc draft techstack" })
         {
             Assert.IsFalse(
                 first.Contains(view, StringComparison.Ordinal),
-                view + " is not the next step, so the report ending on it is a second thing to choose between.");
+                view + " is not a step: every draft is already written.");
         }
 
         // A person writes their paragraph and renames the draft. Nothing runs when they do.
-        string document = Path.Combine(solution.Root, Cycle.SdlcDirectoryName, Cycle.SolutionFileName);
-        string placed = (await File.ReadAllTextAsync(document))
-            .Replace(WriteSolutionDraft.Placeholder, "A die, rolled over HTTP. For", StringComparison.Ordinal);
-        await File.WriteAllTextAsync(document, placed);
+        string sdlc = Path.Combine(solution.Root, Cycle.SdlcDirectoryName);
+        await File.WriteAllTextAsync(
+            Path.Combine(sdlc, Cycle.SolutionFileName),
+            Written(await File.ReadAllTextAsync(Path.Combine(sdlc, WriteSolutionDraft.DraftFileName))));
+        File.Delete(Path.Combine(sdlc, WriteSolutionDraft.DraftFileName));
 
         string second = InitRenderer.Render(await Adopt(solution, tracked: []));
 
         StringAssert.Contains(second, "One thing is yours to place before the first cycle");
-        Assert.AreEqual("sdlc draft techstack", NextCommand(second));
-        StringAssert.Contains(second, "No cycle opens until it is placed");
-        Assert.IsFalse(second.Contains("names the step after", StringComparison.Ordinal), "There is no step after the last.");
+        StringAssert.Contains(second, "mv -f .sdlc/techstack.draft.md .sdlc/techstack.md");
+        Assert.IsFalse(second.Contains("solution.draft.md", StringComparison.Ordinal), second);
 
-        await File.WriteAllTextAsync(
-            Path.Combine(solution.Root, Cycle.SdlcDirectoryName, Cycle.TechStackFileName),
-            string.Empty);
+        File.Move(Path.Combine(sdlc, WriteTechStackDraft.DraftFileName), Path.Combine(sdlc, Cycle.TechStackFileName));
 
         string third = InitRenderer.Render(await Adopt(solution, tracked: []));
 
         StringAssert.Contains(third, "Nothing is left to place");
-        Assert.AreEqual("sdlc intent", NextCommand(third));
+        StringAssert.Contains(third, "/sdlc:intent");
+        Assert.IsFalse(
+            third[third.IndexOf("Nothing is left to place", StringComparison.Ordinal)..].Contains("constraints.draft.md", StringComparison.Ordinal),
+            "A solution with no rules of its own is sound, so the optional draft is not a step left.");
 
         // From the first cycle on, the status panel names the next command for each cycle.
-        Directory.CreateDirectory(Path.Combine(
-            solution.Root, Cycle.SdlcDirectoryName, Cycle.CyclesDirectoryName, "20260929_1456_32"));
+        Directory.CreateDirectory(Path.Combine(sdlc, Cycle.CyclesDirectoryName, "20260929_1456_32"));
 
         string governed = InitRenderer.Render(await Adopt(solution, tracked: []));
 
@@ -529,23 +532,147 @@ public sealed class InitTests
         using var solution = Scratch.Create();
         await Adopt(solution, tracked: []);
 
-        await File.WriteAllTextAsync(
-            Path.Combine(solution.Root, Cycle.SdlcDirectoryName, Cycle.TechStackFileName),
-            string.Empty);
+        string sdlc = Path.Combine(solution.Root, Cycle.SdlcDirectoryName);
+        File.Move(Path.Combine(sdlc, WriteTechStackDraft.DraftFileName), Path.Combine(sdlc, Cycle.TechStackFileName));
 
         string rendered = InitRenderer.Render(await Adopt(solution, tracked: []));
 
         StringAssert.Contains(rendered, "One thing is yours to place before the first cycle: a paragraph");
-        Assert.AreEqual("sdlc draft solution", NextCommand(rendered));
+        StringAssert.Contains(rendered, "mv -f .sdlc/solution.draft.md .sdlc/solution.md");
     }
 
-    /// <summary>The command on the line under "Next", which is the one step the report names.</summary>
-    private static string NextCommand(string rendered)
+    [TestMethod]
+    public async Task A_draft_already_waiting_is_never_written_over()
     {
-        string[] lines = rendered.ReplaceLineEndings("\n").Split('\n');
-        string step = lines[Array.FindIndex(lines, line => line.Trim() == "Next") + 1];
+        // A person may be halfway through filling one in. Writing a fresh draft over it would throw their
+        // work away, which is the one thing this command is written never to do.
+        using var solution = Scratch.Create();
+        await Adopt(solution, tracked: []);
 
-        return step.Trim().Split("  ", StringSplitOptions.RemoveEmptyEntries)[0];
+        string draft = Path.Combine(solution.Root, Cycle.SdlcDirectoryName, WriteSolutionDraft.DraftFileName);
+        string half = (await File.ReadAllTextAsync(draft)) + "Half a paragraph" + Environment.NewLine;
+        await File.WriteAllTextAsync(draft, half);
+
+        Initialise.Response again = await Adopt(solution, tracked: []);
+
+        Assert.AreEqual(half, await File.ReadAllTextAsync(draft));
+        Assert.AreEqual(
+            Initialise.InitChange.Kept,
+            again.Actions.Single(action => action.Path.EndsWith(WriteSolutionDraft.DraftFileName, StringComparison.Ordinal)).Change);
+    }
+
+    [TestMethod]
+    public async Task A_second_run_before_anything_is_placed_keeps_the_origin_adoption_observed()
+    {
+        // Adoption committed its hooks, which look like code to the classifier. With no placed document
+        // a second run would have decided afresh and called a new solution adopted; the draft's keys
+        // are what was observed, so they stand until a person places the file.
+        using var solution = Scratch.Create();
+        await Adopt(solution, tracked: []);
+
+        Initialise.Response again = await Adopt(solution, tracked: [".claude/settings.json", ".github/hooks/sdlc.json"]);
+
+        Assert.AreEqual(Initialise.InitMode.Update, again.Mode);
+        Assert.AreEqual(SolutionOrigin.Scaffolded, again.Origin);
+    }
+
+    [TestMethod]
+    public async Task The_integration_branch_is_development_unless_asked_and_is_drafted_into_the_document()
+    {
+        using var solution = Scratch.Create();
+
+        Initialise.Response report = await Adopt(solution, tracked: []);
+
+        Assert.AreEqual("development", report.IntegrationBranch);
+
+        using var other = Scratch.Create();
+        using Gate gate = Adopter(other, new FakeRepository());
+
+        Result<Initialise.Response> named = await gate
+            .Send<Initialise.Command, Initialise.Response>(new Initialise.Command(Platform.GitHub, "integration"));
+
+        Assert.IsTrue(named.IsSuccess, string.Join("; ", named.Errors.Select(e => e.Message)));
+        Assert.AreEqual("integration", named.Value.IntegrationBranch);
+
+        Result<SolutionDocument> drafted = await SolutionDocument.ReadFileOrDraft(other.Root, CancellationToken.None);
+        Assert.AreEqual("integration", drafted.Value.IntegrationBranch);
+
+        StringAssert.Contains(
+            await File.ReadAllTextAsync(Path.Combine(other.Root, ".github", "workflows", "sdlc-verify.yml")),
+            "integration",
+            "The pipeline targets the branch the document names.");
+    }
+
+    [TestMethod]
+    public async Task An_integration_branch_that_disagrees_with_the_recorded_one_is_refused()
+    {
+        // The document is a person's. A flag that quietly lost to it would leave somebody believing they
+        // had moved the branch, so it is refused and the way to move it is named (D-81).
+        using var solution = Scratch.Create();
+        await Adopt(solution, tracked: []);
+
+        using Gate gate = Adopter(solution, new FakeRepository());
+
+        Result<Initialise.Response> result = await gate
+            .Send<Initialise.Command, Initialise.Response>(new Initialise.Command(null, "trunk"));
+
+        Assert.IsTrue(result.IsFailed);
+        StringAssert.Contains(string.Join("; ", result.Errors.Select(e => e.Message)), "only a person changes it");
+    }
+
+    [TestMethod]
+    public async Task The_constraints_draft_renamed_untouched_puts_no_rule_in_force()
+    {
+        // A tool may not write a rule (D-69). The shape of one is shown indented so the parser does not
+        // read it, or renaming the draft would bind every plan to a rule called "<the rule, in one line>".
+        using var solution = Scratch.Create();
+        await Adopt(solution, tracked: []);
+
+        string draft = await File.ReadAllTextAsync(Path.Combine(
+            solution.Root, Cycle.SdlcDirectoryName, Setup.ConstraintsDraftFileName));
+
+        Result<IReadOnlyList<Constraint>> parsed = ConstraintParser.Parse(draft, "constraints.md");
+
+        Assert.IsTrue(parsed.IsSuccess, string.Join("; ", parsed.Errors.Select(e => e.Message)));
+        Assert.AreEqual(0, parsed.Value.Count);
+        StringAssert.Contains(draft, ProtectedPaths.Note[0]);
+    }
+
+    [TestMethod]
+    public async Task Every_draft_carries_the_note_saying_only_a_person_changes_the_file()
+    {
+        using var solution = Scratch.Create();
+        await Adopt(solution, tracked: []);
+
+        foreach (string name in new[] { WriteSolutionDraft.DraftFileName, WriteTechStackDraft.DraftFileName, Setup.ConstraintsDraftFileName })
+        {
+            StringAssert.Contains(
+                await File.ReadAllTextAsync(Path.Combine(solution.Root, Cycle.SdlcDirectoryName, name)),
+                ProtectedPaths.Note[0],
+                name);
+        }
+    }
+
+    [TestMethod]
+    public async Task The_drafts_are_ignored_by_git_and_the_ignore_is_committed()
+    {
+        using var solution = Scratch.Create();
+
+        Initialise.Response report = await Adopt(solution, tracked: []);
+
+        string ignore = Path.Combine(Cycle.SdlcDirectoryName, ".gitignore");
+
+        CollectionAssert.Contains(report.Written.ToArray(), ignore);
+        StringAssert.Contains(await File.ReadAllTextAsync(Path.Combine(solution.Root, ignore)), "/*.draft.md");
+    }
+
+    /// <summary>A solution document with its prompt replaced by a paragraph, as a person would leave it.</summary>
+    private static string Written(string draft)
+    {
+        int from = draft.IndexOf(WriteSolutionDraft.Placeholder, StringComparison.Ordinal);
+        int to = draft.IndexOf("-->", from, StringComparison.Ordinal) + "-->".Length;
+
+        return draft[..from] + "A die, rolled over HTTP, for anyone settling an argument." + draft[to..];
     }
 
     [TestMethod]
@@ -794,8 +921,8 @@ public sealed class InitTests
 
         string rendered = InitRenderer.Render(report);
 
-        StringAssert.Contains(rendered, "sdlc draft solution --standard profile");
-        StringAssert.Contains(rendered, "'sdlc draft techstack' lists them switched off");
+        StringAssert.Contains(rendered, "set 'standard: profile'");
+        StringAssert.Contains(rendered, "its draft lists them switched off");
         StringAssert.Contains(
             rendered,
             "warnings errors",
@@ -1260,7 +1387,7 @@ public sealed class InitTests
         Assert.IsFalse(File.Exists(Path.Combine(solution.Root, "azure-pipelines.yml")));
 
         Result<SolutionDocument> document = await SolutionDocument
-            .ReadFile(solution.Root, CancellationToken.None);
+            .ReadFileOrDraft(solution.Root, CancellationToken.None);
 
         Assert.IsTrue(document.IsSuccess, string.Join("; ", document.Errors.Select(e => e.Message)));
         Assert.AreEqual(
@@ -1284,7 +1411,7 @@ public sealed class InitTests
             "sdlc-verify.yml")));
 
         Result<SolutionDocument> document = await SolutionDocument
-            .ReadFile(solution.Root, CancellationToken.None);
+            .ReadFileOrDraft(solution.Root, CancellationToken.None);
 
         Assert.AreEqual(Platform.GitHub, document.Value.Platform);
     }
@@ -1390,7 +1517,7 @@ public sealed class InitTests
         Assert.AreEqual(Platform.GitHub, report.Platform);
 
         Result<SolutionDocument> document = await SolutionDocument
-            .ReadFile(solution.Root, CancellationToken.None);
+            .ReadFileOrDraft(solution.Root, CancellationToken.None);
 
         Assert.AreEqual(Platform.GitHub, document.Value.Platform);
         Assert.IsTrue(File.Exists(Path.Combine(

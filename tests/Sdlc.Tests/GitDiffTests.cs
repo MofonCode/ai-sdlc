@@ -112,6 +112,42 @@ public sealed class GitDiffTests
             + "it. The patch was: " + patch);
     }
 
+    [TestMethod]
+    public void Uncommitted_changes_name_an_edit_and_a_new_file_and_never_an_ignored_one()
+    {
+        // The parse is the risk: porcelain leads an unstaged edit with a space, and a reader that trims
+        // each line takes it and the path's first character with it. A fake answers whatever it is told,
+        // so only real git can say whether this asked the question right.
+        using var repo = Repo.Create();
+
+        File.WriteAllText(Path.Combine(repo.Root, ".gitignore"), "*.draft.md\n");
+        repo.Git("add .gitignore");
+        repo.Git("commit -m ignore");
+
+        File.WriteAllText(Path.Combine(repo.Root, "README.md"), "# edited\n");
+        Directory.CreateDirectory(Path.Combine(repo.Root, "src"));
+        File.WriteAllText(Path.Combine(repo.Root, "src", "New.cs"), "// new\n");
+        File.WriteAllText(Path.Combine(repo.Root, "solution.draft.md"), "ignored\n");
+
+        IReadOnlyList<string> changed = new GitRepository().UncommittedChanges(repo.Root);
+
+        CollectionAssert.AreEquivalent(new[] { "README.md", "src/New.cs" }, changed.ToArray());
+    }
+
+    [TestMethod]
+    public void Switching_to_a_new_branch_creates_it_at_what_is_checked_out()
+    {
+        using var repo = Repo.Create();
+        string head = repo.Git("rev-parse HEAD").Trim();
+
+        var git = new GitRepository();
+
+        Assert.IsTrue(git.SwitchToNewBranch(repo.Root, "development").IsSuccess);
+        Assert.AreEqual("development", git.CurrentBranch(repo.Root));
+        Assert.AreEqual(head, repo.Git("rev-parse development").Trim());
+        Assert.IsTrue(git.SwitchToNewBranch(repo.Root, "development").IsFailed, "A branch that exists is not created twice.");
+    }
+
     /// <summary>A throwaway git repository with one commit in it.</summary>
     private sealed class Repo : IDisposable
     {

@@ -91,27 +91,89 @@ public static class Templates
     /// </remarks>
     public static IReadOnlyList<Platform> Hosted { get; } = [Platform.GitHub, Platform.AzureDevOps];
 
-    /// <summary>The solution document, which carries the three keys and nothing else.</summary>
+    /// <summary>The draft of the solution document: its keys, and a prompt where the paragraph goes.</summary>
+    /// <remarks>
+    /// The same prompt <c>sdlc draft solution</c> writes, so there is one placeholder for <c>doctor</c> to
+    /// recognise. Adoption used to write the real file with a different one, which the drafter then
+    /// replaced -- and the check knew only the first, so an unfilled draft renamed into place read as
+    /// written (D-94).
+    /// </remarks>
     /// <param name="origin">Where the code came from.</param>
     /// <param name="standard">Which conventions new work follows.</param>
     /// <param name="platform">Where it is pushed, which decides whether a pipeline was written.</param>
-    /// <returns>The file's contents.</returns>
+    /// <param name="integrationBranch">Where approved plans wait and built cycles land.</param>
+    /// <returns>The draft's contents.</returns>
     public static string Solution(
         SolutionOrigin origin,
         SolutionStandard standard,
-        Platform platform) => string.Join(
+        Platform platform,
+        string integrationBranch = SolutionDocument.DefaultIntegrationBranch) => string.Join(
         Environment.NewLine,
         [
             "---",
-            .. SolutionDocument.Keys(origin, standard, platform),
+            .. SolutionDocument.Keys(origin, standard, platform, integrationBranch),
             "---",
             string.Empty,
-            "# What this solution is",
+            WriteSolutionDraft.Prompt,
             string.Empty,
-            "Replace this with a paragraph a newcomer could read: what the solution does, and who for.",
-            "Nothing reads this prose -- the three keys above are what record where this code came",
-            "from, decide which conventions new work follows, and say whether a pull-request check",
-            "governs a merge -- so it is here for people.",
+        ]);
+
+    /// <summary>The draft of this solution's own constraints: the header, and no rule.</summary>
+    /// <remarks>
+    /// <para><strong>No rule, because a tool may not write one (D-69).</strong> The shape of an entry is
+    /// shown indented, which the parser does not read as a heading, so renaming this untouched places a
+    /// document with nothing in force rather than a rule called <c>&lt;the rule, in one line&gt;</c>.</para>
+    /// <para><strong>And placing it is optional.</strong> A solution with no rules of its own is sound;
+    /// this is here so that the first rule lands in a document that explains itself, and that the file a
+    /// person opens says who may change it.</para>
+    /// </remarks>
+    /// <returns>The draft's contents.</returns>
+    public static string Constraints() => string.Join(
+        Environment.NewLine,
+        [
+            .. ConstraintsHeader,
+            string.Empty,
+            "Each rule is a section in this shape, numbered from `LOC_01`. Ids are assigned once and",
+            "never reused, so a gap is the record of a rule that was removed. `sdlc propose constraints`",
+            "names the next free id, and reads this solution's findings for rules they keep citing.",
+            string.Empty,
+            "    ## LOC_01 — <the rule, in one line>",
+            string.Empty,
+            "    **Applies to:** <which artifact, and at what moment>",
+            string.Empty,
+            "    **Forbids:** <what becomes illegal, named concretely enough that an example could be written>",
+            string.Empty,
+            "    **Why:** <what goes wrong if the rule is absent - the cost it avoids, never a restatement>",
+            string.Empty,
+            "---",
+            string.Empty,
+        ]);
+
+    /// <summary>What heads this solution's own constraints document, before any rule.</summary>
+    public static IReadOnlyList<string> ConstraintsHeader { get; } =
+    [
+        "# This solution's own constraints",
+        string.Empty,
+        .. ProtectedPaths.Note,
+        string.Empty,
+        "Rules that bind this solution and no other. Resolved after the global and profile tiers,",
+        "so these are the last word.",
+    ];
+
+    /// <summary>What <c>.sdlc/.gitignore</c> says: the drafts beside the files a person places.</summary>
+    /// <remarks>
+    /// A draft is a proposal on its way to a rename, never history. Left untracked it would be picked up
+    /// by the next cycle's evidence, which stages untracked paths before diffing, and reach that cycle's
+    /// diff as a file no plan declared -- and it would hold <c>sdlc new</c> shut, which refuses to open a
+    /// cycle over uncommitted work. Anchored to this directory, so a cycle's approval draft is untouched.
+    /// </remarks>
+    /// <returns>The file's contents.</returns>
+    public static string SdlcIgnore() => string.Join(
+        Environment.NewLine,
+        [
+            "# Drafts of the files only a person writes. Each is renamed into place, and the draft itself",
+            "# is never history.",
+            "/*.draft.md",
             string.Empty,
         ]);
 
@@ -148,6 +210,8 @@ public static class Templates
         Environment.NewLine,
         [
             "# What this solution is built from",
+            string.Empty,
+            .. ProtectedPaths.Note,
             string.Empty,
             "A plan may depart from anything in the first table, in either direction -- reaching for",
             "something it does not declare, or leaving something it declares unapplied in work that",
@@ -219,7 +283,8 @@ public static class Templates
             string.Empty,
             "One governed change: an id, a directory under `cycles/`, and its branches under `cycle/<id>/` --",
             "`plan`, `build`, `build-unattended`, `forward`; `sdlc branch <id> <kind>` creates each from the",
-            "right base. The id is the moment the cycle opened, to the second, so cycles sort chronologically.",
+            "right base, and the skill for each stage runs it. The id is the moment the cycle opened, to the",
+            "second, so cycles sort chronologically.",
             string.Empty,
             "## The chain",
             string.Empty,
@@ -250,14 +315,32 @@ public static class Templates
             "| `cycles/<id>/findings/` | what each interrogation found | the interrogate stage |",
             "| `cycles/<id>/evidence/` | the diff, the logs, the test results | the build stage |",
             string.Empty,
-            "Six of those are written only by a person. No tool writes them; a tool prints what belongs",
-            "in them and the person places it. The pre-tool hook denies every agent write to all six,",
+            "Six of those are written only by a person. No tool writes them; a tool prints or drafts what",
+            "belongs in them and the person places it. The pre-tool hook denies every agent write to all six,",
             "with no exception -- which is what lets the rule be stated in one sentence.",
             string.Empty,
-            "`techstack.md` is placed by a person and never written by anything. Adoption does not",
-            "create it: `sdlc draft techstack` writes a first draft from the framework's default, you",
-            "write `none` where a row is not true here, and the rename places it. **No cycle opens until it is",
-            "there.** It is the second rule source a plan is read against, and `CON_15` judges every plan",
+            "## The guard",
+            string.Empty,
+            "`solution.md`, `techstack.md` and `constraints.md` each open with a note saying only a person",
+            "changes them. This is what the note means. Adoption wrote a hook configuration for every",
+            "supported agent host -- `.claude/settings.json`, `.github/hooks/sdlc.json`, `.agents/hooks.json`",
+            "-- and each has the host ask `sdlc` before the agent runs a tool. Two rules decide:",
+            string.Empty,
+            "- **a file write** is denied when the path runs through `.sdlc` and ends in one of the six names",
+            "- **a shell command** is denied when it looks like a write -- a redirection, a move, a copy, a",
+            "  delete, an in-place edit -- and names one of the six anywhere in its text. It reads the text,",
+            "  not the paths, so a commit message naming one can be refused too: `git commit -F` is the way",
+            "  past that. Running adoption is denied to an agent the same way",
+            string.Empty,
+            "There is no mode, flag or setting that turns either off. Reading the files is allowed, and so",
+            "is writing the drafts beside them: an agent may prepare a change in `solution.draft.md`,",
+            "`techstack.draft.md` or `constraints.draft.md`, and renaming the draft over the real file is",
+            "yours. The hook runs on an agent's tool calls, never on a command you type yourself.",
+            string.Empty,
+            "`techstack.md` is placed by a person and never written by anything. Adoption drafts it from the",
+            "framework's default as `techstack.draft.md`, you write `none` where a row is not true here, and",
+            "the rename places it. **No cycle opens until it is there**, or while it, or anything else, is",
+            "uncommitted. It is the second rule source a plan is read against, and `CON_15` judges every plan",
             "against it -- so an agent able to edit it could satisfy that rule by adding the row it wanted",
             "instead of arguing for it. A plan that reaches for something undeclared departs and says what",
             "the declared default would have cost, which is an argument rather than an edit here. Changing",
@@ -277,7 +360,7 @@ public static class Templates
             "plan names and leaves alone any already there -- so that moment is one change a person",
             "approved. `sdlc stack` shows which files the stack takes and which are not on disk yet.",
             string.Empty,
-            "**`sdlc draft techstack` writes two files.** `techstack.draft.md` is what you rename: a byte copy of",
+            "**`sdlc draft techstack` writes two files**, and so does adoption the first time. `techstack.draft.md` is what you rename: a byte copy of",
             "the declared stack, or the default when there is none yet, or nothing at all with `--empty`.",
             "The other is the menu, written as a report under `reports/` with its path printed -- every",
             "concern the shipped profiles know about with what each declares for it, the alternatives the",
@@ -335,7 +418,7 @@ public static class Templates
             string.Empty,
             "```",
             "sdlc doctor                           is this install sound, and what is left to place",
-            "sdlc new                              open a cycle",
+            "sdlc new                              open a cycle; the intent skill runs it",
             "sdlc scaffold <id>                    write the solution skeleton, or the build settings a",
             "                                      plan declares, once that plan is approved",
             "sdlc stack                            what the stack declares, and what is not on disk yet",
@@ -344,7 +427,7 @@ public static class Templates
             "sdlc gate <id>                        may this cycle's build run?",
             "sdlc draft approval <id>              the gate entry, for a person to paste",
             "sdlc draft abandon <id>               the record that stops a cycle",
-            "sdlc draft solution                   the solution document, beside itself",
+            "sdlc draft solution                   the solution document, beside itself, once placed",
             "sdlc draft techstack                  the declared stack beside itself, and the menu",
             "sdlc evidence <id>                    record what a build produced",
             "sdlc cycles                           every cycle here, newest first",

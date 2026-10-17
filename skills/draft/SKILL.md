@@ -29,7 +29,9 @@ and prints it with the rename that records it. **`draft solution` does the same 
 document**, carrying its four keys through as recorded and any prose already there through
 unchanged -- so the rename can neither reclassify the solution nor cost somebody what they wrote.
 `--standard` is the one exception, and only when a person asks for it by name: it moves which
-conventions new work follows, and the printed instructions say which way. **And
+conventions new work follows, and the printed instructions say which way. **Before the document is
+placed it refuses**: adoption already wrote `solution.draft.md`, and a person may be halfway through it,
+so the refusal says to fill that one in and rename it rather than writing a second over it. **And
 `draft techstack` writes the declared stack beside itself** — a copy of it, or the framework's default
 where none is placed yet — and writes the options menu as a report, so declaring or changing it is a
 rename too: of the draft, never of the menu. `abandon` still prints for a person to place by hand. Show the rename command and
@@ -77,8 +79,8 @@ edit the draft; only the real file is denied. What the draft starts as depends o
 | | The draft is |
 |---|---|
 | a declared stack is in place | a **byte copy** of it. The rename applies what somebody changed and nothing else, with nothing merged and nothing regenerated |
-| none is in place yet | the **framework's default**: every row it would pin, every stack rule it ships switched on, and the five build settings files — `true` where the repository held no code, `false` where it did. Adoption writes no declared stack, so this is where the first one comes from, and no cycle opens until it is renamed into place |
-| `--empty` was given | **nothing.** Renamed into place it declares that nothing is pinned, no stack rule applies, and every plan chooses freely |
+| none is in place yet | the **framework's default**: every row it would pin, every stack rule it ships switched on, and the five build settings files — `true` where the repository held no code, `false` where it did. Adoption drafts this same file, so here it is a second copy for somebody who deleted the first, and no cycle opens until one is renamed into place |
+| `--empty` was given | **nothing but the note saying who may change the file.** Renamed into place it declares that nothing is pinned, no stack rule applies, and every plan chooses freely |
 
 **The file holds three tables, and what is in them is exactly what binds.** The first pins choices: a
 row is a default every plan is read against, and a row not true here says `none` rather than being

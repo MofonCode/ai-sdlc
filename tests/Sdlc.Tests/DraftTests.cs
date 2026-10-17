@@ -3,6 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Sdlc.Core.Constraints;
 using Sdlc.Core.Cycles;
 using Sdlc.Core.Drafts;
+using Sdlc.Core.Hooks;
 using Sdlc.Core.Solutions;
 
 namespace Sdlc.Tests;
@@ -177,8 +178,29 @@ public sealed class DraftTests
             + "would then report a broken install rather than a choice.");
 
         Assert.IsFalse(
-            written.Contains(WriteSolutionDraft.Placeholder, StringComparison.Ordinal),
-            "The placeholder is replaced, or renaming the draft changes nothing worth doing.");
+            written.Contains(WriteSolutionDraft.LegacyPlaceholder, StringComparison.Ordinal),
+            "The old placeholder is replaced by the prompt, so there is one text for doctor to recognise.");
+
+        StringAssert.Contains(
+            written,
+            ProtectedPaths.Note[0],
+            "The document says who may change it, so a denied agent write is explained by the file itself.");
+    }
+
+    [TestMethod]
+    public async Task A_solution_draft_is_refused_while_adoptions_draft_is_waiting_rather_than_written_over_it()
+    {
+        // Adoption drafts the document and places nothing. A person may be halfway through that draft,
+        // so drafting again over it would throw their paragraph away.
+        using var workspace = CycleWorkspace.Create();
+        string waiting = SolutionDocument.DraftPathIn(workspace.Root);
+        CycleWorkspace.WriteRaw(waiting, "---\norigin: scaffolded\n---\n\nHalf a paragraph");
+
+        DraftResult draft = await Solution(workspace);
+
+        Assert.IsFalse(draft.MayDraft);
+        StringAssert.Contains(draft.Instructions, "has not been placed yet");
+        Assert.AreEqual("---\norigin: scaffolded\n---\n\nHalf a paragraph", await File.ReadAllTextAsync(waiting));
     }
 
     [TestMethod]
@@ -461,12 +483,14 @@ public sealed class DraftTests
             new WriteTechStackDraft.Command(Empty: true)));
 
         Assert.IsTrue(draft.MayDraft, draft.Instructions);
-        Assert.AreEqual(
-            string.Empty,
-            await File.ReadAllTextAsync(Path.Combine(
-                workspace.Root,
-                Cycle.SdlcDirectoryName,
-                WriteTechStackDraft.DraftFileName)));
+
+        string written = await File.ReadAllTextAsync(Path.Combine(
+            workspace.Root,
+            Cycle.SdlcDirectoryName,
+            WriteTechStackDraft.DraftFileName));
+
+        Assert.AreEqual(0, StackTable.Rows(written).Count, written);
+        StringAssert.Contains(written, ProtectedPaths.Note[0], "Empty but for the note saying who may change it.");
 
         StringAssert.Contains(draft.Instructions, "nothing is pinned");
     }

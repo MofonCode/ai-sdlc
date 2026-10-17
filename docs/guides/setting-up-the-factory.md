@@ -91,15 +91,19 @@ The pipeline signs itself in to the feed (`NuGetAuthenticate@1`), so nothing els
 pull-request pipeline installs `sdlc` the same way**, so this also fixes that check if it has been
 failing at *install sdlc*.
 
-## 3. Create the integration branch
+## 3. Push the integration branch
 
 Approved plans wait on an integration branch, and finished cycles land back on it. It is `development`
-unless `solution.md` names another under `integration_branch`. Create it once, from your default branch:
+unless `solution.md` names another under `integration_branch`. **Adoption created it locally** and
+switched to it, so the factory's half is putting it on the remote:
 
 ```pwsh
-git switch -c development
+git switch development
 git push -u origin development
 ```
+
+A solution adopted before adoption created it has no `development` yet, and `sdlc doctor` says so; there,
+`git switch -c development` from your default branch first.
 
 ## 4. Write the factory's pipeline, and commit it
 

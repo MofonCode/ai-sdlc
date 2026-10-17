@@ -64,6 +64,22 @@ public interface IRepository
     Result Commit(string workingDirectory, IReadOnlyList<string> paths, string message);
 
     /// <summary>
+    /// Creates a branch at what is checked out and switches to it.
+    /// </summary>
+    /// <param name="workingDirectory">Where to run.</param>
+    /// <param name="branch">The new branch's name.</param>
+    /// <returns>Success, or a failure carrying what git said.</returns>
+    Result SwitchToNewBranch(string workingDirectory, string branch);
+
+    /// <summary>
+    /// The paths with changes nobody has committed: modified, staged, deleted or untracked, and never
+    /// ignored.
+    /// </summary>
+    /// <param name="workingDirectory">Where to ask from.</param>
+    /// <returns>The paths, relative to the root, or none when the working tree is clean.</returns>
+    IReadOnlyList<string> UncommittedChanges(string workingDirectory);
+
+    /// <summary>
     /// Where a branch diverged from the integration branch, or from the default branch when there is none.
     /// </summary>
     /// <remarks>
@@ -399,6 +415,38 @@ public sealed class GitRepository : IRepository
             && DateTimeOffset.TryParse(parts[1], CultureInfo.InvariantCulture, DateTimeStyles.None, out DateTimeOffset when)
                 ? (parts[0], when)
                 : null;
+    }
+
+    /// <inheritdoc />
+    public Result SwitchToNewBranch(string workingDirectory, string branch)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(branch);
+
+        (string? switched, string? complaint) = Ask(workingDirectory, $"switch -c \"{branch}\"");
+
+        return switched is null
+            ? Result.Fail(string.Create(
+                CultureInfo.InvariantCulture,
+                $"git could not create {branch}. {complaint ?? "It gave no reason."}"))
+            : Result.Ok();
+    }
+
+    /// <inheritdoc />
+    public IReadOnlyList<string> UncommittedChanges(string workingDirectory)
+    {
+        // Porcelain v1 is a two-character status, a space, then the path -- and "old -> new" for a rename,
+        // where the path that exists now is the second. Split here rather than through Lines, which trims
+        // each entry and would take the leading space of " M" with it.
+        string output = Run(workingDirectory, "status --porcelain --untracked-files=all") ?? string.Empty;
+
+        return
+        [
+            .. output.ReplaceLineEndings().Split(Environment.NewLine, StringSplitOptions.RemoveEmptyEntries)
+                .Where(line => line.Length > 3)
+                .Select(line => line[3..])
+                .Select(path => path.Contains(" -> ", StringComparison.Ordinal) ? path[(path.IndexOf(" -> ", StringComparison.Ordinal) + 4)..] : path)
+                .Select(path => path.Trim('"')),
+        ];
     }
 
     /// <inheritdoc />

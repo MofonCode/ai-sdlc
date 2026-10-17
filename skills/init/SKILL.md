@@ -2,7 +2,7 @@
 name: init
 description: Adopt the framework into a repository -- run the scaffolding, interview the team about what matters in this solution, and propose its first constraints. Use when somebody asks to set up ai-sdlc here.
 compatibility: Requires the sdlc binary on PATH, from the MofonCode.Sdlc.Cli dotnet tool, and a git repository. Every command here is that binary, so without it the first step fails.
-argument-hint: "[--platform github|azure-devops|local]"
+argument-hint: "[--platform github|azure-devops|local] [--integration-branch <name>]"
 allowed-tools: Bash(sdlc *), Bash(git *), Read, Glob, Grep
 ---
 
@@ -23,13 +23,15 @@ done as it finishes. If it does not, carry on without one — nothing below depe
 1. check what is being adopted into
 2. where the code will live, and the adoption command run by the person
 3. the interview
-4. the solution paragraph: drafted, and renamed into place by the person
+4. the solution paragraph: written in its draft, and renamed into place by the person
 5. constraints: proposed for the person to place, or none survived
-6. the declared stack: drafted, cut down, and renamed into place by the person
-7. the report
+6. the declared stack: its draft cut down, and renamed into place by the person
+7. what was placed, committed by the person
+8. the report
 
-**Items 4 and 6 are done when `sdlc doctor` stops naming them, not when a draft is written.** A draft
-nobody renamed is the step still open. **Item 5 is done by being considered**: "none survived the
+**Items 4, 6 and 7 are done when `sdlc doctor` stops naming them, not when a draft is filled in.** A
+draft nobody renamed is the step still open, and so is a placed file nobody committed: `sdlc new` refuses
+to open a cycle over uncommitted work. **Item 5 is done by being considered**: "none survived the
 admission tests" completes it, and it is on the list so that it is decided rather than forgotten.
 
 **This stage only.** Nothing after the hand-back goes on the list: whether the next stage runs is a
@@ -52,7 +54,7 @@ permit everything while the artifacts still looked governed. Offer `git init`.
 touches nothing a person writes. Say so, because "init" on a working solution sounds alarming and is not.
 It is what a person runs after upgrading the binary — `sdlc doctor`'s `framework files` check says when
 it is due. **On an update, the interview and the first stack are already done**: hand over the command
-in step 2, then go to *On an update: answer what the release added*, then step 5. Your task list is those
+in step 2, then go to *On an update: answer what the release added*, then step 6. Your task list is those
 three.
 
 ## 2. Ask for the command to be run
@@ -66,7 +68,7 @@ loads these instructions a second time. That loop is three identical rounds befo
 Hand over the line with a leading `!`:
 
 ```
-! sdlc init [--platform github|azure-devops|local]
+! sdlc init [--platform github|azure-devops|local] [--integration-branch <name>]
 ```
 
 On Claude Code the `!` prefix runs the rest of the line as the person's own command rather than as a tool
@@ -81,9 +83,13 @@ whether a pipeline is written and there is no good default for somebody who has 
 repository has no remote yet — `git remote -v` prints nothing — `local` is the honest answer: a pipeline
 for a service nothing will ever send it to is a file that looks like a gate and is reachable by nothing.
 
+**Leave `--integration-branch` out unless the person names one.** It is where approved plans wait and
+built cycles land, `development` when nothing says otherwise, and adoption creates it from its own commit
+and switches to it. A team that already integrates on another branch says so here; nobody else is asked.
+
 **Do not ask what the solution is built from, and do not ask which conventions new work follows.**
 Adoption decides neither. The stack is declared afterwards, in step 4, in a file a person places — there
-is no profile to choose, and `sdlc init` refuses any option but `--platform`. And an existing
+is no profile to choose, and `sdlc init` refuses any option but those two. And an existing
 codebase keeps its own conventions unless somebody asks otherwise, which is the default the command
 already takes.
 
@@ -92,7 +98,7 @@ the subject only when a person does.** It is two separate choices, each made aft
 
 | A person wants | It is | What to say it costs, in one line |
 |---|---|---|
-| new work to follow the framework's patterns rather than the surrounding code | `sdlc draft solution --standard profile`, and a rename | every plan now argues when it matches the old code instead of the profile |
+| new work to follow the framework's patterns rather than the surrounding code | `standard: profile` in the solution document's draft before it is placed; after that, `sdlc draft solution --standard profile` and a rename | every plan now argues when it matches the old code instead of the profile |
 | the `.NET` build settings — `.editorconfig`, the three props files, `global.json` | rows in the declared stack, set to `true` in step 4; a cycle whose plan declares the files brings them | `Directory.Build.props` makes warnings errors, so a build can start failing on files nobody has touched |
 
 **The rest answers a follow-up.** Neither migrates the code already there, which is a cycle like any
@@ -108,13 +114,15 @@ doctor` says so every time it runs. When a remote exists, re-running adoption wi
 pipeline, and the `pr` skill walks through creating the remote.
 
 Give the person the line, `!` and all. When they have run it, read what it printed — it says which mode
-ran, what the origin was decided to be, and every file it touched or deliberately left.
+ran, what the origin was decided to be, every file it touched or deliberately left, that it committed
+them, and that it created the integration branch and switched to it.
 
-**It ends with one next step, and on a first adoption that step is yours to carry out with them.** It
-says what a person still has to place before the first cycle and names a single command: `sdlc draft
-solution` first, because what a solution is comes before what it is built from. That is question 1
-below, so the command and this skill agree about what comes next. **Do not run `sdlc draft techstack`
-ahead of it** — the report names it in the sentence and deliberately not as the step.
+**It ends with the drafts it wrote and how to place them, and on a first adoption that is yours to carry
+out with them.** Adoption drafts all three files only a person writes, beside where each goes —
+`solution.draft.md`, `techstack.draft.md` and `constraints.draft.md` under `.sdlc/` — each with a note at
+the top saying an agent cannot change the real file. The closing block lists what to fill in, the `mv -f`
+line for each, and the commit after. **Fill-in order is the order of the questions**: the paragraph first,
+because what a solution is comes before what it is built from.
 
 **The origin is the part worth stopping on**, because it is the one thing here with lasting consequences
 and it never changes again:
@@ -179,7 +187,7 @@ where there is a change to ask it about.
   question and the thresholds that prove it are the spec's. An adoption interview is only about what
   holds for every cycle.
 - **Anything a rule in force already asks.** Run `sdlc constraints` before proposing one rather than
-  only at step 5, because a question the global or profile tier already puts to every spec buys nothing
+  only at step 6, because a question the global or profile tier already puts to every spec buys nothing
   here, and a `LOC_` that restates a tier above it is decoration that costs attention at every
   interrogation.
 - **Anything whose answer you would be inferring.** The repository name, the directory path and the
@@ -195,7 +203,7 @@ tests.** Sort before you propose:
 
 | An answer about | Goes in | Because |
 |---|---|---|
-| what the solution is and who for | the paragraph under the four keys, which `sdlc draft solution` writes | it is there for people: no stage reads that prose, and it binds nothing |
+| what the solution is and who for | the paragraph in `.sdlc/solution.draft.md`, under the four keys | every plan reads it for what good looks like here, and `sdlc doctor` fails while it is the template's text |
 | which component library, which packages, which project may reference what | an architecture test | test two below rejects it — an analyzer *can* decide it, so a constraint is the wrong tier |
 | the names a visual treatment is expressed in | a theme, which `sdlc propose theme` drafts | roles survive a rebrand where values do not, and a stage can look a role up |
 | whether a judgement was made and recorded — that a visual treatment was considered | a `LOC_` constraint | it needs reading comprehension, which is exactly what test two admits |
@@ -211,17 +219,16 @@ cycles, and a repository being adopted has none — so at adoption the live home
 architecture test and a theme. A choice worth recording as a decision is recorded a cycle later, from
 the cycle that settled it.
 
-`solution.md` is protected, so you cannot write it -- and you no longer have to hand over a block to
-paste either. **Run `sdlc draft solution`.** It writes the whole file beside the real one, keeping the three
-keys exactly as recorded, and prints the single rename that places it. Show what it prints verbatim.
+`solution.md` is protected, so you cannot write it, and adoption has already drafted it:
+`.sdlc/solution.draft.md` carries the keys exactly as observed and a prompt where the paragraph goes.
+**The person writes the paragraph into that draft**, in place of the comment, from their answer to
+question 1 — offer a sentence or two they can take or change, but the words are theirs to put there,
+because a paragraph nobody wrote reads as settled (D-62). Then they rename it with the `mv -f` line the
+report printed.
 
-**Do not let the file stay a placeholder, and do not oversell what it does.** No stage reads the
-paragraph — the four keys above it are what record the origin, decide which conventions new work
-follows and say whether a pull-request check governs a merge. It is still worth
-writing, because it is the one place a person joining this repository learns what it is for, and
-`Replace this with a paragraph a newcomer could read` tells them nothing. That is not hypothetical: a
-block printed for pasting went unpasted through a whole cycle, which is why the drafter writes a file
-now.
+**Do not let the file stay a placeholder.** Every plan reads the paragraph for what good looks like here,
+and `sdlc doctor` fails on a document still carrying the template's text, so an unfilled draft renamed
+into place is a step still open, not a step done.
 
 **Ask the person, do not read the codebase.** Reading an existing repository to decide what to forbid
 would make adoption a judgement on code that predates the framework, and the first cycle would spend
@@ -245,8 +252,10 @@ So "every public method has a doc comment" is an analyzer, not a constraint. "A 
 caller depends on it" needs reading comprehension and is a constraint.
 
 **A person places it.** Every agent write to `.sdlc/constraints.md` is denied, because a cycle judged by
-the constraints it is changing is the same deadlock as the framework governing itself. Print, and let them
-paste.
+the constraints it is changing is the same deadlock as the framework governing itself. Adoption drafted
+the file as `.sdlc/constraints.draft.md`, with its header and no rule: show the entry, the person adds it
+to the end of that draft and renames it. Renamed with no entry, it places a file with no rule in force,
+which is sound.
 
 **Propose none if none survive.** An empty solution-constraint set is the correct starting point for most
 solutions, and three constraints nobody believes in cost attention at every interrogation for the life of
@@ -254,19 +263,18 @@ the repository.
 
 ## 4. Declare the stack, and fill in what the scaffolding left blank
 
-Two files adoption leaves for a person, and one it writes:
+Three drafts adoption leaves for a person, and one file it writes:
 
 | File | What to offer |
 |---|---|
-| `.sdlc/solution.md` | written with a placeholder paragraph. Protected, so run `sdlc draft solution` with the paragraph from question 1 and show the rename |
-| `.sdlc/techstack.md` | **not written at all.** Run `sdlc draft techstack`, cut the draft down to what is true here, and show the rename. No cycle opens until it is placed |
+| `.sdlc/solution.draft.md` | the paragraph from question 1, written by the person in place of the comment; then the rename |
+| `.sdlc/techstack.draft.md` | the framework's default, cut down to what is true here; then the rename. No cycle opens until it is placed |
+| `.sdlc/constraints.draft.md` | an entry per constraint that survived step 3, or nothing; then the rename. Optional: a solution with no rules of its own is sound |
 | `AGENTS.md` | written if absent, printed for merging if present |
 
 **The declared stack is the step that cannot be skipped.** `sdlc new` refuses until the file exists.
-
-```
-sdlc draft techstack
-```
+Adoption drafted it, and the options menu to read beside it is under `.sdlc/reports/`. `sdlc draft
+techstack` writes the draft again if somebody deleted it, and `--empty` writes one that pins nothing.
 
 The draft is the framework's default, whole: every row it would pin, under `## Rules` every stack
 rule it ships, each marked `true`, and under `## Build settings` the five `.NET` build settings files.
@@ -280,7 +288,7 @@ deleted row reads as one nobody was asked about, and the next release offers it 
 | is built on the default stack | nothing. Rename it as it is |
 | is .NET with different choices | change the rows that differ, and write `none` in those that are not true of it |
 | is built on something else | write `none` in the rows that do not apply, write in what it uses, and set to `false` any rule that names a framework it does not have |
-| should pin nothing yet | `sdlc draft techstack --empty`, and rename that. Nothing is pinned, no stack rule applies, and every plan chooses freely |
+| should pin nothing yet | `sdlc draft techstack --empty`, which writes the draft again with nothing in it, and rename that. Nothing is pinned, no stack rule applies, and every plan chooses freely |
 
 **On a repository that already holds code, edit the draft from what you can read before you show the
 rename.** This is the one place reading the codebase is right — the file declares what the solution
@@ -294,7 +302,8 @@ depart from. That is the trade for deciding the stack inside the work rather tha
 can be added later the same way.
 
 **You cannot place it.** It is protected, like the other five, and nothing but a person's rename ever
-writes it. Show what the command printed and let them rename. The reason is worth saying once if they
+writes it. You may edit the draft — only the real file is denied — and then show the `mv -f` line and
+let them rename. The reason is worth saying once if they
 ask: it is the second rule source a plan is read against, and `CON_15` judges every plan against it, so
 an agent able to edit it could satisfy that rule by adding the row it wanted instead of arguing for it —
 or drop a stack rule by switching its row off.
@@ -325,7 +334,7 @@ sdlc stack
 
 Its `Not mentioned` list is every default the profile declares and every stack rule this release ships
 that the stack has **no row for at all**. A row saying `none` or `false` is an answer and is not listed.
-**Nothing listed means nothing to do**: say so in a line and go to step 5.
+**Nothing listed means nothing to do**: say so in a line and go to step 6.
 
 **For each item, read the repository and propose an answer**, one line each with what you read:
 
@@ -350,10 +359,24 @@ sdlc draft techstack
 
 The draft is a byte copy and names the same list under the rename command. Add one row per answer to
 the table it belongs in — a default under `## Defaults`, a rule under `## Rules` — and nothing else.
-**You cannot place it**; show the `mv -f` line it printed and let the person rename. Then step 5, where
-`sdlc doctor` no longer names anything under `declared stack`.
+**You cannot place it**; show the `mv -f` line it printed and let the person rename and commit. Then
+step 6, where `sdlc doctor` no longer names anything under `declared stack`.
 
-## 5. Report
+## 5. Commit what was placed
+
+The renames leave the placed files uncommitted on the integration branch adoption switched to, and
+`sdlc new` refuses to open a cycle over uncommitted work — a cycle's branch would carry them into its
+diff as work no plan declared. **The person commits them.** A message naming a protected file is refused
+when it passes through your tool call, so hand the line over with a `!`, or let them commit however they
+usually do:
+
+```
+! git add .sdlc && git commit -m "Place the solution, its stack and its constraints"
+```
+
+The drafts are ignored by git, so whatever is left of one never reaches a commit.
+
+## 6. Report
 
 ```
 sdlc constraints
@@ -361,10 +384,10 @@ sdlc doctor
 ```
 
 Show the first verbatim — that is the set now in force. From the second, show **the closing block
-verbatim**: what a person still has to place before the first cycle, and the one command that is next.
-It is read from disk, so it is right about a rename you did not see happen, and a list of your own
-would be a second answer to the same question. Then **at most two lines of your own**: which mode ran,
-and what the origin is.
+verbatim**: what a person still has to place before the first cycle and the rename for each, or that the
+first cycle can open. It is read from disk, so it is right about a rename you did not see happen, and a
+list of your own would be a second answer to the same question. Then **at most two lines of your own**:
+which mode ran, and what the origin is.
 
 **Nothing about what any of it means.** Adoption is the stage with a standing temptation to explain the
 framework it has just installed, and `.sdlc/README.md` is the whole of that explanation — written, in the

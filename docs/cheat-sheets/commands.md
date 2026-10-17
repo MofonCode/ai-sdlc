@@ -13,26 +13,28 @@ A repository nobody has adopted, to an open pull request.
 Adopt it, once — `../guides/adopting-the-framework.md`:
 
 1. `git init` — and **create the remote first** if the code will live on one
-2. `/sdlc:init` — asks where the code lives, then hands you the adoption command to run yourself
+2. `/sdlc:init` — asks where the code lives, then hands you the adoption command to run yourself. It
+   commits, creates `development` and switches to it, and drafts three files beside where they go
 3. **make the pipeline's check required** in branch policy
-4. `sdlc draft solution`, then `sdlc draft techstack` — rename each into place, in the order
-   `sdlc doctor` names them. **`sdlc new` refuses until the declared stack is placed**
-5. back to `/sdlc:init` for the interview and the `LOC_` rules it proposes
+4. the interview, in the same skill, and the `LOC_` rules it proposes
+5. fill in `.sdlc/solution.draft.md` and `.sdlc/techstack.draft.md` — and `constraints.draft.md` if a
+   rule survived — then `mv -f` each onto its real name. **`sdlc new` refuses until the declared stack
+   is placed**
+6. `git add .sdlc && git commit` — **`sdlc new` refuses over uncommitted work**. `sdlc doctor` exits 0
 
 Then the cycle — `../guides/running-a-cycle.md`:
 
-6. `sdlc constraints`
-7. `/sdlc:intent <the problem in a sentence>` — opens the cycle and runs its own loop
-8. `git switch -c cycle/<id>` — the `cycle/` prefix is load-bearing
-9. `/sdlc:spec <id>`
-10. `/sdlc:plan <id>` — the last document before you approve; read it closely
-11. `sdlc draft approval <id>`, **rename the draft yourself**, then `sdlc gate <id>`
-12. `/sdlc:build <id>`
-13. `/sdlc:verify <id>`, and `/sdlc:remediate <id>` only where it wrote `blocked`
-14. `/sdlc:pr <id>` — asks before it pushes
+7. `/sdlc:intent <the problem in a sentence>` — opens the cycle, switches to its branch, interviews you,
+   then runs its own loop once you have answered
+8. `/sdlc:spec <id>`
+9. `/sdlc:plan <id>` — the last document before you approve; read it closely
+10. `sdlc draft approval <id>`, **rename the draft yourself**, then `sdlc gate <id>`
+11. `/sdlc:build <id>`
+12. `/sdlc:verify <id>`, and `/sdlc:remediate <id>` only where it wrote `blocked`
+13. `/sdlc:pr <id>` — asks before it pushes
 
 `sdlc status <id>` between any two prints the next command. `/sdlc:steer <id> "..."` is a change of mind
-before step 11.
+before step 10.
 
 ## Every command
 
@@ -40,16 +42,16 @@ before step 11.
 |---|---|---|
 | **Once per machine** | | |
 | `sdlc version` | binary | which version of the gate this is, and which versions it expects beside it |
-| `sdlc doctor` | binary | checks the install and this repository; names the fix for each problem, and before the first cycle names what to place next. Says when adoption's files are a release behind the binary. Exits 1 on a problem. Never repairs |
+| `sdlc doctor` | binary | checks the install and this repository; names the fix for each problem, and before the first cycle names each draft to fill in and its rename. Says when adoption's files are a release behind the binary. Exits 1 on a problem, a missing integration branch and a placeholder paragraph included. Never repairs |
 | **Once per repository** | | |
-| `sdlc init` | binary | adoption. **Yours to run**; the hook denies it to an agent |
-| `sdlc draft solution` | binary | the solution document, to rename into place |
+| `sdlc init` | binary | adoption: commits what it writes, creates the integration branch, drafts the three files a person places. **Yours to run**; the hook denies it to an agent. `--integration-branch <name>` when it is not `development` |
+| `sdlc draft solution` | binary | the solution document, to rename into place, once adoption's first draft is placed |
 | `sdlc draft solution --standard profile` | binary | move new work onto the profile's conventions |
-| `sdlc draft techstack` | binary | the declared stack, to answer row by row — `none` where a row is not true — and rename into place. Names what a later release added. `--empty` pins nothing |
+| `sdlc draft techstack` | binary | the declared stack, to answer row by row — `none` where a row is not true — and rename into place. Adoption writes the first; this writes the next. Names what a later release added. `--empty` pins nothing |
 | `sdlc propose constraints` | binary | the next free `LOC_` id, or rules the findings keep citing |
 | **The cycle, in order** | | |
 | `sdlc constraints` | binary | the rules in force, all tiers resolved |
-| `sdlc new` | binary | allocates the id and the directory. `/sdlc:intent` runs it for you |
+| `sdlc new` | binary | allocates the id and the directory; refuses over uncommitted work. `/sdlc:intent` runs it for you |
 | `/sdlc:intent` | agent | interviews you into `intent.md` |
 | `/sdlc:interrogate <id> <artifact>` | agent, fresh process | judges one document, writes `findings/<artifact>.rN.json` |
 | `/sdlc:refine <id> <artifact>` | agent | applies those findings to the document |
@@ -74,7 +76,7 @@ before step 11.
 | `sdlc findings <id>` | binary | what the interrogations said, each finding at the disposition that stands |
 | `sdlc constraints --for plan --brief` | binary | the rules one stage is judged against |
 | `sdlc cycles` | binary | every cycle, newest first |
-| `sdlc branch <id> <kind>` | binary | the git command that puts you on the cycle's `plan`, `build`, `build-unattended` or `forward` branch |
+| `sdlc branch <id> <kind>` | binary | the git command that puts you on the cycle's `plan`, `build`, `build-unattended` or `forward` branch. The skills run it for you |
 | `sdlc factory` | binary | writes the factory's nightly pipeline for your platform. It never merges |
 | `sdlc lead show <reference>` | binary | a work item, issue, suggestion or file, in one shape for `intent --from` |
 | `sdlc operate --dry-run` | binary | what production raised, grouped and scrubbed, and what would be filed as a lead |

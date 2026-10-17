@@ -22,6 +22,23 @@ public sealed record ProtectedFile(string Description, string Reason);
 public static class ProtectedPaths
 {
     /// <summary>
+    /// The note at the top of every protected document adoption drafts, saying who may change it.
+    /// </summary>
+    /// <remarks>
+    /// In the file rather than only in the refusal, because the refusal reaches the agent and the file is
+    /// what a person opens. Somebody who asks their agent to fix a line here and watches it be denied has
+    /// been told by the document itself why, before the denial reads like a broken install. One text for
+    /// every document, so it is said the same way wherever it appears.
+    /// </remarks>
+    public static IReadOnlyList<string> Note { get; } =
+    [
+        "> **Only a person changes this file.** An AI agent cannot: the framework's hooks deny every",
+        "> agent write to it, by file path and by shell command alike. An agent may write a draft",
+        "> beside it, and renaming the draft into place is yours to do. `.sdlc/README.md` says how",
+        "> the guard works and which files it covers.",
+    ];
+
+    /// <summary>
     /// What a protected file is, by its name alone.
     /// </summary>
     /// <remarks>

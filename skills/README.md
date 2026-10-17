@@ -88,7 +88,7 @@ hands over the command.
 #### Syntax
 
 ```
-/sdlc:init [--platform github|azure-devops|local]
+/sdlc:init [--platform github|azure-devops|local] [--integration-branch <name>]
 ```
 
 #### Parameters
@@ -96,6 +96,7 @@ hands over the command.
 | Parameter | Description |
 |---|---|
 | `--platform github\|azure-devops\|local` | where the code will live. Optional; the skill asks when it is not given. `local` is for a repository with no remote yet |
+| `--integration-branch <name>` | where approved plans wait and built cycles land. Optional, `development` by default; drafted into `solution.md` and created from adoption's commit when it does not exist |
 
 #### Output
 
@@ -105,9 +106,12 @@ framework owns, which is everything not protected — hook configs, the pipeline
 update the skill then walks what the release ships that the declared stack never mentions, deciding each
 with the person from what the repository holds, in a draft they rename.
 
-- **Writes** nothing itself. `sdlc init` writes the scaffolding; the drafts it asks for are renamed into
-  place by a person, because `solution.md`, `techstack.md` and `constraints.md` are three of the six files
-  only a person writes.
+- **Writes** nothing itself. `sdlc init` writes the scaffolding and commits it, creates the integration
+  branch and switches to it, and drafts `solution.draft.md`, `techstack.draft.md` and
+  `constraints.draft.md` beside where each goes — each with a note saying only a person changes the real
+  file. A person fills them in, renames them into place and commits them, because `solution.md`,
+  `techstack.md` and `constraints.md` are three of the six files only a person writes. The drafts are
+  ignored by git.
 - **`--platform local`** writes no pipeline. No pull-request check then governs a merge and nothing
   mechanical decides what reaches the default branch — the choice is recorded in `solution.md` so
   `doctor` reports it as a choice rather than a broken install. Once there is a remote, re-run adoption
@@ -118,7 +122,8 @@ with the person from what the repository holds, in a draft they rename.
 | Condition | Result | What to do |
 |---|---|---|
 | outside a git repository | `sdlc init` refuses, and the skill says so before handing the line over | `git init`, which the skill offers |
-| any option other than `--platform` | `sdlc init` refuses before writing anything, rather than ignoring it | run it without; the stack is declared afterwards — see Remarks |
+| any option other than `--platform` and `--integration-branch` | `sdlc init` refuses before writing anything, rather than ignoring it | run it without; the stack is declared afterwards — see Remarks |
+| `--integration-branch` names a branch other than the one `solution.md` records | `sdlc init` refuses: only a person changes that file | change `integration_branch` in the draft `sdlc draft solution` writes, rename it, and create the branch |
 
 #### Example
 
@@ -126,9 +131,10 @@ with the person from what the repository holds, in a draft they rename.
 /sdlc:init --platform local
 ```
 
-Expect two or three questions, then the `sdlc init` line to run yourself, then two drafts to rename —
-the solution paragraph and the declared stack — and possibly a proposed `LOC_` constraint to paste. It
-ends on `sdlc doctor`'s closing block, which names what is still to place and the one command after it.
+Expect two or three questions, then the `sdlc init` line to run yourself, then drafts to fill in and
+rename — the solution paragraph, the declared stack, and a proposed `LOC_` constraint if one survived —
+and a commit of what you placed. It ends on `sdlc doctor`'s closing block, which names what is still to
+place and the rename for each.
 
 #### Remarks
 
@@ -142,13 +148,14 @@ what to forbid would make adoption a judgement on code that predates the framewo
 would spend itself on findings about work nobody is defending.
 
 **Adoption decides nothing about the stack, and asks one question: where the code will live.** There is
-no profile to choose. `sdlc init` writes no declared stack and no `.NET` build settings; the declared
-stack is drafted afterwards for a person to cut down, and no cycle opens until it is placed.
+no profile to choose. `sdlc init` places no declared stack and writes no `.NET` build settings; it
+drafts the declared stack for a person to cut down, and no cycle opens until it is placed.
 
 **Holding an existing codebase to the framework's conventions is not an option on adoption, and the
 skill raises it only when a person does.** An adopted solution holds new work to the code already
 around it, which is the default and usually right. Moving off that is two separate choices, each made
-after adoption: `sdlc draft solution --standard profile` changes which patterns a plan defaults to, and
+adoption: `standard: profile` in the solution document's draft — or `sdlc draft solution --standard
+profile` once it is placed — changes which patterns a plan defaults to, and
 the `.NET` build settings — `.editorconfig`, the three props files, `global.json` — are rows in the
 declared stack, switched off in an adopted repository's first draft. Switching one on is a person's
 decision because it applies a convention to code that never agreed to one: `Directory.Build.props`
@@ -171,15 +178,16 @@ its output lands in the conversation. What it runs, in order:
 1. checks it is in a git repository, and whether `.sdlc/` already exists
 2. asks where the code will live, then hands over `! sdlc init --platform <answer>`
 3. interviews the team — three or four questions, or two on a repository holding no code
-4. runs `sdlc draft solution` for the paragraph that says what the solution is for, for a person to
-   rename into place
+4. has the person write the paragraph that says what the solution is for into `solution.draft.md`, and
+   shows the rename
 5. runs `sdlc propose constraints` and fills in a `LOC_` entry for each answer that survives the three
-   admission tests — or proposes none
-6. runs `sdlc draft techstack`, edits the draft down to what is true here, and shows the rename
-7. reports `sdlc constraints` and the closing block of `sdlc doctor` verbatim, and stops
+   admission tests, for the person to add to `constraints.draft.md` — or proposes none
+6. edits `techstack.draft.md` down to what is true here, and shows the rename
+7. hands over the commit of what was placed
+8. reports `sdlc constraints` and the closing block of `sdlc doctor` verbatim, and stops
 
-It follows the one next step adoption's report names rather than a list of its own, and ends on the one
-`sdlc doctor` names.
+It follows the drafts and renames adoption's report names rather than a list of its own, and ends on
+`sdlc doctor`'s.
 
 #### See also
 
@@ -231,7 +239,8 @@ stack and the spec.
 
 | Condition | Result | What to do |
 |---|---|---|
-| the declared stack is not in place | `sdlc new` refuses | `sdlc draft techstack`, then rename it into place |
+| the declared stack is not in place | `sdlc new` refuses | fill in `techstack.draft.md`, which adoption wrote, and rename it into place |
+| anything is uncommitted | `sdlc new` refuses and names the files, because the cycle's branch would carry them into its diff | the skill asks what you want done with them — commit, stash or discard — and opens the cycle again |
 
 #### Example
 
@@ -239,8 +248,9 @@ stack and the spec.
 /sdlc:intent We have no way to see a die roll
 ```
 
-Expect a cycle id and branch, a handful of questions, then several interrogation rounds without your
-involvement. It ends on the intent's status panel, whose last line is the next command.
+Expect a cycle id and the branch the skill switched to, then a handful of questions — and nothing more
+until you answer them, because the intent is written from the answers. Then several interrogation rounds
+without your involvement. It ends on the intent's status panel, whose last line is the next command.
 
 #### Remarks
 
@@ -253,9 +263,11 @@ intent stays a problem statement while the plan can still honour the decision.
 
 What it runs, in order:
 
-1. `sdlc constraints --for intent`, kept in front of it
+1. `sdlc constraints --for intent`, kept in front of it, and `.sdlc/solution.md`, so it asks from where
+   the person's paragraph leaves off
 2. `sdlc new`, which allocates the cycle id and claims it — that claim *is* the collision check — then
-   `git switch -c cycle/<id>`
+   `sdlc branch <id> plan` and the `git switch` it prints, so the working copy is on `cycle/<id>/plan`. The
+   person runs neither
 3. converts the request into a problem, then interviews: what happens today that shouldn't, who notices,
    what you would see once it is right, what must not change — asked in the tense the work is in, so a new
    solution is asked what nobody can do today rather than what is broken

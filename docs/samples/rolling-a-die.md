@@ -171,70 +171,71 @@ The line it hands back is the adoption command with `--platform local`, and it c
 that prefix runs the rest of the line as your own command, so what it prints lands in the conversation
 where the agent can read the file list back.
 
-It picks greenfield mode, writes what governs code, and commits it. `../guides/adopting-the-framework.md`
-has the table of what each file is.
+It picks greenfield mode, writes what governs code, and commits it to `main`. Then it creates
+`development` from that commit and switches to it — that is where you will commit what you place next,
+and where the cycle's branch starts from. `../guides/adopting-the-framework.md` has the table of what
+each file is.
 
-## 4. Place the two protected files
+## 4. Fill in the drafts, place them, commit them
 
-Adoption writes `.sdlc/solution.md` with a placeholder and does not write `.sdlc/techstack.md` at all.
-Both are protected, so nothing can place them for you. **Do this before the cycle, not after** — the
-cycle will not open without the second. Adoption's report ended by naming the first as its one next
-step, and after each rename `sdlc doctor` names the one that follows.
-`solution.md` is the only file in the solution that says what good looks like, and a plan that reads
-*Replace this with a paragraph a newcomer could read* has been told nothing.
+Adoption places none of the files only a person writes. It drafts three of them beside where each goes,
+each with a note at the top saying an agent cannot change the real file, and its report ends with what to
+fill in and the rename for each. **Do this before the cycle, not after** — the cycle will not open
+without the stack, or over anything uncommitted.
 
-```pwsh
-sdlc draft solution
-```
-
-It writes the whole file beside the real one, carries the four keys through as recorded, and prints the
-rename that places it:
-
-```pwsh
-Move-Item .sdlc/solution.draft.md .sdlc/solution.md
-```
-
-The paragraph for this solution is about a line:
+**`.sdlc/solution.draft.md`.** Replace the comment under the heading with the paragraph. For this
+solution it is about a line:
 
 > A six-sided die, rolled from a page in a browser. One page, one die, no history and no storage. The
 > page is built from the solution's component library as it comes, and a face is drawn as pips.
 
-Then the stack:
+`solution.md` is the only file in the solution that says what good looks like, and every plan reads it.
+`sdlc doctor` fails while it still carries the comment.
 
-```pwsh
-sdlc draft techstack
+**`.sdlc/techstack.draft.md`.** The draft is the framework's default, and for a die on a page it needs
+nothing changed. The rows that matter here are MSTest on Microsoft.Testing.Platform for the unit layer,
+bUnit for the component layer, ASP.NET Core for the api, Blazor for web and MudBlazor for the components.
+The three stack rules under `## Rules` are all marked `true` — `PRO_01` is the one this work will meet,
+at the plan — and so are the five files under `## Build settings`, because this repository held no code
+and nothing predates them. Read `## Notes worth keeping` before you rename it: its first four paragraphs
+are about exactly the two projects this cycle adds. What is in that file once it is placed is exactly
+what binds; a solution that was not .NET would cut it down first.
+
+**`.sdlc/constraints.draft.md`.** Leave it. The interview produced nothing that is a constraint, and an
+empty solution-constraint set is the right starting point — this work is too small to be what earns a
+rule. It stays a draft, which git ignores.
+
+Now place the two. On Claude Code a `!` line runs in bash, so use that form there:
+
+```sh
+mv -f .sdlc/solution.draft.md .sdlc/solution.md
+mv -f .sdlc/techstack.draft.md .sdlc/techstack.md
 ```
 
-The draft is the framework's default, and for a die on a page it needs nothing changed. The rows that
-matter here are MSTest on Microsoft.Testing.Platform for the unit layer, bUnit for the component layer,
-ASP.NET Core for the api, Blazor for web and MudBlazor for the components. The three stack rules under
-`## Rules` are all marked `true` — `PRO_01` is the one this work will meet, at the plan — and so are the
-five files under `## Build settings`, because this repository held no code and nothing predates them.
-Read `## Notes worth keeping` before you rename it: its first four paragraphs are about exactly the two
-projects this cycle adds. Rename it as it is:
+In a PowerShell terminal, where `mv -f` is ambiguous:
 
 ```pwsh
-Move-Item .sdlc/techstack.draft.md .sdlc/techstack.md
+Move-Item -Force .sdlc/solution.draft.md .sdlc/solution.md
+Move-Item -Force .sdlc/techstack.draft.md .sdlc/techstack.md
 ```
 
-What is in that file is now exactly what binds. A solution that was not .NET would have cut the draft
-down first, or drafted an empty one with `--empty`.
+Then commit them, on `development`:
 
 ```pwsh
-sdlc propose constraints
+git add .sdlc
 ```
 
-With no history to read, this prints the next free `LOC_` id empty beside the three admission tests.
-**Propose none.** An empty solution-constraint set is the right starting point, and this work is too
-small to be what earns a rule.
+```pwsh
+git commit -m "Place the solution and its stack"
+```
 
 ```pwsh
 sdlc doctor
 ```
 
-Expect everything `ok`, the platform reported as a recorded choice rather than a broken install, and
-whether the host loaded the skills marked `elsewhere`, because a binary cannot ask a host what it
-loaded.
+Expect everything `ok` — `development` as the integration branch included — the platform reported as a
+recorded choice rather than a broken install, and whether the host loaded the skills marked `elsewhere`,
+because a binary cannot ask a host what it loaded. It exits 0 and ends by naming the first cycle.
 
 ## 5. The intent
 
@@ -243,18 +244,14 @@ loaded.
 ```
 
 **Pass no sentence.** The value of the stage is the questions, and a one-line request arrives already
-shaped as a solution. The skill opens the cycle itself — it runs `sdlc new`, so do not run that first or
-you will allocate a second id — and puts itself on the cycle's plan branch with the command
-`sdlc branch` prints:
+shaped as a solution. **The skill opens the cycle and switches to its branch itself**, and says the id
+and the branch in one line — run neither `sdlc new` nor `sdlc branch` yourself. The branch is
+`cycle/<id>/plan`, and the name matters: the turn-end hook reads the cycle out of the current branch and
+silently governs nothing when it cannot parse one.
 
-```pwsh
-sdlc branch <id> plan
-```
-
-**The branch is `cycle/<id>/plan`, and the name matters.** The turn-end hook reads the cycle out of the
-current branch and silently governs nothing when it cannot parse one.
-
-Nothing exists yet, so it asks in that tense:
+**Then it waits for your answers.** The intent is written from them, so until you reply there is no
+intent, and an interrogation asked for now finds nothing to read. The die has never been built, so it
+asks in that tense:
 
 | It asks | Answer |
 |---|---|

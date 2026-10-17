@@ -20,9 +20,11 @@ command alike. There is no flag and no mode — the declared stack is one of the
 is read against, so an agent able to edit it could satisfy the rule about departing from a default by
 adding the row it wanted instead of arguing for it, or drop a stack rule by switching its row off.
 
-**Adoption does not write it.** `sdlc init` decides nothing about the stack and takes no option that
-would. The file comes from `sdlc draft techstack` and a rename, and **no cycle opens until it is
-there** — `sdlc new` refuses and names the command.
+**Adoption drafts it and does not place it.** `sdlc init` decides nothing about the stack and takes no
+option that would: it writes `.sdlc/techstack.draft.md`, the framework's default, beside where the file
+goes. The file comes from a person editing that draft and renaming it, and **no cycle opens until it is
+there** — `sdlc new` refuses and names the draft. Commit it once it is placed: a cycle does not open over
+uncommitted work either.
 
 **What is in the file is exactly what binds.** Nothing about the stack is selected from anywhere else:
 no solution records a profile, and `solution.md` says nothing about what the code is built from.
@@ -86,6 +88,9 @@ somebody adds the rows.
 
 ## The first draft
 
+Adoption writes it, as `.sdlc/techstack.draft.md`, with the options menu under `.sdlc/reports/` to read
+beside it. If it is gone — deleted, or a solution adopted before adoption wrote it — this writes it again:
+
 ```pwsh
 sdlc draft techstack
 ```
@@ -107,7 +112,7 @@ row reads as one nobody was asked about, so `sdlc stack` would offer it again at
 | is built on the default stack | nothing. Rename it as it is |
 | is .NET with different choices | change the rows that differ, and write `none` in those that are not true of it |
 | is built on something else | write `none` in what does not apply, write in what it uses, and set to `false` any rule naming a framework it does not have |
-| should pin nothing yet | `sdlc draft techstack --empty`, and rename that |
+| should pin nothing yet | `sdlc draft techstack --empty`, which writes the draft again with nothing in it but the note at its top, and rename that |
 
 **Every solution starts from the same draft, new repository or old.** A draft is not a declaration: it is read, and cut down, before
 it is placed. **So read it** — a default renamed unread onto a codebase that is not .NET declares

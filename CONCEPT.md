@@ -411,10 +411,14 @@ Six files only a person writes:
 |---|---|
 | `approval.md` | a gate decision — three hashes, who, when, and a reason on anything but an approval |
 | `abandoned.md` | why the cycle stopped |
-| `constraints.md` | a proposed `LOC_nn` — **proposed rather than drafted**, D-69 |
+| `constraints.md` | a proposed `LOC_nn` — **proposed rather than drafted**, D-69. Adoption drafts the file itself with its header and no rule, D-94 |
 | `decisions.md` | a proposed `DEC_nn` — proposed from the approved record, D-70 |
-| `techstack.md` | the declared stack — the file copied beside itself, or the framework's default where none is placed yet, for a person to rename, D-67 and D-76 |
-| `solution.md` | the whole document, beside itself — its four keys carried through and its prose unchanged, D-62 |
+| `techstack.md` | the declared stack — the file copied beside itself, or the framework's default where none is placed yet, for a person to rename, D-67 and D-76. Adoption writes the first draft, D-94 |
+| `solution.md` | the whole document, beside itself — its four keys carried through and its prose unchanged, D-62. Adoption writes the first draft, D-94 |
+
+**Each of the three a solution places at adoption carries a note at its top** saying that only a person
+changes it, so the file a person opens explains a denied agent write before the denial reads as a broken
+install (D-94).
 
 One verb drafts four of them: `sdlc draft approval <id>`, `draft abandon <id>`, `draft solution`,
 `draft techstack`. There was a fifth drafter, `draft profile`, until no solution recorded a profile
@@ -994,9 +998,10 @@ because a file name has no prefix to recognise it by. **A row declares and write
 arrives inside a cycle whose approved plan declares it (§9), and `sdlc stack` reports which declared
 files are not on disk.
 
-**`init` does not create it.** The first draft is the default profile's rows with every shipped rule
-switched on, written by the drafter where no file is in place; a person cuts it down and renames it,
-and `sdlc new` refuses until it is there. Its build settings rows start `true` on a scaffolded solution
+**`init` drafts it and does not place it.** The first draft is the default profile's rows with every
+shipped rule switched on, written by adoption beside where the file goes — and by the drafter where
+neither is in place; a person cuts it down and renames it, and `sdlc new` refuses until it is there
+(D-94). Its build settings rows start `true` on a scaffolded solution
 and `false` on an adopted one (D-77). **An empty file is a legitimate answer** — nothing pinned, no
 stack rule in force, every plan choosing freely — and is different from a missing one, which is nobody
 having decided.
@@ -1047,13 +1052,23 @@ model-invoked. Three modes (D-28):
 | **onboard** | existing code, no `.sdlc/` | writes the governance only, `origin: adopted`, `standard: existing` |
 | **update** | `.sdlc/` exists | refreshes only what the framework owns (D-40) |
 
-**`init` decides nothing about the stack** — D-76, D-77. It takes no profile, writes no
+**`init` decides nothing about the stack** — D-76, D-77. It takes no profile, places no
 `techstack.md`, and writes no .NET build settings in any mode. What a solution is built from is declared
 afterwards, in a file a person places. An option `init` does not take is refused, never ignored (D-81).
+It takes two: `--platform`, and `--integration-branch`, `development` when absent, which it refuses
+when the solution document already records another (D-94).
+
+**`init` places none of the files only a person writes; it drafts three** — D-94. `solution.draft.md`
+carries the keys it observed and a prompt where the paragraph goes, `techstack.draft.md` the
+framework's default, and `constraints.draft.md` the header and no rule. Each carries the guard note
+(§5.3), a draft already there is never written over, and `.sdlc/.gitignore` ignores all three so what
+is left of one never reaches a commit. Until the document is placed, the draft's keys are what a
+second run of `init` reads as recorded — otherwise it would find the hooks it committed, no document,
+and decide a new solution was adopted.
 
 **An onboarded solution that wants the framework's conventions makes two choices, after adoption**
-(D-77). Which patterns a plan defaults to is `standard`, moved by renaming a draft from
-`sdlc draft solution --standard profile`. Which build settings files it takes is a row each in
+(D-77). Which patterns a plan defaults to is `standard`, set in the solution document's draft before
+it is placed, or moved afterwards by renaming a draft from `sdlc draft solution --standard profile`. Which build settings files it takes is a row each in
 `techstack.md`, and they start `false` there because they apply a convention to code that never agreed
 to one: `Directory.Build.props` makes warnings errors, so a build can fail on files nobody has touched.
 
@@ -1109,15 +1124,21 @@ how to run the application locally; and a repo map. It never contains constraint
 that goes stale the moment a cycle runs. If one already exists, `init` prints the leaned version and
 leaves the file alone.
 
-**It commits what it created.** An uncommitted `AGENTS.md` is untracked when a cycle takes its diff,
-so the diff records the whole file as new, and a plan that says it *changes* that file can never
-match — the first cycle would fail `CON_07.2` for something adoption did.
+**It commits what it created, then creates the integration branch.** An uncommitted `AGENTS.md` is
+untracked when a cycle takes its diff, so the diff records the whole file as new, and a plan that says it
+*changes* that file can never match — the first cycle would fail `CON_07.2` for something adoption did.
+After the commit, when the integration branch exists neither locally nor on the remote, it is created
+there and switched to, so the default branch and the integration branch both hold the hooks and what a
+person places next is committed where approved plans wait (D-94). The drafts are not committed.
 
-**Its report ends with one next step.** What a person still has to place before the first cycle is
-said in a sentence — a paragraph in `solution.md`, then the declared stack — and one command is named:
-the first of those not yet done. `sdlc doctor` ends with the same block from the same list, because
-each step finishes with a rename and a rename runs nothing. Once both are placed the step is the first
-cycle, and once a cycle exists the block is gone (D-79).
+**Its report ends with every draft left to place, and how.** What a person still has to place before
+the first cycle is said in a sentence, then each draft to fill in, the rename for each — in `sh` and
+the PowerShell spelling — and the commit after. `sdlc doctor` ends with the same block from the same
+list, because each step finishes with a rename and a rename runs nothing. The constraints draft rides
+along while it waits and is never a step left: a solution with no rules of its own is sound. Once the
+other two are placed the step is the first cycle, and once a cycle exists the block is gone (D-79,
+D-94). **A placed solution document still carrying the prompt is a `doctor` problem**, not a step left
+(D-94).
 
 It creates no empty directories.
 
@@ -1966,7 +1987,7 @@ they print verbatim.
 | `scaffold <id>` | writes the solution skeleton into an approved cycle — D-35 — or, on an adopted solution, only the build settings files that cycle's plan declares — D-77 |
 | `hook --host <name>` | judges one tool call — §12 |
 | `version` | the three versions and which is which — the package, the plugin, and the artifact envelope |
-| `doctor` | checks this install and this repository, and says which half is missing. Exits 1 if anything is wrong. Before the first cycle it ends with the one next step — §9 |
+| `doctor` | checks this install and this repository, and says which half is missing. Exits 1 if anything is wrong — a missing integration branch and a placeholder paragraph included. Before the first cycle it ends with every draft left to place and its rename — §9 |
 
 **`doctor` reports and never repairs**, and the third of its three outcomes is the point: what a binary
 cannot see — whether a host loaded the skills, whether a pipeline step is a *required* check — is
@@ -1987,7 +2008,10 @@ own tool and a sentence somebody wrote, so the skill owns that.
 `intent` opens the cycle as its first act by running `sdlc new`, rather than allocating an id itself.
 That command creates the directory and then **claims** the id with a `.opened` marker opened so that the
 filesystem refuses a second one — which is the collision check, and is atomic. Creating the directory is
-not: it succeeds on one that is already there (D-10).
+not: it succeeds on one that is already there (D-10). The skill then switches to the plan branch
+`sdlc branch` names; a person runs neither. **`sdlc new` refuses while anything git does not ignore is
+uncommitted**, the framework's own ignore files under `.sdlc/` aside, because the switch would carry it
+into the cycle as work no plan declared (D-94).
 
 ---
 
@@ -1995,7 +2019,9 @@ not: it succeeds on one that is already there (D-10).
 
 ```
 .sdlc/
-  solution.md               profile, origin, platform - written by init
+  solution.md               origin, standard, platform, integration branch, and a paragraph -
+                            drafted by init, placed by a person
+  .gitignore                the drafts beside the files a person places
   techstack.md              what this solution is built from
   constraints.md            this solution's own LOC_nn, hand-edited
   decisions.md              its own DEC_nn: the choices it has settled, hand-edited (D-70)
@@ -4627,6 +4653,10 @@ them; the comparison belongs at the spec gate, before anybody has built anything
 
 **Governs:** §8
 
+**Superseded in part by D-94.** Adoption no longer writes the document with a placeholder of its own: it
+writes the drafter's prompt as a draft, and a person places it. Everything here about the drafter —
+carrying the keys and the prose through, a prompt rather than invented prose — stands.
+
 **Decision.** `sdlc draft solution` writes a complete solution document beside the real one and prints
 the rename that places it, the same shape D-52 gave a gate decision. It carries the four keys through
 exactly as recorded and any prose already written through unchanged; only the shipped placeholder is
@@ -5861,6 +5891,10 @@ remove it: it was never installed by the framework, so removing it is not the fr
 
 **Governs:** §9, §15.2
 
+**Superseded in part by D-94.** Adoption drafts every file now, so the block names each draft and its
+rename rather than one command, and a placed paragraph still carrying the prompt is a `doctor` problem.
+That `doctor` prints the same block from the same list, read from disk, stands.
+
 **Decision.** `sdlc init` ends its report with a sentence saying what a person still has to place
 before the first cycle, and one command: the first step not yet done. There are two steps, in this
 order — a paragraph in `solution.md` saying what the solution is, from `sdlc draft solution`, then the
@@ -6441,3 +6475,61 @@ once with `none`, and the list is quiet after that. The `init` skill says so bef
   already makes when it edits a first draft from the repository. A second skill would make it twice.
 - *`init` interviewing again on an update.* Update mode is valuable because it is mechanical and
   repeatable; the walk is the skill's, after the command, not the command's.
+
+### D-94 — Adoption drafts all three files a person places, commits, and creates the integration branch
+
+**Governs:** §5.3, §8.2, §9, §15.2, §16
+
+**Decision.** Five parts, from one walked adoption.
+
+1. **`init` places none of the files only a person writes; it drafts three.** `solution.draft.md`,
+   `techstack.draft.md` and `constraints.draft.md`, beside where each goes, never over a draft already
+   there, and ignored by git. The constraints draft has its header and no rule.
+2. **Each carries a note at its top saying only a person changes the file**, and why an agent's write is
+   denied — and `docs/guides/protected-files.md` says how the guard works, once.
+3. **The report and `doctor` name every draft left, its rename and the commit**, not one command.
+4. **A placed solution document still carrying the prompt is a `doctor` problem**, and the check knows
+   the drafter's prompt as well as the old placeholder.
+5. **After its commit, `init` creates the integration branch and switches to it** when it exists neither
+   locally nor on the remote — `development`, or `--integration-branch <name>`, which is refused when the
+   document records another. `doctor` fails while it is missing. And **`sdlc new` refuses while anything
+   is uncommitted**, naming the files; the intent skill asks the person what to do with them.
+
+**Why: the walk.** Adoption wrote `solution.md` with one placeholder, then named `sdlc draft solution`,
+whose draft carried a *different* one — the first said nothing reads the prose, the second that every
+plan does — and the person was told to rename the second over the first. The rename changed nothing but
+which placeholder was there, and the check knew only the first, so `doctor` said *nothing is left to
+place* over a paragraph that said nothing. Meanwhile no `development` existed, so the cycle's plan branch
+started from `master`, and the placed stack and paragraph — uncommitted — rode onto it as the first
+cycle's work. And the guide had the person run `sdlc branch` after the skill already had.
+
+**Why drafts and not the file, when D-62 rejected adoption writing it.** It did write it, despite that
+entry: create-but-never-modify on the one file adoption observes. Drafting it is what D-62's rejection
+actually asked for, and the keys adoption observed are still recorded — in the draft, which a second
+`init` reads as recorded until the file is placed.
+
+**Why fail on the placeholder, when D-79 rejected it.** D-79's reason was that nothing read the prose, so
+failing every fresh repository on it would make `doctor` unusable in a script. Both halves moved: the
+plan reads the paragraph for what good looks like, and every fresh repository now fails `doctor` anyway
+until two files are placed — so the exit code is accurate rather than noisy.
+
+**Why the refusal over uncommitted work is in the binary.** A file listing decides it, which is the
+binary's by the rule every command follows, and a person opening a cycle by hand gets the same answer as
+the skill. What to do with the files is the person's; the refusal decides nothing about them.
+
+**Rejected.**
+
+- *A `sdlc place` command that renames the drafts.* The rename is the decision, and a command that made
+  it would be the exception D-09 refuses to create.
+- *Committing the drafts.* A draft is a proposal; committed, placing it reads as a delete and a create,
+  and a draft left behind would reach a later cycle's diff.
+- *Requiring `constraints.md`.* A solution with no rules of its own is sound, and a step that is usually
+  skipped teaches people to skip steps (D-79).
+- *The integration branch as a row in the declared stack.* The declared stack is what a plan is judged
+  against, and a branch name gives `CON_15` nothing to judge. It decides where governed code lands, which
+  is the solution document's (D-83).
+- *Removing `sdlc branch` and having the intent skill run git itself.* `build`, `batch-build` and the
+  forward branch need the same base calculation, and the binary is where it lives once. The person's path
+  no longer names it; the skills do.
+- *The intent skill stashing uncommitted work on the person's behalf.* Work moved out of sight is work
+  somebody has to find.

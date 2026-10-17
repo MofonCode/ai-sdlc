@@ -143,17 +143,29 @@ startup.
 **Start with the skill.** It asks where the code will live, then hands you the adoption command to run
 yourself — a person runs that and an agent cannot, because adoption is a decision about how a team works
 and it writes the hook configuration that constrains the agent. The order matters: the file recording
-that answer is protected the moment it exists, so answering afterwards costs a draft and a rename.
+that answer is protected once it is placed, so answering afterwards costs a draft and a rename.
 
-**Then place the two things adoption leaves to you, one at a time.** Its report ends with a single next
-step rather than a list of commands, and `sdlc doctor` names the one after it. First a paragraph saying
-what the solution is: `sdlc draft solution` writes the file beside itself, and you rename it into place.
+**The command commits what it writes, creates the integration branch, `development`, and switches to
+it.** It also drafts the three files only a person writes, beside where each goes, and places none of
+them — each says at its top that an agent cannot change it.
 
-**Then declare the stack.** Adoption decides nothing about what the solution is built from. `sdlc draft
-techstack` writes a draft of the framework's default — every row it would pin, every stack rule it
-ships switched on, and the five .NET build settings files, switched on only where the repository held
-no code — and you cut it down and rename it into place. What is in that file is exactly what
-binds; an empty one pins nothing; and no cycle opens until it is there.
+**Then fill in the drafts, rename them, and commit them.** Adoption's report ends with exactly that,
+and `sdlc doctor` prints the same block whenever you ask:
+
+| Draft | You write |
+|---|---|
+| `.sdlc/solution.draft.md` | a paragraph saying what the solution is and who it is for, in place of the comment |
+| `.sdlc/techstack.draft.md` | the framework's default stack cut down to what is true here — `none` in a row that is not. What is in it is exactly what binds, and no cycle opens until it is placed |
+| `.sdlc/constraints.draft.md` | this solution's own rules, if the interview found any. Optional |
+
+```sh
+mv -f .sdlc/solution.draft.md .sdlc/solution.md
+mv -f .sdlc/techstack.draft.md .sdlc/techstack.md
+git add .sdlc && git commit -m "Place the solution and its stack"
+```
+
+In PowerShell, `Move-Item -Force` in place of `mv -f`. **A cycle does not open over uncommitted work**,
+which is why the commit is a step and not a tidy-up.
 
 **5. Start a cycle.** In your agent, not the shell:
 
@@ -161,8 +173,9 @@ binds; an empty one pins nothing; and no cycle opens until it is there.
 /sdlc:intent  The dashboard takes fourteen seconds and people have stopped opening it
 ```
 
-That interviews you into the intent. `/sdlc:spec` and `/sdlc:plan` follow, you approve all three, and
-then the build runs.
+The skill opens the cycle and switches to its branch itself, then interviews you into the intent —
+and waits for your answers, because the intent is written from them. `/sdlc:spec` and `/sdlc:plan`
+follow, you approve all three, and then the build runs.
 
 **Want the whole walkthrough, or the variations?**
 [`docs/guides/running-a-cycle.md`](docs/guides/running-a-cycle.md) is one cycle from the rules to an
@@ -183,13 +196,14 @@ refusal with its remedy.
 | [`docs/README.md`](docs/README.md) | **the components** — every concept the framework names, defined once: what it is, what uses it, where it lives |
 | [`docs/guides/README.md`](docs/guides/README.md) | **the guides, indexed** — what each covers and when to read it |
 | [`docs/guides/installing-the-plugin.md`](docs/guides/installing-the-plugin.md) | installing the plugin and the binary, updating, and removing |
-| [`docs/guides/adopting-the-framework.md`](docs/guides/adopting-the-framework.md) | adopting the framework, placing `solution.md`, and the files your solution owns |
+| [`docs/guides/adopting-the-framework.md`](docs/guides/adopting-the-framework.md) | adopting the framework, placing and committing the drafts it leaves, and the files your solution owns |
 | [`docs/guides/declaring-the-stack.md`](docs/guides/declaring-the-stack.md) | what a solution is built from — the declared stack, the stack rules it switches on, the build settings files it takes, and how to change any of them |
 | [`docs/guides/running-a-cycle.md`](docs/guides/running-a-cycle.md) | one cycle end to end, stage by stage |
 | [`docs/guides/setting-up-the-factory.md`](docs/guides/setting-up-the-factory.md) | the factory set up once, step by step, to a watched first run |
 | [`docs/guides/running-the-factory.md`](docs/guides/running-the-factory.md) | many cycles built overnight: the integration branch, the factory, and the morning |
 | [`docs/guides/handling-blockers.md`](docs/guides/handling-blockers.md) | a blocking finding or a blocked verification, and how each is answered |
 | [`docs/guides/handling-refusals.md`](docs/guides/handling-refusals.md) | every refusal, and the remedy for each |
+| [`docs/guides/protected-files.md`](docs/guides/protected-files.md) | the files only a person changes, how the hook guards them, and how a change to one gets made |
 | [`docs/cheat-sheets/README.md`](docs/cheat-sheets/README.md) | **the cheat sheets** — one line per thing |
 | [`docs/cheat-sheets/commands.md`](docs/cheat-sheets/commands.md) | every command for one cycle, on one screen |
 | [`docs/cheat-sheets/skills.md`](docs/cheat-sheets/skills.md) | the eighteen skills, one line each |
@@ -268,8 +282,9 @@ What is honest to say about the rest:
 - **A solution adopted before 0.16.0 that never listed its stack rules is held to none from 0.20.0.**
   Its old `profile:` line in `solution.md` is no longer read (`CONCEPT.md` D-81). `sdlc doctor` says
   so; `sdlc draft techstack` and a rename put the rules back.
-- **Adoption ending on one next step has been read by its author and by nobody else.** The suite holds
-  the order and the wording at each step; no adoption has been walked through it by somebody new.
+- **Adoption drafting all three files and creating the integration branch has been read by its author
+  and by nobody else.** The suite holds the drafts, the renames the report names, the commit, the branch
+  and the refusal over uncommitted work; no adoption has been walked through it by somebody new.
 - **The task lists have not been watched on any host.** `init`, `intent`, `spec`, `plan` and `build`
   each ask the agent to keep a list of the stage's steps where its host has one, and `batch-build` one
   line per cycle (`CONCEPT.md` D-80). The suite holds the wording; whether each host's agent opens

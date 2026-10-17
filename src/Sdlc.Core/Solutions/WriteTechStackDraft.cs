@@ -100,10 +100,11 @@ public static class WriteTechStackDraft
             string directory = Path.Combine(solution.Path, Cycle.SdlcDirectoryName);
             string path = Path.Combine(directory, Cycle.TechStackFileName);
 
-            // Adoption is what makes a repository a governed solution, and it no longer writes this
-            // file -- so the directory is the test rather than the file. Without it there is no solution
-            // for a stack to be declared in.
-            if (!File.Exists(SolutionDocument.PathIn(solution.Path)))
+            // Adoption is what makes a repository a governed solution, and it places none of the files a
+            // person writes -- so the solution document or adoption's draft of it is the test. Without
+            // either there is no solution for a stack to be declared in.
+            if (!Directory.Exists(directory)
+                || (!File.Exists(SolutionDocument.PathIn(solution.Path)) && !File.Exists(SolutionDocument.DraftPathIn(solution.Path))))
             {
                 return Result.Ok(DraftResult.Refused(string.Create(
                     CultureInfo.InvariantCulture,
@@ -121,8 +122,10 @@ public static class WriteTechStackDraft
 
             if (start == Start.Default)
             {
+                // The draft's keys when the document is not placed yet: the origin is adoption's
+                // observation either way, and the stack is often declared before the paragraph is written.
                 Result<SolutionDocument> document = await SolutionDocument
-                    .ReadFile(solution.Path, cancellationToken)
+                    .ReadFileOrDraft(solution.Path, cancellationToken)
                     .ConfigureAwait(false);
 
                 if (document.IsFailed)
@@ -137,7 +140,10 @@ public static class WriteTechStackDraft
             {
                 Start.Copy => await File.ReadAllTextAsync(path, cancellationToken).ConfigureAwait(false),
                 Start.Default => Init.Templates.TechStack(origin),
-                _ => string.Empty,
+
+                // The note and nothing else, which pins nothing and switches on no rule: the reader
+                // takes rows, and a note is not one.
+                _ => string.Join(Environment.NewLine, [.. Hooks.ProtectedPaths.Note, string.Empty]),
             };
 
             string draftPath = Path.Combine(directory, DraftFileName);
@@ -215,7 +221,8 @@ public static class WriteTechStackDraft
             ],
             _ =>
             [
-                "The draft is empty, which is what was asked for. Renamed into place it declares that",
+                "The draft is empty but for the note saying who may change it, which is what was asked",
+                "for. Renamed into place it declares that",
                 "nothing is pinned: no default for a plan to depart from, no stack rule in force, and",
                 "every plan choosing freely. Rows can be added later, the same way.",
             ],
