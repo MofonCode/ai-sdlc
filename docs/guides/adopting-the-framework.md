@@ -115,42 +115,7 @@ declared yet. The solution file, the projects, the architecture tests and the re
 slice arrive in your first cycle, behind an intent, a spec, a plan and an approval like everything else —
 otherwise the first code in a governed repository would be the only thing in it with no chain behind it.
 
-## 4. Make the check required
-
-**This is the one thing adoption cannot do for you.** The pipeline step is the whole promise — nothing
-merges unless the chain is complete, approved and hash-matched — and it is a promise only while branch
-policy requires it. Until then the file is advisory and the directory looks enforced without being
-enforced, which is the failure mode this design is written against. A `local` solution has no pipeline
-to require, and says so.
-
-| Platform | What to set |
-|---|---|
-| GitHub | a branch protection rule on the default branch, and on the integration branch once you have one, that requires the `verify` status check |
-| Azure DevOps | **Repos > Branches > the default branch — and the integration branch, `development`, once you have one — > Branch policies > Build validation**: add the `azure-pipelines.yml` pipeline, make it **Required**, and set **Build expiration** to **Immediately when the branch is updated** |
-
-**How often an open pull request is checked again.** A pull request is checked against the branch as it
-was when the check ran. Two pull requests can each pass and merge without a conflict and still break
-together — one renames a method the other calls — and only re-checking after the first merges catches
-that before the second does. What to set is a trade between CI minutes and how early you find out:
-
-| Setting | Re-checks | Finds the break |
-|---|---|---|
-| **Immediately when the branch is updated** (recommended) | every open pull request, each time anything merges | before the second pull request can merge |
-| **After n hours if the branch has been updated** | a pull request whose passing check is older than n hours | before merging, unless both merge inside the window |
-| **Never** | nothing | after both have merged, at the next build that includes them |
-
-On GitHub the nearest equivalents are **Require branches to be up to date before merging** on the
-protection rule, which makes a pull request's author bring it up to date and re-run the check, and a
-**merge queue**, which checks each pull request against everything queued ahead of it. Azure DevOps has
-no merge queue.
-
-**On Azure DevOps this is not only what makes the check required — it is what runs it.** Azure Repos
-ignores a `pr:` trigger written in YAML, so the pipeline has no trigger of its own, and the file says so
-at the top. Until the policy exists, no pull request is built, tested or verified, and nothing fails to
-tell you. `sdlc doctor` names this step under `branch policy`, marked `elsewhere`, because a binary
-cannot read the platform's policies.
-
-## 5. The interview
+## 4. The interview
 
 **Then back to the skill, which picks up where the command stopped.** It asks what matters in this
 solution and proposes its first constraints — asking you rather than reading the codebase on purpose,
@@ -175,9 +140,21 @@ spec, one change at a time, where there is a change to ask it about.
 | what the solution is and who it is for | the paragraph in `solution.md`, below |
 | which component library, which packages, which project may reference what | the declared stack, and an architecture test |
 | the names a visual treatment is expressed in | a theme, which `sdlc propose theme` drafts as roles for you to fill |
-| whether a judgement was made and recorded | a `LOC_` constraint, below |
+| whether a judgement was made and recorded | a `LOC_` constraint |
 
-## 6. Fill in the drafts
+**For each answer that might be a constraint, the skill runs `sdlc propose constraints` itself** and fills
+in the entry it prints. With no history to read, that is the next free `LOC_` id with its four parts
+empty, beside the three admission tests — and **all three must pass:**
+
+1. its `Forbids` clause names something that becomes illegal
+2. **no analyzer, schema or hook could decide it**
+3. it is incompatible with at least one plausible implementation
+
+The second rejects most candidates — "every public method has a doc comment" is an analyzer, not a
+constraint. **Proposing none is the right answer for most solutions**: three constraints nobody believes
+in cost attention at every interrogation for the life of the repository.
+
+## 5. Fill in the drafts
 
 Adoption's report ends with what is left and how to place it, and `sdlc doctor` prints the same block
 whenever you ask — it reads disk, so it is right after a rename it did not see. **Your agent cannot do
@@ -203,31 +180,17 @@ nobody had been told.
 source a plan is read against, so it has a guide of its own: `declaring-the-stack.md`. Write `none` in a
 row that is not true here rather than deleting it.
 
-**`.sdlc/constraints.draft.md` — this solution's own rules, if it has any.** The interview's answers that
-survive the admission tests become entries here:
-
-```pwsh
-sdlc propose constraints
-```
-
-A repository being adopted has no cycles, so this prints the next free `LOC_` id with its four parts
-empty, beside the three admission tests. **All three must pass:**
-
-1. its `Forbids` clause names something that becomes illegal
-2. **no analyzer, schema or hook could decide it**
-3. it is incompatible with at least one plausible implementation
-
-The second rejects most candidates — "every public method has a doc comment" is an analyzer, not a
-constraint. **Proposing none is the right answer for most solutions**, and this draft is the one you may
-leave unplaced: a solution with no rules of its own is sound. Renamed with no entry, it places a file
-with no rule in force.
+**`.sdlc/constraints.draft.md` — this solution's own rules, if it has any.** Add at its end each entry the
+interview produced, as the skill showed it — there is no command to run here. **It is the one draft you
+may leave unplaced**: a solution with no rules of its own is sound, and renamed with no entry it places a
+file with no rule in force.
 
 **The drafts are ignored by git, so a clone does not have them.** Somebody who clones before you have
 placed the files, or who deletes a draft, gets it back by running adoption again: it drafts whichever
 file is neither placed nor drafted and leaves the rest alone. `.sdlc/README.md`, in the repository, says
 the same where a teammate will find it.
 
-## 7. Rename them into place
+## 6. Rename them into place
 
 From the repository root. In bash or Git Bash:
 
@@ -248,7 +211,7 @@ Move-Item -Force .sdlc/constraints.draft.md .sdlc/constraints.md
 **On Claude Code, a `!` line runs in bash, whatever your terminal is** — so it is the first form there.
 The last line is the optional one.
 
-## 8. Commit them
+## 7. Commit them
 
 ```pwsh
 git add .sdlc
@@ -265,6 +228,41 @@ sdlc doctor
 ```
 
 **It exits 0 when everything is in place**, and ends by naming the first cycle.
+
+## 8. Make the check required, before the first pull request
+
+**On a `local` solution, skip this: there is no pipeline to require.** Everywhere else it is the one
+thing adoption cannot do for you, and it has to be in place before the first pull request is opened.
+The pipeline step is the whole promise — nothing merges unless the chain is complete, approved and
+hash-matched — and it is a promise only while branch policy requires it. Until then the file is advisory and the directory looks enforced without being
+enforced, which is the failure mode this design is written against.
+
+| Platform | What to set |
+|---|---|
+| GitHub | a branch protection rule on the default branch, and on the integration branch adoption created, that requires the `verify` status check. Push the integration branch first: a rule needs a branch on the remote to name |
+| Azure DevOps | **Repos > Branches > the default branch — and the integration branch adoption created, `development`, once you have pushed it — > Branch policies > Build validation**: add the `azure-pipelines.yml` pipeline, make it **Required**, and set **Build expiration** to **Immediately when the branch is updated** |
+
+**How often an open pull request is checked again.** A pull request is checked against the branch as it
+was when the check ran. Two pull requests can each pass and merge without a conflict and still break
+together — one renames a method the other calls — and only re-checking after the first merges catches
+that before the second does. What to set is a trade between CI minutes and how early you find out:
+
+| Setting | Re-checks | Finds the break |
+|---|---|---|
+| **Immediately when the branch is updated** (recommended) | every open pull request, each time anything merges | before the second pull request can merge |
+| **After n hours if the branch has been updated** | a pull request whose passing check is older than n hours | before merging, unless both merge inside the window |
+| **Never** | nothing | after both have merged, at the next build that includes them |
+
+On GitHub the nearest equivalents are **Require branches to be up to date before merging** on the
+protection rule, which makes a pull request's author bring it up to date and re-run the check, and a
+**merge queue**, which checks each pull request against everything queued ahead of it. Azure DevOps has
+no merge queue.
+
+**On Azure DevOps this is not only what makes the check required — it is what runs it.** Azure Repos
+ignores a `pr:` trigger written in YAML, so the pipeline has no trigger of its own, and the file says so
+at the top. Until the policy exists, no pull request is built, tested or verified, and nothing fails to
+tell you. `sdlc doctor` names this step under `branch policy`, marked `elsewhere`, because a binary
+cannot read the platform's policies.
 
 ## 9. Open the first cycle
 

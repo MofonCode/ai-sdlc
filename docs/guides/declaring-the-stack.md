@@ -88,14 +88,12 @@ somebody adds the rows.
 
 ## The first draft
 
-Adoption writes it, as `.sdlc/techstack.draft.md`, with the options menu under `.sdlc/reports/` to read
-beside it. If it is gone — deleted, or a solution adopted before adoption wrote it — this writes it again:
+**Adoption writes it** — `.sdlc/techstack.draft.md`, with the options menu under `.sdlc/reports/` to
+read beside it. Open that file; there is no command to run first. `sdlc draft techstack` refuses while a
+draft is waiting, so it cannot overwrite the rows you have answered, and it is only for getting a deleted
+draft back.
 
-```pwsh
-sdlc draft techstack
-```
-
-With no declared stack in place, the draft is **the framework's default, whole**: every row the
+The draft is **the framework's default, whole**: every row the
 `dotnet-default` profile declares, and every stack rule the framework ships, each marked `true`. The
 framework ships three.
 
@@ -112,7 +110,7 @@ row reads as one nobody was asked about, so `sdlc stack` would offer it again at
 | is built on the default stack | nothing. Rename it as it is |
 | is .NET with different choices | change the rows that differ, and write `none` in those that are not true of it |
 | is built on something else | write `none` in what does not apply, write in what it uses, and set to `false` any rule naming a framework it does not have |
-| should pin nothing yet | `sdlc draft techstack --empty`, which writes the draft again with nothing in it but the note at its top, and rename that |
+| should pin nothing yet | delete the draft, then `sdlc draft techstack --empty`, which writes it again with nothing in it but the note at its top, and rename that |
 
 **Every solution starts from the same draft, new repository or old.** A draft is not a declaration: it is read, and cut down, before
 it is placed. **So read it** — a default renamed unread onto a codebase that is not .NET declares

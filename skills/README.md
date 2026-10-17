@@ -739,6 +739,7 @@ stack, or the solution document.
 |---|---|---|
 | a blocking finding is open, a document is missing, one has never been interrogated, or a round judged a document that has changed since | `draft approval` refuses to print | answer it; if it genuinely cannot be answered, `draft abandon` and a new cycle |
 | a drafter that does not exist | refuses, and lists the four that do | — |
+| `draft solution` before the document is placed, or `draft techstack` while a draft is waiting | refuses, and leaves the waiting draft as it is: what is in it may be somebody's work | fill in the waiting draft and rename it — or delete it, and draft again |
 | the rename that places the file | shown, and never run or offered: the hook denies it in every spelling and through every shell | run it yourself |
 
 #### Example

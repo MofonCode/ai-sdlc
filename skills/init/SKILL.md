@@ -273,8 +273,9 @@ Three drafts adoption leaves for a person, and one file it writes:
 | `AGENTS.md` | written if absent, printed for merging if present |
 
 **The declared stack is the step that cannot be skipped.** `sdlc new` refuses until the file exists.
-Adoption drafted it, and the options menu to read beside it is under `.sdlc/reports/`. `sdlc draft
-techstack` writes the draft again if somebody deleted it, and `--empty` writes one that pins nothing.
+Adoption drafted it, and the options menu to read beside it is under `.sdlc/reports/`. **Do not run
+`sdlc draft techstack` here**: it refuses while a draft is waiting, so as not to throw away rows already
+answered, and it is only for writing the draft again once somebody deleted it.
 
 The draft is the framework's default, whole: every row it would pin, under `## Rules` every stack
 rule it ships, each marked `true`, and under `## Build settings` the five `.NET` build settings files.
@@ -288,7 +289,7 @@ deleted row reads as one nobody was asked about, and the next release offers it 
 | is built on the default stack | nothing. Rename it as it is |
 | is .NET with different choices | change the rows that differ, and write `none` in those that are not true of it |
 | is built on something else | write `none` in the rows that do not apply, write in what it uses, and set to `false` any rule that names a framework it does not have |
-| should pin nothing yet | `sdlc draft techstack --empty`, which writes the draft again with nothing in it, and rename that. Nothing is pinned, no stack rule applies, and every plan chooses freely |
+| should pin nothing yet | the person deletes the draft, then `sdlc draft techstack --empty` writes it again with nothing in it, and they rename that. Nothing is pinned, no stack rule applies, and every plan chooses freely |
 
 **On a repository that already holds code, edit the draft from what you can read before you show the
 rename.** This is the one place reading the codebase is right — the file declares what the solution
@@ -356,6 +357,9 @@ Then write the answers where the person can place them:
 ```
 sdlc draft techstack
 ```
+
+**If it refuses because a draft is already waiting**, that draft is somebody's unfinished change: show it
+to the person and ask whether to finish that one or delete it and draft again. Do not delete it yourself.
 
 The draft is a byte copy and names the same list under the rename command. Add one row per answer to
 the table it belongs in — a default under `## Defaults`, a rule under `## Rules` — and nothing else.

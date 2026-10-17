@@ -111,6 +111,19 @@ public static class WriteTechStackDraft
                     $"There is no governed solution at {solution.Path} to declare a stack for. A person runs 'sdlc init' first; this is the step after it.")));
             }
 
+            string draftPath = Path.Combine(directory, DraftFileName);
+
+            // Never over a draft that is waiting. Adoption writes the first one, and a person following a
+            // guide that names this command would otherwise lose every row they had already answered in
+            // it -- the drafter for the solution document refuses on the same ground. Deleting the draft
+            // is the deliberate way to start it again, and costs one command.
+            if (File.Exists(draftPath))
+            {
+                return Result.Ok(DraftResult.Refused(string.Create(
+                    CultureInfo.InvariantCulture,
+                    $"A draft is already waiting at {draftPath}, and what is in it may be somebody's work, so it was left alone. Edit it and place it with 'mv -f \"{draftPath}\" \"{path}\"' -- or delete it, and run this again for a fresh one.")));
+            }
+
             Start start = request.Empty
                 ? Start.Empty
                 : File.Exists(path) ? Start.Copy : Start.Default;
@@ -145,8 +158,6 @@ public static class WriteTechStackDraft
                 // takes rows, and a note is not one.
                 _ => string.Join(Environment.NewLine, [.. Hooks.ProtectedPaths.Note, string.Empty]),
             };
-
-            string draftPath = Path.Combine(directory, DraftFileName);
 
             await File.WriteAllTextAsync(draftPath, current, cancellationToken).ConfigureAwait(false);
 

@@ -42,8 +42,8 @@ repository — that is the next guide.
 
 **Putting a repository under the framework.** The init skill and the `sdlc init` command, which do
 opposite halves of the job; what the command writes, commits and drafts, and the integration branch it
-creates; making the pipeline's check required; the interview and where each answer goes; filling in the
-three drafts, renaming them into place and committing them; and opening the first cycle.
+creates; the interview and where each answer goes; filling in the three drafts, renaming them into place
+and committing them; making the pipeline's check required; and opening the first cycle.
 
 It closes with **what your solution owns**: the six files only a person writes, what each holds, when it
 changes and which command drafts or proposes it — and the theme, which is the one solution file a cycle

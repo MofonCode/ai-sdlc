@@ -574,6 +574,29 @@ public sealed class DraftTests
         return result.Value;
     }
 
+    [TestMethod]
+    public async Task A_stack_draft_is_refused_while_one_is_waiting_rather_than_written_over_it()
+    {
+        // Adoption writes the first draft, and a guide naming this command had a person run it after
+        // answering rows in that draft -- which threw every answer away. Deleting the draft is the
+        // deliberate way to start again.
+        using var workspace = CycleWorkspace.Create();
+        workspace.WriteSolution(SolutionOrigin.Scaffolded);
+
+        string waiting = Path.Combine(workspace.Root, Cycle.SdlcDirectoryName, WriteTechStackDraft.DraftFileName);
+        CycleWorkspace.WriteRaw(waiting, "| ORM | none |\n");
+
+        DraftResult draft = await TechStack(workspace);
+
+        Assert.IsFalse(draft.MayDraft);
+        StringAssert.Contains(draft.Instructions, "already waiting");
+        Assert.AreEqual("| ORM | none |\n", await File.ReadAllTextAsync(waiting));
+
+        File.Delete(waiting);
+
+        Assert.IsTrue((await TechStack(workspace)).MayDraft, "Deleted, it is written fresh.");
+    }
+
     private static async Task<DraftResult> TechStack(CycleWorkspace workspace)
     {
         using var gate = Gate.For(workspace.Root);

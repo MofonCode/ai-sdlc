@@ -15,12 +15,12 @@ Adopt it, once — `../guides/adopting-the-framework.md`:
 1. `git init` — and **create the remote first** if the code will live on one
 2. `/sdlc:init` — asks where the code lives, then hands you the adoption command to run yourself. It
    commits, creates `development` and switches to it, and drafts three files beside where they go
-3. **make the pipeline's check required** in branch policy
-4. the interview, in the same skill, and the `LOC_` rules it proposes
-5. fill in `.sdlc/solution.draft.md` and `.sdlc/techstack.draft.md` — and `constraints.draft.md` if a
-   rule survived — then `mv -f` each onto its real name. **`sdlc new` refuses until the declared stack
-   is placed**
-6. `git add .sdlc && git commit` — **`sdlc new` refuses over uncommitted work**. `sdlc doctor` exits 0
+3. the interview, in the same skill, and the `LOC_` rules it proposes — it runs `propose constraints`
+4. fill in `.sdlc/solution.draft.md` and `.sdlc/techstack.draft.md` — and `constraints.draft.md` if a
+   rule survived — then `mv -f` each onto its real name. No command writes them; they are already there.
+   **`sdlc new` refuses until the declared stack is placed**
+5. `git add .sdlc && git commit` — **`sdlc new` refuses over uncommitted work**. `sdlc doctor` exits 0
+6. with a remote: push `development`, and **make the pipeline's check required** in branch policy
 
 Then the cycle — `../guides/running-a-cycle.md`:
 

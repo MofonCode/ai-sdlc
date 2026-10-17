@@ -18,7 +18,7 @@ The steps are written for **Azure DevOps**. GitHub differs only in step 6, which
 
 | You need | Check it with |
 |---|---|
-| an adopted solution with a remote on Azure DevOps or GitHub, and its pull-request check working | `sdlc doctor` — the `the guarantee` line is sound, and `adopting-the-framework.md` step 4 is done |
+| an adopted solution with a remote on Azure DevOps or GitHub, and its pull-request check working | `sdlc doctor` — the `the guarantee` line is sound, and `adopting-the-framework.md` step 8 is done |
 | permission to create pipelines, variables and environments in the project | the project's **Project Administrators** group has all three |
 | permission to change the repository's security settings | the same group |
 | the `sdlc` binary on your machine | `sdlc version` |
@@ -129,7 +129,7 @@ cycle cannot merge into it: the check refuses a branch with no intent, spec and 
 ## 5. Protect the integration branch
 
 Give `development` the same build validation policy as your default branch — `adopting-the-framework.md`
-step 4 walks it. Every change into `development` now arrives by a pull request, and the check runs on each.
+step 8 walks it. Every change into `development` now arrives by a pull request, and the check runs on each.
 
 **Set the policy's build expiration to *Immediately*.** Then every open pull request is checked again when
 another merges, which is what catches two pull requests that each pass alone and break together.

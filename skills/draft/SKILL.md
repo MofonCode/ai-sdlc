@@ -82,6 +82,10 @@ edit the draft; only the real file is denied. What the draft starts as depends o
 | none is in place yet | the **framework's default**: every row it would pin, every stack rule it ships switched on, and the five build settings files — `true` where the repository held no code, `false` where it did. Adoption drafts this same file, so here it is a second copy for somebody who deleted the first, and no cycle opens until one is renamed into place |
 | `--empty` was given | **nothing but the note saying who may change the file.** Renamed into place it declares that nothing is pinned, no stack rule applies, and every plan chooses freely |
 
+**It refuses while a draft is waiting**, whichever of those it would write, and leaves the draft as it
+is: adoption writes the first one, and what is in it may be somebody's answered rows. Say so, and point
+at the waiting draft. A person who wants a fresh one deletes it first.
+
 **The file holds three tables, and what is in them is exactly what binds.** The first pins choices: a
 row is a default every plan is read against, and a row not true here says `none` rather than being
 deleted — a concern with no row is one nobody was asked about, and the drafter names those a later
