@@ -276,6 +276,25 @@ public sealed class DoctorTests
     }
 
     [TestMethod]
+    public async Task A_solution_with_no_constraints_of_its_own_is_sound_with_or_without_the_draft()
+    {
+        // Optional: nothing stands between a solution with no rules of its own and its first cycle.
+        using var solution = Scratch.Create();
+        await Adopt(solution);
+
+        string draft = Path.Combine(solution.Root, Cycle.SdlcDirectoryName, Setup.ConstraintsDraftFileName);
+        Assert.IsTrue(File.Exists(draft), "Adoption drafts it even though it is optional.");
+
+        Diagnose.Response waiting = await Diagnosis(solution);
+        Assert.IsTrue(waiting.Sound, string.Join("; ", waiting.Checks.Where(c => c.Outcome == CheckOutcome.Problem).Select(c => c.Detail)));
+        StringAssert.Contains(DiagnosisRenderer.Render(waiting), "Nothing is left to place");
+
+        File.Delete(draft);
+
+        Assert.IsTrue((await Diagnosis(solution)).Sound, "Nor does deleting the draft make it a fault.");
+    }
+
+    [TestMethod]
     public async Task A_missing_integration_branch_is_a_problem_naming_the_command_that_makes_it()
     {
         using var solution = Scratch.Create();

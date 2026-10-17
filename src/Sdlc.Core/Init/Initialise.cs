@@ -479,8 +479,14 @@ public static class Initialise
                 "CONTRIBUTING.md", "SECURITY.md", "CHANGELOG.md", AgentsFileName, "CLAUDE.md",
             ];
 
+            string normalised = path.Replace('\\', '/');
+
+            // What adoption itself commits is not code either. Counting it would have a second run, on a
+            // clone with nothing placed, find its own hook configuration and call the solution adopted.
             return !furniture.Contains(name, StringComparer.OrdinalIgnoreCase)
-                && !path.Replace('\\', '/').StartsWith(Cycle.SdlcDirectoryName + "/", StringComparison.Ordinal);
+                && !normalised.StartsWith(Cycle.SdlcDirectoryName + "/", StringComparison.Ordinal)
+                && !SupportedHosts.All.Any(host => string.Equals(host.ConfigPath, normalised, StringComparison.OrdinalIgnoreCase))
+                && !string.Equals(PipelinePath(Platform.GitHub).Replace('\\', '/'), normalised, StringComparison.OrdinalIgnoreCase);
         }
 
         /// <summary>
@@ -534,14 +540,26 @@ public static class Initialise
         /// What the origin is when nothing has recorded one yet.
         /// </summary>
         /// <remarks>
-        /// Only ever consulted for a document that does not exist. A recorded origin always wins, because
-        /// recomputing it would turn a historical fact into something that moves: a scaffolded solution
-        /// would read as adopted the moment it had code in it, which is every solution after its first
-        /// cycle.
+        /// Only ever consulted when neither the document nor its draft exists. A recorded origin always
+        /// wins, because recomputing it would turn a historical fact into something that moves: a
+        /// scaffolded solution would read as adopted the moment it had code in it, which is every solution
+        /// after its first cycle.
+        /// <para>
+        /// On an update that means a clone taken before anybody placed the document: the drafts are
+        /// ignored by git, so the clone has the framework's directory and nothing recording the origin. It
+        /// is decided the way a first run decides it, from whether anything tracked is code -- with what
+        /// adoption itself committed not counting, so the run that drafts the files again does not
+        /// reclassify a new solution on the evidence of its own hooks.
+        /// </para>
         /// </remarks>
-        private static SolutionOrigin Decided(InitMode mode) => mode == InitMode.Greenfield
-            ? SolutionOrigin.Scaffolded
-            : SolutionOrigin.Adopted;
+        private SolutionOrigin Decided(InitMode mode) => mode switch
+        {
+            InitMode.Greenfield => SolutionOrigin.Scaffolded,
+            InitMode.Onboard => SolutionOrigin.Adopted,
+            _ => repository.TrackedFiles(solution.Path).Any(IsCode)
+                ? SolutionOrigin.Adopted
+                : SolutionOrigin.Scaffolded,
+        };
 
         /// <summary>
         /// Drafts a file only a person writes, beside where it goes, unless it or its draft is already there.

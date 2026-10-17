@@ -222,6 +222,11 @@ constraint. **Proposing none is the right answer for most solutions**, and this 
 leave unplaced: a solution with no rules of its own is sound. Renamed with no entry, it places a file
 with no rule in force.
 
+**The drafts are ignored by git, so a clone does not have them.** Somebody who clones before you have
+placed the files, or who deletes a draft, gets it back by running adoption again: it drafts whichever
+file is neither placed nor drafted and leaves the rest alone. `.sdlc/README.md`, in the repository, says
+the same where a teammate will find it.
+
 ## 7. Rename them into place
 
 From the repository root. In bash or Git Bash:

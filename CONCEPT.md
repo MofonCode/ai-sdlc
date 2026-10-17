@@ -6495,6 +6495,12 @@ once with `none`, and the list is quiet after that. The `init` skill says so bef
    document records another. `doctor` fails while it is missing. And **`sdlc new` refuses while anything
    is uncommitted**, naming the files; the intent skill asks the person what to do with them.
 
+**Recovering a draft is running `init` again.** The drafts are ignored, so a clone taken before anything
+was placed has none of them and nothing recording the origin. `init` drafts again whatever is neither
+placed nor drafted, and decides the origin as a first run would — with the files adoption itself commits
+not counted as code, so its own hooks cannot reclassify a new solution as adopted. `.sdlc/README.md`
+says so in the solution.
+
 **Why: the walk.** Adoption wrote `solution.md` with one placeholder, then named `sdlc draft solution`,
 whose draft carried a *different* one — the first said nothing reads the prose, the second that every
 plan does — and the person was told to rename the second over the first. The rename changed nothing but

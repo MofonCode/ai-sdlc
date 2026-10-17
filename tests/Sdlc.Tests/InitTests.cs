@@ -639,6 +639,69 @@ public sealed class InitTests
     }
 
     [TestMethod]
+    public async Task The_constraints_draft_is_written_every_time_and_never_a_step_left()
+    {
+        // Optional, and still drafted: a solution with no rules of its own is sound, and the first rule
+        // it does take lands in a document that already explains itself.
+        using var solution = Scratch.Create();
+
+        Initialise.Response report = await Adopt(solution, tracked: []);
+
+        Assert.IsTrue(File.Exists(Path.Combine(solution.Root, Cycle.SdlcDirectoryName, Setup.ConstraintsDraftFileName)));
+
+        SetupStep constraints = report.Setup!.Steps.Single(step => step.FileName == "constraints.md");
+
+        Assert.IsTrue(constraints.Optional);
+        Assert.IsFalse(
+            report.Setup.Left.Contains(constraints),
+            "Left is what stands between this solution and its first cycle, and this does not.");
+    }
+
+    [TestMethod]
+    public async Task A_clone_taken_before_anything_was_placed_gets_its_drafts_back_and_keeps_its_origin()
+    {
+        // The drafts are ignored by git, so a clone has the framework's directory and nothing that records
+        // the origin. Adoption's own committed files are not code, so a run there drafts all three again
+        // and still calls a new solution scaffolded.
+        using var solution = Scratch.Create();
+        Initialise.Response first = await Adopt(solution, tracked: []);
+
+        string sdlc = Path.Combine(solution.Root, Cycle.SdlcDirectoryName);
+        string[] drafts = [WriteSolutionDraft.DraftFileName, WriteTechStackDraft.DraftFileName, Setup.ConstraintsDraftFileName];
+
+        foreach (string draft in drafts)
+        {
+            File.Delete(Path.Combine(sdlc, draft));
+        }
+
+        string[] committed = [.. first.Written.Select(path => path.Replace('\\', '/'))];
+        Initialise.Response again = await Adopt(solution, tracked: committed);
+
+        Assert.AreEqual(Initialise.InitMode.Update, again.Mode);
+        Assert.AreEqual(SolutionOrigin.Scaffolded, again.Origin, "Its own hooks are not evidence of code.");
+
+        foreach (string draft in drafts)
+        {
+            Assert.IsTrue(File.Exists(Path.Combine(sdlc, draft)), draft + " was not drafted again.");
+        }
+    }
+
+    [TestMethod]
+    public void The_sdlc_readme_names_the_three_drafts_and_how_to_get_one_back()
+    {
+        string readme = Templates.Readme();
+
+        foreach (string draft in new[] { WriteSolutionDraft.DraftFileName, WriteTechStackDraft.DraftFileName, Setup.ConstraintsDraftFileName })
+        {
+            StringAssert.Contains(readme, draft);
+        }
+
+        StringAssert.Contains(readme, "ignored by git");
+        StringAssert.Contains(readme, "**Optional**");
+        StringAssert.Contains(readme, "It drafts again whichever is neither placed nor drafted");
+    }
+
+    [TestMethod]
     public async Task Every_draft_carries_the_note_saying_only_a_person_changes_the_file()
     {
         using var solution = Scratch.Create();
