@@ -181,9 +181,10 @@ source a plan is read against, so it has a guide of its own: `declaring-the-stac
 row that is not true here rather than deleting it.
 
 **`.sdlc/constraints.draft.md` — this solution's own rules, if it has any.** Add at its end each entry the
-interview produced, as the skill showed it — there is no command to run here. **It is the one draft you
-may leave unplaced**: a solution with no rules of its own is sound, and renamed with no entry it places a
-file with no rule in force.
+interview produced, as the skill showed it — there is no command to run here. **Rename it even with no
+entry**: it places a file with no rule in force, which says in the record that this solution has none
+of its own. It is the one draft you may leave unplaced — a solution with no rules of its own is sound
+either way — but a draft is ignored by git, so it reaches nobody else.
 
 **The drafts are ignored by git, so a clone does not have them.** Somebody who clones before you have
 placed the files, or who deletes a draft, gets it back by running adoption again: it drafts whichever

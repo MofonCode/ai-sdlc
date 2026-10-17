@@ -161,6 +161,7 @@ and `sdlc doctor` prints the same block whenever you ask:
 ```sh
 mv -f .sdlc/solution.draft.md .sdlc/solution.md
 mv -f .sdlc/techstack.draft.md .sdlc/techstack.md
+mv -f .sdlc/constraints.draft.md .sdlc/constraints.md
 git add .sdlc && git commit -m "Place the solution and its stack"
 ```
 

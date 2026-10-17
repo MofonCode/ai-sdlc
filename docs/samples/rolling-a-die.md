@@ -201,15 +201,17 @@ and nothing predates them. Read `## Notes worth keeping` before you rename it: i
 are about exactly the two projects this cycle adds. What is in that file once it is placed is exactly
 what binds; a solution that was not .NET would cut it down first.
 
-**`.sdlc/constraints.draft.md`.** Leave it. The interview produced nothing that is a constraint, and an
-empty solution-constraint set is the right starting point — this work is too small to be what earns a
-rule. It stays a draft, which git ignores.
+**`.sdlc/constraints.draft.md`.** Leave its contents as they are. The interview produced nothing that is
+a constraint, and an empty solution-constraint set is the right starting point — this work is too small
+to be what earns a rule. Place it anyway: renamed with no entry, it says in the record that this
+solution has no rules of its own, rather than leaving a draft git ignores.
 
-Now place the two. On Claude Code a `!` line runs in bash, so use that form there:
+Now place the three. On Claude Code a `!` line runs in bash, so use that form there:
 
 ```sh
 mv -f .sdlc/solution.draft.md .sdlc/solution.md
 mv -f .sdlc/techstack.draft.md .sdlc/techstack.md
+mv -f .sdlc/constraints.draft.md .sdlc/constraints.md
 ```
 
 In a PowerShell terminal, where `mv -f` is ambiguous:
@@ -217,6 +219,7 @@ In a PowerShell terminal, where `mv -f` is ambiguous:
 ```pwsh
 Move-Item -Force .sdlc/solution.draft.md .sdlc/solution.md
 Move-Item -Force .sdlc/techstack.draft.md .sdlc/techstack.md
+Move-Item -Force .sdlc/constraints.draft.md .sdlc/constraints.md
 ```
 
 Then commit them, on `development`:
@@ -251,7 +254,9 @@ silently governs nothing when it cannot parse one.
 
 **Then it waits for your answers.** The intent is written from them, so until you reply there is no
 intent, and an interrogation asked for now finds nothing to read. The die has never been built, so it
-asks in that tense:
+asks in that tense — six things, and it says up front what your solution paragraph already answered and
+asks only from there, so expect its wording to differ from this table and its questions to be narrower
+where the paragraph covered them:
 
 | It asks | Answer |
 |---|---|
@@ -259,6 +264,8 @@ asks in that tense:
 | who needs it, and how often | whoever is playing the board game, every turn that calls for a roll |
 | what would you be able to see that you cannot today | a page with a die on it and a button. Press the button and see a die face showing one to six pips. If the roll fails, the page says so |
 | what is out of bounds | one die only, no history, nothing stored, no sign-in, no animation |
+| is there a decision already made that it should treat as fixed | a single six-sided die; nothing is stored; a face is drawn as pips, not as a numeral |
+| which areas it touches beyond security, operability and maintainability, which are always on | it is a page someone uses, so ui-ux and accessibility. Nothing else: no public API, no performance target, no infrastructure |
 
 **It will ask one more and the answer matters.** Say *keep it simple* and it asks which you mean — small
 in scope, or plain in appearance. Here the answer is **scope**: one die, one page. It is not appearance,
@@ -266,8 +273,8 @@ and the difference is the whole of this example: *plain* is the reading under wh
 number in a paragraph tag. The word reaches every stage afterwards and no gate can tell the two readings
 apart.
 
-Expect fixed decisions roughly like *a single six-sided die*, *nothing is stored* and *a face is drawn
-as pips, not as a numeral*, each with your name and the date on it. The first two keep the spec from
+Your answer to the fifth question becomes the intent's fixed decisions, each with your name and the
+date on it, and the sixth its `perspectives: ui-ux, accessibility`. The first two keep the spec from
 growing a second page; the third keeps it from shrinking the one it has.
 
 Then the loop, until a round raises nothing blocking:
