@@ -288,7 +288,8 @@ What is honest to say about the rest:
   D-32). It runs only once a person adds a build validation branch policy — Azure Repos ignores a YAML
   pull-request trigger — and the file, the adoption guide and `sdlc doctor` all say so.
 - **The binary is not on a feed.** Installing means cloning and packing — the single thing that would
-  most improve a teammate's first hour.
+  most improve a teammate's first hour. CI installs the packed tool to a temporary path on every pull
+  request; `--global` on a clean machine has not been tried.
 - **The integration branch and the factory are built and have never run for real.** The queue, the cycle
   branches, the admission check, the sitrep, `batch-build --pr --unattended` and `sdlc factory` are held by
   the suite and tried against scratch repositories; no factory pipeline has run on a server, and nobody has

@@ -112,7 +112,10 @@ They describe the framework from outside: what to type, what it will say, and wh
 [`../../skills/README.md`](../../skills/README.md); the design and every decision behind it is
 [`../../CONCEPT.md`](../../CONCEPT.md).
 
-Where a guide says something has not been exercised, that is load-bearing and is not to be tidied away.
+**None of them reports where the project stands.** What has and has not been exercised, and what changed
+in which release, belong to the Where it stands section of [`../../README.md`](../../README.md) and the
+decisions in `CONCEPT.md`. A guide says how a thing works and what to do, as true on the day it is read
+as on the day it was written.
 
 ## See also
 

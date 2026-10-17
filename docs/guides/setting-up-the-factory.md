@@ -9,9 +9,8 @@ builds and verifies each one on its own branch, and opens a pull request per cyc
 did not pass. In the morning you read one page, the sitrep, and merge. **It never merges anything itself,
 and it never writes a file only a person writes.**
 
-**Neither factory pipeline has run against a real server yet.** Every step below follows the platforms'
-documentation, and the generated file says the same at its top. That is why step 7 is a watched first run
-against a cycle you do not care about.
+**Step 7 is a watched first run against a cycle you do not care about.** A pipeline that is wrong
+somewhere fails on its first run, and that is the run to spend on a throwaway.
 
 The steps are written for **Azure DevOps**. GitHub differs only in step 6, which has a section of its own.
 

@@ -129,8 +129,8 @@ round file with `{}` once made every blocker for that document disappear from th
 A planning document has no findings round at all — most often because `findings/` was deleted.
 
 **Next:** `/sdlc:interrogate <id> <artifact>` for whichever the message names. An artifact nobody
-challenged is not a clean artifact, and deleting the directory used to leave the gate, `verify-chain`
-and `pr-ready` all passing with no round having ever existed. The drafter refuses this too, but that is
+challenged is not a clean artifact, and without this refusal deleting the directory would leave the gate,
+`verify-chain` and `pr-ready` all passing with no round having ever existed. The drafter refuses this too, but that is
 advice a person can decline to take; this is the layer that does not negotiate.
 
 ### a blocking finding is open
@@ -233,10 +233,9 @@ being checked while the building happened.
 
 ### an empty patch beside a changed file
 
-Files outside `.sdlc/` changed and the patch came back empty, which cannot both be true. This was a real
-defect once — `git diff` cannot see an untracked file — and it recorded an empty `diff.patch` beside a
-panel saying everything was in order. It is fixed; if you see it, the evidence is wrong rather than the
-code. **Next:** `git status --short`.
+Files outside `.sdlc/` changed and the patch came back empty, which cannot both be true — recording it
+would put an empty `diff.patch` beside a panel saying everything was in order. If you see it, the
+evidence is wrong rather than the code. **Next:** `git status --short`.
 
 ### no results file
 
@@ -403,9 +402,7 @@ every test the plan named actually passed, and that is the guarantee.
 
 **Two of the three hosts.** Claude Code calls the moment `Stop` and Copilot `agentStop`, and adoption
 configures whichever name the host uses. Antigravity has such an event and is deliberately left
-ungoverned — see the paragraph below. Copilot was left out of this for a
-release on the belief that its hook surface had no such event; it has had one all along, and
-`CONCEPT.md` D-46 records how the claim survived. A host that genuinely has no turn end is still refused
+ungoverned — see the paragraph below. A host that genuinely has no turn end is still refused
 by name — `sdlc hook --event turn-end` says so and configures nothing, because a plausible-looking
 configuration for an event that cannot fire is a check that appears to enforce and does not.
 
@@ -447,8 +444,7 @@ the draft to edit.
 **The check is not required.** `sdlc verify-chain` in the pipeline is the only non-bypassable layer, and
 it is only a guarantee while branch policy makes it required. A pipeline that runs it and a merge that
 does not wait for it is a directory that appears enforced and is not — which is worse than one that never
-pretended. Iteration 3 shipped a nightly job that needed an API key nobody had set, and warned and exited
-cleanly for weeks. That is the failure mode this design is written against.
+pretended.
 
 **On Azure DevOps it is worse: without the policy the check does not run at all.** Azure Repos ignores a
 `pr:` trigger in YAML, so `azure-pipelines.yml` runs on a pull request only when a build validation

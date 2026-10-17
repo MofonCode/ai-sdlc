@@ -79,19 +79,14 @@ command refuses and says so rather than falling back — a person who named a ru
 
 **The package and the plugin carry the same number, and the artifact format does not.**
 `VersionPrefix` in `Directory.Build.props` is the one place the release version is set, and the suite
-asserts it matches `plugin.json` — before it existed the package took the SDK default of 1.0.0 while the
-plugin said 0.9.0, so neither number told anybody what they had. The third version, stamped into every
-artifact's `framework_version`, tracks the file envelope rather than the release and is meant to stay put
-across releases that change no format. `sdlc version` prints all three and says which is which. If a
-reinstall has to pin one, `dotnet tool install --version` takes it.
+asserts it matches `plugin.json`, so the package version and the plugin version always tell you the same
+thing. The third version, stamped into every artifact's `framework_version`, tracks the file envelope
+rather than the release and is meant to stay put across releases that change no format. `sdlc version`
+prints all three and says which is which. If a reinstall has to pin one, `dotnet tool install --version`
+takes it.
 
-**Verified:** the pack step, and the install-and-run from outside the tree — `.github/workflows/ci.yml`
-packs the tool, installs it to a temporary tool path and runs `sdlc constraints` from a directory that is
-not this repository, on every pull request. That step exists because everything else runs the binary from
-its build output, which sits inside this tree and so always finds a `CONSTRAINTS.md` by walking up to the
-root; the packed artifact went untested for a release, and shipped no library at all. **Not verified:**
-`--global` specifically, on a clean machine, which differs from the CI path only in where the tool lands. If `dotnet tool install` refuses because the tool is already
-present, the **Update** section below is the pair to run.
+If `dotnet tool install` refuses because the tool is already present, the **Update** section below is the
+pair to run.
 
 ## The plugin
 
@@ -148,10 +143,6 @@ removing one first — see **Remove**.
 
 ### On Copilot
 
-**Untried — nobody has run these and watched the skills load.** They are the documented commands and the
-package conforms to the standard they read, which is not the same claim. If you are the first, say what
-happened.
-
 ```pwsh
 copilot plugin marketplace add MofonCode/ai-sdlc
 ```
@@ -170,15 +161,13 @@ of the plugin standard, so adoption writing `.github/hooks/sdlc.json` is the onl
 
 ### On Antigravity
 
-**Untried.** The adapter is conformance-tested against Google's own hooks reference — the nested
-`toolCall` payload, the decision-on-every-call contract, and the `sdlc` section adoption writes into
-`.agents/hooks.json` — but no Antigravity session has had a tool call refused by it.
+Adoption writes an `sdlc` section into `.agents/hooks.json`, which is how the pre-tool hook reaches it.
 
 The skills reach it through its own plugin mechanism rather than Agent Plugins: `agy plugin install`
 with a git URL or a local path, and it also scans `.agents/skills/` in a workspace and
 `~/.gemini/config/skills/` globally. A plugin there is a `plugin.json` plus an optional `skills/`
 directory, which is the layout this repository already has — but that is **not** the same manifest as
-the Agent Plugins one, and nobody has run `agy plugin validate` against it.
+the Agent Plugins one.
 
 **The workspace configuration needs a trusted folder.** Antigravity loads `.agents/hooks.json` only in
 a folder you have marked trusted, so on a fresh clone the local layer is off until you do. That is a
@@ -190,10 +179,6 @@ pull-request check.
 **Nothing is configured for a host that is not in the table**, and `sdlc hook --host <name>` refuses a
 name it does not know rather than guessing. Codex and Cursor both have a blocking pre-tool hook, so they
 are adapters waiting to be written rather than hosts that cannot work.
-
-Gemini CLI had a row for two releases and no longer does: Google retired the product on 18 June 2026 in
-favour of Antigravity CLI, so the configuration described a hook for a program that no longer answers.
-`CONCEPT.md` D-50 has what that cost and what Antigravity would take.
 
 ## Check what you have
 

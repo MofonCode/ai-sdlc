@@ -109,9 +109,7 @@ row reads as one nobody was asked about, so `sdlc stack` would offer it again at
 | is built on something else | write `none` in what does not apply, write in what it uses, and set to `false` any rule naming a framework it does not have |
 | should pin nothing yet | `sdlc draft techstack --empty`, and rename that |
 
-**Every solution starts from the same draft, new repository or old.** An adopted repository used to
-start with four empty rows, because the file was written straight into place and a guess written down
-as a declaration is worse than nothing. A draft is not a declaration: it is read, and cut down, before
+**Every solution starts from the same draft, new repository or old.** A draft is not a declaration: it is read, and cut down, before
 it is placed. **So read it** — a default renamed unread onto a codebase that is not .NET declares
 something false, and every plan after it is read against that.
 
@@ -162,7 +160,7 @@ blank form in its place would make the rename a wholesale replacement, and every
 would be dropped from the one file every plan is judged against. To pin nothing at all, `--empty` says
 so on the command line, where it is a decision somebody typed.
 
-## What a profile is, now
+## What a profile is
 
 A named set of default rows, carried by the binary. Two ship:
 
@@ -283,8 +281,7 @@ may have had its own first, so there is no framework's version to compare agains
 
 ## When a release adds a row or a rule
 
-A release can add a default to the profile — `accessibility testing` arrived in 0.23.0 — or a stack
-rule. **Neither reaches your stack by itself**: the file is yours, and an upgrade of the binary should
+A release can add a default to the profile or a stack rule. **Neither reaches your stack by itself**: the file is yours, and an upgrade of the binary should
 never change what a plan is judged against. What happens instead is that the new row is **named**:
 
 | Where | What it says |
