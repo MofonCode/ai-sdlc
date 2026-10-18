@@ -113,9 +113,18 @@ planned, approved, built and verified exactly the same way. Only the guarantee i
 doctor` says so every time it runs. When a remote exists, re-running adoption with a platform writes the
 pipeline, and the `pr` skill walks through creating the remote.
 
-Give the person the line, `!` and all. When they have run it, read what it printed — it says which mode
-ran, what the origin was decided to be, every file it touched or deliberately left, that it committed
-them, and that it created the integration branch and switched to it.
+Give the person the line, `!` and all, **and with it one sentence: the output ends with a rename for
+each draft, and those wait until the two of you have filled the drafts in.** The renames are the last
+lines it prints, so they read as the next step; one real adoption placed all three drafts unread within
+a minute, before a question was asked, and the plans that followed had to argue departures from a
+storage row and a messaging row on a solution that stores nothing. When they have run it, read what it
+printed — it says which mode ran, what the origin was decided to be, every file it touched or
+deliberately left, that it committed them, and that it created the integration branch and switched to
+it.
+
+**If they have already renamed them, the drafts are gone but nothing is lost.** Walk the questions
+anyway against the placed files, and for each one that needs a change, `sdlc draft solution` or
+`sdlc draft techstack` writes the draft again for an edit and a rename.
 
 **It ends with the drafts it wrote and how to place them, and on a first adoption that is yours to carry
 out with them.** Adoption drafts all three files only a person writes, beside where each goes —

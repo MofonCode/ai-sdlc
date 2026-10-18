@@ -93,6 +93,15 @@ That is the exit, and using it is what makes the narrowing a decision somebody w
 a word that went missing. Judging the look of something is the usual case — no test makes that
 judgement, and `CON_12` keeps it out of a criterion.
 
+**A "never" is the other usual case, and it is bounded in the first draft, not the fourth.** "No
+animation", "nothing stored", "no sign-in" each forbid an open-ended set, and no test observes every
+member of one. Write the criterion over the set a test can observe — no CSS transition or animation on
+the die, nothing in cookies, `localStorage` or `sessionStorage` — and put the remainder in `Out of
+scope` by name, in the same draft. Left unbounded, the negative comes back from each round with the
+next member nobody checked: one real cycle spent two spec rounds and two plan rounds finding, in turn,
+script-driven animation, a canvas, and an observer too narrow to see either, all from the words "no
+animation", and converged only once the canvas went to `Out of scope`.
+
 ## Write criteria that can fail
 
 `CON_03` forbids a criterion that cannot fail. The test: **can you describe, concretely, a run of the

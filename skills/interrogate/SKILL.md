@@ -18,14 +18,20 @@ The reader must not have seen the artifact being made. Run the judgement in a **
 this session and not as a subagent:
 
 ```bash
-sdlc constraints --for <artifact> > /tmp/sdlc-constraints.txt
-# a plan round reads one file more -- see the prompt below
-cat .sdlc/techstack.md > /tmp/sdlc-techstack.txt
-claude -p "$(cat <<'PROMPT'
-<the judging prompt below>
-PROMPT
-)" --output-format text
+sdlc constraints --for <artifact> > <scratch>/constraints.txt
+# compose <scratch>/prompt.txt from the judging prompt below, with your Read and Write tools
+claude -p --output-format text < <scratch>/prompt.txt
 ```
+
+`<scratch>` is any directory outside the repository that your host gives you to write in.
+
+**Compose the prompt with your Read and Write tools, not the shell.** The blocks it carries — the
+artifact, its upstream, and on a plan round `.sdlc/techstack.md` — are files you read and paste in. A
+shell redirect that names one of them, such as `cat .sdlc/techstack.md > …`, is refused by the hook,
+which matches a protected file's name beside a redirect without asking which way the data flows.
+
+**Pipe the prompt in; never pass it as an argument.** A plan with its upstream and stack runs to tens
+of kilobytes, and `claude -p "$(…)"` fails on Windows with `Argument list too long` long before that.
 
 Any non-interactive invocation of the host will do; what matters is that the model reading the
 artifact is not the one that wrote it.
@@ -43,7 +49,8 @@ already have. A new process creates a new reader.
 ## The prompt to give the fresh reader
 
 Give it the constraints in force, the artifact, and the artifact above it in the chain — and, **when
-the artifact is a plan, the solution's `techstack.md`**. Nothing else — no conversation, no request
+the artifact is a plan, the solution's `techstack.md`**, and **when it is a verify, the spec and the
+evidence** (below). Nothing else — no conversation, no request
 history, no explanation of what the author was trying to do. Every one of those is the bias you just
 paid to remove.
 
@@ -63,6 +70,13 @@ cycle did. Handing it over removes nothing the new process was opened to protect
 **A plan only.** `CON_15` applies to a plan and to nothing else, and an intent or a spec that reached
 for a package would be breaking a different rule. On those rounds the file would be context with no
 rule to serve, which is the definition of what does not belong in this prompt.
+
+**A verify round reads what the verification was allowed to read.** Its document above in the chain is
+the **plan**, which commits to the proof per criterion. Add `spec.md` for the criteria, and the evidence
+the verification cites — `tests.json`, `build.log` and `diff.patch` from the cycle's `evidence/` — because
+`CON_08` is decided by checking each claim against the evidence it names, and a reader without the
+evidence can only check that something was named. Nothing beyond that: the verification was not allowed
+the source or the intent, and a reader of it is held to the same.
 
 **An empty stack is pasted as an empty stack, not left out.** An adopted solution's table starts
 empty, and a reader handed no block cannot tell "this solution declares nothing" from "nobody showed
@@ -85,6 +99,11 @@ as it is, and if it is absent say so in the block in those words.
 > Here is the document above it in the chain, which it is meant to be derived from:
 >
 > <the upstream artifact, or "none -- this is the first artifact" for an intent>
+>
+> Here are the criteria it adjudicates, and the evidence it may cite:
+>
+> <spec.md, then tests.json, build.log and diff.patch — this block on a verify round only, and omitted
+> whole otherwise>
 >
 > Here is the document to judge:
 >
@@ -223,7 +242,8 @@ carries it forward unchanged, which is correct. **Which means a finding that has
 to be mentioned, and said to be dealt with.** The next section is how.
 
 **`upstream_sha256` is the canonical hash of the artifact above, as you just read it.** Omit it only
-for an intent, which has no upstream. This is what makes a stale judgement detectable: the approval's
+for an intent, which has no upstream. For a verify it is the **plan's** hash, which is what the status
+panel compares a verify round against. This is what makes a stale judgement detectable: the approval's
 three hashes prove three documents were approved, not that the spec was derived from *this* intent, so
 an upstream edited afterwards leaves a round that is clean about a document that no longer exists. A
 round with no upstream recorded counts as stale, so leaving it out does not skip the check.

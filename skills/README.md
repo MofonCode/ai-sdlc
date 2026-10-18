@@ -470,7 +470,7 @@ round. Never edits.
 |---|---|
 | Stage | the loop, whenever an artifact — intent, spec, plan or verify document — has just been written or changed |
 | Started by | the stage skill's loop, or a person |
-| Reads | the constraints in force, the artifact, and the artifact above it — and on a plan round, `techstack.md` as well; `sdlc perspectives` and each perspective's `sdlc perspective show` for its readers |
+| Reads | the constraints in force, the artifact, and the artifact above it — on a plan round `techstack.md` as well, and on a verify round the spec and the evidence; `sdlc perspectives` and each perspective's `sdlc perspective show` for its readers |
 | Writes | `.sdlc/cycles/<id>/findings/<artifact>.r<n>.json` |
 
 #### Syntax
