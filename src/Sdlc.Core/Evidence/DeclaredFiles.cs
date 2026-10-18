@@ -41,10 +41,12 @@ public sealed record FileComparison(
 /// </remarks>
 public static class DeclaredFiles
 {
-    // Anything inside backticks, for reading a proof entry's test names. Wider than the path pattern
-    // below, on purpose: a test name has no extension and no slash, so there is nothing else to key on.
-    private static readonly Regex _backticked = new(
-        @"`(?<text>[^`]+)`",
+    // The backticked names a proof entry opens with: one, or several joined by commas, "and", "&" or "+".
+    // Only the opening run, because the prose after it backticks whatever it mentions -- cycle-02's
+    // proof 8 opened with its test and then installed a `MutationObserver`, and reading every span made
+    // a browser API a test that had to pass.
+    private static readonly Regex _leadingNames = new(
+        @"^\s*`(?<name>[^`]+)`(?:[\s,&+]*(?:and[\s,]+)?`(?<name>[^`]+)`)*",
         RegexOptions.CultureInvariant | RegexOptions.ExplicitCapture,
         TimeSpan.FromSeconds(1));
 
@@ -97,6 +99,10 @@ public static class DeclaredFiles
     /// table or as a list and both are legitimate -- the schema requires the section, not its layout. The
     /// cost is that a path mentioned in prose inside the section counts as declared, which errs toward a
     /// wider declared set; for a signal whose job is estimating blast radius, wide is the safer error.
+    /// <para>A table row is the exception: only its first cell declares. The cells after it describe the
+    /// file, and a description backticks what it mentions -- cycle-02's <c>Cycle02.slnx</c> row listed the
+    /// four projects it adds, each of which then came back <c>UNDELIVERED</c>, a signal four times wrong
+    /// about one line. A list item has no cells to tell apart, so it is read whole as before.</para>
     /// </remarks>
     /// <param name="markdown">The plan.</param>
     /// <returns>The declared paths, normalised to forward slashes, without duplicates.</returns>
@@ -113,7 +119,7 @@ public static class DeclaredFiles
 
         foreach (string line in lines)
         {
-            foreach (Match match in _quoted.Matches(line))
+            foreach (Match match in _quoted.Matches(DeclaringPart(line)))
             {
                 paths.Add(Normalise(match.Groups["path"].Value));
             }
@@ -122,13 +128,32 @@ public static class DeclaredFiles
         return [.. paths.Order(StringComparer.Ordinal)];
     }
 
+    // A table row's first cell, or the whole line when it is not a row.
+    private static string DeclaringPart(string line)
+    {
+        string trimmed = line.TrimStart();
+
+        if (!trimmed.StartsWith('|'))
+        {
+            return line;
+        }
+
+        int end = trimmed.IndexOf('|', 1);
+        return end < 0 ? trimmed[1..] : trimmed[1..end];
+    }
+
     /// <summary>
     /// The test names one proof entry commits to.
     /// </summary>
     /// <remarks>
-    /// Read from backticked spans, the same way a declared file is. A plan writes prose around the name --
-    /// "a test named X asserts it" -- and pulling the name out of prose would mean guessing which word is
-    /// the name. Backticks make it a declaration rather than a mention, and the plan skill asks for them.
+    /// <para>Read from the backticked names the entry <em>opens</em> with, and nowhere else. Pulling a name
+    /// out of prose would mean guessing which word is the name, so backticks make it a declaration; and
+    /// reading only the opening run is what keeps the rest of the entry free to backtick a type, a package
+    /// or a selector as formatting. Every span used to count, so a proof that described its test --
+    /// "`A_roll_changes_the_die_once` installs a `MutationObserver`" -- committed to a test called
+    /// <c>MutationObserver</c>, and a verified cycle could not open its pull request.</para>
+    /// <para>An entry that opens with prose names no test. The plan's schema refuses it, so that is found
+    /// while the plan is written rather than after the build.</para>
     /// </remarks>
     /// <param name="entry">One numbered proof entry's text.</param>
     /// <returns>The names it commits to, which may be none.</returns>
@@ -138,13 +163,12 @@ public static class DeclaredFiles
 
         HashSet<string> names = new(StringComparer.Ordinal);
 
-        foreach (Match match in _backticked.Matches(entry))
+        foreach (Capture capture in _leadingNames.Match(entry).Groups["name"].Captures)
         {
-            string name = match.Groups["text"].Value.Trim();
+            string name = capture.Value.Trim();
 
-            // A path is a file, not a test. A proof entry may name both -- "`RollTests.cs` holds
-            // `Rolls_within_one_and_six`" -- and counting the file as a test would make the check pass on a
-            // name no runner ever reported.
+            // A path is a file, not a test, and counting one would make the check hunt for a name no
+            // runner ever reports.
             if (name.Length > 0 && !name.Contains('/', StringComparison.Ordinal))
             {
                 names.Add(name);

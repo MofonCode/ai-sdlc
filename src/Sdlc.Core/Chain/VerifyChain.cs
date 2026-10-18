@@ -497,7 +497,7 @@ public static class VerifyChain
                 {
                     problems.Add(string.Create(
                         CultureInfo.InvariantCulture,
-                        $"proof {number} names no test. Write the test's name in backticks, so there is something to check."));
+                        $"proof {number} names no test. Open the entry with the test's name in backticks, so there is something to check."));
 
                     continue;
                 }

@@ -208,17 +208,20 @@ criterion is still unmet?* If you can answer that, the proof is not adequate yet
 - A test that asserts a call was made proves the call, not its effect.
 - A test over 100 rows says nothing about 50,000.
 
-**Number the proof entries to match the criteria, and name each test in backticks.**
+**Number the proof entries to match the criteria, and open each with its test's name in backticks.**
 
 ```markdown
 1. `Rolls_within_one_and_six` draws 10,000 times and asserts every face is 1 to 6.
 2. `Two_requests_are_drawn_separately` requests the page twice and asserts the draws were independent.
+3. `Keyboard_rolls`, `Keyboard_keeps_focus` press Enter on the `Roll` button and assert where focus is.
 ```
 
-The backticks are not decoration. `verify-chain` reads the names out of them and checks the normalised
-test summary to see that each one **ran and passed** — so a proof entry with no backticked name commits
-to nothing a reader can check, and the chain reports it. "Covered by the integration suite" is what an
-inadequate proof looks like when it is written in good faith.
+The opening backticks are not decoration. `verify-chain` reads the names an entry **opens with** — one,
+or several joined by commas or "and" — and checks the normalised test summary to see that each one
+**ran and passed**. Backticks after the first plain word are formatting: entry 3's `Roll` is a button,
+not a test. So a test named mid-sentence is never checked, and an entry that opens with prose commits to
+nothing a reader can check — the plan's shape check refuses it. "Covered by the integration suite" is
+what an inadequate proof looks like when it is written in good faith.
 
 The numbers are compared in both directions: a criterion with no proof fails, and a proof citing a
 criterion the spec does not have fails too — because that means one was deleted or renumbered after the

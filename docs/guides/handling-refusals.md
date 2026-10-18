@@ -320,9 +320,10 @@ looking at a failed check needs to know what held. The checks are: the cycle exi
 the chain is complete, the approval, the gate is satisfied, every criterion has a proof, every named test
 passed, every criterion is adjudicated, the change was verified.
 
-**"every named test passed" is the one that surprises people.** Each proof in the plan names its test in
-backticks, and this reads those names out of the plan and confirms each one ran and passed according to
-the normalised summary — not according to anything the build said about itself.
+**"every named test passed" is the one that surprises people.** Each proof in the plan opens with its
+test's name in backticks, and this reads those opening names out of the plan and confirms each one ran
+and passed according to the normalised summary — not according to anything the build said about itself.
+Backticks later in an entry are formatting and are not read.
 
 **"every criterion is adjudicated" is the other one.** Each criterion the spec states needs an entry
 under `Criteria` in `verify.md`, numbered to match. A criterion whose proof could not be reached is

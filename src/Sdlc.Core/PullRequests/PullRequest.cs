@@ -151,7 +151,7 @@ public static class PullRequest
                     PullRequestRefusal.ChainBroken,
                     string.Create(
                         CultureInfo.InvariantCulture,
-                        $"Cycle {cycle.Id} verified, and its chain does not hold. The pull-request check would refuse it, so refusing here saves a round trip:{Environment.NewLine}{string.Join(Environment.NewLine, chain.Value.Failures.Select(failure => "  - " + failure.Name))}"),
+                        $"Cycle {cycle.Id} verified, and its chain does not hold. The pull-request check would refuse it, so refusing here saves a round trip:{Environment.NewLine}{string.Join(Environment.NewLine, chain.Value.Failures.Select(Failed))}"),
                     chain.Value);
             }
 
@@ -170,5 +170,17 @@ public static class PullRequest
             string explanation,
             VerifyChain.Response? chain = null) =>
             Result.Ok(new Response(cycle, refusal, explanation, chain));
+
+        // The check's name and what it found. The name alone told cycle-02 that "every named test passed"
+        // had failed and not which test, so the next thing anybody did was run verify-chain to find out.
+        private static string Failed(VerifyChain.ChainCheck failure) =>
+            string.Join(
+                Environment.NewLine,
+                [
+                    "  - " + failure.Name,
+                    .. failure.Detail
+                        .Split('\n', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)
+                        .Select(line => "      " + line),
+                ]);
     }
 }

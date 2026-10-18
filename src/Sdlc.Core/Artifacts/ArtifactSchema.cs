@@ -162,8 +162,48 @@ public static class ArtifactSchema
         CheckKeys(kind, read.Value.Yaml, cycle, violations);
         CheckSections(kind, markdown, violations);
         CheckDeclarations(kind, markdown, violations);
+        CheckProofs(kind, markdown, violations);
 
         return new ArtifactValidation(kind, violations);
+    }
+
+    /// <summary>
+    /// Refuses a plan whose proof entry opens with no test name.
+    /// </summary>
+    /// <remarks>
+    /// <c>verify-chain</c> reads a proof's tests from the backticked names its entry opens with (see
+    /// <see cref="Evidence.DeclaredFiles.TestsIn"/>), and an entry that opens with prose commits to nothing
+    /// it can check. Here as well as there, because the chain runs after the build: by then the plan is
+    /// approved, and correcting one sentence costs a reopen and a second approval. Here it costs a line.
+    /// </remarks>
+    /// <param name="kind">Which artifact this is.</param>
+    /// <param name="markdown">The file's contents.</param>
+    /// <param name="violations">The list to add to.</param>
+    private static void CheckProofs(
+        ArtifactKind kind,
+        string markdown,
+        List<SchemaViolation> violations)
+    {
+        if (kind != ArtifactKind.Plan)
+        {
+            return;
+        }
+
+        foreach ((int number, string entry) in ArtifactSections
+            .NumberedItems(markdown, "Proof")
+            .OrderBy(item => item.Key))
+        {
+            if (Evidence.DeclaredFiles.TestsIn(entry).Count > 0)
+            {
+                continue;
+            }
+
+            violations.Add(new SchemaViolation(
+                "Proof",
+                string.Create(
+                    CultureInfo.InvariantCulture,
+                    $"entry {number} does not open with a test name in backticks. verify-chain reads the names an entry opens with, and only those, so this one commits to nothing it can check.")));
+        }
     }
 
     /// <summary>

@@ -214,6 +214,21 @@ public sealed class PullRequestTests
     }
 
     [TestMethod]
+    public async Task A_broken_chain_is_refused_with_what_each_failed_check_found()
+    {
+        // The check's name alone -- "every named test passed" -- sent cycle-02 to a second command to
+        // learn which test. The refusal is where the person already is, so the detail belongs in it.
+        using CycleWorkspace workspace = Passing();
+        workspace.WriteTestSummary(proofs: 1, failing: 1);
+
+        PullRequest.Response answer = await Ask(workspace);
+
+        Assert.AreEqual(PullRequest.PullRequestRefusal.ChainBroken, answer.Refusal, answer.Explanation);
+        StringAssert.Contains(answer.Explanation, "every named test passed");
+        StringAssert.Contains(answer.Explanation, "proof 1: Thing_does_the_thing_1 did not run and pass.");
+    }
+
+    [TestMethod]
     public async Task The_sweep_lists_every_cycle_and_not_only_the_ones_it_would_open_one_for()
     {
         // A list of only the eligible ones hides the surprise that matters most: a cycle from last week
