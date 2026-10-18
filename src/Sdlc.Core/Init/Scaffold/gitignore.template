@@ -1,0 +1,5 @@
+# Build and test output. Without this the first build's output reaches every commit, and the cycle
+# that builds it has to add this file itself, undeclared.
+bin/
+obj/
+TestResults/

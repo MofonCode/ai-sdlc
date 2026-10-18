@@ -116,6 +116,10 @@ public static class Scaffold
             Entry(name + ".slnx", "Solution.slnx", name),
             Entry("BannedSymbols.txt", "BannedSymbols.txt", name),
 
+            // Before anything builds. cycle-02's first build found bin/ and obj/ untracked, wrote this
+            // itself, and the evidence reported it undeclared -- which every first cycle would repeat.
+            Entry(".gitignore", "gitignore", name),
+
             // The wire shapes, first because everything else may reference them and they reference
             // nothing. The folders mirror the application's, which is what keeps a split operation
             // findable -- Greetings/GreetResponse.cs here, Greetings/Greet.cs there.

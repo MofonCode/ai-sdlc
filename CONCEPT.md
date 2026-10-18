@@ -5063,11 +5063,11 @@ profiles sharing their platform choices share one set of rows rather than repeat
 apart when edited separately. Nothing in a governed repository knows a composition happened, and the suite
 asserts that both profiles name the same cloud rather than that they happen to agree today.
 
-**Why a profile says whether it scaffolds.** The scaffold is twenty-four .NET templates and an
+**Why a profile says whether it scaffolds.** The scaffold is twenty-five .NET templates and an
 architecture suite written against them. Letting it run for a profile declaring Python would hand a
 solution a layout its own stack file contradicts — a profile lying about itself, which is worse than a
 profile with no scaffold, because the declarations are what a plan is judged against. So `Scaffolds` is
-false on `ml-tensorflow`, `sdlc scaffold` refuses with one sentence instead of writing twenty-four
+false on `ml-tensorflow`, `sdlc scaffold` refuses with one sentence instead of writing twenty-five
 misleading files, and `--adopt-standard` writes nothing for it either: warnings-as-errors in a props file
 and an SDK pin in `global.json` are .NET, and a profile declaring another language has nothing to put in
 them.
@@ -5674,7 +5674,7 @@ a row names a rule by id alone. D-74 numbered each profile's rules from 01; one 
 today, so the change is free now and a constraint on the next.
 
 **Why the approval stands in for the skeleton flag.** `StackProfile.Scaffolds` existed so a profile
-declaring Python could not be handed twenty-four .NET templates. There is no profile to ask, and nothing
+declaring Python could not be handed twenty-five .NET templates. There is no profile to ask, and nothing
 needs to be: `sdlc scaffold` already runs only behind a plan a person approved, and a plan declaring
 those files says the solution is .NET. Where the declared stack pins something else, that plan had to
 argue the departure under `CON_15` to be approved at all. The same reasoning moves the build settings:

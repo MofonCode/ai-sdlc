@@ -160,7 +160,7 @@ internal static class Usage
                                      Hosts: claude, copilot, antigravity.
             version                  Which version of the gate this is, and which versions it
                                      expects beside it.
-            help                     This text.
+            help                     This text. So does --help after any command.
 
         Common options
             --solution <path>        The solution to work in. Defaults to the working directory.

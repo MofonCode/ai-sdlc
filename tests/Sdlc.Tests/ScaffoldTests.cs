@@ -27,7 +27,7 @@ public sealed class ScaffoldTests
         // not in the build, so this passing means every one resolved.
         IReadOnlyList<KeyValuePair<string, string>> files = Scaffold.Files(Name);
 
-        Assert.AreEqual(24, files.Count, "A template added or removed changes this number deliberately.");
+        Assert.AreEqual(25, files.Count, "A template added or removed changes this number deliberately.");
 
         foreach ((string path, string contents) in files)
         {

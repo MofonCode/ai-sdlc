@@ -43,6 +43,14 @@ if (line.Verb is "" or "help")
     return line.Verb.Length == 0 ? ExitCode.Usage : ExitCode.Ok;
 }
 
+// On any verb, and before the verb reads its arguments. 'sdlc evidence --help' answered "Which cycle?",
+// which is a person asking how a command works being told they used it wrong.
+if (line.HasOption("help"))
+{
+    await Console.Out.WriteAsync(Usage.Text).ConfigureAwait(false);
+    return ExitCode.Ok;
+}
+
 // Answered before any workspace is opened, because the question somebody asks this is "what have I
 // got installed" -- and a version that refused outside a governed solution would be unanswerable at
 // exactly the moment they are checking whether the install worked.

@@ -12,6 +12,7 @@ an agent runs it, and it never decides a gate. `skills.md` lists the skills.
 |---|---|---|
 | **Once per machine** | | |
 | `sdlc version` | binary | which version of the gate this is, and which versions it expects beside it |
+| `sdlc help` | binary | every command and its options. `--help` after any command prints the same |
 | `sdlc doctor` | binary | checks the install and this repository; names the fix for each problem, and before the first cycle names each draft to fill in and its rename. Says when adoption's files are a release behind the binary. Exits 1 on a problem, a missing integration branch and a placeholder paragraph included. Never repairs |
 | **Once per repository** | | |
 | `sdlc init` | binary | adoption: commits what it writes, creates the integration branch, drafts the three files a person places. **Yours to run**; the hook denies it to an agent. `--integration-branch <name>` when it is not `development` |

@@ -55,7 +55,9 @@ public static class InitRenderer
         {
             output.AppendLine(string.Create(
                 CultureInfo.InvariantCulture,
-                $"{Indent}{"branched",-8}{report.IntegrationBranch}"));
+                // "branch" rather than "branched": the column is eight wide, and an eight-letter label ran
+                // into the name it labels -- 'brancheddevelopment'.
+                $"{Indent}{"branch",-8}{report.IntegrationBranch}"));
             output.AppendLine(Indent + "        created from what was just committed, and switched to: approved plans wait here,");
             output.AppendLine(Indent + "        built cycles land here, and it is where you commit what you place");
         }
