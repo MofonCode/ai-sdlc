@@ -79,6 +79,10 @@ becoming "slow" removes the problem from the page while leaving the belief in it
 finding — not every finding is right — and it reports every id it was given, saying whether it changed
 the document or disagreed and left it alone.
 
+**Refine answers the mistake, not only the line.** It reads the rest of the document for the same
+defect under the same rule and fixes every instance in one pass, and a reader names every place a
+repeated defect occurs in one finding. Without both, a mistake made in five places costs five rounds.
+
 **Only the next interrogation clears a blocker.** Refine's opinion of its own corrections counts for
 nothing; a fresh round records an earlier finding as `answered`, or `withdrawn` where the objection was
 dropped. One it raises again stays open.
@@ -99,7 +103,10 @@ eleven found that no success criterion failed without it; a tool that suggested 
 would have been confidently wrong.
 
 **What the tool watches for is going backwards.** The status panel's `Loop` line appears when a rule has
-been answered and raised again, and names it. When one rule has been answered and raised again three
+been answered and raised again, and names it. *Answered* means the rule went quiet — a round raised
+nothing open against it — or that one finding was answered and the same finding came back. A round that
+answers one finding and raises a different one under the same rule is not going backwards: that is the
+reader moving on to the next place the same mistake was made, and it scores nothing. When one rule has been answered and raised again three
 times, the loop stops and hands back to you. That usually means one of three things:
 
 - **the finding is right and the fix keeps undoing another one.** Two rules no version of the document

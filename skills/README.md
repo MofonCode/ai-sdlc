@@ -490,6 +490,9 @@ other reports a conflict rather than picking a side.
 
 **It never edits the artifact**, and it does not recommend whether to run another round.
 
+**A defect found in several places is one finding naming every place** in its locus, not one finding per
+round for each instance in turn.
+
 #### Refusals
 
 None of its own.
@@ -597,6 +600,11 @@ its own corrections.
 It may disagree with a finding — not every finding is right. What it may not do is answer one by making
 the artifact vaguer, which is the single move that removes a problem from the page while leaving the
 belief in it. "Fourteen seconds" becoming "slow" is not a fix.
+
+**It answers the mistake, not only the line it was pointed at.** Before healing a finding it reads the
+rest of the artifact for the same defect under the same rule, heals every instance in the same pass, and
+names the others on that finding's report line. Fixing one instance at a time hands each round the next
+one. Anything other than that defect is still the next reader's to raise.
 
 It reads the panel's `Loop` line first — a rule that *has come back* means look for an exit rather than
 edit the same words again, and *stuck on* means do not edit at all. Then it edits the artifact, reports

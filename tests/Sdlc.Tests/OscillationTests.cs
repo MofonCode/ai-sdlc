@@ -65,6 +65,50 @@ public sealed class OscillationTests
     }
 
     [TestMethod]
+    public void A_round_that_answers_one_finding_and_raises_another_under_the_rule_is_not_a_relapse()
+    {
+        // The plan that halted on this. Each round's reader found the fix in place and moved on to the
+        // next proof with the same gap: one rule, five different mistakes, every one answered once and
+        // none raised again. The rule never went quiet until round four, so the only transition is the
+        // one into round five.
+        OscillationState state = Oscillation.Count(
+        [
+            Round(1, Blocker("F_01", "CON_06", Disposition.Open), Blocker("F_02", "CON_06", Disposition.Open)),
+            Round(
+                2,
+                Blocker("F_01", "CON_06", Disposition.Answered),
+                Blocker("F_02", "CON_06", Disposition.Answered),
+                Blocker("F_05", "CON_06", Disposition.Open)),
+            Round(3, Blocker("F_05", "CON_06", Disposition.Answered), Blocker("F_09", "CON_06", Disposition.Open)),
+            Round(4, Blocker("F_09", "CON_06", Disposition.Answered), Blocker("F_12", "CON_15", Disposition.Open)),
+            Round(5, Blocker("F_12", "CON_15", Disposition.Answered), Blocker("F_15", "CON_06", Disposition.Open)),
+        ]);
+
+        StuckRule rule = state.Rules.Single();
+
+        Assert.AreEqual("CON_06", rule.Rule.Id);
+        Assert.AreEqual(1, rule.Points);
+        Assert.AreEqual(5, rule.Rounds.Single());
+        Assert.IsFalse(state.Halted, "A reader moving on to the next instance is the loop converging.");
+    }
+
+    [TestMethod]
+    public void A_finding_answered_and_raised_again_by_its_id_relapses_while_its_rule_stays_open()
+    {
+        // The other half of the transition. The rule never goes quiet because a second finding stays
+        // open throughout, but F_01 itself was answered and came back -- the same ground refought.
+        OscillationState state = Oscillation.Count(
+        [
+            Round(1, Blocker("F_01", "CON_05", Disposition.Open), Blocker("F_02", "CON_05", Disposition.Open)),
+            Round(2, Blocker("F_01", "CON_05", Disposition.Answered), Blocker("F_02", "CON_05", Disposition.Open)),
+            Round(3, Blocker("F_01", "CON_05", Disposition.Open), Blocker("F_02", "CON_05", Disposition.Open)),
+        ]);
+
+        Assert.AreEqual(1, state.Rules.Single().Points);
+        Assert.AreEqual(3, state.Rules[0].Rounds.Single());
+    }
+
+    [TestMethod]
     public void A_revision_of_the_same_rule_counts_as_the_same_rule()
     {
         // Section 7.4: a citation resolves to the number and the suffix is provenance. A library

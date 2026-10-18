@@ -4824,7 +4824,8 @@ which is its own decision.
 **Governs:** §6
 
 **Decision.** Points are counted per rule, per artifact, from the rounds alone. A **relapse** — one rule
-going `open -> answered -> open` — is one point. A **conflict declaration** naming that rule is one
+going `open -> answered -> open`, where the rule was answered by going quiet or one finding was answered
+and came back by its id — is one point. A **conflict declaration** naming that rule is one
 point. At two points the panel's `Loop` line tells the refiner it is refighting old ground and names
 what the rule is caught against; at three the loop stops and hands back to a person. There is no limit
 on rounds. A halt reports and does not refuse the gate.
@@ -4841,6 +4842,17 @@ one: it kills the long honest reading and permits the short pathological one, wh
 mistakes is a sloppy author, and the loop is converging fine. One rule cited, *answered*, and cited
 again is the loop going backwards. The two have the same tally, so counting citations would conflate
 them. What is counted is the transition.
+
+**Whose transition.** The rule's, or one finding's — never one finding's answer and another's
+objection. A rule is answered in a round that raises nothing open against it; a finding is answered by
+its own id. A round that answers one finding and raises a different one under the same rule is the
+reader moving on to the next place the same mistake was made, which is the sloppy author above, and the
+counter first got this wrong: keyed on the rule alone, it armed on any answered finding and scored on any
+open one. A plan whose browser proofs each waited on an HTTP response rather than the rendered page
+halted after five rounds that had each fixed one proof and found the next, with nothing ever raised
+twice. Counting the rule's own quiet keeps what keying on the rule was for — a fresh reader that raises
+the old objection under a new id still scores, because the rule went quiet first — and the id
+transition catches the one finding refought while another under the same rule stays open throughout.
 
 **Why these two signals and not others.** Both are corroborated rather than asserted, which is the
 property that makes them usable at all. D-49 derives `answered` from a fresh reader declining to raise
@@ -4893,7 +4905,11 @@ That is the same layer every advisory rule here has, and it is written down rath
 **Rejected.** *A cap on rounds* — kills the eleven-round honest case and permits the four-round
 pathological one. *A configurable patience* — the argument against a configurable `Limit` applies
 unchanged. *Counting per artifact* — aggregates unrelated incomplete fixes into a halt. *Counting
-citations rather than transitions* — conflates a sloppy author with a loop going backwards. *Halting on
+citations rather than transitions* — conflates a sloppy author with a loop going backwards. *Counting
+per finding id alone* — ids are carried across rounds by the interrogate skill's judgement, so the same
+objection under a new id would escape. *A separate warning for a rule raising many distinct findings* —
+proposed as a backstop for that, and unneeded once the rule's quiet is counted; the repeated mistake is
+answered upstream instead, by a reader naming every instance and refine healing every instance. *Halting on
 one conflict declaration* — an assertion stopping a cycle, and an escape hatch for an agent stuck on a
 blocker it cannot answer. *A new `GateRefusal` value* — redundant where it would fire and wrong where it
 would bite.

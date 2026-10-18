@@ -44,6 +44,25 @@ rather than satisfy it. If a plan turns out to be wrong after approval, the move
 `sdlc draft approval <id> --reopen`, which returns the cycle to unapproved so the documents can be
 rewritten and re-approved. That is the recovery path, and it leaves a record of why.
 
+## Answer the mistake, not the instance
+
+**A finding names a place; what it objects to is a mistake, and a mistake made once is usually made
+again.** Before you heal a finding, read the rest of the artifact for the same defect -- every other
+proof that waits on the same thing, every other criterion with the same unmeasured word -- and heal
+each one in the same pass. Fixing only the line you were pointed at hands the next round the next
+instance, and the loop spends a round on each.
+
+Two limits keep this from becoming a rewrite. It is the **same defect** under the **same rule** as the
+finding, and nothing else: a different problem you notice is the next reader's to raise, not yours to
+fix unasked. And it is still only this artifact.
+
+Say what the sweep touched on the finding's own line in the report, so the next round knows the other
+places changed and why:
+
+```
+F_15  healed     proof 8 waits for the rendered roll before its second scan; so does proof 10, which had the same gap
+```
+
 ## Disagreeing with a finding
 
 You may. Not every finding is right — two of the twenty-four problems found in the last reconciliation

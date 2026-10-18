@@ -73,6 +73,13 @@ public sealed record OscillationState(IReadOnlyList<StuckRule> Rules)
 /// <em>answered</em>, and cited again is the loop going backwards. Counting citations would conflate
 /// them, so what is counted is the transition `open -> answered -> open`.</para>
 ///
+/// <para><strong>The transition is the rule's or the finding's, never one finding's answer and another's
+/// objection.</strong> A rule is answered when a round raises nothing open against it; a finding is
+/// answered when its own id is. A round that answers one finding and raises a different one under the same
+/// rule is the reader having moved on to the next place the same mistake was made, which is the sloppy
+/// author again -- found on a plan whose browser proofs each waited on a response rather than a render, and
+/// halted after five rounds that each fixed one proof and found the next.</para>
+///
 /// <para><strong>Both signals are corroborated rather than asserted, which is what makes them
 /// usable.</strong> `answered` is not self-reported: D-49 derives it from a fresh reader declining to
 /// raise something, so a relapse is two independent readers, one silent and one not, with nobody able to
@@ -175,36 +182,48 @@ public static class Oscillation
                 .. (round.Conflicts ?? []).SelectMany(conflict => conflict.Between ?? []),
             ];
 
-            foreach (Finding blocker in round.Findings.Where(finding => finding.Severity == Severity.Blocking))
+            // Grouped by rule, because whether a rule was answered is a fact about the whole round: one
+            // finding answered beside another still open under the same rule leaves the rule open.
+            IEnumerable<IGrouping<string, Finding>> byRule = round.Findings
+                .Where(finding => finding.Severity == Severity.Blocking)
+                .Select(finding => (Finding: finding, Key: Key(finding.Cites)))
+                .Where(pair => pair.Key is not null)
+                .GroupBy(pair => pair.Key!, pair => pair.Finding, StringComparer.Ordinal);
+
+            foreach (IGrouping<string, Finding> rule in byRule)
             {
-                if (Key(blocker.Cites) is not { } key)
+                Tally tally = At(tallies, rule.Key, rule.Last().Cites!);
+
+                List<Finding> open = [.. rule.Where(finding => finding.Disposition == Disposition.Open)];
+                List<Finding> answered = [.. rule.Where(finding => finding.Disposition == Disposition.Answered)];
+
+                // Back: the rule went quiet and is raised again, or a finding answered by id is raised
+                // again by id. Once per rule per round however many findings came back.
+                if (open.Count > 0
+                    && (tally.Answered || open.Exists(finding => tally.AnsweredIds.Contains(finding.Id))))
+                {
+                    tally.Relapses++;
+                    tally.Rounds.Add(round.Round);
+                    tally.Note(raised, rule.Key);
+
+                    // Disarmed, so the next answered-then-open pair scores again rather than every
+                    // later round scoring off one old transition.
+                    tally.Answered = false;
+                    tally.AnsweredIds.Clear();
+                }
+
+                if (answered.Count == 0)
                 {
                     continue;
                 }
 
-                Tally tally = At(tallies, key, blocker.Cites!);
-
-                switch (blocker.Disposition)
+                // Armed. The rules raised in *this* round are what the fix cost, so they are what a
+                // later relapse is caught against.
+                tally.Note(raised, rule.Key);
+                tally.AnsweredIds.UnionWith(answered.Select(finding => finding.Id));
+                if (open.Count == 0)
                 {
-                    case Disposition.Answered:
-                        // Armed. The next open citation of this rule is the loop going backwards, and
-                        // the rules raised in *this* round are what the fix for it cost.
-                        tally.Answered = true;
-                        tally.Note(raised, key);
-                        break;
-
-                    case Disposition.Open when tally.Answered:
-                        tally.Relapses++;
-                        tally.Rounds.Add(round.Round);
-                        tally.Note(raised, key);
-
-                        // Disarmed, so the next answered-then-open pair scores again rather than every
-                        // later round scoring off one old transition.
-                        tally.Answered = false;
-                        break;
-
-                    default:
-                        break;
+                    tally.Answered = true;
                 }
             }
 
@@ -327,7 +346,11 @@ public static class Oscillation
 
         public int Points => Relapses + Declarations;
 
+        /// <summary>Whether a round has raised nothing open against this rule since it last scored.</summary>
         public bool Answered { get; set; }
+
+        /// <summary>The findings answered by id since this rule last scored.</summary>
+        public HashSet<string> AnsweredIds { get; } = new(StringComparer.Ordinal);
 
         public List<int> Rounds { get; } = [];
 

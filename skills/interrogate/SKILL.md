@@ -98,6 +98,11 @@ as it is, and if it is absent say so in the block in those words.
 > heading states** -- copied from the rules above exactly as written, never summarised in your own
 > words; what is wrong, in full; where in the document; and what would fix it.
 >
+> When one defect occurs in more than one place, it is one finding, and its `locus` names every place
+> it occurs -- not the first you met. Before you write a finding, look through the rest of the document
+> for the same defect. A finding that names one instance of a repeated mistake hands the next round the
+> second, and the loop spends a round on each.
+>
 > A finding is `blocking` when the rule it cites forbids what the document does. It is a `suggestion`
 > when it would improve the document and no rule forbids the current state. A blocking finding must
 > cite exactly one rule. A suggestion may cite none.
@@ -157,7 +162,8 @@ sdlc perspective show <name> --for <artifact>
 
 — its method, the questions it asks of this artifact, the rules it may block on and the evidence it
 needs — then the artifact above in the chain and the artifact itself. Ask it for findings in the same JSON
-shape, with ids prefixed by the perspective — `security.F_01` — and **set `"perspective": "<name>"` on
+shape, with ids prefixed by the perspective — `security.F_01` — and with every place a repeated defect
+occurs named in one finding's `locus`, as the rules reader is told. **Set `"perspective": "<name>"` on
 every one of them when you write the round.** The field is what `sdlc propose constraints` counts a
 perspective's suggestions by across cycles; the prefix is only for reading, and a round naming a perspective
 the binary does not carry is rejected when it is read back. The round's own reader leaves the field out.
