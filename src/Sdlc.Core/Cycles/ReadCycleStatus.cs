@@ -105,12 +105,24 @@ public static class ReadCycleStatus
     /// What the verification concluded, when it has. Read here so the panel can say what to do after a build
     /// rather than telling somebody to build again.
     /// </param>
+    /// <param name="Built">
+    /// Whether a build has recorded its evidence. Between that and a verification the outcome is still
+    /// null, and the panel read null as "nothing built yet" and said to build again.
+    /// </param>
+    /// <param name="Chain">
+    /// What <c>verify-chain</c> found, when a caller asked it. Not read here, because the chain is heavier
+    /// than everything else this reads and most callers -- a sitrep over every cycle -- do not need it;
+    /// <c>sdlc status</c> asks it for a passed cycle, so the panel does not say a pull request is next
+    /// while pr-ready would refuse one.
+    /// </param>
     public sealed record Response(
         Cycle Cycle,
         IReadOnlyList<ArtifactState> Artifacts,
         ApprovalGate.Response Gate,
         ArtifactState? Verify = null,
-        string? Outcome = null)
+        string? Outcome = null,
+        bool Built = false,
+        Sdlc.Core.Chain.VerifyChain.Response? Chain = null)
     {
         /// <summary>The artifact the cycle is waiting on, or null when all three are clear.</summary>
         public ArtifactState? Blocking => Artifacts.FirstOrDefault(artifact => !artifact.IsClear);
@@ -124,6 +136,44 @@ public static class ReadCycleStatus
             .. Artifacts.SelectMany(artifact => artifact.OpenBlockers.Select(finding =>
                 string.Create(CultureInfo.InvariantCulture, $"{Cycle.NameOf(artifact.Kind)}.{finding.Id}"))),
         ];
+
+        /// <summary>
+        /// The document whose panel to show: the one named, or by default the one the cycle is waiting on.
+        /// </summary>
+        /// <remarks>
+        /// <para>With nothing waiting, the default is the furthest document there is. It was the plan, so a
+        /// verified cycle's panel still read "plan, round 4" above a line saying to open a pull request.</para>
+        /// <para>Verify is looked up on <see cref="Verify"/>, where it is kept apart from the three the
+        /// approval covers. Looking for it among the three threw, and the interrogate and refine skills
+        /// both ask for the panel of the document they just handled, which includes a verify.</para>
+        /// </remarks>
+        /// <param name="stage">The document named by <c>--stage</c>, or null for the default.</param>
+        /// <returns>Its state, or why there is no panel to show.</returns>
+        public Result<ArtifactState> PanelFor(string? stage)
+        {
+            if (stage is null)
+            {
+                return Blocking ?? Verify ?? Artifacts.First(artifact => artifact.Kind == ArtifactKind.Plan);
+            }
+
+            if (!Cycle.TryParseKind(stage, out ArtifactKind kind))
+            {
+                return Result.Fail<ArtifactState>(string.Create(
+                    CultureInfo.InvariantCulture,
+                    $"'{stage}' is not a document a cycle carries. --stage takes intent, spec, plan or verify."));
+            }
+
+            if (kind != ArtifactKind.Verify)
+            {
+                return Artifacts.First(artifact => artifact.Kind == kind);
+            }
+
+            return Verify is { } verify
+                ? verify
+                : Result.Fail<ArtifactState>(string.Create(
+                    CultureInfo.InvariantCulture,
+                    $"Cycle {Cycle.Id} has no verify document yet. The verify stage writes it, after a build has recorded its evidence."));
+        }
     }
 
     /// <summary>Asks where a cycle has got to.</summary>
@@ -209,7 +259,8 @@ public static class ReadCycleStatus
                 verify.Value.Exists ? verify.Value : null,
                 verify.Value.Exists
                     ? await Outcome(cycle, cancellationToken).ConfigureAwait(false)
-                    : null));
+                    : null,
+                File.Exists(Path.Combine(cycle.EvidenceDirectory, Evidence.RecordEvidence.SummaryFileName))));
         }
 
         /// <summary>

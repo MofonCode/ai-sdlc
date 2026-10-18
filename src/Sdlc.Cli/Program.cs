@@ -1251,11 +1251,31 @@ static async Task<int> Status(Workspace workspace, CommandLine line, CycleId id)
 
     // --stage names the artifact whose panel to show. Without it, the panel is for whichever artifact
     // the cycle is waiting on, which is what a person wants after any stage finishes.
-    ArtifactKind kind = line.TryOption("stage", out string? named) && Cycle.TryParseKind(named, out ArtifactKind asked)
-        ? asked
-        : status.Blocking?.Kind ?? ArtifactKind.Plan;
+    Result<ReadCycleStatus.ArtifactState> chosen =
+        status.PanelFor(line.TryOption("stage", out string? named) ? named : null);
 
-    ReadCycleStatus.ArtifactState state = status.Artifacts.First(artifact => artifact.Kind == kind);
+    if (chosen.IsFailed)
+    {
+        return await Report(chosen, ExitCode.Refused).ConfigureAwait(false);
+    }
+
+    ReadCycleStatus.ArtifactState state = chosen.Value;
+
+    // A pass is only worth a pull request while the chain still holds. The panel said "verified clean"
+    // while pr-ready refused, which is the panel confidently wrong about the one line people copy.
+    if (string.Equals(status.Outcome, "pass", StringComparison.OrdinalIgnoreCase))
+    {
+        Result<VerifyChain.Response> chain = await workspace
+            .Send<VerifyChain.Query, VerifyChain.Response>(new VerifyChain.Query(id))
+            .ConfigureAwait(false);
+
+        if (chain.IsSuccess)
+        {
+            status = status with { Chain = chain.Value };
+        }
+    }
+
+    ArtifactKind kind = state.Kind;
     ArtifactOutline outline = await ArtifactOutlineReader
         .ReadFile(state.Path, CancellationToken.None)
         .ConfigureAwait(false);

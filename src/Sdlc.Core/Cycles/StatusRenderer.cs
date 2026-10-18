@@ -301,15 +301,28 @@ public static class StatusRenderer
     /// </summary>
     /// <remarks>
     /// Telling somebody to build a cycle that has already built and verified is the panel being confidently
-    /// wrong about the one thing it exists to say. The verification's outcome is the only thing that
-    /// distinguishes the four states, so it is what this reads.
+    /// wrong about the one thing it exists to say. The verification's outcome distinguishes most of the
+    /// states; two more need what the outcome cannot say. Before a verification the outcome is null both
+    /// before and after the build, so whether evidence was recorded decides between building and
+    /// verifying. And a pass says what the verifier concluded, not whether the chain still holds, so a
+    /// pass whose chain fails points at <c>verify-chain</c> rather than at a pull request pr-ready refuses.
     /// </remarks>
     private static (string Command, string Why) AfterTheGate(ReadCycleStatus.Response status, string id) =>
         status.Outcome switch
         {
+            null when status.Built => (
+                string.Create(CultureInfo.InvariantCulture, $"sdlc verify {id}"),
+                "the build recorded its evidence"),
+
             null => (
                 string.Create(CultureInfo.InvariantCulture, $"sdlc build {id}"),
                 "the gate is satisfied"),
+
+            // The reason stays short enough for the column; verify-chain names the check that failed.
+            string pass when pass.Equals("pass", StringComparison.OrdinalIgnoreCase)
+                && status.Chain is { Holds: false } => (
+                string.Create(CultureInfo.InvariantCulture, $"sdlc verify-chain {id}"),
+                "verified, but the chain does not hold"),
 
             string pass when pass.Equals("pass", StringComparison.OrdinalIgnoreCase) => (
                 string.Create(CultureInfo.InvariantCulture, $"sdlc pr {id}"),

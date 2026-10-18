@@ -252,8 +252,9 @@ internal static class Usage
             --brief                  One line per finding, without the statement or the remedy.
 
         Options for status
-            --stage <artifact>       Which panel: intent, spec or plan. Defaults to whichever
-                                     artifact the cycle is waiting on.
+            --stage <artifact>       Which panel: intent, spec, plan or verify. Defaults to
+                                     whichever artifact the cycle is waiting on, or the
+                                     furthest one written once all three are clear.
             --brief                  Four lines: the cycle, its stage, the blocker and suggestion
                                      counts, the gate, what the artifact says, and the next
                                      command. The same next command as the full panel.

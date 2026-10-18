@@ -560,6 +560,112 @@ public sealed class StatusRendererTests
             "Three rounds with nothing coming back is a loop that is working.");
     }
 
+    [TestMethod]
+    public async Task A_built_cycle_with_no_verification_yet_is_told_to_verify_not_to_build_again()
+    {
+        // The outcome is null both before and after a build, and the panel read null as "nothing built".
+        using CycleWorkspace workspace = Approved();
+        workspace.WriteTestSummary(proofs: 1);
+
+        string panel = await Render(workspace, ArtifactKind.Plan);
+
+        StringAssert.Contains(panel, "sdlc verify 20260929_1456_32", panel);
+        StringAssert.Contains(panel, "the build recorded its evidence", panel);
+    }
+
+    [TestMethod]
+    public async Task A_pass_whose_chain_does_not_hold_points_at_the_chain_rather_than_a_pull_request()
+    {
+        // cycle-02's panel said "verified clean" and pointed at a pull request while pr-ready refused one.
+        using CycleWorkspace workspace = Approved();
+        workspace.WriteVerify("pass");
+        workspace.WriteCleanRound(ArtifactKind.Verify);
+
+        ReadCycleStatus.Response status = await Read(workspace);
+        status = status with
+        {
+            Chain = new Core.Chain.VerifyChain.Response(
+                status.Cycle,
+                [new Core.Chain.VerifyChain.ChainCheck("every named test passed", false, "proof 1: X did not run and pass.")]),
+        };
+
+        string panel = StatusRenderer.RenderBrief(status, await Panel(status.PanelFor(null).Value));
+
+        StringAssert.Contains(panel, "sdlc verify-chain 20260929_1456_32", panel);
+        StringAssert.Contains(panel, "the chain does not hold", panel);
+        Assert.IsFalse(panel.Contains("verified clean", StringComparison.Ordinal), panel);
+        Assert.IsTrue(panel.Split(Environment.NewLine).All(text => text.Length <= 92), panel);
+    }
+
+    [TestMethod]
+    public async Task With_all_three_clear_the_default_panel_is_the_furthest_document_there_is()
+    {
+        using CycleWorkspace workspace = Approved();
+        ReadCycleStatus.Response before = await Read(workspace);
+
+        workspace.WriteVerify("pass");
+        ReadCycleStatus.Response after = await Read(workspace);
+
+        Assert.AreEqual(ArtifactKind.Plan, before.PanelFor(null).Value.Kind);
+        Assert.AreEqual(ArtifactKind.Verify, after.PanelFor(null).Value.Kind, "A verified cycle's panel read 'plan, round 4'.");
+    }
+
+    [TestMethod]
+    public async Task The_verify_panel_can_be_asked_for_by_name()
+    {
+        // The interrogate and refine skills ask for the panel of the document they handled, a verify
+        // included, and asking for it threw an unhandled exception.
+        using CycleWorkspace workspace = Approved();
+        workspace.WriteVerify("pass");
+
+        Result<ReadCycleStatus.ArtifactState> panel = (await Read(workspace)).PanelFor("verify");
+
+        Assert.IsTrue(panel.IsSuccess, string.Join("; ", panel.Errors.Select(e => e.Message)));
+        Assert.AreEqual(ArtifactKind.Verify, panel.Value.Kind);
+    }
+
+    [TestMethod]
+    [DataRow("verify", "has no verify document yet")]
+    [DataRow("bogus", "takes intent, spec, plan or verify")]
+    public async Task A_panel_that_cannot_be_shown_is_refused_with_the_reason(string stage, string reason)
+    {
+        // An unknown name fell back to the plan's panel, which answered a question nobody asked.
+        using CycleWorkspace workspace = Approved();
+
+        Result<ReadCycleStatus.ArtifactState> panel = (await Read(workspace)).PanelFor(stage);
+
+        Assert.IsTrue(panel.IsFailed);
+        StringAssert.Contains(panel.Errors[0].Message, reason);
+    }
+
+    private static CycleWorkspace Approved()
+    {
+        var workspace = CycleWorkspace.Create();
+        workspace.WriteAllArtifacts();
+
+        foreach (ArtifactKind kind in Cycle.PlanningDocuments)
+        {
+            workspace.WriteCleanRound(kind);
+        }
+
+        workspace.WriteApproval();
+        return workspace;
+    }
+
+    private static async Task<ReadCycleStatus.Response> Read(CycleWorkspace workspace)
+    {
+        using var gate = Gate.For(workspace.Root);
+
+        Result<ReadCycleStatus.Response> read = await gate
+            .Send<ReadCycleStatus.Query, ReadCycleStatus.Response>(new ReadCycleStatus.Query(workspace.Cycle.Id));
+
+        Assert.IsTrue(read.IsSuccess, string.Join("; ", read.Errors.Select(e => e.Message)));
+        return read.Value;
+    }
+
+    private static async Task<StagePanel> Panel(ReadCycleStatus.ArtifactState state) =>
+        new(state, await ArtifactOutlineReader.ReadFile(state.Path, CancellationToken.None));
+
     /// <summary>
     /// Writes a spec history in which CON_05 is answered and comes back twice, trading with CON_16.
     /// </summary>
