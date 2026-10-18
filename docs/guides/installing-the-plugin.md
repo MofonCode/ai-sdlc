@@ -68,7 +68,7 @@ repository:
 sdlc constraints
 ```
 
-It should print the seventeen global rules and end with `global  embedded in sdlc <version>`. **Use this
+It should print the eighteen global rules and end with `global  embedded in sdlc <version>`. **Use this
 rather than `sdlc help` as the smoke test.** `help` and `version` are the only two commands that need
 nothing from the installation, so they are the two that cannot tell you whether it worked.
 

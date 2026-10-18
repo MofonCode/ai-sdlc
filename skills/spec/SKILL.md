@@ -120,12 +120,15 @@ end-to-end in a browser engine. A criterion whose only check is a person looking
 admissible — it belongs in the intent as a bound, verified outside the cycle, which is honest about
 not being governed.
 
-Three traps worth naming:
+Four traps worth naming:
 
 - **A criterion about what happens *in* the browser cannot be proven by parsing a response.** The
   response is the input to the behaviour, not the behaviour.
 - **A criterion about data cannot be proven against an in-memory provider.** It does not translate
   SQL, so it passes queries a real database rejects.
+- **A failure has two audiences, and each gets a criterion.** `CON_17` is the person who met it, `CON_20`
+  is whoever investigates afterwards. Write the second one's check as causing the failure and reading
+  what it left: a log line no test reads is one a refactor deletes for free.
 - **Number the criteria.** The plan's proof entries cite them by number, and `verify-chain` compares
   the two sets. A criterion deleted from the middle must not renumber the ones after it.
 

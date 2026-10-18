@@ -269,7 +269,7 @@ separating "the part that is judged".
 | | `Fixed decisions` | `CON_01` routes decisions-already-taken here; `plan` cites them; `steer` writes here |
 | | `Must not change` | `CON_16`, which names it |
 | | `type` | the change classification; later artifacts read it |
-| `spec` | `Acceptance criteria` | `CON_03`, `CON_05`, `CON_06`, `CON_12`, `CON_16`, `CON_17`, and `verify` |
+| `spec` | `Acceptance criteria` | `CON_03`, `CON_05`, `CON_06`, `CON_12`, `CON_16`, `CON_17`, `CON_20`, and `verify` |
 | | `Out of scope` | `CON_05`, `CON_16`; a disposal destination (§5.4) |
 | `plan` | `Shape and departures` | `CON_15`, `CON_18`, `CON_19` |
 | | `Files` | the blast-radius signal and the claim graph; ordering reasoning lives here |
@@ -847,6 +847,7 @@ nobody.
 | `CON_17` | a spec says what somebody is told when the action fails | spec |
 | `CON_18` | a plan that changes a rule the cycle is judged by says what the rule would have cost | plan |
 | `CON_19` | a plan says why it departs from a decision the solution has recorded | plan |
+| `CON_20` | a spec says what is recorded when the action fails | spec |
 
 **Two ids are absent because they no longer bind**, and each is explained once below.
 
@@ -6667,3 +6668,44 @@ dashboard and the exporter, and not service discovery.
   from the test project anyway. And it would turn the AppHost's generated `Projects` types and every
   Razor component's unsealed generated half into failures nobody chose. A guard that asks is the same
   shape `Every_project_under_src_is_named_in_both_rules` already has.
+
+### D-97 — Operability earns `CON_20` on two cycles, and two perspectives' methods name what their readers kept finding
+
+**Governs:** §6.5, §7.5
+
+**Decision.** `CON_20` joins the global set: a spec says what is recorded when the action fails. The
+operability perspective lists it as the rule its reader may block on. The accessibility perspective's
+*Cover this*, *Questions* and *Evidence* name what an automated scan cannot decide: a visible focus
+indicator, reflow at 320 CSS pixels, 3:1 contrast for a graphic that carries meaning, forced colours,
+and focus on the failure path. The security perspective's name a control proven by what it refuses, and
+disclosure checked where an outsider reads it rather than in a component's markup.
+
+**Why.** Two trial solutions left 251 open suggestions between them. Grouped by the objection rather than
+by finding, the same few came back at three or four stages of each cycle. **Operability's was the
+strongest**: a failure that leaves nothing behind for whoever investigates it. The perspective's method
+already asked for a criterion and a test that reads the record, the author built the gap anyway, and the
+reader could only suggest. That is what a rule is for. `CON_17` covers the person told and says nothing
+about the record, so this is a new rule beside it. It is not a revision, because a revision may not change
+what is forbidden. **Accessibility's and security's were not missing rules**: the authors were never told
+to cover them. A perspective's *Cover this* is what an authoring stage reads, and it named the scan and
+keyboard focus and nothing the scan misses, so the reader found the rest every round.
+
+**Departing from the three-cycle threshold, stated.** How a perspective earns rules says the same
+objection across three cycles. This is two, and both built the same die, so part of the recurrence is
+the same problem solved twice. It was adopted on two because the method had already asked and been
+ignored. That is a different failure from a reader with an opinion, and a third cycle would only measure
+the cost of waiting. The method changes need no threshold: they are guidance for authors, not rules.
+
+**Rejected.**
+
+- *`CON_17.2`.* A revision cannot change what is forbidden (§7.4).
+- *Superseding `CON_17` with one rule covering both audiences.* Every blocking finding cites one rule. A
+  finding about the player's message and one about the record are different remedies, and one rule
+  covering both would make every citation ambiguous about which half failed.
+- *A `LOC_` rule in each solution*, as How a perspective earns rules says for a solution's own pattern.
+  Both solutions met it, and nothing about the objection depends on either one.
+- *A `PRO_` rule for what the scan cannot see, now.* It would have to name the scan engine, which makes it
+  stack-tier, and the method change is untested. A third cycle that still misses them is the evidence for
+  one.
+- *A rule that a control's proof includes a refusal.* It may already be `CON_06`'s question, a proof
+  adequate to its criterion. The method change asks it first.

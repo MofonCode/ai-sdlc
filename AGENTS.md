@@ -44,7 +44,7 @@ the cheapest way to discover that what you were about to add already lives somew
 | Where | What |
 |---|---|
 | [`CONCEPT.md`](CONCEPT.md) | the design, and every decision behind it with what each one rejected |
-| [`CONSTRAINTS.md`](CONSTRAINTS.md) | the seventeen global constraints, each with what it forbids and why |
+| [`CONSTRAINTS.md`](CONSTRAINTS.md) | the eighteen global constraints, each with what it forbids and why |
 | `src/Sdlc.Core/Constraints/Profiles/` | the stack rules, one document per profile: `PRO_` ids, the only tier where a rule may name a language, framework or package. Embedded in the binary; a solution is held to the ones its declared stack marks `true`, so an id is unique across every document here |
 | `src/Sdlc.Core/Perspectives/` | the perspectives, one document each: a method, what an author covers and a reader asks at every stage, the rules it may block on, and its evidence (D-90). Embedded in the binary and read through `sdlc perspective show` |
 | `CONCEPT.raw.md` | the original longhand draft, preserved unedited |

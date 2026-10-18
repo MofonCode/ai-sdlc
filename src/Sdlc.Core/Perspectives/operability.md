@@ -44,6 +44,8 @@ only read what the code writes down — a change that fails silently is one no l
 - log a failure once, where it is handled, with its context and without personal data
 - carry the trace across every new outbound call
 - no swallowed exception: one caught is logged or rethrown
+- a test that causes a failure reads what it recorded; one handed a logger that discards everything
+  proves nothing about the record
 
 ### verify
 
@@ -72,6 +74,8 @@ only read what the code writes down — a change that fails silently is one no l
 - Is any exception caught and dropped, or logged without what would identify the failing operation?
 - Does a log line carry personal data or a secret?
 - Is a new outbound call made outside the trace?
+- Does each test that causes a failure read the log entry, metric or span it left, or would it pass with
+  the logging deleted?
 
 ### verify
 
@@ -79,8 +83,12 @@ only read what the code writes down — a change that fails silently is one no l
 
 ## Rules
 
-None of its own yet. A finding this method makes that no rule forbids is a suggestion; one that keeps
-recurring across cycles is what `sdlc propose constraints` turns into a rule.
+- `CON_20` — a spec says what is recorded when the action fails. It is this perspective's spec question,
+  *could a criterion be met while the failure leaves no trace at all?*, made a rule after two trial
+  solutions raised it at every stage as a suggestion and both built the gap anyway.
+
+Anything else this method finds that no rule forbids is a suggestion; one that keeps recurring across
+cycles is what `sdlc propose constraints` turns into a rule.
 
 ## Evidence
 

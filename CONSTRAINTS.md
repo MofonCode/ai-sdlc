@@ -326,3 +326,22 @@ cage, and the first case it genuinely does not fit would see the record ignored 
 this forbids is departing in silence. No analyzer can decide it — whether an approach contradicts a
 paragraph of prose is a judgement about language, and the record's own `Instead of` clause is what makes
 the judgement possible rather than a guess.
+
+## CON_20 — A spec says what is recorded when the action fails
+
+**Applies to:** a spec, at approval.
+
+**Forbids:** a spec carrying a criterion for an action that can fail and none for what the failure
+leaves behind for somebody other than the person who met it: what is recorded, where it can be read,
+and enough to tell what failed and why.
+
+**Why:** `CON_17` makes a spec say what the person is told, and the right answer there is usually a
+fixed sentence that hides the cause. That is correct for them and leaves nobody else anything. Nothing
+downstream asks for the record either: build writes a log line if the implementer thinks to, and no
+criterion means no test, so deleting the line passes everything. Two trial solutions showed the same
+thing at every stage. In one, the build logged four distinct causes of a failed roll, and every test
+that exercised them was handed a logger that discards what it is given. Somebody investigating "it
+keeps saying the roll failed" would have had the player's sentence and nothing else. This asks for one
+more criterion, not a mechanism: recording nothing is a legitimate answer if a spec says so out loud.
+No analyzer can decide it, because whether a criterion covers a failure is a judgement about what an
+action can do, and the spec is the last place it is cheap to ask.
