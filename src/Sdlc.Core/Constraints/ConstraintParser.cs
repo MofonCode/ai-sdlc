@@ -27,6 +27,24 @@ public static class ConstraintParser
         TimeSpan.FromSeconds(1));
 
     /// <summary>
+    /// The next free id in one tier: one past the highest ever used, never the first gap.
+    /// </summary>
+    /// <remarks>
+    /// Ids are a monotonic sequence, assigned once and never reused. A gap is the record of a constraint
+    /// that was removed, and filling it would make an old finding's citation read as the new rule. The one
+    /// place this is decided, because the drafter and the proposer each worked it out for themselves.
+    /// </remarks>
+    /// <param name="existing">What the tier's document already holds, superseded entries included.</param>
+    /// <param name="tier">Which tier the id is for.</param>
+    /// <returns>The id a new constraint takes.</returns>
+    public static ConstraintId NextId(IReadOnlyList<Constraint> existing, ConstraintTier tier)
+    {
+        ArgumentNullException.ThrowIfNull(existing);
+
+        return ConstraintId.Of(tier, existing.Count == 0 ? 1 : existing.Max(constraint => constraint.Id.Number) + 1);
+    }
+
+    /// <summary>
     /// Parses every constraint in a document.
     /// </summary>
     /// <param name="markdown">The document's text.</param>

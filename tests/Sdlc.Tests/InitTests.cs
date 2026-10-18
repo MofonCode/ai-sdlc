@@ -473,18 +473,20 @@ public sealed class InitTests
     {
         // It ended with one command, the drafter for the first step, and a person ran doctor between
         // renames to learn the next. Adoption writes every draft now, so what is left is the same acts
-        // for each -- fill in, rename, commit -- and the report names them all (D-94).
+        // for each -- fill in, rename, commit -- and the report names them all (D-94). What the block
+        // says is SetupTests'; this holds what adoption read from disk at each step, and that it printed it.
         using var solution = Scratch.Create();
 
-        string first = InitRenderer.Render(await Adopt(solution, tracked: []));
+        Initialise.Response adopted = await Adopt(solution, tracked: []);
+        string first = InitRenderer.Render(adopted);
 
-        StringAssert.Contains(first, "Two things are yours to place before the first cycle");
-        StringAssert.Contains(first, "an agent's write to any of these files is denied");
-        StringAssert.Contains(first, "mv -f .sdlc/solution.draft.md .sdlc/solution.md");
-        StringAssert.Contains(first, "mv -f .sdlc/techstack.draft.md .sdlc/techstack.md");
-        StringAssert.Contains(first, "mv -f .sdlc/constraints.draft.md .sdlc/constraints.md");
-        StringAssert.Contains(first, "Move-Item -Force");
-        StringAssert.Contains(first, "Commit them");
+        CollectionAssert.AreEqual(
+            new[] { Cycle.SolutionFileName, Cycle.TechStackFileName },
+            adopted.Setup!.Left.Select(step => step.FileName).ToArray());
+        Assert.IsTrue(
+            adopted.Setup.Steps.All(step => step.Progress == SetupProgress.Drafted),
+            "Adoption writes every draft, the optional one included.");
+        SetupTests.AssertPrinted(first, adopted.Setup);
 
         foreach (string view in new[] { "sdlc constraints", "sdlc decisions", "sdlc draft solution", "sdlc draft techstack" })
         {
@@ -500,21 +502,20 @@ public sealed class InitTests
             Written(await File.ReadAllTextAsync(Path.Combine(sdlc, WriteSolutionDraft.DraftFileName))));
         File.Delete(Path.Combine(sdlc, WriteSolutionDraft.DraftFileName));
 
-        string second = InitRenderer.Render(await Adopt(solution, tracked: []));
+        Initialise.Response again = await Adopt(solution, tracked: []);
 
-        StringAssert.Contains(second, "One thing is yours to place before the first cycle");
-        StringAssert.Contains(second, "mv -f .sdlc/techstack.draft.md .sdlc/techstack.md");
-        Assert.IsFalse(second.Contains("solution.draft.md", StringComparison.Ordinal), second);
+        CollectionAssert.AreEqual(
+            new[] { Cycle.TechStackFileName },
+            again.Setup!.Left.Select(step => step.FileName).ToArray(),
+            "The placed paragraph is read as placed.");
+        SetupTests.AssertPrinted(InitRenderer.Render(again), again.Setup);
 
         File.Move(Path.Combine(sdlc, WriteTechStackDraft.DraftFileName), Path.Combine(sdlc, Cycle.TechStackFileName));
 
-        string third = InitRenderer.Render(await Adopt(solution, tracked: []));
+        Initialise.Response placed = await Adopt(solution, tracked: []);
 
-        StringAssert.Contains(third, "Nothing is left to place");
-        StringAssert.Contains(third, "/sdlc:intent");
-        Assert.IsFalse(
-            third[third.IndexOf("Nothing is left to place", StringComparison.Ordinal)..].Contains("constraints.draft.md", StringComparison.Ordinal),
-            "A solution with no rules of its own is sound, so the optional draft is not a step left.");
+        Assert.AreEqual(0, placed.Setup!.Left.Count, "The optional draft still waiting is not a step left.");
+        SetupTests.AssertPrinted(InitRenderer.Render(placed), placed.Setup);
 
         // From the first cycle on, the status panel names the next command for each cycle.
         Directory.CreateDirectory(Path.Combine(sdlc, Cycle.CyclesDirectoryName, "20260929_1456_32"));
@@ -535,10 +536,12 @@ public sealed class InitTests
         string sdlc = Path.Combine(solution.Root, Cycle.SdlcDirectoryName);
         File.Move(Path.Combine(sdlc, WriteTechStackDraft.DraftFileName), Path.Combine(sdlc, Cycle.TechStackFileName));
 
-        string rendered = InitRenderer.Render(await Adopt(solution, tracked: []));
+        Initialise.Response again = await Adopt(solution, tracked: []);
 
-        StringAssert.Contains(rendered, "One thing is yours to place before the first cycle: a paragraph");
-        StringAssert.Contains(rendered, "mv -f .sdlc/solution.draft.md .sdlc/solution.md");
+        CollectionAssert.AreEqual(
+            new[] { Cycle.SolutionFileName },
+            again.Setup!.Left.Select(step => step.FileName).ToArray());
+        SetupTests.AssertPrinted(InitRenderer.Render(again), again.Setup);
     }
 
     [TestMethod]

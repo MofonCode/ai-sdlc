@@ -233,21 +233,24 @@ public sealed class DoctorTests
 
         await Drafted(solution);
 
-        string both = DiagnosisRenderer.Render(await Diagnosis(solution));
+        // What the block says is SetupTests'; this holds that doctor reads it afresh and prints it.
+        Diagnose.Response both = await Diagnosis(solution);
+        string rendered = DiagnosisRenderer.Render(both);
 
-        StringAssert.Contains(both, "Two things are yours to place before the first cycle");
-        StringAssert.Contains(both, "mv -f .sdlc/solution.draft.md .sdlc/solution.md");
-        StringAssert.Contains(both, "mv -f .sdlc/techstack.draft.md .sdlc/techstack.md");
-        StringAssert.Contains(both, "mv -f .sdlc/constraints.draft.md .sdlc/constraints.md", "The optional draft rides along while it waits.");
-        StringAssert.Contains(both, "Exits 1", "Neither file is in place, which is the fault; the block is only the order.");
+        Assert.AreEqual(2, both.Setup!.Left.Count);
+        SetupTests.AssertPrinted(rendered, both.Setup);
+        StringAssert.Contains(rendered, "Exits 1", "Neither file is in place, which is the fault; the block is only the order.");
 
         string sdlc = Path.Combine(solution.Root, Cycle.SdlcDirectoryName);
         File.Move(Path.Combine(sdlc, WriteTechStackDraft.DraftFileName), Path.Combine(sdlc, Cycle.TechStackFileName));
 
-        string one = DiagnosisRenderer.Render(await Diagnosis(solution));
+        Diagnose.Response one = await Diagnosis(solution);
 
-        StringAssert.Contains(one, "One thing is yours to place before the first cycle: a paragraph");
-        Assert.IsFalse(one.Contains("techstack.draft.md", StringComparison.Ordinal), one);
+        CollectionAssert.AreEqual(
+            new[] { Cycle.SolutionFileName },
+            one.Setup!.Left.Select(step => step.FileName).ToArray(),
+            "A rename runs nothing, so doctor has to see it on disk.");
+        SetupTests.AssertPrinted(DiagnosisRenderer.Render(one), one.Setup);
     }
 
     [TestMethod]

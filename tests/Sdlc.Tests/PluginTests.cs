@@ -455,19 +455,23 @@ public sealed class PluginTests
     }
 
     [TestMethod]
-    public void The_stage_skills_hand_back_rather_than_chaining_into_the_next_stage()
+    [DataRow("intent", "Then stop. The person decides whether to move to the spec.")]
+    [DataRow("spec", "then stop. The person decides whether to move to the plan.")]
+    [DataRow("plan", "Approving them is yours to do")]
+    [DataRow("build", "Then stop. The person decides whether to verify.")]
+    [DataRow("verify", "The person decides whether to open a pull request.")]
+    public void The_stage_skills_hand_back_rather_than_chaining_into_the_next_stage(string name, string handBack)
     {
         // The separate commands are where a person decides to proceed. A skill that chained straight on
         // would preserve every constraint and still remove the moment somebody chooses to continue.
-        foreach (string name in (string[])["intent", "spec", "plan"])
-        {
-            string text = File.ReadAllText(Path.Combine(Root, "skills", name, "SKILL.md"));
+        // Held to the sentence that hands back rather than to the word "stop", which every one of these
+        // skills uses a dozen times for other reasons and so proved nothing.
+        string text = File.ReadAllText(Path.Combine(Root, "skills", name, "SKILL.md")).ReplaceLineEndings(" ");
 
-            StringAssert.Contains(
-                text,
-                "stop",
-                name + " does not say to stop. Chaining removes the human-in-the-loop point.");
-        }
+        StringAssert.Contains(
+            text,
+            handBack,
+            name + " no longer hands the next step back to a person. Chaining removes the human-in-the-loop point.");
     }
 
     [TestMethod]
@@ -492,27 +496,42 @@ public sealed class PluginTests
     {
         // A skill naming a verb that does not exist sends a person to a usage error, and the usage text is
         // the one place they would not think to look for the answer.
+        //
+        // Read from the skills rather than from a list of the verbs worth checking: that list held eleven
+        // of the commands the skills name, so a skill naming any other one -- or a new one -- was never
+        // checked. A command is one written as code, in a span or at the start of a line in a block, so
+        // prose such as "the sdlc binary on PATH" is not mistaken for one.
         string usage = File.ReadAllText(Path.Combine(Root, "src", "Sdlc.Cli", "Usage.cs"));
 
-        string[] verbs =
-        [
-            "sdlc constraints", "sdlc status", "sdlc gate", "sdlc draft approval",
-            "sdlc draft abandon", "sdlc draft techstack", "sdlc propose constraints",
-            "sdlc suggestions", "sdlc verify-chain", "sdlc init", "sdlc new",
-        ];
+        int checkedCount = 0;
 
         foreach (string path in Skills())
         {
-            string text = File.ReadAllText(path);
+            IEnumerable<string> named = System.Text.RegularExpressions.Regex
+                .Matches(
+                    File.ReadAllText(path),
+                    @"(?:`|^[ \t]*)sdlc (?<verb>[a-z-]+(?: [a-z]+)?)",
+                    System.Text.RegularExpressions.RegexOptions.Multiline)
+                .Select(match => match.Groups["verb"].Value)
+                .Distinct(StringComparer.Ordinal);
 
-            foreach (string verb in verbs.Where(verb => text.Contains(verb, StringComparison.Ordinal)))
+            foreach (string verb in named)
             {
+                // The stage skills are named deliberately, and the binary answers those by explaining itself.
+                if (Sdlc.Cli.Stages.IsSkill(verb.Split(' ')[0]))
+                {
+                    continue;
+                }
+
+                checkedCount++;
                 StringAssert.Contains(
                     usage,
-                    verb["sdlc ".Length..],
-                    $"{path} names '{verb}', which the usage text does not list.");
+                    verb,
+                    $"{path} names 'sdlc {verb}', which the usage text does not list.");
             }
         }
+
+        Assert.IsTrue(checkedCount >= 20, $"Only {checkedCount} commands were found in the skills, so the pattern has stopped matching them.");
     }
 
     [TestMethod]

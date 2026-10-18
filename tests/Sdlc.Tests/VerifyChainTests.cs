@@ -128,16 +128,16 @@ public sealed class VerifyChainTests
     }
 
     [TestMethod]
-    [DataRow("\"pass\"", DisplayName = "double-quoted")]
-    [DataRow("'pass'", DisplayName = "single-quoted")]
-    [DataRow("  pass  ", DisplayName = "padded")]
+    [DataRow("\"pass\"", DisplayName = "quoted")]
     [DataRow("PASS", DisplayName = "upper case")]
     public async Task A_pass_the_schema_accepts_is_a_pass_to_the_chain(string outcome)
     {
         // A quoted scalar is valid YAML and ArtifactSchema accepted it, while the chain check compared
         // the raw text after `outcome:` and saw the quotes. So a legitimately passing cycle could not
         // merge, and `pr-ready` read the outcome through the same check and agreed with the wrong
-        // answer. Both now go through Frontmatter.Key. F-06.
+        // answer. Both now go through Frontmatter.Key. F-06. The quoted row holds that the chain still
+        // asks that reader, whose own cases -- quotes, padding, comments, block scalars -- are
+        // FrontmatterTests'; the upper-case one is the chain's comparison, not the reader's.
         using CycleWorkspace workspace = Sound();
         workspace.WriteVerify(outcome);
 
@@ -147,34 +147,6 @@ public sealed class VerifyChainTests
             .Single(check => check.Name.Contains("verified", StringComparison.Ordinal));
 
         Assert.IsTrue(verified.Passed, verified.Detail);
-    }
-
-    [TestMethod]
-    public async Task A_comment_in_the_frontmatter_does_not_confuse_the_outcome()
-    {
-        using CycleWorkspace workspace = Sound();
-        workspace.WriteVerify("pass", "# outcome: blocked -- a note somebody left");
-
-        VerifyChain.Response verdict = await Check(workspace);
-
-        Assert.IsTrue(
-            verdict.Checks.Single(check => check.Name.Contains("verified", StringComparison.Ordinal)).Passed,
-            "A YAML comment is not a key, and a parser knows that.");
-    }
-
-    [TestMethod]
-    public async Task An_outcome_inside_another_value_is_not_the_outcome()
-    {
-        // The line scan took the first line beginning `outcome:` after trimming, so a block scalar
-        // mentioning one decided whether the cycle could merge.
-        using CycleWorkspace workspace = Sound();
-        workspace.WriteVerify("pass", "note: |", "  outcome: blocked", "  which this is not");
-
-        VerifyChain.Response verdict = await Check(workspace);
-
-        Assert.IsTrue(
-            verdict.Checks.Single(check => check.Name.Contains("verified", StringComparison.Ordinal)).Passed,
-            "The nested text is part of `note`, not a second outcome.");
     }
 
     [TestMethod]

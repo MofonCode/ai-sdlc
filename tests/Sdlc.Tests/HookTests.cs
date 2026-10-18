@@ -729,10 +729,27 @@ public sealed class HookTests
     public void Every_host_refuses_a_write_to_a_protected_file_in_its_own_payload_shape(HookHost named)
     {
         // §12.1's promise, per row: each host is fed a payload in the shape it documents and has to
-        // deny. A host added to the table without this passing is a host claimed and not exercised.
-        ToolCall call = Read(
-            $$"""{ "tool_name": "Write", "tool_input": { "file_path": "{{ApprovalPath}}" } }""",
-            named);
+        // deny. A host added to the table without this passing is a host claimed and not exercised --
+        // and a host added without a payload here fails at the switch rather than being fed another
+        // host's shape. That is what this test did until every host was given
+        // Claude's, which two of them never send.
+        string payload = named switch
+        {
+            HookHost.Claude =>
+                $$"""{ "hook_event_name": "PreToolUse", "tool_name": "Write", "tool_input": { "file_path": "{{ApprovalPath}}" } }""",
+
+            // The CLI's camelCase shape, because the VS Code-compatible one is Claude's.
+            HookHost.Copilot =>
+                $$"""{ "toolName": "create", "toolArgs": { "path": "{{ApprovalPath}}" } }""",
+
+            HookHost.Antigravity =>
+                $$"""{ "toolCall": { "name": "write_to_file", "args": { "file_path": "{{ApprovalPath}}" } } }""",
+
+            _ => throw new AssertFailedException(
+                $"{named} has no payload of its own here. Add the shape its hooks reference documents."),
+        };
+
+        ToolCall call = Read(payload, named);
 
         Assert.AreEqual(
             HookDecision.Deny,

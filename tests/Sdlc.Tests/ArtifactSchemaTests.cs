@@ -1,5 +1,6 @@
 using Sdlc.Core.Artifacts;
 using Sdlc.Core.Cycles;
+using Sdlc.Core.Hooks;
 
 namespace Sdlc.Tests;
 
@@ -225,11 +226,7 @@ public sealed class ArtifactSchemaTests
     }
 
     [TestMethod]
-    [DataRow("approval.md")]
-    [DataRow("abandoned.md")]
-    [DataRow("constraints.md")]
-    [DataRow("solution.md")]
-    [DataRow("techstack.md")]
+    [DynamicData(nameof(ProtectedNames))]
     public void A_plan_that_declares_a_file_only_a_person_writes_is_refused(string name)
     {
         // Such a plan cannot be carried out as written: the build is denied the write at the tool call, so
@@ -274,6 +271,11 @@ public sealed class ArtifactSchemaTests
 
         Assert.IsTrue(check.IsValid, Describe(check));
     }
+
+    // Driven off the list rather than written out, so a file added to it is refused in a plan without
+    // anybody remembering this test -- the written-out rows had already missed decisions.md.
+    public static IEnumerable<object[]> ProtectedNames =>
+        ProtectedPaths.Names.Select(name => new object[] { name });
 
     private static ArtifactValidation Validate(ArtifactKind kind, string markdown)
     {

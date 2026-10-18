@@ -417,14 +417,8 @@ public static class ProposeConstraints
 
             IReadOnlyList<Constraint> existing = read.Value;
 
-            // One past the highest ever used, never the first gap. A gap is the record of a constraint
-            // that was removed, and filling it would make an old finding's citation read as the new rule.
-            int next = existing.Count == 0
-                ? 1
-                : existing.Max(constraint => constraint.Id.Number) + 1;
-
             return Result.Ok(new RuleSet(
-                ConstraintId.Of(ConstraintTier.Solution, next),
+                ConstraintParser.NextId(existing, ConstraintTier.Solution),
                 existing.Count(constraint => constraint.IsInForce),
                 [.. existing.Where(constraint => !constraint.IsInForce).Select(constraint => constraint.Id)],
                 Rejected(markdown)));

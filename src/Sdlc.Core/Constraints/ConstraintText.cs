@@ -84,11 +84,7 @@ public static class ConstraintText
                 existing = read.Value;
             }
 
-            // Ids are a monotonic sequence: assigned once, never reused, never backfilled. So this takes one
-            // past the highest ever used rather than the first gap -- a gap is the record of a constraint
-            // that was removed, and filling it would make a commit citing the old id read as the new rule.
-            int next = existing.Count == 0 ? 1 : existing.Max(constraint => constraint.Id.Number) + 1;
-            var id = ConstraintId.Of(ConstraintTier.Solution, next);
+            ConstraintId id = ConstraintParser.NextId(existing, ConstraintTier.Solution);
 
             string entry = string.Join(
                 Environment.NewLine,

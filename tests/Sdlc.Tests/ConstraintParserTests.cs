@@ -155,4 +155,26 @@ public sealed class ConstraintParserTests
         Assert.IsTrue(result.IsSuccess);
         Assert.AreEqual("An intent states the problem, not the solution", result.Value.Single().Statement);
     }
+
+    [TestMethod]
+    public void The_next_id_is_one_past_the_highest_and_never_fills_a_gap()
+    {
+        // A gap is the record of a constraint that was removed. Filling it would make an old finding's
+        // citation of the removed rule read as the new one.
+        string withGap = OneGoodConstraint + "\n" + OneGoodConstraint.Replace("CON_01", "CON_04", StringComparison.Ordinal)
+            .Replace("# Some library", string.Empty, StringComparison.Ordinal);
+
+        Result<IReadOnlyList<Constraint>> result = ConstraintParser.Parse(withGap, "test");
+
+        Assert.IsTrue(result.IsSuccess, string.Join("; ", result.Errors.Select(e => e.Message)));
+        Assert.AreEqual(
+            ConstraintId.Of(ConstraintTier.Solution, 5),
+            ConstraintParser.NextId(result.Value, ConstraintTier.Solution));
+    }
+
+    [TestMethod]
+    public void The_first_id_in_an_empty_tier_is_one()
+    {
+        Assert.AreEqual(ConstraintId.Of(ConstraintTier.Solution, 1), ConstraintParser.NextId([], ConstraintTier.Solution));
+    }
 }
