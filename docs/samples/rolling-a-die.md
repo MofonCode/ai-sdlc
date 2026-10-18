@@ -246,26 +246,26 @@ because a binary cannot ask a host what it loaded. It exits 0 and ends by naming
 /sdlc:intent
 ```
 
-**Pass no sentence.** The value of the stage is the questions, and a one-line request arrives already
-shaped as a solution. **The skill opens the cycle and switches to its branch itself**, and says the id
+**No `--type`.** This is a scaffolded solution with no cycle yet approved, so the skill recognises the
+first piece of work in a new solution and says so in a line. **The skill opens the cycle and switches to
+its branch itself**, and says the id
 and the branch in one line — run neither `sdlc new` nor `sdlc branch` yourself. The branch is
 `cycle/<id>/plan`, and the name matters: the turn-end hook reads the cycle out of the current branch and
 silently governs nothing when it cannot parse one.
 
 **Then it waits for your answers.** The intent is written from them, so until you reply there is no
-intent, and an interrogation asked for now finds nothing to read. The die has never been built, so it
-asks in that tense — six things, and it says up front what your solution paragraph already answered and
-asks only from there, so expect its wording to differ from this table and its questions to be narrower
-where the paragraph covered them:
+intent, and an interrogation asked for now finds nothing to read. It asks **one question at a time**,
+each with a few example answers under it, and skips what your solution paragraph already answered — so
+expect its wording to differ from this table and some rows to be skipped:
 
 | It asks | Answer |
 |---|---|
-| what can nobody do today that they need to | nobody here can roll a die. There is no die |
-| who needs it, and how often | whoever is playing the board game, every turn that calls for a roll |
-| what would you be able to see that you cannot today | a page with a die on it and a button. Press the button and see a die face showing one to six pips. If the roll fails, the page says so |
-| what is out of bounds | one die only, no history, nothing stored, no sign-in, no animation |
-| is there a decision already made that it should treat as fixed | a single six-sided die; nothing is stored; a face is drawn as pips, not as a numeral |
-| which areas it touches beyond security, operability and maintainability, which are always on | it is a page someone uses, so ui-ux and accessibility. Nothing else: no public API, no performance target, no infrastructure |
+| what should someone be able to do first | open a page with a die on it and a button. Press the button and see a die face showing one to six pips. If the roll fails, the page says so |
+| who is it for, and what can't they do today | whoever is playing the board game, every turn that calls for a roll. Nobody here can roll a die |
+| what do they use instead | nothing. There is no die |
+| what is it definitely not | one die only, no history, nothing stored, no sign-in, no animation |
+| has anything already been decided | a single six-sided die; nothing is stored; a face is drawn as pips, not as a numeral |
+| what does it touch, beyond the basics | it is a page someone uses, so ui-ux and accessibility. Nothing else: no public API, no performance target, no infrastructure |
 
 **It will ask one more and the answer matters.** Say *keep it simple* and it asks which you mean — small
 in scope, or plain in appearance. Here the answer is **scope**: one die, one page. It is not appearance,
@@ -273,8 +273,8 @@ and the difference is the whole of this example: *plain* is the reading under wh
 number in a paragraph tag. The word reaches every stage afterwards and no gate can tell the two readings
 apart.
 
-Your answer to the fifth question becomes the intent's fixed decisions, each with your name and the
-date on it, and the sixth its `perspectives: ui-ux, accessibility`. The first two keep the spec from
+What is already decided becomes the intent's fixed decisions, each with your name and the date on it,
+and what it touches its `perspectives: ui-ux, accessibility`. The first two decisions keep the spec from
 growing a second page; the third keeps it from shrinking the one it has.
 
 **Once you answer, the intent is interrogated for you.** The skill writes it, challenges it, fixes what

@@ -121,7 +121,7 @@ One governed change, from why it exists to a pull request.
 | | What it is |
 |---|---|
 | **frontmatter** | the keys above the document: `framework_version`, `cycle`, and one body key per kind |
-| **`type`** (intent) | the change type: `new solution`, `feature addition`, `feature change`, `bug fix`. A bug fix's spec derives criteria from a reproduction rather than a desired outcome |
+| **`type`** (intent) | the change type: `new solution`, `feature addition`, `feature change`, `bug fix`. A bug fix's spec derives criteria from a reproduction rather than a desired outcome. Settled before the interview's first question, because it decides the questions: from `/sdlc:intent --type bug\|add\|change`, from a lead, or — a new solution, which has no flag — detected in a scaffolded solution with no cycle yet approved (D-95) |
 | **`tier`** (plan) | blast radius, most to least reversible: `local`, `contract`, `data` |
 | **`outcome`** (verify) | `pass`, `blocked`, `escalated` |
 | **the `## Open` region** | where a question nobody can answer yet is recorded. **Required even when empty**, so "nothing is open" can be told from "the author forgot" |

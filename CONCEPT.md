@@ -161,6 +161,12 @@ feature change, or a bug fix. **Intent, spec and plan are all required, always.*
 informs how each artifact is written — a bug fix's spec derives its criteria from a reproduction
 rather than a desired outcome — and never skips one.
 
+**The type is settled before the interview's first question, because it decides the questions** (D-95).
+A person may name it — `--type bug`, `add` or `change` — and a lead may carry it; a new solution has no
+flag and is detected, as a scaffolded solution with no cycle yet approved. The interview then asks one
+question at a time, by type, each with example answers, and *not sure* is an answer with a place to go.
+The intent's sections are the same for every type: the questions vary, the contract downstream does not.
+
 **Splitting work into deliverable chunks belongs to whoever is prompting** (D-25). They write
 smaller intents and run each through the cycle; no tooling accommodates splitting.
 
@@ -6555,3 +6561,51 @@ the skill. What to do with the files is the person's; the refusal decides nothin
   no longer names it; the skills do.
 - *The intent skill stashing uncommitted work on the person's behalf.* Work moved out of sight is work
   somebody has to find.
+
+### D-95 — The intent interview settles the type first and asks by type, one question at a time, with examples
+
+**Governs:** §3.1
+
+**Decision.** Four parts.
+
+1. **The type comes before the first question.** `/sdlc:intent --type bug|add|change` names it; a lead may
+   carry it; a new solution has no flag and is detected — `origin: scaffolded` and no cycle yet approved.
+   Otherwise the opening answer decides it and the skill confirms in a line. A flag wins over detection,
+   and a flag the answers contradict is asked about rather than followed.
+2. **The interview opens with one question** — *what is this cycle for?*, or for a new solution *what
+   should someone be able to do first?* — **then asks a short set for the type, one question per turn**:
+   a bug's reproduction, a feature's person and job, a change's dependants, a new solution's users and
+   bounds; then what must keep working, what is decided, and what it touches.
+3. **Every question carries example answers** — one or two generic, at least one tailored from the
+   solution's paragraph — **and *not sure* is an answer**, recorded by what it is about: an unmeasured
+   figure as unconfirmed, an unanswerable question under `Open`, something nobody has found out nowhere.
+4. **The skill takes no sentence.** Text typed after its name is read as the answer to the opening.
+
+**The sections do not change.** `## Problem` opens with who has it, and for a bug fix follows the
+reproduction's order, but the set of sections is the same for every type.
+
+**Why.** The interview asked the intent's section headings as questions — *what happens today that
+shouldn't, what must not change* — so it read as a form and got abstract answers, and a person starting
+work honestly could not answer most of it. The type shapes the whole conversation, yet was settled last.
+Asking by type, one question at a time, with examples, is the refinement conversation an agile team
+already has; the intent's sections are the story it produces — who, under `Problem`; what they want, under
+`Wanted outcomes`; why, under `Problem`; and the type says whether it is a bug, an addition or a change.
+
+**Rejected.**
+
+- *The "As a… I want… so that…" template as the intent's shape.* Not because "I want" is a solution —
+  wanting is the problem space — but because the intent already holds every part of a story, and a
+  one-line story on top would be a second place to say the same thing that fits a bug fix or a new
+  solution poorly. An answer that names a mechanism is caught by the interview's probe, *what does not
+  having that cause?*, whatever the format.
+- *A sentence argument.* It skipped the guided opening and was where a solution got typed. `--from`
+  covers starting from text somebody already wrote.
+- *`--type new`.* A new solution is a fact about the repository, which the skill can read; in an adopted
+  one it could not be true.
+- *Detecting a new solution from "no intent yet".* An adopted solution's first cycle has none either.
+- *Offering a new solution's first cycles as choices.* It is the one place the skill would draft rather
+  than elicit; the opening question with examples does the same work without putting the agent's idea of
+  the first cycle in front of the person's.
+- *Sections per type, or a section for who.* The sections are what the schema checks, the spec derives
+  from and the approval hashes, and they are the same for every type — which is what lets the questions
+  vary. Specs or interrogations that keep failing to *find* something would be the evidence for a section.

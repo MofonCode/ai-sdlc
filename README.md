@@ -171,7 +171,7 @@ which is why the commit is a step and not a tidy-up.
 **5. Start a cycle.** In your agent, not the shell:
 
 ```
-/sdlc:intent  The dashboard takes fourteen seconds and people have stopped opening it
+/sdlc:intent
 ```
 
 The skill opens the cycle and switches to its branch itself, then interviews you into the intent —

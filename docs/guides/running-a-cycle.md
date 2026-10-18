@@ -29,8 +29,14 @@ lists none has no such tier in this output. `declaring-the-stack.md` has why.
 ## 2. Open the cycle — the intent skill does it
 
 ```
-/sdlc:intent The dashboard takes fourteen seconds and people have stopped opening it
+/sdlc:intent
 ```
+
+**If you already know what kind of change it is, say so** — `--type bug`, `--type add` or
+`--type change` — and the interview asks that kind's questions from the start. Without it the skill works
+the type out: from a lead, from your first answer, or, in a scaffolded solution with no cycle yet
+approved, by recognising the first piece of work in a new solution. There is no sentence to pass; the
+interview's first question is where the work is described.
 
 **You do not open the cycle or switch branches yourself.** The skill runs `sdlc new`, which allocates the
 id and claims it, then `sdlc branch <id> plan` and the `git switch` it prints, and says the id and the
@@ -74,10 +80,13 @@ rules in force, and revised until a round raises nothing blocking. Each stage sk
 
 **The intent** is the only artifact written by interview. **Nothing happens until you answer the
 questions** — the intent is written from your answers, so there is nothing to interrogate before then.
-Expect to be asked questions rather than handed a draft, and
-expect a request shaped as a solution to be turned back into a problem: "add a cache" becomes "the
-dashboard takes fourteen seconds and people stop opening it". If you have already decided something, say
-so — it is recorded under `Fixed decisions` with your name on it rather than argued with.
+Expect **one question at a time**, each with a few example answers under it, and the next depending on
+what you said: a bug is asked for what you saw and the last time it happened, a feature for who it is for
+and how they manage today, a change for who relies on it as it is. **_Not sure_ is always an answer** —
+the skill tells you where it records it. Expect a request shaped as a solution to be turned back into a
+problem: "add a cache" becomes "the dashboard takes fourteen seconds and people stop opening it". If you
+have already decided something, say so — it is recorded under `Fixed decisions` with your name on it
+rather than argued with.
 
 The skill **hands back rather than continuing into the spec.** That hand-back is the human-in-the-loop
 point; a skill that chained on would remove it while appearing helpful.

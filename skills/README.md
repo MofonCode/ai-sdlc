@@ -23,7 +23,7 @@ nothing else carries it.
 In Claude Code, `/sdlc:<name>`:
 
 ```
-/sdlc:intent We have no way to see a die roll
+/sdlc:intent --type bug
 /sdlc:interrogate 20261002_1414_12 spec
 ```
 
@@ -218,14 +218,14 @@ Interviews a person into the intent, the first artifact of a cycle, and opens th
 #### Syntax
 
 ```
-/sdlc:intent [a sentence describing the work] [--from <lead>]
+/sdlc:intent [--type bug|add|change] [--from <lead>]
 ```
 
 #### Parameters
 
 | Parameter | Description |
 |---|---|
-| `a sentence describing the work` | the request, as the person would put it. Optional |
+| `--type bug\|add\|change` | the kind of change — a bug fix, a feature addition or a feature change — so the interview asks that kind's questions. Optional: without it the type comes from the lead, or a new solution is detected, or the opening answer decides it and the skill confirms. There is no `new`: a new solution is only detected. A flag the answers contradict is asked about, never followed in silence |
 | `--from <lead>` | begin from a lead — `azuredevops:1234`, `github:56`, `suggestion:<cycle>/<finding>`, or a path — fetched by `sdlc lead show` and recorded in the intent as `lead:`. It seeds the interview and never replaces it |
 
 #### Output
@@ -245,11 +245,14 @@ stack and the spec.
 #### Example
 
 ```
-/sdlc:intent We have no way to see a die roll
+/sdlc:intent
 ```
 
-Expect a cycle id and the branch the skill switched to, then a handful of questions — and nothing more
-until you answer them, because the intent is written from the answers. Then several interrogation rounds
+Expect a cycle id and the branch the skill switched to, then one question — *what is this cycle for?*, or
+for a new solution *what should someone be able to do first?* — with example answers under it, and then
+one question at a time, each depending on your last answer. *Not sure* is always an answer, and the skill
+says where it records it. Nothing is written until the interview is done, because the intent is written
+from the answers. Then several interrogation rounds
 without your involvement. It ends on the intent's status panel, whose last line is the next command.
 
 #### Remarks
@@ -268,14 +271,17 @@ What it runs, in order:
 2. `sdlc new`, which allocates the cycle id and claims it — that claim *is* the collision check — then
    `sdlc branch <id> plan` and the `git switch` it prints, so the working copy is on `cycle/<id>/plan`. The
    person runs neither
-3. converts the request into a problem, then interviews: what happens today that shouldn't, who notices,
-   what you would see once it is right, what must not change — asked in the tense the work is in, so a new
-   solution is asked what nobody can do today rather than what is broken
-4. where the person bounds the work with *simple*, *basic* or *nothing fancy*, asks once whether that
+3. settles the type first — from `--type`, from a lead, or by detecting a new solution: a scaffolded
+   solution with no cycle yet approved — because the type decides the questions
+4. interviews one question at a time, each with example answers: an opening, a short set for the type —
+   a bug's reproduction, a feature's person and job, a change's dependants, a new solution's first use —
+   then what must keep working, what is already decided, and which areas it touches. An answer shaped as
+   a solution is asked what its absence causes
+5. where the person bounds the work with *simple*, *basic* or *nothing fancy*, asks once whether that
    means small in scope or plain in appearance
-5. writes the intent, then runs the interrogate-refine loop itself until a round raises nothing blocking,
+6. writes the intent, then runs the interrogate-refine loop itself until a round raises nothing blocking,
    a reader reports a conflict, or the panel's `Loop` line says it is stuck on one rule
-6. shows `sdlc status <id> --stage intent --brief` verbatim and stops
+7. shows `sdlc status <id> --stage intent --brief` verbatim and stops
 
 **It does not chain into the spec.** That hand-back is the human-in-the-loop point, and a skill that
 continued would remove it while appearing helpful. It does not cap the rounds: a loop that is converging

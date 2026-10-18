@@ -2,7 +2,7 @@
 name: intent
 description: Interview a person into a governed intent, the first artifact of a cycle. Use when someone wants to start new work, reports a problem, or asks to turn an idea into something the process can carry.
 compatibility: Requires the sdlc binary on PATH, from the MofonCode.Sdlc.Cli dotnet tool, and a git repository. Every command here is that binary, so without it the first step fails.
-argument-hint: "[a sentence describing the work, optional] [--from <lead>]"
+argument-hint: "[--type bug|add|change] [--from <lead>]"
 allowed-tools: Bash(sdlc *), Bash(git *), Read, Write, Edit, Glob, Grep
 ---
 
@@ -25,8 +25,8 @@ If your host gives you a task list, open one before the first step, with these i
 done as it finishes. If it does not, carry on without one — nothing below depends on it.
 
 1. open the cycle and its branch
-2. turn the request into a problem
-3. establish the type, and interview
+2. settle the type
+3. interview, one question at a time
 4. pin down the one word
 5. write the intent
 6. interrogate and refine until a round is clean
@@ -93,50 +93,160 @@ the item. If the bug was found on a release and the person wants the fix there, 
 `release: release/<version>`: the cycle is then built from that branch and back into it, and carried forward
 into the integration branch by its own pull request (D-88). Most intents have neither key.
 
-## 2. Convert the request into a problem
+**A lead can settle the type** — see the next step — and it answers whatever questions it already
+answers. Skip those, and say so.
 
-Most requests arrive already shaped as a solution — "add a cache", "make the export async".
-`CON_01` forbids an intent that is an implementation instruction with no statement of what is wrong.
-So the first move is not a question, it is a conversion:
+## 2. Settle the type before the first question
 
-> What happens today that shouldn't?
+The type decides which questions you ask, so it comes first. The first row that applies wins:
 
-If the answer names another solution, ask once more what its absence causes. "We have no cache" is a
-missing thing. "The dashboard takes fourteen seconds and people stop opening it" is an intent.
+| When | The type | Say |
+|---|---|---|
+| `--type bug`, `--type add` or `--type change` | `bug fix`, `feature addition` or `feature change` — even where the next rows would say otherwise | nothing; the person said it |
+| a lead that carries one — an issue labelled as a bug, or anything `sdlc operate` filed | that type | one line: *"This came in as a bug, so I'll treat it as one."* |
+| `.sdlc/solution.md` says `origin: scaffolded`, **and** `sdlc cycles` lists no cycle that is `approved` or has a `verify` outcome | `new solution` | one line: *"This looks like the first piece of work in a new solution, so I'll treat it that way. Say if not."* |
+| none of these | inferred from the answer to the opening question, then confirmed | one line: *"Sounds like a bug: something that should work doesn't. Right?"* |
+
+**There is no `--type new`.** A new solution is only ever detected. **"No intent yet" is not the test**:
+an adopted solution's first cycle has none either, and its code exists, so its first work is a feature or
+a bug. An abandoned cycle was never approved, so a scaffolded solution stays new until one cycle has been.
+
+**A flag is a claim, not a fact.** If the answers contradict it — `--type bug`, then *"it has never done
+that, we want it to"* — say what you heard and ask which it is. Never follow the flag against the
+person's own answers in silence.
+
+The type goes in the frontmatter as one of `new solution`, `feature addition`, `feature change`,
+`bug fix`. It is not cosmetic — a bug fix's spec derives its criteria from a reproduction rather than
+from a desired outcome, and the spec stage reads this to know which.
+
+## 3. Interview, one question at a time
+
+**The turn that opens the cycle ends on the first question.** Say in one line that the cycle is open and
+its intent is not written yet, then ask the opening question. Nothing is written until the interview is
+done — the intent is written *from* the answers — so a person who goes on to the next command finds no
+intent to interrogate. **Describe the state as that, never as the repository being empty**: a solution
+with a placed paragraph and a declared stack is not empty, and saying so tells the person their setup did
+not take.
+
+### The opening
+
+When the type is not a new solution:
+
+> **What is this cycle for?**
+
+When it is a new solution:
+
+> **What should someone be able to do first?**
+
+**If the person typed something after the skill's name**, that is their answer to the opening. Carry on
+from it; it never shortens the interview.
+
+### How to ask
+
+- **One question per turn.** The next question, or a follow-up, depends on the answer — that is the
+  interview. More turns is the accepted cost.
+- **Show two or three example answers under every question, and end them with *not sure*.** One or two
+  generic, from the tables below; at least one tailored to this solution, from `.sdlc/solution.md` and
+  what the person has already said. Give them different shapes, so they read as kinds of answer rather
+  than the expected one — a tailored example anchors harder, which is why the generic ones stay beside it.
+- **If your host has a choice prompt**, the examples are its options and free text is the other. If it
+  has none, write them out under the question.
+- **Skip what is already answered** — by the opening, a lead, or `.sdlc/solution.md` — and say so in a
+  line rather than asking it again.
+- **Follow up when an answer is vague, secondhand, or a solution.** At most one follow-up per question,
+  unless the answer opens something new:
+  - *Can you give me an example?*
+  - *Why does that matter?* — once, not five times
+  - *What happens then?*
+  - *Who else?*
+- **Stop asking when an answer would only be a guess.**
+
+**When an answer is a solution, ask what its absence causes.** Most requests arrive shaped as a solution —
+"add a cache", "make the export async" — and `CON_01` forbids an intent that is an implementation
+instruction with no statement of what is wrong. "We have no cache" is a missing thing. "The dashboard
+takes fourteen seconds and people stop opening it" is an intent.
 
 **Do not discard their solution.** A decision already taken is legitimate — record it under **Fixed
 decisions** with who decided it and when. That keeps the intent a problem statement while letting the
 plan honour the decision, and six months later it distinguishes a requirement from an assumption.
 
-## 3. Establish the type, then interview
+### *Not sure* is an answer
 
-Four questions, in roughly this order. Stop asking when an answer would only be a guess.
+**Say so the first time somebody gives it**, so the interview stops feeling like a test, and record it
+where it belongs:
 
-**End the turn on the questions, and say that the intent waits on the answers.** Nothing is written until
-the person replies — the intent is written *from* the answers — so a person who goes on to the next
-command finds no intent to interrogate. One line says it: the cycle is open and its intent is not written
-yet. **Describe the state as that, never as the repository being empty**: a solution with a placed
-paragraph and a declared stack is not empty, and saying so tells the person their setup did not take.
+| The *not sure* is about | It goes |
+|---|---|
+| a figure — how many, how often, how long | `Fixed decisions`, marked unconfirmed, in their words |
+| a question nobody can answer yet, for a reason you can state | `## Open`, with the reason |
+| something that could be found out, but nobody has | **neither** — say you are leaving it out, and why. `CON_14` forbids work nobody has done in `## Open` |
+| something that does not apply | nowhere |
 
-**Ask them in the tense the work is actually in.** The wording below is for something that exists and
-misbehaves. For a new solution nothing is broken yet, and asking how they would know it was *fixed*
-reads as though you have not understood the request.
+### The questions, by type
 
-| | Something exists and misbehaves | Nothing exists yet |
+These are the generic examples, from deliberately different kinds of solution so that none reads as the
+answer. Ask in this order, skipping what is answered.
+
+**The outcome questions are the highest-value answers you will get** — the opening for a new solution,
+and B5, A4 and C4 — because they are the seed the spec grows from. Do not let them answer in thresholds;
+that is the spec's job.
+
+**Bug fix**
+
+| | Ask | Examples |
 |---|---|---|
-| 1 | What happens today that shouldn't? | What can nobody do today that they need to? |
-| 2 | Who notices, and how often? | Who needs this, and how often would they use it? |
-| 3 | What would you be able to see once this is right? | What would you be able to see that you cannot today? |
-| 4 | What must not change? | What is out of bounds — what must this not touch or become? |
+| B1 | What did you see, and what did you expect instead? | *"Clicked Export and the spinner ran forever. I expected a file."* · *"The cart total says 0 with three items in it."* |
+| B2 | Walk me through the last time it happened. | *"Monday, the monthly report, about 40,000 rows."* · *"Every time I sign in on my phone."* · *"Someone reported it; I haven't seen it myself."* |
+| B3 | Has it always done this, or did it start recently? | *"Since last week's release."* · *"As far as I know, always."* |
+| B4 | Who runs into it, how often, and is there a way round it? | *"Finance, every month end. They split the export by hand."* · *"Every new user, once."* |
+| B5 | How would you know it's fixed? | *"I click Export and get the file."* · *"The total matches what's in the cart."* |
 
-Question 3 is the highest-value answer you will get: it is the seed the spec grows from. Do not let
-them answer in thresholds; that is the spec's job.
+B1 and B2 are the reproduction the spec derives a bug fix's criteria from.
 
-Then, conditionally: **is there a decision already made that I should treat as fixed?**
+**Feature addition**
 
-The type you settle on goes in the frontmatter as one of `new solution`, `feature addition`,
-`feature change`, `bug fix`. It is not cosmetic — a bug fix's spec derives its criteria from a
-reproduction rather than from a desired outcome, and the spec stage reads this to know which.
+| | Ask | Examples |
+|---|---|---|
+| A1 | Who's this for, and what are they trying to get done? | *"Players. They want to see the roll without counting pips."* · *"Me, as the admin. Reset a game without restarting the app."* |
+| A2 | How do they manage today without it? | *"They count the pips by eye."* · *"They email me and I do it by hand."* · *"They go without."* |
+| A3 | Why now — what happens if we don't? | *"Players keep arguing about rolls."* · *"It's next on the roadmap."* · *"Nothing urgent; it'd be nice."* |
+| A4 | Picture it done: what does that person do differently? | *"Presses one button and reads the number."* · *"Resets it themselves in one click."* |
+| A5 | What's the smallest version still worth having? | *"Just the last roll, no history."* · *"Read-only first, editing later."* · *"It's already as small as it gets."* |
+
+*"Nothing urgent"* is an honest answer to A3: record it as given. A5 asks; it never splits the work,
+which stays the person's call (D-25).
+
+**Feature change**
+
+| | Ask | Examples |
+|---|---|---|
+| C1 | What about how it works now isn't working for you? | *"Sign-up asks for an address we never use."* · *"The report sorts by date; everyone wants it by customer."* |
+| C2 | Who asked for the change, and who will feel it? | *"Support, after a month of complaints."* · *"Everyone who signs up."* |
+| C3 | Who relies on it working the way it does now? | *"The mobile app calls the same endpoint."* · *"Support has a script that reads that page."* · *"Nobody I know of."* |
+| C4 | Picture it changed: what's better? | *"Sign-up fits on one screen."* · *"Finance finds a customer without scrolling."* |
+
+C3 is `Must not change`, asked the way a team asks it, and the spec writes a criterion for each answer.
+*"Nobody I know of"* is recorded as unconfirmed.
+
+**New solution**, after the opening
+
+| | Ask | Examples |
+|---|---|---|
+| N1 | Who's it for, and what can't they do today? | *"People playing board games without dice."* · *"Our field team. They can't log a visit from the road."* |
+| N2 | What do they use instead? | *"A dice app full of adverts."* · *"Paper, typed up later."* · *"Nothing."* |
+| N3 | What is it definitely not? | *"Not multiplayer, no accounts."* · *"Not a CRM. Just visits."* |
+
+### Closing, every type
+
+| | Ask | When | Examples |
+|---|---|---|---|
+| Z1 | Is anything nearby that must keep working exactly as it is? | a bug fix or a feature addition — C3 and N3 already asked it | *"The CSV format. Another system imports it."* · *"Nothing I can think of."* |
+| Z2 | Has anything already been decided that I should treat as fixed? | always | *"Six-sided die only."* · *"We're keeping the existing sign-in."* · *"Nothing decided."* |
+| Z3 | What does this touch, beyond the basics? | always | *"A page people use."* · *"Stored data."* · *"A public API."* · *"Nothing beyond the basics."* |
+
+Z3 decides the perspectives, beyond the three always on — security, operability, maintainability. A user
+interface brings `ui-ux` and `accessibility`; infrastructure, `infrastructure`; stored data and
+migrations, `data`; a public API, `api`; a stated performance budget, `performance`.
 
 ## Never ask
 
@@ -179,12 +289,19 @@ and carry on.
 
 ## 4. Write it
 
-**Which perspectives the change needs, beyond the three always on** — security, operability,
-maintainability. Ask, in the interview, which areas the change touches: a user interface brings `ui-ux` and
-`accessibility`; infrastructure, `infrastructure`; stored data and migrations, `data`; a public API, `api`;
-a stated performance budget, `performance`. Write what applies as `perspectives:`, comma-separated, and
-leave the key out when nothing beyond the three applies. **It only adds**: the three are always on, and the
-approval's hash covers what you wrote, so the person sees how much scrutiny the cycle asked for (D-90).
+**Which perspectives the change needs, beyond the three always on**, is the answer to Z3. Write what
+applies as `perspectives:`, comma-separated, and leave the key out when nothing beyond the three applies.
+**It only adds**: the three are always on, and the approval's hash covers what you wrote, so the person
+sees how much scrutiny the cycle asked for (D-90).
+
+**`## Problem` opens with who has it**, in the person's words — *"Finance, at every month end, …"*,
+*"Players …"*. Every reader, and every interrogation, finds the person affected in the same place
+without a section of its own.
+
+**For a bug fix, `## Problem` keeps a fixed order:** what was seen, what was expected instead, the last
+time it happened, whether it started recently, then who runs into it, how often, and the way round it —
+B1 to B4, as asked. The spec derives a bug fix's criteria from the reproduction, so the reproduction
+sits where the spec looks for it.
 
 `.sdlc/cycles/<id>/intent.md`, exactly this shape:
 
@@ -200,7 +317,8 @@ perspectives: ui-ux, accessibility
 
 ## Problem
 
-What happens today that shouldn't, who it happens to, and how often. Their words where you can.
+Who has the problem, first. Then what happens today that shouldn't, or what nobody can do yet, and how
+often. Their words where you can.
 
 ## Wanted outcomes
 

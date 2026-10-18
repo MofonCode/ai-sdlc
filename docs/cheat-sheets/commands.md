@@ -24,8 +24,8 @@ Adopt it, once — `../guides/adopting-the-framework.md`:
 
 Then the cycle — `../guides/running-a-cycle.md`:
 
-7. `/sdlc:intent <the problem in a sentence>` — opens the cycle, switches to its branch, interviews you,
-   then runs its own loop once you have answered
+7. `/sdlc:intent [--type bug|add|change]` — opens the cycle, switches to its branch, interviews you
+   one question at a time, then runs its own loop once you have answered
 8. `/sdlc:spec <id>`
 9. `/sdlc:plan <id>` — the last document before you approve; read it closely
 10. `sdlc draft approval <id>`, **rename the draft yourself**, then `sdlc gate <id>`
