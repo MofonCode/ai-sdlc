@@ -55,9 +55,9 @@ public static class ProtectedPaths
         {
             return new ProtectedFile(
                 "a cycle's approval ledger",
-                "An approval is a person's act. A skill prints the entry and the person pastes it, which "
-                + "is what makes a pasted approval mean anything. Run 'sdlc draft approval <id>' and "
-                + "paste what it prints.");
+                "An approval is a person's act. A tool drafts the entry and the person renames it into "
+                + "place, which is what makes a recorded approval mean anything. Run 'sdlc draft approval "
+                + "<id>' and rename the draft it writes.");
         }
 
         if (string.Equals(fileName, "abandoned.md", StringComparison.OrdinalIgnoreCase))

@@ -411,6 +411,9 @@ public static class ApprovalText
         /// One act, and it is a rename. There is no clipboard step left to get wrong, and no second
         /// indentation convention on the page — the draft file beside the ledger <em>is</em> the ledger,
         /// one rename away.
+        /// <para>The rename is written from the repository root, which is where a person types it and where
+        /// every other command here runs. It named the bare files, and cycle-02's person typed it at the
+        /// root and got <c>cannot stat</c>.</para>
         /// </remarks>
         private static string Instructions(
             ReadCycleStatus.Response status,
@@ -418,7 +421,8 @@ public static class ApprovalText
             string draftPath,
             LedgerFile file)
         {
-            string draft = Path.GetFileName(draftPath);
+            string draft = FromRoot(status.Cycle, draftPath);
+            string target = FromRoot(status.Cycle, status.Cycle.ApprovalPath);
             string ledger = Path.GetFileName(status.Cycle.ApprovalPath);
             bool overwriting = file.CarriesForward > 0 || file.Replacing;
 
@@ -426,14 +430,14 @@ public static class ApprovalText
             [
                 string.Create(
                     CultureInfo.InvariantCulture,
-                    $"Written to {draftPath}. Rename it to record the decision:"),
+                    $"Written to {draft}. Rename it, from the repository root, to record the decision:"),
                 string.Empty,
                 overwriting
-                    ? string.Create(CultureInfo.InvariantCulture, $"    mv -f {draft} {ledger}")
-                    : string.Create(CultureInfo.InvariantCulture, $"    mv {draft} {ledger}"),
+                    ? string.Create(CultureInfo.InvariantCulture, $"    mv -f {draft} {target}")
+                    : string.Create(CultureInfo.InvariantCulture, $"    mv {draft} {target}"),
                 overwriting
-                    ? string.Create(CultureInfo.InvariantCulture, $"    Move-Item -Force {draft} {ledger}")
-                    : string.Create(CultureInfo.InvariantCulture, $"    Move-Item {draft} {ledger}"),
+                    ? string.Create(CultureInfo.InvariantCulture, $"    Move-Item -Force {draft} {target}")
+                    : string.Create(CultureInfo.InvariantCulture, $"    Move-Item {draft} {target}"),
             ];
 
             if (file.CarriesForward > 0)
@@ -481,5 +485,9 @@ public static class ApprovalText
 
             return string.Join(Environment.NewLine, lines);
         }
+
+        // Forward slashes, because both shells the rename is written for accept them.
+        private static string FromRoot(Cycle cycle, string path) =>
+            Path.GetRelativePath(cycle.SolutionRoot, path).Replace('\\', '/');
     }
 }

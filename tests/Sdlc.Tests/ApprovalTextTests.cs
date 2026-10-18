@@ -278,7 +278,21 @@ public sealed class ApprovalTextTests
         StringAssert.Contains(rendered, "intent");
         StringAssert.Contains(rendered, "r1, clean");
         StringAssert.Contains(rendered, "This file:");
-        StringAssert.Contains(rendered, "Rename it to record the decision:");
+        StringAssert.Contains(rendered, "Rename it, from the repository root, to record the decision:");
+    }
+
+    [TestMethod]
+    public async Task The_rename_is_written_from_the_repository_root()
+    {
+        // It named the bare files, and a person typing it at the root -- where every other command here
+        // runs -- got "cannot stat".
+        using CycleWorkspace workspace = Ready();
+
+        string rendered = ApprovalRenderer.Render(await Print(workspace));
+        string directory = ".sdlc/cycles/" + workspace.Cycle.Id;
+
+        StringAssert.Contains(rendered, $"mv {directory}/approval.approved.draft.md {directory}/approval.md");
+        StringAssert.Contains(rendered, $"Move-Item {directory}/approval.approved.draft.md {directory}/approval.md");
     }
 
     [TestMethod]

@@ -200,7 +200,7 @@ public static class ApprovalGate
             {
                 return Verdict(cycle, GateRefusal.NotApproved, string.Create(
                     CultureInfo.InvariantCulture,
-                    $"Cycle {cycle.Id} is not approved: there is no {Path.GetFileName(cycle.ApprovalPath)}. Run 'sdlc draft approval {cycle.Id}' and paste what it prints."));
+                    $"Cycle {cycle.Id} is not approved: there is no {Path.GetFileName(cycle.ApprovalPath)}. Run 'sdlc draft approval {cycle.Id}' and rename the draft it writes."));
             }
 
             string ledgerText = await File.ReadAllTextAsync(cycle.ApprovalPath, cancellationToken)

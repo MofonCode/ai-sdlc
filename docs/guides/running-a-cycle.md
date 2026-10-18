@@ -133,10 +133,11 @@ sdlc draft approval 20260929_1456_32
 ```
 
 It writes the complete file — not a fragment — to
-`.sdlc/cycles/<id>/approval.approved.draft.md`, and prints it with the rename that records it:
+`.sdlc/cycles/<id>/approval.approved.draft.md`, and prints it with the rename that records it, written
+to be typed from the repository root:
 
 ```pwsh
-Move-Item approval.approved.draft.md approval.md
+Move-Item .sdlc/cycles/20260929_1456_32/approval.approved.draft.md .sdlc/cycles/20260929_1456_32/approval.md
 ```
 
 **The rename is the decision, and it is yours.** No tool places that file: the hook denies every agent
