@@ -277,23 +277,9 @@ Your answer to the fifth question becomes the intent's fixed decisions, each wit
 date on it, and the sixth its `perspectives: ui-ux, accessibility`. The first two keep the spec from
 growing a second page; the third keeps it from shrinking the one it has.
 
-Then the loop, until a round raises nothing blocking:
-
-```
-/sdlc:interrogate <id> intent
-```
-
-```
-/sdlc:refine <id> intent
-```
-
-```pwsh
-sdlc status <id> --brief
-```
-
-**How many rounds is deliberately not a question the tool will answer.** The panel's `Loop` line warns
-when a rule has been answered and raised again — going backwards, not going slowly — and there is no cap
-to run out of.
+**Once you answer, the intent is interrogated for you.** The skill writes it, challenges it, fixes what
+comes back, then shows the cycle's status and stops. If it stops on a blocker, see
+[handling blockers](../guides/handling-blockers.md).
 
 ## 6. The spec
 
@@ -343,13 +329,8 @@ One without the other is a failure that is reported correctly and shown to nobod
 without writing it. That is legitimate — what is not is a criterion whose named test could pass while
 the criterion is unmet.
 
-```
-/sdlc:interrogate <id> spec
-```
-
-```
-/sdlc:refine <id> spec
-```
+**The spec is interrogated for you**, the same way. If it stops on a blocker, see
+[handling blockers](../guides/handling-blockers.md).
 
 ## 7. The plan
 
@@ -407,13 +388,8 @@ The file table should name the shared files as **changed, not new**: `Services.c
 file gains three projects. A plan that forgets the first two produces a build that compiles and an
 endpoint nothing routes to; one that forgets the third produces projects `dotnet test` never builds.
 
-```
-/sdlc:interrogate <id> plan
-```
-
-```
-/sdlc:refine <id> plan
-```
+**The plan is interrogated for you**, the same way. If it stops on a blocker, see
+[handling blockers](../guides/handling-blockers.md).
 
 ## 8. Approve
 
