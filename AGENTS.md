@@ -171,8 +171,8 @@ a follow-up is a thing somebody has to remember, and the document is wrong in th
 | adds, removes or reworks a refusal | [`docs/guides/handling-refusals.md`](docs/guides/handling-refusals.md), and its row in [`docs/reference/refusals.md`](docs/reference/refusals.md), which the suite holds against the guide's entries |
 | changes how a blocking finding or a blocked verification is answered — the loops, refine, remediate, escalation | [`docs/guides/handling-blockers.md`](docs/guides/handling-blockers.md) |
 | changes the flow a person walks through | [`docs/guides/adopting-the-framework.md`](docs/guides/adopting-the-framework.md) for adoption, [`docs/guides/running-a-cycle.md`](docs/guides/running-a-cycle.md) for a cycle, [`docs/samples/rolling-a-die.md`](docs/samples/rolling-a-die.md) where the sample walks it, and [`docs/cheat-sheet.md`](docs/cheat-sheet.md) when a step of the cycle is added, removed or reordered |
-| adds, removes or renames a guide, a concept, a reference list or a sample | that folder's `README.md` — its table row, its own `##` section, and any count in the opening line — **and** the Where to read more table in [`README.md`](README.md). The suite holds, for each of `docs/guides/`, `docs/concepts/`, `docs/reference/` and `docs/samples/`, that the index's headings and that table name the same set as the directory. A new kind of document gets a folder of its own, with its own index, and joins that test |
-| adds or changes a perspective | its document under `Perspectives/`, which needs a `Cover this` and a `Questions` entry for every stage or the suite rejects it, the perspectives table in `CONCEPT.md` §6.5 if one is added or renamed, and [`docs/concepts/perspectives.md`](docs/concepts/perspectives.md) if what switches one on, or what one does at a stage, moves |
+| adds, removes or renames a guide, a concept, a reference list or a sample | that folder's `README.md` — its table row, its own `##` section, and any count in the opening line — **and** the Where to read more table in [`README.md`](README.md). The suite holds, for each of `docs/guides/`, `docs/concepts/`, `docs/reference/` and `docs/samples/`, that the index's headings and that table name the same set as the directory. A new kind of document gets a folder of its own, with its own index, and joins that test — the one exception is [`docs/cheat-sheet.md`](docs/cheat-sheet.md), a single page with no folder, which `DocumentCopyTests` holds instead |
+| adds or changes a perspective | its document under `Perspectives/`, which needs a `Cover this` and a `Questions` entry for every stage or the suite rejects it, the perspectives list in `CONCEPT.md` §6.5 if one is added or renamed, and [`docs/concepts/perspectives.md`](docs/concepts/perspectives.md) — its table is held to the binary and the intent interview by the suite, and its prose if what switches one on, or what one does at a stage, moves |
 | adds or changes what a profile declares, or a stack rule | `Solutions/StackProfile` for the rows, `Constraints/Profiles/<profile>.md` for the rules, and [`docs/guides/declaring-the-stack.md`](docs/guides/declaring-the-stack.md), which is where a person reads both. A rule count stated in a document is held by the suite. **A new rule reaches no existing solution until its row is added there** — say so wherever the release is described |
 | adds, removes or changes a build settings file, or what one does | `Solutions/BuildSettings`, which is the one list — its path, its one-line summary, its detail and its template — and [`docs/guides/declaring-the-stack.md`](docs/guides/declaring-the-stack.md), which carries the table of the five. The draft's rows, the options menu, `sdlc scaffold`, `sdlc stack` and the harness all read the list, so none of them is a second place to edit |
 | adds, removes or renames a tool under `tools/` | [`tools/README.md`](tools/README.md) — its row and its own section |
@@ -195,12 +195,20 @@ they are already in the directory.
 changing it.** Product description, install, status and honest gaps belong there; the map, the build, the
 enforced properties and the table above belong here. Neither grows a copy of the other.
 
-**Two duplications are accepted, and both are paid for mechanically rather than promised.** The root
-README's Where to read more table names every guide, concept, reference list and sample as well as their folders'
-own indexes, and the cheat sheet. And a reference list is by nature a one-line copy of something a guide or `skills/README.md`
-owns — so each one links every line to its owner, and the suite holds it to that owner: the skills
-list against the skills on disk and their `argument-hint`, the refusals list against the refusals
-guide's entries. A reference line with no owner to link to is a guide paragraph in the wrong place.
+**Four duplications are accepted, and each is paid for mechanically rather than promised.**
+
+- The root README's Where to read more table names every guide, concept, reference list and sample as
+  well as their folders' own indexes. The index-parity tests hold it.
+- A reference list is by nature a one-line copy of something a guide or `skills/README.md` owns — so
+  each one links every line to its owner, and the suite holds it to that owner: the skills list against
+  the skills on disk and their `argument-hint`, the refusals list against the refusals guide's entries.
+  A reference line with no owner to link to is a guide paragraph in the wrong place.
+- [`docs/cheat-sheet.md`](docs/cheat-sheet.md) is
+  [`docs/guides/running-a-cycle.md`](docs/guides/running-a-cycle.md) as one line per step.
+  `DocumentCopyTests` holds that both indexes link it and that every skill and command it names exists.
+- The table in [`docs/concepts/perspectives.md`](docs/concepts/perspectives.md) names the perspectives.
+  `DocumentCopyTests` holds it to the documents the binary carries and the names the intent interview
+  brings.
 
 ### What is mechanised, and what is not
 

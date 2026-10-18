@@ -74,4 +74,4 @@ too — for a commit message, use `git commit -F` with the message in a file. Th
 
 - [Handling refusals](../guides/handling-refusals.md) — every refusal in full, with why
 - [Handling blockers](../guides/handling-blockers.md) — a blocking finding or a blocked verification, which cause some of these
-- [Commands](commands.md) — every command for one cycle
+- [Commands](commands.md) — every command, one line each

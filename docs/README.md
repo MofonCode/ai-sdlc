@@ -8,8 +8,8 @@ treatment elsewhere, the entry points at it rather than repeating it.
 
 | | |
 |---|---|
-| [`guides/README.md`](guides/README.md) | **the guides** — eight, one task each: installing, adopting the framework, declaring the stack, running a cycle, setting up and running the factory, handling blockers, handling refusals |
-| [`concepts/README.md`](concepts/README.md) | **the concepts** — how a mechanism works and why, one page each: protected files, perspectives |
+| [`guides/README.md`](guides/README.md) | **the guides** — one task each, from installing to handling a refusal. The index lists them |
+| [`concepts/README.md`](concepts/README.md) | **the concepts** — how a mechanism works and why, one page each. The index lists them |
 | [`reference/README.md`](reference/README.md) | **the reference** — every command, every skill and every refusal, one line each |
 | [`cheat-sheet.md`](cheat-sheet.md) | **the cheat sheet** — one cycle, one line per step |
 | [`samples/README.md`](samples/README.md) | **the samples** — one solution walked end to end, every command and every answer |

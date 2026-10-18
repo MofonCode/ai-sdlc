@@ -223,10 +223,8 @@ collect.
 What keeps going wrong across cycles — answered blockers included — is `sdlc propose constraints`, which
 reports a rule cited in three or more distinct cycles as a candidate for one of this solution's own.
 
-**A perspective's suggestions are how its rules get written.** A perspective with no rules of its own
-can block on nothing, so everything it finds is a suggestion, recorded with the perspective's name.
-`propose constraints` counts each perspective by the distinct cycles it raised something in and marks one
-at three; that perspective is where to read first for a rule worth adding.
+**A perspective's suggestions are how its rules get written** — `propose constraints` counts them by
+perspective, and How a perspective earns rules in `../concepts/perspectives.md` says how to read that count.
 
 ## Where to go next
 

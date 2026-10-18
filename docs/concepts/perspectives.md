@@ -117,6 +117,6 @@ it is one of your solution's own constraints, with the perspective named in its 
 | | |
 |---|---|
 | a blocking finding, and how a suggestion differs | `../guides/handling-blockers.md` |
-| the stages a perspective steers and judges | `../guides/running-a-cycle.md` |
-| the interrogate, build and propose skills in depth | `../../skills/README.md` |
+| the stages a perspective steers and judges, as a person walks them | `../guides/running-a-cycle.md`, §3 |
+| the interrogate, build and propose skills in depth — what each reader is handed | `../../skills/README.md` |
 | the two commands as one line each | `../reference/commands.md` |

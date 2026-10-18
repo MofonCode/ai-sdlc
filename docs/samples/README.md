@@ -1,6 +1,7 @@
 # The samples
 
-Worked examples: one small solution, every command typed, and the answer to give at every prompt. Read
+Worked examples: one small solution, every command a person types, and the answer to give at every
+prompt. Read
 one alongside your first cycle when a guide tells you where you will be asked something but not what to
 say.
 
@@ -18,8 +19,9 @@ criteria the work comes to. It has a front end on purpose: a die somebody asked 
 adoption interview's second question and the component layer exist for, and the two projects that hold
 it arrive in the cycle because the skeleton writes neither.
 
-**Every command is there to be typed**, including the ones a skill runs for you, because what those
-record is what the later stages read. **The solution is local** — no remote, no pipeline — so the walk
+**Every command a person types is there**, and a step a skill takes for you is named and linked rather
+than spelled out — the skill runs it, and the sample stays at the level of the steps you take. **The
+solution is local** — no remote, no pipeline — so the walk
 stays on one machine, and the sample says what that costs. Giving it a remote is its last section.
 
 What it does not cover: the blocked paths. It is the happy path deliberately — a refine after a blocking
@@ -29,6 +31,8 @@ them like everything else.
 
 ## See also
 
+- [The cheat sheet](../cheat-sheet.md) — one cycle, one line per step
 - [The guides](../guides/README.md) — one task each, with the why
+- [The concepts](../concepts/README.md) — one mechanism each, and why it works that way
 - [The reference](../reference/README.md) — every command, skill and refusal, one line each
 - [The components](../README.md) — every concept the framework names, defined once

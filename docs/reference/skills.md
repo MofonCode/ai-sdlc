@@ -52,5 +52,5 @@ each does something an agent should not decide on its own behalf:
 ## See also
 
 - [The skills reference](../../skills/README.md) — each skill's syntax, refusals and reasoning
-- [Commands](commands.md) — every command for one cycle, binary and agent alike
+- [Commands](commands.md) — every command, binary and agent alike
 - [Refusals](refusals.md) — what to do when something refuses
