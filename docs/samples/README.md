@@ -30,5 +30,5 @@ them like everything else.
 ## See also
 
 - [The guides](../guides/README.md) — one task each, with the why
-- [The cheat sheets](../cheat-sheets/README.md) — one line per thing
+- [The reference](../reference/README.md) — every command, skill and refusal, one line each
 - [The components](../README.md) — every concept the framework names, defined once

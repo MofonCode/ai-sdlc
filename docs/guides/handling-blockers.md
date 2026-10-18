@@ -235,4 +235,4 @@ at three; that perspective is where to read first for a rule worth adding.
 | every refusal, and the remedy for each | `handling-refusals.md` |
 | the stages these loops sit inside | `running-a-cycle.md` |
 | each skill named here, in depth | `../../skills/README.md` |
-| one line per refusal | `../cheat-sheets/refusals.md` |
+| one line per refusal | `../reference/refusals.md` |

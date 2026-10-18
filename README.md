@@ -204,11 +204,14 @@ refusal with its remedy.
 | [`docs/guides/running-the-factory.md`](docs/guides/running-the-factory.md) | many cycles built overnight: the integration branch, the factory, and the morning |
 | [`docs/guides/handling-blockers.md`](docs/guides/handling-blockers.md) | a blocking finding or a blocked verification, and how each is answered |
 | [`docs/guides/handling-refusals.md`](docs/guides/handling-refusals.md) | every refusal, and the remedy for each |
-| [`docs/guides/protected-files.md`](docs/guides/protected-files.md) | the files only a person changes, how the hook guards them, and how a change to one gets made |
-| [`docs/cheat-sheets/README.md`](docs/cheat-sheets/README.md) | **the cheat sheets** — one line per thing |
-| [`docs/cheat-sheets/commands.md`](docs/cheat-sheets/commands.md) | every command for one cycle, on one screen |
-| [`docs/cheat-sheets/skills.md`](docs/cheat-sheets/skills.md) | the eighteen skills, one line each |
-| [`docs/cheat-sheets/refusals.md`](docs/cheat-sheets/refusals.md) | every refusal, one line each |
+| [`docs/concepts/README.md`](docs/concepts/README.md) | **the concepts** — how a mechanism works and why, one page each |
+| [`docs/concepts/protected-files.md`](docs/concepts/protected-files.md) | the files only a person changes, and how the hook guards them |
+| [`docs/concepts/perspectives.md`](docs/concepts/perspectives.md) | what examines a change beyond the rules, when each perspective steers and judges, and how to read what it found |
+| [`docs/cheat-sheet.md`](docs/cheat-sheet.md) | **the cheat sheet** — one cycle, one line per step |
+| [`docs/reference/README.md`](docs/reference/README.md) | **the reference** — every command, skill and refusal, one line each |
+| [`docs/reference/commands.md`](docs/reference/commands.md) | every command, on one screen |
+| [`docs/reference/skills.md`](docs/reference/skills.md) | the eighteen skills, one line each |
+| [`docs/reference/refusals.md`](docs/reference/refusals.md) | every refusal, one line each |
 | [`docs/samples/rolling-a-die.md`](docs/samples/rolling-a-die.md) | **the whole walk with one solution in it** — a d6 rolled from a page, every command, in a repository with no remote |
 | [`skills/README.md`](skills/README.md) | the eighteen skills as a reference: syntax, parameters, output, refusals and remarks for each |
 | `sdlc constraints` | the rules in force, all tiers resolved. Run it rather than reading a copy of them |

@@ -8,7 +8,7 @@ browser, in a repository with no remote.
 flow is shaped this way. This is the same walk with something to type at every prompt and something that
 runs at the end. Where another guide covers a step, this one points at it rather than restating:
 `../guides/installing-the-plugin.md` for the two halves, `../guides/handling-refusals.md` for a refusal,
-`../cheat-sheets/commands.md` for the sheet. **Nothing here states a rule**; `sdlc constraints` renders
+`../cheat-sheet.md` for the cycle on one page. **Nothing here states a rule**; `sdlc constraints` renders
 those.
 
 In this tutorial, you:
@@ -407,13 +407,6 @@ Move-Item .sdlc/cycles/<id>/approval.approved.draft.md .sdlc/cycles/<id>/approva
 exception, and a draft nobody renamed records nothing. It refuses to print at all while a blocking
 finding is open: a blocking finding cannot be waived by any mechanism.
 
-```pwsh
-sdlc gate <id>
-```
-
-Eleven things can refuse here, each with a different next step. `../guides/handling-refusals.md`
-lists them all with the remedy for each.
-
 ## 9. Build
 
 ```
@@ -562,5 +555,6 @@ that wrote the change.
 - [Handling blockers](../guides/handling-blockers.md) — a blocking finding, or a blocked verification
 - [Handling refusals](../guides/handling-refusals.md) — what to do when something refuses
 - [Installing the plugin](../guides/installing-the-plugin.md) — installing both halves
-- [Commands](../cheat-sheets/commands.md) — every command for one cycle, on one screen
+- [The cheat sheet](../cheat-sheet.md) — the cycle, one line per step
+- [Commands](../reference/commands.md) — every command, on one screen
 - [The skills reference](../../skills/README.md) — what each skill is and who starts it

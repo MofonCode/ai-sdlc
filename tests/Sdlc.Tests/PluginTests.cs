@@ -826,9 +826,9 @@ public sealed class PluginTests
 
         string index = File.ReadAllText(Path.Combine(Root, "skills", "README.md"));
 
-        // The cheat sheet is the one-line list now, and the index carries the depth. Every row there
+        // The skills list is the one-line list now, and the index carries the depth. Every row there
         // starts with the skill's name as a link to its section here, so that is what is read.
-        string sheet = File.ReadAllText(Path.Combine(Root, "docs", "cheat-sheets", "skills.md"));
+        string sheet = File.ReadAllText(Path.Combine(Root, "docs", "reference", "skills.md"));
 
         // The components document summarises the skills in one row each and sends a reader to the index
         // for the rest. That is a fourth list, so it is held here rather than promised: a summary that
@@ -846,7 +846,7 @@ public sealed class PluginTests
         (string Source, HashSet<string> Listed)[] sources =
         [
             ("the concept's skills inventory (§15)", NamesMatching(concept[start..end], @"^\| `(?<name>[a-z-]+)`")),
-            ("the skills cheat sheet", NamesMatching(sheet, @"^\| \[`(?<name>[a-z-]+)`\]")),
+            ("the skills list", NamesMatching(sheet, @"^\| \[`(?<name>[a-z-]+)`\]")),
             ("the skills index's own sections", NamesMatching(index, @"^### `(?<name>[a-z-]+)`")),
             ("the components document's skills table", NamesMatching(summary, @"^\| `(?<name>[a-z-]+)` \|")),
         ];
@@ -1092,16 +1092,16 @@ public sealed class PluginTests
         // the exception is this test, because an exception paid for by a promise is the copy that goes
         // stale.
         //
-        // One rule over the three folders rather than one test each, because a guide, a cheat sheet and
-        // a sample drift from their indexes the same way. A fourth kind of document is a fourth folder
-        // and a fourth entry here, which is what keeps it from arriving undescribed.
+        // One rule over the four folders rather than one test each, because a guide, a concept, a
+        // reference list and a sample drift from their indexes the same way. A fifth kind of document is a fifth
+        // folder and a fifth entry here, which is what keeps it from arriving undescribed.
         //
         // The index's own list is taken from its section headings rather than from its table. Both have
         // to be there and the heading is the half a reader scrolls to, so keying on it means a document
         // described in a table row and nowhere else fails rather than passing as documented.
         string readme = File.ReadAllText(Path.Combine(Root, "README.md"));
 
-        foreach (string folder in (string[])["guides", "cheat-sheets", "samples"])
+        foreach (string folder in (string[])["guides", "concepts", "reference", "samples"])
         {
             string directory = Path.Combine(Root, "docs", folder);
 
@@ -1158,13 +1158,13 @@ public sealed class PluginTests
     }
 
     [TestMethod]
-    public void The_skills_cheat_sheet_states_what_each_skill_takes_as_the_skill_declares_it()
+    public void The_skills_list_states_what_each_skill_takes_as_the_skill_declares_it()
     {
-        // A cheat sheet is a copy by nature, so it is held to the thing it copies. The name of each skill
+        // A reference list is a copy by nature, so it is held to the thing it copies. The name of each skill
         // is held by the sources rule above; this holds the one column a reader types from. The skill's
-        // own argument-hint is what a host shows when it offers the skill, so a cheat sheet that drifted
+        // own argument-hint is what a host shows when it offers the skill, so a list that drifted
         // from it would teach a different invocation from the one the host prompts for.
-        string sheet = File.ReadAllText(Path.Combine(Root, "docs", "cheat-sheets", "skills.md"));
+        string sheet = File.ReadAllText(Path.Combine(Root, "docs", "reference", "skills.md"));
 
         var rows = Regex
             .Matches(sheet, @"^\| \[`(?<name>[a-z-]+)`\]\([^)]*\) \| `(?<takes>[^`]*)` \|", RegexOptions.Multiline)
@@ -1173,7 +1173,7 @@ public sealed class PluginTests
                 match => match.Groups["takes"].Value.Replace(@"\|", "|", StringComparison.Ordinal),
                 StringComparer.Ordinal);
 
-        Assert.IsTrue(rows.Count > 0, "No rows were read from the skills cheat sheet; its shape changed.");
+        Assert.IsTrue(rows.Count > 0, "No rows were read from the skills list; its shape changed.");
 
         foreach (string path in Skills())
         {
@@ -1185,26 +1185,26 @@ public sealed class PluginTests
             string hint = (quoted.Length >= 2 && quoted[0] == '"' && quoted[^1] == '"' ? quoted[1..^1] : quoted)
                 .Replace("\\\"", "\"", StringComparison.Ordinal);
 
-            Assert.IsTrue(rows.TryGetValue(name, out string? takes), $"The skills cheat sheet has no row for {name}.");
+            Assert.IsTrue(rows.TryGetValue(name, out string? takes), $"The skills list has no row for {name}.");
 
             Assert.AreEqual(
                 hint,
                 takes,
-                $"The skills cheat sheet says {name} takes something other than its argument-hint. Change "
+                $"The skills list says {name} takes something other than its argument-hint. Change "
                 + "the row to match the skill, or the skill and the row together.");
         }
     }
 
     [TestMethod]
-    public void The_refusals_cheat_sheet_names_every_refusal_the_guide_describes()
+    public void The_refusals_list_names_every_refusal_the_guide_describes()
     {
         // The same price for the same exception. Every entry in the refusals guide is a heading a reader
-        // can land on, and every line of the cheat sheet links to one by name. Compared in both
+        // can land on, and every line of the list links to one by name. Compared in both
         // directions, so a refusal added to the guide and not the sheet fails as loudly as a line left
         // pointing at an entry that was removed -- and each link's anchor is checked against the heading
         // it names, because a dead anchor still renders as a link.
         string guide = File.ReadAllText(Path.Combine(Root, "docs", "guides", "handling-refusals.md"));
-        string sheet = File.ReadAllText(Path.Combine(Root, "docs", "cheat-sheets", "refusals.md"));
+        string sheet = File.ReadAllText(Path.Combine(Root, "docs", "reference", "refusals.md"));
 
         HashSet<string> entries = new(
             Regex.Matches(guide, @"^### (?<name>.+?)\s*$", RegexOptions.Multiline)
@@ -1218,18 +1218,18 @@ public sealed class PluginTests
         HashSet<string> lines = new(links.Select(match => match.Groups["name"].Value), StringComparer.Ordinal);
 
         Assert.IsTrue(entries.Count > 0, "No entries were read from the refusals guide; its shape changed.");
-        Assert.IsTrue(lines.Count > 0, "No lines were read from the refusals cheat sheet; its shape changed.");
+        Assert.IsTrue(lines.Count > 0, "No lines were read from the refusals list; its shape changed.");
 
         Assert.AreEqual(
             0,
             entries.Except(lines, StringComparer.Ordinal).Count(),
-            "In the refusals guide and missing from the cheat sheet: "
+            "In the refusals guide and missing from the list: "
             + string.Join(", ", entries.Except(lines, StringComparer.Ordinal)));
 
         Assert.AreEqual(
             0,
             lines.Except(entries, StringComparer.Ordinal).Count(),
-            "In the refusals cheat sheet and not an entry in the guide: "
+            "In the refusals list and not an entry in the guide: "
             + string.Join(", ", lines.Except(entries, StringComparer.Ordinal)));
 
         foreach (Match link in links)
@@ -1247,7 +1247,7 @@ public sealed class PluginTests
 
             Assert.IsTrue(
                 string.Equals(slug, anchor, StringComparison.OrdinalIgnoreCase),
-                $"The refusals cheat sheet links '{link.Groups["name"].Value}' to an anchor its heading "
+                $"The refusals list links '{link.Groups["name"].Value}' to an anchor its heading "
                 + "does not produce, so the link lands at the top of the guide.");
         }
     }

@@ -1,6 +1,6 @@
 # Handling refusals
 
-Every refusal the framework produces, what it means, and what to do next. `../cheat-sheets/refusals.md`
+Every refusal the framework produces, what it means, and what to do next. `../reference/refusals.md`
 is the same list as one line each.
 
 **A refusal is a command or hook declining to go on.** It is not the same thing as a blocker — a
@@ -335,7 +335,7 @@ belongs there.
 
 ## The pre-tool hook — the seven things an agent is denied
 
-These are denied at the tool call, by file path and by shell command alike. `protected-files.md` says
+These are denied at the tool call, by file path and by shell command alike. `../concepts/protected-files.md` says
 how the hook decides and what it deliberately leaves alone; this is why each one is a person's. The rules are absolute rather
 than conditional, and that is the point: there is no mode, no flag, and no check on which skill is
 running, so a rule with no exception has nowhere for a bypass to live.
@@ -490,10 +490,10 @@ published.
 | | |
 |---|---|
 | a blocking finding or a blocked verification, and how to answer it | `handling-blockers.md` |
-| every refusal as one line | `../cheat-sheets/refusals.md` |
+| every refusal as one line | `../reference/refusals.md` |
 | a cycle walked end to end | `running-a-cycle.md` |
 | the same walk with one solution in it | `../samples/rolling-a-die.md` |
-| every command for one cycle, on one screen | `../cheat-sheets/commands.md` |
+| every command on one screen | `../reference/commands.md` |
 | what this solution is built from, and how to change it | `declaring-the-stack.md` |
 | what each skill is and who starts it | `../../skills/README.md` |
 | installing, updating, removing | `installing-the-plugin.md` |

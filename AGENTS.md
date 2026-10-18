@@ -35,7 +35,8 @@ the cheapest way to discover that what you were about to add already lives somew
 | [`skills/README.md`](skills/README.md) | the eighteen skills as a reference: syntax, parameters, output, refusals and remarks for each |
 | [`docs/README.md`](docs/README.md) | the components: every concept the framework names, defined once. Start here when a term is unfamiliar |
 | [`docs/guides/README.md`](docs/guides/README.md) | the guides, one task each: what each covers, when to read it, what it leaves to another |
-| [`docs/cheat-sheets/README.md`](docs/cheat-sheets/README.md) | the cheat sheets: one line per command, skill and refusal, each held to its source by the suite |
+| [`docs/concepts/README.md`](docs/concepts/README.md) | the concepts, one mechanism each: how it works and why, for a person using it rather than doing a task |
+| [`docs/reference/README.md`](docs/reference/README.md) | the reference lists: one line per command, skill and refusal, each held to its source by the suite |
 | [`docs/samples/README.md`](docs/samples/README.md) | the worked examples: one solution, every command, every answer |
 | [`tools/README.md`](tools/README.md) | the two tools that check what the suite cannot, and when to run each |
 | [`src/README.md`](src/README.md) | what `Sdlc.Core` and `Sdlc.Cli` are, how one invocation flows, where a new thing goes |
@@ -50,7 +51,7 @@ the cheapest way to discover that what you were about to add already lives somew
 | `src/Sdlc.Core/` | the gate's logic: constraints, cycles, approvals, findings, hooks, evidence, the chain |
 | `src/Sdlc.Cli/` | the one binary every skill on every host calls |
 | `skills/` | the skills as they ship, one directory each |
-| `docs/guides/`, `docs/cheat-sheets/`, `docs/samples/` | the documents for a person using the framework: one task per guide, one line per thing in a cheat sheet, one solution end to end in a sample |
+| `docs/guides/`, `docs/concepts/`, `docs/reference/`, `docs/samples/`, `docs/cheat-sheet.md` | the documents for a person using the framework: one task per guide, one mechanism per concept, one line per thing in a reference list, one solution end to end in a sample, and one cycle as one line per step in the cheat sheet |
 | `plugin.json`, `.claude-plugin/`, `hooks/` | the plugin as it installs: the portable manifest, Claude Code's manifest, Claude Code's hooks |
 | `tests/` | the suite |
 | `tools/Sdlc.ScaffoldHarness/` | the harness that writes a scaffolded solution so it can be built |
@@ -163,19 +164,19 @@ a follow-up is a thing somebody has to remember, and the document is wrong in th
 
 | If the change | update |
 |---|---|
-| adds, removes or renames a skill, or changes what one takes or refuses | [`skills/README.md`](skills/README.md) — its own section, and the count in the heading if it moved — **and the skills table in [`docs/README.md`](docs/README.md) and the row in [`docs/cheat-sheets/skills.md`](docs/cheat-sheets/skills.md)**, both held by the suite against disk, and the cheat sheet's `Takes` against the skill's `argument-hint` |
+| adds, removes or renames a skill, or changes what one takes or refuses | [`skills/README.md`](skills/README.md) — its own section, and the count in the heading if it moved — **and the skills table in [`docs/README.md`](docs/README.md) and the row in [`docs/reference/skills.md`](docs/reference/skills.md)**, both held by the suite against disk, and the skills list's `Takes` against the skill's `argument-hint` |
 | adds or renames a concept the framework has a name for | [`docs/README.md`](docs/README.md), which defines each one once. A concept defined nowhere is one the next session works out from the code |
-| changes a command's behaviour or options | `src/Sdlc.Cli/Usage.cs`, which is what `sdlc help` prints, and [`docs/cheat-sheets/commands.md`](docs/cheat-sheets/commands.md) |
+| changes a command's behaviour or options | `src/Sdlc.Cli/Usage.cs`, which is what `sdlc help` prints, and [`docs/reference/commands.md`](docs/reference/commands.md) |
 | changes what a correct install produces — a hook, a skill count, a version, either plugin manifest | [`docs/guides/installing-the-plugin.md`](docs/guides/installing-the-plugin.md), **including the table at the top**, and the Getting started steps in [`README.md`](README.md) |
-| adds, removes or reworks a refusal | [`docs/guides/handling-refusals.md`](docs/guides/handling-refusals.md), and its row in [`docs/cheat-sheets/refusals.md`](docs/cheat-sheets/refusals.md), which the suite holds against the guide's entries |
+| adds, removes or reworks a refusal | [`docs/guides/handling-refusals.md`](docs/guides/handling-refusals.md), and its row in [`docs/reference/refusals.md`](docs/reference/refusals.md), which the suite holds against the guide's entries |
 | changes how a blocking finding or a blocked verification is answered — the loops, refine, remediate, escalation | [`docs/guides/handling-blockers.md`](docs/guides/handling-blockers.md) |
-| changes the flow a person walks through | [`docs/guides/adopting-the-framework.md`](docs/guides/adopting-the-framework.md) for adoption, [`docs/guides/running-a-cycle.md`](docs/guides/running-a-cycle.md) for a cycle, and [`docs/samples/rolling-a-die.md`](docs/samples/rolling-a-die.md) where the sample walks it |
-| adds, removes or renames a guide, a cheat sheet or a sample | that folder's `README.md` — its table row, its own `##` section, and any count in the opening line — **and** the Where to read more table in [`README.md`](README.md). The suite holds, for each of `docs/guides/`, `docs/cheat-sheets/` and `docs/samples/`, that the index's headings and that table name the same set as the directory. A new kind of document gets a folder of its own, with its own index, and joins that test |
-| adds or changes a perspective | its document under `Perspectives/`, which needs a `Cover this` and a `Questions` entry for every stage or the suite rejects it, and the perspectives table in `CONCEPT.md` §6.5 if one is added or renamed |
+| changes the flow a person walks through | [`docs/guides/adopting-the-framework.md`](docs/guides/adopting-the-framework.md) for adoption, [`docs/guides/running-a-cycle.md`](docs/guides/running-a-cycle.md) for a cycle, [`docs/samples/rolling-a-die.md`](docs/samples/rolling-a-die.md) where the sample walks it, and [`docs/cheat-sheet.md`](docs/cheat-sheet.md) when a step of the cycle is added, removed or reordered |
+| adds, removes or renames a guide, a concept, a reference list or a sample | that folder's `README.md` — its table row, its own `##` section, and any count in the opening line — **and** the Where to read more table in [`README.md`](README.md). The suite holds, for each of `docs/guides/`, `docs/concepts/`, `docs/reference/` and `docs/samples/`, that the index's headings and that table name the same set as the directory. A new kind of document gets a folder of its own, with its own index, and joins that test |
+| adds or changes a perspective | its document under `Perspectives/`, which needs a `Cover this` and a `Questions` entry for every stage or the suite rejects it, the perspectives table in `CONCEPT.md` §6.5 if one is added or renamed, and [`docs/concepts/perspectives.md`](docs/concepts/perspectives.md) if what switches one on, or what one does at a stage, moves |
 | adds or changes what a profile declares, or a stack rule | `Solutions/StackProfile` for the rows, `Constraints/Profiles/<profile>.md` for the rules, and [`docs/guides/declaring-the-stack.md`](docs/guides/declaring-the-stack.md), which is where a person reads both. A rule count stated in a document is held by the suite. **A new rule reaches no existing solution until its row is added there** — say so wherever the release is described |
 | adds, removes or changes a build settings file, or what one does | `Solutions/BuildSettings`, which is the one list — its path, its one-line summary, its detail and its template — and [`docs/guides/declaring-the-stack.md`](docs/guides/declaring-the-stack.md), which carries the table of the five. The draft's rows, the options menu, `sdlc scaffold`, `sdlc stack` and the harness all read the list, so none of them is a second place to edit |
 | adds, removes or renames a tool under `tools/` | [`tools/README.md`](tools/README.md) — its row and its own section |
-| adds or removes a file only a person writes | `ProtectedPaths` (its description, its reason, and `Names`), the count in [`README.md`](README.md), [`skills/README.md`](skills/README.md), [`skills/draft/SKILL.md`](skills/draft/SKILL.md), the denial table in [`docs/guides/handling-refusals.md`](docs/guides/handling-refusals.md) and its row in [`docs/cheat-sheets/refusals.md`](docs/cheat-sheets/refusals.md), the table in [`docs/guides/adopting-the-framework.md`](docs/guides/adopting-the-framework.md), and `CONCEPT.md` §5.3 and §8 |
+| adds or removes a file only a person writes | `ProtectedPaths` (its description, its reason, and `Names`), the count in [`README.md`](README.md), [`skills/README.md`](skills/README.md), [`skills/draft/SKILL.md`](skills/draft/SKILL.md), the table in [`docs/concepts/protected-files.md`](docs/concepts/protected-files.md), the denial table in [`docs/guides/handling-refusals.md`](docs/guides/handling-refusals.md) and its row in [`docs/reference/refusals.md`](docs/reference/refusals.md), the table in [`docs/guides/adopting-the-framework.md`](docs/guides/adopting-the-framework.md), and `CONCEPT.md` §5.3 and §8 |
 | moves the project boundary, an operation's shape, or where a new thing goes | [`src/README.md`](src/README.md) |
 | adds or removes a supported host, or changes what one supports | the hosts table in [`README.md`](README.md), and `CONCEPT.md` D-46 if the reasoning moves |
 | changes the layout, the build, the enforced properties, or what to keep current | this file |
@@ -195,11 +196,11 @@ changing it.** Product description, install, status and honest gaps belong there
 enforced properties and the table above belong here. Neither grows a copy of the other.
 
 **Two duplications are accepted, and both are paid for mechanically rather than promised.** The root
-README's Where to read more table names every guide, cheat sheet and sample as well as their folders'
-own indexes. And a cheat sheet is by nature a one-line copy of something a guide or `skills/README.md`
+README's Where to read more table names every guide, concept, reference list and sample as well as their folders'
+own indexes, and the cheat sheet. And a reference list is by nature a one-line copy of something a guide or `skills/README.md`
 owns — so each one links every line to its owner, and the suite holds it to that owner: the skills
-sheet against the skills on disk and their `argument-hint`, the refusals sheet against the refusals
-guide's entries. A cheat sheet line with no owner to link to is a guide paragraph in the wrong place.
+list against the skills on disk and their `argument-hint`, the refusals list against the refusals
+guide's entries. A reference line with no owner to link to is a guide paragraph in the wrong place.
 
 ### What is mechanised, and what is not
 
@@ -207,7 +208,7 @@ guide's entries. A cheat sheet line with no owner to link to is a guide paragrap
 `CONCEPT.md` inventories, every skill names a command the binary has, no skill restates a constraint, the
 README's counts and version are true, every guide it points at exists, every path this file links to
 exists with the capitalisation it states — and index-parity tests, which compare each index to its
-directory in both directions (the skills, the three document folders, the tools), so an index naming
+directory in both directions (the skills, the four document folders, the tools), so an index naming
 something gone fails as loudly as one missing something new.
 
 **What no test holds is whether a sentence is still true.** The install guide's table claimed one hook for

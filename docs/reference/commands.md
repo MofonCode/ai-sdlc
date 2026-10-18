@@ -1,40 +1,10 @@
 # Commands
 
-Every command for one cycle, in order, and whether the binary or an agent runs it. **One line each** —
+Every command, grouped by when you run it, and whether the binary or an agent runs it. **One line each** —
 the guides have the why.
 
 `sdlc …` is the binary: deterministic, and it never writes a planning document. `/sdlc:…` is a skill:
 an agent runs it, and it never decides a gate. `skills.md` lists the skills.
-
-## The short path
-
-A repository nobody has adopted, to an open pull request.
-
-Adopt it, once — `../guides/adopting-the-framework.md`:
-
-1. `git init` — and **create the remote first** if the code will live on one
-2. `/sdlc:init` — asks where the code lives, then hands you the adoption command to run yourself. It
-   commits, creates `development` and switches to it, and drafts three files beside where they go
-3. the interview, in the same skill, and the `LOC_` rules it proposes — it runs `propose constraints`
-4. fill in `.sdlc/solution.draft.md` and `.sdlc/techstack.draft.md` — and `constraints.draft.md` if a
-   rule survived, or leave it with none — then `mv -f` all three onto their real names. No command writes them; they are already there.
-   **`sdlc new` refuses until the declared stack is placed**
-5. `git add .sdlc && git commit` — **`sdlc new` refuses over uncommitted work**. `sdlc doctor` exits 0
-6. with a remote: push `development`, and **make the pipeline's check required** in branch policy
-
-Then the cycle — `../guides/running-a-cycle.md`:
-
-7. `/sdlc:intent [--type bug|add|change]` — opens the cycle, switches to its branch, interviews you
-   one question at a time, then runs its own loop once you have answered
-8. `/sdlc:spec <id>`
-9. `/sdlc:plan <id>` — the last document before you approve; read it closely
-10. `sdlc draft approval <id>`, **rename the draft yourself**, then `sdlc gate <id>`
-11. `/sdlc:build <id>`
-12. `/sdlc:verify <id>`, and `/sdlc:remediate <id>` only where it wrote `blocked`
-13. `/sdlc:pr <id>` — asks before it pushes
-
-`sdlc status <id>` between any two prints the next command. `/sdlc:steer <id> "..."` is a change of mind
-before step 10.
 
 ## Every command
 

@@ -8,8 +8,8 @@ you arrive at it early.
 when they are done. Nothing here is specific to what the change is.
 
 **This is the happy path.** When an interrogation raises a blocking finding or a verification records
-`blocked`, `handling-blockers.md` is the walk back. **If you have done this before**, the short path at
-the top of `../cheat-sheets/commands.md` is this same walk in numbered lines.
+`blocked`, `handling-blockers.md` is the walk back. **If you have done this before**, the cheat sheet,
+`../cheat-sheet.md`, is this same walk as one bullet per step.
 
 ## 1. Read the rules before writing anything
 
@@ -157,15 +157,6 @@ Refusing is drafted on the same terms as approving — `--changes-requested`, `-
 leaves the reason line empty for you, because the gate rejects a refusal that says nothing about why.
 Helping with the easy case while withholding help from the hard one is the asymmetry people resent.
 
-Then check it took:
-
-```pwsh
-sdlc gate 20260929_1456_32
-```
-
-Eleven things can refuse here, each with a different next step. `handling-refusals.md` lists them all
-with the remedy for each.
-
 ### Admit the plan to the integration branch
 
 When the solution has an integration branch — `development`, unless `solution.md` names another — the
@@ -192,8 +183,10 @@ carries the plan and the code together.
 ```
 
 The first stage that writes code and the first you are not expected to watch. It asks the gate and stops
-if the gate refuses, then puts itself on `cycle/<id>/build` with `sdlc branch` — from the integration
-branch once the plan is admitted there, from the plan branch before that. It implements what the plan decided **and only that** — something worth fixing that
+if the gate refuses — eleven things can refuse there, each with a different next step, and
+`handling-refusals.md` lists them all with the remedy for each. Then it puts itself on
+`cycle/<id>/build` with `sdlc branch` — from the integration branch once the plan is admitted there, from
+the plan branch before that. It implements what the plan decided **and only that** — something worth fixing that
 the plan did not describe gets left alone and reported as a suggestion, because creep inside an approved
 file is what reaches review dressed as approved work, where it is least likely to be questioned.
 
@@ -340,6 +333,7 @@ progress stops rather than reaching a ready pull request — so the first batch 
 | this same walk with one solution in it, end to end | `../samples/rolling-a-die.md` |
 | a blocking finding, or a blocked verification | `handling-blockers.md` |
 | what to do when something refuses | `handling-refusals.md` |
-| this walk as fourteen numbered lines, then every command on one screen | `../cheat-sheets/commands.md` |
+| this walk as one bullet per step | `../cheat-sheet.md` |
+| every command on one screen | `../reference/commands.md` |
 | what this solution is built from, and how to change it | `declaring-the-stack.md` |
 | what each skill is and who starts it | `../../skills/README.md` |

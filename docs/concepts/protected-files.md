@@ -1,11 +1,12 @@
 # Protected files
 
 Which files in a governed solution only a person may change, how the framework stops an agent changing
-them, and how a change to one gets made anyway. Read it when an agent tells you it cannot write a file,
-or before you go looking for the setting that would let it.
+them, and what that guard deliberately leaves alone. Read it when an agent tells you it cannot write a
+file, or before you go looking for the setting that would let it.
 
-**There is no such setting, and that is the design.** The rest of this guide is why, and what you do
-instead.
+**There is no such setting, and that is the design.** The rest of this page is why. Making a change to
+one of them is a task, and it lives in What your solution owns in
+`../guides/adopting-the-framework.md`: which tool prepares each file, and the step that is yours.
 
 ## What is guarded
 
@@ -24,7 +25,7 @@ instead.
 **Each one is a decision, and a decision means something only if no tool could have made it.** Most of
 them are also something a cycle is judged against — the constraints, the declared stack, the recorded
 decisions — and a cycle able to edit the rule it is judged by can satisfy any rule by moving it. Why each
-file is a person's, file by file, is in the denial table of `handling-refusals.md`.
+file is a person's, file by file, is in the denial table of `../guides/handling-refusals.md`.
 
 **Each of the first three carries a note at its top** saying that only a person changes it. Adoption
 writes the note into the drafts it leaves you, so the file explains a denied agent write before the
@@ -72,35 +73,14 @@ denied.
 
 **So the guard is not a lock on the file.** It stops the agent from making a decision that is yours.
 What stops a governed change from merging without the chain behind it is a different layer — the
-pull-request check — and `installing-the-plugin.md` and `adopting-the-framework.md` say how that one is
+pull-request check — and `../guides/installing-the-plugin.md` and `../guides/adopting-the-framework.md` say how that one is
 made required.
-
-## How a change to one gets made
-
-**Every file has a tool that prepares the change, and you place it.**
-
-| File | Prepared by | Placed by |
-|---|---|---|
-| `solution.md` | adoption drafts the first one; after that `sdlc draft solution` | renaming the draft over the file |
-| `techstack.md` | adoption drafts the first one; after that `sdlc draft techstack` | renaming the draft over the file |
-| `constraints.md` | adoption drafts the first one, with no rule; `sdlc propose constraints` proposes entries from the findings | adding the entry, and renaming the draft or editing the file |
-| `decisions.md` | `sdlc propose decisions` proposes entries from what approved cycles settled | pasting the entry |
-| `approval.md` | `sdlc draft approval <id>` | renaming the draft over the file |
-| `abandoned.md` | `sdlc draft abandon <id>` | writing the reason by hand |
-| the adoption command | the `init` skill hands you the line | running it |
-
-**Your agent can do everything up to the last column.** It can run the drafter, edit the draft to what
-you asked for, and show you the line that places it. Then it stops, and you run that line — which on
-Claude Code is the same line with a `!` in front.
-
-**Commit what you place.** A cycle does not open over uncommitted work, so a file you placed and did not
-commit is the next thing `sdlc new` names.
 
 ## Where to go next
 
 | | |
 |---|---|
-| why each file is a person's, and every other denial | `handling-refusals.md` |
-| placing the first three, in order | `adopting-the-framework.md` |
-| changing the declared stack | `declaring-the-stack.md` |
-| approving or abandoning a cycle | `running-a-cycle.md` |
+| why each file is a person's, and every other denial | `../guides/handling-refusals.md` |
+| placing the first three, and changing any of the six | `../guides/adopting-the-framework.md` |
+| changing the declared stack | `../guides/declaring-the-stack.md` |
+| approving or abandoning a cycle | `../guides/running-a-cycle.md` |

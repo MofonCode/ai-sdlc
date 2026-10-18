@@ -3,13 +3,15 @@
 Every concept the framework has a name for, defined once: what it is, what uses it, and where it lives.
 
 **This is a dictionary, not a walkthrough and not a rule set.** It says what a thing *is*; the guides say
-what to *do* and in what order, the cheat sheets give the line, and `sdlc constraints` renders the rules. Where something has a fuller
+what to *do* and in what order, the concepts say how a mechanism works and why, the cheat sheet is the cycle on one page, the reference gives the line, and `sdlc constraints` renders the rules. Where something has a fuller
 treatment elsewhere, the entry points at it rather than repeating it.
 
 | | |
 |---|---|
-| [`guides/README.md`](guides/README.md) | **the guides** — six, one task each: installing, adopting the framework, declaring the stack, running a cycle, handling blockers, handling refusals |
-| [`cheat-sheets/README.md`](cheat-sheets/README.md) | **the cheat sheets** — every command, every skill and every refusal, one line each |
+| [`guides/README.md`](guides/README.md) | **the guides** — eight, one task each: installing, adopting the framework, declaring the stack, running a cycle, setting up and running the factory, handling blockers, handling refusals |
+| [`concepts/README.md`](concepts/README.md) | **the concepts** — how a mechanism works and why, one page each: protected files, perspectives |
+| [`reference/README.md`](reference/README.md) | **the reference** — every command, every skill and every refusal, one line each |
+| [`cheat-sheet.md`](cheat-sheet.md) | **the cheat sheet** — one cycle, one line per step |
 | [`samples/README.md`](samples/README.md) | **the samples** — one solution walked end to end, every command and every answer |
 | [`../skills/README.md`](../skills/README.md) | **the skills as a reference** — syntax, parameters, output, refusals and remarks for each of the eighteen |
 | [`../CONCEPT.md`](../CONCEPT.md) | the design, and every decision behind it with what each one rejected |
@@ -130,7 +132,7 @@ One governed change, from why it exists to a pull request.
 | **schema violation** | one thing wrong with that shape — a key, a section, or the document |
 | **content hash** | an artifact's bytes, normalised for what a platform may change. What makes a stale judgement detectable |
 
-**See also:** [Running a cycle](guides/running-a-cycle.md) · [Commands](cheat-sheets/commands.md)
+**See also:** [Running a cycle](guides/running-a-cycle.md) · [Cheat sheet](cheat-sheet.md) · [Commands](reference/commands.md)
 
 ## 4. The rules, and the two records beside them
 
@@ -185,7 +187,7 @@ One gate, covering all three planning documents, immediately before the build.
 | **the draft-and-rename pattern** | a drafter writes a complete file *beside* the real one and prints the rename. **Renaming is the decision**; a draft nobody renamed records nothing |
 | **draft file names** | `approval.<decision>.draft.md`, `solution.draft.md`, `techstack.draft.md`, `constraints.draft.md`. The decision is in the name, so a denial and an approval cannot look identical at the moment of the move. The three under `.sdlc/` are what adoption leaves a person, and git ignores them. The options menu written alongside the stack's draft is **not** a draft and is not here: it is a report, nothing renames it, and a declared stack carrying it is something `sdlc doctor` reports |
 | **the gate** | `sdlc gate <id>`: whether the build may run. Exits 1 if not |
-| **the six files only a person writes** | `approval.md`, `abandoned.md`, `constraints.md`, `decisions.md`, `solution.md`, `techstack.md`. Every agent write to one is denied, by path and by command alike. `guides/protected-files.md` is how |
+| **the six files only a person writes** | `approval.md`, `abandoned.md`, `constraints.md`, `decisions.md`, `solution.md`, `techstack.md`. Every agent write to one is denied, by path and by command alike. `concepts/protected-files.md` is how |
 | **the guard note** | the blockquote at the top of `solution.md`, `techstack.md` and `constraints.md`, and of their drafts, saying only a person changes the file — so a denied agent write is explained by the file a person opens |
 
 **Eleven things refuse at the gate**, and `guides/handling-refusals.md` is where each is looked up: no
@@ -245,7 +247,7 @@ declining to go on, exit code 1. An open blocker causes refusals; it is not one.
 | **the factory** | a pipeline that runs `batch-build --pr --unattended` against the integration branch every night. It finds, builds, verifies and opens pull requests, and **never merges** | `sdlc factory` |
 | **a draft pull request** | what a cycle that did not pass gets: its attempted code, verify and evidence, marked not ready, so a person picks it up rather than the factory building it again | `/sdlc:pr <id> --draft` |
 | **the sitrep** | the morning's page: what is ready to merge and in what order, what needs a person, what was held back and why, what is waiting and going stale | `sdlc sitrep` |
-| **a perspective** | a way of examining a change — security, operability, maintainability, accessibility, UI/UX and others — that steers authoring with a short list per stage and judges in a fresh reader of its own. Only a finding citing a rule it lists blocks; the rest are suggestions, recorded with the perspective's name — a finding's `perspective` field, a build's `Noticed: [name]` line — so `sdlc propose constraints` can count which perspective keeps finding things | `sdlc perspectives <id>`, `sdlc perspective show <name> --for <stage>` |
+| **a perspective** | a way of examining a change — security, operability, maintainability, accessibility, UI/UX and others — that steers authoring with a short list per stage and judges in a fresh reader of its own. Only a finding citing a rule it lists blocks; the rest are suggestions, recorded with the perspective's name — a finding's `perspective` field, a build's `Noticed: [name]` line — so `sdlc propose constraints` can count which perspective keeps finding things. `concepts/perspectives.md` says which a cycle gets and when each runs | `sdlc perspectives <id>`, `sdlc perspective show <name> --for <stage>` |
 | **a lead** | anything a person can hand `intent` to begin a cycle: `azuredevops:1234`, `github:56`, `suggestion:<cycle>/<finding>`, or a path. Its outside text is untrusted, and the interview still happens | `sdlc lead show <reference>`, `/sdlc:intent --from <lead>` |
 
 ### The three layers, and what each stops
@@ -275,7 +277,7 @@ declining to go on, exit code 1. An open blocker causes refusals; it is not one.
 | **exit codes** | `0` did what was asked · `1` **a rule refused it** · `2` the command line was not understood · `3` **the gate itself failed** |
 | **refusal versus failure** | a refusal is the gate working and a failure is the gate broken. Different exit codes on purpose, so a hook never reports its own bug as a governed stop |
 
-**See also:** [Handling refusals](guides/handling-refusals.md) · [Refusals](cheat-sheets/refusals.md)
+**See also:** [Handling refusals](guides/handling-refusals.md) · [Refusals](reference/refusals.md)
 
 ## 10. The skills
 
@@ -305,7 +307,7 @@ never decides a gate.
 | `suggestions` | lists the open non-blocking findings a solution has accumulated |
 
 **For what each one refuses, who starts it, and what it reads and writes, go to
-[`../skills/README.md`](../skills/README.md);** [`cheat-sheets/skills.md`](cheat-sheets/skills.md) adds what
+[`../skills/README.md`](../skills/README.md);** [`reference/skills.md`](reference/skills.md) adds what
 each takes. That file is the skills' own surface and this is a
 summary of it.
 
@@ -326,6 +328,7 @@ These are not files. They are the shapes that recur, and knowing them explains m
 ## See also
 
 - [The guides](guides/README.md) — what to do, and in what order
-- [The cheat sheets](cheat-sheets/README.md) — one line per thing
+- [The concepts](concepts/README.md) — how a mechanism works and why
+- [The reference](reference/README.md) — every command, skill and refusal, one line each
 - [The skills reference](../skills/README.md) — each skill in full
 - [`CONCEPT.md`](../CONCEPT.md) — the design, and every decision behind it

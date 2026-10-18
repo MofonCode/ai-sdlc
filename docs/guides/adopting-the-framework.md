@@ -89,7 +89,7 @@ What lands beside it, **not committed**, for you to fill in and rename:
 | `.sdlc/constraints.draft.md` | becomes `constraints.md`: the header and no rule. Optional |
 
 **Each draft says at the top that only a person changes the real file**, because an agent's write to it
-is denied — `protected-files.md` says how that works and which files it covers.
+is denied — `../concepts/protected-files.md` says how that works and which files it covers.
 
 **Every host's configuration is written whichever host you use.** A file is inert on a machine without
 that host, and a teammate who opens the repository in a different agent is then governed without having
@@ -280,7 +280,7 @@ takes it from there.
 
 **Six files only a person writes**, and every tool that could write one prints or drafts what belongs in
 it instead. The pre-tool hook denies every agent write to all six, by file path and by shell command
-alike — `protected-files.md` is the whole of how.
+alike — `../concepts/protected-files.md` is the whole of how.
 
 | File | What it holds | Changes when | How it gets written |
 |---|---|---|---|
@@ -290,6 +290,13 @@ alike — `protected-files.md` is the whole of how.
 | `.sdlc/decisions.md` | choices this solution already settled, so a cycle reads what was argued rather than arguing it again. Binds nothing | an approved cycle settles something worth not re-deciding | `sdlc propose decisions` reads approved cycles; you paste |
 | `.sdlc/cycles/<id>/approval.md` | the decision on one cycle's three planning documents | at the gate, and again if a document changes | `sdlc draft approval <id>`, then your rename |
 | `.sdlc/cycles/<id>/abandoned.md` | why one cycle stopped for good | once, and it is terminal | `sdlc draft abandon <id>`, then your rename |
+
+**Your agent can do everything up to the last step.** It can run the drafter, edit the draft to what
+you asked for, and show you the line that places it. Then it stops, and you run that line — which on
+Claude Code is the same line with a `!` in front.
+
+**Commit what you place.** A cycle does not open over uncommitted work, so a file you placed and did not
+commit is the next thing `sdlc new` names.
 
 **One solution file is deliberately not on that list.** `.sdlc/theme.json` holds the roles this
 solution's surfaces use and the values that fill them. Nobody is judged against a colour, so an ordinary
@@ -308,5 +315,5 @@ repository would be a second place the truth lives.
 | the first cycle, stage by stage | `running-a-cycle.md` |
 | this whole walk with a real solution in it | `../samples/rolling-a-die.md` |
 | what to do when something refuses | `handling-refusals.md` |
-| why an agent cannot write the files above | `protected-files.md` |
-| every command on one screen | `../cheat-sheets/commands.md` |
+| why an agent cannot write the files above | `../concepts/protected-files.md` |
+| every command on one screen | `../reference/commands.md` |

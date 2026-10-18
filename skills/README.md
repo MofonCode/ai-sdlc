@@ -32,7 +32,7 @@ and prints the invocation — because a tool must never send somebody somewhere 
 
 ## Before the skills
 
-**The one-line list lives in [the skills cheat sheet](../docs/cheat-sheets/skills.md).** This page is
+**The one-line list lives in [the skills list](../docs/reference/skills.md).** This page is
 the long form, laid out like an API reference: every skill below opens with a one-line summary and a
 table of its stage, who starts it, and what it reads and writes, then carries the same sections —
 **Syntax**, **Parameters**, **Output**, **Refusals**, **Example**, **Remarks** and **See also** — in that
@@ -1549,9 +1549,9 @@ headings of its own.
 
 ## See also
 
-- [Skills cheat sheet](../docs/cheat-sheets/skills.md) — every skill in one line each
-- [Commands cheat sheet](../docs/cheat-sheets/commands.md) — every command, on one screen
-- [Refusals cheat sheet](../docs/cheat-sheets/refusals.md) — every refusal, on one screen
+- [Skills list](../docs/reference/skills.md) — every skill in one line each
+- [Commands list](../docs/reference/commands.md) — every command, on one screen
+- [Refusals list](../docs/reference/refusals.md) — every refusal, on one screen
 - [Installing the plugin](../docs/guides/installing-the-plugin.md) — the plugin and the binary
 - [Adopting the framework](../docs/guides/adopting-the-framework.md) — into a repository
 - [Declaring the stack](../docs/guides/declaring-the-stack.md) — what the solution is built from

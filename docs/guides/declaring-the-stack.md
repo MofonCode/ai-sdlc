@@ -344,6 +344,6 @@ A third, `framework files`, is about the files adoption owns rather than this on
 | the step before: adoption, and placing `solution.md` | `adopting-the-framework.md` |
 | one cycle end to end | `running-a-cycle.md` |
 | that walk with one solution in it | `../samples/rolling-a-die.md` |
-| every command for one cycle | `../cheat-sheets/commands.md` |
+| every command on one screen | `../reference/commands.md` |
 | what to do when something refuses | `handling-refusals.md` |
 | every design decision behind this | `../../CONCEPT.md`, §8.2, §11 and D-67, D-68, D-74, D-75, D-76, D-77, D-93 |

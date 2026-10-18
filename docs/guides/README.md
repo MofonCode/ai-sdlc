@@ -1,6 +1,6 @@
 # The guides
 
-Nine guides, written for somebody using the framework rather than changing it, each answering one task.
+Eight guides, written for somebody using the framework rather than changing it, each answering one task.
 This file is the index: what each one covers, when you would read it, and what it leaves to another.
 
 **They are in the order a person meets them.** Install once per machine, initialize and declare once per
@@ -17,10 +17,9 @@ whole thing end to end with a real solution in it**, `../samples/rolling-a-die.m
 | [`running-the-factory.md`](running-the-factory.md) | many cycles built overnight: the integration branch, admitting plans, the factory's pipeline, and the morning's sitrep, merges and conflicts | every day the factory runs |
 | [`handling-blockers.md`](handling-blockers.md) | a blocking finding on a document, or a blocked verification: what each is and how it is answered | when a loop hands back, or a verification says `blocked` |
 | [`handling-refusals.md`](handling-refusals.md) | every refusal, hook denial and turn sent back, with the remedy for each | when something stops |
-| [`protected-files.md`](protected-files.md) | the six files only a person changes and the adoption command: what is guarded, how the pre-tool hook decides, what is not guarded, and how a change to one gets made | when an agent says it cannot write a file, or before you look for a way to let it |
 
-The cheat sheets in `../cheat-sheets/README.md` are these guides as one line per thing, for when you
-already know why.
+`../cheat-sheet.md` is a cycle as one line per step, and `../reference/README.md` is every command,
+skill and refusal as one line each, for when you already know why.
 
 ---
 
@@ -104,22 +103,13 @@ evidence, `pr-ready`, the pre-tool hook and the turn-end hook — with what each
 command. It opens with the exit codes, because a refusal and a failure are different on purpose, and
 closes with the cases where nothing refuses and it should have.
 
-`../cheat-sheets/refusals.md` is the same list as one line each.
-
-## `protected-files.md`
-
-**The guard, explained once.** Which six files only a person changes, and the adoption command beside
-them; the pre-tool hook on each host and the two rules it applies — one to file writes, one to the text
-of a shell command; what it deliberately does not guard, including you; and, file by file, what prepares
-a change and what places it.
-
-What it does not cover: why each file in particular is a person's, which is the denial table in
-`handling-refusals.md`, and every refusal the hook gives, which is the same.
+`../reference/refusals.md` is the same list as one line each.
 
 ## What these are not
 
 They describe the framework from outside: what to type, what it will say, and what to do when it refuses.
-**None of them states a rule.** The rules are rendered by `sdlc constraints`; the skills' surface is
+**None of them explains a mechanism for its own sake** — a page that says how something works and asks
+nothing of you is a concept, in [`../concepts/README.md`](../concepts/README.md). **None of them states a rule.** The rules are rendered by `sdlc constraints`; the skills' surface is
 [`../../skills/README.md`](../../skills/README.md); the design and every decision behind it is
 [`../../CONCEPT.md`](../../CONCEPT.md).
 
@@ -130,7 +120,8 @@ as on the day it was written.
 
 ## See also
 
-- [The cheat sheets](../cheat-sheets/README.md) — these guides as one line per thing
+- [The reference](../reference/README.md) — every command, skill and refusal, one line each
 - [The samples](../samples/README.md) — one solution, every command
+- [The concepts](../concepts/README.md) — how a mechanism works and why, one page each
 - [The components](../README.md) — every concept the framework names, defined once
 - [The skills reference](../../skills/README.md)
