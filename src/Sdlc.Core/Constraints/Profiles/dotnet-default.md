@@ -22,13 +22,19 @@ without it. The suite fails on a rule missing any of them.
 **Three admission tests, all of which must pass.** Its `Forbids` clause names something that becomes
 illegal; no analyzer, schema or hook could decide it; and it is incompatible with at least one
 plausible implementation. The second test is what keeps this list short — a rule about code belongs in
-an analyzer, and a mechanical rule about an artifact belongs in a schema or a hook. Three rules
+an analyzer, and a mechanical rule about an artifact belongs in a schema or a hook. Four rules
 survived it, which is the honest number rather than a disappointing one.
 
 **This profile's declared defaults are not here.** They are rows in the solution's declared stack,
 which a person owns, and departing from one is `CON_15`'s business rather than a rule here. The rules
-below are rows in that same file, in its second table. What these three
+below are rows in that same file, in its second table. What the first three
 govern is the case where a plan satisfies every declared default and still proves nothing.
+
+**`PRO_04` is the one default that became a rule, and it is here because a departure was argued well
+and still cost the wrong people.** The orchestration row was a default for as long as the profile
+existed, and the first solution to meet its condition departed from it with a reason `CON_15`
+accepted. The cost of that departure falls on everyone who runs the solution afterwards, not on the
+cycle that argued it, so an argument at the gate is the wrong mechanism for it.
 
 ---
 
@@ -77,3 +83,26 @@ unmet — and the disagreement surfaces in the first environment holding a real 
 verification already recorded as passed. An analyzer could find `UseInMemoryDatabase` in test code,
 and where one exists it should; what it cannot read is a plan proposing the substitution in prose
 before any code is written, which is the moment this is cheap to refuse.
+
+## PRO_04 — A plan whose work runs more than one process starts them from an Aspire AppHost
+
+**Applies to:** a plan, at approval.
+
+**Forbids:** a plan that leaves the solution with more than one process a developer has to start by
+hand and no AppHost under `src/` that starts them. A process is a host project the plan adds or keeps
+— an api, a WebAssembly page's development server, a worker — or a backing service a developer would
+otherwise start by hand, such as a database, a cache or a broker in a container. One executable with no
+backing service needs no AppHost, and a plan that reaches one process by serving its page from the api
+meets this rule as fully as one that adds an AppHost.
+
+**Why:** without an AppHost, running the solution is a set of commands somebody has to know, in an
+order somebody has to know, and the README that would hold them is the document nobody updates. The
+first solution to meet this condition shipped two processes started by two `dotnet run` commands and a
+README still saying "Replace this with how to start the application". Its traces were registered by
+`AddServiceDefaults` and exported nowhere, because nothing set `OTEL_EXPORTER_OTLP_ENDPOINT` — and an
+AppHost sets it for every process it starts and gives them one dashboard to read. The plan's reason
+for departing was the cost of adding one, and the scaffold's architecture suite now carries the
+AppHost's rows from the first day, so that cost is one project. What an AppHost does not do on its own
+is hand a standalone WebAssembly page the api's address: the page reads its configuration in the
+browser, where no environment variable reaches, so that address stays in the page's own settings
+until a plan takes the hosting integration that serves it.

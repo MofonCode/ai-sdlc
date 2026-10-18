@@ -1370,8 +1370,8 @@ reader to notice.
 providers call into JavaScript, and bUnit's strict default throws on the first unplanned call — which
 reads as a broken component rather than a missing registration.
 
-**Liveness is the one row here that binds — D-54.** Every other row is a default a plan may depart from
-by saying why (`CON_15`); this one the scaffold writes and a fitness function keeps, because the cost of
+**Liveness is one of two rows here that bind — D-54.** Every other row but orchestration is a default a
+plan may depart from by saying why (`CON_15`); this one the scaffold writes and a fitness function keeps, because the cost of
 omitting it is paid in production by somebody who did not omit it. It is deliberately not an `ApiResult`
 endpoint: the caller is a load balancer, which has never heard of this solution's envelope.
 
@@ -1382,9 +1382,12 @@ with no OpenTelemetry registration collects no spans and exports none, so there 
 **Service Bus and SignalR are not alternatives.** Service Bus is asynchronous messaging between
 services; SignalR is server-to-client push.
 
-**An Aspire AppHost is conditional.** More than one process, or one process plus a backing service a
-developer would otherwise start by hand. A single executable with no backing services does not get
-one.
+**An Aspire AppHost is conditional, and `PRO_04` makes the condition bind — D-96.** More than one
+process, or one process plus a backing service a developer would otherwise start by hand. A single
+executable with no backing services does not get one. The scaffold's architecture suite carries the
+AppHost's rows from the first day, so the cycle that adds one adds a project and amends no rule. An
+AppHost starts the processes and gives them one dashboard; it does not hand a standalone WebAssembly
+page the api's address, which the page reads in the browser.
 
 **`dotnet test` needs two settings or it does not run the suite.** On the .NET 10 SDK it defaults to
 VSTest and Microsoft.Testing.Platform refuses that path, so the profile ships both:
@@ -1617,8 +1620,8 @@ profile actually wants enforced needs a fitness function beside it.
 a document, and so the profile tier resolved to nothing for every solution on every profile — while
 `draft profile` told a person that a different profile resolved a different set of rules, the component
 dictionary said the `profile` key decided which rules resolved, and the first-cycle guide listed the
-tier as though it had content. D-74 fills it: `dotnet-default` ships three rules, a profile's document is
-found by its name, and `ml-tensorflow` ships none deliberately. **D-76 changes what selects them**: not a
+tier as though it had content. D-74 fills it with three rules and D-96 adds `PRO_04`, so
+`dotnet-default` ships four rules; a profile's document is found by its name, and `ml-tensorflow` ships none deliberately. **D-76 changes what selects them**: not a
 profile a solution records, but the rows of its own declared stack, one a rule, each marked `true` or
 `false`. What makes the tier worth having is
 §7.2's stack-neutrality clause — a global constraint may not name a language, framework or package, so a
@@ -6609,3 +6612,58 @@ already has; the intent's sections are the story it produces — who, under `Pro
 - *Sections per type, or a section for who.* The sections are what the schema checks, the spec derives
   from and the approval hashes, and they are the same for every type — which is what lets the questions
   vary. Specs or interrogations that keep failing to *find* something would be the evidence for a section.
+
+### D-96 — The AppHost condition binds as `PRO_04`, and the scaffold carries the AppHost's rows from the start
+
+**Governs:** §11.1, §11.3.1
+
+**Decision.** Three parts.
+
+1. **`PRO_04` on `dotnet-default`:** a plan whose work runs more than one process starts them from an
+   Aspire AppHost. A process is a host project, or a backing service a developer would otherwise start by
+   hand. Reaching one process, for instance by serving the page from the api, meets the rule as fully as
+   an AppHost does.
+2. **The scaffolded `StructureTests` carries an `AppHost` row in both tables**: it may reference the
+   hosts it starts, `Api` and `Web`, and take `Aspire.Hosting` packages by prefix. The row waits for its
+   project the way the `Ui` and `Web` rows do.
+3. **The scaffolded `ConventionTests` fails when a project under `src/` is neither read nor named as
+   exempt.** `ServiceDefaults` joins the assemblies it reads; `Contracts` and `AppHost` are exempt by name,
+   each with its reason.
+
+**Why.** The first solution to meet the condition, a die rolled from a standalone WebAssembly page and an
+api, departed from the orchestration default with a reason `CON_15` accepted. The reason was cost: an
+AppHost had no row in the architecture suite, so adding one was a change to the rules the cycle was
+judged by. It shipped two processes started by two commands and a README still asking somebody to say
+how to start the application. The traces `AddServiceDefaults` registers were exported nowhere, because
+nothing set the endpoint an AppHost sets for every process it starts. A default is the right mechanism
+when the cost of departing falls on the cycle that argues it. This cost fell on everybody who ran the
+solution afterwards, so the condition binds. The rows remove the cost the departure rested on, which is
+what keeps the rule from charging every two-process cycle a rule change. The convention guard came from
+the same solution: its component library was outside every convention rule, two of its fields broke the
+naming rule, and the suite was green.
+
+**Measured rather than reasoned.** An AppHost was added to a copy of that solution with Aspire 13.4.6.
+It built once a patched MessagePack was pinned, because the hosting package took a version NuGet's audit
+flags and warnings are errors. It started both processes from one command and showed both on its
+dashboard. With the two rows in place, every test passed with no other table edit. **It did not hand the
+page the api's address.** A standalone WebAssembly page reads its configuration in the browser, where an
+environment variable does not reach. The integration that does is `Aspire.Hosting.Blazor`, which is
+prerelease and carries a diagnostic the build would refuse. So the rule's `Why` claims one command, the
+dashboard and the exporter, and not service discovery.
+
+**Rejected.**
+
+- *A `LOC_` rule in each solution.* Every solution with two processes would rediscover the same rule
+  after paying for its absence once.
+- *Scaffolding an AppHost always.* D-55 and F-24 stand: a single-process solution would get a host it
+  does not need, and `Scaffold.Files` would become conditional.
+- *Leaving it a default.* The first solution to meet the condition is the outcome.
+- *D-55's rejection of "a `PRO_nn` on `dotnet-default`", read as covering this.* That was a rule about
+  an AppHost's container labels, which has nothing to judge until an AppHost exists. `PRO_04` judges the
+  plan, which always exists.
+- *Taking `Aspire.Hosting.Blazor` so the page gets the address.* A prerelease package with an unstable
+  API, in every solution with a page, to remove one line of configuration.
+- *Loading every `src/` assembly in `ConventionTests` automatically.* It needs every project referenced
+  from the test project anyway. And it would turn the AppHost's generated `Projects` types and every
+  Razor component's unsealed generated half into failures nobody chose. A guard that asks is the same
+  shape `Every_project_under_src_is_named_in_both_rules` already has.

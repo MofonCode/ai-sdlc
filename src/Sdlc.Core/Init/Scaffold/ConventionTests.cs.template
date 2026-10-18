@@ -41,13 +41,66 @@ public sealed class ConventionTests
     /// in a hurry. The two request rules below read the application assembly alone, which is where
     /// requests live.
     /// <para>
-    /// The contracts project is deliberately absent. It holds records and nothing else, so the sealed
-    /// rule has nothing to say about it that the compiler does not already, and a type in it exists to
-    /// be public.
+    /// <strong>A project added under <c>src/</c> joins this list or <c>_notInspected</c>, and
+    /// <c>Every_project_under_src_is_inspected_or_named_as_exempt</c> fails until it does.</strong>
+    /// Joining means a <c>ProjectReference</c> from this test project and one <c>typeof</c> here. A
+    /// Razor component is sealed in a code-behind file, <c>public sealed partial class Name</c>,
+    /// because the generated half of the class does not say <c>sealed</c> and C# reads the modifier
+    /// from either half.
     /// </para>
     /// </remarks>
     private static IReadOnlyList<Assembly> Assemblies =>
-        [typeof(__SOLUTION__Services).Assembly, typeof(ApiResult<>).Assembly];
+        [
+            typeof(__SOLUTION__Services).Assembly,
+            typeof(ApiResult<>).Assembly,
+            typeof(__SOLUTION__.ServiceDefaults.ServiceDefaults).Assembly,
+        ];
+
+    /// <summary>
+    /// The projects under <c>src/</c> these rules deliberately do not read, by role, each with its reason.
+    /// </summary>
+    /// <remarks>
+    /// Named, so an exemption is a line somebody wrote rather than a project nobody added to the list
+    /// above. Until this existed, the list was the only record, and a project missing from it was
+    /// indistinguishable from a project deliberately left off: one real cycle added a component library,
+    /// and two of its private fields broke the naming rule with the suite green.
+    /// </remarks>
+    private static readonly Dictionary<string, string> _notInspected = new(StringComparer.Ordinal)
+    {
+        ["Contracts"] =
+            "it holds records and nothing else, so the sealed rule has nothing to say about it that the "
+            + "compiler does not already, and a type in it exists to be public",
+        ["AppHost"] =
+            "it is a top-level program that starts the other processes, and the types in its assembly "
+            + "are the Projects metadata Aspire generates for each reference, which are not this "
+            + "solution's code and are not sealed",
+    };
+
+    /// <summary>
+    /// Guards the list of assemblies the way <c>Every_project_under_src_is_named_in_both_rules</c> guards
+    /// the structure tables.
+    /// </summary>
+    [TestMethod]
+    public void Every_project_under_src_is_inspected_or_named_as_exempt()
+    {
+        HashSet<string> inspected = [.. Assemblies.Select(assembly => assembly.GetName().Name ?? string.Empty)];
+
+        List<string> unread = [.. StructureTests.SourceProjects()
+            .Where(project => !inspected.Contains(RepoFiles.ProjectName(project)))
+            .Select(StructureTests.RoleOf)
+            .Where(role => !_notInspected.ContainsKey(role))
+            .Distinct(StringComparer.Ordinal)
+            .Order(StringComparer.Ordinal)];
+
+        Assert.AreEqual(
+            0,
+            unread.Count,
+            "These projects live under src/ and the sealed and naming rules read no assembly of theirs:\n  "
+            + string.Join("\n  ", unread)
+            + "\n\nReference each from this test project and add one typeof to Assemblies. If one "
+            + "genuinely should not be read, add it to _notInspected with the reason, in the same change "
+            + "that adds the project.");
+    }
 
     /// <summary>
     /// Every class is sealed, static or abstract.

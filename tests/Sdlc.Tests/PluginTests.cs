@@ -978,7 +978,7 @@ public sealed class PluginTests
         int rules = parsed.Value.Count(rule => rule.IsInForce);
 
         Assert.AreEqual(
-            3,
+            4,
             rules,
             "The number every document below states. A deliberate addition updates it here and in each "
             + "of them, which is the point of asserting it rather than trusting it.");
