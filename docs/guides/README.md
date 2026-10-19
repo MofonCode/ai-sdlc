@@ -109,7 +109,7 @@ closes with the cases where nothing refuses and it should have.
 
 They describe the framework from outside: what to type, what it will say, and what to do when it refuses.
 **None of them explains a mechanism for its own sake** — a page that says how something works and asks
-nothing of you is a concept, in [`../concepts/README.md`](../concepts/README.md). **None of them states a rule.** The rules are rendered by `sdlc constraints`; the skills' surface is
+nothing of you is a mechanism page, in [`../mechanisms/README.md`](../mechanisms/README.md). **None of them states a rule.** The rules are rendered by `sdlc constraints`; the skills' surface is
 [`../../skills/README.md`](../../skills/README.md); the design and every decision behind it is
 [`../../CONCEPT.md`](../../CONCEPT.md).
 
@@ -122,6 +122,6 @@ as on the day it was written.
 
 - [The reference](../reference/README.md) — every command, skill and refusal, one line each
 - [The samples](../samples/README.md) — one solution, every command
-- [The concepts](../concepts/README.md) — how a mechanism works and why, one page each
+- [The mechanisms](../mechanisms/README.md) — how one works and why, one page each
 - [The components](../README.md) — every concept the framework names, defined once
 - [The skills reference](../../skills/README.md)

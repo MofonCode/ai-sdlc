@@ -224,7 +224,7 @@ What keeps going wrong across cycles — answered blockers included — is `sdlc
 reports a rule cited in three or more distinct cycles as a candidate for one of this solution's own.
 
 **A perspective's suggestions are how its rules get written** — `propose constraints` counts them by
-perspective, and How a perspective earns rules in `../concepts/perspectives.md` says how to read that count.
+perspective, and How a perspective earns rules in `../mechanisms/perspectives.md` says how to read that count.
 
 ## Where to go next
 

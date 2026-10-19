@@ -204,9 +204,9 @@ refusal with its remedy.
 | [`docs/guides/running-the-factory.md`](docs/guides/running-the-factory.md) | many cycles built overnight: the integration branch, the factory, and the morning |
 | [`docs/guides/handling-blockers.md`](docs/guides/handling-blockers.md) | a blocking finding or a blocked verification, and how each is answered |
 | [`docs/guides/handling-refusals.md`](docs/guides/handling-refusals.md) | every refusal, and the remedy for each |
-| [`docs/concepts/README.md`](docs/concepts/README.md) | **the concepts** — how a mechanism works and why, one page each |
-| [`docs/concepts/protected-files.md`](docs/concepts/protected-files.md) | the files only a person changes, and how the hook guards them |
-| [`docs/concepts/perspectives.md`](docs/concepts/perspectives.md) | what examines a change beyond the rules, when each perspective steers and judges, and how to read what it found |
+| [`docs/mechanisms/README.md`](docs/mechanisms/README.md) | **the mechanisms** — how one works and why, one page each |
+| [`docs/mechanisms/protected-files.md`](docs/mechanisms/protected-files.md) | the files only a person changes, and how the hook guards them |
+| [`docs/mechanisms/perspectives.md`](docs/mechanisms/perspectives.md) | what examines a change beyond the rules, when each perspective steers and judges, and how to read what it found |
 | [`docs/cheat-sheet.md`](docs/cheat-sheet.md) | **the cheat sheet** — one cycle, one line per step |
 | [`docs/reference/README.md`](docs/reference/README.md) | **the reference** — every command, skill and refusal, one line each |
 | [`docs/reference/commands.md`](docs/reference/commands.md) | every command, on one screen |

@@ -336,7 +336,7 @@ belongs there.
 
 ## The pre-tool hook — the seven things an agent is denied
 
-These are denied at the tool call, by file path and by shell command alike. `../concepts/protected-files.md` says
+These are denied at the tool call, by file path and by shell command alike. `../mechanisms/protected-files.md` says
 how the hook decides and what it deliberately leaves alone; this is why each one is a person's. The rules are absolute rather
 than conditional, and that is the point: there is no mode, no flag, and no check on which skill is
 running, so a rule with no exception has nowhere for a bypass to live.

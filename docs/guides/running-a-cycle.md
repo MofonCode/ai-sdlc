@@ -79,7 +79,7 @@ rules in force, and revised until a round raises nothing blocking. Each stage sk
 `handling-blockers.md` is what it is doing and what to do when it asks you something. Alongside the rules,
 each document is examined by the cycle's **perspectives** — security, operability and maintainability
 always, others when the change touches what they look at — which is what an id like `security.F_02` in a
-round is; `../concepts/perspectives.md` explains them.
+round is; `../mechanisms/perspectives.md` explains them.
 
 **The intent** is the only artifact written by interview. **Nothing happens until you answer the
 questions** — the intent is written from your answers, so there is nothing to interrogate before then.

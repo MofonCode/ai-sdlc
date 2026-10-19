@@ -110,7 +110,7 @@ public sealed class DocumentCopyTests
     // Each row of the table under "## Which there are": the name in its first cell, and its last cell.
     private static Dictionary<string, string> PerspectiveRows()
     {
-        string page = File.ReadAllText(Path.Combine(Root, "docs", "concepts", "perspectives.md"));
+        string page = File.ReadAllText(Path.Combine(Root, "docs", "mechanisms", "perspectives.md"));
         int start = page.IndexOf("## Which there are", StringComparison.Ordinal);
         int end = page.IndexOf("\n## ", start + 1, StringComparison.Ordinal);
 

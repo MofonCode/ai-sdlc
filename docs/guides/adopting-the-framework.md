@@ -89,7 +89,7 @@ What lands beside it, **not committed**, for you to fill in and rename:
 | `.sdlc/constraints.draft.md` | becomes `constraints.md`: the header and no rule. Optional |
 
 **Each draft says at the top that only a person changes the real file**, because an agent's write to it
-is denied — `../concepts/protected-files.md` says how that works and which files it covers.
+is denied — `../mechanisms/protected-files.md` says how that works and which files it covers.
 
 **Every host's configuration is written whichever host you use.** A file is inert on a machine without
 that host, and a teammate who opens the repository in a different agent is then governed without having
@@ -280,7 +280,7 @@ takes it from there.
 
 **Six files only a person writes**, and every tool that could write one prints or drafts what belongs in
 it instead. The pre-tool hook denies every agent write to all six, by file path and by shell command
-alike — `../concepts/protected-files.md` is the whole of how.
+alike — `../mechanisms/protected-files.md` is the whole of how.
 
 | File | What it holds | Changes when | How it gets written |
 |---|---|---|---|
@@ -315,5 +315,5 @@ repository would be a second place the truth lives.
 | the first cycle, stage by stage | `running-a-cycle.md` |
 | this whole walk with a real solution in it | `../samples/rolling-a-die.md` |
 | what to do when something refuses | `handling-refusals.md` |
-| why an agent cannot write the files above | `../concepts/protected-files.md` |
+| why an agent cannot write the files above | `../mechanisms/protected-files.md` |
 | every command on one screen | `../reference/commands.md` |

@@ -1120,7 +1120,7 @@ public sealed class PluginTests
         // described in a table row and nowhere else fails rather than passing as documented.
         string readme = File.ReadAllText(Path.Combine(Root, "README.md"));
 
-        foreach (string folder in (string[])["guides", "concepts", "reference", "samples"])
+        foreach (string folder in (string[])["guides", "mechanisms", "reference", "samples"])
         {
             string directory = Path.Combine(Root, "docs", folder);
 

@@ -1,16 +1,16 @@
-# The concepts
+# The mechanisms
 
 Two pages, each explaining one mechanism of the framework: what it is, how it decides, and why it works
 that way. This file is the index: what each one covers, when you would read it, and what it leaves to
 another.
 
-**A concept asks nothing of you.** A guide walks you through a task; a concept is what you read when a
+**A mechanism page asks nothing of you.** A guide walks you through a task; a mechanism page is what you read when a
 task has met something you want to understand — a refusal you did not expect, a finding with a name you
-do not know. Where a concept touches a task, it points at the guide that does it rather than carrying a
+do not know. Where a mechanism touches a task, it points at the guide that does it rather than carrying a
 second copy of the steps. **For the one-line definition of a term**, `../README.md` defines every concept
 the framework names, and its row links here when there is a page.
 
-| Concept | Covers | Read it |
+| Mechanism | Covers | Read it |
 |---|---|---|
 | [`protected-files.md`](protected-files.md) | the six files only a person changes and the adoption command: what is guarded, how the pre-tool hook decides, and what it deliberately does not guard | when an agent says it cannot write a file, or before you look for a way to let it |
 | [`perspectives.md`](perspectives.md) | what examines a change beyond the rules: what a perspective carries, which a cycle gets and why, when each steers and judges, and how to read what it found | when a finding carries a perspective's name, or before an interview asks what a change touches |
@@ -40,11 +40,11 @@ the binary carries; or answering a finding, which is `../guides/handling-blocker
 ## What these are not
 
 **None of them states a rule or a decision.** The rules are rendered by `sdlc constraints`; the design
-and every decision behind it is [`../../CONCEPT.md`](../../CONCEPT.md), which a concept cites rather than
-restates. A concept is that design seen from a solution, for the person using it.
+and every decision behind it is [`../../CONCEPT.md`](../../CONCEPT.md), which a mechanism page cites rather than
+restates. A mechanism page is that design seen from a solution, for the person using it.
 
 **None of them reports where the project stands.** That is the Where it stands section of
-[`../../README.md`](../../README.md). A concept says how a thing works, as true on the day it is read as
+[`../../README.md`](../../README.md). A mechanism page says how a thing works, as true on the day it is read as
 on the day it was written.
 
 ## See also

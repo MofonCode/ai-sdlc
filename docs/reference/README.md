@@ -43,6 +43,6 @@ than a line — `../guides/handling-blockers.md`.
 
 - [The cheat sheet](../cheat-sheet.md) — the cycle on one page
 - [The guides](../guides/README.md) — the reasoning behind each line
-- [The concepts](../concepts/README.md) — how a mechanism works and why
+- [The mechanisms](../mechanisms/README.md) — how one works and why
 - [The components](../README.md) — every concept the framework names, defined once
 - [The skills reference](../../skills/README.md)

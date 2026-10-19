@@ -33,6 +33,6 @@ them like everything else.
 
 - [The cheat sheet](../cheat-sheet.md) — one cycle, one line per step
 - [The guides](../guides/README.md) — one task each, with the why
-- [The concepts](../concepts/README.md) — one mechanism each, and why it works that way
+- [The mechanisms](../mechanisms/README.md) — one each, and why it works that way
 - [The reference](../reference/README.md) — every command, skill and refusal, one line each
 - [The components](../README.md) — every concept the framework names, defined once

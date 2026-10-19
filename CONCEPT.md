@@ -6508,7 +6508,7 @@ once with `none`, and the list is quiet after that. The `init` skill says so bef
    `techstack.draft.md` and `constraints.draft.md`, beside where each goes, never over a draft already
    there, and ignored by git. The constraints draft has its header and no rule.
 2. **Each carries a note at its top saying only a person changes the file**, and why an agent's write is
-   denied — and `docs/concepts/protected-files.md` says how the guard works, once.
+   denied — and `docs/mechanisms/protected-files.md` says how the guard works, once.
 3. **The report and `doctor` name every draft left, its rename and the commit**, not one command.
 4. **A placed solution document still carrying the prompt is a `doctor` problem**, and the check knows
    the drafter's prompt as well as the old placeholder.
