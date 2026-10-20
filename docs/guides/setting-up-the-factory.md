@@ -45,13 +45,47 @@ Keep the value somewhere safe until step 6; you paste it there once and never se
 
 A run needs three things on the machine that runs it: the `sdlc` binary, Claude Code, and the sdlc plugin.
 **The pipeline uses each one the agent already carries, and installs whatever is missing**, so there are
-two ways to do this step:
+three ways to do this step:
 
-| | Your own agent | Microsoft's hosted agents |
-|---|---|---|
-| What you do | install `sdlc`, Claude Code and the plugin on it once — `installing-the-plugin.md` — and register it in an agent pool | put the `sdlc` package on a feed the agent can read, below |
-| Each run | installs nothing, so it starts faster | installs all three |
-| When you upgrade | reinstall on the agent; until you do, the run installs the release it was written for | nothing |
+| | The factory's agent image | Your own agent | Microsoft's hosted agents |
+|---|---|---|---|
+| What you do | build the image from this repository on a Linux host with Docker, and run it as a service, below | install `sdlc`, Claude Code and the plugin on it once — `installing-the-plugin.md` — and register it in an agent pool | put the `sdlc` package on a feed the agent can read, below |
+| Each run | a fresh container that installs nothing | installs nothing, so it starts faster | installs all three |
+| When you upgrade | build the image again and restart the service | reinstall on the agent; until you do, the run installs the release it was written for | nothing |
+| Good for | a self-hosted factory: no feed needed, and the binary and plugin always from one release | an agent you already maintain | no machine of your own, if the job's time limit allows six hours |
+
+### With the factory's agent image
+
+What the image holds, and why, is [`../../factory/README.md`](../../factory/README.md). On a Linux machine that
+exists for this, such as a build VM, and **not your own computer** (a job there can use the host's Docker):
+
+1. **Make a pool for it.** **Organization settings > Agent pools > Add pool**, *Self-hosted*, named for
+   the factory (for example `<solution>-Factory`), with access granted to your project. Only factory runs
+   land on it.
+2. **Make its token.** **User settings > Personal access tokens > New token**, scoped to **Agent Pools
+   (Read & manage)** and nothing else. It registers the agent, and no job is handed it.
+3. **Build and run it**, from a checkout of this repository at your release:
+
+   ```sh
+   docker build -f factory/Dockerfile -t ai-sdlc-factory-agent .
+   sudo install -m 600 /dev/null /etc/sdlc-factory-agent.env
+   sudo cp factory/sdlc-factory-agent.service /etc/systemd/system/
+   ```
+
+   Put four lines in `/etc/sdlc-factory-agent.env`: `AZP_URL=https://dev.azure.com/<organization>`,
+   `AZP_POOL=<the pool>`, `AZP_TOKEN=<the token>` and `AZP_AGENT_NAME=<a name>`. Then:
+
+   ```sh
+   sudo systemctl daemon-reload
+   sudo systemctl enable --now sdlc-factory-agent
+   ```
+
+4. **Check it is online**: the pool lists the agent as *Online* within a minute. If not,
+   `journalctl -u sdlc-factory-agent` says why.
+
+In step 4, point the pipeline at the pool (`name: <the pool>` under `pool:`), and skip the feed below.
+
+### With your own agent, or Microsoft's
 
 **`sdlc` is pinned either way.** An agent carrying a different version gets the one the pipeline was written
 for, because the version a pull request is judged by is not the agent's to decide. The plugin comes from the
@@ -220,6 +254,8 @@ From here, `running-the-factory.md` is the routine: admit plans in the day, read
 | *The agent did not answer, so its credential does not work* | the key was revoked, the token expired, or the subscription is out of usage | make a new one (step 1) and replace the secret |
 | *The hooks did not refuse a protected write* | the plugin's hooks did not load, so nothing would refuse anything tonight | look at the install step's output for the plugin install; the run stopped before building, which is the point |
 | the `sdlc` install fails: *not found* or *401* | the feed is missing, not in `nuget.config`, or the build service cannot read it | step 2; on the feed, **⚙ > Permissions** — the build service needs *Feed Reader* |
+| the image's agent never shows *Online* | the token is wrong, expired, or not scoped to Agent Pools, or `AZP_POOL` names a pool that does not exist | `journalctl -u sdlc-factory-agent`: *VS30063* is the token; a pool error names the pool |
+| a step fails with *permission denied* on `/var/run/docker.sock` | the container is not in the socket's group | run it through the service file, which adds the group, rather than a bare `docker run` |
 | the plugin install fails | the agent cannot reach GitHub | the plugin comes from the public `MofonCode/ai-sdlc` repository; an agent behind a firewall needs `github.com` allowed, or the plugin installed on it beforehand |
 | a push or a pull request is refused, *TF401027* | the build service lacks a permission | step 6c |
 | the sitrep lists nothing to merge | no approved plan was on `development` without a verify | `sdlc cycles --queued` says what is queued and what is held back, each with its reason — a forgotten `cycle/<id>/plan` branch on the remote holds its cycle back |

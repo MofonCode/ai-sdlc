@@ -1316,6 +1316,81 @@ public sealed class PluginTests
     }
 
     [TestMethod]
+    public void The_factory_index_names_every_file_on_disk()
+    {
+        // The tools rule pointed at the factory bundle. Each file there is one a person copies onto a
+        // host or builds from, so a file the index does not describe is one somebody runs without being
+        // told what it trusts -- and the image mounts the host's Docker socket.
+        string factory = Path.Combine(Root, "factory");
+
+        HashSet<string> disk = new(
+            Directory.EnumerateFileSystemEntries(factory)
+                .Select(path => Path.GetFileName(path)!)
+                .Where(name => !string.Equals(name, "README.md", StringComparison.Ordinal))
+                .Where(name => !Ignored(name)),
+            StringComparer.Ordinal);
+
+        Assert.IsTrue(disk.Count > 0, "No files were found under factory/, so this would pass by finding nothing.");
+
+        string index = File.ReadAllText(Path.Combine(factory, "README.md"));
+
+        HashSet<string> named = new(
+            Regex.Matches(index, @"^## `(?<file>[^`]+)`", RegexOptions.Multiline)
+                .Select(match => match.Groups["file"].Value),
+            StringComparer.Ordinal);
+
+        Assert.AreEqual(
+            0,
+            disk.Except(named, StringComparer.Ordinal).Count(),
+            "Under factory/ and not described by factory/README.md: "
+            + string.Join(", ", disk.Except(named, StringComparer.Ordinal)));
+
+        Assert.AreEqual(
+            0,
+            named.Except(disk, StringComparer.Ordinal).Count(),
+            "Described by factory/README.md and gone: "
+            + string.Join(", ", named.Except(disk, StringComparer.Ordinal)));
+    }
+
+    [TestMethod]
+    public void The_factory_image_builds_on_the_sdk_band_global_json_pins()
+    {
+        // The Dockerfile names an SDK image tag, and global.json the SDK. Two places one decision lives,
+        // so the copy is held to the original: the image's band is global.json's major and minor.
+        using var pin = JsonDocument.Parse(File.ReadAllText(Path.Combine(Root, "global.json")));
+        string version = pin.RootElement.GetProperty("sdk").GetProperty("version").GetString()!;
+        string band = string.Join('.', version.Split('.').Take(2));
+
+        string dockerfile = File.ReadAllText(Path.Combine(Root, "factory", "Dockerfile"));
+        Match argument = Regex.Match(dockerfile, @"^ARG DOTNET_SDK=(?<band>\S+)\s*$", RegexOptions.Multiline);
+
+        Assert.IsTrue(argument.Success, "factory/Dockerfile no longer declares ARG DOTNET_SDK, which this test reads.");
+        Assert.AreEqual(
+            band,
+            argument.Groups["band"].Value,
+            $"global.json pins {version}, so the factory image builds on the {band} SDK images.");
+    }
+
+    [TestMethod]
+    public void The_pipeline_builds_the_factory_image()
+    {
+        // The same reason as the scaffold steps: the suite reads the Dockerfile as text, so the only
+        // place it is ever built is CI, and a deleted step is silent.
+        string pipeline = File.ReadAllText(Path.Combine(Root, ".github", "workflows", "ci.yml"));
+
+        StringAssert.Contains(
+            pipeline,
+            "docker build -f factory/Dockerfile",
+            "Nothing else builds the factory's agent image, so without this step a broken one ships.");
+
+        StringAssert.Contains(
+            pipeline,
+            "--entrypoint sdlc ai-sdlc-factory-agent version",
+            "Building the image proves the layers ran, not that the binary inside answers -- and its "
+            + "version line is what the factory pipeline compares.");
+    }
+
+    [TestMethod]
     public void The_readme_says_what_is_not_done_rather_than_only_what_is()
     {
         // The design's own rule, pointed at its readme: a thing that appears finished and is not is worse

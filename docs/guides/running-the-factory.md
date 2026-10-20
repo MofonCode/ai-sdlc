@@ -61,6 +61,11 @@ It writes `azure-pipelines.factory.yml` or `.github/workflows/sdlc-factory.yml` 
 
 Before the build it runs **Operate** — `sdlc operate`, below — when `solution.md` declares a telemetry store.
 
+**On the factory's agent image, upgrading is a rebuild.** A new release reaches the agent when you build
+the image again from it and `sudo systemctl restart sdlc-factory-agent`. Until then the run finds the
+older release, installs the one the pipeline was written for, and needs a feed to do it.
+[`../../factory/README.md`](../../factory/README.md) has the commands.
+
 **One run at a time, six hours at most.** Remediation has no pass limit (D-66), so the job's timeout is the
 spend ceiling.
 

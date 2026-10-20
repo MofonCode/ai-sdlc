@@ -1313,9 +1313,14 @@ command, and the factory publishes it as the run's summary.
 **The factory never merges, and it never writes a person's file.** A blocked cycle is recorded as blocked;
 abandoning it is a person's decision.
 
-**What is built and what is not.** The queue, the branches, the admission check, the sitrep, and
-`batch-build` and `pr` working this way are built. The factory's own pipeline template — the schedule, the
-lock, the headless run — is not yet.
+**The factory's agent is an image** built from one commit, carrying the binary and the plugin together,
+and run as a fresh container per job on a machine that exists for it (D-96). It is the first thing the
+factory bundle in `factory/` holds.
+
+**What is built and what is not.** The queue, the branches, the admission check, the sitrep, `batch-build`
+and `pr` working this way, the factory's pipeline template (`sdlc factory`: the schedule, the lock, the
+headless run) and its agent image are built. Neither the template nor the image has run a real night's
+build yet.
 
 ---
 
@@ -6609,3 +6614,42 @@ already has; the intent's sections are the story it produces — who, under `Pro
 - *Sections per type, or a section for who.* The sections are what the schema checks, the spec derives
   from and the approval hashes, and they are the same for every type — which is what lets the questions
   vary. Specs or interrogations that keep failing to *find* something would be the evidence for a section.
+
+### D-96 — The factory's agent is an image built from one commit, and the first thing the factory bundle ships
+
+**Governs:** §10.5
+
+**Decision.** `factory/` holds a Dockerfile that builds an Azure Pipelines agent carrying `sdlc`, Claude
+Code and the `sdlc` plugin, with the binary packed and the plugin copied from the commit being built. It
+runs on a Linux host as a systemd service, one fresh container per job, registering into a pool of its
+own with a token scoped to agent pools. It is the headless runner D-91 named, and the first piece of the
+factory bundle; the bundle's manifest, the pipeline templates and Operate's scheduled run stay where they
+are until there is a second template to ship.
+
+**Why from one commit.** D-91 kept one binary so the factory and the engine could not drift, and an agent
+assembled by hand reopens exactly that gap: the binary from one install, the plugin from another. Built
+together they cannot disagree, and the image carries no version number of its own to go stale.
+
+**Why a fresh container per job.** A factory run ends in branches and pull requests and nothing else
+(D-84), so whatever a job leaves on the agent is debris the next one may read. Exiting after one job
+makes "nothing carries over" a property of the agent rather than a cleanup step.
+
+**Why a machine of its own.** The factory runs the agent with its permission prompts off, and a solution's
+integration tests need the host's Docker, which is control of that host. On a person's own computer, or
+under their account, a run could reach every repository and credential they have, and would build with
+whatever their working copy of the plugin held that night.
+
+**Rejected.**
+
+- *Installing the tools on an agent by hand.* The two halves drift, and nothing says so until a run
+  reinstalls from a feed that may not exist.
+- *An image written into each solution.* A copy per solution drifts from the binary it has to match, and
+  a solution does not own the factory's agent.
+- *A container that restarts in place.* Docker's restart policy keeps the container's filesystem, so a job
+  would inherit the last one's work directory.
+- *Docker Desktop as the host.* It runs only while somebody is signed in, and sits beside that person's
+  own credentials.
+- *A registry before a second machine needs one.* The image is built where it runs; a registry is an
+  account, a credential and a push step for one host.
+- *The whole second plugin now.* A manifest and a moved command with one file behind them; it comes with
+  the second template.

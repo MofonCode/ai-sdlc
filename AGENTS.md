@@ -55,6 +55,7 @@ the cheapest way to discover that what you were about to add already lives somew
 | `plugin.json`, `.claude-plugin/`, `hooks/` | the plugin as it installs: the portable manifest, Claude Code's manifest, Claude Code's hooks |
 | `tests/` | the suite |
 | `tools/Sdlc.ScaffoldHarness/` | the harness that writes a scaffolded solution so it can be built |
+| [`factory/README.md`](factory/README.md) | the factory bundle: what runs unattended. Today only the factory's agent image, built from one commit (D-96) |
 | `.github/workflows/ci.yml` | build and test on every pull request, which deliberately does not govern this repository with itself (D-42) |
 
 ### Querying `CONCEPT.md`
@@ -176,6 +177,7 @@ a follow-up is a thing somebody has to remember, and the document is wrong in th
 | adds or changes what a profile declares, or a stack rule | `Solutions/StackProfile` for the rows, `Constraints/Profiles/<profile>.md` for the rules, and [`docs/guides/declaring-the-stack.md`](docs/guides/declaring-the-stack.md), which is where a person reads both. A rule count stated in a document is held by the suite. **A new rule reaches no existing solution until its row is added there** — say so wherever the release is described |
 | adds, removes or changes a build settings file, or what one does | `Solutions/BuildSettings`, which is the one list — its path, its one-line summary, its detail and its template — and [`docs/guides/declaring-the-stack.md`](docs/guides/declaring-the-stack.md), which carries the table of the five. The draft's rows, the options menu, `sdlc scaffold`, `sdlc stack` and the harness all read the list, so none of them is a second place to edit |
 | adds, removes or renames a tool under `tools/` | [`tools/README.md`](tools/README.md) — its row and its own section |
+| changes the factory's agent image, or adds a file under `factory/` | [`factory/README.md`](factory/README.md) — its table and the file's own section, which the suite holds against the directory — and [`docs/guides/setting-up-the-factory.md`](docs/guides/setting-up-the-factory.md) step 2 when building or running it changes. **Build the image** (`docker build -f factory/Dockerfile .`): the suite reads it as text, and CI builds it |
 | adds or removes a file only a person writes | `ProtectedPaths` (its description, its reason, and `Names`), the count in [`README.md`](README.md), [`skills/README.md`](skills/README.md), [`skills/draft/SKILL.md`](skills/draft/SKILL.md), the table in [`docs/mechanisms/protected-files.md`](docs/mechanisms/protected-files.md), the denial table in [`docs/guides/handling-refusals.md`](docs/guides/handling-refusals.md) and its row in [`docs/reference/refusals.md`](docs/reference/refusals.md), the table in [`docs/guides/adopting-the-framework.md`](docs/guides/adopting-the-framework.md), and `CONCEPT.md` §5.3 and §8 |
 | moves the project boundary, an operation's shape, or where a new thing goes | [`src/README.md`](src/README.md) |
 | adds or removes a supported host, or changes what one supports | the hosts table in [`README.md`](README.md), and `CONCEPT.md` D-46 if the reasoning moves |

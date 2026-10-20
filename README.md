@@ -312,7 +312,8 @@ What is honest to say about the rest:
 - **The integration branch and the factory are built and have never run for real.** The queue, the cycle
   branches, the admission check, the sitrep, `batch-build --pr --unattended` and `sdlc factory` are held by
   the suite and tried against scratch repositories; no factory pipeline has run on a server, and nobody has
-  spent a morning on a real sitrep (`CONCEPT.md` §10.4, §10.5).
+  spent a morning on a real sitrep (`CONCEPT.md` §10.4, §10.5). The factory's agent image (`factory/`)
+  builds in CI, and its install checks and registration have been tried by hand; it has not run a job.
 - **Leads and Operate have only met fakes.** `sdlc lead show` reads work items through `az` and `gh`, and
   `sdlc operate` reads Application Insights through `az` and files through the same CLIs; none of that has
   touched a real tracker or a real telemetry store. Jira is not read yet.

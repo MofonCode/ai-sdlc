@@ -91,3 +91,22 @@ jobs:
       - name: The installed tool finds its constraint library
         working-directory: ${{ runner.temp }}
         run: '"${{ runner.temp }}/tool/sdlc" constraints'
+
+      # The factory's agent image (factory/README.md, D-96). The suite reads the Dockerfile as text, so
+      # an image that no longer builds -- a moved path, a package gone from an apt source, an installer
+      # that changed its arguments -- passes every test above. Build it, and ask the binary inside it
+      # for its version, which is the line the factory pipeline compares to decide whether to reinstall.
+      - name: Build the factory agent image
+        run: docker build -f factory/Dockerfile -t ai-sdlc-factory-agent .
+
+      # Exactly "sdlc <version>", with no CR: the pipeline compares the whole line, and a binary packed from
+      # CRLF sources prints one and is reinstalled every run.
+      - name: The image carries the binary
+        run: |
+          first="$(docker run --rm --entrypoint sdlc ai-sdlc-factory-agent version | head -n 1)"
+          echo "$first"
+          case "$first" in
+            *$'\r'*) echo 'The version line ends in CR, so the factory pipeline would reinstall sdlc on every run.'; exit 1 ;;
+            'sdlc '*) ;;
+            *) echo 'The image did not answer with its version.'; exit 1 ;;
+          esac
