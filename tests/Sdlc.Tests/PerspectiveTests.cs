@@ -57,6 +57,18 @@ public sealed class PerspectiveTests
     }
 
     [TestMethod]
+    public void The_short_list_steers_within_the_intent_and_never_widens_it()
+    {
+        // The spec's list once said "cover this" and its authors wrote every item in; the no-new-scope rule
+        // then blocked exactly those criteria, because nobody had asked for them (D-90, CON_05).
+        Perspective accessibility = PerspectiveLibrary.Find("accessibility").Value;
+
+        StringAssert.Contains(ActivePerspectives.RenderStage(accessibility, "intent", cover: true), "ask the person");
+        StringAssert.Contains(ActivePerspectives.RenderStage(accessibility, "spec", cover: true), "where the intent asks for it");
+        StringAssert.Contains(ActivePerspectives.RenderStage(accessibility, "spec", cover: true), "Out of scope");
+    }
+
+    [TestMethod]
     public async Task A_cycle_gets_the_three_always_on_and_what_its_intent_names()
     {
         using var workspace = CycleWorkspace.Create();

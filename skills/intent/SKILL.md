@@ -145,10 +145,15 @@ from it; it never shortens the interview.
 
 - **One question per turn.** The next question, or a follow-up, depends on the answer — that is the
   interview. More turns is the accepted cost.
-- **Show two or three example answers under every question, and end them with *not sure*.** One or two
-  generic, from the tables below; at least one tailored to this solution, from `.sdlc/solution.md` and
-  what the person has already said. Give them different shapes, so they read as kinds of answer rather
-  than the expected one — a tailored example anchors harder, which is why the generic ones stay beside it.
+- **Show two or three example answers under every question, and end them with *not sure*.** Every one
+  is tailored to this solution, from `.sdlc/solution.md` and what the person has already said — an
+  example from some other kind of solution helps nobody think, and gets picked by nobody.
+- **Make the examples point different ways**, so they read as kinds of answer rather than the expected
+  one: a stock's price history, its live movement, a watchlist — not three wordings of one answer. A
+  tailored example anchors, and examples that disagree with each other are what loosens the anchor.
+- **Put no figure in an example** — no count, rate, duration or resolution. *"Watch it move minute by
+  minute"* offered as an example is how a granularity nobody decided reaches an intent as fact. If the
+  figure matters, it is the follow-up question, asked in the person's terms.
 - **If your host has a choice prompt**, the examples are its options and free text is the other. If it
   has none, write them out under the question.
 - **Skip what is already answered** — by the opening, a lead, or `.sdlc/solution.md` — and say so in a
@@ -184,8 +189,9 @@ where it belongs:
 
 ### The questions, by type
 
-These are the generic examples, from deliberately different kinds of solution so that none reads as the
-answer. Ask in this order, skipping what is answered.
+Each table's last column is **what a good answer looks like**, from deliberately different kinds of
+solution — a shape to tailor the person's examples from, never shown to them as one. Ask in this order,
+skipping what is answered.
 
 **The outcome questions are the highest-value answers you will get** — the opening for a new solution,
 and B5, A4 and C4 — because they are the seed the spec grows from. Do not let them answer in thresholds;
@@ -193,7 +199,7 @@ that is the spec's job.
 
 **Bug fix**
 
-| | Ask | Examples |
+| | Ask | A good answer looks like |
 |---|---|---|
 | B1 | What did you see, and what did you expect instead? | *"Clicked Export and the spinner ran forever. I expected a file."* · *"The cart total says 0 with three items in it."* |
 | B2 | Walk me through the last time it happened. | *"Monday, the monthly report, about 40,000 rows."* · *"Every time I sign in on my phone."* · *"Someone reported it; I haven't seen it myself."* |
@@ -205,7 +211,7 @@ B1 and B2 are the reproduction the spec derives a bug fix's criteria from.
 
 **Feature addition**
 
-| | Ask | Examples |
+| | Ask | A good answer looks like |
 |---|---|---|
 | A1 | Who's this for, and what are they trying to get done? | *"Players. They want to see the roll without counting pips."* · *"Me, as the admin. Reset a game without restarting the app."* |
 | A2 | How do they manage today without it? | *"They count the pips by eye."* · *"They email me and I do it by hand."* · *"They go without."* |
@@ -218,7 +224,7 @@ which stays the person's call (D-25).
 
 **Feature change**
 
-| | Ask | Examples |
+| | Ask | A good answer looks like |
 |---|---|---|
 | C1 | What about how it works now isn't working for you? | *"Sign-up asks for an address we never use."* · *"The report sorts by date; everyone wants it by customer."* |
 | C2 | Who asked for the change, and who will feel it? | *"Support, after a month of complaints."* · *"Everyone who signs up."* |
@@ -230,7 +236,7 @@ C3 is `Must not change`, asked the way a team asks it, and the spec writes a cri
 
 **New solution**, after the opening
 
-| | Ask | Examples |
+| | Ask | A good answer looks like |
 |---|---|---|
 | N1 | Who's it for, and what can't they do today? | *"People playing board games without dice."* · *"Our field team. They can't log a visit from the road."* |
 | N2 | What do they use instead? | *"A dice app full of adverts."* · *"Paper, typed up later."* · *"Nothing."* |
@@ -238,15 +244,30 @@ C3 is `Must not change`, asked the way a team asks it, and the spec writes a cri
 
 ### Closing, every type
 
-| | Ask | When | Examples |
+| | Ask | When | A good answer looks like |
 |---|---|---|---|
 | Z1 | Is anything nearby that must keep working exactly as it is? | a bug fix or a feature addition — C3 and N3 already asked it | *"The CSV format. Another system imports it."* · *"Nothing I can think of."* |
 | Z2 | Has anything already been decided that I should treat as fixed? | always | *"Six-sided die only."* · *"We're keeping the existing sign-in."* · *"Nothing decided."* |
 | Z3 | What does this touch, beyond the basics? | always | *"A page people use."* · *"Stored data."* · *"A public API."* · *"Nothing beyond the basics."* |
+| Z4 | Which of these does this piece of work need to do? | always, last | *"Work by keyboard and screen reader."* · *"Tell us when the feed fails."* · *"None of these this time."* |
 
 Z3 decides the perspectives, beyond the three always on — security, operability, maintainability. A user
 interface brings `ui-ux` and `accessibility`; infrastructure, `infrastructure`; stored data and
 migrations, `data`; a public API, `api`; a stated performance budget, `performance`.
+
+**Z4 is the perspectives' list, asked rather than written in** (D-90). Read each active perspective's
+list for the intent:
+
+```
+sdlc perspective show <name> --for intent --cover
+```
+
+Turn what is not already answered into one choice — one option per concern, in this solution's terms,
+several may be picked. What the person picks becomes a wanted outcome **in their words**, and a pick
+that is a decision (*"sign-in is not needed for this piece"*) goes to `Fixed decisions`. **What they do
+not pick, you do not write.** The spec may only derive from what the intent states (`CON_05`), so a
+concern added here without being asked is the scope creep the rule exists to stop, moved one stage
+earlier. The fresh readers will raise what was left, and the hand-back offers it again.
 
 ## Never ask
 
@@ -392,6 +413,18 @@ declared one: the count cannot tell a genuine conflict from a refiner repeating 
 a person.
 
 ## 6. Report and hand back
+
+**First, the suggestions the intent's rounds left open, if there are any.** Ask once: show them grouped
+by perspective, each with its statement, and ask which to take in, which to decline, and which to leave.
+Leaving them is an answer, and the commonest one — skip the question entirely when nothing is open. What
+the person names goes to `/sdlc:steer <id> <finding id>...` in one run, which writes each into the intent
+with their name on it and re-interrogates down to here (D-97). **Never take one in on their behalf**: a
+suggestion nobody chose is exactly what the spec may not derive from.
+
+This is the cheapest point to answer them: a suggestion taken in now costs one more intent round, and
+nothing downstream exists yet to carry it.
+
+Then:
 
 ```
 sdlc status <id> --stage intent --brief

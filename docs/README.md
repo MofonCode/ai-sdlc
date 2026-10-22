@@ -295,7 +295,7 @@ never decides a gate.
 | `plan` | decides how, and what proves each criterion. The last document before a person approves |
 | `interrogate` | judges one artifact against the rules, in a fresh process. Never edits |
 | `refine` | applies a round's findings to that artifact. Never judges |
-| `steer` | carries a mid-cycle correction down the chain, editing rather than regenerating |
+| `steer` | carries a mid-cycle correction, or suggestions taken in or declined, down the chain, editing rather than regenerating |
 | `build` | implements an approved plan, builds, tests, and records the evidence |
 | `batch-build` | completes every queued cycle, each on its own branch and independently, and reports the sitrep; `--pr` opens a pull request for each, a draft for one that did not pass |
 | `verify` | adjudicates a build against its spec from the recorded evidence alone |

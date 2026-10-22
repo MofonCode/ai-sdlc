@@ -158,7 +158,7 @@ public static class ActivePerspectives
 
         if (cover)
         {
-            output.AppendLine(string.Create(CultureInfo.InvariantCulture, $"{perspective.Title} -- cover this in the {stage}:"));
+            output.AppendLine(perspective.Title + " -- " + CoverHeading(stage) + ":");
             output.AppendLine(perspective.Cover[stage]);
             return output.ToString();
         }
@@ -184,4 +184,14 @@ public static class ActivePerspectives
         output.AppendLine(perspective.Evidence);
         return output.ToString();
     }
+
+    // A cover list steers within what the intent asked for and never widens it (D-90): the intent asks the
+    // person rather than writing the list in, and the spec writes only what the intent supports, because a
+    // list that arrives with every cycle is not the person asking for it (CON_05).
+    private static string CoverHeading(string stage) => stage switch
+    {
+        "intent" => "ask the person about this in the intent",
+        "spec" => "cover this in the spec where the intent asks for it, and name the rest in Out of scope",
+        _ => "cover this in the " + stage,
+    };
 }

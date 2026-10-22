@@ -185,7 +185,12 @@ attribution, and carries the change down the chain — updating and re-interroga
 plan when one exists. It requires an intent and a spec, edits rather than regenerates, reports what
 changed, and refuses on an approved cycle until a reopen is recorded (D-17).
 
-Steering changes *how*, not *what*. A comment that changes the problem is a different intent.
+Steering changes *how*, not *what* — with one exception: **a suggestion a reader raised in this cycle,
+named by its id, may be taken in or declined**, several in one run, and with only an intent when every
+part of the request is a finding id. A suggestion taken in becomes a wanted outcome in the person's words
+and a declined one a fixed decision, each attributed and naming the finding; the intent, spec and plan
+hand-backs each ask once which to take in. A comment that changes the problem is a different intent, and
+a new outcome nobody raised is a new cycle (D-97).
 
 ### 3.3 Three phases: Define, Build, Operate
 
@@ -680,8 +685,11 @@ embedded in the binary, carrying four things:
 3. **its rules** — the only part that can block
 4. **the evidence it requires**, from the profile's build settings
 
-**It steers as well as judges.** `intent`, `spec`, `plan` and `build` read a short *cover this* list per
-active perspective, so a spec is written with its security criteria in it. `interrogate` runs one fresh
+**It steers as well as judges, and never widens.** `intent`, `spec`, `plan` and `build` read a short
+*cover this* list per active perspective. The intent asks the person its list rather than writing it in;
+the spec writes an item where the intent asks for it and names the rest in `Out of scope`; the plan and
+the build apply theirs to how the criteria are met. What a perspective wants beyond the intent comes back
+as a suggestion, which a person takes in through `steer` (D-97). `interrogate` runs one fresh
 process per active perspective, handed that perspective's full method and rules, then **one reconciling
 reader** over the round's findings. `verify` asks each perspective's questions of the evidence.
 
@@ -2591,6 +2599,9 @@ cheaper and no constraint loosens.
 answers of its own. An `advice` finding alone: it needs an artifact to attach to, and the scenario is
 steering arriving before a plan exists. A proposed implementation in the spec: its criteria must
 derive from the intent, so a proposal appearing there derives from nothing, which `CON_05` forbids.
+
+**Since D-97**, steering also takes in or declines suggestions a reader raised, by id. It is still not a
+way to add a new outcome nobody raised.
 
 ### D-18 — A stage skill refuses when its artifact exists, and names what you meant
 
@@ -6373,8 +6384,15 @@ plan it costs nothing. A perspective that only judges finds what it could have p
 has found three security problems tends to stop before the missing empty state. The reconciling reader
 comes after, so no reader is anchored by another's findings and order decides nothing.
 
-**Why the intent names them.** The spec is where perspectives add the most, and declared files first exist
-in the plan. An automatic step choosing them would decide unseen how much scrutiny a cycle gets; a line in
+**Why it never widens.** The first version said the spec was where perspectives add the most, and the
+spec skill wrote each list in. In a trading solution's first cycle the no-new-scope rule (`CON_05`) then
+blocked five criteria the lists had put there — keyboard use, an accessibility scan, announcements,
+failure logging, the provider's key — because nothing in the intent asked for them. The rule was right:
+a list that arrives with every cycle is not a person asking. So a list steers the criteria the intent
+asked for, and what it would add instead reaches the intent through a person (D-97).
+
+**Why the intent names them.** The spec is where perspectives shape the most, and declared files first
+exist in the plan. An automatic step choosing them would decide unseen how much scrutiny a cycle gets; a line in
 the intent is seen in the interview and covered by the approval's hash.
 
 **Every perspective proves its cost.** It ships with fixtures — an artifact with a defect planted in it —
@@ -6392,6 +6410,9 @@ and the suite holds that its reader finds it.
   finding survives, later readers would be anchored, and the readers would run one at a time.
 - *A new tier for perspective rules.* The three tiers and the declared stack are already every place a rule
   may live (§7.3).
+- *Counting an active perspective's list as support for a criterion under `CON_05`.* It would end the
+  contradiction by letting every list item into every spec unasked — removing the guard rather than
+  routing round it, since nobody would ever have chosen those criteria.
 
 ### D-91 — One repository, one binary, two plugins: the sdlc plugin is the engine and the factory runs it unattended
 
@@ -6581,9 +6602,10 @@ the skill. What to do with the files is the person's; the refusal decides nothin
    should someone be able to do first?* — **then asks a short set for the type, one question per turn**:
    a bug's reproduction, a feature's person and job, a change's dependants, a new solution's users and
    bounds; then what must keep working, what is decided, and what it touches.
-3. **Every question carries example answers** — one or two generic, at least one tailored from the
-   solution's paragraph — **and *not sure* is an answer**, recorded by what it is about: an unmeasured
-   figure as unconfirmed, an unanswerable question under `Open`, something nobody has found out nowhere.
+3. **Every question carries example answers**, all tailored from the solution's paragraph and what the
+   person has said, pointing different ways and carrying no figure — **and *not sure* is an answer**,
+   recorded by what it is about: an unmeasured figure as unconfirmed, an unanswerable question under
+   `Open`, something nobody has found out nowhere.
 4. **The skill takes no sentence.** Text typed after its name is read as the answer to the opening.
 
 **The sections do not change.** `## Problem` opens with who has it, and for a bug fix follows the
@@ -6603,6 +6625,12 @@ already has; the intent's sections are the story it produces — who, under `Pro
   one-line story on top would be a second place to say the same thing that fits a bug fix or a new
   solution poorly. An answer that names a mechanism is caught by the interview's probe, *what does not
   having that cause?*, whatever the format.
+- *Generic examples beside the tailored ones, to loosen the tailored one's anchor.* The first version.
+  In a trading solution's first cycle the person was offered a die, a sales chart, paper, no
+  multiplayer, a six-sided die and one button, picked none of them, and found them no help — while the
+  tailored *"watch it move minute by minute"* still reached the intent as an unattributed granularity
+  and became its only blocker. The generic ones did not loosen the anchor; tailored examples that point
+  different ways and carry no figure do the same work without the noise.
 - *A sentence argument.* It skipped the guided opening and was where a solution got typed. `--from`
   covers starting from text somebody already wrote.
 - *`--type new`.* A new solution is a fact about the repository, which the skill can read; in an adopted
@@ -6653,3 +6681,63 @@ whatever their working copy of the plugin held that night.
   account, a credential and a push step for one host.
 - *The whole second plugin now.* A manifest and a moved command with one file behind them; it comes with
   the second template.
+
+### D-97 — A person takes a raised suggestion into the intent through `steer`, by its id
+
+**Governs:** §3.2, §6.5
+
+**Decision.** A spec's criteria derive only from the intent (`CON_05`), and that rule does not loosen.
+What a perspective finds beyond the intent reaches it one way: **a person names the suggestion's id to
+`steer`**, and decides it.
+
+| The person | Written into the intent | What the next round does |
+|---|---|---|
+| takes it in | `Wanted outcomes` gains it, in their words, with their name, the date and the finding's id | its reader finds the outcome stated, and the round records the finding `answered` |
+| declines it | `Fixed decisions` gains *not in this cycle*, with their name, the date, the finding's id and why | its reader finds it decided, and the round records it `answered` |
+| leaves it | nothing | it stays open, and stays in `sdlc suggestions` for a later cycle |
+
+**Several in one run**, because each run re-interrogates the chain from the intent down to where the
+cycle has got to; one at a time would pay that once per suggestion. With only an intent, `steer` takes
+finding ids alone. The intent, spec and plan hand-backs each ask once, grouped by perspective, which to
+take in, decline or leave, and skip the question when nothing is open. Only an open, non-blocking
+finding of this cycle's latest rounds qualifies: a blocker is `refine`'s, and another cycle's suggestion
+is a lead for a cycle of its own (`--from suggestion:`).
+
+**Why.** In a trading solution's first cycle the spec skill wrote each perspective's list in, and
+`CON_05` blocked five criteria — keyboard use, an accessibility scan, announcements, failure logging and
+the provider's key — because nothing in the intent asked for them. The intent's own rounds had raised the
+same concerns as twenty suggestions, and nothing asked the person to take them or leave them, so the
+author used them anyway. The agent then recommended `steer` for new outcomes, which `steer` refused; the
+spec skill sent a missing outcome there all the same. The rule was right and the routes around it were
+wrong. A person choosing from what a fresh reader found is neither an agent widening scope nor a new
+piece of work arriving midway, and it is the path that keeps `CON_05` whole.
+
+**Why the intent and not the spec.** The spec alone defines *done*, and it derives from the intent; an
+obligation written straight into the spec would be one the approval covers but nothing upstream asked
+for. Written into the intent it is attributed, hashed by the approval, and every stage below it derives
+from it as from anything else.
+
+**Why no new disposition.** A disposition moves only on a fresh reader's silence (D-49). Writing the
+person's verdict into the intent lets the next round record `answered` the ordinary way — and a reader
+that raises the finding again is saying the wording did not settle it.
+
+**The trust layer** is the one every steer rests on: nothing mechanical stops an agent writing a
+fabricated attribution, and what catches it is a person reading the intent at the approval gate before
+any code exists.
+
+**Standing properties are not for this.** A suggestion taken in cycle after cycle — every screen usable
+by keyboard — is a rule for the solution's own constraints, which `sdlc propose constraints` counts.
+
+**Rejected.**
+
+- *Counting an active perspective's list as support under `CON_05`.* Ends the contradiction by letting
+  every list item into every spec unasked (D-90).
+- *`adopted` and `declined` dispositions a person sets.* The first proposal. It would be the only
+  disposition not moved by a reader, breaking D-49, and the intent already has the places to say both.
+- *A decide mode on the `suggestions` skill.* It would turn a read-only listing into an editor of the
+  intent and copy the chain-carrying `steer` already does.
+- *A new skill for it.* The same edit and the same re-interrogation as `steer`, under a second name.
+- *`steer` taking any new outcome.* An outcome nobody raised has had no reader's scrutiny and no
+  interview; that is a new cycle.
+- *Writing plan-stage suggestions into the plan as unapproved extra proof.* A plan proves the spec;
+  what it would add goes under `Risk`, and its reader raises it for the person to decide.

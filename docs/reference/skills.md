@@ -19,7 +19,7 @@ there is no slash form: ask in a sentence, and include the cycle id.
 | [`interrogate`](../../skills/README.md#interrogate) | `<cycle id> <intent\|spec\|plan\|verify>` | judges one document against the rules, in a fresh process. Never edits | a stage skill, or a person |
 | [`refine`](../../skills/README.md#refine) | `<cycle id> <intent\|spec\|plan>` | applies a round's findings to that document. Never judges | a stage skill, or a person |
 | **Correction** | | | |
-| [`steer`](../../skills/README.md#steer) | `<cycle id> "what to change"` | carries a change of mind down the intent, spec and plan | a person |
+| [`steer`](../../skills/README.md#steer) | `<cycle id> [<finding id>...] ["what to change"]` | carries a change of mind, or suggestions taken in or declined, down the intent, spec and plan | a person, or a stage's hand-back |
 | **The gate** | | | |
 | [`draft`](../../skills/README.md#draft) | `approval <id> \| abandon <id> \| solution [--standard profile\|existing] \| techstack [--empty]` | prints what belongs in a file only a person writes | a person |
 | **Build and verify** | | | |

@@ -22,8 +22,12 @@ sdlc perspective show <name> --for plan --cover
 ```
 
 For each perspective written for this cycle, its short list of what this plan must cover. Write those in
-as you go — a perspective that only judges finds what it could have prevented, and its own fresh reader
-will look for exactly these when the round runs.
+as you go — they are how the criteria are met, which is the plan's to choose: where a secret is kept,
+which log records a failure, which test layer runs the scan. **An item that would need a criterion the
+spec does not have is not the plan's to add.** Say it under `Risk` with the perspective's name; a plan
+proves the spec, and proof of something the spec never asked for is work nobody approved. That
+perspective's reader raises it as a suggestion, and the person takes it in by id with `/sdlc:steer`, or
+leaves it for a later cycle.
 
 **A declared file can bring a perspective the intent did not name.** `sdlc perspectives <id>` says so — a
 `.razor` file brings UI/UX and accessibility. Cover it here, and expect the plan's interrogation to raise
@@ -316,6 +320,13 @@ Interrogate, refine, interrogate again — until a round is clean, a reader repo
 panel's `Loop` line says the loop is stuck on one rule. It is the same loop the intent and spec skills
 run, and the intent skill's loop section has the table. Nothing caps the rounds; what stops the loop is
 a rule coming back three times, which is the loop going backwards rather than going slowly.
+
+**First, the suggestions the plan's rounds left open, if there are any.** Ask once: show them grouped
+by perspective, each with its statement, and ask which to take in, which to decline, and which to leave.
+Leaving them is an answer, and the commonest one — skip the question entirely when nothing is open. What
+the person names goes to `/sdlc:steer <id> <finding id>...` in one run, which writes each into the intent
+with their name on it and re-interrogates down to here (D-97). **Never take one in on their behalf**: a
+suggestion nobody chose is exactly what the spec may not derive from.
 
 Then:
 

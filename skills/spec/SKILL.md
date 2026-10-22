@@ -20,9 +20,15 @@ sdlc perspectives <id>
 sdlc perspective show <name> --for spec --cover
 ```
 
-For each perspective written for this cycle, its short list of what this spec must cover. Write those in
-as you go — a perspective that only judges finds what it could have prevented, and its own fresh reader
-will look for exactly these when the round runs.
+For each perspective written for this cycle, its short list of what this spec could cover. **Write an
+item in where the intent asks for it**, or where a rule in force requires it — `CON_17`'s criterion for
+what somebody is told on a failure is one — and let it shape how you write that criterion: a keyboard
+user's path through an interaction the intent asked for, the hostile input to a field it asked for.
+
+**An item the intent does not ask for gets no criterion.** Name it in `Out of scope` — *not asked for by
+the intent* — with the perspective's name, so the approval shows the gap and the person can take it in
+with `/sdlc:steer`. Writing the criterion anyway is the scope creep `CON_05` blocks: a list that arrives
+with every cycle is not the person asking.
 
 ## Refuse early
 
@@ -151,9 +157,15 @@ by whoever approved the intent, and it arrives carrying the authority of an appr
 The two fail differently and are remedied differently, which is why they are separate rules: a gap
 sends you back for more criteria, creep sends you to delete one.
 
-**If the intent is missing something it should have asked for, say so and stop.** Do not fix it by
-writing the criterion. That is what the steer stage is for, and it edits the intent with attribution
-rather than smuggling the change in here.
+**Detail is yours; a new obligation is not.** How an outcome is observed — a threshold, a viewport
+width, the wording of a failure message, a stand-in for a service — is what a spec adds, and nothing in
+the intent needs to name it. What *done* means is the intent's: a criterion that would make the work
+owe something nobody asked for is creep however sensible it is.
+
+**If the intent is missing something it should have asked for, say so, and do not write the
+criterion.** Name it in `Out of scope`. If a reader raised it as a suggestion, the person takes it in
+with `/sdlc:steer <id> <finding id> …`, which writes it into the intent with their name on it and
+carries it down; if nobody raised it, it is a new cycle.
 
 ## Write it
 
@@ -199,6 +211,13 @@ editing the same words again, and *stuck on* means stop and hand back to a perso
 rounds, so a slow convergence is never a reason to stop.
 
 See the intent skill's loop section for the full table; it is the same loop.
+
+**First, the suggestions the spec's rounds left open, if there are any.** Ask once: show them grouped
+by perspective, each with its statement, and ask which to take in, which to decline, and which to leave.
+Leaving them is an answer, and the commonest one — skip the question entirely when nothing is open. What
+the person names goes to `/sdlc:steer <id> <finding id>...` in one run, which writes each into the intent
+with their name on it and re-interrogates down to here (D-97). **Never take one in on their behalf**: a
+suggestion nobody chose is exactly what the spec may not derive from.
 
 ```
 sdlc status <id> --stage spec --brief

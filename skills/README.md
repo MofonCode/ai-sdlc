@@ -273,15 +273,18 @@ What it runs, in order:
    person runs neither
 3. settles the type first — from `--type`, from a lead, or by detecting a new solution: a scaffolded
    solution with no cycle yet approved — because the type decides the questions
-4. interviews one question at a time, each with example answers: an opening, a short set for the type —
-   a bug's reproduction, a feature's person and job, a change's dependants, a new solution's first use —
-   then what must keep working, what is already decided, and which areas it touches. An answer shaped as
-   a solution is asked what its absence causes
+4. interviews one question at a time, each with example answers tailored to the solution, pointing
+   different ways and carrying no figure: an opening, a short set for the type — a bug's reproduction, a
+   feature's person and job, a change's dependants, a new solution's first use — then what must keep
+   working, what is already decided, which areas it touches, and which of the active perspectives'
+   concerns this piece needs. An answer shaped as a solution is asked what its absence causes
 5. where the person bounds the work with *simple*, *basic* or *nothing fancy*, asks once whether that
    means small in scope or plain in appearance
 6. writes the intent, then runs the interrogate-refine loop itself until a round raises nothing blocking,
    a reader reports a conflict, or the panel's `Loop` line says it is stuck on one rule
-7. shows `sdlc status <id> --stage intent --brief` verbatim and stops
+7. asks once which open suggestions to take in, decline or leave, and runs `/sdlc:steer` with what the
+   person named — skipped when nothing is open
+8. shows `sdlc status <id> --stage intent --brief` verbatim and stops
 
 **It does not chain into the spec.** That hand-back is the human-in-the-loop point, and a skill that
 continued would remove it while appearing helpful. It does not cap the rounds: a loop that is converging
@@ -330,7 +333,7 @@ entry ends in exactly one of three places — a criterion, `Out of scope` with a
 | there is no intent | refuses | `/sdlc:intent` |
 | the intent is not clean | refuses | `/sdlc:refine <id> intent`, then a fresh interrogation |
 | a spec already exists | refuses, and never overwrites one | `/sdlc:interrogate <id> spec` or `/sdlc:steer`, which it names |
-| the intent is missing something it should have asked for | stops rather than writing the criterion | `/sdlc:steer` — that is its job |
+| the intent is missing something it should have asked for | writes no criterion, and names it in `Out of scope` | `/sdlc:steer <id> <finding id>...` when a reader raised it; a new cycle when nobody did |
 
 #### Example
 
@@ -356,8 +359,11 @@ What it runs, in order:
 3. reads `intent.md` and derives criteria according to its `type` — a `bug fix` from the reproduction, a
    `feature change` with a criterion for each `Must not change` item
 4. disposes of every entry under the intent's `## Open`
-5. writes the spec and runs the same interrogate-refine loop as the intent
-6. shows `sdlc status <id> --stage spec --brief` verbatim and stops
+5. writes the spec — a perspective's item only where the intent asks for it, the rest named in `Out of
+   scope` — and runs the same interrogate-refine loop as the intent
+6. asks once which open suggestions to take in, decline or leave, and runs `/sdlc:steer` with what the
+   person named — skipped when nothing is open
+7. shows `sdlc status <id> --stage spec --brief` verbatim and stops
 
 #### See also
 
@@ -442,8 +448,11 @@ What it runs, in order:
 3. reads the spec and the code, then `sdlc stack`, `sdlc decisions` and `sdlc theme`
 4. decides the shape, argues each departure, writes a proof for every criterion and chooses the tier —
    `local`, `contract` or `data`, by how reversible the change is
-5. writes the plan and runs the interrogate-refine loop
-6. shows `sdlc status <id> --stage plan --brief` and `sdlc gate <id>` — which refuses, because nobody has
+5. writes the plan — a perspective's item that would need a criterion the spec lacks goes under `Risk`,
+   not into the proof — and runs the interrogate-refine loop
+6. asks once which open suggestions to take in, decline or leave, and runs `/sdlc:steer` with what the
+   person named — skipped when nothing is open
+7. shows `sdlc status <id> --stage plan --brief` and `sdlc gate <id>` — which refuses, because nobody has
    approved yet — and explains that approving is the person's act
 
 #### See also
@@ -629,19 +638,19 @@ interrogate again; that is the stage skill's loop.
 ### `steer`
 
 Carries a person's mid-cycle correction down the artifact chain, editing the intent, spec and plan rather
-than regenerating them.
+than regenerating them — and takes in or declines suggestions a reader raised in the cycle, by their ids.
 
 | | |
 |---|---|
-| Stage | correction, after the spec exists and before the gate |
-| Started by | a person who has changed their mind about *how* a cycle is being done |
-| Reads | the correction, and each artifact it reaches |
-| Writes | the intent's `Fixed decisions`, each artifact it reaches, and fresh rounds on everything downstream of what it touched |
+| Stage | correction, after the spec exists and before the gate; for finding ids alone, from a clean intent |
+| Started by | a person who has changed their mind about *how* a cycle is being done, or the intent, spec or plan hand-back once a person has said which suggestions to take in |
+| Reads | the correction, each named finding, and each artifact it reaches |
+| Writes | the intent's `Fixed decisions` and `Wanted outcomes`, each artifact it reaches, and fresh rounds on everything downstream of what it touched |
 
 #### Syntax
 
 ```
-/sdlc:steer <cycle id> "what to change"
+/sdlc:steer <cycle id> [<finding id>...] ["what to change"]
 ```
 
 #### Parameters
@@ -649,12 +658,15 @@ than regenerating them.
 | Parameter | Description |
 |---|---|
 | `<cycle id>` | the cycle in progress |
+| `<finding id>...` | open suggestions from this cycle's latest rounds — `F_03`, `accessibility.F_01` — each to be taken in or declined. Name every one in one run: the chain is re-interrogated once |
 | `"what to change"` | the correction, in the person's words |
 
 #### Output
 
-Records the correction under the intent's `Fixed decisions`, with attribution, and edits rather than
-regenerates — a regenerated artifact has a findings history about a document that no longer exists.
+Records the correction under the intent's `Fixed decisions`, with attribution. A suggestion taken in
+becomes a wanted outcome in the person's words and a declined one a *not in this cycle* fixed decision,
+each naming the finding; the next round's reader finds it settled and records it `answered`. Edits rather
+than regenerates — a regenerated artifact has a findings history about a document that no longer exists.
 Usually the spec needs nothing and the plan's `Shape and departures`, `Files` and often `Proof` change.
 The re-interrogation is checked rather than trusted: a round records the hash of the artifact above it,
 so editing the intent makes the spec's latest round stale.
@@ -663,7 +675,8 @@ so editing the intent makes the spec's latest round stale.
 
 | Condition | Result | What to do |
 |---|---|---|
-| there is only an intent | refuses | `/sdlc:refine <id> intent` instead |
+| there is only an intent, and a correction in words | refuses | `/sdlc:refine <id> intent` instead |
+| a finding id that is not an open suggestion of this cycle's latest rounds | refuses on that id, and says what it is | a blocker is `/sdlc:refine`'s; another cycle's suggestion is `/sdlc:intent --from suggestion:<cycle>/<finding>` |
 | the cycle is approved | refuses | `sdlc draft approval <id> --reopen` first, which it names |
 | the cycle is abandoned | refuses; abandoned is terminal | open a new cycle |
 | the comment changes the problem rather than the how | says so | a new cycle, which it offers |
@@ -684,8 +697,11 @@ mid-cycle, and doing that by hand means editing and re-interrogating three docum
 the correction ends up in conversation where it is lost — and a path so costly that it pushes information
 out of the system is worse than no path. No constraint loosens.
 
-**Steering changes how, not what.** Which approach, which abstraction, which order, what to avoid. A
-comment that changes the problem is a different intent.
+**Steering changes how, not what** — which approach, which abstraction, which order, what to avoid — **except
+for a suggestion a reader raised**, which the person may take in by id (`CONCEPT.md` D-97). The spec may
+only derive from the intent, so this is the one way a perspective's concern becomes a criterion: a person
+choosing it. A comment that changes the problem is a different intent, and a new outcome nobody raised is
+a new cycle.
 
 One or two questions — what to do instead, and why — then it records the correction, edits each artifact
 it reaches, re-interrogates everything downstream of what it touched, reports one line per artifact, and

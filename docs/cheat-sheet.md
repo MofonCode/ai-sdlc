@@ -26,6 +26,7 @@ Each document stage runs its own interrogate-and-refine loop before it hands bac
 - **A blocking finding** the loop could not clear — `guides/handling-blockers.md`
 - **Verify says `blocked`** — `/sdlc:remediate <id>`, then verify again
 - **Changed your mind** before approval — `/sdlc:steer <id> "..."`
+- **Take in a suggestion** a reader raised, before approval — `/sdlc:steer <id> <finding id>...`
 - **After approval** — `sdlc draft approval <id> --reopen`
 - **Something refused** — `reference/refusals.md`
 - **Stop for good** — `sdlc draft abandon <id>`, and place it yourself

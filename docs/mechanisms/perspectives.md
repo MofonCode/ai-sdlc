@@ -15,7 +15,7 @@ Each perspective is a document built into the `sdlc` binary, and every one has t
 | Part | What it is | Who reads it |
 |---|---|---|
 | **method** | how to examine a change from this angle, step by step | the perspective's own reader at `interrogate` |
-| **cover this** | a short list per stage of what the document being written should already contain | the author at `intent`, `spec`, `plan` and `build` |
+| **cover this** | a short list per stage of what the document being written should already contain, where the intent asks for it | the author at `intent`, `spec`, `plan` and `build` |
 | **questions** | what a reader asks of each stage's document, intent through verify | the reader at `interrogate`, and `verify` of the evidence |
 | **rules** | the only part that can block | every reader |
 
@@ -70,14 +70,22 @@ sdlc perspectives <id>
 
 | Stage | What a perspective does |
 |---|---|
-| `intent`, `spec`, `plan` | **steers.** The skill reads each active perspective's *cover this* list for that stage and writes it in as it goes, so a spec has its abuse cases in it before anyone looks for them |
+| `intent` | **asks.** The interview's last question is the active perspectives' list for the intent, in this solution's terms. What the person picks becomes an outcome in their words; what they do not pick is not written |
+| `spec` | **steers, and never widens.** A list item the intent asks for shapes its criterion — the keyboard path through an interaction the intent asked for, the hostile input to a field it asked for. An item it does not ask for gets no criterion and is named in `Out of scope`, so the approval shows the gap |
+| `plan` | **steers.** The list is how the criteria are met — where a secret is kept, which log records a failure, which layer runs the scan. An item that would need a criterion the spec lacks goes under `Risk`, not into the proof |
 | `interrogate` | **judges.** One fresh process per active perspective, run at the same time and blind to each other, each handed only its own method, its questions for this document, its rules, and the document with the one above it. Then **one reconciling reader** over every finding in the round, which only looks for findings that cannot both be answered |
 | `build` | **steers, and never widens.** It applies the *cover this* list to how the plan is written up in code and records the evidence each perspective needs. Anything a perspective wants that the plan did not describe becomes a tagged `Noticed: [name] …` line in the commit, not code |
-| `verify` | **asks of the evidence.** By now the perspective's concerns are criteria in the spec. What verify adds is the evidence questions — was the abuse actually attempted, did the scan run on every touched page |
+| `verify` | **asks of the evidence.** By now the concerns the person took in are criteria in the spec. What verify adds is the evidence questions — was the abuse actually attempted, did the scan run on every touched page |
 
 **Why steering as well as judging.** A perspective that only judges finds what it could have prevented,
 and the loop pays a refine round for every finding it raises. A perspective that steers mostly finds
 nothing.
+
+**Why it never widens.** The spec may only derive from what the intent states. A list that arrives with
+every cycle is not a person asking, so a criterion written from it alone is the scope creep that rule
+exists to stop — and the first time it was tried, the rule blocked five criteria the list had put there.
+What a perspective finds beyond the intent comes back as a suggestion, and the person takes it in by
+naming it to `/sdlc:steer`, or leaves it for a later cycle.
 
 ## Reading what it found
 

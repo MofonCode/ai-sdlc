@@ -89,7 +89,9 @@ and how they manage today, a change for who relies on it as it is. **_Not sure_ 
 the skill tells you where it records it. Expect a request shaped as a solution to be turned back into a
 problem: "add a cache" becomes "the dashboard takes fourteen seconds and people stop opening it". If you
 have already decided something, say so — it is recorded under `Fixed decisions` with your name on it
-rather than argued with.
+rather than argued with. **The last question is the perspectives' concerns** — keyboard use, who may see
+it, who hears when it fails — put in your solution's terms: what you pick becomes an outcome, and what
+you do not pick is not written in for you.
 
 The skill **hands back rather than continuing into the spec.** That hand-back is the human-in-the-loop
 point; a skill that chained on would remove it while appearing helpful.
@@ -126,6 +128,13 @@ proof is worse than none because it produces a green verification instead of an 
 That edits the intent, spec and plan rather than regenerating them, records the correction with your name
 on it, and re-interrogates everything downstream of what it touched. Steering changes *how*, not *what* —
 a correction that changes the problem is a different cycle, and the skill says so and offers one.
+
+**Suggestions are yours to take in or leave.** A perspective's concern the intent did not ask for — keyboard
+use, where a key is kept — never becomes a criterion on its own: the spec names it in `Out of scope`, and
+its reader raises it as a suggestion. The intent, spec and plan each ask you once, at hand-back, which to
+take in, which to decline, and which to leave for a later cycle; leaving them is a fine answer. What you
+name goes to `/sdlc:steer <id> <finding id>...` in one run, which writes each into the intent with your
+name on it.
 
 ## 4. The gate
 

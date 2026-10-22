@@ -134,7 +134,9 @@ Do not edit the documents by hand, and do not refine around a problem you have c
 Steer carries the correction down the chain — editing the intent, spec and plan rather than regenerating
 them — records it with your name on it, and re-interrogates everything downstream of what it touched,
 which is what keeps rounds from going stale. **Steering changes *how*, not *what*.** A correction that
-changes the problem is a different cycle, and the skill says so and offers one.
+changes the problem is a different cycle, and the skill says so and offers one. The exception is a
+suggestion a reader raised: name its id — `/sdlc:steer <id> accessibility.F_01 security.F_02` — to take
+it into the intent with your name on it, or to decline it. Name every one you want in the same run.
 
 ### After approval
 
