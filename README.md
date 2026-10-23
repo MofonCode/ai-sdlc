@@ -1,6 +1,6 @@
 # ai-sdlc
 
-**Version 0.27.0** · iteration 4 · .NET 10 · MIT
+**Version 0.28.0** · iteration 4 · .NET 10 · MIT
 
 **A plugin that makes an AI coding agent work the way a careful team does** — write down what the change
 is for, agree what *done* means, plan it, have a person approve it, and only then write code.
@@ -126,7 +126,7 @@ sdlc constraints
 ```
 
 It should print the eighteen global constraints in force and say it read them from
-`global  embedded in sdlc 0.27.0`. **Use this rather than `sdlc help` as the smoke test** — `help` and
+`global  embedded in sdlc 0.28.0`. **Use this rather than `sdlc help` as the smoke test** — `help` and
 `version` are the only commands that need nothing from the installation, so they are the two that cannot
 tell you whether it worked. Then `claude plugin details sdlc@ai-sdlc` should say `Skills (18)` and
 `Hooks (2)`: **a hook count below two is a failed install**, not a detail, because the deterministic layer
@@ -262,11 +262,14 @@ What is honest to say about the rest:
 
 - **Bounded remediation is implemented and tested, but exercised in fixtures far more than in anger.**
   Everything unattended rests on it, so the first batch runs are worth watching.
-- **The stack rules are .NET only and have never judged a real plan.** The framework ships three
+- **The stack rules are .NET only and have never judged a real plan.** The framework ships four
   `PRO_` rules, and a solution is held to the ones its declared stack marks `true`. None is written for
   another stack — nothing has been built on one, so a rule there would be a guess with the authority of
-  a constraint. The three were written from convictions this framework has paid for rather than from
-  findings a cycle raised, which is the weaker provenance and worth saying.
+  a constraint. The first three were written from convictions this framework has paid for rather than
+  from findings a cycle raised, which is the weaker provenance and worth saying. `PRO_04`, an Aspire
+  AppHost once a solution runs more than one process, came from a trial cycle that argued its way out
+  of one; nothing has yet watched it refuse a plan. **It reaches no solution adopted before 0.28.0**
+  until a person adds its row to that solution's `techstack.md`.
 - **Declaring the stack after adoption has not been walked by anybody but its author.** Adoption no
   longer writes the declared stack or the .NET build settings: a person places the first from a draft,
   and the second arrive with the skeleton. The suite holds each step; no real adoption has gone through
@@ -317,10 +320,11 @@ What is honest to say about the rest:
 - **Leads and Operate have only met fakes.** `sdlc lead show` reads work items through `az` and `gh`, and
   `sdlc operate` reads Application Insights through `az` and files through the same CLIs; none of that has
   touched a real tracker or a real telemetry store. Jira is not read yet.
-- **Perspectives have no rules yet.** Security, operability and maintainability are written as methods and
-  steer every stage, and accessibility does the same for any change touching a user interface, but none has
-  a rule of its own, so everything they find is a suggestion; nothing proves yet that a perspective's reader
-  catches what it is meant to (`CONCEPT.md` §6.5). UI/UX and the four others are not written.
+- **One perspective has a rule, and nothing proves a perspective's reader catches what it should.**
+  Security, operability and maintainability are written as methods and steer every stage, and
+  accessibility does the same for any change touching a user interface. Operability's reader may block on
+  `CON_20`, earned on two trial cycles; everything else they find is a suggestion (`CONCEPT.md` §6.5).
+  UI/UX and the four others are not written.
 
 ## Not goals
 

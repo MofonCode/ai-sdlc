@@ -15,7 +15,7 @@
          Cycle.FrameworkVersion is deliberately NOT this. That constant is the artifact format
          stamped into every file's framework_version, and binding it here would restamp every
          artifact as a new format on a release that changed no format at all. -->
-    <VersionPrefix>0.27.0</VersionPrefix>
+    <VersionPrefix>0.28.0</VersionPrefix>
 
     <!-- MIT, declared once for the whole solution rather than per project, so a packable
          project added later cannot ship under a different licence by omission. LICENSE at
