@@ -41,7 +41,7 @@ an agent runs it, and it never decides a gate. `skills.md` lists the skills.
 | `sdlc verify-chain <id> --base <branch>` | binary | the pull-request check, and the only layer that cannot be bypassed. A plan alone gets the admission check |
 | `sdlc admission <id> --base <branch>` | binary | `true` when a pull request carries only a plan, so the pipeline skips the build and the tests |
 | **At any point** | | |
-| `sdlc status <id>` | binary | the panel for the document the cycle is waiting on, or its furthest one; the gate; and the literal next command |
+| `sdlc status <id>` | binary | the panel for the document the cycle is waiting on, or its furthest one; the gate; and the literal next command, a stage in it named as the host invokes one (`/sdlc:pr` inside Claude Code) |
 | `sdlc status <id> --brief` | binary | the same, between stages |
 | `sdlc status <id> --stage spec` | binary | one artifact's panel: intent, spec, plan or verify |
 | `sdlc findings <id>` | binary | what the interrogations said, each finding at the disposition that stands |

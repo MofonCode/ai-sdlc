@@ -688,6 +688,18 @@ public sealed class HookTests
         Assert.IsFalse(string.IsNullOrWhiteSpace(host.PreToolEvent), host.Name + " names no pre-tool event.");
         Assert.IsFalse(string.IsNullOrWhiteSpace(host.TimeoutKey), host.Name + " names no timeout key.");
 
+        // A stage's form is filled with the stage and its arguments, so a form with no place for them
+        // prints the same line for every stage. And a host the binary can recognise but not name a stage
+        // for would be detected for nothing, so the two come together or not at all.
+        if (host.StageInvocation is { } form)
+        {
+            StringAssert.Contains(form, "{0}", host.Name + "'s stage form has no place for the stage.");
+        }
+
+        Assert.IsFalse(
+            host.ShellMarker is not null && host.StageInvocation is null,
+            host.Name + " is recognised from its shell but has no stage form to print there.");
+
         foreach (string spelling in host.Spellings)
         {
             Assert.IsFalse(

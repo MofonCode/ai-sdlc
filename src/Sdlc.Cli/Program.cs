@@ -1299,11 +1299,12 @@ static async Task<int> Status(Workspace workspace, CommandLine line, CycleId id)
         : null;
 
     StagePanel panel = new(state, outline, shape);
+    SupportedHost? host = SupportedHosts.Running(Environment.GetEnvironmentVariable);
 
     await Console.Out
         .WriteAsync(line.HasOption("brief")
-            ? StatusRenderer.RenderBrief(status, panel)
-            : StatusRenderer.RenderStage(status, panel))
+            ? StatusRenderer.RenderBrief(status, panel, host)
+            : StatusRenderer.RenderStage(status, panel, host))
         .ConfigureAwait(false);
 
     return ExitCode.Ok;

@@ -1882,7 +1882,10 @@ Four rules:
    step of each stage is `sdlc status <id> --stage <artifact>`, shown verbatim.
 2. **It is not called verification.** `verify` is a phase name with a specific meaning; for an
    artifact the word is "checks".
-3. **It ends with the literal next command**, copy-pasteable.
+3. **It ends with the literal next command**, copy-pasteable, and a stage in it is named the way the
+   host it is printed in invokes one: `/sdlc:refine …` inside Claude Code, `sdlc refine …` where the
+   binary cannot tell, which the binary answers by naming the invocation (D-100). The binary's own
+   commands print as commands everywhere.
 4. **ASCII-safe glyphs and a no-colour mode**, because it renders in a pipeline log and in the default
    Windows console.
 
@@ -6841,3 +6844,33 @@ the cost of waiting. The method changes need no threshold: they are guidance for
   one.
 - *A rule that a control's proof includes a refusal.* It may already be `CON_06`'s question, a proof
   adequate to its criterion. The method change asks it first.
+
+### D-100 — The panel names a stage the way the host it is printed in invokes one
+
+**Governs:** §14
+
+**Decision.** The Next line prints a stage — a skill — in the host's own form when the binary can tell
+which host it runs in, and the host-neutral `sdlc <stage>` when it cannot. Each host's row carries both
+facts: how a stage is invoked, and the environment variable the host sets in its shells. Claude Code has
+both (`/sdlc:{0}`, `CLAUDECODE`); Copilot and Antigravity have neither, because a stage there is asked for
+in a sentence and has nothing to type. The binary's own commands — `verify-chain`, `status`,
+`draft approval`, `suggestions` — print as commands on every host.
+
+**Why.** cycle-02 ended on `Next  sdlc pr <id>`, and typing it was answered with "'pr' is a skill" and the
+`/sdlc:pr` the panel could have printed. That is one step for nothing at the end of every lap, on the line
+§14 calls the most-read output in the plugin. The neutral form was deliberate, and it is kept wherever it
+is the only honest one.
+
+**Why the environment and not a flag.** The call that needs it is the one every stage skill makes when it
+hands back. A `--host` flag is one more argument for every skill on every host to remember, and the one
+that forgets prints the wrong form while nothing fails. The marker is set in every shell Claude Code
+starts, the factory's headless runs included, and in no person's own terminal, where the neutral form and
+its refusal still apply.
+
+**Rejected.**
+
+- *`/sdlc:<stage>` always.* Wrong on two of the three hosts, and in a person's own terminal it names
+  something they cannot type there.
+- *Keeping `sdlc <stage>` everywhere.* Correct and host-neutral, and costs a refusal each time.
+- *Guessing a marker for Copilot or Antigravity.* Neither documents one; a guessed marker is a panel that
+  names one host's invocation to someone using another.

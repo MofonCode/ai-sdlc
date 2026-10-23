@@ -1,6 +1,7 @@
 using FluentResults;
 using Sdlc.Core.Artifacts;
 using Sdlc.Core.Cycles;
+using Sdlc.Core.Hooks;
 
 namespace Sdlc.Tests;
 
@@ -595,6 +596,68 @@ public sealed class StatusRendererTests
         StringAssert.Contains(panel, "the chain does not hold", panel);
         Assert.IsFalse(panel.Contains("verified clean", StringComparison.Ordinal), panel);
         Assert.IsTrue(panel.Split(Environment.NewLine).All(text => text.Length <= 92), panel);
+    }
+
+    [TestMethod]
+    public async Task Inside_claude_code_a_stage_is_named_the_way_a_person_invokes_it()
+    {
+        // cycle-02's panel said 'sdlc pr' at the end of the cycle, and typing it was answered with
+        // "'pr' is a skill" and the /sdlc:pr it should have said in the first place. D-100.
+        using CycleWorkspace workspace = Approved();
+        workspace.WriteVerify("pass");
+        workspace.WriteCleanRound(ArtifactKind.Verify);
+
+        ReadCycleStatus.Response status = await Read(workspace);
+        StagePanel panel = await Panel(status.PanelFor(null).Value);
+
+        string claude = StatusRenderer.RenderBrief(status, panel, SupportedHosts.Of(HookHost.Claude));
+        string copilot = StatusRenderer.RenderBrief(status, panel, SupportedHosts.Of(HookHost.Copilot));
+        string unknown = StatusRenderer.RenderBrief(status, panel);
+
+        StringAssert.Contains(claude, "/sdlc:pr 20260929_1456_32", claude);
+        Assert.IsFalse(claude.Contains("sdlc pr ", StringComparison.Ordinal), claude);
+
+        // A host where a stage is asked for in a sentence has nothing to type, so it keeps the neutral
+        // form, which the binary answers by naming the invocation -- as it does when no host is known.
+        StringAssert.Contains(copilot, "  sdlc pr 20260929_1456_32", copilot);
+        StringAssert.Contains(unknown, "  sdlc pr 20260929_1456_32", unknown);
+    }
+
+    [TestMethod]
+    public async Task Inside_claude_code_the_binarys_own_commands_are_still_printed_as_commands()
+    {
+        // Only a stage is a skill. verify-chain is typed at the binary on every host, and '/sdlc:verify-chain'
+        // would name a skill that does not exist.
+        using CycleWorkspace workspace = Approved();
+        workspace.WriteVerify("pass");
+        workspace.WriteCleanRound(ArtifactKind.Verify);
+
+        ReadCycleStatus.Response status = await Read(workspace);
+        status = status with
+        {
+            Chain = new Core.Chain.VerifyChain.Response(
+                status.Cycle,
+                [new Core.Chain.VerifyChain.ChainCheck("every named test passed", false, "proof 1: X did not run and pass.")]),
+        };
+
+        string panel = StatusRenderer.RenderBrief(
+            status,
+            await Panel(status.PanelFor(null).Value),
+            SupportedHosts.Of(HookHost.Claude));
+
+        StringAssert.Contains(panel, "  sdlc verify-chain 20260929_1456_32", panel);
+        Assert.IsFalse(panel.Contains("/sdlc:verify-chain", StringComparison.Ordinal), panel);
+    }
+
+    [TestMethod]
+    public void The_host_is_read_from_the_marker_it_sets_and_is_unknown_without_one()
+    {
+        Dictionary<string, string> claude = new(StringComparer.Ordinal) { ["CLAUDECODE"] = "1" };
+        Dictionary<string, string> empty = new(StringComparer.Ordinal) { ["CLAUDECODE"] = string.Empty };
+
+        Assert.AreEqual(HookHost.Claude, SupportedHosts.Running(name => claude.GetValueOrDefault(name))?.Host);
+        Assert.IsNull(SupportedHosts.Running(name => empty.GetValueOrDefault(name)));
+        Assert.IsNull(SupportedHosts.Running(_ => null));
     }
 
     [TestMethod]

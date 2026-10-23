@@ -3,6 +3,7 @@ using System.Text;
 using Sdlc.Core.Approvals;
 using Sdlc.Core.Artifacts;
 using Sdlc.Core.Findings;
+using Sdlc.Core.Hooks;
 
 namespace Sdlc.Core.Cycles;
 
@@ -49,8 +50,9 @@ public static class StatusRenderer
     /// </remarks>
     /// <param name="status">The cycle's state.</param>
     /// <param name="panel">The artifact the stage just finished, with its outline.</param>
+    /// <param name="host">The host this is printed inside, when it is known; it decides how a stage is named.</param>
     /// <returns>The rendered panel, ending in a newline.</returns>
-    public static string RenderBrief(ReadCycleStatus.Response status, StagePanel panel)
+    public static string RenderBrief(ReadCycleStatus.Response status, StagePanel panel, SupportedHost? host = null)
     {
         ArgumentNullException.ThrowIfNull(status);
         ArgumentNullException.ThrowIfNull(panel);
@@ -90,7 +92,7 @@ public static class StatusRenderer
             Field(output, "Loop", loop);
         }
 
-        Next(output, status, state);
+        Next(output, status, state, host);
 
         return output.ToString();
     }
@@ -118,8 +120,9 @@ public static class StatusRenderer
     /// </summary>
     /// <param name="status">The cycle's state.</param>
     /// <param name="panel">The artifact the stage just finished, with its outline.</param>
+    /// <param name="host">The host this is printed inside, when it is known; it decides how a stage is named.</param>
     /// <returns>The rendered panel, ending in a newline.</returns>
-    public static string RenderStage(ReadCycleStatus.Response status, StagePanel panel)
+    public static string RenderStage(ReadCycleStatus.Response status, StagePanel panel, SupportedHost? host = null)
     {
         ArgumentNullException.ThrowIfNull(status);
         ArgumentNullException.ThrowIfNull(panel);
@@ -157,7 +160,7 @@ public static class StatusRenderer
         Hashes(output, status);
         output.AppendLine();
 
-        Next(output, status, state);
+        Next(output, status, state, host);
 
         return output.ToString();
     }
@@ -307,15 +310,15 @@ public static class StatusRenderer
     /// verifying. And a pass says what the verifier concluded, not whether the chain still holds, so a
     /// pass whose chain fails points at <c>verify-chain</c> rather than at a pull request pr-ready refuses.
     /// </remarks>
-    private static (string Command, string Why) AfterTheGate(ReadCycleStatus.Response status, string id) =>
+    private static (string Command, string Why) AfterTheGate(ReadCycleStatus.Response status, string id, SupportedHost? host) =>
         status.Outcome switch
         {
             null when status.Built => (
-                string.Create(CultureInfo.InvariantCulture, $"sdlc verify {id}"),
+                Stage(host, string.Create(CultureInfo.InvariantCulture, $"verify {id}")),
                 "the build recorded its evidence"),
 
             null => (
-                string.Create(CultureInfo.InvariantCulture, $"sdlc build {id}"),
+                Stage(host, string.Create(CultureInfo.InvariantCulture, $"build {id}")),
                 "the gate is satisfied"),
 
             // The reason stays short enough for the column; verify-chain names the check that failed.
@@ -325,11 +328,11 @@ public static class StatusRenderer
                 "verified, but the chain does not hold"),
 
             string pass when pass.Equals("pass", StringComparison.OrdinalIgnoreCase) => (
-                string.Create(CultureInfo.InvariantCulture, $"sdlc pr {id}"),
+                Stage(host, string.Create(CultureInfo.InvariantCulture, $"pr {id}")),
                 "verified clean"),
 
             string blocked when blocked.Equals("blocked", StringComparison.OrdinalIgnoreCase) => (
-                string.Create(CultureInfo.InvariantCulture, $"sdlc remediate {id}"),
+                Stage(host, string.Create(CultureInfo.InvariantCulture, $"remediate {id}")),
                 "a criterion is not met"),
 
             string escalated when escalated.Equals("escalated", StringComparison.OrdinalIgnoreCase) => (
@@ -337,7 +340,7 @@ public static class StatusRenderer
                 "escalated - this one needs a person"),
 
             _ => (
-                string.Create(CultureInfo.InvariantCulture, $"sdlc verify {id}"),
+                Stage(host, string.Create(CultureInfo.InvariantCulture, $"verify {id}")),
                 string.Create(CultureInfo.InvariantCulture, $"the outcome reads '{status.Outcome}'")),
         };
 
@@ -398,7 +401,7 @@ public static class StatusRenderer
     /// This is the detail that makes the flow feel smooth rather than merely informative: a panel that
     /// reports a state and leaves a person to work out the command has stopped one step short.
     /// </remarks>
-    private static void Next(StringBuilder output, ReadCycleStatus.Response status, ReadCycleStatus.ArtifactState state)
+    private static void Next(StringBuilder output, ReadCycleStatus.Response status, ReadCycleStatus.ArtifactState state, SupportedHost? host)
     {
         string id = status.Cycle.Id.ToString();
         string name = Cycle.NameOf(state.Kind);
@@ -406,23 +409,23 @@ public static class StatusRenderer
 
         if (!state.Exists)
         {
-            next.Add((string.Create(CultureInfo.InvariantCulture, $"sdlc {name} {id}"), "write it"));
+            next.Add((Stage(host, string.Create(CultureInfo.InvariantCulture, $"{name} {id}")), "write it"));
         }
         else if (state.Rounds == 0)
         {
             next.Add((
-                string.Create(CultureInfo.InvariantCulture, $"sdlc interrogate {id} {name}"),
+                Stage(host, string.Create(CultureInfo.InvariantCulture, $"interrogate {id} {name}")),
                 "nothing has argued with it yet"));
         }
         else if (state.OpenBlockers.Count > 0)
         {
             next.Add((
-                string.Create(CultureInfo.InvariantCulture, $"sdlc refine {id} {name}"),
+                Stage(host, string.Create(CultureInfo.InvariantCulture, $"refine {id} {name}")),
                 string.Create(
                     CultureInfo.InvariantCulture,
                     $"apply {string.Join(", ", state.OpenBlockers.Select(f => f.Id))}")));
             next.Add((
-                string.Create(CultureInfo.InvariantCulture, $"sdlc interrogate {id} {name}"),
+                Stage(host, string.Create(CultureInfo.InvariantCulture, $"interrogate {id} {name}")),
                 "re-check after"));
         }
         else
@@ -432,12 +435,12 @@ public static class StatusRenderer
             if (waiting is not null && waiting.Kind != state.Kind)
             {
                 next.Add((
-                    string.Create(CultureInfo.InvariantCulture, $"sdlc {Cycle.NameOf(waiting.Kind)} {id}"),
+                    Stage(host, string.Create(CultureInfo.InvariantCulture, $"{Cycle.NameOf(waiting.Kind)} {id}")),
                     string.Create(CultureInfo.InvariantCulture, $"{Cycle.NameOf(waiting.Kind)} is next")));
             }
             else if (status.Gate.MayBuild)
             {
-                next.Add(AfterTheGate(status, id));
+                next.Add(AfterTheGate(status, id, host));
             }
             else
             {
@@ -456,6 +459,24 @@ public static class StatusRenderer
             first = false;
         }
     }
+
+    /// <summary>
+    /// A stage, named the way the host this is printed in invokes one.
+    /// </summary>
+    /// <remarks>
+    /// <strong>Only the stages, never a command.</strong> <c>sdlc verify-chain</c>, <c>sdlc status</c> and
+    /// <c>sdlc draft approval</c> are this binary's own and are typed as printed on every host. A stage is
+    /// a skill, so on Claude Code the copyable form is <c>/sdlc:pr</c>: printing <c>sdlc pr</c> there sent
+    /// a person to a refusal that names the invocation, one step for nothing at the end of every lap. Off
+    /// a known host it stays <c>sdlc &lt;stage&gt;</c>, which that same refusal answers. D-100.
+    /// </remarks>
+    /// <param name="host">The host, or null when the binary cannot tell.</param>
+    /// <param name="stageAndArguments">The stage's name and what follows it.</param>
+    /// <returns>What to print.</returns>
+    private static string Stage(SupportedHost? host, string stageAndArguments) =>
+        host?.StageInvocation is { } form
+            ? string.Format(CultureInfo.InvariantCulture, form, stageAndArguments)
+            : "sdlc " + stageAndArguments;
 
     private static string Count(int blockers) => blockers switch
     {

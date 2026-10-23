@@ -77,7 +77,8 @@ public enum HookEntryShape
 /// <strong>And what is not here yet.</strong> Where a host reads skills from, and what its
 /// non-interactive invocation is for the fresh reader <c>interrogate</c> needs. Both are real facts
 /// about a host and neither has a consumer in the binary today, so adding them now would be adding
-/// fields nothing reads -- which is the thing this change is paired with removing.
+/// fields nothing reads -- which is the thing this change is paired with removing. How a person invokes
+/// a stage did get a consumer, the status panel's Next line, and arrived with it (D-100).
 /// </para>
 /// </remarks>
 /// <param name="Host">Which host this describes.</param>
@@ -125,6 +126,16 @@ public enum HookEntryShape
 /// field again rather than an assumption.
 /// </para>
 /// </param>
+/// <param name="StageInvocation">
+/// How a person invokes a stage by name, as a format whose <c>{0}</c> is the stage and its arguments --
+/// or null where a stage is asked for in a sentence, because the host chooses a skill by matching the
+/// request against its description and has no name to type.
+/// </param>
+/// <param name="ShellMarker">
+/// The environment variable the host sets in every shell it runs, which is how the binary knows it was
+/// called from inside that host. Null where none is documented: a guessed marker is a panel that names
+/// one host's invocation to a person using another.
+/// </param>
 public sealed record SupportedHost(
     HookHost Host,
     string Name,
@@ -138,7 +149,9 @@ public sealed record SupportedHost(
     string? NeutralDecision,
     string PreToolEvent,
     string? TurnEndEvent,
-    string TimeoutKey)
+    string TimeoutKey,
+    string? StageInvocation,
+    string? ShellMarker)
 {
     /// <summary>What generated configuration passes to <c>--host</c>.</summary>
     public string Spelling => Spellings[0];
@@ -211,7 +224,12 @@ public static class SupportedHosts
             NeutralDecision: null,
             "PreToolUse",
             "Stop",
-            "timeout"),
+            "timeout",
+            StageInvocation: "/sdlc:{0}",
+
+            // Set to 1 in every shell Claude Code starts, interactive or not, so a skill's own call to
+            // `sdlc status` and the factory's headless run both see it. A person's own terminal does not.
+            ShellMarker: "CLAUDECODE"),
 
         new(
             HookHost.Copilot,
@@ -233,7 +251,11 @@ public static class SupportedHosts
             NeutralDecision: null,
             "preToolUse",
             "agentStop",
-            "timeoutSec"),
+            "timeoutSec",
+
+            // Asked for in prose: Copilot matches the request against each skill's description.
+            StageInvocation: null,
+            ShellMarker: null),
 
         new(
             HookHost.Antigravity,
@@ -278,7 +300,11 @@ public static class SupportedHosts
             // governed stop, so the moment is left ungoverned and `sdlc hook --event turn-end` refuses
             // it by name. The build is still gated at the pull request, which depends on no host.
             TurnEndEvent: null,
-            "timeout"),
+            "timeout",
+
+            // Asked for in prose, as on Copilot.
+            StageInvocation: null,
+            ShellMarker: null),
     ];
 
     /// <summary>Every host the framework supports.</summary>
@@ -310,4 +336,25 @@ public static class SupportedHosts
     /// </remarks>
     /// <returns>The canonical spellings, in table order.</returns>
     public static IReadOnlyList<string> Spellings() => [.. _all.Select(host => host.Spelling)];
+
+    /// <summary>
+    /// The host whose shell this process is running in, when one says so.
+    /// </summary>
+    /// <remarks>
+    /// Read from the environment rather than passed as a flag, because the call that needs it is the one
+    /// every stage skill makes at the end of a lap: a flag is one more argument eighteen skills have to
+    /// remember, on three hosts, and the one that forgets prints the wrong form without anything failing.
+    /// Null is the common case and a safe one -- the panel then names a stage the host-neutral way, which
+    /// the binary answers by naming the invocation.
+    /// </remarks>
+    /// <param name="environment">Reads one environment variable; null or empty when it is not set.</param>
+    /// <returns>The host, or null when no host's marker is set.</returns>
+    public static SupportedHost? Running(Func<string, string?> environment)
+    {
+        ArgumentNullException.ThrowIfNull(environment);
+
+        return Array.Find(
+            _all,
+            host => host.ShellMarker is { } marker && !string.IsNullOrEmpty(environment(marker)));
+    }
 }
