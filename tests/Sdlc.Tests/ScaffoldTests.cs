@@ -162,6 +162,37 @@ public sealed class ScaffoldTests
     }
 
     [TestMethod]
+    public void An_AppHost_arrives_as_a_project_rather_than_as_a_change_to_the_rules()
+    {
+        // D-98. PRO_04 asks a solution with more than one process for an AppHost, and the first one to
+        // meet that condition declined Aspire because adding it meant amending these tables. The rows
+        // waiting here are what keep the rule from charging every two-process cycle a rule change.
+        IReadOnlyList<KeyValuePair<string, string>> files = Scaffold.Files(Name);
+
+        string structure = files
+            .Single(file => file.Key.EndsWith("StructureTests.cs", StringComparison.Ordinal)).Value;
+
+        StringAssert.Contains(structure, "[\"AppHost\"] = [\"Api\", \"Web\"],");
+        StringAssert.Contains(structure, "[\"AppHost\"] = [\"Aspire.Hosting\"],");
+
+        string convention = files
+            .Single(file => file.Key.EndsWith("ConventionTests.cs", StringComparison.Ordinal)).Value;
+
+        StringAssert.Contains(
+            convention,
+            "Every_project_under_src_is_inspected_or_named_as_exempt",
+            "Without it a project missing from Assemblies is one the sealed and naming rules skip in "
+            + "silence, which is how one trial's component library broke the naming rule with the suite "
+            + "green.");
+
+        StringAssert.Contains(
+            convention,
+            "[\"AppHost\"] =",
+            "The AppHost's assembly holds Aspire's generated Projects types, which are not this "
+            + "solution's code, so it is exempt by name rather than failing the first cycle that adds it.");
+    }
+
+    [TestMethod]
     public void The_scaffold_ships_the_rules_that_hold_the_layout()
     {
         // The layout is only a convention until something fails on it, and D-38's whole argument is

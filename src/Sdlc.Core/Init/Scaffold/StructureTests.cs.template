@@ -41,6 +41,15 @@ public sealed class StructureTests
     /// occupants in two projects". That bar refuses a project with no inhabitant, which fills with
     /// whatever arrives. <c>Ui</c> has an inhabitant on its first day -- the components -- and what it
     /// lacks at first is a second <em>consumer</em>, which is a different objection and a smaller one.</para>
+    /// <para><strong><c>AppHost</c> is listed for the same reason, and it is what makes <c>PRO_04</c>
+    /// cheap to keep.</strong> The stack rule asks a solution with more than one process to start them
+    /// from an Aspire AppHost, so the cycle that adds a second process adds the AppHost too. With the row
+    /// waiting, that is a new project and nothing else; without it, the same cycle would have to amend
+    /// this file, which is a change to the rules it is judged by. The first solution to meet the
+    /// condition declined Aspire on exactly that cost. The AppHost references the hosts it starts and nothing a host references:
+    /// it orchestrates processes, so a reference to the application project would be a host reaching
+    /// for business logic it has no business running. A new host role joins this row in the change that
+    /// adds the role.</para>
     /// <para><c>Api</c> may name contracts as well as the application project, though it already has
     /// them transitively. Failing an explicit reference to a project that is reachable anyway would
     /// make this rule pedantic about something that harms nothing, and a pedantic rule is one somebody
@@ -63,6 +72,7 @@ public sealed class StructureTests
             ["Api"] = ["Application", "Contracts", "ServiceDefaults"],
             ["Ui"] = ["Contracts"],
             ["Web"] = ["Contracts", "Ui"],
+            ["AppHost"] = ["Api", "Web"],
         };
 
     /// <summary>
@@ -119,6 +129,17 @@ public sealed class StructureTests
             // lets a solution follow its own stack file. Another component library replaces this entry
             // rather than joining it: two is how a solution ends up with two ways to draw a button.
             ["Ui"] = ["MudBlazor", "Microsoft.AspNetCore.Components"],
+
+            // The orchestrator, waiting like Ui and Web until a cycle adds a second process. Prefixed
+            // because every backing service it starts is a hosting integration of its own --
+            // Aspire.Hosting.SqlServer, Aspire.Hosting.Redis -- and the first cycle that adds a database
+            // should not also be the cycle that amends this row. The AppHost SDK brings
+            // Aspire.Hosting.AppHost itself, so a project with no backing service references nothing here.
+            //
+            // When this row was written, Aspire 13.4.6 took MessagePack 2.5.302 transitively, which NuGet's audit flags, and the
+            // warnings-as-errors build refuses it. Pin a patched version in Directory.Packages.props;
+            // transitive pinning is on, so that line is the whole fix.
+            ["AppHost"] = ["Aspire.Hosting"],
         };
 
     /// <summary>
@@ -396,7 +417,7 @@ public sealed class StructureTests
     /// police.
     /// </remarks>
     /// <returns>The absolute paths.</returns>
-    private static IReadOnlyList<string> SourceProjects()
+    internal static IReadOnlyList<string> SourceProjects()
     {
         string root = RepoFiles.FindRepoRoot();
 
@@ -412,7 +433,7 @@ public sealed class StructureTests
     /// <summary>A project's role: its name with the solution's own name taken off the front.</summary>
     /// <param name="projectPath">The project file.</param>
     /// <returns>The role, which is the whole name when it carries no prefix.</returns>
-    private static string RoleOf(string projectPath) => Role(RepoFiles.ProjectName(projectPath));
+    internal static string RoleOf(string projectPath) => Role(RepoFiles.ProjectName(projectPath));
 
     /// <summary>The same, for a name that has already been read out of a reference.</summary>
     /// <param name="projectName">The project's name, without a path or an extension.</param>

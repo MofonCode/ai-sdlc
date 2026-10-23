@@ -69,7 +69,7 @@ public static class StackProfiles
     /// </summary>
     /// <remarks>
     /// The reasoning a plan needs that a row cannot hold: why the shared UI library's name is
-    /// load-bearing, why an AppHost is conditional, why liveness is the one row that binds. The rows
+    /// load-bearing, when an AppHost is required, how liveness and orchestration bind. The rows
     /// themselves live with the profile, which is what keeps two profiles from disagreeing about a choice
     /// they share.
     /// </remarks>
@@ -106,15 +106,20 @@ public static class StackProfiles
         string.Empty,
         "**The scan is the floor, not the proof.** It finds about half of what WCAG asks. Keyboard",
         "operation and where focus lands are Playwright tests of their own, and the `accessibility`",
-        "perspective is what asks for them. A hybrid host's WebView is not scanned: the components are the",
-        "same ones the web host renders, so they are scanned there.",
+        "perspective is what asks for them. So are a visible focus indicator, reflow at 320 CSS pixels",
+        "and the contrast of a graphic that carries meaning: the scan checks none of the three. A hybrid",
+        "host's WebView is not scanned: the components are the same ones the web host renders, so they",
+        "are scanned there.",
         string.Empty,
         "**Service Bus and SignalR are not alternatives.** Service Bus is asynchronous messaging between",
         "services; SignalR is server-to-client push.",
         string.Empty,
-        "**An Aspire AppHost is conditional.** More than one process, or one process plus a backing",
-        "service a developer would otherwise start by hand. A single executable with no backing services",
-        "does not get one.",
+        "**An Aspire AppHost is conditional, and `PRO_04` makes the condition bind.** More than one",
+        "process, or one process plus a backing service a developer would otherwise start by hand. A",
+        "single executable with no backing services does not get one. The architecture suite carries the",
+        "AppHost's rows from the first day, so the cycle that adds one adds a project and amends no rule.",
+        "An AppHost starts the processes and gives them one dashboard; it does not hand a standalone",
+        "WebAssembly page the api's address, which the page reads in the browser.",
         string.Empty,
         "**Observability is registered by `AddServiceDefaults`, which every host calls.** Tracing,",
         "metrics and the kernel's logging bridge are configured in one project so two hosts cannot",
@@ -146,8 +151,8 @@ public static class StackProfiles
         "who should not have one. A deployment that wants it public moves those lines out of the",
         "environment check and says so in a plan.",
         string.Empty,
-        "**Liveness is enforced rather than declared**, and it is the one row here that binds: the",
-        "scaffold maps `/health` and an architecture test fails the build if the route or its",
+        "**Liveness is enforced rather than declared**, by a test where orchestration is held by `PRO_04`:",
+        "the scaffold maps `/health` and an architecture test fails the build if the route or its",
         "registration is removed. A process with no liveness route is one an orchestrator cannot tell",
         "apart from a process that is up and broken, so it keeps sending traffic to it -- and that cost",
         "is paid at the worst moment by somebody who did not delete the line. It is deliberately not an",

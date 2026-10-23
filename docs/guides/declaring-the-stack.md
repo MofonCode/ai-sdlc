@@ -95,7 +95,7 @@ draft back.
 
 The draft is **the framework's default, whole**: every row the
 `dotnet-default` profile declares, and every stack rule the framework ships, each marked `true`. The
-framework ships three.
+framework ships four.
 
 It also lists the five build settings files, one row each — **`true` where the repository held no code
 before the framework, `false` where it did.** `Directory.Build.props` makes warnings errors, so on an
@@ -196,11 +196,20 @@ itself from naming one, because those rules bind solutions on any stack — whic
 some judgements cannot be made without a name. That gap is what this tier fills.
 
 **Each one already says when it applies.** One is about a criterion a browser decides, one about a plan
-that reaches for the kernel, one about a proof over stored data — so a rule left on in a solution that
-has no such thing never fires. Switching one off is for a solution that does have the thing and has
-decided not to be held to the rule.
+that reaches for the kernel, one about a proof over stored data, and one about a solution that runs more
+than one process — so a rule left on in a solution that has no such thing never fires. Switching one off
+is for a solution that does have the thing and has decided not to be held to the rule.
 
-**Three is the honest number rather than a thin one.** A constraint has to be a rule about an artifact
+**`PRO_04` is the one that was a default first.** The orchestration row asked for an Aspire AppHost
+wherever there is more than one process, and the first solution to meet that condition departed from it
+with a reason the gate accepted. The cost landed on everybody who ran the solution afterwards: two
+processes started by hand, in an order somebody had to know. Now a plan whose work runs more than one
+process starts them from an AppHost, or reaches one process instead. The scaffold's architecture suite
+carries the AppHost's rows from the first day, so adding one is adding a project. **What an AppHost does
+not do** is hand a standalone WebAssembly page the api's address. The page reads its settings in the
+browser, so that address stays in the page's own configuration.
+
+**Four is the honest number rather than a thin one.** A constraint has to be a rule about an artifact
 that needs reading comprehension to apply: no analyzer, schema or hook could decide it. Most candidates
 for a stack rule fail that test — a rule about code belongs in an analyzer, and a mechanical rule about a
 document belongs in a schema or a hook.

@@ -67,11 +67,13 @@ The file names inside them are the plan's to choose, so expect this shape rather
 | `src/DiceTrial.Api/Dice/RollEndpoints.cs` | `MapDice()` |
 | `src/DiceTrial.Ui/` | the Razor class library, and the only project MudBlazor may be referenced from: the die face drawn as pips, the panel holding the button, the face and the failure message, and the client the panel asks for a roll through |
 | `src/DiceTrial.Web/` | the Blazor WebAssembly host. It references `Ui` and `Contracts`, and holds no component of its own |
+| `src/DiceTrial.AppHost/` | the Aspire AppHost that starts the api and the page together, because there are now two processes |
 | `tests/DiceTrial.Tests/Dice/RollTests.cs` | the unit layer, where the three criteria about the roll itself are proved |
 | `tests/DiceTrial.Ui.Tests/` | the component layer, where the three criteria about the page are proved |
 
-Plus changes to three files the scaffold already wrote: `Services.cs` registers the handler, `Program.cs`
-maps the endpoint and admits the page's origin, and the solution file gains the three new projects.
+Plus changes to four files the scaffold already wrote: `Services.cs` registers the handler, `Program.cs`
+maps the endpoint and admits the page's origin, the solution file gains the four new projects, and the
+architecture tests' `ConventionTests.cs` reads the `Ui` assembly.
 
 ## Prerequisites
 
@@ -354,17 +356,20 @@ packages it may take — and matches them by role, so a library called `DiceTria
 nothing and fails asking for a row. Nothing in that suite changes in this cycle, which is the point of
 the rows having been there waiting.
 
-**Three things about the page the plan has to say, because nothing else will.** A plan silent on any of
-them still produces a build that compiles:
+**Four things about the page the plan has to say, because nothing else will.** A plan silent on the
+first two still produces a build that compiles, and the suite catches the other two:
 
 - **How the page reads the envelope.** The record that declares it lives in the api project, and no
   front end may reference that project — what the page references is what a browser downloads. So the
   page needs a read-side shape of its own, and the plan says where it lives.
 - **How the page reaches the api.** They are two origins: an address the page is configured with, and
   the api admitting that origin. Forget either and both halves run while the button fails.
-- **Whether it adds an Aspire AppHost.** The declared stack says Aspire where there is more than one
-  process, and there are now two to start. The plan either adds one or says under `Shape and departures`
-  what it would have cost here, which is what `CON_15` asks of a default left unapplied.
+- **The Aspire AppHost.** There are now two processes to start, and `PRO_04` asks for an AppHost that
+  starts them. The architecture tests already carry its rows, so it is one more project. Serving the page
+  from the api, as one process, would meet the rule too, and a plan may choose that instead.
+- **That the component library joins the convention tests.** They fail on a project under `src/` they
+  do not read, so the plan names `Ui` in `ConventionTests.cs`. A component is sealed in a code-behind
+  file, because the half generated from the markup does not say `sealed`.
 
 **It is the last document before you approve, so read it for proof adequacy.** Ask of each check: *what
 would have to be true for this to pass while the criterion is still unmet?* Three answers to watch for
@@ -386,9 +391,10 @@ test throws on a call nobody planned, which reads as a broken component rather t
 registration.
 
 The file table should name the shared files as **changed, not new**: `Services.cs` gains
-`.AddRollRequestHandler()`, `Program.cs` gains `app.MapDice()` and the page's origin, and the solution
-file gains three projects. A plan that forgets the first two produces a build that compiles and an
-endpoint nothing routes to; one that forgets the third produces projects `dotnet test` never builds.
+`.AddRollRequestHandler()`, `Program.cs` gains `app.MapDice()` and the page's origin, the solution
+file gains four projects, and `ConventionTests.cs` reads `Ui`. A plan that forgets the first two produces
+a build that compiles and an endpoint nothing routes to; one that forgets the third produces projects
+`dotnet test` never builds.
 
 **The plan is interrogated for you**, the same way. If it stops on a blocker, see
 [handling blockers](../guides/handling-blockers.md).
@@ -486,19 +492,14 @@ sdlc status <id> --brief
 ## 11. See it roll
 
 ```pwsh
-dotnet run --project src/DiceTrial.Api
+dotnet run --project src/DiceTrial.AppHost
 ```
 
-And in a second terminal, the page:
+It starts the api and the page, and prints a dashboard address with a sign-in link. Open the dashboard,
+follow the `web` resource's address, and press Roll. A die face of one to six pips, and a different one
+next time. The dashboard also shows the api's traces and logs for each roll.
 
-```pwsh
-dotnet run --project src/DiceTrial.Web
-```
-
-Open the address the second one prints and press Roll. A die face of one to six pips, and a different
-one next time. If the plan added an AppHost, that is the one project to run instead of these two.
-
-**Stop the api and press it again.** The page should tell you the roll failed, in words, and leave no
+**Stop the api from the dashboard and press Roll again.** The page should tell you the roll failed, in words, and leave no
 face standing as though it were the result. That is criterion 7 in front of you rather than in a test
 summary, and it is the one worth seeing once.
 

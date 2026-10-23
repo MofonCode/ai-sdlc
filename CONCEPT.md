@@ -274,7 +274,7 @@ separating "the part that is judged".
 | | `Fixed decisions` | `CON_01` routes decisions-already-taken here; `plan` cites them; `steer` writes here |
 | | `Must not change` | `CON_16`, which names it |
 | | `type` | the change classification; later artifacts read it |
-| `spec` | `Acceptance criteria` | `CON_03`, `CON_05`, `CON_06`, `CON_12`, `CON_16`, `CON_17`, and `verify` |
+| `spec` | `Acceptance criteria` | `CON_03`, `CON_05`, `CON_06`, `CON_12`, `CON_16`, `CON_17`, `CON_20`, and `verify` |
 | | `Out of scope` | `CON_05`, `CON_16`; a disposal destination (§5.4) |
 | `plan` | `Shape and departures` | `CON_15`, `CON_18`, `CON_19` |
 | | `Files` | the blast-radius signal and the claim graph; ordering reasoning lives here |
@@ -855,6 +855,7 @@ nobody.
 | `CON_17` | a spec says what somebody is told when the action fails | spec |
 | `CON_18` | a plan that changes a rule the cycle is judged by says what the rule would have cost | plan |
 | `CON_19` | a plan says why it departs from a decision the solution has recorded | plan |
+| `CON_20` | a spec says what is recorded when the action fails | spec |
 
 **Two ids are absent because they no longer bind**, and each is explained once below.
 
@@ -1383,8 +1384,8 @@ reader to notice.
 providers call into JavaScript, and bUnit's strict default throws on the first unplanned call — which
 reads as a broken component rather than a missing registration.
 
-**Liveness is the one row here that binds — D-54.** Every other row is a default a plan may depart from
-by saying why (`CON_15`); this one the scaffold writes and a fitness function keeps, because the cost of
+**Liveness is one of two rows here that bind — D-54.** Every other row but orchestration is a default a
+plan may depart from by saying why (`CON_15`); this one the scaffold writes and a fitness function keeps, because the cost of
 omitting it is paid in production by somebody who did not omit it. It is deliberately not an `ApiResult`
 endpoint: the caller is a load balancer, which has never heard of this solution's envelope.
 
@@ -1395,9 +1396,12 @@ with no OpenTelemetry registration collects no spans and exports none, so there 
 **Service Bus and SignalR are not alternatives.** Service Bus is asynchronous messaging between
 services; SignalR is server-to-client push.
 
-**An Aspire AppHost is conditional.** More than one process, or one process plus a backing service a
-developer would otherwise start by hand. A single executable with no backing services does not get
-one.
+**An Aspire AppHost is conditional, and `PRO_04` makes the condition bind — D-98.** More than one
+process, or one process plus a backing service a developer would otherwise start by hand. A single
+executable with no backing services does not get one. The scaffold's architecture suite carries the
+AppHost's rows from the first day, so the cycle that adds one adds a project and amends no rule. An
+AppHost starts the processes and gives them one dashboard; it does not hand a standalone WebAssembly
+page the api's address, which the page reads in the browser.
 
 **`dotnet test` needs two settings or it does not run the suite.** On the .NET 10 SDK it defaults to
 VSTest and Microsoft.Testing.Platform refuses that path, so the profile ships both:
@@ -1630,8 +1634,8 @@ profile actually wants enforced needs a fitness function beside it.
 a document, and so the profile tier resolved to nothing for every solution on every profile — while
 `draft profile` told a person that a different profile resolved a different set of rules, the component
 dictionary said the `profile` key decided which rules resolved, and the first-cycle guide listed the
-tier as though it had content. D-74 fills it: `dotnet-default` ships three rules, a profile's document is
-found by its name, and `ml-tensorflow` ships none deliberately. **D-76 changes what selects them**: not a
+tier as though it had content. D-74 fills it with three rules and D-98 adds `PRO_04`, so
+`dotnet-default` ships four rules; a profile's document is found by its name, and `ml-tensorflow` ships none deliberately. **D-76 changes what selects them**: not a
 profile a solution records, but the rows of its own declared stack, one a rule, each marked `true` or
 `false`. What makes the tier worth having is
 §7.2's stack-neutrality clause — a global constraint may not name a language, framework or package, so a
@@ -6741,3 +6745,99 @@ by keyboard — is a rule for the solution's own constraints, which `sdlc propos
   interview; that is a new cycle.
 - *Writing plan-stage suggestions into the plan as unapproved extra proof.* A plan proves the spec;
   what it would add goes under `Risk`, and its reader raises it for the person to decide.
+
+### D-98 — The AppHost condition binds as `PRO_04`, and the scaffold carries the AppHost's rows from the start
+
+**Governs:** §11.1, §11.3.1
+
+**Decision.** Three parts.
+
+1. **`PRO_04` on `dotnet-default`:** a plan whose work runs more than one process starts them from an
+   Aspire AppHost. A process is a host project, or a backing service a developer would otherwise start by
+   hand. Reaching one process, for instance by serving the page from the api, meets the rule as fully as
+   an AppHost does.
+2. **The scaffolded `StructureTests` carries an `AppHost` row in both tables**: it may reference the
+   hosts it starts, `Api` and `Web`, and take `Aspire.Hosting` packages by prefix. The row waits for its
+   project the way the `Ui` and `Web` rows do.
+3. **The scaffolded `ConventionTests` fails when a project under `src/` is neither read nor named as
+   exempt.** `ServiceDefaults` joins the assemblies it reads; `Contracts` and `AppHost` are exempt by name,
+   each with its reason.
+
+**Why.** The first solution to meet the condition, a die rolled from a standalone WebAssembly page and an
+api, departed from the orchestration default with a reason `CON_15` accepted. The reason was cost: an
+AppHost had no row in the architecture suite, so adding one was a change to the rules the cycle was
+judged by. It shipped two processes started by two commands and a README still asking somebody to say
+how to start the application. The traces `AddServiceDefaults` registers were exported nowhere, because
+nothing set the endpoint an AppHost sets for every process it starts. A default is the right mechanism
+when the cost of departing falls on the cycle that argues it. This cost fell on everybody who ran the
+solution afterwards, so the condition binds. The rows remove the cost the departure rested on, which is
+what keeps the rule from charging every two-process cycle a rule change. The convention guard came from
+the same solution: its component library was outside every convention rule, two of its fields broke the
+naming rule, and the suite was green.
+
+**Measured rather than reasoned.** An AppHost was added to a copy of that solution with Aspire 13.4.6.
+It built once a patched MessagePack was pinned, because the hosting package took a version NuGet's audit
+flags and warnings are errors. It started both processes from one command and showed both on its
+dashboard. With the two rows in place, every test passed with no other table edit. **It did not hand the
+page the api's address.** A standalone WebAssembly page reads its configuration in the browser, where an
+environment variable does not reach. The integration that does is `Aspire.Hosting.Blazor`, which is
+prerelease and carries a diagnostic the build would refuse. So the rule's `Why` claims one command, the
+dashboard and the exporter, and not service discovery.
+
+**Rejected.**
+
+- *A `LOC_` rule in each solution.* Every solution with two processes would rediscover the same rule
+  after paying for its absence once.
+- *Scaffolding an AppHost always.* D-55 and F-24 stand: a single-process solution would get a host it
+  does not need, and `Scaffold.Files` would become conditional.
+- *Leaving it a default.* The first solution to meet the condition is the outcome.
+- *D-55's rejection of "a `PRO_nn` on `dotnet-default`", read as covering this.* That was a rule about
+  an AppHost's container labels, which has nothing to judge until an AppHost exists. `PRO_04` judges the
+  plan, which always exists.
+- *Taking `Aspire.Hosting.Blazor` so the page gets the address.* A prerelease package with an unstable
+  API, in every solution with a page, to remove one line of configuration.
+- *Loading every `src/` assembly in `ConventionTests` automatically.* It needs every project referenced
+  from the test project anyway. And it would turn the AppHost's generated `Projects` types and every
+  Razor component's unsealed generated half into failures nobody chose. A guard that asks is the same
+  shape `Every_project_under_src_is_named_in_both_rules` already has.
+
+### D-99 — Operability earns `CON_20` on two cycles, and two perspectives' methods name what their readers kept finding
+
+**Governs:** §6.5, §7.5
+
+**Decision.** `CON_20` joins the global set: a spec says what is recorded when the action fails. The
+operability perspective lists it as the rule its reader may block on. The accessibility perspective's
+*Cover this*, *Questions* and *Evidence* name what an automated scan cannot decide: a visible focus
+indicator, reflow at 320 CSS pixels, 3:1 contrast for a graphic that carries meaning, forced colours,
+and focus on the failure path. The security perspective's name a control proven by what it refuses, and
+disclosure checked where an outsider reads it rather than in a component's markup.
+
+**Why.** Two trial solutions left 251 open suggestions between them. Grouped by the objection rather than
+by finding, the same few came back at three or four stages of each cycle. **Operability's was the
+strongest**: a failure that leaves nothing behind for whoever investigates it. The perspective's method
+already asked for a criterion and a test that reads the record, the author built the gap anyway, and the
+reader could only suggest. That is what a rule is for. `CON_17` covers the person told and says nothing
+about the record, so this is a new rule beside it. It is not a revision, because a revision may not change
+what is forbidden. **Accessibility's and security's were not missing rules**: the authors were never told
+to cover them. A perspective's *Cover this* is what an authoring stage reads, and it named the scan and
+keyboard focus and nothing the scan misses, so the reader found the rest every round.
+
+**Departing from the three-cycle threshold, stated.** How a perspective earns rules says the same
+objection across three cycles. This is two, and both built the same die, so part of the recurrence is
+the same problem solved twice. It was adopted on two because the method had already asked and been
+ignored. That is a different failure from a reader with an opinion, and a third cycle would only measure
+the cost of waiting. The method changes need no threshold: they are guidance for authors, not rules.
+
+**Rejected.**
+
+- *`CON_17.2`.* A revision cannot change what is forbidden (§7.4).
+- *Superseding `CON_17` with one rule covering both audiences.* Every blocking finding cites one rule. A
+  finding about the player's message and one about the record are different remedies, and one rule
+  covering both would make every citation ambiguous about which half failed.
+- *A `LOC_` rule in each solution*, as How a perspective earns rules says for a solution's own pattern.
+  Both solutions met it, and nothing about the objection depends on either one.
+- *A `PRO_` rule for what the scan cannot see, now.* It would have to name the scan engine, which makes it
+  stack-tier, and the method change is untested. A third cycle that still misses them is the evidence for
+  one.
+- *A rule that a control's proof includes a refusal.* It may already be `CON_06`'s question, a proof
+  adequate to its criterion. The method change asks it first.

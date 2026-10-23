@@ -22,7 +22,7 @@ solution's rules are the last word. **Constraints live in the framework and are 
 solution**, so this command is how they reach a session. Every stage skill runs it first, and one that
 did not is working from recollection.
 
-The middle tier is the one your declared stack decides: the framework ships three rules that have to
+The middle tier is the one your declared stack decides: the framework ships four rules that have to
 name a framework, and a solution is held to exactly the ones its stack file marks `true`. A stack that
 lists none has no such tier in this output. `declaring-the-stack.md` has why.
 

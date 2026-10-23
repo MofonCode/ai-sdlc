@@ -120,6 +120,17 @@ things. Only the same objection across three cycles is a rule worth proposing â€
 it is one of your solution's own constraints, with the perspective named in its evidence.
 `../guides/handling-blockers.md` covers suggestions and `propose constraints` in general.
 
+**A rule the framework adopts goes to the global set, and the perspective lists it.** Operability's
+first is `CON_20`: a spec says what is recorded when the action fails. Two trial solutions raised it at
+every stage as a suggestion, and both built the gap anyway. A rule never lives in a perspective's own
+document, which only names the rules its reader may block on: the three tiers are every place a rule
+can live.
+
+**A recurring suggestion is not always a missing rule.** It may be something the author was never told
+to cover. Accessibility's reader kept finding a missing visible focus indicator, missing reflow and
+missing non-text contrast, because the perspective's list for authors named the scan and keyboard focus
+and nothing the scan cannot see. That gap was closed in the perspective's method, not with a rule.
+
 ## Where to go next
 
 | | |

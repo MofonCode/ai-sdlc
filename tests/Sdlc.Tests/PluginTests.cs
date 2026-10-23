@@ -945,10 +945,10 @@ public sealed class PluginTests
         int constraints = parsed.Value.Count(constraint => constraint.IsInForce);
 
         Assert.AreEqual(18, skills, "The readme says eighteen skills.");
-        Assert.AreEqual(17, constraints, "The readme says seventeen global constraints.");
+        Assert.AreEqual(18, constraints, "The readme says eighteen global constraints.");
 
         StringAssert.Contains(readme, "eighteen skills");
-        StringAssert.Contains(readme, "seventeen global constraints");
+        StringAssert.Contains(readme, "eighteen global constraints");
     }
 
     [TestMethod]
@@ -978,7 +978,7 @@ public sealed class PluginTests
         int rules = parsed.Value.Count(rule => rule.IsInForce);
 
         Assert.AreEqual(
-            3,
+            4,
             rules,
             "The number every document below states. A deliberate addition updates it here and in each "
             + "of them, which is the point of asserting it rather than trusting it.");

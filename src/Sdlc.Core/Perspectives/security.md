@@ -44,6 +44,10 @@ answer to this, and the cheapest place to find a missing one is before code exis
 - the trust boundaries the change touches, and what validates each crossing
 - where a new secret is kept, and that it is not in source
 - which proof covers each abuse case the spec names
+- for each access control the change adds, a test that sends what it must refuse and reads the refusal:
+  a control proven only by the requests it admits still passes when it admits everything
+- for each criterion that something must not be disclosed, a check where an outsider reads it — the raw
+  response, and the host's own error surfaces — not only the markup a component renders
 
 ### build
 
@@ -76,6 +80,10 @@ answer to this, and the cheapest place to find a missing one is before code exis
   plan?
 - Where does each new secret live, and could it reach source control?
 - Does every abuse-case criterion have a proof that tries the abuse?
+- Is each access control proven by a request it refuses, or only by the requests it lets through — and
+  does any test supply the control's answer itself, so the control never runs?
+- Is "no internal detail" checked in the response a caller receives, or only in what a component renders
+  below the host?
 
 ### build
 
