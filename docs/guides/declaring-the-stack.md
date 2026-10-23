@@ -257,7 +257,7 @@ later run.
 
 `sdlc scaffold <id>` also writes the .NET solution skeleton — a solution file, six projects (four
 under `src/` and two test projects, one of them the architecture suite), a reference slice, and a
-`.gitignore` that keeps build and test output out of every commit — on a
+`.gitignore` that keeps build and test output, and what Visual Studio writes beside it, out of every commit — on a
 solution that held no code, **together with all five build settings**,
 whatever the rows say, because the skeleton does not compile without them.
 

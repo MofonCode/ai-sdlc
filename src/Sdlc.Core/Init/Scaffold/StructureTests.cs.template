@@ -136,9 +136,10 @@ public sealed class StructureTests
             // should not also be the cycle that amends this row. The AppHost SDK brings
             // Aspire.Hosting.AppHost itself, so a project with no backing service references nothing here.
             //
-            // When this row was written, Aspire 13.4.6 took MessagePack 2.5.302 transitively, which NuGet's audit flags, and the
-            // warnings-as-errors build refuses it. Pin a patched version in Directory.Packages.props;
-            // transitive pinning is on, so that line is the whole fix.
+            // Aspire 13.4.6 took MessagePack 2.5.302 transitively, which NuGet's audit flags and the
+            // warnings-as-errors build refuses; 13.6.3 takes 2.5.307 and needs no pin. If a later release
+            // brings a flagged one back, pin a patched version in Directory.Packages.props: transitive
+            // pinning is on, so that line is the whole fix.
             ["AppHost"] = ["Aspire.Hosting"],
         };
 
