@@ -86,6 +86,10 @@ Every entry carries `Governs` (the sections that state the rule), `Why`, and `Re
 for has usually already been weighed, and relitigating one is the waste the field exists to prevent. A
 test holds that shape, so these work on every entry rather than most of them.
 
+**An entry takes its number when it merges, not when it is drafted.** Two branches drafting at once
+will both reach for the next free id, and a test refuses an id used twice. Renumber the one merging
+second, and everything that cites it.
+
 ## Building and testing
 
 ```

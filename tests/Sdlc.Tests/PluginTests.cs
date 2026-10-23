@@ -719,6 +719,28 @@ public sealed class PluginTests
     }
 
     [TestMethod]
+    public void Every_decision_id_is_used_once()
+    {
+        // A commit, a code remark or a finding arrives at a decision by its id, so two entries under one
+        // id send that reader to whichever they happen to find first. A branch numbers its entries when it
+        // is cut, and another branch can spend the same numbers before it merges: the AppHost branch and
+        // development both wrote a D-96 and a D-97, and the merge would have kept all four without a word.
+        string concept = File.ReadAllText(Path.Combine(Root, "CONCEPT.md"));
+
+        List<string> reused = [.. Regex.Matches(concept, @"^### (D-\d+)", RegexOptions.Multiline)
+            .GroupBy(entry => entry.Groups[1].Value, StringComparer.Ordinal)
+            .Where(group => group.Count() > 1)
+            .Select(group => group.Key + " heads " + group.Count() + " entries")];
+
+        Assert.AreEqual(
+            0,
+            reused.Count,
+            "These decision ids are used more than once:\n  " + string.Join("\n  ", reused)
+            + "\n\nAn entry takes its number when it merges, not when it is drafted: renumber the "
+            + "later one, and every place that cites it.");
+    }
+
+    [TestMethod]
     public void The_concepts_constraint_table_matches_the_shipped_library()
     {
         // §7.5's table is where a reader copies a citation from, and §7.4 makes a bare id revision 1 --
