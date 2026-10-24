@@ -411,6 +411,87 @@ public sealed class StructureTests
             + "documented form; a pragma is the form nobody can audit.");
     }
 
+    /// <summary>
+    /// An AppHost runs in two launch profiles, <c>local</c> and <c>test</c>, and groups its containers.
+    /// </summary>
+    /// <remarks>
+    /// <para>The run modes are the framework's contract with an AppHost (its CONCEPT §10.2): <c>local</c>
+    /// keeps container names, host ports and volumes stable, so a URL can be bookmarked and data survives a
+    /// restart; <c>test</c> leaves Aspire's random suffixes and dynamic ports in place, so two runs side by
+    /// side -- a developer's and a test's, or two cycles building at once -- never collide. A profile is
+    /// what a person picks when they press run, so each one sets <c>SDLC_RUN_MODE</c> rather than leaving
+    /// the mode to a variable nobody sees. <c>batch-build</c> exports the same variable, which wins over
+    /// the profile.</para>
+    /// <para>The group is two labels on every container -- <c>com.docker.compose.project</c> and
+    /// <c>com.docker.compose.config-hash</c>, which Docker Desktop needs before it groups anything -- so
+    /// the solution's containers read as one row rather than as unrelated containers. Containers only: a
+    /// .NET project runs as a process, so there is nothing to label.</para>
+    /// <para>Passes with nothing to check until an AppHost exists, which is the cycle that adds one.</para>
+    /// </remarks>
+    [TestMethod]
+    public void An_apphost_runs_in_a_local_and_a_test_profile_and_groups_its_containers()
+    {
+        string? project = SourceProjects().SingleOrDefault(path => RoleOf(path) == "AppHost");
+
+        if (project is null)
+        {
+            return;
+        }
+
+        string directory = Path.GetDirectoryName(project)!;
+        string settings = Path.Combine(directory, "Properties", "launchSettings.json");
+
+        Assert.IsTrue(
+            File.Exists(settings),
+            "The AppHost has no Properties/launchSettings.json. Give it two profiles, 'local' and 'test', "
+            + "each setting SDLC_RUN_MODE to its own name.");
+
+        using var document = System.Text.Json.JsonDocument.Parse(File.ReadAllText(settings));
+        System.Text.Json.JsonElement profiles = document.RootElement.GetProperty("profiles");
+
+        foreach (string mode in new[] { "local", "test" })
+        {
+            Assert.IsTrue(
+                profiles.TryGetProperty(mode, out System.Text.Json.JsonElement profile),
+                $"The AppHost has no '{mode}' launch profile. 'local' keeps names, ports and volumes stable; "
+                + "'test' leaves Aspire's random suffixes and dynamic ports so two runs never collide.");
+
+            string? set = profile.TryGetProperty("environmentVariables", out System.Text.Json.JsonElement variables)
+                && variables.TryGetProperty("SDLC_RUN_MODE", out System.Text.Json.JsonElement value)
+                    ? value.GetString()
+                    : null;
+
+            Assert.AreEqual(
+                mode,
+                set,
+                $"The '{mode}' launch profile sets SDLC_RUN_MODE to '{set ?? "nothing"}'. Set it to '{mode}', "
+                + "which is what the AppHost reads to choose names, ports and lifetimes.");
+        }
+
+        string source = string.Concat(Directory
+            .EnumerateFiles(directory, "*.cs", SearchOption.AllDirectories)
+            .Where(path => !RepoFiles.IsBuildOutput(path))
+            .Select(File.ReadAllText));
+
+        string[] containers =
+        [
+            "AddContainer(", "AddRedis(", "AddSqlServer(", "AddPostgres(", "AddRabbitMQ(", "AddKafka(",
+            "AddMongoDB(", "AddAzurite(", "RunAsEmulator(", "AddDockerfile(",
+        ];
+
+        if (!containers.Any(call => source.Contains(call, StringComparison.Ordinal)))
+        {
+            return;
+        }
+
+        Assert.IsTrue(
+            source.Contains("com.docker.compose.project", StringComparison.Ordinal)
+                && source.Contains("com.docker.compose.config-hash", StringComparison.Ordinal),
+            "The AppHost starts containers and does not label them as one group. Give every container "
+            + "com.docker.compose.project -- the solution's name in 'local', the name and the run id in "
+            + "'test' -- and com.docker.compose.config-hash, without which Docker Desktop groups nothing.");
+    }
+
     /// <summary>Every project file under <c>src/</c>.</summary>
     /// <remarks>
     /// <c>src/</c> rather than every project, because the two tables above describe the solution's own

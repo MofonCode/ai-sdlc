@@ -1217,17 +1217,19 @@ completed — §19 item 5. This section claimed otherwise for a while.
 
 ### 10.2 Local run modes
 
-**Two variables, and the framework sets them without ever reading them.** `batch-build` exports
-`SDLC_RUN_MODE` — `local` or `batch` — and `SDLC_RUN_ID`, unique per cycle invocation rather than per
-batch, because the collision below is between two app hosts running at the same time and a id shared
-across a run would not separate them.
+**Two variables, and the framework sets them without ever reading them.** An AppHost carries two launch
+profiles, `local` and `test`, each setting `SDLC_RUN_MODE` to its own name, so the mode is what a person
+picks when they press run (D-102). `batch-build` exports `SDLC_RUN_MODE=test` and `SDLC_RUN_ID`, unique
+per cycle invocation rather than per batch, because the collision below is between two app hosts running
+at the same time and a id shared across a run would not separate them. The scaffold's architecture suite
+fails an AppHost missing either profile, and one that starts containers without grouping them.
 
 **A solution's AppHost reads them and implements this table. Nothing in the framework can.** An
 AppHost is conditional (§11.1) and arrives with the cycle that needs more than one process, so it is
 solution code the framework does not write — the same reason EF and a `Web` project stay out of the
 default profile (D-38). So this is a contract with the half the framework owns and a half it does not:
 
-| | `local` | `batch` |
+| | `local` | `test` |
 |---|---|---|
 | host ports | stable, so a URL can be bookmarked | dynamic |
 | container names | stable | `{app}-{SDLC_RUN_ID}` |
@@ -1246,7 +1248,8 @@ one collapsible row when they share `com.docker.compose.project`, which is what 
 services read as a solution rather than as six unrelated containers. The label alone does nothing:
 Desktop recognises the set as a project only when `com.docker.compose.config-hash` is present too,
 and its value is never read — `not-a-hash-at-all` registers. `com.docker.compose.service` is worth
-setting as well, or the rows fall back to container names. No compose file has to exist.
+setting as well, or the rows fall back to container names. No compose file has to exist. **The labels go on
+containers only**: a .NET project runs as a process, and there is no container to label.
 
 **The run id belongs on the group for the same reason it belongs on the volumes.** A group that
 stays the solution name under `batch` puts two concurrent app hosts in one row, so the developer
@@ -6885,6 +6888,38 @@ its refusal still apply.
 - *Keeping `sdlc <stage>` everywhere.* Correct and host-neutral, and costs a refusal each time.
 - *Guessing a marker for Copilot or Antigravity.* Neither documents one; a guessed marker is a panel that
   names one host's invocation to someone using another.
+
+### D-102 — An AppHost runs in a `local` and a `test` launch profile, and fake data comes from Bogus
+
+**Governs:** §10.2, §11
+
+**Decision.** The run modes of §10.2 are `local` and `test`; `batch` is gone. An AppHost carries a launch
+profile for each, setting `SDLC_RUN_MODE` to its own name, and `batch-build` exports `test`. The
+scaffold's architecture suite fails an AppHost missing either profile, and one that starts containers
+without `com.docker.compose.project` and `com.docker.compose.config-hash`. The .NET profile's
+orchestration row says so, and a new row declares Bogus, with a fixed seed, for fake data and seeding.
+
+**Why.** The person had asked for this repeatedly across MarketSense's earlier versions, which carried it:
+a stable `marketsense` group with pinned names and ports for a developer, and a `marketsense-mocked-<8
+hex>` group with Aspire's random suffixes for tests, so the two ran side by side. The framework had the
+contract in §10.2 and nothing that held it, keyed on a variable a person pressing run never sees, and the
+current MarketSense AppHost half-implemented it. The same person asked for Bogus in the first cycle and
+got hand-committed JSON, because no row said what fake data is made with.
+
+**Why `test` and not `batch`.** `batch` named the runner rather than the purpose. Tests run the AppHost
+outside a batch too, and they need exactly what a batch needs: names and ports that do not collide.
+
+**Why a test and not a stack rule.** A profile rule has to pass the library's second admission test, that
+no analyzer, schema or hook could decide it, and whether a launch settings file has two profiles is a
+question a test reads off disk. The orchestration row is what a plan departs from, under `CON_15`.
+
+**Rejected.**
+
+- *The environment variable alone.* What existed, and what nobody set when running from an IDE.
+- *Labelling every resource.* A .NET project runs as a process, so there is no container to carry a label.
+- *Scaffolding an AppHost into every solution.* An AppHost is conditional (§11.1, `PRO_04`); it arrives
+  with the cycle that needs it, and the test waits for it.
+- *A stack rule for the profiles.* See above.
 
 ### D-101 — The binary writes every findings round, and refuses one out of the chain's order
 

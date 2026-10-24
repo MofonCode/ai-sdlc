@@ -309,6 +309,13 @@ never change what a plan is judged against. What happens instead is that the new
 `/sdlc:init` on a solution already governed does this with you, and reads the repository to say which
 ones apply — whether there is a user interface for the axe row to matter to, for instance.
 
+**The .NET profile's orchestration row asks for more than it did**, and there is a row for fake data
+(D-102). Orchestration now reads *Aspire, where there is more than one process, in a `local` and a `test`
+launch profile, its containers grouped by label* — the scaffold's architecture suite holds an AppHost to
+both profiles and the labels. And *fake data and seeding* declares Bogus with a fixed seed. Neither reaches
+a stack placed earlier until you answer it: `sdlc stack` names the new row, and the orchestration row is
+yours to reword or leave.
+
 **A stack placed before 0.24.0 was told to delete what was not true.** The first time it is compared,
 every row it deleted is named, because a deleted row and an unasked one look the same. Answer each with
 `none` once and the list stays quiet after that.

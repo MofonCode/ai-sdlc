@@ -94,7 +94,7 @@ parent model; each builds green alone, and the second to merge is regenerated, n
 And export two variables into each cycle's worktree, before its build runs:
 
 ```sh
-SDLC_RUN_MODE=batch
+SDLC_RUN_MODE=test
 SDLC_RUN_ID=<eight hex characters, different for every cycle in the run>
 ```
 

@@ -1212,7 +1212,7 @@ What it runs, in order:
 1. `git fetch`, `sdlc cycles --queued` for the work, and `sdlc cycles --claims` for the plans that stand up
    services — read from the binary rather than worked out
 2. per cycle, a worktree and `sdlc branch <id> build-unattended`
-3. caps concurrency where a plan stands up a backing service, and exports `SDLC_RUN_MODE=batch` and a
+3. caps concurrency where a plan stands up a backing service, and exports `SDLC_RUN_MODE=test` and a
    fresh `SDLC_RUN_ID` into each cycle's worktree
 4. per cycle, the build stage then the verify stage, remediating while it makes progress
 5. with `--pr`, `pr <id>` or `pr <id> --draft` for each
