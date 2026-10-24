@@ -397,9 +397,10 @@ last document before a person approves.
 
 #### Output
 
-`plan.md`: `Shape and departures`, a `Files` table, numbered `Proof` entries each naming its test in
-backticks, `Risk`, and `## Open`. The pull-request check reads those test names out and confirms each one
-ran and passed.
+`plan.md`: `Shape and departures`, opening with **Decisions this plan makes:** one line per choice — the
+list `sdlc draft approval` prints at the rename — then a `Files` table, numbered `Proof` entries each naming
+its test in backticks, `Risk`, and `## Open`. The pull-request check reads those test names out and
+confirms each one ran and passed.
 
 #### Refusals
 

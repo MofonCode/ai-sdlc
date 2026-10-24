@@ -18,6 +18,44 @@ namespace Sdlc.Tests;
 public sealed class ApprovalTextTests
 {
     [TestMethod]
+    public void The_decisions_a_plan_lists_are_read_from_the_head_of_its_shape()
+    {
+        string plan = """
+            ---
+            tier: local
+            ---
+
+            # The approach
+
+            ## Shape and departures
+
+            Decisions this plan makes:
+
+            - Host the api and the stand-in under one Aspire AppHost.
+            - Draw the chart with Lightweight Charts rather than by hand,
+              through one interop module.
+
+            Why this approach: it is the declared default.
+
+            ## Files
+            """;
+
+        CollectionAssert.AreEqual(
+            new[]
+            {
+                "Host the api and the stand-in under one Aspire AppHost.",
+                "Draw the chart with Lightweight Charts rather than by hand, through one interop module.",
+            },
+            ApprovalText.PlanDecisions(plan).ToArray());
+    }
+
+    [TestMethod]
+    public void A_plan_listing_no_decisions_lists_none()
+    {
+        Assert.AreEqual(0, ApprovalText.PlanDecisions("## Shape and departures\n\nThe approach.\n").Count);
+    }
+
+    [TestMethod]
     public async Task The_printed_entry_parses_as_the_approval_it_claims_to_be()
     {
         using CycleWorkspace workspace = Ready();

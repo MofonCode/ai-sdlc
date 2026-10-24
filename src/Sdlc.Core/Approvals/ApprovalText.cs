@@ -60,6 +60,59 @@ public static class ApprovalText
     public sealed record Query(CycleId Id, string By, GateDecision Decision = GateDecision.Approved)
         : IRequest<Response>;
 
+    /// <summary>The label a plan's list of the choices it makes opens with.</summary>
+    public const string DecisionsLabel = "Decisions this plan makes:";
+
+    /// <summary>
+    /// The choices a plan lists at the head of <c>Shape and departures</c>, one line each.
+    /// </summary>
+    /// <remarks>
+    /// Both of MarketSense's reopens were a decision the person found in the plan only after approving
+    /// it -- Aspire left out, the chart tables drawn by hand -- because the plan was a hundred kilobytes
+    /// and the choice was a clause in it. The list is what the approval draft puts in front of them, so
+    /// the choices are read before the rename rather than discovered after it.
+    /// </remarks>
+    /// <param name="plan">The plan.</param>
+    /// <returns>The listed choices, or an empty list when the plan lists none.</returns>
+    public static IReadOnlyList<string> PlanDecisions(string plan)
+    {
+        ArgumentNullException.ThrowIfNull(plan);
+
+        if (!ArtifactSections.Read(plan).TryGetValue("Shape and departures", out IReadOnlyList<string>? lines))
+        {
+            return [];
+        }
+
+        List<string> decisions = [];
+        bool inList = false;
+
+        foreach (string line in lines)
+        {
+            string trimmed = line.Trim();
+
+            if (!inList)
+            {
+                inList = string.Equals(trimmed, DecisionsLabel, StringComparison.OrdinalIgnoreCase);
+                continue;
+            }
+
+            if (trimmed.StartsWith("- ", StringComparison.Ordinal))
+            {
+                decisions.Add(trimmed[2..].Trim());
+            }
+            else if (trimmed.Length > 0 && decisions.Count > 0 && line.StartsWith("  ", StringComparison.Ordinal))
+            {
+                decisions[^1] += " " + trimmed;
+            }
+            else if (trimmed.Length > 0 || decisions.Count > 0)
+            {
+                break;
+            }
+        }
+
+        return decisions;
+    }
+
     /// <summary>
     /// Prints an approval entry. Writes nothing.
     /// </summary>
@@ -155,16 +208,21 @@ public static class ApprovalText
 
             string draftPath = status.Cycle.ApprovalDraftPath(ApprovalLedger.NameOf(request.Decision));
 
+            IReadOnlyList<string>? decisions = request.Decision == GateDecision.Approved
+                ? PlanDecisions(await File.ReadAllTextAsync(status.Cycle.PathOf(ArtifactKind.Plan), cancellationToken).ConfigureAwait(false))
+                : null;
+
             return Result.Ok(new Response(
                 status,
                 entry,
                 file.Value.Text,
                 draftPath,
                 file.Value.CarriesForward,
-                Instructions(status, request.Decision, draftPath, file.Value),
+                Instructions(status, request.Decision, draftPath, file.Value, decisions),
                 MayApprove: true,
                 request.Decision));
         }
+
 
         /// <summary>A complete ledger file, and how much history it reproduces.</summary>
         /// <param name="Text">The file's whole contents.</param>
@@ -419,14 +477,27 @@ public static class ApprovalText
             ReadCycleStatus.Response status,
             GateDecision decision,
             string draftPath,
-            LedgerFile file)
+            LedgerFile file,
+            IReadOnlyList<string>? decisions)
         {
             string draft = FromRoot(status.Cycle, draftPath);
             string target = FromRoot(status.Cycle, status.Cycle.ApprovalPath);
             string ledger = Path.GetFileName(status.Cycle.ApprovalPath);
             bool overwriting = file.CarriesForward > 0 || file.Replacing;
 
-            List<string> lines =
+            List<string> lines = [];
+
+            if (decisions is not null)
+            {
+                lines.Add(decisions.Count == 0
+                    ? "The plan lists no decisions it makes. Read its 'Shape and departures' before you rename: that is where a choice you did not ask for would be."
+                    : string.Create(CultureInfo.InvariantCulture, $"This approves the {decisions.Count} decision{(decisions.Count == 1 ? string.Empty : "s")} the plan says it makes. Read them before you rename:"));
+
+                lines.AddRange(decisions.Select(made => "  - " + made));
+                lines.Add(string.Empty);
+            }
+
+            lines.AddRange(
             [
                 string.Create(
                     CultureInfo.InvariantCulture,
@@ -438,7 +509,7 @@ public static class ApprovalText
                 overwriting
                     ? string.Create(CultureInfo.InvariantCulture, $"    Move-Item -Force {draft} {target}")
                     : string.Create(CultureInfo.InvariantCulture, $"    Move-Item {draft} {target}"),
-            ];
+            ]);
 
             if (file.CarriesForward > 0)
             {

@@ -125,6 +125,14 @@ later is governed work too: the template's own comment on the `Files` section, b
 **"In work that calls for it" still bounds the other two rows.** A solution that declares a message bus
 it has not built yet is not a finding against a plan for a static page.
 
+## List the decisions first
+
+`Shape and departures` opens with **Decisions this plan makes:** and one line per choice. The person
+approving reads that list at the rename — `sdlc draft approval` prints it — and in one real cycle both
+reopens were a choice found in the plan only after it was approved: the hosting left out, and the chart
+tables drawn by hand, each a clause in a hundred-kilobyte document. If a person would be surprised to learn
+it after the build, it belongs on the list.
+
 ## Two kinds of claim, and only one is judged
 
 | Section | Kind | Judged by |
@@ -273,6 +281,14 @@ tier: local
 # <the approach, in one line>
 
 ## Shape and departures
+
+Decisions this plan makes:
+
+- <one line per choice a person approving this would want to know before the build: the approach,
+  each package or library it reaches for, how the processes are hosted, what it builds by hand that a
+  declared library would draw, each departure from techstack.md or decisions.md. Plain words, no
+  section references. 'sdlc draft approval' prints this list at the rename, so a choice left out of it
+  is one the person approves without reading.>
 
 <which approach, and why this one. Any departure from techstack.md, with what the
 declared default would have cost here.

@@ -147,7 +147,9 @@ sdlc draft approval 20260929_1456_32
 
 It writes the complete file — not a fragment — to
 `.sdlc/cycles/<id>/approval.approved.draft.md`, and prints it with the rename that records it, written
-to be typed from the repository root:
+to be typed from the repository root. Above the rename it lists **the decisions the plan says it makes**
+— the approach, the libraries, the hosting, anything built by hand — so a choice you did not ask for is in
+front of you before you approve rather than found after the build:
 
 ```pwsh
 Move-Item .sdlc/cycles/20260929_1456_32/approval.approved.draft.md .sdlc/cycles/20260929_1456_32/approval.md
