@@ -687,8 +687,10 @@ public static class Templates
     /// <c>sdlc verify-chain</c>: two implementations of the guarantee would eventually disagree, and the
     /// one a person reads would not be the one that blocks the merge.
     /// <para>
-    /// Coverage is collected and displayed and never thresholded. A threshold gets met by testing what is
-    /// easy to test.
+    /// Coverage is collected and displayed here and thresholded nowhere here. The floor lives in
+    /// <c>sdlc verify-chain</c> (D-103), which reads the coverage the cycle's build recorded: the changed
+    /// lines against a fixed floor and the whole codebase against its baseline, so the pipeline and the
+    /// local check cannot disagree about what was enough.
     /// </para>
     /// <para>
     /// The Azure DevOps template carries a note saying it has never been run against a real server, and

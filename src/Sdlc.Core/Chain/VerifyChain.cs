@@ -190,6 +190,7 @@ public static class VerifyChain
             await Proven(cycle, checks, cancellationToken).ConfigureAwait(false);
             await Adjudicated(cycle, checks, cancellationToken).ConfigureAwait(false);
             await EvidenceRead(cycle, checks, cancellationToken).ConfigureAwait(false);
+            await Covered(cycle, checks, cancellationToken).ConfigureAwait(false);
             await AfterReopen(cycle, checks, cancellationToken).ConfigureAwait(false);
             await Outcome(cycle, checks, cancellationToken).ConfigureAwait(false);
 
@@ -233,6 +234,61 @@ public static class VerifyChain
                     string.Equals(judged, now, StringComparison.Ordinal)
                         ? string.Create(CultureInfo.InvariantCulture, $"verify round {latest.Round} read evidence {ContentHash.Abbreviate(judged)}, which is what is recorded")
                         : string.Create(CultureInfo.InvariantCulture, $"verify round {latest.Round} read evidence {ContentHash.Abbreviate(judged)}, and what is recorded now is {ContentHash.Abbreviate(now ?? "nothing")}. Interrogate the verify again against this run.")));
+        }
+
+        /// <summary>
+        /// The changed lines are covered, and the whole codebase is no less covered than it was (D-103).
+        /// </summary>
+        /// <remarks>
+        /// Two checks, because each catches what the other cannot. The changed-line floor is what a cycle
+        /// answers for, and it lets an adopted solution that starts at a low rate merge cycles and climb; a
+        /// whole-codebase floor would refuse every cycle until somebody paid down a backlog no cycle made.
+        /// The baseline catches what changed lines cannot see: a deleted or weakened test uncovers code the
+        /// cycle never touched. Read from the evidence, which the binary computed -- a number here cannot
+        /// be overclaimed.
+        /// </remarks>
+        private static async Task Covered(
+            Cycle cycle,
+            List<ChainCheck> checks,
+            CancellationToken cancellationToken)
+        {
+            string path = Path.Combine(cycle.EvidenceDirectory, Coverage.SummaryFileName);
+
+            if (!File.Exists(path))
+            {
+                checks.Add(new ChainCheck(
+                    "the changed lines are covered",
+                    false,
+                    "no coverage was recorded. Run the tests with '--coverage --coverage-output-format cobertura' and record it: sdlc evidence <id> --tests <dir> --coverage <dir>."));
+                return;
+            }
+
+            CoverageSummary? summary = Coverage.ReadSummary(
+                await File.ReadAllTextAsync(path, cancellationToken).ConfigureAwait(false));
+
+            if (summary is null)
+            {
+                checks.Add(new ChainCheck("the changed lines are covered", false, string.Create(CultureInfo.InvariantCulture, $"{path} cannot be read. Record the evidence again.")));
+                return;
+            }
+
+            checks.Add(new ChainCheck(
+                "the changed lines are covered",
+                summary.ChangedMeetsFloor,
+                summary.ChangedRate is not { } changed
+                    ? "the change added no coverable line"
+                    : string.Create(
+                        CultureInfo.InvariantCulture,
+                        $"{changed:P1} of the changed lines ran under a test ({summary.ChangedCovered} of {summary.ChangedCoverable}), against a floor of {CoverageSummary.ChangedFloor:P0}{(summary.ChangedMeetsFloor ? string.Empty : ". Add the tests that run them, or, for code no test should run, exclude it in the solution's coverage settings and say why in the plan")}")));
+
+            checks.Add(new ChainCheck(
+                "the codebase is no less covered than it was",
+                summary.HeldTheBaseline,
+                summary.Baseline is not { } baseline
+                    ? string.Create(CultureInfo.InvariantCulture, $"{summary.Rate:P1}, the first measurement, which sets the baseline")
+                    : string.Create(
+                        CultureInfo.InvariantCulture,
+                        $"{summary.Rate:P1} against a baseline of {baseline:P1}{(summary.HeldTheBaseline ? string.Empty : ". Something stopped running code it ran before -- a test deleted or weakened, or code moved out of reach of one")}")));
         }
 
         /// <summary>

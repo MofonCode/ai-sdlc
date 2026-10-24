@@ -83,8 +83,8 @@ counts as neither.
 
 ```
 dotnet build
-dotnet test
-sdlc evidence <id> --tests <results> --build-log <log>
+dotnet test --coverage --coverage-output-format cobertura --results-directory TestResults
+sdlc evidence <id> --tests TestResults --build-log <log> --coverage TestResults
 ```
 
 Commit on the cycle's branch. The next verification reads the new evidence, so evidence left in your

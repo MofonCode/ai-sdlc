@@ -334,8 +334,16 @@ you were just told.
 **Next:** `sdlc verify-chain <id>`, which prints every check — passing and failing both, because a reader
 looking at a failed check needs to know what held. The checks are: the cycle exists, no shape problems,
 the chain is complete, the approval, the gate is satisfied, every criterion has a proof, every named test
-passed, every criterion is adjudicated, the verify was judged against this evidence, the verdict follows
-the approval that stands (only after a reopen), the change was verified.
+passed, every criterion is adjudicated, the verify was judged against this evidence, the changed lines are
+covered, the codebase is no less covered than it was, the verdict follows the approval that stands (only
+after a reopen), the change was verified.
+
+**The two coverage checks are arithmetic** (D-103). At least 70% of the lines the change adds ran under a
+test, and the whole codebase's rate is no lower than the baseline recorded at the base commit in
+`.sdlc/coverage.json`. The first catches a change that arrived untested; the second catches a deleted or
+weakened test uncovering code nobody changed. **Next:** add the tests that run the uncovered lines, build,
+and record again with `--coverage`. Code no test should run is excluded in the solution's coverage
+settings, declared in the plan with its reason.
 
 **The two about evidence and reopening are the stale-verdict checks.** Evidence is recorded again after
 each remediation, and a verify round records which run it read, so a verdict judged on the run before

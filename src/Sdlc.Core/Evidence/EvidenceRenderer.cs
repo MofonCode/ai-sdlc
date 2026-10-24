@@ -73,6 +73,19 @@ public static class EvidenceRenderer
                 }
             }
         }
+
+        if (report.Coverage is { } coverage)
+        {
+            output.AppendLine();
+            output.AppendLine(coverage.ChangedRate is { } changed
+                ? string.Create(
+                    CultureInfo.InvariantCulture,
+                    $"{Indent}Coverage  changed lines {changed:P1} ({coverage.ChangedCovered} of {coverage.ChangedCoverable}), floor {CoverageSummary.ChangedFloor:P0}{(coverage.ChangedMeetsFloor ? string.Empty : " -- below it")}")
+                : string.Create(CultureInfo.InvariantCulture, $"{Indent}Coverage  the change added no coverable line"));
+            output.AppendLine(string.Create(
+                CultureInfo.InvariantCulture,
+                $"{Indent}          whole codebase {coverage.Rate:P1}, {(coverage.Baseline is { } baseline ? string.Create(CultureInfo.InvariantCulture, $"baseline {baseline:P1}{(coverage.HeldTheBaseline ? " -- carried forward" : " -- fell, so the baseline stays where it was")}") : "the first measurement, which sets the baseline")}"));
+        }
         else
         {
             output.AppendLine(Indent + "Tests     none recorded yet");

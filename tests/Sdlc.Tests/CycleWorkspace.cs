@@ -196,6 +196,23 @@ internal sealed class CycleWorkspace : IDisposable
                 tests)));
     }
 
+    /// <summary>
+    /// Writes the coverage evidence a build records (D-103): by default, every changed line covered and the
+    /// baseline held.
+    /// </summary>
+    /// <param name="changedCoverable">Coverable lines the change added.</param>
+    /// <param name="changedCovered">Of those, the ones a test ran.</param>
+    /// <param name="rate">The whole codebase's rate, as covered lines per thousand.</param>
+    /// <param name="baseline">The baseline at the base commit, or null for the first measurement.</param>
+    public void WriteCoverage(int changedCoverable = 10, int changedCovered = 10, int rate = 800, double? baseline = 0.8)
+    {
+        Directory.CreateDirectory(Cycle.EvidenceDirectory);
+
+        WriteRaw(
+            Path.Combine(Cycle.EvidenceDirectory, Sdlc.Core.Evidence.Coverage.SummaryFileName),
+            Sdlc.Core.Evidence.Coverage.Write(new Sdlc.Core.Evidence.CoverageSummary(changedCoverable, changedCovered, 1000, rate, baseline)));
+    }
+
     /// <summary>Writes a verify document with a given outcome.</summary>
     /// <param name="outcome">pass, blocked or escalated.</param>
     /// <param name="outcome">The outcome value, written raw so a test can quote it.</param>

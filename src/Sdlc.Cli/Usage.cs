@@ -114,8 +114,8 @@ internal static class Usage
                                      recorded and the prose through unchanged, so the rename
                                      cannot reclassify the solution or cost anybody what they
                                      wrote. --standard changes that one key, and says so.
-            evidence <id>            Record what a build produced: the diff, its base commit, and a
-                                     normalised test summary. Verify reads only this.
+            evidence <id>            Record what a build produced: the diff, its base commit, a
+                                     normalised test summary and the coverage. Verify reads only this.
             cycles                   List every cycle this solution holds, newest first: what each
                                      is about, where it stands, and what it is owed.
             status <id>              Show the panel for a stage. Ends with the next command.
@@ -231,6 +231,10 @@ internal static class Usage
                                      test project writes its own, and a summary built from one of
                                      them is a verification reading part of the suite.
             --build-log <path>       A build log to keep alongside.
+            --coverage <path>        The run's cobertura report, or the directory holding every one
+                                     it wrote. Measures the changed lines and the whole codebase,
+                                     against the baseline at the base commit, and carries the
+                                     baseline forward when it held.
 
         Options for cycles
             --stage <artifact>       Only cycles whose furthest document is this one.

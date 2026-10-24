@@ -459,9 +459,10 @@ static async Task<int> Evidence(Workspace workspace, CommandLine line, CycleId i
 {
     line.TryOption("tests", out string? trx);
     line.TryOption("build-log", out string? log);
+    line.TryOption("coverage", out string? coverage);
 
     Result<RecordEvidence.Response> result = await workspace
-        .Send<RecordEvidence.Command, RecordEvidence.Response>(new RecordEvidence.Command(id, trx, log))
+        .Send<RecordEvidence.Command, RecordEvidence.Response>(new RecordEvidence.Command(id, trx, log, coverage))
         .ConfigureAwait(false);
 
     if (result.IsFailed)

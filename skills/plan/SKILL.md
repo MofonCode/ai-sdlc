@@ -125,6 +125,15 @@ later is governed work too: the template's own comment on the `Files` section, b
 **"In work that calls for it" still bounds the other two rows.** A solution that declares a message bus
 it has not built yet is not a finding against a plan for a static page.
 
+## Plan for coverage
+
+The merge refuses a change where fewer than 70% of the added lines run under a test, or where the whole
+codebase ends up less covered than it was (D-103). So `Proof` is not only one test per criterion: the
+code the change adds has to be reached by tests too, and a plan whose proof touches the criteria and
+leaves the new code behind them unrun is one the build cannot finish. Code no test should run is excluded
+in the solution's coverage settings; if this change needs a new exclusion, declare the settings file in
+`Files` and say in `Shape and departures` why that code should not run under a test.
+
 ## List the decisions first
 
 `Shape and departures` opens with **Decisions this plan makes:** and one line per choice. The person

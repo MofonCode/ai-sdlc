@@ -27,13 +27,16 @@ public static class RecordEvidence
     /// <param name="Summary">The normalised test summary, when there was one to write.</param>
     /// <param name="Changed">The paths the diff touched.</param>
     /// <param name="Comparison">Declared against changed, which is a signal rather than a gate.</param>
+    /// <param name="TestSources">The results files read.</param>
+    /// <param name="Coverage">What the run's coverage said, when a report was given (D-103).</param>
     public sealed record Response(
         Cycle Cycle,
         IReadOnlyList<string> Written,
         TestSummary? Summary,
         IReadOnlyList<string> Changed,
         FileComparison Comparison,
-        IReadOnlyList<string> TestSources);
+        IReadOnlyList<string> TestSources,
+        CoverageSummary? Coverage = null);
 
     /// <summary>The normalised test summary every later reader uses.</summary>
     public const string SummaryFileName = "tests.json";
@@ -66,7 +69,10 @@ public static class RecordEvidence
     /// file a run produced. Null when there are none yet.
     /// </param>
     /// <param name="BuildLog">A build log to keep alongside, or null.</param>
-    public sealed record Command(CycleId Id, string? Trx = null, string? BuildLog = null)
+    /// <param name="Coverage">
+    /// A cobertura report, or a directory holding every one a run wrote. Null when there is none.
+    /// </param>
+    public sealed record Command(CycleId Id, string? Trx = null, string? BuildLog = null, string? Coverage = null)
         : IRequest<Response>;
 
     /// <summary>
@@ -219,11 +225,92 @@ public static class RecordEvidence
                     cancellationToken).ConfigureAwait(false);
             }
 
+            CoverageSummary? coverage = null;
+
+            if (request.Coverage is { } reports)
+            {
+                Result<CoverageSummary> measured = await Measure(cycle, reports, baseCommit, diff, written, cancellationToken)
+                    .ConfigureAwait(false);
+
+                if (measured.IsFailed)
+                {
+                    return measured.ToResult<Response>();
+                }
+
+                coverage = measured.Value;
+            }
+
             FileComparison comparison = DeclaredFiles.Compare(
                 DeclaredFiles.Read(await File.ReadAllTextAsync(plan, cancellationToken).ConfigureAwait(false)),
                 changed);
 
-            return Result.Ok(new Response(cycle, written, summary, changed, comparison, sources));
+            return Result.Ok(new Response(cycle, written, summary, changed, comparison, sources, coverage));
+        }
+
+        /// <summary>
+        /// Reads the run's coverage, measures the change and the whole codebase, and carries the baseline.
+        /// </summary>
+        /// <remarks>
+        /// <para>The baseline is read <strong>at the base commit</strong>, never from the working tree: a cycle
+        /// could otherwise lower the bar it is about to be measured against, and the file lives under
+        /// <c>.sdlc/</c>, which the recorded patch leaves out. The new rate is written back only when it holds
+        /// the baseline, so the bar only rises.</para>
+        /// <para>Two cycles built at once both move the file, and the second to merge conflicts on it -- which
+        /// is right: its rate was measured without the first one's code. <c>resolve-conflict</c> records
+        /// the evidence again.</para>
+        /// </remarks>
+        private async Task<Result<CoverageSummary>> Measure(
+            Cycle cycle,
+            string reports,
+            string baseCommit,
+            string diff,
+            List<string> written,
+            CancellationToken cancellationToken)
+        {
+            List<string> found = File.Exists(reports)
+                ? [reports]
+                : Directory.Exists(reports)
+                    ? [.. Directory.EnumerateFiles(reports, "*.cobertura.xml", SearchOption.AllDirectories).Order(StringComparer.Ordinal)]
+                    : [];
+
+            if (found.Count == 0)
+            {
+                return Result.Fail<CoverageSummary>(string.Create(
+                    CultureInfo.InvariantCulture,
+                    $"{reports}: no cobertura report there. Run the tests with '--coverage --coverage-output-format cobertura' and point --coverage at the file, or at the directory holding every *.cobertura.xml the run wrote."));
+            }
+
+            List<(string Text, string Source)> texts = [];
+
+            foreach (string report in found)
+            {
+                texts.Add((await File.ReadAllTextAsync(report, cancellationToken).ConfigureAwait(false), report));
+            }
+
+            Result<IReadOnlyDictionary<string, IReadOnlyDictionary<int, int>>> lines = Evidence.Coverage.Read(texts, solution.Path);
+
+            if (lines.IsFailed)
+            {
+                return lines.ToResult<CoverageSummary>();
+            }
+
+            string baselinePath = Path.Combine(Cycle.SdlcDirectoryName, Evidence.Coverage.BaselineFileName).Replace('\\', '/');
+            double? baseline = Evidence.Coverage.ReadBaseline(repository.ReadAt(solution.Path, baseCommit, baselinePath));
+
+            CoverageSummary measured = Evidence.Coverage.Summarise(lines.Value, diff, baseline);
+
+            await Write(cycle, Evidence.Coverage.SummaryFileName, Evidence.Coverage.Write(measured), written, cancellationToken)
+                .ConfigureAwait(false);
+
+            if (measured.HeldTheBaseline)
+            {
+                await File.WriteAllTextAsync(
+                    Path.Combine(solution.Path, Cycle.SdlcDirectoryName, Evidence.Coverage.BaselineFileName),
+                    Evidence.Coverage.WriteBaseline(measured.Rate),
+                    cancellationToken).ConfigureAwait(false);
+            }
+
+            return Result.Ok(measured);
         }
 
         /// <summary>

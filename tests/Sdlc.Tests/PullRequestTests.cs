@@ -281,6 +281,7 @@ public sealed class PullRequestTests
         workspace.WritePlan(proofs: 1);
         workspace.WriteVerify(outcome: "pass");
         workspace.WriteTestSummary(proofs: 1);
+        workspace.WriteCoverage();
 
         foreach (ArtifactKind kind in Cycle.PlanningDocuments)
         {

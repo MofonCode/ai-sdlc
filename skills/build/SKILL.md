@@ -123,11 +123,18 @@ first, which means `sdlc draft approval <id> --reopen` and a re-approval.
 
 ```
 dotnet build
-dotnet test
+dotnet test --coverage --coverage-output-format cobertura --results-directory TestResults
 ```
 
 Warnings are errors here, enforced by `Directory.Build.props` rather than by instruction. A build that
 warns is a build that failed.
+
+**Coverage is measured, and the merge holds it** (D-103): at least 70% of the lines this change adds must
+run under a test, and the whole codebase must be no less covered than at the base commit. The plan's
+proof is what gets you there; if the count comes up short, add the tests that run the uncovered lines
+rather than recording and hoping. Code no test should run — orchestration wiring, generated code — is
+excluded in the solution's coverage settings, and excluding something new is a change to a rule the plan
+has to declare and justify.
 
 **Check that the suite actually ran.** This is not paranoia: a trial cycle lost its whole verification
 to `dotnet test` exiting zero without running anything, because the runner was not configured. If the
@@ -162,8 +169,11 @@ every declared file had changed.
 ## Record the evidence
 
 ```
-sdlc evidence <id> --tests <directory holding the results files> --build-log <path to the build log>
+sdlc evidence <id> --tests TestResults --build-log <path to the build log> --coverage TestResults
 ```
+
+It also prints the coverage of the changed lines and of the whole codebase, and carries the solution's
+baseline in `.sdlc/coverage.json` forward when it held — commit that file with the evidence.
 
 This writes the diff, the commit it is measured from, every results file the run produced, and one
 normalised test summary merged from all of them. **Verify reads only these files.** A verdict derived

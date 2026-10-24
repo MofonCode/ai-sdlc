@@ -372,6 +372,7 @@ public sealed class VerifyChainTests
         workspace.WritePlan(proofs: 3);
         workspace.WriteVerify(outcome: "pass");
         workspace.WriteTestSummary(proofs: 3);
+        workspace.WriteCoverage();
 
         foreach (ArtifactKind kind in Cycle.PlanningDocuments)
         {

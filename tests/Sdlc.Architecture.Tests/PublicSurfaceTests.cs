@@ -61,6 +61,8 @@ public sealed class PublicSurfaceTests
         "Sdlc.Core.Findings.ReadFindings",
         "Sdlc.Core.Findings.ReadFindings+Query",
         "Sdlc.Core.Findings.ReadFindings+Response",
+        "Sdlc.Core.Evidence.Coverage",
+        "Sdlc.Core.Evidence.CoverageSummary",
         "Sdlc.Core.Findings.RecordRound",
         "Sdlc.Core.Findings.RecordRound+Command",
         "Sdlc.Core.Findings.RecordRound+Response",

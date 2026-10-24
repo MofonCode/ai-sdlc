@@ -71,8 +71,12 @@ code now is — the earlier verify adjudicated code that no longer exists, so it
 
 ```
 git rm .sdlc/cycles/<id>/verify.md
-sdlc evidence <id> --tests <results directory> --build-log <path>
+sdlc evidence <id> --tests TestResults --build-log <path> --coverage TestResults
 ```
+
+Run the tests with `--coverage --coverage-output-format cobertura --results-directory TestResults`, as the
+build stage does. **A conflict on `.sdlc/coverage.json` is expected** when another cycle merged first:
+take the integration branch's side, and recording the evidence writes the new value over it.
 
 Commit the evidence, then run the **verify stage** — in a fresh process, as it always runs. It may come back
 `blocked`; that is the verify working, and `remediate` is the next step, on this branch.

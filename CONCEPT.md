@@ -329,8 +329,14 @@ A plan holds a file table, never diffs. Line-level change is the build artifact 
 ### 4.5 Evidence
 
 `build` records what happened as files rather than prose: the diff, the build log, a test summary,
-and the base commit. `verify` reads those and nothing else, so its verdict cites test names and diff
-lines rather than recollection. Where the evidence does not reach, `verify` says so.
+the base commit and the coverage. `verify` reads those and nothing else, so its verdict cites test names
+and diff lines rather than recollection. Where the evidence does not reach, `verify` says so.
+
+**Coverage is measured by the binary and held at the merge** (D-103). `sdlc evidence --coverage` reads the
+run's cobertura reports and records two numbers: the share of the lines the change adds that ran under a
+test, and the whole codebase's rate against the baseline in `.sdlc/coverage.json` as it stood at the base
+commit. `verify-chain` refuses a change under 70% on its added lines, or one that leaves the codebase less
+covered than it was. The baseline is carried forward by each build that held it, so it only rises.
 
 **Evidence is normalised at the boundary** (D-13). `build` writes both what the toolchain produced
 and one framework-defined summary — test name and outcome — and `verify` reads only the summary.
@@ -6888,6 +6894,47 @@ its refusal still apply.
 - *Keeping `sdlc <stage>` everywhere.* Correct and host-neutral, and costs a refusal each time.
 - *Guessing a marker for Copilot or Antigravity.* Neither documents one; a guessed marker is a panel that
   names one host's invocation to someone using another.
+
+### D-103 — The changed lines are 70% covered and the codebase holds its baseline, decided by the binary
+
+**Governs:** §4.5, §13
+
+**Decision.** `sdlc evidence --coverage <report|dir>` reads cobertura, leaves out build output, and records
+`evidence/coverage.json`: the coverable lines the change adds and how many ran, the whole codebase's lines
+and how many ran, and the baseline read from `.sdlc/coverage.json` **at the base commit**. When the rate
+holds the baseline it writes the new rate back to that file, which the cycle commits. `verify-chain` adds
+two checks: at least 70% of the changed coverable lines ran, and the whole codebase's rate is no lower than
+the baseline. A change adding no coverable line, and a first measurement with no baseline, both hold.
+Code no test should run is excluded in the solution's coverage settings, which is a file holding a rule,
+so a plan adding an exclusion declares it and says why (`CON_18`).
+
+**Why.** The person wanted coverage considered during the build: planned for, and enough of it. Their shape
+was induction — coverage established when the pipeline is, and every later cycle covering what it changes —
+and that shape works for an adopted solution too, where a whole-codebase floor would refuse every cycle
+until somebody paid down a backlog no cycle made. Induction has one hole: a deleted or weakened test
+uncovers code nobody changed, which a changed-lines check cannot see. The baseline closes it.
+
+**Why the binary.** Whether a changed line ran is arithmetic over a report and a patch, so §2.3 puts it here,
+and a number computed here cannot be overclaimed — the defect behind every verify blocker in MarketSense's
+first cycle.
+
+**Why the baseline is a file read at the base commit.** The person chose a committed baseline over re-running
+the suite at the base, which doubles the test time. Reading it from the working tree would let a cycle lower
+the bar it is measured against, and the file sits under `.sdlc/`, which the recorded patch leaves out.
+
+**Why build output is left out.** A scaffolded api's OpenAPI source generator writes 384 lines under `obj/`
+that no test reaches — three quarters of the skeleton's measured lines, putting it at 14% when the code a
+person wrote was at 54%.
+
+**Rejected.**
+
+- *A whole-codebase floor.* Refuses an adopted solution's every cycle; see above.
+- *A threshold in the pipeline.* What `Templates.Pipeline` refused before, rightly: two gates disagree, and a
+  pipeline threshold is met by testing what is easy. One check, in `verify-chain`, run by the pipeline.
+- *Re-running the tests at the base commit.* The person's call: it doubles every build's test time.
+- *A constraint.* Fails the library's second admission test — a binary decides it.
+- *coverlet.* Its standard collector runs under VSTest, and this framework runs on Microsoft.Testing.Platform,
+  whose own coverage extension is already in every MSTest project and writes cobertura.
 
 ### D-102 — An AppHost runs in a `local` and a `test` launch profile, and fake data comes from Bogus
 
