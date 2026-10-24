@@ -1,0 +1,84 @@
+using FluentResults;
+using FluentValidation;
+using Microsoft.Extensions.DependencyInjection;
+using MofonCode.Core;
+using __SOLUTION__.Contracts.Greetings;
+
+namespace __SOLUTION__.Application.Greetings;
+
+/// <summary>
+/// Greets somebody by name. The reference slice: delete it once there is real work here.
+/// </summary>
+/// <remarks>
+/// <para><strong>This exists to be copied.</strong> An agent takes the shape of the code beside it far
+/// more reliably than it follows an instruction, so the shape every operation in this solution should
+/// have is written out once, here, in the smallest operation that can demonstrate it.</para>
+///
+/// <para>What to copy:</para>
+/// <list type="bullet">
+/// <item>One static holder per operation, named for the operation. A caller writes
+/// <c>new Greet.Query("Ada")</c> and gets back a <c>GreetResponse</c>.</item>
+/// <item><c>Query</c> when it reads, <c>Command</c> when it writes, so the call site says which
+/// without anyone opening the handler.</item>
+/// <item>The request nests in the holder. <strong>The response does not</strong> — it lives in the
+/// contracts project, because it is the shape that crosses the wire and the front end has to be able
+/// to reference it without referencing this project. The mirrored folder is how the pair stays
+/// findable: <c>Greetings/Greet.cs</c> here, <c>Greetings/GreetResponse.cs</c> there.</item>
+/// <item>The handler is <c>private</c>. Nothing in the program can name it, so the mediator is the
+/// only way in and no caller can skip the pipeline — which is also why the registration lives in here:
+/// a registration written anywhere else could not name a private type.</item>
+/// <item>A failure is a <c>Result</c>, never an exception. <c>ToEnvelope</c> is what shapes one for
+/// anything outside the process.</item>
+/// </list>
+///
+/// <para><strong>Everything this project reaches is private or internal except the request and the
+/// registration.</strong> A <c>DbContext</c> added here is <c>internal</c>, and so is every wrapper
+/// around a third-party SDK — which is what makes the commands and queries in this project the only
+/// way anything reads or writes. An architecture test keeps the packages that make that possible in
+/// this project alone. D-38 records why that is an access modifier rather than an interface.</para>
+///
+/// <para><strong>Where a rule goes.</strong> An input rule belongs in the validator: it can be decided
+/// from the request alone, and the behaviour runs it before the handler for every operation that has
+/// one. A rule that has to look something up belongs in the handler, because it needs what the handler
+/// has. Putting an input rule in the handler works and costs the thing the validator gives for free —
+/// every failure reported at once rather than the first.</para>
+/// </remarks>
+public static class Greet
+{
+    /// <summary>Registers this operation's handler and its validator.</summary>
+    /// <param name="services">The collection to add to.</param>
+    /// <returns>The same collection, for chaining.</returns>
+    public static IServiceCollection AddGreetRequestHandler(this IServiceCollection services)
+    {
+        ArgumentNullException.ThrowIfNull(services);
+
+        return services
+            .AddTransient<IValidator<Query>, Validator>()
+            .AddTransient<IRequestHandler<Query, GreetResponse>, Handler>();
+    }
+
+    /// <summary>Asks for a greeting.</summary>
+    /// <param name="Name">Who to greet.</param>
+    public sealed record Query(string Name) : IRequest<GreetResponse>;
+
+    private sealed class Validator : AbstractValidator<Query>
+    {
+        public Validator() =>
+            RuleFor(query => query.Name)
+                .NotEmpty()
+                .WithMessage("A greeting needs a name.");
+    }
+
+    private sealed class Handler : IRequestHandler<Query, GreetResponse>
+    {
+        public Task<Result<GreetResponse>> Handle(Query request, CancellationToken cancellationToken)
+        {
+            ArgumentNullException.ThrowIfNull(request);
+
+            // No guard for a blank name: the validator owns that, and the behaviour has already run by
+            // the time this is reached. A handler that re-checked it would be a second place the rule
+            // lives, and the copy is always the one that goes stale.
+            return Task.FromResult(Result.Ok(new GreetResponse($"Hello, {request.Name.Trim()}.")));
+        }
+    }
+}

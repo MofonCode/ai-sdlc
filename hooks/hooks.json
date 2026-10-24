@@ -1,0 +1,29 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit|NotebookEdit|Bash|PowerShell",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "sdlc hook --host claude",
+            "timeout": 10,
+            "statusMessage": "Asking the gate..."
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "sdlc hook --host claude --event turn-end",
+            "timeout": 10,
+            "statusMessage": "Checking the build is green..."
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,9 @@
+# What the image build may read. Build output and local state stay out, so the binary is packed from
+# source alone and a working copy's leftovers never reach the image.
+**/bin/
+**/obj/
+**/TestResults/
+.git/
+.vs/
+.vscode/
+*.user

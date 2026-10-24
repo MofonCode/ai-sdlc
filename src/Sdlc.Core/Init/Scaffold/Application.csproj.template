@@ -1,0 +1,49 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <!-- The kernel: a mediator, Result handlers, tracing, and the one shape allowed across a
+         boundary. MIT, on nuget.org, and it depends on nothing but FluentResults and the
+         Microsoft.Extensions abstractions - so taking it decides no data story for this solution.
+         Pinned in Directory.Packages.props, because it is pre-1.0 and every consumer inherits its
+         breaking changes. -->
+    <PackageReference Include="MofonCode.Core" />
+
+    <!-- Validation, run as a pipeline behaviour rather than called from a handler. The kernel does not
+         depend on this - it decides no validation story for a consumer - so the dependency lives here,
+         with the behaviour that uses it. -->
+    <PackageReference Include="FluentValidation" />
+
+    <!-- This is where EF, a database provider and any vendor SDK goes, and the only project that may
+         have them: an architecture test asserts no other one does. The DbContext those packages are
+         for is `internal`, so the commands and queries here are the only thing in the solution that
+         can read or write. D-38 records why that is an access modifier rather than a repository
+         interface, and the short version is that an interface is a convention and `internal` is
+         decided by the compiler.
+
+         Nothing is listed yet. The default profile ships no EF, because taking it would decide a data
+         story for every solution this scaffolds - so it arrives with the first cycle that needs it,
+         and that cycle is also the one that has to say what it tests against. -->
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- The wire shapes. This is the only project reference here, and the direction matters: contracts
+         knows nothing about this project, so a front end can reference the shapes it renders without
+         dragging the data access and every vendor SDK into a browser bundle. -->
+    <ProjectReference Include="..\__SOLUTION__.Contracts\__SOLUTION__.Contracts.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- The suite reaches the operations through the mediator like a host does, so nothing here needs
+         to be public for a test to read it.
+
+         It is also the one deliberate hole in the boundary above, and it is load-bearing rather than a
+         convenience: a test seeds state through the internal DbContext directly, which is what lets
+         the arrangement of a test be narrower than the code under test. Building state by dispatching
+         commands couples a test's premise to the thing it is testing, so a bug makes the setup and the
+         assertion wrong in the same direction and the test passes. -->
+    <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleTo">
+      <_Parameter1>__SOLUTION__.Tests</_Parameter1>
+    </AssemblyAttribute>
+  </ItemGroup>
+
+</Project>

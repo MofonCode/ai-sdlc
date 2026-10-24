@@ -1,0 +1,181 @@
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
+using MofonCode.Core;
+using Sdlc.Core.Approvals;
+using Sdlc.Core.Chain;
+using Sdlc.Core.Constraints;
+using Sdlc.Core.Cycles;
+using Sdlc.Core.Diagnostics;
+using Sdlc.Core.Drafts;
+using Sdlc.Core.Evidence;
+using Sdlc.Core.Factory;
+using Sdlc.Core.Findings;
+using Sdlc.Core.Git;
+using Sdlc.Core.Leads;
+using Sdlc.Core.Operate;
+using Sdlc.Core.Perspectives;
+using Sdlc.Core.Hooks;
+using Sdlc.Core.Init;
+using Sdlc.Core.Decisions;
+using Sdlc.Core.PullRequests;
+using Sdlc.Core.Themes;
+using Sdlc.Core.Proposals;
+using Sdlc.Core.Solutions;
+
+namespace Sdlc.Core;
+
+/// <summary>Registers the gate's requests and their handlers.</summary>
+public static class SdlcServices
+{
+    /// <summary>
+    /// Adds the mediator and every handler the gate dispatches to.
+    /// </summary>
+    /// <remarks>
+    /// <para><strong>Every handler is registered by type, and nothing is captured in a closure.</strong>
+    /// That is a deliberate property rather than a style, and it took a <see cref="SolutionRoot"/>
+    /// to get: while the root was a bare <c>string</c> parameter, fourteen of these had to be
+    /// factories closing over it, and two of those also closed over <see cref="TimeProvider"/> --
+    /// which meant no caller could substitute a clock through the container at all.</para>
+    ///
+    /// <para>What by-type registration buys: a handler can be <c>private</c> inside its operation's
+    /// holder, because the registration names the type from inside that holder, where it is the only
+    /// thing that can see it. A factory written out here could not.</para>
+    ///
+    /// <para>It also means a test substitutes a dependency the way the application composes one --
+    /// register the fake and dispatch -- so the test proves the wiring as well as the handler.
+    /// Constructing a handler directly proves only the second.</para>
+    /// </remarks>
+    /// <param name="services">The collection to add to.</param>
+    /// <param name="libraryPath">
+    /// The framework's own <c>CONSTRAINTS.md</c>, when a file supplies it. Null means the copy the
+    /// binary carries, which is the normal case for an installed tool. D-41.
+    /// </param>
+    /// <param name="solutionRoot">The root of the solution being worked on.</param>
+    /// <returns>The same collection, for chaining.</returns>
+    public static IServiceCollection AddSdlc(
+        this IServiceCollection services,
+        string? libraryPath,
+        string solutionRoot)
+    {
+        ArgumentNullException.ThrowIfNull(services);
+        ArgumentException.ThrowIfNullOrWhiteSpace(solutionRoot);
+
+        services.AddSingleton<Mediator>();
+
+        // The two things every handler resolves rather than receives. TryAdd on both, so a host or a
+        // test that registered its own -- a fixed clock, a scratch directory -- keeps it.
+        services.TryAddSingleton(new SolutionRoot(solutionRoot));
+        services.TryAddSingleton(TimeProvider.System);
+        services.TryAddSingleton<IRepository, GitRepository>();
+
+        // Work trackers, read through the platforms' own CLIs so the binary never holds a token (D-89).
+        services.TryAddSingleton<ITracker, CliTracker>();
+
+        // Operate's store and the tracker it files into, both through the platforms' CLIs (D-89).
+        services.TryAddSingleton<ITelemetry, AppInsightsTelemetry>();
+        services.TryAddSingleton<IWorkFiler, CliWorkFiler>();
+
+        // Still a factory, and the one that should be: the library is a property of the framework's
+        // installation rather than of the solution, so it is not a value a handler resolves. TryAdd
+        // like the rest, so a caller holding documents of its own -- a test with a stub, a host
+        // reading them from somewhere else -- keeps them and this never touches the disk.
+        services.TryAddSingleton<IConstraintDocuments>(
+            _ => new FileConstraintDocuments(libraryPath, solutionRoot));
+
+        services.AddEffectiveConstraintsRequestHandler();
+
+        services.AddApprovalGateRequestHandler();
+
+        services.AddReadCycleStatusRequestHandler();
+
+        services.AddReadFindingsRequestHandler();
+
+        services.AddListCyclesRequestHandler();
+
+        services.AddApprovalTextRequestHandler();
+
+        // Composing the decision and putting it where a rename can reach it are separate operations,
+        // because the composer writes nothing and a test of what it produces must not need a disk.
+        services.AddWriteApprovalDraftRequestHandler();
+
+        // The turn-end gate. Unlike the pre-tool policy, which is a pure function over a tool call
+        // and stays static for the sake of the hook's start-up cost, this one reads git and the
+        // recorded evidence and decides -- so it is a real operation and goes through the mediator.
+        services.AddTurnEndGateRequestHandler();
+
+        // The drafters. Each prints what belongs in a file only a person writes, and none of them opens
+        // that file for writing -- which is what lets every hook rule stay absolute.
+        services.AddAbandonTextRequestHandler();
+
+        services.AddConstraintTextRequestHandler();
+
+        // Self-registering, inside the operation's own holder. That is not a style choice: the
+        // handler is private in there, so nothing written out here could name it.
+        services.AddWriteSolutionDraftRequestHandler();
+        services.AddWriteTechStackDraftRequestHandler();
+
+        services.AddVerifyChainRequestHandler();
+
+        services.AddSuggestionsRequestHandler();
+
+        // Reads the whole history rather than one cycle, and proposes rather than places: the only
+        // operation that forms an opinion about the rules, and still writes nothing that binds.
+        services.AddProposeConstraintsRequestHandler();
+
+        // The other two subjects of the same verb. Constraints are mined backward from findings;
+        // decisions are captured forward from what an approved cycle stated, because a choice that
+        // never collided with a rule produced no finding to mine. A theme is neither -- it is a
+        // register, and what is proposed is the shape rather than the values.
+        services.AddProposeDecisionsRequestHandler();
+
+        // The reading halves. A constraint stops a cycle doing something; a decision stops it
+        // re-deciding something, and a theme stops it inventing a colour. All three are rendered on
+        // demand and never copied into an artifact, which is what CON_09 is about.
+        services.AddReadDecisionsRequestHandler();
+        services.AddReadThemeRequestHandler();
+
+        // And the fourth: what the solution declares it is built from, with the one comparison a file
+        // listing can decide -- which build settings it takes against which are on disk.
+        services.AddReadStackDeclarationRequestHandler();
+
+        services.AddInitialiseRequestHandler();
+        services.AddScaffoldSolutionRequestHandler();
+
+        services.AddNewCycleRequestHandler();
+
+        // Where each kind of work on a cycle starts: three skills need the answer, so it is computed once.
+        services.AddStartBranchRequestHandler();
+
+        services.AddComputeClaimGraphRequestHandler();
+
+        // The factory's queue: the claim graph's buildable cycles, less any a branch on the remote holds
+        // back. A listing, never a state file (D-85).
+        services.AddListQueuedCyclesRequestHandler();
+
+        // The morning's page, read from the cycles, the remote's branches, the claim graph and git.
+        services.AddSitrepRequestHandler();
+
+        // The factory's pipeline, written on request rather than at adoption: a factory is a choice a team
+        // makes after running cycles by hand (D-84, D-91).
+        services.AddWriteFactoryPipelineRequestHandler();
+
+        // A lead, fetched and made one shape for 'intent --from' to interview from (D-89).
+        services.AddReadLeadRequestHandler();
+
+        // Operate: production's errors, grouped, scrubbed, deduplicated, filed as leads.
+        services.AddRunOperateRequestHandler();
+
+        // Which perspectives a cycle gets, and why each (D-90).
+        services.AddActivePerspectivesRequestHandler();
+
+        services.AddPullRequestHandler();
+
+        services.AddRecordEvidenceRequestHandler();
+
+        // Reports on the install rather than on a cycle, and dispatches like the rest so it reads the
+        // constraints the way a stage skill does rather than off the disk.
+        services.AddDiagnoseRequestHandler();
+
+        return services;
+    }
+}

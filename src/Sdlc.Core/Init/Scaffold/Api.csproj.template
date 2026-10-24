@@ -1,0 +1,33 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <ItemGroup>
+    <!-- The kernel, referenced here as well as by the application project because this is where ToEnvelope
+         is called. The boundary is the only place a failure is shaped for somebody outside the
+         process, so the dependency belongs where the conversion is rather than arriving by accident
+         through a project reference. -->
+    <PackageReference Include="MofonCode.Core" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- The description of this api's surface, generated from the routes themselves, and the page that
+         renders it. The generator is what techstack.md declares; the viewer is a separate package on
+         purpose, so swapping the page never changes the document a client generator reads. -->
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi" />
+    <PackageReference Include="Swashbuckle.AspNetCore.SwaggerUI" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\__SOLUTION__.Application\__SOLUTION__.Application.csproj" />
+    <ProjectReference Include="..\__SOLUTION__.ServiceDefaults\__SOLUTION__.ServiceDefaults.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- The suite asserts what this writes to the wire, which is the only way to prove that an
+         exception's message does not reach a reader. Program is internal, so the grant is what lets a
+         test name it. -->
+    <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleTo">
+      <_Parameter1>__SOLUTION__.Tests</_Parameter1>
+    </AssemblyAttribute>
+  </ItemGroup>
+
+</Project>

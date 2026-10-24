@@ -1,0 +1,68 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <AssemblyName>sdlc</AssemblyName>
+    <RootNamespace>Sdlc.Cli</RootNamespace>
+
+    <!-- The gate ships and runs inside every governed solution, and a hook invokes it on a tool
+         call, so start-up cost is on the critical path of every edit an agent makes. -->
+    <InvariantGlobalization>true</InvariantGlobalization>
+    <TieredPGO>true</TieredPGO>
+
+    <!-- Packed as a dotnet tool: one command on PATH, restorable per solution, and the same
+         binary the pre-tool hook, the git hooks and the pipeline all call. -->
+    <PackAsTool>true</PackAsTool>
+    <ToolCommandName>sdlc</ToolCommandName>
+    <PackageId>MofonCode.Sdlc.Cli</PackageId>
+
+    <!-- Everything below is what a feed shows a person deciding whether to install this, and it is
+         here rather than in Directory.Build.props because this is the only packable project. The
+         defaults are not harmless: `authors` fell back to the assembly name and `description` to the
+         literal string "Package Description", and a version pushed to nuget.org can be unlisted but
+         never deleted - so the placeholder would have been permanent. -->
+    <Authors>MofonCode</Authors>
+    <Company>MofonCode</Company>
+    <Title>ai-sdlc gate</Title>
+
+    <!-- Describes the binary rather than the framework, which is not the same thing and is why this
+         is not a copy of the plugin's description. The package is one of two halves: it decides, and
+         the plugin carries the skills that ask it to. Somebody who installs only this gets a working
+         gate and no stages, so the description says so. -->
+    <!-- One line, unindented, because whitespace in here reaches the feed page verbatim. -->
+    <Description>The gate for an ai-sdlc governed solution. A change moves through intent, spec, plan, build, verify and land; each artifact is challenged against a fixed set of rules before it advances, a person approves the three planning documents against a hash of each, and nothing merges unless the chain is complete, approved and hash-matched. This is the deterministic half: the `sdlc` command that every host hook, git hook and pipeline step calls. The stages need language and ship separately as the plugin.</Description>
+
+    <PackageTags>sdlc;governance;constraints;code-review;agent;hooks;dotnet-tool</PackageTags>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+
+    <!-- Sources and symbols, so a stack trace from somebody else's machine is readable. The gate
+         runs inside other people's repositories on a hook path, which is the worst place to debug
+         from a release build with nothing to go on. -->
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- The package's own readme, written for somebody who found the tool on a feed rather than for
+         somebody reading the repository. Not the root README: that one describes both halves and
+         links to guides, and a package consumer cannot follow a link into a private repository. -->
+    <None Include="README.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" />
+    <ProjectReference Include="..\Sdlc.Core\Sdlc.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- An application exposes no API, so its types are internal and CA1515 is satisfied rather
+         than suppressed. The suite asserts them directly: going through the process boundary for
+         argument parsing would test the shell more than the parser. -->
+    <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleTo">
+      <_Parameter1>Sdlc.Tests</_Parameter1>
+    </AssemblyAttribute>
+  </ItemGroup>
+
+</Project>

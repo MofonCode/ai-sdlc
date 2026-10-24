@@ -1,0 +1,130 @@
+using System.Net;
+using FluentResults;
+using MofonCode.Core;
+
+namespace __SOLUTION__.Api;
+
+/// <summary>
+/// The body of every response this API sends.
+/// </summary>
+/// <remarks>
+/// <para>One shape for success and failure both, so a client writes one piece of code that reads it.
+/// <c>Notices</c> is what a front end displays: it asks whether the call succeeded and, either way,
+/// shows what the notices say. That is the whole contract — the front end does not interpret, map or
+/// decide, and it certainly does not parse a message to work out what went wrong.</para>
+///
+/// <para><c>Data</c> is absent on a failure rather than present and empty, because an empty payload
+/// beside <c>succeeded: false</c> invites a client to render it.</para>
+/// </remarks>
+/// <typeparam name="T">What the operation returns.</typeparam>
+/// <param name="Succeeded">Whether the operation did what was asked.</param>
+/// <param name="Data">What it produced, or null when it failed.</param>
+/// <param name="Notices">What to tell the reader: errors on a failure, warnings worth saying on a success.</param>
+/// <param name="TraceId">The id that connects this response to the log entry holding the detail.</param>
+public sealed record ApiResponse<T>(
+    bool Succeeded,
+    T? Data,
+    IReadOnlyList<Notice> Notices,
+    string? TraceId);
+
+/// <summary>
+/// What every endpoint returns.
+/// </summary>
+/// <remarks>
+/// <para><strong>This is the only <see cref="IResult"/> in the solution, deliberately.</strong>
+/// <c>BannedSymbols.txt</c> bans <c>Microsoft.AspNetCore.Http.Results</c> and <c>TypedResults</c>
+/// outright, so there is no second way to build a response: a handler cannot reach for
+/// <c>Results.Problem</c> and decide for itself what a reader is told. The ban is what makes this
+/// type the boundary rather than a convention about where the boundary should be.</para>
+///
+/// <para>It writes the JSON itself rather than delegating to a framework factory, which is what lets
+/// the ban be absolute. A sanctioned helper that called the banned API would need an exemption, and
+/// the exemption is the hole every rule like this eventually leaks through.</para>
+///
+/// <para>The response is a property as well as a payload, so a test can assert what crosses without
+/// standing up a server.</para>
+/// </remarks>
+/// <typeparam name="T">What the operation returns.</typeparam>
+public sealed class ApiResult<T> : IResult
+{
+    internal ApiResult(ApiResponse<T> response, int statusCode)
+    {
+        Response = response;
+        StatusCode = statusCode;
+    }
+
+    /// <summary>The body that will be written.</summary>
+    public ApiResponse<T> Response { get; }
+
+    /// <summary>The status code that will be set.</summary>
+    public int StatusCode { get; }
+
+    /// <inheritdoc />
+    public Task ExecuteAsync(HttpContext httpContext)
+    {
+        ArgumentNullException.ThrowIfNull(httpContext);
+
+        httpContext.Response.StatusCode = StatusCode;
+
+        return httpContext.Response.WriteAsJsonAsync(Response, httpContext.RequestAborted);
+    }
+}
+
+/// <summary>
+/// Turns a result into a response. The one conversion at the edge of this process.
+/// </summary>
+/// <remarks>
+/// <para>Every endpoint ends with this call and nothing else, which is what makes the rule about
+/// failures enforceable rather than remembered: <c>ToEnvelope</c> drops every exceptional error and
+/// everything caused by one, so a database exception's message — which names a server, a column, and
+/// sometimes a credential — cannot reach a reader even when the code that failed knew it. The log
+/// still gets all of it through <c>ToLogString</c>, which is the pair.</para>
+///
+/// <para>An architecture test asserts every endpoint returns <see cref="ApiResult{T}"/>, so an
+/// endpoint that returned a domain type directly — and so sent a payload with no notices and no trace
+/// id — fails the build rather than reaching a client.</para>
+/// </remarks>
+public static class Boundary
+{
+    /// <summary>Shapes a result for a reader outside this process.</summary>
+    /// <typeparam name="T">What the operation returns.</typeparam>
+    /// <param name="result">What the operation produced.</param>
+    /// <param name="http">The request being answered, for its trace id.</param>
+    /// <returns>The response, and the status code that goes with it.</returns>
+    public static ApiResult<T> ToApiResult<T>(this Result<T> result, HttpContext http)
+    {
+        ArgumentNullException.ThrowIfNull(result);
+        ArgumentNullException.ThrowIfNull(http);
+
+        ResultEnvelope envelope = result.ToEnvelope(traceId: http.TraceIdentifier);
+
+        return new ApiResult<T>(
+            new ApiResponse<T>(
+                envelope.Succeeded,
+                result.IsSuccess ? result.Value : default,
+                envelope.Notices,
+                envelope.TraceId),
+            StatusFor(result));
+    }
+
+    /// <summary>
+    /// Which status code a result deserves.
+    /// </summary>
+    /// <remarks>
+    /// The one thing the envelope cannot carry. It has already replaced an exceptional error with a
+    /// neutral sentence — which is the point — so by the time a client reads the body it cannot tell
+    /// a bad request from a broken dependency. The two are different to whoever is calling: 400 says
+    /// this will not work as sent, 500 says this was not your fault and retrying may.
+    /// </remarks>
+    private static int StatusFor<T>(Result<T> result)
+    {
+        if (result.IsSuccess)
+        {
+            return (int)HttpStatusCode.OK;
+        }
+
+        return result.HasError<IExceptionalError>()
+            ? (int)HttpStatusCode.InternalServerError
+            : (int)HttpStatusCode.BadRequest;
+    }
+}

@@ -1,0 +1,36 @@
+<Project>
+
+  <PropertyGroup>
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+    <CentralPackageTransitivePinningEnabled>true</CentralPackageTransitivePinningEnabled>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageVersion Include="MSTest" Version="4.4.1" />
+
+    <!-- Reads BannedSymbols.txt and fails the build on a call this repository has ruled out.
+         PrivateAssets=all where it is referenced, because an analyzer is a build-time tool and
+         never a dependency of what ships. Same version the dotnet-default profile pins, so the
+         framework and the solutions it scaffolds are refused by the same analyzer. -->
+    <PackageVersion Include="Microsoft.CodeAnalysis.BannedApiAnalyzers" Version="4.14.0" />
+
+    <!-- The container itself. MofonCode.Core takes only the abstractions, deliberately, so the
+         host is what chooses an implementation. Latest stable 10.x, resolved rather than guessed. -->
+    <PackageVersion Include="Microsoft.Extensions.DependencyInjection" Version="10.0.12" />
+
+    <!-- The shared kernel, and the mediator this repository dispatches through. MIT, and it
+         depends only on FluentResults and the Microsoft.Extensions.*.Abstractions packages,
+         so taking it commits a consumer to no data story. Pinned because every solution
+         taking it inherits its breaking changes, and it is pre-1.0. -->
+    <PackageVersion Include="MofonCode.Core" Version="0.2.0" />
+
+    <!-- YAML, on the same standing: .NET ships no YAML reader, and artifact frontmatter has
+         to be read by a real parser. It exists because a hand-rolled frontmatter regex in
+         v02 reported that a skill declared disable-model-invocation while the real parser
+         had dropped every field in the file - the skill was model-invocable at runtime and
+         333 tests said otherwise. A check on markup is worth only what the parser behind it
+         is. -->
+    <PackageVersion Include="YamlDotNet" Version="18.1.0" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,13 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Sdlc.Core/Sdlc.Core.csproj" />
+    <Project Path="src/Sdlc.Cli/Sdlc.Cli.csproj" />
+  </Folder>
+  <Folder Name="/tools/">
+    <Project Path="tools/Sdlc.ScaffoldHarness/Sdlc.ScaffoldHarness.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Sdlc.Tests/Sdlc.Tests.csproj" />
+    <Project Path="tests/Sdlc.Architecture.Tests/Sdlc.Architecture.Tests.csproj" />
+  </Folder>
+</Solution>

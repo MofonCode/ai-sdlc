@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <AssemblyName>scaffold-harness</AssemblyName>
+  </PropertyGroup>
+
+  <!-- Not packable and not shipped. This exists so that "generate a solution and build it" is one
+       command rather than a procedure somebody reconstructs, which is the form the check was in when
+       two template defects reached a commit. -->
+  <PropertyGroup>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Sdlc.Core\Sdlc.Core.csproj" />
+  </ItemGroup>
+
+</Project>

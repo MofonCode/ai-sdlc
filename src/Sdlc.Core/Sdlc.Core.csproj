@@ -1,0 +1,54 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <PackageReference Include="MofonCode.Core" />
+    <PackageReference Include="YamlDotNet" />
+  </ItemGroup>
+
+  <!-- The scaffold a new solution starts from, embedded rather than written as string constants. The
+       gate publishes single-file and a pre-tool hook invokes it on every tool call, so a template read
+       from a path beside the binary is a template that is missing in exactly that case; a resource is
+       inside the assembly. Named .template rather than .cs so nothing reads as source that is never
+       compiled, and ScaffoldTests reads every one of them, which is what stops them rotting.
+
+       WithCulture="false" is load-bearing, and the failure without it is a good trap. MSBuild infers a
+       resource's culture from the second-to-last extension, and `cs` is the code for Czech - so
+       `RepoFiles.cs.template` was taken for a Czech satellite of `RepoFiles.template` and went into a
+       cs/ satellite assembly rather than the main one. Four templates embedded, seven vanished, and
+       the only symptom was a scaffold that threw partway through writing files. -->
+  <ItemGroup>
+    <EmbeddedResource Include="Init\Scaffold\*.template" WithCulture="false" />
+  </ItemGroup>
+
+  <!-- The global constraint library, embedded for the same reason and with a sharper version of the
+       same evidence: the packed tool shipped no library at all, so an installed gate could run `help`
+       and `version` and nothing else, and both generated pipelines installed a binary whose one
+       non-bypassable check could never pass. A resource cannot be left out of a package. The file
+       beside the gate or above it still wins when there is one, which is what keeps editing
+       CONSTRAINTS.md here from needing a rebuild. D-41. -->
+  <ItemGroup>
+    <EmbeddedResource Include="..\..\CONSTRAINTS.md" LogicalName="Sdlc.Core.CONSTRAINTS.md" />
+  </ItemGroup>
+
+  <!-- A profile's own rules, one document per profile, embedded for both of the reasons above at once:
+       they reach a solution the moment it records the profile's name, and a tier that resolved from a
+       restore is a tier that can fail to resolve at a gate. The logical name is set explicitly rather
+       than inferred, so the lookup is by profile name - `dotnet-default` resolves `dotnet-default.md` -
+       and giving a profile its first rule is adding a file rather than wiring anything. WithCulture is
+       off for the reason the templates give above: MSBuild reads a culture out of a second-to-last
+       extension, and a profile named for a language is exactly where that would bite. -->
+  <!-- The perspectives, one document each (D-90). The resource names are the list, so giving the
+       framework a perspective is adding a file. -->
+  <ItemGroup>
+    <EmbeddedResource Include="Perspectives\*.md"
+                      LogicalName="Sdlc.Core.Perspectives.%(Filename).md"
+                      WithCulture="false" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="Constraints\Profiles\*.md"
+                      LogicalName="Sdlc.Core.Profiles.%(Filename).md"
+                      WithCulture="false" />
+  </ItemGroup>
+
+</Project>

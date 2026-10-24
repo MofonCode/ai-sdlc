@@ -1,0 +1,80 @@
+using Microsoft.Extensions.DependencyInjection;
+using MofonCode.Core;
+using __SOLUTION__.Application.Greetings;
+
+namespace __SOLUTION__.Application;
+
+/// <summary>The one seam a host uses to get this solution's operations.</summary>
+/// <remarks>
+/// <para>A host calls this and nothing else. Everything inside is reachable only through the mediator,
+/// so what a host can do is exactly what this method registers — which is what makes the surface a
+/// decision rather than whatever happens to be public.</para>
+///
+/// <para><strong>Register by type, never through a factory that captures a value.</strong> A factory
+/// closing over a path or a clock is what stops a handler being private — the registration must be
+/// able to name the type, and only the holder can — and it also stops a test substituting a clock at
+/// all. Anything a handler needs is a type the container supplies.</para>
+///
+/// <para>Split this method when a host needs one half and not the other. Reading data and ingesting it
+/// are different capabilities, and only one of them should ever hold a provider's credentials.</para>
+/// </remarks>
+public static class __SOLUTION__Services
+{
+    /// <summary>Adds the mediator and every handler this solution dispatches to.</summary>
+    /// <remarks>
+    /// <strong>The options delegate is where a <c>DbContext</c> registration and its connection string
+    /// go, and it is here before anything needs it on purpose.</strong> <c>Program</c> cannot name an
+    /// internal <c>DbContext</c>, so registration has to happen inside the project that owns the
+    /// schema — which is also what keeps the connection string there (D-38). The default profile ships
+    /// no EF, so nothing uses this yet; it is present because D-38's whole argument is that an agent
+    /// copies the code beside it more reliably than it follows an instruction, and the first cycle to
+    /// add EF should find the shape rather than invent one.
+    /// <para>
+    /// Distinct from the factory-closure this file forbids below. That rule is about handlers, which
+    /// the container must be able to construct by type; this is configuration, which a caller supplies
+    /// and nothing resolves.
+    /// </para>
+    /// </remarks>
+    /// <param name="services">The collection to add to.</param>
+    /// <param name="configure">
+    /// Settings this solution's own registrations read — a connection string, a vendor endpoint.
+    /// Optional, and ignored while nothing here needs it.
+    /// </param>
+    /// <returns>The same collection, for chaining.</returns>
+    public static IServiceCollection Add__SOLUTION__(
+        this IServiceCollection services,
+        Action<__SOLUTION__Options>? configure = null)
+    {
+        ArgumentNullException.ThrowIfNull(services);
+
+        var options = new __SOLUTION__Options();
+        configure?.Invoke(options);
+
+        services.AddSingleton<Mediator>();
+
+        // Validation, as an open generic so every operation with a validator gets it and no handler
+        // has to remember. Registered before the handlers because a behaviour runs around them, and
+        // because the mediator resolves behaviours in registration order.
+        services.AddTransient(typeof(IRequestBehavior<,>), typeof(ValidationBehavior<,>));
+
+        // One line per operation, each registered by its own holder. The architecture suite fails when
+        // a declared request has no handler, so a line forgotten here is a failing test rather than a
+        // runtime surprise on the first request that needed it.
+        services.AddGreetRequestHandler();
+
+        return services;
+    }
+}
+
+/// <summary>
+/// What a host tells this solution about its surroundings.
+/// </summary>
+/// <remarks>
+/// Empty, and that is the point: it is the seam D-38 says registration needs, placed before the first
+/// cycle that needs it so that cycle extends a shape rather than inventing one. A connection string
+/// belongs here, read by the <c>DbContext</c> registration inside this project, because nothing outside
+/// this assembly can name that context.
+/// </remarks>
+public sealed class __SOLUTION__Options
+{
+}
