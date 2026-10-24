@@ -1,6 +1,6 @@
 # ai-sdlc
 
-**Version 0.28.0** · iteration 4 · .NET 10 · MIT
+**Version 0.28.1** · iteration 4 · .NET 10 · MIT
 
 **A plugin that makes an AI coding agent work the way a careful team does** — write down what the change
 is for, agree what *done* means, plan it, have a person approve it, and only then write code.
@@ -126,7 +126,7 @@ sdlc constraints
 ```
 
 It should print the eighteen global constraints in force and say it read them from
-`global  embedded in sdlc 0.28.0`. **Use this rather than `sdlc help` as the smoke test** — `help` and
+`global  embedded in sdlc 0.28.1`. **Use this rather than `sdlc help` as the smoke test** — `help` and
 `version` are the only commands that need nothing from the installation, so they are the two that cannot
 tell you whether it worked. Then `claude plugin details sdlc@ai-sdlc` should say `Skills (18)` and
 `Hooks (2)`: **a hook count below two is a failed install**, not a detail, because the deterministic layer
@@ -312,11 +312,12 @@ What is honest to say about the rest:
 - **The binary is not on a feed.** Installing means cloning and packing — the single thing that would
   most improve a teammate's first hour. CI installs the packed tool to a temporary path on every pull
   request; `--global` on a clean machine has not been tried.
-- **The integration branch and the factory are built and have never run for real.** The queue, the cycle
-  branches, the admission check, the sitrep, `batch-build --pr --unattended` and `sdlc factory` are held by
-  the suite and tried against scratch repositories; no factory pipeline has run on a server, and nobody has
-  spent a morning on a real sitrep (`CONCEPT.md` §10.4, §10.5). The factory's agent image (`factory/`)
-  builds in CI, and its install checks and registration have been tried by hand; it has not run a job.
+- **The factory has run once for real, and that run is how 0.28.1's fix was found.** One Azure DevOps
+  factory pipeline, on the agent image in `factory/`, built one cycle unattended and opened its pull
+  request. Its verify went uninterrogated: a `claude` the agent starts was handed no credential, so the
+  fresh reader never signed in. 0.28.1 gives it one and proves it before anything is built; no run has yet
+  gone through with that fix. Nobody has spent a morning on a sitrep of more than one cycle
+  (`CONCEPT.md` §10.4, §10.5).
 - **Leads and Operate have only met fakes.** `sdlc lead show` reads work items through `az` and `gh`, and
   `sdlc operate` reads Application Insights through `az` and files through the same CLIs; none of that has
   touched a real tracker or a real telemetry store. Jira is not read yet.
