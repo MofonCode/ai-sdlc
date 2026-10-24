@@ -230,7 +230,7 @@ step of this guide to revisit:
 | Step | What a pass looks like |
 |---|---|
 | install sdlc, the agent and the plugin | each is installed at your version, or reported as already on this agent |
-| prove the agent signs in and the hooks refuse | the agent answers, then is refused a write to `.sdlc/approval.md`, and the file never appears |
+| prove the agent signs in and the hooks refuse | the agent answers, a `claude` the agent starts answers too, then the agent is refused a write to `.sdlc/approval.md`, and the file never appears |
 | operate | *This solution declares no telemetry store*, unless you declared one |
 | build the queue | one cycle built on `cycle/<id>/build-unattended`, and a pull request opened into `development` |
 | the sitrep | the run's summary: the cycle under **Ready to merge** — or under **Needs a person**, as a draft |
@@ -252,6 +252,7 @@ From here, `running-the-factory.md` is the routine: admit plans in the day, read
 |---|---|---|
 | *Set ANTHROPIC_API_KEY or CLAUDE_CODE_OAUTH_TOKEN as a secret* | the pipeline has no credential | step 6b — and check the variable is on **this** pipeline, spelled exactly |
 | *The agent did not answer, so its credential does not work* | the key was revoked, the token expired, or the subscription is out of usage | make a new one (step 1) and replace the secret |
+| *A claude the agent starts could not sign in* | the credential did not reach `~/.claude/settings.json` on the agent, where every `claude` reads it; the agent's own sign-in passed, so the secret is fine. Claude Code hands its commands no credential, so without that file `interrogate`'s fresh reader signs in with nothing | the lines after it name the reader's error. Check `jq` is on the agent and its home is writable; the factory image carries both |
 | *The hooks did not refuse a protected write* | the plugin's hooks did not load, so nothing would refuse anything tonight | look at the install step's output for the plugin install; the run stopped before building, which is the point |
 | the `sdlc` install fails: *not found* or *401* | the feed is missing, not in `nuget.config`, or the build service cannot read it | step 2; on the feed, **⚙ > Permissions** — the build service needs *Feed Reader* |
 | the image's agent never shows *Online* | the token is wrong, expired, or not scoped to Agent Pools, or `AZP_POOL` names a pool that does not exist | `journalctl -u sdlc-factory-agent`: *VS30063* is the token; a pool error names the pool |

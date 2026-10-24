@@ -103,7 +103,7 @@ public static class FactoryPipeline
                 "          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}",
                 "        run: |",
                 .. Credential("          ", check: true),
-                "          claude -p 'Create the file .sdlc/approval.md containing the single word smoke. Do nothing else.' --permission-mode bypassPermissions || true",
+                "          claude -p 'Create the file .sdlc/approval.md containing the single word smoke. Do nothing else.' --permission-mode bypassPermissions < /dev/null || true",
                 "          if [ -e .sdlc/approval.md ]; then echo 'The hooks did not refuse a protected write, so nothing would refuse anything tonight.'; exit 1; fi",
                 string.Empty,
                 "      # Operate: production's errors since the last run, filed as leads on the tracker. Nothing",
@@ -122,7 +122,7 @@ public static class FactoryPipeline
                 "          GH_TOKEN: ${{ secrets.SDLC_FACTORY_TOKEN }}",
                 "        run: |",
                 .. Credential("          ", check: false),
-                "          claude -p '/sdlc:batch-build --pr --unattended' --permission-mode bypassPermissions",
+                "          claude -p '/sdlc:batch-build --pr --unattended' --permission-mode bypassPermissions < /dev/null",
                 string.Empty,
                 "      # The morning starts from this page, whatever the run above did.",
                 "      - name: the sitrep",
@@ -206,7 +206,7 @@ public static class FactoryPipeline
                 "            # with anything: ask it to write a file only a person writes, and stop if it appears.",
                 "            - script: |",
                 .. Credential("                ", check: true),
-                "                claude -p 'Create the file .sdlc/approval.md containing the single word smoke. Do nothing else.' --permission-mode bypassPermissions || true",
+                "                claude -p 'Create the file .sdlc/approval.md containing the single word smoke. Do nothing else.' --permission-mode bypassPermissions < /dev/null || true",
                 "                if [ -e .sdlc/approval.md ]; then echo 'The hooks did not refuse a protected write, so nothing would refuse anything tonight.'; exit 1; fi",
                 "              displayName: prove the agent signs in and the hooks refuse",
                 "              env:",
@@ -224,7 +224,7 @@ public static class FactoryPipeline
                 string.Empty,
                 "            - script: |",
                 .. Credential("                ", check: false),
-                "                claude -p '/sdlc:batch-build --pr --unattended' --permission-mode bypassPermissions",
+                "                claude -p '/sdlc:batch-build --pr --unattended' --permission-mode bypassPermissions < /dev/null",
                 "              displayName: build the queue",
                 "              env:",
                 "                ANTHROPIC_API_KEY: $(ANTHROPIC_API_KEY)",
@@ -279,6 +279,16 @@ public static class FactoryPipeline
     /// <para><strong>The sign-in is proved before the hooks.</strong> The hook check passes when the agent
     /// writes nothing, and an agent that cannot sign in writes nothing, so without this a broken credential
     /// would prove the hooks and then fail every build.</para>
+    /// <para><strong>The credential is written into the agent's own settings as well.</strong> Claude Code does
+    /// not hand its credential to the commands it runs, so the fresh reader <c>interrogate</c> starts (D-01)
+    /// signed in with nothing on the first real run, and every verify went unread while the build passed. A
+    /// <c>claude</c> reads the <c>env</c> of its user settings for itself, nested or not. The value is merged in,
+    /// because the same file records the installed plugin, and the file is the agent user's alone; the job's
+    /// container is discarded after the run.</para>
+    /// <para><strong>The nested sign-in is proved too</strong>, by the agent starting a <c>claude</c> of its own
+    /// and the shell, not the agent, reading what that one answered.</para>
+    /// <para><strong>Every <c>claude -p</c> reads its standard input from nothing.</strong> Otherwise it waits
+    /// three seconds for a prompt on standard input and warns, on every call.</para>
     /// </remarks>
     private static IEnumerable<string> Credential(string indent, bool check)
     {
@@ -289,7 +299,19 @@ public static class FactoryPipeline
         if (check)
         {
             yield return indent + "if [ -z \"${ANTHROPIC_API_KEY:-}${CLAUDE_CODE_OAUTH_TOKEN:-}\" ]; then echo 'Set ANTHROPIC_API_KEY or CLAUDE_CODE_OAUTH_TOKEN as a secret: the agent has no way to sign in.'; exit 1; fi";
-            yield return indent + "claude -p 'Reply with the single word ready.' | grep -qi ready || { echo 'The agent did not answer, so its credential does not work. Nothing was built.'; exit 1; }";
+        }
+
+        yield return indent + "# And in the agent's own settings, since a claude the agent starts is handed no credential.";
+        yield return indent + "if [ -n \"${ANTHROPIC_API_KEY:-}\" ]; then name=ANTHROPIC_API_KEY; else name=CLAUDE_CODE_OAUTH_TOKEN; fi";
+        yield return indent + "mkdir -p ~/.claude && { [ -s ~/.claude/settings.json ] || echo '{}' > ~/.claude/settings.json; }";
+        yield return indent + "jq --arg n \"$name\" --arg v \"${!name:-}\" '.env = ((.env // {}) + {($n): $v})' ~/.claude/settings.json > ~/.claude/settings.json.new && mv ~/.claude/settings.json.new ~/.claude/settings.json && chmod 600 ~/.claude/settings.json";
+
+        if (check)
+        {
+            yield return indent + "claude -p 'Reply with the single word ready.' < /dev/null | grep -qi ready || { echo 'The agent did not answer, so its credential does not work. Nothing was built.'; exit 1; }";
+            yield return indent + "nested=\"${TMPDIR:-/tmp}/sdlc-nested-sign-in.txt\"; rm -f \"$nested\"";
+            yield return indent + "claude -p \"Run this bash command exactly as written and nothing else: claude -p 'Reply with the single word ready.' < /dev/null > $nested 2>&1\" --permission-mode bypassPermissions < /dev/null > /dev/null || true";
+            yield return indent + "grep -qi ready \"$nested\" 2>/dev/null || { echo 'A claude the agent starts could not sign in, so interrogation would have no fresh reader. Nothing was built.'; cat \"$nested\" 2>/dev/null; exit 1; }";
         }
     }
 }

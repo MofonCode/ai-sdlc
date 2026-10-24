@@ -58,6 +58,52 @@ public sealed class FactoryPipelineTests
     [TestMethod]
     [DataRow(Platform.GitHub)]
     [DataRow(Platform.AzureDevOps)]
+    public void A_claude_the_agent_starts_can_sign_in_and_that_is_proved_before_the_gate(Platform platform)
+    {
+        // Claude Code hands its commands no credential, so the fresh reader interrogate starts signed in with
+        // nothing and every verify went unread. The credential goes into the agent's own settings, merged so
+        // the plugin the same file records survives, and a nested sign-in is proved before anything is built.
+        string pipeline = FactoryPipeline.Text(platform, "development", "9.9.9");
+
+        int signIn = pipeline.IndexOf("Reply with the single word ready", StringComparison.Ordinal);
+        int nested = pipeline.IndexOf("could not sign in, so interrogation would have no fresh reader", StringComparison.Ordinal);
+        int gate = pipeline.IndexOf(".sdlc/approval.md containing", StringComparison.Ordinal);
+
+        Assert.IsTrue(signIn > 0 && nested > signIn && gate > nested, "The nested sign-in is proved after the agent's own and before the gate.");
+
+        foreach (string claude in pipeline.ReplaceLineEndings().Split(Environment.NewLine + Environment.NewLine)
+            .Where(step => step.Contains("claude -p", StringComparison.Ordinal)))
+        {
+            StringAssert.Contains(claude, "~/.claude/settings.json", "Every step that runs the agent writes the credential where a nested claude reads it.");
+            StringAssert.Contains(claude, ".env = ((.env // {}) +", "Merged into the settings, not written over them.");
+        }
+    }
+
+    [TestMethod]
+    [DataRow(Platform.GitHub)]
+    [DataRow(Platform.AzureDevOps)]
+    public void Every_claude_reads_its_standard_input_from_nothing(Platform platform)
+    {
+        // Without it each call waits three seconds for a prompt on standard input and prints a warning.
+        string[] calls =
+        [
+            .. FactoryPipeline.Text(platform, "development", "9.9.9")
+                .ReplaceLineEndings()
+                .Split(Environment.NewLine)
+                .Where(line => line.Contains("claude -p", StringComparison.Ordinal) && !line.TrimStart().StartsWith('#')),
+        ];
+
+        Assert.IsTrue(calls.Length >= 4);
+
+        foreach (string call in calls)
+        {
+            StringAssert.Contains(call, "< /dev/null", call);
+        }
+    }
+
+    [TestMethod]
+    [DataRow(Platform.GitHub)]
+    [DataRow(Platform.AzureDevOps)]
     public void An_agent_that_already_carries_the_tools_installs_nothing_and_stays_pinned(Platform platform)
     {
         // A team running its own agent may carry sdlc, Claude Code and the plugin already. Each is used when
