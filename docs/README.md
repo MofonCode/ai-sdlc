@@ -269,7 +269,7 @@ declining to go on, exit code 1. An open blocker causes refusals; it is not one.
 | **the pre-tool hook** | judges a tool call before it runs and denies the seven things an agent may not do: the six protected files, and adoption |
 | **hook policy** | the rules that judgement applies. Absolute rather than conditional — no mode, no flag, no check on which skill is running, **so a rule with no exception has nowhere for a bypass to live** |
 | **tool kind** | `harmless`, `file-write`, `shell`. A write is judged by path; a shell command is judged by its text |
-| **the command-text scan** | why a command that merely *names* a protected file is refused. The hook reads the command string, not the paths it would touch — so `git commit -F` with the message in a file is how a commit mentioning one gets through |
+| **the command-text scan** | why a command that merely *names* a protected file beside a write verb is refused. The hook reads the command string, piece by piece, not the paths it would touch — so `git commit -F` with the message in a file is how a commit mentioning one gets through |
 | **the turn-end hook** | asked before a turn ends. Sends the turn back when the recorded suite has a failure, when there are changes and no evidence, or when the tree has moved since the evidence. **Silent on a branch it cannot read as a cycle** |
 | **hook host** | `claude`, `copilot`, `antigravity`. A name the binary does not know is refused rather than guessed |
 | **hook event** | `pre-tool-use` and `turn-end`, each accepted under the host's own name too. Antigravity's turn end is deliberately not governed |

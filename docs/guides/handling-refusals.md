@@ -357,9 +357,10 @@ rule file and the decision record. Run it yourself, and place what it produces.
 
 **The last one matches the verb rather than parsing the line**, so even asking the adoption command for
 its own help is refused and `sdlc help` is the way to read its options. The same scan is why a refusal
-can arrive for a command that only *mentions* a protected file — the hook reads the shell command, not
-the paths it would touch, so a commit message naming one is denied. `git commit -F` with the message in
-a file is the way past that, and it is the rule working rather than a hole.
+can arrive for a command that only *mentions* a protected file beside a write verb — the hook reads the
+shell command, not the paths it would touch, so a commit message reading *Move techstack.md into place*
+is denied. `git commit -F` with the message in a file is the way past that, and it is the rule working
+rather than a hole.
 
 **The theme is deliberately not on this list.** `.sdlc/theme.json` is a solution file like the ones
 above and no agent write to it is denied, because nobody is judged against a colour: no constraint reads
@@ -369,9 +370,13 @@ declared work.
 **Reading these files is allowed.** Refusing `cat approval.md` would make the gate obstructive without
 making it safer.
 
-The shell rule is deliberately broad — it looks for the file names near a write indicator rather than
-parsing a command line. A false refusal on a command that merely mentions one of these files costs you a
-rephrasing; a miss costs the guarantee.
+The shell rule judges each piece of a command on its own — the parts between `;`, `&&`, `||`, `|` and
+newlines, outside quotes. A redirect is a write of the file it points at, so `grep x decisions.md
+2>/dev/null` and `cat techstack.md > /tmp/x` are reads. A write verb — a move, a copy, a delete, an
+in-place edit — counts when the same piece names one of these files as a name of its own, so
+a draft, or a file whose longer name ends in one of them, is not mistaken for the record. Beyond that it is
+deliberately broad rather than a parser: a false refusal costs you a rephrasing, and a miss costs the
+guarantee.
 
 **Seven is the whole list, and the limit is structural.** The hook sees a tool call and not which skill
 made it, so it cannot deny an edit that is wrong only because of where it came from — `remediate`

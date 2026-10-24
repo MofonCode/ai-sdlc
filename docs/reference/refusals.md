@@ -66,8 +66,8 @@ The two hooks return no exit code to you: they stop the agent's action, and the 
 | [when it says nothing](../guides/handling-refusals.md#when-it-says-nothing) | expected off a `cycle/` branch and before a plan; the pipeline check is the guarantee |
 
 \* **The pre-tool hook's seven denials are absolute: no mode, no flag.** Run the command the denial
-names, and place what it produces yourself. A command that only *mentions* one of these files is denied
-too — for a commit message, use `git commit -F` with the message in a file. The pre-tool hook section of
+names, and place what it produces yourself. A command that only *mentions* one of these files beside a
+write verb is denied too — for a commit message, use `git commit -F` with the message in a file. The pre-tool hook section of
 `../guides/handling-refusals.md` has why each is a person's.
 
 ## See also

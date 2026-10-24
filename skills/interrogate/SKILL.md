@@ -26,9 +26,8 @@ claude -p --output-format text < <scratch>/prompt.txt
 `<scratch>` is any directory outside the repository that your host gives you to write in.
 
 **Compose the prompt with your Read and Write tools, not the shell.** The blocks it carries — the
-artifact, its upstream, and on a plan round `.sdlc/techstack.md` — are files you read and paste in. A
-shell redirect that names one of them, such as `cat .sdlc/techstack.md > …`, is refused by the hook,
-which matches a protected file's name beside a redirect without asking which way the data flows.
+artifact, its upstream, and on a plan round `.sdlc/techstack.md` — are files you read and paste in, and
+the Read and Write tools carry each one byte for byte with no shell quoting in the way.
 
 **Pipe the prompt in; never pass it as an argument.** A plan with its upstream and stack runs to tens
 of kilobytes, and `claude -p "$(…)"` fails on Windows with `Argument list too long` long before that.

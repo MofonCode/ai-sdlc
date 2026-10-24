@@ -158,8 +158,8 @@ wording is argued from the record rather than dictated: `sdlc propose constraint
 a cycle may declare it and change a value like any other file. The pre-tool
 hook denies every agent write to all six, by file path and by shell command alike, with no exception.
 **A refusal there is the design working, not a configuration problem to route around.** The hook matches
-the text of the command, not the paths it resolves, so a commit message naming a protected file is
-refused too: pass it with `git commit -F`.
+the text of the command, not the paths it resolves, so a commit message with a write verb beside a
+protected file's name -- *Move techstack.md into place* -- is refused too: pass it with `git commit -F`.
 
 ## Keep the documentation current
 

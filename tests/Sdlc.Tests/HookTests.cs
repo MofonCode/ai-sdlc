@@ -416,6 +416,15 @@ public sealed class HookTests
     [DataRow("Move-Item -Force approval.approved.draft.md approval.md")]
     [DataRow("Rename-Item approval.approved.draft.md approval.md")]
     [DataRow("Copy-Item approval.approved.draft.md .sdlc/cycles/x/approval.md")]
+
+    // Narrowing the rule to segments and whole names must not open these: a quoted separator is not a
+    // separator, a redirect to the file is a write whatever follows it, and a write two commands along
+    // is still a write.
+    [DataRow("sed -i \"s/a/b/;s/c/d/\" .sdlc/decisions.md")]
+    [DataRow("echo x > .sdlc/decisions.md 2>&1")]
+    [DataRow("cat draft.md > \".sdlc/techstack.md\"")]
+    [DataRow("git add . && cp x.md .sdlc/solution.md")]
+    [DataRow("echo approved>>approval.md")]
     public void A_shell_command_that_would_write_a_protected_file_is_denied(string command)
     {
         // The file rules alone would leave the obvious way round them open: a shell can write a file
@@ -466,7 +475,17 @@ public sealed class HookTests
     [DataRow("git diff .sdlc/constraints.md")]
     [DataRow("cat .sdlc/solution.md")]
     [DataRow("grep approved .sdlc/cycles/x/approval.md")]
-    public void A_shell_command_that_only_reads_a_protected_file_is_allowed(string command)
+
+    // Each of these was refused in a real cycle: a descriptor redirect read as a write, a word inside
+    // a sentence read as a verb, and a longer name read as the protected one.
+    [DataRow("grep -n DEC_ .sdlc/decisions.md 2>/dev/null | head -20")]
+    [DataRow("head -40 .sdlc/solution.md 2>&1")]
+    [DataRow("cat .sdlc/techstack.md > /tmp/stack.txt")]
+    [DataRow("git add .sdlc/cycles/x/approval.md")]
+    [DataRow("grep -n guarantee CONSTRAINTS.md >$null")]
+    [DataRow("sed -i s/a/b/ marketsense-cycle-review-decisions.md")]
+    [DataRow("cp proposal.md .sdlc/constraints.draft.md")]
+    public void A_shell_command_that_does_not_write_a_protected_file_is_allowed(string command)
     {
         // Refusing a read would make the gate obstructive without making it safer.
         ToolCall call = Read(

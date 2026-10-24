@@ -211,19 +211,36 @@ public static class ProtectedPaths
             return true;
         }
 
-        if (!LooksLikeAWrite(command))
+        // Judged one segment at a time -- the pieces between `;`, `&&`, `||`, `|` and newlines, outside
+        // quotes -- so a read in one piece and an unrelated write in another are not added together.
+        // A redirect is a write of the file it points at, and only that file: `grep x decisions.md
+        // 2>/dev/null` reads it, and `cat approval.md > /tmp/x` writes somewhere else. A write verb is
+        // judged by whether the same segment names a protected file, because which argument a verb
+        // writes is not something this rule can know without parsing every command there is.
+        foreach (string segment in Segments(command))
         {
-            // A command that only reads one of these is fine. Refusing `cat approval.md` would make the
-            // gate obstructive without making it safer.
-            return false;
-        }
-
-        foreach (string candidate in Names)
-        {
-            if (command.Contains(candidate, StringComparison.OrdinalIgnoreCase))
+            foreach (string target in RedirectTargets(segment))
             {
-                file = Describe(candidate);
-                return file is not null;
+                string name = target.Replace('\\', '/').Split('/')[^1];
+                if (Describe(name) is { } redirected)
+                {
+                    file = redirected;
+                    return true;
+                }
+            }
+
+            if (!HasWriteVerb(segment))
+            {
+                continue;
+            }
+
+            foreach (string candidate in Names)
+            {
+                if (NamesWhole(segment, candidate))
+                {
+                    file = Describe(candidate);
+                    return file is not null;
+                }
             }
         }
 
@@ -247,26 +264,202 @@ public static class ProtectedPaths
             || flattened.Contains("Sdlc.Cli -- init", StringComparison.OrdinalIgnoreCase);
     }
 
-    private static bool LooksLikeAWrite(string command)
+    /// <summary>
+    /// Whether a protected file's name appears as a name of its own rather than inside a longer one.
+    /// </summary>
+    /// <remarks>
+    /// <c>review-decisions.md</c> and <c>decisions.draft.md</c> are not the decision record, and
+    /// refusing a command for naming them was a false refusal that taught agents to route round the
+    /// gate. Case is still ignored: on Windows <c>DECISIONS.md</c> is the same file.
+    /// </remarks>
+    private static bool NamesWhole(string text, string name)
     {
-        // The redirections and the commands that create, move or edit a file. A shell has more ways
-        // than this, which is why the shell rule is a fast local layer and the pipeline check is the
-        // guarantee.
-        // PowerShell's verbs are listed in full rather than left to the bare words beside them: "move "
-        // and "copy " carry a trailing space, so neither matches Move-Item or Copy-Item, and on Windows
-        // those are the commands somebody actually reaches for. A rename is the move that matters most
-        // now that a decision is placed by renaming a draft onto the ledger.
-        string[] writeIndicators =
+        int from = 0;
+        while (from < text.Length)
+        {
+            int at = text.IndexOf(name, from, StringComparison.OrdinalIgnoreCase);
+            if (at < 0)
+            {
+                return false;
+            }
+
+            int after = at + name.Length;
+            bool startsAlone = at == 0 || !IsNameCharacter(text[at - 1]);
+            bool endsAlone = after == text.Length || !IsNameCharacter(text[after]);
+            if (startsAlone && endsAlone)
+            {
+                return true;
+            }
+
+            from = at + 1;
+        }
+
+        return false;
+    }
+
+    private static bool IsNameCharacter(char c) => char.IsLetterOrDigit(c) || c is '_' or '-' or '.';
+
+    /// <summary>
+    /// The pieces of a command a shell runs separately, split outside quotes.
+    /// </summary>
+    /// <remarks>
+    /// Splitting inside quotes would be a bypass rather than a false refusal: <c>sed -i "s/a/b/;s/c/d/"
+    /// decisions.md</c> split on the quoted semicolon leaves the verb in one piece and the file in the
+    /// next. An ampersand beside a redirect is a descriptor, as in <c>2&gt;&amp;1</c>, not a separator.
+    /// </remarks>
+    private static IEnumerable<string> Segments(string command)
+    {
+        int start = 0;
+        char quote = '\0';
+        for (int i = 0; i < command.Length; i++)
+        {
+            char c = command[i];
+            if (quote != '\0')
+            {
+                if (c == quote)
+                {
+                    quote = '\0';
+                }
+
+                continue;
+            }
+
+            if (c is '"' or '\'')
+            {
+                quote = c;
+                continue;
+            }
+
+            bool descriptor = c == '&'
+                && ((i > 0 && command[i - 1] == '>') || (i + 1 < command.Length && command[i + 1] == '>'));
+
+            if (c is ';' or '|' or '\n' or '\r' || (c == '&' && !descriptor))
+            {
+                yield return command[start..i];
+                start = i + 1;
+            }
+        }
+
+        yield return command[start..];
+    }
+
+    /// <summary>
+    /// What each redirect in a segment writes to, leaving out the null device and descriptor copies.
+    /// </summary>
+    private static IEnumerable<string> RedirectTargets(string segment)
+    {
+        char quote = '\0';
+        for (int i = 0; i < segment.Length; i++)
+        {
+            char c = segment[i];
+            if (quote != '\0')
+            {
+                if (c == quote)
+                {
+                    quote = '\0';
+                }
+
+                continue;
+            }
+
+            if (c is '"' or '\'')
+            {
+                quote = c;
+                continue;
+            }
+
+            if (c != '>')
+            {
+                continue;
+            }
+
+            int j = i + 1;
+            if (j < segment.Length && segment[j] == '>')
+            {
+                j++;
+            }
+
+            if (j < segment.Length && segment[j] == '&')
+            {
+                i = j;
+                continue;
+            }
+
+            while (j < segment.Length && char.IsWhiteSpace(segment[j]))
+            {
+                j++;
+            }
+
+            int begin = j;
+            while (j < segment.Length && !char.IsWhiteSpace(segment[j]))
+            {
+                j++;
+            }
+
+            string target = segment[begin..j].Trim('"', '\'');
+            i = j - 1;
+
+            if (target.Length == 0
+                || string.Equals(target, "/dev/null", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(target, "$null", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(target, "nul", StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
+            yield return target;
+        }
+    }
+
+    /// <summary>
+    /// Whether a segment runs something that creates, moves, copies, deletes or edits a file.
+    /// </summary>
+    /// <remarks>
+    /// Matched as whole words, because a substring match found <c>rm </c> in "perform ", <c>del </c>
+    /// in "model " and <c>tee</c> in "guarantee", so any command with a sentence in it was a write.
+    /// PowerShell's verbs are listed in full: on Windows those are what somebody reaches for, and a
+    /// rename is the move that matters most since a decision is placed by renaming a draft. A shell has
+    /// more ways than these, which is why the shell rule is a fast local layer and the pipeline check
+    /// is the guarantee.
+    /// </remarks>
+    private static bool HasWriteVerb(string segment)
+    {
+        string[] words =
         [
-            ">", ">>", "tee", "cp ", "copy ", "mv ", "move ", "rm ", "del ", "ren ", "rename ",
+            "tee", "cp", "copy", "mv", "move", "rm", "del", "ren", "rename", "touch",
             "Remove-Item", "Move-Item", "Rename-Item", "Copy-Item", "Set-Item",
-            "Set-Content", "Add-Content", "Out-File", "New-Item", "sed -i", "touch ",
-            "git mv", "git checkout", "git restore",
+            "Set-Content", "Add-Content", "Out-File", "New-Item",
         ];
 
-        return Array.Exists(
-            writeIndicators,
-            indicator => command.Contains(indicator, StringComparison.OrdinalIgnoreCase));
+        string[] phrases = ["sed -i", "sed --in-place", "git mv", "git checkout", "git restore"];
+
+        return Array.Exists(words, word => IsWord(segment, word))
+            || Array.Exists(phrases, phrase => segment.Contains(phrase, StringComparison.OrdinalIgnoreCase));
+    }
+
+    private static bool IsWord(string text, string word)
+    {
+        int from = 0;
+        while (from < text.Length)
+        {
+            int at = text.IndexOf(word, from, StringComparison.OrdinalIgnoreCase);
+            if (at < 0)
+            {
+                return false;
+            }
+
+            int after = at + word.Length;
+            bool startsAlone = at == 0 || !IsNameCharacter(text[at - 1]);
+            bool endsAlone = after == text.Length || char.IsWhiteSpace(text[after]);
+            if (startsAlone && endsAlone)
+            {
+                return true;
+            }
+
+            from = at + 1;
+        }
+
+        return false;
     }
 
     /// <summary>

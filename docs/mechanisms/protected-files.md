@@ -43,7 +43,7 @@ never gets to make the call.
 | The agent is about to | Denied when |
 |---|---|
 | write or edit a file | the path has a `.sdlc` segment anywhere in it, and its last segment is one of the six names. Absolute, relative, either separator |
-| run a shell command | the command names the adoption verb, or it **looks like a write** — a redirection, a move, a copy, a delete, an in-place edit — **and names any of the six files anywhere in its text** |
+| run a shell command | the command names the adoption verb; or a **redirect points at** one of the six files; or one piece of the command — between `;`, `&&`, `\|\|`, `\|` and newlines, outside quotes — runs a **write verb** (a move, a copy, a delete, an in-place edit) **and names one of the six as a whole name** |
 
 **The shell rule reads the text of the command, not the paths it would touch.** It does not parse the
 line or require `.sdlc` to appear, because a command can change directory first. That makes it broad on
