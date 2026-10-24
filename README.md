@@ -1,6 +1,6 @@
 # ai-sdlc
 
-**Version 0.29.0** · iteration 4 · .NET 10 · MIT
+**Version 0.30.0** · iteration 4 · .NET 10 · MIT
 
 **A plugin that makes an AI coding agent work the way a careful team does** — write down what the change
 is for, agree what *done* means, plan it, have a person approve it, and only then write code.
@@ -126,7 +126,7 @@ sdlc constraints
 ```
 
 It should print the eighteen global constraints in force and say it read them from
-`global  embedded in sdlc 0.29.0`. **Use this rather than `sdlc help` as the smoke test** — `help` and
+`global  embedded in sdlc 0.30.0`. **Use this rather than `sdlc help` as the smoke test** — `help` and
 `version` are the only commands that need nothing from the installation, so they are the two that cannot
 tell you whether it worked. Then `claude plugin details sdlc@ai-sdlc` should say `Skills (18)` and
 `Hooks (2)`: **a hook count below two is a failed install**, not a detail, because the deterministic layer
@@ -329,7 +329,10 @@ What is honest to say about the rest:
   to read `test`, and the architecture suite a solution was scaffolded with before 0.29.0 does not carry
   the launch-profile test (D-102). `/sdlc:propose convergence` and `sdlc draft convergence` are new
   (D-104), and `/sdlc:intent` plans each cycle in a worktree of its own (D-105). The .NET profile's new
-  *fake data and seeding* row reaches no existing stack until a person answers it.
+  *fake data and seeding* row reaches no existing stack until a person answers it. 0.30.0 adds host tests
+  to the skeleton, which a solution scaffolded earlier does not have, and `doctor` asks the platform
+  whether branch policy requires the check (D-106), which has been run against one Azure DevOps
+  repository and no GitHub one.
 - **One perspective has a rule, and nothing proves a perspective's reader catches what it should.**
   Security, operability and maintainability are written as methods and steer every stage, and
   accessibility does the same for any change touching a user interface. Operability's reader may block on
