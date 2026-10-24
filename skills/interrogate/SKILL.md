@@ -179,7 +179,11 @@ sdlc perspective show <name> --for <artifact>
 ```
 
 — its method, the questions it asks of this artifact, the rules it may block on and the evidence it
-needs — then the artifact above in the chain and the artifact itself. Ask it for findings in the same JSON
+needs — then the artifact above in the chain and the artifact itself. **After the first round, add the
+output of `sdlc round <id> <artifact> --changed`** and tell it to raise suggestions about those sections
+only: a suggestion about text that has not moved is one an earlier round already had the chance to raise,
+and repeating them is how one plan reached nearly eight hundred open suggestions nobody read. Its
+blocking findings are not limited — a rule broken anywhere is still broken. Ask it for findings in the same JSON
 shape, with ids prefixed by the perspective — `security.F_01` — and with every place a repeated defect
 occurs named in one finding's `locus`, as the rules reader is told. **Set `"perspective": "<name>"` on
 every one of them when you write the round.** The field is what `sdlc propose constraints` counts a
@@ -210,26 +214,28 @@ gap, not a pass.
 ## Write the round
 
 **One round, whatever ran**: the rules reader's findings, every perspective's, and the reconciler's
-changes to them, in one file. A round is clean when every reader was silent.
+changes to them. A round is clean when every reader was silent.
 
-`.sdlc/cycles/<id>/findings/<artifact>.r<n>.json`:
+**The binary writes it** (D-101). Put the findings in a file in `<scratch>` — not in the repository —
+and hand it over:
 
 ```json
-{
-  "framework_version": "1.0.0",
-  "cycle": "<id>",
-  "artifact": "<artifact>.md",
-  "upstream_sha256": "<the upstream's canonical hash>",
-  "interrogated_at": "<now, UTC, ISO 8601>",
-  "round": 2,
-  "findings": [ ... ]
-}
+{ "findings": [ ... ], "conflicts": [ ... ] }
 ```
 
-Four things to get right:
+```bash
+sdlc round <id> <artifact> --from <scratch>/round.json
+```
 
-**The round number is one past the highest already there.** Rounds accumulate and are never
-rewritten. The history is the record of what was challenged and what became of it.
+It numbers the round, stamps when it ran, and records the hash of the document judged, of the one above
+it, of each section, and on a verify of the evidence. **It refuses while anything above the artifact is
+unsettled** — no round yet, a round that judged a different version, a round judged against an upstream
+that has since moved, or a blocker still open — and the refusal names which. That refusal is the order:
+the chain is interrogated top down, **one document at a time**, never in parallel, because a round about
+a spec judged while the intent is still moving is a clean reading of a document about to stop existing.
+The hook denies writing a round file any other way.
+
+Two things are still yours to get right:
 
 **A finding keeps its id across rounds.** A blocker raised in round one and still standing in round
 three carries `F_01` in both. Without that, nothing can tell a carried finding from a new one, and the
@@ -240,16 +246,8 @@ finding has not answered it — the fold reads the latest round that *mentions* 
 carries it forward unchanged, which is correct. **Which means a finding that has been dealt with has
 to be mentioned, and said to be dealt with.** The next section is how.
 
-**`upstream_sha256` is the canonical hash of the artifact above, as you just read it.** Omit it only
-for an intent, which has no upstream. For a verify it is the **plan's** hash, which is what the status
-panel compares a verify round against. This is what makes a stale judgement detectable: the approval's
-three hashes prove three documents were approved, not that the spec was derived from *this* intent, so
-an upstream edited afterwards leaves a round that is clean about a document that no longer exists. A
-round with no upstream recorded counts as stale, so leaving it out does not skip the check.
-
-The canonical hash is CRLF normalised to LF, trailing whitespace stripped per line, one closing
-newline. `sdlc status <id>` prints the first twelve characters of each document's hash if you need to
-check your arithmetic.
+**A steer carrying a change down adds a `note`** — one or two sentences saying what moved above this
+document since its last round and what this document did about it, including "nothing, because …".
 
 ## How a finding stops blocking
 

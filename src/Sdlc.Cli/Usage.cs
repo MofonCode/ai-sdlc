@@ -121,6 +121,10 @@ internal static class Usage
             status <id>              Show the panel for a stage. Ends with the next command.
             findings <id>            What the interrogations said, per artifact, each finding at the
                                      disposition that stands.
+            round <id> <artifact>    Write the next findings round from --from <file>: the readers'
+                                     findings, stamped with the time and the hashes of what was
+                                     judged. Refuses while anything above is unsettled. --changed
+                                     lists the sections moved since the last round instead.
             suggestions [<id>]       List the open non-blocking findings and what the builds
                                      noticed, for one cycle or all.
             decisions                The choices this solution has already settled, so a cycle reads

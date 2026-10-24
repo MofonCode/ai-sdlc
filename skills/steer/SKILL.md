@@ -105,10 +105,15 @@ Regenerating would discard the rounds already spent and the wording already argu
 history belongs to these documents; a regenerated artifact has a history about a document that no
 longer exists.
 
-**4. Re-interrogate everything downstream of what you edited.** Not optional, and checked: a findings
-round records the hash of the artifact above it, so editing the intent makes the spec's latest round
-stale, which fails the stage gate and the chain check. Re-interrogate what you touched and everything
-below it.
+**4. Re-interrogate from the top, one document at a time.** Not optional, and checked: a round records
+the hash of what it judged and of the artifact above it, and `sdlc round` refuses a spec round until the
+intent is settled and a plan round until the spec is. So run `/sdlc:interrogate` on the highest document
+you edited, refine until its round is clean, and only then move down — **never two documents' rounds at
+once**. You may edit a lower document while an upper one is being judged; its round simply waits.
+
+Each downstream round carries a `note` saying what moved above it and what this document did about it.
+A spec left unchanged by a corrected intent says so there, with why — the next reader of the history
+should meet a decision, not a gap.
 
 **5. Report what changed, one line per artifact** — and nothing about whether the correction was a good
 one. Then:

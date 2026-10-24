@@ -61,6 +61,12 @@ public sealed class PublicSurfaceTests
         "Sdlc.Core.Findings.ReadFindings",
         "Sdlc.Core.Findings.ReadFindings+Query",
         "Sdlc.Core.Findings.ReadFindings+Response",
+        "Sdlc.Core.Findings.RecordRound",
+        "Sdlc.Core.Findings.RecordRound+Command",
+        "Sdlc.Core.Findings.RecordRound+Response",
+        "Sdlc.Core.Findings.ChangedSections",
+        "Sdlc.Core.Findings.ChangedSections+Query",
+        "Sdlc.Core.Findings.ChangedSections+Response",
 
         // 'sdlc cycles': the listing, the per-cycle shape, and its renderer.
         "Sdlc.Core.Cycles.CycleSummary",

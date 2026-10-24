@@ -162,14 +162,30 @@ does not negotiate.
 
 ### a findings round is stale
 
-A round judged its artifact against an upstream document that has since changed. The three approval
-hashes prove the three documents were approved; they do not prove the spec was derived from *this*
-intent. An intent edited after a clean spec leaves a spec derived from an intent that no longer exists,
-with every approval hash matching. Only the round knows what it read, which is why it records it.
+A round judged its artifact against an upstream document that has since changed — or judged a version
+of the artifact itself that has since been edited. The three approval hashes prove the three documents
+were approved; they do not prove the spec was derived from *this* intent, or that the plan approved is
+the plan a reader cleared. Only the round knows what it read, which is why it records both.
 
 **Next:** re-interrogate the downstream artifact — `/sdlc:interrogate <id> spec`, and the plan after it
 if the spec changed. `/sdlc:steer` does this for you, which is the reason to use it rather than editing
 documents by hand.
+
+## `sdlc round` — the one way a round is refused
+
+`sdlc round` writes every findings round (D-101). `/sdlc:interrogate` runs it; you meet this when the
+order of the chain was skipped.
+
+### something above it is unsettled
+
+A round about a document is only worth recording once every document above it was read as it stands and
+nothing there still blocks. The refusal names, for each document above, what is wrong: it has no round,
+it changed after its latest round, that round judged it against an upstream that has since moved, or a
+blocking finding is still open. A spec judged while its intent is still moving is a clean reading of a
+document that is about to stop existing — in one real cycle, seven plan rounds were spent that way.
+
+**Next:** settle the highest document the refusal names — `/sdlc:interrogate <id> <artifact>`, and
+`/sdlc:refine` until its round is clean — then come back down, one document at a time.
 
 ## `sdlc scaffold` — the two ways it is refused
 
@@ -334,7 +350,7 @@ belongs there.
 
 ---
 
-## The pre-tool hook — the seven things an agent is denied
+## The pre-tool hook — the eight things an agent is denied
 
 These are denied at the tool call, by file path and by shell command alike. `../mechanisms/protected-files.md` says
 how the hook decides and what it deliberately leaves alone; this is why each one is a person's. The rules are absolute rather
@@ -350,6 +366,7 @@ running, so a rule with no exception has nowhere for a bypass to live.
 | writing `solution.md` | the origin is a historical fact that must never change. Per-key protection would be the first conditional rule, which is where a bypass would live. Adoption drafts it; after that `sdlc draft solution` does |
 | writing `techstack.md` | it is the second rule source a plan is read against, and `CON_15` judges every plan against it — so an agent able to edit it could satisfy that rule by adding the row it wanted instead of arguing for it, or drop a stack rule by switching its row off. `sdlc draft techstack` writes a draft beside it; renaming the draft is the decision |
 | running the adoption command | adoption writes the hook configuration that constrains the agent, the pipeline that gates the merge, and the file saying where this code came from |
+| writing a findings round | not a person's file but the binary's: `sdlc round` numbers it, stamps when it ran and what it judged, and refuses it out of the chain's order. A round the session wrote itself carried whatever it typed (D-101). Put the findings in a scratch file and hand it to `sdlc round` |
 
 **If your agent reports one of these as a broken tool, it is reading the mechanism as a malfunction.** The
 refusal message names the command to run instead — a drafter for four of these files, `propose` for the
@@ -378,7 +395,7 @@ a draft, or a file whose longer name ends in one of them, is not mistaken for th
 deliberately broad rather than a parser: a false refusal costs you a rephrasing, and a miss costs the
 guarantee.
 
-**Seven is the whole list, and the limit is structural.** The hook sees a tool call and not which skill
+**Eight is the whole list, and the limit is structural.** The hook sees a tool call and not which skill
 made it, so it cannot deny an edit that is wrong only because of where it came from — `remediate`
 touching `spec.md`, or `refine` touching source. Those rules are real and the skills state them, but
 they are the skill's own discipline rather than something denied at the call. What catches a breach is

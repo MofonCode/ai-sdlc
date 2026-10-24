@@ -609,11 +609,21 @@ answered and raised again: at two points it tells the refiner it is refighting o
 rule is caught against, and at three the loop stops and hands back (D-65). What it never says is that the
 rules conflict, which the counter cannot tell from a refiner repeating a mistake.
 
-### 6.2 A round records the upstream it judged against
+### 6.2 A round records what it judged, and what against
 
 `upstream_sha256` is the hash of the artifact above, as the round saw it. A round is clean **as of**
 that upstream, so changing an upstream makes a downstream round stale, the stage gate fails, and
-re-interrogation is required (D-21).
+re-interrogation is required (D-21). `subject_sha256` is the hash of the document the round judged, so a
+document edited after its clean round is stale as well; a verify round adds `evidence_sha256`, the run it
+read, which `verify-chain` compares with the evidence recorded now.
+
+**The binary writes the round** (D-101). `sdlc round <id> <artifact> --from <file>` takes the readers'
+findings and the session's dispositions, stamps the round number, the time and every hash, and refuses
+while anything above the artifact is unsettled — interrogated as it stands, against its upstream as it
+stands, with no blocker open. So the chain is interrogated top down, one document at a time, and a
+round judged against a document still moving is refused when it is written rather than discovered at the
+gate. The hook denies every agent write to a round file, which is what makes the command the only way
+one lands.
 
 ### 6.3 `refine` and `remediate` — two editors with opposite guards
 
@@ -1986,6 +1996,7 @@ they print verbatim.
 | `constraints [--for <artifact>]` | renders the effective set, all tiers. How the rules reach a session |
 | `status <id> [--stage] [--brief]` | the stage panel — §14. `--brief` is the between-stages form: the counts, what the artifact says, and the next command |
 | `findings <id> [--stage] [--round]` | what the interrogations said about one cycle, per artifact, each finding at the disposition that stands |
+| `round <id> <artifact> --from <file>` | writes the next findings round: the readers' findings and the session's dispositions, with the round number, the time, and the hashes of what was judged, what it was judged against, each section, and on a verify the evidence, stamped by the binary. Refuses while anything above it in the chain is unsettled. `--changed` lists the sections moved since the last round instead — D-101 |
 | `gate <id>` | whether a cycle's build may run. Exits 1 if not |
 | `draft approval\|abandon\|profile\|solution\|techstack` | prints or writes what belongs in a file only a person writes — §5.3 |
 | `propose constraints` | what the history says the rules are missing, with the cycles and finding ids behind each — D-69 |
@@ -6874,3 +6885,57 @@ its refusal still apply.
 - *Keeping `sdlc <stage>` everywhere.* Correct and host-neutral, and costs a refusal each time.
 - *Guessing a marker for Copilot or Antigravity.* Neither documents one; a guessed marker is a panel that
   names one host's invocation to someone using another.
+
+### D-101 — The binary writes every findings round, and refuses one out of the chain's order
+
+**Governs:** §6, §6.2, §12, §15.2
+
+**Decision.** A round is written by `sdlc round <id> <artifact> --from <file>`. The file holds the
+readers' findings and the session's dispositions (D-49 is unchanged: the fresh reader judges, the session
+holding the history records the transitions). The binary owns the envelope: the round number, the time,
+`upstream_sha256`, a new `subject_sha256` for the document judged, `section_sha256` per second-level
+section, and on a verify round `evidence_sha256` for the run it read. It refuses a round while any
+document above the artifact is unsettled — no round, a latest round that judged a different version of
+it or judged it against an upstream that has since moved, or a blocker still open. The hook denies every
+agent write to a round file, by path and by shell command. The approval gate adds the subject to its
+staleness check, and `verify-chain` checks the verify round read the evidence recorded now. A round may
+carry a `note`, which a steer uses to say what moved above the document and what the document did about
+it. `sdlc round --changed` lists the sections moved since the last round, and perspective readers raise
+suggestions about those sections alone after the first round.
+
+**Why.** MarketSense's first cycle ran its readers from a harness of its own and wrote the rounds itself,
+dispositions included. During its first steer it edited the intent, the spec and the plan in one pass and
+interrogated all three at once: intent, spec and plan rounds carry the same second, and plan rounds 7 to
+13 each judged a different spec, none of them the one later approved. The person caught it by asking
+why the three ran together. Nothing refused any of it, because the only thing writing the round was the
+thing the round checks, and the gate looks at staleness once, at approval, through the latest round's
+upstream alone. Seven rounds of work were spent on documents that stopped existing.
+
+**Why drafting ahead stays allowed.** An author may edit the plan while the spec is being judged. What
+must not happen is a *round* about the plan before the spec is settled, and once rounds are bound to the
+hash of what they judged, a premature edit costs only the round that has to be repeated. Refusing the
+edit would add friction without adding a guarantee.
+
+**Why a round written before this has nothing to compare.** Every cycle in flight when this ships has
+rounds without a subject hash. Counting a missing subject as stale would refuse every one of them at
+approval until each document took another round, for no defect of their own. The upstream rule is
+unchanged, so those rounds are judged exactly as before.
+
+**Why sections are hashed.** Perspective readers raised about thirty suggestions a round whether or not
+the document had moved — one plan reached 797 open, and none was ever read. A suggestion about text that
+did not change is one the previous round already had the chance to raise.
+
+**Rejected.**
+
+- *Leaving the round to the session and the order to the skill.* That is what was in force, and the
+  skill's instruction to re-interrogate downstream said nothing about one at a time. A rule an agent
+  breaks to save time, with nothing to refuse it, is advice.
+- *Catching it at the gate alone.* The gate did catch the stale rounds, eventually — after seven of them
+  had been written, argued over and refined against. A refusal at write time costs one command; one at
+  approval costs every round since.
+- *Refusing an edit to a downstream document while an upstream one is unsettled.* See above: the round
+  is what matters, and the hash makes a premature edit cheap.
+- *Signing a round.* The binary has no secret the agent running it cannot read, so a signature would
+  prove the binary ran on a machine the agent controls, which is nothing. The hook and the pipeline's
+  checks are the layers that exist.
+- *Treating a missing subject hash as stale.* See above.

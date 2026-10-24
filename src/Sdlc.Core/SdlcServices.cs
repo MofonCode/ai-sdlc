@@ -89,6 +89,8 @@ public static class SdlcServices
         services.AddReadCycleStatusRequestHandler();
 
         services.AddReadFindingsRequestHandler();
+        services.AddRecordRoundRequestHandler();
+        services.AddChangedSectionsRequestHandler();
 
         services.AddListCyclesRequestHandler();
 

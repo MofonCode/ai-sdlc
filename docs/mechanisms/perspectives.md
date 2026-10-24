@@ -101,6 +101,11 @@ nothing.
 - in a build's commit, as `Noticed: [security] the token is logged when the call fails.`
 - in `sdlc suggestions`, with every other open non-blocking finding
 
+**After the first round, a perspective raises suggestions only about what changed.** Its reader is handed
+`sdlc round <id> <artifact> --changed` — the sections moved since the last round — and a suggestion about
+text that has not moved is one an earlier round already had the chance to raise. Its blocking findings are
+not limited that way (D-101).
+
 **When two perspectives disagree**, the reconciling reader settles it by rule, not by preference:
 
 | The pair | becomes |

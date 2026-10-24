@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Text;
+using Sdlc.Core.Artifacts;
 using Sdlc.Core.Cycles;
 
 namespace Sdlc.Core.Findings;
@@ -205,4 +206,66 @@ public static class FindingsRenderer
         : string.Create(
             CultureInfo.InvariantCulture,
             $"rounds {string.Join(", ", artifact.Rounds.Select(round => round.Round))}");
+
+    /// <summary>
+    /// What <c>sdlc round</c> says after writing one.
+    /// </summary>
+    /// <param name="response">The round as written.</param>
+    /// <returns>Where it went, what it stamped, and how many findings it holds.</returns>
+    public static string RenderRecorded(RecordRound.Response response)
+    {
+        ArgumentNullException.ThrowIfNull(response);
+
+        FindingsRound round = response.Written;
+        StringBuilder text = new();
+        text.AppendLine(string.Create(
+            CultureInfo.InvariantCulture,
+            $"Recorded {Cycle.NameOf(response.Artifact)} round {round.Round} at {response.Path}"));
+        text.AppendLine(string.Create(
+            CultureInfo.InvariantCulture,
+            $"  judged      {ContentHash.Abbreviate(round.SubjectSha256 ?? string.Empty)}"));
+
+        if (round.UpstreamSha256 is { } upstream)
+        {
+            text.AppendLine(string.Create(CultureInfo.InvariantCulture, $"  against     {ContentHash.Abbreviate(upstream)}"));
+        }
+
+        if (round.EvidenceSha256 is { } evidence)
+        {
+            text.AppendLine(string.Create(CultureInfo.InvariantCulture, $"  evidence    {ContentHash.Abbreviate(evidence)}"));
+        }
+
+        text.AppendLine(string.Create(
+            CultureInfo.InvariantCulture,
+            $"  findings    {round.Findings.Count(OpenBlocker)} blocking open, {round.Findings.Count(OpenSuggestion)} suggestions open, {round.Findings.Count(finding => finding.Disposition != Disposition.Open)} settled"));
+
+        return text.ToString();
+    }
+
+    /// <summary>
+    /// What <c>sdlc round --changed</c> prints: one heading per line, for the perspective readers' prompt.
+    /// </summary>
+    /// <param name="response">The sections that moved.</param>
+    /// <returns>The headings, or a line saying there is no earlier round.</returns>
+    public static string RenderChanged(ChangedSections.Response response)
+    {
+        ArgumentNullException.ThrowIfNull(response);
+
+        StringBuilder text = new();
+        text.AppendLine(response.Since is { } since
+            ? string.Create(CultureInfo.InvariantCulture, $"Sections of {Cycle.FileNameOf(response.Artifact)} changed since round {since}:")
+            : string.Create(CultureInfo.InvariantCulture, $"{Cycle.FileNameOf(response.Artifact)} has no round yet, so every section is new:"));
+
+        foreach (string heading in response.Changed)
+        {
+            text.AppendLine("  " + heading);
+        }
+
+        if (response.Changed.Count == 0)
+        {
+            text.AppendLine("  none");
+        }
+
+        return text.ToString();
+    }
 }

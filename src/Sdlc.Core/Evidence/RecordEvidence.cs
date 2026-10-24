@@ -44,6 +44,9 @@ public static class RecordEvidence
     /// <summary>The change itself.</summary>
     public const string DiffFileName = "diff.patch";
 
+    /// <summary>The build's own log, when one was given.</summary>
+    public const string BuildLogFileName = "build.log";
+
     /// <summary>The runner's own results file, kept beside the normalised summary under a fixed name.</summary>
     public const string TrxFileName = "tests.trx";
 
@@ -210,7 +213,7 @@ public static class RecordEvidence
             {
                 await Write(
                     cycle,
-                    "build.log",
+                    BuildLogFileName,
                     await File.ReadAllTextAsync(log, cancellationToken).ConfigureAwait(false),
                     written,
                     cancellationToken).ConfigureAwait(false);

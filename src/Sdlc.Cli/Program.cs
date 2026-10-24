@@ -85,6 +85,7 @@ try
         "propose" => await Propose(line).ConfigureAwait(false),
         "status" => await WithCycle(line, "status", (w, id) => Status(w, line, id)).ConfigureAwait(false),
         "findings" => await WithCycle(line, "findings", (w, id) => Findings(w, line, id)).ConfigureAwait(false),
+        "round" => await WithCycle(line, "round", (w, id) => Round(w, line, id)).ConfigureAwait(false),
         "suggestions" => await Workspace.Run(line, w => Suggestions(w, line)).ConfigureAwait(false),
         "decisions" => await Workspace.Run(line, w => Decisions(w, line)).ConfigureAwait(false),
         "theme" => await Workspace.Run(line, ThemeCommand).ConfigureAwait(false),
@@ -1241,6 +1242,54 @@ static async Task<int> Findings(Workspace workspace, CommandLine line, CycleId i
         .WriteAsync(FindingsRenderer.Render(result.Value, line.HasOption("brief")))
         .ConfigureAwait(false);
 
+    return ExitCode.Ok;
+}
+
+static async Task<int> Round(Workspace workspace, CommandLine line, CycleId id)
+{
+    if (line.Arguments.Count < 2 || !Cycle.TryParseKind(line.Arguments[1], out ArtifactKind artifact))
+    {
+        await Console.Error.WriteLineAsync(
+            "Which artifact? 'sdlc round <id> <intent|spec|plan|verify> --from <findings.json>' records a round; add --changed instead of --from to list the sections changed since the last one.")
+            .ConfigureAwait(false);
+
+        return ExitCode.Usage;
+    }
+
+    if (line.HasOption("changed"))
+    {
+        Result<ChangedSections.Response> changed = await workspace
+            .Send<ChangedSections.Query, ChangedSections.Response>(new ChangedSections.Query(id, artifact))
+            .ConfigureAwait(false);
+
+        if (changed.IsFailed)
+        {
+            return await Report(changed, ExitCode.Refused).ConfigureAwait(false);
+        }
+
+        await Console.Out.WriteAsync(FindingsRenderer.RenderChanged(changed.Value)).ConfigureAwait(false);
+        return ExitCode.Ok;
+    }
+
+    if (!line.TryOption("from", out string? from))
+    {
+        await Console.Error.WriteLineAsync(
+            "Where are the findings? Give --from <file>: a JSON file with the readers' findings, and conflicts when there are any.")
+            .ConfigureAwait(false);
+
+        return ExitCode.Usage;
+    }
+
+    Result<RecordRound.Response> result = await workspace
+        .Send<RecordRound.Command, RecordRound.Response>(new RecordRound.Command(id, artifact, Path.GetFullPath(from)))
+        .ConfigureAwait(false);
+
+    if (result.IsFailed)
+    {
+        return await Report(result, ExitCode.Refused).ConfigureAwait(false);
+    }
+
+    await Console.Out.WriteAsync(FindingsRenderer.RenderRecorded(result.Value)).ConfigureAwait(false);
     return ExitCode.Ok;
 }
 

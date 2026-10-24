@@ -36,6 +36,8 @@ The two hooks return no exit code to you: they stop the agent's action, and the 
 | [a document was never interrogated](../guides/handling-refusals.md#a-document-was-never-interrogated) | `/sdlc:interrogate <id> <artifact>` |
 | [a blocking finding is open](../guides/handling-refusals.md#a-blocking-finding-is-open) | `/sdlc:refine <id> <artifact>`, then interrogate again |
 | [a findings round is stale](../guides/handling-refusals.md#a-findings-round-is-stale) | re-interrogate downstream: the spec, then the plan |
+| **Writing a round — `sdlc round`** | |
+| [something above it is unsettled](../guides/handling-refusals.md#something-above-it-is-unsettled) | settle the highest document it names, then come down one at a time |
 | **Writing the skeleton — `sdlc scaffold`** | |
 | [the gate refuses the cycle](../guides/handling-refusals.md#the-gate-refuses-the-cycle) | whichever gate remedy above matches the message |
 | [an adopted solution whose plan declares no build settings](../guides/handling-refusals.md#an-adopted-solution-whose-plan-declares-no-build-settings) | `sdlc stack`; a cycle whose plan declares the files brings them |
@@ -59,13 +61,14 @@ The two hooks return no exit code to you: they stop the agent's action, and the 
 | writing `solution.md` | `sdlc draft solution`, then rename |
 | writing `techstack.md` | `sdlc draft techstack`, then rename |
 | running the adoption command | run it yourself; `sdlc help` for its options |
+| writing a findings round | `sdlc round <id> <artifact> --from <file>` |
 | **Sent back at turn end — the turn-end hook** | |
 | [the recorded suite has a failure](../guides/handling-refusals.md#the-recorded-suite-has-a-failure) | fix the code, run the suite, record again. **Not the test** |
 | [there are changes and no recorded evidence](../guides/handling-refusals.md#there-are-changes-and-no-recorded-evidence) | `sdlc evidence <id> --tests <dir> --build-log <log>` |
 | [the working tree has moved since the evidence](../guides/handling-refusals.md#the-working-tree-has-moved-since-the-evidence) | build and test what is there now, and record it |
 | [when it says nothing](../guides/handling-refusals.md#when-it-says-nothing) | expected off a `cycle/` branch and before a plan; the pipeline check is the guarantee |
 
-\* **The pre-tool hook's seven denials are absolute: no mode, no flag.** Run the command the denial
+\* **The pre-tool hook's eight denials are absolute: no mode, no flag.** Run the command the denial
 names, and place what it produces yourself. A command that only *mentions* one of these files beside a
 write verb is denied too — for a commit message, use `git commit -F` with the message in a file. The pre-tool hook section of
 `../guides/handling-refusals.md` has why each is a person's.

@@ -34,6 +34,21 @@ namespace Sdlc.Core.Findings;
 /// them -- the decoration <c>CON_11</c> exists to refuse. With Findings the distinction is worth a
 /// rule, because "nothing is wrong" and "the author forgot" need different responses.
 /// </param>
+/// <param name="SubjectSha256">
+/// The canonical hash of the document this round judged (D-101). Without it a round could say what it
+/// was judged against and not what it judged, so a document edited after its clean round was caught by
+/// nothing but the person approving the bytes.
+/// </param>
+/// <param name="EvidenceSha256">On a verify round, one hash over the evidence the verification may cite.</param>
+/// <param name="SectionSha256">
+/// A hash per second-level section of the judged document, so the next round's perspective readers can be
+/// told which sections moved and raise suggestions about those alone.
+/// </param>
+/// <param name="Note">
+/// What moved above this document since its last round and what this document did about it, when a
+/// steer carried a change down. A spec that did not change for a corrected intent says why here, so the
+/// next reader of the history sees the decision rather than an unexplained gap.
+/// </param>
 public sealed record FindingsRound(
     [property: JsonPropertyName("framework_version")] string? FrameworkVersion,
     string? Cycle,
@@ -42,7 +57,11 @@ public sealed record FindingsRound(
     [property: JsonPropertyName("interrogated_at")] DateTimeOffset? InterrogatedAt,
     int Round,
     IReadOnlyList<Finding> Findings,
-    IReadOnlyList<Conflict>? Conflicts = null);
+    IReadOnlyList<Conflict>? Conflicts = null,
+    [property: JsonPropertyName("subject_sha256")] string? SubjectSha256 = null,
+    [property: JsonPropertyName("evidence_sha256")] string? EvidenceSha256 = null,
+    [property: JsonPropertyName("section_sha256")] IReadOnlyDictionary<string, string>? SectionSha256 = null,
+    string? Note = null);
 
 /// <summary>Reads interrogation rounds off disk.</summary>
 public static class FindingsReader
@@ -58,6 +77,20 @@ public static class FindingsReader
         ReadCommentHandling = JsonCommentHandling.Skip,
         AllowTrailingCommas = true,
     };
+
+    private static readonly JsonSerializerOptions _writing = new(_options)
+    {
+        WriteIndented = true,
+        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
+        Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
+    };
+
+    /// <summary>
+    /// Writes one round as the file a reader reads back.
+    /// </summary>
+    /// <param name="round">The round.</param>
+    /// <returns>Its JSON, with absent fields left out.</returns>
+    public static string Write(FindingsRound round) => JsonSerializer.Serialize(round, _writing) + "\n";
 
     /// <summary>
     /// Reads one round.

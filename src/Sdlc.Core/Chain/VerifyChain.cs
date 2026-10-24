@@ -6,6 +6,7 @@ using Sdlc.Core.Approvals;
 using Sdlc.Core.Artifacts;
 using Sdlc.Core.Cycles;
 using Sdlc.Core.Evidence;
+using Sdlc.Core.Findings;
 using Sdlc.Core.Solutions;
 
 namespace Sdlc.Core.Chain;
@@ -188,9 +189,49 @@ public static class VerifyChain
             await Proof(cycle, checks, cancellationToken).ConfigureAwait(false);
             await Proven(cycle, checks, cancellationToken).ConfigureAwait(false);
             await Adjudicated(cycle, checks, cancellationToken).ConfigureAwait(false);
+            await EvidenceRead(cycle, checks, cancellationToken).ConfigureAwait(false);
             await Outcome(cycle, checks, cancellationToken).ConfigureAwait(false);
 
             return Result.Ok(new Response(cycle, checks));
+        }
+
+        /// <summary>
+        /// The verify's latest round read the evidence that is recorded now (D-101).
+        /// </summary>
+        /// <remarks>
+        /// Evidence is re-recorded after each remediation. A round judging a verify document against the
+        /// run before last is a clean reading of claims about evidence that is gone, and ten verify
+        /// rounds over five recordings in one cycle could only be matched up from git. A round written
+        /// before rounds recorded their evidence has nothing to compare, and says so rather than failing.
+        /// </remarks>
+        private static async Task EvidenceRead(
+            Cycle cycle,
+            List<ChainCheck> checks,
+            CancellationToken cancellationToken)
+        {
+            Result<IReadOnlyList<FindingsRound>> history = await FindingsReader
+                .ReadHistory(cycle, ArtifactKind.Verify, cancellationToken)
+                .ConfigureAwait(false);
+
+            if (history.IsFailed || history.Value.Count == 0)
+            {
+                return;
+            }
+
+            FindingsRound latest = history.Value[^1];
+            string? now = await RecordRound.EvidenceHash(cycle, cancellationToken).ConfigureAwait(false);
+
+            checks.Add(latest.EvidenceSha256 is not { } judged
+                ? new ChainCheck(
+                    "the verify was judged against this evidence",
+                    true,
+                    string.Create(CultureInfo.InvariantCulture, $"verify round {latest.Round} predates rounds recording their evidence, so there is nothing to compare"))
+                : new ChainCheck(
+                    "the verify was judged against this evidence",
+                    string.Equals(judged, now, StringComparison.Ordinal),
+                    string.Equals(judged, now, StringComparison.Ordinal)
+                        ? string.Create(CultureInfo.InvariantCulture, $"verify round {latest.Round} read evidence {ContentHash.Abbreviate(judged)}, which is what is recorded")
+                        : string.Create(CultureInfo.InvariantCulture, $"verify round {latest.Round} read evidence {ContentHash.Abbreviate(judged)}, and what is recorded now is {ContentHash.Abbreviate(now ?? "nothing")}. Interrogate the verify again against this run.")));
         }
 
         /// <summary>Every artifact in the chain exists, and every one has a sound shape.</summary>

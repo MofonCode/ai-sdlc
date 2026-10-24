@@ -169,8 +169,47 @@ public static class ProtectedPaths
             return false;
         }
 
-        file = Describe(segments[^1]);
+        file = segments.Length >= 2
+            && string.Equals(segments[^2], "findings", StringComparison.OrdinalIgnoreCase)
+            && IsRoundFileName(segments[^1])
+                ? Round
+                : Describe(segments[^1]);
+
         return file is not null;
+    }
+
+    /// <summary>
+    /// A findings round: not a person's file but the binary's, denied to an agent for the same reason.
+    /// </summary>
+    /// <remarks>
+    /// D-101. A round the session wrote itself carried whatever round number, time and hashes the
+    /// session typed, and in a real cycle that let three stages be interrogated at once against
+    /// documents still moving. <c>sdlc round</c> stamps all of that and refuses a round whose upstream is
+    /// not settled; the denial is what makes it the only way a round lands.
+    /// </remarks>
+    public static ProtectedFile Round { get; } = new(
+        "a findings round",
+        "A round is written by the binary, which numbers it, stamps when it ran and what it judged, and "
+        + "refuses it while anything above it in the chain is unsettled. Put the readers' findings and "
+        + "your dispositions in a file outside the repository and run "
+        + "'sdlc round <id> <artifact> --from <file>'.");
+
+    /// <summary>
+    /// Whether a file name is a round's: <c>&lt;artifact&gt;.r&lt;n&gt;.json</c>.
+    /// </summary>
+    /// <param name="name">The file's name, without a directory.</param>
+    /// <returns>True for a round file name.</returns>
+    public static bool IsRoundFileName(string name)
+    {
+        ArgumentNullException.ThrowIfNull(name);
+
+        string[] parts = name.Split('.');
+        return parts.Length == 3
+            && Cycle.TryParseKind(parts[0], out _)
+            && parts[1].Length > 1
+            && (parts[1][0] is 'r' or 'R')
+            && parts[1][1..].All(char.IsAsciiDigit)
+            && string.Equals(parts[2], "json", StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -222,7 +261,7 @@ public static class ProtectedPaths
             foreach (string target in RedirectTargets(segment))
             {
                 string name = target.Replace('\\', '/').Split('/')[^1];
-                if (Describe(name) is { } redirected)
+                if ((IsRoundFileName(name) ? Round : Describe(name)) is { } redirected)
                 {
                     file = redirected;
                     return true;
@@ -241,6 +280,12 @@ public static class ProtectedPaths
                     file = Describe(candidate);
                     return file is not null;
                 }
+            }
+
+            if (NamesARound(segment))
+            {
+                file = Round;
+                return true;
             }
         }
 
@@ -296,6 +341,11 @@ public static class ProtectedPaths
 
         return false;
     }
+
+    private static bool NamesARound(string segment) => segment
+        .Split([' ', '\t', '"', '\'', '=', '(', ')', ','], StringSplitOptions.RemoveEmptyEntries)
+        .Select(token => token.Replace('\\', '/').Split('/')[^1])
+        .Any(IsRoundFileName);
 
     private static bool IsNameCharacter(char c) => char.IsLetterOrDigit(c) || c is '_' or '-' or '.';
 

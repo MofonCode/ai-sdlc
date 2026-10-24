@@ -480,7 +480,7 @@ round. Never edits.
 | Stage | the loop, whenever an artifact — intent, spec, plan or verify document — has just been written or changed |
 | Started by | the stage skill's loop, or a person |
 | Reads | the constraints in force, the artifact, and the artifact above it — on a plan round `techstack.md` as well, and on a verify round the spec and the evidence; `sdlc perspectives` and each perspective's `sdlc perspective show` for its readers |
-| Writes | `.sdlc/cycles/<id>/findings/<artifact>.r<n>.json` |
+| Writes | `.sdlc/cycles/<id>/findings/<artifact>.r<n>.json`, through `sdlc round` |
 
 #### Syntax
 
@@ -497,11 +497,13 @@ round. Never edits.
 
 #### Output
 
-A new findings round. Rounds accumulate and are never rewritten. A finding keeps its id across rounds,
-cites exactly one rule by id and by that rule's own heading, and every round records `upstream_sha256` —
-the hash of the artifact above it, as the reader saw it. That is what makes a stale judgement detectable
-when an upstream document is edited afterwards. A reader that finds two rules whose remedies exclude each
-other reports a conflict rather than picking a side.
+A new findings round, written by `sdlc round` — the binary numbers it, stamps the time and records the
+hash of the document judged, of the one above it, of each section and, on a verify, of the evidence, and
+refuses it while anything above the artifact is unsettled (D-101). So documents are interrogated top
+down, one at a time. Rounds accumulate and are never rewritten. A finding keeps its id across rounds and
+cites exactly one rule by id and by that rule's own heading. A reader that finds two rules whose remedies
+exclude each other reports a conflict rather than picking a side. After the first round, perspective
+readers raise suggestions only about the sections that changed.
 
 **It never edits the artifact**, and it does not recommend whether to run another round.
 
@@ -510,7 +512,8 @@ round for each instance in turn.
 
 #### Refusals
 
-None of its own.
+- **A round about a document whose upstream is unsettled** — `sdlc round` names what above it has no
+  round, changed after its round, or still has a blocker open. Settle the document above first.
 
 #### Example
 

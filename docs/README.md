@@ -164,7 +164,7 @@ How an artifact is challenged. Rounds accumulate and are never rewritten.
 |---|---|---|
 | **interrogation** | judging one artifact against the rules in force and writing a findings round. **Never edits** | `/sdlc:interrogate` |
 | **fresh process** | the interrogation runs with no memory of writing the thing it is judging. An author reviewing their own draft agrees with it |
-| **findings round** | one pass's findings, plus the hash of the artifact as that reader saw it | `findings/<kind>.rN.json` |
+| **findings round** | one pass's findings, plus the hashes of what it judged and what against, written by `sdlc round` — which refuses one while anything above it is unsettled | `findings/<kind>.rN.json` |
 | **finding** | one thing wrong: an id kept across rounds, the rule it **cites**, what is wrong, where, and the remedy |
 | **severity** | `blocking` stops the artifact advancing and cites exactly one rule; `suggestion` does not block. **Non-blocking is not trivial** — it means nothing forbade the current state |
 | **disposition** | `open`, `answered`, `withdrawn`, with who moved it and when. A finding is always shown at the disposition that stands |
@@ -266,7 +266,7 @@ declining to go on, exit code 1. An open blocker causes refusals; it is not one.
 
 | | What it is |
 |---|---|
-| **the pre-tool hook** | judges a tool call before it runs and denies the seven things an agent may not do: the six protected files, and adoption |
+| **the pre-tool hook** | judges a tool call before it runs and denies the eight things an agent may not do: the six protected files, a findings round, and adoption |
 | **hook policy** | the rules that judgement applies. Absolute rather than conditional — no mode, no flag, no check on which skill is running, **so a rule with no exception has nowhere for a bypass to live** |
 | **tool kind** | `harmless`, `file-write`, `shell`. A write is judged by path; a shell command is judged by its text |
 | **the command-text scan** | why a command that merely *names* a protected file beside a write verb is refused. The hook reads the command string, piece by piece, not the paths it would touch — so `git commit -F` with the message in a file is how a commit mentioning one gets through |

@@ -45,6 +45,7 @@ an agent runs it, and it never decides a gate. `skills.md` lists the skills.
 | `sdlc status <id> --brief` | binary | the same, between stages |
 | `sdlc status <id> --stage spec` | binary | one artifact's panel: intent, spec, plan or verify |
 | `sdlc findings <id>` | binary | what the interrogations said, each finding at the disposition that stands |
+| `sdlc round <id> <artifact> --from <file>` | binary | writes the next findings round, stamped and hashed, and refuses it while anything above is unsettled. `/sdlc:interrogate` runs it; `--changed` lists the sections moved since the last round |
 | `sdlc constraints --for plan --brief` | binary | the rules one stage is judged against |
 | `sdlc cycles` | binary | every cycle, newest first |
 | `sdlc branch <id> <kind>` | binary | the git command that puts you on the cycle's `plan`, `build`, `build-unattended` or `forward` branch. The skills run it for you |

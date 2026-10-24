@@ -396,6 +396,17 @@ public static class ApprovalGate
                     .OfFile(cycle.PathOf(kind), cancellationToken)
                     .ConfigureAwait(false);
 
+                // The round's own subject (D-101): a document edited after its clean round was caught by
+                // nothing but the person approving the bytes. A round written before rounds recorded
+                // their subject has nothing to compare, and is judged on its upstream alone as before.
+                FindingsRound latest = interrogations[kind][^1];
+                if (latest.SubjectSha256 is { } subject && !string.Equals(subject, hashes[kind], StringComparison.Ordinal))
+                {
+                    stale.Add(string.Create(
+                        CultureInfo.InvariantCulture,
+                        $"  {Cycle.FileNameOf(kind)}: round {latest.Round} judged {ContentHash.Abbreviate(subject)}, and the document is now {ContentHash.Abbreviate(hashes[kind])}"));
+                }
+
                 if (Cycle.UpstreamOf(kind) is not { } upstream)
                 {
                     continue;

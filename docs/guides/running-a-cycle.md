@@ -126,7 +126,8 @@ proof is worse than none because it produces a green verification instead of an 
 ```
 
 That edits the intent, spec and plan rather than regenerating them, records the correction with your name
-on it, and re-interrogates everything downstream of what it touched. Steering changes *how*, not *what* —
+on it, and re-interrogates from the highest document it touched down, one at a time — `sdlc round` refuses
+a spec round until the intent is settled, and a plan round until the spec is. Steering changes *how*, not *what* —
 a correction that changes the problem is a different cycle, and the skill says so and offers one.
 
 **Suggestions are yours to take in or leave.** A perspective's concern the intent did not ask for — keyboard
