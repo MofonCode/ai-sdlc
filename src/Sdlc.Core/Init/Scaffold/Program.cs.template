@@ -16,8 +16,12 @@ namespace __SOLUTION__.Api;
 ///
 /// <para>Each feature maps its own endpoints through one extension method, so this file does not grow
 /// a line per route and a feature can be deleted in one piece.</para>
+///
+/// <para>Sealed rather than static, and that is the only reason it is not static: the host tests start
+/// this process in memory through <c>WebApplicationFactory&lt;Program&gt;</c>, and a static class cannot
+/// be a type argument.</para>
 /// </remarks>
-internal static class Program
+internal sealed class Program
 {
     private static async Task Main(string[] args)
     {

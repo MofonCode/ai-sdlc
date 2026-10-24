@@ -149,6 +149,7 @@ public static class Scaffold
             Entry(Path.Combine(tests, "Gate.cs"), "Gate.cs", name),
             Entry(Path.Combine(tests, "GreetTests.cs"), "GreetTests.cs", name),
             Entry(Path.Combine(tests, "BoundaryTests.cs"), "BoundaryTests.cs", name),
+            Entry(Path.Combine(tests, "HostTests.cs"), "HostTests.cs", name),
 
             Entry(
                 Path.Combine(architecture, name + ".Architecture.Tests.csproj"),

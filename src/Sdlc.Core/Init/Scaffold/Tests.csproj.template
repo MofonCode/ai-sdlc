@@ -7,6 +7,10 @@
          handler. The kernel takes only the abstractions, deliberately, so whoever hosts it chooses the
          implementation - and here that is the suite. -->
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" />
+
+    <!-- The host, started in memory with no port, so a test reaches a route the way a caller does:
+         through the startup code, the routing and the boundary, none of which a handler test runs. -->
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" />
   </ItemGroup>
 
   <ItemGroup>

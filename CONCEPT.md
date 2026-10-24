@@ -7008,6 +7008,14 @@ the bar it is measured against, and the file sits under `.sdlc/`, which the reco
 that no test reaches — three quarters of the skeleton's measured lines, putting it at 14% when the code a
 person wrote was at 54%.
 
+**Why the skeleton starts its host in a test.** The 54% that remained was the startup code, the shared
+service defaults and the reference endpoints, which nothing ran. Every feature adds a registration line to the
+startup code, so a change that only registered something would fail the floor on the one line it added. The
+skeleton's `HostTests` start the api in memory through `WebApplicationFactory<Program>`, which is the .NET
+profile's integration row anyway, and the skeleton is at 98%. The person chose this over excluding the
+startup code from measurement, which would hide whatever logic is later put there. `Program` is sealed rather
+than static for it, because a static class cannot be a type argument.
+
 **Rejected.**
 
 - *A whole-codebase floor.* Refuses an adopted solution's every cycle; see above.

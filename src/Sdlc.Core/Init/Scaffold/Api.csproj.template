@@ -23,8 +23,8 @@
 
   <ItemGroup>
     <!-- The suite asserts what this writes to the wire, which is the only way to prove that an
-         exception's message does not reach a reader. Program is internal, so the grant is what lets a
-         test name it. -->
+         exception's message does not reach a reader, and starts this host in memory to prove the routes
+         reach it. Program is internal, so the grant is what lets a test name it. -->
     <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleTo">
       <_Parameter1>__SOLUTION__.Tests</_Parameter1>
     </AssemblyAttribute>

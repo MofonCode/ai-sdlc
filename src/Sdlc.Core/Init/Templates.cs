@@ -1261,6 +1261,7 @@ public static class Templates
             string.Empty,
             "    <PackageVersion Include=\"MSTest\" Version=\"4.4.1\" />",
             "    <PackageVersion Include=\"Microsoft.Extensions.DependencyInjection\" Version=\"10.0.12\" />",
+            "    <PackageVersion Include=\"Microsoft.AspNetCore.Mvc.Testing\" Version=\"10.0.12\" />",
             "  </ItemGroup>",
             string.Empty,
             "</Project>",
