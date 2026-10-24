@@ -161,8 +161,10 @@ many times as it takes — the ledger keeps every entry and the last one stands.
 
 `/sdlc:verify <id>` reads the recorded evidence — `tests.json`, `diff.patch`, `base.sha` — and never
 runs the tests or reads the source. Per criterion it asks which test the plan named, whether the summary
-says it ran and passed, and **whether that test actually establishes the criterion.** A test that passed
-but does not reach its criterion is *not met*.
+says it ran and passed, **whether that test actually establishes the criterion**, and what would let it
+pass while the criterion is unmet. A test that passed but does not reach its criterion is *not met*. Each
+Met quotes the assertion it rests on from `diff.patch`, so the interrogation that follows checks the quote
+against the diff rather than trusting a test's name.
 
 It writes `pass` or `blocked`, and a findings round of its own, `findings/verify.rN.json`, whose blocking
 findings are what remediation works from. **`pr-ready` refuses anything but `pass`.**

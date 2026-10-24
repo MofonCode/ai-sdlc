@@ -75,7 +75,10 @@ the **plan**, which commits to the proof per criterion. Add `spec.md` for the cr
 the verification cites — `tests.json`, `build.log` and `diff.patch` from the cycle's `evidence/` — because
 `CON_08` is decided by checking each claim against the evidence it names, and a reader without the
 evidence can only check that something was named. Nothing beyond that: the verification was not allowed
-the source or the intent, and a reader of it is held to the same.
+the source or the intent, and a reader of it is held to the same. **On a verify round, add to the prompt:**
+"Each Met quotes the assertion it rests on from `diff.patch`. Find each quote in the diff, and ask what
+would let that assertion pass while the criterion is unmet. A Met whose quote is missing, is not in the
+diff, or asserts less than the criterion asks breaks `CON_08`."
 
 **An empty stack is pasted as an empty stack, not left out.** An adopted solution's table starts
 empty, and a reader handed no block cannot tell "this solution declares nothing" from "nobody showed

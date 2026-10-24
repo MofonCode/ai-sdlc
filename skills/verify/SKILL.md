@@ -42,11 +42,27 @@ criterion in turn:
 1. Which test did the plan name for it?
 2. Does `tests.json` say that test ran and passed?
 3. Does that test, as the diff shows it, actually establish the criterion?
+4. **What would let that test pass while the criterion is unmet?** Answer it before you write Met. A test
+   that asserts a value was handed to a library, where the criterion is about what the person saw; a
+   keyboard test that moves focus with `FocusAsync` instead of a key; a failure test that checks one of
+   the four failure paths. If you can name such a way and the diff shows nothing closing it, the
+   criterion is **not met**.
 
 Question three is where judgement lives, and where you may disagree with the plan. A test that ran and
 passed but does not reach its criterion is **not met** — say so, cite the test and the diff lines, and
 let the finding stand. That is `CON_06` caught late rather than never, and it is worth more here than a
 pass that nobody can rely on.
+
+**Quote the assertion, not the test's name.** Every Met cites the lines of the diff that do the asserting
+— `diff.patch`, the file and the line numbers, and the assertion itself copied — so a reader checks the
+claim against the code in front of them rather than trusting a name. In one real cycle every one of
+fourteen verify blockers was "Met, because test X passed" where test X asserted less than the criterion
+asked, and it took ten rounds because the verdict cited names. A quoted assertion that does not establish
+the criterion is visible in the first round.
+
+**Do not overcorrect.** Not met is a claim too, and it needs the same citation: what the criterion asks
+and what in the evidence falls short of it. A verdict that swings from overclaiming to underclaiming is
+still a verdict that does not read the evidence.
 
 Question two is also checked mechanically by `sdlc verify-chain`, so a verdict of `pass` on a criterion
 whose named test did not pass will be refused at the merge. Agreeing with the evidence costs you
@@ -83,7 +99,7 @@ one citing evidence that does not establish what the statement claims.
 
 | Not a claim | A claim |
 |---|---|
-| criterion 2 is met | Met. `Two_requests_differ` passed; `diff.patch` shows the draw moved into a scoped service |
+| criterion 2 is met | Met. `Two_requests_differ` passed; `diff.patch` `tests/DrawTests.cs` +41–44: `Assert.AreNotEqual(first.Value, second.Value)` over two requests to the scoped service |
 | the change looks correct | — nothing. That is not derivable from evidence |
 | tests pass | Met. 14 passed, 0 failed, 0 skipped |
 
