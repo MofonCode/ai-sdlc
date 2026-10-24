@@ -65,7 +65,7 @@ public sealed class AppInsightsTelemetry : ITelemetry
         string span = string.Create(CultureInfo.InvariantCulture, $"{Math.Max(1, (int)window.TotalHours)}h");
         string kql = Query(span);
 
-        ProcessStartInfo start = new("az")
+        ProcessStartInfo start = new(ToolPath.Resolve("az"))
         {
             WorkingDirectory = workingDirectory,
             RedirectStandardOutput = true,

@@ -1804,8 +1804,8 @@ in the generated file, because a pipeline nobody has run looks exactly like a ga
 is ignored there — the keyword is for GitHub and Bitbucket — so the template has `trigger: none`, no
 `pr:` block, and a comment naming the policy a person must add. Until 2026-10-15 it carried a `pr:`
 block, and so ran on nothing while reading as a gate: exactly the shape the note above warns about, found
-by reading the platform's documentation rather than by a run. `sdlc doctor` reports the policy as
-`elsewhere`, on both platforms.
+by reading the platform's documentation rather than by a run. `sdlc doctor` asks the platform for the
+policy through `az` or `gh`, and reports it as `elsewhere` only when it could not ask (D-106).
 
 Every pull request installs the `sdlc` binary, builds, tests, **displays code coverage**, and runs
 `sdlc verify-chain`.
@@ -2040,8 +2040,8 @@ they print verbatim.
 | `doctor` | checks this install and this repository, and says which half is missing. Exits 1 if anything is wrong — a missing integration branch and a placeholder paragraph included. Before the first cycle it ends with every draft left to place and its rename — §9 |
 
 **`doctor` reports and never repairs**, and the third of its three outcomes is the point: what a binary
-cannot see — whether a host loaded the skills, whether a pipeline step is a *required* check — is
-marked `elsewhere` and names who to ask, rather than being
+cannot see — whether a host loaded the skills, and whether a pipeline step is a *required* check when the
+platform's CLI is not signed in (D-106) — is marked `elsewhere` and names who to ask, rather than being
 counted as sound. A command that said an install worked when nobody had established it is the failure
 this document opens by naming.
 
@@ -6899,6 +6899,40 @@ its refusal still apply.
 - *Keeping `sdlc <stage>` everywhere.* Correct and host-neutral, and costs a refusal each time.
 - *Guessing a marker for Copilot or Antigravity.* Neither documents one; a guessed marker is a panel that
   names one host's invocation to someone using another.
+
+### D-106 — `doctor` asks the platform whether branch policy requires the check
+
+**Governs:** §13, §15.2
+
+**Decision.** Once a pipeline here runs `sdlc verify-chain`, `doctor` asks the platform whether a merge into
+the integration branch needs it: on Azure DevOps through `az repos policy list` and `az pipelines show`,
+matching an enabled, blocking build validation policy to the pipeline file; on GitHub through `gh api`,
+reading the branch's protection and its rulesets for a required `verify` check. Required is sound. A
+platform that answered and requires nothing is a problem, and `doctor` exits 1. A platform that could not
+be asked — no CLI, not signed in, no permission to read the policy, no remote — is `elsewhere`, as the whole
+check was before, and the remedy says which sign-in lets `doctor` ask.
+
+**Why.** The policy is the half of the guarantee that lives off the repository. A policy switched off, or
+never set on a new repository, changes nothing on disk, so nothing the binary could read told those apart
+from a correct install, and on Azure DevOps a missing policy means the pipeline never runs at all. The
+person asked for the check to be made where it can be.
+
+**Why a warning when it cannot ask.** The person running `doctor` not having signed in says nothing about
+the install. Counting it as a problem would fail every run on a machine without the CLI; counting it as
+sound would claim what nobody established. The third outcome already exists for this.
+
+**Why the CLIs.** They own the credentials, as they do for leads (D-89): the binary never holds a token,
+and a pipeline grants access the same way a person does.
+
+**Rejected.**
+
+- *Leaving it `elsewhere` always.* What existed. It named the step on every run, which is the shape people
+  learn to scroll past, and could not catch the policy that was removed.
+- *Asking about the default branch and the required reviewers as well.* Cycles merge into the integration
+  branch, which is the merge the chain has to gate. Reviewers stay the organisation's (D-84), so they stay
+  a sentence in the remedy.
+- *Calling the REST APIs directly.* A token to hold and a second sign-in to explain, for an answer the CLIs
+  already give.
 
 ### D-105 — Each cycle is planned in a worktree of its own
 

@@ -145,7 +145,7 @@ public sealed partial class CliTracker : ITracker
         string remedy,
         CancellationToken cancellationToken)
     {
-        ProcessStartInfo start = new(tool, arguments)
+        ProcessStartInfo start = new(ToolPath.Resolve(tool), arguments)
         {
             WorkingDirectory = workingDirectory,
             RedirectStandardOutput = true,

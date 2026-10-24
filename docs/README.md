@@ -325,7 +325,7 @@ These are not files. They are the shapes that recur, and knowing them explains m
 | **derived, not declared** | `escalated` is what a remediation loop that stopped making progress makes of a cycle, not something anything writes |
 | **the task list** | the host's own list of steps, which six skills open where a host has one. `init`, `intent`, `spec`, `plan` and `build` list one stage's steps and nothing past its hand-back; `batch-build` lists one line per cycle, ticked only when that cycle passed. A view of one session, never the record: `sdlc doctor`, `sdlc status` and `sdlc cycles --pr-ready` say what is done |
 | **the human-in-the-loop hand-back** | a skill stops rather than chaining into the next stage. Chaining on would remove the decision point while appearing helpful |
-| **`elsewhere`** | what a binary cannot answer and does not pretend to: whether a host loaded the skills, whether the pipeline's check is required. `doctor` marks these and names who to ask |
+| **`elsewhere`** | what a binary cannot answer and does not pretend to: whether a host loaded the skills, and whether the pipeline's check is required when the platform's CLI is not signed in. `doctor` marks these and names who to ask |
 | **the admission question for a proof** | *what would have to be true for this to pass while the criterion is still unmet?* If that has an answer, the proof is inadequate — and **an inadequate proof is worse than none**, because it produces a green verification instead of an obvious gap |
 
 ## See also

@@ -118,11 +118,15 @@ public sealed class PublicSurfaceTests
         // `sdlc doctor`. A response a renderer reads, so the record and its outcome enum are public
         // for the same reason every other operation's are.
         "Sdlc.Core.Diagnostics.Check",
+        "Sdlc.Core.Diagnostics.CliBranchPolicies",
         "Sdlc.Core.Diagnostics.CheckOutcome",
         "Sdlc.Core.Diagnostics.Diagnose",
         "Sdlc.Core.Diagnostics.Diagnose+Query",
         "Sdlc.Core.Diagnostics.Diagnose+Response",
         "Sdlc.Core.Diagnostics.DiagnosisRenderer",
+        "Sdlc.Core.Diagnostics.IBranchPolicies",
+        "Sdlc.Core.Diagnostics.PolicyAnswer",
+        "Sdlc.Core.Diagnostics.PolicyFinding",
         "Sdlc.Core.Cycles.AbandonRecord",
         "Sdlc.Core.Cycles.AbandonText",
         "Sdlc.Core.Cycles.AbandonText+Query",

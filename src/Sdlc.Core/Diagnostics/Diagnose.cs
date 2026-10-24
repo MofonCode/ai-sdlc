@@ -26,7 +26,8 @@ public enum CheckOutcome
     /// <remarks>
     /// <strong>The category that keeps this command honest.</strong> Half of what a person wants to
     /// know about an install is on the other side of a boundary the binary cannot see across -- whether
-    /// the host loaded the plugin, whether a pipeline step is a <em>required</em> check. Reporting
+    /// the host loaded the plugin, and whether a pipeline step is a <em>required</em> check when the
+    /// platform's CLI cannot be asked (D-106). Reporting
     /// those as sound would make the panel a thing that
     /// says an install works when nobody has established that, which is the failure this whole
     /// framework is written against. Reporting them as problems would make the panel cry wolf. So they
@@ -99,7 +100,8 @@ public static class Diagnose
     /// <param name="solution">The repository being checked.</param>
     /// <param name="repository">How to ask git what it knows.</param>
     /// <param name="mediator">To ask for the constraints the way every other caller does.</param>
-    private sealed class Handler(SolutionRoot solution, IRepository repository, Mediator mediator)
+    /// <param name="policies">To ask the platform what its branch policy requires.</param>
+    private sealed class Handler(SolutionRoot solution, IRepository repository, Mediator mediator, IBranchPolicies policies)
         : IRequestHandler<Query, Response>
     {
         /// <inheritdoc />
@@ -151,11 +153,14 @@ public static class Diagnose
 
             checks.Add(pipeline);
 
-            if (pipeline.Outcome == CheckOutcome.Sound)
+            if (pipeline.Outcome == CheckOutcome.Sound && PipelineFile() is { } file)
             {
+                string integration = await SolutionDocument.IntegrationBranchOf(solution.Path, cancellationToken).ConfigureAwait(false);
+
                 checks.Add(BranchPolicy(
                     platform,
-                    await SolutionDocument.IntegrationBranchOf(solution.Path, cancellationToken).ConfigureAwait(false)));
+                    integration,
+                    await policies.Ask(platform, integration, file, solution.Path, cancellationToken).ConfigureAwait(false)));
             }
 
             checks.Add(Plugin());
@@ -652,6 +657,23 @@ public static class Diagnose
                     + "writes the pipeline, and a person makes the check required in branch policy");
             }
 
+            string? found = PipelineFile();
+
+            return found is null
+                ? new Check(
+                    "the guarantee",
+                    CheckOutcome.Problem,
+                    "no pipeline here runs 'sdlc verify-chain', so nothing stops an ungoverned change merging",
+                    "a person runs 'sdlc init' here, and then makes the check required in branch policy")
+                : new Check(
+                    "the guarantee",
+                    CheckOutcome.Sound,
+                    found + " runs it");
+        }
+
+        /// <summary>The pipeline file that runs the chain, relative and with forward slashes, or null.</summary>
+        private string? PipelineFile()
+        {
             string[] candidates =
             [
                 .. Directory.Exists(Path.Combine(solution.Path, ".github", "workflows"))
@@ -666,51 +688,64 @@ public static class Diagnose
                 candidates,
                 file => File.ReadAllText(file).Contains("sdlc verify-chain", StringComparison.Ordinal));
 
-            return found is null
-                ? new Check(
-                    "the guarantee",
-                    CheckOutcome.Problem,
-                    "no pipeline here runs 'sdlc verify-chain', so nothing stops an ungoverned change merging",
-                    "a person runs 'sdlc init' here, and then makes the check required in branch policy")
-                : new Check(
-                    "the guarantee",
-                    CheckOutcome.Sound,
-                    Path.GetRelativePath(solution.Path, found).Replace('\\', '/') + " runs it");
+            return found is null ? null : Path.GetRelativePath(solution.Path, found).Replace('\\', '/');
         }
 
         /// <summary>
-        /// The half of the guarantee that lives on the platform, which this cannot see.
+        /// The half of the guarantee that lives on the platform, asked of the platform where it can be.
         /// </summary>
         /// <remarks>
-        /// A pipeline that runs <c>sdlc verify-chain</c> is a promise only while branch policy requires
-        /// it, and the policy is set on the platform rather than written into the repository. Only asked
-        /// once the pipeline itself is sound: with no pipeline, the problem already names the policy.
-        /// <para>
-        /// <strong>On Azure DevOps the policy is also what runs it.</strong> Azure Repos ignores a
+        /// <para>A pipeline that runs <c>sdlc verify-chain</c> is a promise only while branch policy requires
+        /// it, and the policy is set on the platform rather than written into the repository -- so a policy
+        /// switched off, or never set, changes nothing here. The doctor asks the platform through its own
+        /// CLI, signed in as the person running it. Only asked once the pipeline itself is sound: with no
+        /// pipeline, the problem already names the policy.</para>
+        ///
+        /// <para><strong>Three answers.</strong> Required is sound. A platform that answered and requires
+        /// nothing is a problem, because the guarantee is not in force. A platform that could not be asked --
+        /// no CLI, not signed in, no permission -- is a warning, marked elsewhere as it always was, and says
+        /// how to let the doctor ask: the person running it not having signed in is not a broken install.</para>
+        ///
+        /// <para><strong>On Azure DevOps the policy is also what runs it.</strong> Azure Repos ignores a
         /// <c>pr:</c> trigger in YAML, so the pipeline runs on a pull request only when a build
         /// validation policy names it. Without one it is not an optional check -- it is no check, so the
-        /// remedy says so rather than reading the same as GitHub's.
-        /// </para>
-        /// </remarks>
-        /// <param name="platform">The recorded platform. Never local: a local solution has no pipeline.</param>
-        /// <returns>The check, always marked elsewhere.</returns>
-        /// <remarks>
+        /// remedy says so rather than reading the same as GitHub's.</para>
+        ///
         /// <para>The reviewer is named too, as a warning rather than a requirement (D-84): who must approve
         /// a pull request is the organisation's, but once a factory writes code overnight, a branch with no
         /// required reviewer takes that code read by nobody but whoever clicks merge.</para>
         /// </remarks>
-        private static Check BranchPolicy(Platform platform, string integration) => new(
-            "branch policy",
-            CheckOutcome.Elsewhere,
-            "the platform holds this, and a binary cannot ask it whether the check is required",
-            (platform == Platform.AzureDevOps
-                ? "on Azure DevOps the pipeline runs only from a build validation policy, so without one "
-                  + $"nothing runs: Repos > Branches > {integration} and the default branch > Branch policies > Build "
-                  + "validation, add the pipeline and make it Required"
-                : $"on GitHub: a branch protection rule on {integration} and the default branch that requires the "
-                  + "'verify' status check")
-            + $". Who must review is yours to set; with no required reviewer on {integration}, code a factory "
-            + "wrote reaches it read by nobody but whoever merges it");
+        /// <param name="platform">The recorded platform. Never local: a local solution has no pipeline.</param>
+        /// <param name="integration">The branch cycles merge into.</param>
+        /// <param name="answer">What the platform said, or why it was not asked.</param>
+        /// <returns>The check.</returns>
+        private static Check BranchPolicy(Platform platform, string integration, PolicyAnswer answer)
+        {
+            string remedy = (platform == Platform.AzureDevOps
+                    ? "on Azure DevOps the pipeline runs only from a build validation policy, so without one "
+                      + $"nothing runs: Repos > Branches > {integration} and the default branch > Branch policies > Build "
+                      + "validation, add the pipeline and make it Required"
+                    : $"on GitHub: a branch protection rule or ruleset on {integration} and the default branch that requires the "
+                      + $"'{CliBranchPolicies.GitHubCheck}' status check")
+                + $". Who must review is yours to set; with no required reviewer on {integration}, code a factory "
+                + "wrote reaches it read by nobody but whoever merges it";
+
+            string signIn = platform == Platform.AzureDevOps ? "az login" : "gh auth login";
+
+            return answer.Finding switch
+            {
+                PolicyFinding.Required => new Check(
+                    "branch policy",
+                    CheckOutcome.Sound,
+                    answer.Detail + ". The default branch and who must review are not asked; both are yours to set"),
+                PolicyFinding.NotRequired => new Check("branch policy", CheckOutcome.Problem, answer.Detail, remedy),
+                _ => new Check(
+                    "branch policy",
+                    CheckOutcome.Elsewhere,
+                    "the platform holds this, and it could not be asked whether the check is required: " + answer.Detail,
+                    remedy + $". Sign in with '{signIn}' and run the doctor again, and it asks for itself"),
+            };
+        }
 
         /// <summary>
         /// The other half of the install, which this cannot see.

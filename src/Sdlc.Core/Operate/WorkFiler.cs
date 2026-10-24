@@ -162,7 +162,7 @@ public sealed class CliWorkFiler : IWorkFiler
 
     private static async Task<Result<string>> Run(string workingDirectory, string[] arguments, string tool, CancellationToken cancellationToken)
     {
-        ProcessStartInfo start = new(tool)
+        ProcessStartInfo start = new(ToolPath.Resolve(tool))
         {
             WorkingDirectory = workingDirectory,
             RedirectStandardOutput = true,

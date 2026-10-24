@@ -262,8 +262,9 @@ no merge queue.
 **On Azure DevOps this is not only what makes the check required — it is what runs it.** Azure Repos
 ignores a `pr:` trigger written in YAML, so the pipeline has no trigger of its own, and the file says so
 at the top. Until the policy exists, no pull request is built, tested or verified, and nothing fails to
-tell you. `sdlc doctor` names this step under `branch policy`, marked `elsewhere`, because a binary
-cannot read the platform's policies.
+tell you. `sdlc doctor` asks Azure DevOps for the policy through `az`, signed in as you, and reports a
+problem under `branch policy` until it exists. When `az` is not signed in it names this step instead,
+marked `elsewhere`.
 
 ## 9. Open the first cycle
 

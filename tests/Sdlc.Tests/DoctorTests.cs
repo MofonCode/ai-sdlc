@@ -86,7 +86,7 @@ public sealed class DoctorTests
         CollectionAssert.AreEquivalent(
             new[] { "branch policy", "the skills" },
             elsewhere,
-            "A binary cannot ask a host what it loaded, or a platform what its branch policy requires.");
+            "A binary cannot ask a host what it loaded, or a platform it is not signed in to what its branch policy requires.");
     }
 
     [TestMethod]
@@ -592,17 +592,125 @@ public sealed class DoctorTests
         await File.WriteAllTextAsync(path, text.Replace(FrameworkStamp.Line(Sdlc.Core.Release.Version), line, StringComparison.Ordinal));
     }
 
+    [TestMethod]
+    public async Task A_platform_that_requires_the_check_makes_the_policy_sound()
+    {
+        using var solution = Scratch.Create();
+        await Adopt(solution);
+
+        Diagnose.Response report = await Diagnosis(
+            solution,
+            platform: new PolicyAnswer(PolicyFinding.Required, "a merge into development requires the 'verify' status check"));
+        Check policy = report.Checks.Single(check => check.Subject == "branch policy");
+
+        Assert.AreEqual(CheckOutcome.Sound, policy.Outcome);
+        StringAssert.Contains(policy.Detail, "requires the 'verify' status check");
+        Assert.IsTrue(report.Sound);
+    }
+
+    [TestMethod]
+    public async Task A_platform_that_answered_and_requires_nothing_is_a_problem()
+    {
+        // The case nothing in the repository can show: a policy switched off, or never set. The pipeline
+        // file is still there and still runs the chain, so every other check reads sound.
+        using var solution = Scratch.Create();
+        await Adopt(solution);
+
+        Diagnose.Response report = await Diagnosis(
+            solution,
+            platform: new PolicyAnswer(PolicyFinding.NotRequired, "development requires no status check"));
+        Check policy = report.Checks.Single(check => check.Subject == "branch policy");
+
+        Assert.AreEqual(CheckOutcome.Problem, policy.Outcome);
+        Assert.IsFalse(report.Sound, "The guarantee is not in force, which is what the exit code is for.");
+        StringAssert.Contains(policy.Remedy!, "branch protection rule or ruleset");
+    }
+
+    [TestMethod]
+    public async Task A_platform_that_could_not_be_asked_is_a_warning_that_says_how_to_let_it_ask()
+    {
+        // Not signed in is the person running the doctor, not a broken install, so it never fails the exit
+        // code -- and it never reads as sound either, because nobody established it.
+        using var solution = Scratch.Create();
+        await Adopt(solution, Platform.AzureDevOps);
+
+        Diagnose.Response report = await Diagnosis(
+            solution,
+            platform: new PolicyAnswer(PolicyFinding.Unasked, "'az repos show' failed: Please run 'az login' to setup account."));
+        Check policy = report.Checks.Single(check => check.Subject == "branch policy");
+
+        Assert.AreEqual(CheckOutcome.Elsewhere, policy.Outcome);
+        StringAssert.Contains(policy.Detail, "could not be asked");
+        StringAssert.Contains(policy.Detail, "az login");
+        StringAssert.Contains(policy.Remedy!, "Sign in with 'az login'");
+        Assert.IsTrue(report.Sound);
+    }
+
+    [TestMethod]
+    public void An_azure_policy_list_yields_only_enabled_blocking_build_validations()
+    {
+        const string listed = """
+            [
+              { "isEnabled": true,  "isBlocking": true,  "type": { "displayName": "Build" }, "settings": { "buildDefinitionId": 12 } },
+              { "isEnabled": true,  "isBlocking": false, "type": { "displayName": "Build" }, "settings": { "buildDefinitionId": 13 } },
+              { "isEnabled": false, "isBlocking": true,  "type": { "displayName": "Build" }, "settings": { "buildDefinitionId": 14 } },
+              { "isEnabled": true,  "isBlocking": true,  "type": { "displayName": "Minimum number of reviewers" }, "settings": { "minimumApproverCount": 1 } }
+            ]
+            """;
+
+        CollectionAssert.AreEqual(new[] { 12 }, CliBranchPolicies.BlockingBuildPolicies(listed).ToArray());
+    }
+
+    [TestMethod]
+    public void A_github_branch_names_its_required_checks_from_protection_and_from_rulesets()
+    {
+        const string branch = """
+            { "name": "development", "protected": true,
+              "protection": { "enabled": true, "required_status_checks": { "enforcement_level": "everyone", "contexts": ["build"], "checks": [ { "context": "verify", "app_id": null } ] } } }
+            """;
+        const string off = """
+            { "name": "development", "protected": true,
+              "protection": { "enabled": true, "required_status_checks": { "enforcement_level": "off", "contexts": ["verify"] } } }
+            """;
+        const string rules = """
+            [ { "type": "pull_request" },
+              { "type": "required_status_checks", "parameters": { "required_status_checks": [ { "context": "verify" } ] } } ]
+            """;
+
+        CollectionAssert.AreEquivalent(new[] { "build", "verify" }, CliBranchPolicies.ProtectedContexts(branch).ToArray());
+        Assert.AreEqual(0, CliBranchPolicies.ProtectedContexts(off).Count, "Protection switched off requires nothing.");
+        Assert.AreEqual(0, CliBranchPolicies.ProtectedContexts("""{ "name": "development", "protected": false }""").Count);
+        CollectionAssert.AreEqual(new[] { "verify" }, CliBranchPolicies.RulesetContexts(rules).ToArray());
+    }
+
+    [TestMethod]
+    [DataRow("https://dev.azure.com/org/Project/_git/MarketSense", "MarketSense")]
+    [DataRow("https://org@dev.azure.com/org/Project/_git/Market%20Sense", "Market Sense")]
+    [DataRow("https://org.visualstudio.com/Project/_git/MarketSense/", "MarketSense")]
+    [DataRow("git@ssh.dev.azure.com:v3/org/Project/MarketSense", "MarketSense")]
+    [DataRow("https://github.com/MofonCode/ai-sdlc.git", null)]
+    public void An_azure_repos_remote_names_its_repository(string remote, string? expected) =>
+        Assert.AreEqual(expected, CliBranchPolicies.RepositoryName(remote));
+
     /// <summary>Every host the enum declares, so the per-host check runs per host.</summary>
     public static IEnumerable<object[]> Hosts =>
         Enum.GetValues<HookHost>().Select(host => new object[] { host });
 
-    private static async Task<Diagnose.Response> Diagnosis(Scratch solution, FakeRepository? git = null)
+    private static async Task<Diagnose.Response> Diagnosis(Scratch solution, FakeRepository? git = null, PolicyAnswer? platform = null)
     {
         // Adoption creates the integration branch after its commit, so a repository it finished with has
         // one. A test about a missing branch passes a repository without it.
         using var gate = Gate.For(
             solution.Root,
-            services => services.AddSingleton<IRepository>(git ?? new FakeRepository { Refs = { SolutionDocument.DefaultIntegrationBranch } }));
+            services =>
+            {
+                services.AddSingleton<IRepository>(git ?? new FakeRepository { Refs = { SolutionDocument.DefaultIntegrationBranch } });
+
+                if (platform is not null)
+                {
+                    services.AddSingleton<IBranchPolicies>(new AnsweredBranchPolicies(platform));
+                }
+            });
 
         Result<Diagnose.Response> result = await gate
             .Send<Diagnose.Query, Diagnose.Response>(new Diagnose.Query());
@@ -683,5 +791,11 @@ public sealed class DoctorTests
                 // A scratch directory a virus scanner still has open. Nothing here depends on it going.
             }
         }
+    }
+
+    private sealed class AnsweredBranchPolicies(PolicyAnswer answer) : IBranchPolicies
+    {
+        public Task<PolicyAnswer> Ask(Platform platform, string branch, string pipelineFile, string workingDirectory, CancellationToken cancellationToken) =>
+            Task.FromResult(answer);
     }
 }

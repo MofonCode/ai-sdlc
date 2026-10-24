@@ -194,14 +194,16 @@ configuration and whether a pipeline here runs `sdlc verify-chain`, and it exits
 In a repository that has not opened its first cycle it ends with what is still yours to place and the
 one command that is next.
 
-What it deliberately does **not** claim is the half a binary cannot see. Two things come back marked
+What it deliberately does **not** claim is the half a binary cannot see. Two things can come back marked
 `elsewhere` with who to ask, rather than counted as a pass:
 
 - **whether a host loaded the skills** — no binary can ask a host what it loaded, and this is the silent
   failure of the two, because an agent with no skills behaves exactly like an agent nobody asked.
-- **whether branch policy requires the pipeline's check** — the policy lives on the platform, not in the
-  repository. On Azure DevOps it is also what runs the pipeline, so without it nothing is checked at
-  all. Not reported for a `local` solution, which has no pipeline.
+- **whether branch policy requires the pipeline's check, when it cannot ask** — the policy lives on the
+  platform, not in the repository. `doctor` asks through `az` or `gh`, signed in as you, and a policy that
+  does not require the check is a problem. Signed out, or without permission to read the policy, it comes
+  back `elsewhere` with the step to take. On Azure DevOps the policy is also what runs the pipeline, so
+  without it nothing is checked at all. Not reported for a `local` solution, which has no pipeline.
 
 So the rest of this section is still worth doing on a new machine.
 

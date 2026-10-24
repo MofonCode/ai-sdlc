@@ -165,10 +165,13 @@ internal static class Usage
             doctor                   Check this installation and this repository: the rules, git,
                                      adoption, which release wrote adoption's files against this
                                      binary, line endings, every host's hook config, and the
-                                     pipeline that is the guarantee. Reports and never repairs. Exits 1 if anything
-                                     is wrong. What a binary cannot see -- whether a host loaded
-                                     the skills, whether the pipeline's check is required -- is
-                                     marked 'elsewhere' and names who to ask. Before the first
+                                     pipeline that is the guarantee, and asks the platform
+                                     through az or gh whether branch policy requires it.
+                                     Reports and never repairs. Exits 1 if anything is wrong, a
+                                     policy that does not require the check included. What it
+                                     cannot see -- whether a host loaded the skills, or the
+                                     policy when the CLI is not signed in -- is marked
+                                     'elsewhere' and names who to ask. Before the first
                                      cycle it ends with what a person still has to place, and the
                                      one command that is next.
             hook --host <name>       Judge a tool call, or a turn that is ending. Reads the host's

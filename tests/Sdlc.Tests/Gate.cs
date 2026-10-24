@@ -2,6 +2,8 @@ using FluentResults;
 using Microsoft.Extensions.DependencyInjection;
 using MofonCode.Core;
 using Sdlc.Core;
+using Sdlc.Core.Diagnostics;
+using Sdlc.Core.Init;
 
 namespace Sdlc.Tests;
 
@@ -39,6 +41,10 @@ internal sealed class Gate : IDisposable
     public static Gate For(string solutionRoot, Action<IServiceCollection>? substitute = null)
     {
         ServiceCollection services = new();
+
+        // Never the platform's CLI: the suite needs no network and no sign-in. Registered first, so a test
+        // that substitutes its own answer wins, the way the last registration of a service always does.
+        services.AddSingleton<IBranchPolicies>(new UnaskedBranchPolicies());
         substitute?.Invoke(services);
 
         return new Gate(services
@@ -63,4 +69,11 @@ internal sealed class Gate : IDisposable
 
     /// <inheritdoc />
     public void Dispose() => provider.Dispose();
+}
+
+/// <summary>The platform as it is to a person who has not signed in, which is what every test gets by default.</summary>
+internal sealed class UnaskedBranchPolicies : IBranchPolicies
+{
+    public Task<PolicyAnswer> Ask(Platform platform, string branch, string pipelineFile, string workingDirectory, CancellationToken cancellationToken) =>
+        Task.FromResult(new PolicyAnswer(PolicyFinding.Unasked, "'gh' is not signed in"));
 }
