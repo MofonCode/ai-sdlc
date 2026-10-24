@@ -188,4 +188,21 @@ public sealed class FactoryPipelineTests
             await File.ReadAllTextAsync(Path.Combine(workspace.Root, result.Value.Path)),
             "include: [integration]");
     }
+
+    [TestMethod]
+    [DataRow(Platform.GitHub)]
+    [DataRow(Platform.AzureDevOps)]
+    public void Both_pipelines_select_an_sdk_whether_or_not_global_json_exists(Platform platform)
+    {
+        // useGlobalJson and global-json-file both fail when the file is absent, and an adopted solution
+        // need not have one. Each pipeline therefore pins from the file when it is there and installs the
+        // current major when it is not.
+        foreach (string pipeline in new[] { Templates.Pipeline(platform), FactoryPipeline.Text(platform, "development", "9.9.9") })
+        {
+            string pinned = platform == Platform.GitHub ? "hashFiles('global.json') != ''" : "eq(variables.sdkPinned, 'true')";
+            string unpinned = platform == Platform.GitHub ? "hashFiles('global.json') == ''" : "ne(variables.sdkPinned, 'true')";
+            StringAssert.Contains(pipeline, pinned);
+            StringAssert.Contains(pipeline, unpinned);
+        }
+    }
 }

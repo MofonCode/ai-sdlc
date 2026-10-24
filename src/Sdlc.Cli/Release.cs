@@ -30,7 +30,15 @@ internal static class Release
     /// <summary>What <c>sdlc version</c> writes to standard output.</summary>
     public static string Text { get; } = Compose();
 
-    private static string Compose() => string.Create(
+    /// <remarks>
+    /// Line endings are normalised because a raw string literal carries the ones its source file was
+    /// checked out with, and a binary packed on Windows would otherwise print CRLF on Linux -- where the
+    /// pipelines compare the first line to <c>sdlc &lt;version&gt;</c> and a trailing carriage return
+    /// makes an agent that already has the right version reinstall it.
+    /// </remarks>
+    private static string Compose() => Body().ReplaceLineEndings("\n");
+
+    private static string Body() => string.Create(
         CultureInfo.InvariantCulture,
         $"""
         sdlc {Version}

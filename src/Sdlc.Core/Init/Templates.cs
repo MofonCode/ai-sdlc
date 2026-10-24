@@ -291,7 +291,7 @@ public static class Templates
             "```",
             "intent -> spec -> plan -> build -> verify -> pr",
             "                    ^        |",
-            "                    +- remediate (at most 3) -+",
+            "                    +- remediate (while it progresses) -+",
             "```",
             string.Empty,
             "Intent, spec and plan are all required, always. Each is written, challenged against the",
@@ -744,9 +744,7 @@ public static class Templates
                 "        with:",
                 "          fetch-depth: 0",
                 string.Empty,
-                "      - uses: actions/setup-dotnet@v4",
-                "        with:",
-                "          global-json-file: global.json",
+                .. SelectSdkGitHub("      "),
                 string.Empty,
                 "      # The sdlc binary the last step runs. Pinned, because an unpinned governance tool can",
                 "      # change what this repository is judged by without anybody choosing it. First, so a",
@@ -844,9 +842,7 @@ public static class Templates
                 "  - checkout: self",
                 "    fetchDepth: 0",
                 string.Empty,
-                "  - task: UseDotNet@2",
-                "    inputs:",
-                "      useGlobalJson: true",
+                .. SelectSdkAzure("  "),
                 string.Empty,
                 "  # The sdlc binary the last step runs. Pinned, because an unpinned governance tool can change",
                 "  # what this repository is judged by without anybody choosing it. First, so a missing binary",
@@ -921,6 +917,51 @@ public static class Templates
             $"  dotnet tool install --global MofonCode.Sdlc.Cli --version {version}");
         yield return indent + "fi";
     }
+
+    /// <summary>
+    /// The Azure Pipelines steps that select the SDK: the one <c>global.json</c> pins, or the current
+    /// major when there is no such file.
+    /// </summary>
+    /// <remarks>
+    /// <c>useGlobalJson</c> throws when the file is absent, and an adopted solution need not have one --
+    /// its build settings are rows it may leave <c>false</c>. A pipeline that fails on its first step in
+    /// a repository the framework adopted is the framework's fault, so the file is looked for first.
+    /// </remarks>
+    /// <param name="indent">The indentation of the step list the lines go in.</param>
+    /// <returns>The lines.</returns>
+    internal static IEnumerable<string> SelectSdkAzure(string indent)
+    {
+        yield return indent + "- script: if [ -f global.json ]; then echo '##vso[task.setvariable variable=sdkPinned]true'; fi";
+        yield return indent + "  displayName: is the SDK pinned";
+        yield return indent + "- task: UseDotNet@2";
+        yield return indent + "  condition: and(succeeded(), eq(variables.sdkPinned, 'true'))";
+        yield return indent + "  inputs:";
+        yield return indent + "    useGlobalJson: true";
+        yield return indent + "- task: UseDotNet@2";
+        yield return indent + "  condition: and(succeeded(), ne(variables.sdkPinned, 'true'))";
+        yield return indent + "  inputs:";
+        yield return indent + "    version: " + UnpinnedSdk;
+    }
+
+    /// <summary>
+    /// The GitHub Actions steps that select the SDK, for the reason <see cref="SelectSdkAzure"/> gives.
+    /// </summary>
+    /// <param name="indent">The indentation of the step list the lines go in.</param>
+    /// <returns>The lines.</returns>
+    internal static IEnumerable<string> SelectSdkGitHub(string indent)
+    {
+        yield return indent + "- uses: actions/setup-dotnet@v4";
+        yield return indent + "  if: hashFiles('global.json') != ''";
+        yield return indent + "  with:";
+        yield return indent + "    global-json-file: global.json";
+        yield return indent + "- uses: actions/setup-dotnet@v4";
+        yield return indent + "  if: hashFiles('global.json') == ''";
+        yield return indent + "  with:";
+        yield return indent + "    dotnet-version: " + UnpinnedSdk;
+    }
+
+    /// <summary>The SDK a pipeline installs for a solution that pins none.</summary>
+    private const string UnpinnedSdk = "10.0.x";
 
     public static string CommitMessage(Initialise.InitMode mode, IReadOnlyList<string> paths)
     {

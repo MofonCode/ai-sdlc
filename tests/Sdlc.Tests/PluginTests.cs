@@ -1057,6 +1057,14 @@ public sealed class PluginTests
     }
 
     [TestMethod]
+    public void The_version_report_carries_no_carriage_return()
+    {
+        // A pipeline compares the first line to "sdlc <version>" on Linux, and a binary packed on Windows
+        // once printed CRLF from its raw string literal, so an agent carrying the right version reinstalled it.
+        Assert.IsFalse(Sdlc.Cli.Release.Text.Contains('\r', StringComparison.Ordinal));
+    }
+
+    [TestMethod]
     public void The_readme_states_the_release_version_it_actually_ships()
     {
         // A version in a readme is the first thing a reader believes and the last thing anybody updates.
