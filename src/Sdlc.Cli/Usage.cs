@@ -62,7 +62,9 @@ internal static class Usage
                                      branch a kind of work happens on -- plan, build,
                                      build-unattended or forward -- creating it from the right
                                      base: the integration branch once the plan is admitted to
-                                     it, the plan's own branch before that.
+                                     it, the plan's own branch before that. 'plan --worktree'
+                                     opens the cycle in a folder of its own beside the
+                                     repository instead, so several cycles are planned at once.
             factory                  Write the factory's pipeline for the recorded platform: every
                                      night, batch-build --pr --unattended against the integration
                                      branch, one run at a time, six hours at most, proving the

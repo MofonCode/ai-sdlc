@@ -653,7 +653,7 @@ static async Task<int> BranchCommand(CommandLine line)
     return await WithCycle(line, "branch", async (workspace, id) =>
     {
         Result<StartBranch.Response> result = await workspace
-            .Send<StartBranch.Query, StartBranch.Response>(new StartBranch.Query(id, kind.Value))
+            .Send<StartBranch.Query, StartBranch.Response>(new StartBranch.Query(id, kind.Value, line.HasOption("worktree")))
             .ConfigureAwait(false);
 
         if (result.IsFailed)

@@ -41,7 +41,28 @@ public static class StartBranch
     /// <summary>Asks where a kind of work on a cycle starts.</summary>
     /// <param name="Id">The cycle.</param>
     /// <param name="Kind">The kind of work. Not the bare kind, which nothing new creates.</param>
-    public sealed record Query(CycleId Id, CycleBranchKind Kind) : IRequest<Response>;
+    public sealed record Query(CycleId Id, CycleBranchKind Kind, bool Worktree = false) : IRequest<Response>;
+
+    /// <summary>
+    /// Where a cycle's own working copy goes: beside the repository, in a directory named for it.
+    /// </summary>
+    /// <remarks>
+    /// D-105. A person planning two cycles at once had one working copy, and the plan stage switches it, so
+    /// the second intent took the first cycle's documents out of sight and carried any half-made edit across.
+    /// A worktree per cycle is one folder per cycle on one repository: each its own branch and its own
+    /// session, and nothing uncommitted rides from one to the other. Beside rather than inside, so no build
+    /// or glob in the repository ever walks into another cycle's copy.
+    /// </remarks>
+    /// <param name="solutionRoot">The repository's root.</param>
+    /// <param name="id">The cycle.</param>
+    /// <returns>The path, forward-slashed, relative to the repository's root.</returns>
+    public static string WorktreePath(string solutionRoot, CycleId id)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(solutionRoot);
+
+        string name = Path.GetFileName(Path.TrimEndingDirectorySeparator(Path.GetFullPath(solutionRoot)));
+        return "../" + name + ".cycles/" + id;
+    }
 
     /// <summary>Where the work starts.</summary>
     /// <param name="Branch">The branch the work happens on.</param>
@@ -65,13 +86,31 @@ public static class StartBranch
             string root = solution.Path;
             string integration = await SolutionDocument.IntegrationBranchOf(root, cancellationToken).ConfigureAwait(false);
             string branch = request.Id.BranchName(request.Kind);
+            string? integrationRef = First(root, "origin/" + integration, integration);
+
+            if (request.Worktree)
+            {
+                if (request.Kind != CycleBranchKind.Plan)
+                {
+                    return Result.Fail<Response>("A worktree is for planning a cycle beside others. The build, its remediation and its forward run in the cycle's worktree once it has one: run 'sdlc branch <id> build' there.");
+                }
+
+                string path = WorktreePath(root, request.Id);
+                string directory = string.Join('/', Cycle.SdlcDirectoryName, Cycle.CyclesDirectoryName, request.Id.ToString());
+
+                return Result.Ok(repository.RefExists(root, branch)
+                    ? new Response(branch, "git worktree add " + path + " " + branch, string.Create(CultureInfo.InvariantCulture, $"{branch} already exists, so its worktree opens on it at {path}."))
+                    : new Response(
+                        branch,
+                        "git worktree add -b " + branch + " " + path + (integrationRef is null ? string.Empty : " " + integrationRef) + " && mkdir -p " + path + "/" + directory,
+                        string.Create(CultureInfo.InvariantCulture, $"This cycle gets its own working copy at {path}, on {branch} from {integrationRef ?? "what is checked out"}. Work on it there, in a session opened there; this checkout stays as it is.")));
+            }
 
             if (repository.RefExists(root, branch))
             {
                 return Result.Ok(new Response(branch, "git switch " + branch, branch + " already exists, so the work carries on there."));
             }
 
-            string? integrationRef = First(root, "origin/" + integration, integration);
             string plan = string.Join('/', Cycle.SdlcDirectoryName, Cycle.CyclesDirectoryName, request.Id.ToString(), Cycle.FileNameOf(ArtifactKind.Plan));
 
             switch (request.Kind)

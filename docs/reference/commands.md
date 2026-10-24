@@ -50,7 +50,7 @@ an agent runs it, and it never decides a gate. `skills.md` lists the skills.
 | `sdlc round <id> <artifact> --from <file>` | binary | writes the next findings round, stamped and hashed, and refuses it while anything above is unsettled. `/sdlc:interrogate` runs it; `--changed` lists the sections moved since the last round |
 | `sdlc constraints --for plan --brief` | binary | the rules one stage is judged against |
 | `sdlc cycles` | binary | every cycle, newest first |
-| `sdlc branch <id> <kind>` | binary | the git command that puts you on the cycle's `plan`, `build`, `build-unattended` or `forward` branch. The skills run it for you |
+| `sdlc branch <id> <kind>` | binary | the git command that puts you on the cycle's `plan`, `build`, `build-unattended` or `forward` branch. The skills run it for you. `plan --worktree` opens the cycle in a folder of its own beside the repository, so several are planned at once |
 | `sdlc factory` | binary | writes the factory's nightly pipeline for your platform. It never merges |
 | `sdlc lead show <reference>` | binary | a work item, issue, suggestion or file, in one shape for `intent --from` |
 | `sdlc operate --dry-run` | binary | what production raised, grouped and scrubbed, and what would be filed as a lead |

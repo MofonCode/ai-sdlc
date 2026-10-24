@@ -2015,7 +2015,7 @@ they print verbatim.
 | `cycles [--stage\|--approved\|--verified]` | every cycle this solution holds, newest first, with what each is about and where it stands |
 | `cycles --claims` | which cycles may be built together, and what collides — §10.1 |
 | `cycles --pr-ready` | every cycle, saying which may open a pull request |
-| `branch <id> <kind>` | the one git command that puts the working copy on the branch a kind of work happens on — `plan`, `build`, `build-unattended`, `forward` — from the right base (D-85) |
+| `branch <id> <kind>` | the one git command that puts the working copy on the branch a kind of work happens on — `plan`, `build`, `build-unattended`, `forward` — from the right base (D-85). `plan --worktree` opens the cycle in a worktree of its own beside the repository instead (D-105) |
 | `factory` | writes the factory's pipeline for the recorded platform: nightly `batch-build --pr --unattended` against the integration branch, one run at a time, inside a time limit, proving the gate refuses before it builds (D-84) |
 | `lead show <reference>` | a lead — `azuredevops:`, `github:`, `suggestion:` or a path — fetched and printed in one shape, its outside text fenced as untrusted, for `intent --from` (D-89) |
 | `operate [--since <hours>h] [--dry-run]` | Operate: production's errors from the declared telemetry store, grouped by signature, scrubbed of personal data, deduplicated against what is filed, and filed as bugs on the platform's tracker (D-89) |
@@ -6896,6 +6896,35 @@ its refusal still apply.
 - *Keeping `sdlc <stage>` everywhere.* Correct and host-neutral, and costs a refusal each time.
 - *Guessing a marker for Copilot or Antigravity.* Neither documents one; a guessed marker is a panel that
   names one host's invocation to someone using another.
+
+### D-105 — Each cycle is planned in a worktree of its own
+
+**Governs:** §15.2
+
+**Decision.** `sdlc branch <id> plan --worktree` prints `git worktree add -b cycle/<id>/plan
+../<repository>.cycles/<id> <integration>` and creates the cycle's directory there. The intent skill uses
+it by default: the cycle is planned, and later built, in that folder, and the person's own checkout is never
+switched. Without `--worktree` the command prints the switch it always did, for a person who asks to keep
+one working copy.
+
+**Why.** The framework already allowed any number of cycles in flight, each with its own id and branch; what
+stopped a person writing several intents at once was physical. One working copy holds one branch, and the
+plan stage switches it, so opening a second intent took the first cycle's documents out of sight and carried
+any half-finished edit across. A worktree is one folder per branch on one repository, which is the shape
+`batch-build` already uses for building cycles side by side.
+
+**Why beside the repository.** Inside it, every glob, build and file listing in the solution would walk into
+other cycles' copies — the architecture suite scans `src/` and `tests/` by directory.
+
+**Rejected.**
+
+- *Leaving it to the person.* What existed. The skill opens the cycle; the person should not need git's
+  worktree syntax to plan two things.
+- *A worktree for every stage by its own option.* The build, remediation and conflict resolution run in the
+  cycle's folder once it has one, with the switches they already print.
+- *Lifting `sdlc new`'s refusal of uncommitted work.* D-94's reason was the switch carrying it into the cycle,
+  which a worktree does not do; it is left for now, because the person's checkout is still where `sdlc new`
+  claims the id.
 
 ### D-104 — Convergence: one report for the rules, decisions and stack, drafted from what a person marks
 

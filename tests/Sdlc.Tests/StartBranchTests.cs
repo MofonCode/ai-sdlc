@@ -121,6 +121,28 @@ public sealed class StartBranchTests
         Assert.IsTrue(result.IsFailed);
     }
 
+    [TestMethod]
+    public async Task A_plan_in_its_own_worktree_opens_beside_the_repository_on_a_new_branch()
+    {
+        // D-105: several cycles planned at once, one folder each, so nothing uncommitted rides between them.
+        FakeRepository git = new();
+        git.Refs.Add("origin/development");
+
+        Result<StartBranch.Response> result = await Send(git, CycleBranchKind.Plan, worktree: true);
+
+        StringAssert.StartsWith(result.Value.Command, "git worktree add -b cycle/" + Id + "/plan ../");
+        StringAssert.Contains(result.Value.Command, ".cycles/" + Id + " origin/development");
+        StringAssert.Contains(result.Value.Command, "mkdir -p");
+    }
+
+    [TestMethod]
+    public async Task A_worktree_is_only_for_planning()
+    {
+        Result<StartBranch.Response> result = await Send(new FakeRepository(), CycleBranchKind.Build, worktree: true);
+
+        Assert.IsTrue(result.IsFailed);
+    }
+
     private static async Task<StartBranch.Response> Ask(FakeRepository git, CycleBranchKind kind)
     {
         Result<StartBranch.Response> result = await Send(git, kind);
@@ -129,7 +151,7 @@ public sealed class StartBranchTests
         return result.Value;
     }
 
-    private static async Task<Result<StartBranch.Response>> Send(FakeRepository git, CycleBranchKind kind, string? release = null)
+    private static async Task<Result<StartBranch.Response>> Send(FakeRepository git, CycleBranchKind kind, string? release = null, bool worktree = false)
     {
         using var workspace = CycleWorkspace.Create(Id);
 
@@ -143,6 +165,6 @@ public sealed class StartBranchTests
         using var gate = Gate.For(workspace.Root, services => services.AddSingleton<IRepository>(git));
         Assert.IsTrue(CycleId.TryParse(Id, out CycleId? id));
 
-        return await gate.Send<StartBranch.Query, StartBranch.Response>(new StartBranch.Query(id.Value, kind));
+        return await gate.Send<StartBranch.Query, StartBranch.Response>(new StartBranch.Query(id.Value, kind, worktree));
     }
 }

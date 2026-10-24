@@ -39,8 +39,14 @@ approved, by recognising the first piece of work in a new solution. There is no 
 interview's first question is where the work is described.
 
 **You do not open the cycle or switch branches yourself.** The skill runs `sdlc new`, which allocates the
-id and claims it, then `sdlc branch <id> plan` and the `git switch` it prints, and says the id and the
-branch it is now on in one line. Then it interviews you — section 3.
+id and claims it, then `sdlc branch <id> plan --worktree` and the `git worktree add` it prints, and says
+the id, the branch and the folder in one line. Then it interviews you — section 3.
+
+**Each cycle gets a folder of its own**, `../<repository>.cycles/<id>`, on its own branch (D-105). That is
+what lets you write several intents at once: your own checkout is never switched, and one cycle's
+half-finished documents never ride into another's. Open a session in the cycle's folder to carry on with
+it, and remove the folder with `git worktree remove` once the cycle has merged. Ask for one working copy
+and the skill switches this checkout instead.
 
 **It refuses while anything is uncommitted**, and names the files: a switch carries uncommitted changes
 with it, so they would reach the cycle's diff as work no plan declared. Commit, stash or discard them,

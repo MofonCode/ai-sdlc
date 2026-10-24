@@ -249,9 +249,9 @@ because a binary cannot ask a host what it loaded. It exits 0 and ends by naming
 ```
 
 **No `--type`.** This is a scaffolded solution with no cycle yet approved, so the skill recognises the
-first piece of work in a new solution and says so in a line. **The skill opens the cycle and switches to
-its branch itself**, and says the id
-and the branch in one line — run neither `sdlc new` nor `sdlc branch` yourself. The branch is
+first piece of work in a new solution and says so in a line. **The skill opens the cycle in a folder of
+its own, on its branch**, and says the id, the branch and the folder in one line — run neither `sdlc new`
+nor `sdlc branch` yourself, and carry on with the cycle in that folder. The branch is
 `cycle/<id>/plan`, and the name matters: the turn-end hook reads the cycle out of the current branch and
 silently governs nothing when it cannot parse one.
 

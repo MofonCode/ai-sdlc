@@ -62,18 +62,25 @@ then open the cycle again. Do not choose for them, and do not stash on their beh
 sight is work they have to find. A file they just placed, like a declared stack, usually wants committing
 on the branch it is on.
 
-Then put the working copy on the cycle's plan branch:
+Then give the cycle its own working copy, on its plan branch:
 
 ```
-sdlc branch <id> plan
+sdlc branch <id> plan --worktree
 ```
 
-Run the one command it prints. It creates `cycle/<id>/plan` from the integration branch, or from what is
-checked out when there is none. The intent, spec, plan and approval are written there, and its pull request
-— `pr <id> --plan`, once a person has approved — admits the plan to the integration branch.
+Run the one command it prints. It creates `cycle/<id>/plan` from the integration branch — or from what is
+checked out when there is none — in a worktree beside the repository, `../<repository>.cycles/<id>`, so
+this cycle's documents never share a folder with another's (D-105). **Do the rest of this cycle there**:
+write the intent, spec and plan under that folder's `.sdlc/cycles/<id>/`, and run every `sdlc` command
+from it. The person's own checkout stays as it is, and a second intent opened meanwhile gets a folder of
+its own. Its pull request — `pr <id> --plan`, once a person has approved — admits the plan to the
+integration branch, and `git worktree remove` clears the folder once the cycle has merged.
 
-Then say both in one line — the cycle's id and the branch you are now on — so nobody runs either step
-again.
+**Without `--worktree`** it prints the `git switch` that moves this checkout instead. Use that only when
+the person asks to keep one working copy.
+
+Then say all three in one line — the cycle's id, its branch, and the folder it lives in — so nobody runs
+either step again, and the person knows where to open a session for this cycle.
 
 ## 1a. Begin from a lead, when given one
 
