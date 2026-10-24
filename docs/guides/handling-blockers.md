@@ -148,7 +148,10 @@ sdlc draft approval <id> --reopen
 ```
 
 It leaves the reason line empty for you, and the rename records it. Then the loop runs as before, and the
-documents are approved again.
+documents are approved again. **A reopen after the build leaves its evidence and its verdict behind**:
+once the cycle is approved again, `sdlc verify-chain` refuses a verify round older than that approval, so
+delete `verify.md`, build, record the evidence and verify the documents as they are now approved. Reopen as
+many times as it takes — the ledger keeps every entry and the last one stands.
 
 ---
 

@@ -190,6 +190,7 @@ public static class VerifyChain
             await Proven(cycle, checks, cancellationToken).ConfigureAwait(false);
             await Adjudicated(cycle, checks, cancellationToken).ConfigureAwait(false);
             await EvidenceRead(cycle, checks, cancellationToken).ConfigureAwait(false);
+            await AfterReopen(cycle, checks, cancellationToken).ConfigureAwait(false);
             await Outcome(cycle, checks, cancellationToken).ConfigureAwait(false);
 
             return Result.Ok(new Response(cycle, checks));
@@ -232,6 +233,59 @@ public static class VerifyChain
                     string.Equals(judged, now, StringComparison.Ordinal)
                         ? string.Create(CultureInfo.InvariantCulture, $"verify round {latest.Round} read evidence {ContentHash.Abbreviate(judged)}, which is what is recorded")
                         : string.Create(CultureInfo.InvariantCulture, $"verify round {latest.Round} read evidence {ContentHash.Abbreviate(judged)}, and what is recorded now is {ContentHash.Abbreviate(now ?? "nothing")}. Interrogate the verify again against this run.")));
+        }
+
+        /// <summary>
+        /// After a reopen, the verification was judged after the approval that now stands.
+        /// </summary>
+        /// <remarks>
+        /// A reopen leaves the build's evidence and its verdict in place, and the documents can change
+        /// before they are approved again -- a criterion added, a proof rewritten. A verdict judged before
+        /// that approval adjudicated documents nobody approves any more, and every other check could still
+        /// hold: the plan's named tests may be the same ones, and the outcome says <c>pass</c>. Checked only
+        /// where a reopen happened, because without one the approval always precedes the build.
+        /// </remarks>
+        private static async Task AfterReopen(
+            Cycle cycle,
+            List<ChainCheck> checks,
+            CancellationToken cancellationToken)
+        {
+            if (!File.Exists(cycle.ApprovalPath))
+            {
+                return;
+            }
+
+            Result<ApprovalLedger> ledger = ApprovalLedger.Read(
+                await File.ReadAllTextAsync(cycle.ApprovalPath, cancellationToken).ConfigureAwait(false),
+                cycle.ApprovalPath);
+
+            if (ledger.IsFailed
+                || ledger.Value.Decisions.Count == 0
+                || ledger.Value.Decisions[^1].Decision != GateDecision.Approved
+                || !ledger.Value.Decisions.Any(entry => entry.Decision == GateDecision.Reopened))
+            {
+                return;
+            }
+
+            Result<IReadOnlyList<FindingsRound>> history = await FindingsReader
+                .ReadHistory(cycle, ArtifactKind.Verify, cancellationToken)
+                .ConfigureAwait(false);
+
+            if (history.IsFailed || history.Value.Count == 0)
+            {
+                return;
+            }
+
+            DateTimeOffset approved = ledger.Value.Decisions[^1].At;
+            FindingsRound latest = history.Value[^1];
+            bool after = latest.InterrogatedAt is { } at && at > approved;
+
+            checks.Add(new ChainCheck(
+                "the verdict follows the approval that stands",
+                after,
+                after
+                    ? string.Create(CultureInfo.InvariantCulture, $"verify round {latest.Round} ran after the approval of {approved:yyyy-MM-dd HH:mm}")
+                    : string.Create(CultureInfo.InvariantCulture, $"the cycle was reopened and approved again at {approved:yyyy-MM-dd HH:mm}, and the latest verify round predates it. Delete {Cycle.FileNameOf(ArtifactKind.Verify)}, build, record the evidence again, and verify the documents approved now.")));
         }
 
         /// <summary>Every artifact in the chain exists, and every one has a sound shape.</summary>

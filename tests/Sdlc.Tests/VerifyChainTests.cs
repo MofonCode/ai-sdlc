@@ -317,6 +317,52 @@ public sealed class VerifyChainTests
         Assert.IsTrue(rendered.All(char.IsAscii), rendered);
     }
 
+    [TestMethod]
+    [DataRow("2026-10-01T10:00:00Z", false)]
+    [DataRow("2026-10-04T10:00:00Z", true)]
+    public async Task After_a_reopen_the_verdict_has_to_follow_the_approval_that_stands(string verifiedAt, bool holds)
+    {
+        // A reopen leaves the evidence and the verdict in place while the documents change; a verdict
+        // judged before the new approval adjudicated documents nobody approves any more.
+        using CycleWorkspace workspace = Sound();
+        string hashes = string.Join('\n', Cycle.PlanningDocuments.Select(kind =>
+            $"      {Cycle.FileNameOf(kind)}: {workspace.HashOf(kind)}"));
+        CycleWorkspace.WriteRaw(workspace.Cycle.ApprovalPath, $"""
+            ---
+            cycle: {workspace.Cycle.Id}
+            framework_version: 1.0.0
+            decisions:
+              - decision: approved
+                by: Peter Almanzar
+                at: 2026-10-01T09:00:00Z
+                hashes:
+            {hashes}
+              - decision: reopened
+                by: Peter Almanzar
+                at: 2026-10-02T09:00:00Z
+                hashes:
+            {hashes}
+                reason: the plan draws its own tables.
+              - decision: approved
+                by: Peter Almanzar
+                at: 2026-10-03T09:00:00Z
+                hashes:
+            {hashes}
+            ---
+
+            """);
+        CycleWorkspace.WriteRaw(workspace.Cycle.FindingsPath(ArtifactKind.Verify, 1), $$"""
+            { "framework_version": "1.0.0", "cycle": "{{workspace.Cycle.Id}}", "artifact": "verify.md",
+              "upstream_sha256": "{{workspace.HashOf(ArtifactKind.Plan)}}", "interrogated_at": "{{verifiedAt}}",
+              "round": 1, "findings": [] }
+            """);
+
+        VerifyChain.Response verdict = await Check(workspace);
+
+        VerifyChain.ChainCheck follows = verdict.Checks.Single(check => check.Name == "the verdict follows the approval that stands");
+        Assert.AreEqual(holds, follows.Passed, follows.Detail);
+    }
+
     private static CycleWorkspace Sound()
     {
         var workspace = CycleWorkspace.Create();

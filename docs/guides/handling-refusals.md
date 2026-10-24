@@ -334,7 +334,14 @@ you were just told.
 **Next:** `sdlc verify-chain <id>`, which prints every check — passing and failing both, because a reader
 looking at a failed check needs to know what held. The checks are: the cycle exists, no shape problems,
 the chain is complete, the approval, the gate is satisfied, every criterion has a proof, every named test
-passed, every criterion is adjudicated, the change was verified.
+passed, every criterion is adjudicated, the verify was judged against this evidence, the verdict follows
+the approval that stands (only after a reopen), the change was verified.
+
+**The two about evidence and reopening are the stale-verdict checks.** Evidence is recorded again after
+each remediation, and a verify round records which run it read, so a verdict judged on the run before
+last fails. And a reopen leaves the old evidence and verdict in place while the documents change: once
+the cycle is approved again, a verify round older than that approval adjudicated documents nobody
+approves any more. Delete `verify.md`, build, record the evidence, and verify again.
 
 **"every named test passed" is the one that surprises people.** Each proof in the plan opens with its
 test's name in backticks, and this reads those opening names out of the plan and confirms each one ran
