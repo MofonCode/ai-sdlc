@@ -826,6 +826,7 @@ static async Task<int> Draft(CommandLine line)
             .ConfigureAwait(false),
         "solution" => await DraftSolution(rest).ConfigureAwait(false),
         "techstack" => await Workspace.Run(rest, w => DraftTechStack(w, rest)).ConfigureAwait(false),
+        "convergence" => await Workspace.Run(rest, w => DraftConverged(w, rest)).ConfigureAwait(false),
         _ => await UnknownDraft(line.Arguments[0]).ConfigureAwait(false),
     };
 }
@@ -916,6 +917,46 @@ static async Task<int> DraftSolution(CommandLine line)
 
 // --empty is a flag because its absence is the answer everybody already gave, and a stack that pins
 // nothing is a decision somebody should have to type.
+static async Task<int> DraftConverged(Workspace workspace, CommandLine line)
+{
+    if (line.Arguments.Count == 0)
+    {
+        await Console.Error.WriteLineAsync(
+            "Which proposal file? 'sdlc draft convergence <file>', the file '/sdlc:propose convergence' wrote and you marked.")
+            .ConfigureAwait(false);
+
+        return ExitCode.Usage;
+    }
+
+    return await PrintDraft(await workspace
+        .Send<DraftConvergence.Command, DraftResult>(new DraftConvergence.Command(Path.GetFullPath(line.Arguments[0])))
+        .ConfigureAwait(false)).ConfigureAwait(false);
+}
+
+// One report for all three records, so a person converges them together rather than in three sittings.
+// Kept like the others, and it names the proposal file beside it with the same timestamp, which is the
+// one file a skill writes and a person edits.
+static async Task<int> ProposeConverged(Workspace workspace)
+{
+    Result<ProposeConvergence.Response> result = await workspace
+        .Send<ProposeConvergence.Query, ProposeConvergence.Response>(new ProposeConvergence.Query())
+        .ConfigureAwait(false);
+
+    if (result.IsFailed)
+    {
+        return await Report(result, ExitCode.Refused).ConfigureAwait(false);
+    }
+
+    DateTimeOffset now = TimeProvider.System.GetUtcNow();
+    string proposals = string.Create(
+        CultureInfo.InvariantCulture,
+        $"{Cycle.SdlcDirectoryName}/{ReportFile.DirectoryName}/{now:yyyyMMdd_HHmm_ss}-convergence.proposed.md");
+
+    string report = ProposeConvergence.Render(result.Value, proposals);
+    await Console.Out.WriteAsync(report).ConfigureAwait(false);
+    return await Kept(workspace, "convergence", report).ConfigureAwait(false);
+}
+
 static async Task<int> DraftTechStack(Workspace workspace, CommandLine line) =>
     await PrintDraft(await workspace
         .Send<WriteTechStackDraft.Command, DraftResult>(
@@ -937,6 +978,7 @@ static async Task<int> Propose(CommandLine line)
 
     return line.Arguments[0].ToLowerInvariant() switch
     {
+        "convergence" => await Workspace.Run(rest, ProposeConverged).ConfigureAwait(false),
         "constraints" or "constraint" => await Workspace.Run(rest, ProposeRules).ConfigureAwait(false),
         "decisions" or "decision" => await Workspace.Run(rest, ProposeChoices).ConfigureAwait(false),
         "theme" => await Workspace.Run(rest, ProposeTheme).ConfigureAwait(false),

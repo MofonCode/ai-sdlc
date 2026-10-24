@@ -11,7 +11,7 @@ internal static class Usage
     /// the flag that makes it work, which is the confusion the whole draft pattern exists to avoid.
     /// </remarks>
     public const string Drafters =
-        "One of: approval <id>, abandon <id>, solution, techstack. "
+        "One of: approval <id>, abandon <id>, solution, techstack, convergence <file>. "
         + "A constraint is proposed rather than drafted: 'sdlc propose constraints'.";
 
     /// <summary>
@@ -21,7 +21,7 @@ internal static class Usage
     /// One subject today and the verb is plural-ready on purpose: the record has more than rules to say
     /// something about. Only what is built is offered, for the same reason the drafters are.
     /// </remarks>
-    public const string Proposals = "One of: constraints, decisions, theme.";
+    public const string Proposals = "One of: convergence, constraints, decisions, theme.";
 
     /// <summary>The usage text, written to standard output for help and to standard error for a
     /// usage error.</summary>
@@ -97,6 +97,10 @@ internal static class Usage
             draft approval <id>      Write the gate decision beside the ledger, for a person to
                                      rename onto it. Writes no approval.
             draft abandon <id>       Print the record that stops a cycle, for a person to place.
+            draft convergence <file> Write drafts of constraints.md, decisions.md and techstack.md
+                                     from the proposals marked [x] in a convergence proposal file:
+                                     each a copy of the file as it stands with only those lines
+                                     applied, refused if any entry or row would go missing.
             draft techstack          Write the declared stack beside itself, for an edit a person
                                      renames into place: a copy of it, or the framework's default
                                      where there is none yet, with every stack rule listed and on.
@@ -138,6 +142,12 @@ internal static class Usage
                                      what this release ships that the stack never mentions: a row
                                      saying 'none' or false is an answer, no row is never asked.
                                      Names the gap and closes none: a cycle's plan does that.
+            propose convergence      Everything the record says the rules, decisions and stack are
+                                     missing, in one ranked report: rules cited across cycles,
+                                     findings that rested on no rule grouped by who raised them,
+                                     what approved cycles stated, and what the stack never mentions.
+                                     Ends with the proposal file a person marks for 'draft
+                                     convergence'. Proposes; writes nothing that binds.
             propose constraints      Read this solution's whole history and say which rules its
                                      findings keep citing, with the cycles and finding ids behind
                                      each. Proposes; writes nothing that binds. Where the record

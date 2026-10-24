@@ -2,13 +2,14 @@
 name: propose
 description: Read what a solution's record says it is missing -- a rule its findings keep citing, a choice its approved cycles settled, or the roles a theme declares -- and propose entries a person may adopt. Proposes and never places. Use when somebody asks what keeps going wrong across cycles, wants to add one of this solution's own constraints, wants to record a decision, or needs a theme.
 compatibility: Requires the sdlc binary on PATH, from the MofonCode.Sdlc.Cli dotnet tool, and a git repository. Every command here is that binary, so without it the first step fails.
-argument-hint: "constraints | decisions | theme"
+argument-hint: "convergence | constraints | decisions | theme"
 allowed-tools: Bash(sdlc *)
 ---
 
 # Propose what the record is pushing toward
 
 ```
+sdlc propose convergence
 sdlc propose constraints
 sdlc propose decisions
 sdlc propose theme
@@ -36,6 +37,106 @@ the record rather than on taste.
 Run the command and show what it prints **verbatim**. Then do the reading it cannot: the sections
 below. Everything you add goes under its own heading so nothing you wrote is mistaken for something
 the command found.
+
+---
+
+# `convergence`
+
+**After a cycle merges, this is the one to run.** It brings the rules, the decisions and the declared stack
+up to what the cycles have settled, in one sitting, and it is not a cycle and not part of one: the person
+decides what binds, so nothing about it needs a plan or an approval (D-104). Approved convergence binds
+the **next** cycle, never one in flight — rules placed mid-cycle re-judge documents already argued, which
+in one real cycle cost about twenty blockers.
+
+## 1. Read the report, then the rounds
+
+`sdlc propose convergence` prints, ranked: rules cited across cycles; the rules **argued** longest inside
+a cycle, which usually mark a decision nobody recorded rather than a missing rule; findings that rested on
+no rule, grouped by who raised them and at which stage, with a sample each; what approved cycles stated;
+and what the declared stack never mentions. It ends with the path of the proposal file.
+
+The samples are pointers. For each group worth reading, open the cycle's rounds (`sdlc findings <id>
+--stage <artifact>`) and group the statements **by the problem underneath** — one plan raised the same
+missing log level twenty times in twenty wordings. For each argued rule, read what the cycle finally did
+about it in the plan: that choice is the decision to record.
+
+## 2. Write the proposal file
+
+At the path the report names, one heading per proposal, in exactly this shape — `sdlc draft convergence`
+parses it:
+
+```markdown
+# Convergence proposals — <date>
+
+Mark each proposal you accept by changing [ ] to [x], and edit its wording as you want it.
+Nothing is written until you run the draft, and nothing binds until you rename the drafts.
+
+## Rules
+
+### [ ] add — <the rule's one line>
+<its three clauses -- which artifact and when, what becomes illegal, what goes wrong without it --
+each a bold label and a colon, exactly as constraints.md writes them, so the draft pastes as it is>
+> <the cycles and finding ids behind it>
+
+### [ ] supersede LOC_02 — <the replacing rule's one line>
+<its three clauses, as above>
+> <why the old one is out of force>
+
+### [ ] reword LOC_01 — <the same rule, better words>
+<its three clauses: the same Forbids, or it is a supersede>
+
+## Decisions
+
+### [ ] add — <the decision's one line>
+**Decided:** <what>
+
+**Because:** <why>
+
+**Instead of:** <what was weighed and refused>
+
+**From:** <the cycle, and where it was settled>
+
+### [ ] supersede DEC_02 — <the reversal's one line>
+<its four clauses>
+
+## Stack
+
+### [ ] set <concern> — <the choice, or none>
+> <what in the record asks for it>
+```
+
+**There is no remove.** A rule out of force is superseded and keeps its place; a reversed decision takes a
+new id; a stack concern no longer used is set to `none`. A `reword` keeps the `Forbids` — if what is
+forbidden changed, it is a `supersede`. Label nothing with an id you invent: the drafter numbers what is
+accepted, so a declined proposal leaves no gap.
+
+Every proposal arrives with its evidence on `>` lines. A proposal you cannot evidence from the record is
+one the person cannot refuse on the record, so leave it out.
+
+## 3. Hand it to the person, then draft
+
+Tell them where the file is and stop. They mark `[x]` on what they accept and edit the wording. Then:
+
+```
+sdlc draft convergence <the proposal file>
+```
+
+It writes `constraints.draft.md`, `decisions.draft.md` and `techstack.draft.md` beside the real ones —
+each a copy of the file as it stands with only the accepted lines applied — and refuses if any entry or
+row would go missing. Show what it prints verbatim.
+
+## 4. Review the approved convergence, in a fresh process
+
+Before the person renames anything, open one fresh process, as `interrogate` does, and hand it the marked
+proposal file, the three drafts, and `.sdlc/solution.md` — nothing else. Ask:
+
+> For each proposal: was it accepted as proposed, edited, or declined? For each edit and each decline,
+> does what was approved still serve what the evidence lines describe? And does the approved set, taken
+> together, move the solution toward what `solution.md` says it is, or away from it? Answer **in
+> alignment**, or **deviates**, with each place it deviates and why. Do not argue for the proposals.
+
+Show the answer verbatim under its own heading. **It is advisory**: the person chose knowingly, and the
+review makes the choice visible rather than overruling it. Then the renames are theirs.
 
 ---
 

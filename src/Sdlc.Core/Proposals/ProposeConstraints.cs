@@ -188,6 +188,11 @@ public static class ProposeConstraints
     /// <param name="Perspectives">
     /// Each perspective that raised something, counted by distinct cycle across both stores, most first.
     /// </param>
+    /// <param name="Cited">
+    /// Every rule any blocking finding cited, whatever the number of cycles. Not this report's to render --
+    /// one cycle is not a pattern for a rule -- but a rule argued over dozens of findings in one cycle is
+    /// where convergence looks for a decision nobody recorded (D-104).
+    /// </param>
     public sealed record Response(
         ConstraintId NextId,
         int InForce,
@@ -199,7 +204,8 @@ public static class ProposeConstraints
         IReadOnlyList<Stopped> Stopped,
         int Cycles,
         IReadOnlyList<Noticed> Noticed,
-        IReadOnlyList<PerspectiveTally> Perspectives)
+        IReadOnlyList<PerspectiveTally> Perspectives,
+        IReadOnlyList<Recurrence>? Cited = null)
     {
         /// <summary>
         /// Whether the history yielded anything to argue about.
@@ -294,7 +300,8 @@ public static class ProposeConstraints
                 stopped,
                 cycles.Count,
                 noticed,
-                [.. Tally(uncited, noticed)]));
+                [.. Tally(uncited, noticed)],
+                grouped));
         }
 
         /// <summary>Counts each perspective's suggestions by distinct cycle, across both stores.</summary>

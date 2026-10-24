@@ -195,6 +195,7 @@ Then:
 
 ## Report
 
-**One line per cycle**, carrying three things: its id, its branch, and the pull request's link. Then
-stop. Nothing after this is yours — the merge belongs to a reviewer, and a summary of what they are
-about to read is a reviewer being told what to think.
+**One line per cycle**, carrying three things: its id, its branch, and the pull request's link. For a
+verified build, one more line: *once this merges, `/sdlc:propose convergence` brings the rules, decisions
+and stack up to what it settled* (D-104). Then stop. Nothing after this is yours — the merge belongs to a
+reviewer, and a summary of what they are about to read is a reviewer being told what to think.

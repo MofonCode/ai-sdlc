@@ -129,6 +129,8 @@ public static class SdlcServices
         // never collided with a rule produced no finding to mine. A theme is neither -- it is a
         // register, and what is proposed is the shape rather than the values.
         services.AddProposeDecisionsRequestHandler();
+        services.AddProposeConvergenceRequestHandler();
+        services.AddDraftConvergenceRequestHandler();
 
         // The reading halves. A constraint stops a cycle doing something; a decision stops it
         // re-deciding something, and a theme stops it inventing a colour. All three are rendered on

@@ -1489,21 +1489,32 @@ never places.
 #### Syntax
 
 ```
-/sdlc:propose constraints | decisions | theme
+/sdlc:propose convergence | constraints | decisions | theme
 ```
 
 #### Parameters
 
 | Parameter | Description |
 |---|---|
+| `convergence` | the rules, decisions and stack together, after a cycle merges: a ranked report, a proposal file a person marks, drafts of the three files from what was marked, and an advisory review of the approved set |
 | `constraints` | candidate rules for this solution, mined from the findings |
 | `decisions` | candidate `DEC_` entries, from what approved cycles stated |
 | `theme` | the roles a theme declares, never a value |
 
 #### Output
 
-Three subjects, three different records. **None is placed by the skill** — `constraints.md` and
-`decisions.md` are written only by a person, and a person pastes what they accept.
+Four subjects, three different records. **None is placed by the skill** — `constraints.md`,
+`decisions.md` and `techstack.md` are written only by a person, who pastes or renames what they accept.
+
+- **`convergence` is the three together** (D-104), and it is not a cycle. `sdlc propose convergence`
+  prints one ranked report — rules cited across cycles, the rules argued longest inside one, findings
+  that rested on no rule grouped by who raised them, what approved cycles stated, what the stack never
+  mentions. The skill writes a proposal file of `add`, `supersede`, `reword` and `set` headings with the
+  evidence beneath each, and **no remove**. The person marks `[x]` on what they accept, `sdlc draft
+  convergence` writes each file's draft as a copy with only those lines applied and refuses one that would
+  lose an entry or a row, a fresh process reviews the approved set against the proposals and
+  `solution.md` and says *in alignment* or *deviates*, and the person renames the drafts. It binds the
+  next cycle, never one in flight.
 
 - **`constraints` is mined backward from the findings.** A rule cited in **three or more distinct
   cycles** is a pattern — distinct *cycles*, not findings, because three findings inside one cycle is one

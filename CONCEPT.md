@@ -2008,6 +2008,8 @@ they print verbatim.
 | `round <id> <artifact> --from <file>` | writes the next findings round: the readers' findings and the session's dispositions, with the round number, the time, and the hashes of what was judged, what it was judged against, each section, and on a verify the evidence, stamped by the binary. Refuses while anything above it in the chain is unsettled. `--changed` lists the sections moved since the last round instead — D-101 |
 | `gate <id>` | whether a cycle's build may run. Exits 1 if not |
 | `draft approval\|abandon\|profile\|solution\|techstack` | prints or writes what belongs in a file only a person writes — §5.3 |
+| `propose convergence` | what the record says the rules, decisions and stack are missing, in one ranked report, ending with the proposal file a person marks — D-104 |
+| `draft convergence <file>` | drafts of the three record files from the proposals marked accepted: each a copy of the file as it stands with only those lines applied, refused if an entry or a row would go missing — D-104 |
 | `propose constraints` | what the history says the rules are missing, with the cycles and finding ids behind each — D-69 |
 | `evidence <id>` | records the diff, its base commit, and the normalised test summary — §4.5 |
 | `cycles [--stage\|--approved\|--verified]` | every cycle this solution holds, newest first, with what each is about and where it stands |
@@ -6894,6 +6896,54 @@ its refusal still apply.
 - *Keeping `sdlc <stage>` everywhere.* Correct and host-neutral, and costs a refusal each time.
 - *Guessing a marker for Copilot or Antigravity.* Neither documents one; a guessed marker is a panel that
   names one host's invocation to someone using another.
+
+### D-104 — Convergence: one report for the rules, decisions and stack, drafted from what a person marks
+
+**Governs:** §8, §15, §15.2
+
+**Revises D-69** — its rejection of a drafter writing the rule file for a rename.
+
+**Decision.** `sdlc propose convergence` prints one report over all three records: rules cited across
+cycles; the rules argued longest inside a cycle, as candidates for a decision; findings that rested on no
+rule, grouped by who raised them and at which stage with a short sample, ranked by distinct cycles; what
+approved cycles stated; and what the declared stack never mentions. `/sdlc:propose convergence` reads the
+rounds behind it and writes a proposal file of `add`, `supersede`, `reword` and `set` headings, each with
+its evidence. The person marks `[x]` and edits wording. `sdlc draft convergence <file>` writes
+`constraints.draft.md`, `decisions.draft.md` and `techstack.draft.md`: each a copy of the file as it stands
+with only the accepted lines applied — an entry inserted at the next free id, a `Superseded-by` line added,
+one rule's block replaced under its next revision, one stack row's choice set — and it parses each draft
+back and refuses one missing any id or row the file held. A fresh process then reviews the approved set
+against the proposals and `solution.md` and says *in alignment* or *deviates*, advisory. The person renames
+the drafts. Convergence is not a cycle and not part of one, and what it places binds the next cycle.
+
+**Why.** After MarketSense's first cycle, converging took a person and an agent re-reading a 431 KB
+constraints report — 754 findings listed raw — and 36 decision passages copied verbatim, then hand-writing
+eight decisions, two rules and two stack rows. Twelve arguments the cycle had settled were nowhere in the
+record, and adopting rules mid-cycle cost about twenty blockers on documents already argued. The person
+asked for one report with add, remove and update lines, separated what is suggested from what they approve,
+wanted the framework to say whether the approved set is in alignment, and placed it outside the cycle with
+skills to carry it.
+
+**Why D-69's refusal of a drafter no longer holds.** It refused copy-then-amend because a *regenerated* rule
+file drops superseded entries and closes id gaps, and nothing notices. Nothing here is regenerated — every
+change is an insertion, an added line, or one entry's own block — and the loss D-69 feared is checked rather
+than trusted: the draft is parsed back and compared with the file. The rest of D-69 stands: a tool proposes
+only with evidence, removal is never printed, revision and supersession stay two acts the person chooses
+between, and proposals are numbered only once accepted.
+
+**Why the argued rules are shown, when one cycle is not a pattern.** D-69's bar of three cycles is right for
+a *rule*. A rule argued over forty findings inside one cycle is a different signal: an argument the cycle
+settled in its plan, which the next cycle will have again unless the decision is recorded.
+
+**Rejected.**
+
+- *Convergence as part of plan approval.* Suggested first, and set aside by the person: approval is about
+  one change, and a rule decided there would be adopted mid-cycle — the twenty-blocker cost above. The plan's
+  "Decisions this plan makes" list does the part of that idea that mattered at approval.
+- *A cycle of its own.* Nothing in it needs a spec or a build; the person's rename is the whole act.
+- *A remove line.* D-69's reason, unchanged.
+- *Regenerating any of the three files.* D-69's reason, unchanged.
+- *Placing the drafts.* The six files stay a person's (D-09, D-43).
 
 ### D-103 — The changed lines are 70% covered and the codebase holds its baseline, decided by the binary
 

@@ -34,7 +34,7 @@ there is no slash form: ask in a sentence, and include the cycle id.
 | [`status`](../../skills/README.md#status) | `<cycle id> [intent\|spec\|plan]` | where a cycle stands, and the next command | anyone |
 | [`constraints`](../../skills/README.md#constraints) | `[intent\|spec\|plan\|diff\|verify]` | the rules in force, all tiers resolved | every stage skill, first |
 | [`suggestions`](../../skills/README.md#suggestions) | `[cycle id]` | what was noticed and not acted on | a person |
-| [`propose`](../../skills/README.md#propose) | `constraints \| decisions \| theme` | proposes entries for a person to adopt, with the evidence behind each | a person |
+| [`propose`](../../skills/README.md#propose) | `convergence \| constraints \| decisions \| theme` | proposes entries for a person to adopt, with the evidence behind each — `convergence` the rules, decisions and stack together, after a cycle merges | a person |
 
 \* **A person must start these two.** Every other skill may be started by an agent as well — nothing in
 the plugin stops one — so *started by* there is who normally decides. These two are different, because
