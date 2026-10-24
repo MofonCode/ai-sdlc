@@ -1814,7 +1814,9 @@ Every pull request installs the `sdlc` binary, builds, tests, **displays code co
 runner where nothing had put it there, so the one step establishing the guarantee would have reported
 command-not-found. The package is not on a public feed yet, and the generated step says so.
 
-Coverage is displayed, not enforced — no threshold. Collected with Microsoft.Testing.Platform's own
+The pipeline displays coverage and thresholds nothing itself; the floor is `verify-chain`'s, read from
+the coverage the cycle's build recorded (D-103), so the pipeline and the local check cannot disagree.
+Collected with Microsoft.Testing.Platform's own
 `--coverage`, which needs no extra package: GitHub summarises it in the job summary, and Azure DevOps
 publishes it to its native coverage tab with `PublishCodeCoverageResults@2`. This said Coverlet plus
 ReportGenerator for a while, which was the plan before the runner carried it; the shipped choice is
@@ -2173,7 +2175,8 @@ block, then remediate, then exhaust the budget.
 
 ## 18. Non-goals
 
-- **Enforcing a coverage percentage.** Coverage is displayed.
+- ~~**Enforcing a coverage percentage.**~~ Reversed by D-103: a change's added lines are held to 70%
+  and the codebase to its baseline. A whole-codebase floor is still not a goal.
 - **Making local approval unforgeable.** It cannot be; the pull request is where accountability lives.
 - **Governing ai-sdlc with ai-sdlc** — §2.7.
 - ~~**Resolving merge conflicts as the primary strategy.**~~ Reversed by D-86: collisions are resolved at

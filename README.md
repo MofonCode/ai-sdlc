@@ -1,6 +1,6 @@
 # ai-sdlc
 
-**Version 0.28.1** · iteration 4 · .NET 10 · MIT
+**Version 0.29.0** · iteration 4 · .NET 10 · MIT
 
 **A plugin that makes an AI coding agent work the way a careful team does** — write down what the change
 is for, agree what *done* means, plan it, have a person approve it, and only then write code.
@@ -126,7 +126,7 @@ sdlc constraints
 ```
 
 It should print the eighteen global constraints in force and say it read them from
-`global  embedded in sdlc 0.28.1`. **Use this rather than `sdlc help` as the smoke test** — `help` and
+`global  embedded in sdlc 0.29.0`. **Use this rather than `sdlc help` as the smoke test** — `help` and
 `version` are the only commands that need nothing from the installation, so they are the two that cannot
 tell you whether it worked. Then `claude plugin details sdlc@ai-sdlc` should say `Skills (18)` and
 `Hooks (2)`: **a hook count below two is a failed install**, not a detail, because the deterministic layer
@@ -321,6 +321,15 @@ What is honest to say about the rest:
 - **Leads and Operate have only met fakes.** `sdlc lead show` reads work items through `az` and `gh`, and
   `sdlc operate` reads Application Insights through `az` and files through the same CLIs; none of that has
   touched a real tracker or a real telemetry store. Jira is not read yet.
+- **0.29.0 changes what a solution has to do, and none of it has met a real cycle yet.** It came from
+  reviewing MarketSense's first cycle. A round is written by `sdlc round`, which refuses one out of the
+  chain's order, and the hook denies writing one any other way (D-101). `verify-chain` refuses a change
+  whose added lines are under 70% covered or that lowers the codebase's coverage, so a build records
+  `--coverage` (D-103). The run mode `batch` is now `test`: an AppHost reading `SDLC_RUN_MODE=batch` has
+  to read `test`, and the architecture suite a solution was scaffolded with before 0.29.0 does not carry
+  the launch-profile test (D-102). `/sdlc:propose convergence` and `sdlc draft convergence` are new
+  (D-104), and `/sdlc:intent` plans each cycle in a worktree of its own (D-105). The .NET profile's new
+  *fake data and seeding* row reaches no existing stack until a person answers it.
 - **One perspective has a rule, and nothing proves a perspective's reader catches what it should.**
   Security, operability and maintainability are written as methods and steer every stage, and
   accessibility does the same for any change touching a user interface. Operability's reader may block on
@@ -329,7 +338,8 @@ What is honest to say about the rest:
 
 ## Not goals
 
-Enforcing a coverage percentage. Making the local approval unforgeable — it cannot be, and the pull
+A whole-codebase coverage floor — a change is held to 70% of its own lines and the codebase to its
+baseline instead. Making the local approval unforgeable — it cannot be, and the pull
 request is where accountability lives. Governing ai-sdlc with ai-sdlc. Resolving merge conflicts as the
 primary strategy. Tooling for splitting work. A device end-to-end layer. `CONCEPT.md` §18 has the full
 list with reasons.

@@ -1,7 +1,7 @@
 {
   "name": "sdlc",
   "displayName": "ai-sdlc",
-  "version": "0.28.1",
+  "version": "0.29.0",
   "description": "A constraint-governed lifecycle. An intent becomes a spec, a plan, a build and a verification, each challenged against a fixed set of rules before it advances. A person approves all three planning documents before any code exists, and nothing merges unless the chain is complete, approved and hash-matched.",
   "author": {
     "name": "MofonCode"
