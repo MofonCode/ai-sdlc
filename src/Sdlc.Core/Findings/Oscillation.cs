@@ -74,8 +74,9 @@ public sealed record OscillationState(IReadOnlyList<StuckRule> Rules)
 /// them, so what is counted is the transition `open -> answered -> open`.</para>
 ///
 /// <para><strong>The transition is the rule's or the finding's, never one finding's answer and another's
-/// objection.</strong> A rule is answered when a round raises nothing open against it; a finding is
-/// answered when its own id is. A round that answers one finding and raises a different one under the same
+/// objection.</strong> A rule is answered when a round leaves nothing open under it; a finding is
+/// answered when its own id is. A round names only what it raised or moved (D-107), so "leaves" is read
+/// from what stands after the round, and an open blocker carried silently keeps its rule open. A round that answers one finding and raises a different one under the same
 /// rule is the reader having moved on to the next place the same mistake was made, which is the sloppy
 /// author again -- found on a plan whose browser proofs each waited on a response rather than a render, and
 /// halted after five rounds that each fixed one proof and found the next.</para>
@@ -95,7 +96,8 @@ public sealed record OscillationState(IReadOnlyList<StuckRule> Rules)
 ///
 /// <para><strong>No counter file.</strong> The same reason <see cref="RemediationBudget"/> gives: a count
 /// kept beside the thing it counts can disagree with it, and the cheap one to forge is the one that gets
-/// trusted. Rounds accumulate and are never rewritten, so counting them is counting what happened.</para>
+/// trusted. The rounds are a chained ledger whose approved prefix is anchored (D-107), so counting them
+/// is counting what happened.</para>
 ///
 /// <para><strong>A revision is the same rule.</strong> Points are keyed on tier and number, so `CON_07`
 /// and `CON_07.2` are one rule -- which is what §7.4 says a citation resolves to. Keying on the written
@@ -168,9 +170,15 @@ public static class Oscillation
         ArgumentNullException.ThrowIfNull(rounds);
 
         Dictionary<string, Tally> tallies = new(StringComparer.Ordinal);
+        Dictionary<string, Finding> standing = new(StringComparer.Ordinal);
 
         foreach (FindingsRound round in rounds.OrderBy(round => round.Round))
         {
+            foreach (Finding finding in round.Findings)
+            {
+                standing[finding.Id] = finding;
+            }
+
             // Every rule this round had something to say about, so a rule that scores can name what it
             // is trading with. Conflicts count here too: a conflict names the rules it is between, and
             // each of them is part of what the other is caught against.
@@ -221,7 +229,12 @@ public static class Oscillation
                 // later relapse is caught against.
                 tally.Note(raised, rule.Key);
                 tally.AnsweredIds.UnionWith(answered.Select(finding => finding.Id));
-                if (open.Count == 0)
+
+                // Quiet is what the round left standing, not what it mentioned (D-107). A round names
+                // only what it raised or moved, so a blocker still open under this rule and simply not
+                // mentioned keeps the rule open -- reading mentions would arm the counter on it.
+                if (!standing.Values.Any(finding => finding.IsOpenBlocker
+                    && string.Equals(Key(finding.Cites), rule.Key, StringComparison.Ordinal)))
                 {
                     tally.Answered = true;
                 }

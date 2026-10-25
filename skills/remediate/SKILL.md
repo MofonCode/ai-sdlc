@@ -63,8 +63,8 @@ and that stopping is what makes an unattended batch safe to run at all.
 
 ## Work the findings
 
-Read `findings/verify.r<n>.json` for the latest round. Each blocking finding names what is wrong, where,
-and what would fix it.
+Read the open blockers with `sdlc findings <id> --stage verify`, which prints each finding where it
+stands after the latest round. Each blocking finding names what is wrong, where, and what would fix it.
 
 Fix the **cause**, not the symptom. The failure modes to avoid, in order of how tempting they are:
 

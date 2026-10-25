@@ -114,6 +114,17 @@ public static class ApprovalGate
         /// read, which is why it records it.
         /// </remarks>
         StaleRound,
+
+        /// <summary>
+        /// A findings round the approval anchored no longer hashes to what was approved (D-107).
+        /// </summary>
+        /// <remarks>
+        /// A ledger is rewritten on every round, so its chain alone proves it is consistent and nothing
+        /// more -- anyone who can edit it can recompute every hash. The anchor lives in the approval, which
+        /// no agent can write, so a history rewritten behind an approval is caught here. Rounds after the
+        /// anchor are not this refusal's business: a blocker raised in one is <see cref="OpenBlocker"/>.
+        /// </remarks>
+        RewrittenRound,
     }
 
     /// <summary>One document's hash as approved against its hash now.</summary>
@@ -305,6 +316,15 @@ public static class ApprovalGate
                     hashes);
             }
 
+            // Before the blockers, because a rewritten history is the one thing that could make the
+            // blocker check below read the wrong argument.
+            List<string> rewritten = Rewritten(ledger.Current!, interrogations.Value);
+
+            if (rewritten.Count > 0)
+            {
+                return Verdict(cycle, GateRefusal.RewrittenRound, Unanchored(cycle, rewritten), ledger, hashes);
+            }
+
             List<string> blockers = OpenBlockers(interrogations.Value);
 
             if (blockers.Count > 0)
@@ -372,6 +392,48 @@ public static class ApprovalGate
             }
 
             return blockers;
+        }
+
+        /// <summary>
+        /// Finds documents whose anchored round is missing or hashes to something other than was approved.
+        /// </summary>
+        /// <remarks>
+        /// An entry with no anchors pins nothing and is judged on its document hashes as it always was --
+        /// D-101's precedent for a round that recorded no subject, so no cycle approved before D-107 fails
+        /// here for a defect of its own.
+        /// </remarks>
+        private static List<string> Rewritten(
+            GateEntry standing,
+            IReadOnlyDictionary<ArtifactKind, IReadOnlyList<FindingsRound>> interrogations)
+        {
+            List<string> rewritten = [];
+
+            foreach (ArtifactKind kind in Cycle.PlanningDocuments)
+            {
+                string name = Cycle.FileNameOf(kind);
+
+                if (standing.Rounds is null || !standing.Rounds.TryGetValue(name, out RoundAnchor? anchor))
+                {
+                    continue;
+                }
+
+                FindingsRound? round = interrogations[kind].FirstOrDefault(round => round.Round == anchor.Round);
+
+                if (round is null)
+                {
+                    rewritten.Add(string.Create(
+                        CultureInfo.InvariantCulture,
+                        $"  {name}: round {anchor.Round} was approved, and the ledger no longer holds it"));
+                }
+                else if (!string.Equals(round.EntrySha256, anchor.Sha256, StringComparison.Ordinal))
+                {
+                    rewritten.Add(string.Create(
+                        CultureInfo.InvariantCulture,
+                        $"  {name}: round {anchor.Round} was approved as {ContentHash.Abbreviate(anchor.Sha256)}, and it is now {ContentHash.Abbreviate(round.EntrySha256 ?? string.Empty)}"));
+                }
+            }
+
+            return rewritten;
         }
 
         /// <summary>
@@ -478,8 +540,26 @@ public static class ApprovalGate
                     string.Empty,
                     "This is a refusal rather than a shrug on purpose. A round that cannot be read used to be",
                     "skipped, which made every blocker for that document disappear -- and a blocking finding",
-                    "cannot be waived by any mechanism, least of all by a damaged file. Repair the round, or",
-                    "delete it and interrogate the artifact again.",
+                    "cannot be waived by any mechanism, least of all by a damaged file. Put the ledger back as",
+                    "'sdlc round' wrote it -- git restore it -- and interrogate again if a round is lost.",
+                ]);
+
+        private static string Unanchored(Cycle cycle, List<string> rewritten) =>
+            string.Join(
+                Environment.NewLine,
+                [
+                    string.Create(
+                        CultureInfo.InvariantCulture,
+                        $"Cycle {cycle.Id} is approved, and the findings history the approval anchored has changed since:"),
+                    string.Empty,
+                    .. rewritten,
+                    string.Empty,
+                    "The approval pins the argument as well as the documents: each ledger up to the round it had",
+                    "reached. Rounds may be added after it, and an earlier one may not be changed. Restore the",
+                    "ledger from git if it was edited by mistake; otherwise interrogate again and take the",
+                    string.Create(
+                        CultureInfo.InvariantCulture,
+                        $"approval again with 'sdlc draft approval {cycle.Id}'."),
                 ]);
 
         private static string Unchallenged(Cycle cycle, List<ArtifactKind> pending) =>

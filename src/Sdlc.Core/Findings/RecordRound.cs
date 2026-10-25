@@ -38,9 +38,17 @@ public static class RecordRound
     /// <summary>The round as written.</summary>
     /// <param name="Cycle">The cycle.</param>
     /// <param name="Artifact">What was judged.</param>
-    /// <param name="Written">The round, with the binary's fields filled in.</param>
-    /// <param name="Path">Where it was written.</param>
-    public sealed record Response(Cycle Cycle, ArtifactKind Artifact, FindingsRound Written, string Path);
+    /// <param name="Written">The round as the ledger now holds it: what it raised and what it moved.</param>
+    /// <param name="Path">The ledger it was written to.</param>
+    /// <param name="Standing">Every finding still open after it.</param>
+    /// <param name="Converted">How many round files from before D-107 this write folded in and removed.</param>
+    public sealed record Response(
+        Cycle Cycle,
+        ArtifactKind Artifact,
+        FindingsRound Written,
+        string Path,
+        IReadOnlyList<Finding> Standing,
+        int Converted = 0);
 
     /// <summary>Writes the next round for one artifact.</summary>
     /// <param name="Id">The cycle.</param>
@@ -258,15 +266,16 @@ public static class RecordRound
                 return Result.Fail<Response>(given.Errors);
             }
 
-            Result<IReadOnlyList<FindingsRound>> history = await FindingsReader
-                .ReadHistory(cycle, request.Artifact, cancellationToken)
+            Result<LedgerOnDisk> onDisk = await FindingsReader
+                .ReadLedger(cycle, request.Artifact, cancellationToken)
                 .ConfigureAwait(false);
 
-            if (history.IsFailed)
+            if (onDisk.IsFailed)
             {
-                return Result.Fail<Response>(history.Errors);
+                return Result.Fail<Response>(onDisk.Errors);
             }
 
+            FindingsLedger ledger = onDisk.Value.Ledger;
             string text = await File.ReadAllTextAsync(artifact, cancellationToken).ConfigureAwait(false);
             // A verify round's upstream is the plan, which commits to the proof per criterion -- the
             // hash the status panel compares a verify round against.
@@ -290,14 +299,42 @@ public static class RecordRound
                     : null,
                 SectionSha256 = SectionHashes(text),
                 InterrogatedAt = clock.GetUtcNow(),
-                Round = history.Value.Count == 0 ? 1 : history.Value.Max(round => round.Round) + 1,
+                Round = ledger.Rounds.Count == 0 ? 1 : ledger.Rounds[^1].Round + 1,
+                EntrySha256 = null,
             };
 
-            string path = cycle.FindingsPath(request.Artifact, written.Round);
-            Directory.CreateDirectory(cycle.FindingsDirectory);
-            await File.WriteAllTextAsync(path, FindingsReader.Write(written), cancellationToken).ConfigureAwait(false);
+            // Merged rather than appended verbatim (D-107): a new id is a finding, a moved one a
+            // transition, and one restated where it already stands is nothing -- so a session copying
+            // every finding forward costs the ledger nothing, where it once cost a file the size of the
+            // whole history every round.
+            Result<FindingsLedger> appended = ledger.Append(written);
 
-            return Result.Ok(new Response(cycle, request.Artifact, written, path));
+            if (appended.IsFailed)
+            {
+                return Result.Fail<Response>(appended.Errors);
+            }
+
+            string path = onDisk.Value.Path;
+            Directory.CreateDirectory(cycle.FindingsDirectory);
+            await File.WriteAllTextAsync(path, FindingsReader.Write(appended.Value), cancellationToken).ConfigureAwait(false);
+
+            // A cycle still holding round files is converted by this write: the ledger now carries every
+            // one of them, chained, so they go in the same step. Left behind, they would make the next
+            // read refuse a directory holding both shapes.
+            foreach (string legacy in onDisk.Value.RoundFiles)
+            {
+                File.Delete(legacy);
+            }
+
+            IReadOnlyList<FindingsRound> views = appended.Value.Views();
+
+            return Result.Ok(new Response(
+                cycle,
+                request.Artifact,
+                views[^1],
+                path,
+                [.. FindingsReader.Standing(views).Where(finding => finding.Disposition == Disposition.Open)],
+                onDisk.Value.RoundFiles.Count));
         }
     }
 }

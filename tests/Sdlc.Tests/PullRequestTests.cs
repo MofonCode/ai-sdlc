@@ -130,12 +130,16 @@ public sealed class PullRequestTests
         // -- and the blind three this replaced would have stopped the cycle on its fourth.
         using CycleWorkspace workspace = Passing();
 
+        // Each pass answers one finding by name. Leaving it out of the round would not do: silence is not an
+        // answer (D-49), and progress is read from what each round left standing (D-107).
         for (int round = 1; round <= 7; round++)
         {
+            IEnumerable<string> findings = Enumerable.Range(0, 8 - round).Select(Blocking);
+
             workspace.WriteRound(
                 ArtifactKind.Verify,
                 round,
-                string.Join(",", Enumerable.Range(0, 8 - round).Select(Blocking)));
+                string.Join(",", round == 1 ? findings : findings.Append(Answered(8 - round))));
         }
 
         Result<RemediationState> state = await RemediationBudget.Read(
@@ -166,6 +170,14 @@ public sealed class PullRequestTests
             "statement": "something that must be answered."
           }
           """);
+
+    /// <summary>The same finding as <see cref="Blocking"/>, answered.</summary>
+    /// <param name="index">Which one.</param>
+    /// <returns>The finding as JSON, without surrounding brackets.</returns>
+    private static string Answered(int index) => Blocking(index).Replace(
+        "\"disposition\": \"open\"",
+        "\"disposition\": \"answered\"",
+        StringComparison.Ordinal);
 
     [TestMethod]
     public async Task A_blocker_answered_within_the_budget_clears_the_cycle()

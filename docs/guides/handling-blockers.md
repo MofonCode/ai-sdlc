@@ -34,9 +34,9 @@ back to you when they do.
 ### What it is
 
 `/sdlc:interrogate <id> <artifact>` reads one document in a fresh process — a reader that never saw it
-being written, so it has nothing to defend — and writes a findings round to
-`findings/<artifact>.rN.json`. Each finding has an id kept across rounds, the one rule it cites, what is
-wrong, where, and the remedy.
+being written, so it has nothing to defend — and adds a findings round to the artifact's ledger,
+`findings/<artifact>.json`. Each finding has an id kept across rounds, the one rule it cites, what is
+wrong, where, and the remedy. `sdlc findings <id>` prints each one where it stands.
 
 | Severity | Means |
 |---|---|
@@ -97,7 +97,7 @@ sdlc status <id> --brief
 
 ### The loop
 
-Rounds accumulate and are never rewritten. **How many rounds is deliberately not a question the tool
+Each round is added to the ledger and chained to the ones before; once approved, none is rewritten. **How many rounds is deliberately not a question the tool
 will answer.** On one real intent, round seven found the headline change was unreachable and round
 eleven found that no success criterion failed without it; a tool that suggested stopping at round four
 would have been confidently wrong.
@@ -166,7 +166,7 @@ pass while the criterion is unmet. A test that passed but does not reach its cri
 Met quotes the assertion it rests on from `diff.patch`, so the interrogation that follows checks the quote
 against the diff rather than trusting a test's name.
 
-It writes `pass` or `blocked`, and a findings round of its own, `findings/verify.rN.json`, whose blocking
+It writes `pass` or `blocked`, and a findings round of its own in `findings/verify.json`, whose blocking
 findings are what remediation works from. **`pr-ready` refuses anything but `pass`.**
 
 ### Answering it

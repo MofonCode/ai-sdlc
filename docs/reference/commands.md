@@ -24,7 +24,7 @@ an agent runs it, and it never decides a gate. `skills.md` lists the skills.
 | `sdlc constraints` | binary | the rules in force, all tiers resolved |
 | `sdlc new` | binary | allocates the id and the directory; refuses over uncommitted work. `/sdlc:intent` runs it for you |
 | `/sdlc:intent` | agent | interviews you into `intent.md` |
-| `/sdlc:interrogate <id> <artifact>` | agent, fresh process | judges one document, writes `findings/<artifact>.rN.json` |
+| `/sdlc:interrogate <id> <artifact>` | agent, fresh process | judges one document, adds a round to `findings/<artifact>.json` |
 | `/sdlc:refine <id> <artifact>` | agent | applies those findings to the document |
 | `/sdlc:spec <id>` | agent | derives `spec.md` from the intent alone |
 | `/sdlc:plan <id>` | agent | decides how, and what proves each criterion, in `plan.md` |
@@ -47,7 +47,7 @@ an agent runs it, and it never decides a gate. `skills.md` lists the skills.
 | `sdlc findings <id>` | binary | what the interrogations said, each finding at the disposition that stands |
 | `sdlc propose convergence` | binary | what the record says the rules, decisions and stack are missing, in one ranked report, ending with the proposal file to mark. `/sdlc:propose convergence` runs it |
 | `sdlc draft convergence <file>` | binary | drafts of `constraints.md`, `decisions.md` and `techstack.md` from the proposals marked `[x]`: copies with only those lines applied, refused if anything would go missing |
-| `sdlc round <id> <artifact> --from <file>` | binary | writes the next findings round, stamped and hashed, and refuses it while anything above is unsettled. `/sdlc:interrogate` runs it; `--changed` lists the sections moved since the last round |
+| `sdlc round <id> <artifact> --from <file>` | binary | appends the next round to the artifact's findings ledger, stamped, hashed and chained to the round before, and refuses it while anything above is unsettled or a known finding comes back in other words. `/sdlc:interrogate` runs it; `--changed` lists the sections moved since the last round |
 | `sdlc constraints --for plan --brief` | binary | the rules one stage is judged against |
 | `sdlc cycles` | binary | every cycle, newest first |
 | `sdlc branch <id> <kind>` | binary | the git command that puts you on the cycle's `plan`, `build`, `build-unattended` or `forward` branch. The skills run it for you. `plan --worktree` opens the cycle in a folder of its own beside the repository, so several are planned at once |
@@ -82,11 +82,11 @@ In the cycle, the interrogate-then-refine loop repeats until a round raises noth
     plan.md
     approval.md            <- only a person writes this
     verify.md
-    findings/
-        intent.r1.json
-        intent.r2.json
-        spec.r1.json
-        plan.r1.json
+    findings/              <- one ledger per artifact, every round in it
+        intent.json
+        spec.json
+        plan.json
+        verify.json
     evidence/
         base.sha
         diff.patch

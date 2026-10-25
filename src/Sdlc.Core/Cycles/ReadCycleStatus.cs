@@ -31,7 +31,7 @@ public static class ReadCycleStatus
     /// <param name="LatestRound">The highest round number, or zero when it has never been interrogated.</param>
     /// <param name="History">How many open blockers each round left, in round order, for the panel.</param>
     /// <param name="OpenBlockers">
-    /// Findings that still stop it advancing: blocking, and open in the latest round that mentions them.
+    /// Findings that still stop it advancing: blocking, and open as of the latest round.
     /// </param>
     /// <param name="Conflicts">
     /// Rules the latest round found cannot both be satisfied. Separate from the blockers, because a
@@ -47,6 +47,10 @@ public static class ReadCycleStatus
     /// <param name="JudgedAgainst">
     /// The upstream hash the latest round recorded, or null when it recorded none or there is no round.
     /// </param>
+    /// <param name="LatestEntry">
+    /// The latest round's hash in the findings ledger (D-107), which an approval anchors. Null when there
+    /// is no round.
+    /// </param>
     public sealed record ArtifactState(
         ArtifactKind Kind,
         string Path,
@@ -60,7 +64,8 @@ public static class ReadCycleStatus
         IReadOnlyList<Conflict> Conflicts,
         OscillationState Loop,
         string? UpstreamHash = null,
-        string? JudgedAgainst = null)
+        string? JudgedAgainst = null,
+        string? LatestEntry = null)
     {
         /// <summary>
         /// Whether the latest round judged this artifact against an upstream that has since changed.
@@ -320,13 +325,14 @@ public static class ReadCycleStatus
                 hash,
                 rounds.Count,
                 rounds.Count == 0 ? 0 : rounds.Max(round => round.Round),
-                [.. rounds.Select(round => round.Findings.Count(finding => finding.IsOpenBlocker))],
+                FindingsReader.OpenBlockersPerRound(rounds),
                 FindingsReader.StandingBlockers(rounds),
                 FindingsReader.StandingSuggestions(rounds),
                 FindingsReader.StandingConflicts(rounds),
                 Oscillation.Count(rounds),
                 upstreamHash,
-                latest?.UpstreamSha256));
+                latest?.UpstreamSha256,
+                latest?.EntrySha256));
         }
 
     }

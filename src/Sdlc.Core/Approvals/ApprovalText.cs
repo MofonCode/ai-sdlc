@@ -427,7 +427,7 @@ public static class ApprovalText
         /// </summary>
         /// <remarks>
         /// Reached only once every blocker is answered, so there is nothing to carry forward and nothing to
-        /// warn about. The entry records who, when, the three hashes, and the round each hash was taken at.
+        /// warn about. The entry records who, when, the three hashes, and the round each ledger had reached.
         /// </remarks>
         private static string Entry(
             ReadCycleStatus.Response status,
@@ -449,6 +449,19 @@ public static class ApprovalText
             {
                 string key = Cycle.FileNameOf(artifact.Kind) + ":";
                 entry.AppendLine(CultureInfo.InvariantCulture, $"      {key,-11} {artifact.Hash}");
+            }
+
+            // The argument as well as the documents (D-107): the round each ledger had reached, and its
+            // hash, so rewriting the history behind this decision means changing this file too.
+            if (status.Artifacts.All(artifact => artifact.LatestEntry is not null))
+            {
+                entry.AppendLine("    rounds:");
+
+                foreach (ReadCycleStatus.ArtifactState artifact in status.Artifacts)
+                {
+                    string key = Cycle.FileNameOf(artifact.Kind) + ":";
+                    entry.AppendLine(CultureInfo.InvariantCulture, $"      {key,-11} {{ round: {artifact.LatestRound}, sha256: {artifact.LatestEntry} }}");
+                }
             }
 
             // The key is printed with nothing after it on purpose. A refusal needs a reason and nobody can

@@ -333,6 +333,12 @@ What is honest to say about the rest:
   to the skeleton, which a solution scaffolded earlier does not have, and `doctor` asks the platform
   whether branch policy requires the check (D-106), which has been run against one Azure DevOps
   repository and no GitHub one.
+- **The findings ledger has been run on a copy of one real cycle and on nothing live.** From 0.31.0 an
+  artifact's rounds are one file, `findings/<artifact>.json`: each finding stored once, each round chained
+  by hash, and an approval anchoring the round each ledger had reached (D-107). A cycle still holding round
+  files is converted by its next round, with nothing to run. On a copy of MarketSense's first cycle that
+  took the planning documents from 17 MB of round files to 1.9 MB of ledger, with the same findings
+  standing.
 - **One perspective has a rule, and nothing proves a perspective's reader catches what it should.**
   Security, operability and maintainability are written as methods and steer every stage, and
   accessibility does the same for any change touching a user interface. Operability's reader may block on

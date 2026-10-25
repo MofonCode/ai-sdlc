@@ -51,9 +51,9 @@ public sealed class SuggestionsTests
         Suggestion only = (await Collect(workspace)).Single();
 
         Assert.AreEqual(
-            3,
+            1,
             only.Round,
-            "The latest round that mentions a finding says where it got to, so that is the round to show.");
+            "A restatement at the same disposition moves nothing, so it records nothing (D-107): the round to show is the one that last moved it.");
     }
 
     [TestMethod]

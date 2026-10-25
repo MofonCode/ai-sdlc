@@ -66,7 +66,7 @@ this is the whole list:
 | no cycle · abandoned · a planning document is missing | nothing to gate |
 | not approved · the ledger cannot be read · the standing decision refuses it | the gate was not passed |
 | a findings round cannot be read · a document was never interrogated | **the loop cannot be shown to have run** |
-| a document changed since it was approved · a blocking finding is open · a findings round is stale | the approval no longer covers what is there |
+| a document changed since it was approved · a findings round it anchored has changed · a blocking finding is open · a findings round is stale | the approval no longer covers what is there |
 
 ### no cycle
 
@@ -131,9 +131,13 @@ no size threshold, deliberately.
 
 ### a findings round cannot be read
 
-A round file exists and will not parse.
+A findings ledger, `findings/<artifact>.json`, will not parse; or its chain does not verify, because a
+round, a finding it raised or a disposition it moved was changed after `sdlc round` wrote it; or round
+files from before the ledger sit beside it. A round file from before the ledger that will not parse is
+this refusal too.
 
-**Next:** fix the file, or delete that round and interrogate again. What it will not do is skip the
+**Next:** put the ledger back as `sdlc round` wrote it — `git restore` it, or remove the stray round files
+beside it — and interrogate again if a round is genuinely lost. What it will not do is skip the
 artifact — **"could not tell" must never read as "clean".** That is not hypothetical: overwriting one
 round file with `{}` once made every blocker for that document disappear from the gate and from
 `verify-chain`, which is a one-command waiver for the one thing that cannot be waived by any mechanism.
@@ -146,6 +150,20 @@ A planning document has no findings round at all — most often because `finding
 challenged is not a clean artifact, and without this refusal deleting the directory would leave the gate,
 `verify-chain` and `pr-ready` all passing with no round having ever existed. The drafter refuses this too, but that is
 advice a person can decline to take; this is the layer that does not negotiate.
+
+### a findings round it anchored has changed
+
+The approval records, for each of the three documents, the round its findings ledger had reached and that
+round's hash (D-107). One of those rounds is missing, or no longer hashes to what was approved. The
+ledger's own chain cannot catch a rewrite on its own, because anyone who can edit the file can recompute
+every hash in it. The anchor can, because it lives in `approval.md`, which no agent can write.
+
+Rounds added after the anchored one are not this refusal. A blocker raised in one of them is
+*a blocking finding is open*.
+
+**Next:** restore the ledger from git if it was changed by mistake. Otherwise the argument behind the
+approval is not the one on disk: interrogate again and take the approval again with
+`sdlc draft approval <id>`.
 
 ### a blocking finding is open
 
@@ -171,10 +189,11 @@ the plan a reader cleared. Only the round knows what it read, which is why it re
 if the spec changed. `/sdlc:steer` does this for you, which is the reason to use it rather than editing
 documents by hand.
 
-## `sdlc round` — the one way a round is refused
+## `sdlc round` — the two ways a round is refused
 
-`sdlc round` writes every findings round (D-101). `/sdlc:interrogate` runs it; you meet this when the
-order of the chain was skipped.
+`sdlc round` writes every findings round (D-101), into the artifact's findings ledger (D-107).
+`/sdlc:interrogate` runs it; you meet the first when the order of the chain was skipped, and the second
+when a finding was carried forward in different words.
 
 ### something above it is unsettled
 
@@ -186,6 +205,15 @@ document that is about to stop existing — in one real cycle, seven plan rounds
 
 **Next:** settle the highest document the refusal names — `/sdlc:interrogate <id> <artifact>`, and
 `/sdlc:refine` until its round is clean — then come back down, one document at a time.
+
+### a known finding comes back in other words
+
+The round hands back an id the ledger already holds, with a different severity, citation or statement. A
+finding is stored once, so one id meaning two objections would make the history unreadable. Handing back
+the same finding where it already stands is fine, and records nothing.
+
+**Next:** carry the earlier finding's severity, citation and statement exactly as the ledger holds them —
+`sdlc findings <id> --stage <artifact>` prints them — and give a new objection a new id.
 
 ## `sdlc scaffold` — the two ways it is refused
 

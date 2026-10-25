@@ -70,7 +70,7 @@ public static class ArtifactSchema
         // is read by the person at the gate, which is a consumer like any other.
         ArtifactKind.Plan => ["Shape and departures", "Files", "Proof", "Risk"],
 
-        // One section. Verify's findings are data like every other artifact's, in findings/verify.rN,
+        // One section. Verify's findings are data like every other artifact's, in findings/verify.json,
         // so what belongs in the document is the criterion-by-criterion adjudication.
         ArtifactKind.Verify => ["Criteria"],
 

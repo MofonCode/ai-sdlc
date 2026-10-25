@@ -37,7 +37,9 @@ public sealed class RecordRoundTests
         Assert.AreEqual(_now, written.Written.InterrogatedAt, "The binary's clock, not the session's.");
         Assert.AreEqual(workspace.HashOf(ArtifactKind.Intent), written.Written.SubjectSha256);
         Assert.IsNull(written.Written.UpstreamSha256, "An intent has no upstream.");
-        Assert.IsTrue(File.Exists(workspace.Cycle.FindingsPath(ArtifactKind.Intent, 1)));
+        Assert.IsTrue(File.Exists(workspace.Cycle.FindingsLedgerPath(ArtifactKind.Intent)), "One ledger per artifact (D-107).");
+        Assert.IsFalse(File.Exists(workspace.Cycle.FindingsPath(ArtifactKind.Intent, 1)), "And no file per round.");
+        Assert.IsNotNull(written.Written.EntrySha256, "The round is chained.");
     }
 
     [TestMethod]
@@ -193,6 +195,10 @@ public sealed class RecordRoundTests
     [DataRow("Write", ".sdlc/cycles/20260929_1456_32/findings/plan.r3.json")]
     [DataRow("Bash", "cp /tmp/round.json .sdlc/cycles/x/findings/spec.r2.json")]
     [DataRow("Bash", "python -c pass > .sdlc/cycles/x/findings/intent.r1.json")]
+    [DataRow("Write", ".sdlc/cycles/20260929_1456_32/findings/plan.json")]
+    [DataRow("Write", ".sdlc\\cycles\\20260929_1456_32\\findings\\spec.json")]
+    [DataRow("Bash", "cp /tmp/ledger.json .sdlc/cycles/x/findings/verify.json")]
+    [DataRow("Bash", "jq . /tmp/x > .sdlc/cycles/x/findings/intent.json")]
     public void An_agent_cannot_write_a_round_itself(string tool, string target)
     {
         string payload = tool == "Write"
@@ -211,7 +217,13 @@ public sealed class RecordRoundTests
         foreach (string command in new[]
         {
             "cat .sdlc/cycles/x/findings/plan.r3.json",
+            "cat .sdlc/cycles/x/findings/plan.json",
             "sdlc round 20260929_1456_32 plan --from /tmp/plan-round.json",
+
+            // A ledger's name is only a ledger's inside a findings directory: a solution's own plan.json
+            // is nothing the hook protects.
+            "cp /tmp/x src/config/plan.json",
+            "echo {} > plan.json",
         })
         {
             string payload = JsonSerializer.Serialize(new { tool_name = "Bash", tool_input = new { command } });

@@ -42,7 +42,7 @@ never gets to make the call.
 
 | The agent is about to | Denied when |
 |---|---|
-| write or edit a file | the path has a `.sdlc` segment anywhere in it, and its last segment is one of the six names — or it is a findings round, `findings/<artifact>.r<n>.json`, which only `sdlc round` writes (D-101). Absolute, relative, either separator |
+| write or edit a file | the path has a `.sdlc` segment anywhere in it, and its last segment is one of the six names — or it is a findings ledger, `findings/<artifact>.json`, which only `sdlc round` writes (D-101, D-107), or a round file from before the ledger, `findings/<artifact>.r<n>.json`. Absolute, relative, either separator |
 | run a shell command | the command names the adoption verb; or a **redirect points at** one of the six files; or one piece of the command — between `;`, `&&`, `\|\|`, `\|` and newlines, outside quotes — runs a **write verb** (a move, a copy, a delete, an in-place edit) **and names one of the six as a whole name** |
 
 **The shell rule reads the text of the command, not the paths it would touch.** It does not parse the

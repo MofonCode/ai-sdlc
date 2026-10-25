@@ -83,6 +83,7 @@ public static class CyclesRenderer
             ApprovalGate.GateRefusal.OpenBlocker => "blocked",
             ApprovalGate.GateRefusal.HashMismatch => "stale hash",
             ApprovalGate.GateRefusal.StaleRound => "stale round",
+            ApprovalGate.GateRefusal.RewrittenRound => "rewritten round",
             ApprovalGate.GateRefusal.Uninterrogated => "not interrogated",
             ApprovalGate.GateRefusal.MissingDocument => "incomplete",
             _ => "refused",

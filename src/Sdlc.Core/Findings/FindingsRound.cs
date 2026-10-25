@@ -49,6 +49,10 @@ namespace Sdlc.Core.Findings;
 /// steer carried a change down. A spec that did not change for a corrected intent says why here, so the
 /// next reader of the history sees the decision rather than an unexplained gap.
 /// </param>
+/// <param name="EntrySha256">
+/// The round's hash in its artifact's findings ledger (D-107), which an approval anchors. Set when the
+/// round is read from a ledger, and never by whoever hands a round to <c>sdlc round</c>.
+/// </param>
 public sealed record FindingsRound(
     [property: JsonPropertyName("framework_version")] string? FrameworkVersion,
     string? Cycle,
@@ -61,7 +65,14 @@ public sealed record FindingsRound(
     [property: JsonPropertyName("subject_sha256")] string? SubjectSha256 = null,
     [property: JsonPropertyName("evidence_sha256")] string? EvidenceSha256 = null,
     [property: JsonPropertyName("section_sha256")] IReadOnlyDictionary<string, string>? SectionSha256 = null,
-    string? Note = null);
+    string? Note = null,
+    [property: JsonPropertyName("entry_sha256")] string? EntrySha256 = null);
+
+/// <summary>One artifact's findings ledger, and where it came from.</summary>
+/// <param name="Ledger">The ledger, built in memory when the history is still round files.</param>
+/// <param name="Path">Where the ledger file is, or will be.</param>
+/// <param name="RoundFiles">The round files it was built from, which the next round removes; empty once a ledger is on disk.</param>
+public sealed record LedgerOnDisk(FindingsLedger Ledger, string Path, IReadOnlyList<string> RoundFiles);
 
 /// <summary>Reads interrogation rounds off disk.</summary>
 public static class FindingsReader
@@ -107,117 +118,11 @@ public static class FindingsReader
         {
             FindingsRound? round = JsonSerializer.Deserialize<FindingsRound>(json, _options);
 
-            if (round is null)
-            {
-                return Result.Fail<FindingsRound>(string.Create(
+            return round is null
+                ? Result.Fail<FindingsRound>(string.Create(
                     CultureInfo.InvariantCulture,
-                    $"{source}: the file holds no round."));
-            }
-
-            // A round with no findings array is not a clean round; it is a file that forgot to say.
-            // Treating the two alike would let a malformed round read as nothing to answer.
-            if (round.Findings is null)
-            {
-                return Result.Fail<FindingsRound>(string.Create(
-                    CultureInfo.InvariantCulture,
-                    $"{source}: no findings array. A clean round records an empty one rather than omitting it."));
-            }
-
-            // Every blocking finding cites exactly one constraint (§7, D-30), and nothing enforced it,
-            // so a blocker with no `cites` was accepted and the gate rendered the citation as
-            // whitespace. It is mechanically decidable, so by §2.3 it belongs here rather than in a
-            // prompt -- and an uncited blocker is unarguable, which is the property §7.1 says the
-            // citation buys: a person at the gate cannot judge whether it is cheap or expensive
-            // without the rule behind it. F-11.
-            foreach (Finding blocking in round.Findings.Where(finding => finding.Severity == Severity.Blocking))
-            {
-                if (blocking.Cites is null || string.IsNullOrWhiteSpace(blocking.Cites.Id))
-                {
-                    return Result.Fail<FindingsRound>(string.Create(
-                        CultureInfo.InvariantCulture,
-                        $"{source}: blocking finding {blocking.Id} cites no constraint. A blocking finding names the one rule it rests on, because that is what a person at the gate weighs."));
-                }
-
-                if (!ConstraintId.TryParse(blocking.Cites.Id, out _))
-                {
-                    return Result.Fail<FindingsRound>(string.Create(
-                        CultureInfo.InvariantCulture,
-                        $"{source}: blocking finding {blocking.Id} cites '{blocking.Cites.Id}', which is not a constraint id. Expected a form like CON_04 or LOC_02, with an optional revision such as CON_07.2."));
-                }
-            }
-
-            // A citation carries the rule's own line beside the id, wherever one is given. Without it a
-            // reader of the finding holds an index entry rather than a rule, which is the whole reason
-            // the heading is frozen into the round instead of resolved later. Checked at every severity
-            // and not only on blockers: a suggestion that cites is making the same claim on a rule and
-            // is read in the same listing. Whether the id parses stays a blockers-only check, which is
-            // how it already was.
-            foreach (Finding finding in round.Findings.Where(finding => finding.Cites is not null))
-            {
-                if (string.IsNullOrWhiteSpace(finding.Cites!.Heading))
-                {
-                    return Result.Fail<FindingsRound>(string.Create(
-                        CultureInfo.InvariantCulture,
-                        $"{source}: finding {finding.Id} cites '{finding.Cites.Id}' and gives no heading. A citation carries the rule's one line beside its id, copied from the set the round was judged against, so that reading the finding does not mean resolving the id."));
-                }
-            }
-
-            // A perspective a finding names has to be one the binary carries. Recurrence is counted by
-            // perspective name, so a misspelt one would be a perspective of its own with a count of one,
-            // and the real one would read as recurring less than it did.
-            foreach (Finding finding in round.Findings.Where(finding => finding.Perspective is not null))
-            {
-                if (!_perspectives.Value.Contains(finding.Perspective!))
-                {
-                    return Result.Fail<FindingsRound>(string.Create(
-                        CultureInfo.InvariantCulture,
-                        $"{source}: finding {finding.Id} names perspective '{finding.Perspective}', which is not one the binary carries. Written so far: {string.Join(", ", _perspectives.Value.Order(StringComparer.Ordinal))}."));
-                }
-            }
-
-            // A conflict is the loop's third ending (section 6), so it is checked as strictly as a
-            // finding's citation. The shape rules are all mechanically decidable, which by section 2.3
-            // is what puts them here rather than in the prompt.
-            foreach (Conflict conflict in round.Conflicts ?? [])
-            {
-                string named = conflict.Ids() is { Length: > 0 } ids ? ids : "nothing";
-
-                // Two or more. One rule cannot conflict with itself, and a single-entry conflict is a
-                // finding wearing the wrong shape -- which is the confusion this whole distinction
-                // exists to prevent, so it is refused rather than tolerated.
-                if (conflict.Between is null || conflict.Between.Count < 2)
-                {
-                    return Result.Fail<FindingsRound>(string.Create(
-                        CultureInfo.InvariantCulture,
-                        $"{source}: a conflict names {named}. A conflict is between two rules or more, because its whole claim is that satisfying one breaks another. One rule objecting to the artifact is a finding."));
-                }
-
-                foreach (Citation citation in conflict.Between)
-                {
-                    if (!ConstraintId.TryParse(citation.Id, out _))
-                    {
-                        return Result.Fail<FindingsRound>(string.Create(
-                            CultureInfo.InvariantCulture,
-                            $"{source}: a conflict names '{citation.Id}', which is not a constraint id. Expected a form like CON_04 or LOC_02, with an optional revision such as CON_07.2."));
-                    }
-
-                    if (string.IsNullOrWhiteSpace(citation.Heading))
-                    {
-                        return Result.Fail<FindingsRound>(string.Create(
-                            CultureInfo.InvariantCulture,
-                            $"{source}: a conflict names '{citation.Id}' and gives no heading. Every citation carries the rule's one line beside its id, here for the same reason as on a finding: a person reading this has to weigh two rules against each other, which they cannot do from two numbers."));
-                    }
-                }
-
-                if (string.IsNullOrWhiteSpace(conflict.Statement))
-                {
-                    return Result.Fail<FindingsRound>(string.Create(
-                        CultureInfo.InvariantCulture,
-                        $"{source}: the conflict between {named} says nothing about why. A conflict with no explanation is unarguable, which is what CON_10.2 objects to in a gate refusal and what the same reasoning objects to here."));
-                }
-            }
-
-            return Result.Ok(round);
+                    $"{source}: the file holds no round."))
+                : Validate(round, source);
         }
         catch (JsonException error)
         {
@@ -228,45 +133,250 @@ public static class FindingsReader
     }
 
     /// <summary>
-    /// Reads every round recorded for one artifact, in round order.
+    /// Checks one round's findings and conflicts, whichever file it came from.
+    /// </summary>
+    /// <param name="round">The round, or a view of one read from a ledger.</param>
+    /// <param name="source">What to call it in an error message.</param>
+    /// <returns>The round, or a failure naming the file.</returns>
+    public static Result<FindingsRound> Validate(FindingsRound round, string source)
+    {
+        ArgumentNullException.ThrowIfNull(round);
+        ArgumentException.ThrowIfNullOrWhiteSpace(source);
+
+        // A round with no findings array is not a clean round; it is a file that forgot to say.
+        // Treating the two alike would let a malformed round read as nothing to answer.
+        if (round.Findings is null)
+        {
+            return Result.Fail<FindingsRound>(string.Create(
+                CultureInfo.InvariantCulture,
+                $"{source}: no findings array. A clean round records an empty one rather than omitting it."));
+        }
+
+        // Every blocking finding cites exactly one constraint (§7, D-30), and nothing enforced it,
+        // so a blocker with no `cites` was accepted and the gate rendered the citation as
+        // whitespace. It is mechanically decidable, so by §2.3 it belongs here rather than in a
+        // prompt -- and an uncited blocker is unarguable, which is the property §7.1 says the
+        // citation buys: a person at the gate cannot judge whether it is cheap or expensive
+        // without the rule behind it. F-11.
+        foreach (Finding blocking in round.Findings.Where(finding => finding.Severity == Severity.Blocking))
+        {
+            if (blocking.Cites is null || string.IsNullOrWhiteSpace(blocking.Cites.Id))
+            {
+                return Result.Fail<FindingsRound>(string.Create(
+                    CultureInfo.InvariantCulture,
+                    $"{source}: blocking finding {blocking.Id} cites no constraint. A blocking finding names the one rule it rests on, because that is what a person at the gate weighs."));
+            }
+
+            if (!ConstraintId.TryParse(blocking.Cites.Id, out _))
+            {
+                return Result.Fail<FindingsRound>(string.Create(
+                    CultureInfo.InvariantCulture,
+                    $"{source}: blocking finding {blocking.Id} cites '{blocking.Cites.Id}', which is not a constraint id. Expected a form like CON_04 or LOC_02, with an optional revision such as CON_07.2."));
+            }
+        }
+
+        // A citation carries the rule's own line beside the id, wherever one is given. Without it a
+        // reader of the finding holds an index entry rather than a rule, which is the whole reason
+        // the heading is frozen into the round instead of resolved later. Checked at every severity
+        // and not only on blockers: a suggestion that cites is making the same claim on a rule and
+        // is read in the same listing. Whether the id parses stays a blockers-only check, which is
+        // how it already was.
+        foreach (Finding finding in round.Findings.Where(finding => finding.Cites is not null))
+        {
+            if (string.IsNullOrWhiteSpace(finding.Cites!.Heading))
+            {
+                return Result.Fail<FindingsRound>(string.Create(
+                    CultureInfo.InvariantCulture,
+                    $"{source}: finding {finding.Id} cites '{finding.Cites.Id}' and gives no heading. A citation carries the rule's one line beside its id, copied from the set the round was judged against, so that reading the finding does not mean resolving the id."));
+            }
+        }
+
+        // A perspective a finding names has to be one the binary carries. Recurrence is counted by
+        // perspective name, so a misspelt one would be a perspective of its own with a count of one,
+        // and the real one would read as recurring less than it did.
+        foreach (Finding finding in round.Findings.Where(finding => finding.Perspective is not null))
+        {
+            if (!_perspectives.Value.Contains(finding.Perspective!))
+            {
+                return Result.Fail<FindingsRound>(string.Create(
+                    CultureInfo.InvariantCulture,
+                    $"{source}: finding {finding.Id} names perspective '{finding.Perspective}', which is not one the binary carries. Written so far: {string.Join(", ", _perspectives.Value.Order(StringComparer.Ordinal))}."));
+            }
+        }
+
+        // A conflict is the loop's third ending (section 6), so it is checked as strictly as a
+        // finding's citation. The shape rules are all mechanically decidable, which by section 2.3
+        // is what puts them here rather than in the prompt.
+        foreach (Conflict conflict in round.Conflicts ?? [])
+        {
+            string named = conflict.Ids() is { Length: > 0 } ids ? ids : "nothing";
+
+            // Two or more. One rule cannot conflict with itself, and a single-entry conflict is a
+            // finding wearing the wrong shape -- which is the confusion this whole distinction
+            // exists to prevent, so it is refused rather than tolerated.
+            if (conflict.Between is null || conflict.Between.Count < 2)
+            {
+                return Result.Fail<FindingsRound>(string.Create(
+                    CultureInfo.InvariantCulture,
+                    $"{source}: a conflict names {named}. A conflict is between two rules or more, because its whole claim is that satisfying one breaks another. One rule objecting to the artifact is a finding."));
+            }
+
+            foreach (Citation citation in conflict.Between)
+            {
+                if (!ConstraintId.TryParse(citation.Id, out _))
+                {
+                    return Result.Fail<FindingsRound>(string.Create(
+                        CultureInfo.InvariantCulture,
+                        $"{source}: a conflict names '{citation.Id}', which is not a constraint id. Expected a form like CON_04 or LOC_02, with an optional revision such as CON_07.2."));
+                }
+
+                if (string.IsNullOrWhiteSpace(citation.Heading))
+                {
+                    return Result.Fail<FindingsRound>(string.Create(
+                        CultureInfo.InvariantCulture,
+                        $"{source}: a conflict names '{citation.Id}' and gives no heading. Every citation carries the rule's one line beside its id, here for the same reason as on a finding: a person reading this has to weigh two rules against each other, which they cannot do from two numbers."));
+                }
+            }
+
+            if (string.IsNullOrWhiteSpace(conflict.Statement))
+            {
+                return Result.Fail<FindingsRound>(string.Create(
+                    CultureInfo.InvariantCulture,
+                    $"{source}: the conflict between {named} says nothing about why. A conflict with no explanation is unarguable, which is what CON_10.2 objects to in a gate refusal and what the same reasoning objects to here."));
+            }
+        }
+
+        return Result.Ok(round);
+    }
+
+    /// <summary>
+    /// Writes one artifact's findings ledger as the file a reader reads back (D-107).
+    /// </summary>
+    /// <param name="ledger">The ledger.</param>
+    /// <returns>Its JSON, with absent fields left out.</returns>
+    public static string Write(FindingsLedger ledger)
+    {
+        ArgumentNullException.ThrowIfNull(ledger);
+
+        return ledger.Write(_writing);
+    }
+
+    /// <summary>
+    /// Reads one findings ledger, and refuses one whose chain does not verify or whose findings would be
+    /// refused in a round.
+    /// </summary>
+    /// <param name="json">The ledger's JSON.</param>
+    /// <param name="source">What to call it in an error message.</param>
+    /// <returns>The ledger, or a failure naming the file.</returns>
+    public static Result<FindingsLedger> ReadLedger(string json, string source)
+    {
+        ArgumentNullException.ThrowIfNull(json);
+        ArgumentException.ThrowIfNullOrWhiteSpace(source);
+
+        FindingsLedger? ledger;
+
+        try
+        {
+            ledger = JsonSerializer.Deserialize<FindingsLedger>(json, _options);
+        }
+        catch (JsonException error)
+        {
+            return Result.Fail<FindingsLedger>(string.Create(
+                CultureInfo.InvariantCulture,
+                $"{source}: not valid JSON. {error.Message}"));
+        }
+
+        if (ledger?.Findings is null || ledger.Rounds is null || ledger.Findings.Any(finding => finding.Transitions is null))
+        {
+            return Result.Fail<FindingsLedger>(string.Create(
+                CultureInfo.InvariantCulture,
+                $"{source}: not a findings ledger. A ledger holds a findings list, a rounds list, and every finding's transitions."));
+        }
+
+        Result verified = ledger.Verify(source);
+
+        if (verified.IsFailed)
+        {
+            return verified.ToResult<FindingsLedger>();
+        }
+
+        foreach (FindingsRound view in ledger.Views())
+        {
+            Result<FindingsRound> valid = Validate(view, source);
+
+            if (valid.IsFailed)
+            {
+                return valid.ToResult<FindingsLedger>();
+            }
+        }
+
+        return Result.Ok(ledger);
+    }
+
+    /// <summary>
+    /// Reads one artifact's findings as a ledger, from the ledger file or from round files written before
+    /// D-107.
     /// </summary>
     /// <remarks>
-    /// Rounds accumulate and are never rewritten, so the history is the record of what was challenged
-    /// and what became of it.
+    /// <para><strong>One adapter, so one fold.</strong> Round files are read and built into a ledger in
+    /// memory by <see cref="FindingsLedger.FromRounds"/>, so every consumer reads views of a ledger
+    /// whichever shape is on disk -- two readers would be two folds, which is what <see cref="Standing"/>
+    /// exists to prevent. The next <c>sdlc round</c> writes the same ledger and removes the files.</para>
+    /// <para><strong>Both shapes at once is refused.</strong> It means a conversion stopped halfway, or a
+    /// round file was put back beside a ledger, and neither can be read as one history.</para>
     /// </remarks>
     /// <param name="cycle">The cycle to read.</param>
-    /// <param name="kind">The artifact whose rounds to read.</param>
+    /// <param name="kind">The artifact whose findings to read.</param>
     /// <param name="cancellationToken">Token observed while reading.</param>
-    /// <returns>The rounds, or a failure listing every file that could not be read.</returns>
-    public static async Task<Result<IReadOnlyList<FindingsRound>>> ReadHistory(
+    /// <returns>The ledger and any round files it was built from, or a failure listing what could not be read.</returns>
+    public static async Task<Result<LedgerOnDisk>> ReadLedger(
         Cycle cycle,
         ArtifactKind kind,
         CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(cycle);
 
+        string name = Cycle.FileNameOf(kind);
+        string path = cycle.FindingsLedgerPath(kind);
+
         if (!Directory.Exists(cycle.FindingsDirectory))
         {
-            return Result.Ok<IReadOnlyList<FindingsRound>>([]);
+            return Result.Ok(new LedgerOnDisk(FindingsLedger.Empty(cycle.Id.ToString(), name), path, []));
+        }
+
+        string prefix = Cycle.NameOf(kind) + ".r";
+        List<string> files =
+        [
+            .. Directory
+                .EnumerateFiles(cycle.FindingsDirectory, Cycle.NameOf(kind) + ".r*.json")
+                .Where(file => Path.GetFileNameWithoutExtension(file).StartsWith(prefix, StringComparison.Ordinal))
+                .Order(StringComparer.Ordinal),
+        ];
+
+        if (File.Exists(path))
+        {
+            if (files.Count > 0)
+            {
+                return Result.Fail<LedgerOnDisk>(string.Create(
+                    CultureInfo.InvariantCulture,
+                    $"{path}: {name} has a findings ledger and round files beside it ({string.Join(", ", files.Select(Path.GetFileName))}). One artifact's history is one or the other, and once a ledger exists it is the record."));
+            }
+
+            string json = await File.ReadAllTextAsync(path, cancellationToken).ConfigureAwait(false);
+            Result<FindingsLedger> read = ReadLedger(json, path);
+
+            return read.IsFailed
+                ? read.ToResult<LedgerOnDisk>()
+                : Result.Ok(new LedgerOnDisk(read.Value, path, []));
         }
 
         List<FindingsRound> rounds = [];
         List<IError> errors = [];
 
-        string prefix = Cycle.NameOf(kind) + ".r";
-
-        foreach (string path in Directory
-            .EnumerateFiles(cycle.FindingsDirectory, Cycle.NameOf(kind) + ".r*.json")
-            .Order(StringComparer.Ordinal))
+        foreach (string file in files)
         {
-            string name = Path.GetFileNameWithoutExtension(path);
-            if (!name.StartsWith(prefix, StringComparison.Ordinal))
-            {
-                continue;
-            }
-
-            string json = await File.ReadAllTextAsync(path, cancellationToken).ConfigureAwait(false);
-            Result<FindingsRound> read = Read(json, path);
+            string json = await File.ReadAllTextAsync(file, cancellationToken).ConfigureAwait(false);
+            Result<FindingsRound> read = Read(json, file);
 
             if (read.IsFailed)
             {
@@ -277,9 +387,39 @@ public static class FindingsReader
             rounds.Add(read.Value);
         }
 
-        return errors.Count > 0
-            ? Result.Fail<IReadOnlyList<FindingsRound>>(errors)
-            : Result.Ok<IReadOnlyList<FindingsRound>>([.. rounds.OrderBy(round => round.Round)]);
+        if (errors.Count > 0)
+        {
+            return Result.Fail<LedgerOnDisk>(errors);
+        }
+
+        Result<FindingsLedger> built = FindingsLedger.FromRounds(rounds);
+
+        return built.IsFailed
+            ? built.ToResult<LedgerOnDisk>()
+            : Result.Ok(new LedgerOnDisk(
+                built.Value with { Cycle = built.Value.Cycle ?? cycle.Id.ToString(), Artifact = built.Value.Artifact ?? name },
+                path,
+                files));
+    }
+
+    /// <summary>
+    /// Reads every round recorded for one artifact, in round order: each as the findings it raised or
+    /// moved.
+    /// </summary>
+    /// <param name="cycle">The cycle to read.</param>
+    /// <param name="kind">The artifact whose rounds to read.</param>
+    /// <param name="cancellationToken">Token observed while reading.</param>
+    /// <returns>The rounds, or a failure listing every file that could not be read.</returns>
+    public static async Task<Result<IReadOnlyList<FindingsRound>>> ReadHistory(
+        Cycle cycle,
+        ArtifactKind kind,
+        CancellationToken cancellationToken)
+    {
+        Result<LedgerOnDisk> ledger = await ReadLedger(cycle, kind, cancellationToken).ConfigureAwait(false);
+
+        return ledger.IsFailed
+            ? ledger.ToResult<IReadOnlyList<FindingsRound>>()
+            : Result.Ok(ledger.Value.Ledger.Views());
     }
 
     /// <summary>
@@ -300,6 +440,25 @@ public static class FindingsReader
     /// <returns>The open blocking findings, by id.</returns>
     public static IReadOnlyList<Finding> StandingBlockers(IReadOnlyList<FindingsRound> rounds) =>
         [.. Standing(rounds).Where(finding => finding.IsOpenBlocker)];
+
+    /// <summary>
+    /// How many blockers stood open after each round, in round order.
+    /// </summary>
+    /// <remarks>
+    /// Read from what each round left standing, not from what it mentioned. A round names only what it
+    /// raised or moved (D-107), so a blocker carried untouched through a round is still open in it -- and
+    /// the status panel's history and the remediation loop's progress measure must count it the same way.
+    /// </remarks>
+    /// <param name="rounds">Every round recorded for one artifact.</param>
+    /// <returns>One count per round.</returns>
+    public static IReadOnlyList<int> OpenBlockersPerRound(IReadOnlyList<FindingsRound> rounds)
+    {
+        ArgumentNullException.ThrowIfNull(rounds);
+
+        List<FindingsRound> ordered = [.. rounds.OrderBy(round => round.Round)];
+
+        return [.. ordered.Select((_, at) => StandingBlockers([.. ordered.Take(at + 1)]).Count)];
+    }
 
     /// <summary>
     /// Folds a history into the open findings that do not stop the artifact advancing.

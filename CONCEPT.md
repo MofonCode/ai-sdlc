@@ -400,6 +400,10 @@ decisions:
       intent.md: 3f9a2c7b...
       spec.md:   5b07af31...
       plan.md:   d40e1196...
+    rounds:
+      intent.md: { round: 2, sha256: 0c51e7a9... }
+      spec.md:   { round: 3, sha256: b83f20d4... }
+      plan.md:   { round: 4, sha256: 61d9aa07... }
 ---
 ```
 
@@ -415,7 +419,8 @@ body. Frontmatter is read with a real YAML parser and never a regular expression
 **Three hashes in one entry, of each document's canonicalised bytes** — CRLF normalised to LF,
 trailing whitespace stripped. They are an attestation that a person read these three documents, not
 a chain; derivation is the findings round's job (§6.2). If any of the three no longer matches, the
-gate refuses and the approval is taken again.
+gate refuses and the approval is taken again. `rounds` is the one chained thing an entry carries, and it
+anchors the findings ledgers rather than the documents (D-107).
 
 **Timestamps are written into the file.** A file's modified time cannot serve: git does not store
 mtimes, so a clone sets every file's to the moment of checkout.
@@ -465,22 +470,33 @@ One cost remains: a recorded hash cannot be checked by eye, so `status` shows th
 characters of each recorded hash beside each document's current twelve and a refusal names *which*
 document changed.
 
-**The approval pins the documents and not the argument, and that is deliberate.** The three hashes say
-exactly what was agreed to, and nothing records which interrogation rounds had happened — there was
-such a field, `findings_rounds`, and it was left over from the model D-27 removed: while an approval
-could *accept* a finding, the acceptance was only meaningful against a round, because a finding keeps
-its id across rounds. Nothing accepts anything now, nothing read the number, and it was a hand-pasted
-copy of something already on disk.
+**The approval pins the argument as well as the documents** (D-107). An entry also carries `rounds`:
+for each of the three documents, the latest round it had when it was approved, and that round's
+`entry_sha256` from the findings ledger (§6.1).
 
-Nothing needs it. **A round raising a blocker after approval already refuses the build** — the gate
-reads the round files each time rather than trusting the ledger — and a round raising only a
-suggestion is not supposed to block, by D-30. Rounds accumulate and are never rewritten, so the only
-way the argument can change behind an approval is a round file going missing, which the gate refuses on
-(§5.4). And "what argument had been had when this was approved" is derivable: each round records
-`interrogated_at` and the entry records `at`.
+```yaml
+    rounds:
+      intent.md: { round: 2, sha256: 0c51e7a9... }
+      spec.md:   { round: 3, sha256: b83f20d4... }
+      plan.md:   { round: 4, sha256: 61d9aa07... }
+```
 
-**If the argument ever does need pinning, hash the rounds** the way the documents are hashed, rather
-than recording a count. A count is a claim; a hash is a check.
+The ledger is rewritten on every round, so its own chain proves only that it is consistent. Anyone who
+can edit it can recompute every hash. The anchor is what makes the chain a check: it lives in a file no
+agent can write, so rewriting the argument that had been had at approval means changing both files, and a
+person has to change one of them. The gate refuses when an anchored round no longer hashes to what was
+approved.
+
+**It pins a prefix, not the file.** A round raising a blocker after approval still refuses the build —
+the gate reads the ledgers each time rather than trusting the approval — and a round raising only a
+suggestion is not supposed to block, by D-30. So rounds after the anchor are allowed, and a hash of the
+whole file would have made every approval stale at the next round. An entry written before D-107 has no
+`rounds`, pins nothing, and is judged on its three document hashes as it always was.
+
+**There was once a `findings_rounds` field, and this is not it.** That was a count, left over from the
+model D-27 removed: while an approval could *accept* a finding, the acceptance was only meaningful against
+a round. Nothing read the number, and it was a hand-pasted copy of something already on disk. A count is a
+claim; a hash is a check. `draft approval` prints the anchors, so nobody copies one by hand.
 
 `draft approval` refuses while any blocking finding is open.
 
@@ -523,34 +539,65 @@ to a declared default the plan silently left unapplied (D-58).
 
 ### 6.1 Findings are data
 
-`findings/<artifact>.r<round>.json`:
+`findings/<artifact>.json`, one **ledger** per artifact (D-107):
 
 ```json
 {
-  "framework_version": "1.0.0",
   "cycle": "20260929_1456_32",
   "artifact": "spec.md",
-  "upstream_sha256": "3f9a2c7b...",
-  "interrogated_at": "2026-10-01T11:08:39Z",
-  "round": 1,
   "findings": [
     {
       "id": "F_01",
       "severity": "blocking",
-      "disposition": "open",
       "cites": {
         "id": "CON_16",
         "heading": "a spec covers every outcome its intent asks for, and all of each one"
       },
       "statement": "...what is wrong, in full",
       "locus": "...where in the artifact",
-      "remedy": "...what would fix it"
+      "remedy": "...what would fix it",
+      "transitions": [
+        { "round": 1, "disposition": "open",     "at": "2026-10-01T11:08:39Z" },
+        { "round": 2, "disposition": "answered", "by": "interrogate", "at": "2026-10-01T11:40:02Z" }
+      ]
+    }
+  ],
+  "rounds": [
+    {
+      "round": 1,
+      "framework_version": "1.0.0",
+      "interrogated_at": "2026-10-01T11:08:39Z",
+      "subject_sha256": "91c4de08...",
+      "upstream_sha256": "3f9a2c7b...",
+      "entry_sha256": "a17e03c2..."
+    },
+    {
+      "round": 2,
+      "framework_version": "1.0.0",
+      "interrogated_at": "2026-10-01T11:40:02Z",
+      "subject_sha256": "5b07af31...",
+      "upstream_sha256": "3f9a2c7b...",
+      "previous_sha256": "a17e03c2...",
+      "entry_sha256": "7c2d91b0..."
     }
   ]
 }
 ```
 
-An empty `findings` array is a clean round.
+**A finding is stored once.** Its severity, citation, statement, locus, remedy and perspective are fixed
+when it is first raised. What moves is `transitions`, and the first transition is the raise. Its
+disposition as of round *n* is its last transition at or before *n*. A round that raised nothing and
+moved nothing is a clean round, and it is still an entry in `rounds`.
+
+**A round is an entry.** It carries what the round judged and against what (§6.2), any conflicts and
+note, and `entry_sha256`. That hash covers four things: the entry without its own hash, the findings it
+first raised, the transitions it stamped, and the previous entry's hash. So each round is chained to the
+ones before it. The binary recomputes the chain on every read and refuses a ledger that does not verify,
+naming the first round that fails. The approval anchors the chain (§5.2).
+
+**The ledger holds no count.** How many rounds there have been is the length of `rounds`. What was open
+at any round is derived from the transitions. A stored copy of either is the count-beside-the-thing D-49
+rejects.
 
 A round may also carry the loop's third ending:
 
@@ -598,10 +645,15 @@ A non-blocking finding is *non-blocking*, not *trivial*.
 
 Disposition transitions carry who and when.
 
-**Rounds accumulate and are never rewritten.** A finding keeps its id across rounds for the life of
-the cycle, so a carried finding is distinguishable from a new one, and the latest round that mentions
-one says where it has got to. A per-artifact summary — highest round, count of open blockers — is
-what the gate reads.
+**History is appended, never restated.** A finding keeps its id for the life of the cycle, so a carried
+finding is distinguishable from a new one, and its latest transition says where it has got to. `sdlc
+round` merges what the session hands it. An id it has not seen is a new finding. A known id at a
+different disposition is a transition. A known id at the disposition it already stands at adds nothing.
+**A known id whose severity, statement or citation differs from the ledger's is refused**, because one
+id meaning two objections is the confusion the id exists to prevent. Restating a finding therefore costs
+nothing and records nothing. That matters: one cycle's session restated every finding every round, and its plan's
+twenty-sixth round file held 764 copies beside 34 new findings (D-107). What the gate reads is the fold,
+the open blockers as of the latest round.
 
 **A disposition moves off `open` only on a fresh reader's silence** (D-49). The reader judges the
 document in front of it and has no history; the round records that an earlier finding it did not raise
@@ -628,8 +680,14 @@ findings and the session's dispositions, stamps the round number, the time and e
 while anything above the artifact is unsettled — interrogated as it stands, against its upstream as it
 stands, with no blocker open. So the chain is interrogated top down, one document at a time, and a
 round judged against a document still moving is refused when it is written rather than discovered at the
-gate. The hook denies every agent write to a round file, which is what makes the command the only way
-one lands.
+gate. The hook denies every agent write to a findings ledger, which is what makes the command the only
+way a round lands.
+
+**A cycle still holding round files from before D-107** — `findings/<artifact>.r<round>.json`, one per
+round — is read through one adapter into a ledger, so there is still one fold. The first `sdlc round`
+on that artifact writes the ledger with the converted rounds chained, and removes the round files in the
+same write. A directory holding both shapes for one artifact is refused. A merged cycle is never
+rewritten, and nothing has to be run to upgrade.
 
 ### 6.3 `refine` and `remediate` — two editors with opposite guards
 
@@ -1832,7 +1890,7 @@ implies.
 - every artifact's shape is sound — the envelope, its body sections, and nothing undeclared
 - the approval ledger's standing decision is `approved`
 - all three recorded hashes match the bytes on disk
-- every findings round's `upstream_sha256` matches its upstream now
+- every findings ledger's chain verifies, and its latest round's `upstream_sha256` matches its upstream now
 - every spec criterion has a proof entry that cites it
 - **every spec criterion is adjudicated in `verify.md`'s `Criteria`**, rather than recorded under
   `## Open` as a limit of the proof — the one exit `CON_14` does not cover, because it binds an intent,
@@ -2007,7 +2065,7 @@ they print verbatim.
 | `constraints [--for <artifact>]` | renders the effective set, all tiers. How the rules reach a session |
 | `status <id> [--stage] [--brief]` | the stage panel — §14. `--brief` is the between-stages form: the counts, what the artifact says, and the next command |
 | `findings <id> [--stage] [--round]` | what the interrogations said about one cycle, per artifact, each finding at the disposition that stands |
-| `round <id> <artifact> --from <file>` | writes the next findings round: the readers' findings and the session's dispositions, with the round number, the time, and the hashes of what was judged, what it was judged against, each section, and on a verify the evidence, stamped by the binary. Refuses while anything above it in the chain is unsettled. `--changed` lists the sections moved since the last round instead — D-101 |
+| `round <id> <artifact> --from <file>` | appends the next round to the artifact's findings ledger: the readers' new findings and the session's dispositions merged in, with the round number, the time, and the hashes of what was judged, what it was judged against, each section, and on a verify the evidence, stamped by the binary and chained to the round before. Refuses while anything above it in the chain is unsettled, and a known id restated with different words. `--changed` lists the sections moved since the last round instead — D-101, D-107 |
 | `gate <id>` | whether a cycle's build may run. Exits 1 if not |
 | `draft approval\|abandon\|profile\|solution\|techstack` | prints or writes what belongs in a file only a person writes — §5.3 |
 | `propose convergence` | what the record says the rules, decisions and stack are missing, in one ranked report, ending with the proposal file a person marks — D-104 |
@@ -2100,10 +2158,10 @@ into the cycle as work no plan declared (D-94).
       verify.md
       approval.md           append-only ledger of gate decisions
       abandoned.md          why this cycle stopped, if it did
-      findings/
-        intent.r1.json
-        spec.r1.json
-        plan.r1.json
+      findings/             one ledger per artifact, every round of it chained (D-107)
+        intent.json
+        spec.json
+        plan.json
       evidence/
         diff.patch
         build.log
@@ -2849,7 +2907,8 @@ substantive without a constraint to hang on.
 **Decision.** Two frontmatter keys — `framework_version` and `cycle` — plus one section, `## Open`.
 Everything else in the file is body. A key or section the artifact does not declare is a schema
 violation, not a tolerated extra. `verify`'s body is one section, `Criteria`, plus an `outcome` key;
-its findings are data in `findings/verify.rN.json` like every other artifact's.
+its findings are data in `findings/verify.rN.json` like every other artifact's. **Corrected 2026-10-25:**
+that file is now `findings/verify.json`, one ledger for every round (D-107).
 
 **Why.** Writing it as an allowlist rather than as "the envelope holds these, the body holds the rest"
 is what makes `D-07a` enforceable instead of merely intended. `D-07a` rejected a `metadata` bag
@@ -6899,6 +6958,98 @@ its refusal still apply.
 - *Keeping `sdlc <stage>` everywhere.* Correct and host-neutral, and costs a refusal each time.
 - *Guessing a marker for Copilot or Antigravity.* Neither documents one; a guessed marker is a panel that
   names one host's invocation to someone using another.
+
+### D-107 — One findings ledger per artifact, its rounds chained by hash and anchored in the approval
+
+**Governs:** §5.2, §6.1, §6.2, §16
+
+**Decision.** `findings/<artifact>.json` replaces `findings/<artifact>.r<round>.json`: one file per
+artifact, written only by `sdlc round` (D-101 is unchanged in who writes and in what order), and denied to
+every agent write by the hook as a round file was. It holds two lists.
+
+- **`findings`, each once.** Its id, severity, citation, statement, locus, remedy and perspective are
+  fixed when it is first raised. What moves is `transitions` — `{round, disposition, by, at}` — and the
+  first transition is the raise. A finding's disposition as of round *n* is its last transition at or
+  before *n*.
+- **`rounds`, one entry each.** What the round files carried apart from findings: the round number, the
+  time, the framework version, `subject_sha256`, `upstream_sha256`, `section_sha256`, `evidence_sha256`
+  on a verify, `conflicts` and `note`. And `entry_sha256`, the hash of the canonical serialisation of
+  four things: that entry without its own hash, the findings first raised in that round, the transitions
+  stamped with that round, and the previous entry's `entry_sha256` (empty on round one).
+
+`sdlc round` merges what the session hands it. An id it has not seen is a new finding. A known id at a
+different disposition is a transition. A known id at the disposition it already stands at adds nothing.
+A known id whose severity, statement or citation differs from the ledger's is refused, because one id
+meaning two objections is the confusion the id exists to prevent.
+
+The binary recomputes the chain on every read and refuses a ledger that does not verify, naming the first
+round that fails. **An approval entry gains `rounds`**, the latest round of each of the three documents
+and its `entry_sha256`. `draft approval` prints it, so nobody computes a hash. The gate refuses when the
+anchored round's entry no longer hashes to what was approved. Rounds after the anchor are allowed, and a
+blocker raised in one refuses the build exactly as it did before.
+
+**Why.** MarketSense's plan ran twenty-six rounds, and its round files came to 17 MB. The 26th held 798
+findings, 764 of them copied from earlier rounds, because the session restated every finding every round
+and nothing stopped it. The fold never needed the restatement, since the latest mention already wins.
+Each round only needed what it raised and what it moved. Stored once each, the same history is about 870
+findings, under a megabyte, and one file per artifact rather than one per round.
+
+**Why keep the history rather than a tally.** The loop guards read the sequence. D-65 counts a rule going
+open, answered, open, which a tally cannot tell apart from one rule cited three times for three different
+mistakes. D-66 compares each pass's open blockers with the one before. And D-49 rejects a count kept
+beside the thing it counts. The ledger stores no count: the number of runs is the length of `rounds`, and
+the open findings at any round are derived from the transitions rather than recorded beside them.
+
+**Why the chain, now that a file is rewritten.** §5.2 said the approval pins the documents and not the
+argument, because rounds were never rewritten, and the only way the argument could change behind an
+approval was a round file going missing. A ledger is rewritten on every round, so that reason no longer
+holds. §5.2 already said what to do if it ever stopped holding: *hash the rounds, rather than recording a
+count.*
+
+**Why per entry and not the whole file.** Rounds are added after approval legitimately, and a later
+blocker refusing the build depends on it. A hash of the whole file would make every approval stale at the
+next round, clean or not. A chain lets the approval pin a prefix: everything up to the anchored round is
+fixed, and everything after it is still free to be added.
+
+**What the chain does not buy.** The binary holds no secret, which is why D-101 rejected signing. Anyone
+who can edit the ledger can recompute every hash in it. On its own the chain catches only accidental and
+partial edits. **The anchor is what makes it a check.** It lives in `approval.md`, which no agent can
+write, so rewriting approved history needs both files changed and a person to change one of them. Rounds
+after the anchor are protected by the hook alone, as a round file written after approval was.
+
+**What moves in D-65's counter.** A rule was "answered" in a round that *mentioned* nothing open against
+it, so a session that restated a standing finding could score a relapse that never happened, and one that
+left it out could arm the counter on a rule still open. Mentions no longer exist, so the counter reads
+transitions instead. A rule is quiet after a round that leaves nothing open under it. A relapse is a
+transition into `open`, under a rule that was quiet or by an id already answered. The counter is still
+per rule, still corroborated by two readers, and the thresholds are unchanged.
+
+**Why a cycle with round files is converted when its next round is written, and not before.** Reading
+both shapes as two folds is what `FindingsReader.Standing` exists to prevent. So round files are read
+through one adapter into a ledger in memory, and the first `sdlc round` on such a cycle writes the ledger,
+with the converted rounds chained, and removes the round files in the same write. A directory holding
+both shapes is refused. A merged cycle's history is never rewritten, and nothing has to be run to upgrade.
+An approval with no `rounds` pins nothing and is judged as before, following D-101's precedent for a
+round with no subject hash, so no cycle in flight fails at approval for a defect of its own.
+
+**Rejected.**
+
+- *Making the binary refuse restatement, and keeping a file per round.* It fixes the size, and it was the
+  smaller change. It leaves a directory that grows by one file per round, plus a format that permits
+  restatement and a check that refuses it, where the ledger cannot represent a restatement at all.
+- *One file holding only the current state: a tally of runs and each finding's standing disposition.*
+  It loses the sequence D-65 and D-66 read, and it is the counter D-49 rejects.
+- *A hash of the whole file in the approval.* Any later round, clean or not, would make every approval
+  stale.
+- *A chain with no anchor.* It is recomputable by anyone holding the file, so it proves the file is
+  consistent and not that it is the one that was approved.
+- *Signing the entries.* Rejected by D-101 for the reason that still applies: there is no secret the agent
+  running the binary cannot read.
+- *A migration command converting every cycle at once.* It would rewrite merged cycles' history on the
+  default branch, which `propose constraints` reads. It would also be a step somebody has to remember, for
+  a conversion the next round can do on its own.
+- *Storing each round's open counts on its entry.* It is derivable from the transitions, and a stored copy
+  is the count-beside-the-thing D-49 rejects. The panel computes it.
 
 ### D-106 — `doctor` asks the platform whether branch policy requires the check
 

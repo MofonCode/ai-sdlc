@@ -171,7 +171,7 @@ public static class ProtectedPaths
 
         file = segments.Length >= 2
             && string.Equals(segments[^2], "findings", StringComparison.OrdinalIgnoreCase)
-            && IsRoundFileName(segments[^1])
+            && (IsRoundFileName(segments[^1]) || IsLedgerFileName(segments[^1]))
                 ? Round
                 : Describe(segments[^1]);
 
@@ -188,11 +188,49 @@ public static class ProtectedPaths
     /// not settled; the denial is what makes it the only way a round lands.
     /// </remarks>
     public static ProtectedFile Round { get; } = new(
-        "a findings round",
-        "A round is written by the binary, which numbers it, stamps when it ran and what it judged, and "
-        + "refuses it while anything above it in the chain is unsettled. Put the readers' findings and "
-        + "your dispositions in a file outside the repository and run "
+        "a findings ledger",
+        "A round is written by the binary, which numbers it, stamps when it ran and what it judged, chains "
+        + "it to the rounds before it, and refuses it while anything above it in the chain is unsettled. "
+        + "Put the readers' findings and your dispositions in a file outside the repository and run "
         + "'sdlc round <id> <artifact> --from <file>'.");
+
+    /// <summary>
+    /// Whether a file name is a findings ledger's: <c>&lt;artifact&gt;.json</c> (D-107).
+    /// </summary>
+    /// <remarks>
+    /// Only ever asked of a name whose directory is <c>findings</c>. Unlike a round file's, the name alone
+    /// is not distinctive -- a solution may well have a <c>plan.json</c> of its own -- so a command is
+    /// judged by the path it names, through <see cref="IsFindingsPath"/>, and never by the name.
+    /// </remarks>
+    /// <param name="name">The file's name, without a directory.</param>
+    /// <returns>True for a ledger file name.</returns>
+    public static bool IsLedgerFileName(string name)
+    {
+        ArgumentNullException.ThrowIfNull(name);
+
+        string[] parts = name.Split('.');
+        return parts.Length == 2
+            && Cycle.TryParseKind(parts[0], out _)
+            && string.Equals(parts[1], "json", StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// Whether a path a command names is a round file anywhere, or a ledger in a <c>findings</c> directory.
+    /// </summary>
+    /// <param name="path">The path as the command wrote it.</param>
+    /// <returns>True when it is one of the binary's findings files.</returns>
+    public static bool IsFindingsPath(string path)
+    {
+        ArgumentNullException.ThrowIfNull(path);
+
+        string[] segments = path.Replace('\\', '/').Split('/', StringSplitOptions.RemoveEmptyEntries);
+
+        return segments.Length > 0
+            && (IsRoundFileName(segments[^1])
+                || (segments.Length >= 2
+                    && string.Equals(segments[^2], "findings", StringComparison.OrdinalIgnoreCase)
+                    && IsLedgerFileName(segments[^1])));
+    }
 
     /// <summary>
     /// Whether a file name is a round's: <c>&lt;artifact&gt;.r&lt;n&gt;.json</c>.
@@ -261,7 +299,7 @@ public static class ProtectedPaths
             foreach (string target in RedirectTargets(segment))
             {
                 string name = target.Replace('\\', '/').Split('/')[^1];
-                if ((IsRoundFileName(name) ? Round : Describe(name)) is { } redirected)
+                if ((IsFindingsPath(target) ? Round : Describe(name)) is { } redirected)
                 {
                     file = redirected;
                     return true;
@@ -344,8 +382,7 @@ public static class ProtectedPaths
 
     private static bool NamesARound(string segment) => segment
         .Split([' ', '\t', '"', '\'', '=', '(', ')', ','], StringSplitOptions.RemoveEmptyEntries)
-        .Select(token => token.Replace('\\', '/').Split('/')[^1])
-        .Any(IsRoundFileName);
+        .Any(IsFindingsPath);
 
     private static bool IsNameCharacter(char c) => char.IsLetterOrDigit(c) || c is '_' or '-' or '.';
 

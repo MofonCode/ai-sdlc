@@ -127,7 +127,7 @@ public static class RemediationBudget
 
         return Result.Ok(new RemediationState(
             spent,
-            [.. rounds.Select(round => round.Findings.Count(finding => finding.IsOpenBlocker))],
+            FindingsReader.OpenBlockersPerRound(rounds),
             FindingsReader.StandingBlockers(rounds),
             Oscillation.Count(rounds)));
     }

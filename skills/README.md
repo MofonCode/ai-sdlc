@@ -481,7 +481,7 @@ round. Never edits.
 | Stage | the loop, whenever an artifact — intent, spec, plan or verify document — has just been written or changed |
 | Started by | the stage skill's loop, or a person |
 | Reads | the constraints in force, the artifact, and the artifact above it — on a plan round `techstack.md` as well, and on a verify round the spec and the evidence; `sdlc perspectives` and each perspective's `sdlc perspective show` for its readers |
-| Writes | `.sdlc/cycles/<id>/findings/<artifact>.r<n>.json`, through `sdlc round` |
+| Writes | the next round of `.sdlc/cycles/<id>/findings/<artifact>.json`, the artifact's findings ledger, through `sdlc round` |
 
 #### Syntax
 
@@ -501,8 +501,10 @@ round. Never edits.
 A new findings round, written by `sdlc round` — the binary numbers it, stamps the time and records the
 hash of the document judged, of the one above it, of each section and, on a verify, of the evidence, and
 refuses it while anything above the artifact is unsettled (D-101). So documents are interrogated top
-down, one at a time. Rounds accumulate and are never rewritten. A finding keeps its id across rounds and
-cites exactly one rule by id and by that rule's own heading. A reader that finds two rules whose remedies
+down, one at a time. The round is appended to the artifact's findings ledger, one file holding every
+round, each chained by hash to the ones before (D-107). A finding is stored once and keeps its id across
+rounds. Restating one where it already stands records nothing, and restating one in other words is
+refused. Each finding cites exactly one rule by id and by that rule's own heading. A reader that finds two rules whose remedies
 exclude each other reports a conflict rather than picking a side. After the first round, perspective
 readers raise suggestions only about the sections that changed.
 
@@ -1048,8 +1050,8 @@ only reason an unattended batch is safe to run at all. The blind three it replac
 that needed a fourth pass and spent all three on a cycle making no progress at all, and there is
 deliberately no ceiling behind the progress rule now (D-66).
 
-It reads `sdlc pr-ready <id>` to know whether the loop is still making progress, works the latest
-`findings/verify.r<n>.json`, then `dotnet build`, `dotnet test` and
+It reads `sdlc pr-ready <id>` to know whether the loop is still making progress, works the open
+blockers `sdlc findings <id> --stage verify` prints, then `dotnet build`, `dotnet test` and
 `sdlc evidence <id> --tests <results> --build-log <log>`, commits on the cycle's branch, and shows
 `sdlc status <id>` verbatim. A pass is a verify findings round after the first, so progress is read from
 what happened rather than from a counter anybody could edit.

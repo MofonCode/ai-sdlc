@@ -501,7 +501,8 @@ internal sealed class CycleWorkspace : IDisposable
     public void WriteApproval(
         string decision = "approved",
         IReadOnlyDictionary<ArtifactKind, string>? hashes = null,
-        string? reason = null)
+        string? reason = null,
+        IReadOnlyDictionary<ArtifactKind, Sdlc.Core.Approvals.RoundAnchor>? rounds = null)
     {
         List<string> lines =
         [
@@ -524,6 +525,18 @@ internal sealed class CycleWorkspace : IDisposable
             lines.Add(string.Create(
                 CultureInfo.InvariantCulture,
                 $"      {Cycle.FileNameOf(kind)}: {hash}"));
+        }
+
+        if (rounds is not null)
+        {
+            lines.Add("    rounds:");
+
+            foreach ((ArtifactKind kind, Sdlc.Core.Approvals.RoundAnchor anchor) in rounds)
+            {
+                lines.Add(string.Create(
+                    CultureInfo.InvariantCulture,
+                    $"      {Cycle.FileNameOf(kind)}: {{ round: {anchor.Round}, sha256: {anchor.Sha256} }}"));
+            }
         }
 
         if (reason is not null)

@@ -111,6 +111,7 @@ public static class StatusRenderer
         ApprovalGate.GateRefusal.OpenBlocker => "blocked",
         ApprovalGate.GateRefusal.HashMismatch => "stale hash",
         ApprovalGate.GateRefusal.StaleRound => "stale round",
+        ApprovalGate.GateRefusal.RewrittenRound => "rewritten round",
         ApprovalGate.GateRefusal.Abandoned => "abandoned",
         _ => "refused",
     };
@@ -388,6 +389,7 @@ public static class StatusRenderer
         ApprovalGate.GateRefusal.HashMismatch => "approved, but a document has changed since",
         ApprovalGate.GateRefusal.OpenBlocker => "approved, but a blocking finding is still open",
         ApprovalGate.GateRefusal.StaleRound => "approved, but an interrogation judged a document that has changed since",
+        ApprovalGate.GateRefusal.RewrittenRound => "approved, but a findings round it anchored has been changed since",
         ApprovalGate.GateRefusal.Abandoned => "abandoned, which is terminal",
         ApprovalGate.GateRefusal.MissingDocument => "cannot be approved until all three documents exist",
         ApprovalGate.GateRefusal.NoCycle => "no cycle directory yet",

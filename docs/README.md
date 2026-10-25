@@ -159,13 +159,14 @@ There are **17 global constraints in force**; `CON_04` and `CON_13` are supersed
 
 ## 5. Interrogation
 
-How an artifact is challenged. Rounds accumulate and are never rewritten.
+How an artifact is challenged. Rounds are appended to one ledger per artifact, and an approved round is never rewritten.
 
 | | What it is | Where |
 |---|---|---|
 | **interrogation** | judging one artifact against the rules in force and writing a findings round. **Never edits** | `/sdlc:interrogate` |
 | **fresh process** | the interrogation runs with no memory of writing the thing it is judging. An author reviewing their own draft agrees with it |
-| **findings round** | one pass's findings, plus the hashes of what it judged and what against, written by `sdlc round` — which refuses one while anything above it is unsettled | `findings/<kind>.rN.json` |
+| **findings round** | one pass's findings, plus the hashes of what it judged and what against, written by `sdlc round` — which refuses one while anything above it is unsettled. It records only what it raised and what it moved | an entry in the findings ledger |
+| **findings ledger** | every round of one artifact's interrogation in one file: each finding once with its moves, each round an entry chained by hash to the ones before. The approval anchors its latest round, so the argument behind an approval cannot be rewritten (D-107) | `findings/<kind>.json` |
 | **finding** | one thing wrong: an id kept across rounds, the rule it **cites**, what is wrong, where, and the remedy |
 | **severity** | `blocking` stops the artifact advancing and cites exactly one rule; `suggestion` does not block. **Non-blocking is not trivial** — it means nothing forbade the current state |
 | **disposition** | `open`, `answered`, `withdrawn`, with who moved it and when. A finding is always shown at the disposition that stands |

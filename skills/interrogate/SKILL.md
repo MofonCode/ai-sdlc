@@ -236,7 +236,13 @@ unsettled** — no round yet, a round that judged a different version, a round j
 that has since moved, or a blocker still open — and the refusal names which. That refusal is the order:
 the chain is interrogated top down, **one document at a time**, never in parallel, because a round about
 a spec judged while the intent is still moving is a clean reading of a document about to stop existing.
-The hook denies writing a round file any other way.
+
+**The round lands in one file per artifact, `findings/<artifact>.json`** — the findings ledger (D-107).
+The binary merges what you hand it: an id it has not seen is a new finding, a known id at a different
+disposition is a move, and a known id at the disposition it already stands at adds nothing. It chains the
+round to the ones before it by hash. The hook denies writing the ledger any other way, and the binary
+refuses a ledger whose chain has been edited. A cycle still holding round files from before the ledger,
+`findings/<artifact>.r<n>.json`, is converted by its next round.
 
 Two things are still yours to get right:
 
@@ -245,9 +251,11 @@ three carries `F_01` in both. Without that, nothing can tell a carried finding f
 status panel would report three problems where there is one.
 
 **Every finding gets a `disposition`.** `open` when outstanding. A round that mentions nothing about a
-finding has not answered it — the fold reads the latest round that *mentions* an id, so silence
-carries it forward unchanged, which is correct. **Which means a finding that has been dealt with has
-to be mentioned, and said to be dealt with.** The next section is how.
+finding has not answered it — the ledger holds each finding at its last move, so silence carries it
+forward unchanged, which is correct. **Which means a finding that has been dealt with has to be
+mentioned, and said to be dealt with.** The next section is how. **There is no need to restate the
+rest.** A finding handed back at the disposition it already stands at records nothing, so a round only
+needs what the reader raised and what moved.
 
 **A steer carrying a change down adds a `note`** — one or two sentences saying what moved above this
 document since its last round and what this document did about it, including "nothing, because …".
@@ -296,11 +304,12 @@ findings whose disposition moved.
 }
 ```
 
-**Carry the statement and the citation across unchanged.** The id, the heading and the statement are
-what round one said; this round is saying where that objection has got to, not restating it in your own
-words. A round whose `F_01` says something different from round one's `F_01` makes the history
-unreadable -- and that includes the heading, which is round one's record of the wording it judged
-against, not a field to refresh from today's library.
+**Carry the severity, the statement and the citation across unchanged.** The id, the heading and the
+statement are what round one said; this round is saying where that objection has got to, not restating it
+in your own words. **`sdlc round` refuses a known id in other words**, because a round whose `F_01` says
+something different from round one's `F_01` is one id meaning two objections -- and that includes the
+heading, which is round one's record of the wording it judged against, not a field to refresh from
+today's library. A new objection gets a new id.
 
 **An empty `findings` array still means a clean reading, and it clears nothing.** If round one raised
 a blocker and round two is empty, that blocker is still open and still refuses the build — which is

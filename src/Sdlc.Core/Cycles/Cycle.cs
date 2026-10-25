@@ -196,15 +196,22 @@ public sealed record Cycle(CycleId Id, string SolutionRoot)
     public string PathOf(ArtifactKind kind) => Path.Combine(Directory, FileNameOf(kind));
 
     /// <summary>
-    /// The path an interrogation round is written to.
+    /// The path of an artifact's findings ledger, every round of its interrogation in one file (D-107).
+    /// </summary>
+    /// <param name="kind">The artifact that was interrogated.</param>
+    /// <returns>The full path.</returns>
+    public string FindingsLedgerPath(ArtifactKind kind) =>
+        Path.Combine(FindingsDirectory, NameOf(kind) + ".json");
+
+    /// <summary>
+    /// The path a round file was written to before D-107, one per round.
     /// </summary>
     /// <remarks>
-    /// <strong>Nothing in the binary calls this, and that is correct rather than dead.</strong> A
-    /// round is written by a skill and read back by glob — <see cref="Findings.FindingsReader"/>
-    /// enumerates <c>&lt;artifact&gt;.r*.json</c> because it wants every round, not a known one. So
-    /// this is where the naming convention is stated, and the suite writes its fixture rounds through
-    /// it: if the convention moved and the glob did not, the tests would keep passing against files
-    /// the reader no longer finds. Deleting it would put the convention in test code instead.
+    /// <strong>Nothing in the binary writes one any more.</strong> Cycles opened before the ledger still
+    /// hold them, <see cref="Findings.FindingsReader.ReadLedger(Cycle, ArtifactKind, CancellationToken)"/>
+    /// reads them by glob, and the next round converts them. So this is where the old naming convention is
+    /// stated, and the suite writes its legacy fixtures through it: if the convention moved and the glob
+    /// did not, the tests would keep passing against files the reader no longer finds.
     /// </remarks>
     /// <param name="kind">The artifact that was interrogated.</param>
     /// <param name="round">The round number, counting from one.</param>

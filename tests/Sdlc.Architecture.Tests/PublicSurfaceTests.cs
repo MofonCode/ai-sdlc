@@ -50,6 +50,9 @@ public sealed class PublicSurfaceTests
         "Sdlc.Core.Approvals.GateDecision",
         "Sdlc.Core.Approvals.GateEntry",
 
+        // Where a findings ledger stood when a decision was taken (D-107). Public because GateEntry carries it.
+        "Sdlc.Core.Approvals.RoundAnchor",
+
         // The command 'sdlc draft approval' dispatches. Public because Sdlc.Cli sends it, like every
         // other operation's request; it returns ApprovalText.Response rather than a shape of its own,
         // because composing the decision and putting it on disk produce the same answer.
@@ -237,6 +240,16 @@ public sealed class PublicSurfaceTests
         "Sdlc.Core.Findings.Disposition",
         "Sdlc.Core.Findings.Finding",
         "Sdlc.Core.Findings.FindingsReader",
+
+        // One artifact's findings as the file holds them (D-107): each finding once with its moves, each
+        // round an entry chained by hash. Public because FindingsReader reads and writes one, and because
+        // the merge and the chain are what the suite has to hold -- that a restatement adds nothing, a
+        // reworded id is refused, and an edited entry fails to verify.
+        "Sdlc.Core.Findings.FindingsLedger",
+        "Sdlc.Core.Findings.LedgerFinding",
+        "Sdlc.Core.Findings.LedgerOnDisk",
+        "Sdlc.Core.Findings.LedgerRound",
+        "Sdlc.Core.Findings.Transition",
 
         // What a build saw, left alone and wrote into its commit. Public because it is part of the
         // suggestions Response a renderer reads, and because the parser that reads one out of a commit

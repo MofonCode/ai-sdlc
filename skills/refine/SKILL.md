@@ -101,8 +101,8 @@ every time the artifact is read, and it is what a reviewer meets at the gate.
 ## Update the dispositions
 
 **You do not.** A finding you answered moves to `answered` in the **next** round, written by the next
-interrogation — not by you editing the round file. Rounds accumulate and are never rewritten; a round
-you edited stops being the record of what was challenged.
+interrogation — not by you editing the findings ledger. Only `sdlc round` writes it, each round chained to
+the ones before, and a ledger edited any other way fails its chain and is refused (D-107).
 
 What you record is what changed, in your report — and that report is not a courtesy. The next round
 cannot tell a finding you *answered* from one you *disagreed with* by looking at the document, and

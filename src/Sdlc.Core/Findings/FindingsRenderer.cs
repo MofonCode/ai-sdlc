@@ -235,9 +235,21 @@ public static class FindingsRenderer
             text.AppendLine(string.Create(CultureInfo.InvariantCulture, $"  evidence    {ContentHash.Abbreviate(evidence)}"));
         }
 
+        // What this round added to the ledger, then what stands: a round holds only what it raised or
+        // moved (D-107), so its own counts are not what is open.
         text.AppendLine(string.Create(
             CultureInfo.InvariantCulture,
-            $"  findings    {round.Findings.Count(OpenBlocker)} blocking open, {round.Findings.Count(OpenSuggestion)} suggestions open, {round.Findings.Count(finding => finding.Disposition != Disposition.Open)} settled"));
+            $"  this round  {round.Findings.Count(finding => finding.Disposition == Disposition.Open)} opened, {round.Findings.Count(finding => finding.Disposition != Disposition.Open)} settled"));
+        text.AppendLine(string.Create(
+            CultureInfo.InvariantCulture,
+            $"  standing    {response.Standing.Count(OpenBlocker)} blocking open, {response.Standing.Count(OpenSuggestion)} suggestions open"));
+
+        if (response.Converted > 0)
+        {
+            text.AppendLine(string.Create(
+                CultureInfo.InvariantCulture,
+                $"  converted   {response.Converted} round file{(response.Converted == 1 ? string.Empty : "s")} into the ledger, and removed them"));
+        }
 
         return text.ToString();
     }
