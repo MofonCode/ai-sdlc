@@ -322,7 +322,7 @@ public sealed record FindingsLedger(
                 {
                     return Result.Fail<FindingsLedger>(string.Create(
                         CultureInfo.InvariantCulture,
-                        $"{Artifact}: {finding.Id} is already recorded as a different objection -- its severity, citation or statement differs from round {known.Transitions[0].Round}'s. Carry an earlier finding's id with its words unchanged, and give a new objection a new id."));
+                        $"{Artifact}: {finding.Id} is already recorded as a different objection -- its severity, citation or statement differs from round {known.Transitions[0].Round}'s. Carry an earlier finding's id with its words unchanged, and give a new objection a new id: the next free one is {NextId(findings, finding.Id)}."));
                 }
 
                 known = known with
@@ -361,6 +361,29 @@ public sealed record FindingsLedger(
             Findings = findings,
             Rounds = [.. Rounds, entry],
         });
+    }
+
+    /// <summary>
+    /// The next id under the same prefix as one given, past every id the ledger holds under it.
+    /// </summary>
+    /// <remarks>
+    /// A reader's ids are its own: a perspective reader with no history numbers from <c>F_01</c> every
+    /// round, so its new objections collide with old ones (D-108). Naming the next free id makes the
+    /// renumbering a lookup rather than a search.
+    /// </remarks>
+    private static string NextId(IEnumerable<LedgerFinding> findings, string id)
+    {
+        int at = id.LastIndexOf("F_", StringComparison.Ordinal);
+        string prefix = at < 0 ? string.Empty : id[..at];
+
+        int highest = findings
+            .Select(finding => finding.Id)
+            .Where(known => known.StartsWith(prefix + "F_", StringComparison.Ordinal))
+            .Select(known => int.TryParse(known[(prefix.Length + 2)..], NumberStyles.None, CultureInfo.InvariantCulture, out int number) ? number : 0)
+            .DefaultIfEmpty(0)
+            .Max();
+
+        return string.Create(CultureInfo.InvariantCulture, $"{prefix}F_{highest + 1:D2}");
     }
 
     private static bool SameObjection(LedgerFinding known, Finding finding) =>

@@ -59,6 +59,19 @@ public sealed class FindingsLedgerTests
     }
 
     [TestMethod]
+    public void A_reused_id_is_refused_with_the_next_free_one_under_its_prefix()
+    {
+        // A perspective reader numbers from F_01 every round, having no history (D-108).
+        FindingsLedger ledger = Build(
+            Round(1, Suggestion("maintainability.F_01"), Suggestion("maintainability.F_02"), Open("F_01")));
+
+        Result<FindingsLedger> refused = ledger.Append(Round(2, Suggestion("maintainability.F_01") with { Statement = "a new objection." }));
+
+        Assert.IsTrue(refused.IsFailed);
+        StringAssert.Contains(refused.Errors[0].Message, "the next free one is maintainability.F_03");
+    }
+
+    [TestMethod]
     public void Every_entry_is_chained_to_the_one_before()
     {
         FindingsLedger ledger = Build(Round(1, Open("F_01")), Round(2), Round(3, Open("F_02")));

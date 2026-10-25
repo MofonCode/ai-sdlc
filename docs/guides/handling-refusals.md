@@ -213,7 +213,9 @@ finding is stored once, so one id meaning two objections would make the history 
 the same finding where it already stands is fine, and records nothing.
 
 **Next:** carry the earlier finding's severity, citation and statement exactly as the ledger holds them —
-`sdlc findings <id> --stage <artifact>` prints them — and give a new objection a new id.
+`sdlc findings <id> --stage <artifact>` prints them — and give a new objection a new id. The refusal names
+the next free one under that prefix. The usual cause is a perspective reader, which numbers from `F_01`
+every round because it has no history (D-108).
 
 ## `sdlc scaffold` — the two ways it is refused
 

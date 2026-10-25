@@ -73,7 +73,7 @@ sdlc perspectives <id>
 | `intent` | **asks.** The interview's last question is the active perspectives' list for the intent, in this solution's terms. What the person picks becomes an outcome in their words; what they do not pick is not written |
 | `spec` | **steers, and never widens.** A list item the intent asks for shapes its criterion — the keyboard path through an interaction the intent asked for, the hostile input to a field it asked for. An item it does not ask for gets no criterion and is named in `Out of scope`, so the approval shows the gap |
 | `plan` | **steers.** The list is how the criteria are met — where a secret is kept, which log records a failure, which layer runs the scan. An item that would need a criterion the spec lacks goes under `Risk`, not into the proof |
-| `interrogate` | **judges.** One fresh process per active perspective, run at the same time and blind to each other, each handed only its own method, its questions for this document, its rules, and the document with the one above it. Then **one reconciling reader** over every finding in the round, which only looks for findings that cannot both be answered |
+| `interrogate` | **judges.** One fresh process per active perspective, run at the same time and blind to each other, each handed only its own method, its questions for this document, its rules, and the document with the one above it. Then **one reconciling reader** over every finding in the round and the findings still open, which only looks for findings that restate one still open and findings that cannot both be answered |
 | `build` | **steers, and never widens.** It applies the *cover this* list to how the plan is written up in code and records the evidence each perspective needs. Anything a perspective wants that the plan did not describe becomes a tagged `Noticed: [name] …` line in the commit, not code |
 | `verify` | **asks of the evidence.** By now the concerns the person took in are criteria in the spec. What verify adds is the evidence questions — was the abuse actually attempted, did the scan run on every touched page |
 
@@ -105,6 +105,12 @@ nothing.
 `sdlc round <id> <artifact> --changed` — the sections moved since the last round — and a suggestion about
 text that has not moved is one an earlier round already had the chance to raise. Its blocking findings are
 not limited that way (D-101).
+
+**A perspective re-raises what is still open, and the round keeps one id for it.** Its reader has no
+history, so once a section moves it raises the objections already standing there again, in new words and
+under ids of its own. The reconciling reader is shown what stands and names each restatement, and the
+round carries it under the id it already has, which records nothing new. Only a genuinely new objection
+gets a new id (D-108).
 
 **When two perspectives disagree**, the reconciling reader settles it by rule, not by preference:
 

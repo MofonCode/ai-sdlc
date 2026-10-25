@@ -504,7 +504,8 @@ refuses it while anything above the artifact is unsettled (D-101). So documents 
 down, one at a time. The round is appended to the artifact's findings ledger, one file holding every
 round, each chained by hash to the ones before (D-107). A finding is stored once and keeps its id across
 rounds. Restating one where it already stands records nothing, and restating one in other words is
-refused. Each finding cites exactly one rule by id and by that rule's own heading. A reader that finds two rules whose remedies
+refused, naming the next free id. The reconciling reader is also shown what is still open and names each
+finding that restates it, so a perspective raising a standing objection again keeps its id (D-108). Each finding cites exactly one rule by id and by that rule's own heading. A reader that finds two rules whose remedies
 exclude each other reports a conflict rather than picking a side. After the first round, perspective
 readers raise suggestions only about the sections that changed.
 

@@ -765,7 +765,8 @@ the spec writes an item where the intent asks for it and names the rest in `Out 
 the build apply theirs to how the criteria are met. What a perspective wants beyond the intent comes back
 as a suggestion, which a person takes in through `steer` (D-97). `interrogate` runs one fresh
 process per active perspective, handed that perspective's full method and rules, then **one reconciling
-reader** over the round's findings. `verify` asks each perspective's questions of the evidence.
+reader** over the round's findings and the artifact's standing ones, which names a finding that restates
+one still open so the round carries it under the id it has (D-108). `verify` asks each perspective's questions of the evidence.
 
 **Which apply.** Security, operability and maintainability always. The intent names any others, seen in
 the interview and covered by the approval's hash; at plan, the declared files add any the intent missed,
@@ -6958,6 +6959,49 @@ its refusal still apply.
 - *Keeping `sdlc <stage>` everywhere.* Correct and host-neutral, and costs a refusal each time.
 - *Guessing a marker for Copilot or Antigravity.* Neither documents one; a guessed marker is a panel that
   names one host's invocation to someone using another.
+
+### D-108 — The reconciling reader names a restatement, and the round carries the standing id
+
+**Governs:** §6.5
+
+**Decision.** After the first round the reconciling reader is handed, besides the artifact and this
+round's findings, the findings still open on the artifact. It names each of this round's findings that
+restates one of them. The round carries that finding under the standing id, at the disposition it stands
+at and in the ledger's words, which records nothing (D-107). A finding the reconciler is unsure about is
+new. A new finding takes an id past every one the ledger holds under its prefix, and `sdlc round`,
+refusing a known id in other words, names the next free one.
+
+**Why.** On MarketSense's second cycle a steer edited three sections of an intent, and the next round's
+perspective readers, who have no history by design, raised the objections already standing in those
+sections again under ids of their own. Seven of round six's eleven findings repeated suggestions still open
+from rounds one to five, and all eleven came with ids the ledger already held for other objections. D-107's
+refusal would have caught the reused ids. Nothing would have caught the repeats, because they were genuinely new words. D-101's
+changed-sections rule narrows what a perspective reader may raise, but a section is changed by any edit
+inside it, so once a steer touches `Wanted outcomes` every standing objection there is fair game again.
+
+**Why the reconciler and not the session.** D-49 has the session record a finding raised again as still
+open, and that part does not move. But deciding that two statements are one objection is a judgement in
+words, and the session may have written the document. The reconciler is already a fresh process that
+reads the round whole and judges no document, so showing it what stands anchors nothing.
+
+**Why unsure is new.** The failure directions are not symmetrical. A duplicate is visible noise in the
+panel and in `sdlc suggestions`. A distinct objection merged into an old one is lost: its wording is never
+written, and it disappears with the old one when that is answered.
+
+**Rejected.**
+
+- *Showing the perspective readers what stands.* D-90 rejected readers seeing earlier findings: they are
+  anchored by them. The reconciler is the reader with nothing to be anchored about.
+- *Leaving the match to the session.* What happened, implicitly, and it did not happen: the skill said a
+  finding raised again stays open and never said to look for one among a perspective's suggestions.
+- *Hashing finer than a section, so fewer objections count as changed.* It narrows the window and does not
+  close it: an objection about the bullet that moved is still raised again. Worth doing on its own merits
+  if suggestion volume stays high.
+- *Matching restatements in the binary, by text.* Whether two statements are one objection is not
+  something a hash or a string distance can decide.
+- *Accepting duplicates because `propose constraints` counts distinct cycles.* That count is unharmed, but
+  the panel, the gate draft and `sdlc suggestions` are read by a person, and a list padded with repeats is
+  one people stop reading.
 
 ### D-107 — One findings ledger per artifact, its rounds chained by hash and anchored in the approval
 

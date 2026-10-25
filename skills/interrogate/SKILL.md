@@ -197,9 +197,26 @@ the binary does not carry is rejected when it is read back. The round's own read
 > method finds is a `suggestion`. A suggestion that keeps recurring is what `sdlc propose constraints`
 > turns into a rule; a perspective reader inventing a blocker is the waiver of D-27 run backwards.
 
-Then **one reconciling reader**, in a fresh process of its own: hand it the artifact and every finding this
-round's readers raised, and nothing else, and ask only which pairs of findings cannot both be answered.
-It decides nothing about the document. For each pair it names:
+Then **one reconciling reader**, in a fresh process of its own. Hand it the artifact, every finding this
+round's readers raised, and — after the first round — the findings still open on this artifact, as
+`sdlc findings <id> --stage <artifact>` prints them, and nothing else. Ask it two things, and nothing
+about whether any finding is right: which of this round's findings **restate one still open**, and which
+pairs of findings **cannot both be answered**. It decides nothing about the document.
+
+**A restatement is carried under the id that stands** (D-108). The readers have no history, so after a
+section moves they raise what is already open there again, under ids of their own. Write each finding the
+reconciler names as a restatement with the standing id, at the disposition it stands at, in the words the
+ledger holds — which records nothing, because it moved nothing. Leave the reader's new wording out; a
+second id for the same objection is how one cycle reached seven duplicate suggestions in a single round.
+**Where the reconciler is unsure, the finding is new.** A duplicate is noise a person can see; a distinct
+objection merged into an old one is lost.
+
+**Every id that is not a restatement is new, and numbered past what the ledger holds.** A reader's ids
+are its own, so `maintainability.F_01` from this round's reader is not the `maintainability.F_01` the
+ledger already has. `sdlc round` refuses a known id in other words and names the next free one for that
+prefix.
+
+For each pair that cannot both be answered, it names:
 
 | The pair | becomes |
 |---|---|
@@ -209,7 +226,10 @@ It decides nothing about the document. For each pair it names:
 
 **Why one reconciler after, and not readers that see each other.** A reader shown earlier findings is
 anchored by them, order would decide whose finding survives, and the readers would run one at a time. So
-they run blind and in parallel, and one reader reads the round whole.
+they run blind and in parallel, and one reader reads the round whole. That is also why the reconciler, and
+not the readers, is shown what stands: it judges no document, so there is nothing for the history to
+anchor. And it is why you do not decide restatements yourself — you may have written the document, and
+"the same objection" is a judgement in words.
 
 **A perspective listed as not written yet has nothing to run.** Say so in one line of the report; it is a
 gap, not a pass.
