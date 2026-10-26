@@ -100,6 +100,11 @@ waste a cycle before the gate catches it. §6.3 says which guard is which.
 The main window keeps only what it needs to decide. Interrogation, fresh readers, and any
 go-and-find-out step run in their own process (D-01).
 
+The verdict is one of them. The session running `verify` assembles what the adjudicator reads and records
+what it returns, and a blocking finding against the verdict is answered by a new adjudication rather than
+an edit. Every such process is started with `SDLC_READER=1`, so a red build's turn-end gate lets a reader's
+turn end with its verdict (D-109).
+
 ### 2.6 Flexibility comes from making compliance cheap
 
 Not from making constraints optional. Where the correct path is expensive, the answer is a tool that
@@ -6959,6 +6964,51 @@ its refusal still apply.
 - *Keeping `sdlc <stage>` everywhere.* Correct and host-neutral, and costs a refusal each time.
 - *Guessing a marker for Copilot or Antigravity.* Neither documents one; a guessed marker is a panel that
   names one host's invocation to someone using another.
+
+### D-109 — A fresh process writes the verdict, and every fresh reader is marked so the turn end lets it finish
+
+**Governs:** §2.5
+
+**Decision.** `verify` no longer adjudicates in the session that runs it. The session assembles the
+method, the constraints, the spec, the plan, each perspective's questions and the evidence, starts a fresh
+process to write `verify.md`, and records what it returns byte for byte. A blocking finding against the
+verdict is answered by a new adjudication handed the findings, never by `refine` or an edit in the session.
+Every fresh process a skill starts — an interrogation's readers and reconciler, the adjudicator, `propose`'s
+review — is started with `SDLC_READER=1`, and the turn-end gate lets such a turn end.
+
+**Why the verdict.** D-01 put evaluation in a new process and the interrogation obeyed it, but the verdict
+itself was written wherever `/sdlc:verify` was typed, and that is usually the session that built the
+change: the build hands straight to verify, and `batch-build` runs both in one agent. On MarketSense's
+cycle `20261024_1205_42` the building session wrote every one of 22 criteria met, and the verify document's
+interrogation then found four whose tests asserted less than the criterion asked. It also moved a criterion
+from not met to met by refining the verdict's argument, with no change to the code, which is the
+self-grading D-01 rejected for the healing loop, arriving through the document instead. After the
+remediation, the person's session handed verify to an agent with no context of its own accord, since the
+skill did not ask it to. That agent's first draft also said every criterion was met, so a fresh author
+does not stop overclaiming, and the interrogation is still what catches it. But its rounds ended blocked on
+six criteria, three of them ones the building session's verdict had held met through seven rounds. What a
+fresh author removes is the session's stake in defending a verdict once it is challenged. That was left to
+the agent's judgement, and `batch-build` and the factory need it to be the skill's instruction.
+
+**Why the mark.** A reader inherits the cycle branch and its recorded evidence. On a red build the
+turn-end gate refused the reader's turn as it would a builder's, so the reader's last message became an
+answer to the gate and the round's verdict never arrived. The agent running that round relaunched its
+readers with every hook disabled, and the host's own permission check stopped it. A reader builds
+nothing, so the gate refusing it sends nobody to fix the suite. The mark stands down only the turn-end
+gate, and the tool-call gate still holds a reader to the protected files.
+
+**Rejected.**
+
+- *A subagent for the adjudicator.* D-01's reason stands: one host's ergonomics, and two code paths for
+  the stage whose value is being derived.
+- *Telling the person to run verify in a new session.* That is a rule asking to be remembered, and
+  `batch-build` has no person to remember it.
+- *Recognising a reader from the host's payload.* No host's turn-end payload says the process is
+  non-interactive, and guessing from what it does carry is the inaccuracy D-46 refuses.
+- *Disabling the turn-end hook for `claude -p` processes generally.* The factory builds in exactly such a
+  process, and that is the turn the gate exists for.
+- *Closing the hole the mark opens.* A process that sets the mark and builds is let go. That is the same
+  shell-shaped hole as evidence recorded from a stale results file, and `verify-chain` closes both.
 
 ### D-108 — The reconciling reader names a restatement, and the round carries the standing id
 

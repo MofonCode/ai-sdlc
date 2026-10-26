@@ -20,7 +20,12 @@ public sealed record ToolCall(
 /// it means rather than for the field a host writes it in, and it is the loop guard: refusing twice
 /// in a row is an endless turn rather than a governed stop.
 /// </param>
-public sealed record TurnEnd(string? WorkingDirectory, bool AlreadyContinuing);
+/// <param name="Reader">
+/// Whether the turn is a fresh reader's: a process a skill started to judge a document, which builds
+/// nothing and so has no build to be held to. Read from <see cref="TurnEndGate.ReaderVariable"/>, which
+/// the skill sets when it starts the process, because no host's payload carries it.
+/// </param>
+public sealed record TurnEnd(string? WorkingDirectory, bool AlreadyContinuing, bool Reader = false);
 
 /// <summary>
 /// What a tool does, independent of what a host calls it.

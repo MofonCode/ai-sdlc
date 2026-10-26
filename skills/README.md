@@ -926,7 +926,8 @@ It keeps no task list of its own inside a batch.
 
 ### `verify`
 
-Adjudicates a build against its spec, from the recorded evidence alone. Never edits code.
+Adjudicates a build against its spec, from the recorded evidence alone, in a fresh process that did not
+see the build. Never edits code.
 
 | | |
 |---|---|
@@ -980,9 +981,13 @@ not tell which run the verdict describes. It does not read the source to decide 
 met: reading the implementation and concluding it looks correct is the most tempting way to write a claim
 with no evidence behind it.
 
-It runs `sdlc constraints --for verify`, adjudicates criterion by criterion, writes the verify document,
-interrogates and refines it like any other artifact, then shows `sdlc status <id>` and
-`sdlc pr-ready <id>` verbatim with at most two lines of its own.
+**The session that runs it does not adjudicate** (D-01). It is often the session that built the change,
+so it assembles the method, the constraints, the spec, the plan, the perspectives' questions and the
+evidence, starts a fresh process with `SDLC_READER=1` to write the verdict criterion by criterion, and
+records what that returns byte for byte. It interrogates the verify document like any other artifact, and
+a blocking finding is answered by a new adjudication given the findings, never by `refine` or an edit in
+the session. Then it shows `sdlc status <id>` and `sdlc pr-ready <id>` verbatim with at most two lines of
+its own.
 
 Per criterion: which test did the plan name, does the summary say it ran and passed, and does that test
 actually establish the criterion? The third question is where judgement lives, and where the verification

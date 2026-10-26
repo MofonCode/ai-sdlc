@@ -35,6 +35,34 @@ public sealed class TurnEndTests
     }
 
     [TestMethod]
+    public async Task A_fresh_readers_turn_is_let_go_even_over_a_red_suite()
+    {
+        // A reader started by interrogate or verify inherits the cycle branch and its red evidence. It
+        // builds nothing, so a refusal sends nobody to fix the suite; it replaces the reader's verdict
+        // with an answer to the gate, and the round is lost.
+        using var solution = CycleWorkspace.Create();
+        solution.WritePlan(proofs: 1);
+        solution.WriteTestSummary(proofs: 1, failing: 1);
+
+        HookVerdict verdict = await Decide(solution, reader: true);
+
+        Assert.AreEqual(HookDecision.Allow, verdict.Decision);
+    }
+
+    [TestMethod]
+    public async Task The_same_turn_not_marked_as_a_reader_is_refused()
+    {
+        // The control for the test above: what lets the reader go is the mark, not the fixture.
+        using var solution = CycleWorkspace.Create();
+        solution.WritePlan(proofs: 1);
+        solution.WriteTestSummary(proofs: 1, failing: 1);
+
+        HookVerdict verdict = await Decide(solution, reader: false);
+
+        Assert.AreEqual(HookDecision.Deny, verdict.Decision);
+    }
+
+    [TestMethod]
     public async Task A_turn_off_a_cycle_branch_is_let_go()
     {
         using var solution = CycleWorkspace.Create();
@@ -340,6 +368,7 @@ public sealed class TurnEndTests
         CycleWorkspace solution,
         string branch = CycleBranch,
         bool alreadyContinuing = false,
+        bool reader = false,
         string? patch = null,
         IReadOnlyList<string>? changed = null)
     {
@@ -353,7 +382,7 @@ public sealed class TurnEndTests
             }));
 
         Result<HookVerdict> result = await gate.Send<TurnEndGate.Query, HookVerdict>(
-            new TurnEndGate.Query(new TurnEnd(solution.Root, alreadyContinuing)));
+            new TurnEndGate.Query(new TurnEnd(solution.Root, alreadyContinuing, reader)));
 
         Assert.IsTrue(
             result.IsSuccess,

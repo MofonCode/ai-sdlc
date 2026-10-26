@@ -484,11 +484,15 @@ code. Run the build and the suite again over what is there now, and record it.
 ### when it says nothing
 
 Deliberately most of the time. It is silent off a cycle branch, on a cycle with no directory, on an
-abandoned cycle, before the cycle has a plan, when nothing has changed, and when the host is already
-continuing because it was sent back once already. A governance hook that met a person finishing a thought
+abandoned cycle, before the cycle has a plan, when nothing has changed, when the host is already
+continuing because it was sent back once already, and in a **fresh reader** — a process `interrogate`,
+`verify` or `propose` starts with `SDLC_READER=1` to judge a document. A reader builds nothing, and
+refusing its turn only replaced its verdict with an answer to the hook; the tool-call hook still holds it
+to the protected files. A governance hook that met a person finishing a thought
 would be switched off within a day, and then the one case it catches would go uncaught too.
 
-**It is bypassable.** Running `sdlc evidence` against a stale results file satisfies it. That is the local
+**It is bypassable.** Running `sdlc evidence` against a stale results file satisfies it, and so does
+setting `SDLC_READER=1` on a process that builds. That is the local
 layer behaving as designed — `sdlc verify-chain` in the pipeline re-reads the evidence and checks that
 every test the plan named actually passed, and that is the guarantee.
 

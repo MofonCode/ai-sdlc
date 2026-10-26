@@ -265,7 +265,9 @@ chain that does not hold.
 /sdlc:verify 20260929_1456_32
 ```
 
-A fresh process again, and the only artifact whose entire value is being derived. **It reads
+A fresh process again, and the only artifact whose entire value is being derived. The session you
+invoke it in is often the one that built the change, so it does not adjudicate: it starts an
+adjudicator that never saw the build, and records what that returns. **It reads
 `tests.json`, `diff.patch` and `base.sha`, and does not run the tests** — running them would produce new
 evidence instead of adjudicating the build's, and the next reader could not tell which run the verdict
 describes. It does not read the source to decide whether a criterion is met either: reading the

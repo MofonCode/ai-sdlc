@@ -3,7 +3,7 @@ name: propose
 description: Read what a solution's record says it is missing -- a rule its findings keep citing, a choice its approved cycles settled, or the roles a theme declares -- and propose entries a person may adopt. Proposes and never places. Use when somebody asks what keeps going wrong across cycles, wants to add one of this solution's own constraints, wants to record a decision, or needs a theme.
 compatibility: Requires the sdlc binary on PATH, from the MofonCode.Sdlc.Cli dotnet tool, and a git repository. Every command here is that binary, so without it the first step fails.
 argument-hint: "convergence | constraints | decisions | theme"
-allowed-tools: Bash(sdlc *)
+allowed-tools: Bash(sdlc *), Bash(claude *)
 ---
 
 # Propose what the record is pushing toward
@@ -127,7 +127,8 @@ row would go missing. Show what it prints verbatim.
 
 ## 4. Review the approved convergence, in a fresh process
 
-Before the person renames anything, open one fresh process, as `interrogate` does, and hand it the marked
+Before the person renames anything, open one fresh process, as `interrogate` does — `SDLC_READER=1`
+included — and hand it the marked
 proposal file, the three drafts, and `.sdlc/solution.md` — nothing else. Ask:
 
 > For each proposal: was it accepted as proposed, edited, or declined? For each edit and each decline,

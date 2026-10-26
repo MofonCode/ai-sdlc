@@ -20,10 +20,17 @@ this session and not as a subagent:
 ```bash
 sdlc constraints --for <artifact> > <scratch>/constraints.txt
 # compose <scratch>/prompt.txt from the judging prompt below, with your Read and Write tools
-claude -p --output-format text < <scratch>/prompt.txt
+SDLC_READER=1 claude -p --output-format text < <scratch>/prompt.txt
 ```
 
 `<scratch>` is any directory outside the repository that your host gives you to write in.
+
+**Start every fresh process with `SDLC_READER=1`** — this one, each perspective's, the reconciler's. In
+PowerShell that is `$env:SDLC_READER = '1'` before the call. The reader inherits the cycle's branch, and
+without the mark a red build's turn-end hook answers the reader's last turn instead of letting it end, so
+the verdict you were waiting for never arrives. The mark stands down only that hook; the reader still may
+not write a protected file. **Never switch the hooks off to get a reader through** — that is the
+safeguard the mark exists so nobody has to remove.
 
 **Compose the prompt with your Read and Write tools, not the shell.** The blocks it carries — the
 artifact, its upstream, and on a plan round `.sdlc/techstack.md` — are files you read and paste in, and

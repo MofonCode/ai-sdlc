@@ -24,7 +24,7 @@ there is no slash form: ask in a sentence, and include the cycle id.
 | [`draft`](../../skills/README.md#draft) | `approval <id> \| abandon <id> \| solution [--standard profile\|existing] \| techstack [--empty]` | prints what belongs in a file only a person writes | a person |
 | **Build and verify** | | | |
 | [`build`](../../skills/README.md#build) | `<cycle id>` | implements the approved plan, builds, tests, records the evidence | a person, or `batch-build` |
-| [`verify`](../../skills/README.md#verify) | `<cycle id>` | judges the build against the spec from the evidence alone | a person, or `batch-build` |
+| [`verify`](../../skills/README.md#verify) | `<cycle id>` | judges the build against the spec from the evidence alone, in a fresh process | a person, or `batch-build` |
 | [`remediate`](../../skills/README.md#remediate) | `<cycle id>` | fixes source and tests after a `blocked` verification | a person, or `batch-build` |
 | **Pull requests and unattended runs** | | | |
 | [`pr`](../../skills/README.md#pr) | `<cycle id> [--plan \| --draft] \| --all` | pushes the cycle's branch and opens its pull request into the integration branch: a verified build, an approved plan, or a draft; asks before every push | a person\*, or `batch-build` |

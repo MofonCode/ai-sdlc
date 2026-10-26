@@ -492,6 +492,69 @@ public sealed class PluginTests
     }
 
     [TestMethod]
+    [DataRow("interrogate")]
+    [DataRow("verify")]
+    [DataRow("propose")]
+    public void Every_skill_that_judges_starts_a_fresh_process_it_may_run(string skill)
+    {
+        // D-109. The verdict used to be written by whichever session typed /sdlc:verify, which was usually
+        // the one that built the change. A skill that judges names the fresh process it starts, and is
+        // allowed to start it, or the judging drifts back into the session.
+        string path = Path.Combine(Root, "skills", skill, "SKILL.md");
+        string text = File.ReadAllText(path);
+
+        StringAssert.Contains(text, "fresh process", $"{skill} judges, and does not say it judges in a fresh process.");
+        StringAssert.Contains(
+            Value(Frontmatter(path), "allowed-tools", path),
+            "Bash(claude *)",
+            $"{skill} starts a fresh process, and its allowed-tools do not let it.");
+    }
+
+    [TestMethod]
+    public void Every_fresh_process_a_skill_starts_is_marked_as_a_reader()
+    {
+        // D-109. An unmarked reader on a red build has its turn refused by the turn-end gate, and its last
+        // message is an answer to the gate instead of its verdict. The mark is the binary's own constant,
+        // so renaming it there without renaming it here fails.
+        string marked = TurnEndGate.ReaderVariable + "=1 claude -p";
+        List<string> unmarked = [];
+
+        foreach (string path in Skills())
+        {
+            bool fenced = false;
+
+            foreach (string line in File.ReadLines(path))
+            {
+                if (line.TrimStart().StartsWith("```", StringComparison.Ordinal))
+                {
+                    fenced = !fenced;
+                    continue;
+                }
+
+                if (fenced && line.Contains("claude -p", StringComparison.Ordinal) && !line.Contains(marked, StringComparison.Ordinal))
+                {
+                    unmarked.Add($"{Path.GetRelativePath(Root, path)}: {line.Trim()}");
+                }
+            }
+        }
+
+        Assert.AreEqual(0, unmarked.Count, "Started without the reader mark:\n" + string.Join("\n", unmarked));
+    }
+
+    [TestMethod]
+    public void The_verify_skill_has_a_fresh_process_write_the_verdict_and_answer_its_findings()
+    {
+        string text = File.ReadAllText(Path.Combine(Root, "skills", "verify", "SKILL.md"));
+
+        StringAssert.Contains(text, "This session does not adjudicate", "The session that built the change would grade it.");
+        StringAssert.Contains(text, TurnEndGate.ReaderVariable + "=1 claude -p", "The adjudicator is not started.");
+        StringAssert.Contains(
+            text,
+            "answered by a new adjudication, not by an edit",
+            "A blocker against the verdict answered in the session is the session writing the verdict after all.");
+    }
+
+    [TestMethod]
     public void Every_skill_names_a_command_the_binary_actually_has()
     {
         // A skill naming a verb that does not exist sends a person to a usage error, and the usage text is

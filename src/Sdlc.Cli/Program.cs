@@ -1559,12 +1559,19 @@ static async Task<int> TurnEnd(CommandLine line, HookHost host)
 
     bool answered = false;
 
+    // From the environment rather than the payload: the skill that starts a fresh reader marks it, and
+    // the hook process inherits that from the host process it runs under.
+    TurnEnd ending = turn.Value with
+    {
+        Reader = Environment.GetEnvironmentVariable(TurnEndGate.ReaderVariable) == "1",
+    };
+
     // The exit code is discarded on purpose, for the reason the tool-call path gives: the decision
     // is in the payload, and a non-zero exit reads to the host as the hook itself having failed.
     _ = await Workspace.Run(line, async workspace =>
     {
         Result<HookVerdict> verdict = await workspace
-            .Send<TurnEndGate.Query, HookVerdict>(new TurnEndGate.Query(turn.Value))
+            .Send<TurnEndGate.Query, HookVerdict>(new TurnEndGate.Query(ending))
             .ConfigureAwait(false);
 
         if (verdict.IsFailed)

@@ -23,6 +23,19 @@ public static class TurnEndGate
         return services.AddTransient<IRequestHandler<Query, HookVerdict>, Handler>();
     }
 
+    /// <summary>
+    /// The environment variable a skill sets, to <c>1</c>, on a fresh reader it starts -- an interrogation's
+    /// readers, its reconciler, the verify adjudicator, the review <c>propose</c> runs.
+    /// </summary>
+    /// <remarks>
+    /// A reader inherits the cycle branch and its recorded evidence from the session that started it, so
+    /// without this a red suite refused the reader's turn too, and the reader's last message became an
+    /// answer to this gate instead of its verdict. The round was lost, and the only way through looked like
+    /// switching the hooks off -- which is what an agent tried. Only the turn end stands down: the tool
+    /// gate still refuses a reader's write to a protected file.
+    /// </remarks>
+    public const string ReaderVariable = "SDLC_READER";
+
     /// <summary>Asks whether an agent may finish its turn.</summary>
     /// <param name="Turn">The turn that is ending.</param>
     public sealed record Query(TurnEnd Turn) : IRequest<HookVerdict>;
@@ -57,7 +70,9 @@ public static class TurnEndGate
     /// exactly as designed -- bypassable by anyone with a shell -- and <c>verify-chain</c> in the
     /// pipeline is the guarantee, because it re-reads the evidence and checks that every test the plan
     /// named actually passed. Closing either hole here would mean running the build, and that is the
-    /// trade this refuses.</para>
+    /// trade this refuses. A process started with <see cref="ReaderVariable"/> set is let go as well, so
+    /// an agent could start its building in one; that is the same shell-shaped hole, and the same
+    /// <c>verify-chain</c> closes it.</para>
     /// </remarks>
     /// <param name="solution">The solution being governed.</param>
     /// <param name="repository">How to ask git what the tree looks like.</param>
@@ -75,6 +90,13 @@ public static class TurnEndGate
             // when it is already continuing because a previous turn end was refused, and refusing again
             // is a turn with no end rather than a governed stop.
             if (request.Turn.AlreadyContinuing)
+            {
+                return Result.Ok(HookVerdict.Allowed);
+            }
+
+            // A fresh reader judges a document and builds nothing, so the build it would be held to is
+            // somebody else's. Refusing it does not send anyone to fix the suite; it costs the round.
+            if (request.Turn.Reader)
             {
                 return Result.Ok(HookVerdict.Allowed);
             }

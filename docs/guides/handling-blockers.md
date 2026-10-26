@@ -166,6 +166,11 @@ pass while the criterion is unmet. A test that passed but does not reach its cri
 Met quotes the assertion it rests on from `diff.patch`, so the interrogation that follows checks the quote
 against the diff rather than trusting a test's name.
 
+The verdict is written by a **fresh process** that never saw the build: the session running the skill
+assembles the spec, the plan and the evidence, starts the adjudicator, and records what it returns. When
+the verify document's own interrogation raises a blocker, a new adjudicator answers it — the session does
+not edit the verdict.
+
 It writes `pass` or `blocked`, and a findings round of its own in `findings/verify.json`, whose blocking
 findings are what remediation works from. **`pr-ready` refuses anything but `pass`.**
 
