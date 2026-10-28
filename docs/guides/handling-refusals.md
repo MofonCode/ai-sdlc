@@ -378,8 +378,9 @@ looking at a failed check needs to know what held. The checks are: the cycle exi
 the chain is complete, the approval, the gate is satisfied, every criterion has a proof, every named test
 passed, every criterion is adjudicated, the verify was judged against this evidence, the changed lines are
 covered, the codebase is no less covered than it was, the verdict follows the approval that stands (only
-after a reopen), the change was verified, and — when the pull request carries one — the convergence it
-carries came after the passing verify.
+after a reopen), the change was verified. When the pull request changes the solution's constraints,
+decisions or declared stack, it also says whether that was committed before or after the verify — reported,
+never refused (D-113).
 
 **The two coverage checks are arithmetic** (D-103). At least 70% of the lines the change adds ran under a
 test, and the whole codebase's rate is no lower than the baseline recorded at the base commit in
@@ -393,14 +394,6 @@ each remediation, and a verify round records which run it read, so a verdict jud
 last fails. And a reopen leaves the old evidence and verdict in place while the documents change: once
 the cycle is approved again, a verify round older than that approval adjudicated documents nobody
 approves any more. Delete `verify.md`, build, record the evidence, and verify again.
-
-**The convergence check is about order** (D-111). A change to the solution's constraints, decisions or
-declared stack committed on the branch before its passing verify would have bound rounds already run, which
-is adoption in the middle of a cycle. It usually follows a convergence made on the branch and then a second
-verify — after `/sdlc:resolve-conflict`, or a review that sent the build back. **Next:** the
-person reverts the convergence commit — the three files are theirs — the verify is written again, and
-convergence runs once that one passes, or on the integration branch after the merge. Reverting alone is
-not enough when a verify was already written over the convergence: its rounds read the rules it placed.
 
 **"every named test passed" is the one that surprises people.** Each proof in the plan opens with its
 test's name in backticks, and this reads those opening names out of the plan and confirms each one ran

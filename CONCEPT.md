@@ -1908,8 +1908,10 @@ implies.
   `## Open` as a limit of the proof — the one exit `CON_14` does not cover, because it binds an intent,
   a spec and a plan and not a verify (§4.3)
 - the outcome in `verify.md` is `pass`
-- a change the pull request carries to `constraints.md`, `decisions.md` or `techstack.md` was committed
-  after the commit that wrote the passing verify, never before it (D-111)
+
+When the pull request changes `constraints.md`, `decisions.md` or `techstack.md`, it also **reports**
+whether that change was committed before or after the commit that wrote the verify, and never fails on it:
+a person changes those files inside a cycle for reasons git cannot tell from a convergence (D-111, D-113).
 
 **What it deliberately does not check.** The comparison of declared files against changed files.
 `D-15` moved that to the hook and made it a suggestion, because `CON_07.2` exists precisely *because*
@@ -2086,7 +2088,7 @@ they print verbatim.
 | `round <id> <artifact> --from <file>` | appends the next round to the artifact's findings ledger: the readers' new findings and the session's dispositions merged in, with the round number, the time, and the hashes of what was judged, what it was judged against, each section, and on a verify the evidence, stamped by the binary and chained to the round before. Refuses while anything above it in the chain is unsettled, a known id restated with different words, and a new blocker without a one-line gist (D-110). `--changed` lists the sections moved since the last round instead — D-101, D-107 |
 | `gate <id>` | whether a cycle's build may run. Exits 1 if not |
 | `draft approval\|abandon\|profile\|solution\|techstack` | prints or writes what belongs in a file only a person writes — §5.3 |
-| `propose convergence` | what the record says the rules, decisions and stack are missing, in one ranked report — with each cycle's rounds per document, its reopens and their reasons, and every verdict its verify reached — ending with the proposal file a person marks. Runs once a verify passes, on the cycle's branch or after the merge — D-104, D-111, D-112 |
+| `propose convergence` | what the record says the rules, decisions and stack are missing, in one ranked report — with each cycle's rounds per document, its reopens and their reasons, and every verdict its verify reached — ending with the proposal file a person marks. Runs once a verify passes, on the cycle's branch or after the merge — D-104, D-111, D-112, D-113 |
 | `draft convergence <file>` | drafts of the three record files from the proposals marked accepted: each a copy of the file as it stands with only those lines applied, refused if an entry or a row would go missing — D-104 |
 | `propose constraints` | what the history says the rules are missing, with the cycles and finding ids behind each — D-69 |
 | `evidence <id>` | records the diff, its base commit, and the normalised test summary — §4.5 |
@@ -6987,6 +6989,36 @@ its refusal still apply.
 - *Keeping `sdlc <stage>` everywhere.* Correct and host-neutral, and costs a refusal each time.
 - *Guessing a marker for Copilot or Antigravity.* Neither documents one; a guessed marker is a panel that
   names one host's invocation to someone using another.
+
+### D-113 — The chain reports when the rule files changed against the verify, and refuses nothing for it
+
+**Governs:** §13, §15.2
+
+**Revises D-111** — its check, which failed the chain when `constraints.md`, `decisions.md` or
+`techstack.md` changed before the commit that wrote the verify. D-111's convergence on the cycle's branch
+stands.
+
+**Decision.** `sdlc verify-chain` still says, when a pull request changes one of the three, whether it was
+committed before or after the verify — and passes either way. The order is kept by the skills: `pr` offers
+convergence only after the passing verify, and `resolve-conflict` takes a convergence out before writing
+the verify again.
+
+**Why.** The check could see that a file changed and never why. All three are a person's, and a person
+changes them inside a cycle for reasons that are not a convergence. Run against MarketSense the day it
+shipped, it failed two chains that were right: its second cycle, merged and correct, had a stack row the
+plan called for and two decisions the person amended mid-build; and the cycle then opening carried the
+last cycle's decisions, placed before its first round so it would be judged against them from the start.
+A refusal a person can only answer by undoing their own correct edit is the gate overruling the person on
+a file the framework says is theirs.
+
+**Rejected.**
+
+- *Passing a change committed before the cycle's first round.* It clears the second case and still fails
+  the first, which was a person's mid-cycle edit and not a mistake.
+- *Removing the line.* Whether a convergence came after the verify is worth seeing in the pull request;
+  it is the failing that was wrong, not the saying.
+- *Keeping the refusal and asking the person to mark an edit as not a convergence.* A marker in a commit
+  is one more thing to forget, and a condition on a gate check is where an exemption lives (D-43).
 
 ### D-112 — Convergence reads how each cycle went, and accounts for every item it raised
 

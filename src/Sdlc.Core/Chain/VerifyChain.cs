@@ -217,21 +217,23 @@ public static class VerifyChain
         }
 
         /// <summary>
-        /// A convergence the pull request carries came after the passing verify, never before it (D-111).
+        /// When the rule files the pull request carries changed, against the commit that wrote the verify:
+        /// reported, never refused (D-111, D-113).
         /// </summary>
         /// <remarks>
-        /// <para><strong>Why the order is the whole rule.</strong> A rule placed while a cycle is still
-        /// being judged re-judges what was already argued -- about twenty blockers, the one time it
-        /// happened (D-104). After the passing verify nothing in the cycle is judged again, so a
-        /// convergence committed then binds only what comes next. The same change a commit earlier is
-        /// the case D-104 refused.</para>
-        /// <para><strong>Asked of git, not of the documents.</strong> Every one of the three files is
-        /// outside the cycle's directory and none records when it changed. So the check takes the
-        /// commit that last wrote <c>verify.md</c> -- the verdict the outcome check reads -- and asks
-        /// whether any of the three had changed by then. A verify written again after a convergence
-        /// fails it too, rightly: the rounds that wrote it read the new rules.</para>
+        /// <para><strong>Why it is said at all.</strong> A rule placed while a cycle is still being judged
+        /// re-judges what was already argued -- about twenty blockers, the one time it happened (D-104).
+        /// After the passing verify nothing in the cycle is judged again, so a convergence committed then
+        /// binds only what comes next. Somebody reading the pull request should see which of the two it
+        /// was.</para>
+        /// <para><strong>Why it never fails the chain.</strong> All three files are a person's, and a
+        /// person changes them inside a cycle for reasons that are not a convergence: the stack row the
+        /// plan calls for, a decision amended mid-build, the last cycle's decisions placed before this
+        /// one's first round. Git says that a file changed before the verify; it cannot say why. Refused,
+        /// MarketSense's second cycle -- which did exactly the first two -- would have failed a chain it
+        /// rightly passed (D-113). The order stays the skills' to keep.</para>
         /// <para>Silent when the pull request changes none of the three, and when nothing said what it
-        /// changes: a check that cannot see the order is no reason to fail a chain.</para>
+        /// changes.</para>
         /// </remarks>
         private void ConvergedAfterVerify(Cycle cycle, Query request, List<ChainCheck> checks)
         {
@@ -248,7 +250,7 @@ public static class VerifyChain
                 return;
             }
 
-            const string Name = "the convergence it carries came after the passing verify";
+            const string Name = "when the convergence it carries was committed";
             string verify = Cycle.SdlcDirectoryName + "/" + Cycle.CyclesDirectoryName + "/" + cycle.Id + "/"
                 + Cycle.FileNameOf(ArtifactKind.Verify);
 
@@ -256,10 +258,10 @@ public static class VerifyChain
             {
                 checks.Add(new ChainCheck(
                     Name,
-                    false,
+                    true,
                     string.Create(
                         CultureInfo.InvariantCulture,
-                        $"it changes {string.Join(", ", converged)} and no commit wrote {verify}, so nothing says the cycle was judged before the rules moved. Converge after the verify passes, or after the merge.")));
+                        $"it changes {string.Join(", ", converged)}, and no commit wrote {verify}, so the order cannot be shown. Reported, not refused (D-113).")));
                 return;
             }
 
@@ -267,29 +269,27 @@ public static class VerifyChain
             {
                 checks.Add(new ChainCheck(
                     Name,
-                    false,
+                    true,
                     string.Create(
                         CultureInfo.InvariantCulture,
-                        $"git could not say what changed between {divergence} and the verify at {verdict.Commit}, so the order of the convergence cannot be shown.")));
+                        $"git could not say what changed between {divergence} and the verify at {verdict.Commit}, so the order cannot be shown. Reported, not refused (D-113).")));
                 return;
             }
 
             HashSet<string> early = [.. before.Select(path => path.Replace('\\', '/'))];
             List<string> premature = [.. converged.Where(early.Contains)];
+            string at = verdict.Commit[..Math.Min(8, verdict.Commit.Length)];
 
-            checks.Add(premature.Count == 0
-                ? new ChainCheck(
-                    Name,
-                    true,
-                    string.Create(
+            checks.Add(new ChainCheck(
+                Name,
+                true,
+                premature.Count == 0
+                    ? string.Create(
                         CultureInfo.InvariantCulture,
-                        $"{string.Join(", ", converged)} changed only after {verdict.Commit[..Math.Min(8, verdict.Commit.Length)]} wrote the verify, so it binds the next cycle and judged nothing in this one"))
-                : new ChainCheck(
-                    Name,
-                    false,
-                    string.Create(
+                        $"{string.Join(", ", converged)} changed only after {at} wrote the verify, so it binds the next cycle and judged nothing in this one")
+                    : string.Create(
                         CultureInfo.InvariantCulture,
-                        $"{string.Join(", ", premature)} changed before {verdict.Commit[..Math.Min(8, verdict.Commit.Length)]} wrote the verify, so rounds in this cycle were judged against rules it placed. Take the change out, and converge again once the verify passes -- or after the merge.")));
+                        $"{string.Join(", ", premature)} changed before {at} wrote the verify, so rounds after that change read it. A person's change in the cycle, or a convergence placed early: reported, not refused, because git cannot say which (D-113).")));
         }
 
         /// <summary>

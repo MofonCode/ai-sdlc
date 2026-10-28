@@ -91,9 +91,10 @@ proposals, renames the drafts, and **commits that themselves, as a commit of its
 are theirs (`! git add .sdlc/constraints.md .sdlc/decisions.md .sdlc/techstack.md` and a
 `git commit -F` message). Then `sdlc pr-ready <id>` again, and on.
 
-**Only after the passing verify, and nothing in the cycle moves after it.** The pull-request check
-refuses a convergence committed before the commit that wrote the verify, because rounds after a rule
-changed read the rule (D-104's twenty blockers). If review sends the build back and the verify is
+**Only after the passing verify, and nothing in the cycle moves after it**, because rounds after a rule
+changed read the rule (D-104's twenty blockers). The pull-request check reports the order and refuses
+nothing for it — git cannot tell a convergence from a person's own edit in the cycle — so keeping it is
+this skill's job (D-113). If review sends the build back and the verify is
 written again, the convergence commit comes out and goes back on top afterwards.
 
 ## First: is there anywhere to push?

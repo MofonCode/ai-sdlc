@@ -290,8 +290,8 @@ What is honest to say about the rest:
   Its old `profile:` line in `solution.md` is no longer read (`CONCEPT.md` D-81). `sdlc doctor` says
   so; `sdlc draft techstack` and a rename put the rules back.
 - **Converging on a cycle's branch has not been walked.** The report's new reading of a cycle's record
-  was checked against one solution's history, and `verify-chain` holds the order in the suite; no cycle
-  has yet converged before its pull request. **A cycle opened before 0.32.0 keeps its committed `.trx`
+  was checked against one solution's history, and `verify-chain` reports the order rather than refusing
+  it (D-113); no cycle has yet converged before its pull request. **A cycle opened before 0.32.0 keeps its committed `.trx`
   and `build.log` tracked**: the ignore patterns stop new ones only, and `git rm --cached` removes the old.
 - **Adoption drafting all three files and creating the integration branch has been read by its author
   and by nobody else.** The suite holds the drafts, the renames the report names, the commit, the branch

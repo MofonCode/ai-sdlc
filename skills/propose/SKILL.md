@@ -48,8 +48,9 @@ It brings the rules, the decisions and the declared stack up to what the cycles 
 sitting, and it is not a cycle and not part of one: the person decides what binds, so nothing about it
 needs a plan or an approval (D-104). Approved convergence binds the **next** cycle, never one in flight —
 rules placed mid-cycle re-judge documents already argued, which in one real cycle cost about twenty
-blockers. That is why **never before the passing verify**: the pull-request check refuses a convergence
-committed ahead of the commit that wrote it. If you are on a cycle branch and `sdlc status <id>` does not
+blockers. That is why **never before the passing verify** — and this skill is what keeps it: the
+pull-request check only reports a change committed ahead of the verify, since git cannot tell a convergence
+from the person's own edit in the cycle (D-113). If you are on a cycle branch and `sdlc status <id>` does not
 show a passing verify, stop and say so.
 
 ## 1. Read the report, then the rounds

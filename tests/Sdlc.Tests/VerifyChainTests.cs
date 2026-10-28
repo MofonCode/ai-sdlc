@@ -412,27 +412,27 @@ public sealed class VerifyChainTests
     }
 
     [TestMethod]
-    [DataRow(false, true, DisplayName = "converged after the verify")]
-    [DataRow(true, false, DisplayName = "converged before the verify")]
-    public async Task A_convergence_the_pull_request_carries_holds_only_after_the_passing_verify(
+    [DataRow(false, "changed only after", DisplayName = "converged after the verify")]
+    [DataRow(true, "changed before", DisplayName = "changed before the verify")]
+    public async Task When_the_rule_files_changed_against_the_verify_is_reported_and_never_refused(
         bool changedBeforeVerify,
-        bool holds)
+        string says)
     {
-        // After the passing verify nothing in the cycle is judged again, so a rule placed then binds only
-        // the next cycle. The same change a commit earlier is the mid-cycle adoption D-104 refused: rounds
-        // in this cycle read rules it placed.
+        // A person changes these files inside a cycle for reasons that are not a convergence -- the stack
+        // row a plan calls for, a decision amended mid-build -- and git cannot tell the two apart. So the
+        // order is said, and the chain holds either way (D-113). MarketSense's second cycle did both.
         using CycleWorkspace workspace = Sound();
         FakeRepository repository = Converging(workspace, changedBeforeVerify ? [".sdlc/decisions.md", "src/Thing.cs"] : ["src/Thing.cs"]);
 
         VerifyChain.Response verdict = await Check(workspace, repository, [".sdlc/decisions.md", "src/Thing.cs"]);
         VerifyChain.ChainCheck order = verdict.Checks.Single(check => check.Name.Contains("convergence", StringComparison.Ordinal));
 
-        Assert.AreEqual(holds, order.Passed, order.Detail);
-        StringAssert.Contains(order.Detail, ".sdlc/decisions.md");
+        Assert.IsTrue(order.Passed, order.Detail);
+        StringAssert.Contains(order.Detail, ".sdlc/decisions.md " + says);
     }
 
     [TestMethod]
-    public async Task A_convergence_with_no_verify_written_fails_the_chain()
+    public async Task A_convergence_with_no_verify_written_says_the_order_cannot_be_shown()
     {
         using CycleWorkspace workspace = Sound();
         FakeRepository repository = new() { Committed = [] };
@@ -440,7 +440,7 @@ public sealed class VerifyChainTests
         VerifyChain.Response verdict = await Check(workspace, repository, [".sdlc/constraints.md"]);
         VerifyChain.ChainCheck order = verdict.Checks.Single(check => check.Name.Contains("convergence", StringComparison.Ordinal));
 
-        Assert.IsFalse(order.Passed, order.Detail);
+        Assert.IsTrue(order.Passed, order.Detail);
         StringAssert.Contains(order.Detail, "no commit wrote");
     }
 

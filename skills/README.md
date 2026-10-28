@@ -1574,8 +1574,8 @@ It is the second verb beside `draft`, split by who made the decision: `draft` is
 took and hands back a finished file; `propose` is for one they have not, and argues from the record.
 
 **Convergence runs once a verify has passed** — on the cycle's branch before its pull request, or on the
-integration branch after the merge — and never earlier: `sdlc verify-chain` refuses one committed ahead
-of the passing verify (D-111).
+integration branch after the merge — and never earlier (D-111). `sdlc verify-chain` reports one committed
+ahead of the passing verify and does not refuse it, so the order is the skills' to keep (D-113).
 
 **It accounts for every item the record raised** (D-112). The report adds each cycle's rounds, reopens with
 their reasons, and every verdict the verify reached; fresh processes group each document's findings by the
