@@ -96,8 +96,12 @@ the skill tells you where it records it. Expect a request shaped as a solution t
 problem: "add a cache" becomes "the dashboard takes fourteen seconds and people stop opening it". If you
 have already decided something, say so — it is recorded under `Fixed decisions` with your name on it
 rather than argued with. **The last question is the perspectives' concerns** — keyboard use, who may see
-it, who hears when it fails — put in your solution's terms: what you pick becomes an outcome, and what
-you do not pick is not written in for you.
+it, who hears when it fails. The skill writes them to a file under `.sdlc/reports/`, each explained for
+this change with a suggested answer and why, and you answer in your own words: *"anyone may use it, no
+sign-in; keyboard yes, and the result read out"*. A good answer names a person and an outcome, or says
+plainly that it is not needed and why — *"make it secure"* gives the spec nothing to test. It reads your
+answer back before writing it; what you take up becomes an outcome, and what you do not is not written in
+for you.
 
 The skill **hands back rather than continuing into the spec.** That hand-back is the human-in-the-loop
 point; a skill that chained on would remove it while appearing helpful.
@@ -147,9 +151,13 @@ it placed. The pull-request check reports the order, and leaves keeping it to yo
 **Suggestions are yours to take in or leave.** A perspective's concern the intent did not ask for — keyboard
 use, where a key is kept — never becomes a criterion on its own: the spec names it in `Out of scope`, and
 its reader raises it as a suggestion. The intent, spec and plan each ask you once, at hand-back, which to
-take in, which to decline, and which to leave for a later cycle; leaving them is a fine answer. What you
+take in, which to decline, and which to leave for a later cycle; leaving them is a fine answer. The
+readers can raise twenty at a stage, so the skill writes every one to a file under `.sdlc/reports/`,
+grouped by theme — each theme summarised for this change with a suggested answer, and its findings
+listed beneath so you can check the summary. Answer in your own words — *"take A; decline B, it's only
+for me"* — and the skill reads back which findings that covers before anything is written. What you
 name goes to `/sdlc:steer <id> <finding id>...` in one run, which writes each into the intent with your
-name on it.
+name on it. Something you ask for that no reader raised is not taken in there: it is a cycle of its own.
 
 ## 4. The gate
 

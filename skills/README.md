@@ -277,13 +277,16 @@ What it runs, in order:
    different ways and carrying no figure: an opening, a short set for the type — a bug's reproduction, a
    feature's person and job, a change's dependants, a new solution's first use — then what must keep
    working, what is already decided, which areas it touches, and which of the active perspectives'
-   concerns this piece needs. An answer shaped as a solution is asked what its absence causes
+   concerns this piece needs — that last from a file under `.sdlc/reports/`, each concern explained for
+   this change with a suggested answer, answered in free text and read back. An answer shaped as a
+   solution is asked what its absence causes
 5. where the person bounds the work with *simple*, *basic* or *nothing fancy*, asks once whether that
    means small in scope or plain in appearance
 6. writes the intent, then runs the interrogate-refine loop itself until a round raises nothing blocking,
    a reader reports a conflict, or the panel's `Loop` line says it is stuck on one rule
-7. asks once which open suggestions to take in, decline or leave, and runs `/sdlc:steer` with what the
-   person named — skipped when nothing is open
+7. asks once which open suggestions to take in, decline or leave — from a file under `.sdlc/reports/`
+   that groups every one by theme, answered in free text and read back — and runs `/sdlc:steer` with
+   what the person named; skipped when nothing is open
 8. shows `sdlc status <id> --stage intent --brief` verbatim and stops
 
 **It does not chain into the spec.** That hand-back is the human-in-the-loop point, and a skill that
@@ -361,8 +364,9 @@ What it runs, in order:
 4. disposes of every entry under the intent's `## Open`
 5. writes the spec — a perspective's item only where the intent asks for it, the rest named in `Out of
    scope` — and runs the same interrogate-refine loop as the intent
-6. asks once which open suggestions to take in, decline or leave, and runs `/sdlc:steer` with what the
-   person named — skipped when nothing is open
+6. asks once which open suggestions to take in, decline or leave — from a file under `.sdlc/reports/`
+   that groups every one by theme, answered in free text and read back — and runs `/sdlc:steer` with
+   what the person named; skipped when nothing is open
 7. shows `sdlc status <id> --stage spec --brief` verbatim and stops
 
 #### See also
@@ -451,8 +455,9 @@ What it runs, in order:
    `local`, `contract` or `data`, by how reversible the change is
 5. writes the plan — a perspective's item that would need a criterion the spec lacks goes under `Risk`,
    not into the proof — and runs the interrogate-refine loop
-6. asks once which open suggestions to take in, decline or leave, and runs `/sdlc:steer` with what the
-   person named — skipped when nothing is open
+6. asks once which open suggestions to take in, decline or leave — from a file under `.sdlc/reports/`
+   that groups every one by theme, answered in free text and read back — and runs `/sdlc:steer` with
+   what the person named; skipped when nothing is open
 7. shows `sdlc status <id> --stage plan --brief` and `sdlc gate <id>` — which refuses, because nobody has
    approved yet — and explains that approving is the person's act
 

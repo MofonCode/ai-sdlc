@@ -268,7 +268,7 @@ expect its wording to differ from this table and some rows to be skipped:
 | what is it definitely not | one die only, no history, nothing stored, no sign-in, no animation |
 | has anything already been decided | a single six-sided die; nothing is stored; a face is drawn as pips, not as a numeral |
 | what does it touch, beyond the basics | it is a page someone uses, so ui-ux and accessibility. Nothing else: no public API, no performance target, no infrastructure |
-| which of these does it need to do — the perspectives' concerns, in the die's terms | none of them this time |
+| which of these does it need to do — the perspectives' concerns in the die's terms, written to a file with a suggested answer each | none of them this time |
 
 **It will ask one more and the answer matters.** Say *keep it simple* and it asks which you mean — small
 in scope, or plain in appearance. Here the answer is **scope**: one die, one page. It is not appearance,
@@ -281,8 +281,9 @@ and what it touches its `perspectives: ui-ux, accessibility`. The first two deci
 growing a second page; the third keeps it from shrinking the one it has.
 
 **Once you answer, the intent is interrogated for you.** The skill writes it, challenges it, fixes what
-comes back, asks once which of the readers' suggestions you want to take in — leaving them all is a fine
-answer — then shows the cycle's status and stops. If it stops on a blocker, see
+comes back, asks once which of the readers' suggestions you want to take in — grouped by theme in a file,
+answered in your own words, and leaving them all is a fine answer — then shows the cycle's status and
+stops. If it stops on a blocker, see
 [handling blockers](../guides/handling-blockers.md).
 
 ## 6. The spec

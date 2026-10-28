@@ -346,12 +346,24 @@ panel's `Loop` line says the loop is stuck on one rule. It is the same loop the 
 run, and the intent skill's loop section has the table. Nothing caps the rounds; what stops the loop is
 a rule coming back three times, which is the loop going backwards rather than going slowly.
 
-**First, the suggestions the plan's rounds left open, if there are any.** Ask once: show them grouped
-by perspective, each with its statement, and ask which to take in, which to decline, and which to leave.
-Leaving them is an answer, and the commonest one — skip the question entirely when nothing is open. What
-the person names goes to `/sdlc:steer <id> <finding id>...` in one run, which writes each into the intent
-with their name on it and re-interrogates down to here (D-97). **Never take one in on their behalf**: a
-suggestion nobody chose is exactly what the spec may not derive from.
+**First, the suggestions the plan's rounds left open, if there are any.** Ask once, from a file, in
+free text (D-114) — the intent skill's hand-back has the file's shape and an example. Leaving them is an
+answer, and the commonest one — skip all of this when nothing is open.
+
+1. `sdlc suggestions <id>` — the list, and the count the file must hold.
+2. Write `.sdlc/reports/<id>-plan-suggestions.md`: themes, each a heading, a short summary of what its
+   findings mean **for this change**, what taking them in costs now against later, and a suggested answer
+   with its reason; beneath it each finding's id and a one-line gist. **The themes only group** — every
+   open suggestion once, none merged, none left out.
+3. Ask one question in free text, never from a picker: name the file, each theme in one line, and what
+   to take in, decline or leave.
+4. Map the answer to finding ids and **read it back before acting** — take in, decline with the reason,
+   leave. A theme named whole is every id beneath it; a decline without a reason is asked for one; words
+   with no finding behind them are not taken in here — a change to *how* is a correction for
+   `/sdlc:steer`, and something no reader raised is a cycle of its own.
+5. Once they confirm, `/sdlc:steer <id> <finding id>...` in one run, carrying the person's words, which
+   writes each into the intent with their name on it and re-interrogates down to here (D-97). **Never
+   take one in on their behalf**: a suggestion nobody chose is exactly what the spec may not derive from.
 
 Then:
 

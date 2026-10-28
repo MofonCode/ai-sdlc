@@ -256,7 +256,7 @@ C3 is `Must not change`, asked the way a team asks it, and the spec writes a cri
 | Z1 | Is anything nearby that must keep working exactly as it is? | a bug fix or a feature addition — C3 and N3 already asked it | *"The CSV format. Another system imports it."* · *"Nothing I can think of."* |
 | Z2 | Has anything already been decided that I should treat as fixed? | always | *"Six-sided die only."* · *"We're keeping the existing sign-in."* · *"Nothing decided."* |
 | Z3 | What does this touch, beyond the basics? | always | *"A page people use."* · *"Stored data."* · *"A public API."* · *"Nothing beyond the basics."* |
-| Z4 | Which of these does this piece of work need to do? | always, last | *"Work by keyboard and screen reader."* · *"Tell us when the feed fails."* · *"None of these this time."* |
+| Z4 | Which of these does this piece of work need to do? — asked from a file, below | always, last | *"Anyone may use it, no sign-in. Keyboard, yes — and the result read out."* · *"Me, within five minutes, if the feed stops in market hours."* · *"Go with your suggestions, except 3: it's only for me."* |
 
 Z3 decides the perspectives, beyond the three always on — security, operability, maintainability. A user
 interface brings `ui-ux` and `accessibility`; infrastructure, `infrastructure`; stored data and
@@ -269,12 +269,42 @@ list for the intent:
 sdlc perspective show <name> --for intent --cover
 ```
 
-Turn what is not already answered into one choice — one option per concern, in this solution's terms,
-several may be picked. What the person picks becomes a wanted outcome **in their words**, and a pick
-that is a decision (*"sign-in is not needed for this piece"*) goes to `Fixed decisions`. **What they do
-not pick, you do not write.** The spec may only derive from what the intent states (`CON_05`), so a
-concern added here without being asked is the scope creep the rule exists to stop, moved one stage
-earlier. The fresh readers will raise what was left, and the hand-back offers it again.
+**Ask it from a file, never from a picker** (D-114). A picker holds a handful of options, so a list
+longer than that gets merged or cut to fit, and whoever does the cutting has decided unseen what the
+person was asked. Run `sdlc suggestions <id>` once first — it lists nothing yet, and it makes sure
+`.sdlc/reports/` ignores itself, so the file never reaches a build's diff — then write
+`.sdlc/reports/<id>-intent-concerns.md`:
+
+```markdown
+# What this piece needs — 0007
+
+Answer in chat, in your own words: name a number, describe what you want, or say "go with the
+suggestions". Saying no is an answer too, and it is recorded as a decision.
+
+1. Who may use it, and who must not
+   For this page: anyone who opens it, or only signed-in people?
+   Suggest: anyone, no sign-in. Nothing on it is private, and sign-in would be new work.
+
+2. Who needs to know when it goes wrong, and how quickly
+   For this page: is there anything to fail that someone must hear about?
+   Suggest: nobody. It has no server dependency, so a fault is seen the next time it is used.
+```
+
+One numbered entry per item on the active perspectives' lists that the interview has not already
+answered — **every one, none merged**. Each says what the item means **for this change**, in the
+solution's terms, then a suggested answer with its reason: what it costs now against later, and whether
+anything already asked for depends on it. A suggestion is help with the question, not an answer to it.
+
+**In chat, ask one question in free text**: name the file, give its numbers with one line each, and ask
+which this piece needs. Then **read back what you will write** — each answer as the wanted outcome or
+fixed decision it becomes, in the person's words — and write it once they confirm. *"Go with the
+suggestions"* is the person adopting your wording, so the read-back is what they are agreeing to.
+
+What the person picks becomes a wanted outcome **in their words**, and an answer that is a decision
+(*"sign-in is not needed for this piece"*) goes to `Fixed decisions`. **What they do not take up, you do
+not write.** The spec may only derive from what the intent states (`CON_05`), so a concern added here
+without being asked is the scope creep the rule exists to stop, moved one stage earlier. The fresh
+readers will raise what was left, and the hand-back offers it again.
 
 ## Never ask
 
@@ -421,12 +451,61 @@ a person.
 
 ## 6. Report and hand back
 
-**First, the suggestions the intent's rounds left open, if there are any.** Ask once: show them grouped
-by perspective, each with its statement, and ask which to take in, which to decline, and which to leave.
-Leaving them is an answer, and the commonest one — skip the question entirely when nothing is open. What
-the person names goes to `/sdlc:steer <id> <finding id>...` in one run, which writes each into the intent
-with their name on it and re-interrogates down to here (D-97). **Never take one in on their behalf**: a
-suggestion nobody chose is exactly what the spec may not derive from.
+**First, the suggestions the intent's rounds left open, if there are any.** Ask once, from a file, in
+free text (D-114). Leaving them is an answer, and the commonest one — skip all of this when nothing is
+open.
+
+**1. List them.** `sdlc suggestions <id>` — what it prints is the list, and its count is the count the
+file must hold.
+
+**2. Write `.sdlc/reports/<id>-intent-suggestions.md`, grouped by theme.** The readers raise more than
+a person can weigh one line at a time — the trading solution's first intent raised twenty — so you read
+them all and the person reads the themes:
+
+```markdown
+# Open suggestions — 0007 intent
+
+Answer in chat, in your own words: name a theme or a finding, or say what you want.
+Anything you don't mention stays open in `sdlc suggestions` for a later cycle.
+
+## A. Errors say too much and record too little
+The page shows the provider's raw error, and a failed fetch is logged nowhere. Taking it in now
+is one message and one log line; after the build, tests will already assert the current text.
+Suggest: take in — the feed this cycle adds is the thing that fails.
+- security.F_02 — the provider's raw error is shown to the user
+- operability.F_01 — a failed fetch is recorded nowhere
+
+## B. Nobody said how keyboard and screen reader users roll
+...
+```
+
+A theme is a heading, a short summary of what its findings mean **for this change**, what taking them in
+costs now against later, and a suggested answer with its reason. Beneath it, each finding's id and a
+one-line gist. **The themes only group**: every open suggestion appears once, under one theme — none
+merged, none left out — so the person can check any summary against what was actually raised. Two
+that contradict share a theme, and the summary says so.
+
+**3. Ask one question, in free text, never from a picker**: name the file, give each theme in one line,
+and ask what to take in, what to decline, and what to leave.
+
+**4. Map the answer to finding ids, and read it back before acting:**
+
+> **Take in** A — `security.F_02`, `operability.F_01` — as *"errors say what failed, never the
+> provider's message, and every failure is logged"*
+> **Decline** B — `accessibility.F_01`, `accessibility.F_02` — *"a personal page, only I use it"*
+> **Leave** the rest. Go?
+
+A theme named whole is every id beneath it. A decline needs a reason — ask once if the answer gave none.
+An answer that covers part of a theme takes in what it covers, and the read-back names the rest as left
+open, so a gap is shown rather than assumed. **Words with no finding behind them are not taken in
+here**: say so, and name where they go — a change to *how* is a correction for `/sdlc:steer`, and
+something no reader raised is the opening of a cycle of its own, because it has had none of the scrutiny
+a raised suggestion has (D-97).
+
+**5. Once they confirm,** `/sdlc:steer <id> <finding id>...` in one run, carrying the person's words,
+which writes each into the intent with their name on it and re-interrogates down to here. **Never take
+one in on their behalf**: a suggestion nobody chose is exactly what the spec may not derive from, and
+*"go with your suggestions"* is a choice only because the read-back showed what it chose.
 
 This is the cheapest point to answer them: a suggestion taken in now costs one more intent round, and
 nothing downstream exists yet to carry it.

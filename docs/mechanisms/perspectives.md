@@ -70,7 +70,7 @@ sdlc perspectives <id>
 
 | Stage | What a perspective does |
 |---|---|
-| `intent` | **asks.** The interview's last question is the active perspectives' list for the intent, in this solution's terms. What the person picks becomes an outcome in their words; what they do not pick is not written |
+| `intent` | **asks.** The interview's last question is the active perspectives' list for the intent, in this solution's terms, written to a file with a suggested answer for each and answered in free text — a picker would cut a long list to fit. What the person picks becomes an outcome in their words; what they do not pick is not written |
 | `spec` | **steers, and never widens.** A list item the intent asks for shapes its criterion — the keyboard path through an interaction the intent asked for, the hostile input to a field it asked for. An item it does not ask for gets no criterion and is named in `Out of scope`, so the approval shows the gap |
 | `plan` | **steers.** The list is how the criteria are met — where a secret is kept, which log records a failure, which layer runs the scan. An item that would need a criterion the spec lacks goes under `Risk`, not into the proof |
 | `interrogate` | **judges.** One fresh process per active perspective, run at the same time and blind to each other, each handed only its own method, its questions for this document, its rules, and the document with the one above it. Then **one reconciling reader** over every finding in the round and the findings still open, which only looks for findings that restate one still open and findings that cannot both be answered |
@@ -85,7 +85,9 @@ nothing.
 every cycle is not a person asking, so a criterion written from it alone is the scope creep that rule
 exists to stop — and the first time it was tried, the rule blocked five criteria the list had put there.
 What a perspective finds beyond the intent comes back as a suggestion, and the person takes it in by
-naming it to `/sdlc:steer`, or leaves it for a later cycle.
+naming it to `/sdlc:steer`, or leaves it for a later cycle. Each stage asks once, from a file that groups
+every open suggestion by theme with a suggested answer, and takes the answer in the person's own words
+(D-114).
 
 ## Reading what it found
 

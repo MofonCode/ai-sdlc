@@ -56,11 +56,12 @@ the same three taken together cost one. A correction in words may come in the sa
 
 **1. Interview, briefly.** One or two questions, not the intent interview again. What you need is
 enough to record the decision in the person's own terms: what to do instead, and why they want it. For
-finding ids, **one question covering all of them**: show each suggestion's statement, grouped by
-perspective, and ask of each whether to take it in, decline it, or leave it open. Leaving it open is an
-answer — it stays in `sdlc suggestions` for a later cycle — and so is a group answered at once. For
-each one taken in, ask how they would say it; for each one declined, why. **When a stage's hand-back
-has just asked**, its answers are this interview: carry them, and ask only what they left unsaid.
+finding ids, **one question covering all of them, in free text and never from a picker** (D-114): show
+each suggestion's statement, grouped by theme, and ask what to take in, decline, or leave open. Leaving
+it open is an answer — it stays in `sdlc suggestions` for a later cycle — and so is a group answered at
+once. For each one taken in, ask how they would say it; for each one declined, why; then read back what
+you will write before writing it. **When a stage's hand-back has just asked**, its answers and its
+read-back are this interview: carry them, and ask only what they left unsaid.
 
 **2. Record it as a fixed decision, with attribution.** In the intent's `Fixed decisions`:
 

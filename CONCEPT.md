@@ -194,8 +194,9 @@ Steering changes *how*, not *what* — with one exception: **a suggestion a read
 named by its id, may be taken in or declined**, several in one run, and with only an intent when every
 part of the request is a finding id. A suggestion taken in becomes a wanted outcome in the person's words
 and a declined one a fixed decision, each attributed and naming the finding; the intent, spec and plan
-hand-backs each ask once which to take in. A comment that changes the problem is a different intent, and
-a new outcome nobody raised is a new cycle (D-97).
+hand-backs each ask once which to take in — from a file grouping every open suggestion by theme, answered
+in free text and read back as finding ids before anything is written (D-114). A comment that changes the
+problem is a different intent, and a new outcome nobody raised is a new cycle (D-97).
 
 ### 3.3 Three phases: Define, Build, Operate
 
@@ -767,7 +768,8 @@ embedded in the binary, carrying four things:
 4. **the evidence it requires**, from the profile's build settings
 
 **It steers as well as judges, and never widens.** `intent`, `spec`, `plan` and `build` read a short
-*cover this* list per active perspective. The intent asks the person its list rather than writing it in;
+*cover this* list per active perspective. The intent asks the person its list rather than writing it in,
+from a file and in free text (D-114);
 the spec writes an item where the intent asks for it and names the rest in `Out of scope`; the plan and
 the build apply theirs to how the criteria are met. What a perspective wants beyond the intent comes back
 as a suggestion, which a person takes in through `steer` (D-97). `interrogate` runs one fresh
@@ -6989,6 +6991,60 @@ its refusal still apply.
 - *Keeping `sdlc <stage>` everywhere.* Correct and host-neutral, and costs a refusal each time.
 - *Guessing a marker for Copilot or Antigravity.* Neither documents one; a guessed marker is a panel that
   names one host's invocation to someone using another.
+
+### D-114 — A person chooses from a file, in their own words, and never from a picker
+
+**Governs:** §3.2, §6.5
+
+**Extends D-90 and D-97** — the intent still asks its perspectives' lists rather than writing them in,
+and a suggestion still reaches the intent only through a person naming it to `steer`. What changes is how
+the question is put.
+
+**Decision.** Where a stage asks a person to choose from a list the readers or the perspectives produced
+— the intent interview's last question, and the intent, spec and plan hand-backs' open suggestions — the
+skill writes the list to a file under `.sdlc/reports/` and asks one question in free text.
+
+| | The file holds | The person answers |
+|---|---|---|
+| the intent's concerns | one numbered entry per item on the active perspectives' lists not already answered, each saying what it means for this change and a suggested answer with its reason | in their own words, per item or *"go with the suggestions"* |
+| a hand-back's suggestions | every open suggestion once, grouped by theme: a heading, a summary of what the theme means for this change, what taking it in costs now against later, and a suggested answer; each finding's id and a one-line gist beneath | in their own words, naming a theme, a finding, or what they want |
+
+The skill then **reads the answer back** — for a hand-back, as finding ids to take in, decline with a
+reason, or leave — and acts only once the person confirms. Words with no finding behind them are not
+taken in: a change to *how* is a correction for `steer`, and an outcome no reader raised is a cycle of its
+own (D-97).
+
+**Why not a picker.** The host's picker holds four options. The intent's lists already came to six with
+four perspectives written, and a trading solution's first intent raised twenty suggestions. A list
+longer than the picker is merged or cut to fit by the session asking, which decides unseen what the
+person was asked — the exact thing D-90 put the perspectives in the intent to prevent.
+
+**Why themes, and why the findings stay beneath them.** The readers raise more than a person can weigh
+one line at a time, and reading twenty findings to find five subjects is work a model does faster than a
+person. But a summary is the session's wording, and the person's choice is recorded by finding id and
+covered by the approval's hash — so every finding stays in the file, under exactly one theme, where the
+summary can be checked against what was raised.
+
+**Why a suggested answer.** A bare list asks the person to work out what *who may use it* means for a
+dice roller. The suggestion carries the reasoning the session already did — cost now against later,
+whether anything asked for depends on it — and the read-back keeps it a suggestion: *"go with your
+suggestions"* is a choice only because the person saw what it chose.
+
+**Why a report and not a record.** Nothing reads the file back; the person's answer is in the
+conversation and what it decides is written into the intent with their name on it. `.sdlc/reports/`
+already ignores itself for exactly this kind of file, so it never reaches a build's diff.
+
+**Rejected.**
+
+- *A picker, with the session choosing which options to show.* Above: the cutting is the unseen decision.
+- *A picker per perspective or per theme.* Several rounds of four options each, still capped, and the
+  person never sees the whole list at once.
+- *Themes alone, the findings left out.* The person would choose from the session's paraphrase with no way
+  to check it, and approve an intent citing ids they never saw.
+- *Every finding in full, no themes.* The list the person could not weigh, now in a file.
+- *Taking in what the person's words imply without a read-back.* Free text is read by the session that
+  wrote the suggestions; the read-back is the one place a misreading is caught before it is attributed to
+  the person.
 
 ### D-113 — The chain reports when the rule files changed against the verify, and refuses nothing for it
 
