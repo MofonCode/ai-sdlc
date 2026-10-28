@@ -1,8 +1,14 @@
 #!/bin/bash
 #
-# The factory agent's entrypoint: register with the organization, run one job, unregister, exit.
+# The factory agent's entrypoint: register with the organization, run one job, exit.
 # The service that runs the container starts a fresh one after each exit, so no job sees what the last
 # one left behind. factory/README.md describes the environment it reads.
+#
+# The registration outlives the job, and is removed only when the container is stopped. Between two jobs
+# the next container is still starting, and a pool with no agent registered fails a queued job at once
+# rather than holding it: MarketSense's merge queued its integration build in that gap and lost it. An
+# agent that is registered and offline makes the job wait, and the next container's --replace takes the
+# registration over.
 set -euo pipefail
 
 : "${AZP_URL:?Set AZP_URL to the organization, as in https://dev.azure.com/MofonCode}"
@@ -18,9 +24,8 @@ cd /azp
 unregister() {
   ./config.sh remove --unattended --auth PAT --token "$token" >/dev/null 2>&1 || true
 }
-trap unregister EXIT
-trap 'exit 130' INT
-trap 'exit 143' TERM
+trap 'unregister; exit 130' INT
+trap 'unregister; exit 143' TERM
 
 ./config.sh --unattended \
   --url "$AZP_URL" \

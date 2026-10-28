@@ -127,6 +127,24 @@ public sealed class FactoryPipelineTests
     }
 
     [TestMethod]
+    [DataRow(Platform.GitHub)]
+    [DataRow(Platform.AzureDevOps)]
+    public void An_install_no_feed_can_answer_names_the_stale_image_and_fails(Platform platform)
+    {
+        // dotnet says only that no feed holds the version, which sent MarketSense to its feeds when the
+        // factory agent's image was a release behind. The step says what it usually means, and still fails.
+        foreach (string pipeline in new[]
+        {
+            FactoryPipeline.Text(platform, "development", "9.9.9"),
+            Templates.Pipeline(platform),
+        })
+        {
+            StringAssert.Contains(pipeline, "rebuild it from that release (factory/README.md, Upgrading)");
+            StringAssert.Contains(pipeline, ">&2; exit 1; }", "The explanation is not a way past the failure.");
+        }
+    }
+
+    [TestMethod]
     [DataRow(Platform.GitHub, "timeout-minutes", "concurrency")]
     [DataRow(Platform.AzureDevOps, "timeoutInMinutes", "Exclusive lock")]
     public void It_has_a_time_limit_and_runs_one_at_a_time(Platform platform, string limit, string lockSetting)

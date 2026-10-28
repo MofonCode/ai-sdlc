@@ -923,6 +923,10 @@ public static class Templates
     /// agent, or its own image, may carry the binary already, and installing it on every run is time spent
     /// on nothing. The version stays pinned either way: an agent carrying any other version, or none, gets
     /// this one, because the version a pull request is judged by is not the agent's to decide.
+    /// <para><strong>A failed install says what it usually means.</strong> <c>dotnet</c> reports only that
+    /// no feed holds the version, which sends somebody to the feeds. On an agent whose image carries
+    /// <c>sdlc</c> -- the factory's -- the cause is nearly always an image built from an older release
+    /// than the pipeline pins, and the line says so. MarketSense lost an afternoon to the feed reading.</para>
     /// </remarks>
     /// <param name="indent">The indentation of the script block the lines go in.</param>
     /// <param name="version">The pinned version.</param>
@@ -935,7 +939,7 @@ public static class Templates
         yield return indent + "  dotnet tool uninstall --global MofonCode.Sdlc.Cli >/dev/null 2>&1 || true";
         yield return indent + string.Create(
             CultureInfo.InvariantCulture,
-            $"  dotnet tool install --global MofonCode.Sdlc.Cli --version {version}");
+            $"  dotnet tool install --global MofonCode.Sdlc.Cli --version {version} || {{ echo \"No feed this run can reach holds sdlc {version}. An agent whose image carries sdlc has an image older than the release this pipeline pins: rebuild it from that release (factory/README.md, Upgrading). Otherwise put a feed holding MofonCode.Sdlc.Cli in nuget.config.\" >&2; exit 1; }}");
         yield return indent + "fi";
     }
 

@@ -9,16 +9,14 @@ plugin and the binary, and moves here when there is a second template to ship.
 |---|---|
 | [`Dockerfile`](Dockerfile) | the image: an Azure Pipelines agent with everything a factory run needs already inside |
 | [`Dockerfile.dockerignore`](Dockerfile.dockerignore) | what the image build may read from the repository |
-| [`start.sh`](start.sh) | the image's entrypoint: register, run one job, unregister |
+| [`start.sh`](start.sh) | the image's entrypoint: register, run one job, exit, staying registered until the container is stopped |
 | [`sdlc-factory-agent.service`](sdlc-factory-agent.service) | the systemd unit that runs it on a host, one fresh container per job |
 
 **How to set a factory up with it** is [`../docs/guides/setting-up-the-factory.md`](../docs/guides/setting-up-the-factory.md)
 step 2. This page says what the image is.
 
-**It has never run a real factory job.** It builds, it carries the binary and the plugin at the release it
-was built from, the pipeline's install steps find all three and skip, and it reaches Azure DevOps to
-register. A night's build on it has not happened yet, so the first run is a watched one, as for the
-pipeline itself.
+**It runs MarketSense's factory and pull-request pipelines**, on a Hyper-V VM, through an image of
+MarketSense's own built on this one (see Upgrading, below).
 
 ---
 
@@ -64,7 +62,7 @@ source alone and a working copy's leftovers never reach the image.
 
 ## `start.sh`
 
-**Registers with the organization, runs one job, unregisters and exits.** It reads:
+**Registers with the organization, runs one job and exits.** It reads:
 
 | Variable | What |
 |---|---|
@@ -77,6 +75,12 @@ A missing variable stops it with a sentence naming it. **The token registers the
 handed it**: the script unsets it before the agent starts. It is not a secret from the job, though: a job
 holding the Docker socket can reach the host's engine and so the container's environment, which is why the
 token is scoped to agent pools.
+
+**The registration outlives the job.** It is removed only when the container is stopped (`systemctl stop`
+or `restart`), not when a job ends. Between two jobs the next container is still starting, and a pool with
+no agent registered **fails** a queued job at once rather than holding it: a merge that queued an
+integration build in that gap lost it. Registered and offline, the agent makes the job wait, and the next
+container's `--replace` takes the registration over.
 
 **The Claude token is not here.** It is a secret variable on the pipeline, given to each job.
 
@@ -102,6 +106,18 @@ Docker socket and adds the socket's group to the container, so the `agent` user 
 do anything the host's Docker can. Run it on a machine that exists for this, such as a build VM, and **not
 on a person's own computer**, and never under a person's own account (D-96).
 
-**Upgrading** is building the image again from the new release and restarting the service:
-`sudo systemctl restart sdlc-factory-agent`. The image is built where it runs. There is no registry until a
-second machine needs one.
+**Upgrading** is building the image again from the new release and restarting the service. The image is
+built where it runs, and there is no registry until a second machine needs one. **Every image built on
+this one is rebuilt too**: a solution whose tests need more than this image carries — browsers, say —
+builds its own `FROM ai-sdlc-factory-agent` and points the unit at that, and Docker copied the old base
+into it when it was built. Rebuilding only the base changes nothing the agent runs.
+
+```sh
+git checkout <the release> && docker build -f factory/Dockerfile -t ai-sdlc-factory-agent .
+docker build -t <the solution's image> <its directory>      # each image built FROM this one
+sudo systemctl restart sdlc-factory-agent
+docker run --rm --entrypoint sh <the image the unit runs> -c 'sdlc version'
+```
+
+The last line is the check: it must name the release the pipelines pin. An agent left on an older one
+fails the pipeline's install step, which reaches for a feed `sdlc` is not on.
