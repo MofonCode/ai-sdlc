@@ -1144,7 +1144,8 @@ not look, and they are different jobs.
 
 It runs `sdlc pr-ready <id>`, then `sdlc doctor` and `git remote -v` to check there is somewhere to push,
 then `git push -u origin cycle/<id>` and the platform's own tool — `gh pr create` or
-`az repos pr create`. With `--all` it shows `sdlc cycles --pr-ready` verbatim and asks once before the
+`az repos pr create`. Before pushing a verified build it asks once whether to converge on the branch now,
+as the person's own commit, or after the merge (D-111); a sweep never asks. With `--all` it shows `sdlc cycles --pr-ready` verbatim and asks once before the
 first push; the question is about volume rather than permission, because every cycle that ever passed is
 eligible, including one somebody has forgotten.
 
@@ -1571,6 +1572,16 @@ finding ids behind it, so a person refuses one on the record rather than on tast
 
 It is the second verb beside `draft`, split by who made the decision: `draft` is for one somebody already
 took and hands back a finished file; `propose` is for one they have not, and argues from the record.
+
+**Convergence runs once a verify has passed** — on the cycle's branch before its pull request, or on the
+integration branch after the merge — and never earlier: `sdlc verify-chain` refuses one committed ahead
+of the passing verify (D-111).
+
+**It accounts for every item the record raised** (D-112). The report adds each cycle's rounds, reopens with
+their reasons, and every verdict the verify reached; fresh processes group each document's findings by the
+problem underneath; every argued rule, reopen, repeated failure and perspective at the bar gets a
+proposal, *already recorded*, a note for the framework, or a reason under `## Not proposed`; and a second
+fresh process names any item left without one.
 
 **Departing is legal from two of the three, and silence is what gets caught.** `CON_19` asks a plan
 contradicting a recorded decision to say what that decision would have cost, the same shape `CON_15`

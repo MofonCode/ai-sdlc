@@ -3,7 +3,7 @@ name: propose
 description: Read what a solution's record says it is missing -- a rule its findings keep citing, a choice its approved cycles settled, or the roles a theme declares -- and propose entries a person may adopt. Proposes and never places. Use when somebody asks what keeps going wrong across cycles, wants to add one of this solution's own constraints, wants to record a decision, or needs a theme.
 compatibility: Requires the sdlc binary on PATH, from the MofonCode.Sdlc.Cli dotnet tool, and a git repository. Every command here is that binary, so without it the first step fails.
 argument-hint: "convergence | constraints | decisions | theme"
-allowed-tools: Bash(sdlc *), Bash(claude *)
+allowed-tools: Bash(sdlc *), Bash(claude *), Bash(git show *)
 ---
 
 # Propose what the record is pushing toward
@@ -42,28 +42,65 @@ the command found.
 
 # `convergence`
 
-**After a cycle merges, this is the one to run.** It brings the rules, the decisions and the declared stack
-up to what the cycles have settled, in one sitting, and it is not a cycle and not part of one: the person
-decides what binds, so nothing about it needs a plan or an approval (D-104). Approved convergence binds
-the **next** cycle, never one in flight — rules placed mid-cycle re-judge documents already argued, which
-in one real cycle cost about twenty blockers.
+**Once a cycle's verify passes, this is the one to run** — on the cycle's branch before its pull request,
+as a commit of its own that merges with the code, or on the integration branch after the merge (D-111).
+It brings the rules, the decisions and the declared stack up to what the cycles have settled, in one
+sitting, and it is not a cycle and not part of one: the person decides what binds, so nothing about it
+needs a plan or an approval (D-104). Approved convergence binds the **next** cycle, never one in flight —
+rules placed mid-cycle re-judge documents already argued, which in one real cycle cost about twenty
+blockers. That is why **never before the passing verify**: the pull-request check refuses a convergence
+committed ahead of the commit that wrote it. If you are on a cycle branch and `sdlc status <id>` does not
+show a passing verify, stop and say so.
 
 ## 1. Read the report, then the rounds
 
 `sdlc propose convergence` prints, ranked: rules cited across cycles; the rules **argued** longest inside
-a cycle, which usually mark a decision nobody recorded rather than a missing rule; findings that rested on
-no rule, grouped by who raised them and at which stage, with a sample each; what approved cycles stated;
-and what the declared stack never mentions. It ends with the path of the proposal file.
+a cycle, with how long their longest finding stood and whether the rule is the framework's; findings that
+rested on no rule, grouped by who raised them and at which stage, each sample with its cycle, its id and
+how many rounds it stood; which readers raised what a later one withdrew; and, per cycle, **the rounds
+each document took, every reopen with the reason the person wrote, and every verdict the verify
+reached** — then what approved cycles stated, and what the declared stack never mentions. It ends with
+the path of the proposal file.
 
-The samples are pointers. For each group worth reading, open the cycle's rounds (`sdlc findings <id>
---stage <artifact>`) and group the statements **by the problem underneath** — one plan raised the same
-missing log level twenty times in twenty wordings. For each argued rule, read what the cycle finally did
-about it in the plan: that choice is the decision to record.
+**The report is what to read, not what to propose.** Its samples are pointers, and a history runs to
+hundreds of findings, which no single reading holds. So the reading is split:
+
+1. **One fresh process per cycle and document with findings**, concurrently, as `interrogate` runs its
+   readers — `SDLC_READER=1` included. Hand each `sdlc findings <id> --stage <artifact>` and nothing else,
+   and ask: *group these findings by the problem underneath, not by their wording — one plan raised the
+   same missing log level twenty times in twenty wordings. For each group: the finding ids, one sentence
+   naming the problem, how many rounds its longest finding stood, and the remedy the readers converged
+   on, if they did. Return the groups and nothing else.*
+2. **Then read, yourself, what no reader is handed:** each reopen's reason, and each criterion that
+   failed more than one verdict, with the verify documents of those runs (`git show <commit>:<path>`,
+   commits from the report's cycle section). A reopen is a person who already decided something and
+   usually named what they refused — the closest thing in the record to a finished decision. A criterion
+   failing verdict after verdict is an argument about what the criterion asks.
+3. **For each argued rule**, read what the cycle finally did about it in the plan: that choice is the
+   decision to record.
+
+### Account for every item
+
+Before writing a single proposal, list what the record raised, and give each one an answer. Every
+**argued rule**, every **reopen**, every **criterion that failed more than one verdict**, every
+**perspective at the bar**, and every **group a reader returned whose findings stood three rounds or
+more** gets one of:
+
+- a proposal, by the heading it will have in the file
+- *already recorded*, naming the entry — `DEC_04`, `LOC_02`, a stack row
+- *a note for the framework* — a framework rule's cost, which no local entry can change; written under
+  `## For the framework` in the proposal file, with its evidence, for the person to carry to ai-sdlc
+- *no proposal, because* — one line, and a real reason: a one-off, a mistake the rule caught correctly,
+  a choice already in the code that nothing will revisit
+
+This list goes in the proposal file under `## Not proposed`, after the three sections the drafter reads;
+it ignores any other heading. **An item with no answer is a hole in the review**, and step 4 is told to
+look for exactly that.
 
 ## 2. Write the proposal file
 
 At the path the report names, one heading per proposal, in exactly this shape — `sdlc draft convergence`
-parses it:
+parses the first three sections and ignores the rest:
 
 ```markdown
 # Convergence proposals — <date>
@@ -103,6 +140,15 @@ each a bold label and a colon, exactly as constraints.md writes them, so the dra
 
 ### [ ] set <concern> — <the choice, or none>
 > <what in the record asks for it>
+
+## For the framework
+
+### <the framework rule> — <what it cost here, in one line>
+> <the cycles, finding ids and rounds behind it>
+
+## Not proposed
+
+- <the item> — <already recorded as DEC_04 | no proposal, because ...>
 ```
 
 **There is no remove.** A rule out of force is superseded and keeps its place; a reversed decision takes a
@@ -135,6 +181,18 @@ proposal file, the three drafts, and `.sdlc/solution.md` — nothing else. Ask:
 > does what was approved still serve what the evidence lines describe? And does the approved set, taken
 > together, move the solution toward what `solution.md` says it is, or away from it? Answer **in
 > alignment**, or **deviates**, with each place it deviates and why. Do not argue for the proposals.
+
+Then a **second** fresh process, handed the report `sdlc propose convergence` printed and the proposal
+file — nothing else — and asked the question the first cannot, because it sees only what was proposed:
+
+> Here is everything the record raised, and what was made of it. Name each argued rule, reopen, criterion
+> that failed more than one verdict, and perspective at the bar that has **no answer** in the proposal file
+> — neither a proposal nor a line under `## Not proposed` or `## For the framework`. Then name each
+> `no proposal, because` whose reason the report contradicts. Answer **complete**, or list the gaps. Do
+> not propose anything yourself.
+
+Show both answers verbatim, each under its own heading. A gap goes back to step 1 for that item before the
+person marks anything; it is not theirs to find.
 
 Show the answer verbatim under its own heading. **It is advisory**: the person chose knowingly, and the
 review makes the choice visible rather than overruling it. Then the renames are theirs.

@@ -81,6 +81,20 @@ public sealed class ConvergenceTests
     }
 
     [TestMethod]
+    public void The_framework_notes_and_the_accounting_are_read_by_the_person_and_never_drafted()
+    {
+        // The skill writes what goes to the framework and what it chose not to propose into the same file,
+        // so the review in a fresh process can look for an item with no answer (D-112). Neither is an entry
+        // in any of the three files, so a heading under either must never reach a draft.
+        IReadOnlyList<DraftConvergence.Proposal> read = DraftConvergence.Parse(
+            Proposals
+            + "\n## For the framework\n\n### CON_08 — verify spent twelve rounds on its own wording\n> cycle 2, F_03\n"
+            + "\n## Not proposed\n\n- criterion 15 — already recorded as DEC_09\n").Value;
+
+        Assert.AreEqual(5, read.Count, "A heading outside Rules, Decisions and Stack was read as a proposal.");
+    }
+
+    [TestMethod]
     public void There_is_no_remove()
     {
         FluentResults.Result<IReadOnlyList<DraftConvergence.Proposal>> parsed = DraftConvergence.Parse("## Rules\n\n### [x] remove LOC_01 — gone\n");

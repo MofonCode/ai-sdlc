@@ -136,10 +136,13 @@ on it, and re-interrogates from the highest document it touched down, one at a t
 a spec round until the intent is settled, and a plan round until the spec is. Steering changes *how*, not *what* —
 a correction that changes the problem is a different cycle, and the skill says so and offers one.
 
-**After the build merges, converge.** `/sdlc:propose convergence` reads what the cycle settled and argued
+**Once the verify passes, converge.** `/sdlc:propose convergence` reads what the cycle settled and argued
 and proposes rules, decisions and stack rows in one file; you mark what you accept, `sdlc draft
 convergence` writes the three drafts, a fresh reader says whether what you approved is in alignment, and
 you rename the drafts. It is not a cycle, and what it places binds the next cycle rather than one in flight.
+`/sdlc:pr` offers it on the cycle's branch, as a commit of its own that merges with the code; or do it on
+the integration branch after the merge. Never before the passing verify: the pull-request check refuses a
+convergence committed ahead of it (D-111).
 
 **Suggestions are yours to take in or leave.** A perspective's concern the intent did not ask for — keyboard
 use, where a key is kept — never becomes a criterion on its own: the spec names it in `Out of scope`, and

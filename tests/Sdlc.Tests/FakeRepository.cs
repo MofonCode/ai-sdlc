@@ -106,6 +106,12 @@ internal sealed class FakeRepository : IRepository
     public (string Commit, DateTimeOffset When)? LastCommitTouching(string workingDirectory, string reference, string path) =>
         Touched.TryGetValue(reference + ":" + path, out (string Commit, DateTimeOffset When) found) ? found : null;
 
+    /// <summary>What <see cref="CommitsTouching"/> returns, keyed <c>reference:path</c>, oldest first.</summary>
+    public Dictionary<string, List<(string Commit, DateTimeOffset When)>> History { get; } = new(StringComparer.Ordinal);
+
+    public IReadOnlyList<(string Commit, DateTimeOffset When)> CommitsTouching(string workingDirectory, string reference, string path) =>
+        History.TryGetValue(reference + ":" + path, out List<(string Commit, DateTimeOffset When)>? found) ? found : [];
+
     /// <summary>The references <see cref="RefExists"/> says exist.</summary>
     public HashSet<string> Refs { get; } = new(StringComparer.Ordinal);
 

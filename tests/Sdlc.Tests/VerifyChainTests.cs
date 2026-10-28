@@ -1,4 +1,5 @@
 using FluentResults;
+using Microsoft.Extensions.DependencyInjection;
 using Sdlc.Core.Chain;
 using Sdlc.Core.Cycles;
 
@@ -408,6 +409,74 @@ public sealed class VerifyChainTests
 
         Assert.IsFalse(read.Passed, read.Detail);
         StringAssert.Contains(read.Detail, "Interrogate the verify again");
+    }
+
+    [TestMethod]
+    [DataRow(false, true, DisplayName = "converged after the verify")]
+    [DataRow(true, false, DisplayName = "converged before the verify")]
+    public async Task A_convergence_the_pull_request_carries_holds_only_after_the_passing_verify(
+        bool changedBeforeVerify,
+        bool holds)
+    {
+        // After the passing verify nothing in the cycle is judged again, so a rule placed then binds only
+        // the next cycle. The same change a commit earlier is the mid-cycle adoption D-104 refused: rounds
+        // in this cycle read rules it placed.
+        using CycleWorkspace workspace = Sound();
+        FakeRepository repository = Converging(workspace, changedBeforeVerify ? [".sdlc/decisions.md", "src/Thing.cs"] : ["src/Thing.cs"]);
+
+        VerifyChain.Response verdict = await Check(workspace, repository, [".sdlc/decisions.md", "src/Thing.cs"]);
+        VerifyChain.ChainCheck order = verdict.Checks.Single(check => check.Name.Contains("convergence", StringComparison.Ordinal));
+
+        Assert.AreEqual(holds, order.Passed, order.Detail);
+        StringAssert.Contains(order.Detail, ".sdlc/decisions.md");
+    }
+
+    [TestMethod]
+    public async Task A_convergence_with_no_verify_written_fails_the_chain()
+    {
+        using CycleWorkspace workspace = Sound();
+        FakeRepository repository = new() { Committed = [] };
+
+        VerifyChain.Response verdict = await Check(workspace, repository, [".sdlc/constraints.md"]);
+        VerifyChain.ChainCheck order = verdict.Checks.Single(check => check.Name.Contains("convergence", StringComparison.Ordinal));
+
+        Assert.IsFalse(order.Passed, order.Detail);
+        StringAssert.Contains(order.Detail, "no commit wrote");
+    }
+
+    [TestMethod]
+    public async Task A_pull_request_that_converges_nothing_says_nothing_about_convergence()
+    {
+        using CycleWorkspace workspace = Sound();
+        FakeRepository repository = Converging(workspace, ["src/Thing.cs"]);
+
+        VerifyChain.Response verdict = await Check(workspace, repository, ["src/Thing.cs"]);
+
+        Assert.IsFalse(verdict.Checks.Any(check => check.Name.Contains("convergence", StringComparison.Ordinal)), Describe(verdict));
+    }
+
+    private static FakeRepository Converging(CycleWorkspace workspace, IReadOnlyList<string> beforeVerify)
+    {
+        FakeRepository repository = new() { Committed = beforeVerify };
+        repository.Touched["HEAD:.sdlc/cycles/" + workspace.Cycle.Id + "/verify.md"] =
+            ("0f1e2d3c4b5a69788796a5b4c3d2e1f00f1e2d3c", DateTimeOffset.UnixEpoch);
+        return repository;
+    }
+
+    private static async Task<VerifyChain.Response> Check(
+        CycleWorkspace workspace,
+        FakeRepository repository,
+        IReadOnlyList<string> changed)
+    {
+        using var gate = Gate.For(
+            workspace.Root,
+            services => services.AddSingleton<Sdlc.Core.Git.IRepository>(repository));
+
+        Result<VerifyChain.Response> result = await gate
+            .Send<VerifyChain.Query, VerifyChain.Response>(new VerifyChain.Query(workspace.Cycle.Id, changed, "base"));
+
+        Assert.IsTrue(result.IsSuccess, string.Join("; ", result.Errors.Select(e => e.Message)));
+        return result.Value;
     }
 
     private static void WriteVerifyRound(CycleWorkspace workspace, string evidence) =>

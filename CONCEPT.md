@@ -6976,6 +6976,76 @@ its refusal still apply.
 - *Guessing a marker for Copilot or Antigravity.* Neither documents one; a guessed marker is a panel that
   names one host's invocation to someone using another.
 
+### D-112 — Convergence reads how each cycle went, and accounts for every item it raised
+
+**Governs:** §8, §15.2
+
+**Extends D-104.**
+
+**Decision.** `sdlc propose convergence` adds, per cycle, the rounds each document took, every reopen
+with the reason the person wrote, and every verdict the verify reached, read from git's history of
+`verify.md` on whichever branch holds the most of it — with each criterion that failed more than one
+verdict named. An argued rule says how long its longest finding stood and, for a framework rule, that a
+decision settles only this solution's side. A sample says its cycle, its id and how many rounds it stood,
+and samples are ranked by that rather than by length. Findings a later reader withdrew are counted by
+reader. The skill splits the reading: one fresh process per cycle and document groups its findings by the
+problem underneath; the session reads the reopens and the repeated failures itself. Every argued rule,
+reopen, repeated failure, perspective at the bar and long-standing group gets an answer in the proposal
+file — a proposal, *already recorded*, a note under `## For the framework`, or *no proposal, because* under
+`## Not proposed` — and a second fresh process, handed the report and the file, names any item without
+one.
+
+**Why.** Asked to make sure convergence was thorough, a look at MarketSense's record found the report
+throwing away most of what it held. Each finding was collapsed to its last mention, so a blocker argued
+for nineteen rounds read like one answered at once. Samples were the shortest five, which picks the
+vaguest. Reopen reasons, in which the person had already decided and named what they refused, were read
+nowhere; nor was any verdict but the last, though criterion 15 failed six in a row. And the most-argued
+rules — CON_06 in forty-four findings, CON_08 in eighteen — were the framework's, which no local proposal
+can touch. The skill said to read "each group worth reading", so what was skipped was invisible; the
+review in a fresh process saw only what was proposed, never what was missed.
+
+**Rejected.**
+
+- *Reading everything in the session.* Sixteen hundred findings in one cycle; a single reading of that is
+  a skim, which is the failure being fixed.
+- *The binary clustering by wording.* Twenty wordings of one missing log level is the case; grouping by
+  the problem underneath is language, and belongs to a reader.
+- *A rule that every group becomes a proposal.* Most of what a history turns up is caught correctly by
+  a rule already in force; requiring an answer, not a proposal, is what keeps "nothing admissible" a good
+  outcome.
+
+### D-111 — Convergence may ride on the cycle's branch after the passing verify, and the chain holds the order
+
+**Governs:** §8, §15.2
+
+**Revises D-104** — its "after a cycle merges" — and keeps its refusal of convergence inside a cycle.
+
+**Decision.** `/sdlc:propose convergence` may run on a cycle's branch once its verify has passed, and what
+the person renames goes in as a commit of its own, merging with the code. After the merge, on the
+integration branch, stays right too. `sdlc verify-chain` adds one check when a pull request changes
+`constraints.md`, `decisions.md` or `techstack.md`: none of them may have changed by the commit that last
+wrote the cycle's `verify.md`. `/sdlc:pr` asks once, outside a sweep, whether to converge now or after.
+
+**Why.** D-104 refused convergence inside a cycle because a rule placed mid-cycle re-judges what was
+argued. After the passing verify nothing in the cycle is judged again, so that cost is gone, and three
+things are gained: the step is not forgotten after the merge; the decisions merge with the code they
+describe, and go with it if the pull request is abandoned; and the record is complete, every round and
+every verify, which is when convergence has most to read. The person asked for it on MarketSense's
+second cycle, which converged on the integration branch after the fact.
+
+**What holds it.** Order, asked of git, because none of the three files records when it changed. A
+verify written again after a convergence — review sent the build back — fails the check, rightly: those
+rounds read the new rules. The convergence commit comes out and goes back on top.
+
+**Rejected.**
+
+- *Convergence at plan approval.* D-104's reason, unchanged: it is adoption mid-cycle.
+- *Only after the merge, as before.* Sound, and easy to skip; nothing reminds anybody.
+- *Leaving the order to the skill.* A rule that only a prompt carries is advice; mid-cycle adoption is the
+  exact failure the twenty blockers were, and it is decidable from git.
+- *Required before every pull request.* An unattended cycle has nobody to mark proposals, and a
+  convergence of a small cycle is often nothing.
+
 ### D-110 — A blocker carries a gist, and every panel shows it with the remedy as `Fix:`
 
 **Governs:** §6.1, §6.4

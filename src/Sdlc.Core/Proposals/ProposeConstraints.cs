@@ -26,11 +26,17 @@ namespace Sdlc.Core.Proposals;
 /// </param>
 /// <param name="Cycles">Which cycles, oldest first.</param>
 /// <param name="Findings">The finding ids, so a proposal can be chased back to what raised it.</param>
+/// <param name="Longest">
+/// The most rounds any one of its findings stood across, raised to last moved. How long an argument ran
+/// is what a count of findings hides: forty findings answered at once and one argued for nineteen rounds
+/// read the same by count.
+/// </param>
 public sealed record Recurrence(
     ConstraintId Cited,
     string? Heading,
     IReadOnlyList<CycleId> Cycles,
-    IReadOnlyList<string> Findings);
+    IReadOnlyList<string> Findings,
+    int Longest = 1);
 
 /// <summary>
 /// A finding that rested on no rule at all.
@@ -46,7 +52,18 @@ public sealed record Recurrence(
 /// <param name="Id">The finding's id within that cycle and artifact.</param>
 /// <param name="Statement">What the reader said was wrong.</param>
 /// <param name="Perspective">The perspective whose reader raised it, or null for the round's own reader.</param>
-public sealed record Uncited(CycleId Cycle, ArtifactKind Artifact, string Id, string Statement, string? Perspective = null);
+/// <param name="Argued">How many rounds it stood across, from the round that raised it to the last that moved it.</param>
+/// <param name="Remedy">What the reader said would answer it, which is usually where the choice is.</param>
+/// <param name="Withdrawn">Whether a later reader took it back.</param>
+public sealed record Uncited(
+    CycleId Cycle,
+    ArtifactKind Artifact,
+    string Id,
+    string Statement,
+    string? Perspective = null,
+    int Argued = 1,
+    string? Remedy = null,
+    bool Withdrawn = false);
 
 /// <summary>
 /// How often one perspective raised something no rule forbade, counted by distinct cycle.
@@ -193,6 +210,10 @@ public static class ProposeConstraints
     /// one cycle is not a pattern for a rule -- but a rule argued over dozens of findings in one cycle is
     /// where convergence looks for a decision nobody recorded (D-104).
     /// </param>
+    /// <param name="Withdrawn">
+    /// The findings a later reader took back, which no proposal rests on, kept so a reader that keeps
+    /// raising what is later withdrawn can be seen (D-112).
+    /// </param>
     public sealed record Response(
         ConstraintId NextId,
         int InForce,
@@ -205,7 +226,8 @@ public static class ProposeConstraints
         int Cycles,
         IReadOnlyList<Noticed> Noticed,
         IReadOnlyList<PerspectiveTally> Perspectives,
-        IReadOnlyList<Recurrence>? Cited = null)
+        IReadOnlyList<Recurrence>? Cited = null,
+        IReadOnlyList<Uncited>? Withdrawn = null)
     {
         /// <summary>
         /// Whether the history yielded anything to argue about.
@@ -251,6 +273,7 @@ public static class ProposeConstraints
 
             List<Cited> cited = [];
             List<Uncited> uncited = [];
+            List<Uncited> withdrawn = [];
             List<Stopped> stopped = [];
             List<Noticed> noticed = [];
             List<IError> errors = [];
@@ -271,7 +294,7 @@ public static class ProposeConstraints
                         continue;
                     }
 
-                    Sort(cycle, kind, history.Value, cited, uncited);
+                    Sort(cycle, kind, history.Value, cited, uncited, withdrawn);
                 }
 
                 noticed.AddRange(Noticed.OfCycle(repository, solution.Path, cycle.Id, integration));
@@ -301,7 +324,8 @@ public static class ProposeConstraints
                 cycles.Count,
                 noticed,
                 [.. Tally(uncited, noticed)],
-                grouped));
+                grouped,
+                withdrawn));
         }
 
         /// <summary>Counts each perspective's suggestions by distinct cycle, across both stores.</summary>
@@ -339,27 +363,48 @@ public static class ProposeConstraints
             ArtifactKind kind,
             IReadOnlyList<FindingsRound> rounds,
             List<Cited> cited,
-            List<Uncited> uncited)
+            List<Uncited> uncited,
+            List<Uncited> withdrawn)
         {
-            IEnumerable<Finding> once = rounds
+            // The last mention for what it says, and how long it stood: from the round that raised it to
+            // the one that settled it, or to the latest round while it is still open -- a ledger records a
+            // finding only when it moves, so one standing open is not mentioned again. The span is what
+            // tells an argument from a finding answered the round after it was raised.
+            int latest = rounds.Count == 0 ? 0 : rounds.Max(round => round.Round);
+
+            IEnumerable<(Finding Finding, int Argued)> once = rounds
                 .SelectMany(round => round.Findings.Select(finding => (round.Round, finding)))
                 .GroupBy(mention => mention.finding.Id, StringComparer.Ordinal)
-                .Select(group => group.OrderByDescending(mention => mention.Round).First().finding);
+                .Select(group =>
+                {
+                    (int Round, Finding finding) last = group.MaxBy(mention => mention.Round);
+                    // Only a blocker is argued by standing: a suggestion nobody closes stands open for
+                    // the rest of the cycle without anybody arguing it, so its span is its mentions.
+                    int until = last.finding.IsOpenBlocker ? latest : last.Round;
+                    return (last.finding, until - group.Min(mention => mention.Round) + 1);
+                });
 
-            foreach (Finding finding in once)
+            foreach ((Finding finding, int argued) in once)
             {
                 if (finding.Cites?.Id is { } raw && ConstraintId.TryParse(raw, out ConstraintId? id))
                 {
-                    cited.Add(new Cited(id.Value, finding.Cites.Heading, cycle.Id, finding.Id));
+                    cited.Add(new Cited(id.Value, finding.Cites.Heading, cycle.Id, finding.Id, argued));
                     continue;
                 }
 
+                Uncited entry = new(cycle.Id, kind, finding.Id, finding.Statement, finding.Perspective, argued, finding.Remedy);
+
                 // Withdrawn means a later reader retracted the objection, so there was nothing wrong
                 // after all. Counting it would propose a rule against a problem the record already
-                // says did not exist.
+                // says did not exist -- but which reader keeps raising what is later taken back is its
+                // own signal, about the reader rather than the solution, so it is kept apart.
                 if (finding.Disposition != Disposition.Withdrawn)
                 {
-                    uncited.Add(new Uncited(cycle.Id, kind, finding.Id, finding.Statement, finding.Perspective));
+                    uncited.Add(entry);
+                }
+                else
+                {
+                    withdrawn.Add(entry with { Withdrawn = true });
                 }
             }
         }
@@ -371,7 +416,8 @@ public static class ProposeConstraints
                 group.First().Id,
                 group.Select(entry => entry.Heading).LastOrDefault(heading => !string.IsNullOrWhiteSpace(heading)),
                 [.. group.Select(entry => entry.Cycle).Distinct().OrderBy(id => id.ToString(), StringComparer.Ordinal)],
-                [.. group.Select(entry => entry.Finding).Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal)]))
+                [.. group.Select(entry => entry.Finding).Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal)],
+                group.Max(entry => entry.Argued)))
             .OrderByDescending(recurrence => recurrence.Cycles.Count)
             .ThenBy(recurrence => recurrence.Cited.ToString(), StringComparer.Ordinal);
 
@@ -459,7 +505,7 @@ public static class ProposeConstraints
         }
 
         /// <summary>One finding's citation, before the citations are folded by rule.</summary>
-        private sealed record Cited(ConstraintId Id, string? Heading, CycleId Cycle, string Finding);
+        private sealed record Cited(ConstraintId Id, string? Heading, CycleId Cycle, string Finding, int Argued);
 
         /// <summary>What <c>constraints.md</c> holds today.</summary>
         private sealed record RuleSet(

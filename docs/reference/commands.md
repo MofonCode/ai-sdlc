@@ -45,7 +45,7 @@ an agent runs it, and it never decides a gate. `skills.md` lists the skills.
 | `sdlc status <id> --brief` | binary | the same, between stages |
 | `sdlc status <id> --stage spec` | binary | one artifact's panel: intent, spec, plan or verify |
 | `sdlc findings <id>` | binary | what the interrogations said, each finding at the disposition that stands |
-| `sdlc propose convergence` | binary | what the record says the rules, decisions and stack are missing, in one ranked report, ending with the proposal file to mark. `/sdlc:propose convergence` runs it |
+| `sdlc propose convergence` | binary | what the record says the rules, decisions and stack are missing, in one ranked report — with each cycle's rounds, reopens and every verdict — ending with the proposal file to mark. `/sdlc:propose convergence` runs it |
 | `sdlc draft convergence <file>` | binary | drafts of `constraints.md`, `decisions.md` and `techstack.md` from the proposals marked `[x]`: copies with only those lines applied, refused if anything would go missing |
 | `sdlc round <id> <artifact> --from <file>` | binary | appends the next round to the artifact's findings ledger, stamped, hashed and chained to the round before, and refuses it while anything above is unsettled or a known finding comes back in other words. `/sdlc:interrogate` runs it; `--changed` lists the sections moved since the last round |
 | `sdlc constraints --for plan --brief` | binary | the rules one stage is judged against |

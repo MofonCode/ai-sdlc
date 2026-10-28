@@ -73,6 +73,10 @@ public sealed class PublicSurfaceTests
         "Sdlc.Core.Proposals.ProposeConvergence+Group",
         "Sdlc.Core.Proposals.ProposeConvergence+Query",
         "Sdlc.Core.Proposals.ProposeConvergence+Response",
+        // How each cycle went, which the report renders (D-112). Public because Response carries them.
+        "Sdlc.Core.Proposals.ProposeConvergence+CycleRecord",
+        "Sdlc.Core.Proposals.ProposeConvergence+Reopen",
+        "Sdlc.Core.Proposals.ProposeConvergence+Verdict",
         "Sdlc.Core.Evidence.Coverage",
         "Sdlc.Core.Evidence.CoverageSummary",
         "Sdlc.Core.Findings.RecordRound",

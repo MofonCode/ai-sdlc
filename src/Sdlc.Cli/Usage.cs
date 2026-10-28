@@ -149,7 +149,9 @@ internal static class Usage
             propose convergence      Everything the record says the rules, decisions and stack are
                                      missing, in one ranked report: rules cited across cycles,
                                      findings that rested on no rule grouped by who raised them,
-                                     what approved cycles stated, and what the stack never mentions.
+                                     each cycle's rounds, reopens and every verdict its verify
+                                     reached, what approved cycles stated, and what the stack
+                                     never mentions.
                                      Ends with the proposal file a person marks for 'draft
                                      convergence'. Proposes; writes nothing that binds.
             propose constraints      Read this solution's whole history and say which rules its

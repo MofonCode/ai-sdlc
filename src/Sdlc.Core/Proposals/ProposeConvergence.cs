@@ -3,7 +3,12 @@ using System.Text;
 using FluentResults;
 using Microsoft.Extensions.DependencyInjection;
 using MofonCode.Core;
+using Sdlc.Core.Approvals;
+using Sdlc.Core.Constraints;
+using Sdlc.Core.Artifacts;
 using Sdlc.Core.Cycles;
+using Sdlc.Core.Findings;
+using Sdlc.Core.Git;
 using Sdlc.Core.Solutions;
 
 namespace Sdlc.Core.Proposals;
@@ -45,16 +50,46 @@ public static class ProposeConvergence
     /// <param name="Statements">A sample, shortest first.</param>
     public sealed record Group(string Raiser, ArtifactKind Artifact, IReadOnlyList<CycleId> Cycles, int Raised, IReadOnlyList<string> Statements);
 
+    /// <summary>A reopen: a person taking an approval back, with the reason they gave.</summary>
+    /// <param name="At">When.</param>
+    /// <param name="By">Who.</param>
+    /// <param name="Reason">What they wrote, which is usually a decision with its alternative already named.</param>
+    public sealed record Reopen(DateTimeOffset At, string By, string? Reason);
+
+    /// <summary>One verdict a cycle's verify reached, read back from the commit that wrote it.</summary>
+    /// <param name="Commit">The commit.</param>
+    /// <param name="At">When.</param>
+    /// <param name="Outcome">What it said: pass, blocked, escalated, or null when it would not parse.</param>
+    /// <param name="NotMet">The criteria it found not met.</param>
+    public sealed record Verdict(string Commit, DateTimeOffset At, string? Outcome, IReadOnlyList<int> NotMet);
+
+    /// <summary>How one cycle went: rounds per document, reopens, and every verdict.</summary>
+    /// <param name="Cycle">The cycle.</param>
+    /// <param name="Rounds">How many rounds each document took.</param>
+    /// <param name="Reopens">Every reopen, oldest first.</param>
+    /// <param name="Verdicts">Every verdict its verify reached, oldest first.</param>
+    public sealed record CycleRecord(
+        CycleId Cycle,
+        IReadOnlyDictionary<ArtifactKind, int> Rounds,
+        IReadOnlyList<Reopen> Reopens,
+        IReadOnlyList<Verdict> Verdicts);
+
     /// <summary>The report.</summary>
     /// <param name="Rules">What the findings say about the rules.</param>
     /// <param name="Groups">The findings that rested on no rule, grouped and ranked.</param>
     /// <param name="Decisions">What approved cycles stated.</param>
     /// <param name="Stack">What the declared stack does not mention.</param>
+    /// <param name="Record">
+    /// How each cycle went (D-112). The findings say what was raised; this says what it cost -- rounds,
+    /// reopens, verdicts -- and two of the three, the reopen reasons and every verdict but the last, are
+    /// read nowhere else.
+    /// </param>
     public sealed record Response(
         ProposeConstraints.Response Rules,
         IReadOnlyList<Group> Groups,
         ProposeDecisions.Response Decisions,
-        StackCoverage.Unmentioned Stack);
+        StackCoverage.Unmentioned Stack,
+        IReadOnlyList<CycleRecord>? Record = null);
 
     /// <summary>Asks for the report.</summary>
     public sealed record Query : IRequest<Response>;
@@ -93,9 +128,16 @@ public static class ProposeConvergence
             .OrderByDescending(recurrence => recurrence.Findings.Count)
             .Take(Sample))
         {
+            // A rule of the framework's own is not one this solution can mend: a local rule cannot
+            // replace it, and a decision settles only this solution's side. So it says where the rest
+            // goes, rather than leaving a framework rule's cost with nowhere to be written down.
+            string settles = argued.Cited.Tier == ConstraintTier.Global
+                ? "A decision settles this solution's side; the framework's rule is the framework's, so if the cost is the rule's, a note for ai-sdlc"
+                : "A decision that settles the argument, more often than a rule";
+
             text.AppendLine(string.Create(
                 CultureInfo.InvariantCulture,
-                $"  argued: {argued.Cited} in {argued.Findings.Count} findings over {argued.Cycles.Count} cycle{(argued.Cycles.Count == 1 ? string.Empty : "s")} -- {argued.Heading}. A decision that settles the argument, more often than a rule"));
+                $"  argued: {argued.Cited} in {argued.Findings.Count} findings over {argued.Cycles.Count} cycle{(argued.Cycles.Count == 1 ? string.Empty : "s")}, one standing {argued.Longest} round{(argued.Longest == 1 ? string.Empty : "s")} -- {argued.Heading}. {settles}"));
         }
 
         text.AppendLine();
@@ -117,6 +159,17 @@ public static class ProposeConvergence
         {
             text.AppendLine(string.Create(CultureInfo.InvariantCulture, $"  stopped {stopped.Cycle}: {stopped.Reason ?? stopped.Unreadable}"));
         }
+
+        // Which readers raise what a later reader takes back. About the reader, not the solution: no
+        // proposal rests on these, and a perspective high here is one whose method wants a look.
+        if (response.Rules.Withdrawn is { Count: > 0 } withdrawn)
+        {
+            text.AppendLine(string.Create(
+                CultureInfo.InvariantCulture,
+                $"  withdrawn: {string.Join(", ", withdrawn.GroupBy(finding => finding.Perspective ?? "rules").OrderByDescending(group => group.Count()).Select(group => string.Create(CultureInfo.InvariantCulture, $"{group.Key} {group.Count()}")))} -- raised, then taken back by a later reader"));
+        }
+
+        Record(text, response.Record ?? []);
 
         text.AppendLine();
         text.AppendLine(string.Create(
@@ -160,7 +213,60 @@ public static class ProposeConvergence
         return text.ToString();
     }
 
-    private sealed class Handler(Mediator mediator, SolutionRoot solution) : IRequestHandler<Query, Response>
+    /// <summary>
+    /// How each cycle went: rounds per document, reopens with their reasons, and every verdict.
+    /// </summary>
+    /// <remarks>
+    /// The reopens are where a person already decided something and wrote down what they refused, and
+    /// the verdicts are where a criterion kept failing -- both are decisions the findings never hold.
+    /// </remarks>
+    private static void Record(StringBuilder text, IReadOnlyList<CycleRecord> record)
+    {
+        if (record.Count == 0)
+        {
+            return;
+        }
+
+        text.AppendLine();
+        text.AppendLine("Cycles   rounds per document, reopens, and every verdict the verify reached");
+
+        foreach (CycleRecord cycle in record)
+        {
+            text.AppendLine(string.Create(
+                CultureInfo.InvariantCulture,
+                $"  {cycle.Cycle}: {(cycle.Rounds.Count == 0 ? "no rounds" : string.Join(", ", cycle.Rounds.OrderBy(entry => entry.Key).Select(entry => string.Create(CultureInfo.InvariantCulture, $"{Cycle.NameOf(entry.Key)} {entry.Value}"))))}; {cycle.Reopens.Count} reopen{(cycle.Reopens.Count == 1 ? string.Empty : "s")}, {cycle.Verdicts.Count} verdict{(cycle.Verdicts.Count == 1 ? string.Empty : "s")}"));
+
+            foreach (Reopen reopen in cycle.Reopens)
+            {
+                text.AppendLine(string.Create(
+                    CultureInfo.InvariantCulture,
+                    $"    reopened {reopen.At:yyyy-MM-dd} by {reopen.By}: {reopen.Reason?.ReplaceLineEndings(" ") ?? "(no reason)"}"));
+            }
+
+            if (cycle.Verdicts.Count > 0)
+            {
+                text.AppendLine("    verdicts: " + string.Join(" -> ", cycle.Verdicts.Select(verdict => verdict.NotMet.Count == 0
+                    ? verdict.Outcome ?? "?"
+                    : string.Create(CultureInfo.InvariantCulture, $"{verdict.Outcome ?? "?"} on {string.Join(",", verdict.NotMet)}"))));
+
+                // A criterion that failed more than one verdict is an argument about what it asks, and
+                // where a decision -- or a reopen of the spec -- usually sits.
+                foreach (IGrouping<int, int> repeated in cycle.Verdicts
+                    .SelectMany(verdict => verdict.NotMet)
+                    .GroupBy(number => number)
+                    .Where(group => group.Count() > 1)
+                    .OrderByDescending(group => group.Count()))
+                {
+                    text.AppendLine(string.Create(
+                        CultureInfo.InvariantCulture,
+                        $"    criterion {repeated.Key} not met in {repeated.Count()} verdicts"));
+                }
+            }
+        }
+    }
+
+    private sealed class Handler(Mediator mediator, SolutionRoot solution, IRepository repository)
+        : IRequestHandler<Query, Response>
     {
         public async Task<Result<Response>> Handle(Query request, CancellationToken cancellationToken)
         {
@@ -201,13 +307,118 @@ public static class ProposeConvergence
                             group.Key.Artifact,
                             cycles,
                             group.Count(),
-                            [.. group.Select(finding => finding.Statement).Distinct(StringComparer.Ordinal).OrderBy(statement => statement.Length).Take(Sample)]);
+                            [
+                                .. group
+                                    .GroupBy(finding => finding.Statement, StringComparer.Ordinal)
+                                    .Select(same => same.MaxBy(finding => finding.Argued)!)
+                                    .OrderByDescending(finding => finding.Argued)
+                                    .ThenBy(finding => finding.Statement.Length)
+                                    .Take(Sample)
+                                    .Select(finding => string.Create(
+                                        CultureInfo.InvariantCulture,
+                                        $"[{finding.Cycle} {finding.Id}, {finding.Argued} round{(finding.Argued == 1 ? string.Empty : "s")}] {finding.Statement.ReplaceLineEndings(" ")}")),
+                            ]);
                     })
                     .OrderByDescending(group => group.Cycles.Count)
                     .ThenByDescending(group => group.Raised),
             ];
 
-            return Result.Ok(new Response(rules.Value, groups, decisions.Value, unmentioned));
+            List<CycleRecord> record = [];
+
+            foreach (Cycle cycle in CycleIndex.All(solution.Path))
+            {
+                record.Add(await Recorded(cycle, cancellationToken).ConfigureAwait(false));
+            }
+
+            return Result.Ok(new Response(rules.Value, groups, decisions.Value, unmentioned, record));
+        }
+
+        /// <summary>Reads how one cycle went, from its ledgers, its approval and its verify's history.</summary>
+        private async Task<CycleRecord> Recorded(Cycle cycle, CancellationToken cancellationToken)
+        {
+            Dictionary<ArtifactKind, int> rounds = [];
+
+            foreach (ArtifactKind kind in Enum.GetValues<ArtifactKind>())
+            {
+                Result<IReadOnlyList<FindingsRound>> history = await FindingsReader
+                    .ReadHistory(cycle, kind, cancellationToken)
+                    .ConfigureAwait(false);
+
+                if (history.IsSuccess && history.Value.Count > 0)
+                {
+                    rounds[kind] = history.Value.Count;
+                }
+            }
+
+            List<Reopen> reopens = [];
+
+            if (File.Exists(cycle.ApprovalPath)
+                && ApprovalLedger.Read(
+                    await File.ReadAllTextAsync(cycle.ApprovalPath, cancellationToken).ConfigureAwait(false),
+                    cycle.ApprovalPath) is { IsSuccess: true } ledger)
+            {
+                reopens.AddRange(ledger.Value.Decisions
+                    .Where(entry => entry.Decision == GateDecision.Reopened)
+                    .Select(entry => new Reopen(entry.At, entry.By, entry.Reason)));
+            }
+
+            return new CycleRecord(cycle.Id, rounds, reopens, Verdicts(cycle));
+        }
+
+        /// <summary>
+        /// Every verdict the cycle's verify reached, from whichever branch holds the most of them.
+        /// </summary>
+        /// <remarks>
+        /// Only the last verdict is on disk; each earlier one was a commit of <c>verify.md</c>. A cycle
+        /// merged by squash keeps one commit on the integration branch and its history on its own
+        /// branch, so both are asked, and the longer answer is the history.
+        /// </remarks>
+        private List<Verdict> Verdicts(Cycle cycle)
+        {
+            string path = Cycle.SdlcDirectoryName + "/" + Cycle.CyclesDirectoryName + "/" + cycle.Id + "/"
+                + Cycle.FileNameOf(ArtifactKind.Verify);
+
+            string[] references =
+            [
+                "HEAD",
+                "cycle/" + cycle.Id + "/build",
+                "origin/cycle/" + cycle.Id + "/build",
+                "cycle/" + cycle.Id,
+                "origin/cycle/" + cycle.Id,
+            ];
+
+            IReadOnlyList<(string Commit, DateTimeOffset When)> longest = references
+                .Where(reference => reference == "HEAD" || repository.RefExists(solution.Path, reference))
+                .Select(reference => repository.CommitsTouching(solution.Path, reference, path))
+                .OrderByDescending(commits => commits.Count)
+                .FirstOrDefault() ?? [];
+
+            List<Verdict> verdicts = [];
+
+            foreach ((string commit, DateTimeOffset when) in longest)
+            {
+                // A commit that deleted the verdict, to record a new run's evidence, has nothing to read.
+                if (repository.ReadAt(solution.Path, commit, path) is not { } text)
+                {
+                    continue;
+                }
+
+                string? outcome = Frontmatter.Read(text, path) is { IsSuccess: true } split
+                    ? Frontmatter.Key(split.Value.Yaml, "outcome")
+                    : null;
+
+                List<int> notMet =
+                [
+                    .. ArtifactSections.NumberedItems(text, "Criteria")
+                        .Where(item => item.Value.TrimStart().StartsWith("Not met", StringComparison.OrdinalIgnoreCase))
+                        .Select(item => item.Key)
+                        .Order(),
+                ];
+
+                verdicts.Add(new Verdict(commit, when, outcome, notMet));
+            }
+
+            return verdicts;
         }
     }
 }

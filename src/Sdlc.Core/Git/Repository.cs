@@ -152,6 +152,17 @@ public interface IRepository
     /// <returns>The commit and its date, or null when none touched it.</returns>
     (string Commit, DateTimeOffset When)? LastCommitTouching(string workingDirectory, string reference, string path);
 
+    /// <summary>Every commit reachable from a reference that touched a path, oldest first.</summary>
+    /// <remarks>
+    /// What the convergence report reads a cycle's verify history from: each verdict was a commit of
+    /// <c>verify.md</c>, and only the last survives on disk.
+    /// </remarks>
+    /// <param name="workingDirectory">Where to ask from.</param>
+    /// <param name="reference">The branch to walk.</param>
+    /// <param name="path">The path, relative to the root, with forward slashes.</param>
+    /// <returns>The commits and their dates, or none when git cannot say.</returns>
+    IReadOnlyList<(string Commit, DateTimeOffset When)> CommitsTouching(string workingDirectory, string reference, string path);
+
     /// <summary>Whether a reference — a branch, a remote branch, a commit — exists.</summary>
     /// <param name="workingDirectory">Where to ask from.</param>
     /// <param name="reference">The reference, as in <c>origin/development</c>.</param>
@@ -415,6 +426,26 @@ public sealed class GitRepository : IRepository
             && DateTimeOffset.TryParse(parts[1], CultureInfo.InvariantCulture, DateTimeStyles.None, out DateTimeOffset when)
                 ? (parts[0], when)
                 : null;
+    }
+
+    /// <inheritdoc />
+    public IReadOnlyList<(string Commit, DateTimeOffset When)> CommitsTouching(string workingDirectory, string reference, string path)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(reference);
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
+
+        string? output = Run(workingDirectory, $"log --reverse --format=%H%x09%cI \"{reference}\" -- \"{path}\"");
+
+        return
+        [
+            .. (output ?? string.Empty)
+                .Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                .Select(line => line.Split('\t'))
+                .Where(parts => parts.Length == 2)
+                .Select(parts => (Commit: parts[0], Parsed: DateTimeOffset.TryParse(parts[1], CultureInfo.InvariantCulture, DateTimeStyles.None, out DateTimeOffset when), When: when))
+                .Where(entry => entry.Parsed)
+                .Select(entry => (entry.Commit, entry.When)),
+        ];
     }
 
     /// <inheritdoc />

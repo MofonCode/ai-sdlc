@@ -6,7 +6,10 @@ using Sdlc.Core.Approvals;
 using Sdlc.Core.Artifacts;
 using Sdlc.Core.Cycles;
 using Sdlc.Core.Evidence;
+using Sdlc.Core.Constraints;
+using Sdlc.Core.Decisions;
 using Sdlc.Core.Findings;
+using Sdlc.Core.Git;
 using Sdlc.Core.Solutions;
 
 namespace Sdlc.Core.Chain;
@@ -71,7 +74,22 @@ public static class VerifyChain
     /// Null always means the full chain, so a pipeline that does not pass the target branch is as strict
     /// as before.
     /// </param>
-    public sealed record Query(CycleId Id, IReadOnlyList<string>? Changed = null) : IRequest<Response>;
+    /// <param name="Divergence">
+    /// The commit the pull request's branch left its target at, when <paramref name="Changed"/> was
+    /// measured from one. What lets the chain say when a rule changed, not only that it did (D-111).
+    /// </param>
+    public sealed record Query(CycleId Id, IReadOnlyList<string>? Changed = null, string? Divergence = null)
+        : IRequest<Response>;
+
+    /// <summary>
+    /// The three files a convergence changes, relative to the root (D-104, D-111).
+    /// </summary>
+    public static IReadOnlyList<string> Converged { get; } =
+    [
+        Cycle.SdlcDirectoryName + "/" + FileConstraintDocuments.SolutionConstraintsFileName,
+        Cycle.SdlcDirectoryName + "/" + DecisionParser.FileName,
+        Cycle.SdlcDirectoryName + "/" + Cycle.TechStackFileName,
+    ];
 
     /// <summary>
     /// Whether a pull request's changes are one cycle's planning paperwork and nothing else.
@@ -138,7 +156,7 @@ public static class VerifyChain
     /// </para>
     /// </remarks>
     /// <param name="solution">The root of the solution being checked.</param>
-    private sealed class Handler(SolutionRoot solution, Mediator mediator)
+    private sealed class Handler(SolutionRoot solution, Mediator mediator, IRepository repository)
         : IRequestHandler<Query, Response>
     {
         /// <inheritdoc />
@@ -193,8 +211,85 @@ public static class VerifyChain
             await Covered(cycle, checks, cancellationToken).ConfigureAwait(false);
             await AfterReopen(cycle, checks, cancellationToken).ConfigureAwait(false);
             await Outcome(cycle, checks, cancellationToken).ConfigureAwait(false);
+            ConvergedAfterVerify(cycle, request, checks);
 
             return Result.Ok(new Response(cycle, checks));
+        }
+
+        /// <summary>
+        /// A convergence the pull request carries came after the passing verify, never before it (D-111).
+        /// </summary>
+        /// <remarks>
+        /// <para><strong>Why the order is the whole rule.</strong> A rule placed while a cycle is still
+        /// being judged re-judges what was already argued -- about twenty blockers, the one time it
+        /// happened (D-104). After the passing verify nothing in the cycle is judged again, so a
+        /// convergence committed then binds only what comes next. The same change a commit earlier is
+        /// the case D-104 refused.</para>
+        /// <para><strong>Asked of git, not of the documents.</strong> Every one of the three files is
+        /// outside the cycle's directory and none records when it changed. So the check takes the
+        /// commit that last wrote <c>verify.md</c> -- the verdict the outcome check reads -- and asks
+        /// whether any of the three had changed by then. A verify written again after a convergence
+        /// fails it too, rightly: the rounds that wrote it read the new rules.</para>
+        /// <para>Silent when the pull request changes none of the three, and when nothing said what it
+        /// changes: a check that cannot see the order is no reason to fail a chain.</para>
+        /// </remarks>
+        private void ConvergedAfterVerify(Cycle cycle, Query request, List<ChainCheck> checks)
+        {
+            if (request.Changed is not { } changed || request.Divergence is not { } divergence)
+            {
+                return;
+            }
+
+            HashSet<string> carried = [.. changed.Select(path => path.Replace('\\', '/').TrimStart('/'))];
+            List<string> converged = [.. Converged.Where(carried.Contains)];
+
+            if (converged.Count == 0)
+            {
+                return;
+            }
+
+            const string Name = "the convergence it carries came after the passing verify";
+            string verify = Cycle.SdlcDirectoryName + "/" + Cycle.CyclesDirectoryName + "/" + cycle.Id + "/"
+                + Cycle.FileNameOf(ArtifactKind.Verify);
+
+            if (repository.LastCommitTouching(solution.Path, "HEAD", verify) is not { } verdict)
+            {
+                checks.Add(new ChainCheck(
+                    Name,
+                    false,
+                    string.Create(
+                        CultureInfo.InvariantCulture,
+                        $"it changes {string.Join(", ", converged)} and no commit wrote {verify}, so nothing says the cycle was judged before the rules moved. Converge after the verify passes, or after the merge.")));
+                return;
+            }
+
+            if (repository.CommittedChanges(solution.Path, divergence, verdict.Commit) is not { } before)
+            {
+                checks.Add(new ChainCheck(
+                    Name,
+                    false,
+                    string.Create(
+                        CultureInfo.InvariantCulture,
+                        $"git could not say what changed between {divergence} and the verify at {verdict.Commit}, so the order of the convergence cannot be shown.")));
+                return;
+            }
+
+            HashSet<string> early = [.. before.Select(path => path.Replace('\\', '/'))];
+            List<string> premature = [.. converged.Where(early.Contains)];
+
+            checks.Add(premature.Count == 0
+                ? new ChainCheck(
+                    Name,
+                    true,
+                    string.Create(
+                        CultureInfo.InvariantCulture,
+                        $"{string.Join(", ", converged)} changed only after {verdict.Commit[..Math.Min(8, verdict.Commit.Length)]} wrote the verify, so it binds the next cycle and judged nothing in this one"))
+                : new ChainCheck(
+                    Name,
+                    false,
+                    string.Create(
+                        CultureInfo.InvariantCulture,
+                        $"{string.Join(", ", premature)} changed before {verdict.Commit[..Math.Min(8, verdict.Commit.Length)]} wrote the verify, so rounds in this cycle were judged against rules it placed. Take the change out, and converge again once the verify passes -- or after the merge.")));
         }
 
         /// <summary>

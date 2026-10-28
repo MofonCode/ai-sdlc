@@ -551,10 +551,10 @@ static async Task<int> VerifyChainCommand(CommandLine line)
 // cannot say what changed, the full chain runs -- a pipeline that passes nothing is as strict as before.
 static async Task<int> VerifyChain(Workspace workspace, CommandLine line, CycleId id)
 {
-    IReadOnlyList<string>? changed = await ChangedAgainstBase(workspace, line).ConfigureAwait(false);
+    (IReadOnlyList<string>? changed, string? divergence) = await AgainstBase(workspace, line).ConfigureAwait(false);
 
     Result<VerifyChain.Response> result = await workspace
-        .Send<VerifyChain.Query, VerifyChain.Response>(new VerifyChain.Query(id, changed))
+        .Send<VerifyChain.Query, VerifyChain.Response>(new VerifyChain.Query(id, changed, divergence))
         .ConfigureAwait(false);
 
     if (result.IsFailed)
@@ -568,11 +568,16 @@ static async Task<int> VerifyChain(Workspace workspace, CommandLine line, CycleI
 
 // What a pull request changes against the target branch --base names, or null when there is no --base
 // or git cannot say. Null means the full chain, everywhere it is read.
-static async Task<IReadOnlyList<string>?> ChangedAgainstBase(Workspace workspace, CommandLine line)
+static async Task<IReadOnlyList<string>?> ChangedAgainstBase(Workspace workspace, CommandLine line) =>
+    (await AgainstBase(workspace, line).ConfigureAwait(false)).Changed;
+
+// What a pull request changes against --base, and the commit its branch left the base at: the second is
+// what lets the chain say when a rule moved, not only that it did (D-111).
+static async Task<(IReadOnlyList<string>? Changed, string? Divergence)> AgainstBase(Workspace workspace, CommandLine line)
 {
     if (!line.TryOption("base", out string? target))
     {
-        return null;
+        return (null, null);
     }
 
     const string FullyQualified = "refs/heads/";
@@ -580,7 +585,8 @@ static async Task<IReadOnlyList<string>?> ChangedAgainstBase(Workspace workspace
         ? target[FullyQualified.Length..]
         : target;
 
-    IReadOnlyList<string>? changed = workspace.Repository.MergeBase(workspace.SolutionRoot, "HEAD", branch) is { } divergence
+    string? divergence = workspace.Repository.MergeBase(workspace.SolutionRoot, "HEAD", branch);
+    IReadOnlyList<string>? changed = divergence is not null
         ? workspace.Repository.CommittedChanges(workspace.SolutionRoot, divergence, "HEAD")
         : null;
 
@@ -592,7 +598,7 @@ static async Task<IReadOnlyList<string>?> ChangedAgainstBase(Workspace workspace
             .ConfigureAwait(false);
     }
 
-    return changed;
+    return (changed, divergence);
 }
 
 // 'true' when a pull request carries one cycle's planning documents and nothing else, so a pipeline can
