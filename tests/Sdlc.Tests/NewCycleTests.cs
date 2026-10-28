@@ -99,8 +99,8 @@ public sealed class NewCycleTests
     [TestMethod]
     public async Task An_ignore_a_person_amended_is_left_alone()
     {
-        // Written only when absent, for the reason ReportFile gives: the framework owns the file it
-        // named, and rewriting it on every open would discard whatever a team added beside it.
+        // Never rewritten, for the reason ReportFile gives: rewriting it on every open would discard
+        // whatever a team added beside it. A block it lacks is appended, and nothing they wrote moves.
         using var workspace = CycleWorkspace.Create();
 
         string cycles = Path.Combine(workspace.Root, Cycle.SdlcDirectoryName, Cycle.CyclesDirectoryName);
@@ -112,6 +112,79 @@ public sealed class NewCycleTests
         await Open(workspace);
 
         StringAssert.Contains(await File.ReadAllTextAsync(ignore), "scratch/");
+    }
+
+    [TestMethod]
+    public async Task An_ignore_from_before_the_runners_output_was_ignored_gains_that_block_once()
+    {
+        // D-92 decided the .trx and build.log are not committed, and the file that says so was written
+        // only when absent -- so every solution that had opened a cycle went on committing them. The
+        // block is appended to an older file, with its comment, and a second open adds nothing.
+        using var workspace = CycleWorkspace.Create();
+
+        string cycles = Path.Combine(workspace.Root, Cycle.SdlcDirectoryName, Cycle.CyclesDirectoryName);
+        Directory.CreateDirectory(cycles);
+
+        string ignore = Path.Combine(cycles, ".gitignore");
+        await File.WriteAllTextAsync(ignore, "# ours\n.opened\n!.gitignore\nscratch/\n");
+
+        await Open(workspace);
+        string once = await File.ReadAllTextAsync(ignore);
+
+        StringAssert.StartsWith(once, "# ours\n.opened\n!.gitignore\nscratch/\n", "What was there moved.");
+        StringAssert.Contains(once, "/*/evidence/*.trx");
+        StringAssert.Contains(once, "/*/evidence/build.log");
+        StringAssert.Contains(once, "D-92", "The block arrives without the comment saying why.");
+
+        // The same instant opens the same id, so the first claim goes before the second open.
+        Directory.Delete(
+            Directory.GetDirectories(cycles).Single(directory => File.Exists(Path.Combine(directory, ".opened"))),
+            recursive: true);
+        await Open(workspace);
+
+        Assert.AreEqual(once, await File.ReadAllTextAsync(ignore), "A second open appended the block again.");
+    }
+
+    [TestMethod]
+    public async Task Git_ignores_the_runners_output_and_keeps_the_summary_verify_reads()
+    {
+        // The patterns are anchored to the cycles directory, and a pattern with a slash means something
+        // different from one without -- so only real git can say whether they reach a cycle's evidence.
+        using var workspace = CycleWorkspace.Create();
+
+        Cycle cycle = await Open(workspace);
+        string evidence = Path.Combine(cycle.Directory, "evidence");
+        Directory.CreateDirectory(evidence);
+
+        Git(workspace.Root, "init");
+
+        foreach (string kept in new[] { "tests.json", "diff.patch", "base.sha", "coverage.json" })
+        {
+            Assert.AreEqual(1, Git(workspace.Root, $"check-ignore -q {Relative(evidence, kept)}"), kept + " is ignored.");
+        }
+
+        foreach (string ignored in new[] { "tests.trx", "tests.1.trx", "build.log" })
+        {
+            Assert.AreEqual(0, Git(workspace.Root, $"check-ignore -q {Relative(evidence, ignored)}"), ignored + " is committed.");
+        }
+
+        string Relative(string directory, string file) =>
+            Path.GetRelativePath(workspace.Root, Path.Combine(directory, file)).Replace('\\', '/');
+    }
+
+    private static int Git(string root, string arguments)
+    {
+        using System.Diagnostics.Process process = System.Diagnostics.Process.Start(
+            new System.Diagnostics.ProcessStartInfo("git", arguments)
+            {
+                WorkingDirectory = root,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false,
+            })!;
+
+        process.WaitForExit();
+        return process.ExitCode;
     }
 
     [TestMethod]

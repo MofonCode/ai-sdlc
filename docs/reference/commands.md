@@ -91,8 +91,8 @@ In the cycle, the interrogate-then-refine loop repeats until a round raises noth
         base.sha
         diff.patch
         tests.json         <- the normalised summary. The only one verify reads
-        tests.1.trx        <- one per test project, as the runner wrote them
-        build.log
+        tests.1.trx        <- one per test project, as the runner wrote them. Not committed
+        build.log          <- not committed: the pipeline publishes its own (D-92)
 ```
 
 `approval.<decision>.draft.md` sits beside the ledger until somebody renames or deletes it.

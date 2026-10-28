@@ -214,7 +214,7 @@ declining to go on, exit code 1. An open blocker causes refusals; it is not one.
 | **`base.sha`** | the commit the diff is measured from: where the branch diverged from the default branch |
 | **`diff.patch`** | the change. Untracked paths are staged before diffing, because a new file is part of the change and `git diff` cannot see one |
 | **`tests.json`** | one normalised test summary. **The only test record a verification reads** |
-| **`tests.trx`**, **`build.log`** | the runner's own output, kept as it was written |
+| **`tests.trx`**, **`build.log`** | the runner's own output, kept as it was written for the cycle's verify, and **ignored by git**: the pipeline publishes its own (D-92) |
 | **test summary** / **test outcome** | what ran and what each test did. The build checks the suite **actually ran** rather than that the runner exited zero |
 | **declared files** | what the plan said it would change, against what changed: **undelivered**, **undeclared**, and **governing** — a changed file holding a rule the change is judged by |
 | **verification** | adjudicating the build against the spec from the evidence alone. Per criterion: which test did the plan name, did it run and pass, and **does that test actually establish the criterion?** | `verify.md` |

@@ -2170,8 +2170,8 @@ into the cycle as work no plan declared (D-94).
         plan.json
       evidence/
         diff.patch
-        build.log
-        tests.trx           the runner's own output, under a fixed name. A run that wrote
+        build.log           not committed, like the trx below (D-92)
+        tests.trx           the runner's own output, under a fixed name, and not committed. A run that wrote
                             several results files keeps them as tests.1.trx, tests.2.trx,
                             because one of several cannot be the one
         tests.json          the normalised summary verify reads, merged from every one of them
@@ -6547,7 +6547,16 @@ they concluded — is the summary, and that stays with the code.
 
 **What it costs.** A verify statement citing the build output points at a pipeline artifact, which the
 platform keeps for a retention period rather than forever. `CON_08` is still met when the claim is made;
-a reader long after may not be able to open what it cited.
+a reader long after may not be able to open what it cited. So the verify skill cites `tests.json` for what
+ran and how it ended, and the raw output only for what the summary does not hold.
+
+**How it holds.** The cycles directory's ignore file carries the two patterns, and opening a cycle
+appends any block an older file lacks, because the file was written only when absent and every solution
+that had opened a cycle went on committing both — MarketSense did, for two cycles, after this was decided.
+The verify round's evidence hash covers `tests.json` and `diff.patch` only: the pull-request check
+recomputes it on a clean checkout, where the log is not, and a round recorded under the old hash, which
+carried the log, is recomputed that way. The pull-request pipeline reports its own run with
+`--report-trx` and publishes it — Azure DevOps to its test tab, GitHub as an artifact.
 
 **Rejected.**
 

@@ -363,6 +363,69 @@ public sealed class VerifyChainTests
         Assert.AreEqual(holds, follows.Passed, follows.Detail);
     }
 
+    [TestMethod]
+    [DataRow(true, true, DisplayName = "a round over the old hash, on a checkout holding the log")]
+    [DataRow(false, false, DisplayName = "a round over the new hash, on a clean checkout without it")]
+    public async Task The_build_log_is_out_of_the_evidence_hash_and_a_round_over_the_old_one_still_holds(
+        bool withBuildLog,
+        bool logCommitted)
+    {
+        // The build log is not committed (D-92), so the pull-request check, on a clean checkout, could
+        // never match a hash over it. A round recorded before it left the hash read a cycle that committed
+        // its log, so that round is recomputed under the old reading rather than sent back.
+        using CycleWorkspace workspace = Sound();
+        string log = Path.Combine(workspace.Cycle.EvidenceDirectory, Sdlc.Core.Evidence.RecordEvidence.BuildLogFileName);
+        CycleWorkspace.WriteRaw(log, "Build succeeded.");
+
+        string? judged = await Sdlc.Core.Findings.RecordRound.EvidenceHash(
+            workspace.Cycle,
+            CancellationToken.None,
+            withBuildLog);
+        WriteVerifyRound(workspace, judged!);
+
+        if (!logCommitted)
+        {
+            File.Delete(log);
+        }
+
+        VerifyChain.Response verdict = await Check(workspace);
+        VerifyChain.ChainCheck read = verdict.Checks.Single(check => check.Name == "the verify was judged against this evidence");
+
+        Assert.IsTrue(read.Passed, read.Detail);
+    }
+
+    [TestMethod]
+    public async Task A_round_over_another_run_still_fails_under_either_reading()
+    {
+        using CycleWorkspace workspace = Sound();
+        CycleWorkspace.WriteRaw(
+            Path.Combine(workspace.Cycle.EvidenceDirectory, Sdlc.Core.Evidence.RecordEvidence.BuildLogFileName),
+            "Build succeeded.");
+        WriteVerifyRound(workspace, new string('a', 64));
+
+        VerifyChain.Response verdict = await Check(workspace);
+        VerifyChain.ChainCheck read = verdict.Checks.Single(check => check.Name == "the verify was judged against this evidence");
+
+        Assert.IsFalse(read.Passed, read.Detail);
+        StringAssert.Contains(read.Detail, "Interrogate the verify again");
+    }
+
+    private static void WriteVerifyRound(CycleWorkspace workspace, string evidence) =>
+        CycleWorkspace.WriteRaw(
+            workspace.Cycle.FindingsPath(ArtifactKind.Verify, 1),
+            $$"""
+              {
+                "framework_version": "1.0.0",
+                "cycle": "{{workspace.Cycle.Id}}",
+                "artifact": "verify.md",
+                "upstream_sha256": "{{workspace.HashOf(ArtifactKind.Plan)}}",
+                "evidence_sha256": "{{evidence}}",
+                "interrogated_at": "2026-10-01T10:00:00Z",
+                "round": 1,
+                "findings": []
+              }
+              """);
+
     private static CycleWorkspace Sound()
     {
         var workspace = CycleWorkspace.Create();

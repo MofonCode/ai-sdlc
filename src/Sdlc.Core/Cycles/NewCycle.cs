@@ -84,14 +84,29 @@ public static class NewCycle
         /// same reasoning as <c>ReportFile</c>, which D-69 settled: the directory ignores itself, and an
         /// existing solution gets it the first time something writes there rather than needing an
         /// adoption re-run.</para>
+        ///
+        /// <para><strong>The runner's own output is not history either</strong> (D-92). Nothing reads a
+        /// <c>.trx</c> or <c>build.log</c> once <c>tests.json</c> holds the run, and the pipeline publishes
+        /// its own. Kept on disk for the cycle's verify, which may cite them while it runs.</para>
+        ///
+        /// <para>In blocks, so a solution whose file predates a block gets that block appended, with its
+        /// comment, the next time a cycle opens. A file somebody edited keeps every line they wrote.</para>
         /// </remarks>
-        private static readonly string[] _ignore =
+        private static readonly string[][] _ignore =
         [
-            "# A cycle's .opened marker claims its id: creating it is what makes two cycles opened in",
-            "# the same second collide. That is local state the filesystem decides, not history -- and",
-            "# committing it would put a file no plan declared into a build's diff.",
-            ".opened",
-            "!.gitignore",
+            [
+                "# A cycle's .opened marker claims its id: creating it is what makes two cycles opened in",
+                "# the same second collide. That is local state the filesystem decides, not history -- and",
+                "# committing it would put a file no plan declared into a build's diff.",
+                ".opened",
+                "!.gitignore",
+            ],
+            [
+                "# The runner's own output, kept beside tests.json for the cycle's verify and never committed:",
+                "# nothing reads it once the summary holds the run, and the pipeline publishes its own (D-92).",
+                "/*/evidence/*.trx",
+                "/*/evidence/build.log",
+            ],
         ];
 
         /// <inheritdoc />
@@ -142,10 +157,7 @@ public static class NewCycle
                     Path.GetDirectoryName(cycle.Directory)!,
                     ".gitignore");
 
-                if (!File.Exists(ignore))
-                {
-                    File.WriteAllLines(ignore, _ignore);
-                }
+                Ignore(ignore);
 
                 // CreateNew is the whole mechanism: it throws if the file is there, and the filesystem
                 // decides that, so two processes in the same second cannot both win. Closed at once --
@@ -172,6 +184,35 @@ public static class NewCycle
             }
 
             return Task.FromResult(Result.Ok(cycle));
+        }
+
+        /// <summary>
+        /// Writes the cycles directory's ignore file, or appends each block an older one lacks.
+        /// </summary>
+        /// <param name="path">The ignore file.</param>
+        private static void Ignore(string path)
+        {
+            if (!File.Exists(path))
+            {
+                File.WriteAllLines(path, _ignore.SelectMany(block => block.Append(string.Empty)).SkipLast(1));
+                return;
+            }
+
+            HashSet<string> present = [.. File.ReadAllLines(path).Select(line => line.Trim())];
+
+            // A block counts as present when every pattern in it is; its comment is not compared, so a
+            // person who reworded one is not handed a second copy.
+            List<string> missing =
+            [
+                .. _ignore
+                    .Where(block => !block.Where(line => !line.StartsWith('#')).All(present.Contains))
+                    .SelectMany(block => block.Prepend(string.Empty)),
+            ];
+
+            if (missing.Count > 0)
+            {
+                File.AppendAllLines(path, missing);
+            }
         }
 
         /// <summary>

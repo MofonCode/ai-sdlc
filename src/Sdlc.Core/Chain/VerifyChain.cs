@@ -223,6 +223,17 @@ public static class VerifyChain
             FindingsRound latest = history.Value[^1];
             string? now = await RecordRound.EvidenceHash(cycle, cancellationToken).ConfigureAwait(false);
 
+            // A round recorded before the build log left the hash carried it, and that cycle committed its
+            // log, so its own hash is recomputable here. Accepted under the old reading rather than sent
+            // back for a round that judged exactly this run.
+            if (latest.EvidenceSha256 is { } recorded
+                && !string.Equals(recorded, now, StringComparison.Ordinal)
+                && await RecordRound.EvidenceHash(cycle, cancellationToken, withBuildLog: true).ConfigureAwait(false) is { } legacy
+                && string.Equals(recorded, legacy, StringComparison.Ordinal))
+            {
+                now = legacy;
+            }
+
             checks.Add(latest.EvidenceSha256 is not { } judged
                 ? new ChainCheck(
                     "the verify was judged against this evidence",

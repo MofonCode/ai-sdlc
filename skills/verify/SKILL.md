@@ -59,8 +59,13 @@ In `.sdlc/cycles/<id>/evidence/`:
 | `tests.json` | the normalised test summary: name and outcome per test |
 | `diff.patch` | the change itself. The cycle's own artifacts are **not** in it — their absence is by design, not a missing commit |
 | `base.sha` | the commit the diff is measured from |
-| the runner's own output | kept alongside, for when the summary is not enough |
-| `build.log` | what the build said |
+| the runner's own output | kept alongside, for when the summary is not enough. **Not committed** |
+| `build.log` | what the build said. **Not committed** |
+
+**Cite `tests.json` for what ran and how each test ended**, counts included. The runner's output and the
+build log stay on this machine and are not committed (D-92), so a claim resting on them points at a file
+the pull request's reader cannot open. Cite them for what only they hold — a message, a warning, a
+skipped test's reason — and say that is what you are citing.
 
 **Read `tests.json` rather than running the tests.** If you run them yourself you are producing new
 evidence rather than adjudicating the build's, and the next reader cannot tell which run your verdict

@@ -159,15 +159,24 @@ public static class RecordRound
     /// Evidence is re-recorded after each remediation, and in a real cycle it was recorded five times
     /// under ten verify rounds that all recorded the same plan hash. Which run a round judged could
     /// only be recovered from git.
+    /// <para><strong>Over what is committed, and nothing else</strong> (D-92). The pull-request check
+    /// recomputes this on a clean checkout, where the build log is not, so a hash over it could never
+    /// match there. Rounds recorded before carried it; <paramref name="withBuildLog"/> recomputes theirs.</para>
     /// </remarks>
     /// <param name="cycle">The cycle.</param>
     /// <param name="cancellationToken">Token observed while reading.</param>
+    /// <param name="withBuildLog">Whether to include the build log, as rounds recorded before 0.32.0 did.</param>
     /// <returns>The hash, or null when nothing has been recorded.</returns>
-    public static async Task<string?> EvidenceHash(Cycle cycle, CancellationToken cancellationToken)
+    public static async Task<string?> EvidenceHash(
+        Cycle cycle,
+        CancellationToken cancellationToken,
+        bool withBuildLog = false)
     {
         ArgumentNullException.ThrowIfNull(cycle);
 
-        string[] names = [RecordEvidence.SummaryFileName, RecordEvidence.DiffFileName, RecordEvidence.BuildLogFileName];
+        string[] names = withBuildLog
+            ? [RecordEvidence.SummaryFileName, RecordEvidence.DiffFileName, RecordEvidence.BuildLogFileName]
+            : [RecordEvidence.SummaryFileName, RecordEvidence.DiffFileName];
         StringBuilder listing = new();
 
         foreach (string name in names)
