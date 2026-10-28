@@ -24,13 +24,28 @@ namespace Sdlc.Core.Findings;
 /// points. What the loop is caught between, which is what a refiner needs in order to look for an exit
 /// rather than editing the same sentence again.
 /// </param>
+/// <param name="Returned">
+/// The findings that came back each time it scored, in round order. A count over a rule cannot say
+/// whether one objection kept returning or several different ones were raised under it -- MarketSense's
+/// verify was "stuck on CON_08" three times over three unrelated slips of wording -- and the two call for
+/// different things.
+/// </param>
 public sealed record StuckRule(
     Citation Rule,
     int Relapses,
     int Declarations,
     IReadOnlyList<int> Rounds,
-    IReadOnlyList<Citation> Against)
+    IReadOnlyList<Citation> Against,
+    IReadOnlyList<Returned>? Returned = null)
 {
+    /// <summary>
+    /// Whether every return was the same finding, by id. Null when nothing returned, which is the
+    /// case for a rule that scored only on declarations.
+    /// </summary>
+    public bool? OneObjection => Returned is not { Count: > 0 } returned
+        ? null
+        : returned.Select(entry => entry.Id).Distinct(StringComparer.Ordinal).Count() == 1;
+
     /// <summary>
     /// How much corroborated evidence there is that this rule's ground is stuck.
     /// </summary>
@@ -47,6 +62,12 @@ public sealed record StuckRule(
     /// <summary>Whether this rule has enough points that the loop should stop and ask for a person.</summary>
     public bool Halted => Points >= Oscillation.Halt;
 }
+
+/// <summary>One finding that came back under a stuck rule.</summary>
+/// <param name="Round">The round it came back in.</param>
+/// <param name="Id">The finding.</param>
+/// <param name="Headline">Its gist, or its statement where it has none.</param>
+public sealed record Returned(int Round, string Id, string Headline);
 
 /// <summary>Where one artifact's interrogation loop stands: converging, warned, or stuck.</summary>
 /// <param name="Rules">Every rule with at least one point, most points first.</param>
@@ -212,6 +233,7 @@ public static class Oscillation
                 {
                     tally.Relapses++;
                     tally.Rounds.Add(round.Round);
+                    tally.Returned.AddRange(open.Select(finding => new Returned(round.Round, finding.Id, finding.Headline)));
                     tally.Note(raised, rule.Key);
 
                     // Disarmed, so the next answered-then-open pair scores again rather than every
@@ -271,7 +293,8 @@ public static class Oscillation
                     tally.Relapses,
                     tally.Declarations,
                     tally.Rounds,
-                    tally.Against)),
+                    tally.Against,
+                    tally.Returned)),
         ]);
     }
 
@@ -368,6 +391,8 @@ public static class Oscillation
         public List<int> Rounds { get; } = [];
 
         public List<Citation> Against { get; } = [];
+
+        public List<Returned> Returned { get; } = [];
 
         /// <summary>Records the other rules in play, without repeating one or naming this rule itself.</summary>
         /// <param name="raised">Every rule the round had something to say about.</param>

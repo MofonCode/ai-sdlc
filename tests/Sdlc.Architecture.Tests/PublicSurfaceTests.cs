@@ -258,6 +258,9 @@ public sealed class PublicSurfaceTests
         "Sdlc.Core.Findings.Oscillation",
         "Sdlc.Core.Findings.OscillationState",
         "Sdlc.Core.Findings.StuckRule",
+        // What came back under a stuck rule, so the panel can say one objection from several. Public
+        // because StuckRule carries it.
+        "Sdlc.Core.Findings.Returned",
         "Sdlc.Core.Findings.FindingsRound",
         "Sdlc.Core.Findings.RemediationBudget",
         "Sdlc.Core.Findings.RemediationState",

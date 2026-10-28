@@ -217,6 +217,23 @@ public static class StatusRenderer
             {
                 Field(output, string.Empty, "    " + wording);
             }
+
+            // What came back, so a person can tell one objection returning from several different ones
+            // raised under one rule. The second is not a loop at all, and the line above cannot say so.
+            if (rule.OneObjection is { } one)
+            {
+                Field(
+                    output,
+                    string.Empty,
+                    one
+                        ? "    the same finding each time:"
+                        : "    more than one finding came back, so not one objection returning:");
+
+                foreach (Returned back in rule.Returned!)
+                {
+                    Field(output, string.Empty, string.Create(CultureInfo.InvariantCulture, $"      r{back.Round} {back.Id}  {back.Headline}"));
+                }
+            }
         }
     }
 

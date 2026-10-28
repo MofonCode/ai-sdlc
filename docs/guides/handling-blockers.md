@@ -113,7 +113,10 @@ been answered and raised again, and names it. *Answered* means the rule went qui
 nothing open against it — or that one finding was answered and the same finding came back. A round that
 answers one finding and raises a different one under the same rule is not going backwards: that is the
 reader moving on to the next place the same mistake was made, and it scores nothing. When one rule has been answered and raised again three
-times, the loop stops and hands back to you. That usually means one of three things:
+times, the loop stops and hands back to you. Under the rule, the panel lists **what came back** each time,
+by round and finding, and says whether it was the same finding every time. Several different findings
+under one rule is a document with several faults of one kind, not a loop: read them before deciding what
+gives. Otherwise it usually means one of three things:
 
 - **the finding is right and the fix keeps undoing another one.** Two rules no version of the document
   can satisfy are reported as a conflict rather than resolved by picking a side — decide which gives way,

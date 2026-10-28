@@ -552,6 +552,12 @@ public sealed class StatusRendererTests
         StringAssert.Contains(panel, "against CON_16", "What the rule is trading with.");
         StringAssert.Contains(panel, "Look for an exit");
 
+        // F_03 and F_05 came back, not one finding twice: a count over the rule cannot tell those apart,
+        // and the second is several objections under one rule rather than a loop.
+        StringAssert.Contains(panel, "more than one finding came back");
+        StringAssert.Contains(panel, "r3 F_03");
+        StringAssert.Contains(panel, "r5 F_05");
+
         foreach (string line in panel.Split(Environment.NewLine))
         {
             Assert.IsTrue(line.Length <= 92, $"A {line.Length}-character line: \'{line}\'");
