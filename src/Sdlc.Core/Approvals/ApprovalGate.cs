@@ -387,7 +387,12 @@ public static class ApprovalGate
 
                     blockers.Add(string.Create(
                         CultureInfo.InvariantCulture,
-                        $"  {qualified}  {blocker.Cites?.Id}  {rule}{blocker.Statement}"));
+                        $"  {qualified}  {blocker.Cites?.Id}  {rule}{blocker.Headline}"));
+
+                    if (blocker.Remedy is { } remedy)
+                    {
+                        blockers.Add("      Fix: " + remedy.ReplaceLineEndings(" "));
+                    }
                 }
             }
 

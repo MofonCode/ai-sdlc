@@ -296,7 +296,15 @@ public static class StatusRenderer
                 Field(output, string.Empty, "    " + rule);
             }
 
-            Field(output, string.Empty, "    " + finding.Statement);
+            // What set it off, then what would clear it. The statement in full is 'sdlc findings'
+            // business: at five hundred to eighteen hundred characters it buried both of these, and
+            // somebody at the gate came away knowing only which rule.
+            Field(output, string.Empty, "    " + finding.Headline);
+
+            if (finding.Remedy is { } remedy)
+            {
+                Field(output, string.Empty, "    Fix: " + remedy.ReplaceLineEndings(" "));
+            }
         }
     }
 

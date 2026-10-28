@@ -22,8 +22,47 @@ public sealed class RecordRoundTests
     private const string Blocking = """
         { "findings": [ { "id": "F_01", "severity": "blocking", "disposition": "open",
           "cites": { "id": "CON_06", "heading": "a plan's proof is adequate to the criterion it claims to prove" },
-          "statement": "something that must be answered." } ] }
+          "statement": "something that must be answered.", "gist": "The second criterion has no test." } ] }
         """;
+
+    [TestMethod]
+    [DataRow(null, DisplayName = "no gist")]
+    [DataRow("", DisplayName = "an empty one")]
+    [DataRow("two\nlines", DisplayName = "one over two lines")]
+    public async Task A_blocker_raised_without_a_one_line_gist_is_refused_and_names_the_finding(string? gist)
+    {
+        // A panel showing an id and a rule told somebody at the gate that a rule was broken and not what
+        // to look at. The reader that raised the blocker knows, so a round that raises one says it.
+        using var workspace = CycleWorkspace.Create();
+        workspace.WriteArtifact(ArtifactKind.Intent);
+
+        string field = gist is null ? string.Empty : ", \"gist\": " + System.Text.Json.JsonSerializer.Serialize(gist);
+        Result<RecordRound.Response> refused = await Record(
+            workspace,
+            ArtifactKind.Intent,
+            Blocking.Replace(", \"gist\": \"The second criterion has no test.\"", field, StringComparison.Ordinal));
+
+        Assert.IsTrue(refused.IsFailed, "A blocker with no usable gist was recorded.");
+        StringAssert.Contains(refused.Errors[0].Message, "F_01");
+        StringAssert.Contains(refused.Errors[0].Message, "gist");
+    }
+
+    [TestMethod]
+    public async Task A_blocker_carried_forward_from_before_gists_needs_none()
+    {
+        // A cycle begun before gists holds blockers raised without one. Carrying such a finding forward is
+        // not raising it, so the round is not refused over words nobody can now add.
+        using var workspace = CycleWorkspace.Create();
+        workspace.WriteArtifact(ArtifactKind.Intent);
+
+        string without = Blocking.Replace(", \"gist\": \"The second criterion has no test.\"", string.Empty, StringComparison.Ordinal);
+        CycleWorkspace.WriteRaw(workspace.Cycle.FindingsPath(ArtifactKind.Intent, 1), without
+            .Replace("{ \"findings\"", "{ \"round\": 1, \"interrogated_at\": \"2026-10-01T10:00:00Z\", \"findings\"", StringComparison.Ordinal));
+
+        Result<RecordRound.Response> carried = await Record(workspace, ArtifactKind.Intent, without);
+
+        Assert.IsTrue(carried.IsSuccess, string.Join("; ", carried.Errors.Select(error => error.Message)));
+    }
 
     [TestMethod]
     public async Task An_intent_round_is_numbered_stamped_and_bound_to_what_it_judged()

@@ -40,6 +40,7 @@ The two hooks return no exit code to you: they stop the agent's action, and the 
 | **Writing a round — `sdlc round`** | |
 | [something above it is unsettled](../guides/handling-refusals.md#something-above-it-is-unsettled) | settle the highest document it names, then come down one at a time |
 | [a known finding comes back in other words](../guides/handling-refusals.md#a-known-finding-comes-back-in-other-words) | carry the finding as the ledger holds it; a new objection takes a new id |
+| [a new blocker has no gist](../guides/handling-refusals.md#a-new-blocker-has-no-gist) | have the reader that raised it give one plain sentence; never write it in this session |
 | **Writing the skeleton — `sdlc scaffold`** | |
 | [the gate refuses the cycle](../guides/handling-refusals.md#the-gate-refuses-the-cycle) | whichever gate remedy above matches the message |
 | [an adopted solution whose plan declares no build settings](../guides/handling-refusals.md#an-adopted-solution-whose-plan-declares-no-build-settings) | `sdlc stack`; a cycle whose plan declares the files brings them |

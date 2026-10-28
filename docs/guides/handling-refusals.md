@@ -189,11 +189,12 @@ the plan a reader cleared. Only the round knows what it read, which is why it re
 if the spec changed. `/sdlc:steer` does this for you, which is the reason to use it rather than editing
 documents by hand.
 
-## `sdlc round` — the two ways a round is refused
+## `sdlc round` — the three ways a round is refused
 
 `sdlc round` writes every findings round (D-101), into the artifact's findings ledger (D-107).
-`/sdlc:interrogate` runs it; you meet the first when the order of the chain was skipped, and the second
-when a finding was carried forward in different words.
+`/sdlc:interrogate` runs it; you meet the first when the order of the chain was skipped, the second
+when a finding was carried forward in different words, and the third when a reader raised a blocker
+without saying in a sentence what set it off.
 
 ### something above it is unsettled
 
@@ -216,6 +217,17 @@ the same finding where it already stands is fine, and records nothing.
 `sdlc findings <id> --stage <artifact>` prints them — and give a new objection a new id. The refusal names
 the next free one under that prefix. The usual cause is a perspective reader, which numbers from `F_01`
 every round because it has no history (D-108).
+
+### a new blocker has no gist
+
+The round raises a blocking finding the ledger has not seen, and its `gist` is missing, empty, longer
+than 240 characters or over more than one line. The gist is the one plain sentence a panel shows first,
+so a blocker without one reaches the person at the gate as a rule id and a paragraph (D-110). A finding
+carried forward from before gists needs none.
+
+**Next:** ask the reader that raised it for the gist — start that fresh process again with the same
+input — rather than writing one in this session, which would be reinterpreting a finding it did not
+raise. The refusal names each finding that wants one.
 
 ## `sdlc scaffold` — the two ways it is refused
 

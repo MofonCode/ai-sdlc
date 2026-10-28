@@ -126,6 +126,12 @@ as it is, and if it is absent say so in the block in those words.
 > heading states** -- copied from the rules above exactly as written, never summarised in your own
 > words; what is wrong, in full; where in the document; and what would fix it.
 >
+> For every blocking finding, also give a `gist`: **one plain sentence, on one line, under 240
+> characters, saying what in the document set it off** -- the thing a person would look at, in their
+> words rather than the rule's. "Criterion 4 says the page is fast and never says how fast", not
+> "CON_03 is not satisfied". It is the first thing the person at the gate reads, and the round is
+> refused without it.
+>
 > When one defect occurs in more than one place, it is one finding, and its `locus` names every place
 > it occurs -- not the first you met. Before you write a finding, look through the rest of the document
 > for the same defect. A finding that names one instance of a repeated mistake hands the next round the
@@ -151,7 +157,7 @@ as it is, and if it is absent say so in the block in those words.
 > ```json
 > { "findings": [ { "id": "F_01", "severity": "blocking",
 >   "cites": { "id": "CON_16", "heading": "A spec covers every outcome its intent asks for, and all of each one" },
->   "statement": "...", "locus": "...", "remedy": "..." } ],
+>   "gist": "...", "statement": "...", "locus": "...", "remedy": "..." } ],
 >   "conflicts": [ { "between": [
 >       { "id": "CON_05", "heading": "A spec introduces no scope its intent did not ask for" },
 >       { "id": "CON_16", "heading": "A spec covers every outcome its intent asks for, and all of each one" } ],
@@ -194,7 +200,7 @@ output of `sdlc round <id> <artifact> --changed`** and tell it to raise suggesti
 only: a suggestion about text that has not moved is one an earlier round already had the chance to raise,
 and repeating them is how one plan reached nearly eight hundred open suggestions nobody read. Its
 blocking findings are not limited — a rule broken anywhere is still broken. Ask it for findings in the same JSON
-shape, with ids prefixed by the perspective — `security.F_01` — and with every place a repeated defect
+shape, with ids prefixed by the perspective — `security.F_01` —, a `gist` on every blocking one, and with every place a repeated defect
 occurs named in one finding's `locus`, as the rules reader is told. **Set `"perspective": "<name>"` on
 every one of them when you write the round.** The field is what `sdlc propose constraints` counts a
 perspective's suggestions by across cycles; the prefix is only for reading, and a round naming a perspective

@@ -121,6 +121,12 @@ public sealed record Citation(string? Id, string? Heading)
 /// is counted per perspective: a prefix nothing checks is one a reconciling reader can drop, and then the
 /// count is quietly wrong.
 /// </param>
+/// <param name="Gist">
+/// One plain sentence a person reads first: what in the document set this off, without the rule's
+/// vocabulary. Written by the reader that raised it, because it knows; required on a blocker raised from
+/// 0.32.0, since a panel that shows an id and a rule tells somebody a rule was broken and not what to
+/// look at. Older findings have none, and the statement stands in.
+/// </param>
 public sealed record Finding(
     string Id,
     Severity Severity,
@@ -131,8 +137,15 @@ public sealed record Finding(
     string? Remedy = null,
     string? DispositionBy = null,
     DateTimeOffset? DispositionAt = null,
-    string? Perspective = null)
+    string? Perspective = null,
+    string? Gist = null)
 {
+    /// <summary>The longest gist a round may carry: one sentence, read at a glance.</summary>
+    public const int GistLimit = 240;
+
     /// <summary>Whether this finding stops the artifact advancing as things stand.</summary>
     public bool IsOpenBlocker => Severity == Severity.Blocking && Disposition == Disposition.Open;
+
+    /// <summary>What a panel shows first: the gist, or the statement on a finding raised before gists.</summary>
+    public string Headline => (Gist ?? Statement).ReplaceLineEndings(" ");
 }

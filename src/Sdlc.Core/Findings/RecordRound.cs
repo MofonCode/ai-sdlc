@@ -153,6 +153,43 @@ public static class RecordRound
     }
 
     /// <summary>
+    /// The refusal for a blocker this round raises with no gist, or one longer than a glance.
+    /// </summary>
+    /// <remarks>
+    /// <para>Only a blocker the ledger has not seen: one carried forward keeps whatever it was raised
+    /// with, so a cycle that began before gists is not sent back over findings nobody can re-raise.</para>
+    /// <para>Here rather than in <see cref="FindingsRound.Validate"/>, which also reads every ledger already
+    /// written -- a rule there would make every round recorded before it unreadable.</para>
+    /// <para><strong>Why it is required.</strong> A blocker reached the person as an id, a rule and a
+    /// statement of five hundred to eighteen hundred characters, so what somebody at the gate learned was
+    /// "CON_15 is blocking". The reader that raised it is the one that knows what set it off.</para>
+    /// </remarks>
+    /// <param name="round">The round as given.</param>
+    /// <param name="ledger">What the artifact's ledger already holds.</param>
+    /// <param name="source">The file it was read from, for the message.</param>
+    /// <returns>The refusal, or null when every new blocker carries a gist.</returns>
+    internal static string? Ungisted(FindingsRound round, FindingsLedger ledger, string source)
+    {
+        HashSet<string> known = [.. ledger.Findings.Select(finding => finding.Id)];
+
+        List<string> wanting =
+        [
+            .. round.Findings
+                .Where(finding => finding.Severity == Severity.Blocking && !known.Contains(finding.Id))
+                .Where(finding => string.IsNullOrWhiteSpace(finding.Gist)
+                    || finding.Gist.Length > Finding.GistLimit
+                    || finding.Gist.Contains('\n', StringComparison.Ordinal))
+                .Select(finding => finding.Id),
+        ];
+
+        return wanting.Count == 0
+            ? null
+            : string.Create(
+                CultureInfo.InvariantCulture,
+                $"{source}: blocking finding{(wanting.Count == 1 ? string.Empty : "s")} {string.Join(", ", wanting)} {(wanting.Count == 1 ? "carries" : "carry")} no usable gist. A blocker raised now carries `gist`: one plain sentence, at most {Finding.GistLimit} characters on one line, saying what in the document set it off -- it is what a person at the gate reads first. Ask the reader that raised it; do not write it here.");
+    }
+
+    /// <summary>
     /// One hash over the evidence a verification may cite, so a verify round says which run it read.
     /// </summary>
     /// <remarks>
@@ -285,6 +322,12 @@ public static class RecordRound
             }
 
             FindingsLedger ledger = onDisk.Value.Ledger;
+
+            if (Ungisted(given.Value, ledger, request.From) is { } ungisted)
+            {
+                return Result.Fail<Response>(ungisted);
+            }
+
             string text = await File.ReadAllTextAsync(artifact, cancellationToken).ConfigureAwait(false);
             // A verify round's upstream is the plan, which commits to the proof per criterion -- the
             // hash the status panel compares a verify round against.

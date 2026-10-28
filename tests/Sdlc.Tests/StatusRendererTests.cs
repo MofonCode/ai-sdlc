@@ -76,6 +76,36 @@ public sealed class StatusRendererTests
         StringAssert.Contains(panel, "F_04");
         StringAssert.Contains(panel, "CON_04.1");
         StringAssert.Contains(panel, "something that must be answered.");
+        StringAssert.Contains(panel, "Fix: answer it.", "What would clear it is what somebody at the gate acts on.");
+    }
+
+    [TestMethod]
+    public async Task A_blocker_with_a_gist_is_shown_by_its_gist_and_its_fix_and_not_its_statement()
+    {
+        // The statement ran to eighteen hundred characters on a real verify, and the person came away
+        // knowing only which rule. The gist says what set it off; the statement stays in 'sdlc findings'.
+        using var workspace = CycleWorkspace.Create();
+        workspace.WriteAllArtifacts();
+        workspace.WriteRound(
+            ArtifactKind.Spec,
+            1,
+            """
+            {
+              "id": "F_07",
+              "severity": "blocking",
+              "disposition": "open",
+              "cites": { "id": "CON_03", "heading": "A criterion states an observable outcome" },
+              "statement": "A long account of everything the reader weighed before raising this.",
+              "gist": "Criterion 4 says the page is fast and never says how fast.",
+              "remedy": "Give it a number and the test that measures it."
+            }
+            """);
+
+        string panel = await Render(workspace, ArtifactKind.Spec);
+
+        StringAssert.Contains(panel, "Criterion 4 says the page is fast and never says how fast.");
+        StringAssert.Contains(panel, "Fix: Give it a number and the test that measures it.");
+        Assert.IsFalse(panel.Contains("A long account", StringComparison.Ordinal), panel);
     }
 
     [TestMethod]

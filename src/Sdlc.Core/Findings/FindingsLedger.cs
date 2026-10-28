@@ -31,6 +31,7 @@ public sealed record Transition(
 /// <param name="Remedy">What would fix it.</param>
 /// <param name="Perspective">The perspective whose reader raised it, if one did.</param>
 /// <param name="Transitions">Every move, in round order.</param>
+/// <param name="Gist">The one sentence a person reads first, when the reader gave one.</param>
 public sealed record LedgerFinding(
     string Id,
     Severity Severity,
@@ -39,7 +40,8 @@ public sealed record LedgerFinding(
     string? Locus,
     string? Remedy,
     string? Perspective,
-    IReadOnlyList<Transition> Transitions);
+    IReadOnlyList<Transition> Transitions,
+    string? Gist = null);
 
 /// <summary>One round's entry: what it judged, against what, and its place in the chain (D-107).</summary>
 /// <param name="Round">Which round, counting from one.</param>
@@ -259,7 +261,8 @@ public sealed record FindingsLedger(
                         finding.Remedy,
                         transition.By,
                         transition.At,
-                        finding.Perspective))),
+                        finding.Perspective,
+                        finding.Gist))),
             ],
             round.Conflicts,
             round.SubjectSha256,
@@ -310,7 +313,8 @@ public sealed record FindingsLedger(
                     finding.Locus,
                     finding.Remedy,
                     finding.Perspective,
-                    [move]));
+                    [move],
+                    finding.Gist));
                 continue;
             }
 
@@ -333,6 +337,7 @@ public sealed record FindingsLedger(
                     Locus = finding.Locus ?? known.Locus,
                     Remedy = finding.Remedy ?? known.Remedy,
                     Perspective = finding.Perspective ?? known.Perspective,
+                    Gist = finding.Gist ?? known.Gist,
                 };
             }
 

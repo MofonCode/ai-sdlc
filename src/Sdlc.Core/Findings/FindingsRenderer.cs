@@ -147,6 +147,13 @@ public static class FindingsRenderer
             output.AppendLine(Indent + "        " + rule);
         }
 
+        // The gist first when the reader gave one, then the statement in full: this listing is where the
+        // whole objection is read, where the panels show only the gist.
+        if (finding.Gist is { } gist)
+        {
+            output.AppendLine(Indent + "        gist    " + gist.ReplaceLineEndings(" "));
+        }
+
         output.AppendLine(Indent + "        " + finding.Statement.ReplaceLineEndings(" "));
 
         if (finding.Remedy is { } remedy && finding.Disposition == Disposition.Open)

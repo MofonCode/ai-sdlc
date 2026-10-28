@@ -558,6 +558,7 @@ to a declared default the plan silently left unapplied (D-58).
         "id": "CON_16",
         "heading": "a spec covers every outcome its intent asks for, and all of each one"
       },
+      "gist": "...one plain sentence: what in the artifact set it off",
       "statement": "...what is wrong, in full",
       "locus": "...where in the artifact",
       "remedy": "...what would fix it",
@@ -589,8 +590,9 @@ to a declared default the plan silently left unapplied (D-58).
 }
 ```
 
-**A finding is stored once.** Its severity, citation, statement, locus, remedy and perspective are fixed
-when it is first raised. What moves is `transitions`, and the first transition is the raise. Its
+**A finding is stored once.** Its severity, citation, gist, statement, locus, remedy and perspective are
+fixed when it is first raised. A blocker raised now carries a gist, which is what a panel shows first, with
+the remedy as `Fix:` (D-110). What moves is `transitions`, and the first transition is the raise. Its
 disposition as of round *n* is its last transition at or before *n*. A round that raised nothing and
 moved nothing is a clean round, and it is still an entry in `rounds`.
 
@@ -6973,6 +6975,35 @@ its refusal still apply.
 - *Keeping `sdlc <stage>` everywhere.* Correct and host-neutral, and costs a refusal each time.
 - *Guessing a marker for Copilot or Antigravity.* Neither documents one; a guessed marker is a panel that
   names one host's invocation to someone using another.
+
+### D-110 — A blocker carries a gist, and every panel shows it with the remedy as `Fix:`
+
+**Governs:** §6.1, §6.4
+
+**Decision.** A blocking finding raised from 0.32.0 carries `gist`: one plain sentence, on one line, at
+most 240 characters, written by the reader that raised it, saying what in the document set it off.
+`sdlc round` refuses a round raising a blocker without one; a finding carried forward keeps what it was
+raised with, so a cycle that began before keeps going. The status panel, the approval draft and the gate
+refusal show each open blocker as its rule, its gist (its statement where it has none) and its remedy as
+`Fix:`. `sdlc findings` keeps the statement in full. The `Loop` line lists what came back under a stuck
+rule, by round and finding, and says whether it was one finding each time.
+
+**Why.** On MarketSense a blocker reached the person as an id, a rule and a statement of five hundred to
+eighteen hundred characters, and what they came away with was "CON_15 is blocking". Every one carried a
+remedy nothing displayed. And verify's `Loop` line said "stuck on CON_08 -- 3 times" over three unrelated
+slips of wording: a count over a rule cannot tell one objection returning from several raised under it,
+and the two call for different things.
+
+**Rejected.**
+
+- *The session summarising each blocker.* The reader that raised it knows what set it off; a session
+  rephrasing a finding is reinterpreting it, and may have written the document (D-49).
+- *Truncating the statement.* The first two hundred characters of a statement are its preamble, not its
+  point.
+- *Requiring a gist on every finding.* A suggestion is read in a list nobody acts on at the gate, and a
+  rule there is cost with no reader.
+- *Refusing a ledger whose older blockers have none.* Every cycle in flight at the release would become
+  unreadable over words nobody can now add.
 
 ### D-109 — A fresh process writes the verdict, and every fresh reader is marked so the turn end lets it finish
 

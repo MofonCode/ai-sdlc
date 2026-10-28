@@ -68,7 +68,13 @@ public static class ApprovalRenderer
                     }
 
                     output.AppendLine(CultureInfo.InvariantCulture,
-                        $"        {finding.Statement}");
+                        $"        {finding.Headline}");
+
+                    if (finding.Remedy is { } remedy)
+                    {
+                        output.AppendLine(CultureInfo.InvariantCulture,
+                            $"        Fix: {remedy.ReplaceLineEndings(" ")}");
+                    }
                 }
             }
         }

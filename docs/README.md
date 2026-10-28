@@ -167,7 +167,7 @@ How an artifact is challenged. Rounds are appended to one ledger per artifact, a
 | **fresh process** | an interrogation's readers, the verify adjudicator and `propose`'s review run with no memory of writing the thing they judge. An author reviewing their own draft agrees with it. Each is started with `SDLC_READER=1`, so the turn-end hook lets a reader's turn end on a red build |
 | **findings round** | one pass's findings, plus the hashes of what it judged and what against, written by `sdlc round` — which refuses one while anything above it is unsettled. It records only what it raised and what it moved | an entry in the findings ledger |
 | **findings ledger** | every round of one artifact's interrogation in one file: each finding once with its moves, each round an entry chained by hash to the ones before. The approval anchors its latest round, so the argument behind an approval cannot be rewritten (D-107) | `findings/<kind>.json` |
-| **finding** | one thing wrong: an id kept across rounds, the rule it **cites**, what is wrong, where, and the remedy |
+| **finding** | one thing wrong: an id kept across rounds, the rule it **cites**, what is wrong, where, and the remedy. A blocker also carries a **gist** — one plain sentence saying what set it off, which the panels show with its remedy as `Fix:` |
 | **severity** | `blocking` stops the artifact advancing and cites exactly one rule; `suggestion` does not block. **Non-blocking is not trivial** — it means nothing forbade the current state |
 | **disposition** | `open`, `answered`, `withdrawn`, with who moved it and when. A finding is always shown at the disposition that stands |
 | **refinement** | applying a round's findings to that artifact. **Edits one document and never judges** | `/sdlc:refine` |

@@ -9,6 +9,12 @@ command or hook declining to go on — and an open blocker is one of the things 
 the next stage, at the approval draft and at the gate. `handling-refusals.md` covers every refusal; this
 guide covers the blockers behind some of them, and how they are answered.
 
+**Reading one.** The status panel, the approval draft and the gate refusal show each open blocker as the
+rule it cites, a **gist** — one plain sentence from the reader that raised it, saying what in the
+document set it off — and a **`Fix:`** line, the reader's remedy. The full statement, which can run to a
+long paragraph, is in `sdlc findings <id> --stage <artifact>`. A blocker raised before gists existed shows
+its statement in the gist's place.
+
 **Nothing here can be waived.** There is no field for accepting a blocker, no flag, and no recorded
 override. It is answered, or the cycle does not advance — and that is the design working, because a
 blocker that could be waived would be waived exactly when it mattered.
