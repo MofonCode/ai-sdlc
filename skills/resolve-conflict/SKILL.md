@@ -74,6 +74,11 @@ git rm .sdlc/cycles/<id>/verify.md
 sdlc evidence <id> --tests TestResults --build-log <path> --coverage TestResults
 ```
 
+**If the branch carries a convergence** — the person's own commit changing the solution's constraints,
+decisions or declared stack after the old verify — it comes out before the verify is written again, and
+goes back on top once the new one passes. Ask the person to revert it; the files are theirs. Left in, the
+new verify's rounds read rules it placed, and the pull-request check refuses the chain (D-111).
+
 Run the tests with `--coverage --coverage-output-format cobertura --results-directory TestResults`, as the
 build stage does. **A conflict on `.sdlc/coverage.json` is expected** when another cycle merged first:
 take the integration branch's side, and recording the evidence writes the new value over it.

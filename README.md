@@ -305,19 +305,17 @@ What is honest to say about the rest:
 - **The Antigravity adapter has never been run either**, and two of its gaps are the host's: its turn end
   is not governed at all, and its workspace configuration loads only in a folder marked trusted, so on a
   fresh clone the local layer is off until somebody marks it.
-- **The Azure DevOps pipeline has never run against a real server, by decision.** It ships with a note
-  saying so in the generated file, where the first person to adopt there will read it (`CONCEPT.md`
-  D-32). It runs only once a person adds a build validation branch policy — Azure Repos ignores a YAML
-  pull-request trigger — and the file, the adoption guide and `sdlc doctor` all say so.
+- **The Azure DevOps pipeline runs on one real server: MarketSense's.** It checks every pull request
+  there, on the factory's agent image. It runs only once a person adds a build validation branch policy —
+  Azure Repos ignores a YAML pull-request trigger — and the file, the adoption guide and `sdlc doctor` all
+  say so.
 - **The binary is not on a feed.** Installing means cloning and packing — the single thing that would
   most improve a teammate's first hour. CI installs the packed tool to a temporary path on every pull
   request; `--global` on a clean machine has not been tried.
-- **The factory has run once for real, and that run is how 0.28.1's fix was found.** One Azure DevOps
-  factory pipeline, on the agent image in `factory/`, built one cycle unattended and opened its pull
-  request. Its verify went uninterrogated: a `claude` the agent starts was handed no credential, so the
-  fresh reader never signed in. 0.28.1 gives it one and proves it before anything is built; no run has yet
-  gone through with that fix. Nobody has spent a morning on a sitrep of more than one cycle
-  (`CONCEPT.md` §10.4, §10.5).
+- **The factory runs every night against one solution, MarketSense**, on the agent image in `factory/`
+  under a local VM. Its first run built one cycle unattended and opened its pull request, and found
+  0.28.1's fix: the verify went uninterrogated because the `claude` the agent starts had no credential.
+  Nobody has yet spent a morning on a sitrep of more than one cycle (`CONCEPT.md` §10.4, §10.5).
 - **Leads and Operate have only met fakes.** `sdlc lead show` reads work items through `az` and `gh`, and
   `sdlc operate` reads Application Insights through `az` and files through the same CLIs; none of that has
   touched a real tracker or a real telemetry store. Jira is not read yet.

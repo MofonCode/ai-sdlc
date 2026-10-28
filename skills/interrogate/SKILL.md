@@ -79,7 +79,8 @@ rule to serve, which is the definition of what does not belong in this prompt.
 
 **A verify round reads what the verification was allowed to read.** Its document above in the chain is
 the **plan**, which commits to the proof per criterion. Add `spec.md` for the criteria, and the evidence
-the verification cites — `tests.json`, `build.log` and `diff.patch` from the cycle's `evidence/` — because
+the verification cites — `tests.json`, `build.log` where this checkout has one (it is not committed), and
+`diff.patch`, from the cycle's `evidence/` — because
 `CON_08` is decided by checking each claim against the evidence it names, and a reader without the
 evidence can only check that something was named. Nothing beyond that: the verification was not allowed
 the source or the intent, and a reader of it is held to the same. **On a verify round, add to the prompt:**
@@ -111,7 +112,7 @@ as it is, and if it is absent say so in the block in those words.
 >
 > Here are the criteria it adjudicates, and the evidence it may cite:
 >
-> <spec.md, then tests.json, build.log and diff.patch — this block on a verify round only, and omitted
+> <spec.md, then tests.json, build.log if present, and diff.patch — this block on a verify round only, and omitted
 > whole otherwise>
 >
 > Here is the document to judge:

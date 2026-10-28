@@ -51,7 +51,7 @@ three ways to do this step:
 |---|---|---|---|
 | What you do | build the image from this repository on a Linux host with Docker, and run it as a service, below | install `sdlc`, Claude Code and the plugin on it once — `installing-the-plugin.md` — and register it in an agent pool | put the `sdlc` package on a feed the agent can read, below |
 | Each run | a fresh container that installs nothing | installs nothing, so it starts faster | installs all three |
-| When you upgrade | build the image again and restart the service | reinstall on the agent; until you do, the run installs the release it was written for | nothing |
+| When you upgrade | build the image again from the release, then every image built `FROM` it, and restart the service — [the factory's index, Upgrading](../../factory/README.md#sdlc-factory-agentservice) | reinstall on the agent; until you do, the run installs the release it was written for | nothing |
 | Good for | a self-hosted factory: no feed needed, and the binary and plugin always from one release | an agent you already maintain | no machine of your own, if the job's time limit allows six hours |
 
 ### With the factory's agent image
@@ -254,7 +254,7 @@ From here, `running-the-factory.md` is the routine: admit plans in the day, read
 | *The agent did not answer, so its credential does not work* | the key was revoked, the token expired, or the subscription is out of usage | make a new one (step 1) and replace the secret |
 | *A claude the agent starts could not sign in* | the credential did not reach `~/.claude/settings.json` on the agent, where every `claude` reads it; the agent's own sign-in passed, so the secret is fine. Claude Code hands its commands no credential, so without that file `interrogate`'s fresh reader signs in with nothing | the lines after it name the reader's error. Check `jq` is on the agent and its home is writable; the factory image carries both |
 | *The hooks did not refuse a protected write* | the plugin's hooks did not load, so nothing would refuse anything tonight | look at the install step's output for the plugin install; the run stopped before building, which is the point |
-| the `sdlc` install fails: *not found* or *401* | the feed is missing, not in `nuget.config`, or the build service cannot read it | step 2; on the feed, **⚙ > Permissions** — the build service needs *Feed Reader* |
+| the `sdlc` install fails: *not found* or *401* | on the factory's image, nearly always an image built from an older release than the pipeline pins — the step says so. Otherwise the feed is missing, not in `nuget.config`, or the build service cannot read it | rebuild the image and every image built from it ([the factory's index, Upgrading](../../factory/README.md#sdlc-factory-agentservice)); otherwise step 2, and on the feed, **⚙ > Permissions** — the build service needs *Feed Reader* |
 | the image's agent never shows *Online* | the token is wrong, expired, or not scoped to Agent Pools, or `AZP_POOL` names a pool that does not exist | `journalctl -u sdlc-factory-agent`: *VS30063* is the token; a pool error names the pool |
 | a step fails with *permission denied* on `/var/run/docker.sock` | the container is not in the socket's group | run it through the service file, which adds the group, rather than a bare `docker run` |
 | the plugin install fails | the agent cannot reach GitHub | the plugin comes from the public `MofonCode/ai-sdlc` repository; an agent behind a firewall needs `github.com` allowed, or the plugin installed on it beforehand |

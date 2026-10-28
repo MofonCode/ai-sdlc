@@ -1368,6 +1368,9 @@ and each pull request is reported individually.
 is `blocked` or `escalated` (D-85) — and asks before the run rather than at the end (D-24); with
 `--unattended` the schedule was that question (D-84). Plain `batch-build` never pushes.
 
+**Before pushing a verified build, `pr` asks once whether to converge on the branch now** — as the
+person's own commit, which merges with the code — or after the merge; a sweep never asks (D-111).
+
 **`pr --plan`** admits an approved plan to the integration branch before it is built, asked of the gate
 rather than of `pr-ready`, and merging it deletes the plan branch (D-83, D-87). Every pull request pushes the
 cycle's own branch and targets the integration branch, or the default branch while there is none.
@@ -1413,8 +1416,9 @@ factory bundle in `factory/` holds.
 
 **What is built and what is not.** The queue, the branches, the admission check, the sitrep, `batch-build`
 and `pr` working this way, the factory's pipeline template (`sdlc factory`: the schedule, the lock, the
-headless run) and its agent image are built. Neither the template nor the image has run a real night's
-build yet.
+headless run) and its agent image are built, and both run MarketSense's: the nightly pipeline on its
+schedule, and every pull request's check, on a local VM through an image of MarketSense's own built on
+this one.
 
 ---
 
@@ -1873,8 +1877,8 @@ block, and so ran on nothing while reading as a gate: exactly the shape the note
 by reading the platform's documentation rather than by a run. `sdlc doctor` asks the platform for the
 policy through `az` or `gh`, and reports it as `elsewhere` only when it could not ask (D-106).
 
-Every pull request installs the `sdlc` binary, builds, tests, **displays code coverage**, and runs
-`sdlc verify-chain`.
+Every pull request installs the `sdlc` binary, builds, tests, **displays code coverage**, publishes the
+runner's own test results — which a cycle does not commit (D-92) — and runs `sdlc verify-chain`.
 
 **The install is the first step and it is pinned** (D-37). Without it the templates called `sdlc` on a
 runner where nothing had put it there, so the one step establishing the guarantee would have reported
@@ -1904,6 +1908,8 @@ implies.
   `## Open` as a limit of the proof — the one exit `CON_14` does not cover, because it binds an intent,
   a spec and a plan and not a verify (§4.3)
 - the outcome in `verify.md` is `pass`
+- a change the pull request carries to `constraints.md`, `decisions.md` or `techstack.md` was committed
+  after the commit that wrote the passing verify, never before it (D-111)
 
 **What it deliberately does not check.** The comparison of declared files against changed files.
 `D-15` moved that to the hook and made it a suggestion, because `CON_07.2` exists precisely *because*
@@ -1956,6 +1962,7 @@ document says about itself, and the next step.
             F_01   CON_16      blocking
                 a spec covers every outcome its intent asks for, and all of each one
                 the decided delivery has no criterion at all
+                Fix: add a criterion naming how the roll reaches the page
 
   Gate      not approved yet
 
@@ -1982,10 +1989,13 @@ headings a person wrote.
 
 **A citation is shown as its id and the rule's own line, never the id alone** (D-63). This panel is
 where somebody meets a blocker when deciding what to do about it, and an id with no words beside it says
-a rule was broken without saying which.
+a rule was broken without saying which. **Under it, the blocker's gist** — the one sentence its reader
+wrote about what set it off — **and a `Fix:` line**, the remedy; the statement in full is
+`sdlc findings`' (D-110).
 
 **A `Loop` row appears only when the oscillation counter has something to say** — a rule answered and
-raised again, with what it is caught against (D-65). It is absent above because nothing has relapsed,
+raised again, with what it is caught against and the findings that came back, so one objection
+returning reads differently from several under one rule (D-65, D-110). It is absent above because nothing has relapsed,
 which is the ordinary case.
 
 ---
@@ -2073,10 +2083,10 @@ they print verbatim.
 | `constraints [--for <artifact>]` | renders the effective set, all tiers. How the rules reach a session |
 | `status <id> [--stage] [--brief]` | the stage panel — §14. `--brief` is the between-stages form: the counts, what the artifact says, and the next command |
 | `findings <id> [--stage] [--round]` | what the interrogations said about one cycle, per artifact, each finding at the disposition that stands |
-| `round <id> <artifact> --from <file>` | appends the next round to the artifact's findings ledger: the readers' new findings and the session's dispositions merged in, with the round number, the time, and the hashes of what was judged, what it was judged against, each section, and on a verify the evidence, stamped by the binary and chained to the round before. Refuses while anything above it in the chain is unsettled, and a known id restated with different words. `--changed` lists the sections moved since the last round instead — D-101, D-107 |
+| `round <id> <artifact> --from <file>` | appends the next round to the artifact's findings ledger: the readers' new findings and the session's dispositions merged in, with the round number, the time, and the hashes of what was judged, what it was judged against, each section, and on a verify the evidence, stamped by the binary and chained to the round before. Refuses while anything above it in the chain is unsettled, a known id restated with different words, and a new blocker without a one-line gist (D-110). `--changed` lists the sections moved since the last round instead — D-101, D-107 |
 | `gate <id>` | whether a cycle's build may run. Exits 1 if not |
 | `draft approval\|abandon\|profile\|solution\|techstack` | prints or writes what belongs in a file only a person writes — §5.3 |
-| `propose convergence` | what the record says the rules, decisions and stack are missing, in one ranked report, ending with the proposal file a person marks — D-104 |
+| `propose convergence` | what the record says the rules, decisions and stack are missing, in one ranked report — with each cycle's rounds per document, its reopens and their reasons, and every verdict its verify reached — ending with the proposal file a person marks. Runs once a verify passes, on the cycle's branch or after the merge — D-104, D-111, D-112 |
 | `draft convergence <file>` | drafts of the three record files from the proposals marked accepted: each a copy of the file as it stands with only those lines applied, refused if an entry or a row would go missing — D-104 |
 | `propose constraints` | what the history says the rules are missing, with the cycles and finding ids behind each — D-69 |
 | `evidence <id>` | records the diff, its base commit, and the normalised test summary — §4.5 |
@@ -2151,9 +2161,11 @@ into the cycle as work no plan declared (D-94).
                             rename it was written for, so a copy anywhere else would reach a later
                             cycle's diff as a file no plan declared (D-75)
   cycles/
-    .gitignore              ignores every cycle's .opened, and keeps itself tracked. Written by
-                            `sdlc new` when the first cycle is opened, so an existing solution
-                            gets it without an adoption re-run (D-10, the shape D-69 settled)
+    .gitignore              ignores every cycle's .opened, evidence/*.trx and evidence/build.log,
+                            and keeps itself tracked. Written by `sdlc new` when the first cycle
+                            is opened, and any block an older one lacks is added on the next, so
+                            an existing solution gets it without an adoption re-run (D-10, the
+                            shape D-69 settled, D-92)
     20260929_1456_32/
       .opened               the marker that claims this id. Created so that the filesystem refuses
                             a second one, which **is** the collision check -- creating the

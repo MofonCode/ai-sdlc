@@ -1505,7 +1505,7 @@ never places.
 
 | Parameter | Description |
 |---|---|
-| `convergence` | the rules, decisions and stack together, after a cycle merges: a ranked report, a proposal file a person marks, drafts of the three files from what was marked, and an advisory review of the approved set |
+| `convergence` | the rules, decisions and stack together, once a verify passes — on the cycle's branch or after the merge: a ranked report, a proposal file a person marks, drafts of the three files from what was marked, and an advisory review of the approved set |
 | `constraints` | candidate rules for this solution, mined from the findings |
 | `decisions` | candidate `DEC_` entries, from what approved cycles stated |
 | `theme` | the roles a theme declares, never a value |
