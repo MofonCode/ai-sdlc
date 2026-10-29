@@ -47,7 +47,7 @@ an agent runs it, and it never decides a gate. `skills.md` lists the skills.
 | `sdlc findings <id>` | binary | what the interrogations said, each finding at the disposition that stands |
 | `sdlc propose convergence` | binary | what the record says the rules, decisions and stack are missing, in one ranked report — with each cycle's rounds, reopens and every verdict — ending with the proposal file to mark. `/sdlc:propose convergence` runs it |
 | `sdlc draft convergence <file>` | binary | drafts of `constraints.md`, `decisions.md` and `techstack.md` from the proposals marked `[x]`: copies with only those lines applied, refused if anything would go missing |
-| `sdlc round <id> <artifact> --from <file>` | binary | appends the next round to the artifact's findings ledger, stamped, hashed and chained to the round before, and refuses it while anything above is unsettled, a known finding comes back in other words, or a new blocker has no one-line gist. `/sdlc:interrogate` runs it; `--changed` lists the sections moved since the last round |
+| `sdlc round <id> <artifact> --from <file>` | binary | appends the next round to the artifact's findings ledger, stamped, hashed and chained to the round before, with its suggestions in the cycle's suggestions ledger, and refuses it while anything above is unsettled, a known finding comes back in other words, a new blocker has no one-line gist, or a suggestion does not fit the cycle's. `/sdlc:interrogate` runs it; `--changed` lists the sections moved since the last round |
 | `sdlc constraints --for plan --brief` | binary | the rules one stage is judged against |
 | `sdlc cycles` | binary | every cycle, newest first |
 | `sdlc branch <id> <kind>` | binary | the git command that puts you on the cycle's `plan`, `build`, `build-unattended` or `forward` branch. The skills run it for you. `plan --worktree` opens the cycle in a folder of its own beside the repository, so several are planned at once |
@@ -60,7 +60,7 @@ an agent runs it, and it never decides a gate. `skills.md` lists the skills.
 | `sdlc cycles --queued` | binary | what a build would take now, and what is held back and why |
 | `sdlc cycles --claims` | binary | which files each cycle claims |
 | `sdlc cycles --pr-ready` | binary | which cycles may open a pull request |
-| `sdlc suggestions` | binary | what was noticed and not acted on |
+| `sdlc suggestions [<id>] [--all]` | binary | what was noticed and not acted on, each concern once; `--all` adds what became of each and which cycle decided it |
 | `sdlc propose constraints` | binary | rules cited across three or more cycles |
 | `sdlc decisions` | binary | what this solution already settled |
 | `sdlc propose decisions` | binary | choices approved cycles settled, as entries to adopt |
@@ -87,6 +87,7 @@ In the cycle, the interrogate-then-refine loop repeats until a round raises noth
         spec.json
         plan.json
         verify.json
+        suggestions.json   <- the cycle's suggestions, each concern once
     evidence/
         base.sha
         diff.patch

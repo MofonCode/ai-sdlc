@@ -216,6 +216,7 @@ from production, an open suggestion, or a file. `intent --from <reference>` take
 in full — `azuredevops:1234`, `github:56`, `jira:PROJ-123`, `suggestion:<cycle>/<finding>` — or a path.
 The binary fetches and normalises it, and the skill interviews from what it prints; the person still
 answers the interview. The intent records the reference, so the pull request can link and close the item.
+A suggestion lead is also the record that the suggestion was accepted, and by which cycle (D-115).
 
 **Operate files work items; it writes no artifact of its own.** A scheduled run reads the solution's
 telemetry store, groups errors by a signature, strips personal data, and files a bug for each signature
@@ -675,6 +676,15 @@ answered and raised again: at two points it tells the refiner it is refighting o
 rule is caught against, and at three the loop stops and hands back (D-65). What it never says is that the
 rules conflict, which the counter cannot tell from a refiner repeating a mistake.
 
+**A suggestion is the cycle's, not the document's** (D-115). The ledgers keep the blockers; every
+suggestion goes to `findings/suggestions.json`, each concern once under an `S_nn` id, with a history of
+`raised`, `answered` and `withdrawn` events, one line per document and round, in the order they ran.
+Within one document the events alternate, so a restatement where it stands records nothing. The round's
+reconciler is shown every document's open suggestions, so the plan raising what the intent raised is the
+same concern found again rather than a new id. What became of one — `accepted`, `declined`, `open`,
+`answered`, `withdrawn`, and the cycle that decided it — is worked out on every read from the intents,
+leads and abandonments, never stored.
+
 ### 6.2 A round records what it judged, and what against
 
 `upstream_sha256` is the hash of the artifact above, as the round saw it. A round is clean **as of**
@@ -689,7 +699,9 @@ while anything above the artifact is unsettled — interrogated as it stands, ag
 stands, with no blocker open. So the chain is interrogated top down, one document at a time, and a
 round judged against a document still moving is refused when it is written rather than discovered at the
 gate. The hook denies every agent write to a findings ledger, which is what makes the command the only
-way a round lands.
+way a round lands. It splits the round as it writes: blockers into the document's ledger, suggestions
+into the cycle's suggestions ledger, and every reader of a round reads the two folded back into one
+view (D-115).
 
 **A cycle still holding round files from before D-107** — `findings/<artifact>.r<round>.json`, one per
 round — is read through one adapter into a ledger, so there is still one fold. The first `sdlc round`
@@ -2227,6 +2239,10 @@ objections on the record.
 
 **Abandonment is terminal.** A cycle with an `abandoned.md` never builds, even if it also holds an
 approval.
+
+**An abandoned cycle accepts nothing** (D-115). The suggestions its intent took in, and the one it was
+begun from, read `open` again once the file is placed. The draft lists each as a `declining <id>:` line,
+and a person keeps a line, with its reason, only to decline that suggestion outright.
 
 ---
 

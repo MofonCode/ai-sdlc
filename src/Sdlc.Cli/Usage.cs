@@ -130,10 +130,12 @@ internal static class Usage
             round <id> <artifact>    Append the next round to the artifact's findings ledger from
                                      --from <file>: the readers' findings merged in, stamped with
                                      the time and the hashes of what was judged, and chained to the
-                                     round before. Refuses while anything above is unsettled, a
-                                     known finding restated in other words, and a new blocker with
-                                     no one-line gist. --changed lists the sections moved since the
-                                     last round instead.
+                                     round before; suggestions go to the cycle's suggestions ledger,
+                                     each concern once under an S_ id. Refuses while anything above
+                                     is unsettled, a known finding restated in other words, a new
+                                     blocker with no one-line gist, and a suggestion whose id or move
+                                     does not fit the cycle's. --changed lists the sections moved
+                                     since the last round instead.
             suggestions [<id>]       List the open non-blocking findings and what the builds
                                      noticed, for one cycle or all, each concern once. --all lists
                                      every status -- accepted, declined, answered, withdrawn --

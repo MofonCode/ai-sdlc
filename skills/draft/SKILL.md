@@ -73,6 +73,12 @@ command to revive it. The reason is history rather than safety — an agent stuc
 an obvious escape in abandoning and starting clean, and a hand-written reason is what keeps the objection
 that killed the cycle on the record.
 
+**When the cycle took suggestions in**, the draft lists each under `## Suggestions this cycle accepted` as
+a `declining <id>:` line (D-115). An abandoned cycle accepts nothing, so each returns to the pool once the
+file is placed. Show the person the list and ask, in free text, whether any is not wanted at all: those
+lines keep the person's reason after the colon, and the rest are deleted. A line kept with no reason
+declines nothing.
+
 **`techstack`** — the declared stack, beside itself, for an edit a person renames into place. You may
 edit the draft; only the real file is denied. What the draft starts as depends on what is there:
 

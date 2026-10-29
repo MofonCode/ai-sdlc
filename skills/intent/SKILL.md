@@ -472,8 +472,8 @@ Anything you don't mention stays open in `sdlc suggestions` for a later cycle.
 The page shows the provider's raw error, and a failed fetch is logged nowhere. Taking it in now
 is one message and one log line; after the build, tests will already assert the current text.
 Suggest: take in — the feed this cycle adds is the thing that fails.
-- security.F_02 — the provider's raw error is shown to the user
-- operability.F_01 — a failed fetch is recorded nowhere
+- security.S_02 — the provider's raw error is shown to the user
+- operability.S_01 — a failed fetch is recorded nowhere
 
 ## B. Nobody said how keyboard and screen reader users roll
 ...
@@ -490,9 +490,9 @@ and ask what to take in, what to decline, and what to leave.
 
 **4. Map the answer to finding ids, and read it back before acting:**
 
-> **Take in** A — `security.F_02`, `operability.F_01` — as *"errors say what failed, never the
+> **Take in** A — `security.S_02`, `operability.S_01` — as *"errors say what failed, never the
 > provider's message, and every failure is logged"*
-> **Decline** B — `accessibility.F_01`, `accessibility.F_02` — *"a personal page, only I use it"*
+> **Decline** B — `accessibility.S_01`, `accessibility.S_02` — *"a personal page, only I use it"*
 > **Leave** the rest. Go?
 
 A theme named whole is every id beneath it. A decline needs a reason — ask once if the answer gave none.

@@ -81,13 +81,18 @@ decision.** Both name the finding:
 ## Wanted outcomes
 
 - A trader can pick a stock and reach its chart by keyboard alone. Peter, 2026-10-22, taking in
-  accessibility.F_01.
+  accessibility.S_01.
 
 ## Fixed decisions
 
-- Not in this cycle: a text equivalent of the chart. Peter, 2026-10-22, declining accessibility.F_04:
+- Not in this cycle: a text equivalent of the chart. Peter, 2026-10-22, declining accessibility.S_04:
   the first piece is for sighted watching; the table comes with the signals.
 ```
+
+**Write each id straight after `taking in` or `declining`, exactly as the ledger holds it** — several
+joined by commas or *and*, a decline's reason after a colon. `sdlc suggestions` reads that form and no
+other to say which were accepted and which declined, and by which cycle (D-115); *"taking in the
+keyboard one"* is a decision the listing cannot see.
 
 **No finding's disposition is set here.** A disposition moves only on a fresh reader's silence (D-49):
 the next round's reader finds the outcome stated, or the matter decided, and does not raise it again, so

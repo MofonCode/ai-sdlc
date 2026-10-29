@@ -134,7 +134,9 @@ no size threshold, deliberately.
 A findings ledger, `findings/<artifact>.json`, will not parse; or its chain does not verify, because a
 round, a finding it raised or a disposition it moved was changed after `sdlc round` wrote it; or round
 files from before the ledger sit beside it. A round file from before the ledger that will not parse is
-this refusal too.
+this refusal too, and so is a suggestions ledger, `findings/suggestions.json`, that will not parse, names
+a round its document's ledger does not hold, or records two `raised` in a row against one document — a
+line no round writes (D-115).
 
 **Next:** put the ledger back as `sdlc round` wrote it — `git restore` it, or remove the stray round files
 beside it — and interrogate again if a round is genuinely lost. What it will not do is skip the
@@ -189,12 +191,13 @@ the plan a reader cleared. Only the round knows what it read, which is why it re
 if the spec changed. `/sdlc:steer` does this for you, which is the reason to use it rather than editing
 documents by hand.
 
-## `sdlc round` — the three ways a round is refused
+## `sdlc round` — the four ways a round is refused
 
-`sdlc round` writes every findings round (D-101), into the artifact's findings ledger (D-107).
-`/sdlc:interrogate` runs it; you meet the first when the order of the chain was skipped, the second
-when a finding was carried forward in different words, and the third when a reader raised a blocker
-without saying in a sentence what set it off.
+`sdlc round` writes every findings round (D-101): blockers into the artifact's findings ledger (D-107),
+suggestions into the cycle's suggestions ledger (D-115). `/sdlc:interrogate` runs it; you meet the first
+when the order of the chain was skipped, the second when a finding was carried forward in different
+words, the third when a reader raised a blocker without saying in a sentence what set it off, and the
+fourth when a suggestion's id or its move does not fit the cycle's suggestions.
 
 ### something above it is unsettled
 
@@ -228,6 +231,19 @@ carried forward from before gists needs none.
 **Next:** ask the reader that raised it for the gist — start that fresh process again with the same
 input — rather than writing one in this session, which would be reinterpreting a finding it did not
 raise. The refusal names each finding that wants one.
+
+### a suggestion does not fit the cycle's suggestions
+
+A suggestion is the cycle's, not the document's, so `findings/suggestions.json` holds each concern once
+(D-115). The round is refused when a new suggestion's id is taken anywhere in the cycle or does not end
+`S_` and a number; when it answers or withdraws a suggestion against a document that never raised it; or
+when it calls a suggestion blocking under the suggestion's own id. A reader's ids are its own, so the
+usual cause is a perspective reader numbering from `F_01`.
+
+**Next:** number a new suggestion past the cycle's — the refusal names the next free one, as in
+`accessibility.S_04` — and carry a restated one under its standing id, which the reconciler finds among
+every document's open suggestions. Answer a suggestion only on the documents that raised it. A suggestion
+that has become a blocker is handed back `withdrawn`, and the blocker takes a new `F_` id of its own.
 
 ## `sdlc scaffold` — the two ways it is refused
 

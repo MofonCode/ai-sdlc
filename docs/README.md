@@ -166,7 +166,9 @@ How an artifact is challenged. Rounds are appended to one ledger per artifact, a
 | **interrogation** | judging one artifact against the rules in force and writing a findings round. **Never edits** | `/sdlc:interrogate` |
 | **fresh process** | an interrogation's readers, the verify adjudicator and `propose`'s review run with no memory of writing the thing they judge. An author reviewing their own draft agrees with it. Each is started with `SDLC_READER=1`, so the turn-end hook lets a reader's turn end on a red build |
 | **findings round** | one pass's findings, plus the hashes of what it judged and what against, written by `sdlc round` — which refuses one while anything above it is unsettled. It records only what it raised and what it moved | an entry in the findings ledger |
-| **findings ledger** | every round of one artifact's interrogation in one file: each finding once with its moves, each round an entry chained by hash to the ones before. The approval anchors its latest round, so the argument behind an approval cannot be rewritten (D-107) | `findings/<kind>.json` |
+| **findings ledger** | every round of one artifact's interrogation in one file: each finding once with its moves, each round an entry chained by hash to the ones before. The approval anchors its latest round, so the argument behind an approval cannot be rewritten (D-107). Holds the blockers; a cycle's suggestions have a ledger of their own | `findings/<kind>.json` |
+| **suggestions ledger** | every suggestion a cycle's readers raised, against any of its documents, **each concern once**, with an `S_nn` id and a history of `raised`, `answered` and `withdrawn` events, one line per document and round. Not chained, because a suggestion gates nothing (D-115) | `findings/suggestions.json` |
+| **suggestion status** | what became of a suggestion, in one word — `open`, `accepted`, `declined`, `answered`, `withdrawn` — and the cycle that decided it. **Worked out on every read, never stored**: from `taking in` and `declining` in an intent, a suggestion lead, and an abandonment's `declining` lines. An abandoned cycle accepts nothing | `sdlc suggestions --all` |
 | **finding** | one thing wrong: an id kept across rounds, the rule it **cites**, what is wrong, where, and the remedy. A blocker also carries a **gist** — one plain sentence saying what set it off, which the panels show with its remedy as `Fix:` |
 | **severity** | `blocking` stops the artifact advancing and cites exactly one rule; `suggestion` does not block. **Non-blocking is not trivial** — it means nothing forbade the current state |
 | **disposition** | `open`, `answered`, `withdrawn`, with who moved it and when. A finding is always shown at the disposition that stands |
@@ -308,7 +310,7 @@ never decides a gate.
 | `propose` | reads the record and argues for an entry — a rule, a decision, a theme role |
 | `constraints` | shows the rules in force, all tiers resolved |
 | `status` | shows where a cycle has got to, and the next command |
-| `suggestions` | lists the open non-blocking findings a solution has accumulated |
+| `suggestions` | lists the open non-blocking findings a solution has accumulated, each concern once, and with `--all` whether each was accepted, declined or answered |
 
 **For what each one refuses, who starts it, and what it reads and writes, go to
 [`../skills/README.md`](../skills/README.md);** [`reference/skills.md`](reference/skills.md) adds what

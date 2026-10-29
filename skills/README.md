@@ -763,7 +763,9 @@ stack, or the solution document.
   append-only and the rename overwrites. The three refusal flags print the `reason` key empty, and the
   gate rejects an entry that refuses a cycle without saying why.
 - **`abandon <id>`** — why a cycle stopped. Terminal, and the reason is left empty because the file is
-  rejected without one. Printed for a person to place by hand.
+  rejected without one. Printed for a person to place by hand. When the cycle took suggestions in, each is
+  listed as a `declining <id>:` line: deleted, it returns to the pool; kept with a reason, it is declined
+  (D-115).
 - **`solution`** — the whole `solution.md`, written beside itself for a rename. Keys carried through as
   recorded and prose through unchanged, so renaming can neither reclassify the solution nor cost anybody
   what they wrote. `--standard profile|existing` moves that one key, and says so.
@@ -1425,19 +1427,20 @@ summarising nothing, reordering nothing.
 
 ### `suggestions`
 
-Lists the open non-blocking findings a solution has accumulated.
+Lists the open non-blocking findings a solution has accumulated, each concern once; with `--all`, every one
+and what became of it.
 
 | | |
 |---|---|
 | Stage | any |
-| Started by | a person who asks what has been noticed and not acted on, or is looking for small work worth picking up |
-| Reads | the findings rounds, and the `Noticed:` lines in builds' commit messages on cycle branches |
+| Started by | a person who asks what has been noticed and not acted on, what became of a suggestion, or is looking for small work worth picking up |
+| Reads | each cycle's suggestions ledger and findings ledgers, the intents, leads and abandonments that decided a suggestion, and the `Noticed:` lines in builds' commit messages on cycle branches |
 | Writes | nothing |
 
 #### Syntax
 
 ```
-/sdlc:suggestions [cycle id]
+/sdlc:suggestions [cycle id] [--all]
 ```
 
 #### Parameters
@@ -1445,6 +1448,7 @@ Lists the open non-blocking findings a solution has accumulated.
 | Parameter | Description |
 |---|---|
 | `cycle id` | one cycle. Optional; without it, every cycle |
+| `--all` | every suggestion, not only the open ones, each with one word — `open`, `accepted`, `declined`, `answered`, `withdrawn` — and the cycle that decided it |
 
 #### Output
 
@@ -1453,6 +1457,11 @@ round and an id. A `Noticed:` line was written by a build that saw something it 
 and lives in that build's commit message on the cycle's branch. Only the rounds used to be read, so the
 three a dice-roller cycle's build wrote were invisible. Asked which to pick up, the agent adds at most
 two lines under `My reading:`.
+
+**Each concern once** (D-115). A suggestion is the cycle's, so one the intent and the plan both raised is
+one line naming both. **A status is worked out, never stored**: from `taking in` and `declining` in an
+intent, a lead of `suggestion:<cycle>/<id>`, and `declining` lines in an `abandoned.md`. A cycle abandoned
+after taking one in accepts nothing, so the suggestion reads `open` again.
 
 #### Refusals
 

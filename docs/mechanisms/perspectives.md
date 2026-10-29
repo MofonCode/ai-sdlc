@@ -112,7 +112,9 @@ not limited that way (D-101).
 history, so once a section moves it raises the objections already standing there again, in new words and
 under ids of its own. The reconciling reader is shown what stands and names each restatement, and the
 round carries it under the id it already has, which records nothing new. Only a genuinely new objection
-gets a new id (D-108).
+gets a new id (D-108). **A suggestion is the cycle's, not the document's**, so the reconciler is shown
+every document's open suggestions: the plan's reader raising what the intent's raised is the same concern,
+recorded against the plan under the intent's `S_` id, and listed once (D-115).
 
 **When two perspectives disagree**, the reconciling reader settles it by rule, not by preference:
 

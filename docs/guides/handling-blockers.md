@@ -144,7 +144,7 @@ Steer carries the correction down the chain — editing the intent, spec and pla
 them — records it with your name on it, and re-interrogates everything downstream of what it touched,
 which is what keeps rounds from going stale. **Steering changes *how*, not *what*.** A correction that
 changes the problem is a different cycle, and the skill says so and offers one. The exception is a
-suggestion a reader raised: name its id — `/sdlc:steer <id> accessibility.F_01 security.F_02` — to take
+suggestion a reader raised: name its id — `/sdlc:steer <id> accessibility.S_01 security.S_02` — to take
 it into the intent with your name on it, or to decline it. Name every one you want in the same run.
 
 ### After approval
@@ -239,7 +239,12 @@ A suggestion is a finding that cited no rule the document breaks, and a `Noticed
 build saw and was not allowed to fix. **Non-blocking is not trivial** — two real ones from a single
 trial cycle were "the suite did not actually run" and "this criterion's proof rests entirely on a
 substituted source". Neither stops anything, so nothing makes you read them; this command is where they
-collect.
+collect, each concern once however many of a cycle's documents raised it.
+
+**To see what became of one**, `sdlc suggestions --all` lists every suggestion with one word — `open`,
+`accepted`, `declined`, `answered`, `withdrawn` — and the cycle that decided it. Nobody sets that word: it
+is read from what a person wrote in an intent through `/sdlc:steer`, from a cycle begun with `--from
+suggestion:<cycle>/<id>`, and from an abandonment's `declining` lines (D-115).
 
 What keeps going wrong across cycles — answered blockers included — is `sdlc propose constraints`, which
 reports a rule cited in three or more distinct cycles as a candidate for one of this solution's own.
