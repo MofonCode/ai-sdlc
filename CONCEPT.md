@@ -7109,7 +7109,10 @@ abandoned cycle's acceptances lapse with no step to forget, and the listing says
 
 **What it does not migrate.** Whether two old findings are one concern is a judgment, so the binary does
 not merge them. A suggestion already in a document's ledger stays there, and a later round that moves it
-moves it there. MarketSense's existing count stands; its next cycle starts clean.
+moves it there. Its id belonged to that document, so a person's `taking in security.F_05` is applied only
+where one document of the cycle holds `security.F_05`; where several do, nobody can tell which was meant,
+and claiming all of them marked unrelated concerns decided — 48 of MarketSense's, read the first time.
+MarketSense's existing count stands; its next cycle starts clean.
 
 **Rejected.**
 

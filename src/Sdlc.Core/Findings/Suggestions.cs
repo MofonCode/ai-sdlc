@@ -112,6 +112,8 @@ public static class Suggestions
 
             foreach (Cycle cycle in cycles)
             {
+                List<Suggestion> held = [];
+
                 foreach (ArtifactKind kind in Enum.GetValues<ArtifactKind>())
                 {
                     // The document's own ledger alone: the suggestions it still holds are the ones
@@ -125,8 +127,23 @@ public static class Suggestions
                         continue;
                     }
 
-                    suggestions.AddRange(Recorded(cycle, kind, ledger.Value.Ledger.Views(), decisions));
+                    held.AddRange(Recorded(cycle, kind, ledger.Value.Ledger.Views()));
                 }
+
+                // An id from before the suggestions ledger belonged to one document, and the spec and the plan
+                // could each hold an F_05 meaning different things. A person's "taking in security.F_05" is
+                // applied only where one document holds that id; where several do, it says which of them nobody
+                // can tell, and claiming all would mark unrelated concerns decided.
+                HashSet<string> shared =
+                [
+                    .. held.GroupBy(suggestion => suggestion.Finding.Id, StringComparer.Ordinal)
+                        .Where(group => group.Count() > 1)
+                        .Select(group => group.Key),
+                ];
+
+                suggestions.AddRange(held.Select(suggestion => shared.Contains(suggestion.Finding.Id)
+                    ? suggestion
+                    : Decided(suggestion, decisions)));
 
                 Result<SuggestionLedger> raised =
                     await FindingsReader.ReadSuggestions(cycle, cancellationToken).ConfigureAwait(false);
@@ -162,8 +179,7 @@ public static class Suggestions
         private static IEnumerable<Suggestion> Recorded(
             Cycle cycle,
             ArtifactKind kind,
-            IReadOnlyList<FindingsRound> rounds,
-            IReadOnlyDictionary<string, SuggestionDecision> decisions)
+            IReadOnlyList<FindingsRound> rounds)
         {
             // The shared fold, not a copy of it. This had its own, and it differed in a way that
             // mattered: it folded only over findings a round called a suggestion, so an objection
@@ -183,9 +199,7 @@ public static class Suggestions
                         _ => SuggestionStatus.Withdrawn,
                     };
 
-                    return Decided(
-                        new Suggestion(cycle.Id, kind, LatestMention(rounds, finding.Id), finding, Status: read),
-                        decisions);
+                    return new Suggestion(cycle.Id, kind, LatestMention(rounds, finding.Id), finding, Status: read);
                 });
         }
 

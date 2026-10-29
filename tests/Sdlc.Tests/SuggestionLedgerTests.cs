@@ -296,6 +296,23 @@ public sealed class SuggestionLedgerTests
     }
 
     [TestMethod]
+    public async Task An_old_id_two_documents_hold_is_not_claimed_by_a_decision_naming_it()
+    {
+        // MarketSense: an intent "taking in security.F_05" while the spec, plan and verify each held an
+        // unrelated security.F_05. Marking all four accepted claimed concerns nobody decided.
+        using var workspace = CycleWorkspace.Create();
+        workspace.WriteSuggestionRound(ArtifactKind.Intent, round: 1, id: "F_05");
+        workspace.WriteSuggestionRound(ArtifactKind.Spec, round: 1, id: "F_05");
+        workspace.WriteSuggestionRound(ArtifactKind.Plan, round: 1, id: "F_06");
+        workspace.WriteArtifact(ArtifactKind.Intent, "Peter, taking in F_05 and F_06.");
+
+        IReadOnlyList<Suggestion> listed = await Listing(workspace, all: true);
+
+        Assert.IsTrue(listed.Where(s => s.Finding.Id == "F_05").All(s => s.Status == SuggestionStatus.Open), "Which F_05 was meant, nobody can tell.");
+        Assert.AreEqual(SuggestionStatus.Accepted, listed.Single(s => s.Finding.Id == "F_06").Status, "One document holds F_06, so it is unambiguous.");
+    }
+
+    [TestMethod]
     public async Task The_abandon_draft_lists_what_the_cycle_accepted_as_declines_awaiting_a_reason()
     {
         using var workspace = CycleWorkspace.Create();
