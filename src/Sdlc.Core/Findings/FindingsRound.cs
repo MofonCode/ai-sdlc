@@ -417,9 +417,150 @@ public static class FindingsReader
     {
         Result<LedgerOnDisk> ledger = await ReadLedger(cycle, kind, cancellationToken).ConfigureAwait(false);
 
-        return ledger.IsFailed
-            ? ledger.ToResult<IReadOnlyList<FindingsRound>>()
-            : Result.Ok(ledger.Value.Ledger.Views());
+        if (ledger.IsFailed)
+        {
+            return ledger.ToResult<IReadOnlyList<FindingsRound>>();
+        }
+
+        Result<SuggestionLedger> suggestions = await ReadSuggestions(cycle, cancellationToken).ConfigureAwait(false);
+
+        return suggestions.IsFailed
+            ? suggestions.ToResult<IReadOnlyList<FindingsRound>>()
+            : WithSuggestions(ledger.Value.Ledger.Views(), suggestions.Value, kind, cycle.SuggestionsLedgerPath);
+    }
+
+    /// <summary>
+    /// Folds the cycle's suggestions into one document's rounds, each event into the round it names (D-115).
+    /// </summary>
+    /// <remarks>
+    /// So every consumer -- the gate, the panel, the loop guards, the proposals -- reads one round shape
+    /// whichever file a finding lives in. An event naming a round the document's ledger does not hold is
+    /// refused: it is a history about a round that never ran.
+    /// </remarks>
+    /// <param name="views">The document's rounds, from its own ledger.</param>
+    /// <param name="suggestions">The cycle's suggestions.</param>
+    /// <param name="kind">The document.</param>
+    /// <param name="source">What to call the suggestions file in an error message.</param>
+    /// <returns>The rounds with their suggestions, or a failure naming the stray round.</returns>
+    public static Result<IReadOnlyList<FindingsRound>> WithSuggestions(
+        IReadOnlyList<FindingsRound> views,
+        SuggestionLedger suggestions,
+        ArtifactKind kind,
+        string source)
+    {
+        ArgumentNullException.ThrowIfNull(views);
+        ArgumentNullException.ThrowIfNull(suggestions);
+
+        HashSet<int> held = [.. views.Select(view => view.Round)];
+        string name = Cycle.NameOf(kind);
+
+        foreach (LedgerSuggestion suggestion in suggestions.Suggestions)
+        {
+            if (suggestion.History.FirstOrDefault(line =>
+                    string.Equals(line.Artifact, name, StringComparison.Ordinal) && !held.Contains(line.Round)) is { } stray)
+            {
+                return Result.Fail<IReadOnlyList<FindingsRound>>(string.Create(
+                    CultureInfo.InvariantCulture,
+                    $"{source}: {suggestion.Id} names {name} round {stray.Round}, which {name}'s findings ledger does not hold."));
+            }
+        }
+
+        return Result.Ok<IReadOnlyList<FindingsRound>>(
+        [
+            .. views.Select(view => suggestions.ViewOf(kind, view.Round) is { Count: > 0 } raised
+                ? view with { Findings = [.. view.Findings, .. raised] }
+                : view),
+        ]);
+    }
+
+    /// <summary>
+    /// Writes a cycle's suggestions ledger as the file a reader reads back (D-115).
+    /// </summary>
+    /// <param name="ledger">The ledger.</param>
+    /// <returns>Its JSON, with absent fields left out.</returns>
+    public static string Write(SuggestionLedger ledger)
+    {
+        ArgumentNullException.ThrowIfNull(ledger);
+
+        return ledger.Write(_writing);
+    }
+
+    /// <summary>
+    /// Reads one suggestions ledger, and refuses one whose histories do not alternate or whose suggestions
+    /// would be refused in a round.
+    /// </summary>
+    /// <param name="json">The ledger's JSON.</param>
+    /// <param name="source">What to call it in an error message.</param>
+    /// <returns>The ledger, or a failure naming the file.</returns>
+    public static Result<SuggestionLedger> ReadSuggestions(string json, string source)
+    {
+        ArgumentNullException.ThrowIfNull(json);
+        ArgumentException.ThrowIfNullOrWhiteSpace(source);
+
+        SuggestionLedger? ledger;
+
+        try
+        {
+            ledger = JsonSerializer.Deserialize<SuggestionLedger>(json, _options);
+        }
+        catch (JsonException error)
+        {
+            return Result.Fail<SuggestionLedger>(string.Create(
+                CultureInfo.InvariantCulture,
+                $"{source}: not valid JSON. {error.Message}"));
+        }
+
+        if (ledger?.Suggestions is null || ledger.Suggestions.Any(suggestion => suggestion.History is null))
+        {
+            return Result.Fail<SuggestionLedger>(string.Create(
+                CultureInfo.InvariantCulture,
+                $"{source}: not a suggestions ledger. It holds a suggestions list, and every suggestion's history."));
+        }
+
+        Result verified = ledger.Verify(source);
+
+        if (verified.IsFailed)
+        {
+            return verified.ToResult<SuggestionLedger>();
+        }
+
+        // The same checks a round's suggestions meet: a known perspective, a citation with its heading.
+        FindingsRound asRound = new(
+            null,
+            ledger.Cycle,
+            null,
+            null,
+            null,
+            1,
+            [.. ledger.Suggestions.Select(suggestion => suggestion.AsFinding(suggestion.History[^1]))]);
+
+        Result<FindingsRound> valid = Validate(asRound, source);
+
+        return valid.IsFailed ? valid.ToResult<SuggestionLedger>() : Result.Ok(ledger);
+    }
+
+    /// <summary>
+    /// Reads a cycle's suggestions ledger, or an empty one when it has none yet.
+    /// </summary>
+    /// <param name="cycle">The cycle to read.</param>
+    /// <param name="cancellationToken">Token observed while reading.</param>
+    /// <returns>The ledger, or a failure naming the file.</returns>
+    public static async Task<Result<SuggestionLedger>> ReadSuggestions(
+        Cycle cycle,
+        CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(cycle);
+
+        string path = cycle.SuggestionsLedgerPath;
+
+        if (!File.Exists(path))
+        {
+            return Result.Ok(SuggestionLedger.Empty(cycle.Id.ToString()));
+        }
+
+        string json = await File.ReadAllTextAsync(path, cancellationToken).ConfigureAwait(false);
+
+        return ReadSuggestions(json, path);
     }
 
     /// <summary>

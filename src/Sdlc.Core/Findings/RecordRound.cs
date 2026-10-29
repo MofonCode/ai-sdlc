@@ -261,6 +261,28 @@ public static class RecordRound
                 || !string.Equals(was, section.Value, StringComparison.Ordinal)).Select(section => section.Key)];
     }
 
+    /// <summary>
+    /// Every id the cycle's document ledgers hold, so a new suggestion's id is free across the cycle.
+    /// </summary>
+    private static async Task<Result<HashSet<string>>> LedgerIds(Cycle cycle, CancellationToken cancellationToken)
+    {
+        HashSet<string> ids = new(StringComparer.Ordinal);
+
+        foreach (ArtifactKind kind in Enum.GetValues<ArtifactKind>())
+        {
+            Result<LedgerOnDisk> read = await FindingsReader.ReadLedger(cycle, kind, cancellationToken).ConfigureAwait(false);
+
+            if (read.IsFailed)
+            {
+                return read.ToResult<HashSet<string>>();
+            }
+
+            ids.UnionWith(read.Value.Ledger.Findings.Select(finding => finding.Id));
+        }
+
+        return Result.Ok(ids);
+    }
+
     private sealed class Handler(SolutionRoot solution, TimeProvider clock) : IRequestHandler<Command, Response>
     {
         public async Task<Result<Response>> Handle(Command request, CancellationToken cancellationToken)
@@ -355,20 +377,69 @@ public static class RecordRound
                 EntrySha256 = null,
             };
 
+            Result<SuggestionLedger> suggestions = await FindingsReader
+                .ReadSuggestions(cycle, cancellationToken)
+                .ConfigureAwait(false);
+
+            if (suggestions.IsFailed)
+            {
+                return Result.Fail<Response>(suggestions.Errors);
+            }
+
+            Result<HashSet<string>> taken = await LedgerIds(cycle, cancellationToken).ConfigureAwait(false);
+
+            if (taken.IsFailed)
+            {
+                return Result.Fail<Response>(taken.Errors);
+            }
+
+            // Blockers stay in the document's ledger, which the approval anchors; suggestions go to the
+            // cycle's, each concern once (D-115). A suggestion this document's ledger already holds was
+            // raised before that, and stays where its history is.
+            HashSet<string> here = [.. ledger.Findings.Select(finding => finding.Id)];
+            List<Finding> toLedger = [];
+            List<Finding> toSuggestions = [];
+
+            foreach (Finding finding in written.Findings)
+            {
+                if (finding.Severity == Severity.Blocking && suggestions.Value.Find(finding.Id) is not null)
+                {
+                    return Result.Fail<Response>(string.Create(
+                        CultureInfo.InvariantCulture,
+                        $"{request.From}: {finding.Id} is a suggestion, and this round calls it blocking. A blocker raised for the same concern takes an F_ id of its own, and the suggestion is withdrawn in the same round."));
+                }
+
+                (finding.Severity == Severity.Blocking || here.Contains(finding.Id) ? toLedger : toSuggestions).Add(finding);
+            }
+
             // Merged rather than appended verbatim (D-107): a new id is a finding, a moved one a
             // transition, and one restated where it already stands is nothing -- so a session copying
             // every finding forward costs the ledger nothing, where it once cost a file the size of the
             // whole history every round.
-            Result<FindingsLedger> appended = ledger.Append(written);
+            Result<FindingsLedger> appended = ledger.Append(written with { Findings = toLedger });
 
             if (appended.IsFailed)
             {
                 return Result.Fail<Response>(appended.Errors);
             }
 
+            Result<SuggestionLedger> recorded = suggestions.Value.Record(request.Artifact, written.Round, toSuggestions, taken.Value);
+
+            if (recorded.IsFailed)
+            {
+                return Result.Fail<Response>(recorded.Errors);
+            }
+
+            // The document's ledger first: a suggestion naming a round its ledger does not hold is refused
+            // on read, so the order that can be interrupted safely is this one.
             string path = onDisk.Value.Path;
             Directory.CreateDirectory(cycle.FindingsDirectory);
             await File.WriteAllTextAsync(path, FindingsReader.Write(appended.Value), cancellationToken).ConfigureAwait(false);
+
+            if (toSuggestions.Count > 0)
+            {
+                await File.WriteAllTextAsync(cycle.SuggestionsLedgerPath, FindingsReader.Write(recorded.Value), cancellationToken).ConfigureAwait(false);
+            }
 
             // A cycle still holding round files is converted by this write: the ledger now carries every
             // one of them, chained, so they go in the same step. Left behind, they would make the next
@@ -378,7 +449,18 @@ public static class RecordRound
                 File.Delete(legacy);
             }
 
-            IReadOnlyList<FindingsRound> views = appended.Value.Views();
+            Result<IReadOnlyList<FindingsRound>> merged = FindingsReader.WithSuggestions(
+                appended.Value.Views(),
+                recorded.Value,
+                request.Artifact,
+                cycle.SuggestionsLedgerPath);
+
+            if (merged.IsFailed)
+            {
+                return Result.Fail<Response>(merged.Errors);
+            }
+
+            IReadOnlyList<FindingsRound> views = merged.Value;
 
             return Result.Ok(new Response(
                 cycle,

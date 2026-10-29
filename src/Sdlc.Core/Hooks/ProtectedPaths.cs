@@ -208,6 +208,11 @@ public static class ProtectedPaths
     {
         ArgumentNullException.ThrowIfNull(name);
 
+        if (string.Equals(name, Findings.SuggestionLedger.FileName, StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+
         string[] parts = name.Split('.');
         return parts.Length == 2
             && Cycle.TryParseKind(parts[0], out _)

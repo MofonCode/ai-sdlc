@@ -254,6 +254,13 @@ public sealed class PublicSurfaceTests
         "Sdlc.Core.Findings.LedgerOnDisk",
         "Sdlc.Core.Findings.LedgerRound",
         "Sdlc.Core.Findings.Transition",
+        // A cycle's suggestions, each concern once with a flat history of events per document (D-115).
+        // Public for the same reasons as the ledger: FindingsReader reads and writes one, and the suite
+        // holds that events alternate per document, a restatement records nothing, and a new id is free.
+        "Sdlc.Core.Findings.SuggestionLedger",
+        "Sdlc.Core.Findings.LedgerSuggestion",
+        "Sdlc.Core.Findings.SuggestionEvent",
+        "Sdlc.Core.Findings.SuggestionEventKind",
 
         // What a build saw, left alone and wrote into its commit. Public because it is part of the
         // suggestions Response a renderer reads, and because the parser that reads one out of a commit

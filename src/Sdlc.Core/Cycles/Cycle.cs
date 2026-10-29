@@ -204,6 +204,12 @@ public sealed record Cycle(CycleId Id, string SolutionRoot)
         Path.Combine(FindingsDirectory, NameOf(kind) + ".json");
 
     /// <summary>
+    /// The path of the cycle's suggestions ledger, every suggestion its readers raised against any of its
+    /// documents, each concern once (D-115).
+    /// </summary>
+    public string SuggestionsLedgerPath => Path.Combine(FindingsDirectory, Findings.SuggestionLedger.FileName);
+
+    /// <summary>
     /// The path a round file was written to before D-107, one per round.
     /// </summary>
     /// <remarks>
