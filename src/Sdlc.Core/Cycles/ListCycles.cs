@@ -149,7 +149,7 @@ public static class ListCycles
                 reached.Kind,
                 reached.Rounds,
                 every.Sum(artifact => artifact.OpenBlockers.Count),
-                every.Sum(artifact => artifact.OpenSuggestions.Count),
+                ReadCycleStatus.OpenSuggestionCount(every),
                 status.Gate.Refusal,
                 status.Outcome,
                 status.Cycle.IsAbandoned);

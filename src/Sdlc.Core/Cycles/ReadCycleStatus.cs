@@ -22,6 +22,28 @@ public static class ReadCycleStatus
         return services.AddTransient<IRequestHandler<Query, Response>, Handler>();
     }
 
+    /// <summary>
+    /// How many open suggestions a cycle's documents hold between them, each concern once.
+    /// </summary>
+    /// <remarks>
+    /// A suggestion from the cycle's ledger is the cycle's, so one the intent and the plan both raise is
+    /// one concern, counted once (D-115). One recorded in a document's own ledger before that belonged to
+    /// the document, and two documents could each hold an <c>F_01</c> meaning different things.
+    /// </remarks>
+    /// <param name="artifacts">The documents' states.</param>
+    /// <returns>The count.</returns>
+    public static int OpenSuggestionCount(IEnumerable<ArtifactState> artifacts)
+    {
+        ArgumentNullException.ThrowIfNull(artifacts);
+
+        return artifacts
+            .SelectMany(artifact => artifact.OpenSuggestions.Select(finding => SuggestionLedger.IsSuggestionId(finding.Id)
+                ? finding.Id
+                : Cycle.NameOf(artifact.Kind) + "/" + finding.Id))
+            .Distinct(StringComparer.Ordinal)
+            .Count();
+    }
+
     /// <summary>Where one artifact in a cycle has got to.</summary>
     /// <param name="Kind">Which artifact.</param>
     /// <param name="Path">Where it is, whether or not it exists.</param>

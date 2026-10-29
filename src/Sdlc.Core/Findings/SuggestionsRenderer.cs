@@ -32,20 +32,20 @@ public static class SuggestionsRenderer
 
         if (suggestions.Count == 0 && response.Noticed.Count == 0)
         {
-            output.AppendLine(Indent + "No open suggestions.");
+            output.AppendLine(Indent + (response.All ? "No suggestions." : "No open suggestions."));
             return output.ToString();
         }
 
         if (suggestions.Count == 0)
         {
-            output.AppendLine(Indent + "No open suggestions.");
+            output.AppendLine(Indent + (response.All ? "No suggestions." : "No open suggestions."));
             Noticed(output, response);
             return output.ToString();
         }
 
         output.AppendLine(string.Create(
             CultureInfo.InvariantCulture,
-            $"{Indent}{Count(suggestions.Count)}, across {Cycles(suggestions)}"));
+            $"{Indent}{Count(suggestions.Count, response.All)}, across {Cycles(suggestions)}"));
 
         foreach (IGrouping<CycleId, Suggestion> group in suggestions
             .GroupBy(suggestion => suggestion.Cycle)
@@ -63,7 +63,7 @@ public static class SuggestionsRenderer
 
                 output.AppendLine(string.Create(
                     CultureInfo.InvariantCulture,
-                    $"{Indent}    {Cycle.NameOf(suggestion.Artifact),-8}r{suggestion.Round}  {suggestion.Finding.Id}{cites}"));
+                    $"{Indent}    {Documents(suggestion),-8}r{suggestion.Round}  {suggestion.Finding.Id}{cites}{Decision(suggestion, response.All)}"));
 
                 // Most suggestions cite nothing, so this line is usually absent -- which is what makes
                 // it worth printing when it is there. A suggestion that does rest on a rule is a
@@ -121,9 +121,32 @@ public static class SuggestionsRenderer
         ? "1 thing noticed"
         : string.Create(CultureInfo.InvariantCulture, $"{number} things noticed");
 
-    private static string Count(int number) => number == 1
-        ? "1 open suggestion"
-        : string.Create(CultureInfo.InvariantCulture, $"{number} open suggestions");
+    private static string Count(int number, bool all) => (number, all) switch
+    {
+        (1, false) => "1 open suggestion",
+        (1, true) => "1 suggestion",
+        (_, false) => string.Create(CultureInfo.InvariantCulture, $"{number} open suggestions"),
+        _ => string.Create(CultureInfo.InvariantCulture, $"{number} suggestions"),
+    };
+
+    // Every document that raised it, so a concern the intent and the plan both raised is one line (D-115).
+    private static string Documents(Suggestion suggestion) =>
+        string.Join(',', suggestion.Documents.Select(Cycle.NameOf));
+
+    // Only with --all: the open listing is open by definition, and nobody decided what it holds.
+    private static string Decision(Suggestion suggestion, bool all) => !all
+        ? string.Empty
+        : "  " + Word(suggestion.Status)
+            + (suggestion.DecidedIn is { } cycle ? "  decided in " + cycle : string.Empty);
+
+    private static string Word(SuggestionStatus status) => status switch
+    {
+        SuggestionStatus.Accepted => "accepted",
+        SuggestionStatus.Declined => "declined",
+        SuggestionStatus.Answered => "answered",
+        SuggestionStatus.Withdrawn => "withdrawn",
+        _ => "open",
+    };
 
     private static string Cycles(IReadOnlyList<Suggestion> suggestions)
     {

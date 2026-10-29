@@ -1222,7 +1222,7 @@ static async Task<int> Suggestions(Workspace workspace, CommandLine line)
     }
 
     Result<Suggestions.Response> result = await workspace
-        .Send<Suggestions.Query, Suggestions.Response>(new Suggestions.Query(id))
+        .Send<Suggestions.Query, Suggestions.Response>(new Suggestions.Query(id, line.HasOption("all")))
         .ConfigureAwait(false);
 
     if (result.IsFailed)

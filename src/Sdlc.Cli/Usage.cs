@@ -135,7 +135,9 @@ internal static class Usage
                                      no one-line gist. --changed lists the sections moved since the
                                      last round instead.
             suggestions [<id>]       List the open non-blocking findings and what the builds
-                                     noticed, for one cycle or all.
+                                     noticed, for one cycle or all, each concern once. --all lists
+                                     every status -- accepted, declined, answered, withdrawn --
+                                     with the cycle that decided it.
             decisions                The choices this solution has already settled, so a cycle reads
                                      what was argued rather than arguing it again. CON_19 asks a plan
                                      departing from one to say what it would have cost.

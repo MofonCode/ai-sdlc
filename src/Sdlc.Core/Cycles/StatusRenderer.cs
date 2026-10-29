@@ -68,7 +68,7 @@ public static class StatusRenderer
             : status.Artifacts;
 
         int blockers = counted.Sum(artifact => artifact.OpenBlockers.Count);
-        int suggestions = counted.Sum(artifact => artifact.OpenSuggestions.Count);
+        int suggestions = ReadCycleStatus.OpenSuggestionCount(counted);
 
         output.AppendLine(string.Create(
             CultureInfo.InvariantCulture,

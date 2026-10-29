@@ -261,6 +261,11 @@ public sealed class PublicSurfaceTests
         "Sdlc.Core.Findings.LedgerSuggestion",
         "Sdlc.Core.Findings.SuggestionEvent",
         "Sdlc.Core.Findings.SuggestionEventKind",
+        // A suggestion's status, worked out from intents, leads and abandonments on every read and never
+        // stored (D-115). Public because the listing carries it and the suite holds how each is read.
+        "Sdlc.Core.Findings.SuggestionDecision",
+        "Sdlc.Core.Findings.SuggestionDecisions",
+        "Sdlc.Core.Findings.SuggestionStatus",
 
         // What a build saw, left alone and wrote into its commit. Public because it is part of the
         // suggestions Response a renderer reads, and because the parser that reads one out of a commit

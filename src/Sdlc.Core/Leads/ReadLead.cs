@@ -126,7 +126,7 @@ public static class ReadLead
             [
                 .. open.Value.Suggestions.Where(s =>
                     string.Equals(s.Finding.Id, findingId, StringComparison.OrdinalIgnoreCase)
-                    && (artifact is null || s.Artifact == artifact)),
+                    && (artifact is null || s.Documents.Contains(artifact.Value))),
             ];
 
             if (matches.Length != 1)

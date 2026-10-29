@@ -212,10 +212,16 @@ the binary does not carry is rejected when it is read back. The round's own read
 > turns into a rule; a perspective reader inventing a blocker is the waiver of D-27 run backwards.
 
 Then **one reconciling reader**, in a fresh process of its own. Hand it the artifact, every finding this
-round's readers raised, and — after the first round — the findings still open on this artifact, as
-`sdlc findings <id> --stage <artifact>` prints them, and nothing else. Ask it two things, and nothing
-about whether any finding is right: which of this round's findings **restate one still open**, and which
-pairs of findings **cannot both be answered**. It decides nothing about the document.
+round's readers raised, the findings still open on this artifact, as `sdlc findings <id> --stage
+<artifact>` prints them, and **the cycle's open suggestions from every document**, as `sdlc suggestions
+<id>` prints them — and nothing else. Ask it two things, and nothing about whether any finding is right:
+which of this round's findings **restate one still open**, and which pairs of findings **cannot both be
+answered**. It decides nothing about the document.
+
+**A suggestion is the cycle's, not the document's** (D-115). The plan's reader raising what the intent's
+raised is the same concern found again, so it is carried under the intent's id and recorded against the
+plan. That is why the reconciler sees every document's suggestions: one that sees only this document's is
+how one cycle came to 1,489 open suggestions, mostly a handful of concerns under fresh ids.
 
 **A restatement is carried under the id that stands** (D-108). The readers have no history, so after a
 section moves they raise what is already open there again, under ids of their own. Write each finding the
@@ -225,10 +231,14 @@ second id for the same objection is how one cycle reached seven duplicate sugges
 **Where the reconciler is unsure, the finding is new.** A duplicate is noise a person can see; a distinct
 objection merged into an old one is lost.
 
-**Every id that is not a restatement is new, and numbered past what the ledger holds.** A reader's ids
+**Every id that is not a restatement is new, and numbered past what the ledgers hold.** A reader's ids
 are its own, so `maintainability.F_01` from this round's reader is not the `maintainability.F_01` the
-ledger already has. `sdlc round` refuses a known id in other words and names the next free one for that
-prefix.
+ledger already has. **A new blocker is `F_nn`, past this document's ledger; a new suggestion is `S_nn`,
+past the cycle's** — `maintainability.S_04`. `sdlc round` refuses a known id in other words, and a new
+suggestion whose id is taken or not `S_nn`, and names the next free one for that prefix.
+
+**A suggestion raised again as a blocker** keeps neither id: the blocker takes a new `F_nn`, and the
+suggestion is handed back `withdrawn` in the same round.
 
 For each pair that cannot both be answered, it names:
 
@@ -278,6 +288,12 @@ round to the ones before it by hash. The hook denies writing the ledger any othe
 refuses a ledger whose chain has been edited. A cycle still holding round files from before the ledger,
 `findings/<artifact>.r<n>.json`, is converted by its next round.
 
+**The round's suggestions land in `findings/suggestions.json`** — one per cycle, each concern once, with a
+line per document and round where it was raised, answered or withdrawn (D-115). You hand them over in the
+same round file; the binary splits them out. A restatement where it already stands on this document
+records nothing. A suggestion that was already in a document's ledger before that file existed stays
+there.
+
 Two things are still yours to get right:
 
 **A finding keeps its id across rounds.** A blocker raised in round one and still standing in round
@@ -323,7 +339,8 @@ the document (`healed` or `assumed`) or disagreed and left the artifact alone. I
 loop you have that report. If you are not, the diff since the previous round answers it.
 
 A round that answers something therefore carries both: what the reader just found, and the earlier
-findings whose disposition moved.
+findings whose disposition moved. **A suggestion moves only on the documents that raised it**: a spec
+round may answer what was raised against the spec, and not what was raised against the intent only.
 
 ```json
 {
@@ -332,7 +349,7 @@ findings whose disposition moved.
     { "id": "F_01", "severity": "blocking", "disposition": "answered",
       "cites": { "id": "CON_02", "heading": "<as round 1 copied it, unchanged>" },
       "statement": "<as round 1 stated it, unchanged>" },
-    { "id": "F_03", "severity": "suggestion", "disposition": "open",
+    { "id": "S_03", "severity": "suggestion", "disposition": "open",
       "statement": "<what this reader found>" }
   ]
 }

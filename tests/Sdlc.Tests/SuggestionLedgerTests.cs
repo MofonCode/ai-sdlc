@@ -202,6 +202,118 @@ public sealed class SuggestionLedgerTests
         StringAssert.Contains(verdict.Reason, "sdlc round");
     }
 
+    [TestMethod]
+    public async Task One_concern_raised_by_two_documents_is_listed_once_with_both()
+    {
+        using var workspace = CycleWorkspace.Create();
+        workspace.WriteArtifact(ArtifactKind.Intent);
+        await Record(workspace, ArtifactKind.Intent, Raise("accessibility.S_01"));
+        workspace.WriteArtifact(ArtifactKind.Spec);
+        await Record(workspace, ArtifactKind.Spec, Raise("accessibility.S_01"));
+
+        Suggestion only = (await Listing(workspace)).Single();
+
+        CollectionAssert.AreEqual(new[] { ArtifactKind.Intent, ArtifactKind.Spec }, only.Documents.ToArray());
+        Assert.AreEqual(SuggestionStatus.Open, only.Status);
+    }
+
+    [TestMethod]
+    [DataRow("Peter, 2026-10-29, taking in accessibility.S_01.", SuggestionStatus.Accepted)]
+    [DataRow("Not in this cycle. Peter, 2026-10-29, declining accessibility.S_01: later.", SuggestionStatus.Declined)]
+    public async Task A_persons_decision_in_the_intent_is_the_status_and_names_the_cycle(string words, SuggestionStatus expected)
+    {
+        using var workspace = CycleWorkspace.Create();
+        workspace.WriteArtifact(ArtifactKind.Intent);
+        await Record(workspace, ArtifactKind.Intent, Raise("accessibility.S_01"));
+        workspace.WriteArtifact(ArtifactKind.Intent, words);
+
+        Assert.AreEqual(0, (await Listing(workspace)).Count, "A decided suggestion is not open.");
+
+        Suggestion decided = (await Listing(workspace, all: true)).Single();
+        Assert.AreEqual(expected, decided.Status);
+        Assert.AreEqual(workspace.Cycle.Id, decided.DecidedIn);
+    }
+
+    [TestMethod]
+    public async Task A_persons_decision_wins_while_a_reader_still_raises_it()
+    {
+        using var workspace = CycleWorkspace.Create();
+        workspace.WriteArtifact(ArtifactKind.Intent);
+        await Record(workspace, ArtifactKind.Intent, Raise("accessibility.S_01"));
+        workspace.WriteArtifact(ArtifactKind.Intent, "Peter, taking in accessibility.S_01.");
+        await Record(workspace, ArtifactKind.Intent, Raise("accessibility.S_01"));
+
+        Assert.AreEqual(SuggestionStatus.Accepted, (await Listing(workspace, all: true)).Single().Status);
+    }
+
+    [TestMethod]
+    public async Task An_abandoned_cycle_accepts_nothing_and_its_abandonment_may_decline()
+    {
+        using var workspace = CycleWorkspace.Create();
+        workspace.WriteArtifact(ArtifactKind.Intent);
+        await Record(workspace, ArtifactKind.Intent, Raise("accessibility.S_01"));
+        await Record(workspace, ArtifactKind.Intent, Raise("accessibility.S_02", statement: "Another concern."));
+        workspace.WriteArtifact(ArtifactKind.Intent, "Peter, taking in accessibility.S_01 and accessibility.S_02.");
+        CycleWorkspace.WriteRaw(workspace.Cycle.AbandonedPath, """
+            ---
+            cycle: 20260929_1456_32
+            by: Peter
+            at: 2026-10-29T10:00:00Z
+            ---
+            The feed was cancelled.
+
+            - declining accessibility.S_02: nobody will use it now.
+            """);
+
+        IReadOnlyList<Suggestion> listed = await Listing(workspace, all: true);
+
+        Assert.AreEqual(SuggestionStatus.Open, listed.Single(s => s.Finding.Id == "accessibility.S_01").Status, "Its acceptance lapsed with no step to forget.");
+        Assert.AreEqual(SuggestionStatus.Declined, listed.Single(s => s.Finding.Id == "accessibility.S_02").Status);
+    }
+
+    [TestMethod]
+    public async Task A_later_cycle_begun_from_a_suggestion_accepts_it()
+    {
+        using var workspace = CycleWorkspace.Create();
+        workspace.WriteArtifact(ArtifactKind.Intent);
+        await Record(workspace, ArtifactKind.Intent, Raise("accessibility.S_01"));
+        Assert.IsTrue(CycleId.TryParse("20261030_0900_00", out CycleId? later));
+        Cycle carrying = new(later.Value, workspace.Root);
+        CycleWorkspace.WriteRaw(carrying.PathOf(ArtifactKind.Intent), """
+            ---
+            cycle: 20261030_0900_00
+            lead: suggestion:20260929_1456_32/accessibility.S_01
+            ---
+            ## Problem
+
+            A screen-reader user gets nothing from the chart.
+            """);
+
+        Suggestion carried = (await Listing(workspace, all: true)).Single();
+
+        Assert.AreEqual(SuggestionStatus.Accepted, carried.Status);
+        Assert.AreEqual(later.Value, carried.DecidedIn, "Accepted, decided in another cycle: carried.");
+    }
+
+    [TestMethod]
+    [DataRow("taking in", "taking in operability.S_01, maintainability.S_04 and security.S_05.", new[] { "operability.S_01", "maintainability.S_04", "security.S_05" })]
+    [DataRow("taking in", "taking in the plan's maintainability.F_01. Then more.", new[] { "maintainability.F_01" })]
+    [DataRow("declining", "declining accessibility.S_04: taking in S_09 is not this.", new[] { "accessibility.S_04" })]
+    [DataRow("taking in", "taking in\n  security.S_02 because", new[] { "security.S_02" })]
+    public void The_ids_after_a_phrase_are_read_and_nothing_past_them(string phrase, string text, string[] expected)
+    {
+        CollectionAssert.AreEqual(expected, SuggestionDecisions.IdsAfter(text, phrase).ToArray());
+    }
+
+    private static async Task<IReadOnlyList<Suggestion>> Listing(CycleWorkspace workspace, bool all = false)
+    {
+        using var gate = Gate.For(workspace.Root);
+        Result<Suggestions.Response> result = await gate.Send<Suggestions.Query, Suggestions.Response>(new Suggestions.Query(null, all));
+
+        Assert.IsTrue(result.IsSuccess, string.Join("; ", result.Errors.Select(error => error.Message)));
+        return result.Value.Suggestions;
+    }
+
     private static string Raise(string id, string disposition = "open", string statement = Statement) =>
         JsonSerializer.Serialize(new
         {
