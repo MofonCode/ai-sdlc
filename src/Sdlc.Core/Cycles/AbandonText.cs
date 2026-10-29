@@ -3,6 +3,7 @@ using FluentResults;
 using Microsoft.Extensions.DependencyInjection;
 using MofonCode.Core;
 using Sdlc.Core.Drafts;
+using Sdlc.Core.Findings;
 using Sdlc.Core.Solutions;
 
 namespace Sdlc.Core.Cycles;
@@ -47,7 +48,7 @@ public static class AbandonText
         : IRequestHandler<Query, DraftResult>
     {
         /// <inheritdoc />
-        public Task<Result<DraftResult>> Handle(Query request, CancellationToken cancellationToken)
+        public async Task<Result<DraftResult>> Handle(Query request, CancellationToken cancellationToken)
         {
             ArgumentNullException.ThrowIfNull(request);
 
@@ -55,16 +56,16 @@ public static class AbandonText
 
             if (!cycle.Exists)
             {
-                return Task.FromResult(Result.Ok(DraftResult.Refused(string.Create(
+                return Result.Ok(DraftResult.Refused(string.Create(
                     CultureInfo.InvariantCulture,
-                    $"Cycle {cycle.Id} has no directory at {cycle.Directory}. There is nothing to abandon."))));
+                    $"Cycle {cycle.Id} has no directory at {cycle.Directory}. There is nothing to abandon.")));
             }
 
             if (cycle.IsAbandoned)
             {
-                return Task.FromResult(Result.Ok(DraftResult.Refused(string.Create(
+                return Result.Ok(DraftResult.Refused(string.Create(
                     CultureInfo.InvariantCulture,
-                    $"Cycle {cycle.Id} was already abandoned. {cycle.AbandonedPath} says why, and abandonment is terminal rather than a state to re-enter."))));
+                    $"Cycle {cycle.Id} was already abandoned. {cycle.AbandonedPath} says why, and abandonment is terminal rather than a state to re-enter.")));
             }
 
             string entry = string.Join(
@@ -101,7 +102,44 @@ public static class AbandonText
                     "Nothing here writes that file. The hook denies every agent write to it.",
                 ]);
 
-            return Task.FromResult(Result.Ok(DraftResult.Drafted(entry, instructions)));
+            string path = cycle.PathOf(ArtifactKind.Intent);
+            IReadOnlyList<string> accepted = File.Exists(path)
+                ? SuggestionDecisions.Accepted(
+                    await File.ReadAllTextAsync(path, cancellationToken).ConfigureAwait(false),
+                    cycle.Id)
+                : [];
+
+            return Result.Ok(accepted.Count == 0
+                ? DraftResult.Drafted(entry, instructions)
+                : DraftResult.Drafted(entry + Accepted(accepted), instructions + AcceptedNote()));
         }
+
+        /// <summary>
+        /// The suggestions this cycle took in, each as a decline waiting for its reason (D-115).
+        /// </summary>
+        /// <remarks>
+        /// Abandoning the cycle returns them to the pool by itself, because an abandoned cycle accepts
+        /// nothing. What the person may want instead is to say none of them is wanted, and this is the one
+        /// moment they are deciding; a line they keep is that decision, a line they delete is the default.
+        /// </remarks>
+        private static string Accepted(IReadOnlyList<string> accepted) => string.Join(
+            Environment.NewLine,
+            [
+                string.Empty,
+                "## Suggestions this cycle accepted",
+                string.Empty,
+                .. accepted.Select(id => "- declining " + id + ":"),
+            ]) + Environment.NewLine;
+
+        private static string AcceptedNote() => string.Join(
+            Environment.NewLine,
+            [
+                string.Empty,
+                string.Empty,
+                "The suggestions this cycle accepted return to the pool once the file is placed: an abandoned",
+                "cycle accepts nothing. Delete a line to leave its suggestion open for a later cycle, or",
+                "write after its colon why it is not wanted at all, which declines it. A line kept with",
+                "no reason declines nothing.",
+            ]);
     }
 }

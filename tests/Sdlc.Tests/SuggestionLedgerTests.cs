@@ -296,6 +296,70 @@ public sealed class SuggestionLedgerTests
     }
 
     [TestMethod]
+    public async Task The_abandon_draft_lists_what_the_cycle_accepted_as_declines_awaiting_a_reason()
+    {
+        using var workspace = CycleWorkspace.Create();
+        CycleWorkspace.WriteRaw(workspace.Cycle.PathOf(ArtifactKind.Intent), """
+            ---
+            cycle: 20260929_1456_32
+            lead: suggestion:20260901_0900_00/security.S_03
+            ---
+            ## Wanted outcomes
+
+            - Keyboard alone reaches the chart. Peter, taking in accessibility.S_01.
+            """);
+        using var gate = Gate.For(workspace.Root);
+
+        Result<Sdlc.Core.Drafts.DraftResult> draft = await gate.Send<AbandonText.Query, Sdlc.Core.Drafts.DraftResult>(
+            new AbandonText.Query(workspace.Cycle.Id, "Peter"));
+
+        StringAssert.Contains(draft.Value.Entry, "- declining 20260901_0900_00/security.S_03:");
+        StringAssert.Contains(draft.Value.Entry, "- declining accessibility.S_01:");
+        StringAssert.Contains(draft.Value.Instructions, "declines nothing");
+    }
+
+    [TestMethod]
+    public async Task A_decline_kept_without_a_reason_declines_nothing_and_the_record_says_so()
+    {
+        using var workspace = CycleWorkspace.Create();
+        workspace.WriteArtifact(ArtifactKind.Intent);
+        await Record(workspace, ArtifactKind.Intent, Raise("accessibility.S_01"));
+        const string Abandoned = """
+            ---
+            cycle: 20260929_1456_32
+            by: Peter
+            at: 2026-10-29T10:00:00Z
+            ---
+            The feed was cancelled.
+
+            - declining accessibility.S_01:
+            """;
+        CycleWorkspace.WriteRaw(workspace.Cycle.AbandonedPath, Abandoned);
+
+        Assert.AreEqual(SuggestionStatus.Open, (await Listing(workspace, all: true)).Single().Status);
+
+        Result<AbandonRecord> read = AbandonRecord.Read(Abandoned, "abandoned.md");
+        Assert.IsTrue(read.IsFailed);
+        StringAssert.Contains(read.Errors[0].Message, "declines accessibility.S_01 and says nothing about why");
+    }
+
+    [TestMethod]
+    public void A_decline_line_is_not_the_reason_a_cycle_stopped()
+    {
+        Result<AbandonRecord> read = AbandonRecord.Read("""
+            ---
+            cycle: 20260929_1456_32
+            by: Peter
+            at: 2026-10-29T10:00:00Z
+            ---
+            - declining accessibility.S_01: not wanted.
+            """, "abandoned.md");
+
+        Assert.IsTrue(read.IsFailed);
+        StringAssert.Contains(read.Errors[0].Message, "says nothing about why");
+    }
+
+    [TestMethod]
     [DataRow("taking in", "taking in operability.S_01, maintainability.S_04 and security.S_05.", new[] { "operability.S_01", "maintainability.S_04", "security.S_05" })]
     [DataRow("taking in", "taking in the plan's maintainability.F_01. Then more.", new[] { "maintainability.F_01" })]
     [DataRow("declining", "declining accessibility.S_04: taking in S_09 is not this.", new[] { "accessibility.S_04" })]

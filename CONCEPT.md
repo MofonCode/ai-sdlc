@@ -7062,7 +7062,10 @@ treats as worth hearing rather than overriding, and the findings history still s
 its lead stop counting, so what it accepted reads `open` again without anybody reverting it. Its
 `abandoned.md` still declines: `sdlc draft abandon` lists what the cycle accepted, each as a
 `declining <id>:` line with no reason, and the person deletes the line to return the suggestion to the
-pool or writes a reason to decline it. The file is refused while a line it kept has no reason.
+pool or writes a reason to decline it. A line kept with no reason declines nothing, and the record reads
+as malformed wherever it is read — nothing refuses an `abandoned.md` outright, so a refusal here would be
+the only one. A suggestion the cycle's own intent raised is named by its bare id; the one it was begun
+from, by `<cycle>/<id>`.
 
 **The reference is written in a fixed form.** `steer` and the intent hand-back write `taking in <id>` and
 `declining <id>: <reason>` with the id as the ledger holds it, and the status reads only that form. A

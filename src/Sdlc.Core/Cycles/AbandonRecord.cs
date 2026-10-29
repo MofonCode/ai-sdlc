@@ -87,6 +87,14 @@ public sealed record AbandonRecord(string Cycle, string By, DateTimeOffset At, s
                 $"{source}: says nothing about why. An agent stuck on a blocking finding has an obvious escape in abandoning, and the written reason is what keeps the objection on the record."));
         }
 
+        // A suggestion the cycle accepted is drafted as a declining line with no reason (D-115): deleted, it
+        // returns to the pool; kept, it needs the why. Kept without one, it declines nothing.
+        foreach (string id in Findings.SuggestionDecisions.DeclinedIn(split.Value.Body, withReason: false))
+        {
+            errors.Add(new Error(
+                $"{source}: declines {id} and says nothing about why. Write the reason after the colon, or delete the line to return the suggestion to the pool."));
+        }
+
         return errors.Count > 0
             ? Result.Fail<AbandonRecord>(errors)
             : Result.Ok(new AbandonRecord(
@@ -112,7 +120,8 @@ public sealed record AbandonRecord(string Cycle, string By, DateTimeOffset At, s
         IEnumerable<string> lines = body
             .ReplaceLineEndings()
             .Split(Environment.NewLine)
-            .Where(line => !line.TrimStart().StartsWith('#'));
+            .Where(line => !line.TrimStart().StartsWith('#'))
+            .Where(line => !Findings.SuggestionDecisions.IsDeclineLine(line));
 
         return string.Join(Environment.NewLine, lines).Trim();
     }

@@ -70,10 +70,11 @@ public static partial class SuggestionDecisions
             if (cycle.IsAbandoned)
             {
                 // An abandoned cycle accepts nothing: its intent's lines and its lead stop counting, so
-                // what it took in reads open again. Its abandonment may still decline.
+                // what it took in reads open again. Its abandonment may still decline, one line each with
+                // its reason; a line kept with none declines nothing.
                 string abandoned = await File.ReadAllTextAsync(cycle.AbandonedPath, cancellationToken).ConfigureAwait(false);
 
-                foreach (string id in IdsAfter(abandoned, "declining"))
+                foreach (string id in DeclinedIn(abandoned, withReason: true))
                 {
                     decisions[Qualified(cycle.Id, id)] = new SuggestionDecision(SuggestionStatus.Declined, cycle.Id);
                 }
@@ -89,25 +90,42 @@ public static partial class SuggestionDecisions
             }
 
             string intent = await File.ReadAllTextAsync(path, cancellationToken).ConfigureAwait(false);
-            IReadOnlyDictionary<string, IReadOnlyList<string>> sections = ArtifactSections.Read(intent);
 
-            if (LeadOf(intent) is { } lead)
-            {
-                decisions[lead] = new SuggestionDecision(SuggestionStatus.Accepted, cycle.Id);
-            }
-
-            foreach (string id in IdsAfter(Section(sections, "Wanted outcomes"), "taking in"))
+            foreach (string id in Accepted(intent, cycle.Id))
             {
                 decisions[Qualified(cycle.Id, id)] = new SuggestionDecision(SuggestionStatus.Accepted, cycle.Id);
             }
 
-            foreach (string id in IdsAfter(Section(sections, "Fixed decisions"), "declining"))
+            foreach (string id in IdsAfter(Section(ArtifactSections.Read(intent), "Fixed decisions"), "declining"))
             {
                 decisions[Qualified(cycle.Id, id)] = new SuggestionDecision(SuggestionStatus.Declined, cycle.Id);
             }
         }
 
         return decisions;
+    }
+
+    /// <summary>
+    /// What one intent took in, as an abandonment would name each: its own suggestions by bare id, and the
+    /// one it was begun from as <c>&lt;cycle&gt;/&lt;id&gt;</c>.
+    /// </summary>
+    /// <param name="intent">The intent's text.</param>
+    /// <param name="cycle">The intent's cycle.</param>
+    /// <returns>The references, in the order the intent gives them, the lead first.</returns>
+    public static IReadOnlyList<string> Accepted(string intent, CycleId cycle)
+    {
+        ArgumentNullException.ThrowIfNull(intent);
+
+        List<string> accepted = [];
+
+        if (LeadOf(intent) is { } lead)
+        {
+            accepted.Add(lead);
+        }
+
+        accepted.AddRange(IdsAfter(Section(ArtifactSections.Read(intent), "Wanted outcomes"), "taking in"));
+
+        return [.. accepted.Distinct(StringComparer.Ordinal)];
     }
 
     /// <summary>
@@ -161,11 +179,12 @@ public static partial class SuggestionDecisions
     }
 
     /// <summary>
-    /// The <c>declining &lt;id&gt;:</c> lines of an abandonment that give no reason after the colon.
+    /// The <c>declining &lt;id&gt;: &lt;reason&gt;</c> lines of an abandonment, one suggestion each.
     /// </summary>
-    /// <param name="body">The abandonment's body.</param>
+    /// <param name="body">The abandonment's text.</param>
+    /// <param name="withReason">True for the lines that give a reason, false for the ones that give none.</param>
     /// <returns>The ids, in order.</returns>
-    public static IReadOnlyList<string> DeclinedWithoutReason(string body)
+    public static IReadOnlyList<string> DeclinedIn(string body, bool withReason)
     {
         ArgumentNullException.ThrowIfNull(body);
 
@@ -173,9 +192,19 @@ public static partial class SuggestionDecisions
         [
             .. body.ReplaceLineEndings().Split(Environment.NewLine)
                 .Select(line => DeclineLine().Match(line))
-                .Where(match => match.Success && match.Groups["reason"].Value.Trim().Length == 0)
+                .Where(match => match.Success && (match.Groups["reason"].Value.Trim().Length > 0) == withReason)
                 .Select(match => match.Groups["id"].Value),
         ];
+    }
+
+    /// <summary>Whether a line is one of an abandonment's <c>declining &lt;id&gt;:</c> lines.</summary>
+    /// <param name="line">The line.</param>
+    /// <returns>True when it is.</returns>
+    public static bool IsDeclineLine(string line)
+    {
+        ArgumentNullException.ThrowIfNull(line);
+
+        return DeclineLine().IsMatch(line);
     }
 
     private static string Section(IReadOnlyDictionary<string, IReadOnlyList<string>> sections, string heading) =>
