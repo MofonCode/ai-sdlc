@@ -6992,6 +6992,130 @@ its refusal still apply.
 - *Guessing a marker for Copilot or Antigravity.* Neither documents one; a guessed marker is a panel that
   names one host's invocation to someone using another.
 
+### D-115 — A cycle's suggestions live in one ledger, each concern once, with a status worked out from the record
+
+**Governs:** §3.4, §6.1, §6.2, §16.1
+
+**Amends D-107** — its ledgers keep the blocking findings and stop taking new suggestions. **Extends D-97**
+— a suggestion is still taken in or declined only by a person, in the intent, by its id; what changes is
+that the listing can now say which. **Extends D-108** — its reconciler matches a restatement across the
+cycle's documents, not only within the one judged. **D-49 is unchanged**: no person and no author moves
+where a suggestion stands on a document.
+
+**Decision.** `findings/suggestions.json` holds every suggestion a cycle's readers raise, against any of
+its documents, **each concern once**. It is written only by `sdlc round`, and the hook denies it to every
+agent write, as it does a ledger.
+
+```json
+{
+  "id": "accessibility.S_07",
+  "perspective": "accessibility",
+  "gist": "A canvas chart gives a screen-reader user nothing to read.",
+  "statement": "…",
+  "remedy": "…",
+  "history": [
+    { "artifact": "intent", "round": 1, "event": "raised" },
+    { "artifact": "plan",   "round": 2, "event": "raised" },
+    { "artifact": "intent", "round": 5, "event": "answered" },
+    { "artifact": "intent", "round": 7, "event": "raised" }
+  ]
+}
+```
+
+- **The id is the cycle's, not the artifact's, and ends `S_nn`.** Blockers keep `F_nn`, so the two never
+  collide. The round's reconciling reader (D-108) is handed the cycle's open suggestions from every
+  document, not only the one judged, and names a finding that restates one of them; the readers still run
+  blind. `sdlc round` records a restatement under the standing id, and refuses a new suggestion whose id
+  is taken or not `S_nn`, naming the next free one.
+- **`history` is a ledger of what happened, one self-contained line per event, in the order the rounds
+  ran.** `raised`, `answered` or `withdrawn`, against one document in one round. It reads top to bottom
+  with nothing to regroup, and the order across documents comes free.
+- **Within one document, events alternate.** The first is `raised`; a `raised` is followed by `answered`
+  or `withdrawn`, and either of those by `raised`. A reader restating a suggestion where it already stands
+  records nothing, as D-107 does for a blocker, so two `raised` in a row against one document means the
+  file was edited. Across documents they may follow each other: the plan raising what the intent raised is
+  a second document finding the same concern.
+- **A suggestion is open while any document's latest event is `raised`.** The intent's reader going quiet
+  does not answer a concern the plan's reader still raises.
+- **A suggestion that becomes a blocker** is `withdrawn` against that document in the round that raises
+  the blocker, under an `F_nn` id in that document's ledger.
+
+**Every reader of a round reads the same view.** A round's suggestions are folded back into it from this
+file, so the gate, the status panel, the loop guards and `propose constraints` read one shape whichever
+file a finding lives in. Only the listing reads the file directly, because it lists each concern once.
+
+**The status is worked out on every read, never stored.** One word, and beside it where it was decided:
+
+| Status | When | Decided in |
+|---|---|---|
+| `accepted` | an intent's `## Wanted outcomes` says `taking in <id>`, or an intent's `lead:` is `suggestion:<cycle>/<id>` | that cycle |
+| `declined` | an intent's `## Fixed decisions`, or an `abandoned.md`, says `declining <id>` | that cycle |
+| `open` | no person decided, and a document's latest event is `raised` | |
+| `answered` | no person decided, and no document leaves it raised | |
+| `withdrawn` | no person decided, and every document's latest event is `withdrawn` | |
+
+**A person's decision wins over the readers.** A suggestion taken in reads `accepted` while the next
+reader is still raising it; that reader is saying the wording did not settle it, which `steer` already
+treats as worth hearing rather than overriding, and the findings history still shows it.
+
+**An abandoned cycle accepts nothing.** Once it holds `abandoned.md`, its intent's `taking in` lines and
+its lead stop counting, so what it accepted reads `open` again without anybody reverting it. Its
+`abandoned.md` still declines: `sdlc draft abandon` lists what the cycle accepted, each as a
+`declining <id>:` line with no reason, and the person deletes the line to return the suggestion to the
+pool or writes a reason to decline it. The file is refused while a line it kept has no reason.
+
+**The reference is written in a fixed form.** `steer` and the intent hand-back write `taking in <id>` and
+`declining <id>: <reason>` with the id as the ledger holds it, and the status reads only that form. A
+suggestion as a lead is `suggestion:<cycle>/<id>`; the three-part form naming the artifact stays, for the
+suggestions ledgers written before this hold.
+
+**The listing shows what is open.** `sdlc suggestions` lists the open ones, as it always has; `--all`
+lists every status, with where each was decided.
+
+**Why one ledger and not one per artifact.** MarketSense's first cycle lists 1,489 open suggestions. Most
+are a handful of concerns raised again by every round of every document under fresh ids, so the earlier
+copies stay open: nothing mentions them again, and silence clears nothing (D-49). An id that belongs to
+the artifact cannot be reused across artifacts, and the intent, spec and plan readers raise the same
+concern because it is the same cycle's concern.
+
+**Why suggestions leave the ledger and blockers stay.** A blocker stops one document advancing, and the
+approval anchors it through that document's chain (D-107). A suggestion gates nothing. The cost is that an
+approval no longer pins the suggestions raised before it, which pins nothing that decides anything: what
+a person chose from them is in the intent, and the intent's hash is pinned.
+
+**Why worked out rather than stored.** A stored status is a second copy of a decision whose wording is in
+the intent or `abandoned.md`, and it drifts the first time one changes without the other. Worked out, an
+abandoned cycle's acceptances lapse with no step to forget, and the listing says *declined* rather than
+*answered*, which a disposition alone could not.
+
+**What it does not migrate.** Whether two old findings are one concern is a judgment, so the binary does
+not merge them. A suggestion already in a document's ledger stays there, and a later round that moves it
+moves it there. MarketSense's existing count stands; its next cycle starts clean.
+
+**Rejected.**
+
+- *A status field a person or a skill sets.* D-97 rejected `adopted` and `declined` dispositions for
+  breaking D-49, and a stored status is the same field under another name.
+- *A step at abandonment that reverts what the cycle accepted.* Abandonment is a person placing a file;
+  nothing runs then, so the step is one to remember. Worked out, there is nothing to revert.
+- *Suggestions kept per artifact, with readers told to reuse ids.* Fixes repetition within a document and
+  not across them, which is most of it.
+- *`history` grouped by artifact, each with an array of rounds.* The first draft. It saves repeating the
+  artifact, at the cost of a nested shape read back and forth, and it loses which round of which document
+  came first.
+- *`raised_at` and `answered_at` arrays in place of a disposition.* Two places to compare to learn whether
+  a document still raises it, a third needed for `withdrawn`, and no order across documents.
+- *A `confirmed` disposition for a restatement.* A disposition is where a finding stands, and this would
+  be an event among states that every fold, the gate's included, would have to learn means open. What it
+  counts — how many rounds repeated a concern — follows how many rounds ran more than how much it matters.
+- *Recording every restatement as a `raised` line.* Same objection, without the new word.
+- *Handing each reader the cycle's open suggestions.* A reader shown earlier findings is anchored by them
+  (D-108). The reconciler judges no document, so it is the one that sees what stands.
+- *One ledger for the whole solution.* Readers would be handed other cycles' suggestions, and it would
+  recount the recurrence `propose constraints` already counts across cycles (D-69). Revisit once a cycle's
+  own list is readable.
+- *A `carried` status.* `accepted` with a decided-in cycle that is not the source already says it.
+
 ### D-114 — A person chooses from a file, in their own words, and never from a picker
 
 **Governs:** §3.2, §6.5
