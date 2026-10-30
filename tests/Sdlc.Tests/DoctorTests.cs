@@ -441,7 +441,7 @@ public sealed class DoctorTests
         Check stack = report.Checks.Single(check => check.Subject == "declared stack");
 
         Assert.AreEqual(CheckOutcome.Sound, stack.Outcome, stack.Detail);
-        StringAssert.Contains(stack.Detail, "4 of 4 listed stack rules on");
+        StringAssert.Contains(stack.Detail, "5 of 5 listed stack rules on");
         Assert.IsFalse(
             stack.Detail.Contains("also ships", StringComparison.Ordinal),
             "Every shipped rule is listed, so there is nothing unlisted to mention.");

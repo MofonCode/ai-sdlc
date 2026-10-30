@@ -22,7 +22,7 @@ without it. The suite fails on a rule missing any of them.
 **Three admission tests, all of which must pass.** Its `Forbids` clause names something that becomes
 illegal; no analyzer, schema or hook could decide it; and it is incompatible with at least one
 plausible implementation. The second test is what keeps this list short — a rule about code belongs in
-an analyzer, and a mechanical rule about an artifact belongs in a schema or a hook. Four rules
+an analyzer, and a mechanical rule about an artifact belongs in a schema or a hook. Five rules
 survived it, which is the honest number rather than a disappointing one.
 
 **This profile's declared defaults are not here.** They are rows in the solution's declared stack,
@@ -35,6 +35,11 @@ and still cost the wrong people.** The orchestration row was a default for as lo
 existed, and the first solution to meet its condition departed from it with a reason `CON_15`
 accepted. The cost of that departure falls on everyone who runs the solution afterwards, not on the
 cycle that argued it, so an argument at the gate is the wrong mechanism for it.
+
+**`PRO_05` asks for an argument rather than forbidding the thing.** Some needs only a script can meet,
+so a rule against JavaScript on a Blazor page would be wrong. What went missing in the plan it came
+from was the question of what the framework already did, and the rule asks it at the one gate where the
+answer is cheap.
 
 ---
 
@@ -106,3 +111,27 @@ AppHost's rows from the first day, so that cost is one project. What an AppHost 
 is hand a standalone WebAssembly page the api's address: the page reads its configuration in the
 browser, where no environment variable reaches, so that address stays in the page's own settings
 until a plan takes the hosting integration that serves it.
+
+## PRO_05 — A plan adding script to a Blazor page names the Blazor mechanism it could not use
+
+**Applies to:** a plan, at approval.
+
+**Forbids:** a plan that adds JavaScript to a Blazor page beyond a module collocated with one component
+and loaded from `OnAfterRenderAsync` — a page-wide script, a script that starts Blazor by hand, one that
+rewrites, wraps or watches the framework's own files — without naming, for each need the script meets,
+the Blazor mechanism that covers that need and why it falls short, or the spec criterion that no Blazor
+mechanism can meet.
+
+**Why:** Blazor ships the answer to most of what a page needs before it is live or after it loses its
+connection — `RendererInfo.IsInteractive` for a control that is not ready yet, the template's
+`ReconnectModal` for a lost connection, a JavaScript initializer for start-up, `[PersistentState]` for
+what crosses from the server-drawn page to the live one. The first plan to prerender a Blazor page
+reached past all of them for a page script that started Blazor itself, and it passed `CON_19` by
+arguing the script against the decision that allowed one interop module, because nothing asked what
+the framework already did. Its next fifteen findings were defects inside the script, and each remedy
+grew it, until a person replaced it with the framework's own mechanisms. A script is the second
+language of a Blazor solution, outside its compiler, its analyzers and its component tests, so the
+cost of one nobody needed is paid by every later screen that copies it. The second exit is the one
+that matters most: when a criterion is what forces the script, saying so puts the criterion in front
+of a person, who can narrow it, rather than in front of the next round, which can only patch the
+script.

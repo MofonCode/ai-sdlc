@@ -1506,6 +1506,10 @@ AppHost's rows from the first day, so the cycle that adds one adds a project and
 AppHost starts the processes and gives them one dashboard; it does not hand a standalone WebAssembly
 page the api's address, which the page reads in the browser.
 
+**A Blazor page takes the framework's own mechanism before a script of its own, and `PRO_05` asks a
+plan to show it did — D-116.** A plan adding JavaScript beyond a module beside one component names, for
+each need, the Blazor mechanism that covers it and why it falls short, or the criterion none can meet.
+
 **`dotnet test` needs two settings or it does not run the suite.** On the .NET 10 SDK it defaults to
 VSTest and Microsoft.Testing.Platform refuses that path, so the profile ships both:
 `"test": { "runner": "Microsoft.Testing.Platform" }` in `global.json`, and
@@ -1737,8 +1741,8 @@ profile actually wants enforced needs a fitness function beside it.
 a document, and so the profile tier resolved to nothing for every solution on every profile — while
 `draft profile` told a person that a different profile resolved a different set of rules, the component
 dictionary said the `profile` key decided which rules resolved, and the first-cycle guide listed the
-tier as though it had content. D-74 fills it with three rules and D-98 adds `PRO_04`, so
-`dotnet-default` ships four rules; a profile's document is found by its name, and `ml-tensorflow` ships none deliberately. **D-76 changes what selects them**: not a
+tier as though it had content. D-74 fills it with three rules, D-98 adds `PRO_04` and D-116
+`PRO_05`, so `dotnet-default` ships five rules; a profile's document is found by its name, and `ml-tensorflow` ships none deliberately. **D-76 changes what selects them**: not a
 profile a solution records, but the rows of its own declared stack, one a rule, each marked `true` or
 `false`. What makes the tier worth having is
 §7.2's stack-neutrality clause — a global constraint may not name a language, framework or package, so a
@@ -7007,6 +7011,41 @@ its refusal still apply.
 - *Keeping `sdlc <stage>` everywhere.* Correct and host-neutral, and costs a refusal each time.
 - *Guessing a marker for Copilot or Antigravity.* Neither documents one; a guessed marker is a panel that
   names one host's invocation to someone using another.
+
+### D-116 — A plan adding script to a Blazor page names the Blazor mechanism it could not use, as `PRO_05`
+
+**Governs:** §11.1, §11.5
+
+**Decision.** `PRO_05` joins `dotnet-default`. A plan that adds JavaScript to a Blazor page beyond a
+module collocated with one component and loaded from `OnAfterRenderAsync` names, for each need the
+script meets, the Blazor mechanism that covers it and why it falls short — or the spec criterion no
+Blazor mechanism can meet. It asks for an argument; it does not forbid a script.
+
+**Why.** MarketSense's first prerendered page planned a page-wide script that started Blazor by hand,
+rewrote the address of `blazor.web.js`, held a pick made before the page was live, kept focus across
+going live and reported a browser copy that failed, with a CSS-revealed fallback that recorded itself
+through an image request. The plan argued the script against `DEC_07`, which allowed one interop
+module, and `CON_19` was satisfied: a departure from a recorded decision, said and argued. Nothing
+asked what Blazor already did, and `CON_15` could not, because a page with a script of its own is
+still a Blazor page and departs from no row. Sixteen rounds followed; about fifteen findings were
+defects inside the script, and each remedy grew it. A person then replaced it with
+`RendererInfo.IsInteractive`, the template's `ReconnectModal` and a JavaScript initializer, and
+narrowed the criteria that had forced it. What forced it was criteria asking for more than the
+framework does, and a plan that had to say so would have put them in front of that person in the
+first round rather than the sixteenth. A global rule could not name Blazor (§7.2), so this is the tier.
+
+**Rejected.**
+
+- *A global rule: prefer the declared framework's documented mechanism.* "Documented mechanism" names
+  nothing a reader can check a plan against, so it would block on taste. If a second stack shows the
+  same habit, a rule of its own there is the evidence for generalising.
+- *Forbidding page-wide script outright.* Some needs only a script meets, and the solution that wants
+  "never" says so in its own decisions, as MarketSense did.
+- *A declared-default row, "browser scripting".* A row buys an argument under `CON_15`, and the plan
+  that prompted this argued well against what it departed from. What was missing was the comparison
+  with the framework's mechanism, which a row does not ask for.
+- *Capping the rounds, or a reader asking whether the shape is the problem.* The rounds are deliberately
+  uncapped (§6.2). A reader asking about the shape would serve every stack and is a separate question.
 
 ### D-115 — A cycle's suggestions live in one ledger, each concern once, with a status worked out from the record
 

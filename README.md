@@ -262,14 +262,17 @@ What is honest to say about the rest:
 
 - **Bounded remediation is implemented and tested, but exercised in fixtures far more than in anger.**
   Everything unattended rests on it, so the first batch runs are worth watching.
-- **The stack rules are .NET only and have never judged a real plan.** The framework ships four
+- **The stack rules are .NET only and have never judged a real plan.** The framework ships five
   `PRO_` rules, and a solution is held to the ones its declared stack marks `true`. None is written for
   another stack — nothing has been built on one, so a rule there would be a guess with the authority of
   a constraint. The first three were written from convictions this framework has paid for rather than
   from findings a cycle raised, which is the weaker provenance and worth saying. `PRO_04`, an Aspire
   AppHost once a solution runs more than one process, came from a trial cycle that argued its way out
   of one; nothing has yet watched it refuse a plan. **It reaches no solution adopted before 0.28.0**
-  until a person adds its row to that solution's `techstack.md`.
+  until a person adds its row to that solution's `techstack.md`. `PRO_05`, which asks a plan adding
+  script to a Blazor page what Blazor already does, came from a real plan whose page script a person
+  replaced with the framework's own mechanisms; nothing has yet watched it refuse one either. **It
+  reaches no solution adopted before 0.35.0** until its row is added the same way.
 - **Declaring the stack after adoption has not been walked by anybody but its author.** Adoption no
   longer writes the declared stack or the .NET build settings: a person places the first from a draft,
   and the second arrive with the skeleton. The suite holds each step; no real adoption has gone through

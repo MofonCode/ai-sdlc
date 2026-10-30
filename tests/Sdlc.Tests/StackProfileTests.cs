@@ -124,7 +124,7 @@ public sealed class StackProfileTests
         IReadOnlyList<StackRules.Row> rules = StackRules.Rows(Templates.TechStack());
 
         CollectionAssert.AreEqual(
-            (string[])["PRO_01", "PRO_02", "PRO_03", "PRO_04"],
+            (string[])["PRO_01", "PRO_02", "PRO_03", "PRO_04", "PRO_05"],
             rules.Select(rule => rule.Id).ToArray());
 
         foreach (StackRules.Row rule in rules)

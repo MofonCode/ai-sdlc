@@ -145,18 +145,19 @@ public sealed class ProfileLibraryTests
     }
 
     [TestMethod]
-    public void The_library_holds_the_four_rules_that_survived_the_admission_tests()
+    public void The_library_holds_the_five_rules_that_survived_the_admission_tests()
     {
         Assert.AreEqual(
-            4,
+            5,
             Library.Count,
             "Three rules passed all three admission tests when the tier was filled: a browser criterion "
             + "proven at the wrong layer, a plan naming the kernel without naming the seam, and a proof "
             + "about stored data run against an in-memory substitute. Most candidates failed the second "
             + "test -- an analyzer or a fitness function could decide them -- and that is the tier "
             + "working rather than the tier being thin. PRO_04 followed, D-98: the orchestration default "
-            + "made binding after the first solution to meet its condition departed from it. A deliberate "
-            + "addition updates this number.");
+            + "made binding after the first solution to meet its condition departed from it. PRO_05 "
+            + "followed, D-116: a page script argued past a recorded decision while nothing asked what "
+            + "Blazor already did. A deliberate addition updates this number.");
 
         Assert.AreEqual(
             Library.Count,
