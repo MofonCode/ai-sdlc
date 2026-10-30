@@ -1,0 +1,31 @@
+<Project>
+
+  <!-- Inherit the repository's settings rather than replacing them: a Directory.Build.props in a
+       subdirectory shadows the one above it, so without this import the test projects would lose
+       the target framework, the analyzer policy and warnings-as-errors all at once. -->
+  <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.props', '$(MSBuildThisFileDirectory)../'))" />
+
+  <PropertyGroup>
+    <!-- Warnings stay errors here. These four rules are relaxed for test code only, each because it
+         argues against something the suite does on purpose. Every exception is in this file with its
+         reason, and there are no pragmas in test source.
+
+         CA1707 - underscores in member names. A test name here is a sentence stating what must be
+                  true: `A_malformed_id_does_not_parse`. The failure output is the sentence, which is
+                  the whole point, and PascalCase would make every name less readable than the
+                  assertion it introduces.
+         CA1515 - types could be internal. MSTest discovers public test classes; making them internal
+                  to satisfy a rule aimed at application assemblies would be tail-wagging.
+         CA1307 - StringComparison on a comparison. Correct for production string handling and noise
+                  inside an assertion, where the comparison is ordinal by inspection and a failing
+                  test is read rather than relied upon by a caller.
+         CA2007 - ConfigureAwait on an await. There is no synchronization context to capture in a
+                  test host, so the call conveys nothing.
+         CA1861 - a constant array argument hoisted to a static readonly field. The rule targets a
+                  hot path called repeatedly; a test method runs once per case, and the array is the
+                  expectation, which belongs beside the assertion that reads it rather than at the
+                  top of the file away from the thing it describes. -->
+    <NoWarn>$(NoWarn);CA1707;CA1515;CA1307;CA2007;CA1861</NoWarn>
+  </PropertyGroup>
+
+</Project>

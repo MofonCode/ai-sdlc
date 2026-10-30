@@ -1,0 +1,30 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="MSTest" />
+  </ItemGroup>
+
+  <!--
+    Separate from Sdlc.Tests deliberately. These rules police the shape of the repository rather
+    than the behaviour of a type, so they read .csproj files and loaded assemblies rather than
+    calling anything - and keeping them apart is what makes "the architecture tests" a thing a
+    person can run, and a thing a profile can one day ship.
+
+    It references the two source projects because two of the five rules reflect over their
+    assemblies. The project-file rules need no reference at all; they read the files off disk, for
+    the reason RepoFiles records.
+  -->
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Sdlc.Core\Sdlc.Core.csproj" />
+    <ProjectReference Include="..\..\src\Sdlc.Cli\Sdlc.Cli.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" />
+  </ItemGroup>
+
+</Project>

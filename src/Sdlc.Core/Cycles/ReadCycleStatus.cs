@@ -1,0 +1,361 @@
+using System.Globalization;
+using FluentResults;
+using Microsoft.Extensions.DependencyInjection;
+using MofonCode.Core;
+using Sdlc.Core.Approvals;
+using Sdlc.Core.Artifacts;
+using Sdlc.Core.Findings;
+using Sdlc.Core.Solutions;
+
+namespace Sdlc.Core.Cycles;
+
+/// <summary>Reads where a cycle has got to: every artifact, its rounds, and what to do next.</summary>
+public static class ReadCycleStatus
+{
+    /// <summary>Registers this operation's handler.</summary>
+    /// <param name="services">The collection to add to.</param>
+    /// <returns>The same collection, for chaining.</returns>
+    public static IServiceCollection AddReadCycleStatusRequestHandler(this IServiceCollection services)
+    {
+        ArgumentNullException.ThrowIfNull(services);
+
+        return services.AddTransient<IRequestHandler<Query, Response>, Handler>();
+    }
+
+    /// <summary>
+    /// How many open suggestions a cycle's documents hold between them, each concern once.
+    /// </summary>
+    /// <remarks>
+    /// A suggestion from the cycle's ledger is the cycle's, so one the intent and the plan both raise is
+    /// one concern, counted once (D-115). One recorded in a document's own ledger before that belonged to
+    /// the document, and two documents could each hold an <c>F_01</c> meaning different things.
+    /// </remarks>
+    /// <param name="artifacts">The documents' states.</param>
+    /// <returns>The count.</returns>
+    public static int OpenSuggestionCount(IEnumerable<ArtifactState> artifacts)
+    {
+        ArgumentNullException.ThrowIfNull(artifacts);
+
+        return artifacts
+            .SelectMany(artifact => artifact.OpenSuggestions.Select(finding => SuggestionLedger.IsSuggestionId(finding.Id)
+                ? finding.Id
+                : Cycle.NameOf(artifact.Kind) + "/" + finding.Id))
+            .Distinct(StringComparer.Ordinal)
+            .Count();
+    }
+
+    /// <summary>Where one artifact in a cycle has got to.</summary>
+    /// <param name="Kind">Which artifact.</param>
+    /// <param name="Path">Where it is, whether or not it exists.</param>
+    /// <param name="Exists">Whether it has been written.</param>
+    /// <param name="Hash">Its canonical hash, when it exists.</param>
+    /// <param name="Rounds">How many interrogation rounds it has had.</param>
+    /// <param name="LatestRound">The highest round number, or zero when it has never been interrogated.</param>
+    /// <param name="History">How many open blockers each round left, in round order, for the panel.</param>
+    /// <param name="OpenBlockers">
+    /// Findings that still stop it advancing: blocking, and open as of the latest round.
+    /// </param>
+    /// <param name="Conflicts">
+    /// Rules the latest round found cannot both be satisfied. Separate from the blockers, because a
+    /// conflict is not an objection to this artifact and nothing editing the artifact can answer it.
+    /// </param>
+    /// <param name="Loop">
+    /// Whether the interrogation loop is converging, refighting ground, or stuck. Counted from the same
+    /// rounds rather than read from anywhere else, so it cannot disagree with the history beside it.
+    /// </param>
+    /// <param name="UpstreamHash">
+    /// The hash of the artifact above as it stands now, or null when this artifact has no upstream.
+    /// </param>
+    /// <param name="JudgedAgainst">
+    /// The upstream hash the latest round recorded, or null when it recorded none or there is no round.
+    /// </param>
+    /// <param name="LatestEntry">
+    /// The latest round's hash in the findings ledger (D-107), which an approval anchors. Null when there
+    /// is no round.
+    /// </param>
+    public sealed record ArtifactState(
+        ArtifactKind Kind,
+        string Path,
+        bool Exists,
+        string? Hash,
+        int Rounds,
+        int LatestRound,
+        IReadOnlyList<int> History,
+        IReadOnlyList<Finding> OpenBlockers,
+        IReadOnlyList<Finding> OpenSuggestions,
+        IReadOnlyList<Conflict> Conflicts,
+        OscillationState Loop,
+        string? UpstreamHash = null,
+        string? JudgedAgainst = null,
+        string? LatestEntry = null)
+    {
+        /// <summary>
+        /// Whether the latest round judged this artifact against an upstream that has since changed.
+        /// </summary>
+        /// <remarks>
+        /// A round is clean <em>as of</em> the upstream it saw. The approval proves these three documents
+        /// were approved, not that the spec was derived from this intent -- so an intent edited after a
+        /// clean spec leaves a spec derived from an intent that no longer exists, with every approval hash
+        /// matching on disk. Steering is the mechanism that creates exactly that.
+        /// <para>
+        /// A round that recorded no upstream at all is stale too. The honest reading of a missing hash is
+        /// "this round cannot say what it judged", and treating that as fine would make the check skippable
+        /// by omitting a field.
+        /// </para>
+        /// </remarks>
+        public bool IsStale => UpstreamHash is not null
+            && Rounds > 0
+            && !string.Equals(UpstreamHash, JudgedAgainst, StringComparison.Ordinal);
+
+        /// <summary>
+        /// Whether this artifact lets the next stage run.
+        /// </summary>
+        /// <remarks>
+        /// Interrogation is part of the chain rather than an optional extra, which is what keeps a single
+        /// approval from resting on three documents nothing has argued with. So an artifact nobody has
+        /// interrogated is not clear, however clean it looks -- and neither is one whose judgement was
+        /// made against an upstream that has moved since.
+        /// </remarks>
+        public bool IsClear => Exists && Rounds > 0 && OpenBlockers.Count == 0 && !IsStale;
+    }
+
+    /// <summary>A cycle's state: its artifacts, its rounds, and what the gate makes of it.</summary>
+    /// <param name="Cycle">The cycle.</param>
+    /// <param name="Artifacts">Each planning document's state, in chain order.</param>
+    /// <param name="Gate">What the approval gate found.</param>
+    /// <param name="Verify">
+    /// The verify document's state, when one exists. Kept apart from <paramref name="Artifacts"/> rather than
+    /// added to it: that list is the three the approval covers, and the gate's blockers and hashes are computed
+    /// from it, so a fourth entry would quietly change what "approved" means.
+    /// </param>
+    /// <param name="Outcome">
+    /// What the verification concluded, when it has. Read here so the panel can say what to do after a build
+    /// rather than telling somebody to build again.
+    /// </param>
+    /// <param name="Built">
+    /// Whether a build has recorded its evidence. Between that and a verification the outcome is still
+    /// null, and the panel read null as "nothing built yet" and said to build again.
+    /// </param>
+    /// <param name="Chain">
+    /// What <c>verify-chain</c> found, when a caller asked it. Not read here, because the chain is heavier
+    /// than everything else this reads and most callers -- a sitrep over every cycle -- do not need it;
+    /// <c>sdlc status</c> asks it for a passed cycle, so the panel does not say a pull request is next
+    /// while pr-ready would refuse one.
+    /// </param>
+    public sealed record Response(
+        Cycle Cycle,
+        IReadOnlyList<ArtifactState> Artifacts,
+        ApprovalGate.Response Gate,
+        ArtifactState? Verify = null,
+        string? Outcome = null,
+        bool Built = false,
+        Sdlc.Core.Chain.VerifyChain.Response? Chain = null)
+    {
+        /// <summary>The artifact the cycle is waiting on, or null when all three are clear.</summary>
+        public ArtifactState? Blocking => Artifacts.FirstOrDefault(artifact => !artifact.IsClear);
+
+        /// <summary>Artifacts whose latest round judged them against an upstream that has since changed.</summary>
+        public IReadOnlyList<ArtifactState> Stale => [.. Artifacts.Where(artifact => artifact.IsStale)];
+
+        /// <summary>Every open blocking finding across the three documents, prefixed by document.</summary>
+        public IReadOnlyList<string> OpenBlockerIds =>
+        [
+            .. Artifacts.SelectMany(artifact => artifact.OpenBlockers.Select(finding =>
+                string.Create(CultureInfo.InvariantCulture, $"{Cycle.NameOf(artifact.Kind)}.{finding.Id}"))),
+        ];
+
+        /// <summary>
+        /// The document whose panel to show: the one named, or by default the one the cycle is waiting on.
+        /// </summary>
+        /// <remarks>
+        /// <para>With nothing waiting, the default is the furthest document there is. It was the plan, so a
+        /// verified cycle's panel still read "plan, round 4" above a line saying to open a pull request.</para>
+        /// <para>Verify is looked up on <see cref="Verify"/>, where it is kept apart from the three the
+        /// approval covers. Looking for it among the three threw, and the interrogate and refine skills
+        /// both ask for the panel of the document they just handled, which includes a verify.</para>
+        /// </remarks>
+        /// <param name="stage">The document named by <c>--stage</c>, or null for the default.</param>
+        /// <returns>Its state, or why there is no panel to show.</returns>
+        public Result<ArtifactState> PanelFor(string? stage)
+        {
+            if (stage is null)
+            {
+                return Blocking ?? Verify ?? Artifacts.First(artifact => artifact.Kind == ArtifactKind.Plan);
+            }
+
+            if (!Cycle.TryParseKind(stage, out ArtifactKind kind))
+            {
+                return Result.Fail<ArtifactState>(string.Create(
+                    CultureInfo.InvariantCulture,
+                    $"'{stage}' is not a document a cycle carries. --stage takes intent, spec, plan or verify."));
+            }
+
+            if (kind != ArtifactKind.Verify)
+            {
+                return Artifacts.First(artifact => artifact.Kind == kind);
+            }
+
+            return Verify is { } verify
+                ? verify
+                : Result.Fail<ArtifactState>(string.Create(
+                    CultureInfo.InvariantCulture,
+                    $"Cycle {Cycle.Id} has no verify document yet. The verify stage writes it, after a build has recorded its evidence."));
+        }
+    }
+
+    /// <summary>Asks where a cycle has got to.</summary>
+    /// <param name="Id">The cycle to read.</param>
+    public sealed record Query(CycleId Id) : IRequest<Response>;
+
+    /// <summary>Reads a cycle's state from what is on disk.</summary>
+    /// <param name="solution">The root of the solution being governed.</param>
+    private sealed class Handler(SolutionRoot solution, Mediator mediator)
+        : IRequestHandler<Query, Response>
+    {
+        /// <inheritdoc />
+        public async Task<Result<Response>> Handle(
+            Query request,
+            CancellationToken cancellationToken)
+        {
+            ArgumentNullException.ThrowIfNull(request);
+
+            Cycle cycle = new(request.Id, solution.Path);
+
+            // A cycle with no directory has no state to report, and reporting one anyway is worse than
+            // saying so: the panel for a mistyped id read 'intent - not interrogated - gate refused',
+            // which is the same thing it says about a cycle that exists and has had nothing written yet.
+            // Two different situations rendering identically, and the one a person is actually in is the
+            // one the panel does not name. The gate already knew -- it answers NoCycle -- so this is the
+            // reader catching up with what the refusal layer had always said.
+            if (!cycle.Exists)
+            {
+                return Result.Fail<Response>(string.Create(
+                    CultureInfo.InvariantCulture,
+                    $"Cycle {cycle.Id} has no directory at {cycle.Directory}. If you expected it to be there, the id is wrong: 'sdlc cycles' lists every cycle this solution holds."));
+            }
+
+            List<ArtifactState> artifacts = [];
+
+            // Read in chain order, so each artifact's upstream is already in hand when its turn comes. The
+            // upstream's hash is taken from what is on disk now, which is the whole point: the round says
+            // what it judged, and this says what is there.
+            foreach (ArtifactKind kind in Cycle.PlanningDocuments)
+            {
+                ArtifactKind? upstream = Cycle.UpstreamOf(kind);
+                string? upstreamHash = upstream is null
+                    ? null
+                    : artifacts.FirstOrDefault(artifact => artifact.Kind == upstream.Value)?.Hash;
+
+                Result<ArtifactState> state =
+                    await Read(cycle, kind, upstreamHash, cancellationToken).ConfigureAwait(false);
+
+                if (state.IsFailed)
+                {
+                    return state.ToResult<Response>();
+                }
+
+                artifacts.Add(state.Value);
+            }
+
+            Result<ApprovalGate.Response> gate = await mediator
+                .Send<ApprovalGate.Query, ApprovalGate.Response>(
+                    new ApprovalGate.Query(request.Id),
+                    cancellationToken)
+                .ConfigureAwait(false);
+
+            if (gate.IsFailed)
+            {
+                return gate.ToResult<Response>();
+            }
+
+            Result<ArtifactState> verify = await Read(
+                cycle,
+                ArtifactKind.Verify,
+                artifacts.Single(artifact => artifact.Kind == ArtifactKind.Plan).Hash,
+                cancellationToken).ConfigureAwait(false);
+
+            if (verify.IsFailed)
+            {
+                return verify.ToResult<Response>();
+            }
+
+            return Result.Ok(new Response(
+                cycle,
+                artifacts,
+                gate.Value,
+                verify.Value.Exists ? verify.Value : null,
+                verify.Value.Exists
+                    ? await Outcome(cycle, cancellationToken).ConfigureAwait(false)
+                    : null,
+                File.Exists(Path.Combine(cycle.EvidenceDirectory, Evidence.RecordEvidence.SummaryFileName))));
+        }
+
+        /// <summary>
+        /// What the verify document says its outcome was.
+        /// </summary>
+        /// <remarks>
+        /// Read with a line scan rather than a YAML parser, because this is for a panel and an unreadable
+        /// document should produce a panel that says nothing about the outcome rather than a status command that
+        /// refuses to run. The chain check reads it properly, and that is where being strict belongs.
+        /// </remarks>
+        private static async Task<string?> Outcome(Cycle cycle, CancellationToken cancellationToken)
+        {
+            Result<FrontmatterDocument> split = await Frontmatter
+                .ReadFile(cycle.PathOf(ArtifactKind.Verify), cancellationToken)
+                .ConfigureAwait(false);
+
+            if (split.IsFailed)
+            {
+                return null;
+            }
+
+            // The same reader the schema and the chain check use. F-06.
+            return Frontmatter.Key(split.Value.Yaml, "outcome");
+        }
+
+        private static async Task<Result<ArtifactState>> Read(
+            Cycle cycle,
+            ArtifactKind kind,
+            string? upstreamHash,
+            CancellationToken cancellationToken)
+        {
+            string path = cycle.PathOf(kind);
+            bool exists = File.Exists(path);
+
+            string? hash = exists
+                ? await ContentHash.OfFile(path, cancellationToken).ConfigureAwait(false)
+                : null;
+
+            Result<IReadOnlyList<FindingsRound>> history =
+                await FindingsReader.ReadHistory(cycle, kind, cancellationToken).ConfigureAwait(false);
+
+            if (history.IsFailed)
+            {
+                return history.ToResult<ArtifactState>();
+            }
+
+            IReadOnlyList<FindingsRound> rounds = history.Value;
+
+            // The latest round is the one that stands, so it is the one whose upstream matters. An earlier
+            // round judged against an earlier upstream is history rather than a problem.
+            FindingsRound? latest = rounds.Count == 0 ? null : rounds[^1];
+
+            return Result.Ok(new ArtifactState(
+                kind,
+                path,
+                exists,
+                hash,
+                rounds.Count,
+                rounds.Count == 0 ? 0 : rounds.Max(round => round.Round),
+                FindingsReader.OpenBlockersPerRound(rounds),
+                FindingsReader.StandingBlockers(rounds),
+                FindingsReader.StandingSuggestions(rounds),
+                FindingsReader.StandingConflicts(rounds),
+                Oscillation.Count(rounds),
+                upstreamHash,
+                latest?.UpstreamSha256,
+                latest?.EntrySha256));
+        }
+
+    }
+}

@@ -1,0 +1,196 @@
+# Adapted from MarketSense's .editorconfig, which is the house style across these repositories.
+#
+# Three changes from the base, each explained where it appears below: private methods are PascalCase
+# rather than camelCase, because every helper here already is and that is the platform guideline;
+# whitespace formatting is an error, because Directory.Build.props claims to enforce code style in
+# the build and until now enforced nothing; and IDE0028 is downgraded to a suggestion, because it
+# misfires on types that implement IEnumerable without being collections.
+#
+# Everything else is the base as written, line endings included.
+
+root = true
+
+[*]
+indent_style = space
+indent_size = 4
+charset = utf-8
+trim_trailing_whitespace = true
+insert_final_newline = true
+
+# Follows the base. .gitattributes normalizes to LF in the repository and checks out native, so on
+# Windows - the only platform this repository supports, and what CI runs - every working-tree file is
+# crlf. One value, no per-extension exceptions: git owns what is committed, this owns what is edited.
+end_of_line = crlf
+
+[*.{cs,csx}]
+# Namespace
+csharp_style_namespace_declarations = file_scoped:warning
+
+# var preferences - use var only when type is obvious, prefer explicit types elsewhere
+csharp_style_var_for_built_in_types = false:warning
+csharp_style_var_when_type_is_apparent = true:warning
+csharp_style_var_elsewhere = false:warning
+
+# Prefer indexer over LINQ methods (First/Last)
+dotnet_style_prefer_index_operator = true:warning
+
+# Prefer Type x = new() over var x = new Type()
+dotnet_style_prefer_simplified_object_creation = true:warning
+
+# Prefer collection expressions: [] over new List<T>(), Array.Empty<T>(), etc.
+dotnet_style_prefer_collection_expression = true:warning
+
+# JUSTIFIED DOWNGRADE, kept next to the preference it qualifies. The preference stands and the IDE
+# still offers it, but it is not a build error: IDE0028 fires on any type with an Add method and an
+# IEnumerable, whether or not the type is a collection. `YamlStream yaml = [];` is what it asks for
+# at three sites here, and a YAML parser spelled as an empty collection is worse than the code it
+# replaces. Raise this back to error if a future analyzer distinguishes the two cases.
+dotnet_diagnostic.IDE0028.severity = suggestion
+
+# Expression-bodied members
+csharp_style_expression_bodied_methods = when_on_single_line:suggestion
+csharp_style_expression_bodied_properties = true:suggestion
+csharp_style_expression_bodied_accessors = true:suggestion
+csharp_style_expression_bodied_constructors = false:suggestion
+csharp_style_expression_bodied_lambdas = true:suggestion
+csharp_style_expression_bodied_local_functions = when_on_single_line:suggestion
+
+# Braces
+csharp_prefer_braces = when_multiline:suggestion
+
+# Pattern matching
+csharp_style_pattern_matching_over_is_with_cast_check = true:suggestion
+csharp_style_pattern_matching_over_as_with_null_check = true:suggestion
+csharp_style_prefer_switch_expression = true:suggestion
+
+# Null checking
+csharp_style_throw_expression = true:suggestion
+csharp_style_conditional_delegate_call = true:suggestion
+dotnet_style_coalesce_expression = true:suggestion
+dotnet_style_null_propagation = true:suggestion
+
+# Using directives
+dotnet_sort_system_directives_first = true
+csharp_using_directive_placement = outside_namespace:warning
+
+# this. qualification
+dotnet_style_qualification_for_field = false:suggestion
+dotnet_style_qualification_for_property = false:suggestion
+dotnet_style_qualification_for_method = false:suggestion
+dotnet_style_qualification_for_event = false:suggestion
+
+# Modifier preferences
+dotnet_style_require_accessibility_modifiers = for_non_interface_members:warning
+csharp_preferred_modifier_order = public,private,protected,internal,static,extern,new,virtual,abstract,sealed,override,readonly,unsafe,volatile,async:suggestion
+
+# ADDED TO THE BASE. Whitespace formatting as an error, which is the rule that makes
+# EnforceCodeStyleInBuild mean something. A trailing space sat on a test method in this repository
+# through a hundred green runs and a hard CI gate, because IDE0055 defaults to silent and nothing
+# had ever stated otherwise.
+dotnet_diagnostic.IDE0055.severity = error
+
+# Naming rules
+
+# Private fields: _camelCase
+dotnet_naming_rule.private_fields_should_be_underscore_camel.severity = warning
+dotnet_naming_rule.private_fields_should_be_underscore_camel.symbols = private_fields
+dotnet_naming_rule.private_fields_should_be_underscore_camel.style = underscore_camel_case
+
+dotnet_naming_symbols.private_fields.applicable_kinds = field
+dotnet_naming_symbols.private_fields.applicable_accessibilities = private, private_protected
+dotnet_naming_symbols.private_fields.required_modifiers =
+
+dotnet_naming_style.underscore_camel_case.required_prefix = _
+dotnet_naming_style.underscore_camel_case.capitalization = camel_case
+
+# Static private fields: _camelCase (same as instance)
+dotnet_naming_rule.static_private_fields_should_be_underscore_camel.severity = warning
+dotnet_naming_rule.static_private_fields_should_be_underscore_camel.symbols = static_private_fields
+dotnet_naming_rule.static_private_fields_should_be_underscore_camel.style = underscore_camel_case
+
+dotnet_naming_symbols.static_private_fields.applicable_kinds = field
+dotnet_naming_symbols.static_private_fields.applicable_accessibilities = private, private_protected
+dotnet_naming_symbols.static_private_fields.required_modifiers = static
+
+# Constants: PascalCase (no prefix)
+dotnet_naming_rule.constants_should_be_pascal.severity = warning
+dotnet_naming_rule.constants_should_be_pascal.symbols = constants
+dotnet_naming_rule.constants_should_be_pascal.style = pascal_case
+
+dotnet_naming_symbols.constants.applicable_kinds = field
+dotnet_naming_symbols.constants.required_modifiers = const
+
+dotnet_naming_style.pascal_case.capitalization = pascal_case
+
+# Private methods: camelCase. The house convention, and the one real departure from the .NET design
+# guidelines, which say PascalCase for a method at any accessibility. It is kept because the
+# accessibility is then visible in the name: a reader scanning a file can tell what is reachable from
+# outside it without checking a modifier, which is worth more here than matching the platform.
+#
+# An earlier version of this file inverted the rule to PascalCase instead, on the grounds that every
+# helper in this repository already was. That was the code deciding the convention. Reversed 2026-10-02
+# by the owner; the helpers are renamed to match rather than the rule bent to fit them.
+#
+# A private NESTED TYPE is not covered, and stays PascalCase. This was tried the other way and the
+# compiler refused it: CS8981 says a type name of only lower-case ascii characters may become reserved
+# for the language, and warnings are errors here. It is not an analyzer opinion - it is the language
+# team reserving the namespace, so suppressing it would accept a real chance of a future keyword
+# breaking the build.
+#
+# It also could not have been a convention. CS8981 fires on a single word and not on two, so `handler`
+# is refused where `ledgerShape` is accepted - and a rule that applies to some type names and not
+# others is not a rule. Private methods and fields carry the convention instead, which is where
+# accessibility-in-the-name was wanted: `_camelCase` for a field, camelCase for a method, PascalCase
+# for anything reachable from outside the type.
+dotnet_naming_rule.private_methods_should_be_camel.severity = warning
+dotnet_naming_rule.private_methods_should_be_camel.symbols = private_methods
+dotnet_naming_rule.private_methods_should_be_camel.style = camel_case_style
+
+dotnet_naming_symbols.private_methods.applicable_kinds = method
+dotnet_naming_symbols.private_methods.applicable_accessibilities = private, private_protected
+
+# Public/internal members: PascalCase
+dotnet_naming_rule.public_members_should_be_pascal.severity = warning
+dotnet_naming_rule.public_members_should_be_pascal.symbols = public_members
+dotnet_naming_rule.public_members_should_be_pascal.style = pascal_case
+
+dotnet_naming_symbols.public_members.applicable_kinds = method, property, event, class, struct, interface, enum, delegate, namespace
+dotnet_naming_symbols.public_members.applicable_accessibilities = public, internal, protected, protected_internal
+
+# Interfaces: IPascalCase
+dotnet_naming_rule.interfaces_should_be_prefixed.severity = warning
+dotnet_naming_rule.interfaces_should_be_prefixed.symbols = interfaces
+dotnet_naming_rule.interfaces_should_be_prefixed.style = interface_style
+
+dotnet_naming_symbols.interfaces.applicable_kinds = interface
+
+dotnet_naming_style.interface_style.required_prefix = I
+dotnet_naming_style.interface_style.capitalization = pascal_case
+
+# Type parameters: TPascalCase
+dotnet_naming_rule.type_parameters_should_be_prefixed.severity = warning
+dotnet_naming_rule.type_parameters_should_be_prefixed.symbols = type_parameters
+dotnet_naming_rule.type_parameters_should_be_prefixed.style = type_parameter_style
+
+dotnet_naming_symbols.type_parameters.applicable_kinds = type_parameter
+
+dotnet_naming_style.type_parameter_style.required_prefix = T
+dotnet_naming_style.type_parameter_style.capitalization = pascal_case
+
+# Local variables and parameters: camelCase
+dotnet_naming_rule.locals_should_be_camel.severity = suggestion
+dotnet_naming_rule.locals_should_be_camel.symbols = locals
+dotnet_naming_rule.locals_should_be_camel.style = camel_case_style
+
+dotnet_naming_symbols.locals.applicable_kinds = parameter, local
+
+dotnet_naming_style.camel_case_style.capitalization = camel_case
+
+[*.{xml,json,yaml,yml,csproj,props,targets,slnx}]
+indent_size = 2
+
+# PowerShell is four-space by convention, which [*] already gives it. Named so nobody has to
+# work that out from the absence of a section.
+[*.ps1]
+indent_style = space
+indent_size = 4

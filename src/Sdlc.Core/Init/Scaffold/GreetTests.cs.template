@@ -1,0 +1,60 @@
+using FluentResults;
+using MofonCode.Core;
+using __SOLUTION__.Application.Greetings;
+using __SOLUTION__.Contracts.Greetings;
+
+namespace __SOLUTION__.Tests;
+
+/// <summary>
+/// The reference slice's tests. Delete them with the slice.
+/// </summary>
+/// <remarks>
+/// These exist to be copied too: a test name is a sentence stating what must be true, so the failure
+/// output is that sentence. The relaxations in <c>tests/Directory.Build.props</c> are what let a name
+/// carry underscores.
+/// </remarks>
+[TestClass]
+public sealed class GreetTests
+{
+    [TestMethod]
+    public async Task A_name_comes_back_greeted()
+    {
+        using var gate = Gate.Open();
+
+        Result<GreetResponse> result = await gate.Send<Greet.Query, GreetResponse>(new Greet.Query("Ada"));
+
+        Assert.IsTrue(result.IsSuccess, result.ToLogString());
+        Assert.AreEqual("Hello, Ada.", result.Value.Greeting);
+    }
+
+    [TestMethod]
+    public async Task A_blank_name_is_refused_rather_than_greeted()
+    {
+        // This proves the behaviour pipeline ran: no handler checks the name, so a failure here can
+        // only have come from the validator running in front of it. A test that passed with the
+        // behaviour unregistered would be testing a guard clause instead.
+        using var gate = Gate.Open();
+
+        Result<GreetResponse> result = await gate.Send<Greet.Query, GreetResponse>(new Greet.Query("  "));
+
+        Assert.IsTrue(result.IsFailed);
+        Assert.AreEqual("A greeting needs a name.", result.ToUserMessage());
+    }
+
+    [TestMethod]
+    public async Task A_failure_crosses_the_boundary_as_an_envelope()
+    {
+        // What a host hands to anything outside the process. The envelope is the only shape that
+        // crosses, because building it is what drops an exception's own message - and a reader shows
+        // the Error notices and needs no other rule.
+        using var gate = Gate.Open();
+
+        Result<GreetResponse> result = await gate.Send<Greet.Query, GreetResponse>(new Greet.Query(""));
+
+        ResultEnvelope envelope = result.ToEnvelope(traceId: "example");
+
+        Assert.IsFalse(envelope.Succeeded);
+        Assert.AreEqual(1, envelope.Errors.Count);
+        Assert.AreEqual("A greeting needs a name.", envelope.Errors[0].Message);
+    }
+}

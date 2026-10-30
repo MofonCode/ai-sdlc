@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <PackageReference Include="MSTest" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" />
+  </ItemGroup>
+
+  <!-- Separate from the unit tests on purpose. These rules police the shape of the repository rather
+       than the behaviour of a type, so they read project files and loaded assemblies rather than
+       calling anything - and keeping them apart makes "the architecture tests" a thing a person can
+       run on its own. -->
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\__SOLUTION__.Application\__SOLUTION__.Application.csproj" />
+
+    <!-- The boundary rules read the endpoints' return types, so this has to see the Api assembly.
+         It polices the shape of what is here rather than calling any of it. -->
+    <ProjectReference Include="..\..\src\__SOLUTION__.Api\__SOLUTION__.Api.csproj" />
+  </ItemGroup>
+
+</Project>

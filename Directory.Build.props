@@ -1,0 +1,89 @@
+<Project>
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+
+    <!-- The release version, declared once for the whole solution. It is the number
+         .claude-plugin/plugin.json carries, because the plugin and the binary are two halves
+         of one install and a reader asking "what version is this" means the pair. Without it
+         the package took the SDK default of 1.0.0 while the plugin said 0.9.0, so the two
+         halves disagreed with nobody able to see it. PluginTests asserts they still agree.
+
+         Cycle.FrameworkVersion is deliberately NOT this. That constant is the artifact format
+         stamped into every file's framework_version, and binding it here would restamp every
+         artifact as a new format on a release that changed no format at all. -->
+    <VersionPrefix>0.35.0</VersionPrefix>
+
+    <!-- MIT, declared once for the whole solution rather than per project, so a packable
+         project added later cannot ship under a different licence by omission. LICENSE at
+         the repository root is the text this expression names. -->
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+
+    <!-- The holder named in LICENSE, declared here for the same reason the licence expression is:
+         a packable project added later would otherwise ship a package whose metadata asserts no
+         owner at all, and NuGet does not fill this in. Change it here and in LICENSE together.
+         This is the framework's own copyright and reaches only the packages this repository
+         publishes. The scaffolding stamps no copyright into a generated solution, because the
+         solution belongs to whoever adopted the framework and not to whoever wrote it. -->
+    <Copyright>Copyright (c) 2026 MofonCode</Copyright>
+    <RepositoryUrl>https://github.com/MofonCode/ai-sdlc</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+
+    <!-- CI builds carry no warnings. WarningsNotAsErrors is deliberately empty so that an
+         exception is one visible line here rather than a pragma buried in code, and every
+         suppression below says why it exists. -->
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <WarningsNotAsErrors></WarningsNotAsErrors>
+
+    <!-- The two rules the operation shape costs. Both are switched off here, with their reasons,
+         rather than as pragmas in fifteen files - which is the policy this file states above.
+
+         CA1034 - do not nest a publicly visible type. The shape is one static holder per
+                  application operation, with its request nested inside it, so a call site reads
+                  'ProfileText.Request' and an operation has one name rather than two. The rule
+                  is aimed at types nested for no reason; here the nesting IS the design, and it
+                  is what lets the handler be private - a registration written outside the holder
+                  could not name a private type. The cost, stated plainly: accidental nesting
+                  elsewhere in the solution is no longer caught.
+
+         CA1812 - an internal type that is never instantiated. Every handler is instantiated by
+                  the container, by reflection, from inside its holder's own registration method.
+                  The analyzer cannot see that and never will, so this fires once per handler and
+                  means nothing. Keeping it would make the rule a thing people suppress at the
+                  site, which is the form this file exists to avoid. -->
+    <NoWarn>$(NoWarn);CA1034;CA1812</NoWarn>
+
+    <!-- latest-all rather than the latest-recommended the dotnet-default profile ships to
+         consumers. This repository is the framework: archive/v03 built clean at latest-all,
+         so the stricter level is evidence-backed here, while consumer code gets the level
+         MofonCode.Core validated for application work. -->
+    <AnalysisLevel>latest-all</AnalysisLevel>
+    <AnalysisModeSecurity>All</AnalysisModeSecurity>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    <NuGetAudit>true</NuGetAudit>
+    <NuGetAuditMode>all</NuGetAuditMode>
+    <NuGetAuditLevel>moderate</NuGetAuditLevel>
+
+    <!-- MSTest on Microsoft.Testing.Platform needs this and the `test` runner section in
+         global.json, or `dotnet test` silently falls back to VSTest and MTP refuses the
+         path. It lives here rather than in the test project so a test project added later
+         cannot quietly run a different runner. Do not set TestingPlatformDotnetTestSupport:
+         that is the .NET 9 mechanism and setting it instead is what left a trial run unable
+         to run `dotnet test` at all. -->
+    <EnableMSTestRunner>true</EnableMSTestRunner>
+  </PropertyGroup>
+
+  <!-- The banned-API list. Wired once here rather than per project, so a project added later is
+       covered without anybody remembering - and it is the same mechanism the dotnet-default profile
+       ships, because a framework that holds consumers to a rule it does not run on itself has a
+       convention rather than an invariant. It had one for a while: the profile shipped the clock ban
+       and this repository read the clock from a static in two drafters. -->
+  <ItemGroup>
+    <PackageReference Include="Microsoft.CodeAnalysis.BannedApiAnalyzers" PrivateAssets="all" />
+    <AdditionalFiles Include="$(MSBuildThisFileDirectory)BannedSymbols.txt" />
+  </ItemGroup>
+
+</Project>

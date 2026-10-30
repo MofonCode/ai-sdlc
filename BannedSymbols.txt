@@ -1,0 +1,14 @@
+# APIs this repository does not call, with the reason beside each. RS0030 is a warning and warnings
+# are errors here, so the build refuses the call rather than a reviewer catching it.
+#
+# This file exists because the framework was holding consumers to a rule it did not run on itself. The
+# dotnet-default profile has shipped a banned list since the clock ban went in, and ai-sdlc had none --
+# so the two drafters that stamp a person's record both read the clock from a static, in a repository
+# whose whole argument is that a rule nobody can enforce is one somebody reaches for at the moment it
+# is inconvenient. Every solution this scaffolds gets the first five lines below; so does this one now.
+
+P:System.DateTime.Now;Take a TimeProvider and call GetUtcNow(). A clock read from a static cannot be substituted, so anything that depends on the time becomes untestable - and the local-time variants also make a stored value depend on where the process ran.
+P:System.DateTime.UtcNow;Take a TimeProvider and call GetUtcNow(). The value is right; the problem is that nothing can substitute it, so a test of anything time-dependent has to wait for real time to pass.
+P:System.DateTime.Today;Take a TimeProvider and derive the date from GetUtcNow(). A date read from the machine's local clock is a different date either side of midnight somewhere.
+P:System.DateTimeOffset.Now;Take a TimeProvider and call GetUtcNow().
+P:System.DateTimeOffset.UtcNow;Take a TimeProvider and call GetUtcNow().

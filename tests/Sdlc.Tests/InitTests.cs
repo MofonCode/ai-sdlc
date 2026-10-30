@@ -1,0 +1,1661 @@
+using System.Text.Json.Nodes;
+using System.Xml.Linq;
+using FluentResults;
+using Microsoft.Extensions.DependencyInjection;
+using Sdlc.Core.Artifacts;
+using Sdlc.Core.Constraints;
+using Sdlc.Core.Cycles;
+using Sdlc.Core.Git;
+using Sdlc.Core.Hooks;
+using Sdlc.Core.Init;
+using Sdlc.Core.Solutions;
+
+namespace Sdlc.Tests;
+
+/// <summary>
+/// Adoption, in its three modes.
+/// </summary>
+/// <remarks>
+/// The expensive mistakes here are both silent. Misreading a new solution as adopted loses every default
+/// it was meant to start from; rewriting a file a person owns loses what only that file knew. So most of
+/// what follows is about what adoption does <em>not</em> touch.
+/// </remarks>
+[TestClass]
+public sealed class InitTests
+{
+    [TestMethod]
+    public async Task A_repository_with_no_code_is_scaffolded()
+    {
+        using var solution = Scratch.Create();
+
+        Initialise.Response report = await Adopt(solution, tracked: ["README.md", "LICENSE", ".gitignore"]);
+
+        Assert.AreEqual(Initialise.InitMode.Greenfield, report.Mode);
+        Assert.AreEqual(
+            SolutionOrigin.Scaffolded,
+            report.Origin,
+            "A repository holding a README and a licence has no solution in it yet. Reading it as adopted "
+            + "would silently drop every default the profile was meant to supply.");
+    }
+
+    [TestMethod]
+    public async Task A_repository_that_already_holds_code_is_onboarded()
+    {
+        using var solution = Scratch.Create();
+
+        Initialise.Response report = await Adopt(solution, tracked: ["README.md", "src/App/Program.cs"]);
+
+        Assert.AreEqual(Initialise.InitMode.Onboard, report.Mode);
+        Assert.AreEqual(SolutionOrigin.Adopted, report.Origin);
+    }
+
+    [TestMethod]
+    public async Task A_governed_solution_is_updated_and_keeps_the_origin_it_was_given()
+    {
+        // Recomputing the origin would turn a historical fact into something that moves: a scaffolded
+        // solution would read as adopted the moment it had code in it, which is every solution after its
+        // first cycle.
+        using var solution = Scratch.Create();
+
+        await Adopt(solution, tracked: []);
+        Initialise.Response again = await Adopt(solution, tracked: ["src/App/Program.cs", "src/App/Roll.cs"]);
+
+        Assert.AreEqual(Initialise.InitMode.Update, again.Mode);
+        Assert.AreEqual(SolutionOrigin.Scaffolded, again.Origin);
+    }
+
+    [TestMethod]
+    public async Task Update_names_what_the_stack_never_mentions_and_writes_none_of_it()
+    {
+        // The half of an upgrade adoption cannot do, because the stack is a person's (D-93).
+        using var solution = Scratch.Create();
+        await Adopt(solution, tracked: []);
+
+        string path = Path.Combine(solution.Root, Cycle.SdlcDirectoryName, Cycle.TechStackFileName);
+        string stack = string.Join(
+            '\n',
+            Templates.TechStack().ReplaceLineEndings("\n").Split('\n')
+                .Where(line => !line.StartsWith("| accessibility testing |", StringComparison.Ordinal)));
+
+        await File.WriteAllTextAsync(path, stack);
+
+        Initialise.Response report = await Adopt(solution, tracked: []);
+
+        Assert.AreEqual(Initialise.InitMode.Update, report.Mode);
+        CollectionAssert.AreEqual(new[] { "accessibility testing" }, report.Unmentioned!.Names.ToArray());
+        StringAssert.Contains(InitRenderer.Render(report), "does not mention accessibility testing");
+        Assert.AreEqual(stack, await File.ReadAllTextAsync(path), "The stack is a person's file.");
+    }
+
+    [TestMethod]
+    public async Task A_first_adoption_compares_no_stack_because_there_is_none()
+    {
+        using var solution = Scratch.Create();
+
+        Initialise.Response report = await Adopt(solution, tracked: []);
+
+        Assert.IsNull(report.Unmentioned);
+    }
+
+    [TestMethod]
+    public async Task Update_never_rewrites_a_file_only_a_person_writes()
+    {
+        // The rule needs no list of exclusions: update writes what the framework owns, and what it owns
+        // is everything not protected.
+        using var solution = Scratch.Create();
+        await Adopt(solution, tracked: []);
+
+        string path = SolutionDocument.PathIn(solution.Root);
+        await File.WriteAllTextAsync(path, "---\nprofile: mofoncode\norigin: adopted\n---\n\n# mine\n");
+
+        Initialise.Response report = await Adopt(solution, tracked: []);
+
+        Assert.AreEqual(
+            Initialise.InitChange.Kept,
+            report.Actions.Single(action => action.Path.EndsWith(Cycle.SolutionFileName, StringComparison.Ordinal)).Change);
+
+        StringAssert.Contains(await File.ReadAllTextAsync(path), "profile: mofoncode");
+        StringAssert.Contains(await File.ReadAllTextAsync(path), "# mine");
+    }
+
+    [TestMethod]
+    public async Task Update_refreshes_what_the_framework_owns()
+    {
+        using var solution = Scratch.Create();
+        await Adopt(solution, tracked: []);
+
+        string readme = Path.Combine(solution.Root, Cycle.SdlcDirectoryName, "README.md");
+        await File.WriteAllTextAsync(readme, "stale, from an older framework version\n");
+
+        Initialise.Response report = await Adopt(solution, tracked: []);
+
+        Assert.AreEqual(
+            Initialise.InitChange.Updated,
+            report.Actions.Single(action => action.Path.EndsWith("README.md", StringComparison.Ordinal)).Change,
+            "Without this, a solution's scaffolding rots across framework versions with nothing to fix it.");
+
+        StringAssert.Contains(await File.ReadAllTextAsync(readme), "intent -> spec -> plan");
+    }
+
+    [TestMethod]
+    public async Task An_existing_agents_file_is_printed_rather_than_overwritten()
+    {
+        // Rewriting a repository's instruction file is the one destructive thing adoption could do, and
+        // the existing one usually holds things nothing else knows.
+        using var solution = Scratch.Create();
+        string path = Path.Combine(solution.Root, Initialise.AgentsFileName);
+        await File.WriteAllTextAsync(path, "instructions nobody should lose\n");
+
+        Initialise.Response report = await Adopt(solution, tracked: ["src/App/Program.cs"]);
+
+        Assert.AreEqual(
+            Initialise.InitChange.Printed,
+            report.Actions.Single(action => action.Path == Initialise.AgentsFileName).Change);
+
+        Assert.AreEqual("instructions nobody should lose\n", await File.ReadAllTextAsync(path));
+        Assert.IsTrue(report.Printed.ContainsKey(Initialise.AgentsFileName));
+    }
+
+    [TestMethod]
+    public async Task Adoption_writes_the_line_endings_rule_where_there_is_none()
+    {
+        // Once a solution is shared, a commit from another platform without normalisation shows every
+        // line of a file as changed. Where there was code first, the report says how to renormalise it.
+        using var solution = Scratch.Create();
+
+        Initialise.Response report = await Adopt(solution, tracked: ["src/App/Program.cs"]);
+
+        Initialise.InitAction action = report.Actions.Single(candidate => candidate.Path == LineEndings.FileName);
+
+        Assert.AreEqual(Initialise.InitChange.Created, action.Change);
+        StringAssert.Contains(action.Why!, "git add --renormalize .");
+        Assert.IsTrue(LineEndings.Normalises(
+            await File.ReadAllTextAsync(Path.Combine(solution.Root, LineEndings.FileName))));
+    }
+
+    [TestMethod]
+    public async Task An_existing_attributes_file_is_kept_and_the_missing_rule_printed()
+    {
+        // The file is the repository's own. One that already normalises is left alone; one that does not
+        // is left alone too, and the one line it lacks is printed for a person to add.
+        using var solution = Scratch.Create();
+        string path = Path.Combine(solution.Root, LineEndings.FileName);
+        await File.WriteAllTextAsync(path, "*.png binary\n");
+
+        Initialise.Response report = await Adopt(solution, tracked: ["src/App/Program.cs"]);
+
+        Assert.AreEqual(
+            Initialise.InitChange.Printed,
+            report.Actions.Single(action => action.Path == LineEndings.FileName).Change);
+        Assert.AreEqual("*.png binary\n", await File.ReadAllTextAsync(path));
+        StringAssert.Contains(report.Printed[LineEndings.FileName], LineEndings.Rule);
+
+        await File.WriteAllTextAsync(path, "* text=auto\n*.png binary\n");
+
+        Initialise.Response again = await Adopt(solution, tracked: ["src/App/Program.cs"]);
+
+        Assert.AreEqual(
+            Initialise.InitChange.Kept,
+            again.Actions.Single(action => action.Path == LineEndings.FileName).Change);
+    }
+
+    [TestMethod]
+    [DataRow("* text=auto", true)]
+    [DataRow("*   text", true)]
+    [DataRow("# * text=auto", false)]
+    [DataRow("*.cs text", false)]
+    [DataRow("* text=auto\n* -text", false)]
+    [DataRow("* binary\n* text=auto eol=lf", true)]
+    [DataRow("", false)]
+    public void Only_a_rule_for_every_file_counts_as_normalising(string contents, bool normalises)
+    {
+        // A narrower pattern leaves the rest of the tree to whoever committed it, and a later -text on
+        // every file undoes the rule, the way git reads the file.
+        Assert.AreEqual(normalises, LineEndings.Normalises(contents));
+    }
+
+    [TestMethod]
+    public async Task Adoption_keeps_everything_in_a_settings_file_it_does_not_own()
+    {
+        // The framework owns two hook entries in .claude/settings.json. The host and the team own the
+        // rest of it, and adoption used to write the whole file from a template on every run -- so a
+        // deny rule, an env var or a hook of somebody's own was destroyed by the next upgrade, and the
+        // destruction was reported as "updated". Losing a hook is the failure this framework exists to
+        // prevent. D-40.
+        using var solution = Scratch.Create();
+        string path = Path.Combine(solution.Root, ".claude", "settings.json");
+        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+        await File.WriteAllTextAsync(
+            path,
+            """
+            {
+              "permissions": { "deny": ["Bash(rm -rf:*)"] },
+              "env": { "OUR_VAR": "matters" },
+              "hooks": {
+                "PreToolUse": [
+                  { "matcher": "Bash", "hooks": [ { "type": "command", "command": "our-audit-hook" } ] }
+                ]
+              },
+              "model": "opus"
+            }
+            """);
+
+        await Adopt(solution, tracked: ["src/App/Program.cs"]);
+
+        JsonNode settings = JsonNode.Parse(await File.ReadAllTextAsync(path))!;
+
+        Assert.AreEqual(
+            "Bash(rm -rf:*)",
+            settings["permissions"]!["deny"]![0]!.GetValue<string>(),
+            "A team that adds a deny rule must not lose it to an upgrade.");
+
+        Assert.AreEqual("matters", settings["env"]!["OUR_VAR"]!.GetValue<string>());
+        Assert.AreEqual("opus", settings["model"]!.GetValue<string>(), "An unknown key is still somebody's.");
+
+        JsonArray pre = settings["hooks"]!["PreToolUse"]!.AsArray();
+
+        Assert.AreEqual(
+            "our-audit-hook",
+            pre[0]!["hooks"]![0]!["command"]!.GetValue<string>(),
+            "A sibling hook entry is not adoption's to remove.");
+
+        Assert.IsTrue(
+            Commands(settings, "PreToolUse").Any(command => command == "sdlc hook --host claude"),
+            "And the framework's own entry still has to arrive.");
+
+        Assert.IsTrue(Commands(settings, "Stop").Any(command => command.Contains("turn-end", StringComparison.Ordinal)));
+    }
+
+    [TestMethod]
+    public async Task A_second_adoption_adds_no_second_copy_of_the_frameworks_hook()
+    {
+        // Matched on the `sdlc hook` prefix rather than the whole command, so a release that changes a
+        // flag replaces the entry it owns. Matching the full string would leave the old entry in place
+        // and append a second, and both would run on every tool call.
+        using var solution = Scratch.Create();
+        string path = Path.Combine(solution.Root, ".claude", "settings.json");
+        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+        await File.WriteAllTextAsync(
+            path,
+            """
+            {
+              "hooks": {
+                "PreToolUse": [
+                  {
+                    "matcher": "Edit|Write",
+                    "hooks": [
+                      { "type": "command", "command": "our-audit-hook" },
+                      { "type": "command", "command": "sdlc hook --host claude --a-flag-from-an-older-release" }
+                    ]
+                  }
+                ]
+              }
+            }
+            """);
+
+        Initialise.Response first = await Adopt(solution, tracked: ["src/App/Program.cs"]);
+        JsonNode settings = JsonNode.Parse(await File.ReadAllTextAsync(path))!;
+
+        Assert.AreEqual(
+            1,
+            Commands(settings, "PreToolUse").Count(command => command.StartsWith("sdlc hook", StringComparison.Ordinal)),
+            "One framework entry, not two.");
+
+        Assert.IsTrue(
+            Commands(settings, "PreToolUse").Any(command => command == "our-audit-hook"),
+            "Their hook shares the matcher group with ours, and survives ours being taken out of it.");
+
+        Assert.AreEqual(
+            Initialise.InitChange.Updated,
+            first.Actions.Single(action => action.Path.Replace('\\', '/') == ".claude/settings.json").Change);
+
+        // And a run that changes nothing says so, rather than rewriting the file to the same bytes.
+        Initialise.Response again = await Adopt(solution, tracked: ["src/App/Program.cs"]);
+
+        Assert.AreEqual(
+            Initialise.InitChange.Kept,
+            again.Actions.Single(action => action.Path.Replace('\\', '/') == ".claude/settings.json").Change);
+    }
+
+    [TestMethod]
+    public async Task A_settings_file_that_cannot_be_parsed_is_printed_rather_than_guessed_at()
+    {
+        // Relaxed parsing would accept this and then silently drop the comment on the way back out.
+        // Strict-parse-or-print leaves a file somebody hand-edited exactly as they left it, which is
+        // the same answer AGENTS.md gets and for the same reason.
+        using var solution = Scratch.Create();
+        string path = Path.Combine(solution.Root, ".claude", "settings.json");
+        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+        const string HandEdited = """
+            {
+              // the comment json does not allow, and somebody's reason for a rule
+              "permissions": { "deny": ["Bash(curl:*)"] }
+            }
+            """;
+        await File.WriteAllTextAsync(path, HandEdited);
+
+        Initialise.Response report = await Adopt(solution, tracked: ["src/App/Program.cs"]);
+
+        Initialise.InitAction action = report.Actions
+            .Single(entry => entry.Path.Replace('\\', '/') == ".claude/settings.json");
+
+        Assert.AreEqual(Initialise.InitChange.Printed, action.Change);
+        Assert.AreEqual(HandEdited, await File.ReadAllTextAsync(path), "Not one byte of it.");
+        Assert.IsTrue(report.Printed.Keys.Any(key => key.Replace('\\', '/') == ".claude/settings.json"));
+        StringAssert.Contains(action.Why!, "not valid JSON");
+    }
+
+    [TestMethod]
+    public async Task An_existing_azure_pipeline_is_printed_rather_than_replaced()
+    {
+        // `azure-pipelines.yml` is the path Azure DevOps looks for, so an existing one is a repository's
+        // own CI. Replacing it would destroy it -- and because init commits what it writes, the
+        // destruction would be committed. Printing it says the guarantee is not installed yet, which is
+        // a thing a person can act on.
+        using var solution = Scratch.Create();
+        string path = Path.Combine(solution.Root, "azure-pipelines.yml");
+        const string Theirs = "trigger: [main]\nsteps:\n  - script: echo twelve months of CI\n";
+        await File.WriteAllTextAsync(path, Theirs);
+
+        Initialise.Response report = await Adopt(
+            solution,
+            tracked: ["src/App/Program.cs"],
+            platform: Platform.AzureDevOps);
+
+        Assert.AreEqual(
+            Initialise.InitChange.Printed,
+            report.Actions.Single(action => action.Path == "azure-pipelines.yml").Change);
+
+        Assert.AreEqual(Theirs, await File.ReadAllTextAsync(path));
+        StringAssert.Contains(report.Printed["azure-pipelines.yml"], "sdlc verify-chain");
+    }
+
+    [TestMethod]
+    public async Task Every_file_adoption_rewrites_on_every_run_is_named_by_the_framework()
+    {
+        // The rule D-40 records, asserted rather than remembered. A file the framework rewrites has to
+        // be one it named: `pull-request.yml` was not, and a team's own pull-request workflow was
+        // replaced and committed because of it. Where the path belongs to the platform or the host, the
+        // framework merges its own entries in or prints them, and both of those are tested above.
+        using var solution = Scratch.Create();
+
+        Initialise.Response report = await Adopt(solution, tracked: ["src/App/Program.cs"]);
+
+        foreach (Initialise.InitAction action in report.Actions)
+        {
+            if (action.Change is not (Initialise.InitChange.Created or Initialise.InitChange.Updated))
+            {
+                continue;
+            }
+
+            string path = action.Path.Replace('\\', '/');
+
+            // AGENTS.md and .gitattributes are created only when absent and printed otherwise. A host's settings file is
+            // merged into, and which files those are comes from the table rather than a list here --
+            // so a host added with a shared configuration is exempt without anybody remembering, and
+            // one added with a configuration the framework claims to own is not.
+            bool shared = SupportedHosts.All.Any(host =>
+                host.Ownership is ConfigOwnership.Shared or ConfigOwnership.Section
+                && string.Equals(host.ConfigPath, path, StringComparison.Ordinal));
+
+            if (path is Initialise.AgentsFileName or LineEndings.FileName || shared)
+            {
+                continue;
+            }
+
+            Assert.IsTrue(
+                path.Contains("sdlc", StringComparison.OrdinalIgnoreCase)
+                || path.StartsWith(Cycle.SdlcDirectoryName + "/", StringComparison.Ordinal),
+                $"{path} is rewritten on every run but is not a name the framework owns. Either give it "
+                + "an sdlc-named path, or merge into it, or print it. D-40.");
+        }
+    }
+
+    [TestMethod]
+    public async Task Adoption_refuses_outside_a_git_repository()
+    {
+        // Without git, build cannot record the diff verify derives from and the gates key on a branch that
+        // cannot exist -- so every hook would permit everything while the artifacts still looked governed.
+        using var solution = Scratch.Create();
+
+        using Gate gate = Adopter(solution, new FakeRepository { Repository = false });
+
+        Result<Initialise.Response> result = await gate
+            .Send<Initialise.Command, Initialise.Response>(new Initialise.Command(Platform.GitHub));
+
+        Assert.IsTrue(result.IsFailed);
+        StringAssert.Contains(result.Errors[0].Message, "git init");
+        Assert.IsFalse(
+            Directory.Exists(Path.Combine(solution.Root, Cycle.SdlcDirectoryName)),
+            "A refusal that had already written half the scaffolding would be worse than one that wrote none.");
+    }
+
+    [TestMethod]
+    [DataRow(false)]
+    [DataRow(true)]
+    public async Task Adoption_drafts_the_declared_stack_and_never_places_it(bool holdsCode)
+    {
+        // It used to be the one protected file a tool created with its contents already decided. Then
+        // it was written by nobody until a person ran a drafter. Now adoption drafts it beside where it
+        // goes, and a person renames it: one step fewer, and still the person's act (D-94).
+        string[] tracked = holdsCode ? ["src/App/Program.cs"] : [];
+
+        using var solution = Scratch.Create();
+
+        Initialise.Response report = await Adopt(solution, tracked);
+
+        string sdlc = Path.Combine(solution.Root, Cycle.SdlcDirectoryName);
+        string stack = Path.Combine(sdlc, Cycle.TechStackFileName);
+        string draft = Path.Combine(sdlc, WriteTechStackDraft.DraftFileName);
+
+        Assert.IsFalse(File.Exists(stack), "Adoption decided what this solution is built from.");
+        Assert.AreEqual(
+            Templates.TechStack(holdsCode ? SolutionOrigin.Adopted : SolutionOrigin.Scaffolded),
+            await File.ReadAllTextAsync(draft),
+            "The same default 'sdlc draft techstack' writes, build settings rows and all.");
+        Assert.AreEqual(SetupProgress.Drafted, report.Setup!.Steps.Single(step => step.FileName == Cycle.TechStackFileName).Progress);
+        Assert.IsFalse(
+            report.Written.Any(path => path.EndsWith(".draft.md", StringComparison.Ordinal)),
+            "A draft is never committed: it is a proposal, and the rename is the act.");
+
+        // A person places it. A refresh says nothing more about it and writes no second draft.
+        File.Move(draft, stack);
+
+        Initialise.Response again = await Adopt(solution, tracked);
+
+        Assert.IsTrue(again.Setup!.Steps.Single(step => step.FileName == Cycle.TechStackFileName).Done);
+        Assert.IsFalse(InitRenderer.Render(again).Contains("a declared stack", StringComparison.Ordinal));
+        Assert.IsFalse(File.Exists(draft), "Nothing is drafted beside a file a person has placed.");
+    }
+
+    [TestMethod]
+    public async Task Adoption_ends_with_every_draft_its_rename_and_the_commit()
+    {
+        // It ended with one command, the drafter for the first step, and a person ran doctor between
+        // renames to learn the next. Adoption writes every draft now, so what is left is the same acts
+        // for each -- fill in, rename, commit -- and the report names them all (D-94). What the block
+        // says is SetupTests'; this holds what adoption read from disk at each step, and that it printed it.
+        using var solution = Scratch.Create();
+
+        Initialise.Response adopted = await Adopt(solution, tracked: []);
+        string first = InitRenderer.Render(adopted);
+
+        CollectionAssert.AreEqual(
+            new[] { Cycle.SolutionFileName, Cycle.TechStackFileName },
+            adopted.Setup!.Left.Select(step => step.FileName).ToArray());
+        Assert.IsTrue(
+            adopted.Setup.Steps.All(step => step.Progress == SetupProgress.Drafted),
+            "Adoption writes every draft, the optional one included.");
+        SetupTests.AssertPrinted(first, adopted.Setup);
+
+        foreach (string view in new[] { "sdlc constraints", "sdlc decisions", "sdlc draft solution", "sdlc draft techstack" })
+        {
+            Assert.IsFalse(
+                first.Contains(view, StringComparison.Ordinal),
+                view + " is not a step: every draft is already written.");
+        }
+
+        // A person writes their paragraph and renames the draft. Nothing runs when they do.
+        string sdlc = Path.Combine(solution.Root, Cycle.SdlcDirectoryName);
+        await File.WriteAllTextAsync(
+            Path.Combine(sdlc, Cycle.SolutionFileName),
+            Written(await File.ReadAllTextAsync(Path.Combine(sdlc, WriteSolutionDraft.DraftFileName))));
+        File.Delete(Path.Combine(sdlc, WriteSolutionDraft.DraftFileName));
+
+        Initialise.Response again = await Adopt(solution, tracked: []);
+
+        CollectionAssert.AreEqual(
+            new[] { Cycle.TechStackFileName },
+            again.Setup!.Left.Select(step => step.FileName).ToArray(),
+            "The placed paragraph is read as placed.");
+        SetupTests.AssertPrinted(InitRenderer.Render(again), again.Setup);
+
+        File.Move(Path.Combine(sdlc, WriteTechStackDraft.DraftFileName), Path.Combine(sdlc, Cycle.TechStackFileName));
+
+        Initialise.Response placed = await Adopt(solution, tracked: []);
+
+        Assert.AreEqual(0, placed.Setup!.Left.Count, "The optional draft still waiting is not a step left.");
+        SetupTests.AssertPrinted(InitRenderer.Render(placed), placed.Setup);
+
+        // From the first cycle on, the status panel names the next command for each cycle.
+        Directory.CreateDirectory(Path.Combine(sdlc, Cycle.CyclesDirectoryName, "20260929_1456_32"));
+
+        string governed = InitRenderer.Render(await Adopt(solution, tracked: []));
+
+        Assert.IsFalse(governed.Contains("Next", StringComparison.Ordinal), governed);
+    }
+
+    [TestMethod]
+    public async Task The_stack_placed_first_still_leaves_the_paragraph_as_the_step()
+    {
+        // The list is read from disk rather than counted off, so doing the second step first does not
+        // make the report claim the first is done.
+        using var solution = Scratch.Create();
+        await Adopt(solution, tracked: []);
+
+        string sdlc = Path.Combine(solution.Root, Cycle.SdlcDirectoryName);
+        File.Move(Path.Combine(sdlc, WriteTechStackDraft.DraftFileName), Path.Combine(sdlc, Cycle.TechStackFileName));
+
+        Initialise.Response again = await Adopt(solution, tracked: []);
+
+        CollectionAssert.AreEqual(
+            new[] { Cycle.SolutionFileName },
+            again.Setup!.Left.Select(step => step.FileName).ToArray());
+        SetupTests.AssertPrinted(InitRenderer.Render(again), again.Setup);
+    }
+
+    [TestMethod]
+    public async Task A_draft_already_waiting_is_never_written_over()
+    {
+        // A person may be halfway through filling one in. Writing a fresh draft over it would throw their
+        // work away, which is the one thing this command is written never to do.
+        using var solution = Scratch.Create();
+        await Adopt(solution, tracked: []);
+
+        string draft = Path.Combine(solution.Root, Cycle.SdlcDirectoryName, WriteSolutionDraft.DraftFileName);
+        string half = (await File.ReadAllTextAsync(draft)) + "Half a paragraph" + Environment.NewLine;
+        await File.WriteAllTextAsync(draft, half);
+
+        Initialise.Response again = await Adopt(solution, tracked: []);
+
+        Assert.AreEqual(half, await File.ReadAllTextAsync(draft));
+        Assert.AreEqual(
+            Initialise.InitChange.Kept,
+            again.Actions.Single(action => action.Path.EndsWith(WriteSolutionDraft.DraftFileName, StringComparison.Ordinal)).Change);
+    }
+
+    [TestMethod]
+    public async Task A_second_run_before_anything_is_placed_keeps_the_origin_adoption_observed()
+    {
+        // Adoption committed its hooks, which look like code to the classifier. With no placed document
+        // a second run would have decided afresh and called a new solution adopted; the draft's keys
+        // are what was observed, so they stand until a person places the file.
+        using var solution = Scratch.Create();
+        await Adopt(solution, tracked: []);
+
+        Initialise.Response again = await Adopt(solution, tracked: [".claude/settings.json", ".github/hooks/sdlc.json"]);
+
+        Assert.AreEqual(Initialise.InitMode.Update, again.Mode);
+        Assert.AreEqual(SolutionOrigin.Scaffolded, again.Origin);
+    }
+
+    [TestMethod]
+    public async Task The_integration_branch_is_development_unless_asked_and_is_drafted_into_the_document()
+    {
+        using var solution = Scratch.Create();
+
+        Initialise.Response report = await Adopt(solution, tracked: []);
+
+        Assert.AreEqual("development", report.IntegrationBranch);
+
+        using var other = Scratch.Create();
+        using Gate gate = Adopter(other, new FakeRepository());
+
+        Result<Initialise.Response> named = await gate
+            .Send<Initialise.Command, Initialise.Response>(new Initialise.Command(Platform.GitHub, "integration"));
+
+        Assert.IsTrue(named.IsSuccess, string.Join("; ", named.Errors.Select(e => e.Message)));
+        Assert.AreEqual("integration", named.Value.IntegrationBranch);
+
+        Result<SolutionDocument> drafted = await SolutionDocument.ReadFileOrDraft(other.Root, CancellationToken.None);
+        Assert.AreEqual("integration", drafted.Value.IntegrationBranch);
+
+        StringAssert.Contains(
+            await File.ReadAllTextAsync(Path.Combine(other.Root, ".github", "workflows", "sdlc-verify.yml")),
+            "integration",
+            "The pipeline targets the branch the document names.");
+    }
+
+    [TestMethod]
+    public async Task An_integration_branch_that_disagrees_with_the_recorded_one_is_refused()
+    {
+        // The document is a person's. A flag that quietly lost to it would leave somebody believing they
+        // had moved the branch, so it is refused and the way to move it is named (D-81).
+        using var solution = Scratch.Create();
+        await Adopt(solution, tracked: []);
+
+        using Gate gate = Adopter(solution, new FakeRepository());
+
+        Result<Initialise.Response> result = await gate
+            .Send<Initialise.Command, Initialise.Response>(new Initialise.Command(null, "trunk"));
+
+        Assert.IsTrue(result.IsFailed);
+        StringAssert.Contains(string.Join("; ", result.Errors.Select(e => e.Message)), "only a person changes it");
+    }
+
+    [TestMethod]
+    public async Task The_constraints_draft_renamed_untouched_puts_no_rule_in_force()
+    {
+        // A tool may not write a rule (D-69). The shape of one is shown indented so the parser does not
+        // read it, or renaming the draft would bind every plan to a rule called "<the rule, in one line>".
+        using var solution = Scratch.Create();
+        await Adopt(solution, tracked: []);
+
+        string draft = await File.ReadAllTextAsync(Path.Combine(
+            solution.Root, Cycle.SdlcDirectoryName, Setup.ConstraintsDraftFileName));
+
+        Result<IReadOnlyList<Constraint>> parsed = ConstraintParser.Parse(draft, "constraints.md");
+
+        Assert.IsTrue(parsed.IsSuccess, string.Join("; ", parsed.Errors.Select(e => e.Message)));
+        Assert.AreEqual(0, parsed.Value.Count);
+        StringAssert.Contains(draft, ProtectedPaths.Note[0]);
+    }
+
+    [TestMethod]
+    public async Task The_constraints_draft_is_written_every_time_and_never_a_step_left()
+    {
+        // Optional, and still drafted: a solution with no rules of its own is sound, and the first rule
+        // it does take lands in a document that already explains itself.
+        using var solution = Scratch.Create();
+
+        Initialise.Response report = await Adopt(solution, tracked: []);
+
+        Assert.IsTrue(File.Exists(Path.Combine(solution.Root, Cycle.SdlcDirectoryName, Setup.ConstraintsDraftFileName)));
+
+        SetupStep constraints = report.Setup!.Steps.Single(step => step.FileName == "constraints.md");
+
+        Assert.IsTrue(constraints.Optional);
+        Assert.IsFalse(
+            report.Setup.Left.Contains(constraints),
+            "Left is what stands between this solution and its first cycle, and this does not.");
+    }
+
+    [TestMethod]
+    public async Task A_clone_taken_before_anything_was_placed_gets_its_drafts_back_and_keeps_its_origin()
+    {
+        // The drafts are ignored by git, so a clone has the framework's directory and nothing that records
+        // the origin. Adoption's own committed files are not code, so a run there drafts all three again
+        // and still calls a new solution scaffolded.
+        using var solution = Scratch.Create();
+        Initialise.Response first = await Adopt(solution, tracked: []);
+
+        string sdlc = Path.Combine(solution.Root, Cycle.SdlcDirectoryName);
+        string[] drafts = [WriteSolutionDraft.DraftFileName, WriteTechStackDraft.DraftFileName, Setup.ConstraintsDraftFileName];
+
+        foreach (string draft in drafts)
+        {
+            File.Delete(Path.Combine(sdlc, draft));
+        }
+
+        string[] committed = [.. first.Written.Select(path => path.Replace('\\', '/'))];
+        Initialise.Response again = await Adopt(solution, tracked: committed);
+
+        Assert.AreEqual(Initialise.InitMode.Update, again.Mode);
+        Assert.AreEqual(SolutionOrigin.Scaffolded, again.Origin, "Its own hooks are not evidence of code.");
+
+        foreach (string draft in drafts)
+        {
+            Assert.IsTrue(File.Exists(Path.Combine(sdlc, draft)), draft + " was not drafted again.");
+        }
+    }
+
+    [TestMethod]
+    public void The_sdlc_readme_names_the_three_drafts_and_how_to_get_one_back()
+    {
+        string readme = Templates.Readme();
+
+        foreach (string draft in new[] { WriteSolutionDraft.DraftFileName, WriteTechStackDraft.DraftFileName, Setup.ConstraintsDraftFileName })
+        {
+            StringAssert.Contains(readme, draft);
+        }
+
+        StringAssert.Contains(readme, "ignored by git");
+        StringAssert.Contains(readme, "**Optional**");
+        StringAssert.Contains(readme, "It drafts again whichever is neither placed nor drafted");
+    }
+
+    [TestMethod]
+    public async Task Every_draft_carries_the_note_saying_only_a_person_changes_the_file()
+    {
+        using var solution = Scratch.Create();
+        await Adopt(solution, tracked: []);
+
+        foreach (string name in new[] { WriteSolutionDraft.DraftFileName, WriteTechStackDraft.DraftFileName, Setup.ConstraintsDraftFileName })
+        {
+            StringAssert.Contains(
+                await File.ReadAllTextAsync(Path.Combine(solution.Root, Cycle.SdlcDirectoryName, name)),
+                ProtectedPaths.Note[0],
+                name);
+        }
+    }
+
+    [TestMethod]
+    public async Task The_drafts_are_ignored_by_git_and_the_ignore_is_committed()
+    {
+        using var solution = Scratch.Create();
+
+        Initialise.Response report = await Adopt(solution, tracked: []);
+
+        string ignore = Path.Combine(Cycle.SdlcDirectoryName, ".gitignore");
+
+        CollectionAssert.Contains(report.Written.ToArray(), ignore);
+        StringAssert.Contains(await File.ReadAllTextAsync(Path.Combine(solution.Root, ignore)), "/*.draft.md");
+    }
+
+    /// <summary>A solution document with its prompt replaced by a paragraph, as a person would leave it.</summary>
+    private static string Written(string draft)
+    {
+        int from = draft.IndexOf(WriteSolutionDraft.Placeholder, StringComparison.Ordinal);
+        int to = draft.IndexOf("-->", from, StringComparison.Ordinal) + "-->".Length;
+
+        return draft[..from] + "A die, rolled over HTTP, for anyone settling an argument." + draft[to..];
+    }
+
+    [TestMethod]
+    [DataRow(Platform.GitHub, ".github/workflows/sdlc-verify.yml")]
+    [DataRow(Platform.AzureDevOps, "azure-pipelines.yml")]
+    public async Task Each_platform_gets_its_own_pipeline(Platform platform, string expected)
+    {
+        using var solution = Scratch.Create();
+
+        Initialise.Response report = await Adopt(solution, tracked: [], platform: platform);
+
+        Assert.IsTrue(
+            report.Actions.Any(action => action.Path.Replace('\\', '/') == expected),
+            string.Join("; ", report.Actions.Select(a => a.Path)));
+    }
+
+    [TestMethod]
+    public void Every_pipeline_runs_verify_chain_and_thresholds_nothing()
+    {
+        // The guarantee lives in the binary, so each pipeline is about thirty lines wrapping one command.
+        // And coverage is displayed rather than enforced: a threshold gets met by testing what is easy.
+        foreach (Platform platform in Templates.Hosted)
+        {
+            string pipeline = Templates.Pipeline(platform);
+
+            StringAssert.Contains(pipeline, "sdlc verify-chain", platform.ToString());
+
+            // Comment lines are excluded, because the comment that explains why there is no threshold
+            // says the word. A check that banned it everywhere would force the explanation out.
+            string yaml = string.Join(
+                Environment.NewLine,
+                pipeline
+                    .ReplaceLineEndings()
+                    .Split(Environment.NewLine)
+                    .Where(line => !line.TrimStart().StartsWith('#')));
+
+            foreach (string word in (string[])["threshold", "fail_under", "minimum", "badge"])
+            {
+                Assert.IsFalse(
+                    yaml.Contains(word, StringComparison.OrdinalIgnoreCase),
+                    $"{platform} enforces coverage ('{word}'), which is a non-goal.");
+            }
+        }
+    }
+
+    [TestMethod]
+    public void The_azure_devops_pipeline_names_the_policy_that_runs_it_and_no_trigger_that_cannot()
+    {
+        // Azure Repos ignores a 'pr:' block -- the keyword is for GitHub and Bitbucket -- and the template
+        // carried one beside 'trigger: none', so it ran on nothing while reading as a gate. What runs it is
+        // a build validation policy, which a person sets, so the file says how.
+        string pipeline = Templates.Pipeline(Platform.AzureDevOps);
+
+        string[] yaml =
+        [
+            .. pipeline
+                .ReplaceLineEndings()
+                .Split(Environment.NewLine)
+                .Where(line => !line.TrimStart().StartsWith('#')),
+        ];
+
+        Assert.IsFalse(
+            yaml.Any(line => line.TrimStart().StartsWith("pr:", StringComparison.Ordinal)),
+            "A 'pr:' trigger does nothing on Azure Repos, and reads as if it did.");
+        StringAssert.Contains(pipeline, "Build validation");
+    }
+
+    [TestMethod]
+    [DataRow(Platform.GitHub)]
+    [DataRow(Platform.AzureDevOps)]
+    public void Each_pipeline_is_valid_yaml_and_skips_the_build_only_for_a_plan_being_admitted(Platform platform)
+    {
+        // The suite asserts strings in the templates, and a quoting mistake inside one of those strings
+        // is a pipeline that fails to load on its first run -- which on Azure DevOps nobody has done yet.
+        // So the YAML is parsed, and the steps the admission check skips are found by what they run.
+        string pipeline = Templates.Pipeline(platform);
+
+        YamlDotNet.RepresentationModel.YamlStream stream = [];
+        stream.Load(new StringReader(pipeline));
+        Assert.AreEqual(1, stream.Documents.Count);
+
+        StringAssert.Contains(pipeline, "sdlc admission", "D-87: the pipeline asks what the pull request carries.");
+        StringAssert.Contains(pipeline, "--base", "The check is told the target branch, or it cannot read the diff.");
+
+        string[] lines = pipeline.ReplaceLineEndings().Split(Environment.NewLine);
+        int build = Array.FindIndex(lines, line => line.Contains("dotnet build", StringComparison.Ordinal));
+        int test = Array.FindIndex(lines, line => line.Contains("dotnet test", StringComparison.Ordinal));
+        int chain = Array.FindIndex(lines, line => line.Contains("sdlc verify-chain", StringComparison.Ordinal));
+
+        Assert.IsTrue(lines[build + 1].Contains("admission", StringComparison.Ordinal)
+            || lines[build + 2].Contains("admission", StringComparison.Ordinal), "The build is skipped for a plan alone.");
+        Assert.IsTrue(lines[test + 1].Contains("admission", StringComparison.Ordinal)
+            || lines[test + 2].Contains("admission", StringComparison.Ordinal), "The tests are skipped for a plan alone.");
+        Assert.IsFalse(
+            lines.Skip(chain - 2).Take(6).Any(line => line.Contains("admission", StringComparison.Ordinal)),
+            "The check never depends on the admission step: skipping it there would make that step the bypass.");
+        Assert.IsTrue(
+            pipeline.Contains("development", StringComparison.Ordinal),
+            "D-86: the integration branch builds on every merge.");
+    }
+
+    [TestMethod]
+    public async Task Adoption_writes_no_git_hook_and_asks_for_none_to_be_installed()
+    {
+        // A pre-push hook was written here and left for a person to install per clone, so it looked like
+        // enforcement and ran nowhere -- and where it did run it refused a push of work in progress. What
+        // may merge is the pull-request check's to decide (D-78).
+        using var solution = Scratch.Create();
+
+        Initialise.Response report = await Adopt(solution, tracked: []);
+
+        Assert.IsFalse(
+            Directory.Exists(Path.Combine(solution.Root, Cycle.SdlcDirectoryName, "hooks")),
+            string.Join("; ", report.Actions.Select(action => action.Path)));
+
+        Assert.IsFalse(
+            Directory.Exists(Path.Combine(solution.Root, ".git", "hooks")),
+            "Adoption must not write into .git, which is not tracked.");
+
+        string rendered = InitRenderer.Render(report);
+
+        Assert.IsFalse(
+            rendered.Contains("hooksPath", StringComparison.Ordinal)
+            || rendered.Contains("pre-push", StringComparison.Ordinal),
+            "A step nobody has to take is a step the report must not name.");
+    }
+
+    [TestMethod]
+    public void The_agent_file_names_every_file_only_a_person_writes()
+    {
+        // It said four for as long as there had been six. The hook reads its list from ProtectedPaths,
+        // so this does too -- a seventh file fails here rather than being left out of the one place an
+        // agent is told what it may not write.
+        string agents = Templates.Agents("a solution");
+
+        foreach (string name in ProtectedPaths.Names)
+        {
+            StringAssert.Contains(agents, "`" + name + "`");
+        }
+
+        StringAssert.Contains(agents, "**Six files are a person's to write**");
+        Assert.AreEqual(6, ProtectedPaths.Names.Count, "The count in the sentence is written out, so it moves with the list.");
+    }
+
+    [TestMethod]
+    public void The_solution_readme_names_every_file_only_a_person_writes()
+    {
+        // Its table listed five and its hooks paragraph said four, while the hook denied six. Held
+        // against the same list the hook reads, for the reason the agent file is.
+        string readme = Templates.Readme();
+
+        foreach (string name in ProtectedPaths.Names)
+        {
+            Assert.IsTrue(
+                readme.ReplaceLineEndings("\n").Split('\n').Any(line =>
+                    line.StartsWith('|')
+                    && line.Contains(name + "`", StringComparison.Ordinal)
+                    && line.EndsWith("| a person, by hand |", StringComparison.Ordinal)),
+                name + " has no row saying a person writes it.");
+        }
+
+        StringAssert.Contains(readme, "Six of those are written only by a person.");
+        StringAssert.Contains(readme, "denies every agent write to all six");
+        StringAssert.Contains(readme, "one of the six files only a");
+        Assert.AreEqual(6, ProtectedPaths.Names.Count, "The counts in those sentences are written out, so they move with the list.");
+    }
+
+    [TestMethod]
+    public void The_solution_readme_shows_the_format_version_being_stamped()
+    {
+        // The readme's example envelope is the shape a person checks their own artifact against, so a
+        // version it hardcodes is a version that is right until the format moves and wrong everywhere
+        // afterwards -- in a file already written into every solution that adopted before the change.
+        // It was a literal '1.0.0' for exactly as long as that was also the constant's value.
+        StringAssert.Contains(
+            Templates.Readme(),
+            "framework_version: " + Cycle.FrameworkVersion,
+            "The solution readme's example envelope does not show the version being stamped into "
+            + "artifacts. Interpolate Cycle.FrameworkVersion rather than writing the number.");
+    }
+
+    [TestMethod]
+    public void Every_command_the_solution_readme_names_is_one_the_binary_has()
+    {
+        // The readme goes into every governed solution and is the first place somebody looks. A command it
+        // names and the binary does not have sends them to a usage error, and the usage text is the one
+        // place they would not think to look for the answer.
+        string usage = File.ReadAllText(Path.Combine(
+            RepoPaths.Root, "src", "Sdlc.Cli", "Usage.cs"));
+
+        IEnumerable<string> named = System.Text.RegularExpressions.Regex
+            .Matches(Templates.Readme(), @"sdlc (?<verb>[a-z-]+(?: [a-z]+)?)")
+            .Select(match => match.Groups["verb"].Value)
+            .Distinct(StringComparer.Ordinal);
+
+        foreach (string verb in named)
+        {
+            // The stage skills are named deliberately, and the binary answers those by explaining itself.
+            if (Sdlc.Cli.Stages.IsSkill(verb.Split(' ')[0]))
+            {
+                continue;
+            }
+
+            StringAssert.Contains(
+                usage,
+                verb,
+                $"The solution readme names 'sdlc {verb}', which the usage text does not list.");
+        }
+    }
+
+    [TestMethod]
+    [DataRow(false)]
+    [DataRow(true)]
+    public async Task Adoption_writes_no_build_settings_in_any_mode(bool holdsCode)
+    {
+        // They are .NET -- warnings as errors in a props file, an SDK pin -- and adoption does not
+        // know what a solution is built from, so writing them would be deciding the stack on the way
+        // past. There is no option that makes it: the declared stack lists the ones a solution takes,
+        // and 'sdlc scaffold' writes them inside a cycle whose approved plan declares them. D-77.
+        string[] tracked = holdsCode ? ["src/App/Program.cs"] : [];
+
+        using var solution = Scratch.Create();
+
+        await Adopt(solution, tracked);
+
+        foreach (string file in Stack)
+        {
+            Assert.IsFalse(
+                File.Exists(Path.Combine(solution.Root, file)),
+                file + " was written by an adoption nobody told what the solution is built from.");
+        }
+    }
+
+    [TestMethod]
+    public async Task An_existing_codebase_keeps_its_own_standard_and_is_told_where_the_two_choices_live()
+    {
+        // The flag that used to answer both is gone, and the two things it did were never one
+        // decision. So the report names each home at the one moment somebody is reading: the standard
+        // is a draft of the solution document, the build settings are rows in the declared stack.
+        using var solution = Scratch.Create();
+
+        Initialise.Response report = await Adopt(solution, tracked: ["src/App/Program.cs"]);
+
+        Assert.AreEqual(SolutionOrigin.Adopted, report.Origin);
+        Assert.AreEqual(SolutionStandard.Existing, report.Standard);
+
+        string rendered = InitRenderer.Render(report);
+
+        StringAssert.Contains(rendered, "set 'standard: profile'");
+        StringAssert.Contains(rendered, "its draft lists them switched off");
+        StringAssert.Contains(
+            rendered,
+            "warnings errors",
+            "What switching the build settings on costs is said before anybody switches them on.");
+    }
+
+    [TestMethod]
+    public async Task A_refresh_carries_the_recorded_standard_and_prints_nothing_about_it()
+    {
+        // Adoption creates the solution document and never modifies it, and there is no longer an
+        // option that asks it to. A person moves the standard by renaming a draft, so a re-run reports
+        // what is recorded and has no pending key to print.
+        using var solution = Scratch.Create();
+        await Adopt(solution, tracked: ["src/App/Program.cs"]);
+
+        Initialise.Response report = await Adopt(solution, tracked: ["src/App/Program.cs"]);
+
+        Assert.AreEqual(Initialise.InitMode.Update, report.Mode);
+        Assert.AreEqual(SolutionStandard.Existing, report.Standard);
+        Assert.IsFalse(
+            report.Printed.ContainsKey(Path.Combine(Cycle.SdlcDirectoryName, Cycle.SolutionFileName)),
+            "Nothing asked for a change to the document, so there is no block for a person to place.");
+    }
+
+    [TestMethod]
+    public async Task A_scaffolded_solution_is_not_told_about_a_cost_it_is_not_paying()
+    {
+        // The same files, and no caution: nothing predates them, so there is no old code for a
+        // severity to fire on. A warning printed where it does not apply is the kind nobody reads.
+        using var solution = Scratch.Create();
+
+        Initialise.Response report = await Adopt(solution, tracked: []);
+
+        Assert.AreEqual(SolutionStandard.Profile, report.Standard);
+        Assert.IsFalse(
+            InitRenderer.Render(report).Contains("files nobody has touched", StringComparison.Ordinal));
+    }
+
+    [TestMethod]
+    public async Task Adoption_writes_no_code_and_no_projects()
+    {
+        // D-35. Adoption writes the files that say how code is to be written; the code itself arrives
+        // through 'sdlc scaffold' behind an approved plan. Writing it here made the solution file, the
+        // projects and the reference slice the only things in a governed repository with no intent, no
+        // spec, no plan and no approval behind them -- which is the promise the whole design rests on.
+        using var solution = Scratch.Create();
+
+        Initialise.Response report = await Adopt(solution, tracked: []);
+
+        Assert.AreEqual(SolutionOrigin.Scaffolded, report.Origin, "The case where it would be tempting.");
+
+        string[] code =
+        [
+            .. Directory.EnumerateFiles(solution.Root, "*.cs", SearchOption.AllDirectories),
+            .. Directory.EnumerateFiles(solution.Root, "*.csproj", SearchOption.AllDirectories),
+            .. Directory.EnumerateFiles(solution.Root, "*.slnx", SearchOption.AllDirectories),
+        ];
+
+        Assert.AreEqual(
+            0,
+            code.Length,
+            "Adoption left code on disk: " + string.Join(", ", code) + ". It belongs to a cycle.");
+    }
+
+    [TestMethod]
+    public void The_generated_stack_is_well_formed_and_carries_the_pair_that_silently_breaks_a_run()
+    {
+        // The runner needs EnableMSTestRunner and the global.json test section together. With one of
+        // them, 'dotnet test' exits zero having run nothing, which reads as a clean run - and a trial
+        // cycle lost its whole verification to exactly that. So both halves are asserted here, where a
+        // reader can see they are a pair.
+        Assert.IsNotNull(XDocument.Parse(Templates.BuildProps()));
+        Assert.IsNotNull(XDocument.Parse(Templates.PackageProps()));
+        Assert.IsNotNull(JsonNode.Parse(Templates.GlobalJson()));
+
+        StringAssert.Contains(Templates.BuildProps(), "<EnableMSTestRunner>true</EnableMSTestRunner>");
+        Assert.AreEqual(
+            "Microsoft.Testing.Platform",
+            JsonNode.Parse(Templates.GlobalJson())!["test"]!["runner"]!.GetValue<string>());
+
+        // The element, not the word: the file names the property in a comment warning against it, and
+        // asserting on the bare name catches the warning rather than the mistake.
+        Assert.IsFalse(
+            Templates.BuildProps().Contains("<TestingPlatformDotnetTestSupport>", StringComparison.Ordinal),
+            "That is the .NET 9 mechanism, and setting it instead of EnableMSTestRunner is what "
+            + "produced the silent zero-test pass.");
+    }
+
+    [TestMethod]
+    public void A_test_project_can_write_its_first_test_under_the_generated_policy()
+    {
+        // Found by running it rather than by reading it: with the analyzer policy and no relaxations,
+        // CA1707 refuses Rolls_within_one_and_six and CA1305 refuses a bare ToString() in an
+        // assertion, so a scaffolded solution could not write the test its own plan named. A profile
+        // shipping the policy without these would make every consumer rediscover the same five.
+        string props = Templates.TestBuildProps();
+
+        Assert.IsNotNull(XDocument.Parse(props));
+
+        foreach (string rule in (string[])["CA1707", "CA1515", "CA1307", "CA1305", "CA2007"])
+        {
+            StringAssert.Contains(props, rule, rule + " is relaxed for test code, and says why.");
+        }
+
+        StringAssert.Contains(
+            props,
+            "GetPathOfFileAbove",
+            "A Directory.Build.props in a subdirectory shadows the one above it, so without the import "
+            + "a test project silently loses the framework, the analyzer level and warnings-as-errors.");
+    }
+
+    [TestMethod]
+    public void The_generated_editorconfig_says_what_does_not_enforce_its_naming_rules()
+    {
+        // The rules are there to guide an editor, and EnforceCodeStyleInBuild does not cover IDE1006.
+        // A file that stated them without saying so would be the directory that appears enforced and
+        // is not, in the one place a reader goes to find out what binds them.
+        string text = Templates.EditorConfig();
+
+        StringAssert.Contains(text, "dotnet_naming_rule.private_fields_are_underscore_camel");
+        StringAssert.Contains(text, "dotnet_naming_rule.private_methods_are_camel");
+        StringAssert.Contains(text, "dotnet_diagnostic.IDE0055.severity = error");
+
+        StringAssert.Contains(text, "IDE1006");
+        StringAssert.Contains(text, "architecture test");
+    }
+
+    [TestMethod]
+    public async Task Adoption_replaces_only_its_own_section_of_a_file_of_named_hook_groups()
+    {
+        // The third ownership, and D-40's failure arriving through a shape the merge had not met.
+        // Antigravity's hooks.json is a map of named hook groups rather than one hooks object, so the
+        // framework owns the group it named and every sibling key is a hook somebody else wrote. A
+        // merge that understood only the other shape would have had to own the whole file, which is
+        // how a team loses a hook to an upgrade and is told it was "updated".
+        SupportedHost antigravity = SupportedHosts.Of(HookHost.Antigravity);
+
+        Assert.AreEqual(
+            ConfigOwnership.Section,
+            antigravity.Ownership,
+            "This test is about that ownership; if the row changed, so must it.");
+
+        using var solution = Scratch.Create();
+        string path = Path.Combine(solution.Root, ".agents", "hooks.json");
+        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+        await File.WriteAllTextAsync(
+            path,
+            """
+            {
+              "our-linter": {
+                "PostToolUse": [
+                  { "matcher": "run_command", "hooks": [ { "type": "command", "command": "./lint.sh" } ] }
+                ]
+              },
+              "sdlc": {
+                "PreToolUse": [
+                  { "matcher": "nothing", "hooks": [ { "type": "command", "command": "an-older-release" } ] }
+                ]
+              }
+            }
+            """);
+
+        await Adopt(solution, tracked: ["src/App/Program.cs"]);
+
+        JsonObject merged = JsonNode.Parse(await File.ReadAllTextAsync(path))!.AsObject();
+
+        Assert.AreEqual(
+            "./lint.sh",
+            merged["our-linter"]!["PostToolUse"]![0]!["hooks"]![0]!["command"]!.GetValue<string>(),
+            "A hook group the team wrote is not adoption's to touch.");
+
+        string ours = merged[antigravity.EventsKey]!["PreToolUse"]![0]!["hooks"]![0]!["command"]!
+            .GetValue<string>();
+
+        StringAssert.Contains(
+            ours,
+            "sdlc hook --host " + antigravity.Spelling,
+            "The framework's own group is replaced rather than left at whatever an older release wrote.");
+
+        Assert.AreEqual(
+            2,
+            merged.Count,
+            "Exactly the team's groups plus the framework's one. A third key is something invented.");
+    }
+
+    [TestMethod]
+    [DynamicData(nameof(Hosts))]
+    public void Each_generated_hook_config_declares_the_events_its_host_actually_has(HookHost named)
+    {
+        // Driven off the enum, so a member added without a row fails here when Of throws, and a row
+        // added is covered without anybody remembering. What this holds is the join between the row
+        // and the file: a row that says a host has a turn end and a file that configures none is a
+        // half-added host, and that state looks exactly like a supported one from the outside.
+        SupportedHost host = SupportedHosts.Of(named);
+
+        JsonNode config = JsonNode.Parse(Templates.HookConfig(host.Host))!;
+        JsonObject events = config[host.EventsKey]!.AsObject();
+
+        Assert.IsNotNull(
+            events[host.PreToolEvent],
+            $"{host.Name} has no '{host.PreToolEvent}' block, so nothing judges a tool call on it.");
+
+        if (host.TurnEndEvent is { } turnEnd)
+        {
+            StringAssert.Contains(
+                Command(events[turnEnd]!.AsArray()[0]!, host),
+                "--event turn-end",
+                $"{host.Name}'s '{turnEnd}' block does not ask for the turn end.");
+        }
+
+        // A block for an event the host cannot fire is the failure this design is written against:
+        // a check that looks like enforcement and never runs. So the only keys permitted are the
+        // ones the row names.
+        string[] permitted = host.TurnEndEvent is null
+            ? [host.PreToolEvent]
+            : [host.PreToolEvent, host.TurnEndEvent];
+
+        CollectionAssert.AreEquivalent(
+            permitted,
+            events.Select(entry => entry.Key).ToArray(),
+            $"{host.Name}'s configuration claims an event its row does not.");
+
+        if (host.ConfigVersion is { } version)
+        {
+            Assert.AreEqual(
+                version,
+                config["version"]!.GetValue<int>(),
+                $"{host.Name} reads a versioned configuration and this one declares no version.");
+        }
+    }
+
+    [TestMethod]
+    [DynamicData(nameof(Hosts))]
+    public void Each_generated_hook_entry_is_shaped_the_way_its_host_documents(HookHost named)
+    {
+        // Copilot's entries carried no `type` at all, which its own schema requires -- so the
+        // likeliest reading is that the whole entry was discarded and the gate allowed everything
+        // while `.github/hooks/sdlc.json` sat there looking like enforcement. Asserted per host
+        // rather than per file, because the next host's schema will have its own required field.
+        SupportedHost host = SupportedHosts.Of(named);
+
+        JsonObject entry = JsonNode.Parse(Templates.HookConfig(host.Host))![host.EventsKey]!
+            .AsObject()[host.PreToolEvent]!
+            .AsArray()[0]!
+            .AsObject();
+
+        JsonObject command = host.EntryShape == HookEntryShape.Direct
+            ? entry
+            : entry["hooks"]!.AsArray()[0]!.AsObject();
+
+        Assert.AreEqual(
+            "command",
+            command["type"]!.GetValue<string>(),
+            $"{host.Name}'s entry does not say what kind of hook it is.");
+
+        StringAssert.Contains(
+            Command(entry, host),
+            "sdlc hook --host " + host.Spelling,
+            $"{host.Name}'s entry does not run the gate, or names a spelling it does not answer to.");
+
+        // The number as well as the key. A hook with no timeout on the path of every edit is one
+        // that can hang the session it protects, and a hook whose budget is wrong by a factor of a
+        // thousand cannot answer at all -- which is what the key's own remarks record about a host
+        // that spelled it the same and meant milliseconds.
+        Assert.AreEqual(
+            SupportedHosts.TimeoutSeconds,
+            command[host.TimeoutKey]!.GetValue<int>(),
+            $"{host.Name} spells its timeout '{host.TimeoutKey}'.");
+
+        if (host.EntryShape == HookEntryShape.Direct)
+        {
+            // Both shells. A Windows-only machine with no bash would otherwise have a hook that
+            // silently never runs.
+            Assert.AreEqual(
+                entry["bash"]!.GetValue<string>(),
+                entry["powershell"]!.GetValue<string>(),
+                "The two shells run the same command or one of them is governed differently.");
+        }
+    }
+
+    /// <summary>
+    /// Every host the enum declares, so these run per host rather than per name somebody typed.
+    /// </summary>
+    /// <remarks>
+    /// The enum rather than the table, deliberately: a member with no row is the half-added host
+    /// this whole arrangement exists to catch, and enumerating the table would skip exactly that
+    /// case.
+    /// </remarks>
+    public static IEnumerable<object[]> Hosts =>
+        Enum.GetValues<HookHost>().Select(host => new object[] { host });
+
+    /// <summary>The command one entry runs, whichever shape its host spells entries in.</summary>
+    private static string Command(JsonNode entry, SupportedHost host) =>
+        host.EntryShape == HookEntryShape.Direct
+            ? entry["bash"]!.GetValue<string>()
+            : entry["hooks"]!.AsArray()[0]!["command"]!.GetValue<string>();
+
+    [TestMethod]
+    public void The_untested_pipeline_says_so_in_the_file_it_generates()
+    {
+        // D-32. A pipeline nobody has run looks exactly like a gate, and a check that appears to enforce
+        // and does not is worse than one that never pretended -- so the caveat is in the generated file,
+        // where the first person to adopt on this platform reads it, rather than only in our own notes.
+        string ado = Templates.Pipeline(Platform.AzureDevOps);
+
+        StringAssert.Contains(ado, "never run against a real Azure DevOps server");
+        StringAssert.Contains(
+            ado,
+            "sdlc verify-chain",
+            "The caveat must not bury the one line that matters.");
+
+        Assert.IsFalse(
+            Templates.Pipeline(Platform.GitHub).Contains("never run", StringComparison.Ordinal),
+            "The GitHub pipeline has run, so claiming otherwise would be the opposite mistake.");
+    }
+
+    [TestMethod]
+    public void Every_pipeline_installs_the_gate_before_it_calls_it()
+    {
+        // The first version of these templates called 'sdlc verify-chain' on a runner where nothing had
+        // put 'sdlc' on the path. It would have failed command-not-found from the one step that is the
+        // whole guarantee -- the loudest possible place to discover an install was missing, and the
+        // least likely place for a reader to suspect one.
+        foreach (Platform platform in Templates.Hosted)
+        {
+            string pipeline = Templates.Pipeline(platform).ReplaceLineEndings();
+            string[] lines = pipeline.Split(Environment.NewLine);
+
+            int install = Array.FindIndex(
+                lines,
+                line => line.Contains("dotnet tool install", StringComparison.Ordinal)
+                    && !line.TrimStart().StartsWith('#'));
+
+            Assert.IsGreaterThan(
+                -1,
+                install,
+                $"{platform} never installs the binary its last step calls.");
+
+            // Pinned rather than latest. An unpinned governance tool can change what a repository is
+            // judged by between two runs, with nobody having chosen the new rules.
+            StringAssert.Contains(
+                lines[install],
+                "--version " + Sdlc.Core.Release.Version,
+                $"{platform} does not pin the gate to the release it ships with.");
+
+            int check = Array.FindIndex(
+                lines,
+                line => line.Contains("sdlc verify-chain", StringComparison.Ordinal)
+                    && !line.TrimStart().StartsWith('#'));
+
+            Assert.IsLessThan(
+                check,
+                install,
+                $"{platform} calls the gate before installing it.");
+
+            // The build is the expensive step, so a gate that cannot be fetched should fail before it
+            // rather than after it.
+            int build = Array.FindIndex(
+                lines,
+                line => line.Contains("dotnet build", StringComparison.Ordinal)
+                    && !line.TrimStart().StartsWith('#'));
+
+            Assert.IsLessThan(
+                build,
+                install,
+                $"{platform} spends a build before finding out whether the gate is available.");
+        }
+    }
+
+    [TestMethod]
+    public void The_unpublished_package_says_so_in_the_pipeline_it_generates()
+    {
+        // D-32's rule applied to the step that step depends on. The package is not on a feed yet, so
+        // this install does not resolve -- and the person whose first pull request fails on it reads the
+        // generated file, not our notes. Writing no install step at all was the quiet version of the
+        // same gap, which is the one the whole design is written against.
+        foreach (Platform platform in Templates.Hosted)
+        {
+            StringAssert.Contains(
+                Templates.Pipeline(platform),
+                "not on a public feed yet",
+                $"{platform} installs a package it cannot resolve and does not say so.");
+        }
+    }
+
+    [TestMethod]
+    public void The_agents_file_points_at_the_constraints_rather_than_restating_them()
+    {
+        // A copy of the rules here would be a second place they live, and the copy is always the one that
+        // goes stale.
+        string agents = Templates.Agents("a solution");
+
+        StringAssert.Contains(agents, "sdlc constraints");
+
+        foreach (string id in (string[])["CON_01", "CON_04", "CON_07", "CON_13"])
+        {
+            Assert.IsFalse(
+                agents.Contains(id, StringComparison.Ordinal),
+                $"The instruction file restates {id}. It must point at the command instead.");
+        }
+
+        Assert.IsTrue(
+            agents.ReplaceLineEndings().Split(Environment.NewLine).Length < 200,
+            "The file is meant to be lean; past about 200 lines nothing reads all of it.");
+    }
+
+    [TestMethod]
+    public async Task Adoption_creates_no_empty_directories()
+    {
+        // Nothing is created speculatively. An empty cycles directory is a thing a reader has to work out
+        // the meaning of.
+        using var solution = Scratch.Create();
+
+        await Adopt(solution, tracked: []);
+
+        Assert.IsFalse(
+            Directory.Exists(Path.Combine(
+                solution.Root,
+                Cycle.SdlcDirectoryName,
+                Cycle.CyclesDirectoryName)),
+            "A cycles directory holding no cycle was created ahead of the step that owns it.");
+    }
+
+    [TestMethod]
+    public async Task The_commit_message_names_every_file_adoption_wrote()
+    {
+        using var solution = Scratch.Create();
+
+        Initialise.Response report = await Adopt(solution, tracked: []);
+        string message = Templates.CommitMessage(report.Mode, report.Written);
+
+        foreach (string path in report.Written)
+        {
+            StringAssert.Contains(message, path.Replace('\\', '/'));
+        }
+
+        StringAssert.Contains(
+            message,
+            "untracked",
+            "The reason adoption commits at all belongs in the message: an untracked file is untracked "
+            + "when the first cycle takes its diff.");
+    }
+
+    /// <summary>Every hook command configured for one moment, in order.</summary>
+    private static IEnumerable<string> Commands(JsonNode settings, string moment) =>
+        settings["hooks"]![moment]!.AsArray()
+            .SelectMany(entry => entry!["hooks"]!.AsArray())
+            .Select(hook => hook!["command"]!.GetValue<string>());
+
+    [TestMethod]
+    public async Task Adopting_locally_writes_no_pipeline_and_records_that_it_did_not()
+    {
+        using var solution = Scratch.Create();
+
+        await Adopt(solution, tracked: [], platform: Platform.Local);
+
+        Assert.IsFalse(
+            Directory.Exists(Path.Combine(solution.Root, ".github", "workflows")),
+            "A pipeline for a service this repository has no remote on is a file that looks like a gate "
+            + "and is reachable by nothing.");
+
+        Assert.IsFalse(File.Exists(Path.Combine(solution.Root, "azure-pipelines.yml")));
+
+        Result<SolutionDocument> document = await SolutionDocument
+            .ReadFileOrDraft(solution.Root, CancellationToken.None);
+
+        Assert.IsTrue(document.IsSuccess, string.Join("; ", document.Errors.Select(e => e.Message)));
+        Assert.AreEqual(
+            Platform.Local,
+            document.Value.Platform,
+            "Recorded rather than inferred: nothing else on disk tells local-by-choice from a broken "
+            + "install, and doctor has to be able to say which.");
+    }
+
+    [TestMethod]
+    public async Task Adopting_on_a_platform_still_writes_its_pipeline()
+    {
+        using var solution = Scratch.Create();
+
+        await Adopt(solution, tracked: [], platform: Platform.GitHub);
+
+        Assert.IsTrue(File.Exists(Path.Combine(
+            solution.Root,
+            ".github",
+            "workflows",
+            "sdlc-verify.yml")));
+
+        Result<SolutionDocument> document = await SolutionDocument
+            .ReadFileOrDraft(solution.Root, CancellationToken.None);
+
+        Assert.AreEqual(Platform.GitHub, document.Value.Platform);
+    }
+
+    [TestMethod]
+    public void A_solution_document_written_before_the_platform_key_reads_as_github()
+    {
+        // The key arrived after solutions had been adopted. Refusing to read a file written without it
+        // would make upgrading the binary look like a corrupted repository, and reading it as local would
+        // silently exempt every existing solution from the one check that is the guarantee.
+        Result<SolutionDocument> document = SolutionDocument.Read(
+            "---\nprofile: dotnet-default\norigin: adopted\n---\n",
+            "solution.md");
+
+        Assert.IsTrue(document.IsSuccess, string.Join("; ", document.Errors.Select(e => e.Message)));
+        Assert.AreEqual(Platform.GitHub, document.Value.Platform);
+    }
+
+    [TestMethod]
+    public void A_platform_nobody_recognises_is_a_typo_rather_than_a_default()
+    {
+        // Absent is GitHub; misspelled is an error. Reading 'gitub' as GitHub would hide it.
+        Result<SolutionDocument> document = SolutionDocument.Read(
+            "---\nprofile: dotnet-default\norigin: adopted\nplatform: gitub\n---\n",
+            "solution.md");
+
+        Assert.IsTrue(document.IsFailed);
+        StringAssert.Contains(document.Errors[0].Message, "github, azure-devops or local");
+    }
+
+    [TestMethod]
+    public async Task Re_running_init_with_a_new_platform_prints_the_key_for_a_person_to_place()
+    {
+        // The whole point of the local platform: adopt with no remote, come back when there is one.
+        // That return trip wrote the pipeline and nothing else -- the platform never entered the
+        // calculation, so the record stayed local, doctor kept reporting that no check governs a merge
+        // while the check sat on disk, and the pr skill kept refusing a cycle that had somewhere to go.
+        using var solution = Scratch.Create();
+        await Adopt(solution, tracked: [], platform: Platform.Local);
+
+        Initialise.Response report = await Adopt(solution, tracked: [], platform: Platform.GitHub);
+
+        Assert.AreEqual(Initialise.InitMode.Update, report.Mode);
+        Assert.IsTrue(report.PlatformPending, "The record disagrees with what was asked for.");
+        Assert.AreEqual(
+            Platform.Local,
+            report.Platform,
+            "What the document still says. Reporting the wanted value would claim a migration that has "
+            + "not happened.");
+
+        Assert.IsTrue(
+            File.Exists(Path.Combine(solution.Root, ".github", "workflows", "sdlc-verify.yml")),
+            "The half it can do, it still does.");
+
+        string keys = report.Printed[Path.Combine(Cycle.SdlcDirectoryName, Cycle.SolutionFileName)];
+
+        StringAssert.Contains(keys, "platform: github", "The block carries the platform being moved to.");
+        Assert.IsFalse(keys.Contains("profile: dotnet", StringComparison.Ordinal), "And no key nothing records.");
+        StringAssert.Contains(keys, "origin: scaffolded");
+        StringAssert.Contains(keys, "standard: profile");
+
+        string rendered = InitRenderer.Render(report);
+
+        StringAssert.Contains(
+            rendered,
+            "platform: local",
+            "A reader has to be told which value is still standing.");
+    }
+
+    [TestMethod]
+    public async Task Re_running_init_without_a_platform_proposes_no_migration()
+    {
+        // The trap the fix had to avoid. --platform defaults to github, so a re-run to pick up a new
+        // template would otherwise propose migrating a deliberately local solution onto a platform
+        // nobody asked for -- and the key block is pasted by a person, who would be pasting a
+        // reclassification they never requested. Absent has to mean "keep what is recorded".
+        using var solution = Scratch.Create();
+        await Adopt(solution, tracked: [], platform: Platform.Local);
+
+        Initialise.Response report = await Adopt(solution, tracked: [], platform: null);
+
+        Assert.IsFalse(report.PlatformPending, "Saying nothing is not asking for github.");
+        Assert.AreEqual(Platform.Local, report.Platform);
+        Assert.IsFalse(
+            report.Printed.ContainsKey(Path.Combine(Cycle.SdlcDirectoryName, Cycle.SolutionFileName)),
+            "Nothing is pending, so nothing is printed to paste.");
+
+        Assert.IsFalse(
+            Directory.Exists(Path.Combine(solution.Root, ".github", "workflows")),
+            "And the pipeline still follows the recorded platform rather than the flag's default.");
+    }
+
+    [TestMethod]
+    public async Task A_first_adoption_that_says_nothing_still_records_github()
+    {
+        // The documented default, unchanged. On a first adoption "did not say" and "github" do coincide,
+        // and only there.
+        using var solution = Scratch.Create();
+
+        Initialise.Response report = await Adopt(solution, tracked: [], platform: null);
+
+        Assert.IsFalse(report.PlatformPending);
+        Assert.AreEqual(Platform.GitHub, report.Platform);
+
+        Result<SolutionDocument> document = await SolutionDocument
+            .ReadFileOrDraft(solution.Root, CancellationToken.None);
+
+        Assert.AreEqual(Platform.GitHub, document.Value.Platform);
+        Assert.IsTrue(File.Exists(Path.Combine(
+            solution.Root,
+            ".github",
+            "workflows",
+            "sdlc-verify.yml")));
+    }
+
+    private static async Task<Initialise.Response> Adopt(
+        Scratch solution,
+        IReadOnlyList<string> tracked,
+        Platform? platform = Platform.GitHub)
+    {
+        using Gate gate = Adopter(solution, new FakeRepository { Tracked = tracked });
+
+        Result<Initialise.Response> result = await gate
+            .Send<Initialise.Command, Initialise.Response>(new Initialise.Command(platform));
+
+        Assert.IsTrue(result.IsSuccess, string.Join("; ", result.Errors.Select(e => e.Message)));
+        return result.Value;
+    }
+
+    /// <summary>
+    /// The files that decide how code is written, by path.
+    /// </summary>
+    /// <remarks>
+    /// Named here rather than read from <see cref="BuildSettings.All"/> on purpose: a test that asks
+    /// the thing under test what it should have written asserts nothing. The harness has the same list for
+    /// the opposite reason, and F-22 is the fitness function that keeps the two honest.
+    /// </remarks>
+    private static string[] Stack =>
+    [
+        ".editorconfig",
+        "Directory.Build.props",
+        "Directory.Packages.props",
+        "global.json",
+        Path.Combine("tests", "Directory.Build.props"),
+    ];
+
+    /// <summary>The gate with git substituted, which is what decides adoption's three modes.</summary>
+    private static Gate Adopter(Scratch solution, FakeRepository git) =>
+        Gate.For(solution.Root, services => services.AddSingleton<IRepository>(git));
+
+
+    /// <summary>A scratch directory that is not a cycle workspace, for adoption's sake.</summary>
+    private sealed class Scratch : IDisposable
+    {
+        private Scratch(string root) => Root = root;
+
+        public string Root { get; }
+
+        public static Scratch Create()
+        {
+            string root = Path.Combine(Path.GetTempPath(), "sdlc-init", Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(root);
+            return new Scratch(root);
+        }
+
+        public void Dispose()
+        {
+            try
+            {
+                if (Directory.Exists(Root))
+                {
+                    Directory.Delete(Root, recursive: true);
+                }
+            }
+            catch (IOException)
+            {
+                // A scratch directory left under the temp path is not worth failing a test over.
+            }
+        }
+    }
+}

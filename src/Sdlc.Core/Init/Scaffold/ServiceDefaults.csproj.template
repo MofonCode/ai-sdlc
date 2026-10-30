@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <!-- The host abstractions this extends. A framework reference rather than packages, because this
+         project configures a web host and is referenced by every host in the solution. -->
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- The kernel, for AddTraceResultLogging. The names it is configured with are the same two
+         constants the OpenTelemetry registration below is given, which is the whole point of this
+         project existing: a span written to a source nobody listens to is dropped in silence. -->
+    <PackageReference Include="MofonCode.Core" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Registration and the three instrumentations worth having by default. The exporter is here and
+         is only activated when something says where to send it, so a solution with no collector pays
+         the registration and nothing else. -->
+    <PackageReference Include="OpenTelemetry.Extensions.Hosting" />
+    <PackageReference Include="OpenTelemetry.Instrumentation.AspNetCore" />
+    <PackageReference Include="OpenTelemetry.Instrumentation.Http" />
+    <PackageReference Include="OpenTelemetry.Instrumentation.Runtime" />
+    <PackageReference Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" />
+  </ItemGroup>
+
+</Project>
