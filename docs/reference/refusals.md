@@ -45,6 +45,9 @@ The two hooks return no exit code to you: they stop the agent's action, and the 
 | **Writing the skeleton — `sdlc scaffold`** | |
 | [the gate refuses the cycle](../guides/handling-refusals.md#the-gate-refuses-the-cycle) | whichever gate remedy above matches the message |
 | [an adopted solution whose plan declares no build settings](../guides/handling-refusals.md#an-adopted-solution-whose-plan-declares-no-build-settings) | `sdlc stack`; a cycle whose plan declares the files brings them |
+| **Amending an admitted plan — `sdlc draft approval --reopen`, `sdlc branch`** | |
+| [a reopen on the build branch](../guides/handling-refusals.md#a-reopen-on-the-build-branch) | `sdlc branch <id> plan`, reopen and approve there, `/sdlc:pr <id> --plan`; then keep or delete the build branch |
+| [a plan branch left over from earlier planning](../guides/handling-refusals.md#a-plan-branch-left-over-from-earlier-planning) | `git branch -D cycle/<id>/plan`, then `sdlc branch <id> plan` again |
 | **Recording evidence — `sdlc evidence`** | |
 | [no cycle, or no plan](../guides/handling-refusals.md#no-cycle-or-no-plan) | check the id; the cycle needs a `plan.md` |
 | [a verdict already stands](../guides/handling-refusals.md#a-verdict-already-stands) | delete `verify.md`, record again, verify again |

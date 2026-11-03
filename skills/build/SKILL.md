@@ -117,7 +117,8 @@ not a build to push through.
 **Write the tests the plan named.** The proof entries name tests in backticks, and `verify-chain`
 checks that each one ran and passed. A test with a different name than the plan committed to will fail
 that check even if it tests the right thing — so if the name has to change, the plan has to change
-first, which means `sdlc draft approval <id> --reopen` and a re-approval.
+first, which means `sdlc draft approval <id> --reopen` and a re-approval. Once the plan is on the integration
+branch, that reopen happens on its plan branch, not this one: stop and hand back (D-123).
 
 ## Build and test, and treat a warning as an error
 

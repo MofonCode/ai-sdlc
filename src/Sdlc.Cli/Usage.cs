@@ -65,6 +65,8 @@ internal static class Usage
                                      it, the plan's own branch before that. 'plan --worktree'
                                      opens the cycle in a folder of its own beside the
                                      repository instead, so several cycles are planned at once.
+                                     'plan' refuses a local plan branch whose ledger lacks the
+                                     approval the integration branch holds (D-123).
             factory                  Write the factory's pipeline for the recorded platform: every
                                      night, batch-build --pr --unattended against the integration
                                      branch, one run at a time, six hours at most, proving the
@@ -296,7 +298,9 @@ internal static class Usage
             --changes-requested      Draft a send-back rather than an approval.
             --deny                   Draft a refusal.
             --reopen                 Draft a withdrawal of a standing approval, which returns the
-                                     cycle to unapproved so the documents can be rewritten.
+                                     cycle to unapproved so the documents can be rewritten. Once
+                                     the plan is on the integration branch, refused on the cycle's
+                                     build branch: reopen on its plan branch instead (D-123).
 
         A refusal is drafted on the same terms as an approval, and leaves the reason line empty for
         the person to write. The gate rejects a refusal that says nothing about why.

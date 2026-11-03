@@ -89,8 +89,8 @@ The same page the run published, against the state now. In the order it lists:
 |---|---|
 | **Ready to merge, in this order** | review each and squash-merge it, one at a time, in the order given. The more contained cycle comes first |
 | an overlap under one of them | expect the named pull request to conflict after this one merges |
-| **Needs a person** | a draft: `/sdlc:remediate <id>` on its branch for `blocked`; for `escalated`, `steer`, a reopen, or `sdlc draft abandon <id>` |
-| **Held back, not built** | each with its reason. Delete a forgotten plan branch to put its cycle back |
+| **Needs a person** | a draft: `/sdlc:remediate <id>` on its branch for `blocked`; for `escalated`, `steer`, a reopen, or `sdlc draft abandon <id>`. *Built before its plan was amended*: merge `development` into it to continue by hand, or delete it to rebuild — whatever its verify says, it is never ready |
+| **Held back, not built** | each with its reason. Delete a forgotten plan branch to put its cycle back. A build branch made before its plan was amended is named with the same two choices; the factory never resumes it |
 | **Waiting for a build** | its age, and *going stale* when a file its plan declares changed on `development` since approval — read the plan again before it builds |
 
 **When a pull request conflicts, or goes red after an earlier merge:**

@@ -271,6 +271,33 @@ approve again. If it is not, there is nothing for scaffold to do here: build wit
 
 ---
 
+## Amending an admitted plan — the two ways it is refused
+
+Once a cycle's plan is on the integration branch, the team and the factory read it there. A reopen after
+that is an amendment to what they read, and it goes back by a plan pull request of its own (D-123).
+
+### a reopen on the build branch
+
+`sdlc draft approval <id> --reopen` was run on `cycle/<id>/build` or `build-unattended`, and the cycle's
+plan is already on the integration branch. Reopened there, the amendment would reach the integration
+branch only with the code, and the factory would keep reading the plan you just withdrew.
+
+**Next:** `sdlc branch <id> plan` — it starts the plan branch from the integration branch — then reopen,
+correct and approve again there, and `/sdlc:pr <id> --plan` opens it as an amended plan. The build branch
+is then yours: merge the integration branch into it to continue by hand, or delete it and the factory
+builds the amended plan on its next run.
+
+### a plan branch left over from earlier planning
+
+`sdlc branch <id> plan` found a local `cycle/<id>/plan` whose approval ledger lacks the approval the
+integration branch holds. It is left from earlier planning, and an amendment made on it would amend a
+plan nobody reads any more.
+
+**Next:** delete it — `git branch -D cycle/<id>/plan` — and run `sdlc branch <id> plan` again, so the
+amendment starts from the integration branch.
+
+---
+
 ## `sdlc init` — the two ways adoption is refused
 
 ### an option it does not take

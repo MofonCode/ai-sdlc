@@ -27,6 +27,8 @@ Requires an intent **and** a spec — or, when every part of the request is a fi
 - **The cycle is approved?** Stop. A standing approval covers the exact bytes of three documents, so
   editing one breaks the gate rather than satisfying it. Say that the move is
   `sdlc draft approval <id> --reopen` first, which records why the approval was withdrawn.
+  Once the plan is on the integration branch, that happens on its plan branch — `sdlc branch <id> plan`
+  — and the amendment goes back by `/sdlc:pr <id> --plan`, never on a build branch (D-123).
 - **Abandoned?** Stop. Abandonment is terminal.
 
 ## Steering changes how — and takes in what a reader raised

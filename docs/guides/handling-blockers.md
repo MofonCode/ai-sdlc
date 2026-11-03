@@ -162,6 +162,20 @@ once the cycle is approved again, `sdlc verify-chain` refuses a verify round old
 delete `verify.md`, build, record the evidence and verify the documents as they are now approved. Reopen as
 many times as it takes — the ledger keeps every entry and the last one stands.
 
+**Once the plan is on the integration branch, reopen it on its plan branch, not on the build** (D-123). The
+team and the factory read the plan there, so the amendment goes back by a pull request of its own:
+
+```pwsh
+sdlc branch <id> plan
+sdlc draft approval <id> --reopen
+```
+
+Correct the documents, approve again, and `/sdlc:pr <id> --plan` opens it as an amended plan, leading with
+your reason. The drafter refuses a reopen on the build branch and names this route. **The build you
+already made is yours to keep or drop:** merge the integration branch into it to continue by hand, or
+delete it and the factory builds the amended plan on its next run. Until you choose, the queue, the
+sitrep and `sdlc status` on that branch say it was built before the plan was amended.
+
 ---
 
 ## A blocked verification

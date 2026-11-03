@@ -323,6 +323,11 @@ What is honest to say about the rest:
   under a local VM. Its first run built one cycle unattended and opened its pull request, and found
   0.28.1's fix: the verify went uninterrogated because the `claude` the agent starts had no credential.
   Nobody has yet spent a morning on a sitrep of more than one cycle (`CONCEPT.md` §10.4, §10.5).
+- **Amending a plan after admission has not met a real cycle.** A reopen once the plan is on the
+  integration branch now goes back by a plan pull request of its own, and a build made before it is
+  named by the queue, the sitrep and `sdlc status` until a person keeps or deletes it (`CONCEPT.md`
+  D-123). The suite holds the comparison and both refusals; no amended plan has gone through a real
+  pull request yet, and nothing records which reopens were made the old way, on a build branch.
 - **Leads and Operate have only met fakes.** `sdlc lead show` reads work items through `az` and `gh`, and
   `sdlc operate` reads Application Insights through `az` and files through the same CLIs; none of that has
   touched a real tracker or a real telemetry store. Jira is not read yet.

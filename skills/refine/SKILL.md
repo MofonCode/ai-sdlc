@@ -42,7 +42,9 @@ the build and `sdlc verify-chain` refuses the merge, both naming which document 
 **Refuses once approved.** The plan is hash-locked at that point, so editing it would break the gate
 rather than satisfy it. If a plan turns out to be wrong after approval, the move is a recorded reopen:
 `sdlc draft approval <id> --reopen`, which returns the cycle to unapproved so the documents can be
-rewritten and re-approved. That is the recovery path, and it leaves a record of why.
+rewritten and re-approved. That is the recovery path, and it leaves a record of why. Once the plan is on the
+integration branch, the reopen happens on its plan branch — `sdlc branch <id> plan` — and the amendment
+goes back by `/sdlc:pr <id> --plan`, never on a build branch (D-123).
 
 ## Answer the mistake, not the instance
 

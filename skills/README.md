@@ -1105,7 +1105,7 @@ touches the remote.
 | Parameter | Description |
 |---|---|
 | `<cycle id>` | the verified cycle to push |
-| `--plan` | an approved plan, before it is built: admission to the integration branch, asked of `sdlc gate`. Merging it deletes the branch |
+| `--plan` | an approved plan, before it is built: admission to the integration branch, asked of `sdlc gate`. Merging it deletes the branch. A plan already there and approved again is opened as an *amended plan*, leading with each reopen's reason (D-123) |
 | `--draft` | a `blocked` or `escalated` build, as a draft carrying the attempted code, the verify and the evidence |
 | `--all` | every cycle that is ready, asking once before the first push |
 

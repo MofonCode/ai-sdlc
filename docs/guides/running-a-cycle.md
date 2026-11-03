@@ -195,6 +195,10 @@ Refusing is drafted on the same terms as approving — `--changes-requested`, `-
 leaves the reason line empty for you, because the gate rejects a refusal that says nothing about why.
 Helping with the easy case while withholding help from the hard one is the asymmetry people resent.
 
+**A reopen after the plan reached the integration branch happens on its plan branch** — `sdlc branch <id>
+plan` — and goes back as an amended plan by `/sdlc:pr <id> --plan`, never with the build.
+`handling-blockers.md`, under *After approval*, has the walk and what happens to a build already made.
+
 ### Admit the plan to the integration branch
 
 When the solution has an integration branch — `development`, unless `solution.md` names another — the

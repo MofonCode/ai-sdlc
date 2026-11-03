@@ -53,6 +53,25 @@ The body carries the intent's problem in its words, the spec's criteria, the pla
 Its check is the admission check: the plan, the approval and its hashes, and no build (D-87). **It is not a
 second approval** — the local approval is the gate; this admits the plan to the factory.
 
+### An amended plan
+
+**A plan already on the integration branch that was reopened and approved again is an amended plan**
+(D-123). Tell by asking git whether the integration branch holds this cycle's plan:
+
+```
+git cat-file -e origin/<integration>:.sdlc/cycles/<id>/plan.md
+```
+
+When it does, the pull request is the amendment's, and it says so:
+
+- **The title starts with `Amended plan:`**, so nobody reads it as a new cycle.
+- **The body leads with each reopen's reason**, in the person's words, from every `reopened` entry in
+  `approval.md` after the approval the integration branch holds — then what changed in the spec and the plan.
+  A reviewer is reading a decision that was taken mid-cycle; the reason is the first thing they need.
+- **Close with the build branch's choice**, when `git ls-remote --heads origin "cycle/<id>/build*"` lists one: merge
+  the integration branch into it to continue by hand, or delete it so the factory builds the amended plan.
+  Name the branch; the choice is the person's, so do neither.
+
 ## A cycle that did not pass: `--draft`
 
 Opened for a `blocked` or `escalated` cycle, usually by `batch-build` (D-85). **Refuse if `sdlc pr-ready`

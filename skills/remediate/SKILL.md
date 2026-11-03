@@ -34,6 +34,11 @@ a criterion you believe is mistaken, and do not edit the criterion. The move is
 `sdlc draft approval <id> --reopen`, which withdraws the approval with a recorded reason so the planning
 documents can be rewritten and re-approved. That is the recovery path, and it leaves a record.
 
+**Not on this branch, once the plan is on the integration branch** (D-123). Remediation runs on a build
+branch, and the drafter refuses a reopen there: hand back, and the person reopens on the plan branch —
+`sdlc branch <id> plan` — and admits the amendment with `/sdlc:pr <id> --plan`. This build is then theirs
+to keep, by merging the integration branch in, or to delete for the factory to rebuild.
+
 ## Know whether the loop is still getting anywhere
 
 ```

@@ -50,7 +50,7 @@ an agent runs it, and it never decides a gate. `skills.md` lists the skills.
 | `sdlc round <id> <artifact> --from <file>` | binary | appends the next round to the artifact's findings ledger, stamped, hashed and chained to the round before, with its suggestions in the cycle's suggestions ledger, and refuses it while anything above is unsettled, a known finding comes back in other words, a new blocker has no one-line gist, or a suggestion does not fit the cycle's. `/sdlc:interrogate` runs it; `--changed` lists the sections moved since the last round |
 | `sdlc constraints --for plan --brief` | binary | the rules one stage is judged against |
 | `sdlc cycles` | binary | every cycle, newest first |
-| `sdlc branch <id> <kind>` | binary | the git command that puts you on the cycle's `plan`, `build`, `build-unattended` or `forward` branch. The skills run it for you. `plan --worktree` opens the cycle in a folder of its own beside the repository, so several are planned at once |
+| `sdlc branch <id> <kind>` | binary | the git command that puts you on the cycle's `plan`, `build`, `build-unattended` or `forward` branch. The skills run it for you. `plan --worktree` opens the cycle in a folder of its own beside the repository, so several are planned at once. `plan` refuses a local plan branch left over from earlier planning |
 | `sdlc factory` | binary | writes the factory's nightly pipeline for your platform. It never merges |
 | `sdlc lead show <reference>` | binary | a work item, issue, suggestion or file, in one shape for `intent --from` |
 | `sdlc operate --dry-run` | binary | what production raised, grouped and scrubbed, and what would be filed as a lead |
@@ -67,7 +67,7 @@ an agent runs it, and it never decides a gate. `skills.md` lists the skills.
 | `sdlc theme` | binary | the roles and values the solution's surfaces use |
 | `sdlc propose theme` | binary | the roles a theme declares, for you to fill |
 | **Stopping** | | |
-| `sdlc draft approval <id> --reopen` | binary | withdraw an approval, with a reason, to change the documents |
+| `sdlc draft approval <id> --reopen` | binary | withdraw an approval, with a reason, to change the documents. Once the plan is on the integration branch, refused on a build branch: reopen on `cycle/<id>/plan` |
 | `sdlc draft abandon <id>` | binary | stop the cycle for good. **You place it**. Terminal |
 
 In the cycle, the interrogate-then-refine loop repeats until a round raises nothing blocking —
