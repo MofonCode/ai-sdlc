@@ -89,11 +89,13 @@ counts as neither.
 ```
 dotnet build
 dotnet test --coverage --coverage-output-format cobertura --results-directory TestResults
+git commit -am "<what the pass fixed>"
 sdlc evidence <id> --tests TestResults --build-log <log> --coverage TestResults
 ```
 
-Commit on the cycle's branch. The next verification reads the new evidence, so evidence left in your
-working tree is evidence it cannot see.
+Commit the fix before recording: `sdlc evidence` refuses uncommitted code, because the evidence names the
+commit it was recorded at (D-124). Then commit the evidence on the cycle's branch. The next verification
+reads the new evidence, so evidence left in your working tree is evidence it cannot see.
 
 ## Report and hand back
 

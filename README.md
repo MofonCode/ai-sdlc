@@ -323,6 +323,11 @@ What is honest to say about the rest:
   under a local VM. Its first run built one cycle unattended and opened its pull request, and found
   0.28.1's fix: the verify went uninterrogated because the `claude` the agent starts had no credential.
   Nobody has yet spent a morning on a sitrep of more than one cycle (`CONCEPT.md` §10.4, §10.5).
+- **The rebuilt patch has not met a real cycle.** `diff.patch` is no longer committed: `sdlc evidence`
+  refuses uncommitted code, records `head.sha`, and the chain rebuilds the patch from the two commits
+  (`CONCEPT.md` D-124). A real git repository in the suite holds that the rebuilt patch is the recorded
+  one; no pull-request check has rebuilt one yet. **A solution's cycles directory gets the ignore line
+  the next time a cycle opens**, and a cycle that committed its patch before keeps it.
 - **Amending a plan after admission has not met a real cycle.** A reopen once the plan is on the
   integration branch now goes back by a plan pull request of its own, and a build made before it is
   named by the queue, the sitrep and `sdlc status` until a person keeps or deletes it (`CONCEPT.md`

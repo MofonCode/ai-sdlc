@@ -160,12 +160,10 @@ plan did not declare and you had to add belongs here too, with the reason it was
 destination for everything the stage was not asked about: it reaches the reviewer, and it keeps the
 hand-back to the stage's own result.
 
-**Why this order.** The diff is measured from where the branch diverged, and a file git is not tracking
-is a file `git diff` cannot see. `sdlc evidence` now stages untracked paths itself before diffing, so
-recording first no longer produces an empty patch — but committing first means the patch comes from
-committed state rather than from whatever the working tree happens to hold, and that is the thing a
-reviewer is reading. Before the fix, an unstaged new file made `diff.patch` empty while the panel said
-every declared file had changed.
+**Why this order.** `sdlc evidence` refuses code nobody committed (D-124). It records the commit the build
+is at as `head.sha`, and the patch is measured between that and where the branch diverged — committed
+state, which is what a reviewer reads and what the pull-request check rebuilds. `diff.patch` itself is not
+committed: git holds the change, and the chain rebuilds the patch from the two commits.
 
 ## Record the evidence
 
@@ -176,7 +174,7 @@ sdlc evidence <id> --tests TestResults --build-log <path to the build log> --cov
 It also prints the coverage of the changed lines and of the whole codebase, and carries the solution's
 baseline in `.sdlc/coverage.json` forward when it held — commit that file with the evidence.
 
-This writes the diff, the commit it is measured from, every results file the run produced, and one
+This writes the diff, the two commits it is measured between, every results file the run produced, and one
 normalised test summary merged from all of them. **Verify reads only these files.** A verdict derived
 from your recollection of the build is a verdict nobody can check, which is what `CON_08` forbids.
 

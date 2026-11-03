@@ -122,9 +122,12 @@ internal static class Usage
                                      recorded and the prose through unchanged, so the rename
                                      cannot reclassify the solution or cost anybody what they
                                      wrote. --standard changes that one key, and says so.
-            evidence <id>            Record what a build produced: the diff, its base commit, a
-                                     normalised test summary and the coverage. Verify reads only this.
-                                     The summary records the platform the tests ran on.
+            evidence <id>            Record what a build produced: its base commit, the commit it is
+                                     at, the diff between them, a normalised test summary and the
+                                     coverage. Verify reads only this. The summary records the
+                                     platform the tests ran on. Refuses code outside .sdlc/ that is
+                                     not committed; the diff is rebuilt from the two commits and
+                                     never committed (D-124).
             evidence check <id>      List what verify.md cites in backticks that none of the
                                      recorded evidence holds, and tests it says passed that did not.
                                      Reports only; always exits 0.

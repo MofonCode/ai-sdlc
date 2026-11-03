@@ -217,7 +217,7 @@ declining to go on, exit code 1. An open blocker causes refusals; it is not one.
 |---|---|---|
 | **evidence** | what a build produced, recorded so a verification can adjudicate it rather than re-run it | `evidence/` |
 | **`base.sha`** | the commit the diff is measured from: where the branch diverged from the default branch |
-| **`diff.patch`** | the change. Untracked paths are staged before diffing, because a new file is part of the change and `git diff` cannot see one |
+| **`diff.patch`** | the change, measured between `base.sha` and `head.sha` with `.sdlc/` left out. A working file, never committed: the chain rebuilds it from the two commits, and a checkout without it gets it back the same way (D-124) |
 | **`tests.json`** | one normalised test summary. **The only test record a verification reads** |
 | **`tests.trx`**, **`build.log`** | the runner's own output, kept as it was written for the cycle's verify, and **ignored by git**: the pipeline publishes its own (D-92) |
 | **test summary** / **test outcome** | what ran and what each test did. The build checks the suite **actually ran** rather than that the runner exited zero |

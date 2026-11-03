@@ -33,7 +33,7 @@ an agent runs it, and it never decides a gate. `skills.md` lists the skills.
 | `sdlc stack` | binary | what the solution is built from, what this release ships that it never mentions, and the build settings not yet on disk |
 | `sdlc scaffold <id>` | binary | the skeleton on a new solution's first cycle; otherwise the build settings the plan declares |
 | `/sdlc:build <id>` | agent | implements, builds, tests, records the evidence |
-| `sdlc evidence <id>` | binary | records the diff, the base commit and the test summary; with `--coverage`, the changed lines' and the whole codebase's coverage against the baseline | and the platform the tests ran on
+| `sdlc evidence <id>` | binary | records the base commit, the commit the build is at, the test summary and the diff between the two, which is not committed; refuses uncommitted code outside `.sdlc/`; with `--coverage`, the changed lines' and the whole codebase's coverage against the baseline | and the platform the tests ran on
 | `sdlc evidence check <id>` | binary | lists what `verify.md` cites that none of the recorded evidence holds, and tests it says passed that did not. Reports only, always exits 0. `/sdlc:verify` runs it |
 | `/sdlc:verify <id>` | agent, fresh process | adjudicates from the evidence alone, writes `verify.md` |
 | `/sdlc:remediate <id>` | agent | only on `blocked`; runs while each pass reduces what is open |
@@ -94,7 +94,8 @@ In the cycle, the interrogate-then-refine loop repeats until a round raises noth
         suggestions.json   <- the cycle's suggestions, each concern once
     evidence/
         base.sha
-        diff.patch
+        head.sha           <- the commit the build was recorded at
+        diff.patch         <- not committed: rebuilt from the two commits (D-124)
         tests.json         <- the normalised summary. The only one verify reads
         tests.1.trx        <- one per test project, as the runner wrote them. Not committed
         build.log          <- not committed: the pipeline publishes its own (D-92)

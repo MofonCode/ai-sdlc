@@ -268,8 +268,9 @@ Then the code is committed, and the evidence recorded from it:
 sdlc evidence 20260929_1456_32 --tests <the directory holding the results files> --build-log <path>
 ```
 
-Records the diff, the commit it is measured from, the runner's own output, and one normalised test summary
-into `evidence/`. This exits zero even when tests failed: recording what happened succeeded, and what to
+Records the commit it is measured from, the commit the build is at, the diff between them, the runner's
+own output, and one normalised test summary into `evidence/`. **It refuses code that is not committed**,
+because the evidence names the commit (D-124); the diff stays out of git and the chain rebuilds it. This exits zero even when tests failed: recording what happened succeeded, and what to
 make of it belongs to verify. A non-zero exit here would make the build step look like the thing that
 refused.
 

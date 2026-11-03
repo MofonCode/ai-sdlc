@@ -50,6 +50,7 @@ The two hooks return no exit code to you: they stop the agent's action, and the 
 | [a plan branch left over from earlier planning](../guides/handling-refusals.md#a-plan-branch-left-over-from-earlier-planning) | `git branch -D cycle/<id>/plan`, then `sdlc branch <id> plan` again |
 | **Recording evidence — `sdlc evidence`** | |
 | [no cycle, or no plan](../guides/handling-refusals.md#no-cycle-or-no-plan) | check the id; the cycle needs a `plan.md` |
+| [code that is not committed](../guides/handling-refusals.md#code-that-is-not-committed) | commit the change, then record again |
 | [a verdict already stands](../guides/handling-refusals.md#a-verdict-already-stands) | delete `verify.md`, record again, verify again |
 | [git cannot say where the branch diverged](../guides/handling-refusals.md#git-cannot-say-where-the-branch-diverged) | read the branch name in the message; rename yours to `cycle/<id>` |
 | [an empty patch beside a changed file](../guides/handling-refusals.md#an-empty-patch-beside-a-changed-file) | `git status --short`; the evidence is wrong, not the code |

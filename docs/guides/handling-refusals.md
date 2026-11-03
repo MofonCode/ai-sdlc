@@ -332,6 +332,16 @@ check.
 There is no directory for the id, or the cycle has no `plan.md`. The recording compares what changed
 against what the plan declared, so without a plan there is nothing to compare against.
 
+### code that is not committed
+
+A file outside `.sdlc/` has changes nobody committed. The evidence names the commit the build was recorded
+at, `head.sha`, and the patch is measured to it, so code that is not in a commit is code the verify would
+never see and the pull-request check could never rebuild (D-124). The cycle's own files and the run output
+you passed on the command line — the results directory, the build log, the coverage — do not count.
+
+**Next:** commit the change, then record again. If the file is not part of the change, discard it or
+ignore it.
+
 ### a verdict already stands
 
 `verify.md` exists, and it adjudicates the run recorded now. Recording a new run would leave every claim
