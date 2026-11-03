@@ -357,6 +357,10 @@ and one framework-defined summary — test name and outcome — and `verify` rea
 chain are committed with the code. The toolchain's raw output — `build.log`, `tests.trx` — is ignored by
 git and published by the pipeline, the trx to the platform's test tab.
 
+**The patch is rebuilt, not committed** (D-124). `sdlc evidence` refuses uncommitted code outside `.sdlc/`,
+records the build's commit as `head.sha`, and writes `diff.patch` from `base..head` for the verify to read.
+The evidence hash covers that rebuilt diff, so `verify-chain` checks it from git on a clean checkout.
+
 `build` treats warnings as errors, enforced by `Directory.Build.props` rather than by instruction.
 
 **A string match runs before a reader does, and only reports** (D-120). `sdlc evidence check` lists
@@ -2252,13 +2256,14 @@ into the cycle as work no plan declared (D-94).
         spec.json
         plan.json
       evidence/
-        diff.patch
+        diff.patch          not committed: rebuilt from base.sha and head.sha (D-124)
         build.log           not committed, like the trx below (D-92)
         tests.trx           the runner's own output, under a fixed name, and not committed. A run that wrote
                             several results files keeps them as tests.1.trx, tests.2.trx,
                             because one of several cannot be the one
         tests.json          the normalised summary verify reads, merged from every one of them
         base.sha
+        head.sha            the commit the build was recorded at (D-124)
 ```
 
 A cycle is one governed change: an id, a directory, and a `cycle/<id>` branch. Directories appear
@@ -7070,6 +7075,50 @@ its refusal still apply.
 - *Keeping `sdlc <stage>` everywhere.* Correct and host-neutral, and costs a refusal each time.
 - *Guessing a marker for Copilot or Antigravity.* Neither documents one; a guessed marker is a panel that
   names one host's invocation to someone using another.
+
+### D-124 — The diff a verify judged is rebuilt from git, and never committed
+
+**Governs:** §4.5, §16
+
+**Extends D-92:** that entry took the build log and the runner's output out of git and kept `tests.json`,
+`base.sha` and the chain committed. The patch joins the log: `diff.patch` is a working file, written for the
+verify to read and ignored by git. **Changes D-92's evidence hash** from a hash of the stored patch to a hash of
+the diff the binary rebuilds from two recorded commits. **Leaves D-107 unchanged:** a merged cycle is never
+rewritten, so a cycle whose patch is committed keeps it and is checked the old way.
+
+**Decision.**
+
+- **`sdlc evidence` records the commit the build is measured at**, `head.sha`, beside `base.sha`, and refuses
+  while a file outside `.sdlc/` is uncommitted. The patch is `git diff <base> <head>` with `.sdlc/` left out —
+  committed state, never whatever the working tree happens to hold.
+- **The evidence hash covers `tests.json` and that rebuilt diff.** The verify round records it, and
+  `verify-chain` rebuilds the same diff from the same two commits and compares. A cycle with no `head.sha`
+  recorded its evidence before this, and its stored patch is hashed as before.
+- **A checkout without the patch gets it back.** `sdlc round prompt` and `sdlc evidence check` write
+  `diff.patch` from the two commits when it is missing, so a fresh clone reads the same patch the build did.
+- **The cycles directory's ignore file carries the pattern**, appended to an older file the next time a cycle
+  opens, the way D-92's patterns arrived.
+
+**Why.** The patch was a copy of what git already holds, the largest file a cycle committed — 56 KB to 892 KB
+in MarketSense's — and the only file in a finished cycle nothing reads after the merge. Rebuilding it also ties
+the verify to commits rather than to a file anyone could rewrite beside them: the chain now checks that the
+verify judged the code at `head.sha`, not only that two files still hash the same.
+
+**Why commit first.** Without a commit there is no `head` to name, and a hash over the working tree cannot be
+rebuilt from a clone. The build skill already committed before recording; this makes the binary hold it.
+
+**What it costs.** A clone must reach both commits: the pull-request pipeline fetches full history, and so does
+the factory's. After a squash merge `head.sha` names a commit the integration branch does not hold, which is
+harmless because nothing checks a merged cycle — and why nothing later should be built on reading one.
+
+**Rejected.**
+
+- *Collapsing intent, spec and plan into one document after verify.* The approval hashes each, and the plan is
+  the one record of what the model planned, which is what improving the framework reads.
+- *A generated record per cycle.* With the plan and the findings kept, it repeats them.
+- *A sweep that deletes the patch after merge.* A pull request per sweep, and git's history keeps the bytes.
+- *Hashing the working tree instead of commits.* A clone cannot rebuild it.
+- *A commit the binary makes itself before recording.* A commit nobody asked for, hidden in a recording step.
 
 ### D-123 — A plan reopened after admission is amended on its plan branch and admitted again by its own pull request
 
