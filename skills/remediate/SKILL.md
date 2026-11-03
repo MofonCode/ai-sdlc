@@ -101,6 +101,7 @@ sdlc status <id>
 ```
 
 Show it verbatim and stop. The person decides whether to verify again.
+**Say that it runs in a new session** — in the line of your own, not a paragraph. A session carried past its stage rebuilds its whole context after every pause, and that, not the judging, was most of what one solution's cycles cost (D-122).
 
 **Do not verify your own remediation.** You have just spent effort on this code; a verification by the
 session that wrote the fix is the investment bias the whole separation exists to remove. Verify runs as

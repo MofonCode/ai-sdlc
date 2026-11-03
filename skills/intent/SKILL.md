@@ -527,3 +527,5 @@ history and the hashes.
 
 Then stop. The person decides whether to move to the spec. That decision is the human-in-the-loop
 point, and a skill that chained straight into the spec would remove it while appearing to be helpful.
+
+**Say that it runs in a new session** — in the line of your own, not a paragraph. A session carried past its stage rebuilds its whole context after every pause, and that, not the judging, was most of what one solution's cycles cost (D-122).

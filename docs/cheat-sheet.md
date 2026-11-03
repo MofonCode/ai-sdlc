@@ -19,7 +19,7 @@ required in branch policy — a person sets that, and until then nothing mechani
 - `/sdlc:propose convergence` — optional, after a pass: rules, decisions and stack the cycle settled, as your own commit. Or after the merge
 - `/sdlc:pr <id>` — pushes and opens the pull request. Asks first
 
-Each document stage runs its own interrogate-and-refine loop before it hands back.
+Each document stage runs its own interrogate-and-refine loop before it hands back. **Run each step in a new session**
 
 ## When it stops
 

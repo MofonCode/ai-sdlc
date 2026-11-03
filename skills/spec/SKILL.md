@@ -239,6 +239,7 @@ sdlc status <id> --stage spec --brief
 ```
 
 Show it verbatim, then stop. The person decides whether to move to the plan.
+**Say that it runs in a new session** — in the line of your own, not a paragraph. A session carried past its stage rebuilds its whole context after every pause, and that, not the judging, was most of what one solution's cycles cost (D-122).
 
 **Say nothing else beyond two sentences.** The panel carries the cycle, the counts, the gate and the next
 command; prose around it competes with the only lines worth reading. Drop `--brief` when somebody asks

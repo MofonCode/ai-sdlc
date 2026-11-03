@@ -440,6 +440,19 @@ public sealed class PluginTests
     }
 
     [TestMethod]
+    public void Every_stage_that_hands_on_to_another_says_it_runs_in_a_new_session()
+    {
+        // D-122. The cheapest place to say it is the line a person reads while deciding whether to type
+        // the next command; a session carried past its stage was most of what one solution's cycles cost.
+        foreach (string name in (string[])["intent", "spec", "plan", "build", "verify", "remediate"])
+        {
+            string text = File.ReadAllText(Path.Combine(Root, "skills", name, "SKILL.md"));
+
+            StringAssert.Contains(text, "new session", name + "'s hand-back does not say the next stage runs in a new session.");
+        }
+    }
+
+    [TestMethod]
     public void Every_reader_a_skill_starts_has_no_tools_spelled_so_powershell_keeps_it()
     {
         // D-118. A reader is handed everything it may read, so a tool is a way past the evidence -- and

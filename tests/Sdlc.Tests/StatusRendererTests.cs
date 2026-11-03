@@ -40,6 +40,7 @@ public sealed class StatusRendererTests
 
         string full = await Render(workspace, ArtifactKind.Intent);
         StringAssert.Contains(full, "Spent");
+        StringAssert.Contains(after, "spec is next, in a new session", "A stage handed on names a new session (D-122).");
 
         string spec = await RenderBrief(workspace, ArtifactKind.Spec);
         Assert.IsFalse(spec.Contains("Spent", StringComparison.Ordinal), "Another document's rounds are not this one's.");

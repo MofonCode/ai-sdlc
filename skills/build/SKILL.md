@@ -229,6 +229,7 @@ act on them will read them. Naming the count is what tells somebody to go and lo
 contents is how a five-line hand-back becomes a page.
 
 Then stop. The person decides whether to verify.
+**Say that it runs in a new session** — in the line of your own, not a paragraph. A session carried past its stage rebuilds its whole context after every pause, and that, not the judging, was most of what one solution's cycles cost (D-122).
 
 **If the build or the tests failed, say so plainly and stop there.** Do not run verify on a red build
 to see what it makes of it, and do not adjust a test to make it pass — that is the inversion the whole

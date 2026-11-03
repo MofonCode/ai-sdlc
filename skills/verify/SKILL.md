@@ -94,3 +94,5 @@ round, and a reader who disagrees with one cannot tell which one the chain carri
 - **Passed?** The person decides whether to open a pull request.
 - **Blocked?** The person decides whether to remediate. Do not start remediating; you
   have just finished judging, and the separation is the point.
+
+**Say that it runs in a new session** — in the line of your own, not a paragraph. A session carried past its stage rebuilds its whole context after every pause, and that, not the judging, was most of what one solution's cycles cost (D-122).

@@ -357,11 +357,11 @@ public static class StatusRenderer
         {
             null when status.Built => (
                 Stage(host, string.Create(CultureInfo.InvariantCulture, $"verify {id}")),
-                "the build recorded its evidence"),
+                "the build recorded its evidence - in a new session"),
 
             null => (
                 Stage(host, string.Create(CultureInfo.InvariantCulture, $"build {id}")),
-                "the gate is satisfied"),
+                "the gate is satisfied - in a new session"),
 
             // The reason stays short enough for the column; verify-chain names the check that failed.
             string pass when pass.Equals("pass", StringComparison.OrdinalIgnoreCase)
@@ -371,11 +371,11 @@ public static class StatusRenderer
 
             string pass when pass.Equals("pass", StringComparison.OrdinalIgnoreCase) => (
                 Stage(host, string.Create(CultureInfo.InvariantCulture, $"pr {id}")),
-                "verified clean"),
+                "verified clean - in a new session"),
 
             string blocked when blocked.Equals("blocked", StringComparison.OrdinalIgnoreCase) => (
                 Stage(host, string.Create(CultureInfo.InvariantCulture, $"remediate {id}")),
-                "a criterion is not met"),
+                "a criterion is not met - in a new session"),
 
             string escalated when escalated.Equals("escalated", StringComparison.OrdinalIgnoreCase) => (
                 string.Create(CultureInfo.InvariantCulture, $"sdlc status {id}"),
@@ -479,7 +479,7 @@ public static class StatusRenderer
             {
                 next.Add((
                     Stage(host, string.Create(CultureInfo.InvariantCulture, $"{Cycle.NameOf(waiting.Kind)} {id}")),
-                    string.Create(CultureInfo.InvariantCulture, $"{Cycle.NameOf(waiting.Kind)} is next")));
+                    string.Create(CultureInfo.InvariantCulture, $"{Cycle.NameOf(waiting.Kind)} is next, in a new session")));
             }
             else if (status.Gate.MayBuild)
             {
