@@ -177,8 +177,12 @@ flag and is detected, as a scaffolded solution with no cycle yet approved. The i
 question at a time, by type, each with example answers, and *not sure* is an answer with a place to go.
 The intent's sections are the same for every type: the questions vary, the contract downstream does not.
 
-**Splitting work into deliverable chunks belongs to whoever is prompting** (D-25). They write
-smaller intents and run each through the cycle; no tooling accommodates splitting.
+**Work is sliced into atomic cycles before any opens, and the person decides the slicing** (D-25, D-125).
+`intent` may first propose the most atomic slicing it can find: a piece is **atomic** when it can be built,
+verified and merged against the integration branch as it stands, without any other open cycle. The person
+accepts it once — merging pieces, or marking one atomic — and nothing is sliced unattended. Each piece that
+needs nothing unmerged opens as a cycle of its own; a piece that needs another's code waits as a **successor**,
+a file and not a cycle, until what it succeeds has merged (§3.4).
 
 **And a change that arrives without a chain is refused rather than waved through** (D-45). The
 pull-request check runs on every pull request, so it also meets the ones nobody opened as a cycle — a
@@ -222,6 +226,13 @@ in full — `azuredevops:1234`, `github:56`, `jira:PROJ-123`, `suggestion:<cycle
 The binary fetches and normalises it, and the skill interviews from what it prints; the person still
 answers the interview. The intent records the reference, so the pull request can link and close the item.
 A suggestion lead is also the record that the suggestion was accepted, and by which cycle (D-115).
+
+**A successor is a lead too** (D-125): `successor:<slug>` names `.sdlc/successors/<slug>.md`, the piece of a
+slicing that waits on another's code. Its `succeeds:` lists what it waits for, as cycle ids or
+`successor:<slug>`, and its readiness — `waiting`, `ready`, `stuck`, `unresolved` — is worked out from the
+record on every read. `sdlc successors` lists them. `intent --from successor:<slug>` starts a ready one: the
+interview resumes against the code that merged, the new intent records `lead: successor:<slug>`, which is what
+resolves every other reference to the slug, and the file is deleted on the new cycle's plan branch.
 
 **Operate files work items; it writes no artifact of its own.** A scheduled run reads the solution's
 telemetry store, groups errors by a signature, strips personal data, and files a bug for each signature
@@ -1438,6 +1449,12 @@ integration branch, through `pr --plan`, as an amended plan whose description le
 A build made before the amendment stays the person's: merge the integration branch into it to continue by
 hand, or delete it for the factory to rebuild.
 
+**Plans sliced together are admitted together** (D-125): one pull request, from `slices/<slug>/plan`, which
+`sdlc slices` composes from the siblings' plan branches and which merging deletes. It carries every approved
+plan of the slicing and the successors it wrote. The claim graph compares the siblings' plans first: a file
+two of them name is reported, and a plan that needs a file only a sibling creates is refused, because that
+piece is a successor. Each cycle still builds alone, into a pull request of its own.
+
 **Line endings need nothing.** Cycle files travel between branches now, and a checkout may turn LF into
 CRLF on the way; the approval's hash is taken over canonicalised text for exactly that reason (§5.2), so
 a plan approved on one machine still matches on another.
@@ -2226,6 +2243,10 @@ into the cycle as work no plan declared (D-94).
   decisions.md              its own DEC_nn: the choices it has settled, hand-edited (D-70)
   theme.json              the roles its surfaces use and the values that fill them (D-71)
   README.md                 terminology, flow and commands
+  successors/               the pieces of a slicing that wait on another's code, one file each,
+                            <slug>.md: succeeds:, sliced_from:, an optional mirror:, then the
+                            outcome and its why. Not cycles. Each reaches the integration branch with
+                            its slicing's plans and is deleted when a cycle starts from it (D-125)
   reports/                  what suggestions, propose and `draft techstack` printed last, kept
                             because a person works through one of these rather than reading it
                             once. Ignored by a .gitignore the directory carries itself, and read
@@ -2340,7 +2361,8 @@ block, then remediate, then exhaust the budget.
 - **Remote plan approval** — the local paste is the gate. A plan's pull request into `development`
   admits it to the factory and approves nothing (D-83).
 - ~~**A shared batch queue.**~~ Reversed by D-83: the integration branch is one.
-- **Tooling for splitting work** — D-25.
+- ~~**Tooling for splitting work** — D-25.~~ Reversed in part by D-125: `intent` proposes a slicing a person
+  accepts. Splitting unattended, and ordering cycles with an `after` field, are still not goals.
 - **A combined design skill** — D-16.
 - **Waiving a blocking finding** — D-27.
 - **Supporting ChatGPT as a host.**
@@ -2899,6 +2921,10 @@ at all — defensible, and rejected because volume is a real cost somebody shoul
 ### D-25 — There is no `split` skill, and no `after` ordering
 
 **Governs:** §3.1, §18
+
+**Superseded in part by D-125.** The read-only advisor deferred below has returned, as `intent`'s slicing,
+with the definition of a piece this entry did not have. What stands: there is no `split` skill, nothing is
+cut unattended, and no cycle carries an `after` field — what waits is a successor, which is not a cycle.
 
 **Why.** v03 reached the same conclusion: splitting is a scoping decision that belongs to a person,
 and *"auto-splitting without dependency ordering produces cycles that cannot be built in isolation,
@@ -7075,6 +7101,94 @@ its refusal still apply.
 - *Keeping `sdlc <stage>` everywhere.* Correct and host-neutral, and costs a refusal each time.
 - *Guessing a marker for Copilot or Antigravity.* Neither documents one; a guessed marker is a panel that
   names one host's invocation to someone using another.
+
+### D-125 — Work is sliced into atomic cycles before any opens, and what waits is a successor, not a cycle
+
+**Governs:** §3.1, §3.4, §10.4, §16
+
+**Revisits D-25.** D-25 rejected a `split` skill, and deferred rather than rejected *"a read-only advisor that
+proposes how to cut an intent and writes nothing"*. This is that advisor, with the definition D-25 did not
+have, and it reverses §3.1's *"no tooling accommodates splitting"*. **Widens D-83 and D-87:** one plan pull
+request may admit several cycles sliced together, and the admission check accepts them with the successors
+the slicing wrote. **Extends D-89:** `successor:` is a lead. **Leaves D-84 and D-86 unchanged:** every cycle
+builds from the same base, alone, into a pull request of its own, and the factory reads nothing new.
+
+**Decision.**
+
+- **Slicing.** `intent` may first propose how to slice the work into **atomic** pieces, called **slices**. A
+  piece is atomic when it can be built, verified and merged against the integration branch as it stands,
+  without any other open cycle. The person accepts the slicing once; they may merge pieces or mark one atomic,
+  and nothing is sliced unattended. There is no floor on how small a piece may be.
+- **Predecessors and successors.** A piece that needs nothing unmerged opens as a cycle and runs the full chain
+  as usual. A piece that needs another piece's code is a **successor**:
+  - it is a file, `.sdlc/successors/<slug>.md`, and not a cycle;
+  - its `succeeds:` lists what it waits for, as cycle ids or `successor:<slug>` for a piece that is not a
+    cycle yet; `sliced_from:` names the lead the slicing began from, and `mirror:` may name a work item;
+  - its body is the interview so far — `## Outcome` and `## Why` — and never a spec or a plan;
+  - it is never interrogated or approved while it waits.
+- **How a slug resolves.** When a successor becomes a cycle, that cycle's intent records
+  `lead: successor:<slug>`. Every reference to the slug then resolves to that cycle, and nobody edits the
+  files that named it.
+- **When a successor is ready.** It is `ready` when everything in `succeeds:` resolves to a cycle on the
+  integration branch with a passing verify; `waiting` while anything does not yet; `stuck` when it waits on an
+  abandoned cycle; `unresolved` when it names a cycle or slug that does not exist. Worked out from the record
+  on every read and never stored (D-115's reasoning). A loop through `succeeds:` is refused, naming the loop.
+- **Starting one.** A person starts a ready successor with `intent --from successor:<slug>`. The interview
+  resumes against the code that merged, and opening the cycle deletes the file on the new cycle's plan branch.
+  `sdlc successor start` refuses a successor that is not ready; nothing starts one on its own.
+- **Admission.** Before admission the claim graph compares the plans sliced together:
+  - files two plans both name are reported;
+  - a file one plan names without creating it, absent from the base, that a sibling's plan marks `new`, makes
+    that plan depend on the sibling, and it is refused until it becomes a successor.
+
+  One plan pull request, from `slices/<slug>/plan`, admits every plan sliced together that is approved, with
+  the successors the slicing wrote. The binary composes that branch from the siblings' plan branches — they
+  touch disjoint cycle folders, so composing them cannot conflict — and merging it deletes it. The admission
+  check is still chosen by the diff: every path a cycle's planning documents or a successor file, every cycle
+  in it checked for admission, and the pull request refused if any one fails.
+
+**Why.**
+
+- **Size predicted convergence.** In MarketSense's first four cycles, the one with 14 criteria closed in 19
+  rounds with no reopen. Those with 17–22 criteria took 61–76 rounds and 2–5 reopens each, because readers found
+  one uncovered case per round across a matrix that grew with every criterion.
+- **A size threshold was weighed and set aside.** "Large" cannot be defined without a judgement, and a check
+  whose job is finding size problems finds them. Slicing works from the other end: independence is a question
+  with an answer, and the claim graph checks it again once plans name their files.
+- **This answers D-25's objection without its rejected `after` field.** The objection was cycles that cannot
+  be built in isolation. Every cycle that exists here can be built now, and the waiting is done by files that
+  are not cycles, so `status`, `batch-build` and the factory still see only cycles meant to move.
+- **A successor holds an intent's substance, not a plan's.** An intent states a problem, which survives its
+  predecessor's build. A plan written now would describe code that does not exist yet, which is the failure
+  behind three of MarketSense's reopens.
+- **The slicing reaches the team through review.** Successors ride the plan pull request, so the rest of the
+  work is reviewed beside its first plans.
+
+**Rejected.**
+
+- *A plan-size warning with a resize advisor.* "Large" has no definition a binary can hold without a threshold
+  picked by judgement.
+- *A floor: a piece must deliver an outcome somebody would notice.* A judgement, so the same draft would be
+  sliced differently on two runs. Thin pieces are the person's to merge when they accept the slicing.
+- *Strict independence with no chains.* A feature built in layers could not be sliced at all, so the largest
+  features would stay whole.
+- *Successors as cycles with an `after` field.* D-25's rejected ordering, and every surface that reads cycles
+  would meet cycles that cannot move.
+- *The slicing in the tracker, with predecessor links.* Not every solution declares a tracker, and readiness
+  would rest on a host's API. A successor may name a work item as a mirror; the file is the record.
+- *A successor holding a spec or a plan.* Above.
+- *A stored readiness — `ready: true` written when a predecessor merges.* A second copy of what the record
+  already says, and the step that writes it is one somebody forgets.
+- *Slicing unattended, in the factory, or starting a successor once it is ready.* Splitting is a scoping
+  decision and belongs to a person (D-25), and the factory does four things (D-84). The sitrep says which came
+  ready; a person starts them.
+- *Stacking a successor on its predecessor's unmerged branch.* D-86's stack again: rejecting the first would
+  invalidate the second.
+- *One build pull request for the slices of one intent.* Rejecting one would cost the rest (D-84).
+- *Choosing the admission check by the `slices/` branch name.* A label the author chooses (D-87).
+- *Calling them drafts.* `sdlc draft` already names what is drafted for a person to place. *Calling slicing
+  refinement:* `refine` already names applying a round's findings. *Split* would read as relitigating D-25's
+  `split` skill.
 
 ### D-124 — The diff a verify judged is rebuilt from git, and never committed
 
