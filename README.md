@@ -323,6 +323,13 @@ What is honest to say about the rest:
   under a local VM. Its first run built one cycle unattended and opened its pull request, and found
   0.28.1's fix: the verify went uninterrogated because the `claude` the agent starts had no credential.
   Nobody has yet spent a morning on a sitrep of more than one cycle (`CONCEPT.md` §10.4, §10.5).
+- **Slicing has not met a real piece of work.** `intent` proposes how to cut work into atomic cycles
+  before any opens, and a piece that needs another's code waits as a successor under
+  `.sdlc/successors/` (`CONCEPT.md` D-125). The suite holds the successor's readiness, the sibling
+  comparison and a slicing's admission check; no slicing has yet been accepted, composed into
+  `slices/<slug>/plan` and merged, and nobody has started a successor the morning it came ready. Readiness
+  is read from the working copy and the integration branch, so a successor already started in another
+  worktree reads `ready` until that cycle's plan merges.
 - **The rebuilt patch has not met a real cycle.** `diff.patch` is no longer committed: `sdlc evidence`
   refuses uncommitted code, records `head.sha`, and the chain rebuilds the patch from the two commits
   (`CONCEPT.md` D-124). A real git repository in the suite holds that the rebuilt patch is the recorded
@@ -374,7 +381,7 @@ What is honest to say about the rest:
 A whole-codebase coverage floor — a change is held to 70% of its own lines and the codebase to its
 baseline instead. Making the local approval unforgeable — it cannot be, and the pull
 request is where accountability lives. Governing ai-sdlc with ai-sdlc. Resolving merge conflicts as the
-primary strategy. Tooling for splitting work. A device end-to-end layer. `CONCEPT.md` §18 has the full
+primary strategy. Slicing work unattended. A device end-to-end layer. `CONCEPT.md` §18 has the full
 list with reasons.
 
 ## License

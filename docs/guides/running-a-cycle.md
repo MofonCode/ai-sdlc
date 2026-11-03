@@ -38,6 +38,24 @@ the type out: from a lead, from your first answer, or, in a scaffolded solution 
 approved, by recognising the first piece of work in a new solution. There is no sentence to pass; the
 interview's first question is where the work is described.
 
+**Work bigger than one cycle is sliced first** (D-125). Give the skill something to slice — a lead with
+`--from`, or a description after its name — and before any cycle opens it proposes the most atomic slicing
+it can find: pieces that can each be built, verified and merged against the integration branch alone. You
+accept it once, merge pieces back, or keep the work whole; nothing is sliced without you. Each piece that
+needs nothing unmerged opens as a cycle of its own, in its own folder, and is interviewed in turn. Each
+that needs another's code is written as a **successor**, `.sdlc/successors/<slug>.md` — a file, not a cycle —
+and waits.
+
+**A successor starts once what it succeeds has merged.** `sdlc successors` says where each stands, and
+`sdlc status` and the sitrep name one the moment it is ready. Nothing starts it for you:
+
+```
+/sdlc:intent --from successor:<slug>
+```
+
+The interview resumes from the outcome and why the slicing left, against the code that merged, and the new
+cycle's plan branch deletes the successor's file.
+
 **You do not open the cycle or switch branches yourself.** The skill runs `sdlc new`, which allocates the
 id and claims it, then `sdlc branch <id> plan --worktree` and the `git worktree add` it prints, and says
 the id, the branch and the folder in one line. Then it interviews you — section 3.
@@ -220,6 +238,17 @@ branch. **It is admission, not a second approval**: the rename above was the app
 the pull request changes, and a pull request carrying only the cycle's planning documents gets the
 admission check — the documents, the approval and its hashes, no build and no verify. One source file in
 it and the full chain runs instead.
+
+**The plans of one slicing go together**, with the successors it wrote, once each is approved:
+
+```
+/sdlc:pr 20260929_1456_32 20260929_1456_33 --plan
+```
+
+It composes `slices/<slug>/plan` from their plan branches with `sdlc slices`, and the check gives every plan
+the admission check, the successors a soundness check, and refuses a plan that needs a file only a sibling's
+plan creates — that piece should have been a successor. Each cycle is still built, verified and merged on its
+own.
 
 Once it merges, the plan is queued: `sdlc cycles --queued` lists it, and a batch run or the factory picks it
 up. With no integration branch, skip this — the build starts from the plan branch, and one pull request

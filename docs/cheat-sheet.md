@@ -9,11 +9,11 @@ required in branch policy — a person sets that, and until then nothing mechani
 
 ## The cycle
 
-- `/sdlc:intent` — opens the cycle and its branch, interviews you one question at a time
+- `/sdlc:intent` — slices bigger work into atomic cycles once you accept, then opens each and interviews you one question at a time
 - `/sdlc:spec <id>` — testable criteria, from the intent alone
 - `/sdlc:plan <id>` — how, and what proves each criterion. **Read it closely**
 - `sdlc draft approval <id>`, then **rename the draft yourself** — that rename is the approval
-- `/sdlc:pr <id> --plan` — only with an integration branch: admits the plan before it is built
+- `/sdlc:pr <id> --plan` — only with an integration branch: admits the plan before it is built; a slicing's plans together with `/sdlc:pr <id> <id>... --plan`
 - `/sdlc:build <id>` — implements, tests, records the evidence
 - `/sdlc:verify <id>` — adjudicates from the evidence alone
 - `/sdlc:propose convergence` — optional, after a pass: rules, decisions and stack the cycle settled, as your own commit. Or after the merge
@@ -24,6 +24,7 @@ Each document stage runs its own interrogate-and-refine loop before it hands bac
 ## When it stops
 
 - **Where am I?** `sdlc status <id>` — prints the next command
+- **A successor is ready** — `/sdlc:intent --from successor:<slug>`; `sdlc successors` lists them
 - **A blocking finding** the loop could not clear — `guides/handling-blockers.md`
 - **Verify says `blocked`** — `/sdlc:remediate <id>`, then verify again
 - **Changed your mind** before approval — `/sdlc:steer <id> "..."`
