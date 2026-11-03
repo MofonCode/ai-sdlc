@@ -416,7 +416,10 @@ public static class RecordEvidence
                 Cycle.FrameworkVersion,
                 cycle.Id.ToString(),
                 time.GetUtcNow(),
-                tests);
+                tests,
+                string.Create(
+                    CultureInfo.InvariantCulture,
+                    $"{System.Runtime.InteropServices.RuntimeInformation.OSDescription.Trim()} {System.Runtime.InteropServices.RuntimeInformation.OSArchitecture}"));
 
             await Write(
                 cycle,

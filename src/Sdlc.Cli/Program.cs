@@ -67,7 +67,7 @@ try
         "init" => await Workspace.Run(line, w => Init(w, line)).ConfigureAwait(false),
         "new" => await Workspace.Run(line, NewCycle).ConfigureAwait(false),
         "scaffold" => await WithCycle(line, "scaffold", ScaffoldSolution).ConfigureAwait(false),
-        "evidence" => await WithCycle(line, "evidence", (w, id) => Evidence(w, line, id)).ConfigureAwait(false),
+        "evidence" => await EvidenceVerb(line).ConfigureAwait(false),
         "cycles" => await Workspace.Run(line, w => Cycles(w, line)).ConfigureAwait(false),
         "constraints" => await Workspace.Run(line, w => Constraints(w, line)).ConfigureAwait(false),
         "gate" => await WithCycle(line, "gate", Gate).ConfigureAwait(false),
@@ -455,6 +455,35 @@ static async Task<int> Cycles(Workspace workspace, CommandLine line)
 
 // What a build leaves behind, as files rather than prose. Verify reads only this, because a verdict
 // derived from a session's recollection is a verdict nobody can check.
+// 'evidence' records; 'evidence check' reads a verify against what was recorded (D-120). The sub-verb is
+// read before the cycle id, because no cycle id is the word 'check'.
+static async Task<int> EvidenceVerb(CommandLine line)
+{
+    if (line.Arguments.Count > 0 && string.Equals(line.Arguments[0], "check", StringComparison.OrdinalIgnoreCase))
+    {
+        CommandLine rest = line.WithoutFirstArgument();
+        return await WithCycle(rest, "evidence check", (w, id) => EvidenceCheck(w, id)).ConfigureAwait(false);
+    }
+
+    return await WithCycle(line, "evidence", (w, id) => Evidence(w, line, id)).ConfigureAwait(false);
+}
+
+// Zero whatever it finds: it reports, and a non-zero exit would make a report read as a refusal (D-120).
+static async Task<int> EvidenceCheck(Workspace workspace, CycleId id)
+{
+    Result<CheckEvidence.Response> result = await workspace
+        .Send<CheckEvidence.Query, CheckEvidence.Response>(new CheckEvidence.Query(id))
+        .ConfigureAwait(false);
+
+    if (result.IsFailed)
+    {
+        return await Report(result, ExitCode.Refused).ConfigureAwait(false);
+    }
+
+    await Console.Out.WriteAsync(CheckEvidence.Render(result.Value)).ConfigureAwait(false);
+    return ExitCode.Ok;
+}
+
 static async Task<int> Evidence(Workspace workspace, CommandLine line, CycleId id)
 {
     line.TryOption("tests", out string? trx);

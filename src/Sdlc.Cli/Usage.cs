@@ -122,6 +122,10 @@ internal static class Usage
                                      wrote. --standard changes that one key, and says so.
             evidence <id>            Record what a build produced: the diff, its base commit, a
                                      normalised test summary and the coverage. Verify reads only this.
+                                     The summary records the platform the tests ran on.
+            evidence check <id>      List what verify.md cites in backticks that none of the
+                                     recorded evidence holds, and tests it says passed that did not.
+                                     Reports only; always exits 0.
             cycles                   List every cycle this solution holds, newest first: what each
                                      is about, where it stands, and what it is owed.
             status <id>              Show the panel for a stage. Ends with the next command.

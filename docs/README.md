@@ -223,6 +223,7 @@ declining to go on, exit code 1. An open blocker causes refusals; it is not one.
 | **test summary** / **test outcome** | what ran and what each test did. The build checks the suite **actually ran** rather than that the runner exited zero |
 | **declared files** | what the plan said it would change, against what changed: **undelivered**, **undeclared**, and **governing** — a changed file holding a rule the change is judged by |
 | **verification** | adjudicating the build against the spec from the evidence alone. Per criterion: which test did the plan name, did it run and pass, and **does that test actually establish the criterion?** | `verify.md` |
+| **evidence check** | a string match of a verdict against the evidence: every name it cites that none of the recorded evidence holds, and every test it says passed that did not. **Reports, and never refuses** — a backticked name may be a type or a log line, so whether a claim rests on its evidence stays the reader's judgement (D-120) | `sdlc evidence check <id>` |
 | **remediation** | applying a blocked verification's findings to source and tests. **Never a planning document** | `/sdlc:remediate` |
 | **remediation budget** | how many passes have run and how many blockers stood after each. It stops when a pass undoes an earlier answer or two in a row reduce nothing — **no number of tries to run out of, and no ceiling** |
 | **escalation** | what running out of budget makes of a blocked cycle. **Computed, never declared.** An escalated cycle never opens a pull request |

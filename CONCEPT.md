@@ -360,7 +360,7 @@ git and published by the pipeline, the trx to the platform's test tab.
 `build` treats warnings as errors, enforced by `Directory.Build.props` rather than by instruction.
 
 **A string match runs before a reader does, and only reports** (D-120). `sdlc evidence check` lists
-the names `verify.md` cites that appear in neither `tests.json` nor `diff.patch`, and the tests it
+the names `verify.md` cites that appear in none of the evidence — `tests.json`, `diff.patch`, `coverage.json`, and the build log where there is one — and the tests it
 claims passed that `tests.json` does not record as passed. Whether a claim rests on its evidence stays
 the reader's judgement, so it never refuses. `tests.json` records the platform the tests ran on.
 
@@ -2148,6 +2148,7 @@ they print verbatim.
 | `draft convergence <file>` | drafts of the three record files from the proposals marked accepted: each a copy of the file as it stands with only those lines applied, refused if an entry or a row would go missing — D-104 |
 | `propose constraints` | what the history says the rules are missing, with the cycles and finding ids behind each — D-69 |
 | `evidence <id>` | records the diff, its base commit, and the normalised test summary — §4.5 |
+| `evidence check <id>` | lists what `verify.md` cites in backticks that none of the recorded evidence holds, and tests it claims passed that did not. Reports and never refuses — D-120 |
 | `cycles [--stage\|--approved\|--verified]` | every cycle this solution holds, newest first, with what each is about and where it stands |
 | `cycles --claims` | which cycles may be built together, and what collides — §10.1 |
 | `cycles --pr-ready` | every cycle, saying which may open a pull request |
@@ -7131,7 +7132,7 @@ none, and a total that reads it as none understates every cycle on that host.
 **Governs:** §4.5
 
 **Decision.** `sdlc evidence check <id>` reads `verify.md` against the recorded evidence and lists every
-name it cites in backticks that appears in neither `tests.json` nor `diff.patch`, and every test it claims
+name it cites in backticks that appears in none of the evidence — `tests.json`, `diff.patch`, `coverage.json`, and the build log where there is one — and every test it claims
 passed that `tests.json` does not record as passed. It always exits 0. `verify` runs it before the
 adjudicator's verdict goes to a round, and the reader of that round still judges `CON_08`.
 `sdlc evidence` also records the platform the tests ran on in `tests.json`.

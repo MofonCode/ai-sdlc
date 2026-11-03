@@ -53,6 +53,19 @@ adjudicator again; do not repair it yourself, because the repair is this session
 all. Then `sdlc status <id>` checks its shape. Interrogate the verdict with the same directory as
 `--dir`, so the round's collect counts what the adjudicator cost as that round's.
 
+## Check the citations, and report what it says
+
+```bash
+sdlc evidence check <id>
+```
+
+A string match of the verdict against the evidence (D-120): every name `verify.md` cites in backticks
+that appears in none of the evidence — `tests.json`, `diff.patch`, `coverage.json`, and the build log where there is one — and every test it says passed that `tests.json`
+does not record as passed. **It reports and refuses nothing**, and you act on nothing it lists — a
+backticked name may be a type or a log line, and whether a claim rests on its evidence is the round's
+reader's to judge. Show what it prints verbatim before the round, so the person sees it beside what the
+round finds.
+
 ## Then run the loop, and stop
 
 Interrogate the verify document like any other artifact — `CON_08` applies to it, and the rounds it

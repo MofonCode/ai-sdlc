@@ -33,7 +33,8 @@ an agent runs it, and it never decides a gate. `skills.md` lists the skills.
 | `sdlc stack` | binary | what the solution is built from, what this release ships that it never mentions, and the build settings not yet on disk |
 | `sdlc scaffold <id>` | binary | the skeleton on a new solution's first cycle; otherwise the build settings the plan declares |
 | `/sdlc:build <id>` | agent | implements, builds, tests, records the evidence |
-| `sdlc evidence <id>` | binary | records the diff, the base commit and the test summary; with `--coverage`, the changed lines' and the whole codebase's coverage against the baseline |
+| `sdlc evidence <id>` | binary | records the diff, the base commit and the test summary; with `--coverage`, the changed lines' and the whole codebase's coverage against the baseline | and the platform the tests ran on
+| `sdlc evidence check <id>` | binary | lists what `verify.md` cites that none of the recorded evidence holds, and tests it says passed that did not. Reports only, always exits 0. `/sdlc:verify` runs it |
 | `/sdlc:verify <id>` | agent, fresh process | adjudicates from the evidence alone, writes `verify.md` |
 | `/sdlc:remediate <id>` | agent | only on `blocked`; runs while each pass reduces what is open |
 | `sdlc pr-ready <id>` | binary | whether it may open a pull request. Exits 1 if not |
