@@ -141,6 +141,25 @@ internal sealed class FakeRepository : IRepository
         return Patch;
     }
 
+    /// <summary>The commit <see cref="CommitOf"/> answers for <c>HEAD</c>, or null for git not being able to say.</summary>
+    public string? Head { get; init; } = "fedcba9876543210fedcba9876543210fedcba98";
+
+    /// <summary>The two commits the last <see cref="DiffBetween"/> was asked about.</summary>
+    public (string From, string Until)? Between { get; private set; }
+
+    /// <summary>What <see cref="DiffBetween"/> answers, when it differs from <see cref="Patch"/>.</summary>
+    public string? CommittedPatch { get; set; }
+
+    public string? DiffBetween(string workingDirectory, string from, string until, IReadOnlyList<string> exclude)
+    {
+        Excluded = exclude;
+        Between = (from, until);
+        return CommittedPatch ?? Patch;
+    }
+
+    public string? CommitOf(string workingDirectory, string reference) =>
+        reference == "HEAD" ? Head : Refs.Contains(reference) ? reference : null;
+
     public IReadOnlyList<string> ChangedFiles(string workingDirectory, string from) => Changed;
 
     public IReadOnlyList<string> CommitMessages(string workingDirectory, string branch, string from) =>

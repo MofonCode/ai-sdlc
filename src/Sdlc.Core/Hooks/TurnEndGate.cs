@@ -166,6 +166,10 @@ public static class TurnEndGate
                 return Result.Ok(HookVerdict.Allowed);
             }
 
+            // Not committed (D-124), so a clone of the build has the summary and no patch. Rebuilt first, so
+            // recorded evidence is not mistaken for none.
+            await EvidenceDiff.Restore(cycle, repository, solution.Path, cancellationToken).ConfigureAwait(false);
+
             if (!File.Exists(diffPath))
             {
                 // The changed-file list rather than the patch, because a patch does not see an untracked

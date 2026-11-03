@@ -5,6 +5,7 @@ using FluentResults;
 using Microsoft.Extensions.DependencyInjection;
 using MofonCode.Core;
 using Sdlc.Core.Cycles;
+using Sdlc.Core.Git;
 using Sdlc.Core.Solutions;
 
 namespace Sdlc.Core.Evidence;
@@ -163,7 +164,7 @@ public static class CheckEvidence
         return text.ToString();
     }
 
-    private sealed class Handler(SolutionRoot solution) : IRequestHandler<Query, Response>
+    private sealed class Handler(SolutionRoot solution, IRepository repository) : IRequestHandler<Query, Response>
     {
         public async Task<Result<Response>> Handle(Query request, CancellationToken cancellationToken)
         {
@@ -178,6 +179,8 @@ public static class CheckEvidence
                     CultureInfo.InvariantCulture,
                     $"Cycle {cycle.Id} has no verify.md to check."));
             }
+
+            await EvidenceDiff.Restore(cycle, repository, solution.Path, cancellationToken).ConfigureAwait(false);
 
             string summaryPath = Path.Combine(cycle.EvidenceDirectory, RecordEvidence.SummaryFileName);
             string diffPath = Path.Combine(cycle.EvidenceDirectory, RecordEvidence.DiffFileName);

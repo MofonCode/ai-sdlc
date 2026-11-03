@@ -7,6 +7,7 @@ using MofonCode.Core;
 using Sdlc.Core.Artifacts;
 using Sdlc.Core.Cycles;
 using Sdlc.Core.Evidence;
+using Sdlc.Core.Git;
 using Sdlc.Core.Solutions;
 
 namespace Sdlc.Core.Findings;
@@ -203,11 +204,19 @@ public static class RecordRound
     /// <param name="cycle">The cycle.</param>
     /// <param name="cancellationToken">Token observed while reading.</param>
     /// <param name="withBuildLog">Whether to include the build log, as rounds recorded before 0.32.0 did.</param>
+    /// <param name="repository">
+    /// Git, to rebuild the patch from <c>base.sha</c> and <c>head.sha</c> when the evidence names both (D-124).
+    /// The patch is then hashed as git rebuilds it, never as a file on disk says, so a checkout without the file
+    /// and one with a stale copy both reach the hash of the commits the build was recorded at.
+    /// </param>
+    /// <param name="root">The repository's root, for <paramref name="repository"/>.</param>
     /// <returns>The hash, or null when nothing has been recorded.</returns>
     public static async Task<string?> EvidenceHash(
         Cycle cycle,
         CancellationToken cancellationToken,
-        bool withBuildLog = false)
+        bool withBuildLog = false,
+        IRepository? repository = null,
+        string? root = null)
     {
         ArgumentNullException.ThrowIfNull(cycle);
 
@@ -219,6 +228,16 @@ public static class RecordRound
         foreach (string name in names)
         {
             string path = Path.Combine(cycle.EvidenceDirectory, name);
+
+            if (name == RecordEvidence.DiffFileName && repository is not null && root is not null && EvidenceDiff.IsRebuilt(cycle))
+            {
+                if (await EvidenceDiff.Rebuild(cycle, repository, root, cancellationToken).ConfigureAwait(false) is { } rebuilt)
+                {
+                    listing.Append(name).Append(' ').Append(ContentHash.Of(rebuilt)).Append('\n');
+                }
+
+                continue;
+            }
 
             if (File.Exists(path))
             {
@@ -283,7 +302,7 @@ public static class RecordRound
         return Result.Ok(ids);
     }
 
-    private sealed class Handler(SolutionRoot solution, TimeProvider clock) : IRequestHandler<Command, Response>
+    private sealed class Handler(SolutionRoot solution, TimeProvider clock, IRepository repository) : IRequestHandler<Command, Response>
     {
         public async Task<Result<Response>> Handle(Command request, CancellationToken cancellationToken)
         {
@@ -369,7 +388,7 @@ public static class RecordRound
                 UpstreamSha256 = upstream,
                 SubjectSha256 = ContentHash.Of(text),
                 EvidenceSha256 = request.Artifact == ArtifactKind.Verify
-                    ? await EvidenceHash(cycle, cancellationToken).ConfigureAwait(false)
+                    ? await EvidenceHash(cycle, cancellationToken, repository: repository, root: solution.Path).ConfigureAwait(false)
                     : null,
                 SectionSha256 = SectionHashes(text),
                 InterrogatedAt = clock.GetUtcNow(),

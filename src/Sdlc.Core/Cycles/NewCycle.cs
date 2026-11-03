@@ -107,6 +107,11 @@ public static class NewCycle
                 "/*/evidence/*.trx",
                 "/*/evidence/build.log",
             ],
+            [
+                "# The change itself, as the verify reads it. Never committed: git holds the change, and the",
+                "# chain rebuilds the patch from base.sha and head.sha (D-124).",
+                "/*/evidence/diff.patch",
+            ],
         ];
 
         /// <inheritdoc />

@@ -158,12 +158,13 @@ public sealed class NewCycleTests
 
         Git(workspace.Root, "init");
 
-        foreach (string kept in new[] { "tests.json", "diff.patch", "base.sha", "coverage.json" })
+        foreach (string kept in new[] { "tests.json", "base.sha", "head.sha", "coverage.json" })
         {
             Assert.AreEqual(1, Git(workspace.Root, $"check-ignore -q {Relative(evidence, kept)}"), kept + " is ignored.");
         }
 
-        foreach (string ignored in new[] { "tests.trx", "tests.1.trx", "build.log" })
+        // D-124: the patch is rebuilt from base.sha and head.sha, so it is a working file like the log.
+        foreach (string ignored in new[] { "tests.trx", "tests.1.trx", "build.log", "diff.patch" })
         {
             Assert.AreEqual(0, Git(workspace.Root, $"check-ignore -q {Relative(evidence, ignored)}"), ignored + " is committed.");
         }

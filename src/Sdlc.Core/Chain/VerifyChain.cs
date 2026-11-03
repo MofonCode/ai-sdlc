@@ -207,7 +207,7 @@ public static class VerifyChain
             await Proof(cycle, checks, cancellationToken).ConfigureAwait(false);
             await Proven(cycle, checks, cancellationToken).ConfigureAwait(false);
             await Adjudicated(cycle, checks, cancellationToken).ConfigureAwait(false);
-            await EvidenceRead(cycle, checks, cancellationToken).ConfigureAwait(false);
+            await EvidenceRead(cycle, checks, repository, solution.Path, cancellationToken).ConfigureAwait(false);
             await Covered(cycle, checks, cancellationToken).ConfigureAwait(false);
             await AfterReopen(cycle, checks, cancellationToken).ConfigureAwait(false);
             await Outcome(cycle, checks, cancellationToken).ConfigureAwait(false);
@@ -304,6 +304,8 @@ public static class VerifyChain
         private static async Task EvidenceRead(
             Cycle cycle,
             List<ChainCheck> checks,
+            IRepository repository,
+            string root,
             CancellationToken cancellationToken)
         {
             Result<IReadOnlyList<FindingsRound>> history = await FindingsReader
@@ -316,7 +318,7 @@ public static class VerifyChain
             }
 
             FindingsRound latest = history.Value[^1];
-            string? now = await RecordRound.EvidenceHash(cycle, cancellationToken).ConfigureAwait(false);
+            string? now = await RecordRound.EvidenceHash(cycle, cancellationToken, repository: repository, root: root).ConfigureAwait(false);
 
             // A round recorded before the build log left the hash carried it, and that cycle committed its
             // log, so its own hash is recomputable here. Accepted under the old reading rather than sent

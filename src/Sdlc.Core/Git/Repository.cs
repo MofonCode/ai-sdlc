@@ -108,6 +108,24 @@ public interface IRepository
     /// <returns>The patch, or null when git cannot say.</returns>
     string? Diff(string workingDirectory, string from, IReadOnlyList<string> exclude);
 
+    /// <summary>The diff between two commits, leaving paths out.</summary>
+    /// <remarks>
+    /// Committed state only, so the same two commits give the same patch on any clone that holds them: what
+    /// lets the chain rebuild the diff a verify judged rather than trust a stored copy of it (D-124).
+    /// </remarks>
+    /// <param name="workingDirectory">Where to ask from.</param>
+    /// <param name="from">The commit to measure from.</param>
+    /// <param name="until">The commit to measure to.</param>
+    /// <param name="exclude">Top-level paths to leave out of the patch, or none.</param>
+    /// <returns>The patch, or null when git cannot say -- one of the commits is not in this clone.</returns>
+    string? DiffBetween(string workingDirectory, string from, string until, IReadOnlyList<string> exclude);
+
+    /// <summary>The full id of the commit a reference names.</summary>
+    /// <param name="workingDirectory">Where to ask from.</param>
+    /// <param name="reference">A branch, a tag, <c>HEAD</c> or a commit.</param>
+    /// <returns>The forty-character id, or null when the reference names no commit.</returns>
+    string? CommitOf(string workingDirectory, string reference);
+
     /// <summary>The paths that differ from a commit, including untracked files.</summary>
     /// <remarks>
     /// Untracked files are included deliberately. A new file an agent wrote and never staged is part of the
@@ -372,6 +390,30 @@ public sealed class GitRepository : IRepository
             exclude.Select(path => "\":(exclude)" + path.Replace('\\', '/').Trim('/') + "\""));
 
         return Run(workingDirectory, $"diff {from} -- . {pathspec}");
+    }
+
+    /// <inheritdoc />
+    public string? DiffBetween(string workingDirectory, string from, string until, IReadOnlyList<string> exclude)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(from);
+        ArgumentException.ThrowIfNullOrWhiteSpace(until);
+        ArgumentNullException.ThrowIfNull(exclude);
+
+        string pathspec = string.Join(
+            ' ',
+            exclude.Select(path => "\":(exclude)" + path.Replace('\\', '/').Trim('/') + "\""));
+
+        return exclude.Count == 0
+            ? Run(workingDirectory, $"diff {from} {until}")
+            : Run(workingDirectory, $"diff {from} {until} -- . {pathspec}");
+    }
+
+    /// <inheritdoc />
+    public string? CommitOf(string workingDirectory, string reference)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(reference);
+
+        return Run(workingDirectory, $"rev-parse --verify --quiet \"{reference}^{{commit}}\"")?.Trim() is { Length: 40 } id ? id : null;
     }
 
     /// <inheritdoc />

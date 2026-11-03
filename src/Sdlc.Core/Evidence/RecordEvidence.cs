@@ -44,6 +44,9 @@ public static class RecordEvidence
     /// <summary>The commit the change is measured from.</summary>
     public const string BaseFileName = "base.sha";
 
+    /// <summary>The commit the build was recorded at, which the patch is measured to (D-124).</summary>
+    public const string HeadFileName = "head.sha";
+
     /// <summary>The change itself.</summary>
     public const string DiffFileName = "diff.patch";
 
@@ -140,6 +143,32 @@ public static class RecordEvidence
                     $"Cycle {cycle.Id} already has a verdict at {verdict}, and it adjudicates the run recorded now. Recording a new run would leave every claim in it citing evidence that is gone. Delete {Cycle.FileNameOf(ArtifactKind.Verify)} and verify again once this run is recorded -- the findings rounds under findings/ are kept either way, so the history of what was challenged survives."));
             }
 
+            // D-124: the patch is measured to a commit, so the chain can rebuild it from git rather than
+            // trust a stored copy. Code nobody committed has no commit to name, and a verify of it would be a
+            // verify of something no clone can see. The cycle's own paperwork is exempt -- this command writes
+            // there -- and so is the run's own output, which is what is being recorded.
+            IReadOnlyList<string> uncommitted =
+            [
+                .. repository.UncommittedChanges(solution.Path)
+                    .Select(path => path.Replace('\\', '/'))
+                    .Where(path => !path.StartsWith(Cycle.SdlcDirectoryName + "/", StringComparison.Ordinal))
+                    .Where(path => !IsRunOutput(path, request)),
+            ];
+
+            if (uncommitted.Count > 0)
+            {
+                return Result.Fail<Response>(string.Create(
+                    CultureInfo.InvariantCulture,
+                    $"{uncommitted.Count} file(s) outside {Cycle.SdlcDirectoryName}/ are not committed: {string.Join(", ", uncommitted.Take(5))}{(uncommitted.Count > 5 ? ", ..." : string.Empty)}. The evidence names the commit the build was recorded at, so commit the change first, then record it."));
+            }
+
+            string? head = repository.CommitOf(solution.Path, "HEAD");
+
+            if (head is null)
+            {
+                return Result.Fail<Response>("git could not say which commit is checked out. The evidence names it, so without it there is nothing to record.");
+            }
+
             Directory.CreateDirectory(cycle.EvidenceDirectory);
             List<string> written = [];
 
@@ -159,11 +188,16 @@ public static class RecordEvidence
 
             await Write(cycle, BaseFileName, baseCommit + Environment.NewLine, written, cancellationToken)
                 .ConfigureAwait(false);
+            await Write(cycle, HeadFileName, head + Environment.NewLine, written, cancellationToken)
+                .ConfigureAwait(false);
 
             // The cycle's own paperwork is left out, for the reason DeclaredFiles.IsFrameworkOwned gives:
             // this patch is what a verify reads and nothing else, and it used to open with the plan the
             // verify is meant to be checked against. Keeping the two readers on one answer is the point.
-            string diff = repository.Diff(solution.Path, baseCommit, [Cycle.SdlcDirectoryName])
+            //
+            // Between the two commits rather than to the working tree (D-124): the one patch the chain can
+            // rebuild on a clean checkout, and the same one the uncommitted check above makes it equal to.
+            string diff = repository.DiffBetween(solution.Path, baseCommit, head, [Cycle.SdlcDirectoryName])
                 ?? string.Empty;
 
             await Write(cycle, DiffFileName, diff, written, cancellationToken).ConfigureAwait(false);
@@ -245,6 +279,30 @@ public static class RecordEvidence
                 changed);
 
             return Result.Ok(new Response(cycle, written, summary, changed, comparison, sources, coverage));
+        }
+
+        /// <summary>Whether an uncommitted path is the run's own output, named on the command line.</summary>
+        private bool IsRunOutput(string path, Command request)
+        {
+            foreach (string? given in new[] { request.Trx, request.BuildLog, request.Coverage })
+            {
+                if (given is null)
+                {
+                    continue;
+                }
+
+                string relative = Path.GetRelativePath(solution.Path, Path.GetFullPath(given, solution.Path))
+                    .Replace('\\', '/')
+                    .TrimEnd('/');
+
+                if (path.Equals(relative, StringComparison.OrdinalIgnoreCase)
+                    || path.StartsWith(relative + "/", StringComparison.OrdinalIgnoreCase))
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         /// <summary>

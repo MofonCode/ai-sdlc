@@ -7,6 +7,8 @@ using Microsoft.Extensions.DependencyInjection;
 using MofonCode.Core;
 using Sdlc.Core.Constraints;
 using Sdlc.Core.Cycles;
+using Sdlc.Core.Evidence;
+using Sdlc.Core.Git;
 using Sdlc.Core.Perspectives;
 using Sdlc.Core.Solutions;
 
@@ -202,7 +204,7 @@ public static class ReaderPrompts
         block.Append("</file>\n\n");
     }
 
-    private sealed class Handler(SolutionRoot solution, Mediator mediator) : IRequestHandler<Command, Response>
+    private sealed class Handler(SolutionRoot solution, Mediator mediator, IRepository repository) : IRequestHandler<Command, Response>
     {
         public async Task<Result<Response>> Handle(Command request, CancellationToken cancellationToken)
         {
@@ -219,6 +221,13 @@ public static class ReaderPrompts
             }
 
             bool adjudicating = string.Equals(request.Reader, ReaderAnswers.Adjudicate, StringComparison.Ordinal);
+
+            // A verify's readers quote the patch, and a fresh clone of the build has none: it is not committed
+            // (D-124). Rebuilt from the two commits the evidence names, so they read the patch the build did.
+            if (request.Artifact == ArtifactKind.Verify)
+            {
+                await EvidenceDiff.Restore(cycle, repository, solution.Path, cancellationToken).ConfigureAwait(false);
+            }
 
             if (adjudicating && request.Artifact != ArtifactKind.Verify)
             {
