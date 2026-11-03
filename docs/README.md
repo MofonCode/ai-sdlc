@@ -301,7 +301,7 @@ never decides a gate.
 | Skill | In one line |
 |---|---|
 | `init` | interviews the team about what matters here and proposes the first `LOC_` rules. Does not adopt — it hands over the command |
-| `intent` | interviews a person into the intent, and opens the cycle |
+| `intent` | proposes how to slice the work into atomic cycles, then interviews a person into the intent of each, and opens them |
 | `spec` | derives testable criteria from the intent alone |
 | `plan` | decides how, and what proves each criterion. The last document before a person approves |
 | `interrogate` | judges one artifact against the rules, in a fresh process. Never edits |

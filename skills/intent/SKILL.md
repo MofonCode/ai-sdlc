@@ -24,13 +24,14 @@ nothing. Ask from where it leaves off.
 If your host gives you a task list, open one before the first step, with these items, and mark each
 done as it finishes. If it does not, carry on without one — nothing below depends on it.
 
-1. open the cycle and its branch
-2. settle the type
-3. interview, one question at a time
-4. pin down the one word
-5. write the intent
-6. interrogate and refine until a round is clean
-7. report and hand back
+1. propose a slicing, and have it accepted
+2. open the cycle and its branch — each slice's, when there are several
+3. settle the type
+4. interview, one question at a time
+5. pin down the one word
+6. write the intent
+7. interrogate and refine until a round is clean
+8. report and hand back
 
 **The loop is one item, however many rounds it takes.** A list that grows a line per round reads as
 progress while an artifact goes round in circles.
@@ -39,6 +40,73 @@ progress while an artifact goes round in circles.
 person's decision, and `sdlc status <id>` names it. **The list is a view, never the record.** What is
 done is what is on disk and what the binary reports, so where the two disagree the list is the one
 that is wrong.
+
+## 0. Slice the work, before any cycle opens
+
+**A cycle should be atomic: one that can be built, verified and merged against the integration branch as
+it stands, without any other open cycle** (D-125). That is the only rule, and there is no floor on how
+small a piece may be. A cycle that is several pieces at once is the one that takes fifty rounds: its
+readers find one uncovered case per round across criteria that multiply.
+
+**Slice only what you have been given.** A lead — fetch it first with `sdlc lead show <lead>`, as §1a
+says — or what the person typed after the skill's name. With neither, there is nothing to slice yet: skip
+this and open the cycle. A `successor:` lead is a slice already, and is not sliced again.
+
+**1. Propose the most atomic slicing you can find.** Read the repository for what exists — never ask the
+person what the code can tell you — and cut the work into pieces, each with:
+
+- a **slug**: lower-case words joined by hyphens, as in `export-totals`;
+- one line of **outcome**, in the person's terms, and one of **why**;
+- what it **needs**: nothing, or the other pieces whose code it builds on.
+
+**Prefer width over depth.** Cut so that pieces stand side by side, each needing nothing unmerged; a chain
+— a piece that needs another's code — only where one truly builds on the other. A piece no reader would
+notice on its own is still a piece: whether it is too thin is the person's call when they accept, not
+yours when you cut.
+
+**One piece is an answer.** Work that is already atomic says so in a line and goes straight to §1.
+
+**2. Ask once, in free text**, with the pieces listed — in a file under `.sdlc/reports/` when there are
+more than a handful (D-114). The person accepts it, **merges** pieces, or **marks one atomic** — keep it
+whole. Read back the slicing you will open, and act only once they confirm. **Never slice unattended,
+and never past what they accepted**: splitting is a scoping decision, and it is theirs (D-25).
+
+**3. Open it.** For several pieces, choose a slug for the slicing as a whole — usually the lead's.
+
+- **Each piece that needs nothing unmerged is a cycle.** Open each as §1 says — `sdlc new`, then
+  `sdlc branch <id> plan --worktree` — a second apart, since two cycles opened in the same second collide.
+  Each gets its own folder.
+- **Each piece that needs another's code is a successor**, a file and not a cycle. Write it in the
+  **first** piece's folder, as `.sdlc/successors/<slug>.md`:
+
+  ```markdown
+  ---
+  succeeds: 20261103_0900_00, successor:export-totals
+  sliced_from: github:56
+  ---
+
+  # Finance compares this month's totals with last month's
+
+  ## Outcome
+
+  <the outcome, as the person accepted it>
+
+  ## Why
+
+  <why, in their words>
+  ```
+
+  `succeeds:` names what it waits for: the cycle id of a piece you just opened, or `successor:<slug>` for
+  one that is itself a successor. `sliced_from:` is the lead, when there was one; `mirror:` may name a
+  work item standing for it on a board. **Nothing else** — no spec, no plan, no criteria: those would
+  describe code that does not exist yet. Then `sdlc successor check` from that folder, and correct what it
+  refuses.
+
+**4. Interview each opened piece in turn**, from §2 on, each in its own folder: write its intent there,
+run its loop, and hand back once at the end with each piece's panel. A piece's interview starts from its
+accepted outcome and why, so most of it is short. **Record the lead in each** — every piece is part of the
+same work item — and say in the hand-back that the slicing's plans go to the integration branch together,
+by one plan pull request, once each is approved.
 
 ## 1. Open the cycle and switch to its branch
 
@@ -84,7 +152,8 @@ either step again, and the person knows where to open a session for this cycle.
 
 ## 1a. Begin from a lead, when given one
 
-With `--from <lead>` — `azuredevops:1234`, `github:56`, `suggestion:<cycle>/<finding>`, or a path — fetch it:
+With `--from <lead>` — `azuredevops:1234`, `github:56`, `suggestion:<cycle>/<finding>`,
+`successor:<slug>`, or a path — fetch it:
 
 ```
 sdlc lead show <lead>
@@ -102,6 +171,27 @@ into the integration branch by its own pull request (D-88). Most intents have ne
 
 **A lead can settle the type** — see the next step — and it answers whatever questions it already
 answers. Skip those, and say so.
+
+### A successor
+
+`successor:<slug>` is a slice that waited on another's code (D-125). **`sdlc lead show` refuses one that is
+not ready** — something it succeeds has not merged with a passing verify — and says what. Show the person
+that, and stop: a cycle opened now could not be built alone. `sdlc successors` lists where each stands.
+
+A ready one opens like any other — `sdlc new`, then `sdlc branch <id> plan --worktree` — and then, **from the
+new cycle's folder**:
+
+```
+sdlc successor start <slug> <id>
+```
+
+It refuses again if the successor stopped being ready, and otherwise deletes its file there, on the new plan
+branch, so the deletion travels with this cycle's plan. Record `lead: successor:<slug>` in the intent —
+that is what resolves every other successor naming the slug, and nobody edits those.
+
+**Resume the interview against the code that merged.** The outcome and why are already answered; ask what
+the merged pieces settled or changed about them, and carry on from there. The lead's `sliced from` is the
+work item the slicing came from: name it in `## Problem`, so the pull request can link it.
 
 ## 2. Settle the type before the first question
 
@@ -226,8 +316,10 @@ B1 and B2 are the reproduction the spec derives a bug fix's criteria from.
 | A4 | Picture it done: what does that person do differently? | *"Presses one button and reads the number."* · *"Resets it themselves in one click."* |
 | A5 | What's the smallest version still worth having? | *"Just the last roll, no history."* · *"Read-only first, editing later."* · *"It's already as small as it gets."* |
 
-*"Nothing urgent"* is an honest answer to A3: record it as given. A5 asks; it never splits the work,
-which stays the person's call (D-25).
+*"Nothing urgent"* is an honest answer to A3: record it as given. A5 asks; it never splits the work here.
+Slicing happened before the cycle opened, and only as the person accepted it (§0). An answer that shows
+this piece is really two is said back to them, and a slice they want now is abandoning this cycle and
+starting again from §0.
 
 **Feature change**
 

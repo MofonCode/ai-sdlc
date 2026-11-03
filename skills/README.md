@@ -206,14 +206,14 @@ before it has such a round.
 
 ### `intent`
 
-Interviews a person into the intent, the first artifact of a cycle, and opens the cycle.
+Interviews a person into the intent, the first artifact of a cycle, and opens the cycle — first proposing how to slice the work into atomic cycles when it is more than one piece.
 
 | | |
 |---|---|
 | Stage | the planning chain, first. It opens the cycle |
 | Started by | a person: somebody wants to start new work, reports a problem, or has an idea to turn into something the process can carry |
 | Reads | the constraints in force and the conversation |
-| Writes | `.sdlc/cycles/<id>/intent.md`, and the findings rounds the loop produces |
+| Writes | `.sdlc/cycles/<id>/intent.md`, and the findings rounds the loop produces; for a slicing, one cycle per piece that needs nothing unmerged and `.sdlc/successors/<slug>.md` for each that does |
 
 #### Syntax
 
@@ -226,7 +226,7 @@ Interviews a person into the intent, the first artifact of a cycle, and opens th
 | Parameter | Description |
 |---|---|
 | `--type bug\|add\|change` | the kind of change — a bug fix, a feature addition or a feature change — so the interview asks that kind's questions. Optional: without it the type comes from the lead, or a new solution is detected, or the opening answer decides it and the skill confirms. There is no `new`: a new solution is only detected. A flag the answers contradict is asked about, never followed in silence |
-| `--from <lead>` | begin from a lead — `azuredevops:1234`, `github:56`, `suggestion:<cycle>/<finding>`, or a path — fetched by `sdlc lead show` and recorded in the intent as `lead:`. It seeds the interview and never replaces it |
+| `--from <lead>` | begin from a lead — `azuredevops:1234`, `github:56`, `suggestion:<cycle>/<finding>`, `successor:<slug>`, or a path — fetched by `sdlc lead show` and recorded in the intent as `lead:`. It seeds the interview and never replaces it. A lead or a description is what a slicing is proposed from; a ready successor is started rather than sliced again |
 
 #### Output
 
@@ -241,6 +241,7 @@ stack and the spec.
 |---|---|---|
 | the declared stack is not in place | `sdlc new` refuses | fill in `techstack.draft.md`, which adoption wrote, and rename it into place |
 | anything is uncommitted | `sdlc new` refuses and names the files, because the cycle's branch would carry them into its diff | the skill asks what you want done with them — commit, stash or discard — and opens the cycle again |
+| `--from successor:<slug>` that is not ready | `sdlc lead show` refuses, saying what it still waits for | wait until `sdlc successors` says `ready`; the person starts it then |
 
 #### Example
 
@@ -267,7 +268,11 @@ intent stays a problem statement while the plan can still honour the decision.
 What it runs, in order:
 
 1. `sdlc constraints --for intent`, kept in front of it, and `.sdlc/solution.md`, so it asks from where
-   the person's paragraph leaves off
+   the person's paragraph leaves off; then, given a lead or a description, the most atomic slicing it can
+   find — pieces that each build, verify and merge against the integration branch alone, side by side
+   where possible, chained only where one needs another's code — asked once: accept it, merge pieces, or
+   keep the work whole. Each accepted piece that needs nothing unmerged is opened below and interviewed in
+   turn; each that does is written as a successor (D-125)
 2. `sdlc new`, which allocates the cycle id and claims it — that claim *is* the collision check — then
    `sdlc branch <id> plan` and the `git switch` it prints, so the working copy is on `cycle/<id>/plan`. The
    person runs neither
