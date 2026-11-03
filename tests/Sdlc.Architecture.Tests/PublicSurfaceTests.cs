@@ -124,6 +124,7 @@ public sealed class PublicSurfaceTests
         "Sdlc.Core.Chain.VerifyChain+Query",
         "Sdlc.Core.Chain.VerifyChain+Response",
         "Sdlc.Core.Constraints.Constraint",
+        "Sdlc.Core.Constraints.JudgedPer",
         "Sdlc.Core.Constraints.ConstraintDetail",
         "Sdlc.Core.Constraints.ConstraintDocument",
         "Sdlc.Core.Constraints.ConstraintId",

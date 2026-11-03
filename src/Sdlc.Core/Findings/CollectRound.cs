@@ -151,6 +151,28 @@ public static class CollectRound
                         $"The {reader} reader raised blocking finding{(wanting.Count == 1 ? string.Empty : "s")} {string.Join(", ", wanting)} with no usable gist: one plain sentence, at most {Finding.GistLimit} characters on one line. Start it again; do not write one here."));
                 }
 
+                // A rule judged item by item is answered item by item, or the reader goes again (D-119).
+                if (reader == ReaderAnswers.Rules)
+                {
+                    Result<Constraints.EffectiveConstraints.Response> set = await mediator
+                        .Send<Constraints.EffectiveConstraints.Query, Constraints.EffectiveConstraints.Response>(
+                            new Constraints.EffectiveConstraints.Query(Cycle.NameOf(request.Artifact)),
+                            cancellationToken)
+                        .ConfigureAwait(false);
+
+                    if (set.IsFailed)
+                    {
+                        return set.ToResult<Response>();
+                    }
+
+                    IReadOnlyList<(Constraints.Constraint Rule, IReadOnlyDictionary<int, string> Items)> judged = await JudgedItems.In(cycle, set.Value, cancellationToken).ConfigureAwait(false);
+
+                    if (JudgedItems.Unanswered(judged, body.Value.Rows, body.Value.Findings) is { } unanswered)
+                    {
+                        return Result.Fail<Response>(unanswered + " Start it again; do not write the rows here.");
+                    }
+                }
+
                 raised.AddRange(body.Value.Findings);
                 conflicts.AddRange(body.Value.Conflicts);
                 demoted.AddRange(body.Value.Demoted);

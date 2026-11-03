@@ -323,6 +323,18 @@ public static class ReaderPrompts
                 return rules;
             }
 
+            Result<EffectiveConstraints.Response> set = await mediator
+                .Send<EffectiveConstraints.Query, EffectiveConstraints.Response>(new EffectiveConstraints.Query(Cycle.NameOf(request.Artifact)), cancellationToken)
+                .ConfigureAwait(false);
+
+            if (set.IsFailed)
+            {
+                return set.ToResult<string>();
+            }
+
+            (string rows, string rowsShape) = JudgedItems.Prompt(
+                await JudgedItems.In(new Cycle(request.Id, solution.Path), set.Value, cancellationToken).ConfigureAwait(false));
+
             // A Met is checked by finding its quote in the diff, and a reader without that instruction
             // only checks that something was named.
             string verify = request.Artifact == ArtifactKind.Verify
@@ -332,8 +344,8 @@ public static class ReaderPrompts
             return Result.Ok(shared + Template("rules")
                 .Replace("{{constraints}}", rules.Value, StringComparison.Ordinal)
                 .Replace("{{verify}}", verify, StringComparison.Ordinal)
-                .Replace("{{rows}}", string.Empty, StringComparison.Ordinal)
-                .Replace("{{rowsShape}}", string.Empty, StringComparison.Ordinal));
+                .Replace("{{rows}}", rows, StringComparison.Ordinal)
+                .Replace("{{rowsShape}}", rowsShape, StringComparison.Ordinal));
         }
 
         private async Task<Result<string>> ForPerspective(Command request, string reader, string shared, CancellationToken cancellationToken)

@@ -22,7 +22,7 @@ public static class ConstraintParser
         TimeSpan.FromSeconds(1));
 
     private static readonly Regex _clausePattern = new(
-        @"^\*\*(?<label>Applies to|Forbids|Why|Superseded-by):\*\*\s*(?<body>.*)$",
+        @"^\*\*(?<label>Applies to|Forbids|Why|Superseded-by|Judged):\*\*\s*(?<body>.*)$",
         RegexOptions.CultureInvariant | RegexOptions.ExplicitCapture,
         TimeSpan.FromSeconds(1));
 
@@ -124,6 +124,28 @@ public static class ConstraintParser
                 supersededBy = replacement;
             }
 
+            // Optional: most rules are judged over the document whole. A value outside the two would
+            // silently judge a rule whole that its author meant item by item, so it is refused (D-119).
+            JudgedPer? judged = null;
+            string? judgedText = block.Clause("Judged");
+            if (!string.IsNullOrWhiteSpace(judgedText))
+            {
+                judged = judgedText.Trim().TrimEnd('.').ToUpperInvariant() switch
+                {
+                    "PER CRITERION" => JudgedPer.Criterion,
+                    "PER OUTCOME" => JudgedPer.Outcome,
+                    _ => null,
+                };
+
+                if (judged is null)
+                {
+                    errors.Add(string.Create(
+                        CultureInfo.InvariantCulture,
+                        $"{source}: {id} is judged '{judgedText.Trim()}'. A rule is judged 'per criterion', 'per outcome', or over the whole document by leaving the field out."));
+                    continue;
+                }
+            }
+
             seen.Add(id.Value);
             constraints.Add(new Constraint(
                 id.Value,
@@ -131,7 +153,8 @@ public static class ConstraintParser
                 appliesTo,
                 forbids,
                 why,
-                supersededBy));
+                supersededBy,
+                judged));
         }
 
         return errors.Count > 0
