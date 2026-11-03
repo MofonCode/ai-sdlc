@@ -1304,6 +1304,18 @@ static async Task<int> RoundVerb(CommandLine line)
         return await WithCycle(rest, "round prompt", (w, id) => RoundPrompt(w, rest, id)).ConfigureAwait(false);
     }
 
+    if (line.Arguments.Count > 0 && string.Equals(line.Arguments[0], "collect", StringComparison.OrdinalIgnoreCase))
+    {
+        CommandLine rest = line.WithoutFirstArgument();
+        return await WithCycle(rest, "round collect", (w, id) => RoundCollect(w, rest, id)).ConfigureAwait(false);
+    }
+
+    if (line.Arguments.Count > 0 && string.Equals(line.Arguments[0], "verdict", StringComparison.OrdinalIgnoreCase))
+    {
+        CommandLine rest = line.WithoutFirstArgument();
+        return await WithCycle(rest, "round verdict", (w, id) => RoundVerdict(w, rest, id)).ConfigureAwait(false);
+    }
+
     return await WithCycle(line, "round", (w, id) => Round(w, line, id)).ConfigureAwait(false);
 }
 
@@ -1346,6 +1358,57 @@ static async Task<int> RoundPrompt(Workspace workspace, CommandLine line, CycleI
     }
 
     await Console.Out.WriteAsync(FindingsRenderer.RenderPrompts(result.Value)).ConfigureAwait(false);
+    return ExitCode.Ok;
+}
+
+static async Task<int> RoundCollect(Workspace workspace, CommandLine line, CycleId id)
+{
+    if (line.Arguments.Count < 2 || !Cycle.TryParseKind(line.Arguments[1], out ArtifactKind artifact)
+        || !line.TryOption("dir", out string? directory))
+    {
+        await Console.Error.WriteLineAsync(
+            "Which round? 'sdlc round collect <id> <intent|spec|plan|verify> --dir <directory>' reads every reader's answer where 'sdlc round prompt' put the prompts. --host names the host the readers ran on.")
+            .ConfigureAwait(false);
+
+        return ExitCode.Usage;
+    }
+
+    line.TryOption("host", out string? host);
+
+    Result<CollectRound.Response> result = await workspace
+        .Send<CollectRound.Command, CollectRound.Response>(new CollectRound.Command(id, artifact, Path.GetFullPath(directory), host))
+        .ConfigureAwait(false);
+
+    if (result.IsFailed)
+    {
+        return await Report(result, ExitCode.Refused).ConfigureAwait(false);
+    }
+
+    await Console.Out.WriteAsync(FindingsRenderer.RenderCollected(result.Value)).ConfigureAwait(false);
+    return ExitCode.Ok;
+}
+
+static async Task<int> RoundVerdict(Workspace workspace, CommandLine line, CycleId id)
+{
+    if (!line.TryOption("from", out string? from))
+    {
+        await Console.Error.WriteLineAsync(
+            "Where is the verdict? 'sdlc round verdict <id> --from <file>': the adjudicator's answer, as its process wrote it.")
+            .ConfigureAwait(false);
+
+        return ExitCode.Usage;
+    }
+
+    Result<WriteVerdict.Response> result = await workspace
+        .Send<WriteVerdict.Command, WriteVerdict.Response>(new WriteVerdict.Command(id, Path.GetFullPath(from)))
+        .ConfigureAwait(false);
+
+    if (result.IsFailed)
+    {
+        return await Report(result, ExitCode.Refused).ConfigureAwait(false);
+    }
+
+    await Console.Out.WriteAsync(FindingsRenderer.RenderVerdict(result.Value)).ConfigureAwait(false);
     return ExitCode.Ok;
 }
 

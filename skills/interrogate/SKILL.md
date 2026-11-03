@@ -67,10 +67,6 @@ each citing one rule by its id and the line its heading states, copied rather th
 what a person on call could tell at 3 a.m. — each in a fresh process of its own (`CONCEPT.md` §6.5, D-90).
 Its prompt carries its method, its questions for this artifact and the rules it may block on, and after
 the first round the sections changed since, with the instruction to raise suggestions about those alone.
-**Set `"perspective": "<name>"` on every finding it raised when you write the round.** The field is what
-`sdlc propose constraints` counts a perspective's suggestions by across cycles; the prefix is only for
-reading, and a round naming a perspective the binary does not carry is rejected when it is read back. The
-round's own reader leaves the field out.
 
 > **A perspective's finding blocks only when it cites a rule the perspective lists.** Everything else its
 > method finds is a `suggestion`. A suggestion that keeps recurring is what `sdlc propose constraints`
@@ -87,36 +83,6 @@ this artifact and **the cycle's open suggestions from every document** — and n
 things, and nothing about whether any finding is right: which of this round's findings **restate one still
 open**, and which pairs of findings **cannot both be answered**. It decides nothing about the document.
 
-**A suggestion is the cycle's, not the document's** (D-115). The plan's reader raising what the intent's
-raised is the same concern found again, so it is carried under the intent's id and recorded against the
-plan. That is why the reconciler sees every document's suggestions: one that sees only this document's is
-how one cycle came to 1,489 open suggestions, mostly a handful of concerns under fresh ids.
-
-**A restatement is carried under the id that stands** (D-108). The readers have no history, so after a
-section moves they raise what is already open there again, under ids of their own. Write each finding the
-reconciler names as a restatement with the standing id, at the disposition it stands at, in the words the
-ledger holds — which records nothing, because it moved nothing. Leave the reader's new wording out; a
-second id for the same objection is how one cycle reached seven duplicate suggestions in a single round.
-**Where the reconciler is unsure, the finding is new.** A duplicate is noise a person can see; a distinct
-objection merged into an old one is lost.
-
-**Every id that is not a restatement is new, and numbered past what the ledgers hold.** A reader's ids
-are its own, so `maintainability.F_01` from this round's reader is not the `maintainability.F_01` the
-ledger already has. **A new blocker is `F_nn`, past this document's ledger; a new suggestion is `S_nn`,
-past the cycle's** — `maintainability.S_04`. `sdlc round` refuses a known id in other words, and a new
-suggestion whose id is taken or not `S_nn`, and names the next free one for that prefix.
-
-**A suggestion raised again as a blocker** keeps neither id: the blocker takes a new `F_nn`, and the
-suggestion is handed back `withdrawn` in the same round.
-
-For each pair that cannot both be answered, it names:
-
-| The pair | becomes |
-|---|---|
-| two findings neither citing a rule | **both suggestions**, neither applied: each keeps its statement and its `perspective`, and gains "contradicts `<the other id>`", so a person reviewing the round sees the contradiction and decides what becomes a future intent |
-| a finding citing a rule, and one that does not | the rule's finding stands; the other becomes a suggestion naming the rule it ran into |
-| two findings citing two rules | a `conflict` between the two rules, as the first reader would report one (D-64) |
-
 **Why one reconciler after, and not readers that see each other.** A reader shown earlier findings is
 anchored by them, order would decide whose finding survives, and the readers would run one at a time. So
 they run blind and in parallel, and one reader reads the round whole. That is also why the reconciler, and
@@ -124,23 +90,45 @@ not the readers, is shown what stands: it judges no document, so there is nothin
 anchor. And it is why you do not decide restatements yourself — you may have written the document, and
 "the same objection" is a judgement in words.
 
-**A perspective listed as not written yet has nothing to run.** Say so in one line of the report; it is a
-gap, not a pass.
+**A perspective listed as not written yet has nothing to run.** `sdlc round prompt` names it; say so in one
+line of the report. It is a gap, not a pass.
+
+## Collect the round
+
+```bash
+sdlc round collect <id> <artifact> --dir <scratch>/round --host claude
+```
+
+**The binary reads every answer and drafts the round** (D-117), as `<scratch>/round/round.json`. It refuses
+an answer that is not the JSON asked for, a blocker with no one-line gist, and a round with findings and no
+reconciler's answer — each time naming the reader to **start again**. Never repair an answer yourself: a
+repaired finding is this session writing it. What it applies, so that you do not:
+
+- **A restatement is carried under the id that stands** (D-108), at the disposition it stands at and in the
+  ledger's words, which records nothing. **A suggestion is the cycle's, not the document's** (D-115), so one
+  another document raised is carried under its id and recorded against this one.
+- **Every other id is new, and numbered past what the ledgers hold**: a blocker's past this document's, a
+  suggestion's past the cycle's, under the reader's prefix — `maintainability.S_04`. Each perspective's
+  findings carry `perspective`, which is what `sdlc propose constraints` counts them by.
+- **A suggestion raised again as a blocker** keeps neither id: the blocker is new, and the suggestion is
+  withdrawn in the same round.
+- **A perspective's blocker citing a rule it does not list is a suggestion.**
+- **A pair that cannot both be answered** becomes two suggestions naming each other when neither cites a
+  rule; the one citing no rule becomes a suggestion naming the rule it ran into; two rules become a
+  `conflict` between them (D-64).
+
+Each reader's usage rides in the draft and reaches `findings/usage.json` only when the round is recorded
+(D-121).
 
 ## Write the round
 
-**One round, whatever ran**: the rules reader's findings, every perspective's, and the reconciler's
-changes to them. A round is clean when every reader was silent.
-
-**The binary writes it** (D-101). Put the findings in a file in `<scratch>` — not in the repository —
-and hand it over:
-
-```json
-{ "findings": [ ... ], "conflicts": [ ... ] }
-```
+**One round, whatever ran.** A round is clean when every reader was silent. What collect printed ends with
+the findings still open on this document that **no reader raised again** — the dispositions that are yours
+to add (D-49), by the next section's table. Add each one you can settle to the draft's `findings` array,
+carried as the ledger holds it with its new `disposition`; leave out what stays open. Then record:
 
 ```bash
-sdlc round <id> <artifact> --from <scratch>/round.json
+sdlc round <id> <artifact> --from <scratch>/round/round.json
 ```
 
 It numbers the round, stamps when it ran, and records the hash of the document judged, of the one above
@@ -158,23 +146,12 @@ refuses a ledger whose chain has been edited. A cycle still holding round files 
 `findings/<artifact>.r<n>.json`, is converted by its next round.
 
 **The round's suggestions land in `findings/suggestions.json`** — one per cycle, each concern once, with a
-line per document and round where it was raised, answered or withdrawn (D-115). You hand them over in the
-same round file; the binary splits them out. A restatement where it already stands on this document
-records nothing. A suggestion that was already in a document's ledger before that file existed stays
-there.
+line per document and round where it was raised, answered or withdrawn (D-115). The binary splits them out
+of the same round file.
 
-Two things are still yours to get right:
-
-**A finding keeps its id across rounds.** A blocker raised in round one and still standing in round
-three carries `F_01` in both. Without that, nothing can tell a carried finding from a new one, and the
-status panel would report three problems where there is one.
-
-**Every finding gets a `disposition`.** `open` when outstanding. A round that mentions nothing about a
-finding has not answered it — the ledger holds each finding at its last move, so silence carries it
-forward unchanged, which is correct. **Which means a finding that has been dealt with has to be
-mentioned, and said to be dealt with.** The next section is how. **There is no need to restate the
-rest.** A finding handed back at the disposition it already stands at records nothing, so a round only
-needs what the reader raised and what moved.
+**A finding keeps its id across rounds**, and **silence carries a finding forward unchanged**: the ledger
+holds each at its last move, so a finding that has been dealt with has to be mentioned, and said to be
+dealt with. The next section is how.
 
 **A steer carrying a change down adds a `note`** — one or two sentences saying what moved above this
 document since its last round and what this document did about it, including "nothing, because …".

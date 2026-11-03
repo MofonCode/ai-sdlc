@@ -264,7 +264,7 @@ public static class RecordRound
     /// <summary>
     /// Every id the cycle's document ledgers hold, so a new suggestion's id is free across the cycle.
     /// </summary>
-    private static async Task<Result<HashSet<string>>> LedgerIds(Cycle cycle, CancellationToken cancellationToken)
+    internal static async Task<Result<HashSet<string>>> LedgerIds(Cycle cycle, CancellationToken cancellationToken)
     {
         HashSet<string> ids = new(StringComparer.Ordinal);
 
@@ -447,6 +447,20 @@ public static class RecordRound
             foreach (string legacy in onDisk.Value.RoundFiles)
             {
                 File.Delete(legacy);
+            }
+
+            // What the readers cost goes in as the round is recorded and not before, so a round drafted
+            // and never recorded leaves no usage behind (D-121). A round file nobody collected carries none.
+            if (UsageLedger.InRoundFile(json) is { } usage)
+            {
+                Result appendedUsage = await UsageLedger
+                    .Append(cycle, new UsageRound(Cycle.NameOf(request.Artifact), written.Round, written.InterrogatedAt!.Value, usage.Host, usage.Readers), cancellationToken)
+                    .ConfigureAwait(false);
+
+                if (appendedUsage.IsFailed)
+                {
+                    return Result.Fail<Response>(appendedUsage.Errors);
+                }
             }
 
             Result<IReadOnlyList<FindingsRound>> merged = FindingsReader.WithSuggestions(

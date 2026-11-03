@@ -93,6 +93,8 @@ public static class SdlcServices
         services.AddRecordRoundRequestHandler();
         services.AddChangedSectionsRequestHandler();
         services.AddReaderPromptsRequestHandler();
+        services.AddCollectRoundRequestHandler();
+        services.AddWriteVerdictRequestHandler();
 
         services.AddListCyclesRequestHandler();
 

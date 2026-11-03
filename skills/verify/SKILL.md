@@ -40,10 +40,16 @@ every Met rests on, cite everything, choose the outcome, and write the document.
 conversation, not what the build set out to do, not this session's view of how it went. Every one of
 those is the bias the process was opened to remove.
 
-**Record what it returns, byte for byte**, as `.sdlc/cycles/<id>/verify.md`. If the output is not a
-verify document — prose around it, a refusal, a question — start it again; do not repair it yourself,
-because the repair is this session writing the verdict after all. Then `sdlc status <id>` checks its
-shape.
+**The binary records what it returns, byte for byte**, as `.sdlc/cycles/<id>/verify.md`:
+
+```bash
+sdlc round verdict <id> --from <scratch>/verdict/adjudicate.json
+```
+
+It refuses an answer that is not a verify document — prose around it, a refusal, a question. Start the
+adjudicator again; do not repair it yourself, because the repair is this session writing the verdict after
+all. Then `sdlc status <id>` checks its shape. Interrogate the verdict with the same directory as
+`--dir`, so the round's collect counts what the adjudicator cost as that round's.
 
 ## Then run the loop, and stop
 

@@ -143,6 +143,16 @@ internal static class Usage
                                      <name> writes one -- rules, a perspective, reconcile once the
                                      others have answered, or adjudicate on a verify. --list names
                                      the readers and writes nothing.
+            round collect <id> <artifact> --dir <directory>
+                                     Read every reader's answer from that directory and draft
+                                     round.json beside them: new ids numbered past the ledgers,
+                                     the reconciler's restatements carried under the standing id,
+                                     each reader's usage carried for 'round --from' to record.
+                                     Lists the open findings no reader raised, whose dispositions
+                                     are yours to add. --host names the host the readers ran on.
+            round verdict <id> --from <file>
+                                     Write verify.md from the adjudicator's answer, byte for byte.
+                                     Refuses an answer that is not a verify document.
             suggestions [<id>]       List the open non-blocking findings and what the builds
                                      noticed, for one cycle or all, each concern once. --all lists
                                      every status -- accepted, declined, answered, withdrawn --
