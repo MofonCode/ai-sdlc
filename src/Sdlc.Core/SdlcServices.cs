@@ -21,6 +21,7 @@ using Sdlc.Core.PullRequests;
 using Sdlc.Core.Themes;
 using Sdlc.Core.Proposals;
 using Sdlc.Core.Solutions;
+using Sdlc.Core.Successors;
 
 namespace Sdlc.Core;
 
@@ -169,6 +170,10 @@ public static class SdlcServices
 
         // A lead, fetched and made one shape for 'intent --from' to interview from (D-89).
         services.AddReadLeadRequestHandler();
+
+        // The pieces of a slicing that wait on another's code, and where each stands -- worked out from the
+        // record on every read, never stored (D-125).
+        services.AddReadSuccessorsRequestHandler();
 
         // Operate: production's errors, grouped, scrubbed, deduplicated, filed as leads.
         services.AddRunOperateRequestHandler();

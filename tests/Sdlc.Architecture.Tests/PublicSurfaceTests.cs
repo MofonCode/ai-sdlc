@@ -468,6 +468,19 @@ public sealed class PublicSurfaceTests
         "Sdlc.Core.Solutions.WriteSolutionDraft+Command",
         "Sdlc.Core.Solutions.WriteTechStackDraft",
         "Sdlc.Core.Solutions.WriteTechStackDraft+Command",
+
+        // The pieces of a slicing that wait on another's code (D-125): the file's shape, and where each
+        // stands, which the binary lists, checks and starts from.
+        "Sdlc.Core.Successors.ReadSuccessors",
+        "Sdlc.Core.Successors.ReadSuccessors+Malformed",
+        "Sdlc.Core.Successors.ReadSuccessors+Query",
+        "Sdlc.Core.Successors.ReadSuccessors+Response",
+        "Sdlc.Core.Successors.ReadSuccessors+Standing",
+        "Sdlc.Core.Successors.ReadSuccessors+Wait",
+        "Sdlc.Core.Successors.Successor",
+        "Sdlc.Core.Successors.SuccessorReference",
+        "Sdlc.Core.Successors.SuccessorState",
+        "Sdlc.Core.Successors.WaitState",
     ];
 
     [TestMethod]
