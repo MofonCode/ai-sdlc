@@ -419,6 +419,10 @@ carries a reason, which `CON_10` governs. A reopen supersedes an approval, retur
 pre-approval so the documents can be rewritten and re-approved — the recovery path when a plan turns
 out to be wrong.
 
+**A plan already on the integration branch is reopened on its plan branch, not on a build** (D-123). The
+reopen and the re-approval travel by a pull request of their own, so the amended plan reaches the team and the
+factory when it is decided rather than with the code.
+
 The block between the `---` fences is **frontmatter**: a YAML header carrying machine-readable facts,
 with the prose body below it for people. Schemas and gates read the frontmatter; humans read the
 body. Frontmatter is read with a real YAML parser and never a regular expression.
@@ -1399,6 +1403,11 @@ what a person promotes, and the framework has no part in that (D-88).
 **The local approval is still the gate.** The plan's pull request admits a plan to the factory; it does not
 approve it. Its check is the admission check, chosen by the diff (D-87).
 
+**A plan reopened after admission comes back the same way** (D-123): on a fresh `cycle/<id>/plan` from the
+integration branch, through `pr --plan`, as an amended plan whose description leads with the reopen's reason.
+A build made before the amendment stays the person's: merge the integration branch into it to continue by
+hand, or delete it for the factory to rebuild.
+
 **Line endings need nothing.** Cycle files travel between branches now, and a checkout may turn LF into
 CRLF on the way; the approval's hash is taken over canonicalised text for exactly that reason (§5.2), so
 a plan approved on one machine still matches on another.
@@ -1422,7 +1431,8 @@ was held back and why, what is going stale, and the newest stable point on `deve
 command, and the factory publishes it as the run's summary.
 
 **The factory never merges, and it never writes a person's file.** A blocked cycle is recorded as blocked;
-abandoning it is a person's decision.
+abandoning it is a person's decision. **It never resumes a build made before its plan was amended** (D-123): the queue, the sitrep and
+`status` name such a branch, and a person keeps it or deletes it.
 
 **The factory's agent is an image** built from one commit, carrying the binary and the plugin together,
 and run as a fresh container per job on a machine that exists for it (D-96). It is the first thing the
@@ -7011,6 +7021,58 @@ its refusal still apply.
 - *Keeping `sdlc <stage>` everywhere.* Correct and host-neutral, and costs a refusal each time.
 - *Guessing a marker for Copilot or Antigravity.* Neither documents one; a guessed marker is a panel that
   names one host's invocation to someone using another.
+
+### D-123 — A plan reopened after admission is amended on its plan branch and admitted again by its own pull request
+
+**Governs:** §5.2, §10.4, §10.5
+
+**Extends D-19:** a reopen is still how a wrong plan is recovered; this says where it happens once the plan
+has reached the integration branch. **Uses D-87 unchanged:** the amendment's pull request changes only
+planning documents, so it gets the admission check. **Leaves D-84 and D-85 unchanged:** the factory still
+builds approved cycles with no verify, and any `cycle/<id>/` branch on the remote still holds one back.
+
+**Decision.**
+
+- **Where the amendment happens.** Once a cycle's plan is on the integration branch, a reopen happens on
+  `cycle/<id>/plan` started afresh from the integration branch — never on a build branch. There it is
+  reopened, steered or refined, interrogated, and approved again. `sdlc draft approval <id> --reopen` run on
+  the cycle's build branch while its plan is on the integration branch is refused, and the refusal names the
+  route. `sdlc branch <id> plan` refuses to carry on on a plan branch older than the approval the integration
+  branch holds, because that is the branch the plan was first admitted from.
+- **How it is admitted.** `pr --plan` opens it as an amended plan: the title says so, and the description
+  leads with each reopen's reason from the ledger.
+- **The build branch is the person's choice.** Every build made before the amendment predates the approval
+  that now stands, so `verify-chain` refuses its verify either way (D-19):
+  - **keep it** to continue by hand — merge the integration branch into it to take the amended documents,
+    and build, record and verify again; the branch keeps holding the cycle back from the factory;
+  - **delete it**, and the factory builds the amended plan on its next run.
+
+  The factory never resumes another build's branch.
+- **What reports it.** The queue, the sitrep and `sdlc status` name a build branch whose approval ledger does
+  not hold the approval standing on the integration branch, with both choices.
+
+**Why.** The integration branch is what the team and the factory read. A reopen made on a build branch left
+MarketSense's hosting plan three reopens out of date on `development` for three days, with nothing there
+saying so, and the amended plan reached reviewers only inside a code pull request. Its own pull request puts
+each reopen's reason in front of a reviewer when it happens, and merging it is what queues the amended plan
+(D-83).
+
+**What it costs.** One more pull request per reopen after admission — a planning-only one, checked in
+seconds. A person continuing by hand merges the integration branch into the build, which is a merge they
+would have needed before their own pull request anyway.
+
+**Rejected.**
+
+- *Pushing the reopen with the build branch.* The team meets the amended plan inside a code pull request,
+  and the factory cannot take the cycle while the plan on the integration branch is the withdrawn one.
+- *The factory resuming the earlier build's branch.* That code was written to the plan that was reopened;
+  resuming it unattended builds on a premise a person just withdrew. A person who wants to keep it continues
+  by hand.
+- *One pull request for the amendment and the code.* Rejecting the code would reject the amendment with it,
+  and the amendment would wait on the build.
+- *Withdrawing the approval on the integration branch by a pull request of its own, before the amendment.*
+  Two pull requests where one says the same thing, and the queue already passes over a cycle with a plan
+  branch on the remote.
 
 ### D-116 — A plan adding script to a Blazor page names the Blazor mechanism it could not use, as `PRO_05`
 
