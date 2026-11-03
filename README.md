@@ -227,7 +227,7 @@ travels with your code.
 | [`CONSTRAINTS.md`](CONSTRAINTS.md) | the eighteen global constraints, each with what it forbids and why |
 | [`AGENTS.md`](AGENTS.md) | how to work in this repository, written for an agent — and the repository map |
 | [`src/README.md`](src/README.md) | what `Sdlc.Core` and `Sdlc.Cli` are, and where a new thing goes |
-| [`tools/README.md`](tools/README.md) | the two tools that check what the test suite cannot |
+| [`tools/README.md`](tools/README.md) | the tools that check what the test suite cannot, and the one that measures what sessions cost |
 
 ## Will it work with my agent?
 

@@ -5,6 +5,7 @@
   </Folder>
   <Folder Name="/tools/">
     <Project Path="tools/Sdlc.ScaffoldHarness/Sdlc.ScaffoldHarness.csproj" />
+    <Project Path="tools/Sdlc.UsageReport/Sdlc.UsageReport.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/Sdlc.Tests/Sdlc.Tests.csproj" />

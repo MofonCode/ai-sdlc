@@ -227,6 +227,6 @@ guide, not this file.
 ## See also
 
 - [`AGENTS.md`](../AGENTS.md) — how to work in this repository, and what to keep current
-- [`../tools/README.md`](../tools/README.md) — the two tools that check what the suite cannot
+- [`../tools/README.md`](../tools/README.md) — the tools that check what the suite cannot, and the one that measures what sessions cost
 - [`CONCEPT.md`](../CONCEPT.md) — the design, and every decision behind it
 - [The components](../docs/README.md) — every concept the framework names, defined once
