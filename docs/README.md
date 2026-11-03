@@ -245,7 +245,7 @@ declining to go on, exit code 1. An open blocker causes refusals; it is not one.
 | **branch policy** | what makes the check a promise. Until a policy requires it the file is advisory, and the directory looks enforced without being enforced |
 | **the claim graph** | which cycles' plans declare the same files, so which pull requests will likely conflict and the order to merge them in. Advice, read by the sitrep; it no longer schedules builds |
 | **collision** | two cycles changing the same thing, met when the second one's pull request is merged | `/sdlc:resolve-conflict` |
-| **the admission check** | the pull-request check on a pull request carrying one cycle's planning documents and nothing else: the plan, its approval and its hashes, no build and no verify. Chosen by what the pull request changes, never by its branch name | `sdlc verify-chain <id> --base <branch>` |
+| **the admission check** | the pull-request check on a pull request carrying one cycle's planning documents and nothing else — or, from `slices/<slug>/plan`, every plan sliced together and the successors the slicing wrote: the plan, its approval and its hashes, no build and no verify. A slicing is refused if one plan fails, or needs a file only a sibling creates. Chosen by what the pull request changes, never by its branch name | `sdlc verify-chain <id> --base <branch>` |
 
 ### The integration branch and the factory
 

@@ -122,9 +122,16 @@ public static class VerifyChain
             ".gitignore",
         };
 
-        return changed.Count > 0 && changed.All(path =>
+        // The successors a slicing wrote ride with its plans, and starting one deletes its file on the new
+        // cycle's plan branch (D-125); either way they are planning, never code.
+        return changed.Any(path => !Successors.Successor.IsSuccessorPath(path)) && changed.All(path =>
         {
             string normalised = path.Replace('\\', '/').TrimStart('/');
+
+            if (Successors.Successor.IsSuccessorPath(normalised))
+            {
+                return true;
+            }
 
             if (!normalised.StartsWith(prefix, StringComparison.Ordinal))
             {
@@ -135,6 +142,81 @@ public static class VerifyChain
             return paperwork.Contains(inside)
                 || (inside.StartsWith("findings/", StringComparison.Ordinal) && !inside.EndsWith('/'));
         });
+    }
+
+    /// <summary>
+    /// The cycles a pull request's planning carries, when it carries nothing else (D-125).
+    /// </summary>
+    /// <remarks>
+    /// A slicing's pull request admits several cycles at once. Each changed path must be one cycle's planning
+    /// paperwork, as <see cref="AdmitsAsPlan"/> reads it, or a successor's file; a single path that is neither — a
+    /// source file, a verify, evidence — and this answers null, so the full chain runs and fails.
+    /// </remarks>
+    /// <param name="changed">The changed paths, relative to the root, with either separator.</param>
+    /// <returns>The cycles, in id order, or null when the diff carries anything else or no cycle at all.</returns>
+    public static IReadOnlyList<CycleId>? PlanningCycles(IReadOnlyList<string> changed)
+    {
+        ArgumentNullException.ThrowIfNull(changed);
+
+        string cycles = Cycle.SdlcDirectoryName + "/" + Cycle.CyclesDirectoryName + "/";
+        SortedSet<string> ids = new(StringComparer.Ordinal);
+
+        foreach (string path in changed)
+        {
+            string normalised = path.Replace('\\', '/').TrimStart('/');
+
+            if (Successors.Successor.IsSuccessorPath(normalised))
+            {
+                continue;
+            }
+
+            if (!normalised.StartsWith(cycles, StringComparison.Ordinal))
+            {
+                return null;
+            }
+
+            string rest = normalised[cycles.Length..];
+            int slash = rest.IndexOf('/', StringComparison.Ordinal);
+
+            if (slash < 0 || !CycleId.TryParse(rest[..slash], out CycleId? id) || !AdmitsAsPlan(id.Value, [normalised]))
+            {
+                return null;
+            }
+
+            ids.Add(id.Value.ToString());
+        }
+
+        return ids.Count == 0
+            ? null
+            : [.. ids.Select(text => CycleId.TryParse(text, out CycleId? id) ? id.Value : default)];
+    }
+
+    /// <summary>
+    /// The check that the successors a pull request carries are sound: readable, resolving, and loop-free (D-125).
+    /// </summary>
+    /// <param name="mediator">Where to ask.</param>
+    /// <param name="cancellationToken">Token observed while reading.</param>
+    /// <returns>The check.</returns>
+    public static async Task<ChainCheck> SuccessorsSound(Mediator mediator, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(mediator);
+
+        Result<Successors.ReadSuccessors.Response> read = await mediator
+            .Send<Successors.ReadSuccessors.Query, Successors.ReadSuccessors.Response>(new Successors.ReadSuccessors.Query(), cancellationToken)
+            .ConfigureAwait(false);
+
+        const string Name = "the successors it carries are sound";
+
+        if (read.IsFailed)
+        {
+            return new ChainCheck(Name, false, "could not be read. " + string.Join(" ", read.Errors.Select(e => e.Message)));
+        }
+
+        return read.Value.Sound
+            ? new ChainCheck(Name, true, string.Create(
+                CultureInfo.InvariantCulture,
+                $"{read.Value.Successors.Count} well formed, every reference resolves, and nothing loops."))
+            : new ChainCheck(Name, false, Successors.SuccessorsRenderer.RenderCheck(read.Value).Trim());
     }
 
     /// <summary>
@@ -197,6 +279,11 @@ public static class VerifyChain
                     .ConfigureAwait(false);
                 await Gate(cycle, checks, cancellationToken).ConfigureAwait(false);
                 await Proof(cycle, checks, cancellationToken).ConfigureAwait(false);
+
+                if (changed.Any(Successors.Successor.IsSuccessorPath))
+                {
+                    checks.Add(await SuccessorsSound(mediator, cancellationToken).ConfigureAwait(false));
+                }
 
                 return Result.Ok(new Response(cycle, checks, Admission: true));
             }

@@ -39,8 +39,8 @@ an agent runs it, and it never decides a gate. `skills.md` lists the skills.
 | `/sdlc:remediate <id>` | agent | only on `blocked`; runs while each pass reduces what is open |
 | `sdlc pr-ready <id>` | binary | whether it may open a pull request. Exits 1 if not |
 | `/sdlc:pr <id>` | agent | pushes and opens the pull request. Asks first |
-| `sdlc verify-chain <id> --base <branch>` | binary | the pull-request check, and the only layer that cannot be bypassed. A plan alone gets the admission check |
-| `sdlc admission <id> --base <branch>` | binary | `true` when a pull request carries only a plan, so the pipeline skips the build and the tests |
+| `sdlc verify-chain <id> --base <branch>` | binary | the pull-request check, and the only layer that cannot be bypassed. A plan alone gets the admission check; `slices/<slug>/plan` gets it for every cycle sliced together, with their successors and sibling plans checked |
+| `sdlc admission <id> --base <branch>` | binary | `true` when a pull request carries only a plan — or a slicing's plans — and any successors, so the pipeline skips the build and the tests |
 | **At any point** | | |
 | `sdlc status <id>` | binary | the panel for the document the cycle is waiting on, or its furthest one; the gate; and the literal next command, a stage in it named as the host invokes one (`/sdlc:pr` inside Claude Code) |
 | `sdlc status <id> --brief` | binary | the same, between stages |

@@ -63,6 +63,12 @@ public static class DeclaredFiles
         RegexOptions.CultureInvariant | RegexOptions.ExplicitCapture,
         TimeSpan.FromSeconds(1));
 
+    // A change that creates its file: the word "new" first, as the plan template writes it.
+    private static readonly Regex _new = new(
+        @"^\s*\**new\b",
+        RegexOptions.CultureInvariant | RegexOptions.IgnoreCase,
+        TimeSpan.FromSeconds(1));
+
     // Matched on the file name alone, because each is written in more than one directory and means the
     // same thing in all of them: Directory.Build.props at the root makes warnings errors and again under
     // tests/ relaxes that, and either decides whether a build passes.
@@ -122,6 +128,65 @@ public static class DeclaredFiles
             foreach (Match match in _quoted.Matches(DeclaringPart(line)))
             {
                 paths.Add(Normalise(match.Groups["path"].Value));
+            }
+        }
+
+        return [.. paths.Order(StringComparer.Ordinal)];
+    }
+
+    /// <summary>
+    /// The paths a plan's Files section says it creates: a row whose change reads <c>new</c>.
+    /// </summary>
+    /// <remarks>
+    /// <para>What tells one slice's plan that it needs a file only a sibling's plan creates (D-125). The template
+    /// writes the change cell as <c>new / what changes in it</c>, so a row whose second cell begins with the word
+    /// <c>new</c> creates its path. A list item creates its paths when what follows them begins with it.</para>
+    /// <para>Read narrowly on purpose: a path this misses is reported as shared rather than as a dependency, and
+    /// shared is the softer answer — a warning a person reads, not a refusal.</para>
+    /// </remarks>
+    /// <param name="markdown">The plan.</param>
+    /// <returns>The paths it creates, normalised to forward slashes, without duplicates.</returns>
+    public static IReadOnlyList<string> Created(string markdown)
+    {
+        ArgumentNullException.ThrowIfNull(markdown);
+
+        if (!ArtifactSections.Read(markdown).TryGetValue("Files", out IReadOnlyList<string>? lines))
+        {
+            return [];
+        }
+
+        HashSet<string> paths = new(StringComparer.OrdinalIgnoreCase);
+
+        foreach (string line in lines)
+        {
+            string declaring = DeclaringPart(line);
+            MatchCollection matches = _quoted.Matches(declaring);
+
+            if (matches.Count == 0)
+            {
+                continue;
+            }
+
+            string trimmed = line.TrimStart();
+            string change;
+
+            if (trimmed.StartsWith('|'))
+            {
+                string[] cells = trimmed.Trim('|').Split('|');
+                change = cells.Length > 1 ? cells[1] : string.Empty;
+            }
+            else
+            {
+                Match last = matches[^1];
+                change = declaring[(last.Index + last.Length)..].TrimStart(' ', '\t', '-', '—', '–', ':', ',', '`');
+            }
+
+            if (_new.IsMatch(change))
+            {
+                foreach (Match match in matches)
+                {
+                    paths.Add(Normalise(match.Groups["path"].Value));
+                }
             }
         }
 

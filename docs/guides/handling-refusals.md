@@ -342,6 +342,34 @@ message lists every problem at once.
 
 ---
 
+## A slicing's pull request — the two ways it is refused
+
+`slices/<slug>/plan` admits every plan sliced together at once (D-125). Each cycle in it gets the
+admission check it would get alone, and one that fails refuses them all — the entries under `sdlc gate`
+above say what each of those means. Its successors must be sound, as above. Two refusals are a slicing's
+own, and `sdlc verify-chain slices/<slug>/plan --base <branch>` gives both.
+
+### a plan that needs a sibling's code
+
+One plan names a file the integration branch does not have and that it does not create, while a sibling's
+plan marks that file `new`. That piece cannot be built against the integration branch as it stands, so it
+is not atomic: it needs the sibling merged first. The check names the plan, the sibling and the files.
+
+**Next:** make the dependent piece a successor of its sibling — abandon its cycle, and write
+`.sdlc/successors/<slug>.md` with `succeeds:` naming the sibling — or merge the two pieces into one cycle.
+Files two plans both name *without* one creating them for the other are only reported: their pull requests
+may conflict at merge, which `/sdlc:resolve-conflict` is for.
+
+### a slicing that carries more than plans
+
+A path in the pull request is neither a cycle's intent, spec, plan, findings or approval, nor a file under
+`.sdlc/successors/`. A slicing admits plans; code comes back by each cycle's own pull request.
+
+**Next:** take the other files off the branch. It holds nothing of its own, so composing it again from
+the plan branches is usually the quickest way.
+
+---
+
 ## `sdlc init` — the two ways adoption is refused
 
 ### an option it does not take

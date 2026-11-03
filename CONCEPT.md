@@ -2005,6 +2005,10 @@ match. It cannot prove a second person approved, and it says so in its own outpu
 **A plan's pull request gets the admission check** (D-87). When a pull request changes only one cycle's
 planning documents, `verify-chain` checks those documents, the approval and the hashes, and asks for no
 verify — so a plan can be admitted to `development` before it is built. Anything else gets the full chain.
+The successors a slicing wrote may ride with it, and are checked for soundness when they do. **A slicing's
+pull request, from `slices/<slug>/plan`, gets the same check for every cycle it carries** (D-125): one
+failing refuses them all, its successors must be sound, and a plan needing a file only a sibling's plan
+creates is refused. Files two plans both name are reported.
 
 **Every open pull request is re-checked when another merges** (D-86). On Azure DevOps that is the build
 validation policy's expiration set to *Immediately*, which re-queues on its own; it is a platform setting
@@ -2201,8 +2205,8 @@ they print verbatim.
 | `propose decisions` | what an approved cycle stated, handed over for a person to record — D-70 |
 | `propose theme` | the roles a theme declares, or the ones left empty in the one there is — D-71 |
 | `pr-ready <id>` | whether one cycle may open a pull request, without opening one |
-| `verify-chain <id> [--base <branch>]` | the whole chain, as the pull-request check runs it — §13. With the target branch, a pull request carrying only the cycle's planning documents gets the admission check (D-87) |
-| `admission <id> --base <branch>` | `true` when a pull request carries only the cycle's planning documents, so a pipeline skips the build and the tests; `false` otherwise. Always exits 0 (D-87) |
+| `verify-chain <id> [--base <branch>]` | the whole chain, as the pull-request check runs it — §13. With the target branch, a pull request carrying only the cycle's planning documents gets the admission check (D-87). Given `slices/<slug>/plan`, every cycle the slicing carries gets it, with its successors and its sibling plans checked (D-125) |
+| `admission <id> --base <branch>` | `true` when a pull request carries only the cycle's planning documents, so a pipeline skips the build and the tests; `false` otherwise; on `slices/<slug>/plan`, `true` when it carries only planning and successors. Always exits 0 (D-87, D-125) |
 | `scaffold <id>` | writes the solution skeleton into an approved cycle — D-35 — or, on an adopted solution, only the build settings files that cycle's plan declares — D-77 |
 | `hook --host <name>` | judges one tool call — §12 |
 | `version` | the three versions and which is which — the package, the plugin, and the artifact envelope |

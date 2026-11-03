@@ -53,11 +53,16 @@ internal static class Usage
                                      it does not hold. This is the pull-request check. --base is the
                                      target branch: a pull request changing only the cycle's
                                      planning documents then gets the admission check -- plan,
-                                     approval, hashes, no verify.
+                                     approval, hashes, no verify. Given slices/<slug>/plan instead
+                                     of an id, every cycle a slicing carries gets it, its
+                                     successors must be sound, and a plan that needs a file only a
+                                     sibling's plan creates is refused (D-125).
             admission <id> --base <branch>
                                      Print true when a pull request carries only the cycle's
-                                     planning documents, so a pipeline may skip the build and
-                                     tests; false for anything else. Always exits 0.
+                                     planning documents, and any successors, so a pipeline may
+                                     skip the build and tests; false for anything else. On
+                                     slices/<slug>/plan, true when it carries only cycles'
+                                     planning and successors. Always exits 0.
             branch <id> <kind>       Print the one git command that puts the working copy on the
                                      branch a kind of work happens on -- plan, build,
                                      build-unattended or forward -- creating it from the right

@@ -60,6 +60,102 @@ public static class ComputeClaimGraph
     /// <summary>Asks which cycles may be built together.</summary>
     public sealed record Query : IRequest<Response>;
 
+    /// <summary>One plan of a slicing: what it declares, and what it says it creates.</summary>
+    /// <param name="Cycle">The cycle.</param>
+    /// <param name="Declared">Every file its plan names.</param>
+    /// <param name="Created">The files its plan marks <c>new</c>.</param>
+    public sealed record SlicePlan(CycleId Cycle, IReadOnlyList<string> Declared, IReadOnlyList<string> Created)
+    {
+        /// <summary>Reads one from a plan's text.</summary>
+        /// <param name="cycle">The cycle.</param>
+        /// <param name="plan">Its plan.</param>
+        /// <returns>The slice's plan.</returns>
+        public static SlicePlan Read(CycleId cycle, string plan) =>
+            new(cycle, DeclaredFiles.Read(plan), DeclaredFiles.Created(plan));
+    }
+
+    /// <summary>A plan that needs files only a sibling's plan creates, so that piece is a successor (D-125).</summary>
+    /// <param name="Dependent">The plan that needs them.</param>
+    /// <param name="On">The sibling that creates them.</param>
+    /// <param name="Files">The files, absent from the base.</param>
+    public sealed record Dependency(CycleId Dependent, CycleId On, IReadOnlyList<string> Files);
+
+    /// <summary>What comparing the plans of one slicing found.</summary>
+    /// <param name="Shared">Files two plans both name, reported and never refused.</param>
+    /// <param name="Dependencies">Plans that need a sibling's unmerged code, each refused.</param>
+    public sealed record SlicingComparison(IReadOnlyList<Collision> Shared, IReadOnlyList<Dependency> Dependencies)
+    {
+        /// <summary>Whether every plan can be built alone against the base.</summary>
+        public bool Atomic => Dependencies.Count == 0;
+    }
+
+    /// <summary>
+    /// Compares the plans sliced together, before they are admitted (D-125).
+    /// </summary>
+    /// <remarks>
+    /// <para><strong>Shared files are a warning.</strong> Two slices may both change a file and each still build
+    /// alone; their pull requests may conflict at merge, which is where D-86 resolves it.</para>
+    /// <para><strong>A file only a sibling creates is a dependency, and refused.</strong> A plan naming a file the
+    /// base does not have and that it does not create itself, while a sibling's plan marks it <c>new</c>, cannot be
+    /// built against the integration branch as it stands — it is not atomic, and the piece is a successor.</para>
+    /// <para>Pure, so the pull-request check and the command that composes the branch ask it the same way.</para>
+    /// </remarks>
+    /// <param name="plans">The siblings' plans.</param>
+    /// <param name="onBase">Whether a path exists on the base the slicing is admitted to.</param>
+    /// <returns>What it found.</returns>
+    public static SlicingComparison CompareSlicing(IReadOnlyList<SlicePlan> plans, Func<string, bool> onBase)
+    {
+        ArgumentNullException.ThrowIfNull(plans);
+        ArgumentNullException.ThrowIfNull(onBase);
+
+        List<Dependency> dependencies = [];
+
+        foreach (SlicePlan plan in plans)
+        {
+            HashSet<string> own = new(plan.Created, StringComparer.OrdinalIgnoreCase);
+
+            foreach (SlicePlan sibling in plans.Where(p => p.Cycle != plan.Cycle))
+            {
+                List<string> needed = [.. plan.Declared
+                    .Where(file => !own.Contains(file) && !onBase(file))
+                    .Intersect(sibling.Created, StringComparer.OrdinalIgnoreCase)
+                    .Order(StringComparer.Ordinal)];
+
+                if (needed.Count > 0)
+                {
+                    dependencies.Add(new Dependency(plan.Cycle, sibling.Cycle, needed));
+                }
+            }
+        }
+
+        List<Collision> shared = [];
+
+        for (int first = 0; first < plans.Count; first++)
+        {
+            for (int second = first + 1; second < plans.Count; second++)
+            {
+                HashSet<string> needed = new(
+                    dependencies
+                        .Where(d => (d.Dependent == plans[first].Cycle && d.On == plans[second].Cycle)
+                            || (d.Dependent == plans[second].Cycle && d.On == plans[first].Cycle))
+                        .SelectMany(d => d.Files),
+                    StringComparer.OrdinalIgnoreCase);
+
+                List<string> both = [.. plans[first].Declared
+                    .Intersect(plans[second].Declared, StringComparer.OrdinalIgnoreCase)
+                    .Where(file => !needed.Contains(file))
+                    .Order(StringComparer.Ordinal)];
+
+                if (both.Count > 0)
+                {
+                    shared.Add(new Collision(plans[first].Cycle, plans[second].Cycle, both));
+                }
+            }
+        }
+
+        return new SlicingComparison(shared, dependencies);
+    }
+
     /// <summary>
     /// Computes which approved cycles collide, before anything is built.
     /// </summary>

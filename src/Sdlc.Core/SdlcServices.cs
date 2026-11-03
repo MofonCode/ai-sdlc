@@ -123,6 +123,9 @@ public static class SdlcServices
 
         services.AddVerifyChainRequestHandler();
 
+        // The same check over every plan sliced together, admitted by one pull request (D-125).
+        services.AddVerifySlicingRequestHandler();
+
         services.AddSuggestionsRequestHandler();
 
         // Reads the whole history rather than one cycle, and proposes rather than places: the only

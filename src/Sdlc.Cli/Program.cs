@@ -562,6 +562,11 @@ static async Task<int> VerifyChainCommand(CommandLine line)
 
     string given = line.Arguments[0];
 
+    if (SlicingBranch.TryParse(given, out string? slicing))
+    {
+        return await Workspace.Run(line, workspace => VerifySlicingCommand(workspace, line, slicing)).ConfigureAwait(false);
+    }
+
     if (!CycleId.TryParse(given, out CycleId? id) && !CycleId.TryParseBranch(given, out id))
     {
         // Standard output, not error: this is a verdict a reader of a failed check has to read, and
@@ -594,6 +599,35 @@ static async Task<int> VerifyChain(Workspace workspace, CommandLine line, CycleI
     }
 
     await Console.Out.WriteAsync(ChainRenderer.Render(result.Value)).ConfigureAwait(false);
+    return result.Value.Holds ? ExitCode.Ok : ExitCode.Refused;
+}
+
+// A slicing's branch, slices/<slug>/plan: every plan sliced together, each admitted as it would be alone,
+// its successors sound, and no plan needing a file only a sibling creates (D-125). Still chosen by the diff:
+// without --base, or when git cannot say what changed, there is no slicing to check and it is refused.
+static async Task<int> VerifySlicingCommand(Workspace workspace, CommandLine line, string slug)
+{
+    IReadOnlyList<string>? changed = await ChangedAgainstBase(workspace, line).ConfigureAwait(false);
+
+    if (changed is null)
+    {
+        await Console.Out.WriteLineAsync(string.Create(
+            CultureInfo.InvariantCulture,
+            $"{SlicingBranch.NameOf(slug)} admits plans, and what it carries is read against --base. Without it there is nothing to admit, so the check does not hold."))
+            .ConfigureAwait(false);
+        return ExitCode.Refused;
+    }
+
+    Result<VerifySlicing.Response> result = await workspace
+        .Send<VerifySlicing.Query, VerifySlicing.Response>(new VerifySlicing.Query(slug, changed))
+        .ConfigureAwait(false);
+
+    if (result.IsFailed)
+    {
+        return await Report(result, ExitCode.Failed).ConfigureAwait(false);
+    }
+
+    await Console.Out.WriteAsync(VerifySlicing.Render(result.Value)).ConfigureAwait(false);
     return result.Value.Holds ? ExitCode.Ok : ExitCode.Refused;
 }
 
@@ -646,6 +680,18 @@ static async Task<int> AdmissionCommand(CommandLine line)
             "Which cycle? Give its id or its branch, as in 'sdlc admission cycle/20260929_1456_32/plan --base development'.")
             .ConfigureAwait(false);
         return ExitCode.Usage;
+    }
+
+    // A slicing's branch is admission when it carries planning and successors only (D-125).
+    if (SlicingBranch.TryParse(line.Arguments[0], out _))
+    {
+        return await Workspace.Run(line, async workspace =>
+        {
+            IReadOnlyList<string>? carried = await ChangedAgainstBase(workspace, line).ConfigureAwait(false);
+            bool planning = carried is not null && Sdlc.Core.Chain.VerifyChain.PlanningCycles(carried) is not null;
+            await Console.Out.WriteLineAsync(planning ? "true" : "false").ConfigureAwait(false);
+            return ExitCode.Ok;
+        }).ConfigureAwait(false);
     }
 
     if (!CycleId.TryParse(line.Arguments[0], out CycleId? id) && !CycleId.TryParseBranch(line.Arguments[0], out id))
