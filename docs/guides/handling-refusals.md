@@ -298,6 +298,50 @@ amendment starts from the integration branch.
 
 ---
 
+## Successors — the four ways one is refused
+
+A successor is a slice that waits on another's code, as a file under `.sdlc/successors/` (D-125). Where it
+stands is worked out from the record every time, so a refusal here is the record saying so, never a
+setting. `sdlc successors` shows every one; `sdlc successor check` refuses the last three, and the
+admission check runs it.
+
+### a successor that is not ready
+
+`/sdlc:intent --from successor:<slug>` — through `sdlc lead show` or `sdlc successor start` — was asked to
+start a successor something it succeeds has not merged into the integration branch with a passing verify.
+The message says which. Started now, its cycle could not be built alone, which is the one thing a slice
+promises. One that is **stuck** waits on an abandoned cycle and never comes ready by itself.
+
+**Next:** wait, and start it once `sdlc successors` says `ready`.
+For one that is stuck, correct its `succeeds:` to name what replaces the abandoned cycle, or delete the
+file if the piece is no longer wanted.
+
+### a loop through succeeds
+
+Two or more successors wait on each other — `successor:a -> successor:b -> successor:a` — so none can ever
+come ready.
+
+**Next:** decide which really comes first and correct the other's `succeeds:`, so the loop opens.
+
+### a reference to nothing
+
+A `succeeds:` entry names a cycle id that is nowhere — not in this working copy, not on the integration
+branch, no plan branch — or a `successor:<slug>` with no file and no intent recording it as its lead.
+Usually a typo; sometimes a sibling's plan branch that was never pushed or composed.
+
+**Next:** correct the entry. A sibling opened in another worktree resolves once its plan branch exists here,
+and on `slices/<slug>/plan` once the slicing is composed.
+
+### a successor file that cannot be read
+
+The file has no frontmatter, a key a successor does not carry, an empty `succeeds:`, an entry that is
+neither a cycle id nor `successor:<slug>`, a name that is not a slug, or no `## Outcome` or `## Why`. The
+message lists every problem at once.
+
+**Next:** correct the file. A piece that waits on nothing is not a successor: start it as a cycle of its own.
+
+---
+
 ## `sdlc init` — the two ways adoption is refused
 
 ### an option it does not take

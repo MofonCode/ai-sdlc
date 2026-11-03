@@ -477,9 +477,13 @@ public sealed class PublicSurfaceTests
         "Sdlc.Core.Successors.ReadSuccessors+Response",
         "Sdlc.Core.Successors.ReadSuccessors+Standing",
         "Sdlc.Core.Successors.ReadSuccessors+Wait",
+        "Sdlc.Core.Successors.StartSuccessor",
+        "Sdlc.Core.Successors.StartSuccessor+Command",
+        "Sdlc.Core.Successors.StartSuccessor+Response",
         "Sdlc.Core.Successors.Successor",
         "Sdlc.Core.Successors.SuccessorReference",
         "Sdlc.Core.Successors.SuccessorState",
+        "Sdlc.Core.Successors.SuccessorsRenderer",
         "Sdlc.Core.Successors.WaitState",
     ];
 

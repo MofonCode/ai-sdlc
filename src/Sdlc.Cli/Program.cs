@@ -77,6 +77,8 @@ try
         "sitrep" => await Workspace.Run(line, SitrepCommand).ConfigureAwait(false),
         "factory" => await Workspace.Run(line, FactoryCommand).ConfigureAwait(false),
         "lead" => await LeadCommand(line).ConfigureAwait(false),
+        "successors" => await Workspace.Run(line, SuccessorsCommand).ConfigureAwait(false),
+        "successor" => await SuccessorCommand(line).ConfigureAwait(false),
         "operate" => await Workspace.Run(line, w => OperateCommand(w, line)).ConfigureAwait(false),
         "perspective" => await PerspectiveCommand(line).ConfigureAwait(false),
         "perspectives" => await WithCycle(line, "perspectives", PerspectivesCommand).ConfigureAwait(false),
@@ -726,7 +728,7 @@ static async Task<int> LeadCommand(CommandLine line)
     if (line.Arguments.Count < 2 || !string.Equals(line.Arguments[0], "show", StringComparison.OrdinalIgnoreCase))
     {
         await Console.Error.WriteLineAsync(
-            "Show which lead? As in 'sdlc lead show azuredevops:1234' -- or github:56, jira:PROJ-123, suggestion:<cycle>/<finding>, or a path.")
+            "Show which lead? As in 'sdlc lead show azuredevops:1234' -- or github:56, jira:PROJ-123, suggestion:<cycle>/<finding>, successor:<slug>, or a path.")
             .ConfigureAwait(false);
         return ExitCode.Usage;
     }
@@ -745,10 +747,94 @@ static async Task<int> LeadCommand(CommandLine line)
 
         if (result.IsFailed)
         {
-            return await Report(result, ExitCode.Failed).ConfigureAwait(false);
+            // A successor that is not ready is a rule refusing, not a lead that could not be fetched (D-125).
+            return await Report(result, reference.Source == Sdlc.Core.Leads.LeadSource.Successor ? ExitCode.Refused : ExitCode.Failed)
+                .ConfigureAwait(false);
         }
 
         await Console.Out.WriteAsync(Sdlc.Core.Leads.ReadLead.Render(result.Value)).ConfigureAwait(false);
+        return ExitCode.Ok;
+    }).ConfigureAwait(false);
+}
+
+// Every successor a slicing wrote, and where each stands -- worked out from the record, never stored
+// (D-125). A listing: it exits 0 whatever it found, and 'successor check' is the one that refuses.
+static async Task<int> SuccessorsCommand(Workspace workspace)
+{
+    Result<Sdlc.Core.Successors.ReadSuccessors.Response> result = await workspace
+        .Send<Sdlc.Core.Successors.ReadSuccessors.Query, Sdlc.Core.Successors.ReadSuccessors.Response>(new Sdlc.Core.Successors.ReadSuccessors.Query())
+        .ConfigureAwait(false);
+
+    if (result.IsFailed)
+    {
+        return await Report(result, ExitCode.Failed).ConfigureAwait(false);
+    }
+
+    await Console.Out.WriteAsync(Sdlc.Core.Successors.SuccessorsRenderer.Render(result.Value)).ConfigureAwait(false);
+    return ExitCode.Ok;
+}
+
+// 'check' refuses a malformed file, a reference to nothing, and a loop; 'start <slug> <id>' refuses a
+// successor that is not ready and deletes its file on the new cycle's plan branch (D-125).
+static async Task<int> SuccessorCommand(CommandLine line)
+{
+    string action = line.Arguments.Count > 0 ? line.Arguments[0] : string.Empty;
+
+    if (string.Equals(action, "check", StringComparison.OrdinalIgnoreCase))
+    {
+        return await Workspace.Run(line, async workspace =>
+        {
+            Result<Sdlc.Core.Successors.ReadSuccessors.Response> read = await workspace
+                .Send<Sdlc.Core.Successors.ReadSuccessors.Query, Sdlc.Core.Successors.ReadSuccessors.Response>(new Sdlc.Core.Successors.ReadSuccessors.Query())
+                .ConfigureAwait(false);
+
+            if (read.IsFailed)
+            {
+                return await Report(read, ExitCode.Failed).ConfigureAwait(false);
+            }
+
+            string text = Sdlc.Core.Successors.SuccessorsRenderer.RenderCheck(read.Value);
+
+            if (read.Value.Sound)
+            {
+                await Console.Out.WriteAsync(text).ConfigureAwait(false);
+                return ExitCode.Ok;
+            }
+
+            await Console.Error.WriteAsync(text).ConfigureAwait(false);
+            return ExitCode.Refused;
+        }).ConfigureAwait(false);
+    }
+
+    if (!string.Equals(action, "start", StringComparison.OrdinalIgnoreCase)
+        || line.Arguments.Count < 3
+        || !CycleId.TryParse(line.Arguments[2], out CycleId? id))
+    {
+        await Console.Error.WriteLineAsync(
+            "Check the successors, or start one? As in 'sdlc successor check', or 'sdlc successor start export-totals 20261103_0900_00' in the new cycle's folder.")
+            .ConfigureAwait(false);
+        return ExitCode.Usage;
+    }
+
+    string slug = line.Arguments[1].StartsWith(Sdlc.Core.Successors.SuccessorReference.Prefix, StringComparison.Ordinal)
+        ? line.Arguments[1][Sdlc.Core.Successors.SuccessorReference.Prefix.Length..]
+        : line.Arguments[1];
+
+    return await Workspace.Run(line, async workspace =>
+    {
+        Result<Sdlc.Core.Successors.StartSuccessor.Response> result = await workspace
+            .Send<Sdlc.Core.Successors.StartSuccessor.Command, Sdlc.Core.Successors.StartSuccessor.Response>(new Sdlc.Core.Successors.StartSuccessor.Command(slug, id.Value))
+            .ConfigureAwait(false);
+
+        if (result.IsFailed)
+        {
+            return await Report(result, ExitCode.Refused).ConfigureAwait(false);
+        }
+
+        await Console.Out.WriteLineAsync(string.Create(
+            CultureInfo.InvariantCulture,
+            $"successor:{slug} is cycle {id} now: {result.Value.Deleted} is deleted here, on its plan branch. Record lead: successor:{slug} in its intent -- that is what resolves every other reference to it."))
+            .ConfigureAwait(false);
         return ExitCode.Ok;
     }).ConfigureAwait(false);
 }

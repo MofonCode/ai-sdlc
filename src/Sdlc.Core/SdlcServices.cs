@@ -174,6 +174,7 @@ public static class SdlcServices
         // The pieces of a slicing that wait on another's code, and where each stands -- worked out from the
         // record on every read, never stored (D-125).
         services.AddReadSuccessorsRequestHandler();
+        services.AddStartSuccessorRequestHandler();
 
         // Operate: production's errors, grouped, scrubbed, deduplicated, filed as leads.
         services.AddRunOperateRequestHandler();

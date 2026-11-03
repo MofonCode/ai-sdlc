@@ -19,6 +19,9 @@ public enum LeadSource
     /// <summary><c>suggestion:&lt;cycle&gt;/&lt;finding&gt;</c> — an open non-blocking finding.</summary>
     Suggestion,
 
+    /// <summary><c>successor:&lt;slug&gt;</c> — a slice that waited on another's code and is ready (D-125).</summary>
+    Successor,
+
     /// <summary>Anything else: a file a person wrote down.</summary>
     File,
 }
@@ -28,7 +31,7 @@ public enum LeadSource
 /// </summary>
 /// <remarks>
 /// <para><strong>A prefix spelled in full, and only these.</strong> <c>azuredevops:</c>, <c>github:</c>,
-/// <c>jira:</c> and <c>suggestion:</c> are read as sources; anything else is a path. So
+/// <c>jira:</c>, <c>suggestion:</c> and <c>successor:</c> are read as sources; anything else is a path. So
 /// <c>C:\notes\bug.md</c> is a file, not a source called <c>C</c>, and a reader never decodes an
 /// abbreviation.</para>
 /// <para><strong>A known prefix with a malformed value is refused, not read as a path.</strong>
@@ -44,7 +47,7 @@ public sealed record LeadReference(LeadSource Source, string Value)
         TimeSpan.FromSeconds(1));
 
     /// <summary>The prefixes read as sources, as they are written.</summary>
-    public static IReadOnlyList<string> Prefixes { get; } = ["azuredevops:", "github:", "jira:", "suggestion:"];
+    public static IReadOnlyList<string> Prefixes { get; } = ["azuredevops:", "github:", "jira:", "suggestion:", "successor:"];
 
     /// <summary>The reference as it is written.</summary>
     /// <returns>The prefix and value, or the path alone for a file.</returns>
@@ -54,6 +57,7 @@ public sealed record LeadReference(LeadSource Source, string Value)
         LeadSource.GitHub => "github:" + Value,
         LeadSource.Jira => "jira:" + Value,
         LeadSource.Suggestion => "suggestion:" + Value,
+        LeadSource.Successor => "successor:" + Value,
         _ => Value,
     };
 
@@ -75,7 +79,7 @@ public sealed record LeadReference(LeadSource Source, string Value)
 
         if (trimmed.Length == 0)
         {
-            problem = "No lead was given. Give one as azuredevops:1234, github:56, jira:PROJ-123, suggestion:<cycle>/<finding>, or a path.";
+            problem = "No lead was given. Give one as azuredevops:1234, github:56, jira:PROJ-123, suggestion:<cycle>/<finding>, successor:<slug>, or a path.";
             return false;
         }
 
@@ -92,6 +96,7 @@ public sealed record LeadReference(LeadSource Source, string Value)
                 "azuredevops:" => (LeadSource.AzureDevOps, IsNumber(value), "a work item number, as in azuredevops:1234"),
                 "github:" => (LeadSource.GitHub, IsNumber(value.TrimStart('#')), "an issue number, as in github:56"),
                 "jira:" => (LeadSource.Jira, _jira.IsMatch(value), "an issue key, as in jira:PROJ-123"),
+                "successor:" => (LeadSource.Successor, Successors.Successor.IsSlug(value), "a successor's slug, as in successor:export-totals"),
                 _ => (LeadSource.Suggestion, value.Split('/').Length is 2 or 3 && !value.Split('/').Any(string.IsNullOrWhiteSpace), "a cycle and a finding, as in suggestion:20261015_1930_45/F2"),
             };
 

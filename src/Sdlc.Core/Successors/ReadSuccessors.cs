@@ -1,3 +1,4 @@
+using System.Globalization;
 using FluentResults;
 using Microsoft.Extensions.DependencyInjection;
 using MofonCode.Core;
@@ -110,6 +111,79 @@ public static class ReadSuccessors
         /// <returns>It, or null.</returns>
         public Standing? Find(string slug) =>
             Successors.FirstOrDefault(s => string.Equals(s.Successor.Slug, slug, StringComparison.Ordinal));
+    }
+
+    /// <summary>
+    /// Why a successor cannot be started now, or null when it is ready.
+    /// </summary>
+    /// <remarks>
+    /// One sentence for every place that starts one — <c>sdlc lead show</c> and <c>sdlc successor start</c> —
+    /// so the two cannot disagree about what ready means.
+    /// </remarks>
+    /// <param name="read">Where every successor stands.</param>
+    /// <param name="slug">The one asked about.</param>
+    /// <returns>The refusal, or null.</returns>
+    public static string? WhyNotReady(Response read, string slug)
+    {
+        ArgumentNullException.ThrowIfNull(read);
+
+        if (read.Malformed.FirstOrDefault(m => string.Equals(m.Slug, slug, StringComparison.Ordinal)) is { } broken)
+        {
+            return string.Create(
+                CultureInfo.InvariantCulture,
+                $"successor:{slug} cannot be read: {string.Join(" ", broken.Problems)} 'sdlc successor check' lists every problem.");
+        }
+
+        if (read.Find(slug) is not { } standing)
+        {
+            return string.Create(
+                CultureInfo.InvariantCulture,
+                $"There is no successor:{slug} in {Successor.RelativeDirectory}/ here. 'sdlc successors' lists the ones there are; one already started is a cycle whose intent records lead: successor:{slug}.");
+        }
+
+        if (read.Loops.FirstOrDefault(loop => loop.Contains(slug, StringComparer.Ordinal)) is { } loop)
+        {
+            return string.Create(
+                CultureInfo.InvariantCulture,
+                $"successor:{slug} waits in a loop -- {string.Join(" -> ", loop)} -- so none of them can ever come ready. Correct one file's succeeds: so the loop opens.");
+        }
+
+        string waits = string.Join(", ", standing.Waits.Select(Describe));
+
+        return standing.State switch
+        {
+            SuccessorState.Ready => null,
+            SuccessorState.Waiting => string.Create(
+                CultureInfo.InvariantCulture,
+                $"successor:{slug} is waiting: {waits}. It starts once each has merged into the integration branch with a passing verify, so its cycle can be built alone."),
+            SuccessorState.Stuck => string.Create(
+                CultureInfo.InvariantCulture,
+                $"successor:{slug} is stuck: {waits}. Something it succeeds was abandoned, so it never comes ready on its own. Correct its succeeds: to name what replaces it, or delete the file."),
+            _ => string.Create(
+                CultureInfo.InvariantCulture,
+                $"successor:{slug} names something that does not exist: {waits}. Correct its succeeds:."),
+        };
+    }
+
+    /// <summary>One wait, for a person: what it names, what that resolved to, and where it stands.</summary>
+    /// <param name="wait">The wait.</param>
+    /// <returns>The phrase.</returns>
+    public static string Describe(Wait wait)
+    {
+        ArgumentNullException.ThrowIfNull(wait);
+
+        string named = wait.Reference.Slug is not null && wait.Cycle is { } cycle
+            ? wait.Reference + " (cycle " + cycle + ")"
+            : wait.Reference.ToString();
+
+        return named + " " + wait.State switch
+        {
+            WaitState.Merged => "merged",
+            WaitState.Open => "not merged yet",
+            WaitState.Abandoned => "abandoned",
+            WaitState.NotStarted => "not started yet",
+            _ => "does not exist",
+        };
     }
 
     private sealed class Handler(SolutionRoot solution, IRepository repository) : IRequestHandler<Query, Response>

@@ -2,6 +2,7 @@ using FluentResults;
 using Microsoft.Extensions.DependencyInjection;
 using Sdlc.Core.Cycles;
 using Sdlc.Core.Git;
+using Sdlc.Core.Leads;
 using Sdlc.Core.Successors;
 
 namespace Sdlc.Tests;
@@ -221,6 +222,101 @@ public sealed class SuccessorTests
         Assert.IsFalse(Successor.IsSuccessorPath("src/successors/totals.md"));
     }
 
+    [TestMethod]
+    public void A_successor_is_a_lead_named_by_its_slug_and_a_malformed_slug_is_refused()
+    {
+        Assert.IsTrue(LeadReference.TryParse("successor:export-totals", out LeadReference? lead, out _));
+        Assert.AreEqual(LeadSource.Successor, lead.Source);
+        Assert.AreEqual("export-totals", lead.Value);
+        Assert.AreEqual("successor:export-totals", lead.ToString());
+
+        Assert.IsFalse(LeadReference.TryParse("successor:Export Totals", out _, out string? problem));
+        StringAssert.Contains(problem, "a successor's slug");
+    }
+
+    [TestMethod]
+    public async Task A_ready_successor_is_shown_as_a_lead_and_one_still_waiting_is_refused()
+    {
+        using CycleWorkspace workspace = Solution();
+        Opened(workspace, First);
+        Write(workspace, "totals", First);
+        FakeRepository git = Git();
+
+        Result<ReadLead.Response> waiting = await Lead(workspace, git, "totals");
+        Assert.IsTrue(waiting.IsFailed);
+        StringAssert.Contains(waiting.Errors[0].Message, "is waiting: " + First + " not merged yet");
+
+        Merge(git, First);
+        Result<ReadLead.Response> ready = await Lead(workspace, git, "totals");
+
+        Assert.IsTrue(ready.IsSuccess, string.Join("; ", ready.Errors.Select(e => e.Message)));
+        Assert.AreEqual("Export totals", ready.Value.Title);
+        StringAssert.Contains(ready.Value.Description, "Finance sees the month's totals");
+        StringAssert.Contains(ready.Value.Kind, "which has merged");
+    }
+
+    [TestMethod]
+    public async Task Starting_a_ready_successor_deletes_its_file_and_a_waiting_one_is_left_alone()
+    {
+        using CycleWorkspace workspace = Solution();
+        Opened(workspace, First);
+        Opened(workspace, Second);
+        Write(workspace, "totals", First);
+        string file = Path.Combine(Successor.DirectoryOf(workspace.Root), "totals.md");
+        FakeRepository git = Git();
+
+        Result<StartSuccessor.Response> refused = await Start(workspace, git, "totals", Second);
+        Assert.IsTrue(refused.IsFailed);
+        Assert.IsTrue(System.IO.File.Exists(file));
+
+        Merge(git, First);
+        Result<StartSuccessor.Response> started = await Start(workspace, git, "totals", Second);
+
+        Assert.IsTrue(started.IsSuccess, string.Join("; ", started.Errors.Select(e => e.Message)));
+        Assert.AreEqual(".sdlc/successors/totals.md", started.Value.Deleted);
+        Assert.IsFalse(System.IO.File.Exists(file));
+    }
+
+    [TestMethod]
+    public async Task Starting_a_successor_as_a_cycle_that_is_not_here_is_refused()
+    {
+        using CycleWorkspace workspace = Solution();
+        Write(workspace, "totals", First);
+
+        Result<StartSuccessor.Response> refused = await Start(workspace, Git(), "totals", Third);
+
+        StringAssert.Contains(refused.Errors[0].Message, "There is no cycle " + Third);
+    }
+
+    [TestMethod]
+    public async Task A_loop_is_the_reason_given_for_a_successor_in_it()
+    {
+        using CycleWorkspace workspace = Solution();
+        Write(workspace, "alpha", "successor:beta");
+        Write(workspace, "beta", "successor:alpha");
+
+        Result<ReadLead.Response> refused = await Lead(workspace, Git(), "beta");
+
+        StringAssert.Contains(refused.Errors[0].Message, "waits in a loop -- alpha -> beta -> alpha");
+    }
+
+    [TestMethod]
+    public async Task The_listing_puts_what_is_ready_first_with_the_command_that_starts_it()
+    {
+        using CycleWorkspace workspace = Solution();
+        Opened(workspace, First);
+        Write(workspace, "chart", "successor:totals");
+        Write(workspace, "totals", First);
+        FakeRepository git = Git();
+        Merge(git, First);
+
+        string text = SuccessorsRenderer.Render(await Read(workspace, git));
+
+        Assert.IsTrue(text.IndexOf("  ready ", StringComparison.Ordinal) < text.IndexOf("  waiting ", StringComparison.Ordinal), text);
+        StringAssert.Contains(text, "start it: /sdlc:intent --from successor:totals");
+        StringAssert.Contains(text, "succeeds successor:totals not started yet");
+    }
+
     internal static string File(string succeeds, string extra = "") =>
         "---\n"
         + (succeeds.Length == 0 ? string.Empty : "succeeds: " + succeeds + "\n")
@@ -269,6 +365,20 @@ public sealed class SuccessorTests
         FakeRepository git = new();
         git.Refs.Add(Integration);
         return git;
+    }
+
+    private static async Task<Result<ReadLead.Response>> Lead(CycleWorkspace workspace, FakeRepository git, string slug)
+    {
+        using var gate = Gate.For(workspace.Root, services => services.AddSingleton<IRepository>(git));
+
+        return await gate.Send<ReadLead.Query, ReadLead.Response>(new ReadLead.Query(new LeadReference(LeadSource.Successor, slug)));
+    }
+
+    private static async Task<Result<StartSuccessor.Response>> Start(CycleWorkspace workspace, FakeRepository git, string slug, string id)
+    {
+        using var gate = Gate.For(workspace.Root, services => services.AddSingleton<IRepository>(git));
+
+        return await gate.Send<StartSuccessor.Command, StartSuccessor.Response>(new StartSuccessor.Command(slug, Parse(id)));
     }
 
     private static async Task<ReadSuccessors.Response> Read(CycleWorkspace workspace, FakeRepository git)

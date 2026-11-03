@@ -74,8 +74,22 @@ internal static class Usage
                                      never merges. Refuses on a local solution.
             lead show <reference>    Fetch a lead and print it in one shape for 'intent --from':
                                      azuredevops:1234 or github:56 through az or gh, a
-                                     suggestion:<cycle>/<finding>, or a file path. What came
-                                     from outside is fenced as untrusted text. Jira is not read yet.
+                                     suggestion:<cycle>/<finding>, a ready successor:<slug>, or a
+                                     file path. What came from outside is fenced as untrusted text.
+                                     Refuses a successor that is not ready. Jira is not read yet.
+            successors               Every slice waiting on another's code, as a file in
+                                     .sdlc/successors/, and where each stands -- waiting, ready,
+                                     stuck behind an abandoned cycle, or unresolved -- worked out
+                                     from the record. Ready means everything it succeeds is on
+                                     the integration branch with a passing verify (D-125).
+            successor check          Refuse a successor file that cannot be read, one naming a
+                                     cycle or slug that does not exist, and a loop through
+                                     succeeds:. Exits 0 when the set is sound.
+            successor start <slug> <id>
+                                     In a cycle opened for a ready successor, on its plan branch:
+                                     refuse unless it is ready, then delete its file there. The
+                                     intent then records lead: successor:<slug>. /sdlc:intent
+                                     --from successor:<slug> runs it.
             operate [--since <hours>h] [--dry-run]
                                      Read production's errors from the telemetry store solution.md
                                      declares, grouped by signature, personal data stripped, and

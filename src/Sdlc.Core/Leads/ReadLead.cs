@@ -7,6 +7,7 @@ using Sdlc.Core.Artifacts;
 using Sdlc.Core.Cycles;
 using Sdlc.Core.Findings;
 using Sdlc.Core.Solutions;
+using Sdlc.Core.Successors;
 
 namespace Sdlc.Core.Leads;
 
@@ -67,6 +68,9 @@ public static class ReadLead
                 case LeadSource.Suggestion:
                     return await Suggestion(reference, cancellationToken).ConfigureAwait(false);
 
+                case LeadSource.Successor:
+                    return await Successor(reference, cancellationToken).ConfigureAwait(false);
+
                 default:
                     Result<TrackerItem> item = await tracker.Fetch(reference, solution.Path, cancellationToken).ConfigureAwait(false);
                     return item.IsFailed
@@ -89,13 +93,54 @@ public static class ReadLead
             {
                 return Result.Fail<Response>(string.Create(
                     CultureInfo.InvariantCulture,
-                    $"There is no file at {path}. A lead that is not azuredevops:, github:, jira: or suggestion: is read as a path."));
+                    $"There is no file at {path}. A lead that is not azuredevops:, github:, jira:, suggestion: or successor: is read as a path."));
             }
 
             string text = await System.IO.File.ReadAllTextAsync(path, cancellationToken).ConfigureAwait(false);
             string? heading = ArtifactOutlineReader.Read(text).Headline;
 
             return Result.Ok(new Response(reference, heading ?? Path.GetFileNameWithoutExtension(path), "note", text.Trim(), null, null));
+        }
+
+        /// <summary>
+        /// A ready successor: the outcome and its why the slicing left, to resume the interview from (D-125).
+        /// </summary>
+        /// <remarks>
+        /// Refused unless it is ready, because the one thing <c>intent --from</c> does with it is start a cycle,
+        /// and a cycle started before its predecessor merged is a cycle that cannot be built alone.
+        /// </remarks>
+        private async Task<Result<Response>> Successor(LeadReference reference, CancellationToken cancellationToken)
+        {
+            Result<ReadSuccessors.Response> read = await mediator
+                .Send<ReadSuccessors.Query, ReadSuccessors.Response>(new ReadSuccessors.Query(), cancellationToken)
+                .ConfigureAwait(false);
+
+            if (read.IsFailed)
+            {
+                return read.ToResult<Response>();
+            }
+
+            if (ReadSuccessors.WhyNotReady(read.Value, reference.Value) is { } refusal)
+            {
+                return Result.Fail<Response>(refusal);
+            }
+
+            Successors.Successor successor = read.Value.Find(reference.Value)!.Successor;
+            StringBuilder description = new();
+            description.AppendLine("Outcome:").AppendLine(successor.Outcome).AppendLine();
+            description.AppendLine("Why:").Append(successor.Why);
+
+            string waited = string.Join(", ", successor.Succeeds);
+
+            return Result.Ok(new Response(
+                reference,
+                successor.Headline ?? successor.Slug,
+                string.Create(
+                    CultureInfo.InvariantCulture,
+                    $"successor{(successor.SlicedFrom is { } from ? ", sliced from " + from : string.Empty)}{(successor.Mirror is { } mirror ? ", mirrored by " + mirror : string.Empty)}; it waited on {waited}, which has merged"),
+                description.ToString(),
+                null,
+                null));
         }
 
         /// <summary>
