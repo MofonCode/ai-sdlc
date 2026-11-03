@@ -24,11 +24,13 @@ the verdict once it is challenged.
 
 ```bash
 sdlc round prompt <id> verify --dir <scratch>/verdict --reader adjudicate
-SDLC_READER=1 claude -p --output-format text < <scratch>/verdict/adjudicate.prompt.md > <scratch>/verdict/adjudicate.json
+SDLC_READER=1 claude -p --output-format json --tools= --strict-mcp-config --no-session-persistence \
+  < <scratch>/verdict/adjudicate.prompt.md > <scratch>/verdict/adjudicate.json
 ```
 
 The process is started the way `interrogate` starts a reader, for the same reasons: a new process rather
-than a subagent, so every host runs one path; the prompt piped in, never passed as an argument; and
+than a subagent, so every host runs one path; the same line, flag for flag, so it has no tools and
+reads only what the binary put in its prompt (D-118); the prompt piped in, never passed as an argument; and
 `SDLC_READER=1`, so a red build's turn-end hook lets the adjudicator's turn end with its verdict (in
 PowerShell, `$env:SDLC_READER = '1'` before the call). **Never switch the hooks off to get it through.**
 

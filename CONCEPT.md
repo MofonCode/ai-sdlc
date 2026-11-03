@@ -7191,7 +7191,8 @@ solution could not mark its own.
 SDLC_READER=1 claude -p --output-format json --tools= --strict-mcp-config --no-session-persistence
 ```
 
-with the prompt piped in. **`--tools=` and never `--tools ""`**: Windows PowerShell 5.1 drops an empty
+with the prompt piped in. `propose`'s readers answer the session rather than a round, so nothing collects
+them, and they take `--output-format text` with the same flags otherwise. **`--tools=` and never `--tools ""`**: Windows PowerShell 5.1 drops an empty
 argument, so the second spelling there reaches the host as a flag with no value and the reader quietly
 keeps its tools. Measured on this machine, the first spelling gives the tool-less prompt in both shells
 and the second does not in PowerShell. Every input a reader needs is in its prompt, the build log included

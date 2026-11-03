@@ -66,8 +66,9 @@ the path of the proposal file.
 **The report is what to read, not what to propose.** Its samples are pointers, and a history runs to
 hundreds of findings, which no single reading holds. So the reading is split:
 
-1. **One fresh process per cycle and document with findings**, concurrently, as `interrogate` runs its
-   readers — `SDLC_READER=1` included. Hand each `sdlc findings <id> --stage <artifact>` and nothing else,
+1. **One fresh process per cycle and document with findings**, concurrently, started as
+   `SDLC_READER=1 claude -p --output-format text --tools= --strict-mcp-config --no-session-persistence`
+   with the prompt piped in — no tools, because everything it reads is in its prompt (D-118). Hand each `sdlc findings <id> --stage <artifact>` and nothing else,
    and ask: *group these findings by the problem underneath, not by their wording — one plan raised the
    same missing log level twenty times in twenty wordings. For each group: the finding ids, one sentence
    naming the problem, how many rounds its longest finding stood, and the remedy the readers converged
@@ -174,8 +175,8 @@ row would go missing. Show what it prints verbatim.
 
 ## 4. Review the approved convergence, in a fresh process
 
-Before the person renames anything, open one fresh process, as `interrogate` does — `SDLC_READER=1`
-included — and hand it the marked
+Before the person renames anything, open one fresh process, started as in step 1 of reading the
+report, and hand it the marked
 proposal file, the three drafts, and `.sdlc/solution.md` — nothing else. Ask:
 
 > For each proposal: was it accepted as proposed, edited, or declined? For each edit and each decline,

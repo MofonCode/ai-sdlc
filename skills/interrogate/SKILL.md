@@ -20,13 +20,22 @@ readers and nothing else:
 
 ```bash
 sdlc round prompt <id> <artifact> --dir <scratch>/round
-# one fresh process per <scratch>/round/<reader>.prompt.md, concurrently, each answer to <reader>.json
-SDLC_READER=1 claude -p --output-format text < <scratch>/round/<reader>.prompt.md > <scratch>/round/<reader>.json
+for p in <scratch>/round/*.prompt.md; do
+  SDLC_READER=1 claude -p --output-format json --tools= --strict-mcp-config --no-session-persistence \
+    < "$p" > "${p%.prompt.md}.json" &
+done; wait
 ```
 
 `<scratch>` is any directory outside the repository that your host gives you to write in. What the
 command prints names every reader the round runs — the rules reader, then one per active perspective — and
-the path each answer goes to.
+the path each answer goes to. They run concurrently, because they share nothing.
+
+**The launch line is fixed, flag for flag** (D-118). **`--tools=`** — no tools, because everything a
+reader may read is in its prompt, and a reader that could open a file could read past what the round
+allows. Spell it exactly so: **never `--tools ""`**, which Windows PowerShell drops to nothing, leaving the
+reader every tool without a word. **`--strict-mcp-config`** — no MCP servers. **`--no-session-persistence`**
+— no session file nobody will resume. **`--output-format json`** — one result object carrying the answer
+and what it cost, which `sdlc round collect` reads.
 
 **Start every fresh process with `SDLC_READER=1`** — this one, each perspective's, the reconciler's. In
 PowerShell that is `$env:SDLC_READER = '1'` before the call. The reader inherits the cycle's branch, and
@@ -76,6 +85,8 @@ Then **one reconciling reader**, in a fresh process of its own, once every other
 
 ```bash
 sdlc round prompt <id> <artifact> --dir <scratch>/round --reader reconcile
+SDLC_READER=1 claude -p --output-format json --tools= --strict-mcp-config --no-session-persistence \
+  < <scratch>/round/reconcile.prompt.md > <scratch>/round/reconcile.json
 ```
 
 Its prompt carries the artifact, every finding this round's readers raised, the findings still open on

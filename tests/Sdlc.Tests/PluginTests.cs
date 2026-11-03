@@ -440,6 +440,35 @@ public sealed class PluginTests
     }
 
     [TestMethod]
+    public void Every_reader_a_skill_starts_has_no_tools_spelled_so_powershell_keeps_it()
+    {
+        // D-118. A reader is handed everything it may read, so a tool is a way past the evidence -- and
+        // `--tools ""` reaches the host from Windows PowerShell as a flag with no value, which leaves the
+        // reader every tool and says nothing. Measured: the empty-argument spelling gave a 10k prompt
+        // where `--tools=` gave the 7k tool-less one.
+        int launches = 0;
+
+        foreach (string path in Skills())
+        {
+            string text = File.ReadAllText(path).Replace("\\\n", " ", StringComparison.Ordinal).Replace("\\\r\n", " ", StringComparison.Ordinal);
+
+            foreach (Match launch in Regex.Matches(text, @"SDLC_READER=1\s+claude -p[^\n`]*"))
+            {
+                launches++;
+                string line = launch.Value;
+                string name = Path.GetFileName(Path.GetDirectoryName(path))!;
+
+                Assert.IsFalse(line.Contains("--tools \"\"", StringComparison.Ordinal), $"{name} spells no-tools as an empty argument: {line}");
+                StringAssert.Contains(line, "--tools=", $"{name} starts a reader with tools: {line}");
+                StringAssert.Contains(line, "--strict-mcp-config", $"{name} starts a reader with MCP servers: {line}");
+                StringAssert.Contains(line, "--no-session-persistence", $"{name} starts a reader that keeps a session file: {line}");
+            }
+        }
+
+        Assert.IsTrue(launches >= 4, $"Only {launches} reader launches were found in the skills, so the pattern has stopped matching them.");
+    }
+
+    [TestMethod]
     public void No_skill_offers_to_write_a_file_only_a_person_writes()
     {
         // The hook denies it, so a skill that offered would be promising something it cannot do -- and the
