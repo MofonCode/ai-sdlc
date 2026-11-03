@@ -105,6 +105,11 @@ what it returns, and a blocking finding against the verdict is answered by a new
 an edit. Every such process is started with `SDLC_READER=1`, so a red build's turn-end gate lets a reader's
 turn end with its verdict (D-109).
 
+**The binary assembles what a reader reads and collects what it says; the reader judges** (D-117). Which
+files, in which order, under which headings is deterministic, so `sdlc round prompt` writes every
+reader's prompt and `sdlc round collect` validates every answer into a draft round. A reader is started
+with no tools, because everything it may read is in its prompt (D-118).
+
 ### 2.6 Flexibility comes from making compliance cheap
 
 Not from making constraints optional. Where the correct path is expensive, the answer is a tool that
@@ -354,6 +359,11 @@ git and published by the pipeline, the trx to the platform's test tab.
 
 `build` treats warnings as errors, enforced by `Directory.Build.props` rather than by instruction.
 
+**A string match runs before a reader does, and only reports** (D-120). `sdlc evidence check` lists
+the names `verify.md` cites that appear in neither `tests.json` nor `diff.patch`, and the tests it
+claims passed that `tests.json` does not record as passed. Whether a claim rests on its evidence stays
+the reader's judgement, so it never refuses. `tests.json` records the platform the tests ran on.
+
 ---
 
 ## 5. Gates and approvals
@@ -544,6 +554,12 @@ second is what the new process was opened to withhold. `CON_15` is a rule entire
 to the stack file, so a reader without it could object neither to a departure the plan admitted to nor
 to a declared default the plan silently left unapplied (D-58).
 
+**The binary writes each prompt** (D-117): what every reader of the round shares first, in one order —
+the stack file on a plan, the document above, the spec and the evidence on a verify, then the document —
+and each reader's own part last, the rules and the judging prompt for the rules reader. A rule marked
+`Judged: per criterion` or `per outcome` is answered with a row for each, and an answer missing one is
+refused when it is collected (D-119).
+
 ### 6.1 Findings are data
 
 `findings/<artifact>.json`, one **ledger** per artifact (D-107):
@@ -703,6 +719,11 @@ way a round lands. It splits the round as it writes: blockers into the document'
 into the cycle's suggestions ledger, and every reader of a round reads the two folded back into one
 view (D-115).
 
+**What the readers cost is recorded beside the ledgers, not in them** (D-121). The round file
+`sdlc round collect` drafts carries each reader's usage, and `sdlc round --from` appends it to
+`findings/usage.json` as it records the round, so a round never recorded leaves none. Outside the chain,
+committed, with `null` for a number the host does not report and no dollar figure.
+
 **A cycle still holding round files from before D-107** — `findings/<artifact>.r<round>.json`, one per
 round — is read through one adapter into a ledger, so there is still one fold. The first `sdlc round`
 on that artifact writes the ledger with the converted rounds chained, and removes the round files in the
@@ -829,6 +850,11 @@ Every blocking finding cites exactly one.
 
 The **Why** is what makes a constraint arguable rather than arbitrary, and what tells a person at a
 gate whether a finding is cheap or expensive in this case. `Forbids` may not restate the statement.
+
+**One optional field, `Judged`**, says a rule is decided item by item: `per criterion`, each of the
+spec's acceptance criteria, or `per outcome`, each of the intent's wanted outcomes and must-not-change
+items. The rules reader then answers it with a row per item, so every instance of a repeated gap
+surfaces in one round rather than one a round (D-119).
 
 ### 7.2 What is admitted
 
@@ -1828,6 +1854,11 @@ check is unaffected, because it depends on no host.
 reading four files (D-46). **And a host is removed when its product stops serving**, which is what
 happened to Gemini CLI (D-50).
 
+**A fresh reader is the host's own non-interactive mode, spelled in the skills.** On Claude Code that is
+`claude -p` with no tools, no MCP servers, no session file and JSON output — `--tools=`, because Windows
+PowerShell drops the empty argument `--tools ""` passes (D-118). `SupportedHosts` carries no invocation,
+because the binary never starts a reader (D-46).
+
 ChatGPT is not a target — Codex is OpenAI's repository-agentic surface. Antigravity plugins are the
 stated successor to Gemini CLI extensions.
 
@@ -2046,6 +2077,10 @@ which is the ordinary case.
 **Six of them keep a task list where the host has one.** `init`, `intent`, `spec`, `plan` and `build`
 each list their own steps and nothing past the hand-back; `batch-build` lists one line per cycle
 (D-80).
+
+**Every stage's hand-back names a new session** for the next stage, and so does `sdlc status` beside the
+next command. A session carried past one stage rebuilds its whole context on every turn after an idle
+wait, and that, not the judging, was most of what one solution's cycles cost (D-122).
 
 **Three documents list these, and the suite holds all three against disk.** This inventory,
 [`skills/README.md`](skills/README.md) — which is the skills' own surface, with a row and a section
@@ -2406,6 +2441,16 @@ next free id is looked up when somebody adopts it, and nothing here reserves a n
     is narrower and belongs to `CON_14` rather than here: the region is still unjudged on a verify for
     anything that is **not** a criterion, and whether that wants a rule is undecided — nobody has seen
     it abused.
+
+11. **Which readers run on which rounds, on which model, and with what evidence.** Every reader runs on
+    every round at the session's model and effort, and every verify reader gets the whole diff. In one
+    solution the perspective readers cost two thirds of the readers' spend and raised two blockers in
+    about 560 findings. Three narrowings are candidates: perspectives on the first and the
+    clean-candidate round, and on any round where one holds an open blocker; a verify perspective given
+    the hunks for its own files; and a cheaper model or effort for the perspectives and the reconciler.
+    Each changes who reads what, so each waits for what `usage.json` records (D-121), and the last for a
+    replay of past readers' prompts, which are still in the transcripts, rather than a trial on a live
+    cycle.
 
 ---
 
@@ -7011,6 +7056,205 @@ its refusal still apply.
 - *Keeping `sdlc <stage>` everywhere.* Correct and host-neutral, and costs a refusal each time.
 - *Guessing a marker for Copilot or Antigravity.* Neither documents one; a guessed marker is a panel that
   names one host's invocation to someone using another.
+
+### D-122 — A stage's hand-back names a new session
+
+**Governs:** §15
+
+**Decision.** Every stage skill's hand-back says the next stage runs **in a new session**, and `sdlc
+status` says so beside the next command it names. It is a sentence, not a mechanism: nothing refuses a
+stage run in the session that ran the one before it.
+
+**Why.** Over fourteen days of one solution's threads, 68% of the tokens went to conversation rather
+than judging. One session carried a cycle for days at 400k to 967k tokens of context, and rebuilt that
+context after every idle wait and every "the limit reset, continue" — 106 rebuilds, about 55M tokens on
+their own. It averaged about 37M a day; a day run one stage per fresh session cost about 1M, with the
+same rounds. The cheapest place to say so is the line a person
+reads at the moment they are deciding whether to type the next command.
+
+**Why this is not the instruction D-109 rejected.** D-109 rejected *telling the person to run verify in a
+new session* as the way to get a verdict nobody invested in, because a rule asking to be remembered is no
+mechanism and `batch-build` has no person to remember it. That stands: the fresh adjudicator is still the
+mechanism. This is a cost, not an independence, and a cost a person forgets to save is a cost, not a
+defect.
+
+**Rejected.**
+
+- *Refusing a stage in a session that ran another.* No host's payload says which session a call is in,
+  and guessing from what it does carry is the inaccuracy D-46 refuses.
+- *A task-list item for it.* D-80's list stops at the hand-back on purpose, so the next stage is not
+  shown as already decided.
+
+### D-121 — Each cycle records what its readers cost, outside the chain, and a number a host does not report is `null`
+
+**Governs:** §6.2
+
+**Decision.** A cycle carries `findings/usage.json`, committed beside the ledgers. It holds, for each
+recorded round, the artifact, the round, when it was recorded and the host, and for each reader that round
+ran: its role, model, effort, prompt bytes, input tokens, cache writes, cache reads, output tokens, turns
+and seconds. `sdlc round collect` (D-117) reads each reader's usage from the host's own result and puts it
+in the round file it drafts; `sdlc round --from` appends it **when the round is recorded**, so a round
+never recorded leaves no usage. A number the host does not report is `null`, never 0. No dollar figure, no
+reader text, no user or machine name. `sdlc status` and the convergence report show tokens per round and
+per document, weighting them on display.
+
+**Why.** The review that found where two weeks went had to rebuild it from 640 MB of transcripts with a
+scratchpad parser. Which reader costs what is the evidence the next release's choices — which readers run
+on which rounds, on which model — have to be measured against (§19), and nothing recorded it. A cycle's
+cost per document beside its rounds is also what a person deciding whether to run another round can
+weigh, which a round cap would only have guessed at (D-65).
+
+**Why outside the chain.** D-107 chains what was judged. Cost is not judged, nobody is held to it, and a
+host that reports one more field would otherwise change a hash an approval anchors. The ledgers stay
+untouched, and the hook does not deny the file, for the reason `theme.json` is not protected.
+
+**Why `null`.** Zero is a measurement. A host that does not say how many tokens it cached has not said
+none, and a total that reads it as none understates every cycle on that host.
+
+**Rejected.**
+
+- *Inside each round in the ledger.* The chain's subject would grow a field nobody judges.
+- *Ignored by git.* Then the factory's cycles and other people's are invisible to whoever reads the
+  record, which is the view this exists for.
+- *Dollar figures.* Prices change and depend on the plan, so a stored cost is wrong on the day it is read.
+  Token counts are facts; the weights are applied when shown.
+- *Appending at collect.* A round abandoned after collect would leave usage for a round that never
+  happened.
+- *Whole sessions.* A session's spend is the host's transcript format and the conversation's, not the
+  cycle's. `tools/Sdlc.UsageReport` reads that.
+
+### D-120 — The evidence pre-check reports, and never refuses
+
+**Governs:** §4.5
+
+**Decision.** `sdlc evidence check <id>` reads `verify.md` against the recorded evidence and lists every
+name it cites in backticks that appears in neither `tests.json` nor `diff.patch`, and every test it claims
+passed that `tests.json` does not record as passed. It always exits 0. `verify` runs it before the
+adjudicator's verdict goes to a round, and the reader of that round still judges `CON_08`.
+`sdlc evidence` also records the platform the tests ran on in `tests.json`.
+
+**Why.** Twenty-eight of one cycle's verify blockers cited `CON_08`, and the cheapest of them were a
+quoted assertion that was not in the diff, each found by a reader paid to read 320k tokens of evidence.
+A string match finds those for nothing. Several more were "the run was on Linux" with nothing in the
+evidence saying where it ran.
+
+**Why it never refuses.** A backticked name is a test, a type, a file, a log line or a setting, and a
+string match cannot tell which one a sentence means. A refusal on that guess would block a correct
+verdict on a false positive, and the only way past it would be rewording the verdict to satisfy a grep.
+Whether a claim rests on its evidence is a judgement, and it stays the reader's (§2.3).
+
+**Rejected.**
+
+- *Refusing at the merge.* The same false positives, found later and by a pipeline.
+- *A rule.* `CON_08` already forbids the claim. The check finds instances; it is not a second rule.
+
+### D-119 — A rule judged one criterion at a time says so, and the reader returns a row for each
+
+**Governs:** §7.1
+
+**Decision.** A constraint may carry `Judged: per criterion` — each of the spec's acceptance criteria —
+or `Judged: per outcome` — each of the intent's wanted outcomes and must-not-change items. For each such
+rule in force on the artifact being judged, the rules reader returns one row per criterion or outcome,
+met or not and why, beside its findings. `sdlc round collect` refuses an answer missing a row, or one
+holding a row judged unmet that no blocking finding citing the rule accounts for. The rows are the
+reader's working and are not recorded; the findings are the record. `CON_03`, `CON_06` and `CON_08` are
+judged per criterion and `CON_16` per outcome. A solution's own `constraints.md` may use the field.
+
+**Why.** One plan took thirty-seven rounds, `CON_06` was cited forty-nine times, and each round surfaced
+one more inadequate proof. The prompt already said "a finding that names one instance of a repeated
+mistake hands the next round the second", and the loop did it anyway: advice about thoroughness is read
+as advice. A row per criterion makes every weak proof visible in round one, and a missing row is
+countable, so it is the binary's to refuse (§2.3).
+
+**Why on the rule.** Whether a rule is judged item by item is a fact about the rule, and the rule is
+where every tier keeps its facts. A list of ids in the binary would be a fourth place a rule lives, and a
+solution could not mark its own.
+
+**Rejected.**
+
+- *A round cap.* D-65, and the reasons stand.
+- *Handing back after two rounds that do not reduce open blockers.* D-65 rejected its cousin; revisit it
+  only if rows do not bring plan rounds down.
+- *Recording the rows in the ledger.* The chain's subject would grow a shape nothing downstream reads.
+
+### D-118 — A reader is started with no tools, no session file, and JSON output
+
+**Governs:** §2.5, §12
+
+**Decision.** On Claude Code every fresh reader — an interrogation's, the reconciler, the adjudicator,
+`propose`'s — is started as:
+
+```
+SDLC_READER=1 claude -p --output-format json --tools= --strict-mcp-config --no-session-persistence
+```
+
+with the prompt piped in. **`--tools=` and never `--tools ""`**: Windows PowerShell 5.1 drops an empty
+argument, so the second spelling there reaches the host as a flag with no value and the reader quietly
+keeps its tools. Measured on this machine, the first spelling gives the tool-less prompt in both shells
+and the second does not in PowerShell. Every input a reader needs is in its prompt, the build log included
+on a verify. The invocation lives in the skills, which are where a host's spelling belongs, and not in
+`SupportedHosts`: the binary still has no consumer for it (D-46).
+
+**Why.** A reader judges what it is handed, so a tool is only a way to read something it was not. Turning
+them off makes that a guarantee rather than an instruction — a verify reader cannot open the source — and
+it removes the tools' share of every reader's prompt: measured on a two-word prompt, 26k tokens fell to
+7k. A hundred and forty readers in one solution had used tools anyway, up to 175 calls in one. No MCP server is a reader's business either, and a reader's session file is never resumed,
+so it is 640 MB of transcripts nobody reads. JSON output carries the host's usage, which D-121 records.
+
+**Why `json` and not `stream-json`.** One session launched its readers with `stream-json` because a red
+build's turn-end gate answered the reader's last turn, so the text output held the gate's reply and not
+the verdict; the stream kept the message before it. D-109's mark lets a reader's turn end, which is the
+fix for that, and one result object is what collect reads.
+
+**Rejected.**
+
+- *`--bare`.* It drops most of the harness too, but needs an API key, and a subscription signs in with
+  OAuth.
+- *Model and effort per reader now.* Unmeasured, and it is the judging being cut. Past readers' prompts
+  are in the transcripts, so a replay can measure it first (§19).
+- *Having the binary launch the readers.* It would name one host's command line inside the binary.
+
+### D-117 — The binary composes every reader's prompt and collects every reader's answer
+
+**Governs:** §2.5, §6, §6.5
+
+**Decision.** `sdlc round prompt <id> <artifact>` writes each reader's prompt for a round into a
+directory — the rules reader's, one per active perspective, and once those have answered the
+reconciler's. On a verify it writes the adjudicator's too. Each prompt holds the block every reader of
+the round shares first, in one byte-identical order — `techstack.md` on a plan, the document above,
+the spec and the evidence on a verify, then the document — and its own instructions last: the rules and
+the judging prompt for the rules reader, the perspective's method for a perspective. `sdlc round collect`
+reads every reader's answer from that directory, validates it, numbers new ids past the ledgers, applies
+the reconciler's restatements and pairs, and drafts the round file. The session adds the dispositions of
+earlier findings (D-49) and records with `sdlc round --from`, as before. `sdlc round verdict` writes
+`verify.md` from the adjudicator's answer byte for byte, and refuses an answer that is not a verify
+document. The prompts move out of the skills into resources embedded in the binary.
+
+**Why.** The agent pasted files into prompts by hand, from the skills' prose, then parsed each reader's
+output and wrote the round, at whatever context its session had reached. One session wrote throwaway
+scripts to do it — a round helper, a carry, a heal. That is the most expensive kind of turn spent on the
+least judgement, and a prompt assembled from prose differs between runs, so no two rounds were judged
+from the same text and no prompt could be cached or replayed.
+
+**Why this answers D-58's rejection.** D-58 rejected *having the binary assemble the prompt* because a
+command that built it "would need its own model and credentials to be worth anything", which is D-01's
+argument about why a tool call is not a fresh reader. That argument is about *judging*. Assembly is
+deterministic — which files, in which order, under which headings — and needs no model; the reader is
+still a fresh process the skill starts. What D-58 kept the binary away from was the verdict, and it
+still is.
+
+**Why the shared block holds no rules.** A perspective reader is given its own method and the rules it
+may block on, not the constraint set, and putting the rules in the shared block would change what every
+perspective judges. So the rules travel in the rules reader's own part, and the shared prefix is the
+document, its upstream and the evidence, which are most of the bytes anyway.
+
+**Rejected.**
+
+- *The binary launching the readers.* D-118.
+- *The binary writing dispositions.* Whether an earlier finding was answered or withdrawn is the
+  session's to record from the refiner's report (D-49).
+- *Leaving the reconciler's answer for the session to apply.* Carrying a finding under a standing id,
+  at its disposition, in the ledger's words, is a lookup.
 
 ### D-116 — A plan adding script to a Blazor page names the Blazor mechanism it could not use, as `PRO_05`
 
