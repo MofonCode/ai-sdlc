@@ -7037,8 +7037,8 @@ builds approved cycles with no verify, and any `cycle/<id>/` branch on the remot
   `cycle/<id>/plan` started afresh from the integration branch — never on a build branch. There it is
   reopened, steered or refined, interrogated, and approved again. `sdlc draft approval <id> --reopen` run on
   the cycle's build branch while its plan is on the integration branch is refused, and the refusal names the
-  route. `sdlc branch <id> plan` refuses to carry on on a plan branch older than the approval the integration
-  branch holds, because that is the branch the plan was first admitted from.
+  route. `sdlc branch <id> plan` refuses to carry on on a plan branch that lacks the approval the integration
+  branch holds: it is left over from earlier planning, and an amendment made there amends a plan nobody reads.
 - **How it is admitted.** `pr --plan` opens it as an amended plan: the title says so, and the description
   leads with each reopen's reason from the ledger.
 - **The build branch is the person's choice.** Every build made before the amendment predates the approval

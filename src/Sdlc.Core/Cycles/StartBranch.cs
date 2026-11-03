@@ -2,6 +2,7 @@ using System.Globalization;
 using FluentResults;
 using Microsoft.Extensions.DependencyInjection;
 using MofonCode.Core;
+using Sdlc.Core.Approvals;
 using Sdlc.Core.Git;
 using Sdlc.Core.Solutions;
 
@@ -87,6 +88,21 @@ public static class StartBranch
             string integration = await SolutionDocument.IntegrationBranchOf(root, cancellationToken).ConfigureAwait(false);
             string branch = request.Id.BranchName(request.Kind);
             string? integrationRef = First(root, "origin/" + integration, integration);
+
+            // D-123: a plan reopened after admission is amended on a plan branch. One left over from an earlier
+            // round of planning lacks the approval that now stands, and carrying on there would amend a plan
+            // nobody reads any more.
+            if (request.Kind == CycleBranchKind.Plan
+                && integrationRef is not null
+                && repository.RefExists(root, branch)
+                && AmendedPlan.Predates(
+                    repository.ReadAt(root, branch, AmendedPlan.LedgerPath(request.Id)),
+                    repository.ReadAt(root, integrationRef, AmendedPlan.LedgerPath(request.Id))))
+            {
+                return Result.Fail<Response>(string.Create(
+                    CultureInfo.InvariantCulture,
+                    $"{branch} is left over from earlier planning: {integrationRef} holds an approval it does not. Delete it with 'git branch -D {branch}' and ask again, so the amendment starts from {integrationRef}."));
+            }
 
             if (request.Worktree)
             {

@@ -92,6 +92,7 @@ public static class StatusRenderer
             Field(output, "Loop", loop);
         }
 
+        Amended(output, status);
         Next(output, status, state, host);
 
         return output.ToString();
@@ -161,9 +162,34 @@ public static class StatusRenderer
         Hashes(output, status);
         output.AppendLine();
 
+        if (Amended(output, status))
+        {
+            output.AppendLine();
+        }
+
         Next(output, status, state, host);
 
         return output.ToString();
+    }
+
+    /// <summary>
+    /// Writes that the plan was amended after this build started, and nothing when it was not (D-123).
+    /// </summary>
+    /// <returns>Whether anything was written.</returns>
+    private static bool Amended(StringBuilder output, ReadCycleStatus.Response status)
+    {
+        if (status.AmendedOn is not { } reference)
+        {
+            return false;
+        }
+
+        Field(output, "Plan", string.Create(
+            CultureInfo.InvariantCulture,
+            $"amended on {reference} after this build started, so this verify cannot pass the chain."));
+        Field(output, string.Empty, string.Create(
+            CultureInfo.InvariantCulture,
+            $"Merge {reference} in to continue by hand, or delete this branch for the factory to rebuild."));
+        return true;
     }
 
     /// <summary>

@@ -5,6 +5,7 @@ using Microsoft.Extensions.DependencyInjection;
 using MofonCode.Core;
 using Sdlc.Core.Artifacts;
 using Sdlc.Core.Cycles;
+using Sdlc.Core.Git;
 using Sdlc.Core.Solutions;
 
 namespace Sdlc.Core.Approvals;
@@ -136,7 +137,7 @@ public static class ApprovalText
     /// the stamped line instead of asserting around it — and it is the rule this framework bans the
     /// alternative to in every solution it scaffolds.
     /// </param>
-    private sealed class Handler(Mediator mediator, TimeProvider clock)
+    private sealed class Handler(Mediator mediator, TimeProvider clock, SolutionRoot solution, IRepository repository)
         : IRequestHandler<Query, Response>
     {
         /// <inheritdoc />
@@ -164,6 +165,18 @@ public static class ApprovalText
                 return Refuse(status, string.Create(
                     CultureInfo.InvariantCulture,
                     $"Cycle {status.Cycle.Id} was abandoned, and abandonment is terminal. Open a new cycle instead."), request.Decision);
+            }
+
+            // D-123: once the plan is on the integration branch, a reopen is an amendment to what the team and
+            // the factory read, and it travels by a plan pull request of its own. Drafted on the build branch,
+            // it would reach the integration branch only with the code, and the factory would keep reading the
+            // plan the person just withdrew.
+            if (request.Decision == GateDecision.Reopened
+                && await AdmittedUnderBuild(status.Cycle.Id, cancellationToken).ConfigureAwait(false) is ({ } admitted, { } build))
+            {
+                return Refuse(status, string.Create(
+                    CultureInfo.InvariantCulture,
+                    $"The plan for {status.Cycle.Id} is on {admitted}, so it is reopened there and not on this build branch. Run 'sdlc branch {status.Cycle.Id} plan', reopen, correct and approve it again on that branch, and open its pull request with 'pr --plan'. Then this build is yours to keep or drop: {AmendedPlan.Choices(build, admitted)}."), request.Decision);
             }
 
             // Every decision records three hashes, so all three documents have to exist whichever way the
@@ -304,6 +317,28 @@ public static class ApprovalText
                 .. entry.TrimEnd().Split(Environment.NewLine),
                 "---",
             ]) + Environment.NewLine;
+
+        /// <summary>
+        /// The integration branch's reference, when this working copy is the cycle's build branch and its plan
+        /// is already on the integration branch, with the build branch's name; else nulls.
+        /// </summary>
+        private async Task<(string? Admitted, string? Build)> AdmittedUnderBuild(CycleId id, CancellationToken cancellationToken)
+        {
+            if (!CycleBranch.TryParse(repository.CurrentBranch(solution.Path), out CycleBranch? branch)
+                || branch.Id != id
+                || !branch.IsBuild)
+            {
+                return (null, null);
+            }
+
+            string integration = await SolutionDocument.IntegrationBranchOf(solution.Path, cancellationToken).ConfigureAwait(false);
+            string plan = string.Join('/', Cycle.SdlcDirectoryName, Cycle.CyclesDirectoryName, id.ToString(), Cycle.FileNameOf(ArtifactKind.Plan));
+
+            return AmendedPlan.IntegrationRef(repository, solution.Path, integration) is { } reference
+                && repository.PathExistsAt(solution.Path, reference, plan)
+                ? (reference, branch.ToString())
+                : (null, null);
+        }
 
         private static Result<Response> Refuse(
             ReadCycleStatus.Response status,

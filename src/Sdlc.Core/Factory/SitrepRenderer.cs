@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Text;
+using Sdlc.Core.Approvals;
 
 namespace Sdlc.Core.Factory;
 
@@ -63,13 +64,9 @@ public static class SitrepRenderer
 
         foreach (Sitrep.Built cycle in page.NeedsPerson)
         {
-            string next = cycle.Outcome?.ToUpperInvariant() switch
-            {
-                "BLOCKED" => "blocked -> `remediate` on its branch, then mark the draft ready",
-                "ESCALATED" => "escalated: the loop stopped reducing -> `steer`, a reopen, or abandon",
-                null => "no verify to read -> fetch the remote, or build it again by deleting the branch",
-                _ => string.Create(CultureInfo.InvariantCulture, $"outcome '{cycle.Outcome}' -> read its verify"),
-            };
+            string next = cycle.Amended
+                ? string.Create(CultureInfo.InvariantCulture, $"built before its plan was amended, so its verify cannot pass -> {AmendedPlan.Choices(cycle.Branch, page.IntegrationBranch)}")
+                : Next(cycle);
 
             output.AppendLine(string.Create(
                 CultureInfo.InvariantCulture,
@@ -92,6 +89,19 @@ public static class SitrepRenderer
                 $"- `{cycle.Id}` {cycle.Headline ?? "(no headline)"} - {cycle.Reason}"));
         }
 
+        return Tail(page, output);
+    }
+
+    private static string Next(Sitrep.Built cycle) => cycle.Outcome?.ToUpperInvariant() switch
+    {
+        "BLOCKED" => "blocked -> `remediate` on its branch, then mark the draft ready",
+        "ESCALATED" => "escalated: the loop stopped reducing -> `steer`, a reopen, or abandon",
+        null => "no verify to read -> fetch the remote, or build it again by deleting the branch",
+        _ => string.Create(CultureInfo.InvariantCulture, $"outcome '{cycle.Outcome}' -> read its verify"),
+    };
+
+    private static string Tail(Sitrep.Response page, StringBuilder output)
+    {
         output.AppendLine();
         output.AppendLine("## Waiting for a build");
         output.AppendLine();

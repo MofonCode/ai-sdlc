@@ -1381,6 +1381,13 @@ static async Task<int> Status(Workspace workspace, CommandLine line, CycleId id)
         }
     }
 
+    // On the cycle's build branch, say when the plan was amended under it (D-123): the panel would otherwise
+    // walk a person through a verify the chain can never accept.
+    if (await AmendedPlan.NewerOn(workspace.Repository, workspace.SolutionRoot, status.Cycle, CancellationToken.None).ConfigureAwait(false) is { } amended)
+    {
+        status = status with { AmendedOn = amended };
+    }
+
     ArtifactKind kind = state.Kind;
     ArtifactOutline outline = await ArtifactOutlineReader
         .ReadFile(state.Path, CancellationToken.None)

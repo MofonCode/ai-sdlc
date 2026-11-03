@@ -2,6 +2,7 @@ using System.Globalization;
 using FluentResults;
 using Microsoft.Extensions.DependencyInjection;
 using MofonCode.Core;
+using Sdlc.Core.Approvals;
 using Sdlc.Core.Artifacts;
 using Sdlc.Core.Cycles;
 using Sdlc.Core.Evidence;
@@ -44,7 +45,11 @@ public static class Sitrep
     /// <param name="Branch">The branch its build is on.</param>
     /// <param name="Outcome">The verify outcome read at that branch, or null when there is none to read.</param>
     /// <param name="Files">The files its plan declares.</param>
-    public sealed record Built(CycleId Id, string? Headline, string Branch, string? Outcome, IReadOnlyList<string> Files);
+    /// <param name="Amended">
+    /// Whether it was built before its plan was amended: its ledger lacks the approval standing on the integration
+    /// branch, so its verify cannot pass the chain whatever it says (D-123).
+    /// </param>
+    public sealed record Built(CycleId Id, string? Headline, string Branch, string? Outcome, IReadOnlyList<string> Files, bool Amended = false);
 
     /// <summary>Two built cycles whose plans declare the same files, so the second to merge will likely conflict.</summary>
     /// <param name="First">The cycle to merge first.</param>
@@ -110,10 +115,10 @@ public static class Sitrep
                 .Where(b => b.IsBuild)
                 .OrderBy(b => b.Id.ToString(), StringComparer.Ordinal))
             {
-                built.Add(Read(root, branch));
+                built.Add(await Read(root, branch, cancellationToken).ConfigureAwait(false));
             }
 
-            List<Built> ready = [.. built.Where(b => string.Equals(b.Outcome, "pass", StringComparison.OrdinalIgnoreCase))];
+            List<Built> ready = [.. built.Where(b => !b.Amended && string.Equals(b.Outcome, "pass", StringComparison.OrdinalIgnoreCase))];
             List<Built> needs = [.. built.Except(ready)];
             List<Overlap> overlaps = Overlaps([.. ready, .. needs], out List<CycleId> order);
             ready = [.. ready.OrderBy(b => order.IndexOf(b.Id))];
@@ -136,7 +141,7 @@ public static class Sitrep
                 remote is not null));
         }
 
-        private Built Read(string root, CycleBranch branch)
+        private async Task<Built> Read(string root, CycleBranch branch, CancellationToken cancellationToken)
         {
             Cycle cycle = new(branch.Id, root);
             string at = "origin/" + branch;
@@ -145,13 +150,17 @@ public static class Sitrep
             string? intent = repository.ReadAt(root, at, directory + "/" + Cycle.FileNameOf(ArtifactKind.Intent));
             string? plan = repository.ReadAt(root, at, directory + "/" + Cycle.FileNameOf(ArtifactKind.Plan));
             string? verify = repository.ReadAt(root, at, directory + "/" + Cycle.FileNameOf(ArtifactKind.Verify));
+            string? standing = File.Exists(cycle.ApprovalPath)
+                ? await File.ReadAllTextAsync(cycle.ApprovalPath, cancellationToken).ConfigureAwait(false)
+                : null;
 
             return new Built(
                 cycle.Id,
                 intent is null ? null : ArtifactOutlineReader.Read(intent).Headline,
                 branch.ToString(),
                 verify is null ? null : Outcome(verify),
-                plan is null ? [] : DeclaredFiles.Read(plan));
+                plan is null ? [] : DeclaredFiles.Read(plan),
+                AmendedPlan.Predates(repository.ReadAt(root, at, AmendedPlan.LedgerPath(branch.Id)), standing));
         }
 
         private static string? Outcome(string verify)

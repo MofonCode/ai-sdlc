@@ -2,6 +2,7 @@ using System.Globalization;
 using FluentResults;
 using Microsoft.Extensions.DependencyInjection;
 using MofonCode.Core;
+using Sdlc.Core.Approvals;
 using Sdlc.Core.Artifacts;
 using Sdlc.Core.Cycles;
 using Sdlc.Core.Evidence;
@@ -19,6 +20,9 @@ namespace Sdlc.Core.Factory;
 /// own answer, so "buildable" means one thing — <em>and</em> no <c>cycle/&lt;id&gt;/...</c> branch for it is
 /// on the remote. A surviving plan branch means the plan may still be moving; a build branch means a person
 /// or a factory run has taken it. Deleting the branch puts the cycle back.</para>
+/// <para><strong>A build made before its plan was amended says so</strong> (D-123). Its ledger lacks the
+/// approval standing here, so its verify can never pass the chain, and the factory never resumes it: the reason
+/// names both of the person's moves rather than calling it somebody's build in progress.</para>
 /// <para><strong>Every cycle passed over is named with its reason.</strong> A forgotten plan branch would
 /// otherwise starve its cycle silently, night after night, which is the failure the sitrep exists to make
 /// visible.</para>
@@ -103,7 +107,7 @@ public static class ListQueuedCycles
                     continue;
                 }
 
-                held.Add(new HeldBack(claim.Cycle, headline, Why(taken)));
+                held.Add(new HeldBack(claim.Cycle, headline, await Amended(claim.Cycle, taken, cancellationToken).ConfigureAwait(false) ?? Why(taken)));
             }
 
             // An approval that no longer matches is a plan somebody edited after it was approved. The gate
@@ -125,6 +129,32 @@ public static class ListQueuedCycles
             }
 
             return Result.Ok(new Response(queued, held, remote is not null));
+        }
+
+        /// <summary>The reason for a build branch older than the approval standing here, or null when none is.</summary>
+        private async Task<string?> Amended(CycleId id, IReadOnlyList<CycleBranch> taken, CancellationToken cancellationToken)
+        {
+            Cycle cycle = new(id, solution.Path);
+
+            if (!File.Exists(cycle.ApprovalPath))
+            {
+                return null;
+            }
+
+            string standing = await File.ReadAllTextAsync(cycle.ApprovalPath, cancellationToken).ConfigureAwait(false);
+            string integration = await SolutionDocument.IntegrationBranchOf(solution.Path, cancellationToken).ConfigureAwait(false);
+
+            foreach (CycleBranch branch in taken.Where(b => b.IsBuild))
+            {
+                if (AmendedPlan.Predates(repository.ReadAt(solution.Path, "origin/" + branch, AmendedPlan.LedgerPath(id)), standing))
+                {
+                    return string.Create(
+                        CultureInfo.InvariantCulture,
+                        $"{branch} was built before its plan was amended, and the factory never resumes it: {AmendedPlan.Choices(branch.ToString(), integration)}");
+                }
+            }
+
+            return null;
         }
 
         private static string Why(IReadOnlyList<CycleBranch> taken)

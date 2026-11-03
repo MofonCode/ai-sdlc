@@ -142,6 +142,11 @@ public static class ReadCycleStatus
     /// <c>sdlc status</c> asks it for a passed cycle, so the panel does not say a pull request is next
     /// while pr-ready would refuse one.
     /// </param>
+    /// <param name="AmendedOn">
+    /// The integration branch's reference, when this working copy is the cycle's build branch and that branch
+    /// holds an approval this copy does not: the plan was amended after this build started (D-123). Not read
+    /// here, for the reason <paramref name="Chain"/> is not -- it asks git, and most callers do not need it.
+    /// </param>
     public sealed record Response(
         Cycle Cycle,
         IReadOnlyList<ArtifactState> Artifacts,
@@ -149,7 +154,8 @@ public static class ReadCycleStatus
         ArtifactState? Verify = null,
         string? Outcome = null,
         bool Built = false,
-        Sdlc.Core.Chain.VerifyChain.Response? Chain = null)
+        Sdlc.Core.Chain.VerifyChain.Response? Chain = null,
+        string? AmendedOn = null)
     {
         /// <summary>The artifact the cycle is waiting on, or null when all three are clear.</summary>
         public ArtifactState? Blocking => Artifacts.FirstOrDefault(artifact => !artifact.IsClear);

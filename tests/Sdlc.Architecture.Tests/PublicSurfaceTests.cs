@@ -37,6 +37,7 @@ public sealed class PublicSurfaceTests
     /// </remarks>
     private static readonly string[] _approved =
     [
+        "Sdlc.Core.Approvals.AmendedPlan",
         "Sdlc.Core.Approvals.ApprovalGate",
         "Sdlc.Core.Approvals.ApprovalGate+DocumentHash",
         "Sdlc.Core.Approvals.ApprovalGate+GateRefusal",
