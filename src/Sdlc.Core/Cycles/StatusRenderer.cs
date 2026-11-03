@@ -92,10 +92,25 @@ public static class StatusRenderer
             Field(output, "Loop", loop);
         }
 
+        Spent(output, status, state);
+
         Amended(output, status);
         Next(output, status, state, host);
 
         return output.ToString();
+    }
+
+    /// <summary>What this document's readers have cost so far, and nothing when nothing was recorded.</summary>
+    /// <remarks>
+    /// A number, not a warning: the rounds are uncapped (D-65), and the person deciding whether to run
+    /// another is the one this is for (D-121).
+    /// </remarks>
+    private static void Spent(StringBuilder output, ReadCycleStatus.Response status, ReadCycleStatus.ArtifactState state)
+    {
+        if (status.Usage?.Summarise(Cycle.NameOf(state.Kind)) is { } spent)
+        {
+            Field(output, "Spent", spent.Describe());
+        }
     }
 
     /// <summary>The round state, as the full panel's right-hand column says it.</summary>
@@ -155,6 +170,7 @@ public static class StatusRenderer
 
         Checks(output, state);
         Loop(output, state);
+        Spent(output, status, state);
         Conflicts(output, state);
         output.AppendLine();
 
@@ -367,11 +383,11 @@ public static class StatusRenderer
         {
             null when status.Built => (
                 Stage(host, string.Create(CultureInfo.InvariantCulture, $"verify {id}")),
-                "the build recorded its evidence"),
+                "the build recorded its evidence - in a new session"),
 
             null => (
                 Stage(host, string.Create(CultureInfo.InvariantCulture, $"build {id}")),
-                "the gate is satisfied"),
+                "the gate is satisfied - in a new session"),
 
             // The reason stays short enough for the column; verify-chain names the check that failed.
             string pass when pass.Equals("pass", StringComparison.OrdinalIgnoreCase)
@@ -381,11 +397,11 @@ public static class StatusRenderer
 
             string pass when pass.Equals("pass", StringComparison.OrdinalIgnoreCase) => (
                 Stage(host, string.Create(CultureInfo.InvariantCulture, $"pr {id}")),
-                "verified clean"),
+                "verified clean - in a new session"),
 
             string blocked when blocked.Equals("blocked", StringComparison.OrdinalIgnoreCase) => (
                 Stage(host, string.Create(CultureInfo.InvariantCulture, $"remediate {id}")),
-                "a criterion is not met"),
+                "a criterion is not met - in a new session"),
 
             string escalated when escalated.Equals("escalated", StringComparison.OrdinalIgnoreCase) => (
                 string.Create(CultureInfo.InvariantCulture, $"sdlc status {id}"),
@@ -489,7 +505,7 @@ public static class StatusRenderer
             {
                 next.Add((
                     Stage(host, string.Create(CultureInfo.InvariantCulture, $"{Cycle.NameOf(waiting.Kind)} {id}")),
-                    string.Create(CultureInfo.InvariantCulture, $"{Cycle.NameOf(waiting.Kind)} is next")));
+                    string.Create(CultureInfo.InvariantCulture, $"{Cycle.NameOf(waiting.Kind)} is next, in a new session")));
             }
             else if (status.Gate.MayBuild)
             {

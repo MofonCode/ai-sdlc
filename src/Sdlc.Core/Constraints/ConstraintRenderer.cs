@@ -75,6 +75,11 @@ public static class ConstraintRenderer
             Clause(output, "applies to", constraint.AppliesTo);
             Clause(output, "forbids", constraint.Forbids);
             Clause(output, "why", constraint.Why);
+
+            if (constraint.Judged is { } judged)
+            {
+                Clause(output, "judged", judged == JudgedPer.Criterion ? "per criterion" : "per outcome");
+            }
         }
 
         output.AppendLine();

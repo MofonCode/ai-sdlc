@@ -142,6 +142,7 @@ public static class ReadCycleStatus
     /// <c>sdlc status</c> asks it for a passed cycle, so the panel does not say a pull request is next
     /// while pr-ready would refuse one.
     /// </param>
+    /// <param name="Usage">What the cycle's recorded rounds cost its readers, when any recorded it (D-121).</param>
     /// <param name="AmendedOn">
     /// The integration branch's reference, when this working copy is the cycle's build branch and that branch
     /// holds an approval this copy does not: the plan was amended after this build started (D-123). Not read
@@ -155,6 +156,7 @@ public static class ReadCycleStatus
         string? Outcome = null,
         bool Built = false,
         Sdlc.Core.Chain.VerifyChain.Response? Chain = null,
+        Findings.UsageLedger? Usage = null,
         string? AmendedOn = null)
     {
         /// <summary>The artifact the cycle is waiting on, or null when all three are clear.</summary>
@@ -293,7 +295,8 @@ public static class ReadCycleStatus
                 verify.Value.Exists
                     ? await Outcome(cycle, cancellationToken).ConfigureAwait(false)
                     : null,
-                File.Exists(Path.Combine(cycle.EvidenceDirectory, Evidence.RecordEvidence.SummaryFileName))));
+                File.Exists(Path.Combine(cycle.EvidenceDirectory, Evidence.RecordEvidence.SummaryFileName)),
+                Usage: (await Findings.UsageLedger.Read(cycle, cancellationToken).ConfigureAwait(false)).ValueOrDefault));
         }
 
         /// <summary>

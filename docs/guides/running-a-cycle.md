@@ -106,6 +106,13 @@ for you.
 The skill **hands back rather than continuing into the spec.** That hand-back is the human-in-the-loop
 point; a skill that chained on would remove it while appearing helpful.
 
+**Run the next stage in a new session**, and every stage after it — the hand-back and the panel's `Next`
+line both say so. A session carried past its stage rebuilds its whole context on every turn after a
+pause: over two weeks of one solution's cycles, that was most of what they cost, and a fresh session per
+stage cost a thirtieth of it with the same rounds (D-122). Two habits go with it: never ask an agent to
+wait on a long build or test run — start it, close the session, and come back with `sdlc status` — and
+when a usage limit hits, end the session and start fresh rather than continuing.
+
 ```
 /sdlc:spec 20260929_1456_32
 ```

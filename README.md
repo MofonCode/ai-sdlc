@@ -227,7 +227,7 @@ travels with your code.
 | [`CONSTRAINTS.md`](CONSTRAINTS.md) | the eighteen global constraints, each with what it forbids and why |
 | [`AGENTS.md`](AGENTS.md) | how to work in this repository, written for an agent — and the repository map |
 | [`src/README.md`](src/README.md) | what `Sdlc.Core` and `Sdlc.Cli` are, and where a new thing goes |
-| [`tools/README.md`](tools/README.md) | the two tools that check what the test suite cannot |
+| [`tools/README.md`](tools/README.md) | the tools that check what the test suite cannot, and the one that measures what sessions cost |
 
 ## Will it work with my agent?
 
@@ -354,6 +354,15 @@ What is honest to say about the rest:
   accessibility does the same for any change touching a user interface. Operability's reader may block on
   `CON_20`, earned on two trial cycles; everything else they find is a suggestion (`CONCEPT.md` §6.5).
   UI/UX and the four others are not written.
+- **The readers' prompts are the binary's now, and no live cycle has run through them yet.** `sdlc round
+  prompt` writes every reader's prompt and `sdlc round collect` drafts the round from their answers
+  (D-117); each reader starts with no tools, no MCP servers and no session file (D-118). Each prompt was
+  generated against a real MarketSense cycle and the launch line measured on Windows PowerShell and Git
+  Bash, but no reader has judged from them in a cycle. `CON_03`, `CON_06`, `CON_08` and `CON_16` are
+  answered a row per criterion or outcome (D-119), which is meant to bring a plan's rounds down and has
+  not been measured doing so. `findings/usage.json` records what each round's readers cost (D-121), and
+  `tools/Sdlc.UsageReport` reads whole sessions; which readers run on which rounds, and on which model,
+  waits for what they record (`CONCEPT.md` §19).
 
 ## Not goals
 

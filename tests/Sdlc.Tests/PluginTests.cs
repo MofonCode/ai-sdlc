@@ -422,12 +422,63 @@ public sealed class PluginTests
     {
         // This is how the rules reach a session: they live in the framework and are never copied into a
         // solution, so a skill that did not run this is working from recollection.
-        foreach (string name in (string[])["intent", "spec", "plan", "interrogate"])
+        foreach (string name in (string[])["intent", "spec", "plan"])
         {
             string text = File.ReadAllText(Path.Combine(Root, "skills", name, "SKILL.md"));
 
             StringAssert.Contains(text, "sdlc constraints", name + " never asks what the rules are.");
         }
+
+        // A reader is given the rules by the binary, inside the prompt it writes (D-117), so the session
+        // running an interrogation never holds them and cannot leave them out.
+        foreach (string name in (string[])["interrogate", "verify"])
+        {
+            string text = File.ReadAllText(Path.Combine(Root, "skills", name, "SKILL.md"));
+
+            StringAssert.Contains(text, "sdlc round prompt", name + " composes a reader's prompt by hand.");
+        }
+    }
+
+    [TestMethod]
+    public void Every_stage_that_hands_on_to_another_says_it_runs_in_a_new_session()
+    {
+        // D-122. The cheapest place to say it is the line a person reads while deciding whether to type
+        // the next command; a session carried past its stage was most of what one solution's cycles cost.
+        foreach (string name in (string[])["intent", "spec", "plan", "build", "verify", "remediate"])
+        {
+            string text = File.ReadAllText(Path.Combine(Root, "skills", name, "SKILL.md"));
+
+            StringAssert.Contains(text, "new session", name + "'s hand-back does not say the next stage runs in a new session.");
+        }
+    }
+
+    [TestMethod]
+    public void Every_reader_a_skill_starts_has_no_tools_spelled_so_powershell_keeps_it()
+    {
+        // D-118. A reader is handed everything it may read, so a tool is a way past the evidence -- and
+        // `--tools ""` reaches the host from Windows PowerShell as a flag with no value, which leaves the
+        // reader every tool and says nothing. Measured: the empty-argument spelling gave a 10k prompt
+        // where `--tools=` gave the 7k tool-less one.
+        int launches = 0;
+
+        foreach (string path in Skills())
+        {
+            string text = File.ReadAllText(path).Replace("\\\n", " ", StringComparison.Ordinal).Replace("\\\r\n", " ", StringComparison.Ordinal);
+
+            foreach (Match launch in Regex.Matches(text, @"SDLC_READER=1\s+claude -p[^\n`]*"))
+            {
+                launches++;
+                string line = launch.Value;
+                string name = Path.GetFileName(Path.GetDirectoryName(path))!;
+
+                Assert.IsFalse(line.Contains("--tools \"\"", StringComparison.Ordinal), $"{name} spells no-tools as an empty argument: {line}");
+                StringAssert.Contains(line, "--tools=", $"{name} starts a reader with tools: {line}");
+                StringAssert.Contains(line, "--strict-mcp-config", $"{name} starts a reader with MCP servers: {line}");
+                StringAssert.Contains(line, "--no-session-persistence", $"{name} starts a reader that keeps a session file: {line}");
+            }
+        }
+
+        Assert.IsTrue(launches >= 4, $"Only {launches} reader launches were found in the skills, so the pattern has stopped matching them.");
     }
 
     [TestMethod]

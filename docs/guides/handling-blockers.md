@@ -108,6 +108,11 @@ will answer.** On one real intent, round seven found the headline change was unr
 eleven found that no success criterion failed without it; a tool that suggested stopping at round four
 would have been confidently wrong.
 
+**What it does show is what the rounds have cost.** Once rounds record their readers' usage, the panel's
+`Spent` line gives the rounds so far, the weighted tokens they took and the split between the rules
+reader, the perspectives, the reconciler and the adjudicator. It is a number to decide with, not a
+warning, and nothing stops on it (D-121).
+
 **What the tool watches for is going backwards.** The status panel's `Loop` line appears when a rule has
 been answered and raised again, and names it. *Answered* means the rule went quiet — a round raised
 nothing open against it — or that one finding was answered and the same finding came back. A round that

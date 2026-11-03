@@ -124,6 +124,10 @@ internal static class Usage
                                      wrote. --standard changes that one key, and says so.
             evidence <id>            Record what a build produced: the diff, its base commit, a
                                      normalised test summary and the coverage. Verify reads only this.
+                                     The summary records the platform the tests ran on.
+            evidence check <id>      List what verify.md cites in backticks that none of the
+                                     recorded evidence holds, and tests it says passed that did not.
+                                     Reports only; always exits 0.
             cycles                   List every cycle this solution holds, newest first: what each
                                      is about, where it stands, and what it is owed.
             status <id>              Show the panel for a stage. Ends with the next command.
@@ -138,6 +142,23 @@ internal static class Usage
                                      blocker with no one-line gist, and a suggestion whose id or move
                                      does not fit the cycle's. --changed lists the sections moved
                                      since the last round instead.
+            round prompt <id> <artifact> --dir <directory>
+                                     Write every reader's prompt for a round into a directory
+                                     outside the repository, as <reader>.prompt.md: the block every
+                                     reader shares first, then each reader's own part. --reader
+                                     <name> writes one -- rules, a perspective, reconcile once the
+                                     others have answered, or adjudicate on a verify. --list names
+                                     the readers and writes nothing.
+            round collect <id> <artifact> --dir <directory>
+                                     Read every reader's answer from that directory and draft
+                                     round.json beside them: new ids numbered past the ledgers,
+                                     the reconciler's restatements carried under the standing id,
+                                     each reader's usage carried for 'round --from' to record.
+                                     Lists the open findings no reader raised, whose dispositions
+                                     are yours to add. --host names the host the readers ran on.
+            round verdict <id> --from <file>
+                                     Write verify.md from the adjudicator's answer, byte for byte.
+                                     Refuses an answer that is not a verify document.
             suggestions [<id>]       List the open non-blocking findings and what the builds
                                      noticed, for one cycle or all, each concern once. --all lists
                                      every status -- accepted, declined, answered, withdrawn --

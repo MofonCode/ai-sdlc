@@ -45,6 +45,14 @@
                       WithCulture="false" />
   </ItemGroup>
 
+  <!-- The readers' prompts (D-117): one template per kind of reader, so the words a reader is given are
+       the same on every round and in every session rather than composed from a skill's prose. -->
+  <ItemGroup>
+    <EmbeddedResource Include="Findings\Prompts\*.md"
+                      LogicalName="Sdlc.Core.Prompts.%(Filename).md"
+                      WithCulture="false" />
+  </ItemGroup>
+
   <ItemGroup>
     <EmbeddedResource Include="Constraints\Profiles\*.md"
                       LogicalName="Sdlc.Core.Profiles.%(Filename).md"

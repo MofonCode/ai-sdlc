@@ -33,7 +33,8 @@ an agent runs it, and it never decides a gate. `skills.md` lists the skills.
 | `sdlc stack` | binary | what the solution is built from, what this release ships that it never mentions, and the build settings not yet on disk |
 | `sdlc scaffold <id>` | binary | the skeleton on a new solution's first cycle; otherwise the build settings the plan declares |
 | `/sdlc:build <id>` | agent | implements, builds, tests, records the evidence |
-| `sdlc evidence <id>` | binary | records the diff, the base commit and the test summary; with `--coverage`, the changed lines' and the whole codebase's coverage against the baseline |
+| `sdlc evidence <id>` | binary | records the diff, the base commit and the test summary; with `--coverage`, the changed lines' and the whole codebase's coverage against the baseline | and the platform the tests ran on
+| `sdlc evidence check <id>` | binary | lists what `verify.md` cites that none of the recorded evidence holds, and tests it says passed that did not. Reports only, always exits 0. `/sdlc:verify` runs it |
 | `/sdlc:verify <id>` | agent, fresh process | adjudicates from the evidence alone, writes `verify.md` |
 | `/sdlc:remediate <id>` | agent | only on `blocked`; runs while each pass reduces what is open |
 | `sdlc pr-ready <id>` | binary | whether it may open a pull request. Exits 1 if not |
@@ -48,6 +49,9 @@ an agent runs it, and it never decides a gate. `skills.md` lists the skills.
 | `sdlc propose convergence` | binary | what the record says the rules, decisions and stack are missing, in one ranked report — with each cycle's rounds, reopens and every verdict — ending with the proposal file to mark. `/sdlc:propose convergence` runs it |
 | `sdlc draft convergence <file>` | binary | drafts of `constraints.md`, `decisions.md` and `techstack.md` from the proposals marked `[x]`: copies with only those lines applied, refused if anything would go missing |
 | `sdlc round <id> <artifact> --from <file>` | binary | appends the next round to the artifact's findings ledger, stamped, hashed and chained to the round before, with its suggestions in the cycle's suggestions ledger, and refuses it while anything above is unsettled, a known finding comes back in other words, a new blocker has no one-line gist, or a suggestion does not fit the cycle's. `/sdlc:interrogate` runs it; `--changed` lists the sections moved since the last round |
+| `sdlc round prompt <id> <artifact> --dir <directory>` | binary | writes every reader's prompt for one round, the block they share first and each reader's own part last; `--reader` writes one, `--list` names them. `/sdlc:interrogate` and `/sdlc:verify` run it |
+| `sdlc round collect <id> <artifact> --dir <directory>` | binary | reads every reader's answer and drafts the round file: new ids numbered, restatements carried, each reader's usage beside them; lists the open findings no reader raised, for you to dispose of. `/sdlc:interrogate` runs it |
+| `sdlc round verdict <id> --from <file>` | binary | writes `verify.md` from the adjudicator's answer, byte for byte, and refuses one that is not a verify document. `/sdlc:verify` runs it |
 | `sdlc constraints --for plan --brief` | binary | the rules one stage is judged against |
 | `sdlc cycles` | binary | every cycle, newest first |
 | `sdlc branch <id> <kind>` | binary | the git command that puts you on the cycle's `plan`, `build`, `build-unattended` or `forward` branch. The skills run it for you. `plan --worktree` opens the cycle in a folder of its own beside the repository, so several are planned at once. `plan` refuses a local plan branch left over from earlier planning |

@@ -386,6 +386,12 @@ public sealed class EvidenceTests
 
         Assert.IsNotNull(report.Summary);
         Assert.AreEqual(1, report.Summary.Passed);
+
+        // Where the run happened, so "it ran on Linux" is in the evidence rather than argued (D-120) -- and
+        // nothing naming the machine or who ran it.
+        string written = await File.ReadAllTextAsync(Path.Combine(workspace.Cycle.EvidenceDirectory, RecordEvidence.SummaryFileName));
+        StringAssert.Contains(written, "\"platform\": ");
+        Assert.IsFalse(written.Contains(Environment.MachineName, StringComparison.OrdinalIgnoreCase), "The summary names the machine.");
     }
 
     [TestMethod]

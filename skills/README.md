@@ -485,7 +485,7 @@ round. Never edits.
 |---|---|
 | Stage | the loop, whenever an artifact — intent, spec, plan or verify document — has just been written or changed |
 | Started by | the stage skill's loop, or a person |
-| Reads | the constraints in force, the artifact, and the artifact above it — on a plan round `techstack.md` as well, and on a verify round the spec and the evidence; `sdlc perspectives` and each perspective's `sdlc perspective show` for its readers |
+| Reads | the constraints in force, the artifact, and the artifact above it — on a plan round `techstack.md` as well, and on a verify round the spec and the evidence — each reader's prompt written by `sdlc round prompt`, every answer read back by `sdlc round collect` |
 | Writes | the next round of `.sdlc/cycles/<id>/findings/<artifact>.json`, the artifact's findings ledger, through `sdlc round` |
 
 #### Syntax
@@ -557,9 +557,14 @@ what the document is judged against, the second is what the new process exists t
 a rule entirely about conformance to the stack file, so a reader without `techstack.md` could only ever
 object to a departure the plan had already admitted to (D-58).
 
-It runs `sdlc constraints --for <artifact>`, starts a fresh non-interactive process of the host, hands it
-the judging prompt, writes what comes back as the next round, then shows `sdlc status <id> --stage
-<artifact>` verbatim with at most two lines of its own.
+**The binary assembles and collects; the readers judge** (D-117). `sdlc round prompt` writes every
+reader's prompt — the block they share first, the same bytes for each, and each reader's own part last —
+and the skill starts one fresh non-interactive process per prompt with no tools, no MCP servers and no
+session file (D-118). `sdlc round collect` reads the answers, applies the reconciler, numbers new ids and
+drafts the round, with each reader's usage beside it; the skill adds the dispositions of what no reader
+raised again, records with `sdlc round`, and shows `sdlc status <id> --stage <artifact>` verbatim with at
+most two lines of its own. A rule marked `Judged: per criterion` or `per outcome` is answered with a row
+per item, and an answer missing one is sent back (D-119).
 
 #### See also
 
@@ -940,7 +945,7 @@ see the build. Never edits code.
 |---|---|
 | Stage | build and verify, after the build has recorded its evidence |
 | Started by | a person, or `batch-build` |
-| Reads | `spec.md`, `plan.md` and the evidence — `tests.json`, `diff.patch`, `base.sha`, the runner's output and `build.log` |
+| Reads | `spec.md`, `plan.md` and the evidence — `tests.json`, `diff.patch`, `base.sha` and `build.log` where there is one, all in the adjudicator's prompt |
 | Writes | `.sdlc/cycles/<id>/verify.md` |
 
 #### Syntax
@@ -989,9 +994,12 @@ met: reading the implementation and concluding it looks correct is the most temp
 with no evidence behind it.
 
 **The session that runs it does not adjudicate** (D-01). It is often the session that built the change,
-so it assembles the method, the constraints, the spec, the plan, the perspectives' questions and the
-evidence, starts a fresh process with `SDLC_READER=1` to write the verdict criterion by criterion, and
-records what that returns byte for byte. It interrogates the verify document like any other artifact, and
+so it has `sdlc round prompt` write the adjudicator's prompt — the plan, the spec, the evidence, the
+constraints, the perspectives' questions and the method — starts a fresh process with no tools and
+`SDLC_READER=1` to write the verdict criterion by criterion, and records what that returns byte for byte
+with `sdlc round verdict`, which refuses an answer that is not a verify document. Before the round,
+`sdlc evidence check` reports what the verdict cites that the evidence does not hold, and refuses nothing
+(D-120). It interrogates the verify document like any other artifact, and
 a blocking finding is answered by a new adjudication given the findings, never by `refine` or an edit in
 the session. Then it shows `sdlc status <id>` and `sdlc pr-ready <id>` verbatim with at most two lines of
 its own.

@@ -92,6 +92,9 @@ public static class SdlcServices
         services.AddReadFindingsRequestHandler();
         services.AddRecordRoundRequestHandler();
         services.AddChangedSectionsRequestHandler();
+        services.AddReaderPromptsRequestHandler();
+        services.AddCollectRoundRequestHandler();
+        services.AddWriteVerdictRequestHandler();
 
         services.AddListCyclesRequestHandler();
 
@@ -176,6 +179,7 @@ public static class SdlcServices
         services.AddPullRequestHandler();
 
         services.AddRecordEvidenceRequestHandler();
+        services.AddCheckEvidenceRequestHandler();
 
         // Reports on the install rather than on a cycle, and dispatches like the rest so it reads the
         // constraints the way a stage skill does rather than off the disk.

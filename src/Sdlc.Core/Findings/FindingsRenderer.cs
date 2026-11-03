@@ -287,4 +287,118 @@ public static class FindingsRenderer
 
         return text.ToString();
     }
+
+    /// <summary>
+    /// What <c>sdlc round collect</c> prints: what the draft carries, and what is left for the session.
+    /// </summary>
+    /// <remarks>
+    /// The findings no reader raised again are the session's to dispose of (D-49), so they come last and
+    /// are the one thing the listing asks anybody to do.
+    /// </remarks>
+    /// <param name="response">The draft.</param>
+    /// <returns>The listing.</returns>
+    public static string RenderCollected(CollectRound.Response response)
+    {
+        ArgumentNullException.ThrowIfNull(response);
+
+        StringBuilder text = new();
+        int blocking = response.Raised.Count(finding => finding.Severity == Severity.Blocking && finding.Disposition == Disposition.Open);
+
+        text.AppendLine(string.Create(
+            CultureInfo.InvariantCulture,
+            $"Drafted {response.Path}: {response.Raised.Count} finding{(response.Raised.Count == 1 ? string.Empty : "s")}, {blocking} blocking; {response.Conflicts.Count} conflict{(response.Conflicts.Count == 1 ? string.Empty : "s")}."));
+
+        foreach (Finding finding in response.Raised)
+        {
+            text.AppendLine(string.Create(
+                CultureInfo.InvariantCulture,
+                $"  {finding.Id,-28} {(finding.Severity == Severity.Blocking ? "blocking" : "suggestion"),-10} {Shorten(finding.Headline)}"));
+        }
+
+        foreach ((string reader, string standing) in response.Restated)
+        {
+            text.AppendLine(string.Create(CultureInfo.InvariantCulture, $"  {reader} restates {standing}, carried under that id."));
+        }
+
+        foreach (string id in response.Demoted)
+        {
+            text.AppendLine(string.Create(CultureInfo.InvariantCulture, $"  {id} was raised as blocking on a rule its perspective does not list, so it is a suggestion."));
+        }
+
+        if (response.NotRaised.Count > 0)
+        {
+            text.AppendLine();
+            text.AppendLine("No reader raised these again. Add each to the draft as answered or withdrawn, as the refiner's report says,");
+            text.AppendLine("or leave it out and it stays open (D-49):");
+
+            foreach (Finding finding in response.NotRaised)
+            {
+                text.AppendLine(string.Create(CultureInfo.InvariantCulture, $"  {finding.Id,-28} {Shorten(finding.Headline)}"));
+            }
+        }
+
+        text.AppendLine();
+        text.AppendLine(string.Create(
+            CultureInfo.InvariantCulture,
+            $"Then: sdlc round {response.Cycle.Id} {Cycle.NameOf(response.Artifact)} --from {response.Path}"));
+
+        return text.ToString();
+    }
+
+    /// <summary>What <c>sdlc round verdict</c> prints.</summary>
+    /// <param name="response">The verdict written.</param>
+    /// <returns>One line.</returns>
+    public static string RenderVerdict(WriteVerdict.Response response)
+    {
+        ArgumentNullException.ThrowIfNull(response);
+
+        return string.Create(CultureInfo.InvariantCulture, $"Wrote {response.Path}, outcome {response.Outcome}, as the adjudicator returned it.{Environment.NewLine}");
+    }
+
+    private static string Shorten(string text) => text.Length <= 100 ? text : text[..97] + "...";
+
+    /// <summary>
+    /// What <c>sdlc round prompt</c> prints: the readers a round needs, and each prompt written.
+    /// </summary>
+    /// <remarks>
+    /// Each answer's path beside its prompt, because that is the one convention the launch line and
+    /// <c>round collect</c> share (D-117). Nothing about how to start a reader: that is a host's spelling,
+    /// and it lives in the skills (D-118).
+    /// </remarks>
+    /// <param name="response">What was written.</param>
+    /// <returns>The listing.</returns>
+    public static string RenderPrompts(ReaderPrompts.Response response)
+    {
+        ArgumentNullException.ThrowIfNull(response);
+
+        StringBuilder text = new();
+        text.AppendLine(string.Create(
+            CultureInfo.InvariantCulture,
+            $"A {Cycle.NameOf(response.Artifact)} round of {response.Cycle.Id} runs {response.Readers.Count} reader{(response.Readers.Count == 1 ? string.Empty : "s")} blind, then {ReaderAnswers.Reconcile}:"));
+
+        foreach (string reader in response.Readers)
+        {
+            text.AppendLine("  " + reader);
+        }
+
+        foreach (string missing in response.Unwritten)
+        {
+            text.AppendLine(string.Create(CultureInfo.InvariantCulture, $"  {missing} -- active, and not written yet, so it has nothing to run. A gap, not a pass."));
+        }
+
+        if (response.Prompts.Count > 0)
+        {
+            text.AppendLine();
+            text.AppendLine("Written:");
+
+            foreach (ReaderPrompts.Written prompt in response.Prompts)
+            {
+                text.AppendLine(string.Create(
+                    CultureInfo.InvariantCulture,
+                    $"  {prompt.Path}  ({prompt.Bytes:N0} bytes) -> answer to {ReaderAnswers.AnswerPath(response.Directory, prompt.Reader)}"));
+            }
+        }
+
+        return text.ToString();
+    }
 }

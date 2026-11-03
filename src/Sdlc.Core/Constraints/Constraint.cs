@@ -1,5 +1,15 @@
 namespace Sdlc.Core.Constraints;
 
+/// <summary>What a rule judged item by item is judged over (D-119).</summary>
+public enum JudgedPer
+{
+    /// <summary>Each of the spec's acceptance criteria.</summary>
+    Criterion,
+
+    /// <summary>Each of the intent's wanted outcomes and must-not-change items.</summary>
+    Outcome,
+}
+
 /// <summary>
 /// One rule an artifact is judged against, with the three clauses that make it arguable rather
 /// than arbitrary.
@@ -13,13 +23,19 @@ namespace Sdlc.Core.Constraints;
 /// The constraint that replaced this one, when what it forbids has changed. A superseded
 /// constraint stays on the page so a finding that cited it remains readable.
 /// </param>
+/// <param name="Judged">
+/// When the rule is decided one item at a time, what the items are; null for a rule judged over the
+/// document whole. A reader answers such a rule with a row per item, so every instance of a repeated
+/// gap surfaces in one round rather than one a round (D-119).
+/// </param>
 public sealed record Constraint(
     ConstraintId Id,
     string Statement,
     string AppliesTo,
     string Forbids,
     string Why,
-    ConstraintId? SupersededBy = null)
+    ConstraintId? SupersededBy = null,
+    JudgedPer? Judged = null)
 {
     /// <summary>
     /// Whether this constraint still binds. A superseded constraint is kept for the record and is

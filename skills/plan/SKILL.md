@@ -381,4 +381,5 @@ explain what happens next:
 > it is denied, and so is every command that would move anything onto it — and that is what makes a
 > recorded approval mean something.
 
-Then stop.
+Then stop. The build, once they approve, runs in a new session — say so in that same message. A session
+carried past its stage rebuilds its whole context after every pause (D-122).

@@ -38,7 +38,7 @@ the cheapest way to discover that what you were about to add already lives somew
 | [`docs/mechanisms/README.md`](docs/mechanisms/README.md) | the mechanisms, one page each: how it works and why, for a person using it rather than doing a task |
 | [`docs/reference/README.md`](docs/reference/README.md) | the reference lists: one line per command, skill and refusal, each held to its source by the suite |
 | [`docs/samples/README.md`](docs/samples/README.md) | the worked examples: one solution, every command, every answer |
-| [`tools/README.md`](tools/README.md) | the two tools that check what the suite cannot, and when to run each |
+| [`tools/README.md`](tools/README.md) | the three tools: two that check what the suite cannot, one that measures what sessions cost, and when to run each |
 | [`src/README.md`](src/README.md) | what `Sdlc.Core` and `Sdlc.Cli` are, how one invocation flows, where a new thing goes |
 
 | Where | What |
@@ -55,6 +55,7 @@ the cheapest way to discover that what you were about to add already lives somew
 | `plugin.json`, `.claude-plugin/`, `hooks/` | the plugin as it installs: the portable manifest, Claude Code's manifest, Claude Code's hooks |
 | `tests/` | the suite |
 | `tools/Sdlc.ScaffoldHarness/` | the harness that writes a scaffolded solution so it can be built |
+| `tools/Sdlc.UsageReport/` | what a host's sessions cost, read from Claude Code's transcripts: the whole-session view the per-cycle usage record leaves out |
 | [`factory/README.md`](factory/README.md) | the factory bundle: what runs unattended. Today only the factory's agent image, built from one commit (D-96) |
 | `.github/workflows/ci.yml` | build and test on every pull request, which deliberately does not govern this repository with itself (D-42) |
 

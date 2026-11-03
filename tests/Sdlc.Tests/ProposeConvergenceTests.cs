@@ -91,6 +91,24 @@ public sealed class ProposeConvergenceTests
         StringAssert.Contains(report, workspace.Cycle.Id + ": intent 1, spec 2;");
     }
 
+    [TestMethod]
+    public async Task What_each_cycle_and_document_cost_is_shown_beside_its_rounds()
+    {
+        // D-121: the rounds say what a cycle took; the usage says what that came to.
+        using var workspace = CycleWorkspace.Create();
+        workspace.WriteAllArtifacts();
+        workspace.WriteCleanRound(ArtifactKind.Intent, round: 1);
+        CycleWorkspace.WriteRaw(Sdlc.Core.Findings.UsageLedger.PathOf(workspace.Cycle), """
+            { "rounds": [ { "artifact": "intent", "round": 1, "recorded_at": "2026-11-03T09:00:00Z", "host": null,
+              "readers": [ { "role": "rules", "model": null, "effort": null, "prompt_bytes": null, "input": 50000, "cache_write": null, "cache_read": null, "output": null, "turns": null, "seconds": null } ] } ] }
+            """);
+
+        string report = await Render(workspace, new FakeRepository());
+
+        StringAssert.Contains(report, "spent 1 round, 50k weighted tokens: rules 50k");
+        StringAssert.Contains(report, "intent 1 round, 50k weighted tokens");
+    }
+
     private static string Verdict(string outcome, params string[] criteria) =>
         "---\nframework_version: 1.0.0\ncycle: c\noutcome: " + outcome + "\n---\n\n# A verify\n\n## Criteria\n\n"
         + string.Join("\n", criteria) + "\n";

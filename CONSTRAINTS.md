@@ -39,6 +39,12 @@ the suite fails on it:
 | `Forbids` | what becomes illegal, named concretely enough that an example could be written |
 | `Why` | what goes wrong if the rule is absent — the cost it avoids, never a restatement of the rule |
 
+**One optional field, `Judged`**, after `Why`: `per criterion` — each of the spec's acceptance
+criteria — or `per outcome` — each of the intent's wanted outcomes and must-not-change items. A rule
+marked so is answered with a row per item, met or not, so every instance of a repeated gap surfaces in
+one round. Leave it out for a rule judged over the document whole. A solution's own `constraints.md`
+may use it too.
+
 **What belongs here.** A constraint is a rule about an **artifact** that needs reading comprehension
 to apply. Three tests, all of which must pass:
 
@@ -90,6 +96,8 @@ correctly", "is secure" — or one naming an outcome with no way to observe it.
 passes it, and nobody ever learns whether it was met. A word-list check catches the common
 phrasings and belongs in a hook; this covers the general case, which no word list reaches.
 
+**Judged:** per criterion.
+
 ## CON_04 — A spec covers every outcome its intent asks for
 
 **Superseded-by:** CON_16
@@ -125,6 +133,8 @@ so they are separate constraints rather than one rule about correspondence.
 whether "add a unit test" proves "returns within 200ms over 50,000 rows". An inadequate proof is
 worse than none, because it produces a green verification instead of an obvious gap.
 
+**Judged:** per criterion.
+
 ## CON_07.2 — A change does only what its plan declared, including inside files the plan named
 
 **Applies to:** a diff, at verification.
@@ -146,6 +156,8 @@ hunk — or one citing evidence that does not establish what the statement claim
 
 **Why:** verify is the only artifact whose entire value is being derived. A claim reaching beyond
 its evidence turns an auditor into an author, and nothing downstream can tell which one wrote it.
+
+**Judged:** per criterion.
 
 ## CON_09 — No artifact restates another's content as its own authority
 
@@ -271,6 +283,8 @@ showing a number between 1 and 6" into "displays a face value that is an integer
 same sentence with the thing the person asked to look at taken out of it. Nothing objected, and the
 solution shipped a numeral in a bare paragraph tag. Naming the remainder in `Out of scope` is the
 exit, and it is what stops this deadlocking a spec whose outcome has a part no test can reach.
+
+**Judged:** per outcome.
 
 ## CON_17 — A spec says what somebody is told when the action fails
 

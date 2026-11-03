@@ -67,7 +67,7 @@ try
         "init" => await Workspace.Run(line, w => Init(w, line)).ConfigureAwait(false),
         "new" => await Workspace.Run(line, NewCycle).ConfigureAwait(false),
         "scaffold" => await WithCycle(line, "scaffold", ScaffoldSolution).ConfigureAwait(false),
-        "evidence" => await WithCycle(line, "evidence", (w, id) => Evidence(w, line, id)).ConfigureAwait(false),
+        "evidence" => await EvidenceVerb(line).ConfigureAwait(false),
         "cycles" => await Workspace.Run(line, w => Cycles(w, line)).ConfigureAwait(false),
         "constraints" => await Workspace.Run(line, w => Constraints(w, line)).ConfigureAwait(false),
         "gate" => await WithCycle(line, "gate", Gate).ConfigureAwait(false),
@@ -85,7 +85,7 @@ try
         "propose" => await Propose(line).ConfigureAwait(false),
         "status" => await WithCycle(line, "status", (w, id) => Status(w, line, id)).ConfigureAwait(false),
         "findings" => await WithCycle(line, "findings", (w, id) => Findings(w, line, id)).ConfigureAwait(false),
-        "round" => await WithCycle(line, "round", (w, id) => Round(w, line, id)).ConfigureAwait(false),
+        "round" => await RoundVerb(line).ConfigureAwait(false),
         "suggestions" => await Workspace.Run(line, w => Suggestions(w, line)).ConfigureAwait(false),
         "decisions" => await Workspace.Run(line, w => Decisions(w, line)).ConfigureAwait(false),
         "theme" => await Workspace.Run(line, ThemeCommand).ConfigureAwait(false),
@@ -455,6 +455,35 @@ static async Task<int> Cycles(Workspace workspace, CommandLine line)
 
 // What a build leaves behind, as files rather than prose. Verify reads only this, because a verdict
 // derived from a session's recollection is a verdict nobody can check.
+// 'evidence' records; 'evidence check' reads a verify against what was recorded (D-120). The sub-verb is
+// read before the cycle id, because no cycle id is the word 'check'.
+static async Task<int> EvidenceVerb(CommandLine line)
+{
+    if (line.Arguments.Count > 0 && string.Equals(line.Arguments[0], "check", StringComparison.OrdinalIgnoreCase))
+    {
+        CommandLine rest = line.WithoutFirstArgument();
+        return await WithCycle(rest, "evidence check", (w, id) => EvidenceCheck(w, id)).ConfigureAwait(false);
+    }
+
+    return await WithCycle(line, "evidence", (w, id) => Evidence(w, line, id)).ConfigureAwait(false);
+}
+
+// Zero whatever it finds: it reports, and a non-zero exit would make a report read as a refusal (D-120).
+static async Task<int> EvidenceCheck(Workspace workspace, CycleId id)
+{
+    Result<CheckEvidence.Response> result = await workspace
+        .Send<CheckEvidence.Query, CheckEvidence.Response>(new CheckEvidence.Query(id))
+        .ConfigureAwait(false);
+
+    if (result.IsFailed)
+    {
+        return await Report(result, ExitCode.Refused).ConfigureAwait(false);
+    }
+
+    await Console.Out.WriteAsync(CheckEvidence.Render(result.Value)).ConfigureAwait(false);
+    return ExitCode.Ok;
+}
+
 static async Task<int> Evidence(Workspace workspace, CommandLine line, CycleId id)
 {
     line.TryOption("tests", out string? trx);
@@ -1291,6 +1320,124 @@ static async Task<int> Findings(Workspace workspace, CommandLine line, CycleId i
         .WriteAsync(FindingsRenderer.Render(result.Value, line.HasOption("brief")))
         .ConfigureAwait(false);
 
+    return ExitCode.Ok;
+}
+
+// 'round' records a round; 'round prompt' writes its readers' prompts (D-117). The sub-verb is read
+// before the cycle id, because no cycle id is the word 'prompt'.
+static async Task<int> RoundVerb(CommandLine line)
+{
+    if (line.Arguments.Count > 0 && string.Equals(line.Arguments[0], "prompt", StringComparison.OrdinalIgnoreCase))
+    {
+        CommandLine rest = line.WithoutFirstArgument();
+        return await WithCycle(rest, "round prompt", (w, id) => RoundPrompt(w, rest, id)).ConfigureAwait(false);
+    }
+
+    if (line.Arguments.Count > 0 && string.Equals(line.Arguments[0], "collect", StringComparison.OrdinalIgnoreCase))
+    {
+        CommandLine rest = line.WithoutFirstArgument();
+        return await WithCycle(rest, "round collect", (w, id) => RoundCollect(w, rest, id)).ConfigureAwait(false);
+    }
+
+    if (line.Arguments.Count > 0 && string.Equals(line.Arguments[0], "verdict", StringComparison.OrdinalIgnoreCase))
+    {
+        CommandLine rest = line.WithoutFirstArgument();
+        return await WithCycle(rest, "round verdict", (w, id) => RoundVerdict(w, rest, id)).ConfigureAwait(false);
+    }
+
+    return await WithCycle(line, "round", (w, id) => Round(w, line, id)).ConfigureAwait(false);
+}
+
+static async Task<int> RoundPrompt(Workspace workspace, CommandLine line, CycleId id)
+{
+    if (line.Arguments.Count < 2 || !Cycle.TryParseKind(line.Arguments[1], out ArtifactKind artifact))
+    {
+        await Console.Error.WriteLineAsync(
+            "Which artifact? 'sdlc round prompt <id> <intent|spec|plan|verify> --dir <directory>' writes every reader's prompt for a round; --reader <name> writes one, --list names them.")
+            .ConfigureAwait(false);
+
+        return ExitCode.Usage;
+    }
+
+    bool list = line.HasOption("list");
+
+    if (!line.TryOption("dir", out string? directory) && !list)
+    {
+        await Console.Error.WriteLineAsync(
+            "Where should the prompts go? Give --dir <directory>: one outside the repository, kept for this round's answers.")
+            .ConfigureAwait(false);
+
+        return ExitCode.Usage;
+    }
+
+    line.TryOption("reader", out string? reader);
+
+    Result<ReaderPrompts.Response> result = await workspace
+        .Send<ReaderPrompts.Command, ReaderPrompts.Response>(new ReaderPrompts.Command(
+            id,
+            artifact,
+            directory is null ? string.Empty : Path.GetFullPath(directory),
+            reader,
+            list))
+        .ConfigureAwait(false);
+
+    if (result.IsFailed)
+    {
+        return await Report(result, ExitCode.Refused).ConfigureAwait(false);
+    }
+
+    await Console.Out.WriteAsync(FindingsRenderer.RenderPrompts(result.Value)).ConfigureAwait(false);
+    return ExitCode.Ok;
+}
+
+static async Task<int> RoundCollect(Workspace workspace, CommandLine line, CycleId id)
+{
+    if (line.Arguments.Count < 2 || !Cycle.TryParseKind(line.Arguments[1], out ArtifactKind artifact)
+        || !line.TryOption("dir", out string? directory))
+    {
+        await Console.Error.WriteLineAsync(
+            "Which round? 'sdlc round collect <id> <intent|spec|plan|verify> --dir <directory>' reads every reader's answer where 'sdlc round prompt' put the prompts. --host names the host the readers ran on.")
+            .ConfigureAwait(false);
+
+        return ExitCode.Usage;
+    }
+
+    line.TryOption("host", out string? host);
+
+    Result<CollectRound.Response> result = await workspace
+        .Send<CollectRound.Command, CollectRound.Response>(new CollectRound.Command(id, artifact, Path.GetFullPath(directory), host))
+        .ConfigureAwait(false);
+
+    if (result.IsFailed)
+    {
+        return await Report(result, ExitCode.Refused).ConfigureAwait(false);
+    }
+
+    await Console.Out.WriteAsync(FindingsRenderer.RenderCollected(result.Value)).ConfigureAwait(false);
+    return ExitCode.Ok;
+}
+
+static async Task<int> RoundVerdict(Workspace workspace, CommandLine line, CycleId id)
+{
+    if (!line.TryOption("from", out string? from))
+    {
+        await Console.Error.WriteLineAsync(
+            "Where is the verdict? 'sdlc round verdict <id> --from <file>': the adjudicator's answer, as its process wrote it.")
+            .ConfigureAwait(false);
+
+        return ExitCode.Usage;
+    }
+
+    Result<WriteVerdict.Response> result = await workspace
+        .Send<WriteVerdict.Command, WriteVerdict.Response>(new WriteVerdict.Command(id, Path.GetFullPath(from)))
+        .ConfigureAwait(false);
+
+    if (result.IsFailed)
+    {
+        return await Report(result, ExitCode.Refused).ConfigureAwait(false);
+    }
+
+    await Console.Out.WriteAsync(FindingsRenderer.RenderVerdict(result.Value)).ConfigureAwait(false);
     return ExitCode.Ok;
 }
 
