@@ -16,6 +16,36 @@ namespace Sdlc.Tests;
 public sealed class StatusRendererTests
 {
     [TestMethod]
+    public async Task A_document_whose_rounds_recorded_usage_shows_what_its_readers_cost_and_one_without_shows_nothing()
+    {
+        // D-121: the number in front of the person deciding whether to run another round, never a warning.
+        using var workspace = CycleWorkspace.Create();
+        workspace.WriteArtifact(ArtifactKind.Intent);
+        workspace.WriteArtifact(ArtifactKind.Spec);
+        workspace.WriteCleanRound(ArtifactKind.Intent);
+
+        string before = await RenderBrief(workspace, ArtifactKind.Intent);
+        Assert.IsFalse(before.Contains("Spent", StringComparison.Ordinal), "Nothing recorded, nothing shown.");
+
+        CycleWorkspace.WriteRaw(Sdlc.Core.Findings.UsageLedger.PathOf(workspace.Cycle), """
+            { "rounds": [ { "artifact": "intent", "round": 1, "recorded_at": "2026-11-03T09:00:00Z", "host": "claude",
+              "readers": [
+                { "role": "rules", "model": "m", "effort": null, "prompt_bytes": 1, "input": 1000, "cache_write": 800000, "cache_read": 0, "output": 0, "turns": 1, "seconds": 1 },
+                { "role": "security", "model": "m", "effort": null, "prompt_bytes": 1, "input": 0, "cache_write": 0, "cache_read": 1000000, "output": 20000, "turns": 1, "seconds": 1 },
+                { "role": "reconcile", "model": null, "effort": null, "prompt_bytes": null, "input": null, "cache_write": null, "cache_read": null, "output": null, "turns": null, "seconds": null } ] } ] }
+            """);
+
+        string after = await RenderBrief(workspace, ArtifactKind.Intent);
+        StringAssert.Contains(after, "1 round, 1.2M weighted tokens: rules 1.0M, perspectives 200k (1 reader reported");
+
+        string full = await Render(workspace, ArtifactKind.Intent);
+        StringAssert.Contains(full, "Spent");
+
+        string spec = await RenderBrief(workspace, ArtifactKind.Spec);
+        Assert.IsFalse(spec.Contains("Spent", StringComparison.Ordinal), "Another document's rounds are not this one's.");
+    }
+
+    [TestMethod]
     public async Task The_panel_names_the_stage_the_cycle_and_the_round()
     {
         using var workspace = CycleWorkspace.Create();

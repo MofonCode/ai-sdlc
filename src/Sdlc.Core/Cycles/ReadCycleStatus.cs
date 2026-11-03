@@ -142,6 +142,7 @@ public static class ReadCycleStatus
     /// <c>sdlc status</c> asks it for a passed cycle, so the panel does not say a pull request is next
     /// while pr-ready would refuse one.
     /// </param>
+    /// <param name="Usage">What the cycle's recorded rounds cost its readers, when any recorded it (D-121).</param>
     public sealed record Response(
         Cycle Cycle,
         IReadOnlyList<ArtifactState> Artifacts,
@@ -149,7 +150,8 @@ public static class ReadCycleStatus
         ArtifactState? Verify = null,
         string? Outcome = null,
         bool Built = false,
-        Sdlc.Core.Chain.VerifyChain.Response? Chain = null)
+        Sdlc.Core.Chain.VerifyChain.Response? Chain = null,
+        Findings.UsageLedger? Usage = null)
     {
         /// <summary>The artifact the cycle is waiting on, or null when all three are clear.</summary>
         public ArtifactState? Blocking => Artifacts.FirstOrDefault(artifact => !artifact.IsClear);
@@ -287,7 +289,8 @@ public static class ReadCycleStatus
                 verify.Value.Exists
                     ? await Outcome(cycle, cancellationToken).ConfigureAwait(false)
                     : null,
-                File.Exists(Path.Combine(cycle.EvidenceDirectory, Evidence.RecordEvidence.SummaryFileName))));
+                File.Exists(Path.Combine(cycle.EvidenceDirectory, Evidence.RecordEvidence.SummaryFileName)),
+                Usage: (await Findings.UsageLedger.Read(cycle, cancellationToken).ConfigureAwait(false)).ValueOrDefault));
         }
 
         /// <summary>

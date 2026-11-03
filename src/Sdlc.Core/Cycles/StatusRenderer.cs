@@ -92,9 +92,24 @@ public static class StatusRenderer
             Field(output, "Loop", loop);
         }
 
+        Spent(output, status, state);
+
         Next(output, status, state, host);
 
         return output.ToString();
+    }
+
+    /// <summary>What this document's readers have cost so far, and nothing when nothing was recorded.</summary>
+    /// <remarks>
+    /// A number, not a warning: the rounds are uncapped (D-65), and the person deciding whether to run
+    /// another is the one this is for (D-121).
+    /// </remarks>
+    private static void Spent(StringBuilder output, ReadCycleStatus.Response status, ReadCycleStatus.ArtifactState state)
+    {
+        if (status.Usage?.Summarise(Cycle.NameOf(state.Kind)) is { } spent)
+        {
+            Field(output, "Spent", spent.Describe());
+        }
     }
 
     /// <summary>The round state, as the full panel's right-hand column says it.</summary>
@@ -154,6 +169,7 @@ public static class StatusRenderer
 
         Checks(output, state);
         Loop(output, state);
+        Spent(output, status, state);
         Conflicts(output, state);
         output.AppendLine();
 

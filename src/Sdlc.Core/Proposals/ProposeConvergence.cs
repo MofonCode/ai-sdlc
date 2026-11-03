@@ -68,11 +68,13 @@ public static class ProposeConvergence
     /// <param name="Rounds">How many rounds each document took.</param>
     /// <param name="Reopens">Every reopen, oldest first.</param>
     /// <param name="Verdicts">Every verdict its verify reached, oldest first.</param>
+    /// <param name="Usage">What its readers cost, when its rounds recorded it (D-121).</param>
     public sealed record CycleRecord(
         CycleId Cycle,
         IReadOnlyDictionary<ArtifactKind, int> Rounds,
         IReadOnlyList<Reopen> Reopens,
-        IReadOnlyList<Verdict> Verdicts);
+        IReadOnlyList<Verdict> Verdicts,
+        UsageLedger? Usage = null);
 
     /// <summary>The report.</summary>
     /// <param name="Rules">What the findings say about the rules.</param>
@@ -236,6 +238,20 @@ public static class ProposeConvergence
                 CultureInfo.InvariantCulture,
                 $"  {cycle.Cycle}: {(cycle.Rounds.Count == 0 ? "no rounds" : string.Join(", ", cycle.Rounds.OrderBy(entry => entry.Key).Select(entry => string.Create(CultureInfo.InvariantCulture, $"{Cycle.NameOf(entry.Key)} {entry.Value}"))))}; {cycle.Reopens.Count} reopen{(cycle.Reopens.Count == 1 ? string.Empty : "s")}, {cycle.Verdicts.Count} verdict{(cycle.Verdicts.Count == 1 ? string.Empty : "s")}"));
 
+            // What it cost beside what it took, per cycle and per document (D-121).
+            if (cycle.Usage?.Summarise(null) is { } spent)
+            {
+                text.AppendLine("    spent " + spent.Describe());
+
+                foreach (ArtifactKind kind in cycle.Rounds.Keys.Order())
+                {
+                    if (cycle.Usage.Summarise(Cycle.NameOf(kind)) is { } document)
+                    {
+                        text.AppendLine("      " + Cycle.NameOf(kind) + " " + document.Describe());
+                    }
+                }
+            }
+
             foreach (Reopen reopen in cycle.Reopens)
             {
                 text.AppendLine(string.Create(
@@ -362,7 +378,12 @@ public static class ProposeConvergence
                     .Select(entry => new Reopen(entry.At, entry.By, entry.Reason)));
             }
 
-            return new CycleRecord(cycle.Id, rounds, reopens, Verdicts(cycle));
+            return new CycleRecord(
+                cycle.Id,
+                rounds,
+                reopens,
+                Verdicts(cycle),
+                (await UsageLedger.Read(cycle, cancellationToken).ConfigureAwait(false)).ValueOrDefault);
         }
 
         /// <summary>

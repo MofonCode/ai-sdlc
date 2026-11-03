@@ -101,6 +101,7 @@ public sealed class PublicSurfaceTests
         "Sdlc.Core.Findings.WriteVerdict+Response",
         "Sdlc.Core.Findings.UsageLedger",
         "Sdlc.Core.Findings.UsageRound",
+        "Sdlc.Core.Findings.UsageSummary",
         "Sdlc.Core.Findings.ChangedSections",
         "Sdlc.Core.Findings.ChangedSections+Query",
         "Sdlc.Core.Findings.ChangedSections+Response",

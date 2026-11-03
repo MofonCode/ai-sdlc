@@ -20,6 +20,31 @@ public sealed record UsageRound(
     string? Host,
     IReadOnlyList<ReaderUsage> Readers);
 
+/// <summary>What a document's recorded rounds cost, weighted.</summary>
+/// <param name="Rounds">How many rounds recorded usage.</param>
+/// <param name="Weighted">Weighted tokens across every reader.</param>
+/// <param name="ByRole">Weighted tokens per role: rules, perspectives, reconcile, adjudicate.</param>
+/// <param name="Unreported">Readers whose host reported nothing, so they add nothing here.</param>
+public sealed record UsageSummary(int Rounds, double Weighted, IReadOnlyDictionary<string, double> ByRole, int Unreported)
+{
+    /// <summary>One line: the rounds, the total and the split, in millions or thousands.</summary>
+    /// <returns>The line.</returns>
+    public string Describe()
+    {
+        string split = string.Join(", ", ByRole
+            .OrderByDescending(pair => pair.Value)
+            .Select(pair => pair.Key + " " + Tokens(pair.Value)));
+
+        return string.Create(
+            CultureInfo.InvariantCulture,
+            $"{Rounds} round{(Rounds == 1 ? string.Empty : "s")}, {Tokens(Weighted)} weighted tokens{(split.Length == 0 ? string.Empty : ": " + split)}{(Unreported == 0 ? string.Empty : $" ({Unreported} reader{(Unreported == 1 ? string.Empty : "s")} reported nothing)")}");
+    }
+
+    private static string Tokens(double count) => count >= 1_000_000
+        ? (count / 1_000_000).ToString("0.0", CultureInfo.InvariantCulture) + "M"
+        : (count / 1_000).ToString("0", CultureInfo.InvariantCulture) + "k";
+}
+
 /// <summary>
 /// A cycle's <c>findings/usage.json</c>: what every recorded round's readers cost (D-121).
 /// </summary>
@@ -108,6 +133,54 @@ public sealed record UsageLedger(IReadOnlyList<UsageRound> Rounds)
 
         return Result.Ok();
     }
+
+    /// <summary>
+    /// What one document's rounds cost, weighted on display: input ×1, cache write ×1.25, cache read ×0.1,
+    /// output ×5 — the scale the review that found where the tokens went used.
+    /// </summary>
+    /// <remarks>
+    /// Worked out here rather than stored, so a change of weights changes no file (D-121). A number the host
+    /// did not report adds nothing, and the summary says how many readers reported none.
+    /// </remarks>
+    /// <param name="artifact">The document, by name, or null for the whole cycle.</param>
+    /// <returns>The summary, or null when nothing was recorded for it.</returns>
+    public UsageSummary? Summarise(string? artifact)
+    {
+        List<UsageRound> rounds = [.. Rounds.Where(round => artifact is null || string.Equals(round.Artifact, artifact, StringComparison.Ordinal))];
+
+        if (rounds.Count == 0)
+        {
+            return null;
+        }
+
+        Dictionary<string, double> byRole = new(StringComparer.Ordinal);
+        int unreported = 0;
+
+        foreach (ReaderUsage reader in rounds.SelectMany(round => round.Readers))
+        {
+            if (reader.Input is null && reader.CacheWrite is null && reader.CacheRead is null && reader.Output is null)
+            {
+                unreported++;
+                continue;
+            }
+
+            string role = reader.Role switch
+            {
+                ReaderAnswers.Rules or ReaderAnswers.Reconcile or ReaderAnswers.Adjudicate => reader.Role,
+                _ => "perspectives",
+            };
+
+            byRole[role] = byRole.GetValueOrDefault(role) + Weighted(reader);
+        }
+
+        return new UsageSummary(rounds.Count, byRole.Values.Sum(), byRole, unreported);
+    }
+
+    private static double Weighted(ReaderUsage reader) =>
+        (reader.Input ?? 0)
+        + (1.25 * (reader.CacheWrite ?? 0))
+        + (0.1 * (reader.CacheRead ?? 0))
+        + (5.0 * (reader.Output ?? 0));
 
     /// <summary>The usage a round file carries, as <c>sdlc round collect</c> drafted it.</summary>
     /// <param name="json">The round file's text.</param>
