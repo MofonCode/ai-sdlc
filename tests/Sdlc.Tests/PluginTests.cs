@@ -422,11 +422,20 @@ public sealed class PluginTests
     {
         // This is how the rules reach a session: they live in the framework and are never copied into a
         // solution, so a skill that did not run this is working from recollection.
-        foreach (string name in (string[])["intent", "spec", "plan", "interrogate"])
+        foreach (string name in (string[])["intent", "spec", "plan"])
         {
             string text = File.ReadAllText(Path.Combine(Root, "skills", name, "SKILL.md"));
 
             StringAssert.Contains(text, "sdlc constraints", name + " never asks what the rules are.");
+        }
+
+        // A reader is given the rules by the binary, inside the prompt it writes (D-117), so the session
+        // running an interrogation never holds them and cannot leave them out.
+        foreach (string name in (string[])["interrogate", "verify"])
+        {
+            string text = File.ReadAllText(Path.Combine(Root, "skills", name, "SKILL.md"));
+
+            StringAssert.Contains(text, "sdlc round prompt", name + " composes a reader's prompt by hand.");
         }
     }
 

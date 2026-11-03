@@ -136,6 +136,13 @@ internal static class Usage
                                      blocker with no one-line gist, and a suggestion whose id or move
                                      does not fit the cycle's. --changed lists the sections moved
                                      since the last round instead.
+            round prompt <id> <artifact> --dir <directory>
+                                     Write every reader's prompt for a round into a directory
+                                     outside the repository, as <reader>.prompt.md: the block every
+                                     reader shares first, then each reader's own part. --reader
+                                     <name> writes one -- rules, a perspective, reconcile once the
+                                     others have answered, or adjudicate on a verify. --list names
+                                     the readers and writes nothing.
             suggestions [<id>]       List the open non-blocking findings and what the builds
                                      noticed, for one cycle or all, each concern once. --all lists
                                      every status -- accepted, declined, answered, withdrawn --

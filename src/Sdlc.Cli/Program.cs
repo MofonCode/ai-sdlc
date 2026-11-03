@@ -85,7 +85,7 @@ try
         "propose" => await Propose(line).ConfigureAwait(false),
         "status" => await WithCycle(line, "status", (w, id) => Status(w, line, id)).ConfigureAwait(false),
         "findings" => await WithCycle(line, "findings", (w, id) => Findings(w, line, id)).ConfigureAwait(false),
-        "round" => await WithCycle(line, "round", (w, id) => Round(w, line, id)).ConfigureAwait(false),
+        "round" => await RoundVerb(line).ConfigureAwait(false),
         "suggestions" => await Workspace.Run(line, w => Suggestions(w, line)).ConfigureAwait(false),
         "decisions" => await Workspace.Run(line, w => Decisions(w, line)).ConfigureAwait(false),
         "theme" => await Workspace.Run(line, ThemeCommand).ConfigureAwait(false),
@@ -1291,6 +1291,61 @@ static async Task<int> Findings(Workspace workspace, CommandLine line, CycleId i
         .WriteAsync(FindingsRenderer.Render(result.Value, line.HasOption("brief")))
         .ConfigureAwait(false);
 
+    return ExitCode.Ok;
+}
+
+// 'round' records a round; 'round prompt' writes its readers' prompts (D-117). The sub-verb is read
+// before the cycle id, because no cycle id is the word 'prompt'.
+static async Task<int> RoundVerb(CommandLine line)
+{
+    if (line.Arguments.Count > 0 && string.Equals(line.Arguments[0], "prompt", StringComparison.OrdinalIgnoreCase))
+    {
+        CommandLine rest = line.WithoutFirstArgument();
+        return await WithCycle(rest, "round prompt", (w, id) => RoundPrompt(w, rest, id)).ConfigureAwait(false);
+    }
+
+    return await WithCycle(line, "round", (w, id) => Round(w, line, id)).ConfigureAwait(false);
+}
+
+static async Task<int> RoundPrompt(Workspace workspace, CommandLine line, CycleId id)
+{
+    if (line.Arguments.Count < 2 || !Cycle.TryParseKind(line.Arguments[1], out ArtifactKind artifact))
+    {
+        await Console.Error.WriteLineAsync(
+            "Which artifact? 'sdlc round prompt <id> <intent|spec|plan|verify> --dir <directory>' writes every reader's prompt for a round; --reader <name> writes one, --list names them.")
+            .ConfigureAwait(false);
+
+        return ExitCode.Usage;
+    }
+
+    bool list = line.HasOption("list");
+
+    if (!line.TryOption("dir", out string? directory) && !list)
+    {
+        await Console.Error.WriteLineAsync(
+            "Where should the prompts go? Give --dir <directory>: one outside the repository, kept for this round's answers.")
+            .ConfigureAwait(false);
+
+        return ExitCode.Usage;
+    }
+
+    line.TryOption("reader", out string? reader);
+
+    Result<ReaderPrompts.Response> result = await workspace
+        .Send<ReaderPrompts.Command, ReaderPrompts.Response>(new ReaderPrompts.Command(
+            id,
+            artifact,
+            directory is null ? string.Empty : Path.GetFullPath(directory),
+            reader,
+            list))
+        .ConfigureAwait(false);
+
+    if (result.IsFailed)
+    {
+        return await Report(result, ExitCode.Refused).ConfigureAwait(false);
+    }
+
+    await Console.Out.WriteAsync(FindingsRenderer.RenderPrompts(result.Value)).ConfigureAwait(false);
     return ExitCode.Ok;
 }
 

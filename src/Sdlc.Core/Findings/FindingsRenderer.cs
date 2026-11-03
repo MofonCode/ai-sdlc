@@ -287,4 +287,49 @@ public static class FindingsRenderer
 
         return text.ToString();
     }
+
+    /// <summary>
+    /// What <c>sdlc round prompt</c> prints: the readers a round needs, and each prompt written.
+    /// </summary>
+    /// <remarks>
+    /// Each answer's path beside its prompt, because that is the one convention the launch line and
+    /// <c>round collect</c> share (D-117). Nothing about how to start a reader: that is a host's spelling,
+    /// and it lives in the skills (D-118).
+    /// </remarks>
+    /// <param name="response">What was written.</param>
+    /// <returns>The listing.</returns>
+    public static string RenderPrompts(ReaderPrompts.Response response)
+    {
+        ArgumentNullException.ThrowIfNull(response);
+
+        StringBuilder text = new();
+        text.AppendLine(string.Create(
+            CultureInfo.InvariantCulture,
+            $"A {Cycle.NameOf(response.Artifact)} round of {response.Cycle.Id} runs {response.Readers.Count} reader{(response.Readers.Count == 1 ? string.Empty : "s")} blind, then {ReaderAnswers.Reconcile}:"));
+
+        foreach (string reader in response.Readers)
+        {
+            text.AppendLine("  " + reader);
+        }
+
+        foreach (string missing in response.Unwritten)
+        {
+            text.AppendLine(string.Create(CultureInfo.InvariantCulture, $"  {missing} -- active, and not written yet, so it has nothing to run. A gap, not a pass."));
+        }
+
+        if (response.Prompts.Count > 0)
+        {
+            text.AppendLine();
+            text.AppendLine("Written:");
+
+            foreach (ReaderPrompts.Written prompt in response.Prompts)
+            {
+                text.AppendLine(string.Create(
+                    CultureInfo.InvariantCulture,
+                    $"  {prompt.Path}  ({prompt.Bytes:N0} bytes) -> answer to {ReaderAnswers.AnswerPath(response.Directory, prompt.Reader)}"));
+            }
+        }
+
+        return text.ToString();
+    }
 }

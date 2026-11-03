@@ -15,15 +15,18 @@ its own corrections.
 ## The fresh process is the whole mechanism
 
 The reader must not have seen the artifact being made. Run the judgement in a **new process**, not in
-this session and not as a subagent:
+this session and not as a subagent. **The binary writes every reader's prompt** (D-117); you start the
+readers and nothing else:
 
 ```bash
-sdlc constraints --for <artifact> > <scratch>/constraints.txt
-# compose <scratch>/prompt.txt from the judging prompt below, with your Read and Write tools
-SDLC_READER=1 claude -p --output-format text < <scratch>/prompt.txt
+sdlc round prompt <id> <artifact> --dir <scratch>/round
+# one fresh process per <scratch>/round/<reader>.prompt.md, concurrently, each answer to <reader>.json
+SDLC_READER=1 claude -p --output-format text < <scratch>/round/<reader>.prompt.md > <scratch>/round/<reader>.json
 ```
 
-`<scratch>` is any directory outside the repository that your host gives you to write in.
+`<scratch>` is any directory outside the repository that your host gives you to write in. What the
+command prints names every reader the round runs — the rules reader, then one per active perspective — and
+the path each answer goes to.
 
 **Start every fresh process with `SDLC_READER=1`** — this one, each perspective's, the reconciler's. In
 PowerShell that is `$env:SDLC_READER = '1'` before the call. The reader inherits the cycle's branch, and
@@ -32,12 +35,14 @@ the verdict you were waiting for never arrives. The mark stands down only that h
 not write a protected file. **Never switch the hooks off to get a reader through** — that is the
 safeguard the mark exists so nobody has to remove.
 
-**Compose the prompt with your Read and Write tools, not the shell.** The blocks it carries — the
-artifact, its upstream, and on a plan round `.sdlc/techstack.md` — are files you read and paste in, and
-the Read and Write tools carry each one byte for byte with no shell quoting in the way.
-
 **Pipe the prompt in; never pass it as an argument.** A plan with its upstream and stack runs to tens
 of kilobytes, and `claude -p "$(…)"` fails on Windows with `Argument list too long` long before that.
+
+**Never edit a prompt, and never add to it.** Each is what the round is judged from, the same bytes in
+every session, and the material a reader may read is decided by the binary rather than by what this
+session thinks would help: the constraints, the document above, the stack file on a plan, the spec and the
+evidence on a verify (D-58). Nothing about the conversation, the drafts or what the author meant — every
+one of those is the bias you just paid to remove.
 
 Any non-interactive invocation of the host will do; what matters is that the model reading the
 artifact is not the one that wrote it.
@@ -50,173 +55,37 @@ independent verification. It is a second reading by a reader with no stake.
 **A tool call is not a substitute.** A tool runs in its own process, but the model calling it is this
 session — so either the tool judges, which needs its own model and credentials, or this session
 judges, which is the author grading their own homework. A tool call hands data to the reader you
-already have. A new process creates a new reader.
+already have. A new process creates a new reader. `sdlc round prompt` is a tool call of exactly that
+kind: it assembles, and judges nothing.
 
-## The prompt to give the fresh reader
+## The readers
 
-Give it the constraints in force, the artifact, and the artifact above it in the chain — and, **when
-the artifact is a plan, the solution's `techstack.md`**, and **when it is a verify, the spec and the
-evidence** (below). Nothing else — no conversation, no request
-history, no explanation of what the author was trying to do. Every one of those is the bias you just
-paid to remove.
+**The rules reader** judges the document against every rule in force, and answers with findings in JSON,
+each citing one rule by its id and the line its heading states, copied rather than summarised.
 
-**Why the stack file is a fourth input and not a fourth bias.** `CON_15` is a rule entirely about
-conformance to `techstack.md`, and while the reader was not given that file the rule could not be
-decided. A reader could only object to a departure the plan confessed to — so the rule caught the
-honest plan and missed the careless one, which is the inversion of what a rule is for. It is not
-hypothetical: round one of a real plan said in its own findings that it could not tell whether the
-component-test package it was reading about was the declared default, an undeclared addition, or a
-replacement for something the stack named, and declined to raise the point for exactly that reason.
-
-What the fresh process withholds is the **cycle's own history** — the drafts, the interview, the
-earlier findings with their ids and statements (D-49). `techstack.md` is none of those. It is a rule
-source, the same category as the constraint set already being handed over, and it existed before this
-cycle did. Handing it over removes nothing the new process was opened to protect.
-
-**A plan only.** `CON_15` applies to a plan and to nothing else, and an intent or a spec that reached
-for a package would be breaking a different rule. On those rounds the file would be context with no
-rule to serve, which is the definition of what does not belong in this prompt.
-
-**A verify round reads what the verification was allowed to read.** Its document above in the chain is
-the **plan**, which commits to the proof per criterion. Add `spec.md` for the criteria, and the evidence
-the verification cites — `tests.json`, `build.log` where this checkout has one (it is not committed), and
-`diff.patch`, from the cycle's `evidence/` — because
-`CON_08` is decided by checking each claim against the evidence it names, and a reader without the
-evidence can only check that something was named. Nothing beyond that: the verification was not allowed
-the source or the intent, and a reader of it is held to the same. **On a verify round, add to the prompt:**
-"Each Met quotes the assertion it rests on from `diff.patch`. Find each quote in the diff, and ask what
-would let that assertion pass while the criterion is unmet. A Met whose quote is missing, is not in the
-diff, or asserts less than the criterion asks breaks `CON_08`."
-
-**An empty stack is pasted as an empty stack, not left out.** An adopted solution's table starts
-empty, and a reader handed no block cannot tell "this solution declares nothing" from "nobody showed
-me". The first means every choice in the plan is unconstrained by a declared default and `CON_15` has
-nothing to bite on; the second means the reader should not have judged the rule at all. Paste the file
-as it is, and if it is absent say so in the block in those words.
-
-> You are judging one document against a fixed set of rules. You did not write it and you have no
-> stake in it.
->
-> Here are the rules in force. Each has an `Applies to`, a `Forbids` and a `Why`:
->
-> <the output of sdlc constraints --for \<artifact\>>
->
-> Here is what this solution declares it is built from:
->
-> <the contents of .sdlc/techstack.md — this block on a plan round only, and omitted whole for an
-> intent or a spec>
->
-> Here is the document above it in the chain, which it is meant to be derived from:
->
-> <the upstream artifact, or "none -- this is the first artifact" for an intent>
->
-> Here are the criteria it adjudicates, and the evidence it may cite:
->
-> <spec.md, then tests.json, build.log if present, and diff.patch — this block on a verify round only, and omitted
-> whole otherwise>
->
-> Here is the document to judge:
->
-> <the artifact>
->
-> For each rule, decide whether this document breaks it. Report only what you can point at in the
-> document. Do not report style, wording you would have chosen differently, or anything the rules do
-> not forbid.
->
-> For every finding, give: the single rule it cites, by id and revision **and by the one line its
-> heading states** -- copied from the rules above exactly as written, never summarised in your own
-> words; what is wrong, in full; where in the document; and what would fix it.
->
-> For every blocking finding, also give a `gist`: **one plain sentence, on one line, under 240
-> characters, saying what in the document set it off** -- the thing a person would look at, in their
-> words rather than the rule's. "Criterion 4 says the page is fast and never says how fast", not
-> "CON_03 is not satisfied". It is the first thing the person at the gate reads, and the round is
-> refused without it.
->
-> When one defect occurs in more than one place, it is one finding, and its `locus` names every place
-> it occurs -- not the first you met. Before you write a finding, look through the rest of the document
-> for the same defect. A finding that names one instance of a repeated mistake hands the next round the
-> second, and the loop spends a round on each.
->
-> A finding is `blocking` when the rule it cites forbids what the document does. It is a `suggestion`
-> when it would improve the document and no rule forbids the current state. A blocking finding must
-> cite exactly one rule. A suggestion may cite none.
->
-> The document's `## Open` section is not judged. It is where the document records what it
-> deliberately does not assert, and recording something there is a legitimate answer to a rule rather
-> than a breach of it. What *is* judged about it is whether each entry is genuinely unsettleable —
-> see the rule about open items.
->
-> If two rules' remedies exclude each other, report it as a conflict rather than choosing one. A
-> conflict is not an objection to this document: it is the claim that **no** version of this document
-> satisfies both rules, so every edit that answers one breaks the other. Name both rules, the same way
-> a finding names its one. Before you report one, check that neither rule's own exit applies -- a
-> remainder named in `Out of scope`, or an item that genuinely belongs under `## Open` -- because a
-> conflict with an exit available is a finding.
->
-> Answer as JSON only, in this shape:
-> ```json
-> { "findings": [ { "id": "F_01", "severity": "blocking",
->   "cites": { "id": "CON_16", "heading": "A spec covers every outcome its intent asks for, and all of each one" },
->   "gist": "...", "statement": "...", "locus": "...", "remedy": "..." } ],
->   "conflicts": [ { "between": [
->       { "id": "CON_05", "heading": "A spec introduces no scope its intent did not ask for" },
->       { "id": "CON_16", "heading": "A spec covers every outcome its intent asks for, and all of each one" } ],
->     "statement": "why each remedy excludes the other", "locus": "..." } ] }
-> ```
-> An empty `findings` array means the document breaks nothing. Omit `conflicts` when there are none,
-> which is the normal case.
-
-**Why the citation carries the rule's own line.** An id on its own is an index entry. It tells a reader
-that something was breached without telling them what, so the only way to read the finding is to go and
-resolve the id somewhere else -- which nobody does, and which nothing downstream makes them do. The line
-travels with the citation instead, into the status panel, the gate refusal and the approval draft, so a
-person meeting the finding meets the rule with it.
-
-**Copy it, do not write it.** The heading is in the block of rules you were handed, above its
-`Applies to`. A summary of a rule is a second version of that rule, and the round is a historical record
-of what was actually judged -- so the line has to be the one that was read. A citation with no heading is
-rejected when the round is read back.
-
-## Then a reader per perspective
-
-The reader above judges the document against the rules. **A perspective brings a way of looking** —
-security traces trust boundaries, operability asks what a person on call could tell at 3 a.m. — and each
-runs in a fresh process of its own (`CONCEPT.md` §6.5, D-90):
-
-```
-sdlc perspectives <id>
-```
-
-For every perspective it lists as written, open **one more fresh process**, concurrently with the others —
-they share nothing. Hand it exactly this, and nothing else:
-
-```
-sdlc perspective show <name> --for <artifact>
-```
-
-— its method, the questions it asks of this artifact, the rules it may block on and the evidence it
-needs — then the artifact above in the chain and the artifact itself. **After the first round, add the
-output of `sdlc round <id> <artifact> --changed`** and tell it to raise suggestions about those sections
-only: a suggestion about text that has not moved is one an earlier round already had the chance to raise,
-and repeating them is how one plan reached nearly eight hundred open suggestions nobody read. Its
-blocking findings are not limited — a rule broken anywhere is still broken. Ask it for findings in the same JSON
-shape, with ids prefixed by the perspective — `security.F_01` —, a `gist` on every blocking one, and with every place a repeated defect
-occurs named in one finding's `locus`, as the rules reader is told. **Set `"perspective": "<name>"` on
-every one of them when you write the round.** The field is what `sdlc propose constraints` counts a
-perspective's suggestions by across cycles; the prefix is only for reading, and a round naming a perspective
-the binary does not carry is rejected when it is read back. The round's own reader leaves the field out.
+**A reader per perspective** brings a way of looking — security traces trust boundaries, operability asks
+what a person on call could tell at 3 a.m. — each in a fresh process of its own (`CONCEPT.md` §6.5, D-90).
+Its prompt carries its method, its questions for this artifact and the rules it may block on, and after
+the first round the sections changed since, with the instruction to raise suggestions about those alone.
+**Set `"perspective": "<name>"` on every finding it raised when you write the round.** The field is what
+`sdlc propose constraints` counts a perspective's suggestions by across cycles; the prefix is only for
+reading, and a round naming a perspective the binary does not carry is rejected when it is read back. The
+round's own reader leaves the field out.
 
 > **A perspective's finding blocks only when it cites a rule the perspective lists.** Everything else its
 > method finds is a `suggestion`. A suggestion that keeps recurring is what `sdlc propose constraints`
 > turns into a rule; a perspective reader inventing a blocker is the waiver of D-27 run backwards.
 
-Then **one reconciling reader**, in a fresh process of its own. Hand it the artifact, every finding this
-round's readers raised, the findings still open on this artifact, as `sdlc findings <id> --stage
-<artifact>` prints them, and **the cycle's open suggestions from every document**, as `sdlc suggestions
-<id>` prints them — and nothing else. Ask it two things, and nothing about whether any finding is right:
-which of this round's findings **restate one still open**, and which pairs of findings **cannot both be
-answered**. It decides nothing about the document.
+Then **one reconciling reader**, in a fresh process of its own, once every other reader has answered:
+
+```bash
+sdlc round prompt <id> <artifact> --dir <scratch>/round --reader reconcile
+```
+
+Its prompt carries the artifact, every finding this round's readers raised, the findings still open on
+this artifact and **the cycle's open suggestions from every document** — and nothing else. It is asked two
+things, and nothing about whether any finding is right: which of this round's findings **restate one still
+open**, and which pairs of findings **cannot both be answered**. It decides nothing about the document.
 
 **A suggestion is the cycle's, not the document's** (D-115). The plan's reader raising what the intent's
 raised is the same concern found again, so it is carried under the intent's id and recorded against the
