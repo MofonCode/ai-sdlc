@@ -2193,6 +2193,7 @@ they print verbatim.
 | `successors` | every slice waiting on another's code as a file, and where each stands — `waiting`, `ready`, `stuck`, `unresolved` — worked out from the record and never stored (D-125) |
 | `successor check` | refuses a successor that cannot be read, names nothing that exists, or loops through `succeeds:`; the admission check runs it (D-125) |
 | `successor start <slug> <id>` | in a cycle opened for a successor, on its plan branch: refuses unless it is ready, then deletes its file there (D-125) |
+| `slices <slug> <id> <id>...` | the one git command that composes `slices/<slug>/plan` from the siblings' plan branches onto the integration branch, so one pull request admits every plan sliced together. Refuses a sibling with no plan branch, plan or ledger, and a plan needing a file only a sibling creates (D-125) |
 | `operate [--since <hours>h] [--dry-run]` | Operate: production's errors from the declared telemetry store, grouped by signature, scrubbed of personal data, deduplicated against what is filed, and filed as bugs on the platform's tracker (D-89) |
 | `perspective show <name> --for <stage> [--cover]` | one perspective for one stage: its method and the questions a fresh reader asks, or with `--cover` the author's short list (D-90) |
 | `perspectives <id>` | which perspectives a cycle gets and why — always on, named by the intent, or brought by the plan's declared files (D-90) |

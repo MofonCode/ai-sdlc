@@ -2,7 +2,7 @@
 name: pr
 description: Push a cycle's branch and open its pull request into the integration branch. The only stage that touches the remote. Use after a verification passed, with --plan to admit an approved plan before it is built, with --draft for a cycle that did not pass, or with --all to sweep every cycle that is ready.
 compatibility: Requires the sdlc binary on PATH, from the MofonCode.Sdlc.Cli dotnet tool, and a git repository. Every command here is that binary, so without it the first step fails.
-argument-hint: "<cycle id> [--plan | --draft] | --all"
+argument-hint: "<cycle id>... [--plan | --draft] | --all"
 allowed-tools: Bash(sdlc *), Bash(git *), Bash(gh *), Bash(az *), Read, Glob, Grep
 ---
 
@@ -18,6 +18,7 @@ happened.
 |---|---|---|
 | `pr <id>` | a verified build | `sdlc pr-ready <id>` |
 | `pr <id> --plan` | an approved plan, before it is built — admission to the integration branch | `sdlc gate <id>` |
+| `pr <id> <id>... --plan` | every approved plan of one slicing, and the successors it wrote, by one pull request | `sdlc gate <id>` for each, then `sdlc slices` |
 | `pr <id> --draft` | a build that did not pass: `blocked` or `escalated` | `sdlc pr-ready <id>`, which must refuse for exactly that: did not pass, or escalated |
 
 ## Where it goes
@@ -71,6 +72,32 @@ When it does, the pull request is the amendment's, and it says so:
 - **Close with the build branch's choice**, when `git ls-remote --heads origin "cycle/<id>/build*"` lists one: merge
   the integration branch into it to continue by hand, or delete it so the factory builds the amended plan.
   Name the branch; the choice is the person's, so do neither.
+
+### A slicing: several ids with `--plan`
+
+**The plans sliced together go to the integration branch together** (D-125), from `slices/<slug>/plan`.
+The slug is the slicing's — the successors' `sliced_from:` lead, or the one the intent skill named.
+
+1. **Each cycle's gate, in its own folder:** `sdlc gate <id>` in `../<repository>.cycles/<id>`. A plan not
+   yet approved is not admitted: open the pull request with the ones that are, and say which wait. One
+   ready plan alone goes by its own plan branch, as above.
+2. **Compose the branch**, from the person's checkout:
+
+   ```
+   sdlc slices <slug> <id> <id>...
+   ```
+
+   Run the one command it prints. It refuses a sibling with no plan branch and a plan that needs a file only a
+   sibling's plan creates — that piece is a successor, and the refusal says so; show it and stop. Files two
+   plans both name it says on standard error: put them in the body, since those pull requests may conflict
+   at merge.
+3. **Check it before pushing:** `sdlc verify-chain slices/<slug>/plan --base <integration>`. It is the check
+   the pipeline will run — every cycle's admission, the successors sound, the siblings atomic.
+4. **Push and open** as for one plan, with the branch deleted on merge.
+
+**The body is the slicing:** one line on how the work was sliced and why, then each plan as you would write one
+plan's — the problem, the criteria, the shape, the tier — and then each successor with what it waits for, from
+`sdlc successors`. The reviewer is reading the rest of the work beside its first plans.
 
 ## A cycle that did not pass: `--draft`
 
@@ -195,7 +222,11 @@ extension, that is why — say so plainly instead of trying variations. The gene
 - anything in a `## Open` region, because a reviewer should meet the limits before they approve
 
 **Link the work item.** When the intent's frontmatter records a `lead`, close it from the body: `AB#1234`
-for `azuredevops:1234`, `Fixes #56` for `github:56`. When it records a `release`, the pull request targets
+for `azuredevops:1234`, `Fixes #56` for `github:56`. **Link a sliced work item without closing it** while any
+other piece of its slicing is still to come — another cycle recording the same `lead:` that has not merged, or a
+successor whose `sliced_from:` names it (`sdlc successors`): write `#56` or `AB#1234` with no closing word, and
+the last piece's pull request closes it. A cycle begun from `successor:<slug>` names the item in its
+`## Problem`. When it records a `release`, the pull request targets
 that branch instead of the integration branch, and after it opens, `sdlc branch <id> forward` starts the
 second one that carries the same fix into the integration branch — cherry-pick the cycle's commits onto it
 and open that pull request too (D-88).

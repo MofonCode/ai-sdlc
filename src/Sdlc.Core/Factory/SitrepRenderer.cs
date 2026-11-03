@@ -124,6 +124,25 @@ public static class SitrepRenderer
                 $"- `{cycle.Id}` {cycle.Headline ?? "(no headline)"} - waiting {Days(cycle.Days)}{stale}"));
         }
 
+        // D-125: what the merges made ready, for a person to start. The factory starts none of them.
+        if (page.Successors.Count > 0)
+        {
+            output.AppendLine();
+            output.AppendLine("## Successors a person can start");
+            output.AppendLine();
+
+            foreach (Successors.ReadSuccessors.Standing successor in page.Successors)
+            {
+                output.AppendLine(successor.State == Successors.SuccessorState.Ready
+                    ? string.Create(
+                        CultureInfo.InvariantCulture,
+                        $"- `successor:{successor.Successor.Slug}` {successor.Successor.Headline ?? string.Empty} - **ready**: everything it succeeds has merged. Start it with `/sdlc:intent --from successor:{successor.Successor.Slug}`")
+                    : string.Create(
+                        CultureInfo.InvariantCulture,
+                        $"- `successor:{successor.Successor.Slug}` {successor.Successor.Headline ?? string.Empty} - **stuck**: {string.Join(", ", successor.Waits.Select(Successors.ReadSuccessors.Describe))}. Correct its `succeeds:`, or delete it"));
+            }
+        }
+
         output.AppendLine();
         output.AppendLine("## " + page.IntegrationBranch);
         output.AppendLine();

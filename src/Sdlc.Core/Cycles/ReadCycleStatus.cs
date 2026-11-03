@@ -148,6 +148,10 @@ public static class ReadCycleStatus
     /// holds an approval this copy does not: the plan was amended after this build started (D-123). Not read
     /// here, for the reason <paramref name="Chain"/> is not -- it asks git, and most callers do not need it.
     /// </param>
+    /// <param name="Successors">
+    /// Where the solution's successors stand, when a caller asked (D-125). The panel names the ready and the
+    /// stuck beside the next command; not read here, for the reason <paramref name="AmendedOn"/> is not.
+    /// </param>
     public sealed record Response(
         Cycle Cycle,
         IReadOnlyList<ArtifactState> Artifacts,
@@ -157,7 +161,8 @@ public static class ReadCycleStatus
         bool Built = false,
         Sdlc.Core.Chain.VerifyChain.Response? Chain = null,
         Findings.UsageLedger? Usage = null,
-        string? AmendedOn = null)
+        string? AmendedOn = null,
+        Successors.ReadSuccessors.Response? Successors = null)
     {
         /// <summary>The artifact the cycle is waiting on, or null when all three are clear.</summary>
         public ArtifactState? Blocking => Artifacts.FirstOrDefault(artifact => !artifact.IsClear);

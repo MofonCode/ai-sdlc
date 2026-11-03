@@ -312,7 +312,7 @@ start a successor something it succeeds has not merged into the integration bran
 The message says which. Started now, its cycle could not be built alone, which is the one thing a slice
 promises. One that is **stuck** waits on an abandoned cycle and never comes ready by itself.
 
-**Next:** wait, and start it once `sdlc successors` says `ready`.
+**Next:** wait, and start it once `sdlc successors` says `ready` — the sitrep and `sdlc status` name it then.
 For one that is stuck, correct its `succeeds:` to name what replaces the abandoned cycle, or delete the
 file if the piece is no longer wanted.
 
@@ -366,7 +366,7 @@ A path in the pull request is neither a cycle's intent, spec, plan, findings or 
 `.sdlc/successors/`. A slicing admits plans; code comes back by each cycle's own pull request.
 
 **Next:** take the other files off the branch. It holds nothing of its own, so composing it again from
-the plan branches is usually the quickest way.
+the plan branches with `sdlc slices` is usually the quickest way.
 
 ---
 

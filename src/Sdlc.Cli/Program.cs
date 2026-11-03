@@ -79,6 +79,7 @@ try
         "lead" => await LeadCommand(line).ConfigureAwait(false),
         "successors" => await Workspace.Run(line, SuccessorsCommand).ConfigureAwait(false),
         "successor" => await SuccessorCommand(line).ConfigureAwait(false),
+        "slices" => await SlicesCommand(line).ConfigureAwait(false),
         "operate" => await Workspace.Run(line, w => OperateCommand(w, line)).ConfigureAwait(false),
         "perspective" => await PerspectiveCommand(line).ConfigureAwait(false),
         "perspectives" => await WithCycle(line, "perspectives", PerspectivesCommand).ConfigureAwait(false),
@@ -799,6 +800,52 @@ static async Task<int> LeadCommand(CommandLine line)
         }
 
         await Console.Out.WriteAsync(Sdlc.Core.Leads.ReadLead.Render(result.Value)).ConfigureAwait(false);
+        return ExitCode.Ok;
+    }).ConfigureAwait(false);
+}
+
+// The one git command that composes slices/<slug>/plan from the siblings' plan branches, so one pull request
+// admits every plan sliced together (D-125). The command alone on standard output, as 'branch' prints it;
+// the shared files, and why, on standard error.
+static async Task<int> SlicesCommand(CommandLine line)
+{
+    List<CycleId> ids = [];
+
+    foreach (string given in line.Arguments.Skip(1))
+    {
+        if (!CycleId.TryParse(given, out CycleId? id))
+        {
+            await Console.Error.WriteLineAsync($"'{given}' is not a cycle id.").ConfigureAwait(false);
+            return ExitCode.Usage;
+        }
+
+        ids.Add(id.Value);
+    }
+
+    if (line.Arguments.Count < 3)
+    {
+        await Console.Error.WriteLineAsync(
+            "Which slicing, and which cycles? As in 'sdlc slices export-totals 20261103_0900_00 20261103_0900_01'.")
+            .ConfigureAwait(false);
+        return ExitCode.Usage;
+    }
+
+    return await Workspace.Run(line, async workspace =>
+    {
+        Result<ComposeSlicing.Response> result = await workspace
+            .Send<ComposeSlicing.Query, ComposeSlicing.Response>(new ComposeSlicing.Query(line.Arguments[0], ids))
+            .ConfigureAwait(false);
+
+        if (result.IsFailed)
+        {
+            return await Report(result, ExitCode.Refused).ConfigureAwait(false);
+        }
+
+        await Console.Out.WriteLineAsync(result.Value.Command).ConfigureAwait(false);
+        await Console.Error.WriteLineAsync(string.Create(
+            CultureInfo.InvariantCulture,
+            $"{result.Value.Branch} composes {ids.Count} plans from their own branches. {VerifySlicing.Shared(result.Value.Comparison).Detail} Check it with 'sdlc verify-chain {result.Value.Branch} --base <integration branch>' before it is pushed."))
+            .ConfigureAwait(false);
         return ExitCode.Ok;
     }).ConfigureAwait(false);
 }
@@ -1665,6 +1712,17 @@ static async Task<int> Status(Workspace workspace, CommandLine line, CycleId id)
     if (await AmendedPlan.NewerOn(workspace.Repository, workspace.SolutionRoot, status.Cycle, CancellationToken.None).ConfigureAwait(false) is { } amended)
     {
         status = status with { AmendedOn = amended };
+    }
+
+    // The successors a person can act on -- ready to start, or stuck behind an abandoned cycle -- beside
+    // the next command (D-125). What is still waiting is 'sdlc successors'.
+    Result<Sdlc.Core.Successors.ReadSuccessors.Response> successors = await workspace
+        .Send<Sdlc.Core.Successors.ReadSuccessors.Query, Sdlc.Core.Successors.ReadSuccessors.Response>(new Sdlc.Core.Successors.ReadSuccessors.Query())
+        .ConfigureAwait(false);
+
+    if (successors.IsSuccess)
+    {
+        status = status with { Successors = successors.Value };
     }
 
     ArtifactKind kind = state.Kind;

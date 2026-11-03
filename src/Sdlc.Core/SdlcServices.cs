@@ -158,6 +158,9 @@ public static class SdlcServices
         // Where each kind of work on a cycle starts: three skills need the answer, so it is computed once.
         services.AddStartBranchRequestHandler();
 
+        // The branch that admits every plan sliced together, composed from their plan branches (D-125).
+        services.AddComposeSlicingRequestHandler();
+
         services.AddComputeClaimGraphRequestHandler();
 
         // The factory's queue: the claim graph's buildable cycles, less any a branch on the remote holds

@@ -1105,20 +1105,20 @@ touches the remote.
 | Stage | pull requests: after a verification passed, after a plan is approved, or after a build that did not pass |
 | Started by | a person, and **it asks before every push**; or `batch-build --pr` |
 | Reads | `sdlc pr-ready` or `sdlc gate`, `integration_branch` in `solution.md`, and the cycle's documents for the body |
-| Writes | the pushed branch — `cycle/<id>/plan`, `build`, `build-unattended`, or an older cycle's bare `cycle/<id>` — and a pull request |
+| Writes | the pushed branch — `cycle/<id>/plan`, `build`, `build-unattended`, or an older cycle's bare `cycle/<id>`, or a slicing's `slices/<slug>/plan` — and a pull request |
 
 #### Syntax
 
 ```
-/sdlc:pr <cycle id> [--plan | --draft] | --all
+/sdlc:pr <cycle id>... [--plan | --draft] | --all
 ```
 
 #### Parameters
 
 | Parameter | Description |
 |---|---|
-| `<cycle id>` | the verified cycle to push |
-| `--plan` | an approved plan, before it is built: admission to the integration branch, asked of `sdlc gate`. Merging it deletes the branch. A plan already there and approved again is opened as an *amended plan*, leading with each reopen's reason (D-123) |
+| `<cycle id>` | the verified cycle to push — or, with `--plan`, every cycle of one slicing |
+| `--plan` | an approved plan, before it is built: admission to the integration branch, asked of `sdlc gate`. Merging it deletes the branch. A plan already there and approved again is opened as an *amended plan*, leading with each reopen's reason (D-123). Given several ids, the approved plans of one slicing and its successors, by one pull request from `slices/<slug>/plan` that `sdlc slices` composes; a plan that needs a file only a sibling creates is refused, because that piece is a successor (D-125) |
 | `--draft` | a `blocked` or `escalated` build, as a draft carrying the attempted code, the verify and the evidence |
 | `--all` | every cycle that is ready, asking once before the first push |
 

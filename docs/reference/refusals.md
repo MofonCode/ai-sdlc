@@ -55,7 +55,7 @@ The two hooks return no exit code to you: they stop the agent's action, and the 
 | [a successor file that cannot be read](../guides/handling-refusals.md#a-successor-file-that-cannot-be-read) | correct the file; a piece waiting on nothing is a cycle of its own |
 | **A slicing's pull request — `sdlc verify-chain slices/<slug>/plan`** | |
 | [a plan that needs a sibling's code](../guides/handling-refusals.md#a-plan-that-needs-a-siblings-code) | make that piece a successor of the sibling, or merge the two pieces |
-| [a slicing that carries more than plans](../guides/handling-refusals.md#a-slicing-that-carries-more-than-plans) | take the other files off the branch, or compose it again from the plan branches |
+| [a slicing that carries more than plans](../guides/handling-refusals.md#a-slicing-that-carries-more-than-plans) | take the other files off the branch, or compose it again with `sdlc slices` |
 | **Recording evidence — `sdlc evidence`** | |
 | [no cycle, or no plan](../guides/handling-refusals.md#no-cycle-or-no-plan) | check the id; the cycle needs a `plan.md` |
 | [code that is not committed](../guides/handling-refusals.md#code-that-is-not-committed) | commit the change, then record again |

@@ -59,11 +59,12 @@ an agent runs it, and it never decides a gate. `skills.md` lists the skills.
 | `sdlc lead show <reference>` | binary | a work item, issue, suggestion, ready successor or file, in one shape for `intent --from` |
 | `sdlc successors` | binary | every slice waiting on another's code, and whether it is waiting, ready, stuck or unresolved — worked out, never stored |
 | `sdlc successor check` | binary | refuses a successor that cannot be read, names nothing that exists, or loops |
+| `sdlc slices <slug> <id> <id>...` | binary | the git command that composes `slices/<slug>/plan` from the siblings' plan branches, so one pull request admits a slicing's plans. Refuses a plan that needs what only a sibling creates. `/sdlc:pr <id>... --plan` runs it |
 | `sdlc successor start <slug> <id>` | binary | in the new cycle's folder: refuses unless the successor is ready, then deletes its file there. `/sdlc:intent --from successor:<slug>` runs it |
 | `sdlc operate --dry-run` | binary | what production raised, grouped and scrubbed, and what would be filed as a lead |
 | `sdlc perspectives <id>` | binary | which perspectives a cycle gets, and why |
 | `sdlc perspective show <name> --for <stage>` | binary | a perspective's method and questions for one stage; `--cover` for an author's list |
-| `sdlc sitrep` | binary | the morning's page: ready to merge and in what order, needs a person, held back, going stale |
+| `sdlc sitrep` | binary | the morning's page: ready to merge and in what order, needs a person, held back, going stale, and the successors a person can start |
 | `sdlc cycles --queued` | binary | what a build would take now, and what is held back and why |
 | `sdlc cycles --claims` | binary | which files each cycle claims |
 | `sdlc cycles --pr-ready` | binary | which cycles may open a pull request |

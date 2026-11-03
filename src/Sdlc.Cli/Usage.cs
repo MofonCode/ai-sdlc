@@ -53,10 +53,12 @@ internal static class Usage
                                      it does not hold. This is the pull-request check. --base is the
                                      target branch: a pull request changing only the cycle's
                                      planning documents then gets the admission check -- plan,
-                                     approval, hashes, no verify. Given slices/<slug>/plan instead
-                                     of an id, every cycle a slicing carries gets it, its
-                                     successors must be sound, and a plan that needs a file only a
-                                     sibling's plan creates is refused (D-125).
+                                     approval, hashes, no verify.
+            verify-chain slices/<slug>/plan --base <branch>
+                                     The same check for a slicing's pull request: every cycle it
+                                     carries gets the admission check, its successors must be
+                                     sound, and a plan that needs a file only a sibling's plan
+                                     creates is refused (D-125).
             admission <id> --base <branch>
                                      Print true when a pull request carries only the cycle's
                                      planning documents, and any successors, so a pipeline may
@@ -95,6 +97,14 @@ internal static class Usage
                                      refuse unless it is ready, then delete its file there. The
                                      intent then records lead: successor:<slug>. /sdlc:intent
                                      --from successor:<slug> runs it.
+            slices <slug> <id> <id>...
+                                     Print the one git command that composes slices/<slug>/plan:
+                                     the integration branch with each sibling's plan branch merged
+                                     in, so one pull request admits every plan sliced together.
+                                     Refuses a sibling with no plan branch, plan or approval
+                                     ledger, and a plan that needs a file only a sibling's plan
+                                     creates; names the files two plans share. /sdlc:pr --plan
+                                     runs it.
             operate [--since <hours>h] [--dry-run]
                                      Read production's errors from the telemetry store solution.md
                                      declares, grouped by signature, personal data stripped, and
@@ -109,8 +119,9 @@ internal static class Usage
             sitrep                   The morning's page, in Markdown: built cycles ready to merge
                                      and in what order, with the ones expected to conflict;
                                      what needs a person; what was held back and why; what is
-                                     waiting and going stale. Fetch the remote first: a built
-                                     cycle is read from its own branch.
+                                     waiting and going stale; the successors a person can start,
+                                     or that are stuck. Fetch the remote first: a built cycle is
+                                     read from its own branch. It starts nothing.
             cycles --queued          What a build would take now -- approved, no verify, not
                                      abandoned -- and every cycle held back, with why: a
                                      cycle/<id>/... branch on the remote, or an approval the
@@ -152,7 +163,8 @@ internal static class Usage
                                      Reports only; always exits 0.
             cycles                   List every cycle this solution holds, newest first: what each
                                      is about, where it stands, and what it is owed.
-            status <id>              Show the panel for a stage. Ends with the next command.
+            status <id>              Show the panel for a stage. Ends with the next command, and
+                                     names beside it any successor that is ready or stuck.
             findings <id>            What the interrogations said, per artifact, each finding at the
                                      disposition that stands.
             round <id> <artifact>    Append the next round to the artifact's findings ledger from

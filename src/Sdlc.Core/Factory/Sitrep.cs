@@ -76,6 +76,7 @@ public static class Sitrep
     /// <param name="IntegrationBranch">The integration branch's name.</param>
     /// <param name="IntegrationHead">Its head commit, abbreviated, or null when it does not exist.</param>
     /// <param name="RemoteRead">Whether the remote's branches could be listed.</param>
+    /// <param name="Successors">The successors ready to start, or stuck, for a person to act on (D-125). Read only.</param>
     public sealed record Response(
         IReadOnlyList<Built> Ready,
         IReadOnlyList<Built> NeedsPerson,
@@ -84,7 +85,8 @@ public static class Sitrep
         IReadOnlyList<Waiting> Queued,
         string IntegrationBranch,
         string? IntegrationHead,
-        bool RemoteRead);
+        bool RemoteRead,
+        IReadOnlyList<Successors.ReadSuccessors.Standing> Successors);
 
     private sealed class Handler(SolutionRoot solution, Mediator mediator, IRepository repository, TimeProvider time)
         : IRequestHandler<Query, Response>
@@ -123,6 +125,12 @@ public static class Sitrep
             List<Overlap> overlaps = Overlaps([.. ready, .. needs], out List<CycleId> order);
             ready = [.. ready.OrderBy(b => order.IndexOf(b.Id))];
 
+            // Worked out on every read, so the morning's page names what the night's merges made ready (D-125).
+            Result<Successors.ReadSuccessors.Response> read = await mediator
+                .Send<Successors.ReadSuccessors.Query, Successors.ReadSuccessors.Response>(new Successors.ReadSuccessors.Query(), cancellationToken)
+                .ConfigureAwait(false);
+            IReadOnlyList<Successors.ReadSuccessors.Standing> successors = read.IsSuccess ? read.Value.Successors : [];
+
             List<Waiting> waiting = [];
 
             foreach (ListQueuedCycles.Queued cycle in queue.Value.Cycles)
@@ -138,7 +146,8 @@ public static class Sitrep
                 waiting,
                 integration,
                 integrationRef is null ? null : repository.ShortCommit(root, integrationRef),
-                remote is not null));
+                remote is not null,
+                [.. successors.Where(s => s.State is Successors.SuccessorState.Ready or Successors.SuccessorState.Stuck)]));
         }
 
         private async Task<Built> Read(string root, CycleBranch branch, CancellationToken cancellationToken)

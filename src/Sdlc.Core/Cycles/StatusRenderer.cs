@@ -95,6 +95,7 @@ public static class StatusRenderer
         Spent(output, status, state);
 
         Amended(output, status);
+        Successors(output, status, host);
         Next(output, status, state, host);
 
         return output.ToString();
@@ -178,7 +179,7 @@ public static class StatusRenderer
         Hashes(output, status);
         output.AppendLine();
 
-        if (Amended(output, status))
+        if (Amended(output, status) | Successors(output, status, host))
         {
             output.AppendLine();
         }
@@ -192,6 +193,37 @@ public static class StatusRenderer
     /// Writes that the plan was amended after this build started, and nothing when it was not (D-123).
     /// </summary>
     /// <returns>Whether anything was written.</returns>
+    /// <summary>
+    /// The successors a person can act on — ready to start, or stuck — and nothing when there are none (D-125).
+    /// </summary>
+    /// <remarks>
+    /// On every panel, because whichever cycle a person is looking at, a successor that came ready is work they can
+    /// start now; nothing starts it for them. One still waiting is not news, and <c>sdlc successors</c> lists it.
+    /// </remarks>
+    private static bool Successors(StringBuilder output, ReadCycleStatus.Response status, SupportedHost? host)
+    {
+        if (status.Successors is not { } read)
+        {
+            return false;
+        }
+
+        bool wrote = false;
+
+        foreach (Sdlc.Core.Successors.ReadSuccessors.Standing standing in read.Successors
+            .Where(s => s.State is Sdlc.Core.Successors.SuccessorState.Ready or Sdlc.Core.Successors.SuccessorState.Stuck))
+        {
+            bool ready = standing.State == Sdlc.Core.Successors.SuccessorState.Ready;
+            string slug = "successor:" + standing.Successor.Slug;
+
+            Field(output, wrote ? string.Empty : "Successor", ready
+                ? string.Create(CultureInfo.InvariantCulture, $"{slug + " is ready",-44}{Stage(host, "intent --from " + slug)}")
+                : string.Create(CultureInfo.InvariantCulture, $"{slug + " is stuck",-44}sdlc successors"));
+            wrote = true;
+        }
+
+        return wrote;
+    }
+
     private static bool Amended(StringBuilder output, ReadCycleStatus.Response status)
     {
         if (status.AmendedOn is not { } reference)

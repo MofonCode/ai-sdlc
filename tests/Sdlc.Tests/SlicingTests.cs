@@ -2,6 +2,8 @@ using FluentResults;
 using Sdlc.Core.Chain;
 using Sdlc.Core.Cycles;
 using Sdlc.Core.Evidence;
+using Sdlc.Core.Git;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Sdlc.Tests;
 
@@ -163,6 +165,66 @@ public sealed class SlicingTests
 
         Assert.IsFalse(verdict.Holds);
         StringAssert.Contains(VerifySlicing.Render(verdict), "names what does not exist: successor:nowhere");
+    }
+
+    [TestMethod]
+    public async Task Composing_a_slicing_merges_each_plan_branch_onto_the_integration_branch()
+    {
+        using var workspace = CycleWorkspace.Create(A);
+        FakeRepository git = Slicing(createdByA: "src/Totals.cs", namedByB: "src/Chart.cs");
+
+        Result<ComposeSlicing.Response> composed = await Compose(workspace, git, A, B);
+
+        Assert.IsTrue(composed.IsSuccess, string.Join("; ", composed.Errors.Select(e => e.Message)));
+        Assert.AreEqual("slices/export/plan", composed.Value.Branch);
+        Assert.AreEqual(
+            "git switch --no-track -c slices/export/plan origin/development && git merge --no-ff --no-edit cycle/" + A + "/plan origin/cycle/" + B + "/plan",
+            composed.Value.Command);
+    }
+
+    [TestMethod]
+    public async Task Composing_refuses_a_plan_that_needs_what_only_a_sibling_creates()
+    {
+        using var workspace = CycleWorkspace.Create(A);
+        FakeRepository git = Slicing(createdByA: "src/Totals.cs", namedByB: "src/Totals.cs");
+
+        Result<ComposeSlicing.Response> composed = await Compose(workspace, git, A, B);
+
+        Assert.IsTrue(composed.IsFailed);
+        StringAssert.Contains(composed.Errors[0].Message, B + " needs src/Totals.cs, which only " + A + " creates");
+    }
+
+    [TestMethod]
+    public async Task Composing_refuses_a_sibling_with_no_plan_branch_and_a_slicing_of_one()
+    {
+        using var workspace = CycleWorkspace.Create(A);
+        FakeRepository git = Slicing(createdByA: "src/Totals.cs", namedByB: "src/Chart.cs");
+        git.Refs.Remove("origin/cycle/" + B + "/plan");
+
+        StringAssert.Contains((await Compose(workspace, git, A, B)).Errors[0].Message, B + " has no cycle/" + B + "/plan branch");
+        StringAssert.Contains((await Compose(workspace, git, A)).Errors[0].Message, "two cycles or more");
+    }
+
+    private static FakeRepository Slicing(string createdByA, string namedByB)
+    {
+        FakeRepository git = new();
+        git.Refs.Add("origin/development");
+        git.Refs.Add("cycle/" + A + "/plan");
+        git.Refs.Add("origin/cycle/" + B + "/plan");
+        git.Files["cycle/" + A + "/plan:.sdlc/cycles/" + A + "/plan.md"] = "## Files\n\n| File | Change |\n|---|---|\n| `" + createdByA + "` | new |\n";
+        git.Files["cycle/" + A + "/plan:.sdlc/cycles/" + A + "/approval.md"] = "ledger";
+        git.Files["origin/cycle/" + B + "/plan:.sdlc/cycles/" + B + "/plan.md"] = "## Files\n\n| File | Change |\n|---|---|\n| `" + namedByB + "` | adds a chart |\n";
+        git.Files["origin/cycle/" + B + "/plan:.sdlc/cycles/" + B + "/approval.md"] = "ledger";
+        return git;
+    }
+
+    private static async Task<Result<ComposeSlicing.Response>> Compose(CycleWorkspace workspace, FakeRepository git, params string[] ids)
+    {
+        using var gate = Gate.For(workspace.Root, services => services.AddSingleton<IRepository>(git));
+
+        return await gate.Send<ComposeSlicing.Query, ComposeSlicing.Response>(new ComposeSlicing.Query(
+            "export",
+            [.. ids.Select(id => CycleId.TryParse(id, out CycleId? parsed) ? parsed.Value : default)]));
     }
 
     private static ComputeClaimGraph.SlicePlan Plan(string id, string[] declared, string[] created)

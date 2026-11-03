@@ -1,6 +1,8 @@
 using FluentResults;
 using Microsoft.Extensions.DependencyInjection;
+using Sdlc.Core.Artifacts;
 using Sdlc.Core.Cycles;
+using Sdlc.Core.Factory;
 using Sdlc.Core.Git;
 using Sdlc.Core.Leads;
 using Sdlc.Core.Successors;
@@ -315,6 +317,58 @@ public sealed class SuccessorTests
         Assert.IsTrue(text.IndexOf("  ready ", StringComparison.Ordinal) < text.IndexOf("  waiting ", StringComparison.Ordinal), text);
         StringAssert.Contains(text, "start it: /sdlc:intent --from successor:totals");
         StringAssert.Contains(text, "succeeds successor:totals not started yet");
+    }
+
+    [TestMethod]
+    public async Task The_status_panel_names_a_ready_and_a_stuck_successor_beside_the_next_command_and_not_a_waiting_one()
+    {
+        using CycleWorkspace workspace = Solution();
+        workspace.WriteArtifact(ArtifactKind.Intent);
+        Opened(workspace, First);
+        Opened(workspace, Second);
+        await System.IO.File.WriteAllTextAsync(new Cycle(Parse(Second), workspace.Root).AbandonedPath, "stopped");
+        Write(workspace, "totals", First);
+        Write(workspace, "chart", Second);
+        Write(workspace, "share", Third + ", successor:totals");
+        FakeRepository git = Git();
+        Merge(git, First);
+        git.Refs.Add("cycle/" + Third + "/plan");
+
+        using var gate = Gate.For(workspace.Root, services => services.AddSingleton<IRepository>(git));
+        Result<ReadCycleStatus.Response> status = await gate.Send<ReadCycleStatus.Query, ReadCycleStatus.Response>(new ReadCycleStatus.Query(workspace.Cycle.Id));
+        Assert.IsTrue(status.IsSuccess, string.Join("; ", status.Errors.Select(e => e.Message)));
+        ReadCycleStatus.ArtifactState intent = status.Value.Artifacts[0];
+
+        string panel = StatusRenderer.RenderBrief(
+            status.Value with { Successors = await Read(workspace, git) },
+            new StagePanel(intent, await ArtifactOutlineReader.ReadFile(intent.Path, CancellationToken.None)),
+            null);
+
+        StringAssert.Contains(panel, "successor:totals is ready");
+        StringAssert.Contains(panel, "intent --from successor:totals");
+        StringAssert.Contains(panel, "successor:chart is stuck");
+        Assert.IsFalse(panel.Contains("successor:share", StringComparison.Ordinal), panel);
+        Assert.IsTrue(panel.IndexOf("Successor", StringComparison.Ordinal) < panel.IndexOf("Next", StringComparison.Ordinal), panel);
+    }
+
+    [TestMethod]
+    public async Task The_sitrep_names_what_came_ready_for_a_person_to_start()
+    {
+        using CycleWorkspace workspace = Solution();
+        Opened(workspace, First);
+        Write(workspace, "totals", First);
+        Write(workspace, "chart", "successor:totals");
+        FakeRepository git = Git();
+        Merge(git, First);
+
+        using var gate = Gate.For(workspace.Root, services => services.AddSingleton<IRepository>(git));
+        Result<Sitrep.Response> page = await gate.Send<Sitrep.Query, Sitrep.Response>(new Sitrep.Query());
+        Assert.IsTrue(page.IsSuccess, string.Join("; ", page.Errors.Select(e => e.Message)));
+
+        Assert.AreEqual("totals", page.Value.Successors.Single().Successor.Slug);
+        string text = SitrepRenderer.Render(page.Value);
+        StringAssert.Contains(text, "## Successors a person can start");
+        StringAssert.Contains(text, "Start it with `/sdlc:intent --from successor:totals`");
     }
 
     internal static string File(string succeeds, string extra = "") =>

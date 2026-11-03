@@ -33,7 +33,7 @@ to `development` by its own pull request:
 ```
 
 Its check is the admission check — the plan, the approval and its hashes, no build and no verify (D-87).
-Merging it deletes `cycle/<id>/plan`. **A plan branch left on the remote holds the cycle back**: the factory
+Plans sliced together go by one: `/sdlc:pr <id> <id>... --plan`, from `slices/<slug>/plan`, carrying the successors the slicing wrote (D-125). Merging it deletes `cycle/<id>/plan`. **A plan branch left on the remote holds the cycle back**: the factory
 skips any cycle with a `cycle/<id>/...` branch there, and the sitrep says which and why. What is queued now:
 
 ```pwsh
@@ -92,6 +92,7 @@ The same page the run published, against the state now. In the order it lists:
 | **Needs a person** | a draft: `/sdlc:remediate <id>` on its branch for `blocked`; for `escalated`, `steer`, a reopen, or `sdlc draft abandon <id>`. *Built before its plan was amended*: merge `development` into it to continue by hand, or delete it to rebuild — whatever its verify says, it is never ready |
 | **Held back, not built** | each with its reason. Delete a forgotten plan branch to put its cycle back. A build branch made before its plan was amended is named with the same two choices; the factory never resumes it |
 | **Waiting for a build** | its age, and *going stale* when a file its plan declares changed on `development` since approval — read the plan again before it builds |
+| **Successors a person can start** | a successor whose predecessors merged, with `/sdlc:intent --from successor:<slug>` to start it — the factory never does; one *stuck* behind an abandoned cycle wants its `succeeds:` corrected or the file deleted |
 
 **When a pull request conflicts, or goes red after an earlier merge:**
 
