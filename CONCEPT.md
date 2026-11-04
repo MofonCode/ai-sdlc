@@ -7171,7 +7171,7 @@ The binary is published to nuget.org by `.github/workflows/release.yml`, using t
 - A push to any other branch that changes what ships publishes `<release>-preview.<run>` and tags the commit
   with the same name.
 
-Either way, every published binary has a git tag the plugin can be pinned to.
+Either way, every published binary has a git tag naming the commit it was built from.
 
 Every findings round records the `release` that wrote it, in an optional field that is hashed only when present
 (D-107), so a ledger written before this still verifies. The status panel says when a cycle's rounds were
@@ -7180,14 +7180,22 @@ binary says when the skills loaded are not its release** (`sdlc hook --event ses
 release's numbers only, so a preview and its release are one. It tells the agent not to work around a command
 the binary lacks, and it never refuses.
 
-**The skills are not yet pinned per solution.** Claude Code can enable a plugin at project scope, from a
-marketplace source pinned to a git `ref`, but a project marketplace applies only in a folder somebody has
-trusted interactively. Claude Code takes a marketplace's name from its own `marketplace.json`, so two worktrees
-pinned to two tags register one name, and the documentation does not say what happens then. This was probed
-on 2026-11-04 against a local repository with two tags, and the probe could not get that far: the CLI accepts
-only GitHub and https sources, and a non-interactive session ignores an untrusted folder's marketplaces. Until
-it is settled by opening two worktrees on two real tags, the plugin stays one install per machine, and the
-session-start check is what stands between a mismatch and a skill improvising.
+**The skills ride in the package, so the same pin holds them.** The tool package carries the plugin beside
+the binary: the skills, the hooks and both manifests. `sdlc claude [args]` starts Claude Code with
+`--plugin-dir` pointed at that copy. Through the handoff it is the pinned release that does this, so a
+session started in a cycle's worktree runs that cycle's skills, its hooks and its binary, all one release, from
+the folder the pin was restored into. Claude Code loads a `--plugin-dir` plugin over an installed one of the
+same name. The release that starts the session drops the handoff's marker from the session's environment,
+since inherited it would stop every hook at the global binary. The factory starts every session this way and
+installs no plugin. A session started with plain `claude` loads whatever plugin the machine has installed, and
+the session-start check says so when that is another release.
+
+Probed on 2026-11-04, before it was built. `claude -p --plugin-dir` was run in an untrusted folder with a
+0.34 plugin installed for the user and a copy whose manifest said 0.99.0, one skill's description marked.
+Claude Code logged that the `--plugin-dir` plugin overrides the installed version, and it registered three
+hooks, the copy's, not five. The session saw the marked description and all eighteen skills. The copy's
+session-start hook read its own manifest through `${CLAUDE_PLUGIN_ROOT}`, and the mismatch reached the
+model word for word.
 
 **Why.** MarketSense's hosting cycle (`20261027_2358_17`) stayed open while five releases shipped, from
 0.32.1 to 0.36.0. The binary and the plugin were installed once for the whole machine, so a bump moved every
@@ -7210,8 +7218,14 @@ rather than per pipeline file.
 would stop every hook call until somebody reinstalled it, and a hook that stops running permits everything.
 Handing on gives the same pin with nothing to remember.
 
-**Why preview tags.** A preview binary with no tag can only be paired with skills from a branch, which moves.
-Tagging the commit gives the binary and the skills one name, which is what a project pin would point at.
+**Why the package and not a marketplace pinned per project.** Claude Code keeps one clone of a marketplace
+per machine, under its name, and does not document what happens when two projects pin that name to two refs.
+That is exactly a cycle's worktree beside its integration branch, one release apart. A project marketplace
+also applies only in a folder somebody has trusted interactively, and the factory is never that. The package
+is already restored once per release into a folder of its own.
+
+**Why preview tags.** A preview binary with no tag can only be traced to a branch, which moves. The tag names
+the commit its skills were packed from.
 
 **Rejected.**
 
@@ -7221,9 +7235,11 @@ Tagging the commit gives the binary and the skills one name, which is what a pro
 - *Refusing a command from a release other than the cycle's.* A security fix has to reach a cycle in
   flight, and merging the integration branch is how it does. The panel says the cycle moved, and the
   person decides.
-- *Enabling the plugin per project from a tag now.* It is the right shape, and it is unproven on the one
-  question that matters: two worktrees, two tags, one marketplace name. D-129's rule applies to the framework
-  too, so it waits for the probe.
+- *Enabling the plugin per project from a marketplace pinned to a tag.* Two worktrees pinning one marketplace
+  name to two tags share one clone, the result is undocumented, and the factory's untrusted folder ignores a
+  project marketplace. A probe on 2026-11-04 could not reach the question; the package needs none of it.
+- *Copying the skills into each solution.* It pins per branch with no launcher, and it puts the instructions
+  governing an agent inside the repository that agent writes to.
 - *A preview on every push.* A nuget.org version can be unlisted but never deleted. Previews come only from
   pushes that change what ships.
 - *Azure Artifacts or GitHub Packages as the feed.* Both need a credential to read. The repository is public,

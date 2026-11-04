@@ -107,6 +107,8 @@ jobs:
           dotnet tool install MofonCode.Sdlc.Cli --add-source ./artifacts --tool-path "$RUNNER_TEMP/tool" --version ${{ steps.version.outputs.version }}
           first="$("$RUNNER_TEMP/tool/sdlc" version | head -n 1)"
           [ "$first" = "sdlc ${{ steps.version.outputs.version }}" ] || { echo "::error::The packed tool says '$first'."; exit 1; }
+          # And carries the skills 'sdlc claude' starts a session with, which is how a solution's pin reaches them.
+          find "$RUNNER_TEMP/tool/.store" -path '*/plugin/.claude-plugin/plugin.json' | grep -q . || { echo "::error::The packed tool carries no plugin."; exit 1; }
 
       - uses: actions/upload-artifact@v4
         with:

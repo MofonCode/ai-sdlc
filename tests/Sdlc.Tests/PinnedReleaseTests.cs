@@ -86,6 +86,7 @@ public sealed class PinnedReleaseTests
         StringAssert.Contains(mismatch, "0.38.0");
         StringAssert.Contains(mismatch, "0.37.0");
         StringAssert.Contains(mismatch, "do not work around");
+        StringAssert.Contains(mismatch, "sdlc claude");
     }
 
     [TestMethod]
@@ -105,6 +106,22 @@ public sealed class PinnedReleaseTests
     public void No_plugin_directory_says_nothing(string? root)
     {
         Assert.IsNull(PluginRelease.Mismatch(root, "0.37.0"));
+    }
+
+    [TestMethod]
+    public void The_binary_carries_its_own_releases_skills_and_hooks_for_a_session_to_start_with()
+    {
+        string plugin = Sdlc.Cli.ClaudeSession.PluginDirectory;
+
+        Assert.IsNull(PluginRelease.Mismatch(plugin, Release.Version), "The packed plugin is another release.");
+
+        string[] packed = [.. Directory.GetDirectories(Path.Combine(plugin, "skills")).Select(Path.GetFileName).Order(StringComparer.Ordinal)!];
+        string[] shipped = [.. Directory.GetDirectories(Path.Combine(RepoPaths.Root, "skills")).Select(Path.GetFileName).Order(StringComparer.Ordinal)!];
+        CollectionAssert.AreEqual(shipped, packed);
+
+        Assert.AreEqual(
+            File.ReadAllText(Path.Combine(RepoPaths.Root, "hooks", "hooks.json")),
+            File.ReadAllText(Path.Combine(plugin, "hooks", "hooks.json")));
     }
 
     private sealed class Scratch : IDisposable

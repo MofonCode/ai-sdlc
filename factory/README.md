@@ -30,10 +30,10 @@ docker build -f factory/Dockerfile -t ai-sdlc-factory-agent .
 ```
 
 **Why an image rather than tools installed on an agent.** The pipeline installs whatever an agent lacks,
-and the plugin installs from the repository's default branch, so a bare agent's plugin and binary are two
-installs kept at the same release by hand. Built from one commit, the
-binary and the plugin cannot disagree (D-91's reason for one binary), and a fresh container per job means
-no run inherits what the last one left.
+and a fresh container per job means no run inherits what the last one left. The skills are no longer a
+reason: the pipeline starts every session with `sdlc claude`, which loads the plugin packed in the release
+the solution pins (D-131), so the plugin the image installs serves only a session started with plain
+`claude`.
 
 | Inside | Why |
 |---|---|

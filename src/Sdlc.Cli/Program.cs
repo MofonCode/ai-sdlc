@@ -42,6 +42,12 @@ if (await Handoff.Run(args).ConfigureAwait(false) is int handedOn)
     return handedOn;
 }
 
+// Before the parser too: everything after the verb is Claude Code's, and its options are not this binary's.
+if (args is [ClaudeSession.Verb, .. var forClaude])
+{
+    return await ClaudeSession.Run(forClaude).ConfigureAwait(false);
+}
+
 var line = CommandLine.Parse(args);
 
 if (line.Verb is "" or "help")

@@ -128,12 +128,13 @@ It should print the eighteen global constraints in force and say it read them fr
 `global  embedded in sdlc 0.36.0`. **Use this rather than `sdlc help` as the smoke test** — `help` and
 `version` are the only commands that need nothing from the installation, so they are the two that cannot
 tell you whether it worked. Then `claude plugin details sdlc@ai-sdlc` should say `Skills (18)` and
-`Hooks (2)`: **a hook count below two is a failed install**, not a detail, because the deterministic layer
+`Hooks (3)`: **a hook count below three is a failed install**, not a detail, because the deterministic layer
 is simply not loaded and every cycle will still appear to work.
 
 **4. Adopt a repository.** Installing governs nothing — the framework reaches a repository when a person
 adopts it there, one repository at a time. Start a new agent session first, because skills load at
-startup.
+startup. Once a repository is adopted, start sessions in it with `sdlc claude`: it loads the skills of the
+release the repository pins rather than the ones installed.
 
 ```
 /sdlc:init
@@ -381,12 +382,11 @@ What is honest to say about the rest:
   round records the release that wrote it (D-131). They were drawn from one MarketSense cycle of 88
   rounds and six reopens, and the claim that they shorten a cycle is untested. D-128's and D-129's shape
   rules hold only cycles opened under them.
-- **A cycle runs on the release it opened on, and nothing has been published yet.** A solution pins the
-  binary in `.config/dotnet-tools.json`, and the global `sdlc` hands every command on to that release; a
-  session-start hook says when the skills are another release (D-131). `.github/workflows/release.yml`
-  publishes to nuget.org and has not run, so until it does the pin restores from no feed. The skills are
-  still one install per machine: pinning them per project waits on a probe of two worktrees on two tags,
-  which the first published releases make possible.
+- **A cycle runs on the release it opened on, and only a preview has been published.** A solution pins the
+  binary in `.config/dotnet-tools.json`, and the global `sdlc` hands every command on to that release. The
+  release carries its own skills and hooks, and `sdlc claude` starts a session with them; plain `claude`
+  loads the installed plugin, and a session-start hook says when that is another release (D-131).
+  `.github/workflows/release.yml` publishes to nuget.org; `0.36.0-preview.2` is there, and no release is.
 
 ## Not goals
 

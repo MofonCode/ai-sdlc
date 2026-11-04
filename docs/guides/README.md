@@ -70,7 +70,7 @@ two guides. It is also solution-agnostic — what to *answer* at each prompt is 
 ## `setting-up-the-factory.md`
 
 **The factory, set up once, step by step.** Choosing how the agent signs in — an API key or a subscription
-token, and what each costs — getting `sdlc`, Claude Code and the plugin onto the agent, or using your own agent that already has them, pushing and protecting the
+token, and what each costs — getting `sdlc` and Claude Code onto the agent, or using your own agent that already has them, pushing and protecting the
 integration branch adoption created, writing and committing the pipeline before the branch is protected, the pipeline's
 secret, permissions and lock on Azure DevOps or its secrets on GitHub, and a first run watched against a
 throwaway cycle, with what each step looks like when it passes. It ends with a table of failures, each

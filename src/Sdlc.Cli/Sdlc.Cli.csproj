@@ -52,6 +52,15 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- The plugin, beside the binary, so the release a solution pins carries the skills written for it and
+         'sdlc claude' starts a session with them (D-131). The same files a marketplace install takes. -->
+    <None Include="..\..\skills\**\*" LinkBase="plugin\skills" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" Pack="false" />
+    <None Include="..\..\hooks\**\*" LinkBase="plugin\hooks" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" Pack="false" />
+    <None Include="..\..\.claude-plugin\**\*" LinkBase="plugin\.claude-plugin" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" Pack="false" />
+    <None Include="..\..\plugin.json;..\..\LICENSE" Link="plugin\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" Pack="false" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" />
     <ProjectReference Include="..\Sdlc.Core\Sdlc.Core.csproj" />
   </ItemGroup>

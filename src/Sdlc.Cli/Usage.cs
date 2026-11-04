@@ -248,7 +248,10 @@ internal static class Usage
                                      expects beside it. Inside a solution that pins another
                                      release, every command -- this one too -- is answered by
                                      the pinned release.
-            help                     This text. So does --help after any command.
+            claude [args]            Start Claude Code with the skills this release carries, which
+                                     in a solution that pins a release are that release's. Every
+                                     argument after 'claude' is Claude Code's, passed unchanged.
+            help                    This text. So does --help after any command.
 
         Common options
             --solution <path>        The solution to work in. Defaults to the working directory.

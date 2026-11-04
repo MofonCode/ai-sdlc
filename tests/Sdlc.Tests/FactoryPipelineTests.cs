@@ -16,7 +16,7 @@ public sealed class FactoryPipelineTests
     [DataRow(Platform.AzureDevOps)]
     public void It_is_valid_yaml_and_proves_the_gate_before_it_builds(Platform platform)
     {
-        string pipeline = FactoryPipeline.Text(platform, "development", "9.9.9");
+        string pipeline = FactoryPipeline.Text(platform, "development");
 
         YamlDotNet.RepresentationModel.YamlStream stream = [];
         stream.Load(new StringReader(pipeline));
@@ -39,7 +39,7 @@ public sealed class FactoryPipelineTests
     {
         // The gate check passes when the agent writes nothing, and an agent that cannot sign in writes
         // nothing -- so the sign-in is proved first, or a broken credential would prove the gate.
-        string pipeline = FactoryPipeline.Text(platform, "development", "9.9.9");
+        string pipeline = FactoryPipeline.Text(platform, "development");
 
         int signIn = pipeline.IndexOf("Reply with the single word ready", StringComparison.Ordinal);
         int gate = pipeline.IndexOf(".sdlc/approval.md containing", StringComparison.Ordinal);
@@ -63,7 +63,7 @@ public sealed class FactoryPipelineTests
         // Claude Code hands its commands no credential, so the fresh reader interrogate starts signed in with
         // nothing and every verify went unread. The credential goes into the agent's own settings, merged so
         // the plugin the same file records survives, and a nested sign-in is proved before anything is built.
-        string pipeline = FactoryPipeline.Text(platform, "development", "9.9.9");
+        string pipeline = FactoryPipeline.Text(platform, "development");
 
         int signIn = pipeline.IndexOf("Reply with the single word ready", StringComparison.Ordinal);
         int nested = pipeline.IndexOf("could not sign in, so interrogation would have no fresh reader", StringComparison.Ordinal);
@@ -87,7 +87,7 @@ public sealed class FactoryPipelineTests
         // Without it each call waits three seconds for a prompt on standard input and prints a warning.
         string[] calls =
         [
-            .. FactoryPipeline.Text(platform, "development", "9.9.9")
+            .. FactoryPipeline.Text(platform, "development")
                 .ReplaceLineEndings()
                 .Split(Environment.NewLine)
                 .Where(line => line.Contains("claude -p", StringComparison.Ordinal) && !line.TrimStart().StartsWith('#')),
@@ -106,12 +106,12 @@ public sealed class FactoryPipelineTests
     [DataRow(Platform.AzureDevOps)]
     public void An_agent_that_already_carries_the_tools_installs_nothing_and_stays_pinned(Platform platform)
     {
-        // A team running its own agent may carry sdlc, Claude Code and the plugin already. Each is used when
-        // it is there, and sdlc only at the pinned version: any other version is replaced, because the
-        // version a pull request is judged by is not the agent's to decide.
+        // A team running its own agent may carry sdlc and Claude Code already. Each is used when it is there,
+        // and sdlc only at the pinned version: any other version is replaced, because the version a pull
+        // request is judged by is not the agent's to decide.
         foreach (string pipeline in new[]
         {
-            FactoryPipeline.Text(platform, "development", "9.9.9"),
+            FactoryPipeline.Text(platform, "development"),
             Templates.Pipeline(platform),
         })
         {
@@ -119,11 +119,31 @@ public sealed class FactoryPipelineTests
             StringAssert.Contains(pipeline, "dotnet tool install --global MofonCode.Sdlc.Cli --version \"$pinned\"");
         }
 
-        string factory = FactoryPipeline.Text(platform, "development", "9.9.9");
+        string factory = FactoryPipeline.Text(platform, "development");
 
         StringAssert.Contains(factory, "= \"sdlc $pinned\"", "Only the pinned version counts as already installed.");
         StringAssert.Contains(factory, "command -v claude", "Claude Code is used when it is there.");
-        StringAssert.Contains(factory, "Version: 9.9.9", "And the plugin only at this release.");
+    }
+
+    [TestMethod]
+    [DataRow(Platform.GitHub)]
+    [DataRow(Platform.AzureDevOps)]
+    public void Every_session_the_factory_starts_carries_the_skills_of_the_release_it_pins(Platform platform)
+    {
+        // An installed plugin is whatever release installed it. 'sdlc claude' loads the skills packed beside
+        // the pinned binary instead, so the factory installs none (D-131).
+        string factory = FactoryPipeline.Text(platform, "development");
+
+        Assert.IsFalse(factory.Contains("plugin install", StringComparison.Ordinal), "The factory installs no plugin.");
+        StringAssert.Contains(factory, "sdlc claude -p '/sdlc:batch-build");
+        StringAssert.Contains(factory, "sdlc claude -p 'Create the file .sdlc/approval.md", "The hooks proved are the pinned release's.");
+
+        string[] bare = [.. factory.Split('\n')
+            .Select(line => line.Trim())
+            .Where(line => line.StartsWith("claude -p '/sdlc:", StringComparison.Ordinal)
+                || line.StartsWith("claude -p 'Create the file", StringComparison.Ordinal))];
+
+        Assert.IsEmpty(bare, "A session that needs the skills or the hooks starts through sdlc claude.");
     }
 
     [TestMethod]
@@ -135,7 +155,7 @@ public sealed class FactoryPipelineTests
         // nuget.config that clears the default sources, and the step says so -- and still fails.
         foreach (string pipeline in new[]
         {
-            FactoryPipeline.Text(platform, "development", "9.9.9"),
+            FactoryPipeline.Text(platform, "development"),
             Templates.Pipeline(platform),
         })
         {
@@ -149,7 +169,7 @@ public sealed class FactoryPipelineTests
     [DataRow(Platform.AzureDevOps, "timeoutInMinutes", "Exclusive lock")]
     public void It_has_a_time_limit_and_runs_one_at_a_time(Platform platform, string limit, string lockSetting)
     {
-        string pipeline = FactoryPipeline.Text(platform, "development", "9.9.9");
+        string pipeline = FactoryPipeline.Text(platform, "development");
 
         StringAssert.Contains(pipeline, limit, "The job's timeout is the spend ceiling, since remediation has none.");
         StringAssert.Contains(pipeline, lockSetting, "Two runs must not pick the same cycles.");
@@ -162,7 +182,7 @@ public sealed class FactoryPipelineTests
     {
         string[] steps =
         [
-            .. FactoryPipeline.Text(platform, "development", "9.9.9")
+            .. FactoryPipeline.Text(platform, "development")
                 .ReplaceLineEndings()
                 .Split(Environment.NewLine)
                 .Where(line => !line.TrimStart().StartsWith('#')),
@@ -215,7 +235,7 @@ public sealed class FactoryPipelineTests
         // useGlobalJson and global-json-file both fail when the file is absent, and an adopted solution
         // need not have one. Each pipeline therefore pins from the file when it is there and installs the
         // current major when it is not.
-        foreach (string pipeline in new[] { Templates.Pipeline(platform), FactoryPipeline.Text(platform, "development", "9.9.9") })
+        foreach (string pipeline in new[] { Templates.Pipeline(platform), FactoryPipeline.Text(platform, "development") })
         {
             string pinned = platform == Platform.GitHub ? "hashFiles('global.json') != ''" : "eq(variables.sdkPinned, 'true')";
             string unpinned = platform == Platform.GitHub ? "hashFiles('global.json') == ''" : "ne(variables.sdkPinned, 'true')";

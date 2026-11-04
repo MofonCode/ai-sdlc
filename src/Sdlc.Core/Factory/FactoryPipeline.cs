@@ -33,9 +33,8 @@ public static class FactoryPipeline
     /// <summary>The factory's pipeline for a platform.</summary>
     /// <param name="platform">The platform. Not local.</param>
     /// <param name="integrationBranch">The branch the factory builds from and targets.</param>
-    /// <param name="version">The pinned version of the gate to install.</param>
     /// <returns>The file's contents.</returns>
-    public static string Text(Platform platform, string integrationBranch, string version) => platform switch
+    public static string Text(Platform platform, string integrationBranch) => platform switch
     {
         Platform.GitHub => string.Join(
             Environment.NewLine,
@@ -86,10 +85,10 @@ public static class FactoryPipeline
                 string.Empty,
                 "      # Each is used when the agent already carries it -- a self-hosted agent may -- and",
                 "      # installed when it does not. sdlc is the release the integration branch pins either way.",
-                "      - name: install sdlc, the agent and the plugin",
+                "      - name: install sdlc and the agent",
                 "        run: |",
                 .. Templates.InstallSdlc("          "),
-                .. Agent("          ", version),
+                .. Agent("          "),
                 "          git config user.name 'sdlc factory'",
                 "          git config user.email 'sdlc-factory@users.noreply.github.com'",
                 string.Empty,
@@ -101,7 +100,7 @@ public static class FactoryPipeline
                 "          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}",
                 "        run: |",
                 .. Credential("          ", check: true),
-                "          claude -p 'Create the file .sdlc/approval.md containing the single word smoke. Do nothing else.' --permission-mode bypassPermissions < /dev/null || true",
+                "          sdlc claude -p 'Create the file .sdlc/approval.md containing the single word smoke. Do nothing else.' --permission-mode bypassPermissions < /dev/null || true",
                 "          if [ -e .sdlc/approval.md ]; then echo 'The hooks did not refuse a protected write, so nothing would refuse anything tonight.'; exit 1; fi",
                 string.Empty,
                 "      # Operate: production's errors since the last run, filed as leads on the tracker. Nothing",
@@ -120,7 +119,7 @@ public static class FactoryPipeline
                 "          GH_TOKEN: ${{ secrets.SDLC_FACTORY_TOKEN }}",
                 "        run: |",
                 .. Credential("          ", check: false),
-                "          claude -p '/sdlc:batch-build --pr --unattended' --permission-mode bypassPermissions < /dev/null",
+                "          sdlc claude -p '/sdlc:batch-build --pr --unattended' --permission-mode bypassPermissions < /dev/null",
                 string.Empty,
                 "      # The morning starts from this page, whatever the run above did.",
                 "      - name: the sitrep",
@@ -188,17 +187,17 @@ public static class FactoryPipeline
                 .. Templates.InstallSdlc("                "),
                 "                az extension add --name azure-devops --only-show-errors",
                 "                az devops configure --defaults organization=\"$(System.CollectionUri)\" project=\"$(System.TeamProject)\"",
-                .. Agent("                ", version),
+                .. Agent("                "),
                 "                git config user.name 'sdlc factory'",
                 "                git config user.email 'sdlc-factory@localhost'",
-                "              displayName: install sdlc, the agent and the plugin",
+                "              displayName: install sdlc and the agent",
                 string.Empty,
                 "            # Each is used above when the agent already carries it, and installed when it does not.",
                 "            # Enforcement lives below the agent. Prove it is there before the agent is trusted",
                 "            # with anything: ask it to write a file only a person writes, and stop if it appears.",
                 "            - script: |",
                 .. Credential("                ", check: true),
-                "                claude -p 'Create the file .sdlc/approval.md containing the single word smoke. Do nothing else.' --permission-mode bypassPermissions < /dev/null || true",
+                "                sdlc claude -p 'Create the file .sdlc/approval.md containing the single word smoke. Do nothing else.' --permission-mode bypassPermissions < /dev/null || true",
                 "                if [ -e .sdlc/approval.md ]; then echo 'The hooks did not refuse a protected write, so nothing would refuse anything tonight.'; exit 1; fi",
                 "              displayName: prove the agent signs in and the hooks refuse",
                 "              env:",
@@ -216,7 +215,7 @@ public static class FactoryPipeline
                 string.Empty,
                 "            - script: |",
                 .. Credential("                ", check: false),
-                "                claude -p '/sdlc:batch-build --pr --unattended' --permission-mode bypassPermissions < /dev/null",
+                "                sdlc claude -p '/sdlc:batch-build --pr --unattended' --permission-mode bypassPermissions < /dev/null",
                 "              displayName: build the queue",
                 "              env:",
                 "                ANTHROPIC_API_KEY: $(ANTHROPIC_API_KEY)",
@@ -237,23 +236,16 @@ public static class FactoryPipeline
     };
 
     /// <summary>
-    /// The lines that put Claude Code and the sdlc plugin on the agent, unless it already carries them.
+    /// The line that puts Claude Code on the agent, unless it already carries it.
     /// </summary>
     /// <remarks>
-    /// The plugin is used when the installed one is this release, since a plugin and a binary from different
-    /// releases are one half installed without the other; anything else is replaced. Its repository is
-    /// public, so the agent needs no credential to fetch it.
+    /// No plugin is installed. Every session the factory starts is started by <c>sdlc claude</c>, which loads
+    /// the skills packed beside the release the integration branch pins, over any plugin the agent carries
+    /// (D-131). An installed plugin would be a second copy of the skills, from whatever release installed it.
     /// </remarks>
-    private static IEnumerable<string> Agent(string indent, string version)
+    private static IEnumerable<string> Agent(string indent)
     {
         yield return indent + "command -v claude >/dev/null 2>&1 || npm install --global @anthropic-ai/claude-code";
-        yield return indent + string.Create(
-            CultureInfo.InvariantCulture,
-            $"if claude plugin list 2>/dev/null | grep -A 1 'sdlc@ai-sdlc' | grep -q 'Version: {version}'; then echo 'The sdlc plugin {version} is already on this agent.'; else");
-        yield return indent + "  claude plugin marketplace add MofonCode/ai-sdlc >/dev/null 2>&1 || claude plugin marketplace update ai-sdlc";
-        yield return indent + "  claude plugin uninstall sdlc@ai-sdlc >/dev/null 2>&1 || true";
-        yield return indent + "  claude plugin install sdlc@ai-sdlc";
-        yield return indent + "fi";
     }
 
     /// <summary>

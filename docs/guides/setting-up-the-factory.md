@@ -43,14 +43,15 @@ Keep the value somewhere safe until step 6; you paste it there once and never se
 
 ## 2. Get the tools onto the agent
 
-A run needs three things on the machine that runs it: the `sdlc` binary, Claude Code, and the sdlc plugin.
-**The pipeline uses each one the agent already carries, and installs whatever is missing**, so there are
-three ways to do this step:
+A run needs two things on the machine that runs it: the `sdlc` binary and Claude Code. The skills and hooks
+ride inside the binary's package, and the pipeline starts every session with `sdlc claude`, which loads the
+ones the pinned release carries (D-131). **The pipeline uses each tool the agent already carries, and
+installs whatever is missing**, so there are three ways to do this step:
 
 | | The factory's agent image | Your own agent | Microsoft's hosted agents |
 |---|---|---|---|
-| What you do | build the image from this repository on a Linux host with Docker, and run it as a service, below | install `sdlc`, Claude Code and the plugin on it once — `installing-the-plugin.md` — and register it in an agent pool | put the `sdlc` package on a feed the agent can read, below |
-| Each run | a fresh container that installs nothing | installs nothing, so it starts faster | installs all three |
+| What you do | build the image from this repository on a Linux host with Docker, and run it as a service, below | install `sdlc` and Claude Code on it once — `installing-the-plugin.md` — and register it in an agent pool | put the `sdlc` package on a feed the agent can read, below |
+| Each run | a fresh container that installs nothing | installs nothing, so it starts faster | installs both |
 | When you upgrade | build the image again from the release, then every image built `FROM` it, and restart the service — [the factory's index, Upgrading](../../factory/README.md#sdlc-factory-agentservice) | reinstall on the agent; until you do, the run installs the release it was written for | nothing |
 | Good for | a self-hosted factory: no feed needed, and the binary and plugin always from one release | an agent you already maintain | no machine of your own, if the job's time limit allows six hours |
 
@@ -89,9 +90,8 @@ In step 4, point the pipeline at the pool (`name: <the pool>` under `pool:`), an
 
 **`sdlc` is pinned either way.** The run restores the release the integration branch pins in
 `.config/dotnet-tools.json`, and an agent carrying a different version runs that one instead, because the
-version a pull request is judged by is not the agent's to decide (D-131). `sdlc` comes from nuget.org, the
-plugin from the public `MofonCode/ai-sdlc` repository and Claude Code from npm, so none of them needs a feed
-of your own.
+version a pull request is judged by is not the agent's to decide (D-131). `sdlc` comes from nuget.org,
+with the skills inside it, and Claude Code from npm, so neither needs a feed of your own.
 
 On your own agent, point the pipeline at its pool — replace `vmImage: ubuntu-latest` with
 `name: <your pool>` under `pool:` — and skip to step 3.
@@ -203,7 +203,7 @@ step of this guide to revisit:
 
 | Step | What a pass looks like |
 |---|---|
-| install sdlc, the agent and the plugin | each is installed at your version, or reported as already on this agent |
+| install sdlc and the agent | each is installed at your version, or reported as already on this agent |
 | prove the agent signs in and the hooks refuse | the agent answers, a `claude` the agent starts answers too, then the agent is refused a write to `.sdlc/approval.md`, and the file never appears |
 | operate | *This solution declares no telemetry store*, unless you declared one |
 | build the queue | one cycle built on `cycle/<id>/build-unattended`, and a pull request opened into `development` |
@@ -227,11 +227,10 @@ From here, `running-the-factory.md` is the routine: admit plans in the day, read
 | *Set ANTHROPIC_API_KEY or CLAUDE_CODE_OAUTH_TOKEN as a secret* | the pipeline has no credential | step 6b — and check the variable is on **this** pipeline, spelled exactly |
 | *The agent did not answer, so its credential does not work* | the key was revoked, the token expired, or the subscription is out of usage | make a new one (step 1) and replace the secret |
 | *A claude the agent starts could not sign in* | the credential did not reach `~/.claude/settings.json` on the agent, where every `claude` reads it; the agent's own sign-in passed, so the secret is fine. Claude Code hands its commands no credential, so without that file `interrogate`'s fresh reader signs in with nothing | the lines after it name the reader's error. Check `jq` is on the agent and its home is writable; the factory image carries both |
-| *The hooks did not refuse a protected write* | the plugin's hooks did not load, so nothing would refuse anything tonight | look at the install step's output for the plugin install; the run stopped before building, which is the point |
+| *The hooks did not refuse a protected write* | the plugin's hooks did not load, so nothing would refuse anything tonight | the agent is started with `sdlc claude`, which loads the plugin packed in the pinned release: check the install step restored that release and `sdlc claude --version` answers on the agent. The run stopped before building, which is the point |
 | the `sdlc` install fails: *pins no sdlc release* or *no feed this run can reach* | the integration branch has no `.config/dotnet-tools.json` yet, or the solution's `nuget.config` hides nuget.org | run adoption on the integration branch and commit the manifest; otherwise add nuget.org back to the sources (step 2) |
 | the image's agent never shows *Online* | the token is wrong, expired, or not scoped to Agent Pools, or `AZP_POOL` names a pool that does not exist | `journalctl -u sdlc-factory-agent`: *VS30063* is the token; a pool error names the pool |
 | a step fails with *permission denied* on `/var/run/docker.sock` | the container is not in the socket's group | run it through the service file, which adds the group, rather than a bare `docker run` |
-| the plugin install fails | the agent cannot reach GitHub | the plugin comes from the public `MofonCode/ai-sdlc` repository; an agent behind a firewall needs `github.com` allowed, or the plugin installed on it beforehand |
 | a push or a pull request is refused, *TF401027* | the build service lacks a permission | step 6c |
 | the sitrep lists nothing to merge | no approved plan was on `development` without a verify | `sdlc cycles --queued` says what is queued and what is held back, each with its reason — a forgotten `cycle/<id>/plan` branch on the remote holds its cycle back |
 | a second run is waiting | the Exclusive lock doing its job | nothing, unless the first is stuck; the six-hour limit ends it |

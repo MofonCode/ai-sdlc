@@ -115,6 +115,18 @@ reports the global.
 itself, whatever the solution pins. `sdlc version` in a solution that pins another release shows which you
 have: the pinned number means it handed on.
 
+### Start a session with the pinned release's skills
+
+**In a governed solution, start Claude Code with `sdlc claude` rather than `claude`.** Every release of the
+binary carries the plugin it was released with, and `sdlc claude` starts Claude Code with that copy loaded
+over whatever plugin is installed. Inside a solution the pinned release does the starting, so a cycle's
+skills, hooks and binary are one release, whatever the machine has installed. Every argument after `claude`
+is Claude Code's: `sdlc claude --resume`, `sdlc claude -p "..."`.
+
+Plain `claude` still works. It loads the plugin installed below, and when that is another release than the
+binary the solution pins, the session is told so as it starts (D-131). The installed plugin is what a session
+outside any solution uses, and the fallback when somebody forgets.
+
 ## The plugin
 
 Two sources, and which one you want depends on whether you are *using* the framework or *changing* it.
@@ -243,7 +255,7 @@ calling a verb an older binary does not have is what that drift eventually produ
 it as a failed install rather than a detail** — the deterministic layer is not loaded, nothing is denied,
 and every cycle will still appear to work.
 
-`SessionStart` checks that drift for you. As a session starts, the plugin hands the binary its own directory,
+`SessionStart` checks that drift for you, and `sdlc claude` avoids it. As a session starts, the plugin hands the binary its own directory,
 and when the skills are another release than the binary the directory runs, the agent is told so, and told
 not to work around a command the binary does not have. It never refuses: a session may be the one about to
 fix it. Inside a solution, the release it compares against is the one the solution pins.

@@ -37,9 +37,9 @@ public static class PluginRelease
         return $"The ai-sdlc skills loaded in this session are release {plugin}, and the sdlc binary this " +
             $"directory runs is {binary}. A skill from one release driving a binary from another is how a cycle " +
             "ended up running rounds through scripts nobody wrote down (D-131). Before running any ai-sdlc skill, " +
-            "tell the person, and do not work around a command the binary does not have: either the plugin " +
-            $"release {PinnedRelease.Core(binary)} is enabled for this project, or the solution's pin in " +
-            $"{PinnedRelease.ManifestPath} is bumped -- which of the two is the person's call.";
+            "tell the person, and do not work around a command the binary does not have. Starting the session " +
+            "with 'sdlc claude' instead of 'claude' loads the skills the binary carries, which are always its own " +
+            "release.";
     }
 
     private static string? Version(string? pluginRoot)

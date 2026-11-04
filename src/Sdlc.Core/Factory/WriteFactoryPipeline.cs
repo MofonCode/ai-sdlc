@@ -67,7 +67,7 @@ public static class WriteFactoryPipeline
             Directory.CreateDirectory(System.IO.Path.GetDirectoryName(path) ?? solution.Path);
             await File.WriteAllTextAsync(
                 path,
-                FactoryPipeline.Text(document.Platform, document.IntegrationBranch, Release.Version),
+                FactoryPipeline.Text(document.Platform, document.IntegrationBranch),
                 cancellationToken).ConfigureAwait(false);
 
             return Result.Ok(new Response(relative.Replace('\\', '/'), existed, document.Platform));
