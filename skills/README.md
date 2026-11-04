@@ -451,12 +451,19 @@ and plans for what they break; a plan about anything else names the gap in a sen
 would have cost when it departs from it, in either direction, and `CON_19` asks the same about a recorded
 decision.
 
+**It probes what the platform does before planning on it** (D-129). Each behaviour the shape rests on that
+nobody in the cycle has observed is run on a throwaway `probe/<id>/<slug>` branch outside the cycle's
+worktree, and the plan's `## Assumptions proven` quotes what it showed and names the commit — or says
+`None.` Nothing on a probe branch is governed, merged or pushed. Its proof is a table, one row per case a
+criterion states (D-130).
+
 What it runs, in order:
 
 1. `sdlc constraints --for plan`
 2. `sdlc status <id> --stage spec`, to refuse early
 3. reads the spec and the code, then `sdlc stack`, `sdlc decisions` and `sdlc theme`
-4. decides the shape, argues each departure, writes a proof for every criterion and chooses the tier —
+4. probes any platform behaviour the shape rests on that nobody has observed, then decides the shape,
+   argues each departure, writes a proof row for every case of every criterion and chooses the tier —
    `local`, `contract` or `data`, by how reversible the change is
 5. writes the plan — a perspective's item that would need a criterion the spec lacks goes under `Risk`,
    not into the proof — and runs the interrogate-refine loop

@@ -73,19 +73,19 @@ public sealed class RecordRoundTests
         using var fresh = CycleWorkspace.Create();
         fresh.WriteArtifact(ArtifactKind.Intent);
 
-        Assert.IsTrue(await TakenInFence.Holds(fresh.Cycle, CancellationToken.None), "Not yet interrogated: the fence holds.");
+        Assert.IsTrue(await NewerRules.Hold(fresh.Cycle, CancellationToken.None), "Not yet interrogated: the fence holds.");
         Assert.IsTrue((await Record(fresh, ArtifactKind.Intent, Clean)).IsSuccess);
 
         LedgerRound stamped = (await FindingsReader.ReadLedger(fresh.Cycle, ArtifactKind.Intent, CancellationToken.None)).Value.Ledger.Rounds[0];
 
         Assert.AreEqual(Sdlc.Core.Release.Version, stamped.Release);
-        Assert.IsTrue(await TakenInFence.Holds(fresh.Cycle, CancellationToken.None));
+        Assert.IsTrue(await NewerRules.Hold(fresh.Cycle, CancellationToken.None));
 
         using var older = CycleWorkspace.Create();
         older.WriteArtifact(ArtifactKind.Intent);
         CycleWorkspace.WriteRaw(older.Cycle.FindingsPath(ArtifactKind.Intent, 1), """{ "round": 1, "interrogated_at": "2026-10-01T10:00:00Z", "findings": [] }""");
 
-        Assert.IsFalse(await TakenInFence.Holds(older.Cycle, CancellationToken.None), "A round from before releases were recorded.");
+        Assert.IsFalse(await NewerRules.Hold(older.Cycle, CancellationToken.None), "A round from before releases were recorded.");
     }
 
     [TestMethod]

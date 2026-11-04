@@ -549,7 +549,7 @@ public static class VerifyChain
         {
             List<string> missing = [];
             List<string> misshapen = [];
-            bool fence = await TakenInFence.Holds(cycle, cancellationToken).ConfigureAwait(false);
+            bool fence = await NewerRules.Hold(cycle, cancellationToken).ConfigureAwait(false);
 
             foreach (ArtifactKind kind in required)
             {

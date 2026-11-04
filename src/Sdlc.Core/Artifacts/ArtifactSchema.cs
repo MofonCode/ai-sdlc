@@ -135,12 +135,14 @@ public static partial class ArtifactSchema
     /// <param name="kind">Which artifact this is meant to be.</param>
     /// <param name="markdown">The file's contents.</param>
     /// <param name="cycle">The cycle the file's path puts it in.</param>
-    /// <param name="fenceTakenIn">
-    /// Whether an intent is held to taking a suggestion in only beneath the outcome it sharpens. False for a
-    /// cycle opened before that rule, which <see cref="Findings.TakenInFence"/> decides (D-128).
+    /// <param name="newerRules">
+    /// Whether the document is held to the shape rules added once rounds recorded their release: an intent
+    /// takes a suggestion in only beneath the outcome it sharpens (D-128), and a plan says which platform
+    /// assumptions it proved (D-129). False for a cycle opened before them, which
+    /// <see cref="Findings.NewerRules"/> decides.
     /// </param>
     /// <returns>What is wrong with its shape, which may be nothing.</returns>
-    public static ArtifactValidation Validate(ArtifactKind kind, string markdown, CycleId cycle, bool fenceTakenIn = true)
+    public static ArtifactValidation Validate(ArtifactKind kind, string markdown, CycleId cycle, bool newerRules = true)
     {
         ArgumentNullException.ThrowIfNull(markdown);
 
@@ -168,9 +170,10 @@ public static partial class ArtifactSchema
         CheckSections(kind, markdown, violations);
         CheckDeclarations(kind, markdown, violations);
         CheckProofs(kind, markdown, violations);
-        if (fenceTakenIn)
+        if (newerRules)
         {
             CheckTakenIn(kind, markdown, violations);
+            CheckAssumptions(kind, markdown, violations);
         }
 
         return new ArtifactValidation(kind, violations);
@@ -234,6 +237,45 @@ public static partial class ArtifactSchema
                         CultureInfo.InvariantCulture,
                         $"outcome {index + 1} is a suggestion taken in as an outcome of its own. A suggestion may only sharpen an outcome the intent already wants: write it as a sub-bullet beneath that outcome, or make it a successor if it adds or widens one (D-128).")));
             }
+        }
+    }
+
+    /// <summary>The plan section naming the platform behaviour its shape rests on, and what a probe showed.</summary>
+    public const string AssumptionsSection = "Assumptions proven";
+
+    /// <summary>
+    /// Refuses a plan that does not say which platform assumptions it proved.
+    /// </summary>
+    /// <remarks>
+    /// Four of one cycle's six reopens were a framework behaving differently from what its plan said, and
+    /// readers cannot run a framework (D-129). The section lists each behaviour the shape rests on with what a
+    /// probe showed, or says <c>none</c>. Whether an assumption was missed is a judgement no schema makes;
+    /// that the plan answered the question is something one can.
+    /// </remarks>
+    /// <param name="kind">Which artifact this is.</param>
+    /// <param name="markdown">The file's contents.</param>
+    /// <param name="violations">The list to add to.</param>
+    private static void CheckAssumptions(
+        ArtifactKind kind,
+        string markdown,
+        List<SchemaViolation> violations)
+    {
+        if (kind != ArtifactKind.Plan)
+        {
+            return;
+        }
+
+        if (!ArtifactSections.Read(markdown).TryGetValue(AssumptionsSection, out IReadOnlyList<string>? lines))
+        {
+            violations.Add(new SchemaViolation(
+                "## " + AssumptionsSection,
+                "is missing. List each platform behaviour the shape rests on with what a probe showed and its commit, or say 'none' (D-129)."));
+        }
+        else if (lines.All(string.IsNullOrWhiteSpace))
+        {
+            violations.Add(new SchemaViolation(
+                "## " + AssumptionsSection,
+                "is empty. Say 'none' when the shape rests on no behaviour nobody in the cycle has observed (D-129)."));
         }
     }
 
@@ -485,8 +527,11 @@ public static partial class ArtifactSchema
 
         foreach (string section in found.Distinct(StringComparer.Ordinal))
         {
+            // A plan's assumptions are required of a cycle opened under D-129 and allowed of any, so a plan
+            // written before it is not refused for lacking one, nor one written since for having it.
             if (!expected.Contains(section, StringComparer.Ordinal)
-                && !string.Equals(section, OpenSection, StringComparison.Ordinal))
+                && !string.Equals(section, OpenSection, StringComparison.Ordinal)
+                && !(kind == ArtifactKind.Plan && string.Equals(section, AssumptionsSection, StringComparison.Ordinal)))
             {
                 violations.Add(new SchemaViolation(
                     "## " + section,

@@ -3,7 +3,7 @@ name: plan
 description: Decide how a spec will be met and what will prove it, producing the plan of a cycle. Use after a spec has a clean interrogation round. This is the last artifact before a person approves.
 compatibility: Requires the sdlc binary on PATH, from the MofonCode.Sdlc.Cli dotnet tool, and a git repository. Every command here is that binary, so without it the first step fails.
 argument-hint: "<cycle id>"
-allowed-tools: Bash(sdlc *), Bash(git *), Read, Write, Edit, Glob, Grep
+allowed-tools: Bash(sdlc *), Bash(git *), Bash(dotnet *), Read, Write, Edit, Glob, Grep
 ---
 
 # Author a plan
@@ -212,6 +212,29 @@ solution reads exactly as it already behaved.
 `standard: profile` is not a finding against every file that predates it. Migrating existing code is its
 own cycle, with its own intent and approval, like any other work.
 
+## Probe what the platform does, before you plan on it
+
+**A plan that rests on how a framework, host or library behaves proves that behaviour before approval**
+(D-129). Readers cannot run a framework, so a shape built on what nobody in the cycle has observed is
+argued about in prose for as many rounds as it takes, approved, and then disproved by the build — which
+costs a reopen and sends the intent, spec and plan back through their readers. Four of one cycle's six
+reopens were exactly this: a render mode that did not fall back, a connection that did not open when the
+plan said, services that differed on each side, a host that never started.
+
+Before you write the shape, list each behaviour it rests on that nobody in this cycle has seen happen —
+a render mode, a fallback, an order of events, what a library does on failure. For each:
+
+1. **Branch a probe from the cycle's base, outside the cycle's worktree:**
+   `git worktree add ../<repo>.probes/<id>-<slug> -b probe/<id>/<slug> <base>`. It is not a cycle branch,
+   so nothing governs it, and nothing from it is merged or pushed.
+2. **Write the least code that makes the behaviour happen**, run it, and keep the output.
+3. **Commit it on the probe branch** so the plan can name the commit.
+
+Then write `## Assumptions proven` in the plan: each behaviour, what the probe showed — quoted from the
+output — and the probe's commit. What a probe wrote never reaches the build except as that quoted text.
+**A plan that rests on nothing unobserved says `None.`** — and that is the common case: most shapes use
+what the codebase already does. A probe is for the question the plan cannot answer by reading.
+
 ## Make the proof adequate
 
 This is the constraint to watch. `CON_21` forbids a proof that never runs a case its criterion
@@ -324,6 +347,12 @@ property file, a banned-symbols list, a hook configuration, the pipeline -- what
 rule unchanged would have cost. CON_18. Amending such a rule is legitimate declared work; doing it
 without saying what it bought is not, because then the one check that cannot be talked around is
 rewritten by the thing it was checking.>
+
+## Assumptions proven
+
+- <a behaviour the shape rests on>: <what the probe showed, quoted>. Probe `probe/<id>/<slug>` at `<commit>`.
+
+<Or 'None.' when the shape rests on nothing nobody in this cycle has observed.>
 
 ## Files
 

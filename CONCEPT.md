@@ -302,6 +302,7 @@ separating "the part that is judged".
 | `spec` | `Acceptance criteria` | `CON_03`, `CON_05`, `CON_12`, `CON_16`, `CON_17`, `CON_20`, `CON_21`, and `verify` |
 | | `Out of scope` | `CON_05`, `CON_16`; a disposal destination (§5.4) |
 | `plan` | `Shape and departures` | `CON_15`, `CON_18`, `CON_19` |
+| | `Assumptions proven` | the person at the gate: each platform behaviour the shape rests on, what a probe showed and its commit, or `None.` (D-129) |
 | | `Files` | the blast-radius signal and the claim graph; ordering reasoning lives here |
 | | `Proof` | `CON_21`, and `verify`'s criterion table |
 | | `Risk` | the person at the gate |

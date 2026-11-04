@@ -273,6 +273,25 @@ public sealed class ArtifactSchemaTests
     }
 
     [TestMethod]
+    public void A_plan_under_the_newer_rules_says_which_platform_assumptions_it_proved_and_an_older_one_need_not()
+    {
+        // D-129. Four of one cycle's six reopens were a framework behaving differently from its plan. The plan
+        // lists what a probe showed, or says none; a cycle opened before the rule keeps its approved shape.
+        string without = WellFormed(ArtifactKind.Plan)
+            .Replace("## " + ArtifactSchema.AssumptionsSection + "\n\nNone.\n\n", string.Empty, StringComparison.Ordinal);
+        string empty = WellFormed(ArtifactKind.Plan)
+            .Replace("\n\nNone.\n\n## Open", "\n\n## Open", StringComparison.Ordinal);
+
+        StringAssert.Contains(Describe(Validate(ArtifactKind.Plan, without)), "## Assumptions proven is missing");
+        StringAssert.Contains(Describe(Validate(ArtifactKind.Plan, empty)), "## Assumptions proven is empty");
+
+        Assert.IsTrue(CycleId.TryParse(Id, out CycleId? cycle));
+        ArtifactValidation older = ArtifactSchema.Validate(ArtifactKind.Plan, without, cycle.Value, newerRules: false);
+
+        Assert.IsTrue(older.IsValid, Describe(older));
+    }
+
+    [TestMethod]
     public void A_suggestion_taken_in_as_an_outcome_of_its_own_is_refused_and_one_sharpening_an_outcome_is_not()
     {
         // D-128. One hosting intent opened with one outcome and held fourteen by the end of its first day,
@@ -344,6 +363,11 @@ public sealed class ArtifactSchemaTests
         foreach (string section in ArtifactSchema.BodySectionsOf(kind))
         {
             lines.AddRange("## " + section, string.Empty, "Something said here.", string.Empty);
+        }
+
+        if (kind == ArtifactKind.Plan)
+        {
+            lines.AddRange("## " + ArtifactSchema.AssumptionsSection, string.Empty, "None.", string.Empty);
         }
 
         lines.Add("## " + ArtifactSchema.OpenSection);

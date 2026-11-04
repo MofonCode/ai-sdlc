@@ -149,6 +149,12 @@ declares it is built from with what is there. A build settings file the stack ta
 lacks is closed by this plan only if the intent asked for it; otherwise the plan names it and leaves
 it.
 
+**Where the shape rests on how a framework behaves and nobody has seen it happen, the plan probes it
+first** — a few lines of throwaway code on a `probe/<id>/<slug>` branch, never merged — and its
+`## Assumptions proven` section quotes what the probe showed. Read that section at approval: a behaviour
+the plan assumed without a probe is the one most likely to cost a reopen after the build. Its proof is a
+table, one row per case each criterion states, so you can see what will be tested at a glance.
+
 **It is the last document before you approve, so it is the one to read closely** — and the thing to
 read for is proof adequacy. Ask of each check: *which case does it never run, and which outcome does it
 never read?* If either has an answer, the proof is not adequate, and an inadequate
