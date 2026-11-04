@@ -371,28 +371,16 @@ public static class ApprovalGate
 
             foreach (ArtifactKind kind in Cycle.PlanningDocuments)
             {
+                // Rule, objection, place and fix: this list is what a gate refusal hands back, so it is
+                // read by whoever has to decide what to do about the blocker -- and CON_10.2 requires
+                // their reason to say what has to change, which is not a judgement anybody can make from
+                // an id alone, or from an objection they cannot find in the document.
                 foreach (Finding blocker in FindingsReader.StandingBlockers(interrogations[kind]))
                 {
-                    string qualified = string.Create(
-                        CultureInfo.InvariantCulture,
-                        $"{Cycle.NameOf(kind)}.{blocker.Id}");
-
-                    // The rule's own line between the id and the objection. This list is what a gate
-                    // refusal hands back, so it is read by whoever has to decide what to do about the
-                    // blocker -- and CON_10.2 requires their reason to say what has to change, which
-                    // is not a judgement anybody can make from an id alone.
-                    string rule = blocker.Cites?.Heading is { Length: > 0 } heading
-                        ? heading + "  "
-                        : string.Empty;
-
-                    blockers.Add(string.Create(
-                        CultureInfo.InvariantCulture,
-                        $"  {qualified}  {blocker.Cites?.Id}  {rule}{blocker.Headline}"));
-
-                    if (blocker.Remedy is { } remedy)
-                    {
-                        blockers.Add("      Fix: " + remedy.ReplaceLineEndings(" "));
-                    }
+                    blockers.AddRange(BlockerLines.Of(
+                        string.Create(CultureInfo.InvariantCulture, $"{Cycle.NameOf(kind)}.{blocker.Id}"),
+                        blocker,
+                        "  "));
                 }
             }
 

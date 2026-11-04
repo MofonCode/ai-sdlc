@@ -339,6 +339,9 @@ internal static class Usage
                                      the disposition the latest round gave it, so asking about round
                                      one never reports an answered blocker as open.
             --brief                  One line per finding, without the statement or the remedy.
+            --blocking               Only the open blocking findings: what stops the cycle now.
+            --finding <id>           One finding, such as F_13 or security.F_04. With --stage, one
+                                     artifact's; without it, that id in every artifact that has one.
 
         Options for status
             --stage <artifact>       Which panel: intent, spec, plan or verify. Defaults to

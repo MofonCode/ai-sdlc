@@ -1,6 +1,7 @@
 using FluentResults;
 using Sdlc.Core.Artifacts;
 using Sdlc.Core.Cycles;
+using Sdlc.Core.Findings;
 using Sdlc.Core.Hooks;
 
 namespace Sdlc.Tests;
@@ -107,7 +108,7 @@ public sealed class StatusRendererTests
         StringAssert.Contains(panel, "F_04");
         StringAssert.Contains(panel, "CON_04.1");
         StringAssert.Contains(panel, "something that must be answered.");
-        StringAssert.Contains(panel, "Fix: answer it.", "What would clear it is what somebody at the gate acts on.");
+        StringAssert.Contains(panel, "Fix:   answer it.", "What would clear it is what somebody at the gate acts on.");
     }
 
     [TestMethod]
@@ -135,8 +136,131 @@ public sealed class StatusRendererTests
         string panel = await Render(workspace, ArtifactKind.Spec);
 
         StringAssert.Contains(panel, "Criterion 4 says the page is fast and never says how fast.");
-        StringAssert.Contains(panel, "Fix: Give it a number and the test that measures it.");
+        StringAssert.Contains(panel, "Fix:   Give it a number and the test that measures it.");
         Assert.IsFalse(panel.Contains("A long account", StringComparison.Ordinal), panel);
+    }
+
+    [TestMethod]
+    public async Task A_blocker_says_where_it_is_with_the_first_place_in_full_and_a_count_of_the_rest()
+    {
+        // The locus was collected on every finding and printed by nothing, so a person read what was wrong
+        // and then reread the document to find it. A cut location is one nobody can follow, so the first
+        // place is whole and the others are a count.
+        using var workspace = CycleWorkspace.Create();
+        workspace.WriteAllArtifacts();
+        workspace.WriteRound(
+            ArtifactKind.Spec,
+            1,
+            """
+            {
+              "id": "F_07",
+              "severity": "blocking",
+              "disposition": "open",
+              "cites": { "id": "CON_03", "heading": "A criterion states an observable outcome" },
+              "statement": "The full account.",
+              "gist": "Criterion 4 says the page is fast and never says how fast.",
+              "locus": "criterion 4, the sentence 'the page is fast'; criterion 9; the Open section",
+              "remedy": "Give it a number."
+            }
+            """);
+
+        string panel = await Render(workspace, ArtifactKind.Spec);
+
+        StringAssert.Contains(panel, "Where: criterion 4, the sentence 'the page is fast' (and 2 more)");
+    }
+
+    [TestMethod]
+    public async Task Blockers_under_one_rule_print_the_rule_once()
+    {
+        using var workspace = CycleWorkspace.Create();
+        workspace.WriteAllArtifacts();
+        workspace.WriteRound(
+            ArtifactKind.Spec,
+            1,
+            Cited("F_01", "CON_08", "open") + "," + Cited("F_02", "CON_08", "open"));
+
+        string panel = await Render(workspace, ArtifactKind.Spec);
+
+        int rules = panel.Split("the rule CON_08 states").Length - 1;
+        Assert.AreEqual(1, rules, panel);
+        StringAssert.Contains(panel, "CON_08  2 blocking");
+    }
+
+    [TestMethod]
+    public async Task The_panel_says_which_open_blockers_are_new_and_how_many_earlier_were_settled()
+    {
+        // The history alone cannot tell a loop refighting one objection from one finding something new
+        // every round with everything earlier answered. The second wants a smaller cycle, not a refine.
+        using var workspace = CycleWorkspace.Create();
+        workspace.WriteAllArtifacts();
+        workspace.WriteRound(ArtifactKind.Spec, 1, Cited("F_01", "CON_08", "open") + "," + Cited("F_02", "CON_08", "open"));
+        workspace.WriteRound(ArtifactKind.Spec, 2, Cited("F_01", "CON_08", "answered") + "," + Cited("F_03", "CON_08", "open"));
+
+        string panel = await Render(workspace, ArtifactKind.Spec);
+
+        StringAssert.Contains(panel, "r2: 1 new, 1 carried over, 0 came back; 1 raised earlier and settled");
+    }
+
+    [TestMethod]
+    public void A_blocker_answered_and_raised_again_is_counted_as_having_come_back()
+    {
+        static FindingsRound One(int round, string disposition) => new(
+            null,
+            null,
+            "spec.md",
+            null,
+            null,
+            round,
+            [new Finding("F_01", Severity.Blocking, Enum.Parse<Disposition>(disposition, ignoreCase: true), new Citation("CON_08", "a rule"), "it")]);
+
+        var turnover = Turnover.Of([One(1, "open"), One(2, "answered"), One(3, "open")]);
+
+        Assert.AreEqual(new Turnover(3, 0, 0, 1, 0), turnover);
+        Assert.IsNull(Turnover.Of([One(1, "open")]), "One round has nothing to compare; everything open is new.");
+    }
+
+    [TestMethod]
+    public async Task The_panel_ends_its_blockers_with_the_command_that_explains_them()
+    {
+        using var workspace = CycleWorkspace.Create();
+        workspace.WriteAllArtifacts();
+        workspace.WriteBlockingRound(ArtifactKind.Spec, id: "F_04", cites: "CON_04");
+
+        string panel = await Render(workspace, ArtifactKind.Spec);
+
+        StringAssert.Contains(panel, "sdlc findings 20260929_1456_32 --stage spec --blocking");
+    }
+
+    [TestMethod]
+    public async Task The_brief_panel_names_each_blocker_by_its_gist_and_says_where_to_read_why()
+    {
+        // The panel every stage skill ends a lap on. "blockers 3" alone told somebody something was wrong
+        // without a word they could act on.
+        using var workspace = CycleWorkspace.Create();
+        workspace.WriteAllArtifacts();
+        workspace.WriteRound(
+            ArtifactKind.Spec,
+            1,
+            string.Join(",", Enumerable.Range(1, 7).Select(n => string.Create(
+                System.Globalization.CultureInfo.InvariantCulture,
+                $$"""
+                  {
+                    "id": "F_0{{n}}",
+                    "severity": "blocking",
+                    "disposition": "open",
+                    "cites": { "id": "CON_03", "heading": "a rule" },
+                    "statement": "the full account.",
+                    "gist": "gist number {{n}}."
+                  }
+                  """))));
+
+        string brief = await RenderBrief(workspace, ArtifactKind.Spec);
+
+        StringAssert.Contains(brief, "F_01   gist number 1.");
+        StringAssert.Contains(brief, "F_05   gist number 5.");
+        Assert.IsFalse(brief.Contains("gist number 6.", StringComparison.Ordinal), "Five at most; past that the full panel is the read.");
+        StringAssert.Contains(brief, "and 2 more");
+        StringAssert.Contains(brief, "sdlc findings 20260929_1456_32 --stage spec --blocking");
     }
 
     [TestMethod]
@@ -178,6 +302,29 @@ public sealed class StatusRendererTests
         StringAssert.Contains(panel, "sdlc refine 20260929_1456_32 plan");
         StringAssert.Contains(panel, "apply F_09");
         StringAssert.Contains(panel, "sdlc interrogate 20260929_1456_32 plan");
+    }
+
+    [TestMethod]
+    [DataRow("blocked", "sdlc remediate 20260929_1456_32", "a criterion is not met")]
+    [DataRow("pass", "sdlc verify 20260929_1456_32", "answer F_13 in a fresh adjudication")]
+    [DataRow("escalated", "sdlc status 20260929_1456_32", "needs a person")]
+    public async Task A_verify_document_with_an_open_blocker_is_never_told_to_refine(string outcome, string command, string why)
+    {
+        // A blocked MarketSense cycle at verify round 8 was told to refine its verdict, which the verify
+        // skill forbids: the generic blocker rule ran before anything knew a verify document is different.
+        using CycleWorkspace workspace = Approved();
+        workspace.WriteVerify(outcome);
+        workspace.WriteBlockingRound(ArtifactKind.Verify, id: "F_13", cites: "CON_08");
+
+        foreach (string? stage in new[] { "verify", null })
+        {
+            ReadCycleStatus.Response status = await Read(workspace);
+            string panel = StatusRenderer.RenderStage(status, await Panel(status.PanelFor(stage).Value));
+
+            Assert.IsFalse(panel.Contains("refine", StringComparison.Ordinal), panel);
+            StringAssert.Contains(panel, command, panel);
+            StringAssert.Contains(panel, why, panel);
+        }
     }
 
     [TestMethod]

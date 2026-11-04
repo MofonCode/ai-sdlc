@@ -33,8 +33,13 @@ public static class FindingsRenderer
     /// True for one line per finding. The counts and ids, for somebody deciding what to open rather than
     /// reading the objections.
     /// </param>
+    /// <param name="blocking">
+    /// True for the open blockers alone: what stops the cycle, without the answered history and the
+    /// suggestions that make the whole listing of a long cycle run to hundreds of entries.
+    /// </param>
+    /// <param name="finding">One finding's id, or null for every one.</param>
     /// <returns>The rendered text, ending in a newline.</returns>
-    public static string Render(ReadFindings.Response response, bool brief = false)
+    public static string Render(ReadFindings.Response response, bool brief = false, bool blocking = false, string? finding = null)
     {
         ArgumentNullException.ThrowIfNull(response);
 
@@ -75,6 +80,8 @@ public static class FindingsRenderer
             [
                 .. artifact.Standing
                     .Where(finding => mentioned.Contains(finding.Id))
+                    .Where(one => !blocking || OpenBlocker(one))
+                    .Where(one => finding is null || string.Equals(one.Id, finding, StringComparison.Ordinal))
                     .OrderBy(finding => Rank(finding))
                     .ThenBy(finding => finding.Id, StringComparer.Ordinal),
             ];
@@ -82,21 +89,27 @@ public static class FindingsRenderer
             // Conflicts count as something raised. A round with no findings and a declared conflict is
             // the loop's third ending, not a quiet round -- and reporting "nothing raised" above it was
             // worse than saying nothing, because the one line that mattered was the one being denied.
-            if (shown.Count == 0 && artifact.Conflicts.Count == 0)
+            // A conflict is not a finding, so asking for one finding is not asking for it; asking for what
+            // blocks still is, because a declared conflict stops the loop as surely as a blocker does.
+            IReadOnlyList<Conflict> conflicts = finding is null ? artifact.Conflicts : [];
+
+            if (shown.Count == 0 && conflicts.Count == 0)
             {
-                output.AppendLine(Indent + "    nothing raised");
+                output.AppendLine(Indent + (finding is not null
+                    ? "    no finding " + finding
+                    : blocking ? "    no open blockers" : "    nothing raised"));
                 continue;
             }
 
-            foreach (Finding finding in shown)
+            foreach (Finding one in shown)
             {
-                Entry(output, finding, brief);
+                Entry(output, one, brief);
             }
 
             // After the findings, because a conflict is rarer and reads as the conclusion of the
             // history rather than one more item in it. Only the latest round's, for the reason
             // StandingConflicts gives: a conflict nobody re-declared was resolved.
-            foreach (Conflict conflict in artifact.Conflicts)
+            foreach (Conflict conflict in conflicts)
             {
                 output.AppendLine(string.Create(
                     CultureInfo.InvariantCulture,
@@ -152,6 +165,13 @@ public static class FindingsRenderer
         if (finding.Gist is { } gist)
         {
             output.AppendLine(Indent + "        gist    " + gist.ReplaceLineEndings(" "));
+        }
+
+        // Every place, where the panels show the first: this is the listing somebody follows into the
+        // document, and a place left out is one they find by rereading it.
+        if (!string.IsNullOrWhiteSpace(finding.Locus))
+        {
+            output.AppendLine(Indent + "        where   " + finding.Locus.ReplaceLineEndings(" "));
         }
 
         output.AppendLine(Indent + "        " + finding.Statement.ReplaceLineEndings(" "));

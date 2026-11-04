@@ -148,4 +148,32 @@ public sealed record Finding(
 
     /// <summary>What a panel shows first: the gist, or the statement on a finding raised before gists.</summary>
     public string Headline => (Gist ?? Statement).ReplaceLineEndings(" ");
+
+    /// <summary>
+    /// Where in the artifact, as a panel shows it: the first place in full, and how many more there are.
+    /// </summary>
+    /// <remarks>
+    /// The first place untouched rather than the whole locus cut at a length, because a cut location is one
+    /// nobody can find -- the point of the line is to be followed. Readers separate several places with a
+    /// semicolon; the rest are a count, and <c>sdlc findings</c> prints them all.
+    /// </remarks>
+    public string? Place
+    {
+        get
+        {
+            if (string.IsNullOrWhiteSpace(Locus))
+            {
+                return null;
+            }
+
+            string[] places = Locus.ReplaceLineEndings(" ").Split("; ", StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+            return places.Length switch
+            {
+                0 => null,
+                1 => places[0],
+                _ => string.Create(CultureInfo.InvariantCulture, $"{places[0]} (and {places.Length - 1} more)"),
+            };
+        }
+    }
 }

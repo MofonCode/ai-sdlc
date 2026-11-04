@@ -1496,7 +1496,11 @@ static async Task<int> Findings(Workspace workspace, CommandLine line, CycleId i
     }
 
     await Console.Out
-        .WriteAsync(FindingsRenderer.Render(result.Value, line.HasOption("brief")))
+        .WriteAsync(FindingsRenderer.Render(
+            result.Value,
+            line.HasOption("brief"),
+            line.HasOption("blocking"),
+            line.TryOption("finding", out string? finding) ? finding : null))
         .ConfigureAwait(false);
 
     return ExitCode.Ok;

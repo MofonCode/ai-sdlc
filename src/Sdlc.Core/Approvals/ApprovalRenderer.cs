@@ -59,21 +59,9 @@ public static class ApprovalRenderer
             {
                 foreach (Findings.Finding finding in artifact.OpenBlockers)
                 {
-                    output.AppendLine(CultureInfo.InvariantCulture,
-                        $"    {Cycle.NameOf(artifact.Kind)}.{finding.Id}  {finding.Cites?.Id}");
-
-                    if (finding.Cites?.Line() is { } rule)
+                    foreach (string line in Findings.BlockerLines.Of(string.Create(CultureInfo.InvariantCulture, $"{Cycle.NameOf(artifact.Kind)}.{finding.Id}"), finding, "    "))
                     {
-                        output.AppendLine(CultureInfo.InvariantCulture, $"        {rule}");
-                    }
-
-                    output.AppendLine(CultureInfo.InvariantCulture,
-                        $"        {finding.Headline}");
-
-                    if (finding.Remedy is { } remedy)
-                    {
-                        output.AppendLine(CultureInfo.InvariantCulture,
-                            $"        Fix: {remedy.ReplaceLineEndings(" ")}");
+                        output.AppendLine(line);
                     }
                 }
             }

@@ -129,6 +129,74 @@ public sealed class FindingsCommandTests
     }
 
     [TestMethod]
+    public async Task Each_finding_says_every_place_it_was_found()
+    {
+        // The panels show the first place; this is the listing somebody follows into the document, so it
+        // shows all of them.
+        using var workspace = CycleWorkspace.Create();
+        workspace.WriteAllArtifacts();
+        workspace.WriteRound(ArtifactKind.Spec, round: 1, findings: """
+          {
+            "id": "F_01",
+            "severity": "blocking",
+            "disposition": "open",
+            "cites": { "id": "CON_03", "heading": "a rule" },
+            "statement": "the full account.",
+            "locus": "criterion 4; criterion 9"
+          }
+          """);
+
+        string rendered = FindingsRenderer.Render(await Read(workspace));
+
+        StringAssert.Contains(rendered, "where   criterion 4; criterion 9");
+    }
+
+    [TestMethod]
+    public async Task Blocking_shows_the_open_blockers_and_nothing_settled_or_merely_suggested()
+    {
+        // A long cycle's whole history runs to hundreds of entries, most of them suggestions. The person
+        // the panel sent here wanted what stops the cycle.
+        using var workspace = CycleWorkspace.Create();
+        workspace.WriteAllArtifacts();
+        workspace.WriteRound(ArtifactKind.Spec, round: 1, findings: """
+          { "id": "F_01", "severity": "blocking", "disposition": "open", "cites": { "id": "CON_03", "heading": "a rule" }, "statement": "still open." },
+          { "id": "F_02", "severity": "blocking", "disposition": "answered", "cites": { "id": "CON_03", "heading": "a rule" }, "statement": "settled." },
+          { "id": "F_03", "severity": "suggestion", "disposition": "open", "statement": "a suggestion." }
+          """);
+
+        string rendered = FindingsRenderer.Render(await Read(workspace), blocking: true);
+
+        StringAssert.Contains(rendered, "still open.");
+        Assert.IsFalse(rendered.Contains("settled.", StringComparison.Ordinal), rendered);
+        Assert.IsFalse(rendered.Contains("a suggestion.", StringComparison.Ordinal), rendered);
+
+        workspace.WriteRound(ArtifactKind.Spec, round: 2, findings: """
+          { "id": "F_01", "severity": "blocking", "disposition": "answered", "cites": { "id": "CON_03", "heading": "a rule" }, "statement": "now answered." }
+          """);
+
+        StringAssert.Contains(FindingsRenderer.Render(await Read(workspace, ArtifactKind.Spec), blocking: true), "no open blockers");
+    }
+
+    [TestMethod]
+    public async Task One_finding_can_be_asked_for_by_its_id()
+    {
+        using var workspace = CycleWorkspace.Create();
+        workspace.WriteAllArtifacts();
+        workspace.WriteRound(ArtifactKind.Spec, round: 1, findings: """
+          { "id": "F_01", "severity": "blocking", "disposition": "open", "cites": { "id": "CON_03", "heading": "a rule" }, "statement": "the first." },
+          { "id": "F_02", "severity": "blocking", "disposition": "open", "cites": { "id": "CON_03", "heading": "a rule" }, "statement": "the second." }
+          """);
+
+        ReadFindings.Response read = await Read(workspace, ArtifactKind.Spec);
+
+        string one = FindingsRenderer.Render(read, finding: "F_02");
+
+        StringAssert.Contains(one, "the second.");
+        Assert.IsFalse(one.Contains("the first.", StringComparison.Ordinal), one);
+        StringAssert.Contains(FindingsRenderer.Render(read, finding: "F_09"), "no finding F_09");
+    }
+
+    [TestMethod]
     public async Task The_history_shows_the_latest_rounds_conflict()
     {
         using var workspace = CycleWorkspace.Create();

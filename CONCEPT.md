@@ -2045,10 +2045,13 @@ document says about itself, and the next step.
             3 sections: Acceptance criteria, Out of scope, Open
 
   Checks    r1: 2 blocking - r2: 1 blocking
-            F_01   CON_16      blocking
-                a spec covers every outcome its intent asks for, and all of each one
-                the decided delivery has no criterion at all
-                Fix: add a criterion naming how the roll reaches the page
+  Turnover  r2: 1 new, 0 carried over, 0 came back; 2 raised earlier and settled
+            CON_16  1 blocking
+                rule    a spec covers every outcome its intent asks for, and all of each one
+              F_03   the decided delivery has no criterion at all
+                     Where: ## Acceptance criteria
+                     Fix:   add a criterion naming how the roll reaches the page
+            Why each fails: sdlc findings 20260929_1456_32 --stage spec --blocking
 
   Gate      not approved yet
 
@@ -2075,9 +2078,15 @@ headings a person wrote.
 
 **A citation is shown as its id and the rule's own line, never the id alone** (D-63). This panel is
 where somebody meets a blocker when deciding what to do about it, and an id with no words beside it says
-a rule was broken without saying which. **Under it, the blocker's gist** — the one sentence its reader
-wrote about what set it off — **and a `Fix:` line**, the remedy; the statement in full is
-`sdlc findings`' (D-110).
+a rule was broken without saying which. Blockers are listed under the rule they cite, with its line
+once. **Under the rule, each blocker's gist** — the one sentence its reader wrote about what set it off —
+**a `Where:` line**, the first place the reader found it and how many more, **and a `Fix:` line**, the
+remedy (D-110, D-126). The statement in full and every place are `sdlc findings`', and the panel ends its
+blockers with the command that prints them.
+
+**A `Turnover` row appears from the second round**: of the open blockers, how many the latest round
+raised, how many it carried over and how many came back after being answered, and how many raised earlier
+are settled. It is counts, not advice (D-126).
 
 **A `Loop` row appears only when the oscillation counter has something to say** — a rule answered and
 raised again, with what it is caught against and the findings that came back, so one objection
@@ -2171,8 +2180,8 @@ they print verbatim.
 | `init` | adopts the framework — three modes, §9. Human-invoked; the hook denies an agent running it |
 | `new` | opens a cycle: allocates the id, creates its directory, and **claims** the id with a marker the filesystem refuses to create twice — the claim is the collision check, not the directory (D-10) |
 | `constraints [--for <artifact>]` | renders the effective set, all tiers. How the rules reach a session |
-| `status <id> [--stage] [--brief]` | the stage panel — §14. `--brief` is the between-stages form: the counts, what the artifact says, and the next command |
-| `findings <id> [--stage] [--round]` | what the interrogations said about one cycle, per artifact, each finding at the disposition that stands |
+| `status <id> [--stage] [--brief]` | the stage panel — §14. `--brief` is the between-stages form: the counts, what the artifact says, each open blocker's gist, and the next command (D-126) |
+| `findings <id> [--stage] [--round] [--blocking] [--finding <fid>]` | what the interrogations said about one cycle, per artifact, each finding at the disposition that stands, with every place it was found; `--blocking` for the open blockers alone, `--finding` for one (D-126) |
 | `round <id> <artifact> --from <file>` | appends the next round to the artifact's findings ledger: the readers' new findings and the session's dispositions merged in, with the round number, the time, and the hashes of what was judged, what it was judged against, each section, and on a verify the evidence, stamped by the binary and chained to the round before. Refuses while anything above it in the chain is unsettled, a known id restated with different words, and a new blocker without a one-line gist (D-110). `--changed` lists the sections moved since the last round instead — D-101, D-107 |
 | `round prompt <id> <artifact> --dir <directory>` | writes every reader's prompt for a round: the block every reader shares first, in one order, and each reader's own part last. `--reader` writes one — the rules reader, a perspective, the reconciler once the others have answered, or the adjudicator on a verify; `--list` names them — D-117 |
 | `round collect <id> <artifact> --dir <directory>` | reads every reader's answer, validates it, numbers new ids past the ledgers, applies the reconciler's restatements and pairs, and drafts the round file with each reader's usage; the session adds the dispositions of earlier findings (D-49) — D-117, D-121 |
@@ -7109,6 +7118,39 @@ its refusal still apply.
 - *Keeping `sdlc <stage>` everywhere.* Correct and host-neutral, and costs a refusal each time.
 - *Guessing a marker for Copilot or Antigravity.* Neither documents one; a guessed marker is a panel that
   names one host's invocation to someone using another.
+
+### D-126 — A blocker says where it is, and the panel says which of its blockers are new
+
+**Governs:** §6.1, §14
+
+**Decision.** Every surface that shows an open blocker — the status panel, the approval draft, the
+approval refusal and the gate refusal — shows its `locus` as a `Where:` line beside the gist and the
+`Fix:` (D-110): the first place in full, and how many more. The status panel groups blockers by the rule
+they cite, printing the rule's line once, and ends them with `sdlc findings <id> --stage <artifact>
+--blocking`, which prints the statement and every place. `sdlc findings` takes `--blocking` and
+`--finding <fid>`. From the second round the panel adds a `Turnover` row: of the open blockers, how many
+are new, carried over or came back, and how many raised earlier are settled. The brief panel names each
+open blocker by its gist, five at most.
+
+**Why.** On MarketSense a verify blocked for eight rounds, and what the person saw was three findings
+each printed under the same rule's line, with a gist and a fix and no way to find the sentence objected
+to. Every reader had written a precise locus — the criterion, the bullet, the diff lines — and no renderer
+printed it. The full statement was one command away and nothing named the command; that command printed
+175 findings for the plan. And the history (`r1: 2 blocking - … - r8: 3 blocking`) could not say that
+every round's blockers were new and all twelve earlier ones answered — the shape of a document too wide
+to prove in one pass, which wants a smaller cycle rather than another refine. The brief panel each stage
+ends on said "blockers 3" and nothing a person could act on.
+
+**Rejected.**
+
+- *Showing the statement on the panel.* D-110 took it off for burying the gist and the fix; nothing about
+  that changed.
+- *Truncating the locus to a width.* A cut location cannot be followed. The first place is kept whole and
+  the rest counted.
+- *Asking readers for a shorter locus.* What makes it useful is precision, and the full list stays in
+  `sdlc findings`.
+- *A warning when every blocker is new.* A long honest interrogation is not a fault (D-65); the row
+  states counts and the person decides.
 
 ### D-125 — Work is sliced into atomic cycles before any opens, and what waits is a successor, not a cycle
 

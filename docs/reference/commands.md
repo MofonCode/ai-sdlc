@@ -45,7 +45,7 @@ an agent runs it, and it never decides a gate. `skills.md` lists the skills.
 | `sdlc status <id>` | binary | the panel for the document the cycle is waiting on, or its furthest one; the gate; and the literal next command, a stage in it named as the host invokes one (`/sdlc:pr` inside Claude Code) |
 | `sdlc status <id> --brief` | binary | the same, between stages |
 | `sdlc status <id> --stage spec` | binary | one artifact's panel: intent, spec, plan or verify |
-| `sdlc findings <id>` | binary | what the interrogations said, each finding at the disposition that stands |
+| `sdlc findings <id>` | binary | what the interrogations said, each finding at the disposition that stands, with where it was found; `--blocking` for the open blockers alone, `--finding <fid>` for one |
 | `sdlc propose convergence` | binary | what the record says the rules, decisions and stack are missing, in one ranked report — with each cycle's rounds, reopens and every verdict — ending with the proposal file to mark. `/sdlc:propose convergence` runs it |
 | `sdlc draft convergence <file>` | binary | drafts of `constraints.md`, `decisions.md` and `techstack.md` from the proposals marked `[x]`: copies with only those lines applied, refused if anything would go missing |
 | `sdlc round <id> <artifact> --from <file>` | binary | appends the next round to the artifact's findings ledger, stamped, hashed and chained to the round before, with its suggestions in the cycle's suggestions ledger, and refuses it while anything above is unsettled, a known finding comes back in other words, a new blocker has no one-line gist, or a suggestion does not fit the cycle's. `/sdlc:interrogate` runs it; `--changed` lists the sections moved since the last round |

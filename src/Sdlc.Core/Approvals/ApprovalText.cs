@@ -5,6 +5,7 @@ using Microsoft.Extensions.DependencyInjection;
 using MofonCode.Core;
 using Sdlc.Core.Artifacts;
 using Sdlc.Core.Cycles;
+using Sdlc.Core.Findings;
 using Sdlc.Core.Git;
 using Sdlc.Core.Solutions;
 
@@ -415,7 +416,10 @@ public static class ApprovalText
                     CultureInfo.InvariantCulture,
                     $"Cycle {status.Cycle.Id} cannot be approved: {ids.Count} blocking {verb} open."),
                 string.Empty,
-                string.Create(CultureInfo.InvariantCulture, $"    {string.Join(", ", ids)}"),
+                .. status.Artifacts.SelectMany(artifact => artifact.OpenBlockers.SelectMany(finding => BlockerLines.Of(
+                    string.Create(CultureInfo.InvariantCulture, $"{Cycle.NameOf(artifact.Kind)}.{finding.Id}"),
+                    finding,
+                    "    "))),
                 string.Empty,
                 "A blocking finding cannot be waived, accepted or overridden, so there is no entry to",
                 "print. Answer each one, re-interrogate, and come back:",

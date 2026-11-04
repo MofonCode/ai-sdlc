@@ -78,6 +78,27 @@ public static class StatusRenderer
 
         Field(output, "Says", panel.Outline.Headline ?? "(no heading yet)");
 
+        // Each blocker's gist and the command that explains them. This is the panel every stage skill ends
+        // a lap on, and "blockers 3" in the counter line told somebody something was wrong without a single
+        // word they could act on. The gist rather than the id and rule, because ids are what a reader then
+        // has to go and resolve; a handful at most, because past that the full panel is the better read.
+        if (state.OpenBlockers.Count > 0)
+        {
+            const int Shown = 5;
+
+            foreach ((Finding finding, int at) in state.OpenBlockers.Take(Shown).Select((finding, at) => (finding, at)))
+            {
+                Hung(output, finding.Id.PadRight(Math.Max(7, finding.Id.Length + 2)), finding.Headline, at == 0 ? "Blocking" : string.Empty);
+            }
+
+            if (state.OpenBlockers.Count > Shown)
+            {
+                Field(output, string.Empty, string.Create(CultureInfo.InvariantCulture, $"and {state.OpenBlockers.Count - Shown} more"));
+            }
+
+            Field(output, string.Empty, "Why each fails: " + FindingsCommand(status, state));
+        }
+
         if (suggestions > 0)
         {
             Field(output, "Open", string.Create(
@@ -169,7 +190,7 @@ public static class StatusRenderer
 
         Shape(output, panel.Shape);
 
-        Checks(output, state);
+        Checks(output, status, state);
         Loop(output, state);
         Spent(output, status, state);
         Conflicts(output, state);
@@ -350,7 +371,7 @@ public static class StatusRenderer
         }
     }
 
-    private static void Checks(StringBuilder output, ReadCycleStatus.ArtifactState state)
+    private static void Checks(StringBuilder output, ReadCycleStatus.Response status, ReadCycleStatus.ArtifactState state)
     {
         if (state.Rounds == 0)
         {
@@ -370,33 +391,87 @@ public static class StatusRenderer
 
         Field(output, "Checks", string.Join(" - ", history));
 
-        // The id and the constraint on one line, then the rule it cites, then the statement: both of
-        // those are sentences, and wrapping either beside two short columns would collapse their
-        // alignment. The rule comes first because it is the one a reader needs in order to weigh the
-        // objection -- this panel is where somebody at the gate meets a blocker, and an id with no
-        // words beside it tells them a rule was broken without telling them which.
-        foreach (Finding finding in state.OpenBlockers)
+        if (Describe(state.Turnover) is { } turnover)
         {
+            Field(output, "Turnover", turnover);
+        }
+
+        // Grouped by the rule they cite, with the rule's words once above its findings: three blockers
+        // under one rule printed that sentence three times, and the repetition was what a reader skimmed
+        // past to reach the one line that differed. The rule still comes before the objection, because it
+        // is what a reader needs in order to weigh it -- an id with no words beside it says a rule was
+        // broken without saying which.
+        foreach (IGrouping<string, Finding> group in state.OpenBlockers.GroupBy(finding => finding.Cites?.Id ?? string.Empty, StringComparer.Ordinal))
+        {
+            Citation? cites = group.First().Cites;
+
             Field(
                 output,
                 string.Empty,
-                string.Create(CultureInfo.InvariantCulture, $"{finding.Id,-7}{finding.Cites?.Id,-12}blocking"));
+                string.Create(CultureInfo.InvariantCulture, $"{cites?.Id ?? "(no rule)"}  {Count(group.Count())}"));
 
-            if (finding.Cites?.Line() is { } rule)
+            if (cites?.Line() is { } rule)
             {
                 Field(output, string.Empty, "    " + rule);
             }
 
-            // What set it off, then what would clear it. The statement in full is 'sdlc findings'
-            // business: at five hundred to eighteen hundred characters it buried both of these, and
-            // somebody at the gate came away knowing only which rule.
-            Field(output, string.Empty, "    " + finding.Headline);
-
-            if (finding.Remedy is { } remedy)
+            // What set it off, where, then what would clear it. Where is the line a reader follows into the
+            // document, and without it the gist named a problem nobody could find. The statement in full is
+            // 'sdlc findings' business: at five hundred to eighteen hundred characters it buried the rest,
+            // and somebody at the gate came away knowing only which rule.
+            foreach (Finding finding in group)
             {
-                Field(output, string.Empty, "    Fix: " + remedy.ReplaceLineEndings(" "));
+                string id = "  " + finding.Id.PadRight(Math.Max(7, finding.Id.Length + 2));
+                string under = new(' ', id.Length);
+
+                Hung(output, id, finding.Headline);
+
+                if (finding.Place is { } place)
+                {
+                    Hung(output, under + "Where: ", place);
+                }
+
+                if (finding.Remedy is { } remedy)
+                {
+                    Hung(output, under + "Fix:   ", remedy.ReplaceLineEndings(" "));
+                }
             }
         }
+
+        if (state.OpenBlockers.Count > 0)
+        {
+            Field(output, string.Empty, "Why each fails: " + FindingsCommand(status, state));
+        }
+    }
+
+    /// <summary>The command that prints this artifact's open blockers with their reasoning in full.</summary>
+    private static string FindingsCommand(ReadCycleStatus.Response status, ReadCycleStatus.ArtifactState state) =>
+        string.Create(CultureInfo.InvariantCulture, $"sdlc findings {status.Cycle.Id} --stage {Cycle.NameOf(state.Kind)} --blocking");
+
+    /// <summary>
+    /// The turnover line, or nothing before a second round.
+    /// </summary>
+    /// <remarks>
+    /// Counts, in the same flat voice as the history beside it: a loop that raises something new each
+    /// round is not failing, and the line says which kind of loop this is without calling it a problem.
+    /// The person reading it decides whether that means another refine or a smaller cycle.
+    /// </remarks>
+    private static string? Describe(Turnover? turnover)
+    {
+        if (turnover is null)
+        {
+            return null;
+        }
+
+        string open = turnover.Raised + turnover.Carried + turnover.Returned == 0
+            ? "nothing open"
+            : string.Create(
+                CultureInfo.InvariantCulture,
+                $"{turnover.Raised} new, {turnover.Carried} carried over, {turnover.Returned} came back");
+
+        return string.Create(
+            CultureInfo.InvariantCulture,
+            $"r{turnover.Round}: {open}; {turnover.Settled} raised earlier and settled");
     }
 
     /// <summary>
@@ -443,6 +518,9 @@ public static class StatusRenderer
                 Stage(host, string.Create(CultureInfo.InvariantCulture, $"verify {id}")),
                 string.Create(CultureInfo.InvariantCulture, $"the outcome reads '{status.Outcome}'")),
         };
+
+    private static bool IsOutcome(ReadCycleStatus.Response status, string outcome) =>
+        string.Equals(status.Outcome, outcome, StringComparison.OrdinalIgnoreCase);
 
     /// <summary>
     /// Each document's approved hash beside its current one, when the gate says one has changed.
@@ -517,6 +595,18 @@ public static class StatusRenderer
             next.Add((
                 Stage(host, string.Create(CultureInfo.InvariantCulture, $"interrogate {id} {name}")),
                 "nothing has argued with it yet"));
+        }
+        else if (state.Kind == ArtifactKind.Verify && state.OpenBlockers.Count > 0)
+        {
+            // Never refine. A verdict's blockers are answered by a fresh adjudication, and a criterion not
+            // met by remediating the code; editing verify.md is the self-grading verify exists to prevent.
+            // This branch fell through to the one below, so a blocked cycle was told to refine its verdict.
+            next.Add(IsOutcome(status, "pass")
+                ? (Stage(host, string.Create(CultureInfo.InvariantCulture, $"verify {id}")),
+                   string.Create(
+                       CultureInfo.InvariantCulture,
+                       $"answer {string.Join(", ", state.OpenBlockers.Select(f => f.Id))} in a fresh adjudication - in a new session"))
+                : AfterTheGate(status, id, host));
         }
         else if (state.OpenBlockers.Count > 0)
         {
@@ -619,6 +709,26 @@ public static class StatusRenderer
         foreach (string piece in Wrap(body.TrimStart(), Width - hanging.Length))
         {
             output.AppendLine(first ? prefix + body[..(body.Length - body.TrimStart().Length)] + piece : hanging + piece);
+            first = false;
+        }
+    }
+
+    /// <summary>
+    /// Writes a lead in the value column and a body beside it, every wrapped line starting under the body.
+    /// </summary>
+    /// <remarks>
+    /// For a blocker's id and its gist, and for its place and its fix: a continuation that went back to
+    /// the id's column read as the next finding, and one under "Where:" read as a second location.
+    /// </remarks>
+    private static void Hung(StringBuilder output, string lead, string body, string label = "")
+    {
+        string prefix = string.Create(CultureInfo.InvariantCulture, $"{Indent}{label,-10}");
+        string hanging = Label + new string(' ', lead.Length);
+        bool first = true;
+
+        foreach (string piece in Wrap(body, Math.Max(20, Width - hanging.Length)))
+        {
+            output.AppendLine((first ? prefix + lead : hanging) + piece);
             first = false;
         }
     }

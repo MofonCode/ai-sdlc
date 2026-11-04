@@ -73,6 +73,10 @@ public static class ReadCycleStatus
     /// The latest round's hash in the findings ledger (D-107), which an approval anchors. Null when there
     /// is no round.
     /// </param>
+    /// <param name="Turnover">
+    /// Which of the open blockers the latest round raised and which it inherited, and how many earlier ones
+    /// were answered. Null before a second round.
+    /// </param>
     public sealed record ArtifactState(
         ArtifactKind Kind,
         string Path,
@@ -87,7 +91,8 @@ public static class ReadCycleStatus
         OscillationState Loop,
         string? UpstreamHash = null,
         string? JudgedAgainst = null,
-        string? LatestEntry = null)
+        string? LatestEntry = null,
+        Turnover? Turnover = null)
     {
         /// <summary>
         /// Whether the latest round judged this artifact against an upstream that has since changed.
@@ -368,7 +373,8 @@ public static class ReadCycleStatus
                 Oscillation.Count(rounds),
                 upstreamHash,
                 latest?.UpstreamSha256,
-                latest?.EntrySha256));
+                latest?.EntrySha256,
+                Turnover.Of(rounds)));
         }
 
     }

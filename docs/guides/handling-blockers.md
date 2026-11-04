@@ -11,9 +11,20 @@ guide covers the blockers behind some of them, and how they are answered.
 
 **Reading one.** The status panel, the approval draft and the gate refusal show each open blocker as the
 rule it cites, a **gist** — one plain sentence from the reader that raised it, saying what in the
-document set it off — and a **`Fix:`** line, the reader's remedy. The full statement, which can run to a
-long paragraph, is in `sdlc findings <id> --stage <artifact>`. A blocker raised before gists existed shows
-its statement in the gist's place.
+document set it off — a **`Where:`** line, the place in the document it was found (the first place, and
+how many more), and a **`Fix:`** line, the reader's remedy. The status panel lists blockers under the rule
+they cite, with the rule's words once, and ends with the command that explains them:
+`sdlc findings <id> --stage <artifact> --blocking` prints each one's full statement, which can run to a long
+paragraph, and every place it was found; `--finding <fid>` prints one. The brief panel a stage ends on
+names each blocker by its gist. A blocker raised before gists existed shows its statement in the gist's
+place.
+
+**Reading the loop.** From the second round the panel adds a **Turnover** line: how many of the open
+blockers this round raised for the first time, how many it carried over, how many came back after being
+answered, and how many raised earlier are settled. *3 new, 0 carried over, 0 came back; 12 settled*
+is a reader finding something nobody had raised each round with every earlier objection answered —
+a document too wide to prove in one pass, which another refine will not narrow. Blockers that come back
+are the loop the **Loop** line warns about.
 
 **Nothing here can be waived.** There is no field for accepting a blocker, no flag, and no recorded
 override. It is answered, or the cycle does not advance — and that is the design working, because a
@@ -199,8 +210,11 @@ assembles the spec, the plan and the evidence, starts the adjudicator, and recor
 the verify document's own interrogation raises a blocker, a new adjudicator answers it — the session does
 not edit the verdict.
 
-It writes `pass` or `blocked`, and a findings round of its own in `findings/verify.json`, whose blocking
-findings are what remediation works from. **`pr-ready` refuses anything but `pass`.**
+It writes `pass` or `blocked`, and a findings round of its own in `findings/verify.json`. **`pr-ready`
+refuses anything but `pass`.**
+
+**Do not refine a verify document.** Its blockers are answered by a fresh adjudication when the outcome
+is `pass`, and by remediation when it is `blocked`; `sdlc status` names whichever applies.
 
 ### Answering it
 
@@ -208,9 +222,11 @@ findings are what remediation works from. **`pr-ready` refuses anything but `pas
 /sdlc:remediate <id>
 ```
 
-Remediate reads the latest verify round and edits source and tests to fix the **cause**, never a
-planning document. It does not verify its own work — a verification by the session that wrote the fix is
-the bias the separation exists to remove — so after each pass it builds, tests, records the evidence
+Remediate works from two things: the criteria `verify.md` marks Not met, and the open blockers in the
+latest verify round. They are not the same list. A Not met that the verdict's readers agree with raises
+no finding, so a pass that worked only the findings could leave the criterion that blocked the cycle
+untouched. It edits source and tests to fix the **cause**, never a planning document. It does not
+verify its own work — a verification by the session that wrote the fix is the bias the separation exists to remove — so after each pass it builds, tests, records the evidence
 again and commits it, and a fresh verification reads the new evidence.
 
 **It runs while each pass reduces what is open, and stops when it is not getting anywhere** (D-66):

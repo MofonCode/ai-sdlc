@@ -277,6 +277,7 @@ public sealed class PublicSurfaceTests
         "Sdlc.Core.Findings.Disposition",
         "Sdlc.Core.Findings.Finding",
         "Sdlc.Core.Findings.FindingsReader",
+        "Sdlc.Core.Findings.Turnover",
 
         // One artifact's findings as the file holds them (D-107): each finding once with its moves, each
         // round an entry chained by hash. Public because FindingsReader reads and writes one, and because
