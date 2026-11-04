@@ -375,6 +375,14 @@ What is honest to say about the rest:
   not been measured doing so. `findings/usage.json` records what each round's readers cost (D-121), and
   `tools/Sdlc.UsageReport` reads whole sessions; which readers run on which rounds, and on which model,
   waits for what they record (`CONCEPT.md` §19).
+- **The convergence changes are unreleased and have not run a cycle.** The proof rules block what a
+  test never reaches rather than what a reader can imagine (`CON_21` and `CON_22` supersede `CON_06` and
+  `CON_08`, D-127); a suggestion may only sharpen an outcome (D-128); a plan probes the platform
+  behaviour it rests on (D-129), proves in a table, and a verify is rewritten in place (D-130); each
+  round records the release that wrote it (D-131). They were drawn from one MarketSense cycle of 88
+  rounds and six reopens, and the claim that they shorten a cycle is untested. D-128's and D-129's shape
+  rules hold only cycles opened under them. **Pinning a cycle to the release it opened on is decided
+  and not built**: the binary still installs once per machine.
 
 ## Not goals
 
