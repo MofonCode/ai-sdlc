@@ -73,9 +73,12 @@ accumulates are also what counts remediation passes.
 
 **A round's blocking findings are answered by a new adjudication, not by an edit.** Changing a verdict
 is adjudicating, so it happens where adjudicating happens: start a fresh adjudicator from a prompt written
-anew. While a verdict has blockers open, the binary adds the current `verify.md` and those findings, and
-asks it to answer each from the evidence — standing by a claim and citing why is an answer,
-as is changing it. Record what it returns, as above. Do not run `refine` on a verify document: a
+anew. The binary hands it the verdict before it — the current `verify.md`, or, once a new run has been
+recorded and that file removed, the last one committed — with any blockers still open, and asks it to
+**rewrite in place** (D-130): copy every entry as it stands unless a finding names its criterion, its test
+no longer passed, or the lines it quotes are gone from `diff.patch`, and answer each finding from the
+evidence — standing by a claim and citing why is an answer, as is changing it. A verdict rewritten whole
+each pass brings new sentences for every round to object to; one rewritten in place converges. Record what it returns, as above. Do not run `refine` on a verify document: a
 criterion moved from Not met to Met by this session's argument is the self-grading this skill exists to
 prevent, however good the argument.
 

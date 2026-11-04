@@ -449,6 +449,25 @@ public static class ReaderPrompts
                 .Replace("{{suggestions}}", SuggestionsRenderer.Render(suggestions.Value).ReplaceLineEndings("\n").TrimEnd(), StringComparison.Ordinal));
         }
 
+        /// <summary>
+        /// The verdict last committed for a cycle, once the file itself has gone.
+        /// </summary>
+        /// <remarks>
+        /// Recording a new run removes the verdict that adjudicated the old one, because every claim in it cites
+        /// evidence that is gone. What it judged of the code that did not move is still right, and git holds it.
+        /// </remarks>
+        /// <param name="cycle">The cycle.</param>
+        /// <returns>Its text, or null when none was ever committed.</returns>
+        private string? PreviousVerdict(Cycle cycle)
+        {
+            string path = Path.GetRelativePath(solution.Path, cycle.PathOf(ArtifactKind.Verify)).Replace('\\', '/');
+
+            return repository.CommitsTouching(solution.Path, "HEAD", path)
+                .Reverse()
+                .Select(commit => repository.ReadAt(solution.Path, commit.Commit, path))
+                .FirstOrDefault(text => text is not null);
+        }
+
         private async Task<Result<string>> ForAdjudicator(
             Cycle cycle,
             Command request,
@@ -481,11 +500,9 @@ public static class ReaderPrompts
             }
 
             // A blocking finding against the verdict is answered by a new adjudication handed the findings,
-            // never by an edit in the session (D-109). So when there is a verdict with blockers open, the
-            // adjudicator reads both and answers each from the evidence.
-            string previous = string.Empty;
-            string current = cycle.PathOf(ArtifactKind.Verify);
-
+            // never by an edit in the session (D-109). And the new adjudication starts from the verdict before
+            // it and rewrites only what a finding or the evidence moved (D-130): a verdict written whole each
+            // pass brings new sentences for every round to object to, which is how one verify spent nine.
             Result<ReadFindings.Response> standing = await mediator
                 .Send<ReadFindings.Query, ReadFindings.Response>(new ReadFindings.Query(request.Id, ArtifactKind.Verify), cancellationToken)
                 .ConfigureAwait(false);
@@ -495,15 +512,35 @@ public static class ReaderPrompts
                 return standing.ToResult<string>();
             }
 
-            if (System.IO.File.Exists(current) && standing.Value.Artifacts.Any(a => a.Standing.Any(f => f.IsOpenBlocker)))
+            bool blockersOpen = standing.Value.Artifacts.Any(a => a.Standing.Any(f => f.IsOpenBlocker));
+            string current = cycle.PathOf(ArtifactKind.Verify);
+            string? verdict = null;
+            string source = string.Empty;
+
+            if (System.IO.File.Exists(current))
             {
-                string verdict = (await System.IO.File.ReadAllTextAsync(current, cancellationToken).ConfigureAwait(false)).ReplaceLineEndings("\n").TrimEnd();
-                previous = "\nThis build has a verdict already, and its interrogation raised the findings below. Answer each from\nthe evidence: standing by a claim and citing why is an answer, as is changing it.\n\n<file name=\"verify.md\">\n"
-                    + verdict
-                    + "\n</file>\n\n<findings>\n"
-                    + FindingsRenderer.Render(standing.Value).ReplaceLineEndings("\n").TrimEnd()
-                    + "\n</findings>\n";
+                verdict = await System.IO.File.ReadAllTextAsync(current, cancellationToken).ConfigureAwait(false);
+                source = "This build has a verdict already, and it adjudicates the evidence above.";
             }
+            else if (standing.Value.Artifacts.Any(a => a.Rounds.Count > 0) && PreviousVerdict(cycle) is { } committed)
+            {
+                verdict = committed;
+                source = "An earlier run of this build had a verdict, removed when the run above was recorded.";
+            }
+
+            string previous = verdict is null
+                ? string.Empty
+                : "\n" + source + " Start from it and rewrite it in place. Copy an entry exactly as it stands\n"
+                    + "unless an open finding below names its criterion, its test no longer passed in `tests.json`, or the\n"
+                    + "lines it quotes are no longer in `diff.patch`. Rewrite only those entries, answer each finding from the\n"
+                    + "evidence -- standing by a claim and citing why is an answer, as is changing it -- and keep the outcome\n"
+                    + "true to the entries. A new sentence in an entry nothing asked you to touch is one more thing for a\n"
+                    + "reader to object to (D-130).\n\n<file name=\"verify.md\">\n"
+                    + verdict.ReplaceLineEndings("\n").TrimEnd()
+                    + "\n</file>\n"
+                    + (blockersOpen
+                        ? "\n<findings>\n" + FindingsRenderer.Render(standing.Value).ReplaceLineEndings("\n").TrimEnd() + "\n</findings>\n"
+                        : string.Empty);
 
             return Result.Ok(shared + Template("adjudicate")
                 .Replace("{{constraints}}", rules.Value, StringComparison.Ordinal)

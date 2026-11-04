@@ -112,6 +112,39 @@ public sealed class ReaderPromptsTests
     }
 
     [TestMethod]
+    public async Task The_adjudicator_rewrites_a_verdict_in_place_whether_it_is_on_disk_or_only_in_git()
+    {
+        // D-130. A verdict written whole each pass brought new sentences for every round to object to. The
+        // adjudicator starts from the one before -- the file while it stands, and the last committed copy once
+        // recording a new run has removed it -- and rewrites only what a finding or the evidence moved.
+        using var workspace = CycleWorkspace.Create();
+        workspace.WriteSpec(criteria: 1);
+        workspace.WritePlan(proofs: 1);
+        workspace.WriteTestSummary(proofs: 1);
+        workspace.WriteVerify("pass");
+        workspace.WriteBlockingRound(ArtifactKind.Verify, id: "F_01", cites: "CON_22");
+        string directory = Path.Combine(workspace.Root, "round");
+
+        string onDisk = await File.ReadAllTextAsync((await Prompt(workspace, ArtifactKind.Verify, directory, "adjudicate")).Value.Prompts[0].Path);
+
+        StringAssert.Contains(onDisk, "This build has a verdict already");
+        StringAssert.Contains(onDisk, "Copy an entry exactly as it stands");
+        StringAssert.Contains(onDisk, "<findings>");
+
+        foreach (string arguments in new[] { "init", "config user.email suite@example.invalid", "config user.name Suite", "add -A", "commit -q -m verdict" })
+        {
+            Assert.AreEqual(0, Git(workspace.Root, arguments), arguments);
+        }
+
+        File.Delete(workspace.Cycle.PathOf(ArtifactKind.Verify));
+
+        string fromGit = await File.ReadAllTextAsync((await Prompt(workspace, ArtifactKind.Verify, directory, "adjudicate")).Value.Prompts[0].Path);
+
+        StringAssert.Contains(fromGit, "An earlier run of this build had a verdict");
+        StringAssert.Contains(fromGit, "<file name=\"verify.md\">");
+    }
+
+    [TestMethod]
     public async Task The_adjudicator_is_composed_for_a_verify_alone_and_is_not_handed_a_verdict_to_judge()
     {
         using var workspace = CycleWorkspace.Create();
@@ -216,6 +249,21 @@ public sealed class ReaderPromptsTests
             ["claude-opus-5-5"] = new Dictionary<string, long> { ["outputTokens"] = 352 },
         },
     });
+
+    private static int Git(string root, string arguments)
+    {
+        using System.Diagnostics.Process process = System.Diagnostics.Process.Start(
+            new System.Diagnostics.ProcessStartInfo("git", arguments)
+            {
+                WorkingDirectory = root,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false,
+            })!;
+
+        process.WaitForExit();
+        return process.ExitCode;
+    }
 
     internal static async Task<Result<ReaderPrompts.Response>> Prompt(
         CycleWorkspace workspace,

@@ -312,6 +312,13 @@ separating "the part that is judged".
 A section exists because something reads it: a constraint, a mechanical check, a downstream skill, or
 a person at the gate (D-06).
 
+**A plan's `Proof` is a table, one row per case its criterion states** — criterion, case, test, and what
+the test asserts in one line — so its readers judge the rows that are there rather than discover the ones
+that are not; prose belongs in `Shape and departures` and `Risk`. **A verify is rewritten in place**: from
+the second adjudication on, the fresh adjudicator starts from the verdict before it and changes only the
+entries a finding or the evidence moved. The status panel prints each document's size, and refuses
+nothing for it (D-130).
+
 ### 4.3 `## Open` — what an artifact deliberately does not assert
 
 Questions nobody has answered, criteria that cannot be written yet, and limits of the proof. One

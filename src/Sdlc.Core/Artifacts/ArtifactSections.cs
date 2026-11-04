@@ -135,6 +135,78 @@ public static class ArtifactSections
             }
         }
 
+        // A proof written as a table (D-130): one row per case, its first cell the criterion's number. A
+        // criterion's rows become one entry that opens with every test the rows name, so the chain reads
+        // them as it reads a numbered entry and requires every one to have passed. A number the list already
+        // gave keeps the list's entry.
+        foreach (IGrouping<int, TableRow> criterion in TableRows(markdown, section).GroupBy(row => row.Number))
+        {
+            if (items.ContainsKey(criterion.Key))
+            {
+                continue;
+            }
+
+            string tests = string.Join(", ", criterion.Select(row => row.Test).Where(test => test.Length > 0));
+            string rest = string.Join("; ", criterion.Select(row => string.Join(": ", row.Others.Where(cell => cell.Length > 0))));
+
+            items[criterion.Key] = (tests + " " + rest).Trim();
+        }
+
         return items;
     }
+
+    /// <summary>
+    /// Reads the rows of a table in a section whose first cell is a number.
+    /// </summary>
+    /// <remarks>
+    /// The header names the columns, and the one headed <c>Test</c> is where a row's test names are. A cell
+    /// is split on <c>|</c>, so a cell may not hold one.
+    /// </remarks>
+    /// <param name="markdown">The document.</param>
+    /// <param name="section">Which section to read.</param>
+    /// <returns>Each numbered row, in document order. Empty when the section holds no such table.</returns>
+    public static IReadOnlyList<TableRow> TableRows(string markdown, string section)
+    {
+        ArgumentNullException.ThrowIfNull(markdown);
+        ArgumentException.ThrowIfNullOrWhiteSpace(section);
+
+        List<TableRow> rows = [];
+
+        if (!Read(markdown).TryGetValue(section, out IReadOnlyList<string>? lines))
+        {
+            return rows;
+        }
+
+        int test = -1;
+
+        foreach (string line in lines.Select(line => line.Trim()).Where(line => line.StartsWith('|')))
+        {
+            string[] cells = [.. line.Trim('|').Split('|').Select(cell => cell.Trim())];
+
+            if (cells.All(cell => cell.Length == 0 || cell.All(c => c is '-' or ':')))
+            {
+                continue;
+            }
+
+            if (!int.TryParse(cells[0], NumberStyles.None, CultureInfo.InvariantCulture, out int number))
+            {
+                test = Array.FindIndex(cells, cell => string.Equals(cell, "Test", StringComparison.OrdinalIgnoreCase));
+                continue;
+            }
+
+            rows.Add(new TableRow(
+                number,
+                test > 0 && test < cells.Length ? cells[test] : string.Empty,
+                [.. cells.Skip(1).Where((_, index) => index + 1 != test)]));
+        }
+
+        return rows;
+    }
 }
+
+/// <summary>One numbered row of a table in an artifact's section.</summary>
+/// <param name="Number">The criterion it belongs to.</param>
+/// <param name="Test">What its <c>Test</c> column holds, or empty when there is none.</param>
+/// <param name="Others">Its other cells after the number, in order.</param>
+public sealed record TableRow(int Number, string Test, IReadOnlyList<string> Others);
+

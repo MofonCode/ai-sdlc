@@ -305,6 +305,24 @@ public sealed class StatusRendererTests
     }
 
     [TestMethod]
+    public async Task The_stage_panel_says_how_big_a_plan_is_and_refuses_nothing_for_it()
+    {
+        // D-130. A plan reached 754 lines and 44 rounds before anybody counted. The panel counts, and that is
+        // all it does: slicing is where work is cut.
+        using CycleWorkspace workspace = Approved();
+        ReadCycleStatus.Response status = await Read(workspace);
+        ReadCycleStatus.ArtifactState plan = status.PanelFor("plan").Value;
+        string text = await File.ReadAllTextAsync(plan.Path);
+
+        StagePanel sized = (await Panel(plan)) with { Size = ArtifactSize.Describe(ArtifactKind.Plan, text) };
+        string panel = StatusRenderer.RenderStage(status, sized);
+
+        StringAssert.Contains(panel, "Size");
+        StringAssert.Contains(panel, "proof entr");
+        StringAssert.Contains(panel, "line");
+    }
+
+    [TestMethod]
     [DataRow("blocked", "sdlc remediate 20260929_1456_32", "a criterion is not met")]
     [DataRow("pass", "sdlc verify 20260929_1456_32", "answer F_13 in a fresh adjudication")]
     [DataRow("escalated", "sdlc status 20260929_1456_32", "needs a person")]

@@ -232,20 +232,34 @@ blockers (D-127). Close the cases the criterion states and the outcome it names.
 - A test that asserts a call was made proves the call, not its effect.
 - A test over 100 rows says nothing about 50,000.
 
-**Number the proof entries to match the criteria, and open each with its test's name in backticks.**
+**Write the proof as a table: one row for each case a criterion states** (D-130). A case is one of the
+things the criterion lists — an engine, a device profile, a kind of visit, a failure path. The row names
+the test in backticks and says in one line what it asserts; how the test is written is the build's.
 
 ```markdown
-1. `Rolls_within_one_and_six` draws 10,000 times and asserts every face is 1 to 6.
-2. `Two_requests_are_drawn_separately` requests the page twice and asserts the draws were independent.
-3. `Keyboard_rolls`, `Keyboard_keeps_focus` press Enter on the `Roll` button and assert where focus is.
+| Criterion | Case | Test | Asserts |
+|---|---|---|---|
+| 1 | 10,000 draws | `Rolls_within_one_and_six` | every face is 1 to 6 |
+| 2 | two requests | `Two_requests_are_drawn_separately` | the draws were independent |
+| 3 | Enter on Roll | `Keyboard_rolls` | the die changes |
+| 3 | Enter on Roll | `Keyboard_keeps_focus` | focus stays on Roll |
 ```
 
-The opening backticks are not decoration. `verify-chain` reads the names an entry **opens with** — one,
-or several joined by commas or "and" — and checks the normalised test summary to see that each one
-**ran and passed**. Backticks after the first plain word are formatting: entry 3's `Roll` is a button,
-not a test. So a test named mid-sentence is never checked, and an entry that opens with prose commits to
-nothing a reader can check — the plan's shape check refuses it. "Covered by the integration suite" is
-what an inadequate proof looks like when it is written in good faith.
+**The table is the closed list the readers judge.** They check the rows that are there — does each run its
+case, read its outcome, and could it fail — rather than discovering cells nobody wrote down, which is how
+one plan found a new missing case in every one of 44 rounds. A criterion that lists cases gets a row for
+every one; one that lists none gets one row. Keep prose to `Shape and departures` and `Risk`: a proof
+written as a paragraph is a test script argued over before the code exists, and it is what the build
+drifts from.
+
+The `Test` cell is not decoration. `verify-chain` reads the names in it — one, or several joined by
+commas or "and" — for every row of a criterion, and checks the normalised test summary to see that each
+one **ran and passed**. A row whose `Test` cell names no test commits to nothing a reader can check, and
+the plan's shape check refuses it. "Covered by the integration suite" is what an inadequate proof looks
+like when it is written in good faith. A cell may not hold a `|`.
+
+An older plan's numbered entries — `1. `Test_name` asserts …`, opening with the test's name — are still
+read, so a cycle that started with them does not have to rewrite its proof.
 
 The numbers are compared in both directions: a criterion with no proof fails, and a proof citing a
 criterion the spec does not have fails too — because that means one was deleted or renumbered after the
@@ -257,7 +271,7 @@ check matches on the suffix, because at planning time the namespace does not exi
 **You do not need the cases either.** Name a parameterised test once, without its arguments: a runner
 records one result per case and decorates the name — `Page_shows_a_face ("chromium")` — and the check
 finds every case of the test you named and requires **all** of them to have passed. So a test run across
-two browser engines is one proof entry, and a proof that passed in one engine and failed in the other is
+two browser engines can be one row, and a proof that passed in one engine and failed in the other is
 reported as absent rather than as proven. Do not collapse cases into a loop inside one test to make the
 name match; that costs the per-case result your own verify document would otherwise cite.
 
@@ -332,8 +346,9 @@ BannedSymbols.txt, .editorconfig, a hook configuration and the pipeline.>
 
 ## Proof
 
-1. `Test_name_in_backticks` and what it asserts, concretely enough to write.
-2. ...
+| Criterion | Case | Test | Asserts |
+|---|---|---|---|
+| 1 | <each case the criterion states> | `Test_name_in_backticks` | <what it asserts, in one line> |
 
 ## Risk
 

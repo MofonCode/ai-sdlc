@@ -615,6 +615,12 @@ internal sealed class CycleWorkspace : IDisposable
         {
             if (Directory.Exists(Root))
             {
+                // Git writes its objects read-only, and a workspace a test committed in holds some.
+                foreach (string file in Directory.EnumerateFiles(Root, "*", SearchOption.AllDirectories))
+                {
+                    File.SetAttributes(file, FileAttributes.Normal);
+                }
+
                 Directory.Delete(Root, recursive: true);
             }
         }

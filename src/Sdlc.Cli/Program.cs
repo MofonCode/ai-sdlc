@@ -1737,14 +1737,12 @@ static async Task<int> Status(Workspace workspace, CommandLine line, CycleId id)
     // The gate carries the schema evaluator with it, so an artifact is fully checked where it is
     // written rather than first in a pipeline. A shape problem found here costs a heading; the same one
     // found in CI costs a round trip.
-    ArtifactValidation? shape = state.Exists
-        ? ArtifactSchema.Validate(
-            kind,
-            await File.ReadAllTextAsync(state.Path, CancellationToken.None).ConfigureAwait(false),
-            id)
+    string? text = state.Exists
+        ? await File.ReadAllTextAsync(state.Path, CancellationToken.None).ConfigureAwait(false)
         : null;
+    ArtifactValidation? shape = text is null ? null : ArtifactSchema.Validate(kind, text, id);
 
-    StagePanel panel = new(state, outline, shape);
+    StagePanel panel = new(state, outline, shape, text is null ? null : ArtifactSize.Describe(kind, text));
     SupportedHost? host = SupportedHosts.Running(Environment.GetEnvironmentVariable);
 
     await Console.Out

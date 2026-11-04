@@ -18,7 +18,8 @@ namespace Sdlc.Core.Cycles;
 public sealed record StagePanel(
     ReadCycleStatus.ArtifactState State,
     ArtifactOutline Outline,
-    ArtifactValidation? Shape = null);
+    ArtifactValidation? Shape = null,
+    string? Size = null);
 
 /// <summary>
 /// The panel a person sees at the end of a stage.
@@ -186,6 +187,13 @@ public static class StatusRenderer
 
         Field(output, "Says", panel.Outline.Headline ?? "(no heading yet)");
         Field(output, string.Empty, ArtifactOutlineReader.Describe(panel.Outline));
+
+        // A signal, never a refusal (D-130): what a person reads to see a document outgrowing one pass.
+        if (panel.Size is not null)
+        {
+            Field(output, "Size", panel.Size);
+        }
+
         output.AppendLine();
 
         Shape(output, panel.Shape);

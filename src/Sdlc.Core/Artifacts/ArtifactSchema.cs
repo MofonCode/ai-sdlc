@@ -276,6 +276,22 @@ public static partial class ArtifactSchema
                     CultureInfo.InvariantCulture,
                     $"entry {number} does not open with a test name in backticks. verify-chain reads the names an entry opens with, and only those, so this one commits to nothing it can check.")));
         }
+
+        // A proof table (D-130) is checked row by row: a case with no test is a case the chain cannot hold
+        // to anything, even when another row of the same criterion names one.
+        foreach (TableRow row in ArtifactSections.TableRows(markdown, "Proof"))
+        {
+            if (Evidence.DeclaredFiles.TestsIn(row.Test).Count > 0)
+            {
+                continue;
+            }
+
+            violations.Add(new SchemaViolation(
+                "Proof",
+                string.Create(
+                    CultureInfo.InvariantCulture,
+                    $"a row for criterion {row.Number} ({string.Join(", ", row.Others.Where(cell => cell.Length > 0).Take(1))}) has no test name in backticks under Test, so that case commits to nothing the chain can check.")));
+        }
     }
 
     /// <summary>

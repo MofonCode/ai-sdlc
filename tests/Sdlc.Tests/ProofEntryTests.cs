@@ -86,6 +86,43 @@ public sealed class ProofEntryTests
     }
 
     [TestMethod]
+    public void A_proof_table_gives_each_criterion_one_entry_opening_with_every_test_its_rows_name()
+    {
+        // D-130. The table is the closed list a reader judges, one row per case the criterion states; the
+        // chain still reads one entry per criterion, and it now opens with every row's test.
+        string plan = Plan(
+            "| Criterion | Case | Test | Asserts |",
+            "|---|---|---|---|",
+            "| 1 | chromium | `Rolls_within_range` | a face of 1 to 6 |",
+            "| 1 | webkit | `Rolls_within_range_on_webkit` | a face of 1 to 6 |",
+            "| 2 | two requests | `Rolls_are_independent` | the draws differ |");
+
+        IReadOnlyDictionary<int, string> entries = ArtifactSections.NumberedItems(plan, "Proof");
+
+        Assert.AreEqual(2, entries.Count);
+        CollectionAssert.AreEqual(
+            new[] { "Rolls_within_range", "Rolls_within_range_on_webkit" },
+            DeclaredFiles.TestsIn(entries[1]).ToArray());
+        StringAssert.Contains(entries[1], "webkit: a face of 1 to 6");
+        Assert.IsFalse(Validate(plan).Violations.Any(v => v.Where == "Proof"));
+    }
+
+    [TestMethod]
+    public void A_proof_table_row_naming_no_test_is_refused_even_when_its_criterion_has_another()
+    {
+        ArtifactValidation check = Validate(Plan(
+            "| Criterion | Case | Test | Asserts |",
+            "|---|---|---|---|",
+            "| 1 | chromium | `Rolls_within_range` | a face of 1 to 6 |",
+            "| 1 | webkit | covered by the chromium run | a face of 1 to 6 |"));
+
+        SchemaViolation[] proofs = [.. check.Violations.Where(v => v.Where == "Proof")];
+
+        Assert.AreEqual(1, proofs.Length, string.Join("; ", check.Violations.Select(v => v.Where + " " + v.Problem)));
+        StringAssert.Contains(proofs[0].Problem, "criterion 1 (webkit)");
+    }
+
+    [TestMethod]
     public void Only_the_first_cell_of_a_files_row_declares()
     {
         // cycle-02's row, verbatim in shape: the description names the four projects the solution file
