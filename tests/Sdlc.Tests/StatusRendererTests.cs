@@ -323,6 +323,21 @@ public sealed class StatusRendererTests
     }
 
     [TestMethod]
+    public async Task The_stage_panel_says_when_a_cycles_rounds_were_written_by_another_release()
+    {
+        // D-131. One cycle stayed open across five releases and nothing said its rules had moved.
+        using CycleWorkspace workspace = Approved();
+        ReadCycleStatus.Response status = await Read(workspace);
+        ReadCycleStatus.ArtifactState plan = status.PanelFor("plan").Value;
+
+        string same = StatusRenderer.RenderStage(status, await Panel(plan with { Releases = [Sdlc.Core.Release.Version] }));
+        string moved = StatusRenderer.RenderStage(status, await Panel(plan with { Releases = ["0.0.1"] }));
+
+        Assert.IsFalse(same.Contains("Release", StringComparison.Ordinal), same);
+        StringAssert.Contains(moved, "rounds written by 0.0.1; this is " + Sdlc.Core.Release.Version);
+    }
+
+    [TestMethod]
     [DataRow("blocked", "sdlc remediate 20260929_1456_32", "a criterion is not met")]
     [DataRow("pass", "sdlc verify 20260929_1456_32", "answer F_13 in a fresh adjudication")]
     [DataRow("escalated", "sdlc status 20260929_1456_32", "needs a person")]

@@ -194,6 +194,14 @@ public static class StatusRenderer
             Field(output, "Size", panel.Size);
         }
 
+        // A cycle runs on the release it opened on (D-131). Said when its rounds were written by another
+        // release than the one printing this, and nothing is refused for it: merging the integration branch
+        // in is how a fix reaches a cycle in flight, and the person decides whether to.
+        if (ReleaseMoved(state.Releases) is { } moved)
+        {
+            Field(output, "Release", moved);
+        }
+
         output.AppendLine();
 
         Shape(output, panel.Shape);
@@ -276,6 +284,19 @@ public static class StatusRenderer
     /// Silence on a sound artifact is deliberate. A panel that reported every check that passed would
     /// bury the one that did not, and the panel's whole job is that the state is the first thing read.
     /// </remarks>
+    private static string? ReleaseMoved(IReadOnlyList<string>? releases)
+    {
+        if (releases is not { Count: > 0 }
+            || (releases.Count == 1 && string.Equals(releases[0], Release.Version, StringComparison.Ordinal)))
+        {
+            return null;
+        }
+
+        return string.Create(
+            CultureInfo.InvariantCulture,
+            $"rounds written by {string.Join(", ", releases)}; this is {Release.Version}. The rules may have moved under this cycle.");
+    }
+
     private static void Shape(StringBuilder output, ArtifactValidation? shape)
     {
         if (shape is null || shape.IsValid)

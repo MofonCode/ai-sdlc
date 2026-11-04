@@ -1740,7 +1740,9 @@ static async Task<int> Status(Workspace workspace, CommandLine line, CycleId id)
     string? text = state.Exists
         ? await File.ReadAllTextAsync(state.Path, CancellationToken.None).ConfigureAwait(false)
         : null;
-    ArtifactValidation? shape = text is null ? null : ArtifactSchema.Validate(kind, text, id);
+    ArtifactValidation? shape = text is null
+        ? null
+        : ArtifactSchema.Validate(kind, text, id, await TakenInFence.Holds(status.Cycle, CancellationToken.None).ConfigureAwait(false));
 
     StagePanel panel = new(state, outline, shape, text is null ? null : ArtifactSize.Describe(kind, text));
     SupportedHost? host = SupportedHosts.Running(Environment.GetEnvironmentVariable);

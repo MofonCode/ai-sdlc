@@ -7276,6 +7276,9 @@ question takes minutes, and a reopen took the rest of a day.
   check refuses a top-level wanted outcome that carries `taking in`, so an addition can't come in looking
   like a sharpening.
 - **Outcomes a person states in their own interview are theirs, and none of this applies to them.**
+- **The shape check holds a cycle opened under it** — one whose intent has no round yet, or whose first
+  round records the release that wrote it (D-131). An intent approved in the old shape is not refused by a
+  rule written after it, because the only repair would be a reopen.
 
 **Why.** The hosting intent opened with one outcome: show the stock picker on a first visit instead of a
 loading line. On Oct 28, nine suggestions from four perspectives were taken in as wanted outcomes, and the

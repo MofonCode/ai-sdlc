@@ -55,6 +55,11 @@ public sealed record LedgerFinding(
 /// <param name="Note">What a steer said moved above the document.</param>
 /// <param name="PreviousSha256">The entry before this one's hash. Null on round one.</param>
 /// <param name="EntrySha256">This entry's hash, over itself, what it raised, what it moved, and the previous hash.</param>
+/// <param name="Release">
+/// The release of the gate that wrote it (D-131). <c>framework_version</c> is the envelope's format and stays put
+/// across releases, so it cannot say that a cycle's rules moved under it. Absent from rounds written before
+/// this, and hashed only when present, so their chains still verify.
+/// </param>
 public sealed record LedgerRound(
     int Round,
     [property: JsonPropertyName("framework_version")] string? FrameworkVersion,
@@ -66,7 +71,8 @@ public sealed record LedgerRound(
     IReadOnlyList<Conflict>? Conflicts = null,
     string? Note = null,
     [property: JsonPropertyName("previous_sha256")] string? PreviousSha256 = null,
-    [property: JsonPropertyName("entry_sha256")] string? EntrySha256 = null);
+    [property: JsonPropertyName("entry_sha256")] string? EntrySha256 = null,
+    string? Release = null);
 
 /// <summary>
 /// Every round of one artifact's interrogation, in one file: each finding once, each round an entry,
@@ -269,7 +275,8 @@ public sealed record FindingsLedger(
             round.EvidenceSha256,
             round.SectionSha256,
             round.Note,
-            round.EntrySha256)),
+            round.EntrySha256,
+            round.Release)),
     ];
 
     private Result<FindingsLedger> Merge(FindingsRound round, bool strict)
@@ -357,7 +364,10 @@ public sealed record FindingsLedger(
             round.EvidenceSha256,
             round.SectionSha256,
             round.Conflicts is { Count: > 0 } conflicts ? conflicts : null,
-            round.Note);
+            round.Note)
+        {
+            Release = round.Release,
+        };
 
         return Result.Ok(this with
         {

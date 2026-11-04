@@ -135,8 +135,12 @@ public static partial class ArtifactSchema
     /// <param name="kind">Which artifact this is meant to be.</param>
     /// <param name="markdown">The file's contents.</param>
     /// <param name="cycle">The cycle the file's path puts it in.</param>
+    /// <param name="fenceTakenIn">
+    /// Whether an intent is held to taking a suggestion in only beneath the outcome it sharpens. False for a
+    /// cycle opened before that rule, which <see cref="Findings.TakenInFence"/> decides (D-128).
+    /// </param>
     /// <returns>What is wrong with its shape, which may be nothing.</returns>
-    public static ArtifactValidation Validate(ArtifactKind kind, string markdown, CycleId cycle)
+    public static ArtifactValidation Validate(ArtifactKind kind, string markdown, CycleId cycle, bool fenceTakenIn = true)
     {
         ArgumentNullException.ThrowIfNull(markdown);
 
@@ -164,7 +168,10 @@ public static partial class ArtifactSchema
         CheckSections(kind, markdown, violations);
         CheckDeclarations(kind, markdown, violations);
         CheckProofs(kind, markdown, violations);
-        CheckTakenIn(kind, markdown, violations);
+        if (fenceTakenIn)
+        {
+            CheckTakenIn(kind, markdown, violations);
+        }
 
         return new ArtifactValidation(kind, violations);
     }

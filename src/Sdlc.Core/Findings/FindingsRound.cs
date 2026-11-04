@@ -53,6 +53,7 @@ namespace Sdlc.Core.Findings;
 /// The round's hash in its artifact's findings ledger (D-107), which an approval anchors. Set when the
 /// round is read from a ledger, and never by whoever hands a round to <c>sdlc round</c>.
 /// </param>
+/// <param name="Release">The release of the gate that recorded it (D-131), stamped by <c>sdlc round</c>.</param>
 public sealed record FindingsRound(
     [property: JsonPropertyName("framework_version")] string? FrameworkVersion,
     string? Cycle,
@@ -66,7 +67,8 @@ public sealed record FindingsRound(
     [property: JsonPropertyName("evidence_sha256")] string? EvidenceSha256 = null,
     [property: JsonPropertyName("section_sha256")] IReadOnlyDictionary<string, string>? SectionSha256 = null,
     string? Note = null,
-    [property: JsonPropertyName("entry_sha256")] string? EntrySha256 = null);
+    [property: JsonPropertyName("entry_sha256")] string? EntrySha256 = null,
+    string? Release = null);
 
 /// <summary>One artifact's findings ledger, and where it came from.</summary>
 /// <param name="Ledger">The ledger, built in memory when the history is still round files.</param>

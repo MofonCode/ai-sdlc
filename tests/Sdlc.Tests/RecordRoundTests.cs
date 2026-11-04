@@ -65,6 +65,30 @@ public sealed class RecordRoundTests
     }
 
     [TestMethod]
+    public async Task A_round_records_its_release_and_holds_its_cycle_to_the_suggestion_fence_while_an_older_one_does_not()
+    {
+        // D-131: framework_version is the envelope's format and never moved, so nothing said a cycle's rules
+        // had changed under it. D-128: the fence is for cycles that open under it -- an intent approved in the
+        // old shape is not refused by a rule written after it.
+        using var fresh = CycleWorkspace.Create();
+        fresh.WriteArtifact(ArtifactKind.Intent);
+
+        Assert.IsTrue(await TakenInFence.Holds(fresh.Cycle, CancellationToken.None), "Not yet interrogated: the fence holds.");
+        Assert.IsTrue((await Record(fresh, ArtifactKind.Intent, Clean)).IsSuccess);
+
+        LedgerRound stamped = (await FindingsReader.ReadLedger(fresh.Cycle, ArtifactKind.Intent, CancellationToken.None)).Value.Ledger.Rounds[0];
+
+        Assert.AreEqual(Sdlc.Core.Release.Version, stamped.Release);
+        Assert.IsTrue(await TakenInFence.Holds(fresh.Cycle, CancellationToken.None));
+
+        using var older = CycleWorkspace.Create();
+        older.WriteArtifact(ArtifactKind.Intent);
+        CycleWorkspace.WriteRaw(older.Cycle.FindingsPath(ArtifactKind.Intent, 1), """{ "round": 1, "interrogated_at": "2026-10-01T10:00:00Z", "findings": [] }""");
+
+        Assert.IsFalse(await TakenInFence.Holds(older.Cycle, CancellationToken.None), "A round from before releases were recorded.");
+    }
+
+    [TestMethod]
     public async Task An_intent_round_is_numbered_stamped_and_bound_to_what_it_judged()
     {
         using var workspace = CycleWorkspace.Create();

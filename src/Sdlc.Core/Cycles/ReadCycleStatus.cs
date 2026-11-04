@@ -77,6 +77,10 @@ public static class ReadCycleStatus
     /// Which of the open blockers the latest round raised and which it inherited, and how many earlier ones
     /// were answered. Null before a second round.
     /// </param>
+    /// <param name="Releases">
+    /// The releases that wrote its rounds, each once, oldest first (D-131). Empty for rounds from before
+    /// releases were recorded.
+    /// </param>
     public sealed record ArtifactState(
         ArtifactKind Kind,
         string Path,
@@ -92,7 +96,8 @@ public static class ReadCycleStatus
         string? UpstreamHash = null,
         string? JudgedAgainst = null,
         string? LatestEntry = null,
-        Turnover? Turnover = null)
+        Turnover? Turnover = null,
+        IReadOnlyList<string>? Releases = null)
     {
         /// <summary>
         /// Whether the latest round judged this artifact against an upstream that has since changed.
@@ -374,7 +379,8 @@ public static class ReadCycleStatus
                 upstreamHash,
                 latest?.UpstreamSha256,
                 latest?.EntrySha256,
-                Turnover.Of(rounds)));
+                Turnover.Of(rounds),
+                [.. rounds.Select(round => round.Release).OfType<string>().Distinct(StringComparer.Ordinal)]));
         }
 
     }
