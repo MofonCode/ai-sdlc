@@ -252,7 +252,8 @@ sdlc draft approval <id> --reopen
 
 **A remediation loop that stops making progress sets the verify outcome to `escalated`.** It is computed,
 never declared, and `pr` refuses it — a batch run with `--pr` opens a draft pull request for it instead,
-which the check will not let merge (D-85). An escalated cycle is waiting for a person: read what the passes
+which the check will not let merge (D-85). Its body leads with the criteria marked Not met and each open
+blocker's rule, gist, place and fix. An escalated cycle is waiting for a person: read what the passes
 actually did, then decide whether the plan needs reopening, the work needs a different approach, or the
 cycle should stop.
 

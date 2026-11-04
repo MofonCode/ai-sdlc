@@ -103,8 +103,11 @@ plan's — the problem, the criteria, the shape, the tier — and then each succ
 
 Opened for a `blocked` or `escalated` cycle, usually by `batch-build` (D-85). **Refuse if `sdlc pr-ready`
 gives any other reason** — not verified, or the chain broken — because then there is nothing true to show.
-Open it as a draft (`gh pr create --draft`, `az repos pr create --draft true`), and lead the body with the
-outcome and the open findings, so the person picking it up starts from what stopped it. Its check will be red,
+Open it as a draft (`gh pr create --draft`, `az repos pr create --draft true`), and lead the body with
+what stopped it, so the person picking it up starts there: the outcome; each criterion `verify.md` marks
+Not met, by its number with its reason as `verify.md` states it; and each open blocker as
+`sdlc findings <id> --stage verify --blocking` prints it — its rule, its gist, where, and its fix. Copied,
+not summarised: the reviewer reads the body, not the ledger. Its check will be red,
 which is accurate. A person remedies it on this branch and marks it ready.
 
 ## A verified build: ask first, every time

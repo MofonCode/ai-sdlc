@@ -17,7 +17,12 @@ resting on no listed rule is recorded as a suggestion.
 
 For every finding, give what is wrong, in full; where in the document; and what would fix it. For every
 blocking finding, also give a `gist`: one plain sentence, on one line, under 240 characters, saying what in
-the document set it off, in a person's words rather than the rule's.
+the document set it off and why that fails, in a person's words rather than the rule's -- "Criterion 4 says
+the page is fast and never says how fast", not "CON_03 is not satisfied".
+
+Give `locus` as places a person can find without rereading the document: the section heading, the
+criterion or proof number, and a few words quoted from the sentence. Separate several places with `; `, the
+one that matters most first: the panel shows the first in full and counts the rest.
 
 When one defect occurs in more than one place, it is one finding, and its `locus` names every place it
 occurs. Before you write a finding, look through the rest of the document for the same defect.

@@ -150,8 +150,11 @@ targets the integration branch.
 
 ## 6. Report, and stop
 
-**One line per cycle**: its id, its outcome, its branch, its pull request's link if it has one, and for
-anything not `passed`, what stopped it. Then:
+**One line per cycle**: its id, its outcome, its branch, its pull request's link if it has one. For
+anything not `passed`, say what stopped it beneath that line, never as a count: each criterion
+`verify.md` marks Not met, by its number with the first sentence of its reason, and each open blocker by
+its id and the gist `sdlc findings <id> --stage verify --blocking` prints. "Blocked, 3 findings" tells
+the person picking it up nothing they can start from. Then:
 
 ```
 sdlc sitrep

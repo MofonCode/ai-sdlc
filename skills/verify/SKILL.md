@@ -85,7 +85,9 @@ sdlc pr-ready <id>
 ```
 
 Show both verbatim. Then **at most two lines of your own**, and only the outcome in your own words.
-Then stop.
+On `blocked`, add each criterion `verify.md` marks Not met, by its number and the first sentence of its
+reason, quoted: they are why the outcome is blocked, the panel lists findings rather than criteria, and a
+person told only "blocked" goes looking for them. Then stop.
 
 **Nothing that is not already in `verify.md`.** You have just written the document that is the
 adjudication; a hand-back that re-argues it produces a second, shorter verdict with no hash and no

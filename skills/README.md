@@ -627,7 +627,9 @@ report is one the next round cannot place, and by D-49 an unplaceable finding st
 /sdlc:refine 20261002_1414_12 spec
 ```
 
-Expect a three-column report — the finding id, the exit it took, what was done — followed by the panel.
+Expect a three-column report — the finding id, the exit it took, what was done and where in the document —
+followed by the panel. Stuck on one rule, it edits nothing: it shows the panel, names the rule in its own
+words and what it is caught against, and lists the exits.
 
 #### Remarks
 
@@ -987,7 +989,8 @@ that every criterion has an entry and that a `pass` rests on named tests that pa
 /sdlc:verify 20261002_1414_12
 ```
 
-Expect `verify.md` with a verdict per criterion, and the outcome in a line or two.
+Expect `verify.md` with a verdict per criterion, and the outcome in a line or two — on `blocked`, with
+each criterion marked Not met by its number and the first sentence of its reason.
 
 #### Remarks
 
@@ -1119,7 +1122,7 @@ touches the remote.
 |---|---|
 | `<cycle id>` | the verified cycle to push — or, with `--plan`, every cycle of one slicing |
 | `--plan` | an approved plan, before it is built: admission to the integration branch, asked of `sdlc gate`. Merging it deletes the branch. A plan already there and approved again is opened as an *amended plan*, leading with each reopen's reason (D-123). Given several ids, the approved plans of one slicing and its successors, by one pull request from `slices/<slug>/plan` that `sdlc slices` composes; a plan that needs a file only a sibling creates is refused, because that piece is a successor (D-125) |
-| `--draft` | a `blocked` or `escalated` build, as a draft carrying the attempted code, the verify and the evidence |
+| `--draft` | a `blocked` or `escalated` build, as a draft carrying the attempted code, the verify and the evidence, its body leading with the criteria marked Not met and each open blocker's rule, gist, place and fix |
 | `--all` | every cycle that is ready, asking once before the first push |
 
 #### Output
@@ -1204,7 +1207,8 @@ sitrep. Run by the factory, it is the whole of what the factory does (D-84).
 
 Each cycle ends `passed`, `blocked`, `escalated` or did not finish. **A sibling's outcome changes nothing
 about another cycle.** Its task list is one line per cycle, ticked only on `passed`. It ends with one line
-per cycle and the sitrep, verbatim.
+per cycle and the sitrep, verbatim. Beneath a cycle that did not pass, it says what stopped it: each
+criterion marked Not met, and each open blocker by its id and gist — never a count.
 
 **Plain `batch-build` never pushes.** `--pr` asks once before the run rather than at the end, because the
 question is about volume and a person should answer it before waiting rather than after.
@@ -1225,7 +1229,7 @@ question is about volume and a person should answer it before waiting rather tha
 ```
 
 Expect a line per cycle that moves to done only when that cycle passed, and a closing report of one line
-per cycle, then the sitrep.
+per cycle — with what stopped any that did not pass — then the sitrep.
 
 #### Remarks
 
@@ -1589,7 +1593,7 @@ Four subjects, three different records. **None is placed by the skill** — `con
 ```
 
 Expect candidates labelled `P1`, `P2` rather than numbered ids, each with the cycles and finding ids
-behind it, and the next free id stated once. A young solution gets the empty entry and the three tests.
+behind it and a line of what each finding objected to, and the next free id stated once. A young solution gets the empty entry and the three tests.
 
 #### Remarks
 

@@ -396,7 +396,8 @@ itself.
 
 With several cycles queued, `/sdlc:batch-build --pr` completes them all, each on its own
 `cycle/<id>/build-unattended` branch and independently, opens a pull request for each — a draft for one
-that did not pass — and ends with the sitrep:
+that did not pass, its body leading with the criteria marked Not met and each open blocker — reports what
+stopped any cycle that did not pass, and ends with the sitrep:
 
 ```pwsh
 sdlc sitrep

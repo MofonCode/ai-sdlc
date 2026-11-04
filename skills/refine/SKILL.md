@@ -25,8 +25,9 @@ it you cannot tell a first objection from the third time the same rule has been 
 refighting is answered by finding an exit, not by another edit of the same sentence. When the line names
 a rule that *has come back*, it also names what that rule is caught against: ask whether the remainder
 can be named in `Out of scope`, or whether the question belongs under `## Open`, before touching the
-words again. When it says *stuck on*, do not edit at all. Report it and stop; a person decides what
-gives, and `/sdlc:steer` is usually how they do it.
+words again. When it says *stuck on*, do not edit at all. Show the panel and say which rule, in its own
+words, what it is caught against, and that the exits are a correction with `/sdlc:steer`, a scope
+change, a rule change, or abandoning the cycle. Then stop; a person decides what gives.
 
 **Only one of those is denied at the tool call.** The hook refuses every agent write to `approval.md`,
 by file path and by shell command alike. The rest of this table is yours to keep — the hook sees a tool
@@ -124,7 +125,9 @@ F_03  asked      recorded in `## Open` — nobody can say what the retention per
 
 Three columns: the id, the exit it took, what you did. The report's reader is the next interrogation
 round, which needs the id and the exit to decide a disposition — so a line that argues its case buries
-the one thing the round came for.
+the one thing the round came for. **What you did names the place** — the section, the criterion or proof
+number — and the change, as the examples do: the person reads this report too, and "fixed F_02" is an
+id they then have to go and look up.
 
 **Name every id you were given, including the ones you did not change.** Three groups, because the
 next round reads them differently:

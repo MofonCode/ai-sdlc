@@ -18,9 +18,15 @@ states** -- copied from the rules above exactly as written, never summarised in 
 wrong, in full; where in the document; and what would fix it.
 
 For every blocking finding, also give a `gist`: **one plain sentence, on one line, under 240 characters,
-saying what in the document set it off** -- the thing a person would look at, in their words rather than
-the rule's. "Criterion 4 says the page is fast and never says how fast", not "CON_03 is not satisfied". It
-is the first thing the person at the gate reads, and the round is refused without it.
+saying what in the document set it off and why that fails** -- the thing a person would look at and what
+is missing or wrong in it, in their words rather than the rule's. "Criterion 4 says the page is fast and
+never says how fast", not "CON_03 is not satisfied", and not "Criterion 4 has a problem". It is the first
+thing the person at the gate reads, and the round is refused without it.
+
+Give `locus` as places a person can find without rereading the document: the section heading, the
+criterion or proof number, and a few words quoted from the sentence -- "criterion 4, 'the page is fast'",
+not "the criteria". Separate several places with `; `, the one that matters most first: the panel shows the
+first in full and counts the rest.
 
 When one defect occurs in more than one place, it is one finding, and its `locus` names every place it
 occurs -- not the first you met. Before you write a finding, look through the rest of the document for the

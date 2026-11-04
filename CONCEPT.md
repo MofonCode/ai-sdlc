@@ -595,9 +595,9 @@ refused when it is collected (D-119).
         "id": "CON_16",
         "heading": "a spec covers every outcome its intent asks for, and all of each one"
       },
-      "gist": "...one plain sentence: what in the artifact set it off",
+      "gist": "...one plain sentence: what in the artifact set it off, and why that fails",
       "statement": "...what is wrong, in full",
-      "locus": "...where in the artifact",
+      "locus": "...where in the artifact: heading, number, quoted words; several separated by '; '",
       "remedy": "...what would fix it",
       "transitions": [
         { "round": 1, "disposition": "open",     "at": "2026-10-01T11:08:39Z" },
@@ -7132,6 +7132,13 @@ they cite, printing the rule's line once, and ends them with `sdlc findings <id>
 are new, carried over or came back, and how many raised earlier are settled. The brief panel names each
 open blocker by its gist, five at most.
 
+The readers are asked for a locus a person can follow — the section, the criterion or proof number, and
+words quoted from the sentence, several places separated by `; ` with the most important first — and for a
+gist that says why what set it off fails, not only what it was. The skills that report a cycle that
+stopped — `verify` on `blocked`, `batch-build`, a `pr --draft` body — name each criterion marked Not met
+and each open blocker by its gist, never a count; `refine` names the place it changed; `propose` gives
+each finding id it cites a line of what it objected to.
+
 **Why.** On MarketSense a verify blocked for eight rounds, and what the person saw was three findings
 each printed under the same rule's line, with a gist and a fix and no way to find the sentence objected
 to. Every reader had written a precise locus — the criterion, the bullet, the diff lines — and no renderer
@@ -7151,6 +7158,8 @@ ends on said "blockers 3" and nothing a person could act on.
   `sdlc findings`.
 - *A warning when every blocker is new.* A long honest interrogation is not a fault (D-65); the row
   states counts and the person decides.
+- *Requiring a gist on suggestions too.* D-110's reason stands; the skills that list suggestions write
+  their own line of what each found and where, in a report file the person checks against the list.
 
 ### D-125 — Work is sliced into atomic cycles before any opens, and what waits is a successor, not a cycle
 

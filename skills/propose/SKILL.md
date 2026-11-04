@@ -115,7 +115,7 @@ Nothing is written until you run the draft, and nothing binds until you rename t
 ### [ ] add — <the rule's one line>
 <its three clauses -- which artifact and when, what becomes illegal, what goes wrong without it --
 each a bold label and a colon, exactly as constraints.md writes them, so the draft pastes as it is>
-> <the cycles and finding ids behind it>
+> <the cycles and finding ids behind it, each id with one line of what it objected to>
 
 ### [ ] supersede LOC_02 — <the replacing rule's one line>
 <its three clauses, as above>
@@ -146,7 +146,7 @@ each a bold label and a colon, exactly as constraints.md writes them, so the dra
 ## For the framework
 
 ### <the framework rule> — <what it cost here, in one line>
-> <the cycles, finding ids and rounds behind it>
+> <the cycles, finding ids and rounds behind it, each id with one line of what it objected to>
 
 ## Not proposed
 

@@ -572,8 +572,8 @@ Suggest: take in — the feed this cycle adds is the thing that fails.
 ```
 
 A theme is a heading, a short summary of what its findings mean **for this change**, what taking them in
-costs now against later, and a suggested answer with its reason. Beneath it, each finding's id and a
-one-line gist. **The themes only group**: every open suggestion appears once, under one theme — none
+costs now against later, and a suggested answer with its reason. Beneath it, each finding's id and
+one line of what it found and where. **The themes only group**: every open suggestion appears once, under one theme — none
 merged, none left out — so the person can check any summary against what was actually raised. Two
 that contradict share a theme, and the summary says so.
 

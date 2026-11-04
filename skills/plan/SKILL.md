@@ -353,7 +353,7 @@ answer, and the commonest one — skip all of this when nothing is open.
 1. `sdlc suggestions <id>` — the list, and the count the file must hold.
 2. Write `.sdlc/reports/<id>-plan-suggestions.md`: themes, each a heading, a short summary of what its
    findings mean **for this change**, what taking them in costs now against later, and a suggested answer
-   with its reason; beneath it each finding's id and a one-line gist. **The themes only group** — every
+   with its reason; beneath it each finding's id and one line of what it found and where. **The themes only group** — every
    open suggestion once, none merged, none left out.
 3. Ask one question in free text, never from a picker: name the file, each theme in one line, and what
    to take in, decline or leave.
