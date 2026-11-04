@@ -35,8 +35,8 @@ Requires an intent **and** a spec — or, when every part of the request is a fi
 
 | | |
 |---|---|
-| **This** | which approach, which abstraction, which order, what to avoid; **and suggestions a reader raised in this cycle, named by id**, each taken in or declined |
-| **Not this** | a different problem; a new outcome nobody raised; a changed definition of done that did not come from a finding |
+| **This** | which approach, which abstraction, which order, what to avoid; **and suggestions a reader raised in this cycle, named by id**, each taken in to sharpen an outcome the intent already wants, or declined |
+| **Not this** | a different problem; a new outcome, raised or not; an outcome widened to more states, devices, failure paths or audiences; a changed definition of done that did not come from a finding |
 
 A comment that changes the problem is a different intent. Say so and offer to open a new cycle. The
 cost of getting this wrong is a cycle whose intent no longer describes the work, which is the thing the
@@ -50,6 +50,16 @@ person is choosing from what the cycle was found to lack, not inventing a new pi
 new outcome nobody raised has had none of that scrutiny, so it is a new cycle with an interview of its
 own.
 
+**A suggestion may sharpen an outcome, and never add or widen one** (D-128). Sharpening says how, for
+whom, or what failing looks like, inside an outcome the intent already wants. Adding is a new outcome;
+widening carries one to more states, devices, failure paths or audiences. Every outcome multiplies what
+the spec and the plan must prove, and one hosting intent grew from one outcome to fourteen in a day
+this way, then took a week to converge. **A suggestion that adds or widens becomes a successor**: decline
+it here, naming the successor, and write `.sdlc/successors/<slug>.md` with `succeeds:` this cycle — its
+`## Outcome` in the person's words and its `## Why` naming the finding id — so it keeps its id and
+opens once this one merges (D-125). Say which a suggestion is when you show it, and let the person
+decide; a person may of course widen the work, through a cycle of its own.
+
 ## What to do
 
 **Take every finding id the person named in one run.** Each run re-interrogates the chain from the intent
@@ -62,7 +72,8 @@ finding ids, **one question covering all of them, in free text and never from a 
 each suggestion's statement, grouped by theme, and ask what to take in, decline, or leave open. Leaving
 it open is an answer — it stays in `sdlc suggestions` for a later cycle — and so is a group answered at
 once. For each one taken in, ask how they would say it; for each one declined, why; then read back what
-you will write before writing it. **When a stage's hand-back has just asked**, its answers and its
+you will write before writing it, naming each suggestion as sharpening an outcome (which) or as a
+successor. **When a stage's hand-back has just asked**, its answers and its
 read-back are this interview: carry them, and ask only what they left unsaid.
 
 **2. Record it as a fixed decision, with attribution.** In the intent's `Fixed decisions`:
@@ -76,20 +87,25 @@ Attribution is what makes it a decision rather than a preference, and what stops
 re-litigating it. `CON_01` routes decisions-already-taken here precisely so the intent stays a problem
 statement.
 
-**A suggestion taken in is a wanted outcome, in the person's words, and a declined one is a fixed
-decision.** Both name the finding:
+**A suggestion taken in is written beneath the outcome it sharpens, in the person's words, and a
+declined one is a fixed decision.** Both name the finding:
 
 ```markdown
 ## Wanted outcomes
 
-- A trader can pick a stock and reach its chart by keyboard alone. Peter, 2026-10-22, taking in
-  accessibility.S_01.
+- A trader can pick a stock and reach its chart.
+  - By keyboard alone as well as by pointer. Peter, 2026-10-22, taking in accessibility.S_01.
 
 ## Fixed decisions
 
 - Not in this cycle: a text equivalent of the chart. Peter, 2026-10-22, declining accessibility.S_04:
   the first piece is for sighted watching; the table comes with the signals.
+- Not in this cycle: the page meeting WCAG before it is live. Peter, 2026-10-28, declining
+  accessibility.F_03: it widens the first outcome, and is successor:wcag-before-live.
 ```
+
+**A top-level outcome carrying `taking in` is refused by the intent's shape check** (D-128): it is a
+suggestion that arrived as an outcome of its own.
 
 **Write each id straight after `taking in` or `declining`, exactly as the ledger holds it** — several
 joined by commas or *and*, a decline's reason after a colon. `sdlc suggestions` reads that form and no
@@ -105,8 +121,8 @@ which is worth hearing rather than overriding.
 
 | Artifact | What usually changes |
 |---|---|
-| intent | `Fixed decisions` gains the entry, and `Wanted outcomes` each suggestion taken in. The problem does not change |
-| spec | for a correction, usually nothing. If a criterion was written around the old approach, it was over-specified — fix that. For a suggestion taken in, a criterion covering all of the new outcome, and its *not asked for by the intent* line gone from `Out of scope` |
+| intent | `Fixed decisions` gains the entry, and each suggestion taken in goes beneath the outcome it sharpens. The problem does not change |
+| spec | for a correction, usually nothing. If a criterion was written around the old approach, it was over-specified — fix that. For a suggestion taken in, the criterion of the outcome it sharpens says it, and its *not asked for by the intent* line is gone from `Out of scope` |
 | plan | `Shape and departures`, and usually `Files`. Often `Proof` too, and always for a new criterion |
 
 Regenerating would discard the rounds already spent and the wording already argued over. The findings

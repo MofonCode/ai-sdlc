@@ -221,13 +221,14 @@ answer, and the commonest one — skip all of this when nothing is open.
 
 1. `sdlc suggestions <id>` — the list, and the count the file must hold.
 2. Write `.sdlc/reports/<id>-spec-suggestions.md`: themes, each a heading, a short summary of what its
-   findings mean **for this change**, what taking them in costs now against later, and a suggested answer
-   with its reason; beneath it each finding's id and one line of what it found and where. **The themes only group** — every
+   findings mean **for this change**, whether it sharpens an outcome the intent already wants (name it)
+   or adds or widens one (a successor, D-128), what taking it in costs now against later, and a suggested
+   answer with its reason; beneath it each finding's id and one line of what it found and where. **The themes only group** — every
    open suggestion once, none merged, none left out.
 3. Ask one question in free text, never from a picker: name the file, each theme in one line, and what
    to take in, decline or leave.
-4. Map the answer to finding ids and **read it back before acting** — take in, decline with the reason,
-   leave. A theme named whole is every id beneath it; a decline without a reason is asked for one; words
+4. Map the answer to finding ids and **read it back before acting** — take in to sharpen a named
+   outcome, decline with the reason, make a successor of one that adds or widens, leave. A theme named whole is every id beneath it; a decline without a reason is asked for one; words
    with no finding behind them are not taken in here — a change to *how* is a correction for
    `/sdlc:steer`, and something no reader raised is a cycle of its own.
 5. Once they confirm, `/sdlc:steer <id> <finding id>...` in one run, carrying the person's words, which

@@ -272,6 +272,34 @@ public sealed class ArtifactSchemaTests
         Assert.IsTrue(check.IsValid, Describe(check));
     }
 
+    [TestMethod]
+    public void A_suggestion_taken_in_as_an_outcome_of_its_own_is_refused_and_one_sharpening_an_outcome_is_not()
+    {
+        // D-128. One hosting intent opened with one outcome and held fourteen by the end of its first day,
+        // nine of them suggestions taken in as outcomes of their own. A suggestion may sharpen an outcome
+        // the intent already wants, written beneath it; one that adds an outcome is a successor.
+        string added = Intent().Replace(
+            "## Wanted outcomes\n\nSomething said here.",
+            "## Wanted outcomes\n\n- A trader sees the picker straight away.\n- The page meets WCAG 2.2 AA before it is live. Peter, 2026-10-28, taking in\n  accessibility.F_03.",
+            StringComparison.Ordinal);
+
+        ArtifactValidation refused = Validate(ArtifactKind.Intent, added);
+
+        Assert.AreEqual(1, refused.Violations.Count, Describe(refused));
+        Assert.AreEqual("Wanted outcomes", refused.Violations[0].Where);
+        StringAssert.Contains(refused.Violations[0].Problem, "outcome 2");
+        StringAssert.Contains(refused.Violations[0].Problem, "successor");
+
+        string sharpened = Intent().Replace(
+            "## Wanted outcomes\n\nSomething said here.",
+            "## Wanted outcomes\n\n- A trader sees the picker straight away.\n  - By keyboard alone as well. Peter, 2026-10-28, taking in\n    accessibility.F_01.\n- Nothing a trader types is lost.",
+            StringComparison.Ordinal);
+
+        ArtifactValidation accepted = Validate(ArtifactKind.Intent, sharpened);
+
+        Assert.IsTrue(accepted.IsValid, Describe(accepted));
+    }
+
     // Driven off the list rather than written out, so a file added to it is refused in a plan without
     // anybody remembering this test -- the written-out rows had already missed decisions.md.
     public static IEnumerable<object[]> ProtectedNames =>

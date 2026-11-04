@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Text.RegularExpressions;
 using FluentResults;
 using Sdlc.Core.Cycles;
 
@@ -39,7 +40,7 @@ public sealed record ArtifactValidation(ArtifactKind Kind, IReadOnlyList<SchemaV
 /// field nothing declared is a field nothing reads.
 /// </para>
 /// </remarks>
-public static class ArtifactSchema
+public static partial class ArtifactSchema
 {
     /// <summary>The frontmatter keys that belong to the envelope, on every artifact alike.</summary>
     public static IReadOnlyList<string> EnvelopeKeys { get; } = ["framework_version", "cycle"];
@@ -163,9 +164,80 @@ public static class ArtifactSchema
         CheckSections(kind, markdown, violations);
         CheckDeclarations(kind, markdown, violations);
         CheckProofs(kind, markdown, violations);
+        CheckTakenIn(kind, markdown, violations);
 
         return new ArtifactValidation(kind, violations);
     }
+
+    /// <summary>
+    /// Refuses an intent whose wanted outcome is itself a reader's suggestion taken in.
+    /// </summary>
+    /// <remarks>
+    /// A suggestion taken in may sharpen an outcome the intent already wants, and never add one (D-128).
+    /// It is written as a sub-bullet beneath the outcome it sharpens, so a top-level outcome naming
+    /// <c>taking in &lt;id&gt;</c> is a suggestion that arrived as an outcome of its own -- the shape one
+    /// hosting intent grew by, from one outcome to fourteen in a day. One that adds or widens an outcome
+    /// is a successor, and keeps its id there. Outcomes a person states in the interview carry no id, so
+    /// nothing here touches them.
+    /// </remarks>
+    /// <param name="kind">Which artifact this is.</param>
+    /// <param name="markdown">The file's contents.</param>
+    /// <param name="violations">The list to add to.</param>
+    private static void CheckTakenIn(
+        ArtifactKind kind,
+        string markdown,
+        List<SchemaViolation> violations)
+    {
+        if (kind != ArtifactKind.Intent
+            || !ArtifactSections.Read(markdown).TryGetValue("Wanted outcomes", out IReadOnlyList<string>? lines))
+        {
+            return;
+        }
+
+        // Each top-level outcome's own words: its line and the lines continuing it, up to its first
+        // sub-bullet. Joined, because a reference wraps -- "taking in" ending one line and its id
+        // starting the next is still a suggestion taken in.
+        List<string> outcomes = [];
+        bool own = false;
+
+        foreach (string line in lines)
+        {
+            if (TopLevelItem().IsMatch(line))
+            {
+                outcomes.Add(line);
+                own = true;
+            }
+            else if (SubItem().IsMatch(line))
+            {
+                own = false;
+            }
+            else if (own)
+            {
+                outcomes[^1] += " " + line.Trim();
+            }
+        }
+
+        for (int index = 0; index < outcomes.Count; index++)
+        {
+            if (TakingIn().IsMatch(outcomes[index]))
+            {
+                violations.Add(new SchemaViolation(
+                    "Wanted outcomes",
+                    string.Create(
+                        CultureInfo.InvariantCulture,
+                        $"outcome {index + 1} is a suggestion taken in as an outcome of its own. A suggestion may only sharpen an outcome the intent already wants: write it as a sub-bullet beneath that outcome, or make it a successor if it adds or widens one (D-128).")));
+            }
+        }
+    }
+
+    [GeneratedRegex(@"^[-*]\s", RegexOptions.CultureInvariant)]
+    private static partial Regex TopLevelItem();
+
+    [GeneratedRegex(@"^\s+[-*]\s", RegexOptions.CultureInvariant)]
+    private static partial Regex SubItem();
+
+    [GeneratedRegex(@"taking in\s+\S*[A-Z]_[0-9]+", RegexOptions.CultureInvariant | RegexOptions.IgnoreCase)]
+    private static partial Regex TakingIn();
 
     /// <summary>
     /// Refuses a plan whose proof entry opens with no test name.

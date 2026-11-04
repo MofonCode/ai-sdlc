@@ -183,6 +183,10 @@ listed beneath so you can check the summary. Answer in your own words — *"take
 for me"* — and the skill reads back which findings that covers before anything is written. What you
 name goes to `/sdlc:steer <id> <finding id>...` in one run, which writes each into the intent with your
 name on it. Something you ask for that no reader raised is not taken in there: it is a cycle of its own.
+**A suggestion can only sharpen an outcome you already asked for** — say how, for whom, or what failing
+looks like. One that adds an outcome, or widens one to more states, devices or failure paths, is offered
+as a successor instead: it keeps its finding id and waits for this cycle to merge. Every outcome you add
+is more the spec and plan must prove, which is how a cycle stops converging.
 
 ## 4. The gate
 

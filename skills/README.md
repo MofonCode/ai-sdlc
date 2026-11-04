@@ -688,8 +688,9 @@ than regenerating them — and takes in or declines suggestions a reader raised 
 #### Output
 
 Records the correction under the intent's `Fixed decisions`, with attribution. A suggestion taken in
-becomes a wanted outcome in the person's words and a declined one a *not in this cycle* fixed decision,
-each naming the finding; the next round's reader finds it settled and records it `answered`. Edits rather
+goes beneath the wanted outcome it sharpens, in the person's words, and a declined one a *not in this
+cycle* fixed decision, each naming the finding. A suggestion that would add or widen an outcome is
+declined into a successor that keeps its id (D-128); the next round's reader finds it settled and records it `answered`. Edits rather
 than regenerates — a regenerated artifact has a findings history about a document that no longer exists.
 Usually the spec needs nothing and the plan's `Shape and departures`, `Files` and often `Proof` change.
 The re-interrogation is checked rather than trusted: a round records the hash of the artifact above it,
@@ -724,8 +725,9 @@ out of the system is worse than no path. No constraint loosens.
 **Steering changes how, not what** — which approach, which abstraction, which order, what to avoid — **except
 for a suggestion a reader raised**, which the person may take in by id (`CONCEPT.md` D-97). The spec may
 only derive from the intent, so this is the one way a perspective's concern becomes a criterion: a person
-choosing it. A comment that changes the problem is a different intent, and a new outcome nobody raised is
-a new cycle.
+choosing it. A comment that changes the problem is a different intent, a new outcome nobody raised is
+a new cycle, and a raised suggestion may only sharpen an outcome the intent already wants — one that adds
+or widens is a successor (D-128).
 
 One or two questions — what to do instead, and why — then it records the correction, edits each artifact
 it reaches, re-interrogates everything downstream of what it touched, reports one line per artifact, and

@@ -87,7 +87,8 @@ exists to stop — and the first time it was tried, the rule blocked five criter
 What a perspective finds beyond the intent comes back as a suggestion, and the person takes it in by
 naming it to `/sdlc:steer`, or leaves it for a later cycle. Each stage asks once, from a file that groups
 every open suggestion by theme with a suggested answer, and takes the answer in the person's own words
-(D-114).
+(D-114). A suggestion taken in may only sharpen an outcome the intent already wants; one that would add
+an outcome, or widen one, becomes a successor that keeps its id (D-128).
 
 ## Reading what it found
 

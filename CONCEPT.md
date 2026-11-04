@@ -201,8 +201,10 @@ changed, and refuses on an approved cycle until a reopen is recorded (D-17).
 
 Steering changes *how*, not *what* — with one exception: **a suggestion a reader raised in this cycle,
 named by its id, may be taken in or declined**, several in one run, and with only an intent when every
-part of the request is a finding id. A suggestion taken in becomes a wanted outcome in the person's words
-and a declined one a fixed decision, each attributed and naming the finding; the intent, spec and plan
+part of the request is a finding id. A suggestion taken in sharpens a wanted outcome the intent already
+holds — written beneath it, in the person's words — and a declined one is a fixed decision, each
+attributed and naming the finding. One that would add an outcome or widen one is a successor, and an
+outcome of its own carrying `taking in` is refused by the intent's shape (D-128); the intent, spec and plan
 hand-backs each ask once which to take in — from a file grouping every open suggestion by theme, answered
 in free text and read back as finding ids before anything is written (D-114). A comment that changes the
 problem is a different intent, and a new outcome nobody raised is a new cycle (D-97).
@@ -828,7 +830,8 @@ embedded in the binary, carrying four things:
 from a file and in free text (D-114);
 the spec writes an item where the intent asks for it and names the rest in `Out of scope`; the plan and
 the build apply theirs to how the criteria are met. What a perspective wants beyond the intent comes back
-as a suggestion, which a person takes in through `steer` (D-97). `interrogate` runs one fresh
+as a suggestion, which a person takes in through `steer` (D-97) — to sharpen an outcome the intent
+wants, never to add or widen one (D-128). `interrogate` runs one fresh
 process per active perspective, handed that perspective's full method and rules, then **one reconciling
 reader** over the round's findings and the artifact's standing ones, which names a finding that restates
 one still open so the round carries it under the id it has (D-108). `verify` asks each perspective's questions of the evidence.
