@@ -7119,6 +7119,208 @@ its refusal still apply.
 - *Guessing a marker for Copilot or Antigravity.* Neither documents one; a guessed marker is a panel that
   names one host's invocation to someone using another.
 
+### D-131 — A cycle runs on the release it opened on
+
+**Governs:** §9, §12.2, §13
+
+**Decision.** A solution pins the `sdlc` binary in a local tool manifest, `.config/dotnet-tools.json`, which
+`init` writes. The hooks and the skills call the binary as `dotnet sdlc`, never from the global tool path.
+Every cycle plans and builds in a worktree of its own (D-105), and that worktree's branch carries the manifest
+it was cut with. **A cycle therefore runs on the release it opened on.** A bump is an ordinary commit to the
+manifest on the integration branch, and it reaches a cycle in flight only when that cycle merges the
+integration branch, which is a person's choice. The skills are pinned per solution: `init` enables the plugin
+at project scope, from a marketplace source pinned to the release's tag. Every findings round records the
+`release` that wrote it, in an optional field that is hashed only when present (D-107), so a ledger written
+before this still verifies. A skill prints a warning when the binary it called is not the release the plugin
+was cut from, and when a round's release differs from the cycle's first round. Neither one refuses.
+
+**Why.** MarketSense's hosting cycle (`20261027_2358_17`) stayed open while five releases shipped, from
+0.32.1 to 0.36.0. The binary and the plugin were installed once for the whole machine, so a bump moved every
+solution and every cycle in flight at once. Bumping therefore looked like it meant abandoning a cycle. The
+steer session found an interrogate skill newer than its 0.34 binary, which had no `round prompt` and no
+`round collect`, and it wrote its own reader scripts to run the rounds. None of 0.36's per-criterion rows
+(D-119) ever applied to that cycle. Every round recorded `framework_version: 1.0.0`, which is the envelope's
+format and not the release, so the record could not show any of this.
+
+**Why the binary per cycle and the skills per solution.** A local tool manifest is ordinary dotnet tooling
+and lives on a branch, so a worktree pins it for free. Claude Code enables a plugin per project, but it pins
+a version only through the marketplace source. Two releases of one plugin side by side in one checkout is
+not documented. The version check covers that gap: a skill newer than its binary says so instead of
+improvising.
+
+**Rejected.**
+
+- *One install per machine, as today.* That is the cause described above.
+- *Refusing a command from a release other than the cycle's.* A security fix has to reach a cycle in
+  flight, and merging the integration branch is how it does. The warning says the cycle moved, and the
+  person decides.
+- *Pinning the skills per cycle through two marketplaces of one plugin name.* It isn't documented, and a
+  name collision is resolved silently. Revisit it if Claude Code documents it.
+- *Repurposing `framework_version` for the release.* That field tracks the envelope's format, and the
+  format stays put across releases (§4.1).
+
+### D-130 — A plan proves in a table, and a verify is judged again in place
+
+**Governs:** §4.2, §6.2, §7.1, §15
+
+**Extends D-119.** The rows a reader returns per criterion get something on the page to point at.
+
+**Decision.**
+
+- **The plan's proof is a table:** criterion, case, test, and what the test asserts, one row for each case
+  the criterion states. A case is one of the things a criterion lists, such as an engine, a device profile,
+  a kind of visit or a failure path. The reader judges the rows that are there. It no longer discovers the
+  cells that should have been there.
+- **Prose is for Shape and Risk, never for the proof.** A test is described by what it asserts, in one
+  line, and how it is written is left to the build.
+- **A verify is one row per criterion:** the verdict, the test, the quoted assertion and the evidence it
+  cites.
+- **From the second adjudication on, the verify is judged again in place.** The fresh adjudicator (D-109)
+  receives the previous `verify.md` and the open findings. It rewrites only the rows that an open finding,
+  or a change in the evidence, touches, and keeps every other row byte for byte.
+- **The status panel reports size and refuses nothing:** criteria, proof rows and plan lines.
+
+**Why.** The hosting cycle's plan reached 754 lines. Its proofs were test scripts written in prose, and 40
+of the plan's 54 blockers objected to a proof. Each verify pass rewrote all 21 criteria, so each pass
+brought new sentences to object to: 16 of verify's 17 blockers cited `CON_08`, and some objected to
+sentences that had not existed a round earlier (the Nov 2 review §7b). Fewer words leave fewer places for a
+blocker to start.
+
+**Rejected.**
+
+- *Refusing a plan above a size.* Size is a signal. Slicing is where the cut is made (D-125).
+- *A fresh verify document every pass.* That is the source of the new prose, and the fresh process (D-49,
+  D-109) is kept without it.
+- *The build editing the proof table to match its tests.* The table is under the approval's hash. A table
+  that turns out wrong is a reopen (D-19).
+
+### D-129 — A plan that rests on how a platform behaves proves it on a probe branch before approval
+
+**Governs:** §3.1, §4.2, §5.4
+
+**Decision.**
+
+- **The plan lists its assumptions.** It gains `## Assumptions proven`: each platform behaviour its Shape
+  relies on, with what a probe showed, quoted, and the probe's commit. A plan that relies on none says
+  `none`.
+- **A probe is throwaway code** on `probe/<cycle id>/<slug>`, outside every cycle worktree. It is never
+  merged and never pushed by `pr`.
+- **Probes are ungoverned, as any work off a cycle already is.** The pre-tool hook does not hold a probe
+  branch, and neither does the turn-end gate.
+- **Its output reaches the plan only as quoted text,** so nothing a probe wrote becomes code a cycle ships.
+- **The plan skill runs a probe whenever the Shape names behaviour that nobody in the cycle has observed:**
+  a framework's render mode, a host's fallback, a library's order of events.
+
+**Why.** Four of the hosting cycle's six reopens were Blazor's Interactive Auto behaving differently from
+what the plan said:
+
+1. no server fallback when the browser copy fails;
+2. no server connection until `dotnet*.js` has loaded;
+3. framework services that differ on each side;
+4. a first visit that never starts the WebAssembly host.
+
+Readers can't run Blazor, so 36 plan rounds before the first approval argued about behaviour nobody had
+observed. Each reopen then sent intent, spec and plan through their readers again. A probe that answers one
+question takes minutes, and a reopen took the rest of a day.
+
+**Rejected.**
+
+- *A spike only after a platform-fact reopen,* as the Nov 2 convergence review proposed. It pays one reopen
+  per assumption before it helps, and here that would have been four.
+- *Building first and correcting the plan afterwards.* That is code before approval on a branch that
+  merges, which is what the gate exists to stop (§5.4).
+- *A profile rule for each platform fact.* `PRO_05` does this for one fact (D-116), but a list of them
+  never ends, and a probe answers the question the plan actually has.
+- *Letting a reader block a plan for an unproven assumption.* What counts as an assumption is the
+  author's judgement, and a rule built on that would be the unbounded standard D-127 removes.
+
+### D-128 — A suggestion taken in may sharpen an outcome the intent wants, and never add or widen one
+
+**Governs:** §3.2, §6.5
+
+**Narrows D-97. Uses D-125.**
+
+**Decision.**
+
+- **A person may take a reader's suggestion into the cycle only to narrow or clarify an outcome the intent
+  already wants.** That means saying how, for whom, or what failing looks like, inside the same outcome.
+- **A suggestion that adds an outcome, or widens one, becomes a successor (D-125) carrying the finding's
+  id,** or it is declined. Widening means more states, more devices, more failure paths or more audiences.
+- **The skill reads each suggestion as sharpening or adding, and the person decides.** The read-back names
+  which is which.
+- **A suggestion taken in is written as a sub-bullet beneath the outcome it sharpens.** The intent's shape
+  check refuses a top-level wanted outcome that carries `taking in`, so an addition can't come in looking
+  like a sharpening.
+- **Outcomes a person states in their own interview are theirs, and none of this applies to them.**
+
+**Why.** The hosting intent opened with one outcome: show the stock picker on a first visit instead of a
+loading line. On Oct 28, nine suggestions from four perspectives were taken in as wanted outcomes, and the
+spec came out at 21 criteria. Criterion 11 alone was 62 lines. Every outcome multiplied the cases a proof
+had to cover, and every case was something a reader could find missing. The intent skill's own example
+recommends taking in. A raised suggestion is real work, and that is why it should keep its id as the next
+cycle, not wait in this one.
+
+**Rejected.**
+
+- *A cap on criteria.* It is a cut, and slicing is where cuts are made (D-125).
+- *Letting the reader decide what counts as an addition.* A reader judges the document, not a person's
+  choices.
+- *Declining additions by default.* That drops a finding somebody raised. A successor keeps it.
+- *Allowing widening.* Widening is how criterion 11 reached 62 lines.
+
+### D-127 — A proof blocks when it does not reach its criterion, never because a reader can imagine it fooled
+
+**Governs:** §6.4, §7.5, §7.7
+
+**Revisits D-65's premise and leaves its mechanism alone.** **Leaves D-27 unchanged:** nothing is waived.
+What changes is what the rule forbids.
+
+**Decision.** `CON_06` forbids a proof that does any one of these:
+
+- it never runs a case its criterion states;
+- it asserts something other than the outcome its criterion names;
+- it cannot fail when that outcome is absent. To block on this, the reader names the specific defect and
+  where in this change it would arise.
+
+A weakness that needs a defect the reader has only imagined is a **suggestion**. Examples: an assertion that
+could be tighter, a starting state not tried, a field not read. `CON_08` changes the same way. A claim the
+verdict relies on blocks when its evidence is missing or shows something else. Prose the verdict doesn't
+rely on is a suggestion, and D-130's rows leave little of it. The per-criterion rows stay (D-119): the sweep
+is still exhaustive, and what is narrowed is what counts as a gap. The plan skill's test of a proof changes
+from *"what would have to be true for this check to pass while the criterion is unmet"* to *"which case does
+this check never run, and which outcome does it never read"*.
+
+**Why.** "Could pass while unmet" has no bound. For any test there is a defect it would miss, so a fresh
+reader can always find another one, and the document never runs out of objections.
+
+- **The plan.** The hosting cycle's plan took 44 rounds and 54 blockers, 40 of them `CON_06`. From round 8
+  to round 43 almost every round raised one or two new ones, and none was ever raised twice. Most objected
+  to a proof being fooled, not to it being wrong: *never checks the 429 has no body*, *only checks the name
+  contains the text*, *focus from only one starting place*.
+- **Verify.** It had 9 rounds, and 16 of its 17 blockers cited `CON_08`.
+- **D-65 called this converging.** It counts a rule going answered and then open again, and reads "a new
+  instance of the same rule each round" as a sloppy author on a loop that is converging fine. In this
+  cycle, a new instance in every round was the loop not converging, with nothing in the counter to show
+  it.
+- **The fix is the standard, not a stop.** The supply of objections has to be finite. With it finite, D-65
+  is the right guard: the same issue coming back is a regression, and a person looks.
+
+**What still blocks, from the same cycle.** F_23 blocks under the new text. The start-failure test served a
+corrupted `.wasm`, Blazor's integrity check turned that into a failed download, and the case the criterion
+named never happened.
+
+**Rejected.**
+
+- *A limit on rounds, or a hand-off to a person after N rounds.* D-65 rejected a cap for killing the long
+  honest reading. The person who owns the framework rejected it again on Nov 4: the loop runs until the
+  document is right.
+- *Judging blockers only on changed sections after round 1.* A missing criterion has no section to change.
+  An upstream move makes unchanged text wrong (D-21). D-101 keeps blockers unlimited for that reason.
+- *An `accepted:` line on the approval.* D-27 removed exactly that.
+- *A third severity for "a gap, but tolerable".* D-30.
+- *Sizing alone.* Smaller cycles shrink the supply of cases, but the unbounded standard still produces an
+  objection a round on any proof that isn't trivial. Both levers are needed.
+
 ### D-126 — A blocker says where it is, and the panel says which of its blockers are new
 
 **Governs:** §6.1, §14
