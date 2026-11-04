@@ -227,7 +227,7 @@ declining to go on, exit code 1. An open blocker causes refusals; it is not one.
 | **declared files** | what the plan said it would change, against what changed: **undelivered**, **undeclared**, and **governing** — a changed file holding a rule the change is judged by |
 | **verification** | adjudicating the build against the spec from the evidence alone. Per criterion: which test did the plan name, did it run and pass, and **does that test actually establish the criterion?** | `verify.md` |
 | **evidence check** | a string match of a verdict against the evidence: every name it cites that none of the recorded evidence holds, and every test it says passed that did not. **Reports, and never refuses** — a backticked name may be a type or a log line, so whether a claim rests on its evidence stays the reader's judgement (D-120) | `sdlc evidence check <id>` |
-| **remediation** | applying a blocked verification's findings to source and tests. **Never a planning document** | `/sdlc:remediate` |
+| **remediation** | applying a blocked verification's unmet criteria and findings to source and tests — two lists, since a Not met the readers agree with raises no finding. **Never a planning document** | `/sdlc:remediate` |
 | **remediation budget** | how many passes have run and how many blockers stood after each. It stops when a pass undoes an earlier answer or two in a row reduce nothing — **no number of tries to run out of, and no ceiling** |
 | **escalation** | what running out of budget makes of a blocked cycle. **Computed, never declared.** An escalated cycle never opens a pull request |
 
@@ -311,7 +311,7 @@ never decides a gate.
 | `build` | implements an approved plan, builds, tests, and records the evidence |
 | `batch-build` | completes every queued cycle, each on its own branch and independently, and reports the sitrep; `--pr` opens a pull request for each, a draft for one that did not pass |
 | `verify` | adjudicates a build against its spec from the recorded evidence alone, in a fresh process |
-| `remediate` | applies a blocked verification's findings to source and tests |
+| `remediate` | applies a blocked verification's unmet criteria and findings to source and tests |
 | `pr` | pushes a cycle's branch and opens its pull request into the integration branch — a verified build, an approved plan with `--plan`, a draft with `--draft`. **The only stage that touches the remote** |
 | `resolve-conflict` | brings a cycle's pull request up to date with the integration branch when it conflicts or goes red, inside its declared files, then verifies again |
 | `draft` | prints what belongs in a file only a person writes |

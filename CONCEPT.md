@@ -2106,7 +2106,7 @@ which is the ordinary case.
 | `steer` | re-runs the chain from an existing intent and spec — §3.2 |
 | `interrogate` | judges one artifact against the constraints in force; writes a round; never edits |
 | `refine` | applies an artifact's findings to that artifact |
-| `remediate` | applies a blocked verify's findings to source and tests |
+| `remediate` | applies a blocked verify's unmet criteria and findings to source and tests |
 | `build` | implements the plan; builds; tests; records evidence |
 | `verify` | adjudicates the build against the spec from evidence alone |
 | `batch-build` | completes the queued cycles, each on its own branch and independently, and reports the sitrep — §10.1, D-86 |

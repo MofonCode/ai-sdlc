@@ -1,6 +1,6 @@
 ---
 name: remediate
-description: Apply a blocked verification's findings to source and tests. Edits code, never a planning document, and runs while each pass reduces what is open. Use after verify recorded a blocked outcome.
+description: Apply a blocked verification's unmet criteria and findings to source and tests. Edits code, never a planning document, and runs while each pass reduces what is open. Use after verify recorded a blocked outcome.
 compatibility: Requires the sdlc binary on PATH, from the MofonCode.Sdlc.Cli dotnet tool, and a git repository. Every command here is that binary, so without it the first step fails.
 argument-hint: "<cycle id>"
 allowed-tools: Bash(sdlc *), Bash(git *), Bash(dotnet *), Read, Write, Edit, Glob, Grep
@@ -68,8 +68,18 @@ and that stopping is what makes an unattended batch safe to run at all.
 
 ## Work the findings
 
-Read the open blockers with `sdlc findings <id> --stage verify`, which prints each finding where it
-stands after the latest round. Each blocking finding names what is wrong, where, and what would fix it.
+Two sources, and the job is both of them:
+
+- **The criteria `verify.md` marks Not met.** These are why the outcome is `blocked`, and they are
+  usually **not** findings: a reader raises a finding when a verdict overclaims, and a Not met it agrees
+  with raises nothing. Read the Criteria section of `.sdlc/cycles/<id>/verify.md` for every entry that
+  is not Met.
+- **The open blockers**, with `sdlc findings <id> --stage verify`, which prints each finding where it
+  stands after the latest round. Each blocking finding names what is wrong, where, and what would fix it.
+
+Working only the findings is the easy mistake, because the command lists them and nothing lists the
+criteria. A pass that answers every finding and leaves a Not met criterion standing has fixed nothing the
+outcome was about.
 
 Fix the **cause**, not the symptom. The failure modes to avoid, in order of how tempting they are:
 
@@ -99,8 +109,8 @@ reads the new evidence, so evidence left in your working tree is evidence it can
 
 ## Report and hand back
 
-**One line per finding**, carrying three things: what was wrong, what you changed, and whether you are
-confident that was the cause. A finding you are not confident about says so in its line — that is the
+**One line per unmet criterion and per finding**, carrying three things: what was wrong, what you
+changed, and whether you are confident that was the cause. A finding you are not confident about says so in its line — that is the
 most useful thing in the report, and it is the first thing a paragraph hides. Then:
 
 ```

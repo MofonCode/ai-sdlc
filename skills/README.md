@@ -1024,13 +1024,14 @@ may disagree with the plan — a test that passed but does not reach its criteri
 
 ### `remediate`
 
-Applies a blocked verification's findings to source and tests. Edits code, never a planning document.
+Applies a blocked verification's unmet criteria and findings to source and tests. Edits code, never a
+planning document.
 
 | | |
 |---|---|
 | Stage | build and verify, after verify recorded `blocked` |
 | Started by | a person, or `batch-build` |
-| Reads | the verify findings, `sdlc pr-ready <id>`, and the code |
+| Reads | the criteria `verify.md` marks Not met, the verify findings, `sdlc pr-ready <id>`, and the code |
 | Writes | source and tests, fresh evidence, and a commit on the cycle's branch |
 
 #### Syntax
@@ -1064,8 +1065,8 @@ loosened assertion, no sleep or retry, no substituted thing under test, no skipp
 /sdlc:remediate 20261002_1414_12
 ```
 
-Expect one line per finding — what was wrong, what changed, and whether it is confident that was the
-cause — then the panel. Verify again as its own stage.
+Expect one line per unmet criterion and per finding — what was wrong, what changed, and whether it is
+confident that was the cause — then the panel. Verify again as its own stage.
 
 #### Remarks
 
