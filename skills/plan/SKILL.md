@@ -146,7 +146,7 @@ it after the build, it belongs on the list.
 
 | Section | Kind | Judged by |
 |---|---|---|
-| `Shape and departures` | a **decision** — which approach | `CON_06`, `CON_15`, `CON_19` |
+| `Shape and departures` | a **decision** — which approach | `CON_21`, `CON_15`, `CON_19` |
 | `Files` | an **estimate** — which files, how large | nothing; it is a signal |
 
 That distinction matters when you are tempted to pad the file table defensively. Declaring files you
@@ -214,15 +214,18 @@ own cycle, with its own intent and approval, like any other work.
 
 ## Make the proof adequate
 
-This is the constraint to watch. `CON_06` forbids a plan naming a check that could pass while its
-criterion is unmet. A schema can require that every criterion has *some* proof; only judgement can
-tell whether "add a unit test" proves "returns within 200ms over 50,000 rows".
+This is the constraint to watch. `CON_21` forbids a proof that never runs a case its criterion
+states, asserts something other than the outcome its criterion names, or cannot fail when that outcome
+is absent. A schema can require that every criterion has *some* proof; only judgement can tell whether
+"add a unit test" proves "returns within 200ms over 50,000 rows".
 
 **An inadequate proof is worse than none**, because it produces a green verification instead of an
 obvious gap.
 
-Work through each criterion and ask: *what would have to be true for this check to pass while the
-criterion is still unmet?* If you can answer that, the proof is not adequate yet.
+Work through each criterion and ask: *which case does this check never run, and which outcome does it
+never read?* If either has an answer, the proof is not adequate yet. Do not chase every defect you can
+imagine a test missing — there is always one more, and a reader raises those as suggestions, never
+blockers (D-127). Close the cases the criterion states and the outcome it names.
 
 - A unit test over a function proves the function, not the request path.
 - A test against a substituted source proves the substitution.
@@ -259,7 +262,7 @@ reported as absent rather than as proven. Do not collapse cases into a loop insi
 name match; that costs the per-case result your own verify document would otherwise cite.
 
 **If a criterion cannot be proven by anything the testing layers can run, say so in `## Open`.** That
-satisfies `CON_06`, because you named no inadequate check. It does not launder the problem: the
+satisfies `CON_21`, because you named no inadequate check. It does not launder the problem: the
 criterion is then unproven, and verify will block on it. The exit moves *where* the problem is caught,
 never *whether*.
 

@@ -370,7 +370,7 @@ What is honest to say about the rest:
   prompt` writes every reader's prompt and `sdlc round collect` drafts the round from their answers
   (D-117); each reader starts with no tools, no MCP servers and no session file (D-118). Each prompt was
   generated against a real MarketSense cycle and the launch line measured on Windows PowerShell and Git
-  Bash, but no reader has judged from them in a cycle. `CON_03`, `CON_06`, `CON_08` and `CON_16` are
+  Bash, but no reader has judged from them in a cycle. `CON_03`, `CON_21`, `CON_22` and `CON_16` are
   answered a row per criterion or outcome (D-119), which is meant to bring a plan's rounds down and has
   not been measured doing so. `findings/usage.json` records what each round's readers cost (D-121), and
   `tools/Sdlc.UsageReport` reads whole sessions; which readers run on which rounds, and on which model,

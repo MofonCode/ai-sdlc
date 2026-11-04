@@ -432,8 +432,8 @@ approval as the missing piece.
 #### Remarks
 
 A plan says *how*, and commits to what will prove each criterion. The constraint to watch is proof
-adequacy (`CON_06`). *What would have to be true for this check to pass while the criterion is still
-unmet?* If that question has an answer, the proof is not adequate yet — and an inadequate proof is worse
+adequacy (`CON_21`). *Which case does this check never run, and which outcome does it never read?* If
+either has an answer, the proof is not adequate yet — and an inadequate proof is worse
 than none, because it produces a green verification instead of an obvious gap.
 
 Unlike the spec, this stage must read the codebase — a file table invented from the spec alone is the
@@ -882,7 +882,7 @@ Implements an approved plan, builds, tests, and records the evidence a verificat
 
 Commits on the cycle's branch — the change, then the evidence: the diff, the commit it is measured from,
 the runner's own output, and one normalised test summary. **Verify reads only these files**, so a
-verdict derived from the builder's recollection is a verdict nobody can check (`CON_08`).
+verdict derived from the builder's recollection is a verdict nobody can check (`CON_22`).
 `sdlc evidence` also prints what changed against what the plan declared — `undeclared`, `undelivered`,
 `governing` — none of which is a refusal; a `governing` line goes in the report and the commit message.
 
@@ -970,7 +970,7 @@ see the build. Never edits code.
 #### Output
 
 `verify.md`: an entry for every criterion, numbered to match, each citing the evidence it rests on
-(`CON_08`), and `## Open` for limits of the evidence. **Never edits code.**
+(`CON_22`), and `## Open` for limits of the evidence. **Never edits code.**
 
 It writes `pass` or `blocked`. **`escalated` is computed, not declared**: it is what a remediation loop
 that stopped making progress makes of a blocked cycle (D-66). `sdlc verify-chain` checks mechanically

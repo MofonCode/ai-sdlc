@@ -113,7 +113,7 @@ internal static class JudgedItems
             text.Append('\n');
         }
 
-        return (text.ToString(), ",\n  \"rows\": [ { \"rule\": \"CON_06\", \"item\": 1, \"met\": true, \"why\": \"...\" } ]");
+        return (text.ToString(), ",\n  \"rows\": [ { \"rule\": \"CON_21\", \"item\": 1, \"met\": true, \"why\": \"...\" } ]");
     }
 
     /// <summary>Why a rules reader's rows do not answer every judged item, or null when they do.</summary>

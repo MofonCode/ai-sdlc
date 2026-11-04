@@ -125,6 +125,8 @@ so they are separate constraints rather than one rule about correspondence.
 
 ## CON_06 — A plan's proof is adequate to the criterion it claims to prove
 
+**Superseded-by:** CON_21
+
 **Applies to:** a plan, at approval.
 
 **Forbids:** a plan naming a check that could pass while its criterion is unmet.
@@ -148,6 +150,8 @@ reaches review dressed as approved work, which is precisely where it is least li
 questioned.
 
 ## CON_08 — A verify claim rests on evidence that exists and supports it
+
+**Superseded-by:** CON_22
 
 **Applies to:** a verify document.
 
@@ -359,3 +363,35 @@ keeps saying the roll failed" would have had the player's sentence and nothing e
 more criterion, not a mechanism: recording nothing is a legitimate answer if a spec says so out loud.
 No analyzer can decide it, because whether a criterion covers a failure is a judgement about what an
 action can do, and the spec is the last place it is cheap to ask.
+
+## CON_21 — A plan's proof reaches the criterion it claims to prove
+
+**Applies to:** a plan, at approval.
+
+**Forbids:** a proof that never runs a case its criterion states, that asserts something other than
+the outcome its criterion names, or that cannot fail when that outcome is absent — the last shown by
+naming the specific defect, and where in this change it would arise.
+
+**Why:** a schema can require that every criterion has some proof named. Only judgment can tell
+whether "add a unit test" proves "returns within 200ms over 50,000 rows". An inadequate proof is
+worse than none, because it produces a green verification instead of an obvious gap. What it does
+not forbid is a proof a reader can imagine being fooled: an assertion that could be tighter, a
+starting state not tried, a field not read. For any test there is a defect it would miss, so a rule
+against that has no end, and a fresh reader finds a new instance every round. Those are suggestions.
+
+**Judged:** per criterion.
+
+## CON_22 — A verify claim the verdict relies on rests on evidence that shows it
+
+**Applies to:** a verify document.
+
+**Forbids:** a claim the verdict relies on — that a criterion is met or not, and what that rests on —
+with no cited build output, test result or diff hunk, or citing evidence that shows something else.
+
+**Why:** verify is the only artifact whose entire value is being derived. A claim reaching beyond
+its evidence turns an auditor into an author, and nothing downstream can tell which one wrote it.
+Prose the verdict does not rely on — an aside, a stronger wording than the claim needs — changes no
+outcome, and objecting to it is how verify once spent rounds on its own sentences. Those are
+suggestions.
+
+**Judged:** per criterion.

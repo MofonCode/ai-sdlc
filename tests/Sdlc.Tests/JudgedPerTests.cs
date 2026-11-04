@@ -52,8 +52,8 @@ public sealed class JudgedPerTests
             .ToDictionary(rule => rule.Id.Number, rule => rule.Judged);
 
         Assert.AreEqual(JudgedPer.Criterion, judged[3]);
-        Assert.AreEqual(JudgedPer.Criterion, judged[6]);
-        Assert.AreEqual(JudgedPer.Criterion, judged[8]);
+        Assert.AreEqual(JudgedPer.Criterion, judged[21]);
+        Assert.AreEqual(JudgedPer.Criterion, judged[22]);
         Assert.AreEqual(JudgedPer.Outcome, judged[16]);
         Assert.AreEqual(4, judged.Values.Count(value => value is not null), "A fifth is a decision, not an edit.");
     }
@@ -88,17 +88,17 @@ public sealed class JudgedPerTests
 
         string rules = ReaderAnswers.AnswerPath(directory, "rules");
 
-        await File.WriteAllTextAsync(rules, """{ "findings": [], "rows": [ { "rule": "CON_06", "item": 1, "met": true, "why": "x" } ] }""");
+        await File.WriteAllTextAsync(rules, """{ "findings": [], "rows": [ { "rule": "CON_21", "item": 1, "met": true, "why": "x" } ] }""");
         Result<CollectRound.Response> missing = await Collect(workspace, directory);
         Assert.IsTrue(missing.IsFailed);
-        StringAssert.Contains(missing.Errors[0].Message, "CON_06 item 2");
+        StringAssert.Contains(missing.Errors[0].Message, "CON_21 item 2");
 
-        await File.WriteAllTextAsync(rules, """{ "findings": [], "rows": [ { "rule": "CON_06", "item": 1, "met": true, "why": "x" }, { "rule": "CON_06", "item": 2, "met": false, "why": "a name, not an assertion" } ] }""");
+        await File.WriteAllTextAsync(rules, """{ "findings": [], "rows": [ { "rule": "CON_21", "item": 1, "met": true, "why": "x" }, { "rule": "CON_21", "item": 2, "met": false, "why": "a name, not an assertion" } ] }""");
         Result<CollectRound.Response> unblocked = await Collect(workspace, directory);
         Assert.IsTrue(unblocked.IsFailed);
         StringAssert.Contains(unblocked.Errors[0].Message, "raised no blocking finding");
 
-        await File.WriteAllTextAsync(rules, """{ "findings": [], "rows": [ { "rule": "CON_06", "item": 1, "met": true, "why": "x" }, { "rule": "CON_06", "item": 2, "met": true, "why": "x" } ] }""");
+        await File.WriteAllTextAsync(rules, """{ "findings": [], "rows": [ { "rule": "CON_21", "item": 1, "met": true, "why": "x" }, { "rule": "CON_21", "item": 2, "met": true, "why": "x" } ] }""");
         Result<CollectRound.Response> answered = await Collect(workspace, directory);
         Assert.IsTrue(answered.IsSuccess, string.Join("; ", answered.Errors.Select(error => error.Message)));
     }

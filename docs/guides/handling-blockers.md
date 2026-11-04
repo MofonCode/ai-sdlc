@@ -200,8 +200,8 @@ sitrep and `sdlc status` on that branch say it was built before the plan was ame
 
 `/sdlc:verify <id>` reads the recorded evidence — `tests.json`, `diff.patch`, `base.sha` — and never
 runs the tests or reads the source. Per criterion it asks which test the plan named, whether the summary
-says it ran and passed, **whether that test actually establishes the criterion**, and what would let it
-pass while the criterion is unmet. A test that passed but does not reach its criterion is *not met*. Each
+says it ran and passed, **whether that test actually establishes the criterion**, and which case it never
+runs or which outcome it never reads. A test that passed but does not reach its criterion is *not met*. Each
 Met quotes the assertion it rests on from `diff.patch`, so the interrogation that follows checks the quote
 against the diff rather than trusting a test's name.
 

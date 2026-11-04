@@ -332,8 +332,8 @@ the caller of the endpoint is told, and criterion 7 is what the person who press
 One without the other is a failure that is reported correctly and shown to nobody.
 
 **Criterion 3 is worth reading twice.** Its proof is a test that already exists, and the plan names it
-without writing it. That is legitimate — what is not is a criterion whose named test could pass while
-the criterion is unmet.
+without writing it. That is legitimate — what is not is a criterion whose named test never runs the case
+it states.
 
 **The spec is interrogated for you**, the same way. If it stops on a blocker, see
 [handling blockers](../guides/handling-blockers.md).
@@ -373,8 +373,8 @@ first two still produces a build that compiles, and the suite catches the other 
   do not read, so the plan names `Ui` in `ConventionTests.cs`. A component is sealed in a code-behind
   file, because the half generated from the markup does not say `sealed`.
 
-**It is the last document before you approve, so read it for proof adequacy.** Ask of each check: *what
-would have to be true for this to pass while the criterion is still unmet?* Three answers to watch for
+**It is the last document before you approve, so read it for proof adequacy.** Ask of each check: *which
+case does it never run, and which outcome does it never read?* Three answers to watch for
 on this work:
 
 - **A proof that rests entirely on a substituted source.** A test that only ever drives the roll through

@@ -83,7 +83,7 @@ public static class RecordEvidence
     /// </summary>
     /// <remarks>
     /// <c>verify</c> reads only what this writes. That is the point of recording it: a verdict derived from a
-    /// session's recollection of the build is a verdict nobody can check, and <c>CON_08</c> forbids a claim
+    /// session's recollection of the build is a verdict nobody can check, and <c>CON_22</c> forbids a claim
     /// with no cited evidence.
     /// <para>
     /// Both the runner's own output and the normalised summary are kept. The summary is what every later

@@ -176,7 +176,7 @@ baseline in `.sdlc/coverage.json` forward when it held — commit that file with
 
 This writes the diff, the two commits it is measured between, every results file the run produced, and one
 normalised test summary merged from all of them. **Verify reads only these files.** A verdict derived
-from your recollection of the build is a verdict nobody can check, which is what `CON_08` forbids.
+from your recollection of the build is a verdict nobody can check, which is what `CON_22` forbids.
 
 **Point `--tests` at the directory, not at one file.** Every test project a run covers writes its own
 results file, so a single path records one project and silently drops the rest — a cycle recorded 14 of

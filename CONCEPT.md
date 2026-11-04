@@ -297,14 +297,14 @@ separating "the part that is judged".
 | | `Fixed decisions` | `CON_01` routes decisions-already-taken here; `plan` cites them; `steer` writes here |
 | | `Must not change` | `CON_16`, which names it |
 | | `type` | the change classification; later artifacts read it |
-| `spec` | `Acceptance criteria` | `CON_03`, `CON_05`, `CON_06`, `CON_12`, `CON_16`, `CON_17`, `CON_20`, and `verify` |
+| `spec` | `Acceptance criteria` | `CON_03`, `CON_05`, `CON_12`, `CON_16`, `CON_17`, `CON_20`, `CON_21`, and `verify` |
 | | `Out of scope` | `CON_05`, `CON_16`; a disposal destination (§5.4) |
 | `plan` | `Shape and departures` | `CON_15`, `CON_18`, `CON_19` |
 | | `Files` | the blast-radius signal and the claim graph; ordering reasoning lives here |
-| | `Proof` | `CON_06`, and `verify`'s criterion table |
+| | `Proof` | `CON_21`, and `verify`'s criterion table |
 | | `Risk` | the person at the gate |
 | | `tier` | the blast radius: `local`, `contract`, `data`, chosen by reversibility |
-| `verify` | `Criteria` | the criterion-by-criterion adjudication; `CON_08` binds every claim in it |
+| `verify` | `Criteria` | the criterion-by-criterion adjudication; `CON_22` binds every claim the verdict relies on |
 | | `outcome` | `pass`, `blocked` or `escalated`; `pr` and `verify-chain` read it |
 
 A section exists because something reads it: a constraint, a mechanical check, a downstream skill, or
@@ -329,7 +329,7 @@ D-03 is what makes that a gap rather than a detail: the open region is the compl
 it the exploitable one, and `CON_14` is the only control on the three it binds. On a verify the
 temptation is specific — recording a criterion as a limit of the proof rather than as unmet — and every
 other check in the chain would still pass, because the plan has its proof entry and the outcome reads
-`pass`. `CON_08` does not reach it either: it governs claims *in* `Criteria`, not absences recorded
+`pass`. `CON_22` does not reach it either: it governs claims *in* `Criteria`, not absences recorded
 elsewhere.
 
 **A mechanical check rather than a rule, which is the library's own routing rather than a preference.**
@@ -550,7 +550,7 @@ Three mechanical checks need no reading comprehension:
    signal, not a gate (§7.7)
 
 With every intent item disposed, anything still open at plan time is by construction out of scope or
-explicitly deferred: anything in scope got a criterion, and `CON_06` and `CON_12` require every
+explicitly deferred: anything in scope got a criterion, and `CON_21` and `CON_12` require every
 criterion to have a proof that can run. **So the gate before build is about dependency, not the
 absence of open items** (D-04).
 
@@ -806,6 +806,10 @@ the page while leaving the belief in it.
 convergence. Two constraints whose remedies exclude each other is a conflict, named and handed back.
 Three endings have to be distinguishable: converged, open, conflicting.
 
+**Convergence needs a finite supply of objections.** A rule that blocks whatever a reader can imagine
+hands every fresh reader a new instance, and the loop enumerates rather than converges. So the proof
+rules block what a proof never reaches, and what a reader can only imagine is a suggestion (D-127).
+
 ### 6.5 Perspectives
 
 **A perspective is a method, not a label** (D-90): security, operability, maintainability, accessibility,
@@ -983,9 +987,7 @@ nobody.
 | `CON_02` | an intent's unknowns are recorded as open questions, not answered by guess | intent |
 | `CON_03` | a criterion states an observable outcome and how it is checked | spec |
 | `CON_05` | a spec introduces no scope its intent did not ask for | spec |
-| `CON_06` | a plan's proof is adequate to the criterion it claims to prove | plan |
 | `CON_07.2` | a change does only what its plan declared, including inside files the plan named | diff |
-| `CON_08` | a verify claim rests on evidence that exists and supports it | verify |
 | `CON_09` | no artifact restates another's content as its own authority | every artifact |
 | `CON_10.2` | a gate refusal's reason says what has to change | a gate decision that is not an approval |
 | `CON_11` | every constraint carries a Forbids clause that rules something out | a diff adding a constraint |
@@ -997,8 +999,10 @@ nobody.
 | `CON_18` | a plan that changes a rule the cycle is judged by says what the rule would have cost | plan |
 | `CON_19` | a plan says why it departs from a decision the solution has recorded | plan |
 | `CON_20` | a spec says what is recorded when the action fails | spec |
+| `CON_21` | a plan's proof reaches the criterion it claims to prove | plan |
+| `CON_22` | a verify claim the verdict relies on rests on evidence that shows it | verify |
 
-**Two ids are absent because they no longer bind**, and each is explained once below.
+**Four ids are absent because they no longer bind**, and each is explained once below.
 
 `CON_04` required every
 stated outcome to have a criterion and said nothing about a criterion covering only part of one,
@@ -1014,7 +1018,15 @@ out. `CON_15` replaces it and covers both directions, scoped to work that calls 
 `CON_13` stays on the library's page verbatim, so a finding that cited it is still readable against
 the rule it was judged under (D-59).
 
-`CON_06` is the one to watch: it drew a blocking finding in roughly half of twelve runs on a golden
+`CON_06` forbade a check that *could* pass while its criterion was unmet, and `CON_08` a verify
+statement whose evidence did not establish it. Neither had a bound: for any test there is a defect it
+would miss, so a fresh reader found a new one every round, and one plan took 44 rounds with 40 of its
+54 blockers citing `CON_06`. `CON_21` blocks a proof that never runs a stated case, asserts the wrong
+outcome, or cannot fail on a defect the reader names in this change. `CON_22` blocks a claim the
+verdict relies on. What a reader can only imagine is a suggestion. Both stay on the page verbatim for
+the findings that cited them (D-127).
+
+`CON_06`, now `CON_21`, was the one to watch: it drew a blocking finding in roughly half of twelve runs on a golden
 sample, the cause was traced to the sample rather than the constraint, and the fix was made by
 reading rather than re-running.
 
@@ -1030,8 +1042,10 @@ Four constraints, one per artifact, each naming what becomes illegal in that pla
 |---|---|---|
 | intent | `CON_02` | stating as settled fact a figure nobody measured |
 | spec | `CON_03` | a criterion that cannot fail, or an outcome with no way to observe it |
-| plan | `CON_06` | a named check that could pass while its criterion is unmet |
-| verify | `CON_08` | a statement with no cited evidence |
+| plan | `CON_21` | a proof that never runs a stated case, asserts the wrong outcome, or cannot fail on a named defect |
+| verify | `CON_22` | a claim the verdict relies on with no evidence, or evidence showing something else |
+
+Each forbids what is wrong, never what a reader can imagine going wrong (D-127).
 
 ### 7.7 What blocks, and what is only a signal
 
@@ -7270,12 +7284,14 @@ cycle, not wait in this one.
 
 ### D-127 — A proof blocks when it does not reach its criterion, never because a reader can imagine it fooled
 
-**Governs:** §6.4, §7.5, §7.7
+**Governs:** §6.4, §7.5, §7.6
 
 **Revisits D-65's premise and leaves its mechanism alone.** **Leaves D-27 unchanged:** nothing is waived.
-What changes is what the rule forbids.
+What changes is what the rule forbids, so under §7.4 each rule is superseded rather than revised: `CON_21`
+replaces `CON_06`, and `CON_22` replaces `CON_08`. Both old rules stay on the page verbatim, so a finding
+that cited them is still readable against what it was judged under.
 
-**Decision.** `CON_06` forbids a proof that does any one of these:
+**Decision.** `CON_21` forbids a proof that does any one of these:
 
 - it never runs a case its criterion states;
 - it asserts something other than the outcome its criterion names;
@@ -7283,8 +7299,8 @@ What changes is what the rule forbids.
   where in this change it would arise.
 
 A weakness that needs a defect the reader has only imagined is a **suggestion**. Examples: an assertion that
-could be tighter, a starting state not tried, a field not read. `CON_08` changes the same way. A claim the
-verdict relies on blocks when its evidence is missing or shows something else. Prose the verdict doesn't
+could be tighter, a starting state not tried, a field not read. `CON_22` changes `CON_08` the same way:
+a claim the verdict relies on blocks when its evidence is missing or shows something else. Prose the verdict doesn't
 rely on is a suggestion, and D-130's rows leave little of it. The per-criterion rows stay (D-119): the sweep
 is still exhaustive, and what is narrowed is what counts as a gap. The plan skill's test of a proof changes
 from *"what would have to be true for this check to pass while the criterion is unmet"* to *"which case does

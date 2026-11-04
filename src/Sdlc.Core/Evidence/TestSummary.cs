@@ -52,7 +52,7 @@ public sealed record RecordedTest(string Name, TestOutcome Outcome, string? Deta
 /// part where the stack already is.
 /// <para>
 /// The runner's original output is kept alongside this rather than replaced, so a verify claim can cite
-/// either and <c>CON_08</c> is satisfied by both.
+/// either and <c>CON_22</c> is satisfied by both.
 /// </para>
 /// </remarks>
 /// <param name="FrameworkVersion">The version whose format this was written in.</param>

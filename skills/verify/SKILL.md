@@ -68,7 +68,7 @@ round finds.
 
 ## Then run the loop, and stop
 
-Interrogate the verify document like any other artifact — `CON_08` applies to it, and the rounds it
+Interrogate the verify document like any other artifact — `CON_22` applies to it, and the rounds it
 accumulates are also what counts remediation passes.
 
 **A round's blocking findings are answered by a new adjudication, not by an edit.** Changing a verdict

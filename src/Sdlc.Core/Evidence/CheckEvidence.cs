@@ -131,7 +131,7 @@ public static class CheckEvidence
         StringBuilder text = new();
         text.AppendLine(string.Create(
             CultureInfo.InvariantCulture,
-            $"verify.md cites {response.Cited} name{(response.Cited == 1 ? string.Empty : "s")} in backticks. This reports; it refuses nothing, and the reader still judges CON_08."));
+            $"verify.md cites {response.Cited} name{(response.Cited == 1 ? string.Empty : "s")} in backticks. This reports; it refuses nothing, and the reader still judges CON_22."));
 
         if (response.Unfound.Count == 0 && response.NotPassed.Count == 0)
         {

@@ -54,7 +54,7 @@ rendering, an interaction, something a person sees change — is a request throu
 **Why:** the response is the input to the behaviour rather than the behaviour, so such a proof passes
 over a component that never renders and an interaction that never fires. This profile declares bUnit
 for a component and Playwright in Chromium and WebKit for a page, and those are the layers that
-execute the thing the criterion is about. `CON_06` already asks whether a proof is adequate to its
+execute the thing the criterion is about. `CON_21` already asks whether a proof is adequate to its
 criterion and cannot name a tool, so on this stack the question it asks has no reference point until
 this rule supplies one. `CON_12` is a different question: it forbids a criterion only a person can
 check, where this forbids a machine check at the wrong layer — which is worse, because it goes green.

@@ -85,6 +85,33 @@ public sealed class ReaderPromptsTests
     }
 
     [TestMethod]
+    public async Task A_proof_reader_and_the_adjudicator_block_on_what_a_test_never_reaches_and_not_on_what_they_imagine()
+    {
+        // D-127. "What would let it pass while unmet" had no bound: a fresh reader always found one more
+        // defect a test would miss, and one plan spent 44 rounds that way. Both prompts now ask for the case
+        // a test never runs and the outcome it never reads, and send the imagined defect to a suggestion.
+        using var workspace = CycleWorkspace.Create();
+        workspace.WriteSpec(criteria: 1);
+        workspace.WritePlan(proofs: 1);
+        workspace.WriteTestSummary(proofs: 1);
+        workspace.WriteVerify("pass");
+        CycleWorkspace.WriteRaw(Path.Combine(workspace.Cycle.EvidenceDirectory, "diff.patch"), "+Assert.AreEqual(1, roll);\n");
+        string directory = Path.Combine(workspace.Root, "round");
+
+        string rules = await File.ReadAllTextAsync((await Prompt(workspace, ArtifactKind.Verify, directory, "rules")).Value.Prompts[0].Path);
+        string adjudicate = await File.ReadAllTextAsync((await Prompt(workspace, ArtifactKind.Verify, directory, "adjudicate")).Value.Prompts[0].Path);
+
+        foreach (string prompt in new[] { rules, adjudicate })
+        {
+            StringAssert.Contains(prompt, "never read");
+            Assert.IsFalse(prompt.Contains("pass while the criterion is unmet", StringComparison.Ordinal), "The unbounded question is gone.");
+        }
+
+        StringAssert.Contains(rules, "A defect you can only\nimagine the test missing is a suggestion.");
+        StringAssert.Contains(rules, "CON_22");
+    }
+
+    [TestMethod]
     public async Task The_adjudicator_is_composed_for_a_verify_alone_and_is_not_handed_a_verdict_to_judge()
     {
         using var workspace = CycleWorkspace.Create();

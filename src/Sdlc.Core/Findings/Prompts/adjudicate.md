@@ -50,15 +50,16 @@ criterion in turn:
 1. Which test did the plan name for it?
 2. Does `tests.json` say that test ran and passed?
 3. Does that test, as the diff shows it, actually establish the criterion?
-4. **What would let that test pass while the criterion is unmet?** Answer it before you write Met. A test
-   that asserts a value was handed to a library, where the criterion is about what the person saw; a
-   keyboard test that moves focus with `FocusAsync` instead of a key; a failure test that checks one of
-   the four failure paths. If you can name such a way and the diff shows nothing closing it, the
-   criterion is **not met**.
+4. **Which case does that test never run, and which outcome does it never read?** Answer it before you
+   write Met. A test that asserts a value was handed to a library, where the criterion is about what the
+   person saw; a keyboard test that moves focus with `FocusAsync` instead of a key; a failure test that
+   checks one of the four failure paths the criterion names. If the test misses a case the criterion
+   states or never reads its outcome, the criterion is **not met**. A defect you can only imagine the
+   test missing is not a reason to withhold Met (D-127).
 
 Question three is where judgement lives, and where you may disagree with the plan. A test that ran and
 passed but does not reach its criterion is **not met** — say so, cite the test and the diff lines, and
-let the finding stand. That is `CON_06` caught late rather than never, and it is worth more here than a
+let the finding stand. That is `CON_21` caught late rather than never, and it is worth more here than a
 pass that nobody can rely on.
 
 **Quote the assertion, not the test's name.** Every Met cites the lines of the diff that do the asserting
@@ -100,8 +101,9 @@ adds a criterion the spec did not state.
 
 ## Cite everything
 
-`CON_08` forbids a statement with no cited build output, test result or diff hunk — and equally forbids
-one citing evidence that does not establish what the statement claims.
+`CON_22` forbids a claim the verdict relies on with no cited build output, test result or diff hunk, or
+one citing evidence that shows something else. Write only claims the verdict relies on: an aside or a
+sentence stronger than it needs is something a reader will object to, and it decides nothing.
 
 | Not a claim | A claim |
 |---|---|

@@ -138,7 +138,7 @@ public static class ReaderPrompts
             block.Append("None -- this is the first artifact.\n\n");
         }
 
-        // What CON_08 is decided against: the criteria, and every piece of evidence the verification may
+        // What CON_22 is decided against: the criteria, and every piece of evidence the verification may
         // cite. The build log where this checkout has one; it is not committed (D-92).
         if (artifact == ArtifactKind.Verify)
         {
@@ -347,7 +347,7 @@ public static class ReaderPrompts
             // A Met is checked by finding its quote in the diff, and a reader without that instruction
             // only checks that something was named.
             string verify = request.Artifact == ArtifactKind.Verify
-                ? "\nEach Met quotes the assertion it rests on from `diff.patch`. Find each quote in the diff, and ask what\nwould let that assertion pass while the criterion is unmet. A Met whose quote is missing, is not in the\ndiff, or asserts less than the criterion asks breaks `CON_08`.\n"
+                ? "\nEach Met quotes the assertion it rests on from `diff.patch`. Find each quote in the diff, and ask which\ncase the criterion states the test never runs, and which outcome it never reads. A Met whose quote is\nmissing, is not in the diff, or asserts less than the criterion asks breaks `CON_22`. A defect you can only\nimagine the test missing is a suggestion.\n"
                 : string.Empty;
 
             return Result.Ok(shared + Template("rules")

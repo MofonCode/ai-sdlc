@@ -150,8 +150,8 @@ lacks is closed by this plan only if the intent asked for it; otherwise the plan
 it.
 
 **It is the last document before you approve, so it is the one to read closely** — and the thing to
-read for is proof adequacy. Ask of each check: *what would have to be true for this to pass while the
-criterion is still unmet?* If that question has an answer, the proof is not adequate, and an inadequate
+read for is proof adequacy. Ask of each check: *which case does it never run, and which outcome does it
+never read?* If either has an answer, the proof is not adequate, and an inadequate
 proof is worse than none because it produces a green verification instead of an obvious gap.
 
 **If you change your mind mid-cycle**, do not edit the documents by hand:

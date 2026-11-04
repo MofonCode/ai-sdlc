@@ -148,7 +148,7 @@ place the truth lives. Only the first of them binds.
 | **constraint id** | `CON_nn` global, `PRO_nn` stack rule, `LOC_nn` solution — resolved in that order, so a solution's rules are the last word |
 | **revision** | a rule rewritten keeps its number and gains one: `CON_07.2`. The one it replaced stays on the page so a cycle that cited it is still readable |
 | **the four clauses** | the statement, what it applies to and when, what it **forbids**, and why. `CON_11` forbids a rule with no Forbids clause |
-| **judged per criterion** | an optional field on a rule — `Judged: per criterion` or `per outcome` — saying it is decided one item at a time. The rules reader answers it with a row per spec criterion or intent outcome, and an answer missing a row is refused, so every instance of a repeated gap surfaces in one round. `CON_03`, `CON_06` and `CON_08` are judged per criterion, `CON_16` per outcome (D-119) |
+| **judged per criterion** | an optional field on a rule — `Judged: per criterion` or `per outcome` — saying it is decided one item at a time. The rules reader answers it with a row per spec criterion or intent outcome, and an answer missing a row is refused, so every instance of a repeated gap surfaces in one round. `CON_03`, `CON_21` and `CON_22` are judged per criterion, `CON_16` per outcome (D-119) |
 | **the shipped library** | the global set, embedded in the binary. `SDLC_CONSTRAINTS` points at another and refuses rather than falling back if it is not there |
 | **stack rules** | the `PRO_` set, embedded in the binary, of which a solution is held to exactly the ones its declared stack marks `true`. **The one tier where a rule may name a language, framework or package** — the global set may not, which is what the tier is for. The framework ships five |
 | **the three admission tests** | what a proposed rule must pass: it forbids something, **no analyzer could decide it**, and it is incompatible with at least one plausible implementation |
@@ -337,7 +337,7 @@ These are not files. They are the shapes that recur, and knowing them explains m
 | **the task list** | the host's own list of steps, which six skills open where a host has one. `init`, `intent`, `spec`, `plan` and `build` list one stage's steps and nothing past its hand-back; `batch-build` lists one line per cycle, ticked only when that cycle passed. A view of one session, never the record: `sdlc doctor`, `sdlc status` and `sdlc cycles --pr-ready` say what is done |
 | **the human-in-the-loop hand-back** | a skill stops rather than chaining into the next stage. Chaining on would remove the decision point while appearing helpful |
 | **`elsewhere`** | what a binary cannot answer and does not pretend to: whether a host loaded the skills, and whether the pipeline's check is required when the platform's CLI is not signed in. `doctor` marks these and names who to ask |
-| **the admission question for a proof** | *what would have to be true for this to pass while the criterion is still unmet?* If that has an answer, the proof is inadequate — and **an inadequate proof is worse than none**, because it produces a green verification instead of an obvious gap |
+| **the admission question for a proof** | *which case does this check never run, and which outcome does it never read?* If either has an answer, the proof is inadequate. A defect a reader can only imagine it missing is a suggestion, never a blocker (D-127) — and **an inadequate proof is worse than none**, because it produces a green verification instead of an obvious gap |
 
 ## See also
 

@@ -78,7 +78,7 @@ removes the problem from the page while leaving the belief in it:
 |---|---|---|
 | `CON_02`: "fourteen seconds" is unmeasured | change it to "slow" | record it as an unconfirmed assumption, or ask |
 | `CON_03`: "handles large files" cannot fail | add "reliably" | name a size and an observable |
-| `CON_06`: a unit test cannot prove a latency claim | add "and integration tests" | name the test and what it measures |
+| `CON_21`: a unit test cannot prove a latency claim | add "and integration tests" | name the test and what it measures |
 
 If a finding is wrong, say so in your report with the reason, and leave the artifact alone. Do not
 withdraw it from the findings file — a later round withdraws a finding, and a round you edited is no

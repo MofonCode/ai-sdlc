@@ -631,9 +631,9 @@ public static class VerifyChain
         /// <remarks>
         /// Matched by number rather than by prose, because the number is the one part of a criterion that
         /// can be compared without reading comprehension. Whether the proof is <em>adequate</em> to the
-        /// criterion is `CON_06`, and that is judgement rather than a check -- which is exactly the split:
-        /// this catches a criterion with no proof at all, and no schema could catch a proof that could pass
-        /// while its criterion is unmet.
+        /// criterion is `CON_21`, and that is judgement rather than a check -- which is exactly the split:
+        /// this catches a criterion with no proof at all, and no schema could catch a proof that never
+        /// reaches its criterion.
         /// </remarks>
         private static async Task Proof(
             Cycle cycle,
@@ -710,7 +710,7 @@ public static class VerifyChain
         /// Without this a criterion whose proof did not reach could be recorded under <c>## Open</c> as a
         /// limit rather than adjudicated as unmet, and every other check here would still pass: the plan
         /// has its proof entry, the hashes match, the rounds are current, and the outcome says
-        /// <c>pass</c>. <c>CON_08</c> does not catch it either, because it governs claims that are
+        /// <c>pass</c>. <c>CON_22</c> does not catch it either, because it governs claims that are
         /// <em>in</em> the criteria section rather than absences recorded elsewhere. And unlike the plan
         /// stage there is nothing downstream: D-27 permits that exit on the grounds that verify still
         /// blocks, and here verify is the last judgement before the pull request.
