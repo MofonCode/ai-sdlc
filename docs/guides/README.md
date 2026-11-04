@@ -25,8 +25,8 @@ skill and refusal as one line each, for when you already know why.
 
 ## `installing-the-plugin.md`
 
-**Installing, updating and removing both halves.** The plugin carries the skills and both hooks; the
-`sdlc` binary is what those call. Without the plugin nothing asks for a cycle; without the binary
+**Installing, updating and removing both halves.** The plugin carries the skills and the hooks; the
+`sdlc` binary is what those call, and a solution pins which release of it runs there. Without the plugin nothing asks for a cycle; without the binary
 every skill's first command fails.
 
 It opens with a table of what each half is and what missing it means, then covers the local-directory

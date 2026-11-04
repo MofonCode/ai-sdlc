@@ -616,7 +616,7 @@ public sealed class HookTests
 
     [TestMethod]
     [DataRow("postToolUse")]
-    [DataRow("sessionStart")]
+    [DataRow("userPromptSubmit")]
     public void An_event_that_is_not_judged_is_not_recognised(string spelling)
     {
         Assert.IsFalse(HookProtocol.TryParseEvent(spelling, out HookEvent? parsed));

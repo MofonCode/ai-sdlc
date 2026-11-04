@@ -39,6 +39,29 @@ public sealed class InitTests
     }
 
     [TestMethod]
+    public async Task Adoption_pins_its_release_and_keeps_the_solutions_own_tools()
+    {
+        // D-131. The manifest is the pin a cycle's branch carries, and the solution may keep other local tools
+        // in it, so only the sdlc entry is the framework's.
+        using var solution = Scratch.Create();
+        string manifest = Path.Combine(solution.Root, ".config", "dotnet-tools.json");
+        Directory.CreateDirectory(Path.GetDirectoryName(manifest)!);
+        await File.WriteAllTextAsync(manifest, """{ "version": 1, "isRoot": true, "tools": { "dotnet-ef": { "version": "9.0.0", "commands": ["dotnet-ef"] } } }""");
+
+        Initialise.Response report = await Adopt(solution, tracked: ["README.md"]);
+
+        Assert.AreEqual(Sdlc.Core.Release.Version, Sdlc.Core.PinnedRelease.Find(solution.Root));
+        StringAssert.Contains(await File.ReadAllTextAsync(manifest), "dotnet-ef");
+        Assert.IsTrue(report.Written.Any(path => path.Replace('\\', '/') == Sdlc.Core.PinnedRelease.ManifestPath));
+
+        Initialise.Response again = await Adopt(solution, tracked: ["README.md"]);
+
+        Assert.AreEqual(
+            Initialise.InitChange.Kept,
+            again.Actions.Single(action => action.Path.Replace('\\', '/') == Sdlc.Core.PinnedRelease.ManifestPath).Change);
+    }
+
+    [TestMethod]
     public async Task A_repository_that_already_holds_code_is_onboarded()
     {
         using var solution = Scratch.Create();
@@ -398,7 +421,9 @@ public sealed class InitTests
                 host.Ownership is ConfigOwnership.Shared or ConfigOwnership.Section
                 && string.Equals(host.ConfigPath, path, StringComparison.Ordinal));
 
-            if (path is Initialise.AgentsFileName or LineEndings.FileName || shared)
+            // The tool manifest is merged too: the framework owns the sdlc entry, and any other tool in it is the
+            // solution's (D-131).
+            if (path is Initialise.AgentsFileName or LineEndings.FileName or Sdlc.Core.PinnedRelease.ManifestPath || shared)
             {
                 continue;
             }
@@ -1319,7 +1344,7 @@ public sealed class InitTests
 
             int install = Array.FindIndex(
                 lines,
-                line => line.Contains("dotnet tool install", StringComparison.Ordinal)
+                line => line.Contains("dotnet tool restore", StringComparison.Ordinal)
                     && !line.TrimStart().StartsWith('#'));
 
             Assert.IsGreaterThan(
@@ -1327,12 +1352,17 @@ public sealed class InitTests
                 install,
                 $"{platform} never installs the binary its last step calls.");
 
-            // Pinned rather than latest. An unpinned governance tool can change what a repository is
-            // judged by between two runs, with nobody having chosen the new rules.
+            // Pinned rather than latest, and pinned in one place. An unpinned governance tool can change what a
+            // repository is judged by between two runs, with nobody having chosen the new rules; a version written
+            // here as well as in the manifest is a second pin, and an Azure DevOps file adoption printed rather
+            // than rewrote would keep the old one after a bump (D-131).
             StringAssert.Contains(
-                lines[install],
-                "--version " + Sdlc.Core.Release.Version,
-                $"{platform} does not pin the gate to the release it ships with.");
+                pipeline,
+                "--version \"$pinned\"",
+                $"{platform} does not install the release the manifest pins.");
+            Assert.IsFalse(
+                pipeline.Contains("--version " + Sdlc.Core.Release.Version, StringComparison.Ordinal),
+                $"{platform} writes the version a second time.");
 
             int check = Array.FindIndex(
                 lines,
@@ -1359,18 +1389,17 @@ public sealed class InitTests
     }
 
     [TestMethod]
-    public void The_unpublished_package_says_so_in_the_pipeline_it_generates()
+    public void A_solution_that_pins_nothing_is_told_how_to_pin_rather_than_judged_by_any_release()
     {
-        // D-32's rule applied to the step that step depends on. The package is not on a feed yet, so
-        // this install does not resolve -- and the person whose first pull request fails on it reads the
-        // generated file, not our notes. Writing no install step at all was the quiet version of the
-        // same gap, which is the one the whole design is written against.
+        // D-37 wrote the version into the pipeline; D-131 moved it to the manifest. A solution adopted before
+        // that has no manifest, and a pipeline that fell back to whatever release the agent carried would be the
+        // unpinned gate D-37 was written against. It stops, and says what to run.
         foreach (Platform platform in Templates.Hosted)
         {
             StringAssert.Contains(
                 Templates.Pipeline(platform),
-                "not on a public feed yet",
-                $"{platform} installs a package it cannot resolve and does not say so.");
+                "This solution pins no sdlc release.",
+                $"{platform} does not say what to do when nothing is pinned.");
         }
     }
 

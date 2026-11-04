@@ -98,23 +98,22 @@ binary every skill's first command fails.
 
 - the .NET 10 SDK, to pack and install the binary
 - git
-- the GitHub CLI, `gh`, signed in with access to this repository — it is private
 - an agent host: Claude Code is shown below, and [Will it work with my agent?](#will-it-work-with-my-agent)
   lists the others
 
-**1. Install the binary.** There is no published feed yet, so it is packed from a clone:
+**1. Install the binary.** From nuget.org, once per machine. A governed solution pins its own release, and
+this `sdlc` hands each command on to it:
 
 ```pwsh
-git clone https://github.com/MofonCode/ai-sdlc
-cd ai-sdlc
-dotnet pack src\Sdlc.Cli\Sdlc.Cli.csproj -c Release -o src\Sdlc.Cli\bin\pack
-dotnet tool install --global --add-source src\Sdlc.Cli\bin\pack MofonCode.Sdlc.Cli
+dotnet tool install --global MofonCode.Sdlc.Cli
 ```
 
-**2. Install the plugin.** Claude Code shown; the repository is private, hence `gh auth login`:
+Until the first release reaches nuget.org, pack it from a clone instead —
+[the install guide](docs/guides/installing-the-plugin.md#the-binary) has the three commands.
+
+**2. Install the plugin.** Claude Code shown:
 
 ```pwsh
-gh auth login
 claude plugin marketplace add MofonCode/ai-sdlc
 claude plugin install sdlc@ai-sdlc
 ```
@@ -381,8 +380,13 @@ What is honest to say about the rest:
   behaviour it rests on (D-129), proves in a table, and a verify is rewritten in place (D-130); each
   round records the release that wrote it (D-131). They were drawn from one MarketSense cycle of 88
   rounds and six reopens, and the claim that they shorten a cycle is untested. D-128's and D-129's shape
-  rules hold only cycles opened under them. **Pinning a cycle to the release it opened on is decided
-  and not built**: the binary still installs once per machine.
+  rules hold only cycles opened under them.
+- **A cycle runs on the release it opened on, and nothing has been published yet.** A solution pins the
+  binary in `.config/dotnet-tools.json`, and the global `sdlc` hands every command on to that release; a
+  session-start hook says when the skills are another release (D-131). `.github/workflows/release.yml`
+  publishes to nuget.org and has not run, so until it does the pin restores from no feed. The skills are
+  still one install per machine: pinning them per project waits on a probe of two worktrees on two tags,
+  which the first published releases make possible.
 
 ## Not goals
 

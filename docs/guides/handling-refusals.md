@@ -688,12 +688,12 @@ every pull request merges with nothing built, tested or verified, and nothing sa
 asks the platform, on both, and reports a problem while the check is not required. Signed out of `az` or
 `gh`, it marks the policy `elsewhere` and names this step instead.
 
-**One more, on the generated pipeline:** its first real step installs the `sdlc` binary, pinned to the
-release that generated it, and **that install does not resolve yet** because the package is not on a public
-feed. So a first pull request fails at `install sdlc` rather than at `verify the artifact chain`. That is
-the intended shape — the failure names the missing thing, before a build is spent, in a step whose
-comment says so (D-37). Name a feed holding the package in `nuget.config`, or wait for it to be
-published.
+**One more, on the generated pipeline:** its first real step restores the `sdlc` release
+`.config/dotnet-tools.json` pins, and stops there when it cannot — before a build is spent, in a step whose
+comment says why (D-37, D-131). It says one of two things. *This solution pins no sdlc release* means the
+solution was adopted before the manifest existed: a person runs adoption on the integration branch and
+commits the manifest. *No feed this run can reach holds the release* usually means a `nuget.config` that
+clears the default sources, which hides nuget.org.
 
 ---
 

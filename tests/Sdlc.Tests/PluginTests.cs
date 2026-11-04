@@ -160,9 +160,14 @@ public sealed class PluginTests
             ? [claude.PreToolEvent]
             : [claude.PreToolEvent, claude.TurnEndEvent];
 
+        // One moment is the plugin's alone. The session-start check compares the plugin's release with the
+        // binary's (D-131), and a settings file adoption writes has no plugin to compare, so it carries no such
+        // hook and the table has no row for it.
+        const string pluginOnly = "SessionStart";
+
         CollectionAssert.AreEquivalent(
             expected,
-            shipped.Select(entry => entry.Key).ToArray(),
+            shipped.Select(entry => entry.Key).Where(key => key != pluginOnly).ToArray(),
             "The plugin configures different moments than the host table says Claude Code has.");
 
         foreach (string moment in expected)
@@ -180,6 +185,20 @@ public sealed class PluginTests
                 $"The plugin's '{moment}' hook and the generated one disagree about how long the "
                 + "gate may take, so the same hook behaves differently depending on how it arrived.");
         }
+    }
+
+    [TestMethod]
+    public void The_plugin_checks_its_release_against_the_binary_as_a_session_starts()
+    {
+        // D-131. A skill newer than its binary ran rounds through scripts it wrote itself, because the commands
+        // it named were not there. The plugin hands the binary its own directory, so the two can be compared.
+        JsonObject hook = Read(Path.Combine("hooks", "hooks.json"))["hooks"]!["SessionStart"]!
+            .AsArray()[0]!["hooks"]!.AsArray()[0]!.AsObject();
+
+        string command = hook["command"]!.GetValue<string>();
+
+        StringAssert.Contains(command, "--event session-start");
+        StringAssert.Contains(command, "${CLAUDE_PLUGIN_ROOT}");
     }
 
     [TestMethod]

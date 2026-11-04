@@ -404,6 +404,12 @@ public static class Initialise
                     cancellationToken).ConfigureAwait(false);
             }
 
+            // The release this solution's cycles run on. The global binary hands every command to the one
+            // pinned here, and a cycle's branch carries the manifest it was cut with (D-131). Run through that
+            // handoff, init is the pinned release, so this restates the pin; with no manifest yet it pins the
+            // release that adopted. A bump is 'dotnet tool update --local', then init.
+            await Pinned(actions, printed, cancellationToken).ConfigureAwait(false);
+
             // No build settings, in any mode. They are .NET -- warnings as errors in a props file, a
             // global.json pinning an SDK -- and adoption does not know what a solution is built from,
             // so writing them here would be deciding the stack on the way past. The declared stack
@@ -486,7 +492,8 @@ public static class Initialise
             return !furniture.Contains(name, StringComparer.OrdinalIgnoreCase)
                 && !normalised.StartsWith(Cycle.SdlcDirectoryName + "/", StringComparison.Ordinal)
                 && !SupportedHosts.All.Any(host => string.Equals(host.ConfigPath, normalised, StringComparison.OrdinalIgnoreCase))
-                && !string.Equals(PipelinePath(Platform.GitHub).Replace('\\', '/'), normalised, StringComparison.OrdinalIgnoreCase);
+                && !string.Equals(PipelinePath(Platform.GitHub).Replace('\\', '/'), normalised, StringComparison.OrdinalIgnoreCase)
+                && !string.Equals(PinnedRelease.ManifestPath, normalised, StringComparison.OrdinalIgnoreCase);
         }
 
         /// <summary>
@@ -679,6 +686,40 @@ public static class Initialise
                 relative,
                 InitChange.Updated,
                 "the framework's hook entries only -- everything else in the file was kept"));
+        }
+
+        /// <summary>Pins this release in the local tool manifest, keeping any other tool the solution keeps there.</summary>
+        private async Task Pinned(
+            List<InitAction> actions,
+            Dictionary<string, string> printed,
+            CancellationToken cancellationToken)
+        {
+            string relative = Path.Combine([.. PinnedRelease.ManifestPath.Split('/')]);
+            string path = Path.Combine(solution.Path, relative);
+            string? existing = File.Exists(path)
+                ? await File.ReadAllTextAsync(path, cancellationToken).ConfigureAwait(false)
+                : null;
+
+            Result<string> pinned = PinnedRelease.Pin(existing, Release.Version);
+
+            if (pinned.IsFailed)
+            {
+                printed[relative] = PinnedRelease.Pin(null, Release.Version).Value;
+                actions.Add(new InitAction(relative, InitChange.Printed, string.Join(" ", pinned.Errors.Select(error => error.Message))));
+                return;
+            }
+
+            if (string.Equals(existing, pinned.Value, StringComparison.Ordinal))
+            {
+                actions.Add(new InitAction(relative, InitChange.Kept, "already pins this release"));
+                return;
+            }
+
+            await Write(path, pinned.Value, cancellationToken).ConfigureAwait(false);
+            actions.Add(new InitAction(
+                relative,
+                existing is null ? InitChange.Created : InitChange.Updated,
+                existing is null ? "pins the release this solution's cycles run on" : "the sdlc entry only -- any other tool in it was kept"));
         }
 
         /// <summary>

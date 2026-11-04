@@ -2,7 +2,7 @@
 
 Installing, updating and removing both halves, on each host.
 
-**Two things have to be present, and they fail differently.** The plugin carries the skills and both
+**Two things have to be present, and they fail differently.** The plugin carries the skills and the
 hooks; the `sdlc` binary is what those skills and hooks call to decide anything. There is no
 third thing to install: "the gate" elsewhere is one of the binary's checks, not a component. Without the plugin, nothing
 asks for a cycle. Without the binary, the skills ask for something that is not there, which is the
@@ -10,7 +10,7 @@ louder of the two failures.
 
 | | What it is | Missing means |
 |---|---|---|
-| the plugin | eighteen skills, and on Claude Code two hooks, `PreToolUse` and `Stop` | no stages, and on Claude Code no deterministic layer |
+| the plugin | eighteen skills, and on Claude Code three hooks, `SessionStart`, `PreToolUse` and `Stop` | no stages, and on Claude Code no deterministic layer |
 | the `sdlc` binary | a .NET tool named `sdlc` | every skill's first command fails |
 
 **One package, two plugin systems.** The root `plugin.json` makes it an
@@ -46,8 +46,15 @@ merge, and it depends on no host.
 
 ## The binary
 
-**There is no published feed yet**, so the binary is built from a clone of this repository and installed
-from the package that build produces. One command per block.
+It is published to nuget.org as `MofonCode.Sdlc.Cli`. Install it once per machine, globally, so `sdlc` is
+on the path wherever a skill or a hook calls it:
+
+```pwsh
+dotnet tool install --global MofonCode.Sdlc.Cli
+```
+
+**Until the first release reaches nuget.org**, or when you are changing the framework itself, build it
+from a clone of this repository and install the package that build produces. One command per block.
 
 ```pwsh
 cd C:\Repos\ai-sdlc
@@ -88,6 +95,26 @@ takes it.
 If `dotnet tool install` refuses because the tool is already present, the **Update** section below is the
 pair to run.
 
+### Which release runs in a solution
+
+**The global binary is not the release a solution runs.** Adoption pins a release in the solution's
+`.config/dotnet-tools.json`, and inside that solution the global `sdlc` hands every command on to the pinned
+release: same arguments, same working directory, same input and output. The first time a pinned release is
+needed on a machine it is restored from the feed, with what restore prints going to standard error. Nothing
+else changes: every skill, hook and guide still says `sdlc` (D-131).
+
+**A cycle keeps the release it opened on.** Its worktree's branch carries the manifest it was cut with, so
+upgrading the machine, or bumping the integration branch, does not move a cycle in flight. It moves when a
+person merges the integration branch into it, and the status panel says when a cycle's rounds were written by
+more than one release.
+
+`sdlc version` inside a solution reports the pinned release, because that is what answers. Outside one it
+reports the global.
+
+**The global binary has to be one that hands on.** A global `sdlc` from before the handoff runs every command
+itself, whatever the solution pins. `sdlc version` in a solution that pins another release shows which you
+have: the pinned number means it handed on.
+
 ## The plugin
 
 Two sources, and which one you want depends on whether you are *using* the framework or *changing* it.
@@ -99,12 +126,7 @@ Two sources, and which one you want depends on whether you are *using* the frame
 
 ### From GitHub
 
-Works from anywhere; it clones the repository itself, so you need no copy. **The repository is private**,
-so authenticate first.
-
-```pwsh
-gh auth login
-```
+Works from anywhere; it clones the repository itself, so you need no copy.
 
 ```pwsh
 claude plugin marketplace add MofonCode/ai-sdlc
@@ -217,11 +239,16 @@ claude plugin details sdlc@ai-sdlc
 
 **The two should report the same version.** They are fetched separately, so they can drift — and a skill
 calling a verb an older binary does not have is what that drift eventually produces. Expect
-`Skills (18)` and `Hooks (2) PreToolUse, Stop`. **If the hook count is below two, treat it as a
-failed install rather than a detail** — the deterministic layer is not loaded, nothing is denied, and
-every cycle will still appear to work.
+`Skills (18)` and `Hooks (3) SessionStart, PreToolUse, Stop`. **If `PreToolUse` or `Stop` is missing, treat
+it as a failed install rather than a detail** — the deterministic layer is not loaded, nothing is denied,
+and every cycle will still appear to work.
 
-The two hooks govern two different moments. `PreToolUse` refuses a write to a file only a person writes.
+`SessionStart` checks that drift for you. As a session starts, the plugin hands the binary its own directory,
+and when the skills are another release than the binary the directory runs, the agent is told so, and told
+not to work around a command the binary does not have. It never refuses: a session may be the one about to
+fix it. Inside a solution, the release it compares against is the one the solution pins.
+
+The other two hooks govern two different moments. `PreToolUse` refuses a write to a file only a person writes.
 `Stop` is asked before a turn ends, and sends the turn back when the cycle's recorded evidence shows a
 failing suite or when code has moved since the build was recorded. It is the reason a warnings-as-errors
 build and an architecture test are enforcement rather than something a reviewer finds afterwards.
@@ -284,10 +311,15 @@ reinstall took, look at the file's timestamp or run a command only the newer bui
 
 ### Then each governed repository
 
-**Reinstalling updates this machine and no repository on it.** Every governed solution still has the
-hook configuration, the pipeline and the `.sdlc/README.md` an older release wrote, and its pipeline pins
-the older tool. In each one, a person runs adoption again — it picks update mode by itself, refreshes
-only what the framework owns, and touches none of the six files only a person writes:
+**Reinstalling updates this machine and no repository on it.** Every governed solution still pins the
+release it pinned, and has the hook configuration, the pipeline and the `.sdlc/README.md` that release wrote.
+In each one, on the integration branch, a person moves the pin and then runs adoption again. Adoption picks
+update mode by itself, refreshes only what the framework owns, and touches none of the six files only a person
+writes:
+
+```pwsh
+dotnet tool update --local MofonCode.Sdlc.Cli --version <release>
+```
 
 ```pwsh
 sdlc init
@@ -296,6 +328,8 @@ sdlc init
 ```pwsh
 sdlc doctor
 ```
+
+Commit what both change together. A cycle already open keeps its own pin until its branch takes that commit.
 
 **`doctor` says when this is due.** `.sdlc/README.md` carries the release that wrote it, and the
 `framework files` check compares that with the binary:
@@ -341,14 +375,12 @@ gate is silent, and a cycle appears to work while nothing is denied.
 **A session loads skills at startup.** Reinstall, then start a new session — an open one keeps what it
 already had.
 
-**The generated pipeline installs the `sdlc` binary, and that install does not resolve yet.** `init` writes a
-pull-request workflow that runs `dotnet tool install --global MofonCode.Sdlc.Cli --version <release>`
-before the build, pinned so an unpinned governance tool cannot change what a repository is judged by
-between two runs. **The package is not on a public feed**, so until it is — or until a feed holding it
-is named in the solution's `nuget.config` — that step fails, and the pull request stops there. It fails
-loudly, early, and in the step whose comment says why, which is the whole reason the step exists rather
-than being left out (D-37). On Azure DevOps, `setting-up-the-factory.md` step 2 puts the package on an Azure
-Artifacts feed, and both pipelines sign in to it.
+**The generated pipeline restores the release the branch pins.** Adoption writes a pull-request workflow
+that runs `dotnet tool restore` before the build and makes the release `.config/dotnet-tools.json` names the
+`sdlc` it runs, so a pull request is judged by the release its cycle ran on (D-37, D-131). The version is read
+from the manifest, so a bump is one commit and no pipeline file goes stale. A solution adopted before the
+manifest existed has none, and the step stops and says to run adoption. A restore that fails names the
+usual cause: a `nuget.config` that clears the default sources and so hides nuget.org.
 
 **Line endings differ between sources without meaning anything.** A directory install copies your working
 tree; a GitHub install checks out through `.gitattributes`. Comparing the two byte for byte shows every

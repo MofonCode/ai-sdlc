@@ -87,43 +87,17 @@ In step 4, point the pipeline at the pool (`name: <the pool>` under `pool:`), an
 
 ### With your own agent, or Microsoft's
 
-**`sdlc` is pinned either way.** An agent carrying a different version gets the one the pipeline was written
-for, because the version a pull request is judged by is not the agent's to decide. The plugin comes from the
-public `MofonCode/ai-sdlc` repository and Claude Code from npm, so neither needs a feed.
+**`sdlc` is pinned either way.** The run restores the release the integration branch pins in
+`.config/dotnet-tools.json`, and an agent carrying a different version runs that one instead, because the
+version a pull request is judged by is not the agent's to decide (D-131). `sdlc` comes from nuget.org, the
+plugin from the public `MofonCode/ai-sdlc` repository and Claude Code from npm, so none of them needs a feed
+of your own.
 
 On your own agent, point the pipeline at its pool — replace `vmImage: ubuntu-latest` with
 `name: <your pool>` under `pool:` — and skip to step 3.
 
-**On hosted agents, `sdlc` needs a feed**, because the package is not on a public one yet. On Azure DevOps,
-that is an **Azure Artifacts** feed in your project:
-
-1. **Artifacts > Create Feed.** Name it `sdlc`, scope it to the project.
-2. Build the package from the ai-sdlc repository:
-
-   ```pwsh
-   dotnet pack src\Sdlc.Cli\Sdlc.Cli.csproj -c Release -o pack
-   ```
-
-3. Push it — **Artifacts > sdlc > Connect to feed > dotnet** shows the exact source URL and how to sign in:
-
-   ```pwsh
-   dotnet nuget push pack\MofonCode.Sdlc.Cli.<version>.nupkg --source <the feed's URL> --api-key az
-   ```
-
-4. In **your solution**, add a `nuget.config` at the root naming the feed, and commit it with the next step:
-
-   ```xml
-   <?xml version="1.0" encoding="utf-8"?>
-   <configuration>
-     <packageSources>
-       <add key="sdlc" value="https://pkgs.dev.azure.com/<organization>/<project>/_packaging/sdlc/nuget/v3/index.json" />
-     </packageSources>
-   </configuration>
-   ```
-
-The pipeline signs itself in to the feed (`NuGetAuthenticate@1`), so nothing else is needed. **The
-pull-request pipeline installs `sdlc` the same way**, so this also fixes that check if it has been
-failing at *install sdlc*.
+**A solution needs nothing extra to reach nuget.org**, unless its own `nuget.config` clears the default
+sources. If it does, add nuget.org back beside your own feeds, or the restore step stops and says so.
 
 ## 3. Push the integration branch
 
@@ -148,10 +122,10 @@ sdlc factory
 ```
 
 It writes `azure-pipelines.factory.yml` — or `.github/workflows/sdlc-factory.yml` on GitHub — and prints
-what step 6 sets up. Commit it with the `nuget.config` from step 2, and push:
+what step 6 sets up. Commit it, and push:
 
 ```pwsh
-git add azure-pipelines.factory.yml nuget.config
+git add azure-pipelines.factory.yml
 git commit -m "Add the factory's pipeline"
 git push
 ```
@@ -254,7 +228,7 @@ From here, `running-the-factory.md` is the routine: admit plans in the day, read
 | *The agent did not answer, so its credential does not work* | the key was revoked, the token expired, or the subscription is out of usage | make a new one (step 1) and replace the secret |
 | *A claude the agent starts could not sign in* | the credential did not reach `~/.claude/settings.json` on the agent, where every `claude` reads it; the agent's own sign-in passed, so the secret is fine. Claude Code hands its commands no credential, so without that file `interrogate`'s fresh reader signs in with nothing | the lines after it name the reader's error. Check `jq` is on the agent and its home is writable; the factory image carries both |
 | *The hooks did not refuse a protected write* | the plugin's hooks did not load, so nothing would refuse anything tonight | look at the install step's output for the plugin install; the run stopped before building, which is the point |
-| the `sdlc` install fails: *not found* or *401* | on the factory's image, nearly always an image built from an older release than the pipeline pins — the step says so. Otherwise the feed is missing, not in `nuget.config`, or the build service cannot read it | rebuild the image and every image built from it ([the factory's index, Upgrading](../../factory/README.md#sdlc-factory-agentservice)); otherwise step 2, and on the feed, **⚙ > Permissions** — the build service needs *Feed Reader* |
+| the `sdlc` install fails: *pins no sdlc release* or *no feed this run can reach* | the integration branch has no `.config/dotnet-tools.json` yet, or the solution's `nuget.config` hides nuget.org | run adoption on the integration branch and commit the manifest; otherwise add nuget.org back to the sources (step 2) |
 | the image's agent never shows *Online* | the token is wrong, expired, or not scoped to Agent Pools, or `AZP_POOL` names a pool that does not exist | `journalctl -u sdlc-factory-agent`: *VS30063* is the token; a pool error names the pool |
 | a step fails with *permission denied* on `/var/run/docker.sock` | the container is not in the socket's group | run it through the service file, which adds the group, rather than a bare `docker run` |
 | the plugin install fails | the agent cannot reach GitHub | the plugin comes from the public `MofonCode/ai-sdlc` repository; an agent behind a firewall needs `github.com` allowed, or the plugin installed on it beforehand |

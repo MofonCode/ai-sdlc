@@ -45,6 +45,12 @@ public enum HookEvent
 
     /// <summary>An agent is about to finish a turn. The gate may send it back.</summary>
     TurnEnd,
+
+    /// <summary>
+    /// A session is starting. The gate says when the skills loaded are not the release of the binary that
+    /// runs here, and never refuses (D-131).
+    /// </summary>
+    SessionStart,
 }
 
 /// <summary>What the policy decided about a tool call.</summary>
@@ -109,6 +115,8 @@ public static class HookProtocol
         ("stop", HookEvent.TurnEnd),
         ("agentstop", HookEvent.TurnEnd),
         ("agent-stop", HookEvent.TurnEnd),
+        ("session-start", HookEvent.SessionStart),
+        ("sessionstart", HookEvent.SessionStart),
     ];
 
     /// <summary>

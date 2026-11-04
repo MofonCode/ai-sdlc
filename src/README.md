@@ -84,6 +84,9 @@ not writing it anywhere.
 
 ```
 argv
+  -> Handoff.Run                     inside a solution pinning another release, start
+                                     that release with the same argv and return its
+                                     exit code (D-131); otherwise carry on here
   -> CommandLine.Parse               verb, positional arguments, --options
   -> Workspace.Run                   resolves the solution root and the library,
                                      builds the container, disposes it after

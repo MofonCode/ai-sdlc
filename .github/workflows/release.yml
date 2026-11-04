@@ -1,0 +1,169 @@
+# Publishes the sdlc binary to nuget.org, and tags the commit it was cut from so the plugin can be pinned to the
+# same release (D-131). Two ways in:
+#
+#   a tag v<VersionPrefix> pushed by a person  -> that release, after a reviewer approves the 'nuget' environment
+#   a push to any branch but master            -> <VersionPrefix>-preview.<run>, through 'nuget-preview', and the
+#                                                 commit is tagged v<that version>
+#
+# Only pushes that change what ships make a preview: the binary, the skills, the hooks and the manifests. A
+# version on nuget.org can be unlisted but never deleted, so a preview per documentation commit would be
+# permanent noise.
+#
+# There is no stored nuget.org API key. The publish job trades a GitHub OIDC token for a key nuget.org issues on
+# the spot and expires an hour later, against a trusted publishing policy registered there. The policy names
+# this file and the environment, so a token minted by any other workflow or job does not satisfy it. The fields
+# are in AGENTS.md, under Releasing.
+#
+# It deliberately does NOT run 'sdlc verify-chain' on this repository, for the reason ci.yml gives.
+
+name: release
+
+on:
+  push:
+    tags: ['v*']
+    branches-ignore: [master]
+    paths:
+      - 'src/**'
+      - 'skills/**'
+      - 'hooks/**'
+      - 'plugin.json'
+      - '.claude-plugin/**'
+      - 'CONSTRAINTS.md'
+      - 'Directory.Build.props'
+      - 'Directory.Packages.props'
+      - 'global.json'
+
+permissions:
+  contents: read
+
+# One release at a time per ref. A second push to a branch makes the first preview irrelevant, but a preview
+# half pushed is not worth cancelling: nuget.org has no rollback, so it finishes.
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  pack:
+    name: build, test and pack
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      preview: ${{ steps.version.outputs.preview }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      # The version is decided before anything is built, and refused when the pieces disagree: a tag that is not
+      # the release the props declare, or plugin manifests that are not that release either. A binary and a
+      # plugin that disagree about which release they are is the failure the session-start check exists to
+      # report, and it is cheaper to refuse it here.
+      - name: Decide the version
+        id: version
+        run: |
+          prefix="$(sed -n 's:.*<VersionPrefix>\(.*\)</VersionPrefix>.*:\1:p' Directory.Build.props)"
+          for manifest in plugin.json .claude-plugin/plugin.json; do
+            declared="$(sed -n 's/.*"version": *"\([^"]*\)".*/\1/p' "$manifest" | head -n 1)"
+            if [ "$declared" != "$prefix" ]; then
+              echo "::error::$manifest says $declared and Directory.Build.props says $prefix."
+              exit 1
+            fi
+          done
+          if [ "$GITHUB_REF_TYPE" = "tag" ]; then
+            version="${GITHUB_REF_NAME#v}"
+            case "$version" in
+              "$prefix"|"$prefix"-*) ;;
+              *) echo "::error::Tag $GITHUB_REF_NAME is not release $prefix, which Directory.Build.props declares."; exit 1 ;;
+            esac
+            preview=false
+          else
+            version="$prefix-preview.$GITHUB_RUN_NUMBER"
+            preview=true
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "preview=$preview" >> "$GITHUB_OUTPUT"
+          echo "Publishing $version"
+
+      - name: Build
+        run: dotnet build --configuration Release -p:Version=${{ steps.version.outputs.version }}
+
+      # Bare, as in ci.yml: VSTest-style flags make Microsoft.Testing.Platform run zero tests and exit 5.
+      - name: Test
+        run: dotnet test --configuration Release
+
+      - name: Pack
+        run: >
+          dotnet pack src/Sdlc.Cli/Sdlc.Cli.csproj
+          --configuration Release
+          -p:Version=${{ steps.version.outputs.version }}
+          --output ./artifacts
+
+      # The package that will be pushed answers with the version it will be pushed as. ci.yml proves the packed
+      # tool finds its library; this proves the number a solution will pin is the number it runs.
+      - name: The packed tool is the version it will be published as
+        run: |
+          dotnet tool install MofonCode.Sdlc.Cli --add-source ./artifacts --tool-path "$RUNNER_TEMP/tool" --version ${{ steps.version.outputs.version }}
+          first="$("$RUNNER_TEMP/tool/sdlc" version | head -n 1)"
+          [ "$first" = "sdlc ${{ steps.version.outputs.version }}" ] || { echo "::error::The packed tool says '$first'."; exit 1; }
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: nupkg
+          path: ./artifacts/*
+          if-no-files-found: error
+          retention-days: 7
+
+  publish:
+    name: publish to nuget.org
+    needs: pack
+    runs-on: ubuntu-latest
+
+    permissions:
+      # The OIDC token traded for a nuget.org key, and the tag a preview is given. Job-level permissions replace
+      # the top-level block outright, so contents is restated.
+      id-token: write
+      contents: write
+
+    # 'nuget' carries a required reviewer, so a release waits for a person. 'nuget-preview' does not, so a
+    # preview is published when the push is. The trusted publishing policies name these, one each.
+    environment:
+      name: ${{ needs.pack.outputs.preview == 'true' && 'nuget-preview' || 'nuget' }}
+      url: https://www.nuget.org/packages/MofonCode.Sdlc.Cli/${{ needs.pack.outputs.version }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: nupkg
+          path: ./artifacts
+
+      # Inside the gated job, so the one-hour key is minted only once a release has been approved.
+      - name: Trade the OIDC token for a short-lived nuget.org key
+        uses: NuGet/login@v1
+        id: login
+        with:
+          user: ${{ secrets.NUGET_USER }}
+
+      # --skip-duplicate, so re-running a release that already pushed is a no-op rather than a failure.
+      - name: Push
+        run: >
+          dotnet nuget push "./artifacts/*.nupkg"
+          --source https://api.nuget.org/v3/index.json
+          --api-key "${{ steps.login.outputs.NUGET_API_KEY }}"
+          --skip-duplicate
+
+      # A release was tagged by the person who cut it. A preview is tagged here, so the plugin can be pinned to the
+      # commit whose binary this is, by the same name the manifest pins. A tag pushed with the workflow's own token
+      # starts no workflow -- GitHub's rule -- so this does not come back round as a release.
+      - name: Tag the preview
+        if: needs.pack.outputs.preview == 'true'
+        run: |
+          git tag "v${{ needs.pack.outputs.version }}" "$GITHUB_SHA"
+          git push origin "v${{ needs.pack.outputs.version }}"

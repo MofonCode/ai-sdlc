@@ -28,7 +28,7 @@ public sealed class FactoryPipelineTests
 
         Assert.IsTrue(smoke > 0 && build > smoke, "The hooks are proved before the agent is trusted with anything.");
         Assert.IsTrue(sitrep > build, "The run ends with the sitrep.");
-        StringAssert.Contains(pipeline, "--version 9.9.9", "The sdlc it installs is pinned.");
+        StringAssert.Contains(pipeline, "dotnet tool restore", "The sdlc it runs is the one the branch pins (D-131).");
         StringAssert.Contains(pipeline, "never run", "D-32: a pipeline nobody has run says so.");
     }
 
@@ -115,13 +115,13 @@ public sealed class FactoryPipelineTests
             Templates.Pipeline(platform),
         })
         {
-            StringAssert.Contains(pipeline, "is already on this agent");
-            StringAssert.Contains(pipeline, "dotnet tool install --global MofonCode.Sdlc.Cli --version");
+            StringAssert.Contains(pipeline, "is what runs here");
+            StringAssert.Contains(pipeline, "dotnet tool install --global MofonCode.Sdlc.Cli --version \"$pinned\"");
         }
 
         string factory = FactoryPipeline.Text(platform, "development", "9.9.9");
 
-        StringAssert.Contains(factory, "= \"sdlc 9.9.9\"", "Only the pinned version counts as already installed.");
+        StringAssert.Contains(factory, "= \"sdlc $pinned\"", "Only the pinned version counts as already installed.");
         StringAssert.Contains(factory, "command -v claude", "Claude Code is used when it is there.");
         StringAssert.Contains(factory, "Version: 9.9.9", "And the plugin only at this release.");
     }
@@ -129,17 +129,17 @@ public sealed class FactoryPipelineTests
     [TestMethod]
     [DataRow(Platform.GitHub)]
     [DataRow(Platform.AzureDevOps)]
-    public void An_install_no_feed_can_answer_names_the_stale_image_and_fails(Platform platform)
+    public void A_restore_no_feed_can_answer_says_what_it_usually_means_and_fails(Platform platform)
     {
-        // dotnet says only that no feed holds the version, which sent MarketSense to its feeds when the
-        // factory agent's image was a release behind. The step says what it usually means, and still fails.
+        // dotnet says only that no feed holds the version. The package is on nuget.org, so the usual cause is a
+        // nuget.config that clears the default sources, and the step says so -- and still fails.
         foreach (string pipeline in new[]
         {
             FactoryPipeline.Text(platform, "development", "9.9.9"),
             Templates.Pipeline(platform),
         })
         {
-            StringAssert.Contains(pipeline, "rebuild it from that release (factory/README.md, Upgrading)");
+            StringAssert.Contains(pipeline, "a nuget.config that clears the default sources is the usual cause");
             StringAssert.Contains(pipeline, ">&2; exit 1; }", "The explanation is not a way past the failure.");
         }
     }

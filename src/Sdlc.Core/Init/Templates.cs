@@ -754,18 +754,16 @@ public static class Templates
                 string.Empty,
                 .. SelectSdkGitHub("      "),
                 string.Empty,
-                "      # The sdlc binary the last step runs. Pinned, because an unpinned governance tool can",
-                "      # change what this repository is judged by without anybody choosing it. First, so a",
-                "      # missing binary fails in seconds rather than after a full build and test run. An agent",
-                "      # that already carries this exact version uses it, and installs nothing.",
-                "      #",
-                "      # NOTE: MofonCode.Sdlc.Cli is not on a public feed yet, so this step does not",
-                "      # resolve until it is, or until a feed holding it is configured in nuget.config.",
-                "      # It fails here, loudly, rather than at 'sdlc verify-chain' -- which would report",
-                "      # command-not-found from the one line the whole guarantee rests on.",
+                "      # The sdlc binary the last step runs: the release .config/dotnet-tools.json pins, from",
+                "      # nuget.org. Pinned, because an unpinned governance tool can change what this repository",
+                "      # is judged by without anybody choosing it, and pinned on the branch, so a pull request is",
+                "      # judged by the release its cycle ran on. First, so a missing binary fails in seconds",
+                "      # rather than after a full build and test run -- and loudly, rather than at",
+                "      # 'sdlc verify-chain', which would report command-not-found from the one line the whole",
+                "      # guarantee rests on.",
                 "      - name: install sdlc",
                 "        run: |",
-                .. InstallSdlc("          ", Release.Version),
+                .. InstallSdlc("          "),
                 string.Empty,
                 "      # A pull request carrying one cycle's planning documents and nothing else is a plan",
                 "      # being admitted to the integration branch. There is nothing to build, so the build and",
@@ -861,18 +859,13 @@ public static class Templates
                 string.Empty,
                 .. SelectSdkAzure("  "),
                 string.Empty,
-                "  # The sdlc binary the last step runs. Pinned, because an unpinned governance tool can change",
-                "  # what this repository is judged by without anybody choosing it. First, so a missing binary",
-                "  # fails in seconds rather than after a full build and test run. An agent that already",
-                "  # carries this exact version uses it, and installs nothing.",
-                "  #",
-                "  # NOTE: MofonCode.Sdlc.Cli is not on a public feed yet, so this step does not resolve",
-                "  # until it is, or until a feed holding it is configured in nuget.config. The task below",
-                "  # signs the run in to this organization's Azure Artifacts feeds, and does nothing without one.",
-                "  - task: NuGetAuthenticate@1",
-                string.Empty,
+                "  # The sdlc binary the last step runs: the release .config/dotnet-tools.json pins, from",
+                "  # nuget.org. Pinned, because an unpinned governance tool can change what this repository is",
+                "  # judged by without anybody choosing it, and pinned on the branch, so a pull request is judged",
+                "  # by the release its cycle ran on. First, so a missing binary fails in seconds rather than",
+                "  # after a full build and test run.",
                 "  - script: |",
-                .. InstallSdlc("      ", Release.Version),
+                .. InstallSdlc("      "),
                 "    displayName: install sdlc",
                 string.Empty,
                 "  # A pull request carrying one cycle's planning documents and nothing else is a plan being",
@@ -921,30 +914,31 @@ public static class Templates
     /// <param name="paths">What it wrote.</param>
     /// <returns>The message.</returns>
     /// <summary>
-    /// The lines that put exactly one pinned version of the sdlc binary on a pipeline's agent.
+    /// The lines that restore the release a solution pins and make it the <c>sdlc</c> a pipeline's agent runs.
     /// </summary>
     /// <remarks>
-    /// <strong>Used when it is already there, installed when it is not.</strong> A team running its own
-    /// agent, or its own image, may carry the binary already, and installing it on every run is time spent
-    /// on nothing. The version stays pinned either way: an agent carrying any other version, or none, gets
-    /// this one, because the version a pull request is judged by is not the agent's to decide.
-    /// <para><strong>A failed install says what it usually means.</strong> <c>dotnet</c> reports only that
-    /// no feed holds the version, which sends somebody to the feeds. On an agent whose image carries
-    /// <c>sdlc</c> -- the factory's -- the cause is nearly always an image built from an older release
-    /// than the pipeline pins, and the line says so. MarketSense lost an afternoon to the feed reading.</para>
+    /// <strong>The manifest is the one place the version is written (D-131).</strong> These lines read it at run
+    /// time rather than carrying it, so a bump is one commit to <c>.config/dotnet-tools.json</c>, and an Azure
+    /// DevOps pipeline that adoption printed rather than rewrote cannot go on pinning the release before it.
+    /// <para><strong>Used when it is already there, installed when it is not.</strong> A global <c>sdlc</c> that
+    /// answers with the pinned version -- because it is that version, or because it hands commands on to it --
+    /// is left alone; any other is replaced, because the version a pull request is judged by is not the agent's
+    /// to decide. The pipeline's own steps, the hooks and the skills all say <c>sdlc</c>, so the global one is
+    /// kept rather than every caller learning <c>dotnet sdlc</c>.</para>
+    /// <para><strong>A failed restore says what it usually means.</strong> <c>dotnet</c> reports only that no
+    /// feed holds the version. The package is on nuget.org, so the usual cause is a <c>nuget.config</c> that
+    /// clears the default sources, and the line says so.</para>
     /// </remarks>
     /// <param name="indent">The indentation of the script block the lines go in.</param>
-    /// <param name="version">The pinned version.</param>
     /// <returns>The lines.</returns>
-    internal static IEnumerable<string> InstallSdlc(string indent, string version)
+    internal static IEnumerable<string> InstallSdlc(string indent)
     {
-        yield return indent + string.Create(
-            CultureInfo.InvariantCulture,
-            $"if [ \"$(sdlc version 2>/dev/null | head -n 1)\" = \"sdlc {version}\" ]; then echo 'sdlc {version} is already on this agent.'; else");
+        yield return indent + $"[ -f {PinnedRelease.ManifestPath} ] || {{ echo \"This solution pins no sdlc release. Run 'sdlc init' on the integration branch and commit {PinnedRelease.ManifestPath}.\" >&2; exit 1; }}";
+        yield return indent + $"dotnet tool restore || {{ echo \"No feed this run can reach holds the sdlc release {PinnedRelease.ManifestPath} pins. It is published on nuget.org: a nuget.config that clears the default sources is the usual cause.\" >&2; exit 1; }}";
+        yield return indent + "pinned=\"$(dotnet tool list --local | awk 'tolower($1) == \"mofoncode.sdlc.cli\" { print $2 }')\"";
+        yield return indent + "if [ \"$(sdlc version 2>/dev/null | head -n 1)\" = \"sdlc $pinned\" ]; then echo \"sdlc $pinned is what runs here.\"; else";
         yield return indent + "  dotnet tool uninstall --global MofonCode.Sdlc.Cli >/dev/null 2>&1 || true";
-        yield return indent + string.Create(
-            CultureInfo.InvariantCulture,
-            $"  dotnet tool install --global MofonCode.Sdlc.Cli --version {version} || {{ echo \"No feed this run can reach holds sdlc {version}. An agent whose image carries sdlc has an image older than the release this pipeline pins: rebuild it from that release (factory/README.md, Upgrading). Otherwise put a feed holding MofonCode.Sdlc.Cli in nuget.config.\" >&2; exit 1; }}");
+        yield return indent + "  dotnet tool install --global MofonCode.Sdlc.Cli --version \"$pinned\" || { echo \"sdlc $pinned was restored but could not be installed globally.\" >&2; exit 1; }";
         yield return indent + "fi";
     }
 

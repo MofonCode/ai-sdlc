@@ -389,6 +389,7 @@ public sealed class PublicSurfaceTests
         "Sdlc.Core.Hooks.HookProtocol",
         "Sdlc.Core.Hooks.HookVerdict",
         "Sdlc.Core.Hooks.ProtectedFile",
+        "Sdlc.Core.Hooks.PluginRelease",
         "Sdlc.Core.Hooks.ProtectedPaths",
         "Sdlc.Core.Hooks.SupportedHost",
         "Sdlc.Core.Hooks.SupportedHosts",
@@ -420,6 +421,7 @@ public sealed class PublicSurfaceTests
         // Public because two assemblies need the stamped release version and they would otherwise
         // read it twice: 'sdlc version' in the CLI, and the pipeline template here that pins the
         // binary a pull request restores.
+        "Sdlc.Core.PinnedRelease",
         "Sdlc.Core.Release",
         "Sdlc.Core.SdlcServices",
         // The five .NET build settings files, as one list: what each is, what it costs, and which of

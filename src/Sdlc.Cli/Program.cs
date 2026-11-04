@@ -35,6 +35,13 @@ catch (IOException)
     // A redirected or closed handle. The gate still works; the dashes may not look right.
 }
 
+// Before anything reads the command, because the release that should read it may be another one: a solution
+// pins the release its cycles run on, and this binary is only the one on the path (D-131).
+if (await Handoff.Run(args).ConfigureAwait(false) is int handedOn)
+{
+    return handedOn;
+}
+
 var line = CommandLine.Parse(args);
 
 if (line.Verb is "" or "help")
@@ -1812,9 +1819,29 @@ static async Task<int> Hook(CommandLine line)
     if (!HookProtocol.TryParseEvent(namedEvent, out HookEvent? hookEvent))
     {
         await Console.Error.WriteLineAsync(
-            $"'{namedEvent}' is not a hook event. Pass --event pre-tool-use or --event turn-end, or leave it off for pre-tool-use.")
+            $"'{namedEvent}' is not a hook event. Pass --event pre-tool-use, --event turn-end or --event session-start, or leave it off for pre-tool-use.")
             .ConfigureAwait(false);
         return ExitCode.Usage;
+    }
+
+    if (hookEvent == HookEvent.SessionStart)
+    {
+        // Context for the session, never a refusal. The host passes the plugin's directory on the command line,
+        // and the handoff has already made this the release the directory pins (D-131).
+        line.TryOption("plugin", out string? plugin);
+        string? mismatch = PluginRelease.Mismatch(plugin, Release.Version);
+
+        await Console.Out.WriteAsync(mismatch is null
+            ? "{}"
+            : new System.Text.Json.Nodes.JsonObject
+            {
+                ["hookSpecificOutput"] = new System.Text.Json.Nodes.JsonObject
+                {
+                    ["hookEventName"] = "SessionStart",
+                    ["additionalContext"] = mismatch,
+                },
+            }.ToJsonString()).ConfigureAwait(false);
+        return ExitCode.Ok;
     }
 
     if (hookEvent == HookEvent.TurnEnd)

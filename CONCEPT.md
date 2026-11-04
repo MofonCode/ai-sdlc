@@ -3355,6 +3355,11 @@ unpublished, so this install does not resolve, and the person whose first pull r
 reads the generated file rather than this document. Writing no step at all was the quiet version of
 the same gap — and the quiet version is the one the whole design is written against.
 
+**Superseded in part by D-131.** The pin moved from the pipeline into a local tool manifest. The global tool
+hands each command on to the release that manifest names, which answers the two-spellings objection below.
+The package is published to nuget.org. The step this entry added still runs first, and still fails loudly:
+it now restores the pinned release instead of installing a version written into the pipeline.
+
 **Rejected.** A tool manifest and `dotnet tool restore`, which is the more idiomatic .NET shape and
 pins per solution for developers as well as CI. It changes the local invocation to `dotnet sdlc`,
 while every skill, the status panel's next line and every guide say `sdlc` — so
@@ -7149,15 +7154,40 @@ its refusal still apply.
 **Governs:** §9, §12.2, §13
 
 **Decision.** A solution pins the `sdlc` binary in a local tool manifest, `.config/dotnet-tools.json`, which
-`init` writes. The hooks and the skills call the binary as `dotnet sdlc`, never from the global tool path.
-Every cycle plans and builds in a worktree of its own (D-105), and that worktree's branch carries the manifest
-it was cut with. **A cycle therefore runs on the release it opened on.** A bump is an ordinary commit to the
-manifest on the integration branch, and it reaches a cycle in flight only when that cycle merges the
-integration branch, which is a person's choice. The skills are pinned per solution: `init` enables the plugin
-at project scope, from a marketplace source pinned to the release's tag. Every findings round records the
-`release` that wrote it, in an optional field that is hashed only when present (D-107), so a ledger written
-before this still verifies. A skill prints a warning when the binary it called is not the release the plugin
-was cut from, and when a round's release differs from the cycle's first round. Neither one refuses.
+`init` writes and in which it owns only the sdlc entry. **The global `sdlc` hands every command on to the
+release the directory pins.** Started inside a solution whose manifest names another release, it starts that
+release with the same arguments, the same working directory and the same standard streams, and returns its exit
+code. When that release has not been restored on the machine yet, it restores it first, writing restore's output
+to standard error. So every skill, hook, guide and panel keeps saying `sdlc`. Every cycle plans and builds in a
+worktree of its own (D-105), and that worktree's branch carries the manifest it was cut with. **A cycle
+therefore runs on the release it opened on.** A bump is `dotnet tool update --local MofonCode.Sdlc.Cli
+--version <release>` followed by `init`, committed on the integration branch. It reaches a cycle in flight only
+when that cycle merges the integration branch, which is a person's choice. The generated pipelines run `dotnet
+tool restore` and read the version from the manifest, so the version is written in one place. A pipeline in a
+solution that pins nothing stops and says to run `init`.
+
+The binary is published to nuget.org by `.github/workflows/release.yml`, using trusted publishing:
+- A `v<release>` tag publishes that release once a person approves it.
+- A push to any other branch that changes what ships publishes `<release>-preview.<run>` and tags the commit
+  with the same name.
+
+Either way, every published binary has a git tag the plugin can be pinned to.
+
+Every findings round records the `release` that wrote it, in an optional field that is hashed only when present
+(D-107), so a ledger written before this still verifies. The status panel says when a cycle's rounds were
+written by more than one release. As a session starts, the plugin hands the binary its own directory, and **the
+binary says when the skills loaded are not its release** (`sdlc hook --event session-start`). It compares the
+release's numbers only, so a preview and its release are one. It tells the agent not to work around a command
+the binary lacks, and it never refuses.
+
+**The skills are not yet pinned per solution.** Claude Code can enable a plugin at project scope, from a
+marketplace source pinned to a git `ref`, but a project marketplace applies only in a folder somebody has
+trusted interactively. Claude Code takes a marketplace's name from its own `marketplace.json`, so two worktrees
+pinned to two tags register one name, and the documentation does not say what happens then. This was probed
+on 2026-11-04 against a local repository with two tags, and the probe could not get that far: the CLI accepts
+only GitHub and https sources, and a non-interactive session ignores an untrusted folder's marketplaces. Until
+it is settled by opening two worktrees on two real tags, the plugin stays one install per machine, and the
+session-start check is what stands between a mismatch and a skill improvising.
 
 **Why.** MarketSense's hosting cycle (`20261027_2358_17`) stayed open while five releases shipped, from
 0.32.1 to 0.36.0. The binary and the plugin were installed once for the whole machine, so a bump moved every
@@ -7167,20 +7197,37 @@ steer session found an interrogate skill newer than its 0.34 binary, which had n
 (D-119) ever applied to that cycle. Every round recorded `framework_version: 1.0.0`, which is the envelope's
 format and not the release, so the record could not show any of this.
 
-**Why the binary per cycle and the skills per solution.** A local tool manifest is ordinary dotnet tooling
-and lives on a branch, so a worktree pins it for free. Claude Code enables a plugin per project, but it pins
-a version only through the marketplace source. Two releases of one plugin side by side in one checkout is
-not documented. The version check covers that gap: a skill newer than its binary says so instead of
-improvising.
+**Why this revisits D-37.** D-37 rejected the manifest for two reasons, and named when to revisit it: once
+the package was published.
+- *The package was on no feed.* It now has one.
+- *A local tool is spelled `dotnet sdlc` while every caller says `sdlc`.* The handoff keeps one spelling: the
+  global tool stays the only name anyone types, and it decides nothing but which release runs.
+
+D-37's pinning argument carries over unchanged, and it is stronger here, because the pin now holds per branch
+rather than per pipeline file.
+
+**Why a handoff and not a refusal.** A global binary that refused inside a solution pinning another release
+would stop every hook call until somebody reinstalled it, and a hook that stops running permits everything.
+Handing on gives the same pin with nothing to remember.
+
+**Why preview tags.** A preview binary with no tag can only be paired with skills from a branch, which moves.
+Tagging the commit gives the binary and the skills one name, which is what a project pin would point at.
 
 **Rejected.**
 
 - *One install per machine, as today.* That is the cause described above.
+- *Calling `dotnet sdlc` from the hooks and the skills.* That is D-37's two-spellings objection, and the
+  handoff answers it without anyone learning a second name.
 - *Refusing a command from a release other than the cycle's.* A security fix has to reach a cycle in
-  flight, and merging the integration branch is how it does. The warning says the cycle moved, and the
+  flight, and merging the integration branch is how it does. The panel says the cycle moved, and the
   person decides.
-- *Pinning the skills per cycle through two marketplaces of one plugin name.* It isn't documented, and a
-  name collision is resolved silently. Revisit it if Claude Code documents it.
+- *Enabling the plugin per project from a tag now.* It is the right shape, and it is unproven on the one
+  question that matters: two worktrees, two tags, one marketplace name. D-129's rule applies to the framework
+  too, so it waits for the probe.
+- *A preview on every push.* A nuget.org version can be unlisted but never deleted. Previews come only from
+  pushes that change what ships.
+- *Azure Artifacts or GitHub Packages as the feed.* Both need a credential to read. The repository is public,
+  and a governed solution's pipeline should restore its gate with no secret.
 - *Repurposing `framework_version` for the release.* That field tracks the envelope's format, and the
   format stays put across releases (§4.1).
 

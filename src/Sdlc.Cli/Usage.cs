@@ -240,11 +240,14 @@ internal static class Usage
                                      'elsewhere' and names who to ask. Before the first
                                      cycle it ends with what a person still has to place, and the
                                      one command that is next.
-            hook --host <name>       Judge a tool call, or a turn that is ending. Reads the host's
+            hook --host <name>       Judge a tool call, or a turn that is ending, or say as a session
+                                     starts that its skills are another release. Reads the host's
                                      payload on stdin and writes its decision on stdout.
                                      Hosts: claude, copilot, antigravity.
             version                  Which version of the gate this is, and which versions it
-                                     expects beside it.
+                                     expects beside it. Inside a solution that pins another
+                                     release, every command -- this one too -- is answered by
+                                     the pinned release.
             help                     This text. So does --help after any command.
 
         Common options
@@ -296,11 +299,13 @@ internal static class Usage
             ignored.
 
         Options for hook
-            --event <name>           Which moment: pre-tool-use or turn-end. Defaults to
-                                     pre-tool-use. Each host's own name for a moment is accepted
-                                     too, so a config copied from its documentation works. A host
-                                     with no turn-end event is refused by name rather than given a
-                                     check that cannot run.
+            --event <name>           Which moment: pre-tool-use, turn-end or session-start.
+                                     Defaults to pre-tool-use. Each host's own name for a moment is
+                                     accepted too, so a config copied from its documentation works.
+                                     A host with no turn-end event is refused by name rather than
+                                     given a check that cannot run.
+            --plugin <path>          With session-start: the plugin's directory, whose release is
+                                     compared with this binary's. Never refuses.
 
         Options for constraints
             --for <artifact>         Narrow to one artifact: intent, spec, plan, diff, verify.

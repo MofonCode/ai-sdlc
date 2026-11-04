@@ -30,8 +30,9 @@ Both have to be present and they fail differently. `guides/installing-the-plugin
 
 | | What it is | Where |
 |---|---|---|
-| **the plugin** | the eighteen skills, and on Claude Code two hooks. Without it nothing asks for a cycle | installed per machine, loaded by a host at session start |
-| **the `sdlc` binary** | every deterministic check — the approval gate among them — every hook decision, every renderer, the constraint library. Without it every skill's first command fails | a .NET global tool named `sdlc` |
+| **the plugin** | the eighteen skills, and on Claude Code three hooks. Without it nothing asks for a cycle | installed per machine, loaded by a host at session start |
+| **the `sdlc` binary** | every deterministic check — the approval gate among them — every hook decision, every renderer, the constraint library. Without it every skill's first command fails | a .NET global tool named `sdlc`, from nuget.org |
+| **the pinned release** | the release of the binary a solution runs, named in its local tool manifest. The global `sdlc` hands every command on to it, and a cycle's branch carries the pin it was cut with, so a cycle runs on the release it opened on (D-131) | `.config/dotnet-tools.json`, written by adoption |
 | **the Agent Plugins manifest** | what Copilot, VS Code, Cursor, Codex and Kiro read | `plugin.json` at the repository root |
 | **the Claude Code manifest** | what Claude Code reads. Both point at the same `skills/`, so there is no second copy | `.claude-plugin/plugin.json` |
 | **the marketplace catalogue** | what a `plugin marketplace add` resolves | `.claude-plugin/marketplace.json` |

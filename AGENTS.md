@@ -58,6 +58,7 @@ the cheapest way to discover that what you were about to add already lives somew
 | `tools/Sdlc.UsageReport/` | what a host's sessions cost, read from Claude Code's transcripts: the whole-session view the per-cycle usage record leaves out |
 | [`factory/README.md`](factory/README.md) | the factory bundle: what runs unattended. Today only the factory's agent image, built from one commit (D-96) |
 | `.github/workflows/ci.yml` | build and test on every pull request, which deliberately does not govern this repository with itself (D-42) |
+| `.github/workflows/release.yml` | publishes the binary to nuget.org: a release from a `v*` tag, a preview from any other branch, each tagged so the plugin can be pinned to it (D-131). See Releasing below |
 
 ### Querying `CONCEPT.md`
 
@@ -123,6 +124,27 @@ dotnet test  <empty-directory>/Demo.slnx
 `.github/workflows/ci.yml` does exactly this on every pull request, so a broken template fails there
 rather than in somebody's repository. Run it locally anyway when you change a template — the pipeline is
 a backstop, not the inner loop.
+
+## Releasing
+
+**A release is a tag.** `VersionPrefix` in `Directory.Build.props` and the `version` in both plugin manifests
+are moved together, merged, and then a person pushes `v<that version>` on master. `release.yml` refuses a tag
+or a manifest that disagrees with the props, builds, tests, packs, checks the packed tool answers with the
+version it will be published as, and waits for a reviewer on the `nuget` environment before it pushes.
+
+**A preview is a push.** Any other branch whose push changes what ships publishes
+`<VersionPrefix>-preview.<run>` through the `nuget-preview` environment, which has no reviewer, and tags the
+commit `v<that version>`. A nuget.org version can be unlisted and never deleted, so a push that touches only
+documents makes none.
+
+**No key is stored.** The publish job trades a GitHub OIDC token for a nuget.org key that lives an hour,
+against a trusted publishing policy on nuget.org. Setting it up is a person's, once:
+
+| Where | What |
+|---|---|
+| nuget.org, **Trusted Publishing** | two policies, owner `MofonCode`, repository owner `MofonCode`, repository `ai-sdlc`, workflow file `release.yml`; environment `nuget` on one and `nuget-preview` on the other |
+| GitHub, **Settings > Environments** | `nuget` with a required reviewer; `nuget-preview` with none |
+| GitHub, **Settings > Secrets** | `NUGET_USER`: the nuget.org profile name the token exchange identifies itself as |
 
 ## What the suite enforces about this repository
 

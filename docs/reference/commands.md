@@ -11,7 +11,7 @@ an agent runs it, and it never decides a gate. `skills.md` lists the skills.
 | Command | Runs it | Does |
 |---|---|---|
 | **Once per machine** | | |
-| `sdlc version` | binary | which version of the gate this is, and which versions it expects beside it |
+| `sdlc version` | binary | which version of the gate this is, and which versions it expects beside it. Inside a solution that pins another release, the pinned release answers this and every other command |
 | `sdlc help` | binary | every command and its options. `--help` after any command prints the same |
 | `sdlc doctor` | binary | checks the install and this repository; names the fix for each problem, and before the first cycle names each draft to fill in and its rename. Says when adoption's files are a release behind the binary. Asks the platform, through `az` or `gh` signed in as you, whether branch policy requires the pipeline: a policy that does not is a problem, a CLI that is not signed in a warning. Exits 1 on a problem, a missing integration branch and a placeholder paragraph included. Never repairs |
 | **Once per repository** | | |

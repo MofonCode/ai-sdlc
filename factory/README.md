@@ -30,8 +30,8 @@ docker build -f factory/Dockerfile -t ai-sdlc-factory-agent .
 ```
 
 **Why an image rather than tools installed on an agent.** The pipeline installs whatever an agent lacks,
-but `sdlc` is on no public feed and the plugin installs from the repository's default branch, so a bare
-agent needs both put there by hand, and kept at the same release by hand. Built from one commit, the
+and the plugin installs from the repository's default branch, so a bare agent's plugin and binary are two
+installs kept at the same release by hand. Built from one commit, the
 binary and the plugin cannot disagree (D-91's reason for one binary), and a fresh container per job means
 no run inherits what the last one left.
 
