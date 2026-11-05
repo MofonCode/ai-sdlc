@@ -53,9 +53,9 @@ jobs:
       version: ${{ steps.version.outputs.version }}
       preview: ${{ steps.version.outputs.preview }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-dotnet@v4
+      - uses: actions/setup-dotnet@v5
         with:
           global-json-file: global.json
 
@@ -124,7 +124,7 @@ jobs:
           # And carries the skills 'sdlc claude' starts a session with, which is how a solution's pin reaches them.
           find "$RUNNER_TEMP/tool/.store" -path '*/plugin/.claude-plugin/plugin.json' | grep -q . || { echo "::error::The packed tool carries no plugin."; exit 1; }
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         with:
           name: nupkg
           path: ./artifacts/*
@@ -149,13 +149,13 @@ jobs:
       url: https://www.nuget.org/packages/MofonCode.Sdlc.Cli/${{ needs.pack.outputs.version }}
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-dotnet@v4
+      - uses: actions/setup-dotnet@v5
         with:
           global-json-file: global.json
 
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v7
         with:
           name: nupkg
           path: ./artifacts

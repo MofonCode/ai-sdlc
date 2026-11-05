@@ -27,12 +27,12 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       # Read the pin rather than restate it. global.json says 10.0.100 with rollForward
       # latestFeature, and a version written out here is a second place that decision lives -- the
       # copy being the one that goes stale is the failure this repository is largely about.
-      - uses: actions/setup-dotnet@v4
+      - uses: actions/setup-dotnet@v5
         with:
           global-json-file: global.json
 
