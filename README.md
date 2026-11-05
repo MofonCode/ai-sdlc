@@ -9,75 +9,78 @@ Most agent workflows go from a sentence straight to a diff. This one does not. A
 stages, each producing a file the next stage reads, and **each file is challenged by a fresh reader
 against a fixed set of rules before it advances.** Nothing advances because something said it was fine.
 
-What that gives you:
-
-- **A person approves the plan before any code exists** — and the approval is recorded against the exact
-  bytes approved, so editing the plan afterwards invalidates it until it is approved again.
-- **Approved work then builds unattended**, one cycle or many, and *stops* rather than thrashing when a
-  cycle cannot be made to pass.
-- **Nothing merges unless the whole chain is there** — complete, approved and hash-matched. That check
-  runs in CI, not in the agent that wrote the code.
-
 > **Is this for me?** If what you want is an agent that moves faster, no. If you have ever read an
 > agent's pull request and been unable to tell what it was asked for, what it decided by itself, and
 > what proves it works — yes.
 
 ## Why use it
 
-### The problem it answers
-
 An agent can take a sentence to a merged diff in minutes, and nothing along the way records what the change
 was for, what *done* meant, what the agent decided by itself, or who agreed to any of it. The code may well
 be good. **The trouble is that nobody can tell**, and a reviewer reading the diff afterwards is
-reconstructing intent from its result. ai-sdlc makes the agent write those things down *before* the code,
-has each one challenged, has a person sign off on them, and then refuses to merge anything that lacks them.
+reconstructing intent from its result.
 
-### What it gives you that ordinary development does not
+ai-sdlc makes the agent write those things down *before* the code, has each one challenged by a reader with
+no stake in it, has a person sign off on them, and refuses to merge anything that lacks them. **Everything
+that can be decided by a program is decided by one** — the `sdlc` binary, called from the agent's hooks and
+from CI — because an instruction the agent reads is advisory, and the agent will talk its way past it.
 
-A careful team already writes requirements, reviews designs and checks that tests prove something. What it
-relies on to do so is discipline, and discipline is exactly what an agent working fast does not have. Here
-each habit is a mechanism:
+## Features
 
-| A careful team relies on | ai-sdlc does it with |
-|---|---|
-| somebody remembering why the change exists | an `intent`, a `spec` with criteria that can fail, and a `plan` saying what proves each one — committed beside the code, for every change |
-| a reviewer who did not write the design | a **fresh process that never saw the document being made** reads it against a fixed set of rules, so it has nothing to defend. The one that edits never judges, and the one that judges never edits |
-| a sign-off in a meeting or a chat | an approval **recorded against a hash of each planning document**. Edit one afterwards and the gate refuses until it is approved again |
-| a reviewer noticing the tests do not prove the claim | `verify` judges the build **from its recorded evidence alone**, in a process that did not see the build, criterion by criterion |
-| everybody agreeing not to skip steps | a pre-tool hook that **denies the agent's writes to the files only a person writes**, and `sdlc verify-chain` as a pull-request check, so nothing merges without the whole chain |
-| a senior noticing the same mistake again | every finding cites a rule by id, and `/sdlc:propose` reads the record for the rule a solution's findings keep reaching for |
-| somebody deciding a fix is going nowhere | `remediate` runs **while each pass reduces what is open** and escalates when one stops doing so, which is what makes an unattended build safe to start |
+Each one names the problem it exists for. [Where it stands](#where-it-stands) says which have met real
+cycles and which only fixtures.
 
-The result is a pull request a person can actually review: what was asked, what was agreed, what the agent
-decided, and what proves it — on the branch, in files, rather than in a chat that has scrolled away.
+### Planning the change
 
-### Why this rather than another AI development process
+| Feature | The problem | What it does |
+|---|---|---|
+| **Intent interview** | The agent starts coding from one sentence, and the assumptions it filled in never surface | `/sdlc:intent` interviews a person into *why* the change exists. Choices already made are recorded with the person's name on them, and anything nobody can answer yet goes under `## Open` rather than being guessed |
+| **Slicing** | A large piece of work becomes one sprawling pull request nobody can review | Before any cycle opens, `intent` proposes cutting the work into pieces that can each be built and merged on their own. A piece that needs another's code waits as a *successor* and reports itself ready when that code merges |
+| **Spec with cases** | *Done* is vague, so edge cases get argued at review — after the code exists | Every criterion can fail, and lists the cases it covers. The list closes the criterion: a listed case left unmet blocks, and a case nobody listed can only be a suggestion later |
+| **Plan with proofs** | Tests pass and prove nothing about what was asked | The plan names the test that proves each criterion and says what files it will touch. Where it rests on how a platform behaves, a throwaway *probe* makes that behaviour happen first, and the plan quotes what it showed |
+| **Steer** | Correcting direction halfway means regenerating the documents and losing what was settled | `/sdlc:steer` carries a correction down the chain, editing the intent, spec and plan rather than rewriting them, and has everything downstream of the edit read again |
 
-Spec-driven workflows for agents are common now: prompts that have the agent write a spec, then a plan,
-then tasks, then code. Some carry standing principles a plan is checked against, and some send a document
-to a fresh reviewer until it finds nothing. **Where they usually stop is enforcement** — a finding cites no
-rule and can be dismissed, approval is a reply that records nothing about what was approved, and the merge
-does not know any of it happened. ai-sdlc is built on the opposite assumption: **an instruction the agent reads is advisory, and the
-agent will talk its way past it.** So:
+### Challenging it
 
-- **The gate is a program, not a prompt.** One `sdlc` binary decides everything a file listing and a hash
-  can decide, and the same binary runs in the agent's hooks and in CI. A skill asks it; it does not
-  replace it.
-- **The guarantee lives where the agent cannot reach.** The merge check runs in the pipeline, not in the
-  session that wrote the code. The local layer makes the check cheap to pass; it is not the proof.
-- **Judging is separated from writing.** A document is read by a process with no stake in it, and a
-  blocking objection cannot be waived by any mechanism — it is answered, or the cycle does not advance.
-- **A person's decisions are files only a person writes.** The approval, the solution's own rules, its
-  declared stack and the decisions it has settled cannot be written by the agent, by any route.
-- **It stops instead of thrashing.** A cycle that cannot be made to pass escalates to a person rather than
-  opening a pull request, so approved work can build overnight.
-- **It is not tied to one agent.** The rules name no language or framework, and one hook adapter speaks
-  Claude Code, GitHub Copilot and Antigravity. Whichever agent wrote the code, the same check governs
-  the merge.
-- **It says what it has not proved.** [Where it stands](#where-it-stands) lists what has only met
-  fixtures, because a check that appears to run and does not is worse than none.
+| Feature | The problem | What it does |
+|---|---|---|
+| **Interrogator** | The agent that wrote a document reviews it, and agrees with itself | `/sdlc:interrogate` has a fresh process — no memory of writing it, no tools — read the document against the rules in force. It judges and never edits; `/sdlc:refine` edits and never judges. The loop runs until a round raises nothing blocking, and a rule answered then raised again is reported as going backwards |
+| **Findings** | Review comments are vague, cite nothing, and quietly get dismissed | Every finding cites one rule by id and says where, what and the remedy. **A blocking one cannot be waived by any mechanism** — it is answered, or the cycle does not advance. Each artifact's rounds are one ledger chained by hash, so the argument behind an approval cannot be rewritten |
+| **Suggestions** | Good observations that block nothing are lost the moment the session ends | Non-blocking findings go to a ledger, each concern once. `/sdlc:suggestions` lists what is still open across the solution, what became of each, and any of them can start the next cycle |
+| **Perspectives** | Security, operability, maintainability and accessibility are considered only if somebody happens to think of them | Each perspective steers the author with a short list at every stage and judges in a reader of its own. Only a finding citing a rule it lists blocks; the rest arrive as suggestions under its name |
 
-### What it costs
+### Remembering what was settled
+
+| Feature | The problem | What it does |
+|---|---|---|
+| **Constraints** | A rule written into a prompt is forgotten next session, and the agent bends it when it is inconvenient | Rules have ids and four clauses, including what each one **forbids**. Three tiers — global, the stack's, and the solution's own — are resolved and rendered fresh into every reading, never copied into a document where they go stale |
+| **Decisions charter** | Each new session re-argues choices made weeks ago, unless somebody remembers to prompt it | `decisions.md` records what the solution chose and what it chose *instead of*, and every cycle reads it without anybody asking. A plan may depart from a decision, but not silently: it has to say what the recorded choice would have cost |
+| **Stack definition** | The agent picks frameworks and packages ad hoc, and every cycle drifts a little | `techstack.md` declares what the solution is built from, which stack rules hold it, and which build settings it takes. What is in the file is exactly what binds, and a plan is read against it |
+| **Propose** | The same mistake recurs across cycles, and nobody turns it into a rule | `/sdlc:propose` reads the findings for the rule a solution keeps reaching for, and approved cycles for the choices they settled, and argues each as an entry a person may adopt |
+
+### Approving and building it
+
+| Feature | The problem | What it does |
+|---|---|---|
+| **Hash-bound gate** | Approval is a "looks good" in chat, and the plan changes afterwards | A person approves all three planning documents together, and the approval records a hash of each. Edit one afterwards and the gate refuses until it is approved again |
+| **Protected files** | An agent edits its own approval, or the rules it is judged by | Six files — the approval, an abandonment, the solution's rules, its decisions, its stack and what it is — are written only by a person. The pre-tool hook denies every agent write to them, by path and by shell command alike |
+| **Recorded evidence** | "The tests pass" is a claim, and the turn ends on a red build | The build records the diff, a normalised test summary and coverage. The turn-end hook sends the turn back while the suite has a failure or the evidence is missing or stale |
+| **Verify** | A reviewer re-reads the code and trusts the green tick | A fresh process that did not see the build judges it from the recorded evidence alone, criterion by criterion: did the named test run, pass, and actually establish the criterion? |
+| **Bounded remediation** | A fix loop either thrashes forever or gives up after an arbitrary count | `/sdlc:remediate` runs while each pass reduces what is open. When a pass undoes an earlier answer, or two reduce nothing, the cycle escalates to a person and never opens a pull request |
+
+### Merging and running
+
+| Feature | The problem | What it does |
+|---|---|---|
+| **Chain check** | The process is skipped and the change merged anyway | `sdlc verify-chain` runs as a required pull-request check and refuses a change whose chain is not complete, approved and hash-matched, or whose new lines are under 70% covered |
+| **The pull request from the cycle** | A pull request description is a summary somebody invented | The body is the cycle itself: the problem in the intent's words, each criterion with its verdict, the risk tier, and anything still open |
+| **Batch build and the factory** | Approved work sits waiting for somebody to supervise each build | `/sdlc:batch-build` builds every approved cycle on its own branch; the factory runs it unattended every night and **never merges**. The morning's sitrep says what is ready, in what order, and what needs a person |
+| **Leads** | Work arrives in a tracker and is retyped into a prompt | `/sdlc:intent --from` starts from an Azure DevOps or GitHub work item, a suggestion or a ready successor. Operate reads production's errors and files them as leads |
+| **Init** | Bringing governance into a repository is a week of setup nobody finishes | `/sdlc:init` interviews the team about what matters here and proposes its first rules. Adoption writes the hooks for every supported agent and the pipeline, drafts the files only a person writes, and creates the integration branch |
+| **Pinned release** | Upgrading the tool halfway through a change moves the rules under it | A solution pins its release, and a cycle runs on the one it opened on — the binary, its skills and its hooks together |
+| **More than one agent** | Governance written for one agent does not survive a teammate using another | One hook adapter speaks Claude Code, GitHub Copilot and Antigravity, and the merge check depends on none of them |
+
+## What it costs
 
 Honestly: **more time and more tokens per change**, by design. Every change runs the whole chain, small
 ones included, and each planning document is read until a reading raises nothing blocking. The tool is a
