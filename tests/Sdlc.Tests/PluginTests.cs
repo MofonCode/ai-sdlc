@@ -1190,6 +1190,14 @@ public sealed class PluginTests
     }
 
     [TestMethod]
+    public void The_version_report_names_the_session_that_carries_this_releases_skills()
+    {
+        // The report said the plugin "ships separately" for a release after the package began carrying it,
+        // which sent a reader to the installed copy rather than the one that cannot drift.
+        StringAssert.Contains(Sdlc.Cli.Release.Text, "'sdlc claude'");
+    }
+
+    [TestMethod]
     public void The_version_report_carries_no_carriage_return()
     {
         // A pipeline compares the first line to "sdlc <version>" on Linux, and a binary packed on Windows

@@ -657,8 +657,8 @@ check that is the guarantee, and exits 1 if any of it is wrong. What it cannot s
 rather than passed: whether a host loaded the plugin, which is the first two causes below, and — when `az`
 or `gh` is not signed in — whether branch policy requires the check, which is the fifth.
 
-**A hook is not loaded.** `claude plugin details sdlc@ai-sdlc` must say `Hooks (2) PreToolUse, Stop`. **A
-count below two is a failed install, not a detail** — and the two fail differently. Without `PreToolUse`
+**A hook is not loaded.** `claude plugin details sdlc@ai-sdlc` must say `Hooks (3) SessionStart, PreToolUse, Stop`. **A
+missing `PreToolUse` or `Stop` is a failed install, not a detail** — and the two fail differently. Without `PreToolUse`
 nothing is denied; without `Stop` a turn can end on a red build. Either way every cycle still appears to
 work. No binary can check this for you, which is why `doctor` names the command instead of answering it.
 

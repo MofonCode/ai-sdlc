@@ -8,9 +8,10 @@ namespace Sdlc.Cli;
 /// </summary>
 /// <remarks>
 /// Three numbers exist in a governed solution and only two of them move together, which is why this
-/// prints all three rather than one. The binary and the plugin are two halves of one install that are
-/// fetched separately, so they can disagree -- and a skill calling a verb an older binary does not have
-/// is the failure that shape produces. The artifact format is a third thing entirely: it says which
+/// prints all three rather than one. The binary and the plugin are two halves of one install. The package
+/// carries the plugin and <c>sdlc claude</c> starts a session with it (D-131), but a plugin installed
+/// separately is fetched on its own and can disagree -- and a skill calling a verb an older binary does not
+/// have is the failure that shape produces. The artifact format is a third thing entirely: it says which
 /// envelope a file was written in, so a release that changes no format must not move it.
 /// </remarks>
 internal static class Release
@@ -46,9 +47,11 @@ internal static class Release
         Three versions, and only the first two are meant to match.
 
             this binary        {Version}
-            the plugin         ships separately. 'claude plugin details sdlc@ai-sdlc' reports it,
-                               and a number that is not {Version} means one half was installed
-                               without the other.
+            the plugin         packed beside this binary, and 'sdlc claude' starts a session with
+                               it, so the two cannot disagree. A plugin installed separately and
+                               started with plain 'claude' can: 'claude plugin details sdlc@ai-sdlc'
+                               reports it, and a number that is not {Version} means one half was
+                               installed without the other.
             artifact format    {Cycle.FrameworkVersion}, written into every artifact's framework_version. It
                                tracks the file envelope rather than the release, so it stays put
                                across releases that change no format.
