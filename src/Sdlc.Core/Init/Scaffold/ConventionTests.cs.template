@@ -1,0 +1,466 @@
+using System.Globalization;
+using System.Reflection;
+using System.Runtime.CompilerServices;
+using Microsoft.Extensions.DependencyInjection;
+using MofonCode.Core;
+using __SOLUTION__.Api;
+using __SOLUTION__.Application;
+
+namespace __SOLUTION__.Architecture.Tests;
+
+/// <summary>
+/// Rules about the code itself, read from the compiled assemblies.
+/// </summary>
+/// <remarks>
+/// <para>These are fitness functions: the mechanism that stops a convention being prose. Every rule
+/// here exists because nothing else decides it — <c>.editorconfig</c> states some of them and
+/// <c>EnforceCodeStyleInBuild</c> does not cover naming, and no shipped analyzer seals a public
+/// type.</para>
+/// <para>Each rule asserts it actually inspected something. A reflection rule whose assembly failed to
+/// load enumerates nothing, finds no violations and passes — which is the vacuous success
+/// <c>RepoFiles</c> is written against, arriving by a different road.</para>
+/// </remarks>
+[TestClass]
+public sealed class ConventionTests
+{
+    /// <summary>
+    /// Types the sealed rule does not apply to, each for a stated reason.
+    /// </summary>
+    /// <remarks>
+    /// Add an entry in the same change that unseals something, and say why there. An empty list is the
+    /// honest starting point: every exception that ever exists was then written down by a person.
+    /// </remarks>
+    private static readonly string[] _notSubjectToSealing = [];
+
+    /// <summary>
+    /// Every assembly these rules police.
+    /// </summary>
+    /// <remarks>
+    /// The Api assembly is here too, because a project left off this list is a project the sealed and
+    /// naming rules silently stop applying to - and the host is exactly where somebody writes a class
+    /// in a hurry. The two request rules below read the application assembly alone, which is where
+    /// requests live.
+    /// <para>
+    /// <strong>A project added under <c>src/</c> joins this list or <c>_notInspected</c>, and
+    /// <c>Every_project_under_src_is_inspected_or_named_as_exempt</c> fails until it does.</strong>
+    /// Joining means a <c>ProjectReference</c> from this test project and one <c>typeof</c> here. A
+    /// Razor component is sealed in a code-behind file, <c>public sealed partial class Name</c>,
+    /// because the generated half of the class does not say <c>sealed</c> and C# reads the modifier
+    /// from either half.
+    /// </para>
+    /// </remarks>
+    private static IReadOnlyList<Assembly> Assemblies =>
+        [
+            typeof(__SOLUTION__Services).Assembly,
+            typeof(ApiResult<>).Assembly,
+            typeof(__SOLUTION__.ServiceDefaults.ServiceDefaults).Assembly,
+        ];
+
+    /// <summary>
+    /// The projects under <c>src/</c> these rules deliberately do not read, by role, each with its reason.
+    /// </summary>
+    /// <remarks>
+    /// Named, so an exemption is a line somebody wrote rather than a project nobody added to the list
+    /// above. Until this existed, the list was the only record, and a project missing from it was
+    /// indistinguishable from a project deliberately left off: one real cycle added a component library,
+    /// and two of its private fields broke the naming rule with the suite green.
+    /// </remarks>
+    private static readonly Dictionary<string, string> _notInspected = new(StringComparer.Ordinal)
+    {
+        ["Contracts"] =
+            "it holds records and nothing else, so the sealed rule has nothing to say about it that the "
+            + "compiler does not already, and a type in it exists to be public",
+        ["AppHost"] =
+            "it is a top-level program that starts the other processes, and the types in its assembly "
+            + "are the Projects metadata Aspire generates for each reference, which are not this "
+            + "solution's code and are not sealed",
+    };
+
+    /// <summary>
+    /// Guards the list of assemblies the way <c>Every_project_under_src_is_named_in_both_rules</c> guards
+    /// the structure tables.
+    /// </summary>
+    [TestMethod]
+    public void Every_project_under_src_is_inspected_or_named_as_exempt()
+    {
+        HashSet<string> inspected = [.. Assemblies.Select(assembly => assembly.GetName().Name ?? string.Empty)];
+
+        List<string> unread = [.. StructureTests.SourceProjects()
+            .Where(project => !inspected.Contains(RepoFiles.ProjectName(project)))
+            .Select(StructureTests.RoleOf)
+            .Where(role => !_notInspected.ContainsKey(role))
+            .Distinct(StringComparer.Ordinal)
+            .Order(StringComparer.Ordinal)];
+
+        Assert.AreEqual(
+            0,
+            unread.Count,
+            "These projects live under src/ and the sealed and naming rules read no assembly of theirs:\n  "
+            + string.Join("\n  ", unread)
+            + "\n\nReference each from this test project and add one typeof to Assemblies. If one "
+            + "genuinely should not be read, add it to _notInspected with the reason, in the same change "
+            + "that adds the project.");
+    }
+
+    /// <summary>
+    /// Every class is sealed, static or abstract.
+    /// </summary>
+    /// <remarks>
+    /// An unsealed class is an extension point, and an extension point nobody asked for is a decision
+    /// made by omission. Sealing by default means inheritance is something a person wrote down, and it
+    /// is also what lets the runtime devirtualise.
+    /// <para>
+    /// No analyzer covers this. <c>CA1852</c> reaches internal types only, so the public ones are
+    /// here — and this rule is cheapest to adopt on the first day, while the repository still
+    /// satisfies it.
+    /// </para>
+    /// </remarks>
+    [TestMethod]
+    public void Every_class_is_sealed_static_or_abstract()
+    {
+        List<string> offenders = [];
+        int inspected = 0;
+
+        foreach (Assembly assembly in Assemblies)
+        {
+            foreach (Type type in assembly.GetTypes())
+            {
+                if (!type.IsClass || IsCompilerArtefact(type) || _notSubjectToSealing.Contains(type.Name))
+                {
+                    continue;
+                }
+
+                inspected++;
+
+                // A static class is abstract and sealed; an abstract class is abstract and not. Both
+                // are deliberate shapes, and neither can be instantiated by accident.
+                if (type.IsSealed || type.IsAbstract)
+                {
+                    continue;
+                }
+
+                offenders.Add(type.FullName ?? type.Name);
+            }
+        }
+
+        Assert.IsTrue(inspected > 0, "This rule inspected no types, so it would pass however the code looked.");
+
+        Assert.AreEqual(
+            0,
+            offenders.Count,
+            string.Create(
+                CultureInfo.InvariantCulture,
+                $"These classes are neither sealed, static nor abstract (of {inspected} inspected):\n  ")
+            + string.Join("\n  ", offenders)
+            + "\n\nSeal it, or make it static or abstract. If something genuinely needs deriving from, "
+            + "that is a decision worth writing down: add it to _notSubjectToSealing with the reason, "
+            + "in the same change that unseals it.");
+    }
+
+    /// <summary>
+    /// Every private field is <c>_camelCase</c>, and every constant is PascalCase.
+    /// </summary>
+    /// <remarks>
+    /// <c>.editorconfig</c> states this and enforces nothing: naming surfaces as <c>IDE1006</c>, which
+    /// <c>EnforceCodeStyleInBuild</c> does not cover. This is what makes it real. The prefix is the
+    /// point rather than the capitalisation — a reader scanning a method body can tell an assignment to
+    /// the instance from an assignment to a local without checking a declaration.
+    /// </remarks>
+    [TestMethod]
+    public void Every_private_field_is_underscore_camel_case_and_every_constant_is_pascal()
+    {
+        List<string> offenders = [];
+        int inspected = 0;
+        int types = 0;
+
+        foreach (Assembly assembly in Assemblies)
+        {
+            foreach (Type type in assembly.GetTypes())
+            {
+                if (IsCompilerArtefact(type))
+                {
+                    continue;
+                }
+
+                types++;
+
+                foreach (FieldInfo field in type.GetFields(
+                    BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static | BindingFlags.DeclaredOnly))
+                {
+                    // A primary constructor's capture, an auto-property's backing store and a
+                    // closure's state are emitted rather than written, and carry a bracket that is not
+                    // legal in an identifier.
+                    if (field.Name.Contains('<', StringComparison.Ordinal)
+                        || field.GetCustomAttribute<CompilerGeneratedAttribute>() is not null)
+                    {
+                        continue;
+                    }
+
+                    inspected++;
+                    string where = (type.FullName ?? type.Name) + "." + field.Name;
+
+                    if (field.IsLiteral)
+                    {
+                        if (!char.IsUpper(field.Name[0]))
+                        {
+                            offenders.Add(where + " is a constant and should be PascalCase");
+                        }
+
+                        continue;
+                    }
+
+                    if (!field.Name.StartsWith('_') || field.Name.Length < 2 || !char.IsLower(field.Name[1]))
+                    {
+                        offenders.Add(where + " should be _camelCase");
+                    }
+                }
+            }
+        }
+
+        // The guard watches the type count, not the field count. A rule that inspected no TYPES has an
+        // assembly that did not load and would pass however the code looked; a rule that inspected no
+        // FIELDS may simply be looking at a solution that has none yet, which is every solution on its
+        // first day. Guarding on the wrong one of those fails a brand-new scaffold.
+        Assert.IsTrue(
+            types > 0,
+            "This rule enumerated no types, so it would pass however the code looked. The likely cause "
+            + "is an assembly that did not load.");
+
+        Assert.AreEqual(
+            0,
+            offenders.Count,
+            string.Create(
+                CultureInfo.InvariantCulture,
+                $"These fields do not follow the naming rules (of {inspected} inspected):\n  ")
+            + string.Join("\n  ", offenders)
+            + "\n\nThe rule is in .editorconfig and nothing in the build enforces it, which is why it "
+            + "is here.");
+    }
+
+    /// <summary>
+    /// Every request the solution declares can actually be dispatched.
+    /// </summary>
+    /// <remarks>
+    /// A request type with no registered handler compiles, reads as an operation, and throws the first
+    /// time anything sends it. Worse, it may never be sent at all — in which case it is a declared
+    /// operation the application cannot perform, and nothing but this rule notices. The container is
+    /// the real one, because asserting against a hand-written list of registrations would test the list.
+    /// </remarks>
+    [TestMethod]
+    public void Every_request_the_solution_declares_has_a_registered_handler()
+    {
+        List<(Type Request, Type Response)> requests = Requests();
+
+        Assert.IsTrue(
+            requests.Count > 0,
+            "No request types were found, so this rule would pass with every handler unregistered. "
+            + "Either the assembly did not load, or nothing dispatches through the mediator yet.");
+
+        ServiceProvider provider = new ServiceCollection()
+            .Add__SOLUTION__()
+            .BuildServiceProvider();
+
+        List<string> unregistered = [];
+
+        using (provider)
+        {
+            foreach ((Type request, Type response) in requests)
+            {
+                if (provider.GetService(typeof(IRequestHandler<,>).MakeGenericType(request, response)) is null)
+                {
+                    unregistered.Add(Describe(request) + " -> " + Describe(response));
+                }
+            }
+        }
+
+        Assert.AreEqual(
+            0,
+            unregistered.Count,
+            string.Create(
+                CultureInfo.InvariantCulture,
+                $"These requests have no handler registered (of {requests.Count} declared):\n  ")
+            + string.Join("\n  ", unregistered)
+            + "\n\nRegister the handler, or delete the request. A request nothing can dispatch is an "
+            + "operation the application declares and cannot perform.");
+    }
+
+    /// <summary>
+    /// Every response the application declares lives in the contracts project.
+    /// </summary>
+    /// <remarks>
+    /// <para>The rule that keeps the split honest. A response record is the shape that crosses the
+    /// wire, so the front end has to be able to reference it — and it cannot reference the application
+    /// project, because a WebAssembly client ships every assembly it references to the browser and that
+    /// one holds the data access. D-38 records the whole of it.</para>
+    /// <para><strong>Without this, nothing fails.</strong> The first operation written from habit nests
+    /// its response in its holder, the solution compiles, the Api serialises it perfectly, and the
+    /// client simply has no type for it. The failure arrives in the UI as work nobody can do, a long
+    /// way from the file that caused it.</para>
+    /// <para>Compared by assembly name rather than by naming a type here, so the rule survives the
+    /// reference slice being deleted — which is the first thing a real solution does.</para>
+    /// <para><strong>Two exemptions, and they are the rule rather than holes in it.</strong> What this
+    /// is for is responses that cross the wire, so it asks two questions rather than one:</para>
+    /// <para><em>Can anything outside this project dispatch the request?</em> An <c>internal</c>
+    /// request is an internal operation — nothing outside can name it, so no client deserialises its
+    /// response and the rule has no subject. That is the same reasoning D-38 uses for the
+    /// <c>DbContext</c>: the access modifier is the boundary, decided by the compiler rather than
+    /// agreed. It also matters because §11.3.1 makes a nested handler dispatch through the mediator
+    /// instead of constructing another handler, so internal dispatch is a shape this solution is
+    /// supposed to reach for.</para>
+    /// <para><em>Is the response this solution's to place?</em> A type from an assembly this solution
+    /// does not own cannot be moved into contracts. <c>IRequest&lt;int&gt;</c>,
+    /// <c>IRequest&lt;bool&gt;</c> and a framework <c>Result</c> are §11.3.1's "shared type rather than
+    /// one operation's payload" at its limit, and failing them would be a rule firing on legitimate
+    /// work — which is the kind somebody deletes on the day it is in the way, and deleting this one
+    /// reopens the real gap where a nested response leaves the client with no type.</para>
+    /// <para>Neither exemption alone is enough, which is why there are two: reachability does not help
+    /// a public request returning an <c>int</c>, and the foreign-assembly test does not help an
+    /// internal operation returning a type declared here.</para>
+    /// </remarks>
+    [TestMethod]
+    public void Every_response_that_crosses_the_wire_lives_in_the_contracts_project()
+    {
+        const string Contracts = "__SOLUTION__.Contracts";
+
+        string[] ours =
+        [
+            "__SOLUTION__.Contracts",
+            "__SOLUTION__.Application",
+            "__SOLUTION__.Api",
+            "__SOLUTION__.Web",
+        ];
+
+        List<(Type Request, Type Response)> requests = Requests();
+        List<string> offenders = [];
+        int policed = 0;
+
+        Assert.IsTrue(
+            requests.Count > 0,
+            "No request types were found, so this rule would pass with every response in the wrong "
+            + "place. Either the assembly did not load, or nothing dispatches through the mediator yet.");
+
+        foreach ((Type request, Type response) in requests)
+        {
+            // Not dispatchable from outside, so nothing deserialises what it returns.
+            if (!IsReachableFromOutside(request))
+            {
+                continue;
+            }
+
+            string assembly = response.Assembly.GetName().Name ?? "an assembly with no name";
+
+            // Not this solution's type, so not this solution's to move.
+            if (!ours.Contains(assembly, StringComparer.Ordinal))
+            {
+                continue;
+            }
+
+            policed++;
+
+            if (!string.Equals(assembly, Contracts, StringComparison.Ordinal))
+            {
+                offenders.Add(Describe(request) + " -> " + Describe(response) + ", declared in " + assembly);
+            }
+        }
+
+        // The positive control the exemptions cost. requests.Count > 0 above proves the assembly
+        // loaded; this says how many survived both exemptions, so a passing run shows its own reach
+        // rather than hiding a rule that inspected nothing. Zero is legitimate for a solution whose
+        // operations are all internal -- it has no wire -- and it should be visible rather than assumed.
+        Console.WriteLine(string.Create(
+            CultureInfo.InvariantCulture,
+            $"Policed {policed} of {requests.Count} requests: the rest are internal operations or return a type this solution does not declare."));
+
+        Assert.AreEqual(
+            0,
+            offenders.Count,
+            string.Create(
+                CultureInfo.InvariantCulture,
+                $"These responses cross the wire and are not declared in {Contracts} ({policed} of {requests.Count} requests are policed):\n  ")
+            + string.Join("\n  ", offenders)
+            + "\n\nMove the record to the contracts project, in the folder that mirrors the one the "
+            + "holder is in, and name it flatly - GreetResponse rather than a nested Response, because "
+            + "a second holder of the same name in two namespaces makes the holder's own file ambiguous. "
+            + "The request stays nested where it is: nothing outside this project dispatches it.\n\n"
+            + "If this operation is internal to the application rather than something the Api exposes, "
+            + "make the request internal instead and this rule stops applying to it - that is the "
+            + "declaration that it has no wire, rather than an exception to be argued.");
+    }
+
+    /// <summary>
+    /// Whether anything outside the application project can dispatch this request.
+    /// </summary>
+    /// <remarks>
+    /// <c>IsPublic</c> is false for a nested type whose holder is internal, and false for a type
+    /// declared internal inside a public holder, so this answers the question that matters rather than
+    /// only inspecting the type's own modifier. D-38 names the application project's public surface as
+    /// the requests and the registration extension; a request outside that surface is an internal
+    /// operation by construction.
+    /// </remarks>
+    /// <param name="request">The request type.</param>
+    /// <returns>True when the type is reachable from another assembly.</returns>
+    private static bool IsReachableFromOutside(Type request)
+    {
+        for (Type? type = request; type is not null; type = type.DeclaringType)
+        {
+            bool visible = type.IsNested ? type.IsNestedPublic : type.IsPublic;
+
+            if (!visible)
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /// <summary>
+    /// Every request the application declares, paired with what it produces.
+    /// </summary>
+    /// <remarks>
+    /// Read from the application assembly alone, which is where requests live. Shared by the two rules
+    /// above rather than enumerated twice, so they cannot come to disagree about what a request is.
+    /// </remarks>
+    /// <returns>The request types and their response types.</returns>
+    private static List<(Type Request, Type Response)> Requests()
+    {
+        List<(Type Request, Type Response)> requests = [];
+
+        foreach (Type type in Assemblies[0].GetTypes())
+        {
+            if (IsCompilerArtefact(type) || type.IsAbstract || type.IsInterface)
+            {
+                continue;
+            }
+
+            foreach (Type contract in type.GetInterfaces())
+            {
+                if (contract.IsGenericType && contract.GetGenericTypeDefinition() == typeof(IRequest<>))
+                {
+                    requests.Add((type, contract.GetGenericArguments()[0]));
+                }
+            }
+        }
+
+        return requests;
+    }
+
+    /// <summary>
+    /// A type's name as a reader would say it, with its holder when it is nested.
+    /// </summary>
+    /// <remarks>
+    /// Every request in this solution is nested in a holder and almost all of them are called
+    /// <c>Query</c> or <c>Command</c>, so a bare name tells a reader which rule failed and nothing about
+    /// where. <c>Greet.Query</c> is the shortest string that identifies one.
+    /// </remarks>
+    /// <param name="type">The type to name.</param>
+    /// <returns>Its name, prefixed with the holder's when it has one.</returns>
+    private static string Describe(Type type) =>
+        type.DeclaringType is { } holder ? holder.Name + "." + type.Name : type.Name;
+
+    /// <summary>Whether a type was emitted by the compiler rather than written.</summary>
+    private static bool IsCompilerArtefact(Type type) =>
+        type.GetCustomAttribute<CompilerGeneratedAttribute>() is not null
+        || type.Name.Contains('<', StringComparison.Ordinal)
+        || (type.DeclaringType is { } outer && IsCompilerArtefact(outer));
+}

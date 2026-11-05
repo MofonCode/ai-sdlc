@@ -1,0 +1,86 @@
+using System.Net;
+using Microsoft.AspNetCore.Mvc.Testing;
+using __SOLUTION__.Api;
+
+namespace __SOLUTION__.Tests;
+
+/// <summary>
+/// The host, started in memory: what a caller reaches through the startup code and the routing.
+/// </summary>
+/// <remarks>
+/// <para>The other tests send a request through the mediator, or write a result through the boundary
+/// with no server. Neither runs <c>Program</c>, so a feature whose registration line was never added, or
+/// whose route was never mapped, passes both and answers 404 in production. These run it.</para>
+///
+/// <para>They are also what makes the startup code count as covered. Every feature adds a line there,
+/// and the merge holds a change's own lines to a coverage floor (D-103) — so without a test that starts
+/// the host, a change that only registers something fails the floor on the one line it added.</para>
+///
+/// <para>The host runs in the Development environment, which is the factory's default, so the routes
+/// that exist only there are reached too.</para>
+/// </remarks>
+[TestClass]
+public sealed class HostTests
+{
+    private static WebApplicationFactory<Program> _host = null!;
+
+    [ClassInitialize]
+    public static void Start(TestContext context) => _host = new WebApplicationFactory<Program>();
+
+    [ClassCleanup]
+    public static void Stop() => _host.Dispose();
+
+    [TestMethod]
+    public async Task The_host_answers_that_it_is_up()
+    {
+        using HttpClient client = _host.CreateClient();
+
+        using HttpResponseMessage response = await client.GetAsync(new Uri("/health", UriKind.Relative));
+
+        Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
+    }
+
+    [TestMethod]
+    public async Task A_route_reaches_its_handler_and_answers_with_the_envelope()
+    {
+        using HttpClient client = _host.CreateClient();
+
+        string body = await client.GetStringAsync(new Uri("/greetings/Ada", UriKind.Relative));
+
+        StringAssert.Contains(body, "\"succeeded\":true");
+        StringAssert.Contains(body, "Hello, Ada.");
+    }
+
+    [TestMethod]
+    public async Task A_refused_request_is_a_bad_request_through_the_host_too()
+    {
+        // The validator runs behind the mediator, so this proves the host composed the pipeline the
+        // way the gate in the other tests does, rather than a handler with nothing in front of it.
+        using HttpClient client = _host.CreateClient();
+
+        using HttpResponseMessage response = await client.GetAsync(new Uri("/greetings/%20", UriKind.Relative));
+
+        Assert.AreEqual(HttpStatusCode.BadRequest, response.StatusCode);
+        StringAssert.Contains(await response.Content.ReadAsStringAsync(), "A greeting needs a name.");
+    }
+
+    [TestMethod]
+    public async Task The_api_describes_its_routes_in_development()
+    {
+        using HttpClient client = _host.CreateClient();
+
+        string document = await client.GetStringAsync(new Uri("/openapi/v1.json", UriKind.Relative));
+
+        StringAssert.Contains(document, "/greetings/{name}");
+    }
+
+    [TestMethod]
+    public async Task The_root_sends_a_browser_to_the_api_page()
+    {
+        using HttpClient client = _host.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+
+        using HttpResponseMessage response = await client.GetAsync(new Uri("/", UriKind.Relative));
+
+        Assert.AreEqual("/swagger/index.html", response.Headers.Location?.OriginalString);
+    }
+}

@@ -1,0 +1,16 @@
+# A directory-marketplace install copies the WORKING TREE, not the committed one.
+# Anything not ignored here ships to every machine that installs the plugin locally.
+
+# build output
+bin/
+obj/
+[Tt]est[Rr]esults/
+
+# fixture workspaces are materialized into scratch copies and discarded
+.scratch/
+
+# worktrees
+.claude/worktrees/
+
+# local-only settings
+.claude/settings.local.json

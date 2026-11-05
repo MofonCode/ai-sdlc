@@ -1,0 +1,409 @@
+---
+name: init
+description: Adopt the framework into a repository -- run the scaffolding, interview the team about what matters in this solution, and propose its first constraints. Use when somebody asks to set up ai-sdlc here.
+compatibility: Requires the sdlc binary on PATH, from the MofonCode.Sdlc.Cli dotnet tool, and a git repository. Every command here is that binary, so without it the first step fails.
+argument-hint: "[--platform github|azure-devops|local] [--integration-branch <name>]"
+allowed-tools: Bash(sdlc *), Bash(git *), Read, Glob, Grep
+---
+
+# Adopt the framework
+
+Adopting a process is a decision about how a team works. **A person runs this, and the hook denies you
+running `sdlc init` yourself** — the command writes the hook configuration that constrains you, the
+pipeline that gates the merge, and the file saying where this code came from.
+
+So your part is the two halves a command cannot do: asking what matters here, and proposing the rules that
+follow from the answers.
+
+## Keep a task list, if your host has one
+
+If your host gives you a task list, open one before the first step, with these items, and mark each
+done as it finishes. If it does not, carry on without one — nothing below depends on it.
+
+1. check what is being adopted into
+2. where the code will live, and the adoption command run by the person
+3. the interview
+4. the solution paragraph: written in its draft, and renamed into place by the person
+5. constraints: proposed for the person to place, or none survived
+6. the declared stack: its draft cut down, and renamed into place by the person
+7. what was placed, committed by the person
+8. the report
+
+**Items 4, 6 and 7 are done when `sdlc doctor` stops naming them, not when a draft is filled in.** A
+draft nobody renamed is the step still open, and so is a placed file nobody committed: `sdlc new` refuses
+to open a cycle over uncommitted work. **Item 5 is done by being considered**: "none survived the
+admission tests" completes it, and it is on the list so that it is decided rather than forgotten.
+
+**This stage only.** Nothing after the hand-back goes on the list: whether the next stage runs is a
+person's decision, and `sdlc doctor`'s closing block names it. **The list is a view, never the record.**
+What is done is what is on disk and what the binary reports, so where the two disagree the list is the
+one that is wrong.
+
+## 1. Check what you are adopting into
+
+```
+git rev-parse --is-inside-work-tree
+git ls-files
+```
+
+**Not a repository?** Say that `sdlc init` will refuse, and why: without git, a build cannot record the
+diff a verification derives from, and the gates key on a branch that cannot exist — so every hook would
+permit everything while the artifacts still looked governed. Offer `git init`.
+
+**Already governed?** `.sdlc/` exists, so this will be an update: the framework refreshes what it owns and
+touches nothing a person writes. Say so, because "init" on a working solution sounds alarming and is not.
+It is what a person runs after upgrading the binary — `sdlc doctor`'s `framework files` check says when
+it is due. **On an update, the interview and the first stack are already done**: hand over the command
+in step 2, then go to *On an update: answer what the release added*, then step 6. Your task list is those
+three.
+
+## 2. Ask for the command to be run
+
+**Two things here share a name and do opposite halves of the job.** `/sdlc:init` is this skill — the
+interview, and the constraints that follow from it — and it writes nothing. `sdlc init` is the binary that
+does the scaffolding, and the hook denies it to you. **Say which one you are**, because somebody who has
+just invoked the slash command reasonably believes adoption is now under way, and invoking it again only
+loads these instructions a second time. That loop is three identical rounds before anybody notices.
+
+Hand over the line with a leading `!`:
+
+```
+! sdlc init [--platform github|azure-devops|local] [--integration-branch <name>]
+```
+
+On Claude Code the `!` prefix runs the rest of the line as the person's own command rather than as a tool
+call of yours, so the gate — which fires on your tool calls — never sees it. The reason to prefer it goes
+beyond getting past the gate: it runs in this session, so what the command prints lands in the
+conversation and you can read the mode, the origin and the file list back without asking for a paste. A
+bare line sends the person to another terminal and the output has to be copied in by hand. On a host with
+no such prefix, say to run it in a terminal at the repository root and paste what it prints.
+
+**Ask one thing before you hand over the line: where the code will live**, because the answer decides
+whether a pipeline is written and there is no good default for somebody who has not said. If the
+repository has no remote yet — `git remote -v` prints nothing — `local` is the honest answer: a pipeline
+for a service nothing will ever send it to is a file that looks like a gate and is reachable by nothing.
+
+**Leave `--integration-branch` out unless the person names one.** It is where approved plans wait and
+built cycles land, `development` when nothing says otherwise, and adoption creates it from its own commit
+and switches to it. A team that already integrates on another branch says so here; nobody else is asked.
+
+**Do not ask what the solution is built from, and do not ask which conventions new work follows.**
+Adoption decides neither. The stack is declared afterwards, in step 4, in a file a person places — there
+is no profile to choose, and `sdlc init` refuses any option but those two. And an existing
+codebase keeps its own conventions unless somebody asks otherwise, which is the default the command
+already takes.
+
+**There is no option for holding an existing codebase to the framework's conventions, and you raise
+the subject only when a person does.** It is two separate choices, each made after adoption:
+
+| A person wants | It is | What to say it costs, in one line |
+|---|---|---|
+| new work to follow the framework's patterns rather than the surrounding code | `standard: profile` in the solution document's draft before it is placed; after that, `sdlc draft solution --standard profile` and a rename | every plan now argues when it matches the old code instead of the profile |
+| the `.NET` build settings — `.editorconfig`, the three props files, `global.json` | rows in the declared stack, set to `true` in step 4; a cycle whose plan declares the files brings them | `Directory.Build.props` makes warnings errors, so a build can start failing on files nobody has touched |
+
+**The rest answers a follow-up.** Neither migrates the code already there, which is a cycle like any
+other work, and neither changes the origin. A build settings file is created once and never rewritten,
+so narrowing a severity or scoping a rule to a directory is an ordinary edit to it, and one the
+repository already had is kept.
+
+**Say what local costs in one line, once:** no pull-request check governs a merge, so nothing
+mechanical decides what reaches the default branch. **The rest answers a follow-up and is not
+the line.** Everything else is unchanged: cycles are
+planned, approved, built and verified exactly the same way. Only the guarantee is missing, and `sdlc
+doctor` says so every time it runs. When a remote exists, re-running adoption with a platform writes the
+pipeline, and the `pr` skill walks through creating the remote.
+
+Give the person the line, `!` and all, **and with it one sentence: the output ends with a rename for
+each draft, and those wait until the two of you have filled the drafts in.** The renames are the last
+lines it prints, so they read as the next step; one real adoption placed all three drafts unread within
+a minute, before a question was asked, and the plans that followed had to argue departures from a
+storage row and a messaging row on a solution that stores nothing. When they have run it, read what it
+printed — it says which mode ran, what the origin was decided to be, every file it touched or
+deliberately left, that it committed them, and that it created the integration branch and switched to
+it.
+
+**If they have already renamed them, the drafts are gone but nothing is lost.** Walk the questions
+anyway against the placed files, and for each one that needs a change, `sdlc draft solution` or
+`sdlc draft techstack` writes the draft again for an edit and a rename.
+
+**It ends with the drafts it wrote and how to place them, and on a first adoption that is yours to carry
+out with them.** Adoption drafts all three files only a person writes, beside where each goes —
+`solution.draft.md`, `techstack.draft.md` and `constraints.draft.md` under `.sdlc/` — each with a note at
+the top saying an agent cannot change the real file. The closing block lists what to fill in, the `mv -f`
+line for each, and the commit after. **Fill-in order is the order of the questions**: the paragraph first,
+because what a solution is comes before what it is built from.
+
+**The origin is the part worth stopping on**, because it is the one thing here with lasting consequences
+and it never changes again:
+
+| origin | What it means |
+|---|---|
+| `scaffolded` | this repository held no code, and never will have held any before the framework |
+| `adopted` | the code existed first, and that is now a permanent fact about it |
+
+**`standard` is the key beside it, and it is the one that decides anything.** The origin only says where
+the code came from; the standard says which conventions new work follows, and unlike the origin a team is
+entitled to change it.
+
+| standard | What a plan does by default | Where it comes from |
+|---|---|---|
+| `profile` | takes the profile's patterns, and says why when it departs | every scaffolded solution, and an adopted one whose team moved it with `sdlc draft solution --standard profile` |
+| `existing` | matches the surrounding code, and says why when it departs toward the profile | every adopted solution, until its team moves it |
+
+Nothing is in violation on its first day either way. Constraints govern a change, never code that came
+before adoption, so there is no baseline to record and nothing to forgive — `standard: profile` included,
+which declares what new work follows and says nothing at all about the code already there.
+
+## 3. Interview, then propose constraints
+
+This is the half that needs you. Three or four questions, no more:
+
+1. **What is this solution for, in a sentence a newcomer could read?**
+2. **What has gone wrong here before that you would not want to happen again?**
+3. **What is there a right way to do in this codebase that a newcomer would get wrong?**
+4. **Is there anything that must never change — a contract, a data shape, a behaviour somebody depends on?**
+
+Question two is the one that produces real constraints. Question three usually produces an analyzer rule
+rather than a constraint, which is the right answer and worth saying out loud.
+
+### On a repository that held no code, ask these instead
+
+**Three of those four questions are about history, and a greenfield repository has none.** The honest
+answers are *nothing*, *nothing* and *nothing* — so a brand-new solution gets zero solution constraints
+by construction, and nothing anywhere records what it is meant to look like when it is finished. A
+status page adopted this way, built a cycle later, came out as a numeral in a bare `<p>` with every gate
+green: nobody had asked, so nobody had been told.
+
+Keep question one. Replace two, three and four with the single question that has an answer before there
+is a past:
+
+1. **What is this solution for, in a sentence a newcomer could read?**
+2. **What should every screen in this solution look and behave like?** A component library, a design
+   somebody is working to, an existing product it has to sit beside — or plain and unstyled, which is a
+   legitimate answer and a different one from nobody having asked.
+
+**Two questions, and resist the third.** What *done to a good standard* means, and what a reviewer would
+send back that no test caught, are already put to every change by the global tier: `CON_16` requires a
+spec to cover every outcome its intent asks for and all of each one, `CON_17` requires it to say what
+somebody is told when the action fails, and `CON_05` keeps out scope nobody asked for. Asking them at
+adoption spends a person's attention on rules already in force, and invites an answer about the change
+they have in mind rather than about the solution — which is the intent's question, one stage later,
+where there is a change to ask it about.
+
+### Never ask
+
+- **Anything that belongs to a single change.** What one piece of work must achieve is the intent's
+  question and the thresholds that prove it are the spec's. An adoption interview is only about what
+  holds for every cycle.
+- **Anything a rule in force already asks.** Run `sdlc constraints` before proposing one rather than
+  only at step 6, because a question the global or profile tier already puts to every spec buys nothing
+  here, and a `LOC_` that restates a tier above it is decoration that costs attention at every
+  interrogation.
+- **Anything whose answer you would be inferring.** The repository name, the directory path and the
+  `AGENTS.md` title are not evidence of what the solution is — `sdlc init` writes that title from the
+  folder name, so quoting it back is the question repeated, not an answer. Ask question one open-ended,
+  in plain text, and offer no candidate answers to choose between: a subject you guessed is one a person
+  has to correct instead of supply.
+
+### Where each answer goes, which is not all the same place
+
+**Most of these are not constraints, and offering them as one wastes the person's time at the admission
+tests.** Sort before you propose:
+
+| An answer about | Goes in | Because |
+|---|---|---|
+| what the solution is and who for | the paragraph in `.sdlc/solution.draft.md`, under the four keys | every plan reads it for what good looks like here, and `sdlc doctor` fails while it is the template's text |
+| which component library, which packages, which project may reference what | an architecture test | test two below rejects it — an analyzer *can* decide it, so a constraint is the wrong tier |
+| the names a visual treatment is expressed in | a theme, which `sdlc propose theme` drafts | roles survive a rebrand where values do not, and a stage can look a role up |
+| whether a judgement was made and recorded — that a visual treatment was considered | a `LOC_` constraint | it needs reading comprehension, which is exactly what test two admits |
+
+**Where an answer reaches none of those four, record it nowhere, and say so.** There is no fifth home,
+and inventing one — prose a stage is told to read, a rule without the four parts — would put a rule
+somewhere no revision, no id and no admission test reaches. The three tiers, the decision record and the
+declared stack are the whole of where a rule may live; `sdlc constraints` renders the tiers and
+`sdlc decisions` the record.
+
+**`DEC_` is not available here, and that is structural.** `sdlc propose decisions` reads only approved
+cycles, and a repository being adopted has none — so at adoption the live homes are a `LOC_`, an
+architecture test and a theme. A choice worth recording as a decision is recorded a cycle later, from
+the cycle that settled it.
+
+`solution.md` is protected, so you cannot write it, and adoption has already drafted it:
+`.sdlc/solution.draft.md` carries the keys exactly as observed and a prompt where the paragraph goes.
+**The person writes the paragraph into that draft**, in place of the comment, from their answer to
+question 1 — offer a sentence or two they can take or change, but the words are theirs to put there,
+because a paragraph nobody wrote reads as settled (D-62). Then they rename it with the `mv -f` line the
+report printed.
+
+**Do not let the file stay a placeholder.** Every plan reads the paragraph for what good looks like here,
+and `sdlc doctor` fails on a document still carrying the template's text, so an unfilled draft renamed
+into place is a step still open, not a step done.
+
+**Ask the person, do not read the codebase.** Reading an existing repository to decide what to forbid
+would make adoption a judgement on code that predates the framework, and the first cycle would spend
+itself on findings about work nobody is defending.
+
+Then, for each answer that survives, propose a constraint:
+
+```
+sdlc propose constraints
+```
+
+A repository being adopted has no cycles, so this is the empty-handed mode: it prints the next free
+`LOC_` id with its four parts empty, and the three admission tests. Fill the parts in from the answer
+and show it. **All three tests must pass**, and test two rejects most candidates:
+
+1. its `Forbids` clause names something that becomes illegal
+2. **no analyzer, schema or hook could decide it**
+3. it is incompatible with at least one plausible implementation
+
+So "every public method has a doc comment" is an analyzer, not a constraint. "A new endpoint states which
+caller depends on it" needs reading comprehension and is a constraint.
+
+**A person places it.** Every agent write to `.sdlc/constraints.md` is denied, because a cycle judged by
+the constraints it is changing is the same deadlock as the framework governing itself. Adoption drafted
+the file as `.sdlc/constraints.draft.md`, with its header and no rule: show the entry, the person adds it
+to the end of that draft and renames it. Renamed with no entry, it places a file with no rule in force,
+which is sound.
+
+**Propose none if none survive.** An empty solution-constraint set is the correct starting point for most
+solutions, and three constraints nobody believes in cost attention at every interrogation for the life of
+the repository.
+
+## 4. Declare the stack, and fill in what the scaffolding left blank
+
+Three drafts adoption leaves for a person, and one file it writes:
+
+| File | What to offer |
+|---|---|
+| `.sdlc/solution.draft.md` | the paragraph from question 1, written by the person in place of the comment; then the rename |
+| `.sdlc/techstack.draft.md` | the framework's default, cut down to what is true here; then the rename. No cycle opens until it is placed |
+| `.sdlc/constraints.draft.md` | an entry per constraint that survived step 3, or nothing; then the rename. Optional: a solution with no rules of its own is sound |
+| `AGENTS.md` | written if absent, printed for merging if present |
+
+**The declared stack is the step that cannot be skipped.** `sdlc new` refuses until the file exists.
+Adoption drafted it, and the options menu to read beside it is under `.sdlc/reports/`. **Do not run
+`sdlc draft techstack` here**: it refuses while a draft is waiting, so as not to throw away rows already
+answered, and it is only for writing the draft again once somebody deleted it.
+
+The draft is the framework's default, whole: every row it would pin, under `## Rules` every stack
+rule it ships, each marked `true`, and under `## Build settings` the five `.NET` build settings files.
+**What ends up in the file is exactly what binds** — a row pins a choice, `none` included, a rule
+applies only where its row says `true`, and a build settings file is this solution's only where its row
+does. So the edit is answering each row, **with `none` where it is not true, never by deleting it**: a
+deleted row reads as one nobody was asked about, and the next release offers it again.
+
+| The solution | What to do to the draft |
+|---|---|
+| is built on the default stack | nothing. Rename it as it is |
+| is .NET with different choices | change the rows that differ, and write `none` in those that are not true of it |
+| is built on something else | write `none` in the rows that do not apply, write in what it uses, and set to `false` any rule that names a framework it does not have |
+| should pin nothing yet | the person deletes the draft, then `sdlc draft techstack --empty` writes it again with nothing in it, and they rename that. Nothing is pinned, no stack rule applies, and every plan chooses freely |
+
+**On a repository that already holds code, edit the draft from what you can read before you show the
+rename.** This is the one place reading the codebase is right — the file declares what the solution
+*is* rather than what it *should be* — and it matters here because the draft starts as a stack this
+repository may not use at all. A default renamed unread onto a codebase that is not .NET declares
+something false, and every plan after it is read against that.
+
+**An empty stack is a legitimate answer, and say what it costs in one line**: nothing keeps the second
+cycle from choosing a different framework from the first, because there is no declared default for it to
+depart from. That is the trade for deciding the stack inside the work rather than before it, and rows
+can be added later the same way.
+
+**You cannot place it.** It is protected, like the other five, and nothing but a person's rename ever
+writes it. You may edit the draft — only the real file is denied — and then show the `mv -f` line and
+let them rename. The reason is worth saying once if they
+ask: it is the second rule source a plan is read against, and `CON_15` judges every plan against it, so
+an agent able to edit it could satisfy that rule by adding the row it wanted instead of arguing for it —
+or drop a stack rule by switching its row off.
+
+**The `.NET` build settings are not written here, and the draft lists them.** `.editorconfig`, the
+three props files and `global.json` are rows under `## Build settings`, and how they start depends on
+the origin:
+
+| origin | The rows start | Because |
+|---|---|---|
+| `scaffolded` | `true` | nothing predates them, and they arrive with the solution skeleton from `sdlc scaffold` in the first cycle |
+| `adopted` | `false` | `Directory.Build.props` makes warnings errors, so on existing code a build can fail on files nobody has touched |
+
+**On an adopted repository, leave them `false` unless the person asks**, and do not switch one on from
+what you read in the codebase — that it is .NET does not mean its team wants warnings as errors. When
+they do ask, a row set to `true` writes nothing: a later cycle whose plan declares the file brings it.
+A solution on another stack sets the rows `false` and never gets the files.
+
+## On an update: answer what the release added
+
+**Only on an update, and only when something is named.** A release can add a default to the profile or
+a stack rule, and neither reaches the declared stack by itself: the file is a person's. What the release
+did instead is name them — at the end of what `sdlc init` printed, and in full here:
+
+```
+sdlc stack
+```
+
+Its `Not mentioned` list is every default the profile declares and every stack rule this release ships
+that the stack has **no row for at all**. A row saying `none` or `false` is an answer and is not listed.
+**Nothing listed means nothing to do**: say so in a line and go to step 6.
+
+**For each item, read the repository and propose an answer**, one line each with what you read:
+
+| Item | Answers | What to read |
+|---|---|---|
+| a default | the profile's choice, another, or `none` | whether the repository already uses the concern at all — no `.razor`, `.cshtml` or stylesheet means `accessibility testing` has nothing to scan — and whether it uses something else for it |
+| a stack rule | `true` or `false` | what the rule holds a plan to, from the list, and whether the solution has the thing it names — a rule about the browser means nothing to a solution with no web host |
+
+**Propose, never decide.** The person answers each one, and an answer they give overrides what you read.
+Where the stack's other rows show a choice was made deliberately — no MAUI row, so no desktop host — say
+so, because it usually answers the new row too.
+
+**A stack placed before 0.24.0 lists the rows it deleted**, because a deleted row and an unasked one look
+the same. Say that once, before the list, so a long list reads as a one-time catch-up rather than a
+release that changed everything. Most of those answers are `none`, confirmed rather than re-argued.
+
+Then write the answers where the person can place them:
+
+```
+sdlc draft techstack
+```
+
+**If it refuses because a draft is already waiting**, that draft is somebody's unfinished change: show it
+to the person and ask whether to finish that one or delete it and draft again. Do not delete it yourself.
+
+The draft is a byte copy and names the same list under the rename command. Add one row per answer to
+the table it belongs in — a default under `## Defaults`, a rule under `## Rules` — and nothing else.
+**You cannot place it**; show the `mv -f` line it printed and let the person rename and commit. Then
+step 6, where `sdlc doctor` no longer names anything under `declared stack`.
+
+## 5. Commit what was placed
+
+The renames leave the placed files uncommitted on the integration branch adoption switched to, and
+`sdlc new` refuses to open a cycle over uncommitted work — a cycle's branch would carry them into its
+diff as work no plan declared. **The person commits them.** A message naming a protected file is refused
+when it passes through your tool call, so hand the line over with a `!`, or let them commit however they
+usually do:
+
+```
+! git add .sdlc && git commit -m "Place the solution, its stack and its constraints"
+```
+
+The drafts are ignored by git, so whatever is left of one never reaches a commit.
+
+## 6. Report
+
+```
+sdlc constraints
+sdlc doctor
+```
+
+Show the first verbatim — that is the set now in force. From the second, show **the closing block
+verbatim**: what a person still has to place before the first cycle and the rename for each, or that the
+first cycle can open. It is read from disk, so it is right about a rename you did not see happen, and a
+list of your own would be a second answer to the same question. Then **at most two lines of your own**:
+which mode ran, and what the origin is.
+
+**Nothing about what any of it means.** Adoption is the stage with a standing temptation to explain the
+framework it has just installed, and `.sdlc/README.md` is the whole of that explanation — written, in the
+repository, and better than a recap. A person who wants the reasoning opens it.
+
+Then stop.

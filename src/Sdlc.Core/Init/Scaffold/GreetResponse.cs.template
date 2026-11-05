@@ -1,0 +1,27 @@
+namespace __SOLUTION__.Contracts.Greetings;
+
+/// <summary>
+/// The reference slice's response. Delete it with the slice.
+/// </summary>
+/// <remarks>
+/// <para><strong>This exists to be copied.</strong> A response record is the shape that crosses the
+/// wire, so it lives here where the front end can reference it without referencing the project that
+/// holds the data access. Its query stays nested in <c>Greet</c>, because nothing outside the
+/// application dispatches a query and the holder is where the operation's decisions belong.</para>
+///
+/// <para><strong>The folders mirror.</strong> <c>Greetings/GreetResponse.cs</c> here pairs with
+/// <c>Greetings/Greet.cs</c> in the application project, so finding a response is mechanical rather
+/// than a search. Keep that as the solution grows -- it is the thing that makes a split operation
+/// readable.</para>
+///
+/// <para><strong>Named flatly, not nested in a second <c>Greet</c> holder.</strong> Nesting it would
+/// put two static classes called <c>Greet</c> in two namespaces, and the one file that has to name
+/// both is the holder -- so the ambiguity would land exactly where the operation is read. The
+/// asymmetry is deliberate.</para>
+///
+/// <para>An architecture test holds the arrangement: every request the application declares has its
+/// response type declared in this project. Without it, the first operation written from habit nests
+/// its response and the client cannot see it.</para>
+/// </remarks>
+/// <param name="Greeting">What to say.</param>
+public sealed record GreetResponse(string Greeting);

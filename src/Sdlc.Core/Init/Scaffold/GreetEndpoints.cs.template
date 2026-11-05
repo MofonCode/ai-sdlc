@@ -1,0 +1,52 @@
+using FluentResults;
+using MofonCode.Core;
+using __SOLUTION__.Application.Greetings;
+using __SOLUTION__.Contracts.Greetings;
+
+namespace __SOLUTION__.Api.Greetings;
+
+/// <summary>
+/// The reference slice's endpoints. Delete them with the slice.
+/// </summary>
+/// <remarks>
+/// <para><strong>This exists to be copied.</strong> What to copy:</para>
+/// <list type="bullet">
+/// <item>One static holder per feature, with a single <c>Map</c> extension the host calls. The host
+/// gains one line per feature rather than one per route.</item>
+/// <item>The route delegate is <c>private</c>. Nothing can call it but the route, so there is no
+/// second path into the operation that skips the conversion below.</item>
+/// <item>It dispatches and converts, and that is all. No validation — the behaviour in the application project has
+/// already run — no mapping, no branching on the failure. An endpoint that inspected the result to
+/// decide a response would be a second place the boundary rules live.</item>
+/// <item>It returns <c>ApiResult&lt;T&gt;</c>. An architecture test requires it, because an endpoint
+/// returning a domain type sends a payload with no notices and no trace id, and a front end reading
+/// that has nothing to display when something goes wrong.</item>
+/// </list>
+/// </remarks>
+public static class GreetEndpoints
+{
+    /// <summary>Maps this feature's routes.</summary>
+    /// <param name="routes">What to map them on.</param>
+    /// <returns>The same builder, for chaining.</returns>
+    public static IEndpointRouteBuilder MapGreetings(this IEndpointRouteBuilder routes)
+    {
+        ArgumentNullException.ThrowIfNull(routes);
+
+        routes.MapGet("/greetings/{name}", Handle);
+
+        return routes;
+    }
+
+    private static async Task<ApiResult<GreetResponse>> Handle(
+        string name,
+        Mediator mediator,
+        HttpContext http,
+        CancellationToken cancellationToken)
+    {
+        Result<GreetResponse> result = await mediator
+            .Send<Greet.Query, GreetResponse>(new Greet.Query(name), cancellationToken)
+            .ConfigureAwait(false);
+
+        return result.ToApiResult(http);
+    }
+}

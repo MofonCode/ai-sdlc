@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <AssemblyName>usage-report</AssemblyName>
+  </PropertyGroup>
+
+  <!-- Not packable and not shipped. It reads one host's transcripts, which is exactly what the binary must
+       not know about (D-46), and the whole-session view it gives is the one the per-cycle usage record
+       deliberately leaves out (D-121). -->
+  <PropertyGroup>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+</Project>

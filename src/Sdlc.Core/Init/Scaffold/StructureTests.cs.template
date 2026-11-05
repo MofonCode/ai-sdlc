@@ -1,0 +1,527 @@
+namespace __SOLUTION__.Architecture.Tests;
+
+/// <summary>
+/// Rules about the shape of the repository, read from the files on disk.
+/// </summary>
+/// <remarks>
+/// These read <c>.csproj</c> and source files rather than loaded assemblies, so this project stays
+/// outside the graph it polices. Every message says what to do rather than what went wrong, because
+/// the reader is someone meeting the rule for the first time in a failing build.
+/// </remarks>
+[TestClass]
+public sealed class StructureTests
+{
+    /// <summary>The part every project's name starts with, so the rest of it is the project's role.</summary>
+    private const string SolutionPrefix = "__SOLUTION__.";
+
+    /// <summary>
+    /// What each project under <c>src/</c> may reference, keyed by its role.
+    /// </summary>
+    /// <remarks>
+    /// <para>The adjacency D-38 records, and the reason it is a table rather than a sentence in a
+    /// guide. Contracts knows nothing, so a front end can reference the shapes it renders without
+    /// dragging the data access behind them; the application project is where the <c>DbContext</c> and
+    /// the vendor wrappers live, and they are <c>internal</c>, so nothing outside can query at all.</para>
+    /// <para><strong><c>Web</c> and <c>Ui</c> are listed and neither is written by the skeleton.</strong>
+    /// A UI in the default profile would commit every solution to having one, so they arrive with the
+    /// cycle that needs them -- and these rows are waiting, which costs nothing while no such project
+    /// exists. A Blazor WebAssembly client ships every assembly it references to the browser, so what
+    /// these two rows allow is what a visitor downloads. Neither can reach the application project, so
+    /// EF, a provider and every vendor SDK stay out of the bundle, and "the front end holds no business
+    /// logic" is a fact rather than a convention.</para>
+    /// <para><strong><c>Ui</c> is the Razor class library the stack file prescribes, and the components
+    /// live there rather than in <c>Web</c>.</strong> <c>techstack.md</c> declares MudBlazor for ui
+    /// components and says shared UI is Blazor components in a Razor class library, hosted by Blazor for
+    /// web and MAUI Blazor Hybrid for desktop and Android -- so the library is what both hosts reference
+    /// and the package rule below admits MudBlazor there and nowhere else. The cost is a project with
+    /// one consumer until a second host exists, and it is paid deliberately: a solution that puts its
+    /// components in <c>Web</c> and grows a second host later has to move every one of them, and the
+    /// cycle that discovers this is the cycle trying to do something else. D-57.</para>
+    /// <para>This is the one place the layout differs from D-38's "no <c>Core</c> until it has two
+    /// occupants in two projects". That bar refuses a project with no inhabitant, which fills with
+    /// whatever arrives. <c>Ui</c> has an inhabitant on its first day -- the components -- and what it
+    /// lacks at first is a second <em>consumer</em>, which is a different objection and a smaller one.</para>
+    /// <para><strong><c>AppHost</c> is listed for the same reason, and it is what makes <c>PRO_04</c>
+    /// cheap to keep.</strong> The stack rule asks a solution with more than one process to start them
+    /// from an Aspire AppHost, so the cycle that adds a second process adds the AppHost too. With the row
+    /// waiting, that is a new project and nothing else; without it, the same cycle would have to amend
+    /// this file, which is a change to the rules it is judged by. The first solution to meet the
+    /// condition declined Aspire on exactly that cost. The AppHost references the hosts it starts and nothing a host references:
+    /// it orchestrates processes, so a reference to the application project would be a host reaching
+    /// for business logic it has no business running. A new host role joins this row in the change that
+    /// adds the role.</para>
+    /// <para><c>Api</c> may name contracts as well as the application project, though it already has
+    /// them transitively. Failing an explicit reference to a project that is reachable anyway would
+    /// make this rule pedantic about something that harms nothing, and a pedantic rule is one somebody
+    /// deletes on the day it is in the way.</para>
+    /// <para><strong>What this catches is narrower than it looks, and the valuable half is the half
+    /// MSBuild cannot see.</strong> A reference from contracts back to the application project is a
+    /// circular dependency, so the build already refuses it and this rule never runs. What it is
+    /// actually for is the reference that compiles perfectly: a new project beside these — an
+    /// infrastructure or a shared one — referenced from the application project, and a web project
+    /// reaching past the wire. Neither is a cycle, and nothing else says a word.</para>
+    /// <para>Test projects are deliberately absent. They reference whatever they have to inspect, and a
+    /// rule that policed them would be policing the police.</para>
+    /// </remarks>
+    private static readonly Dictionary<string, string[]> _allowedProjectReferences =
+        new(StringComparer.Ordinal)
+        {
+            ["Contracts"] = [],
+            ["Application"] = ["Contracts"],
+            ["ServiceDefaults"] = [],
+            ["Api"] = ["Application", "Contracts", "ServiceDefaults"],
+            ["Ui"] = ["Contracts"],
+            ["Web"] = ["Contracts", "Ui"],
+            ["AppHost"] = ["Api", "Web"],
+        };
+
+    /// <summary>
+    /// What each project under <c>src/</c> may take as a package.
+    /// </summary>
+    /// <remarks>
+    /// <para><strong>The application project is deliberately not in this table, and that is the rule
+    /// rather than an omission.</strong> It is the one project EF, a database provider and any vendor
+    /// SDK may live in, so constraining it would defeat the point -- the rule exists to concentrate
+    /// those dependencies there, not to limit them.</para>
+    /// <para>Stated as an allow-list rather than a list of forbidden packages, because the forbidden
+    /// set cannot be written down: nobody can enumerate every vendor SDK somebody might reach for. The
+    /// legitimate package list for a boundary or a UI is short and knowable, so inverting it is what
+    /// makes the rule hold for a package nobody has thought of yet.</para>
+    /// <para><c>internal</c> stops another project <em>using</em> the context. This is what stops one
+    /// declaring a second context of its own, which is the move somebody makes when the first rule is
+    /// in the way.</para>
+    /// </remarks>
+    private static readonly Dictionary<string, string[]> _allowedPackages =
+        new(StringComparer.Ordinal)
+        {
+            ["Contracts"] = [],
+
+            // The api describes its own surface and renders that description. Both are prefix-matched
+            // for the reason the Web row below is: the OpenApi package and the Swagger UI package are
+            // each one name today and neither is a family worth enumerating by hand.
+            ["Api"] = ["MofonCode.Core", "Microsoft.AspNetCore.OpenApi", "Swashbuckle.AspNetCore"],
+
+            // Observability, and the only project that takes it. Every host calls AddServiceDefaults
+            // rather than registering its own, so the instrumentation packages belong here and nowhere
+            // else -- a host that took them directly would be the second place the source and meter
+            // names are decided, which is the defect ObservabilityTests exists to catch.
+            ["ServiceDefaults"] = ["MofonCode.Core", "OpenTelemetry"],
+
+            // Prefix-matched like most rows here, and the reason should be visible: the
+            // legitimate set is "the WebAssembly packages", and a Blazor WebAssembly project needs
+            // Microsoft.AspNetCore.Components.WebAssembly.DevServer as well as the runtime package.
+            // Listing them exactly would fail on the day the first real Web project arrives, in the
+            // cycle that is busy doing something else. A prefix is a wider grant than the rows above,
+            // which is the cost.
+            //
+            // The host, not the components: MudBlazor is absent here on purpose, and Ui is where it is
+            // admitted. A component library both hosts reference is the shape techstack.md declares, so
+            // a component package in the host is the first copy of a UI that will shortly exist twice.
+            ["Web"] = ["Microsoft.AspNetCore.Components.WebAssembly"],
+
+            // The component library. MudBlazor is named exactly rather than prefix-matched, because
+            // unlike the WebAssembly pair it is one package rather than a family -- and a prefix would
+            // silently admit anything else published under the name. Microsoft.AspNetCore.Components is
+            // a prefix because a Razor class library legitimately takes several of them: .Web for the
+            // render tree, .Forms for inputs, .Authorization where a page is gated.
+            //
+            // techstack.md declares MudBlazor for ui components, which makes this row the thing that
+            // lets a solution follow its own stack file. Another component library replaces this entry
+            // rather than joining it: two is how a solution ends up with two ways to draw a button.
+            ["Ui"] = ["MudBlazor", "Microsoft.AspNetCore.Components"],
+
+            // The orchestrator, waiting like Ui and Web until a cycle adds a second process. Prefixed
+            // because every backing service it starts is a hosting integration of its own --
+            // Aspire.Hosting.SqlServer, Aspire.Hosting.Redis -- and the first cycle that adds a database
+            // should not also be the cycle that amends this row. The AppHost SDK brings
+            // Aspire.Hosting.AppHost itself, so a project with no backing service references nothing here.
+            //
+            // Aspire 13.4.6 took MessagePack 2.5.302 transitively, which NuGet's audit flags and the
+            // warnings-as-errors build refuses; 13.6.3 takes 2.5.307 and needs no pin. If a later release
+            // brings a flagged one back, pin a patched version in Directory.Packages.props: transitive
+            // pinning is on, so that line is the whole fix.
+            ["AppHost"] = ["Aspire.Hosting"],
+        };
+
+    /// <summary>
+    /// The one project role the package rule does not constrain.
+    /// </summary>
+    /// <remarks>
+    /// <strong>Named, so the exemption is a thing somebody has to edit rather than an absence.</strong>
+    /// The package rule used to skip any role missing from <c>_allowedPackages</c>, which is how the
+    /// application project was exempted -- so adding <c>src/Demo.Infrastructure</c> with a direction row
+    /// and no package row left it silently exempt, and the exemption was the privileged state. D-38
+    /// calls the package rule the one that stops a second project declaring a <c>DbContext</c> of its
+    /// own, which is the move somebody makes when the first rule is in the way; reaching for it cost one
+    /// omitted dictionary entry.
+    /// <para>
+    /// A rule that silently stops covering part of the repository is worse than no rule, because the
+    /// build still goes green -- which this file says elsewhere and did not do here.
+    /// </para>
+    /// </remarks>
+    private const string PackagesLiveHere = "Application";
+
+    /// <summary>
+    /// Guards the guard.
+    /// </summary>
+    /// <remarks>
+    /// Without this, adding a project directory and forgetting to list it in
+    /// <c>RepoFiles</c> silently removes everything under it from every rule in this assembly, and the
+    /// build stays green.
+    /// </remarks>
+    [TestMethod]
+    public void Every_directory_holding_projects_is_scanned()
+    {
+        string root = RepoFiles.FindRepoRoot();
+        List<string> unscanned = [];
+
+        foreach (string directory in Directory.EnumerateDirectories(root))
+        {
+            string name = Path.GetFileName(directory);
+
+            if (name.StartsWith('.') || RepoFiles.ScannedDirectories.Contains(name))
+            {
+                continue;
+            }
+
+            if (Directory
+                .EnumerateFiles(directory, "*.csproj", SearchOption.AllDirectories)
+                .Any(path => !RepoFiles.IsBuildOutput(path)))
+            {
+                unscanned.Add(name);
+            }
+        }
+
+        Assert.AreEqual(
+            0,
+            unscanned.Count,
+            "These directories hold projects and are not scanned, so none of the architecture rules "
+            + "apply to anything inside them:\n  "
+            + string.Join("\n  ", unscanned)
+            + "\n\nAdd them to RepoFiles. A rule that silently stops covering part of the repository "
+            + "is worse than no rule, because the build still goes green.");
+    }
+
+    /// <summary>
+    /// Guards the two rules below.
+    /// </summary>
+    /// <remarks>
+    /// A project under <c>src/</c> that neither table names is a project the direction rule and the
+    /// package rule both skip, silently. Adding one is a decision about the shape of the solution, so
+    /// it should be a failing build that asks for the row rather than a project that quietly governs
+    /// itself.
+    /// </remarks>
+    [TestMethod]
+    public void Every_project_under_src_is_named_in_both_rules()
+    {
+        // Both tables, not just the direction one. Checking only that table is how a project could
+        // arrive with a direction row, no package row, and a silent exemption from the rule D-38 says
+        // is the one that matters.
+        List<string> unnamed = [.. SourceProjects()
+            .Select(RoleOf)
+            .Where(role => !_allowedProjectReferences.ContainsKey(role))
+            .Distinct(StringComparer.Ordinal)];
+
+        List<string> unpriced = [.. SourceProjects()
+            .Select(RoleOf)
+            .Where(role => !string.Equals(role, PackagesLiveHere, StringComparison.Ordinal))
+            .Where(role => !_allowedPackages.ContainsKey(role))
+            .Distinct(StringComparer.Ordinal)];
+
+        Assert.AreEqual(
+            0,
+            unnamed.Count + unpriced.Count,
+            "These projects live under src/ and a rule in this file does not cover them.\n\n"
+            + "Missing from _allowedProjectReferences:\n  " + string.Join("\n  ", unnamed) + "\n\n"
+            + "Missing from _allowedPackages:\n  " + string.Join("\n  ", unpriced) + "\n\n"
+            + "Add a row to each: what the project may reference, and what packages it may take. The "
+            + "only project exempt from the package rule is the one PackagesLiveHere names, and making "
+            + "another one exempt means editing that constant, which is a visible decision. Say in the "
+            + "commit why the solution grew a project -- D-38 is the entry that records the shape, and "
+            + "a new layer is a change to it rather than an addition beside it.");
+    }
+
+    /// <summary>
+    /// Every project under <c>src/</c> references only what it is allowed to.
+    /// </summary>
+    /// <remarks>
+    /// The rule that keeps the dependencies pointing one way. If the application project needs
+    /// something from a project it may not reference, the type is in the wrong place: the interface
+    /// belongs in the application project beside the handler that uses it, and the implementation stays
+    /// where its dependencies already are.
+    /// </remarks>
+    [TestMethod]
+    public void Every_project_under_src_references_only_what_the_direction_rule_allows()
+    {
+        List<string> offenders = [];
+        int inspected = 0;
+
+        foreach (string project in SourceProjects())
+        {
+            if (!_allowedProjectReferences.TryGetValue(RoleOf(project), out string[]? allowed))
+            {
+                // The guard above owns this case, and reports it better than this rule would.
+                continue;
+            }
+
+            inspected++;
+
+            foreach (string reference in RepoFiles.ProjectReferences(project))
+            {
+                string referenced = Role(reference);
+
+                if (!allowed.Contains(referenced, StringComparer.Ordinal))
+                {
+                    offenders.Add(RoleOf(project) + " -> " + referenced);
+                }
+            }
+        }
+
+        Assert.IsTrue(
+            inspected > 0,
+            "This rule inspected no projects under src/, so it would pass however they referenced each "
+            + "other. Either the solution has no source projects yet, or the root resolved wrongly.");
+
+        // A positive control, and it is the flaw this rule would otherwise have: every assertion below
+        // is that a count is zero, so a ProjectReference pattern that stopped matching would find
+        // nothing, report no violations and pass. Counting across every project rather than only the
+        // policed ones keeps the control independent of what the tables allow.
+        Assert.IsTrue(
+            RepoFiles.AllProjectFiles().Sum(path => RepoFiles.ProjectReferences(path).Count) > 0,
+            "No project reference was found anywhere in the repository, so this rule could not have "
+            + "detected a wrong one. Either every project is genuinely standalone - which cannot be "
+            + "true while the test projects reference what they inspect - or the pattern RepoFiles uses "
+            + "to read a ProjectReference no longer matches how they are written.");
+
+        Assert.AreEqual(
+            0,
+            offenders.Count,
+            "These project references point somewhere the direction rule does not allow:\n  "
+            + string.Join("\n  ", offenders)
+            + "\n\nThe allowed adjacency is in _allowedProjectReferences at the top of this file. A "
+            + "reference out of Contracts makes it useless, because what a front end references is what "
+            + "a browser downloads. A reference into Application from anything but Api puts the data "
+            + "access behind something that was supposed to go through the wire.");
+    }
+
+    /// <summary>
+    /// Only the application project may hold the data and vendor packages.
+    /// </summary>
+    /// <remarks>
+    /// The second half of the enforcement D-38 records. The <c>DbContext</c> is <c>internal</c>, so no
+    /// other project can use it; this is what stops another project adding EF and declaring its own,
+    /// which is the same breach arriving by a road the access modifier cannot see.
+    /// </remarks>
+    [TestMethod]
+    public void Only_the_application_project_may_take_a_data_or_vendor_package()
+    {
+        List<string> offenders = [];
+        int inspected = 0;
+
+        foreach (string project in SourceProjects())
+        {
+            string role = RoleOf(project);
+
+            if (string.Equals(role, PackagesLiveHere, StringComparison.Ordinal))
+            {
+                // The one documented exemption, by name. A role simply missing from the table is not
+                // exempt -- the guard below fails the build and asks for the row.
+                continue;
+            }
+
+            if (!_allowedPackages.TryGetValue(role, out string[]? allowed))
+            {
+                // Unreachable while the guard passes, and not an exemption if it ever is reached.
+                allowed = [];
+            }
+
+            inspected++;
+
+            foreach (string package in RepoFiles.PackageReferences(project))
+            {
+                if (!allowed.Any(entry => package.StartsWith(entry, StringComparison.Ordinal)))
+                {
+                    offenders.Add(RoleOf(project) + " references " + package);
+                }
+            }
+        }
+
+        Assert.IsTrue(
+            inspected > 0,
+            "This rule inspected no projects, so it would pass however they were referenced. Every "
+            + "project under src/ matched the one deliberately unlisted role, which means the tables "
+            + "and the solution disagree about what is there.");
+
+        // The same positive control as above, for the package pattern rather than the reference one.
+        Assert.IsTrue(
+            RepoFiles.AllProjectFiles().Sum(path => RepoFiles.PackageReferences(path).Count) > 0,
+            "No package reference was found anywhere in the repository, so this rule could not have "
+            + "detected a forbidden one. The pattern RepoFiles uses to read a PackageReference has "
+            + "almost certainly stopped matching.");
+
+        Assert.AreEqual(
+            0,
+            offenders.Count,
+            "These packages are referenced by a project that may not have them:\n  "
+            + string.Join("\n  ", offenders)
+            + "\n\nEF, a database provider and any third-party SDK belong in the application project, "
+            + "where the DbContext and the wrappers around them are internal and the commands and "
+            + "queries are the only thing that can reach data. If this package genuinely belongs at a "
+            + "boundary, add it to _allowedPackages with the reason in the same change -- a short list "
+            + "somebody extended deliberately is the point, and an unexplained entry is how it stops "
+            + "being one.");
+    }
+
+    /// <summary>
+    /// Every suppression is readable in one place.
+    /// </summary>
+    /// <remarks>
+    /// <c>Directory.Build.props</c> states the policy this enforces: <c>WarningsNotAsErrors</c> is
+    /// deliberately empty so that an exception is one visible line in a file a reviewer reads. A pragma
+    /// is the form that hides - a reviewer reading one file's diff cannot see that a rule was switched
+    /// off, and nobody reading the props file learns it either.
+    /// </remarks>
+    [TestMethod]
+    public void No_source_file_switches_off_a_warning_with_a_pragma()
+    {
+        // Composed rather than written out, so this file does not itself contain the construct it
+        // forbids. The alternative is to exempt this file, which is a hole: a suppression added here
+        // would then be the one place the rule could not see.
+        const string Forbidden = "#pragma" + " warning " + "disable";
+
+        List<string> offenders = [];
+        string root = RepoFiles.FindRepoRoot();
+
+        foreach (string file in RepoFiles.SourceFiles())
+        {
+            if (File.ReadAllText(file).Contains(Forbidden, StringComparison.Ordinal))
+            {
+                offenders.Add(Path.GetRelativePath(root, file).Replace('\\', '/'));
+            }
+        }
+
+        Assert.AreEqual(
+            0,
+            offenders.Count,
+            "These files switch off a warning with a pragma:\n  "
+            + string.Join("\n  ", offenders)
+            + "\n\nEvery suppression belongs in Directory.Build.props with the reason it exists, so a "
+            + "reviewer can read the complete list of exceptions in one place. If the rule is genuinely "
+            + "wrong for one member, a SuppressMessage attribute carrying its justification is the "
+            + "documented form; a pragma is the form nobody can audit.");
+    }
+
+    /// <summary>
+    /// An AppHost runs in two launch profiles, <c>local</c> and <c>test</c>, and groups its containers.
+    /// </summary>
+    /// <remarks>
+    /// <para>The run modes are the framework's contract with an AppHost (its CONCEPT §10.2): <c>local</c>
+    /// keeps container names, host ports and volumes stable, so a URL can be bookmarked and data survives a
+    /// restart; <c>test</c> leaves Aspire's random suffixes and dynamic ports in place, so two runs side by
+    /// side -- a developer's and a test's, or two cycles building at once -- never collide. A profile is
+    /// what a person picks when they press run, so each one sets <c>SDLC_RUN_MODE</c> rather than leaving
+    /// the mode to a variable nobody sees. <c>batch-build</c> exports the same variable, which wins over
+    /// the profile.</para>
+    /// <para>The group is two labels on every container -- <c>com.docker.compose.project</c> and
+    /// <c>com.docker.compose.config-hash</c>, which Docker Desktop needs before it groups anything -- so
+    /// the solution's containers read as one row rather than as unrelated containers. Containers only: a
+    /// .NET project runs as a process, so there is nothing to label.</para>
+    /// <para>Passes with nothing to check until an AppHost exists, which is the cycle that adds one.</para>
+    /// </remarks>
+    [TestMethod]
+    public void An_apphost_runs_in_a_local_and_a_test_profile_and_groups_its_containers()
+    {
+        string? project = SourceProjects().SingleOrDefault(path => RoleOf(path) == "AppHost");
+
+        if (project is null)
+        {
+            return;
+        }
+
+        string directory = Path.GetDirectoryName(project)!;
+        string settings = Path.Combine(directory, "Properties", "launchSettings.json");
+
+        Assert.IsTrue(
+            File.Exists(settings),
+            "The AppHost has no Properties/launchSettings.json. Give it two profiles, 'local' and 'test', "
+            + "each setting SDLC_RUN_MODE to its own name.");
+
+        using var document = System.Text.Json.JsonDocument.Parse(File.ReadAllText(settings));
+        System.Text.Json.JsonElement profiles = document.RootElement.GetProperty("profiles");
+
+        foreach (string mode in new[] { "local", "test" })
+        {
+            Assert.IsTrue(
+                profiles.TryGetProperty(mode, out System.Text.Json.JsonElement profile),
+                $"The AppHost has no '{mode}' launch profile. 'local' keeps names, ports and volumes stable; "
+                + "'test' leaves Aspire's random suffixes and dynamic ports so two runs never collide.");
+
+            string? set = profile.TryGetProperty("environmentVariables", out System.Text.Json.JsonElement variables)
+                && variables.TryGetProperty("SDLC_RUN_MODE", out System.Text.Json.JsonElement value)
+                    ? value.GetString()
+                    : null;
+
+            Assert.AreEqual(
+                mode,
+                set,
+                $"The '{mode}' launch profile sets SDLC_RUN_MODE to '{set ?? "nothing"}'. Set it to '{mode}', "
+                + "which is what the AppHost reads to choose names, ports and lifetimes.");
+        }
+
+        string source = string.Concat(Directory
+            .EnumerateFiles(directory, "*.cs", SearchOption.AllDirectories)
+            .Where(path => !RepoFiles.IsBuildOutput(path))
+            .Select(File.ReadAllText));
+
+        string[] containers =
+        [
+            "AddContainer(", "AddRedis(", "AddSqlServer(", "AddPostgres(", "AddRabbitMQ(", "AddKafka(",
+            "AddMongoDB(", "AddAzurite(", "RunAsEmulator(", "AddDockerfile(",
+        ];
+
+        if (!containers.Any(call => source.Contains(call, StringComparison.Ordinal)))
+        {
+            return;
+        }
+
+        Assert.IsTrue(
+            source.Contains("com.docker.compose.project", StringComparison.Ordinal)
+                && source.Contains("com.docker.compose.config-hash", StringComparison.Ordinal),
+            "The AppHost starts containers and does not label them as one group. Give every container "
+            + "com.docker.compose.project -- the solution's name in 'local', the name and the run id in "
+            + "'test' -- and com.docker.compose.config-hash, without which Docker Desktop groups nothing.");
+    }
+
+    /// <summary>Every project file under <c>src/</c>.</summary>
+    /// <remarks>
+    /// <c>src/</c> rather than every project, because the two tables above describe the solution's own
+    /// layers. A test project references whatever it has to inspect, and policing that would police the
+    /// police.
+    /// </remarks>
+    /// <returns>The absolute paths.</returns>
+    internal static IReadOnlyList<string> SourceProjects()
+    {
+        string root = RepoFiles.FindRepoRoot();
+
+        return
+        [
+            .. RepoFiles.AllProjectFiles().Where(path => Path
+                .GetRelativePath(root, path)
+                .Replace('\\', '/')
+                .StartsWith("src/", StringComparison.Ordinal)),
+        ];
+    }
+
+    /// <summary>A project's role: its name with the solution's own name taken off the front.</summary>
+    /// <param name="projectPath">The project file.</param>
+    /// <returns>The role, which is the whole name when it carries no prefix.</returns>
+    internal static string RoleOf(string projectPath) => Role(RepoFiles.ProjectName(projectPath));
+
+    /// <summary>The same, for a name that has already been read out of a reference.</summary>
+    /// <param name="projectName">The project's name, without a path or an extension.</param>
+    /// <returns>The role.</returns>
+    private static string Role(string projectName) =>
+        projectName.StartsWith(SolutionPrefix, StringComparison.Ordinal)
+            ? projectName[SolutionPrefix.Length..]
+            : projectName;
+}

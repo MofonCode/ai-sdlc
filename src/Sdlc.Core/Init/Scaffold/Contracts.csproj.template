@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- No package references, and no project references either. That is the rule rather than what
+       happened to be true on the first day, and an architecture test asserts the list stays empty.
+
+       This is the project a front end references. A Blazor WebAssembly client ships every assembly it
+       references to the browser, so a dependency taken here is a dependency downloaded by every
+       visitor - and the application project references EF, a database provider and whatever vendor
+       SDKs the solution needs. None of that can be allowed to reach a client, which is the whole
+       reason this project exists rather than the UI referencing the application directly. D-38 records
+       it.
+
+       It is also why a response record lives here rather than nested in its holder. The holder keeps
+       the query, the validator, the handler and the registration - every decision the operation
+       makes. What moves out is a flat record with no behaviour in it. -->
+
+</Project>

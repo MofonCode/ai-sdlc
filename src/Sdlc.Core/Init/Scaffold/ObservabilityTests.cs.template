@@ -1,0 +1,135 @@
+namespace __SOLUTION__.Architecture.Tests;
+
+/// <summary>
+/// Rules about what this solution can tell you about itself while it is running.
+/// </summary>
+/// <remarks>
+/// <para><strong>Every rule here defends against the same failure, and it is a quiet one.</strong> A
+/// span written to an <c>ActivitySource</c> that OpenTelemetry was not told to collect from is
+/// discarded where it is created. There is no exception, no warning, and no empty dashboard to notice
+/// — a dashboard with no data looks exactly like a service with no traffic. The same is true of a
+/// <c>Meter</c> nobody registered.</para>
+///
+/// <para>It is not hypothetical. In the codebase this solution's kernel was lifted from, the source
+/// was named <c>TraceResult</c> and the registration asked for the application's name. A hundred and
+/// fifty-eight handlers were instrumented, every one of them correctly, and not one span was ever
+/// collected. Nothing failed, so nothing was fixed.</para>
+///
+/// <para>These read source files as text rather than starting a host, which is the same choice
+/// <c>StructureTests</c> makes and for the same reason: the thing being checked is that a line is
+/// present in a file somebody can delete, and a test that started the host would be checking that
+/// OpenTelemetry works rather than that this solution asked it to.</para>
+/// </remarks>
+[TestClass]
+public sealed class ObservabilityTests
+{
+    private static string Defaults => Read("src", "__SOLUTION__.ServiceDefaults", "Extensions.cs");
+
+    private static string Host => Read("src", "__SOLUTION__.Api", "Program.cs");
+
+    /// <summary>
+    /// The spans the kernel writes go to a source something is listening to.
+    /// </summary>
+    /// <remarks>
+    /// Asserted as "both calls name the same constant" rather than "both contain the same string",
+    /// because two literals that match today are two literals that can stop matching, and the whole
+    /// defect this rule exists for is two names drifting apart.
+    /// </remarks>
+    [TestMethod]
+    public void The_traced_source_is_the_source_that_is_collected()
+    {
+        StringAssert.Contains(
+            Defaults,
+            "options.ActivitySourceName = ActivitySourceName",
+            "The kernel is being left to name its own ActivitySource. Its default is the process name, "
+            + "which is the host's name when it runs as an executable and the literal 'dotnet' when it "
+            + "runs as 'dotnet app.dll' -- which is how a container starts one. That is tracing that "
+            + "works on a developer's machine and stops in production, reported by nothing.");
+
+        StringAssert.Contains(
+            Defaults,
+            "AddSource(ActivitySourceName)",
+            "OpenTelemetry is not collecting from the source the kernel writes to, so every span this "
+            + "solution produces is discarded where it is created. AddSource is an allow-list: a source "
+            + "it does not name has no listener, and an Activity with no listener is never started.");
+    }
+
+    /// <summary>The metrics the kernel records go to a meter something is listening to.</summary>
+    [TestMethod]
+    public void The_recorded_meter_is_the_meter_that_is_collected()
+    {
+        StringAssert.Contains(
+            Defaults,
+            "options.MeterName = MeterName",
+            "The kernel is being left to name its own Meter, which has the same failure as the source: "
+            + "a name derived from the process is not the name anything registered.");
+
+        StringAssert.Contains(
+            Defaults,
+            "AddMeter(MeterName)",
+            "Nothing subscribes to the meter the kernel records into, so the operation counter, the "
+            + "failure counter and the duration histogram are all written and dropped. This is the half "
+            + "that is easiest to forget, because the instrumentation packages register their own "
+            + "meters and the dashboard looks populated without this one.");
+    }
+
+    /// <summary>The host switches the whole thing on.</summary>
+    /// <remarks>
+    /// Registration and activation are two calls, and the second one is easy to lose: the first is at
+    /// the top of a host with everything else, and the second is after the build, which is a part of a
+    /// Program file people reorganise. Without it the names above are configured and nothing reads
+    /// them -- the source is never created, so there is nothing for the collector to miss.
+    /// </remarks>
+    [TestMethod]
+    public void The_host_switches_observability_on()
+    {
+        StringAssert.Contains(
+            Host,
+            "AddServiceDefaults",
+            "This host registers no observability. Every host in the solution calls AddServiceDefaults "
+            + "so that two of them cannot disagree about what they publish under; a host that composes "
+            + "its own is the beginning of traces that do not join up.");
+
+        StringAssert.Contains(
+            Host,
+            "UseTraceResultLogging",
+            "The host never activates the kernel's logging bridge, so FluentResults is not wired to the "
+            + "logger and the ActivitySource the service defaults named is never built. Add "
+            + "'app.Services.UseTraceResultLogging();' after the host is built.");
+    }
+
+    /// <summary>The api says what its surface is.</summary>
+    /// <remarks>
+    /// Two calls again, and the one that goes missing is the mapping: a registration with no route
+    /// produces no document and no error. Both are asserted rather than one, because a document nobody
+    /// can fetch is the same as no document to every caller.
+    /// </remarks>
+    [TestMethod]
+    public void The_api_describes_itself()
+    {
+        StringAssert.Contains(
+            Host,
+            "AddOpenApi",
+            "The api generates no description, so a caller has to read the source to find the surface "
+            + "and a client generator has nothing to read at all. A hand-kept description disagrees "
+            + "with the api, and the disagreement is found by whoever trusted it.");
+
+        StringAssert.Contains(
+            Host,
+            "MapOpenApi",
+            "The description is generated and served nowhere, which is the same as not having one. "
+            + "Map it, or say in a plan what a caller is meant to read instead.");
+    }
+
+    private static string Read(params string[] parts)
+    {
+        string path = Path.Combine([RepoFiles.FindRepoRoot(), .. parts]);
+
+        Assert.IsTrue(
+            File.Exists(path),
+            path + " is not there, so this rule inspected nothing and would pass however the solution "
+            + "was written. If the file moved, move this rule with it.");
+
+        return File.ReadAllText(path);
+    }
+}

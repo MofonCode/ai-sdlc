@@ -1,0 +1,65 @@
+using FluentResults;
+using FluentValidation;
+using FluentValidation.Results;
+using MofonCode.Core;
+
+namespace __SOLUTION__.Application;
+
+/// <summary>
+/// Validates a request before its handler runs, and turns what fails into ordinary errors.
+/// </summary>
+/// <remarks>
+/// <para><strong>A behaviour rather than a guard clause or a thrown exception.</strong> In the pipeline
+/// it runs for every operation that has a validator, so no handler has to remember it and no caller can
+/// reach a handler without it — the mediator is the only way in. A <c>ValidationException</c> would have
+/// to be caught somewhere and converted back into a failure, and whoever forgot to catch it would send
+/// an exception's own message to a reader.</para>
+///
+/// <para><strong>Every failure, not the first.</strong> This is what the result type is for: a form with
+/// four empty fields reports four problems rather than one, and the reader fixes them in one pass. It is
+/// also the reason the kernel uses FluentResults — accumulating several errors in one failure is the
+/// thing a single-error result type cannot do.</para>
+///
+/// <para><strong>The failures are ordinary errors, never exceptional ones.</strong> A validation message
+/// was written for the person who typed the input, so it crosses the boundary verbatim. That only works
+/// because nothing here wraps an exception: <c>ToEnvelope</c> drops exceptional errors and would replace
+/// these with a neutral sentence if they were.</para>
+///
+/// <para>Registered as an open generic in <see cref="__SOLUTION__Services"/>, so an operation gets this
+/// by declaring a validator and nothing else.</para>
+/// </remarks>
+/// <typeparam name="TRequest">The request being dispatched.</typeparam>
+/// <typeparam name="TResponse">What it produces.</typeparam>
+/// <param name="validators">
+/// Every validator registered for this request, which is usually one and legitimately none.
+/// </param>
+internal sealed class ValidationBehavior<TRequest, TResponse>(IEnumerable<IValidator<TRequest>> validators)
+    : IRequestBehavior<TRequest, TResponse>
+    where TRequest : IRequest<TResponse>
+{
+    /// <inheritdoc />
+    public async Task<Result<TResponse>> Handle(
+        TRequest request,
+        Func<Task<Result<TResponse>>> next,
+        CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(next);
+
+        List<IError> failures = [];
+
+        foreach (IValidator<TRequest> validator in validators)
+        {
+            ValidationResult result = await validator
+                .ValidateAsync(request, cancellationToken)
+                .ConfigureAwait(false);
+
+            // An Error rather than an ExceptionalError, deliberately. These messages are for the
+            // person who typed the input, and the envelope passes an ordinary error through untouched.
+            failures.AddRange(result.Errors.Select(failure => new Error(failure.ErrorMessage)));
+        }
+
+        return failures.Count > 0
+            ? Result.Fail<TResponse>(failures)
+            : await next().ConfigureAwait(false);
+    }
+}
