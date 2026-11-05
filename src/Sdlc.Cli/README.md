@@ -31,13 +31,36 @@ command". Install only the plugin and every skill's first command is not found.
 `sdlc doctor` reports on both and is explicit about which half it cannot see: no binary can ask a host
 what it loaded, so that check names the command to run rather than claiming an answer.
 
-## What it is for
+## Why use it
 
 The problem is not that an agent writes bad code. It is that a change can travel from a request to a
 diff with nothing recorded about what it was for, what done meant, or who agreed to it — and that a
 process which *looks* enforced and is not is worse than one that never pretended.
 
-So three layers, and only the last is a guarantee:
+**What it gives you that ordinary development does not.** A careful team writes requirements, reviews
+designs and checks that tests prove something, and relies on discipline to do it. Here each habit is a
+mechanism: every change carries an intent, a spec whose criteria can fail and a plan naming what proves
+each one; every document is read against a fixed set of rules by a fresh process that never saw it
+written; a person's approval is recorded against a hash of each document, so an edit afterwards voids
+it; the build is judged from its recorded evidence alone, by a process that did not see it; and a fix
+that stops making progress escalates to a person instead of thrashing, which is what makes building
+approved work unattended safe.
+
+**Why this rather than another AI development process.** Spec-driven workflows for agents usually stop at
+the documents: nothing outside the agent checks them, the session that wrote the plan judges it, approval
+is a reply in chat, and the merge never learns any of it happened. ai-sdlc assumes the agent will talk its
+way past any instruction, so the gate is this program rather than a prompt, the reader is never the
+writer, a blocking finding cannot be waived, the files that record a person's decisions cannot be written
+by the agent, and the guarantee is a pull-request check the agent cannot reach. One binary serves Claude
+Code, GitHub Copilot and Antigravity, so the same check governs the merge whichever agent wrote the code.
+
+**What it costs.** More time and more tokens per change, by design: every change runs the whole chain. If
+you want an agent that moves faster, this is the wrong tool; if you want to trust and audit what an agent
+merged, that cost is the point.
+
+### How it holds
+
+Three layers, and only the last is a guarantee:
 
 | Layer | Mechanism | Who can get past it |
 |---|---|---|
@@ -45,8 +68,8 @@ So three layers, and only the last is a guarantee:
 | local | this binary, a pre-tool hook, a turn-end hook | anyone with a shell |
 | **non-bypassable** | `sdlc verify-chain` as a pull-request check | nobody without repository admin |
 
-Five files are a person's alone — the approval, the abandonment, a solution's own constraints, the declared stack, and the
-file saying what the solution is. No tool writes them. This one prints what belongs in them and a
+Six files are a person's alone — the approval, the abandonment, a solution's own constraints, the decisions
+it has settled, the declared stack, and the file saying what the solution is. No tool writes them. This one prints what belongs in them and a
 person pastes it, and the pre-tool hook denies every agent write to all six, by file path and by shell
 command alike. **A blocking finding cannot be waived by any mechanism.**
 

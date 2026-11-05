@@ -1,6 +1,6 @@
 # ai-sdlc
 
-**Version 0.36.1** · iteration 4 · .NET 10 · MIT
+**Version 0.36.2** · iteration 4 · .NET 10 · MIT
 
 **A plugin that makes an AI coding agent work the way a careful team does** — write down what the change
 is for, agree what *done* means, plan it, have a person approve it, and only then write code.
@@ -21,6 +21,69 @@ What that gives you:
 > **Is this for me?** If what you want is an agent that moves faster, no. If you have ever read an
 > agent's pull request and been unable to tell what it was asked for, what it decided by itself, and
 > what proves it works — yes.
+
+## Why use it
+
+### The problem it answers
+
+An agent can take a sentence to a merged diff in minutes, and nothing along the way records what the change
+was for, what *done* meant, what the agent decided by itself, or who agreed to any of it. The code may well
+be good. **The trouble is that nobody can tell**, and a reviewer reading the diff afterwards is
+reconstructing intent from its result. ai-sdlc makes the agent write those things down *before* the code,
+has each one challenged, has a person sign off on them, and then refuses to merge anything that lacks them.
+
+### What it gives you that ordinary development does not
+
+A careful team already writes requirements, reviews designs and checks that tests prove something. What it
+relies on to do so is discipline, and discipline is exactly what an agent working fast does not have. Here
+each habit is a mechanism:
+
+| A careful team relies on | ai-sdlc does it with |
+|---|---|
+| somebody remembering why the change exists | an `intent`, a `spec` with criteria that can fail, and a `plan` saying what proves each one — committed beside the code, for every change |
+| a reviewer who did not write the design | a **fresh process that never saw the document being made** reads it against a fixed set of rules, so it has nothing to defend. The one that edits never judges, and the one that judges never edits |
+| a sign-off in a meeting or a chat | an approval **recorded against a hash of each planning document**. Edit one afterwards and the gate refuses until it is approved again |
+| a reviewer noticing the tests do not prove the claim | `verify` judges the build **from its recorded evidence alone**, in a process that did not see the build, criterion by criterion |
+| everybody agreeing not to skip steps | a pre-tool hook that **denies the agent's writes to the files only a person writes**, and `sdlc verify-chain` as a pull-request check, so nothing merges without the whole chain |
+| a senior noticing the same mistake again | every finding cites a rule by id, and `/sdlc:propose` reads the record for the rule a solution's findings keep reaching for |
+| somebody deciding a fix is going nowhere | `remediate` runs **while each pass reduces what is open** and escalates when one stops doing so, which is what makes an unattended build safe to start |
+
+The result is a pull request a person can actually review: what was asked, what was agreed, what the agent
+decided, and what proves it — on the branch, in files, rather than in a chat that has scrolled away.
+
+### Why this rather than another AI development process
+
+Spec-driven workflows for agents are common now: prompts that have the agent write a spec, then a plan,
+then tasks, then code. They are a real improvement on a bare prompt. **Where they usually stop is
+enforcement** — the documents are written, but nothing outside the agent checks them, the same session that
+wrote the plan decides it is good, approval is a reply in chat, and the merge does not know any of it
+happened. ai-sdlc is built on the opposite assumption: **an instruction the agent reads is advisory, and the
+agent will talk its way past it.** So:
+
+- **The gate is a program, not a prompt.** One `sdlc` binary decides everything a file listing and a hash
+  can decide, and the same binary runs in the agent's hooks and in CI. A skill asks it; it does not
+  replace it.
+- **The guarantee lives where the agent cannot reach.** The merge check runs in the pipeline, not in the
+  session that wrote the code. The local layer makes the check cheap to pass; it is not the proof.
+- **Judging is separated from writing.** A document is read by a process with no stake in it, and a
+  blocking objection cannot be waived by any mechanism — it is answered, or the cycle does not advance.
+- **A person's decisions are files only a person writes.** The approval, the solution's own rules, its
+  declared stack and the decisions it has settled cannot be written by the agent, by any route.
+- **It stops instead of thrashing.** A cycle that cannot be made to pass escalates to a person rather than
+  opening a pull request, so approved work can build overnight.
+- **It is not tied to one agent.** The rules name no language or framework, and one hook adapter speaks
+  Claude Code, GitHub Copilot and Antigravity. Whichever agent wrote the code, the same check governs
+  the merge.
+- **It says what it has not proved.** [Where it stands](#where-it-stands) lists what has only met
+  fixtures, because a check that appears to run and does not is worse than none.
+
+### What it costs
+
+Honestly: **more time and more tokens per change**, by design. Every change runs the whole chain, small
+ones included, and each planning document is read until a reading raises nothing blocking. The tool is a
+.NET executable, the stack rules it ships are .NET only, and Claude Code is the only host it has been run
+on in earnest. If you want an agent that moves faster, this is the wrong tool. If you want to be able to
+trust and audit what an agent merged, that cost is the point.
 
 ## How it works
 
@@ -125,7 +188,7 @@ sdlc constraints
 ```
 
 It should print the nineteen global constraints in force and say it read them from
-`global  embedded in sdlc 0.36.1`. **Use this rather than `sdlc help` as the smoke test** — `help` and
+`global  embedded in sdlc 0.36.2`. **Use this rather than `sdlc help` as the smoke test** — `help` and
 `version` are the only commands that need nothing from the installation, so they are the two that cannot
 tell you whether it worked. Then `claude plugin details sdlc@ai-sdlc` should say `Skills (18)` and
 `Hooks (3)`: **a hook count below three is a failed install**, not a detail, because the deterministic layer
@@ -394,8 +457,7 @@ What is honest to say about the rest:
 
 A whole-codebase coverage floor — a change is held to 70% of its own lines and the codebase to its
 baseline instead. Making the local approval unforgeable — it cannot be, and the pull
-request is where accountability lives. Governing ai-sdlc with ai-sdlc. Resolving merge conflicts as the
-primary strategy. Slicing work unattended. A device end-to-end layer. `CONCEPT.md` §18 has the full
+request is where accountability lives. Governing ai-sdlc with ai-sdlc. Slicing work unattended. A device end-to-end layer. `CONCEPT.md` §18 has the full
 list with reasons.
 
 ## License
