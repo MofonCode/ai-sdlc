@@ -54,10 +54,10 @@ decided, and what proves it — on the branch, in files, rather than in a chat t
 ### Why this rather than another AI development process
 
 Spec-driven workflows for agents are common now: prompts that have the agent write a spec, then a plan,
-then tasks, then code. They are a real improvement on a bare prompt. **Where they usually stop is
-enforcement** — the documents are written, but nothing outside the agent checks them, the same session that
-wrote the plan decides it is good, approval is a reply in chat, and the merge does not know any of it
-happened. ai-sdlc is built on the opposite assumption: **an instruction the agent reads is advisory, and the
+then tasks, then code. Some carry standing principles a plan is checked against, and some send a document
+to a fresh reviewer until it finds nothing. **Where they usually stop is enforcement** — a finding cites no
+rule and can be dismissed, approval is a reply that records nothing about what was approved, and the merge
+does not know any of it happened. ai-sdlc is built on the opposite assumption: **an instruction the agent reads is advisory, and the
 agent will talk its way past it.** So:
 
 - **The gate is a program, not a prompt.** One `sdlc` binary decides everything a file listing and a hash

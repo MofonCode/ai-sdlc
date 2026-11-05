@@ -46,11 +46,12 @@ it; the build is judged from its recorded evidence alone, by a process that did 
 that stops making progress escalates to a person instead of thrashing, which is what makes building
 approved work unattended safe.
 
-**Why this rather than another AI development process.** Spec-driven workflows for agents usually stop at
-the documents: nothing outside the agent checks them, the session that wrote the plan judges it, approval
-is a reply in chat, and the merge never learns any of it happened. ai-sdlc assumes the agent will talk its
-way past any instruction, so the gate is this program rather than a prompt, the reader is never the
-writer, a blocking finding cannot be waived, the files that record a person's decisions cannot be written
+**Why this rather than another AI development process.** Spec-driven workflows for agents usually stop
+short of enforcement: even where a fresh reviewer reads the documents, a finding cites no rule and can be
+dismissed, approval records nothing about what was approved, and the merge never learns any of it happened.
+ai-sdlc assumes the agent will talk its way past any instruction, so the gate is this program rather than a
+prompt, every finding cites a rule by id and a blocking one cannot be waived, an approval is void the moment
+a document it covers changes, the files that record a person's decisions cannot be written
 by the agent, and the guarantee is a pull-request check the agent cannot reach. One binary serves Claude
 Code, GitHub Copilot and Antigravity, so the same check governs the merge whichever agent wrote the code.
 
