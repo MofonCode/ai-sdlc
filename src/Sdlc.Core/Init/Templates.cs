@@ -748,7 +748,7 @@ public static class Templates
                 "  verify:",
                 "    runs-on: ubuntu-latest",
                 "    steps:",
-                "      - uses: actions/checkout@v4",
+                "      - uses: actions/checkout@v5",
                 "        with:",
                 "          fetch-depth: 0",
                 string.Empty,
@@ -791,7 +791,7 @@ public static class Templates
                 string.Empty,
                 "      # The runner's own output, kept with the run rather than committed: a cycle commits the",
                 "      # summary verify reads, and the raw results are this run's artifact.",
-                "      - uses: actions/upload-artifact@v4",
+                "      - uses: actions/upload-artifact@v6",
                 "        if: always() && steps.carries.outputs.admission != 'true'",
                 "        with:",
                 "          name: test-results",
@@ -974,11 +974,11 @@ public static class Templates
     /// <returns>The lines.</returns>
     internal static IEnumerable<string> SelectSdkGitHub(string indent)
     {
-        yield return indent + "- uses: actions/setup-dotnet@v4";
+        yield return indent + "- uses: actions/setup-dotnet@v5";
         yield return indent + "  if: hashFiles('global.json') != ''";
         yield return indent + "  with:";
         yield return indent + "    global-json-file: global.json";
-        yield return indent + "- uses: actions/setup-dotnet@v4";
+        yield return indent + "- uses: actions/setup-dotnet@v5";
         yield return indent + "  if: hashFiles('global.json') == ''";
         yield return indent + "  with:";
         yield return indent + "    dotnet-version: " + UnpinnedSdk;

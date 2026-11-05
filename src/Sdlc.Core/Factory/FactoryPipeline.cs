@@ -75,7 +75,7 @@ public static class FactoryPipeline
                 "    # and leaves the gate's progress rule as it is.",
                 "    timeout-minutes: 360",
                 "    steps:",
-                "      - uses: actions/checkout@v4",
+                "      - uses: actions/checkout@v5",
                 "        with:",
                 $"          ref: {integrationBranch}",
                 "          fetch-depth: 0",
