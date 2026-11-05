@@ -1,6 +1,6 @@
 # ai-sdlc
 
-**Version 0.36.0** · iteration 4 · .NET 10 · MIT
+**Version 0.36.1** · iteration 4 · .NET 10 · MIT
 
 **A plugin that makes an AI coding agent work the way a careful team does** — write down what the change
 is for, agree what *done* means, plan it, have a person approve it, and only then write code.
@@ -125,7 +125,7 @@ sdlc constraints
 ```
 
 It should print the nineteen global constraints in force and say it read them from
-`global  embedded in sdlc 0.36.0`. **Use this rather than `sdlc help` as the smoke test** — `help` and
+`global  embedded in sdlc 0.36.1`. **Use this rather than `sdlc help` as the smoke test** — `help` and
 `version` are the only commands that need nothing from the installation, so they are the two that cannot
 tell you whether it worked. Then `claude plugin details sdlc@ai-sdlc` should say `Skills (18)` and
 `Hooks (3)`: **a hook count below three is a failed install**, not a detail, because the deterministic layer
@@ -387,7 +387,8 @@ What is honest to say about the rest:
   binary in `.config/dotnet-tools.json`, and the global `sdlc` hands every command on to that release. The
   release carries its own skills and hooks, and `sdlc claude` starts a session with them; plain `claude`
   loads the installed plugin, and a session-start hook says when that is another release (D-131).
-  `.github/workflows/release.yml` publishes to nuget.org; `0.36.0-preview.2` is there, and no release is.
+  `.github/workflows/release.yml` publishes to nuget.org; previews are there, one per patch from
+  `0.36.1-preview` on, and no release is.
 
 ## Not goals
 

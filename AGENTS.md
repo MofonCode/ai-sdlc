@@ -133,9 +133,10 @@ or a manifest that disagrees with the props, builds, tests, packs, checks the pa
 version it will be published as, and waits for a reviewer on the `nuget` environment before it pushes.
 
 **A preview is a push.** Any other branch whose push changes what ships publishes
-`<VersionPrefix>-preview.<run>` through the `nuget-preview` environment, which has no reviewer, and tags the
+`<VersionPrefix>-preview` through the `nuget-preview` environment, which has no reviewer, and tags the
 commit `v<that version>`. A nuget.org version can be unlisted and never deleted, so a push that touches only
-documents makes none.
+documents makes none. **There is one preview per version**: the next one is the next patch, moved in the props
+and both manifests together, and a push that ships a change without moving it is refused.
 
 **No key is stored.** The publish job trades a GitHub OIDC token for a nuget.org key that lives an hour,
 against a trusted publishing policy on nuget.org. Setting it up is a person's, once:

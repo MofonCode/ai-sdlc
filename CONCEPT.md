@@ -7233,8 +7233,10 @@ solution that pins nothing stops and says to run `init`.
 
 The binary is published to nuget.org by `.github/workflows/release.yml`, using trusted publishing:
 - A `v<release>` tag publishes that release once a person approves it.
-- A push to any other branch that changes what ships publishes `<release>-preview.<run>` and tags the commit
-  with the same name.
+- A push to any other branch that changes what ships publishes `<release>-preview` and tags the commit
+  with the same name. A preview carries no counter, so a version has one, and the next is the next patch; a
+  push that ships a change without moving the patch is refused rather than skipped. A run number was the
+  first answer, and it gave a pin a name that said nothing about what it held.
 
 Either way, every published binary has a git tag naming the commit it was built from.
 

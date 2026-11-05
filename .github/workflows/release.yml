@@ -2,8 +2,11 @@
 # same release (D-131). Two ways in:
 #
 #   a tag v<VersionPrefix> pushed by a person  -> that release, after a reviewer approves the 'nuget' environment
-#   a push to any branch but master            -> <VersionPrefix>-preview.<run>, through 'nuget-preview', and the
+#   a push to any branch but master            -> <VersionPrefix>-preview, through 'nuget-preview', and the
 #                                                 commit is tagged v<that version>
+#
+# A preview carries no counter, so each version has one. The next preview is the next patch, moved in the props
+# and both manifests together; a push that ships a change without moving it is refused.
 #
 # Only pushes that change what ships make a preview: the binary, the skills, the hooks and the manifests. A
 # version on nuget.org can be unlisted but never deleted, so a preview per documentation commit would be
@@ -36,8 +39,8 @@ on:
 permissions:
   contents: read
 
-# One release at a time per ref. A second push to a branch makes the first preview irrelevant, but a preview
-# half pushed is not worth cancelling: nuget.org has no rollback, so it finishes.
+# One release at a time per ref. A preview half pushed is not worth cancelling: nuget.org has no rollback, so it
+# finishes, and a second push of the same version is then refused by the check below.
 concurrency:
   group: release-${{ github.ref }}
   cancel-in-progress: false
@@ -79,8 +82,19 @@ jobs:
             esac
             preview=false
           else
-            version="$prefix-preview.$GITHUB_RUN_NUMBER"
+            # One preview per version, named like a release: a new preview is a new patch. A version nuget.org
+            # already has, or a tag already naming it, is refused here rather than skipped at the push, so a change
+            # that forgot the bump fails where somebody looks instead of publishing nothing. The tag is asked for
+            # too because it is immediate, and nuget.org's index takes minutes to list a fresh version.
+            version="$prefix-preview"
             preview=true
+            id="$(echo "$version" | tr '[:upper:]' '[:lower:]')"
+            published="$(curl -fsS https://api.nuget.org/v3-flatcontainer/mofoncode.sdlc.cli/index.json | grep -c "\"$id\"" || true)"
+            tagged="$(git ls-remote --tags origin "refs/tags/v$version" | wc -l)"
+            if [ "$published" != "0" ] || [ "$tagged" != "0" ]; then
+              echo "::error::$version is already published. A preview is one per version: move the patch in Directory.Build.props and both plugin manifests together, then push."
+              exit 1
+            fi
           fi
           echo "version=$version" >> "$GITHUB_OUTPUT"
           echo "preview=$preview" >> "$GITHUB_OUTPUT"
