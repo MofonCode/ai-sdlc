@@ -137,7 +137,9 @@ when a usage limit hits, end the session and start fresh rather than continuing.
 
 Reads `intent.md` and nothing else — not the conversation, not the request that started the cycle, not
 the codebase. Every criterion has to be able to fail, and its check has to be one this solution's testing
-layers can actually run.
+layers can actually run. A criterion that holds over several cases — failures, inputs, roles, devices —
+lists them beneath it under `Cases:`, and that list is all it covers from then on: read it before you
+approve, because a case left off it is one no later stage will hold the build to (D-132).
 
 ```
 /sdlc:plan 20260929_1456_32

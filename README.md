@@ -124,7 +124,7 @@ claude plugin install sdlc@ai-sdlc
 sdlc constraints
 ```
 
-It should print the eighteen global constraints in force and say it read them from
+It should print the nineteen global constraints in force and say it read them from
 `global  embedded in sdlc 0.36.0`. **Use this rather than `sdlc help` as the smoke test** — `help` and
 `version` are the only commands that need nothing from the installation, so they are the two that cannot
 tell you whether it worked. Then `claude plugin details sdlc@ai-sdlc` should say `Skills (18)` and
@@ -224,7 +224,7 @@ travels with your code.
 | | |
 |---|---|
 | [`CONCEPT.md`](CONCEPT.md) | the design, and every decision behind it with what each one rejected |
-| [`CONSTRAINTS.md`](CONSTRAINTS.md) | the eighteen global constraints, each with what it forbids and why |
+| [`CONSTRAINTS.md`](CONSTRAINTS.md) | the nineteen global constraints, each with what it forbids and why |
 | [`AGENTS.md`](AGENTS.md) | how to work in this repository, written for an agent — and the repository map |
 | [`src/README.md`](src/README.md) | what `Sdlc.Core` and `Sdlc.Cli` are, and where a new thing goes |
 | [`tools/README.md`](tools/README.md) | the tools that check what the test suite cannot, and the one that measures what sessions cost |
@@ -370,7 +370,7 @@ What is honest to say about the rest:
   prompt` writes every reader's prompt and `sdlc round collect` drafts the round from their answers
   (D-117); each reader starts with no tools, no MCP servers and no session file (D-118). Each prompt was
   generated against a real MarketSense cycle and the launch line measured on Windows PowerShell and Git
-  Bash, but no reader has judged from them in a cycle. `CON_03`, `CON_21`, `CON_22` and `CON_16` are
+  Bash, but no reader has judged from them in a cycle. `CON_03`, `CON_21`, `CON_22`, `CON_23` and `CON_16` are
   answered a row per criterion or outcome (D-119), which is meant to bring a plan's rounds down and has
   not been measured doing so. `findings/usage.json` records what each round's readers cost (D-121), and
   `tools/Sdlc.UsageReport` reads whole sessions; which readers run on which rounds, and on which model,
@@ -379,8 +379,9 @@ What is honest to say about the rest:
   test never reaches rather than what a reader can imagine (`CON_21` and `CON_22` supersede `CON_06` and
   `CON_08`, D-127); a suggestion may only sharpen an outcome (D-128); a plan probes the platform
   behaviour it rests on (D-129), proves in a table, and a verify is rewritten in place (D-130); each
-  round records the release that wrote it (D-131). They were drawn from one MarketSense cycle of 88
-  rounds and six reopens, and the claim that they shorten a cycle is untested. D-128's and D-129's shape
+  round records the release that wrote it (D-131); a criterion lists the cases it covers, so a case nobody
+  listed is a suggestion at every later stage (`CON_23`, D-132). They were drawn from one MarketSense cycle of 88
+  rounds and six reopens, and the claim that they shorten a cycle is untested. D-128's, D-129's and D-132's shape
   rules hold only cycles opened under them.
 - **A cycle runs on the release it opened on, and only a preview has been published.** A solution pins the
   binary in `.config/dotnet-tools.json`, and the global `sdlc` hands every command on to that release. The

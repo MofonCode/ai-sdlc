@@ -255,8 +255,9 @@ blockers (D-127). Close the cases the criterion states and the outcome it names.
 - A test that asserts a call was made proves the call, not its effect.
 - A test over 100 rows says nothing about 50,000.
 
-**Write the proof as a table: one row for each case a criterion states** (D-130). A case is one of the
-things the criterion lists — an engine, a device profile, a kind of visit, a failure path. The row names
+**Write the proof as a table: one row for each case a criterion states** (D-130). The cases are the ones
+the spec lists beneath the criterion under `Cases:`, in the spec's words; a criterion with no list has the
+one case its sentence states (D-132). The row names
 the test in backticks and says in one line what it asserts; how the test is written is the build's.
 
 ```markdown
@@ -271,7 +272,9 @@ the test in backticks and says in one line what it asserts; how the test is writ
 **The table is the closed list the readers judge.** They check the rows that are there — does each run its
 case, read its outcome, and could it fail — rather than discovering cells nobody wrote down, which is how
 one plan found a new missing case in every one of 44 rounds. A criterion that lists cases gets a row for
-every one; one that lists none gets one row. Keep prose to `Shape and departures` and `Risk`: a proof
+every one; one that lists none gets one row. **A case the spec does not list is not yours to prove.** If
+you think the criterion should cover one, that is a change to the spec, which is `/sdlc:steer`, or a
+successor — not a row. Keep prose to `Shape and departures` and `Risk`: a proof
 written as a paragraph is a test script argued over before the code exists, and it is what the build
 drifts from.
 

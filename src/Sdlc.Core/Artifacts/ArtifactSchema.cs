@@ -138,7 +138,8 @@ public static partial class ArtifactSchema
     /// <param name="newerRules">
     /// Whether the document is held to the shape rules added once rounds recorded their release: an intent
     /// takes a suggestion in only beneath the outcome it sharpens (D-128), and a plan says which platform
-    /// assumptions it proved (D-129). False for a cycle opened before them, which
+    /// assumptions it proved (D-129), and a spec's <c>Cases:</c> list is one (D-132). False for a cycle opened
+    /// before them, which
     /// <see cref="Findings.NewerRules"/> decides.
     /// </param>
     /// <returns>What is wrong with its shape, which may be nothing.</returns>
@@ -174,6 +175,7 @@ public static partial class ArtifactSchema
         {
             CheckTakenIn(kind, markdown, violations);
             CheckAssumptions(kind, markdown, violations);
+            CheckCases(kind, markdown, violations);
         }
 
         return new ArtifactValidation(kind, violations);
@@ -278,6 +280,95 @@ public static partial class ArtifactSchema
                 "is empty. Say 'none' when the shape rests on no behaviour nobody in the cycle has observed (D-129)."));
         }
     }
+
+    /// <summary>
+    /// Refuses a spec whose <c>Cases:</c> list is not one.
+    /// </summary>
+    /// <remarks>
+    /// A criterion that ranges over cases lists them, and the list closes it: a case not on it is not part of
+    /// the criterion at any later stage (D-132). Whether a criterion ranges over cases is `CON_23`'s, and a
+    /// judgement. That a list, once begun, holds a case per line is something a schema can say, and a list
+    /// with nothing in it, or cases run together on the marker's own line, is one the plan's table cannot
+    /// give a row each.
+    /// </remarks>
+    /// <param name="kind">Which artifact this is.</param>
+    /// <param name="markdown">The file's contents.</param>
+    /// <param name="violations">The list to add to.</param>
+    private static void CheckCases(
+        ArtifactKind kind,
+        string markdown,
+        List<SchemaViolation> violations)
+    {
+        if (kind != ArtifactKind.Spec
+            || !ArtifactSections.Read(markdown).TryGetValue("Acceptance criteria", out IReadOnlyList<string>? lines))
+        {
+            return;
+        }
+
+        int criterion = 0;
+        int? open = null;
+        int cases = 0;
+
+        void Close()
+        {
+            if (open is int number && cases == 0)
+            {
+                violations.Add(new SchemaViolation(
+                    "Acceptance criteria",
+                    string.Create(
+                        CultureInfo.InvariantCulture,
+                        $"criterion {number} opens a Cases: list with no case in it. List each case as a bullet beneath it, or remove the marker if the criterion has one case (D-132).")));
+            }
+
+            open = null;
+            cases = 0;
+        }
+
+        foreach (string line in lines)
+        {
+            Match numbered = CriterionItem().Match(line);
+
+            if (numbered.Success)
+            {
+                Close();
+                criterion = int.Parse(numbered.Groups["number"].Value, CultureInfo.InvariantCulture);
+                continue;
+            }
+
+            Match marker = CasesMarker().Match(line);
+
+            if (marker.Success)
+            {
+                Close();
+                open = criterion;
+
+                if (marker.Groups["rest"].Value.Trim().Length > 0)
+                {
+                    violations.Add(new SchemaViolation(
+                        "Acceptance criteria",
+                        string.Create(
+                            CultureInfo.InvariantCulture,
+                            $"criterion {criterion} runs its cases together on the Cases: line. Put each on a bullet of its own beneath it, so the plan can give each a row (D-132).")));
+                    cases = 1;
+                }
+
+                continue;
+            }
+
+            if (open is not null && SubItem().IsMatch(line))
+            {
+                cases++;
+            }
+        }
+
+        Close();
+    }
+
+    [GeneratedRegex(@"^(?<number>[0-9]+)\.\s", RegexOptions.CultureInvariant)]
+    private static partial Regex CriterionItem();
+
+    [GeneratedRegex(@"^\s*Cases:(?<rest>.*)$", RegexOptions.CultureInvariant | RegexOptions.IgnoreCase)]
+    private static partial Regex CasesMarker();
 
     [GeneratedRegex(@"^[-*]\s", RegexOptions.CultureInvariant)]
     private static partial Regex TopLevelItem();

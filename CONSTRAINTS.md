@@ -395,3 +395,20 @@ outcome, and objecting to it is how verify once spent rounds on its own sentence
 suggestions.
 
 **Judged:** per criterion.
+
+## CON_23 — A criterion that ranges over cases lists them
+
+**Applies to:** a spec, at approval, and any criterion added later.
+
+**Forbids:** a criterion whose outcome holds over more than one case — failures, kinds of input,
+roles, starting states, devices, engines — that does not list those cases beneath it under `Cases:`.
+
+**Why:** a criterion that does not say which cases it covers is finished by whoever reads it, and each
+fresh reader finishes it differently. "The user is told when it fails" names no failures, so the plan's
+reader blocks a proof for a failure it never tries and the next round's reader thinks of another; the
+document never says where the list ends. Listed, the cases close the criterion: a listed case left
+unmet is wrong at every later stage, and a case nobody listed is a suggestion there. Whether the list
+leaves out a case the intent asked for is `CON_16`'s, judged here once, where the intent bounds it
+and the person approving the spec sees the list (D-132).
+
+**Judged:** per criterion.

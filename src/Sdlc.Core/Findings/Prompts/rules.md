@@ -37,6 +37,13 @@ A finding is `blocking` when the rule it cites forbids what the document does. I
 would improve the document and no rule forbids the current state. A blocking finding must cite exactly one
 rule. A suggestion may cite none.
 
+**A criterion's cases are the ones the spec lists.** A criterion that holds over several cases lists them
+beneath it under `Cases:`, and the list is the whole of what that criterion covers. Judge every rule that
+holds over cases -- a case a proof runs, a claim a verdict relies on, every failure, every input, every
+starting state -- against the listed cases: a listed case left unmet is a finding, and a case the list does
+not name is a suggestion. Whether the list leaves a case out is judged on a spec alone, and is a gap only
+where the intent's own words name that case. A criterion with no list has the one case its sentence states.
+
 The document's `## Open` section is not judged. It is where the document records what it deliberately does
 not assert, and recording something there is a legitimate answer to a rule rather than a breach of it. What
 *is* judged about it is whether each entry is genuinely unsettleable -- see the rule about open items.

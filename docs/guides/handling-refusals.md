@@ -709,4 +709,4 @@ clears the default sources, which hides nuget.org.
 | what this solution is built from, and how to change it | `declaring-the-stack.md` |
 | what each skill is and who starts it | `../../skills/README.md` |
 | installing, updating, removing | `installing-the-plugin.md` |
-| the eighteen global constraints, each with what it forbids | `../../CONSTRAINTS.md` |
+| the nineteen global constraints, each with what it forbids | `../../CONSTRAINTS.md` |

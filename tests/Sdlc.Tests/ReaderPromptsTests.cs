@@ -145,6 +145,28 @@ public sealed class ReaderPromptsTests
     }
 
     [TestMethod]
+    public async Task Every_reader_judges_a_criterion_by_the_cases_the_spec_lists_and_not_by_the_ones_it_thinks_of()
+    {
+        // D-132. A criterion that did not say which cases it covered was finished by each reader differently,
+        // and each fresh reader thought of another. The list closes it, for every rule that ranges over cases,
+        // including a solution's own.
+        using var workspace = CycleWorkspace.Create();
+        workspace.WriteSpec(criteria: 1);
+        workspace.WritePlan(proofs: 1);
+        workspace.WriteTestSummary(proofs: 1);
+        workspace.WriteVerify("pass");
+        CycleWorkspace.WriteRaw(Path.Combine(workspace.Cycle.EvidenceDirectory, "diff.patch"), "+Assert.AreEqual(1, roll);\n");
+        string directory = Path.Combine(workspace.Root, "round");
+
+        string rules = await File.ReadAllTextAsync((await Prompt(workspace, ArtifactKind.Plan, directory, "rules")).Value.Prompts[0].Path);
+        string adjudicate = await File.ReadAllTextAsync((await Prompt(workspace, ArtifactKind.Verify, Path.Combine(workspace.Root, "verify-round"), "adjudicate")).Value.Prompts[0].Path);
+
+        StringAssert.Contains(rules, "A criterion's cases are the ones the spec lists.");
+        StringAssert.Contains(rules, "a case the list does\nnot name is a suggestion");
+        StringAssert.Contains(adjudicate, "a case the spec never listed, is not a reason to withhold Met");
+    }
+
+    [TestMethod]
     public async Task The_adjudicator_is_composed_for_a_verify_alone_and_is_not_handed_a_verdict_to_judge()
     {
         using var workspace = CycleWorkspace.Create();

@@ -319,6 +319,49 @@ public sealed class ArtifactSchemaTests
         Assert.IsTrue(accepted.IsValid, Describe(accepted));
     }
 
+    [TestMethod]
+    public void A_cases_list_holds_a_case_per_bullet_and_a_criterion_with_one_case_needs_none()
+    {
+        // D-132. The list closes a criterion, and the plan's table gives each case a row, so a list must be
+        // one: not empty, and not the cases run together on the marker's line.
+        static string Criteria(string body) => WellFormed(ArtifactKind.Spec).Replace(
+            "## Acceptance criteria\n\nSomething said here.",
+            "## Acceptance criteria\n\n" + body,
+            StringComparison.Ordinal);
+
+        ArtifactValidation listed = Validate(ArtifactKind.Spec, Criteria(
+            "1. A rate-limited user who submits is told when they may retry, checked by an integration test.\n"
+            + "   Cases:\n   - over the per-minute limit\n   - over the daily limit\n"
+            + "2. The picker shows on a first visit, checked by a browser test."));
+        Assert.IsTrue(listed.IsValid, Describe(listed));
+
+        ArtifactValidation empty = Validate(ArtifactKind.Spec, Criteria(
+            "1. The picker shows on a first visit, checked by a browser test.\n"
+            + "2. A rate-limited user is told when they may retry, checked by an integration test.\n   Cases:\n"
+            + "3. Nothing else."));
+        Assert.AreEqual(1, empty.Violations.Count, Describe(empty));
+        StringAssert.Contains(empty.Violations[0].Problem, "criterion 2");
+        StringAssert.Contains(empty.Violations[0].Problem, "no case");
+
+        ArtifactValidation together = Validate(ArtifactKind.Spec, Criteria(
+            "1. A rate-limited user is told when they may retry, checked by an integration test.\n"
+            + "   Cases: per-minute limit, daily limit"));
+        Assert.AreEqual(1, together.Violations.Count, Describe(together));
+        StringAssert.Contains(together.Violations[0].Problem, "bullet of its own");
+    }
+
+    [TestMethod]
+    public void A_spec_from_a_cycle_opened_before_cases_were_listed_is_not_held_to_the_list()
+    {
+        string empty = WellFormed(ArtifactKind.Spec).Replace(
+            "## Acceptance criteria\n\nSomething said here.",
+            "## Acceptance criteria\n\n1. A rate-limited user is told when they may retry.\n   Cases:\n",
+            StringComparison.Ordinal);
+
+        Assert.IsTrue(CycleId.TryParse(Id, out CycleId? cycle));
+        Assert.IsTrue(ArtifactSchema.Validate(ArtifactKind.Spec, empty, cycle.Value, newerRules: false).IsValid);
+    }
+
     // Driven off the list rather than written out, so a file added to it is refused in a plan without
     // anybody remembering this test -- the written-out rows had already missed decisions.md.
     public static IEnumerable<object[]> ProtectedNames =>

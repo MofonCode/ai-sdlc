@@ -45,7 +45,7 @@ public sealed class JudgedPerTests
     }
 
     [TestMethod]
-    public void The_library_judges_the_four_rules_that_kept_finding_one_instance_a_round_item_by_item()
+    public void The_library_judges_the_five_rules_that_kept_finding_one_instance_a_round_item_by_item()
     {
         var judged = ConstraintParser.Parse(File.ReadAllText(RepoPaths.Library), RepoPaths.Library).Value
             .Where(rule => rule.IsInForce)
@@ -54,8 +54,9 @@ public sealed class JudgedPerTests
         Assert.AreEqual(JudgedPer.Criterion, judged[3]);
         Assert.AreEqual(JudgedPer.Criterion, judged[21]);
         Assert.AreEqual(JudgedPer.Criterion, judged[22]);
+        Assert.AreEqual(JudgedPer.Criterion, judged[23], "A criterion's cases are listed or not, one criterion at a time (D-132).");
         Assert.AreEqual(JudgedPer.Outcome, judged[16]);
-        Assert.AreEqual(4, judged.Values.Count(value => value is not null), "A fifth is a decision, not an edit.");
+        Assert.AreEqual(5, judged.Values.Count(value => value is not null), "A sixth is a decision, not an edit.");
     }
 
     [TestMethod]

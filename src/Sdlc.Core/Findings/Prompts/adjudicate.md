@@ -54,8 +54,9 @@ criterion in turn:
    write Met. A test that asserts a value was handed to a library, where the criterion is about what the
    person saw; a keyboard test that moves focus with `FocusAsync` instead of a key; a failure test that
    checks one of the four failure paths the criterion names. If the test misses a case the criterion
-   states or never reads its outcome, the criterion is **not met**. A defect you can only imagine the
-   test missing is not a reason to withhold Met (D-127).
+   states or never reads its outcome, the criterion is **not met**. The cases a criterion states are the ones
+   the spec lists under `Cases:`, or the one its sentence states when it lists none. A defect you can only
+   imagine the test missing, or a case the spec never listed, is not a reason to withhold Met (D-127, D-132).
 
 Question three is where judgement lives, and where you may disagree with the plan. A test that ran and
 passed but does not reach its criterion is **not met** — say so, cite the test and the diff lines, and

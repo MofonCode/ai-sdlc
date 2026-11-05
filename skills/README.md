@@ -330,7 +330,9 @@ Derives testable acceptance criteria from a clean intent, producing the spec of 
 #### Output
 
 `spec.md`: numbered acceptance criteria, `Out of scope` with reasons, and `## Open`. Every criterion's
-check has to be one this solution's testing layers can actually run (`CON_12`). Every intent `## Open`
+check has to be one this solution's testing layers can actually run (`CON_12`). A criterion that holds over
+several cases lists them under `Cases:`, and the list is all it covers at every later stage (`CON_23`,
+D-132). Every intent `## Open`
 entry ends in exactly one of three places — a criterion, `Out of scope` with a reason, or the spec's own
 `## Open` citing the intent item.
 

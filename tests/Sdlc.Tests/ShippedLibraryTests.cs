@@ -128,7 +128,7 @@ public sealed class ShippedLibraryTests
     public void The_library_holds_the_entries_iteration_four_carries()
     {
         Assert.AreEqual(
-            22,
+            23,
             Library.Count,
             "Nine came across from iteration 3 unchanged, CON_10 was rebound to a gate refusal, and "
             + "CON_12, CON_13 and CON_14 were added in iteration 4. Two supersessions followed, each "
@@ -138,10 +138,11 @@ public sealed class ShippedLibraryTests
             + "asks the same of a plan departing from a recorded decision. CON_20 asks a spec what a "
             + "failure leaves for whoever investigates it, beside CON_17's what the person is told. CON_21 "
             + "and CON_22 then superseded CON_06 and CON_08, narrowing both proof rules to what is wrong "
-            + "rather than what a reader can imagine fooled (D-127). A deliberate addition updates this number; an accident fails here.");
+            + "rather than what a reader can imagine fooled (D-127). CON_23 asks a criterion that ranges over cases "
+            + "to list them, so the cases a proof is held to end somewhere (D-132). A deliberate addition updates this number; an accident fails here.");
 
         Assert.AreEqual(
-            18,
+            19,
             Library.Count(rule => rule.IsInForce),
             "The number of rules that bind is the readme's claim and what 'sdlc constraints' prints. A "
             + "supersession replaces one rule with another and leaves this unchanged; only a genuine "

@@ -60,6 +60,12 @@ wrong, where, and the remedy. `sdlc findings <id>` prints each one where it stan
 | `blocking` | the document breaks the rule it cites. It stops the document advancing |
 | `suggestion` | something worth knowing that no rule forbids. It stops nothing — see the end of this guide |
 
+**A blocker is something wrong; an improvement is a suggestion.** A criterion that holds over several cases
+lists them under `Cases:`, and from then on the listed cases are what counts: a listed case a proof never
+runs, or a verify never shows, blocks; a case nobody listed is a suggestion, whatever rule a reader cites
+it under. Which cases belong on the list is decided once, at the spec, against the intent's own words, and
+you see the list when you approve (D-132).
+
 **The stage skills run this loop for you.** `/sdlc:intent`, `/sdlc:spec` and `/sdlc:plan` each write
 their document, interrogate it, refine it, and repeat until a round raises nothing blocking, then hand
 back. You meet a blocker directly when a loop hands back early, when you edit a document yourself, or

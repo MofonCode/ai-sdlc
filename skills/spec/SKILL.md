@@ -108,6 +108,30 @@ next member nobody checked: one real cycle spent two spec rounds and two plan ro
 script-driven animation, a canvas, and an observer too narrow to see either, all from the words "no
 animation", and converged only once the canvas went to `Out of scope`.
 
+## List the cases a criterion covers
+
+`CON_23`: **a criterion whose outcome holds over more than one case lists them**, beneath it under
+`Cases:`, one bullet each. A case is one value of what the outcome ranges over: a failure, a kind of
+input, a role, a starting state, a device, an engine.
+
+```markdown
+3. A rate-limited user who submits is told when they may retry, checked by an integration test.
+   Cases:
+   - over the per-minute limit
+   - over the daily limit
+```
+
+**The list closes the criterion** (D-132). A case not on it is not part of that criterion at plan or
+verify: a proof is held to the listed cases, and a reader who thinks of another has made a suggestion.
+Without the list, "the user is told when it fails" is finished by each reader with the failures they
+think of, and each fresh reader thinks of one more.
+
+**So the list is where the argument about cases happens, once, here.** Take each case from the intent's
+own words. A case the intent names and the list leaves out is a gap under `CON_16`, unless it is in `Out
+of scope` by name. A case the intent never names is not yours to add: that is creep under `CON_05`, and
+widening an outcome, which D-128 sends to a successor. A criterion with one case is its own sentence and
+needs no list.
+
 ## Write criteria that can fail
 
 `CON_03` forbids a criterion that cannot fail. The test: **can you describe, concretely, a run of the
@@ -185,7 +209,11 @@ cycle: <id>
 ## Acceptance criteria
 
 1. <the observable outcome>, checked by <how>.
-2. ...
+2. <an outcome that holds over several cases>, checked by <how>.
+   Cases:
+   - <one case, in the intent's words>
+   - <another>
+3. ...
 
 ## Out of scope
 

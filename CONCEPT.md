@@ -299,7 +299,7 @@ separating "the part that is judged".
 | | `Fixed decisions` | `CON_01` routes decisions-already-taken here; `plan` cites them; `steer` writes here |
 | | `Must not change` | `CON_16`, which names it |
 | | `type` | the change classification; later artifacts read it |
-| `spec` | `Acceptance criteria` | `CON_03`, `CON_05`, `CON_12`, `CON_16`, `CON_17`, `CON_20`, `CON_21`, and `verify` |
+| `spec` | `Acceptance criteria` | `CON_03`, `CON_05`, `CON_12`, `CON_16`, `CON_17`, `CON_20`, `CON_23`, `CON_21`, and `verify`; a criterion that ranges over cases lists them under `Cases:` (D-132) |
 | | `Out of scope` | `CON_05`, `CON_16`; a disposal destination (§5.4) |
 | `plan` | `Shape and departures` | `CON_15`, `CON_18`, `CON_19` |
 | | `Assumptions proven` | the person at the gate: each platform behaviour the shape rests on, what a probe showed and its commit, or `None.` (D-129) |
@@ -313,7 +313,9 @@ separating "the part that is judged".
 A section exists because something reads it: a constraint, a mechanical check, a downstream skill, or
 a person at the gate (D-06).
 
-**A plan's `Proof` is a table, one row per case its criterion states** — criterion, case, test, and what
+**A criterion that ranges over cases lists them**, and the list closes it: a case not listed is not part of
+that criterion at any later stage, and a reader who thinks of one has made a suggestion (D-132). **A plan's
+`Proof` is a table, one row per case its criterion states** — criterion, case, test, and what
 the test asserts in one line — so its readers judge the rows that are there rather than discover the ones
 that are not; prose belongs in `Shape and departures` and `Risk`. **A verify is rewritten in place**: from
 the second adjudication on, the fresh adjudicator starts from the verdict before it and changes only the
@@ -1012,6 +1014,7 @@ nobody.
 | `CON_20` | a spec says what is recorded when the action fails | spec |
 | `CON_21` | a plan's proof reaches the criterion it claims to prove | plan |
 | `CON_22` | a verify claim the verdict relies on rests on evidence that shows it | verify |
+| `CON_23` | a criterion that ranges over cases lists them | spec |
 
 **Four ids are absent because they no longer bind**, and each is explained once below.
 
@@ -1056,7 +1059,8 @@ Four constraints, one per artifact, each naming what becomes illegal in that pla
 | plan | `CON_21` | a proof that never runs a stated case, asserts the wrong outcome, or cannot fail on a named defect |
 | verify | `CON_22` | a claim the verdict relies on with no evidence, or evidence showing something else |
 
-Each forbids what is wrong, never what a reader can imagine going wrong (D-127).
+Each forbids what is wrong, never what a reader can imagine going wrong (D-127). What a criterion covers is
+the cases it lists (`CON_23`), so "wrong" at plan and verify means a listed case unmet (D-132).
 
 ### 7.7 What blocks, and what is only a signal
 
@@ -7148,6 +7152,67 @@ its refusal still apply.
 - *Keeping `sdlc <stage>` everywhere.* Correct and host-neutral, and costs a refusal each time.
 - *Guessing a marker for Copilot or Antigravity.* Neither documents one; a guessed marker is a panel that
   names one host's invocation to someone using another.
+
+### D-132 — A criterion lists the cases it covers, and a case it does not list is not a gap
+
+**Governs:** §4.2, §6.4, §7.5, §7.7
+
+**Completes D-127 and D-130. Uses D-128.** D-127 made "wrong" the bar for a proof, and D-130's table has one
+row per case a criterion states. Neither says where a criterion's cases end, so "wrong" still had no edge.
+
+**Decision.**
+
+- **A criterion whose outcome ranges over cases lists them,** as sub-bullets beneath it under `Cases:`. A case
+  is one value of what the outcome ranges over: a failure, a kind of input, a role, a starting state, a device,
+  an engine. A criterion with one case is its own sentence and needs no list.
+
+  ```
+  3. A rate-limited user who submits is told when they may retry, checked by an integration test.
+     Cases:
+     - over the per-minute limit
+     - over the daily limit
+  ```
+
+- **The list closes the criterion.** A case not on it is not part of that criterion, at any stage after the spec.
+  - *Plan:* `CON_21`'s "a case its criterion states" means a case on the list. A proof that never runs a listed
+    case is wrong, and blocks. A case nobody listed is not the proof's to cover.
+  - *Verify:* `CON_22` is judged the same way, against the listed cases.
+  - *Any rule that ranges over cases,* the framework's or a solution's own, such as "every failure a user can
+    meet", is judged against the cases the spec lists. A reader who thinks of another case has made a
+    suggestion.
+- **Where the list is argued is the spec, and what bounds it is the intent.** A new rule, `CON_23`, forbids
+  a criterion whose outcome ranges over cases without listing them. `CON_16` is unchanged and now reads
+  against the list: a case the intent's words name and the list leaves out is a gap, unless it is named in
+  `Out of scope`. A case the intent does not name is a suggestion, and taking one in widens an outcome,
+  which D-128 sends to a successor.
+- **The person approving the spec approves the list.** That is where the decision about which cases count
+  belongs, once, rather than with every fresh reader at every stage.
+- **The shape holds a cycle opened under it**, as D-128's does: one whose spec has no round yet, or whose
+  first round records the release that wrote it (D-131).
+
+**Why.** Several of the hosting cycle's (`20261027_2358_17`) blockers were a case the criterion never named.
+*Focus from only one starting place* is a starting state; *never checks the 429 has no body* is a response
+the criterion did not mention. A criterion that does not say which cases it covers lets each reader bring
+their own list, each fresh reader thinks of a case the last one had not, and nothing in the document says
+where the list ends. D-127 stopped one form of this at the plan, the proof a reader imagines fooled. The same open end remained in any rule that ranges over cases. MarketSense's own constraint on
+recorded failures is one: "every failure a user can meet" grows with whoever is reading. With the cases
+listed, "wrong" means a listed case is unmet, which a reader can point to, and "better" means a case not
+listed, which a reader can only propose.
+
+**Rejected.**
+
+- *An instruction to every reader to block only on what is wrong.* It names the line without drawing it.
+  Readers disagree about what is wrong exactly where a criterion is open, so the instruction would be
+  applied as unevenly as the rules it corrects.
+- *Rewriting each open-ended rule.* A solution's own rules are its person's to write, and a rule written
+  next year would reopen the gap.
+- *Given/when/then as a required form.* What matters is that the cases are closed, not the syntax. The spec
+  skill shows the form and requires only the list.
+- *A cap on cases.* A cut belongs to slicing (D-125), as D-128 found for outcomes.
+- *Judging the list's completeness mechanically.* Whether the intent names a case takes reading. The shape
+  check confirms only that a list is there.
+- *Letting a later stage add a case it finds missing.* That reopens the spec from below with every round,
+  which is the loop this closes. A missing case is a steer (§3.2) or a successor.
 
 ### D-131 — A cycle runs on the release it opened on
 
