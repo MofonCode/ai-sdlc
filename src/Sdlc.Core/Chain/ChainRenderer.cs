@@ -63,6 +63,11 @@ public static class ChainRenderer
         output.AppendLine(Indent + "  not the same as deleting this step, which accepts them everywhere and");
         output.AppendLine(Indent + "  leaves nothing saying so.");
         output.AppendLine();
+        output.AppendLine(Indent + "Moving to another sdlc release needs neither. A pull request that changes");
+        output.AppendLine(Indent + "only the pin, what 'sdlc init' then writes, and answers in the declared");
+        output.AppendLine(Indent + "stack to what the release asks is checked as an upgrade, given --base.");
+        output.AppendLine(Indent + "Anything else in it - one source file included - and it lands here.");
+        output.AppendLine();
 
         return output.ToString();
     }

@@ -126,6 +126,9 @@ public static class SdlcServices
         // The same check over every plan sliced together, admitted by one pull request (D-125).
         services.AddVerifySlicingRequestHandler();
 
+        // A change that moves the release and nothing else, reproduced rather than governed (D-133).
+        services.AddVerifyUpgradeRequestHandler();
+
         services.AddSuggestionsRequestHandler();
 
         // Reads the whole history rather than one cycle, and proposes rather than places: the only

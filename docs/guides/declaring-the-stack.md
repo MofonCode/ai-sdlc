@@ -320,6 +320,12 @@ never change what a plan is judged against. What happens instead is that the new
 `/sdlc:init` on a solution already governed does this with you, and reads the repository to say which
 ones apply — whether there is a user interface for the axe row to matter to, for instance.
 
+**The answers may ride with the upgrade, and need no cycle** (D-133). A pull request that moves the pin may
+also add rows to `techstack.md`, as long as each one answers something `sdlc stack` lists under *Not
+mentioned* and every line already there is kept as it was. Nothing in force moves that way: a new rule set
+`true` binds what was unbound, and a `false` or `none` declines what never bound. Changing an answer
+already given is a cycle's, because plans were judged against it.
+
 **The .NET profile's orchestration row asks for more than it did**, and there is a row for fake data
 (D-102). Orchestration now reads *Aspire, where there is more than one process, in a `local` and a `test`
 launch profile, its containers grouped by label* — the scaffold's architecture suite holds an AppHost to

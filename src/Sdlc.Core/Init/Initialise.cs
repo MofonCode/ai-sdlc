@@ -31,6 +31,27 @@ public static class Initialise
         return services.AddTransient<IRequestHandler<Command, Response>, Handler>();
     }
 
+    /// <summary>Where a platform's pull-request pipeline goes.</summary>
+    /// <remarks>
+    /// The GitHub path is framework-named on purpose. It was <c>pull-request.yml</c>, which is a
+    /// name a repository plausibly already uses, and adoption rewrote whatever was there -- so a
+    /// team's own pull-request workflow was replaced and committed, announced as "updated". A
+    /// framework-named file makes owning it honest, and takes the collision away rather than
+    /// handling it. Azure DevOps has no equivalent escape, because <c>azure-pipelines.yml</c> is
+    /// the path that platform looks for, so that one is printed on a collision instead. D-40.
+    /// </remarks>
+    /// <param name="platform">Which platform.</param>
+    /// <returns>The path, relative to the solution root.</returns>
+    public static string PipelinePath(Platform platform) => platform switch
+    {
+        Platform.GitHub => Path.Combine(".github", "workflows", "sdlc-verify.yml"),
+        Platform.AzureDevOps => "azure-pipelines.yml",
+
+        // Local has no pipeline and so has no path. Asking for one is a caller that has not read the
+        // platform, and returning a plausible path would have it write a file nothing runs.
+        _ => throw new ArgumentOutOfRangeException(nameof(platform)),
+    };
+
     /// <summary>How adoption is running.</summary>
     public enum InitMode
     {
@@ -438,26 +459,6 @@ public static class Initialise
         }
 
 
-        /// <summary>Where a platform's pull-request pipeline goes.</summary>
-        /// <remarks>
-        /// The GitHub path is framework-named on purpose. It was <c>pull-request.yml</c>, which is a
-        /// name a repository plausibly already uses, and adoption rewrote whatever was there -- so a
-        /// team's own pull-request workflow was replaced and committed, announced as "updated". A
-        /// framework-named file makes owning it honest, and takes the collision away rather than
-        /// handling it. Azure DevOps has no equivalent escape, because <c>azure-pipelines.yml</c> is
-        /// the path that platform looks for, so that one is printed on a collision instead. D-40.
-        /// </remarks>
-        /// <param name="platform">Which platform.</param>
-        /// <returns>The path, relative to the solution root.</returns>
-        public static string PipelinePath(Platform platform) => platform switch
-        {
-            Platform.GitHub => Path.Combine(".github", "workflows", "sdlc-verify.yml"),
-            Platform.AzureDevOps => "azure-pipelines.yml",
-
-            // Local has no pipeline and so has no path. Asking for one is a caller that has not read the
-            // platform, and returning a plausible path would have it write a file nothing runs.
-            _ => throw new ArgumentOutOfRangeException(nameof(platform)),
-        };
 
         private InitMode Mode(string sdlc) => Directory.Exists(sdlc)
             ? InitMode.Update

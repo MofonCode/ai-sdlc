@@ -190,7 +190,9 @@ dependency bump, a revert, a hotfix branch. It reports that there is no chain an
 because that is true and because the alternative would make the branch name the bypass. A team that
 wants a class of branch to merge anyway says so in branch policy by not requiring the check on it,
 which is a decision somebody can read; deleting the step is a different decision that reads as
-nothing.
+nothing. **The one change that needs no chain is moving to another release** (D-133): a pull request
+carrying only the pin, what adoption writes, and answers in the declared stack to what the release asks
+is checked by writing those files again and comparing, because nothing in it is a judgement.
 
 ### 3.2 Steering a cycle that is already underway
 
@@ -7152,6 +7154,74 @@ its refusal still apply.
 - *Keeping `sdlc <stage>` everywhere.* Correct and host-neutral, and costs a refusal each time.
 - *Guessing a marker for Copilot or Antigravity.* Neither documents one; a guessed marker is a panel that
   names one host's invocation to someone using another.
+
+### D-133 — A pull request that only moves the release is checked by reproducing it, and needs no cycle
+
+**Governs:** §3.1, §9, §13
+
+**Leaves D-45 as it is, and completes D-131.** D-45 refuses a pull request with no chain and will not let a
+branch name buy an exemption. D-131 made a bump two commands and one commit, which every governed solution
+still had to carry through a full cycle or a branch-policy exemption.
+
+**Decision.** `sdlc verify-chain <branch> --base <branch>`, on a branch that is no cycle's, checks the pull
+request as an **upgrade** when every path it changes is one of these:
+
+- the pin in `.config/dotnet-tools.json`
+- a file adoption owns in update mode: `.sdlc/README.md`, `.sdlc/.gitignore`, each host's hook configuration,
+  the pipeline
+- `.sdlc/techstack.md`
+
+One path outside that set and the pull request is refused for having no chain, as before. The upgrade check
+holds when:
+
+- **It runs as the release the branch pins.** The pipeline restores the pin first (D-131), so this is the
+  release whose adoption the files claim to be.
+- **Each framework file is exactly what that release's adoption writes from the base's copy,** line endings
+  aside. A file the framework owns outright is compared with its template. In a file shared with the team or
+  the host, the framework's entries are merged into the base's copy and compared, so a team's own key that was
+  already there is kept and one added in the upgrade is refused. The manifest is compared with the base's copy
+  with only the sdlc entry moved, so another tool bumped alongside is refused. On Azure DevOps,
+  `azure-pipelines.yml` must equal the template, because there the file may be the repository's own CI.
+- **The declared stack is only answered.** Every line it had is kept, in order. Each line added is a row this
+  release ships and the base's stack never mentions (D-93), answered once, or the heading and header of the
+  rules table it goes into.
+
+The pin may move forward, stay put (a refresh) or move back (a rollback), and the check says which. A pull
+request that only answers rows, with the pin unmoved, is the same check.
+
+**Why.** MarketSense moved through five releases in a week, and every move had the same choice: open a cycle
+whose intent, spec and plan argued about nothing, or exempt a branch pattern, which accepts every change made
+on a branch of that name. Neither is right for a change in which nothing is a judgement. Every file in an
+upgrade is either written by a tool or answers a question a tool asked, and both are decidable: the check can
+write the files again and compare them. That is the same ground D-87's admission check stands on. The diff
+decides, nothing advances on an assertion, and the branch name decides nothing.
+
+**Why the stack may only gain lines.** Nothing already in force moves. A rule set `true`, or a default
+declared, binds what was unbound. A `false` or `none` records a no to something that never bound. Changing an
+answer already given re-judges what plans were argued against, which is what a cycle is for. Limiting the new
+lines to what the release asks keeps this from becoming a way to declare new stack without a cycle: a concern
+the profile never asked about is a person's decision about the stack, not an answer to an upgrade.
+
+**What it costs.** Two pull requests where a team wanted one: an upgrade that also needs a code change, such
+as a template that now requires a file, lands as the upgrade and then a cycle. The upgrade is still built and
+tested by the pipeline, because the admission step prints `false` for it. A cycle in flight meets the new
+release and the new rows when it merges the integration branch, as D-131 already describes.
+
+**Rejected.**
+
+- *A branch name such as `upgrade/<release>` that passes.* D-45's objection: a name is a bypass, and anything
+  merges under it.
+- *Exempting the pattern in branch policy, as D-45 offers.* That accepts whatever is on such a branch, and an
+  upgrade is the one change whose content the binary can check in full.
+- *Comparing only the paths, not the contents.* That is a bypass shaped like the hook configuration: a
+  permission, a deleted pipeline step or a second tool's bump would ride through unread.
+- *Running `init` in the pipeline and failing on any change.* It writes drafts and reports, and the check must
+  not write to the checkout it judges. Computing what adoption writes, from the same templates and merges it
+  uses, gives the same answer without writing anything.
+- *Letting the stack change freely in an upgrade.* That would make the upgrade the way to change any answer
+  without a cycle.
+- *Including the solution's own dependency bumps.* A package bump changes how the code behaves, and nothing
+  can reproduce that. §3.1 and D-45 still send it through the chain.
 
 ### D-132 — A criterion lists the cases it covers, and a case it does not list is not a gap
 
