@@ -60,6 +60,7 @@ The two hooks return no exit code to you: they stop the agent's action, and the 
 | [the check runs as another release](../guides/handling-refusals.md#the-check-runs-as-another-release) | let the pipeline restore the pin first; `sdlc init` rewrites a pipeline that does not |
 | [a framework file adoption did not write](../guides/handling-refusals.md#a-framework-file-adoption-did-not-write) | move the team's own change to a cycle, or run `sdlc init` again as the pinned release |
 | [a pipeline step the release did not write](../guides/handling-refusals.md#a-pipeline-step-the-release-did-not-write) | put the framework's step back as the release writes it, and the team's own as the base had them; change a team's step in a cycle |
+| [a dependency file that changed more than versions](../guides/handling-refusals.md#a-dependency-file-that-changed-more-than-versions) | keep only the version moves; add or remove a package in a cycle |
 | [a stack line that answers nothing](../guides/handling-refusals.md#a-stack-line-that-answers-nothing) | keep only rows the release asks about; change any other line in a cycle |
 | **Recording evidence — `sdlc evidence`** | |
 | [no cycle, or no plan](../guides/handling-refusals.md#no-cycle-or-no-plan) | check the id; the cycle needs a `plan.md` |

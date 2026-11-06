@@ -164,7 +164,7 @@ back
 A stage will not run until the artifact before it has an interrogation round with no open blocking
 findings (§5.4).
 
-### 3.1 Every class of change runs the full chain
+### 3.1 Every change to what the solution does runs the full chain
 
 `intent` interviews the user and establishes whether this is a new solution, a feature addition, a
 feature change, or a bug fix. **Intent, spec and plan are all required, always.** The classification
@@ -190,9 +190,12 @@ dependency bump, a revert, a hotfix branch. It reports that there is no chain an
 because that is true and because the alternative would make the branch name the bypass. A team that
 wants a class of branch to merge anyway says so in branch policy by not requiring the check on it,
 which is a decision somebody can read; deleting the step is a different decision that reads as
-nothing. **The one change that needs no chain is moving to another release** (D-133): a pull request
-carrying only the pin, what adoption writes, and answers in the declared stack to what the release asks
-is checked by writing those files again and comparing, because nothing in it is a judgement.
+nothing. **A cycle is for a decision, so two changes need no chain** (D-133, D-134). Moving to another release: a pull
+request carrying only the pin, what adoption writes, and answers in the declared stack to what the release asks
+is checked by writing those files again and comparing. Moving dependency versions: a pull request whose only
+change is the versions in `Directory.Packages.props`, `global.json` and the tool manifest, of any size, is
+checked by comparing everything but the versions. Neither holds a judgement, and the pipeline builds and tests
+both.
 
 ### 3.2 Steering a cycle that is already underway
 
@@ -3988,7 +3991,7 @@ as two things — this check **plus branch policy**. So the tool states what is 
 what to require of which branches. An exemption recorded there is visible, reviewable and scoped to a
 branch pattern; the same exemption made by deleting a YAML step is invisible and total.
 
-**What it costs, stated plainly.** Every dependency bump is red from the day a team adopts, until they
+**What it costs, stated plainly.** (A version move alone no longer is: D-134.) Every dependency bump is red from the day a team adopts, until they
 either open cycles for bumps or exempt the pattern. That is friction arriving at the worst moment —
 first impressions — and it is the price of the promise being the product. Two softer things make it
 bearable rather than solved: the refusal explains both ways on, and the generated pipeline carries a
@@ -7154,6 +7157,57 @@ its refusal still apply.
 - *Keeping `sdlc <stage>` everywhere.* Correct and host-neutral, and costs a refusal each time.
 - *Guessing a marker for Copilot or Antigravity.* Neither documents one; a guessed marker is a panel that
   names one host's invocation to someone using another.
+
+### D-134 — A cycle is for a decision; a pull request that only moves dependency versions needs none
+
+**Governs:** §3.1, §13
+
+**Narrows §3.1 and D-45, and extends D-133.** §3.1 said every class of change runs the full chain, and D-45
+put a dependency bump through it or through a branch-policy exemption. D-133 let one change through on what
+its diff shows: moving the release.
+
+**Decision.** A cycle is for a decision about what the solution does or is built from: logic added, changed or
+removed, a package added or removed, an answer in the declared stack changed, a rule or a team's own pipeline
+step changed. A pull request on a branch that is no cycle's needs none when every path it changes is one D-133
+names or a dependency file whose only change is versions:
+
+- `Directory.Packages.props`, at any depth: the `Version` of a `PackageVersion` or a `GlobalPackageReference`
+  already listed. Every package, element and property is kept; comments and whitespace are not compared.
+- `global.json`, at any depth: `sdk.version` and the versions under `msbuild-sdks`. The roll-forward policy,
+  the test runner and the SDKs named are kept.
+- `.config/dotnet-tools.json`: every tool's version, the sdlc entry included. Tools are neither added nor
+  removed, and nothing else in an entry moves.
+
+**Any size of move.** A patch, a minor, a major, or back: each is allowed, and the check names each major and
+each move back so a reader sees them without opening the diff. The release is reproduced only when the pin
+moves or a framework file changes, because a version move reads the same whichever release reads it.
+
+**Why.** Intent, spec and plan exist so a person approves a decision before code is written. A version move
+that needs no code change carries no decision the documents could argue: the build and the tests are its whole
+proof, and the pipeline runs both on every pull request. One that does need a code change brings a source file
+with it, and a source file is a cycle's. MarketSense's first security fix - an ASP.NET Core advisory that
+failed every build on the integration branch - would otherwise have needed a cycle about a version number, or
+a policy override that reads the same as an ungoverned change.
+
+**What it costs.** A version move that changes behaviour, compiles and is not caught by the tests merges
+without a person arguing it first. That is the risk every team without this framework takes on every bump,
+and the check's naming of a major move or a move back is what is offered in its place: the reviewer of the
+pull request is told, not asked to find it.
+
+**Rejected.**
+
+- *Majors through a cycle, patches and minors without.* A major that needs a code change is a cycle's anyway,
+  by its source file; one that needs none has nothing for intent, spec and plan to argue, and the version number
+  is the package author's judgement of risk, not the solution's.
+- *A branch name such as `deps/*` or a bot's author that passes.* D-45's objection: anything merges under it.
+  The diff decides.
+- *`VersionOverride` in a project file.* It sits beside the references that say what the code is built from,
+  and reading a project file for which attribute moved is a parser of the build, not a check of a version.
+  Central package management is what the profile scaffolds.
+- *Adding or removing a package without a cycle.* That is a decision about what the solution is built from,
+  the thing the declared stack exists to make deliberate.
+- *Lock files.* Restore rewrites them from the versions; a solution that commits them runs restore in locked
+  mode, which is the check.
 
 ### D-133 — A pull request that only moves the release is checked by reproducing it, and needs no cycle
 
