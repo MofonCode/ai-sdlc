@@ -370,13 +370,13 @@ the plan branches with `sdlc slices` is usually the quickest way.
 
 ---
 
-## An upgrade's pull request — the three ways it is refused
+## An upgrade's pull request — the four ways it is refused
 
 A pull request on a branch that is no cycle's normally gets *no chain*. **One that changes only the pin in
-`.config/dotnet-tools.json`, what `sdlc init` then writes, and `techstack.md` is checked as an upgrade
-instead** (D-133). The branch can be called anything. The check runs as the release the branch pins, and
-compares each framework file with what that release's adoption writes from the base's copy. One path
-outside that set and it is not an upgrade, so the pull request gets *no chain* as before.
+`.config/dotnet-tools.json`, what `sdlc init` and `sdlc factory` then write, and `techstack.md` is checked as
+an upgrade instead** (D-133). The branch can be called anything. The check runs as the release the branch
+pins, and compares each framework file with what that release writes from the base's copy, a pipeline step by
+step. One path outside that set and it is not an upgrade, so the pull request gets *no chain* as before.
 
 ### the check runs as another release
 
@@ -390,11 +390,24 @@ on to the pinned release.
 ### a framework file adoption did not write
 
 A file in the pull request differs from what this release's adoption writes from the base's copy. Usually
-a hand edit — a step added to the pipeline, a permission added to `.claude/settings.json`, another tool
-moved in the manifest — or the files were written by an older binary than the pin names.
+a hand edit — a permission added to `.claude/settings.json`, another tool moved in the manifest — or the
+files were written by an older binary than the pin names. A pipeline is not compared this way: see the next
+entry.
 
 **Next:** take the team's own change out into a cycle of its own, or run `dotnet tool restore`, `sdlc
 init` again, and commit what it changes.
+
+### a pipeline step the release did not write
+
+A pipeline is compared as steps, because a solution keeps steps of its own beside the framework's. Every
+step this release writes must be there exactly, in its order; every other step must be one the base already
+had, unchanged; and outside the steps — triggers, pool, job — the file must be the base's or the template's.
+Comments and blank lines are not compared. The refusal names the step: one of the framework's missing,
+edited or moved, one of the team's added or changed, or a frame that is neither.
+
+**Next:** put the framework's step back as `sdlc init` prints it, or `sdlc factory` writes it for the
+factory's pipeline, and keep the team's own steps as the base had them. Adding or changing a step of the
+team's own is a cycle's.
 
 ### a stack line that answers nothing
 

@@ -20,6 +20,39 @@ public static class NewCycle
         return services.AddTransient<IRequestHandler<Command, Cycle>, Handler>();
     }
 
+    /// <summary>Where the cycles directory's ignore file lives, relative to the root.</summary>
+    public const string IgnorePath = Cycle.SdlcDirectoryName + "/" + Cycle.CyclesDirectoryName + "/.gitignore";
+
+    /// <summary>
+    /// The cycles directory's ignore file as the next cycle to open leaves it: written whole where there is none,
+    /// and otherwise with each block an older release did not write appended, every line already there kept.
+    /// </summary>
+    /// <remarks>
+    /// An upgrade's pull request may carry it (D-133), so the check computes it from the base's copy the same way.
+    /// </remarks>
+    /// <param name="existing">The file as it stands, or null when there is none.</param>
+    /// <returns>The file's text.</returns>
+    public static string IgnoreFile(string? existing)
+    {
+        if (existing is null)
+        {
+            return string.Concat(Handler.IgnoreBlocks
+                .SelectMany(block => block.Append(string.Empty))
+                .SkipLast(1)
+                .Select(line => line + Environment.NewLine));
+        }
+
+        HashSet<string> present = [.. existing.ReplaceLineEndings("\n").Split('\n').Select(line => line.Trim())];
+
+        // A block counts as present when every pattern in it is; its comment is not compared, so a
+        // person who reworded one is not handed a second copy.
+        IEnumerable<string> missing = Handler.IgnoreBlocks
+            .Where(block => !block.Where(line => !line.StartsWith('#')).All(present.Contains))
+            .SelectMany(block => block.Prepend(string.Empty));
+
+        return existing + string.Concat(missing.Select(line => line + Environment.NewLine));
+    }
+
     /// <summary>Opens a cycle: allocates its id and creates its directory.</summary>
     /// <remarks>
     /// A command rather than a query, and the only one in the gate that creates anything a cycle depends on.
@@ -92,7 +125,7 @@ public static class NewCycle
         /// <para>In blocks, so a solution whose file predates a block gets that block appended, with its
         /// comment, the next time a cycle opens. A file somebody edited keeps every line they wrote.</para>
         /// </remarks>
-        private static readonly string[][] _ignore =
+        internal static string[][] IgnoreBlocks { get; } =
         [
             [
                 "# A cycle's .opened marker claims its id: creating it is what makes two cycles opened in",
@@ -197,26 +230,12 @@ public static class NewCycle
         /// <param name="path">The ignore file.</param>
         private static void Ignore(string path)
         {
-            if (!File.Exists(path))
+            string? existing = File.Exists(path) ? File.ReadAllText(path) : null;
+            string written = IgnoreFile(existing);
+
+            if (!string.Equals(existing, written, StringComparison.Ordinal))
             {
-                File.WriteAllLines(path, _ignore.SelectMany(block => block.Append(string.Empty)).SkipLast(1));
-                return;
-            }
-
-            HashSet<string> present = [.. File.ReadAllLines(path).Select(line => line.Trim())];
-
-            // A block counts as present when every pattern in it is; its comment is not compared, so a
-            // person who reworded one is not handed a second copy.
-            List<string> missing =
-            [
-                .. _ignore
-                    .Where(block => !block.Where(line => !line.StartsWith('#')).All(present.Contains))
-                    .SelectMany(block => block.Prepend(string.Empty)),
-            ];
-
-            if (missing.Count > 0)
-            {
-                File.AppendAllLines(path, missing);
+                File.WriteAllText(path, written);
             }
         }
 

@@ -344,12 +344,15 @@ sdlc doctor
 Commit what both change together. A cycle already open keeps its own pin until its branch takes that commit.
 
 **An upgrade needs no cycle** (D-133). Do it on a branch of any name and open a pull request into the
-integration branch. The pull-request check sees a change carrying only the pin, what adoption wrote and
-`techstack.md`, and checks it as an upgrade rather than refusing it for having no chain: it runs as the
-release the branch pins and compares each framework file with what that release's adoption writes. The
+integration branch. The pull-request check sees a change carrying only the pin, what adoption and
+`sdlc factory` wrote and `techstack.md`, and checks it as an upgrade rather than refusing it for having no
+chain: it runs as the release the branch pins and compares each framework file with what that release
+writes. The blocks a release adds to `.sdlc/cycles/.gitignore`, which the next `sdlc new` would append,
+may ride along too. A pipeline is compared step by step, so the steps a solution added beside the framework's ride
+through unchanged; `sdlc factory` drops them, so put them back before committing. The
 same pull request may answer the rows the release asks about in `techstack.md` — added rows only, each one
 `sdlc stack` lists under *Not mentioned*. Anything else in it, one source file or one changed answer, and
-it is refused as a change with no chain; `handling-refusals.md` has the three upgrade refusals.
+it is refused as a change with no chain; `handling-refusals.md` has the four upgrade refusals.
 
 **`doctor` says when this is due.** `.sdlc/README.md` carries the release that wrote it, and the
 `framework files` check compares that with the binary:

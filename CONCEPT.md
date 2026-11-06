@@ -7169,6 +7169,9 @@ request as an **upgrade** when every path it changes is one of these:
 - the pin in `.config/dotnet-tools.json`
 - a file adoption owns in update mode: `.sdlc/README.md`, `.sdlc/.gitignore`, each host's hook configuration,
   the pipeline
+- the factory's pipeline, which `sdlc factory` writes
+- `.sdlc/cycles/.gitignore`, topped up by the next cycle to open, so the blocks a release adds may land with the
+  upgrade rather than sit uncommitted until a cycle carries them
 - `.sdlc/techstack.md`
 
 One path outside that set and the pull request is refused for having no chain, as before. The upgrade check
@@ -7180,8 +7183,12 @@ holds when:
   aside. A file the framework owns outright is compared with its template. In a file shared with the team or
   the host, the framework's entries are merged into the base's copy and compared, so a team's own key that was
   already there is kept and one added in the upgrade is refused. The manifest is compared with the base's copy
-  with only the sdlc entry moved, so another tool bumped alongside is refused. On Azure DevOps,
-  `azure-pipelines.yml` must equal the template, because there the file may be the repository's own CI.
+  with only the sdlc entry moved, so another tool bumped alongside is refused.
+- **Each pipeline has every step that release writes, and beside them only the team's own steps the base
+  already had.** A pipeline is compared step by step rather than as text, because a solution adds steps of its
+  own: a browser install, a feed sign-in. Every step the template writes is there exactly, in its order; every
+  other step is one the base had, unchanged; outside the step lists - triggers, pool, job - the file is the
+  base's or the template's, whole. Comments and blank lines are not compared, because neither runs.
 - **The declared stack is only answered.** Every line it had is kept, in order. Each line added is a row this
   release ships and the base's stack never mentions (D-93), answered once, or the heading and header of the
   rules table it goes into.
@@ -7222,6 +7229,11 @@ release and the new rows when it merges the integration branch, as D-131 already
   without a cycle.
 - *Including the solution's own dependency bumps.* A package bump changes how the code behaves, and nothing
   can reproduce that. §3.1 and D-45 still send it through the chain.
+- *Comparing a pipeline with its template as text* (0.36.4). On Azure DevOps adoption writes the CI pipeline
+  once and never again, and `sdlc factory` drops what a solution added, so a customised pipeline - MarketSense's
+  first upgrade through this check - could never pass and every upgrade went back to a policy override. What
+  the step comparison lets through is a team's own step dropped in the upgrade: that weakens the team's own
+  pipeline and none of the framework's steps, and it shows in the diff.
 
 ### D-132 — A criterion lists the cases it covers, and a case it does not list is not a gap
 

