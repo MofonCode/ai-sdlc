@@ -69,6 +69,26 @@ public static class PinnedRelease
         return null;
     }
 
+    /// <summary>The version a manifest's text pins, or null when it names no release or does not parse.</summary>
+    /// <param name="text">The manifest's text, or null when there is none.</param>
+    /// <returns>The pinned version.</returns>
+    public static string? PinnedIn(string? text)
+    {
+        if (text is null)
+        {
+            return null;
+        }
+
+        try
+        {
+            return Version(JsonNode.Parse(text));
+        }
+        catch (JsonException)
+        {
+            return null;
+        }
+    }
+
     /// <summary>A manifest pinning one release: a new one, or an existing one with this package's entry set.</summary>
     /// <remarks>
     /// A solution may already keep other local tools in the manifest, so only this package's entry is the

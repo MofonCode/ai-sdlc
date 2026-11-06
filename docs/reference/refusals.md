@@ -56,6 +56,10 @@ The two hooks return no exit code to you: they stop the agent's action, and the 
 | **A slicing's pull request — `sdlc verify-chain slices/<slug>/plan`** | |
 | [a plan that needs a sibling's code](../guides/handling-refusals.md#a-plan-that-needs-a-siblings-code) | make that piece a successor of the sibling, or merge the two pieces |
 | [a slicing that carries more than plans](../guides/handling-refusals.md#a-slicing-that-carries-more-than-plans) | take the other files off the branch, or compose it again with `sdlc slices` |
+| **An upgrade's pull request — `sdlc verify-chain <branch> --base <branch>`** | |
+| [the check runs as another release](../guides/handling-refusals.md#the-check-runs-as-another-release) | let the pipeline restore the pin first; `sdlc init` rewrites a pipeline that does not |
+| [a framework file adoption did not write](../guides/handling-refusals.md#a-framework-file-adoption-did-not-write) | move the team's own change to a cycle, or run `sdlc init` again as the pinned release |
+| [a stack line that answers nothing](../guides/handling-refusals.md#a-stack-line-that-answers-nothing) | keep only rows the release asks about; change any other line in a cycle |
 | **Recording evidence — `sdlc evidence`** | |
 | [no cycle, or no plan](../guides/handling-refusals.md#no-cycle-or-no-plan) | check the id; the cycle needs a `plan.md` |
 | [code that is not committed](../guides/handling-refusals.md#code-that-is-not-committed) | commit the change, then record again |
