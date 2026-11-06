@@ -60,12 +60,13 @@ internal static class Usage
                                      sound, and a plan that needs a file only a sibling's plan
                                      creates is refused (D-125).
             verify-chain <branch> --base <branch>
-                                     On a branch that is no cycle's: an upgrade when everything it
-                                     changes is the pin, what 'sdlc init' and 'sdlc factory'
-                                     write, and answers in the declared stack to what the release
-                                     asks. Each file must be what this release writes from the
-                                     base's copy, a pipeline step by step, keeping the team's own
-                                     steps (D-133). Anything else is refused: there is no chain.
+                                     On a branch that is no cycle's: no cycle needed when everything
+                                     it changes is the pin, what 'sdlc init' and 'sdlc factory'
+                                     write, answers in the declared stack to what the release asks,
+                                     and dependency versions. Each file must be what this release
+                                     writes from the base's copy, a pipeline step by step (D-133);
+                                     a dependency file may move only versions, of any size (D-134).
+                                     Anything else is refused: there is no chain.
             admission <id> --base <branch>
                                      Print true when a pull request carries only the cycle's
                                      planning documents, and any successors, so a pipeline may

@@ -1,5 +1,7 @@
 using System.Globalization;
 using System.Text;
+using System.Text.Json.Nodes;
+using System.Xml.Linq;
 using FluentResults;
 using Microsoft.Extensions.DependencyInjection;
 using MofonCode.Core;
@@ -90,8 +92,28 @@ public static class VerifyUpgrade
     {
         ArgumentNullException.ThrowIfNull(changed);
 
-        return changed.Count > 0 && changed.All(path => Paths.Contains(Normalised(path), StringComparer.Ordinal));
+        return changed.Count > 0 && changed.All(path => Paths.Contains(Normalised(path), StringComparer.Ordinal) || IsDependencies(path));
     }
+
+    /// <summary>Whether a path is a file that holds dependency versions and nothing a cycle decides (D-134).</summary>
+    /// <remarks>
+    /// Central package management's <c>Directory.Packages.props</c> and the SDK's <c>global.json</c>, at any depth.
+    /// The tool manifest is one too, and is in <see cref="Paths"/> already. A project file is not: a
+    /// <c>VersionOverride</c> sits beside the references that say what the code is built from, so it is a cycle's.
+    /// </remarks>
+    /// <param name="path">The path, relative to the root, with either separator.</param>
+    /// <returns>True when it is one.</returns>
+    public static bool IsDependencies(string path)
+    {
+        ArgumentNullException.ThrowIfNull(path);
+
+        string name = Normalised(path).Split('/')[^1];
+        return name is PackagesFileName or GlobalJsonFileName;
+    }
+
+    private const string PackagesFileName = "Directory.Packages.props";
+    private const string GlobalJsonFileName = "global.json";
+    private const string RunsName = "this check runs as the release the branch pins";
 
     private sealed class Handler(SolutionRoot solution, IRepository repository) : IRequestHandler<Query, Response>
     {
@@ -104,14 +126,24 @@ public static class VerifyUpgrade
             string? from = PinnedRelease.PinnedIn(Base(request, PinnedRelease.ManifestPath));
             string? to = PinnedRelease.PinnedIn(await Head(PinnedRelease.ManifestPath, cancellationToken).ConfigureAwait(false));
 
-            checks.Add(Runs(from, to));
+            List<string> paths = [.. request.Changed.Select(Normalised).Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal)];
+
+            // Only a release's files need the release reproducing them. A pull request that moves dependency
+            // versions alone, other local tools in the manifest included, is read the same whichever release reads it.
+            bool release = !string.Equals(from, to, StringComparison.OrdinalIgnoreCase)
+                || paths.Any(path => path != PinnedRelease.ManifestPath && !IsDependencies(path));
+
+            if (release)
+            {
+                checks.Add(Runs(from, to));
+            }
 
             if (!Carries(request.Changed))
             {
                 checks.Add(new VerifyChain.ChainCheck(
                     "this pull request carries only an upgrade",
                     false,
-                    "something it changes is not the pin, a file adoption owns, or the declared stack."));
+                    "something it changes is not the pin, a file adoption owns, the declared stack, or a dependency version."));
 
                 return Result.Ok(new Response(from, to, checks));
             }
@@ -119,8 +151,23 @@ public static class VerifyUpgrade
             SolutionDocument? document = null;
             string? unreadable = null;
 
-            foreach (string path in request.Changed.Select(Normalised).Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal))
+            foreach (string path in paths)
             {
+                if (IsDependencies(path))
+                {
+                    string? had = Base(request, path);
+                    string? has = await Head(path, cancellationToken).ConfigureAwait(false);
+
+                    checks.Add(path.EndsWith(GlobalJsonFileName, StringComparison.Ordinal) ? Sdk(path, had, has) : Packages(path, had, has));
+                    continue;
+                }
+
+                if (path == PinnedRelease.ManifestPath)
+                {
+                    checks.Add(Tools(Base(request, path), await Head(path, cancellationToken).ConfigureAwait(false)));
+                    continue;
+                }
+
                 if (path == TechStackPath)
                 {
                     checks.Add(Answered(
@@ -168,7 +215,7 @@ public static class VerifyUpgrade
     /// <returns>The check.</returns>
     public static VerifyChain.ChainCheck Runs(string? from, string? to)
     {
-        const string Name = "this check runs as the release the branch pins";
+        const string Name = RunsName;
 
         if (to is null)
         {
@@ -558,6 +605,293 @@ public static class VerifyUpgrade
                 : "every line it had is kept, and it answers " + string.Join(", ", answers) + ".");
     }
 
+    /// <summary>Whether a <c>Directory.Packages.props</c> moved only versions of packages it already listed (D-134).</summary>
+    /// <remarks>
+    /// Every element, attribute and package is kept; only a <c>Version</c> on a <c>PackageVersion</c> or a
+    /// <c>GlobalPackageReference</c> may differ. A package added or removed is a decision about what the solution is
+    /// built from, and a cycle's. Comments and whitespace are not compared. A major move or a move back is allowed and
+    /// named, so a reader of the check sees it without opening the diff.
+    /// </remarks>
+    /// <param name="path">The path.</param>
+    /// <param name="existing">The base's copy, or null when it had none.</param>
+    /// <param name="head">The branch's copy, or null when the branch deleted it.</param>
+    /// <returns>The check.</returns>
+    public static VerifyChain.ChainCheck Packages(string path, string? existing, string? head)
+    {
+        ArgumentNullException.ThrowIfNull(path);
+
+        string name = path + " moves only package versions";
+
+        if (existing is null || head is null)
+        {
+            return new VerifyChain.ChainCheck(
+                name,
+                false,
+                existing is null
+                    ? "the base has no such file, so this adds central package management: a cycle's."
+                    : "the branch deletes it, which removes every version it held: a cycle's.");
+        }
+
+        XDocument had;
+        XDocument has;
+
+        try
+        {
+            had = XDocument.Parse(existing);
+            has = XDocument.Parse(head);
+        }
+        catch (System.Xml.XmlException error)
+        {
+            return new VerifyChain.ChainCheck(name, false, "it does not read as XML: " + error.Message);
+        }
+
+        Dictionary<string, string> from = Versions(had);
+        Dictionary<string, string> to = Versions(has);
+
+        if (!XNode.DeepEquals(Blanked(had), Blanked(has)))
+        {
+            string? added = to.Keys.FirstOrDefault(package => !from.ContainsKey(package));
+            string? removed = from.Keys.FirstOrDefault(package => !to.ContainsKey(package));
+
+            return new VerifyChain.ChainCheck(
+                name,
+                false,
+                added is not null
+                    ? $"it adds {added}. A package added is a decision about what the solution is built from, and a cycle's."
+                    : removed is not null
+                        ? $"it removes {removed}. A package removed is a decision about what the solution is built from, and a cycle's."
+                        : "something besides a version changed. Only a Version on a PackageVersion or a GlobalPackageReference may move without a cycle.");
+        }
+
+        return Moves(name, from, to);
+    }
+
+    /// <summary>Whether a <c>global.json</c> moved only the SDK's version and those of the MSBuild SDKs it names (D-134).</summary>
+    /// <param name="path">The path.</param>
+    /// <param name="existing">The base's copy, or null when it had none.</param>
+    /// <param name="head">The branch's copy, or null when the branch deleted it.</param>
+    /// <returns>The check.</returns>
+    public static VerifyChain.ChainCheck Sdk(string path, string? existing, string? head)
+    {
+        ArgumentNullException.ThrowIfNull(path);
+
+        string name = path + " moves only SDK versions";
+
+        if (existing is null || head is null)
+        {
+            return new VerifyChain.ChainCheck(name, false, existing is null ? "the base has none, so this pins an SDK for the first time: a cycle's." : "the branch deletes it, which unpins the SDK: a cycle's.");
+        }
+
+        JsonNode? had = ParseJson(existing);
+        JsonNode? has = ParseJson(head);
+
+        if (had is not JsonObject || has is not JsonObject)
+        {
+            return new VerifyChain.ChainCheck(name, false, "it does not read as a JSON object.");
+        }
+
+        Dictionary<string, string> from = SdkVersions(had);
+        Dictionary<string, string> to = SdkVersions(has);
+
+        return Same(BlankSdk(had), BlankSdk(has)) && from.Keys.Order(StringComparer.Ordinal).SequenceEqual(to.Keys.Order(StringComparer.Ordinal), StringComparer.Ordinal)
+            ? Moves(name, from, to)
+            : new VerifyChain.ChainCheck(name, false, "something besides a version changed - a roll-forward policy, the test runner, an SDK added or removed. Only sdk.version and the msbuild-sdks versions may move without a cycle.");
+    }
+
+    /// <summary>
+    /// Whether the tool manifest moved only versions: the sdlc entry to the release the branch pins, every other tool's
+    /// to whatever it moved to (D-133, D-134).
+    /// </summary>
+    /// <param name="existing">The base's copy, or null when it had none.</param>
+    /// <param name="head">The branch's copy, or null when the branch deleted it.</param>
+    /// <returns>The check.</returns>
+    public static VerifyChain.ChainCheck Tools(string? existing, string? head)
+    {
+        string name = PinnedRelease.ManifestPath + " moves only tool versions";
+
+        if (head is null)
+        {
+            return new VerifyChain.ChainCheck(name, false, "the branch deletes it, and an upgrade deletes nothing.");
+        }
+
+        string? pinned = PinnedRelease.PinnedIn(head);
+        Result<string> expected = PinnedRelease.Pin(existing, pinned ?? Release.Version);
+
+        if (expected.IsFailed)
+        {
+            return new VerifyChain.ChainCheck(name, false, string.Join(" ", expected.Errors.Select(error => error.Message)));
+        }
+
+        JsonNode? want = ParseJson(expected.Value);
+        JsonNode? has = ParseJson(head);
+
+        if (want is null || has is null)
+        {
+            return new VerifyChain.ChainCheck(name, false, "it does not read as JSON.");
+        }
+
+        Dictionary<string, string> from = ToolVersions(want);
+        Dictionary<string, string> to = ToolVersions(has);
+
+        return Same(BlankTools(want), BlankTools(has))
+            ? Moves(name, from, to)
+            : new VerifyChain.ChainCheck(name, false, "something besides a version changed - a tool added or removed, its commands, its roll-forward. Only versions may move without a cycle.");
+    }
+
+    private static VerifyChain.ChainCheck Moves(string name, Dictionary<string, string> from, Dictionary<string, string> to)
+    {
+        List<string> moved = [];
+
+        foreach ((string package, string version) in to.OrderBy(entry => entry.Key, StringComparer.Ordinal))
+        {
+            if (!from.TryGetValue(package, out string? was) || string.Equals(was, version, StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
+            string note = FrameworkStamp.Compare(was, version) > 0
+                ? ", a move back"
+                : Major(was) != Major(version) ? ", a major version" : string.Empty;
+
+            moved.Add(string.Create(CultureInfo.InvariantCulture, $"{package} {was} to {version}{note}"));
+        }
+
+        return new VerifyChain.ChainCheck(
+            name,
+            true,
+            moved.Count == 0 ? "nothing but formatting moved." : string.Join("; ", moved) + ".");
+    }
+
+    private static string Major(string version) => PinnedRelease.Core(version).Split('.')[0];
+
+    private static Dictionary<string, string> Versions(XDocument document)
+    {
+        Dictionary<string, string> versions = new(StringComparer.OrdinalIgnoreCase);
+
+        foreach (XElement element in Versioned(document))
+        {
+            if (element.Attribute("Include")?.Value is { } package && element.Attribute("Version")?.Value is { } version)
+            {
+                versions[package] = version;
+            }
+        }
+
+        return versions;
+    }
+
+    private static IEnumerable<XElement> Versioned(XDocument document) =>
+        document.Descendants().Where(element => element.Name.LocalName is "PackageVersion" or "GlobalPackageReference");
+
+    private static XDocument Blanked(XDocument document)
+    {
+        XDocument copy = new(document);
+
+        foreach (XComment comment in copy.DescendantNodes().OfType<XComment>().ToList())
+        {
+            comment.Remove();
+        }
+
+        foreach (XElement element in Versioned(copy))
+        {
+            element.Attribute("Version")?.SetValue(string.Empty);
+        }
+
+        return copy;
+    }
+
+    private static JsonNode? ParseJson(string text)
+    {
+        try
+        {
+            return JsonNode.Parse(text, documentOptions: new System.Text.Json.JsonDocumentOptions { CommentHandling = System.Text.Json.JsonCommentHandling.Skip, AllowTrailingCommas = true });
+        }
+        catch (System.Text.Json.JsonException)
+        {
+            return null;
+        }
+    }
+
+    private static bool Same(JsonNode left, JsonNode right) => JsonNode.DeepEquals(left, right);
+
+    private static Dictionary<string, string> SdkVersions(JsonNode root)
+    {
+        Dictionary<string, string> versions = new(StringComparer.Ordinal);
+
+        if (root["sdk"]?["version"] is JsonValue sdk && sdk.TryGetValue(out string? version))
+        {
+            versions[".NET SDK"] = version;
+        }
+
+        if (root["msbuild-sdks"] is JsonObject sdks)
+        {
+            foreach ((string id, JsonNode? value) in sdks)
+            {
+                if (value is JsonValue text && text.TryGetValue(out string? pinned))
+                {
+                    versions[id] = pinned;
+                }
+            }
+        }
+
+        return versions;
+    }
+
+    private static JsonNode BlankSdk(JsonNode root)
+    {
+        JsonNode copy = root.DeepClone();
+
+        if (copy["sdk"] is JsonObject sdk && sdk.ContainsKey("version"))
+        {
+            sdk["version"] = string.Empty;
+        }
+
+        if (copy["msbuild-sdks"] is JsonObject sdks)
+        {
+            foreach (string id in sdks.Select(entry => entry.Key).ToList())
+            {
+                sdks[id] = string.Empty;
+            }
+        }
+
+        return copy;
+    }
+
+    private static Dictionary<string, string> ToolVersions(JsonNode root)
+    {
+        Dictionary<string, string> versions = new(StringComparer.OrdinalIgnoreCase);
+
+        if (root["tools"] is JsonObject tools)
+        {
+            foreach ((string id, JsonNode? entry) in tools)
+            {
+                if (entry?["version"] is JsonValue value && value.TryGetValue(out string? version))
+                {
+                    versions[id] = version;
+                }
+            }
+        }
+
+        return versions;
+    }
+
+    private static JsonNode BlankTools(JsonNode root)
+    {
+        JsonNode copy = root.DeepClone();
+
+        if (copy["tools"] is JsonObject tools)
+        {
+            foreach ((string _, JsonNode? entry) in tools)
+            {
+                if (entry is JsonObject tool && tool.ContainsKey("version"))
+                {
+                    tool["version"] = string.Empty;
+                }
+            }
+        }
+
+        return copy;
+    }
+
     /// <summary>Renders the check for a pipeline log.</summary>
     /// <param name="verdict">What it found.</param>
     /// <returns>The text, ending in a newline.</returns>
@@ -567,9 +901,9 @@ public static class VerifyUpgrade
 
         StringBuilder output = new();
         output.AppendLine();
-        output.AppendLine(string.Create(
-            CultureInfo.InvariantCulture,
-            $"  upgrade - sdlc {verdict.From ?? "(none)"} to {verdict.To ?? "(none)"}"));
+        output.AppendLine(verdict.Checks.Any(check => check.Name == RunsName)
+            ? string.Create(CultureInfo.InvariantCulture, $"  upgrade - sdlc {verdict.From ?? "(none)"} to {verdict.To ?? "(none)"}")
+            : "  dependencies - versions only");
         output.AppendLine();
 
         foreach (VerifyChain.ChainCheck check in verdict.Checks)
@@ -580,8 +914,8 @@ public static class VerifyUpgrade
 
         output.AppendLine();
         output.AppendLine(verdict.Holds
-            ? "  The upgrade holds: it changes nothing but what this release's adoption writes, and answers to what it asks."
-            : "  The upgrade does not hold. Moving a release needs no cycle, and anything else in the same pull request does.");
+            ? "  It holds, and needs no cycle: it changes nothing but what this release writes, answers to what it asks, and versions."
+            : "  It does not hold. Moving a release or a version needs no cycle; anything else in the same pull request does.");
 
         return output.ToString();
     }

@@ -370,13 +370,15 @@ the plan branches with `sdlc slices` is usually the quickest way.
 
 ---
 
-## An upgrade's pull request — the four ways it is refused
+## An upgrade's or a version move's pull request — the five ways it is refused
 
 A pull request on a branch that is no cycle's normally gets *no chain*. **One that changes only the pin in
 `.config/dotnet-tools.json`, what `sdlc init` and `sdlc factory` then write, and `techstack.md` is checked as
 an upgrade instead** (D-133). The branch can be called anything. The check runs as the release the branch
 pins, and compares each framework file with what that release writes from the base's copy, a pipeline step by
-step. One path outside that set and it is not an upgrade, so the pull request gets *no chain* as before.
+step. **A pull request that only moves dependency versions** — in `Directory.Packages.props`, `global.json` or
+the tool manifest, of any size — is checked the same way, with no release reproduced unless the pin moves
+(D-134). One path outside those and it is neither, so the pull request gets *no chain* as before.
 
 ### the check runs as another release
 
@@ -408,6 +410,16 @@ edited or moved, one of the team's added or changed, or a frame that is neither.
 **Next:** put the framework's step back as `sdlc init` prints it, or `sdlc factory` writes it for the
 factory's pipeline, and keep the team's own steps as the base had them. Adding or changing a step of the
 team's own is a cycle's.
+
+### a dependency file that changed more than versions
+
+`Directory.Packages.props`, `global.json` or `.config/dotnet-tools.json` changed something besides a version:
+a package or a tool added or removed, a property, a roll-forward policy, the test runner. A version moves
+without a cycle because there is nothing to decide; a package added or removed is a decision about what the
+solution is built from. The refusal names the package when one was added or removed.
+
+**Next:** keep only the version moves in this pull request, and add or remove the package in a cycle. A major
+move or a move back is allowed — the check names it rather than refusing it.
 
 ### a stack line that answers nothing
 

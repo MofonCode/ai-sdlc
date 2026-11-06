@@ -53,9 +53,9 @@ public static class ChainRenderer
         output.AppendLine();
         output.AppendLine(Indent + "Two ways on, and they are not the same thing:");
         output.AppendLine();
-        output.AppendLine(Indent + "  Open the change as a cycle. Every class of change runs the full chain,");
-        output.AppendLine(Indent + "  including a dependency bump and a revert, and a small change makes a");
-        output.AppendLine(Indent + "  short intent, spec and plan rather than none.");
+        output.AppendLine(Indent + "  Open the change as a cycle. Every change to what the solution does runs");
+        output.AppendLine(Indent + "  the full chain, a revert included, and a small change makes a short");
+        output.AppendLine(Indent + "  intent, spec and plan rather than none.");
         output.AppendLine();
         output.AppendLine(Indent + "  Or decide, as a team, that this class of branch is exempt - and say so");
         output.AppendLine(Indent + "  in branch policy by not requiring this check on it. That is a choice to");
@@ -63,10 +63,12 @@ public static class ChainRenderer
         output.AppendLine(Indent + "  not the same as deleting this step, which accepts them everywhere and");
         output.AppendLine(Indent + "  leaves nothing saying so.");
         output.AppendLine();
-        output.AppendLine(Indent + "Moving to another sdlc release needs neither. A pull request that changes");
-        output.AppendLine(Indent + "only the pin, what 'sdlc init' then writes, and answers in the declared");
-        output.AppendLine(Indent + "stack to what the release asks is checked as an upgrade, given --base.");
-        output.AppendLine(Indent + "Anything else in it - one source file included - and it lands here.");
+        output.AppendLine(Indent + "Moving to another sdlc release, or moving dependency versions, needs");
+        output.AppendLine(Indent + "neither. A pull request that changes only the pin, what 'sdlc init' then");
+        output.AppendLine(Indent + "writes, answers in the declared stack to what the release asks, and the");
+        output.AppendLine(Indent + "versions in Directory.Packages.props, global.json or the tool manifest is");
+        output.AppendLine(Indent + "checked without a cycle, given --base. Anything else in it - one source");
+        output.AppendLine(Indent + "file or one package added - and it lands here.");
         output.AppendLine();
 
         return output.ToString();

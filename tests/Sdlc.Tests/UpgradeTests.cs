@@ -233,6 +233,99 @@ public sealed class UpgradeTests
         StringAssert.Contains(check.Detail, "1 of the team's own");
     }
 
+    private const string Packages = """
+        <Project>
+          <PropertyGroup>
+            <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+          </PropertyGroup>
+          <ItemGroup>
+            <!-- The web host. -->
+            <PackageVersion Include="Microsoft.AspNetCore.OpenApi" Version="10.0.13" />
+            <PackageVersion Include="MudBlazor" Version="7.15.0" />
+            <PackageVersion Include="Polly" Version="8.5.0" />
+          </ItemGroup>
+        </Project>
+        """;
+
+    [TestMethod]
+    public void Dependency_files_are_ones_a_pull_request_with_no_cycle_may_change()
+    {
+        Assert.IsTrue(VerifyUpgrade.Carries(["Directory.Packages.props"]));
+        Assert.IsTrue(VerifyUpgrade.Carries(["global.json", "src/Directory.Packages.props", ".config/dotnet-tools.json"]));
+        Assert.IsFalse(VerifyUpgrade.Carries(["Directory.Packages.props", "src/App/App.csproj"]), "A project file is the code's, so a cycle's.");
+    }
+
+    [TestMethod]
+    public void Any_version_move_is_allowed_and_a_major_or_a_move_back_is_named()
+    {
+        string head = Packages
+            .Replace("10.0.13", "10.0.14", StringComparison.Ordinal)
+            .Replace("7.15.0", "8.0.0", StringComparison.Ordinal)
+            .Replace("8.5.0", "8.4.0", StringComparison.Ordinal);
+
+        VerifyChain.ChainCheck check = VerifyUpgrade.Packages("Directory.Packages.props", Packages, head);
+
+        Assert.IsTrue(check.Passed, check.Detail);
+        StringAssert.Contains(check.Detail, "Microsoft.AspNetCore.OpenApi 10.0.13 to 10.0.14");
+        StringAssert.Contains(check.Detail, "MudBlazor 7.15.0 to 8.0.0, a major version");
+        StringAssert.Contains(check.Detail, "Polly 8.5.0 to 8.4.0, a move back");
+    }
+
+    [TestMethod]
+    public void A_package_added_or_removed_or_anything_but_a_version_is_refused()
+    {
+        string added = Packages.Replace("<PackageVersion Include=\"Polly\"", "<PackageVersion Include=\"Serilog\" Version=\"4.0.0\" />\n    <PackageVersion Include=\"Polly\"", StringComparison.Ordinal);
+        string removed = Packages.Replace("<PackageVersion Include=\"Polly\" Version=\"8.5.0\" />", string.Empty, StringComparison.Ordinal);
+        string property = Packages.Replace(">true<", ">false<", StringComparison.Ordinal);
+
+        StringAssert.Contains(VerifyUpgrade.Packages("Directory.Packages.props", Packages, added).Detail, "adds Serilog");
+        StringAssert.Contains(VerifyUpgrade.Packages("Directory.Packages.props", Packages, removed).Detail, "removes Polly");
+        Assert.IsFalse(VerifyUpgrade.Packages("Directory.Packages.props", Packages, property).Passed);
+        Assert.IsTrue(
+            VerifyUpgrade.Packages("Directory.Packages.props", Packages, Packages.Replace("The web host.", "Hosting.", StringComparison.Ordinal)).Passed,
+            "A comment does not run.");
+    }
+
+    [TestMethod]
+    public void The_sdk_may_move_and_its_policy_may_not()
+    {
+        const string existing = """{ "sdk": { "version": "10.0.100", "rollForward": "latestFeature" }, "msbuild-sdks": { "Aspire.AppHost.Sdk": "9.5.0" } }""";
+
+        Assert.IsTrue(VerifyUpgrade.Sdk("global.json", existing, existing.Replace("10.0.100", "11.0.100", StringComparison.Ordinal).Replace("9.5.0", "13.0.0", StringComparison.Ordinal)).Passed);
+        Assert.IsFalse(VerifyUpgrade.Sdk("global.json", existing, existing.Replace("latestFeature", "latestMajor", StringComparison.Ordinal)).Passed);
+    }
+
+    [TestMethod]
+    public void Another_local_tool_may_move_beside_the_pin_but_not_be_added()
+    {
+        string existing = PinnedRelease.Pin(null, Older).Value.Replace(
+            "\"tools\": {",
+            "\"tools\": {\n    \"dotnet-ef\": { \"version\": \"9.0.0\", \"commands\": [ \"dotnet-ef\" ], \"rollForward\": false },",
+            StringComparison.Ordinal);
+        string moved = existing.Replace("9.0.0", "10.0.0", StringComparison.Ordinal);
+
+        VerifyChain.ChainCheck check = VerifyUpgrade.Tools(existing, moved);
+
+        Assert.IsTrue(check.Passed, check.Detail);
+        StringAssert.Contains(check.Detail, "dotnet-ef 9.0.0 to 10.0.0");
+        Assert.IsFalse(VerifyUpgrade.Tools(PinnedRelease.Pin(null, Older).Value, existing).Passed, "A tool added is a cycle's.");
+    }
+
+    [TestMethod]
+    public async Task A_pull_request_moving_only_versions_needs_no_release_reproduced()
+    {
+        using var solution = Adopted.Create(TestContext);
+        FakeRepository git = solution.AsOlderRelease();
+        await File.WriteAllTextAsync(Path.Combine(solution.Root, "Directory.Packages.props"), Packages.Replace("8.5.0", "8.6.0", StringComparison.Ordinal), TestContext.CancellationToken);
+        git.Files[Divergence + ":Directory.Packages.props"] = Packages;
+
+        VerifyUpgrade.Response verdict = await Check(solution, git, ["Directory.Packages.props"]);
+
+        Assert.IsTrue(verdict.Holds, VerifyUpgrade.Render(verdict));
+        StringAssert.Contains(VerifyUpgrade.Render(verdict), "dependencies - versions only");
+        Assert.IsFalse(verdict.Checks.Any(check => check.Name.StartsWith("this check runs as", StringComparison.Ordinal)), "The pin did not move, so no release needs reproducing.");
+    }
+
     [TestMethod]
     public void The_check_has_to_run_as_the_release_the_branch_pins()
     {
