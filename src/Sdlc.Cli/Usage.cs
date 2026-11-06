@@ -61,10 +61,11 @@ internal static class Usage
                                      creates is refused (D-125).
             verify-chain <branch> --base <branch>
                                      On a branch that is no cycle's: an upgrade when everything it
-                                     changes is the pin, what 'sdlc init' writes, and answers in
-                                     the declared stack to what the release asks. Each file must
-                                     be what this release's adoption writes from the base's copy
-                                     (D-133). Anything else is refused: there is no chain.
+                                     changes is the pin, what 'sdlc init' and 'sdlc factory'
+                                     write, and answers in the declared stack to what the release
+                                     asks. Each file must be what this release writes from the
+                                     base's copy, a pipeline step by step, keeping the team's own
+                                     steps (D-133). Anything else is refused: there is no chain.
             admission <id> --base <branch>
                                      Print true when a pull request carries only the cycle's
                                      planning documents, and any successors, so a pipeline may

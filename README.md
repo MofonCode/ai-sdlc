@@ -1,6 +1,6 @@
 # ai-sdlc
 
-**Version 0.36.4** · iteration 4 · .NET 10 · MIT
+**Version 0.36.5** · iteration 4 · .NET 10 · MIT
 
 **A plugin that makes an AI coding agent work the way a careful team does** — write down what the change
 is for, agree what *done* means, plan it, have a person approve it, and only then write code.
@@ -191,7 +191,7 @@ sdlc constraints
 ```
 
 It should print the nineteen global constraints in force and say it read them from
-`global  embedded in sdlc 0.36.4`. **Use this rather than `sdlc help` as the smoke test** — `help` and
+`global  embedded in sdlc 0.36.5`. **Use this rather than `sdlc help` as the smoke test** — `help` and
 `version` are the only commands that need nothing from the installation, so they are the two that cannot
 tell you whether it worked. Then `claude plugin details sdlc@ai-sdlc` should say `Skills (18)` and
 `Hooks (3)`: **a hook count below three is a failed install**, not a detail, because the deterministic layer
@@ -339,10 +339,11 @@ What is honest to say about the rest:
   script to a Blazor page what Blazor already does, came from a real plan whose page script a person
   replaced with the framework's own mechanisms; nothing has yet watched it refuse one either. **It
   reaches no solution adopted before 0.35.0** until its row is added the same way.
-- **The upgrade check has met fixtures only.** A pull request that moves the pin merges without a cycle
-  when every framework file is what the pinned release's adoption writes. The suite holds it against
-  adoption's own output; no real solution has upgraded through it yet. It runs as the release the
-  branch pins, so the upgrade to the release that ships it is the first one it checks.
+- **The upgrade check has not yet passed a real pull request.** A pull request that moves the pin merges
+  without a cycle when every framework file is what the pinned release writes, a pipeline compared step by
+  step. MarketSense's move to 0.36.4 was refused by 0.36.4's word-for-word pipeline comparison and merged on
+  a policy override; 0.36.5's step comparison passes that same change replayed in a copy of the repository,
+  and refuses an edited step of its own. Its next upgrade is the first real one.
 - **Declaring the stack after adoption has not been walked by anybody but its author.** Adoption no
   longer writes the declared stack or the .NET build settings: a person places the first from a draft,
   and the second arrive with the skeleton. The suite holds each step; no real adoption has gone through
