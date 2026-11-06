@@ -1,6 +1,6 @@
 # ai-sdlc
 
-**Version 0.36.3** · iteration 4 · .NET 10 · MIT
+**Version 0.36.4** · iteration 4 · .NET 10 · MIT
 
 **A plugin that makes an AI coding agent work the way a careful team does** — write down what the change
 is for, agree what *done* means, plan it, have a person approve it, and only then write code.
@@ -77,7 +77,7 @@ cycles and which only fixtures.
 | **Batch build and the factory** | Approved work sits waiting for somebody to supervise each build | `/sdlc:batch-build` builds every approved cycle on its own branch; the factory runs it unattended every night and **never merges**. The morning's sitrep says what is ready, in what order, and what needs a person |
 | **Leads** | Work arrives in a tracker and is retyped into a prompt | `/sdlc:intent --from` starts from an Azure DevOps or GitHub work item, a suggestion or a ready successor. Operate reads production's errors and files them as leads |
 | **Init** | Bringing governance into a repository is a week of setup nobody finishes | `/sdlc:init` interviews the team about what matters here and proposes its first rules. Adoption writes the hooks for every supported agent and the pipeline, drafts the files only a person writes, and creates the integration branch |
-| **Pinned release** | Upgrading the tool halfway through a change moves the rules under it | A solution pins its release, and a cycle runs on the one it opened on — the binary, its skills and its hooks together |
+| **Pinned release** | Upgrading the tool halfway through a change moves the rules under it, and moving to a new release costs a whole cycle about nothing | A solution pins its release, and a cycle runs on the one it opened on — the binary, its skills and its hooks together. Moving the pin needs no cycle: the pull-request check writes the framework's files again as the new release and merges the upgrade only if they match |
 | **More than one agent** | Governance written for one agent does not survive a teammate using another | One hook adapter speaks Claude Code, GitHub Copilot and Antigravity, and the merge check depends on none of them |
 
 ## What it costs
@@ -191,7 +191,7 @@ sdlc constraints
 ```
 
 It should print the nineteen global constraints in force and say it read them from
-`global  embedded in sdlc 0.36.3`. **Use this rather than `sdlc help` as the smoke test** — `help` and
+`global  embedded in sdlc 0.36.4`. **Use this rather than `sdlc help` as the smoke test** — `help` and
 `version` are the only commands that need nothing from the installation, so they are the two that cannot
 tell you whether it worked. Then `claude plugin details sdlc@ai-sdlc` should say `Skills (18)` and
 `Hooks (3)`: **a hook count below three is a failed install**, not a detail, because the deterministic layer
@@ -339,6 +339,10 @@ What is honest to say about the rest:
   script to a Blazor page what Blazor already does, came from a real plan whose page script a person
   replaced with the framework's own mechanisms; nothing has yet watched it refuse one either. **It
   reaches no solution adopted before 0.35.0** until its row is added the same way.
+- **The upgrade check has met fixtures only.** A pull request that moves the pin merges without a cycle
+  when every framework file is what the pinned release's adoption writes. The suite holds it against
+  adoption's own output; no real solution has upgraded through it yet. It runs as the release the
+  branch pins, so the upgrade to the release that ships it is the first one it checks.
 - **Declaring the stack after adoption has not been walked by anybody but its author.** Adoption no
   longer writes the declared stack or the .NET build settings: a person places the first from a draft,
   and the second arrive with the skeleton. The suite holds each step; no real adoption has gone through

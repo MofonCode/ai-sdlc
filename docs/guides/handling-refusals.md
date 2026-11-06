@@ -370,6 +370,44 @@ the plan branches with `sdlc slices` is usually the quickest way.
 
 ---
 
+## An upgrade's pull request — the three ways it is refused
+
+A pull request on a branch that is no cycle's normally gets *no chain*. **One that changes only the pin in
+`.config/dotnet-tools.json`, what `sdlc init` then writes, and `techstack.md` is checked as an upgrade
+instead** (D-133). The branch can be called anything. The check runs as the release the branch pins, and
+compares each framework file with what that release's adoption writes from the base's copy. One path
+outside that set and it is not an upgrade, so the pull request gets *no chain* as before.
+
+### the check runs as another release
+
+The branch pins no release, or a release other than the one running the check. The comparison would be
+with another release's adoption, so it means nothing.
+
+**Next:** the generated pipeline restores the pin before this step; a pipeline written before D-131 does
+not, and `sdlc init` rewrites it. Locally, run the check from the solution, so the global `sdlc` hands it
+on to the pinned release.
+
+### a framework file adoption did not write
+
+A file in the pull request differs from what this release's adoption writes from the base's copy. Usually
+a hand edit — a step added to the pipeline, a permission added to `.claude/settings.json`, another tool
+moved in the manifest — or the files were written by an older binary than the pin names.
+
+**Next:** take the team's own change out into a cycle of its own, or run `dotnet tool restore`, `sdlc
+init` again, and commit what it changes.
+
+### a stack line that answers nothing
+
+`techstack.md` lost or changed a line, or gained one that is not an answer to a row this release ships and
+the base's stack never mentioned. An upgrade may answer what the release asks — a rule `true` or `false`,
+a default with the profile's choice, another, or `none` — because nothing already in force moves. Changing
+an answer already given re-judges what plans were argued against, which is a cycle's.
+
+**Next:** keep only the new rows in this pull request, and change any other line in a cycle. `sdlc stack`
+lists what the release asks.
+
+---
+
 ## `sdlc init` — the two ways adoption is refused
 
 ### an option it does not take

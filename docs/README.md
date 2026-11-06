@@ -250,6 +250,7 @@ declining to go on, exit code 1. An open blocker causes refusals; it is not one.
 | **the claim graph** | which cycles' plans declare the same files, so which pull requests will likely conflict and the order to merge them in. Advice, read by the sitrep; it no longer schedules builds |
 | **collision** | two cycles changing the same thing, met when the second one's pull request is merged | `/sdlc:resolve-conflict` |
 | **the admission check** | the pull-request check on a pull request carrying one cycle's planning documents and nothing else — or, from `slices/<slug>/plan`, every plan sliced together and the successors the slicing wrote: the plan, its approval and its hashes, no build and no verify. A slicing is refused if one plan fails, or needs a file only a sibling creates. Chosen by what the pull request changes, never by its branch name | `sdlc verify-chain <id> --base <branch>` |
+| **the upgrade check** | the pull-request check on a pull request that moves the solution to another release and does nothing else: the pin, what `sdlc init` writes, and answers in the declared stack to rows the release asks about. Each framework file must be exactly what the pinned release's adoption writes from the base's copy, and each stack line added must answer a row the base never mentioned. It needs no cycle, because nothing in it is a judgement. Chosen by what the pull request changes, never by its branch name | `sdlc verify-chain <branch> --base <branch>` |
 
 ### The integration branch and the factory
 

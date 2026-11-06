@@ -583,6 +583,13 @@ static async Task<int> VerifyChainCommand(CommandLine line)
 
     if (!CycleId.TryParse(given, out CycleId? id) && !CycleId.TryParseBranch(given, out id))
     {
+        // A change that moves the release and nothing else is checked by reproducing it (D-133). Chosen by
+        // what the diff carries, so the branch can be called anything and a name buys nothing.
+        if (line.TryOption("base", out _))
+        {
+            return await Workspace.Run(line, workspace => VerifyUpgradeOrRefuse(workspace, line, given)).ConfigureAwait(false);
+        }
+
         // Standard output, not error: this is a verdict a reader of a failed check has to read, and
         // the rest of the report goes there too.
         await Console.Out.WriteAsync(ChainRenderer.RenderUngoverned(given)).ConfigureAwait(false);
@@ -590,6 +597,31 @@ static async Task<int> VerifyChainCommand(CommandLine line)
     }
 
     return await Workspace.Run(line, workspace => VerifyChain(workspace, line, id.Value)).ConfigureAwait(false);
+}
+
+// A branch with no cycle behind it: an upgrade when everything it changes is the pin, a file adoption owns or
+// the declared stack, and refused for having no chain otherwise -- exactly as before, one source file included.
+static async Task<int> VerifyUpgradeOrRefuse(Workspace workspace, CommandLine line, string given)
+{
+    (IReadOnlyList<string>? changed, string? divergence) = await AgainstBase(workspace, line).ConfigureAwait(false);
+
+    if (changed is null || divergence is null || !VerifyUpgrade.Carries(changed))
+    {
+        await Console.Out.WriteAsync(ChainRenderer.RenderUngoverned(given)).ConfigureAwait(false);
+        return ExitCode.Refused;
+    }
+
+    Result<VerifyUpgrade.Response> result = await workspace
+        .Send<VerifyUpgrade.Query, VerifyUpgrade.Response>(new VerifyUpgrade.Query(changed, divergence))
+        .ConfigureAwait(false);
+
+    if (result.IsFailed)
+    {
+        return await Report(result, ExitCode.Failed).ConfigureAwait(false);
+    }
+
+    await Console.Out.WriteAsync(VerifyUpgrade.Render(result.Value)).ConfigureAwait(false);
+    return result.Value.Holds ? ExitCode.Ok : ExitCode.Refused;
 }
 
 // The non-bypassable layer. A pipeline runs this behind branch policy, so its exit code is the thing
