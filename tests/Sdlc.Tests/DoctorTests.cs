@@ -221,6 +221,22 @@ public sealed class DoctorTests
     }
 
     [TestMethod]
+    public void A_subject_longer_than_the_column_widens_it_rather_than_running_into_its_detail()
+    {
+        // A subject can name the default branch, whose length is the repository's: 'branch policy on main'
+        // once printed as 'branch policy on maina required build validation policy'.
+        string panel = DiagnosisRenderer.Render(new Diagnose.Response(
+        [
+            new Check("binary", CheckOutcome.Sound, "sdlc 0.0.0"),
+            new Check("branch policy on release-candidate", CheckOutcome.Problem, "nothing required", "set one"),
+        ]));
+
+        StringAssert.Contains(panel, "branch policy on release-candidate  nothing required");
+        StringAssert.Contains(panel, "binary" + new string(' ', "branch policy on release-candidate".Length + 2 - "binary".Length) + "sdlc 0.0.0");
+        StringAssert.Contains(panel, new string(' ', 13 + "branch policy on release-candidate".Length + 2) + "-> set one");
+    }
+
+    [TestMethod]
     public async Task The_panel_ends_with_the_same_drafts_and_renames_adoption_does()
     {
         // Each step ends in a rename, which runs nothing, so what adoption printed is stale the moment
