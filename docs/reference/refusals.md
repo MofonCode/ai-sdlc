@@ -75,6 +75,7 @@ The two hooks return no exit code to you: they stop the agent's action, and the 
 | [the verification did not pass](../guides/handling-refusals.md#the-verification-did-not-pass) | `/sdlc:remediate <id>` |
 | [escalated](../guides/handling-refusals.md#escalated) | a person decides: reopen the approval, or abandon the cycle |
 | [the chain does not hold](../guides/handling-refusals.md#the-chain-does-not-hold) | `sdlc verify-chain <id>` prints every check |
+| [a test run](../guides/handling-refusals.md#a-test-run) | abandon it; publish a preview, pin the integration branch to it, and run the work again |
 | **Denied to an agent — the pre-tool hook\*** | |
 | writing `approval.md` | `sdlc draft approval <id>`, then rename |
 | writing `abandoned.md` | `sdlc draft abandon <id>`, then place it |

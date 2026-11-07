@@ -75,6 +75,80 @@ public sealed class PinnedReleaseTests
     }
 
     [TestMethod]
+    [DataRow("0.36.7-local", true)]
+    [DataRow("0.36.7-local.20261106-0930", true)]
+    [DataRow("0.36.7-LOCAL+abc123", true)]
+    [DataRow("0.36.7", false)]
+    [DataRow("0.36.7-preview", false)]
+    [DataRow("0.36.7-preview.local", false)]
+    [DataRow("0.36.7-localhost", false)]
+    public void A_local_build_is_named_by_its_first_label(string version, bool local)
+    {
+        Assert.AreEqual(local, PinnedRelease.IsLocal(version));
+    }
+
+    [TestMethod]
+    [DataRow("0.36.7", "0.36.7-local")]
+    [DataRow("0.36.7-preview", "0.36.7-local")]
+    [DataRow("0.36.7-local.20261106-0930", "0.36.7-local.20261106-0930")]
+    public void A_dev_build_calls_itself_local_and_keeps_a_label_that_already_says_so(string stamped, string reported)
+    {
+        Assert.AreEqual(reported, PinnedRelease.AsLocal(stamped));
+    }
+
+    [TestMethod]
+    public void A_dev_build_is_found_at_the_top_of_its_directory_or_alone_beneath_it()
+    {
+        using var output = Scratch.Create();
+        output.Write("sdlc.dll", string.Empty);
+        output.Write("other/sdlc.dll", string.Empty);
+
+        Assert.AreEqual(Path.Combine(output.Root, "sdlc.dll"), PinnedRelease.DevBuildEntry(output.Root).Value);
+
+        using var installed = Scratch.Create();
+        installed.Write(".store/mofoncode.sdlc.cli/0.36.7-local/tools/net10.0/any/sdlc.dll", string.Empty);
+
+        StringAssert.EndsWith(PinnedRelease.DevBuildEntry(installed.Root).Value, "sdlc.dll");
+    }
+
+    [TestMethod]
+    public void Two_dev_builds_in_one_directory_are_refused_rather_than_guessed_between()
+    {
+        // The build that writes a cycle's rounds is the one thing here that has to be the one meant.
+        using var scratch = Scratch.Create();
+        scratch.Write("a/sdlc.dll", string.Empty);
+        scratch.Write("b/sdlc.dll", string.Empty);
+
+        Result<string> entry = PinnedRelease.DevBuildEntry(scratch.Root);
+
+        Assert.IsTrue(entry.IsFailed);
+        StringAssert.Contains(entry.Errors[0].Message, "2 builds");
+        Assert.IsTrue(PinnedRelease.DevBuildEntry(Path.Combine(scratch.Root, "missing")).IsFailed);
+    }
+
+    [TestMethod]
+    public void A_directory_is_inside_the_dev_build_only_when_it_is_it_or_beneath_it()
+    {
+        string root = Path.Combine(Path.GetTempPath(), "sdlc-dev");
+
+        Assert.IsTrue(PinnedRelease.IsInside(root, root));
+        Assert.IsTrue(PinnedRelease.IsInside(Path.Combine(root, "plugin"), root));
+        Assert.IsFalse(PinnedRelease.IsInside(root + "-other", root), "A sibling sharing a prefix is not inside.");
+    }
+
+    [TestMethod]
+    public void A_local_build_is_announced_every_session_and_a_published_one_is_not()
+    {
+        string? local = PluginRelease.LocalBuild("0.36.7-local");
+
+        Assert.IsNotNull(local);
+        StringAssert.Contains(local, "0.36.7-local");
+        StringAssert.Contains(local, PinnedRelease.DevBuildVariable);
+        Assert.IsNull(PluginRelease.LocalBuild("0.36.7-preview"));
+        Assert.IsNull(PluginRelease.LocalBuild("0.36.7"));
+    }
+
+    [TestMethod]
     public void Skills_from_another_release_are_named_with_both_releases()
     {
         using var scratch = Scratch.Create();

@@ -135,7 +135,8 @@ internal static class Usage
                                      cycle/<id>/... branch on the remote, or an approval the
                                      gate no longer accepts. Deleting the branch re-queues it.
             pr-ready <id>            Say whether a cycle may open a pull request, without opening
-                                     one. Exits 1 if not. For every cycle, 'cycles --pr-ready'.
+                                     one. Exits 1 if not -- and always for a test run, a cycle
+                                     a local build judged. For every cycle, 'cycles --pr-ready'.
             draft approval <id>      Write the gate decision beside the ledger, for a person to
                                      rename onto it. Writes no approval.
             draft abandon <id>       Print the record that stops a cycle, for a person to place.
@@ -255,7 +256,8 @@ internal static class Usage
             version                  Which version of the gate this is, and which versions it
                                      expects beside it. Inside a solution that pins another
                                      release, every command -- this one too -- is answered by
-                                     the pinned release.
+                                     the pinned release. With SDLC_DEV_BUILD set, by that build,
+                                     which calls itself <release>-local.
             claude [args]            Start Claude Code with the skills this release carries, which
                                      in a solution that pins a release are that release's. Every
                                      argument after 'claude' is Claude Code's, passed unchanged.
@@ -263,6 +265,12 @@ internal static class Usage
 
         Common options
             --solution <path>        The solution to work in. Defaults to the working directory.
+
+        Environment
+            SDLC_DEV_BUILD           A directory holding a build of sdlc nobody published. Every
+                                     command is handed to it instead of the pinned release, it
+                                     calls itself <release>-local, and no cycle it judged opens a
+                                     pull request. For testing a change to the framework.
 
         Options for draft techstack
             --empty                  Write the draft with nothing in it. Renamed into place, it

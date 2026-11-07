@@ -21,9 +21,12 @@ COPY . .
 # checkout's are CRLF, so a binary packed from one prints "sdlc 0.27.0\r" on Linux. The pipeline compares
 # that line exactly, misses, and tries to reinstall from a feed. Pack from LF sources, as git stores them,
 # and tell .editorconfig so, since it states crlf and the build enforces formatting.
+#
+# CI=true, because the image is built from a checkout at a release and a pack outside a pipeline is otherwise
+# labelled local (Directory.Build.props, D-135).
 RUN find src -name '*.cs' -exec sed -i 's/\r$//' {} + \
  && sed -i 's/^end_of_line = crlf/end_of_line = lf/' .editorconfig \
- && dotnet pack src/Sdlc.Cli/Sdlc.Cli.csproj --configuration Release -o /pack
+ && CI=true dotnet pack src/Sdlc.Cli/Sdlc.Cli.csproj --configuration Release -o /pack
 
 FROM mcr.microsoft.com/dotnet/sdk:${DOTNET_SDK}-noble
 

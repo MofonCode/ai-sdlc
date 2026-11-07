@@ -41,10 +41,13 @@ put it there; do not invent a name.
 
 ```
 sdlc gate <id>
+sdlc verify-chain <id> --base <integration branch>
 ```
 
-**Push only past a satisfied gate.** A plan nobody approved, or one edited since, is refused by the
-pull-request check anyway. Then push `cycle/<id>/plan` and open the pull request so that **merging it
+**Push only past a satisfied gate and a chain that holds.** A plan nobody approved, or one edited since, is
+refused by the pull-request check anyway. The second command is that check, run here: it also refuses a plan any
+round of which a local build wrote, because a cycle argued on a build nobody published is a test run, and a test
+run is abandoned rather than pushed (D-135). Show its refusal and stop. Then push `cycle/<id>/plan` and open the pull request so that **merging it
 deletes the branch** — on Azure DevOps `az repos pr create --delete-source-branch true`; on GitHub that is
 the repository setting *Automatically delete head branches*, so if you cannot tell it is on, say in the body
 that the branch must be deleted on merge. A plan branch left on the remote holds the cycle back from the
@@ -116,7 +119,7 @@ which is accurate. A person remedies it on this branch and marks it ready.
 sdlc pr-ready <id>
 ```
 
-It refuses for four reasons, and each is final rather than advisory:
+It refuses for five reasons, and each is final rather than advisory:
 
 | Refusal | What it means |
 |---|---|
@@ -124,6 +127,7 @@ It refuses for four reasons, and each is final rather than advisory:
 | did not pass | the verdict was `blocked` or `escalated` |
 | escalated | remediation stopped making progress with findings still open |
 | chain broken | it verified, and something has changed since |
+| a test run | a local build wrote one of its rounds, or the solution pins one: it is abandoned, and the work is done again on a published release (D-135) |
 
 **Do not push past a refusal.** The chain-broken one in particular: the pull-request check would refuse
 it anyway, so pushing would cost a round trip through CI to learn what you were just told.

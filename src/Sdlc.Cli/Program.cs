@@ -1868,17 +1868,31 @@ static async Task<int> Hook(CommandLine line)
         // and the handoff has already made this the release the directory pins (D-131).
         line.TryOption("plugin", out string? plugin);
         string? mismatch = PluginRelease.Mismatch(plugin, Release.Version);
+        string? local = PluginRelease.LocalBuild(Release.Version);
+        string[] context = [.. new[] { local, mismatch }.OfType<string>()];
 
-        await Console.Out.WriteAsync(mismatch is null
-            ? "{}"
-            : new System.Text.Json.Nodes.JsonObject
+        if (context.Length == 0)
+        {
+            await Console.Out.WriteAsync("{}").ConfigureAwait(false);
+            return ExitCode.Ok;
+        }
+
+        System.Text.Json.Nodes.JsonObject output = new()
+        {
+            ["hookSpecificOutput"] = new System.Text.Json.Nodes.JsonObject
             {
-                ["hookSpecificOutput"] = new System.Text.Json.Nodes.JsonObject
-                {
-                    ["hookEventName"] = "SessionStart",
-                    ["additionalContext"] = mismatch,
-                },
-            }.ToJsonString()).ConfigureAwait(false);
+                ["hookEventName"] = "SessionStart",
+                ["additionalContext"] = string.Join(" ", context),
+            },
+        };
+
+        // The person is told too, not only the agent: a dev build left switched on is theirs to notice (D-135).
+        if (local is not null)
+        {
+            output["systemMessage"] = local;
+        }
+
+        await Console.Out.WriteAsync(output.ToJsonString()).ConfigureAwait(false);
         return ExitCode.Ok;
     }
 

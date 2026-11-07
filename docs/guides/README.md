@@ -1,10 +1,11 @@
 # The guides
 
-Eight guides, written for somebody using the framework rather than changing it, each answering one task.
+Nine guides, each answering one task. Eight are for somebody using the framework; the last is for somebody
+changing it.
 This file is the index: what each one covers, when you would read it, and what it leaves to another.
 
 **They are in the order a person meets them.** Install once per machine, initialize and declare once per
-repository, then run cycles — and keep the last two to hand for when a cycle stops. **If you want the
+repository, then run cycles — and keep the two `handling-` guides to hand for when a cycle stops. **If you want the
 whole thing end to end with a real solution in it**, `../samples/rolling-a-die.md` is that walk.
 
 | Guide | Covers | Read it |
@@ -17,6 +18,7 @@ whole thing end to end with a real solution in it**, `../samples/rolling-a-die.m
 | [`running-the-factory.md`](running-the-factory.md) | many cycles built overnight: the integration branch, admitting plans, the factory's pipeline, and the morning's sitrep, merges and conflicts | every day the factory runs |
 | [`handling-blockers.md`](handling-blockers.md) | a blocking finding on a document, or a blocked verification: what each is and how it is answered | when a loop hands back, or a verification says `blocked` |
 | [`handling-refusals.md`](handling-refusals.md) | every refusal, hook denial and turn sent back, with the remedy for each | when something stops |
+| [`testing-a-local-build.md`](testing-a-local-build.md) | a cycle run end to end on a build of the framework nobody published: switching it on, what stops it at the pull request, and shipping the change for real | when you are changing ai-sdlc itself and want to watch a cycle go through the change |
 
 `../cheat-sheet.md` is a cycle as one line per step, and `../reference/README.md` is every command,
 skill and refusal as one line each, for when you already know why.
@@ -104,6 +106,16 @@ command. It opens with the exit codes, because a refusal and a failure are diffe
 closes with the cases where nothing refuses and it should have.
 
 `../reference/refusals.md` is the same list as one line each.
+
+## `testing-a-local-build.md`
+
+**A cycle run end to end on a change to the framework that nobody has published.** Building the change into a
+folder of its own, or taking the package a pull request built; switching it on with `SDLC_DEV_BUILD` for one
+terminal; starting the session; why `/sdlc:pr` refuses the cycle; abandoning it; and shipping the change as a
+preview and running the work again on it. It closes with pinning a local pack in a sandbox solution, and why
+never in a real one.
+
+What it does not cover: installing a published release, which is `installing-the-plugin.md`.
 
 ## What these are not
 

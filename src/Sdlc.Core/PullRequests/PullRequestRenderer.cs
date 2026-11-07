@@ -93,6 +93,7 @@ public static class PullRequestRenderer
         PullRequest.PullRequestRefusal.NotPassed => "verification did not pass",
         PullRequest.PullRequestRefusal.Escalated => "escalated: could not be made to pass within its budget",
         PullRequest.PullRequestRefusal.ChainBroken => "verified, but the chain does not hold",
+        PullRequest.PullRequestRefusal.LocalBuild => "a test run: a local build judged it",
         _ => "unknown",
     };
 

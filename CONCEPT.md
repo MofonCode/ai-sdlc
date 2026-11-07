@@ -1468,6 +1468,11 @@ person's own commit, which merges with the code — or after the merge; a sweep 
 rather than of `pr-ready`, and merging it deletes the plan branch (D-83, D-87). Every pull request pushes the
 cycle's own branch and targets the integration branch, or the default branch while there is none.
 
+**No cycle a local build judged opens a pull request, in any form** (D-135). A build of the framework nobody
+published calls itself `<release>-local`, and every round records the release that wrote it, so the chain check
+fails a cycle with any such round, or a solution that pins one. A cycle run on a local build is a test run: it
+ends abandoned, and the work is done again on a preview or a release.
+
 ### 10.4 The integration branch
 
 **Approved plans wait on `development`** (D-83), the name a solution records in `solution.md`. A person
@@ -2022,6 +2027,8 @@ implies.
   `## Open` as a limit of the proof — the one exit `CON_14` does not cover, because it binds an intent,
   a spec and a plan and not a verify (§4.3)
 - the outcome in `verify.md` is `pass`
+- **no round was written by a local build, and the solution pins none** — the admission check asks this too,
+  because a plan a local build argued is a test run as much as a build is (D-135)
 
 When the pull request changes `constraints.md`, `decisions.md` or `techstack.md`, it also **reports**
 whether that change was committed before or after the commit that wrote the verify, and never fails on it:
@@ -7158,6 +7165,63 @@ its refusal still apply.
 - *Guessing a marker for Copilot or Antigravity.* Neither documents one; a guessed marker is a panel that
   names one host's invocation to someone using another.
 
+### D-135 — A local build runs a cycle end to end, and nothing it judged ships
+
+**Governs:** §10.3, §13
+
+**Extends D-131.** D-131 made a cycle run on the release its branch pins, and published every release and
+preview from one workflow. It left no way to run a cycle on a change to the framework before publishing it, and a
+nuget.org version can never be deleted.
+
+**Decision.**
+
+- **`SDLC_DEV_BUILD` names a directory holding a build of the binary**: a build's output, or a folder a local
+  pack was installed into with `--tool-path`. Set, the global `sdlc` hands every command to that build instead of
+  the release the directory pins. Its `sdlc claude` loads the skills beside it, so the skills, the hooks and the
+  binary are one build, as D-131 has them.
+- **A build nobody published calls itself local.** Run from that directory, the binary reports its release as
+  `<release>-local`, so every round it writes records that. A pack made anywhere but a pipeline is stamped
+  `<release>-local`, or `-local.<yyyyMMdd-HHmm>` when the time is passed, so successive packs restore as different
+  versions. An ordinary build keeps the version the props declare, because the suite records rounds with it and
+  must behave on a laptop as it does on CI.
+- **The session says so, every session.** The session-start hook tells the agent and the person that a local
+  build is running and where from.
+- **Nothing a local build judged opens a pull request.** The chain check fails a cycle with any round a local
+  build wrote, or a solution that pins one, so `pr-ready` refuses it, `pr --plan` refuses it through
+  `verify-chain`, and the solution's pull-request check refuses it if somebody opens one by hand. A test run ends
+  abandoned. The change is published as a preview, the integration branch is pinned to it by a pull request that
+  only moves the pin (D-133), and the cycle is run again on it.
+- **One pipeline publishes.** `ci.yml` builds every pull request, publishes a preview from a push to any other
+  branch that changes what ships, and a release from a merge to master once a reviewer approves the `nuget`
+  environment. Each published version is tagged as before. A pull request's packed tool is kept as a run artifact,
+  which is how a branch's build reaches a machine without being published.
+
+**Why.** Testing a change to a skill or a check meant publishing a preview first, and a preview is permanent. A
+test run on a real solution would also leave rounds no one else could reproduce: a reviewer, the pipeline and the
+factory all restore the pin, and none can restore a build that lives on one laptop.
+
+**Why any round, not the round that let the cycle advance.** Every round shaped the documents after it. Which one
+"counted" is a judgement the check would have to make, and a rule that reads every release recorded makes none.
+
+**What it costs.** A cycle proven on a local build is run again on the preview, approval included. In a sandbox
+solution that costs nothing, because the work was disposable. In a real one the work is redone; the intent can be
+carried into the new cycle by hand.
+
+**Rejected.**
+
+- *Pinning the local build in the solution's manifest.* A pin change inside a cycle is an undeclared file, and
+  the pin merges with the cycle into the integration branch, where no pipeline and no other machine can restore it.
+- *Moving a cycle's pin to the preview before its pull request, and re-verifying.* It keeps the cycle's rounds,
+  but needs a manifest change that evidence exempts, and the planning rounds were still argued by a build nobody
+  can reproduce.
+- *A timestamp in the minor or a fourth part.* An assembly version part cannot exceed 65534, three parts is what
+  every reader of a release parses, and a local build would sort above the next real release. A prerelease label
+  sorts below the preview and the release of the same patch.
+- *Labelling every build made outside a pipeline local.* The suite records rounds with the binary's version, so it
+  would refuse on a laptop what it accepts on CI.
+- *A feed for test builds, such as GitHub Packages.* D-131 rejected it for a solution's pipeline, and a test build
+  needs no feed: a directory is enough.
+
 ### D-134 — A cycle is for a decision; a pull request that only moves dependency versions needs none
 
 **Governs:** §3.1, §13
@@ -7367,8 +7431,9 @@ when that cycle merges the integration branch, which is a person's choice. The g
 tool restore` and read the version from the manifest, so the version is written in one place. A pipeline in a
 solution that pins nothing stops and says to run `init`.
 
-The binary is published to nuget.org by `.github/workflows/release.yml`, using trusted publishing:
-- A `v<release>` tag publishes that release once a person approves it.
+The binary is published to nuget.org by `.github/workflows/ci.yml`, using trusted publishing. It was `release.yml`,
+with a release cut by a pushed tag, until D-135 made one pipeline of it:
+- A merge to master publishes that release once a person approves it.
 - A push to any other branch that changes what ships publishes `<release>-preview` and tags the commit
   with the same name. A preview carries no counter, so a version has one, and the next is the next patch; a
   push that ships a change without moving the patch is refused rather than skipped. A run number was the

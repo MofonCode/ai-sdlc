@@ -601,6 +601,33 @@ public sealed class VerifyChainTests
     }
 
     [TestMethod]
+    public async Task A_plan_a_local_build_argued_is_not_admitted()
+    {
+        // D-135: a plan argued on a build nobody published is a test run as much as a build is.
+        using CycleWorkspace workspace = Planned();
+        workspace.WriteRound(ArtifactKind.Spec, 2, findings: string.Empty, release: "0.36.7-local");
+
+        VerifyChain.Response verdict = await Check(workspace, PlanningPaths(workspace));
+
+        Assert.IsTrue(verdict.Admission, Describe(verdict));
+        Assert.IsFalse(verdict.Holds, Describe(verdict));
+        StringAssert.Contains(
+            verdict.Failures.Single(check => check.Name == VerifyChain.PublishedCheck).Detail,
+            "spec round 2 was written by 0.36.7-local");
+    }
+
+    [TestMethod]
+    public async Task A_chain_no_local_build_touched_says_nothing_about_local_builds()
+    {
+        // Silent when it holds: a line about test runs on every pull request would be read past.
+        using CycleWorkspace workspace = Planned();
+
+        VerifyChain.Response verdict = await Check(workspace, PlanningPaths(workspace));
+
+        Assert.IsFalse(verdict.Checks.Any(check => check.Name == VerifyChain.PublishedCheck), Describe(verdict));
+    }
+
+    [TestMethod]
     public async Task One_file_outside_the_plan_brings_back_the_full_chain()
     {
         // The diff decides, not the branch name: a plan's pull request carrying one source file is held

@@ -15,7 +15,23 @@
          Cycle.FrameworkVersion is deliberately NOT this. That constant is the artifact format
          stamped into every file's framework_version, and binding it here would restamp every
          artifact as a new format on a release that changed no format at all. -->
-    <VersionPrefix>0.36.6</VersionPrefix>
+    <VersionPrefix>0.36.7</VersionPrefix>
+
+    <!-- A pack made anywhere but the pipeline is a local build, and its version says so: 0.36.7-local (D-135).
+         A solution can pin it to test a change, and no cycle it judges reaches a pull request, because the rounds
+         record the release that wrote them. Only a pack: an ordinary build stays as declared, because the suite
+         records rounds with this version and must behave on a laptop as it does on CI. A build run through
+         SDLC_DEV_BUILD labels itself local when it runs instead.
+
+         A pack of the same version twice is not restored twice - the global packages folder keys on it - so to
+         pin successive packs, name each one, once for both projects:
+             dotnet pack src/Sdlc.Cli -o <folder> -p:VersionSuffix=local.<yyyyMMdd-HHmm>
+         The time is a parameter rather than read here, because each project would read its own clock and a pack
+         that straddled a minute would be one package claiming two releases.
+
+         CI is set by GitHub Actions and Azure Pipelines, and factory/Dockerfile sets it for its pack, because the
+         image is built from a checkout at a release. -->
+    <VersionSuffix Condition="'$(VersionSuffix)' == '' and '$(_IsPacking)' == 'true' and '$(CI)' != 'true'">local</VersionSuffix>
 
     <!-- MIT, declared once for the whole solution rather than per project, so a packable
          project added later cannot ship under a different licence by omission. LICENSE at

@@ -11,7 +11,7 @@ an agent runs it, and it never decides a gate. `skills.md` lists the skills.
 | Command | Runs it | Does |
 |---|---|---|
 | **Once per machine** | | |
-| `sdlc version` | binary | which version of the gate this is, and which versions it expects beside it. Inside a solution that pins another release, the pinned release answers this and every other command |
+| `sdlc version` | binary | which version of the gate this is, and which versions it expects beside it. Inside a solution that pins another release, the pinned release answers this and every other command. With `SDLC_DEV_BUILD` set, that build answers, and calls itself `<release>-local` ([Testing a local build](../guides/testing-a-local-build.md)) |
 | `sdlc claude [args]` | binary | starts Claude Code with the skills packed beside the binary, so in a pinned solution the session's skills are the pinned release's. Its arguments are Claude Code's |
 | `sdlc help` | binary | every command and its options. `--help` after any command prints the same |
 | `sdlc doctor` | binary | checks the install and this repository; names the fix for each problem, and before the first cycle names each draft to fill in and its rename. Says when adoption's files are a release behind the binary. Asks the platform, through `az` or `gh` signed in as you, whether branch policy requires the pipeline: a policy that does not is a problem, a CLI that is not signed in a warning. Exits 1 on a problem, a missing integration branch and a placeholder paragraph included. Never repairs |
@@ -38,7 +38,7 @@ an agent runs it, and it never decides a gate. `skills.md` lists the skills.
 | `sdlc evidence check <id>` | binary | lists what `verify.md` cites that none of the recorded evidence holds, and tests it says passed that did not. Reports only, always exits 0. `/sdlc:verify` runs it |
 | `/sdlc:verify <id>` | agent, fresh process | adjudicates from the evidence alone, writes `verify.md` |
 | `/sdlc:remediate <id>` | agent | only on `blocked`; runs while each pass reduces what is open |
-| `sdlc pr-ready <id>` | binary | whether it may open a pull request. Exits 1 if not |
+| `sdlc pr-ready <id>` | binary | whether it may open a pull request. Exits 1 if not, and always for a test run: a cycle any round of which a local build wrote |
 | `/sdlc:pr <id>` | agent | pushes and opens the pull request. Asks first |
 | `sdlc verify-chain <id> --base <branch>` | binary | the pull-request check, and the only layer that cannot be bypassed. A plan alone gets the admission check; `slices/<slug>/plan` gets it for every cycle sliced together, with their successors and sibling plans checked; a branch that is no cycle's and changes only the pin, what `sdlc init` and `sdlc factory` write, answers in the declared stack and dependency versions gets the upgrade check |
 | `sdlc admission <id> --base <branch>` | binary | `true` when a pull request carries only a plan — or a slicing's plans — and any successors, so the pipeline skips the build and the tests |

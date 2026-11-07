@@ -54,7 +54,10 @@ dotnet tool install --global MofonCode.Sdlc.Cli
 ```
 
 **Until the first release reaches nuget.org**, or when you are changing the framework itself, build it
-from a clone of this repository and install the package that build produces. One command per block.
+from a clone of this repository and install the package that build produces. One command per block. A package
+packed on your machine is a local build — its version ends in `-local` — and no cycle it judges opens a pull
+request; inside a solution that pins a published release, the pin runs instead. To run a cycle on a change you
+are making, [Testing a local build](testing-a-local-build.md) is the better route.
 
 ```pwsh
 cd C:\Repos\ai-sdlc

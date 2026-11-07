@@ -35,6 +35,18 @@ public static class PinnedRelease
     /// </summary>
     public const string HandedOnVariable = "SDLC_HANDED_ON";
 
+    /// <summary>
+    /// A directory holding a build of the binary that nobody published. Set, the global binary hands every command
+    /// to that build instead of the release the directory pins, and the build calls itself local (D-135).
+    /// </summary>
+    public const string DevBuildVariable = "SDLC_DEV_BUILD";
+
+    /// <summary>
+    /// The prerelease label of a build nobody published: <c>0.36.7-local</c>, or <c>0.36.7-local.20261106-0930</c>
+    /// for a pack. A round it writes proves a change to the framework and never reaches a pull request (D-135).
+    /// </summary>
+    public const string LocalLabel = "local";
+
     /// <summary>The version a directory pins, or null when no manifest above it names the package.</summary>
     /// <param name="directory">Where to start looking.</param>
     /// <returns>The pinned version.</returns>
@@ -177,6 +189,96 @@ public static class PinnedRelease
 
         int end = version.IndexOfAny(['-', '+']);
         return end < 0 ? version : version[..end];
+    }
+
+    /// <summary>Whether a release is a build nobody published: its prerelease label starts <c>local</c>.</summary>
+    /// <param name="version">A release such as <c>0.36.7-local.20261106-0930</c>.</param>
+    /// <returns>True for a local build.</returns>
+    public static bool IsLocal(string version)
+    {
+        ArgumentNullException.ThrowIfNull(version);
+
+        int plus = version.IndexOf('+', StringComparison.Ordinal);
+        string bare = plus < 0 ? version : version[..plus];
+        int dash = bare.IndexOf('-', StringComparison.Ordinal);
+
+        if (dash < 0)
+        {
+            return false;
+        }
+
+        string label = bare[(dash + 1)..];
+        int dot = label.IndexOf('.', StringComparison.Ordinal);
+        return string.Equals(dot < 0 ? label : label[..dot], LocalLabel, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>A release as a local build calls itself: unchanged when it already says so.</summary>
+    /// <param name="version">The stamped release, such as <c>0.36.7</c>.</param>
+    /// <returns>Such as <c>0.36.7-local</c>.</returns>
+    public static string AsLocal(string version)
+    {
+        ArgumentNullException.ThrowIfNull(version);
+
+        return IsLocal(version) ? version : Core(version) + "-" + LocalLabel;
+    }
+
+    /// <summary>The directory <see cref="DevBuildVariable"/> names, in full, or null when it is not set.</summary>
+    /// <returns>The directory.</returns>
+    public static string? DevBuild() =>
+        Environment.GetEnvironmentVariable(DevBuildVariable) is { Length: > 0 } named
+            ? Path.GetFullPath(named.Trim())
+            : null;
+
+    /// <summary>Whether a directory is the dev build or inside it, so the build does not hand on to itself.</summary>
+    /// <param name="directory">The directory a binary runs from.</param>
+    /// <param name="devBuild">The directory <see cref="DevBuildVariable"/> names.</param>
+    /// <returns>True when the one is the other or under it.</returns>
+    public static bool IsInside(string directory, string devBuild)
+    {
+        ArgumentNullException.ThrowIfNull(directory);
+        ArgumentNullException.ThrowIfNull(devBuild);
+
+        string from = Path.TrimEndingDirectorySeparator(Path.GetFullPath(directory)) + Path.DirectorySeparatorChar;
+        string root = Path.TrimEndingDirectorySeparator(Path.GetFullPath(devBuild)) + Path.DirectorySeparatorChar;
+
+        return from.StartsWith(root, OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// The <c>sdlc.dll</c> a dev build directory holds: the one at its top, or the only one beneath it.
+    /// </summary>
+    /// <remarks>
+    /// Two layouts are meant. A build's output, <c>src/Sdlc.Cli/bin/Debug/net10.0</c>, holds it at the top. A
+    /// <c>dotnet tool install --tool-path</c> of a local pack holds it several folders down, under <c>.store</c>.
+    /// More than one is refused rather than guessed between: the build that writes a cycle's rounds is the one
+    /// thing here that has to be the one meant.
+    /// </remarks>
+    /// <param name="devBuild">The directory.</param>
+    /// <returns>The path to its <c>sdlc.dll</c>, or why there is none.</returns>
+    public static Result<string> DevBuildEntry(string devBuild)
+    {
+        ArgumentNullException.ThrowIfNull(devBuild);
+
+        if (!Directory.Exists(devBuild))
+        {
+            return Result.Fail($"{DevBuildVariable} names {devBuild}, which is not a directory. Point it at a build's output, such as src/Sdlc.Cli/bin/Debug/net10.0, or unset it to run the release this directory pins.");
+        }
+
+        string top = Path.Combine(devBuild, "sdlc.dll");
+
+        if (File.Exists(top))
+        {
+            return top;
+        }
+
+        string[] found = [.. Directory.EnumerateFiles(devBuild, "sdlc.dll", SearchOption.AllDirectories).Order(StringComparer.Ordinal)];
+
+        return found.Length switch
+        {
+            1 => found[0],
+            0 => Result.Fail($"{DevBuildVariable} names {devBuild}, which holds no sdlc.dll. Build ai-sdlc and point it at the output, or unset it."),
+            _ => Result.Fail($"{DevBuildVariable} names {devBuild}, which holds {found.Length} builds of sdlc.dll: {string.Join(", ", found)}. Point it at the one meant."),
+        };
     }
 
     // A version is ASCII letters, digits, dots and dashes, so lowering it needs no culture and no analyzer's worry.

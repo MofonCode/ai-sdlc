@@ -57,8 +57,7 @@ the cheapest way to discover that what you were about to add already lives somew
 | `tools/Sdlc.ScaffoldHarness/` | the harness that writes a scaffolded solution so it can be built |
 | `tools/Sdlc.UsageReport/` | what a host's sessions cost, read from Claude Code's transcripts: the whole-session view the per-cycle usage record leaves out |
 | [`factory/README.md`](factory/README.md) | the factory bundle: what runs unattended. Today only the factory's agent image, built from one commit (D-96) |
-| `.github/workflows/ci.yml` | build and test on every pull request, which deliberately does not govern this repository with itself (D-42) |
-| `.github/workflows/release.yml` | publishes the binary to nuget.org: a release from a `v*` tag, a preview from any other branch, each tagged so the plugin can be pinned to it (D-131). See Releasing below |
+| `.github/workflows/ci.yml` | build and test on every pull request, which deliberately does not govern this repository with itself (D-42); a preview from a push to any other branch that changes what ships, and a release from a merge to master, each tagged so the plugin can be pinned to it (D-131, D-135). See Releasing below |
 
 ### Querying `CONCEPT.md`
 
@@ -127,10 +126,12 @@ a backstop, not the inner loop.
 
 ## Releasing
 
-**A release is a tag.** `VersionPrefix` in `Directory.Build.props` and the `version` in both plugin manifests
-are moved together, merged, and then a person pushes `v<that version>` on master. `release.yml` refuses a tag
-or a manifest that disagrees with the props, builds, tests, packs, checks the packed tool answers with the
-version it will be published as, and waits for a reviewer on the `nuget` environment before it pushes.
+**A release is a merge.** `VersionPrefix` in `Directory.Build.props` and the `version` in both plugin manifests
+are moved together and merged into master. `ci.yml` refuses a manifest that disagrees with the props, builds,
+tests, packs, checks the packed tool answers with the version it will be published as, and waits for a reviewer
+on the `nuget` environment before it pushes and tags the commit `v<that version>`. A merge whose version is
+already published and that changes nothing that ships publishes nothing; one that does change what ships is
+refused.
 
 **A preview is a push.** Any other branch whose push changes what ships publishes
 `<VersionPrefix>-preview` through the `nuget-preview` environment, which has no reviewer, and tags the
@@ -138,12 +139,16 @@ commit `v<that version>`. A nuget.org version can be unlisted and never deleted,
 documents makes none. **There is one preview per version**: the next one is the next patch, moved in the props
 and both manifests together, and a push that ships a change without moving it is refused.
 
+**A local build is never published** (D-135). `SDLC_DEV_BUILD` points every `sdlc` on the machine at a build of
+this repository, which calls itself `<VersionPrefix>-local`, and a cycle any local build judged never opens a pull
+request. [`docs/guides/testing-a-local-build.md`](docs/guides/testing-a-local-build.md) is how to run one.
+
 **No key is stored.** The publish job trades a GitHub OIDC token for a nuget.org key that lives an hour,
 against a trusted publishing policy on nuget.org. Setting it up is a person's, once:
 
 | Where | What |
 |---|---|
-| nuget.org, **Trusted Publishing** | two policies, owner `MofonCode`, repository owner `MofonCode`, repository `ai-sdlc`, workflow file `release.yml`; environment `nuget` on one and `nuget-preview` on the other |
+| nuget.org, **Trusted Publishing** | two policies, owner `MofonCode`, repository owner `MofonCode`, repository `ai-sdlc`, workflow file `ci.yml`; environment `nuget` on one and `nuget-preview` on the other |
 | GitHub, **Settings > Environments** | `nuget` with a required reviewer; `nuget-preview` with none |
 | GitHub, **Settings > Secrets** | `NUGET_USER`: the nuget.org profile name the token exchange identifies itself as |
 
