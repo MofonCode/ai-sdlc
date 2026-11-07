@@ -464,7 +464,7 @@ What is honest to say about the rest:
   release carries its own skills and hooks, and `sdlc claude` starts a session with them; plain `claude`
   loads the installed plugin, and a session-start hook says when that is another release (D-131).
   `.github/workflows/ci.yml` publishes to nuget.org: a preview from each merge into development that ships, one per patch from
-  `0.36.1-preview` on, and a release from each merge to master once a reviewer approves it (D-135).
+  `0.36.1-preview` on, and a release from each merge to main once a reviewer approves it (D-135).
 - **A cycle can run on a change to the framework nobody has published, and stops at the pull request**
   (0.36.7). `SDLC_DEV_BUILD` hands every `sdlc` in a terminal to a local build, which calls itself
   `-local`; a cycle any round of which it wrote is a test run, and `pr-ready` and the pull-request check refuse
