@@ -1478,7 +1478,14 @@ ends abandoned, and the work is done again on a preview or a release.
 **Approved plans wait on `development`** (D-83), the name a solution records in `solution.md`. A person
 pull-requests a cycle's planning documents into it from `cycle/<id>/plan`, and the branch is deleted on
 merge; the factory builds from it; every built cycle is pull-requested back into it. Main receives only
-what a person promotes, and the framework has no part in that (D-88).
+what a person promotes, and when is theirs (D-88).
+
+**Both branches take pull requests only, and nobody bypasses that, by default** (D-136). A pull request into
+the integration branch is squashed, so a cycle is one commit; one into the default branch is merged with a
+merge commit, so the two keep sharing history; and only the integration branch or a `release/*` branch may
+open one into the default branch. No approval is required, because nobody can approve their own pull
+request. `sdlc branch-policy` prints the commands that set this on GitHub or Azure DevOps, a person runs them,
+and `doctor` reads them back. A team may change any of it.
 
 **The local approval is still the gate.** The plan's pull request admits a plan to the factory; it does not
 approve it. Its check is the admission check, chosen by the diff (D-87).
@@ -2056,7 +2063,10 @@ validation policy's expiration set to *Immediately*, which re-queues on its own;
 and the adoption guide lays out the cheaper ones. `development` also builds on every merge, which names the
 merge that broke it.
 
-**The guarantee covers `development`** (D-88). Main's branch policy, and a release branch's, are the team's.
+**The guarantee covers `development`** (D-88). What reaches main is still the team's to choose; how it gets
+there has a default (D-136): only `development` or a `release/*` branch may open a pull request into the
+default branch, which `sdlc promotion` decides inside the same `verify` job, and the chain is not asked of a
+promotion, which has no cycle. A release branch's own policy is the team's.
 
 Keeping every check inside `sdlc verify-chain` means each pipeline is about thirty lines of YAML
 wrapping one command.
@@ -2258,6 +2268,8 @@ they print verbatim.
 | `pr-ready <id>` | whether one cycle may open a pull request, without opening one |
 | `verify-chain <id> [--base <branch>]` | the whole chain, as the pull-request check runs it — §13. With the target branch, a pull request carrying only the cycle's planning documents gets the admission check (D-87). Given `slices/<slug>/plan`, every cycle the slicing carries gets it, with its successors and its sibling plans checked (D-125) |
 | `admission <id> --base <branch>` | `true` when a pull request carries only the cycle's planning documents, so a pipeline skips the build and the tests; `false` otherwise; on `slices/<slug>/plan`, `true` when it carries only planning and successors. Always exits 0 (D-87, D-125) |
+| `promotion <source> --base <target>` | `true` when a pull request promotes the integration branch or a `release/*` branch into another branch, so a pipeline skips the chain; `false` when it targets the integration branch or a release branch; exits 1 when anything else targets another branch (D-136) |
+| `branch-policy` | prints the platform commands that set the default branch policy: pull requests only into the integration and default branches, nobody bypassing, the pipeline required on both, squash into one and merge commits into the other. Writes the GitHub rulesets under `.sdlc/reports/`, and applies nothing (D-136) |
 | `scaffold <id>` | writes the solution skeleton into an approved cycle — D-35 — or, on an adopted solution, only the build settings files that cycle's plan declares — D-77 |
 | `hook --host <name>` | judges one tool call — §12 |
 | `version` | the three versions and which is which — the package, the plugin, and the artifact envelope |
@@ -7165,6 +7177,74 @@ its refusal still apply.
 - *Guessing a marker for Copilot or Antigravity.* Neither documents one; a guessed marker is a panel that
   names one host's invocation to someone using another.
 
+### D-136 — Pull requests only, into both branches, with nobody bypassing, is the default
+
+**Governs:** §10.4, §13, §15.2
+
+**Revises D-88**, which left main's branch policy wholly to the team and rejected `init` writing a step for
+it. **Extends D-106**, which had `doctor` read the integration branch's policy alone.
+
+**Decision.**
+
+- **The default policy, on GitHub and Azure DevOps.** Nothing reaches the integration branch or the default
+  branch except by pull request, nobody is listed to bypass that, and the pipeline that runs the chain is a
+  required check on both. Into the integration branch a pull request is squashed; into the default branch it is
+  merged with a merge commit, never a fast-forward or a rebase. No approval is required. A team may change any
+  of it.
+- **Only the integration branch or a `release/*` branch promotes.** `sdlc promotion <source> --base <target>`
+  decides it: a pull request into the integration branch or a release branch is not a promotion and the chain
+  judges it; one into any other branch is a promotion, allowed from those two and refused from anything else.
+  Both generated pipelines run it in the `verify` job and skip `verify-chain` on a promotion, which has no
+  cycle. It is decided by the target rather than by naming the default branch, which an Azure DevOps pipeline
+  cannot read and which may be `main` or `master`.
+- **Printed, not applied.** `sdlc branch-policy` prints the platform's commands: on GitHub two rulesets, written
+  as JSON under `.sdlc/reports/branch-policy/` and created with `gh api`; on Azure DevOps a merge strategy policy
+  and a build validation policy per branch, created with `az repos policy`, and the one screen where no group
+  may hold a bypass permission, which the CLI cannot set. A person runs them as an administrator.
+- **`doctor` reads it back.** It asks for the default branch, holds it to the same required check as the
+  integration branch, and reports how each branch merges against the default. A required check missing on
+  either branch is a problem, as D-106 has it. A merge method other than the default is reported and never a
+  problem, because it is the team's to choose.
+
+**Why.** The person asked for squash into `development`, merge commits into main, pull requests only into
+both, and nobody bypassing, as the default for every repository that adopts the framework, and for this one.
+Squash makes a cycle one commit on the integration branch. A merge commit into main keeps `development` an
+ancestor of it, so the next promotion carries only what is new; squashing or rebasing would give the same
+work new hashes on main, and every later promotion would show it again, which D-88 already rejected.
+
+**Why D-88's refusal no longer holds.** It kept the framework out of main because promotion is where a team's
+release practice lives. That practice is untouched: when to promote, from which release branch, after what
+sign-off, is still the team's. What is set is how the bytes get there, as a default a team can change, and
+the one thing the default branch had no check for at all, a pull request from a branch no chain judged.
+
+**Why `release/*` too.** D-88 promotes through release branches and fixes a release on one. A rule admitting
+only `development` would refuse both.
+
+**Why nobody bypasses, and its limit.** A bypass list is a standing exception to the one non-bypassable layer
+(§2.1). An administrator can still edit or switch off the policy itself on either platform; nothing a
+repository holds can prevent that, and the guides say so.
+
+**Why no approval.** Neither platform lets a person approve their own pull request, so one required approval
+would stop every solo solution from merging anything. The local approval is the gate (§5.1); reviewers stay
+the organisation's (D-84).
+
+**Why printed.** The binary holds no token and changes nothing on the remote; `pr` is the only stage that
+touches it, through the platform's own CLI. Setting a policy needs an administrator, and a policy applied
+without the person seeing it is a setting nobody chose.
+
+**Why squash is safe for a cycle.** Nothing checks a merged cycle (D-124), and every question asked of the
+integration branch about a cycle — whether its plan is there, whether its build is — reads files, not commits.
+
+**Rejected.**
+
+- *`init` applying the policy itself.* The binary would write to the remote with whatever credentials the CLI
+  holds. Printed, the person sees and runs each command.
+- *Promotion from `development` only.* Refuses D-88's release branches and every fix made on one.
+- *A separate pipeline, or a separate required check, for the default branch.* Two checks to require, two
+  things for `doctor` to find, and on Azure DevOps a second pipeline to register. One `verify` job decides.
+- *Treating a different merge method as a problem.* The default is where a solution starts, not a rule.
+- *A required approval.* See above.
+
 ### D-135 — A local build runs a cycle end to end, and nothing it judged ships
 
 **Governs:** §10.3, §13
@@ -7191,8 +7271,8 @@ nuget.org version can never be deleted.
   `verify-chain`, and the solution's pull-request check refuses it if somebody opens one by hand. A test run ends
   abandoned. The change is published as a preview, the integration branch is pinned to it by a pull request that
   only moves the pin (D-133), and the cycle is run again on it.
-- **One pipeline publishes.** `ci.yml` builds every pull request, publishes a preview from a push to any other
-  branch that changes what ships, and a release from a merge to master once a reviewer approves the `nuget`
+- **One pipeline publishes.** `ci.yml` builds every pull request, publishes a preview from a push to `development`
+  that changes what ships (any branch but master until D-136), and a release from a merge to master once a reviewer approves the `nuget`
   environment. Each published version is tagged as before. A pull request's packed tool is kept as a run artifact,
   which is how a branch's build reaches a machine without being published.
 
@@ -7434,7 +7514,7 @@ solution that pins nothing stops and says to run `init`.
 The binary is published to nuget.org by `.github/workflows/ci.yml`, using trusted publishing. It was `release.yml`,
 with a release cut by a pushed tag, until D-135 made one pipeline of it:
 - A merge to master publishes that release once a person approves it.
-- A push to any other branch that changes what ships publishes `<release>-preview` and tags the commit
+- A push to `development` that changes what ships (another branch until D-136) publishes `<release>-preview` and tags the commit
   with the same name. A preview carries no counter, so a version has one, and the next is the next patch; a
   push that ships a change without moving the patch is refused rather than skipped. A run number was the
   first answer, and it gave a pin a name that said nothing about what it held.

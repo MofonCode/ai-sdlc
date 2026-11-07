@@ -19,6 +19,15 @@ public enum PolicyFinding
     Unasked,
 }
 
+/// <summary>Which merge methods a pull request into a branch may use, as the platform holds it (D-136).</summary>
+/// <param name="Finding">
+/// <see cref="PolicyFinding.Required"/> when a policy limits the methods, <see cref="PolicyFinding.NotRequired"/>
+/// when none does, <see cref="PolicyFinding.Unasked"/> when the platform could not be asked.
+/// </param>
+/// <param name="Methods">The methods allowed, as <c>squash</c>, <c>merge</c>, <c>rebase</c> or <c>semi-linear</c>.</param>
+/// <param name="Detail">What was found, or why it could not be asked.</param>
+public sealed record MergeAnswer(PolicyFinding Finding, IReadOnlyList<string> Methods, string Detail);
+
 /// <summary>One answer from the platform.</summary>
 /// <param name="Finding">What it said, or that it was not asked.</param>
 /// <param name="Detail">What was found, or why it could not be asked, stated so a person can act on it.</param>
@@ -41,6 +50,21 @@ public interface IBranchPolicies
     /// <param name="cancellationToken">Token observed while asking.</param>
     /// <returns>The answer. Never a failure: a question that could not be asked is an answer of its own.</returns>
     Task<PolicyAnswer> Ask(Platform platform, string branch, string pipelineFile, string workingDirectory, CancellationToken cancellationToken);
+
+    /// <summary>The repository's default branch, bare, or null when the platform could not be asked.</summary>
+    /// <param name="platform">Where the repository is hosted. Never local.</param>
+    /// <param name="workingDirectory">The repository.</param>
+    /// <param name="cancellationToken">Token observed while asking.</param>
+    /// <returns>The branch name.</returns>
+    Task<string?> DefaultBranch(Platform platform, string workingDirectory, CancellationToken cancellationToken);
+
+    /// <summary>Which merge methods a pull request into a branch may use.</summary>
+    /// <param name="platform">Where the repository is hosted. Never local.</param>
+    /// <param name="branch">The branch a merge goes into.</param>
+    /// <param name="workingDirectory">The repository.</param>
+    /// <param name="cancellationToken">Token observed while asking.</param>
+    /// <returns>The answer. Never a failure.</returns>
+    Task<MergeAnswer> MergeMethods(Platform platform, string branch, string workingDirectory, CancellationToken cancellationToken);
 }
 
 /// <summary>
@@ -77,6 +101,144 @@ public sealed class CliBranchPolicies : IBranchPolicies
             Platform.GitHub => await GitHub(branch, workingDirectory, cancellationToken).ConfigureAwait(false),
             _ => new PolicyAnswer(PolicyFinding.Unasked, "a local solution has no platform to ask"),
         };
+
+    /// <inheritdoc />
+    public async Task<string?> DefaultBranch(Platform platform, string workingDirectory, CancellationToken cancellationToken)
+    {
+        Result<string> answer = platform switch
+        {
+            Platform.GitHub => await Run("gh", "api repos/{owner}/{repo} --jq .default_branch", workingDirectory, cancellationToken).ConfigureAwait(false),
+            Platform.AzureDevOps => await AzureRepository(workingDirectory, "defaultBranch", cancellationToken).ConfigureAwait(false),
+            _ => Result.Fail<string>("a local solution has no platform to ask"),
+        };
+
+        if (answer.IsFailed || answer.Value.Trim() is not { Length: > 0 } branch)
+        {
+            return null;
+        }
+
+        return branch.StartsWith("refs/heads/", StringComparison.Ordinal) ? branch["refs/heads/".Length..] : branch;
+    }
+
+    /// <inheritdoc />
+    public async Task<MergeAnswer> MergeMethods(Platform platform, string branch, string workingDirectory, CancellationToken cancellationToken)
+    {
+        if (platform == Platform.GitHub)
+        {
+            Result<string> rules = await Run("gh", $"api repos/{{owner}}/{{repo}}/rules/branches/{branch}", workingDirectory, cancellationToken).ConfigureAwait(false);
+
+            if (rules.IsFailed)
+            {
+                return new MergeAnswer(PolicyFinding.Unasked, [], Unasked(rules).Detail);
+            }
+
+            IReadOnlyList<string>? methods = RulesetMergeMethods(rules.Value);
+            return methods is null
+                ? new MergeAnswer(PolicyFinding.NotRequired, [], $"no ruleset on {branch} limits how a pull request is merged")
+                : new MergeAnswer(PolicyFinding.Required, methods, $"a pull request into {branch} may be merged by {string.Join(", ", methods)}");
+        }
+
+        if (platform != Platform.AzureDevOps)
+        {
+            return new MergeAnswer(PolicyFinding.Unasked, [], "a local solution has no platform to ask");
+        }
+
+        Result<string> id = await AzureRepository(workingDirectory, "id", cancellationToken).ConfigureAwait(false);
+
+        if (id.IsFailed)
+        {
+            return new MergeAnswer(PolicyFinding.Unasked, [], Unasked(id).Detail);
+        }
+
+        Result<string> listed = await Run(
+            "az",
+            $"repos policy list --repository-id {id.Value.Trim()} --branch refs/heads/{branch} --output json",
+            workingDirectory,
+            cancellationToken).ConfigureAwait(false);
+
+        if (listed.IsFailed)
+        {
+            return new MergeAnswer(PolicyFinding.Unasked, [], Unasked(listed).Detail);
+        }
+
+        IReadOnlyList<string>? strategy = MergeStrategy(listed.Value);
+        return strategy is null
+            ? new MergeAnswer(PolicyFinding.NotRequired, [], $"no merge strategy policy on {branch} limits how a pull request is merged")
+            : new MergeAnswer(PolicyFinding.Required, strategy, $"a pull request into {branch} may be merged by {string.Join(", ", strategy)}");
+    }
+
+    /// <summary>The merge methods the rulesets on a branch allow, or null when none limits them.</summary>
+    /// <param name="json">What <c>gh api repos/{owner}/{repo}/rules/branches/{branch}</c> printed.</param>
+    /// <returns>The methods every pull request rule allows, or null.</returns>
+    public static IReadOnlyList<string>? RulesetMergeMethods(string json)
+    {
+        using var document = JsonDocument.Parse(json);
+
+        List<string[]> limits = [.. document.RootElement.EnumerateArray()
+            .Where(rule => rule.TryGetProperty("type", out JsonElement type)
+                && string.Equals(type.GetString(), "pull_request", StringComparison.Ordinal)
+                && rule.TryGetProperty("parameters", out JsonElement parameters)
+                && parameters.TryGetProperty("allowed_merge_methods", out JsonElement methods)
+                && methods.ValueKind == JsonValueKind.Array)
+            .Select(rule => rule.GetProperty("parameters").GetProperty("allowed_merge_methods").EnumerateArray()
+                .Select(method => method.GetString())
+                .OfType<string>()
+                .ToArray())];
+
+        // Several rulesets on one branch all apply, so a method is allowed only when every one allows it.
+        return limits.Count == 0
+            ? null
+            : [.. limits.Aggregate((left, right) => [.. left.Intersect(right, StringComparer.Ordinal)]).Order(StringComparer.Ordinal)];
+    }
+
+    /// <summary>The merge methods an enabled, blocking merge strategy policy allows, or null when there is none.</summary>
+    /// <param name="json">What <c>az repos policy list</c> printed.</param>
+    /// <returns>The methods, or null.</returns>
+    public static IReadOnlyList<string>? MergeStrategy(string json)
+    {
+        using var document = JsonDocument.Parse(json);
+
+        foreach (JsonElement policy in document.RootElement.EnumerateArray())
+        {
+            if (!(policy.TryGetProperty("isEnabled", out JsonElement enabled) && enabled.ValueKind == JsonValueKind.True
+                && policy.TryGetProperty("isBlocking", out JsonElement blocking) && blocking.ValueKind == JsonValueKind.True
+                && policy.TryGetProperty("type", out JsonElement type)
+                && type.TryGetProperty("displayName", out JsonElement display)
+                && string.Equals(display.GetString(), "Require a merge strategy", StringComparison.Ordinal)
+                && policy.TryGetProperty("settings", out JsonElement settings)))
+            {
+                continue;
+            }
+
+            return [.. _mergeSettings
+                .Where(pair => settings.TryGetProperty(pair.Setting, out JsonElement value) && value.ValueKind == JsonValueKind.True)
+                .Select(pair => pair.Method)];
+        }
+
+        return null;
+    }
+
+    // Azure DevOps names each merge type by a setting; the methods are named as GitHub names them, so one
+    // sentence describes either platform.
+    private static readonly (string Setting, string Method)[] _mergeSettings =
+    [
+        ("allowNoFastForward", "merge"),
+        ("allowRebase", "rebase"),
+        ("allowRebaseMerge", "semi-linear"),
+        ("allowSquash", "squash"),
+    ];
+
+    private static async Task<Result<string>> AzureRepository(string workingDirectory, string field, CancellationToken cancellationToken)
+    {
+        Result<string> remote = await Run("git", "remote get-url origin", workingDirectory, cancellationToken).ConfigureAwait(false);
+
+        if (remote.IsFailed || RepositoryName(remote.Value) is not { } name)
+        {
+            return Result.Fail<string>("this repository has no Azure Repos remote named origin to ask about");
+        }
+
+        return await Run("az", $"repos show --repository {name} --query {field} --output tsv", workingDirectory, cancellationToken).ConfigureAwait(false);
+    }
 
     private static async Task<PolicyAnswer> AzureDevOps(
         string branch,

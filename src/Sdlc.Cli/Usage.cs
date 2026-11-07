@@ -73,7 +73,18 @@ internal static class Usage
                                      skip the build and tests; false for anything else. On
                                      slices/<slug>/plan, true when it carries only cycles'
                                      planning and successors. Always exits 0.
-            branch <id> <kind>       Print the one git command that puts the working copy on the
+            promotion <source> --base <target>
+                                     Print true when a pull request promotes the integration
+                                     branch or a release/* branch into another branch, so a
+                                     pipeline skips the chain; false when it targets the
+                                     integration branch or a release branch. Exits 1 when any
+                                     other branch targets another branch.
+            branch-policy            Print the commands that set the default branch policy on
+                                     this solution's platform: pull requests only, nobody
+                                     bypassing, the pipeline required, squash into the
+                                     integration branch and merge commits into the default
+                                     branch. Applies nothing; run them as an administrator.
+            branch <id> <kind>      Print the one git command that puts the working copy on the
                                      branch a kind of work happens on -- plan, build,
                                      build-unattended or forward -- creating it from the right
                                      base: the integration branch once the plan is admitted to

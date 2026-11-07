@@ -86,6 +86,8 @@ try
         "gate" => await WithCycle(line, "gate", Gate).ConfigureAwait(false),
         "verify-chain" => await VerifyChainCommand(line).ConfigureAwait(false),
         "admission" => await AdmissionCommand(line).ConfigureAwait(false),
+        "promotion" => await PromotionCommand(line).ConfigureAwait(false),
+        "branch-policy" => await Workspace.Run(line, BranchPolicyCommand).ConfigureAwait(false),
         "branch" => await BranchCommand(line).ConfigureAwait(false),
         "sitrep" => await Workspace.Run(line, SitrepCommand).ConfigureAwait(false),
         "factory" => await Workspace.Run(line, FactoryCommand).ConfigureAwait(false),
@@ -753,6 +755,74 @@ static async Task<int> AdmissionCommand(CommandLine line)
         await Console.Out.WriteLineAsync(admission ? "true" : "false").ConfigureAwait(false);
         return ExitCode.Ok;
     }).ConfigureAwait(false);
+}
+
+// Whether a pull request is a promotion, and whether it may come from where it does (D-136). 'true' on standard
+// output when it is a promotion that may open, so the pipeline skips the chain; 'false' when it is not one, so
+// the chain runs. A promotion from anywhere else exits 1 and says why on standard error, which fails the same
+// required check the chain does.
+static async Task<int> PromotionCommand(CommandLine line)
+{
+    if (line.Arguments.Count == 0 || !line.TryOption("base", out string? target) || string.IsNullOrWhiteSpace(target))
+    {
+        await Console.Error.WriteLineAsync(
+            "Which pull request? Give its source and target, as in 'sdlc promotion development --base main'.")
+            .ConfigureAwait(false);
+        return ExitCode.Usage;
+    }
+
+    return await Workspace.Run(line, async workspace =>
+    {
+        string source = line.Arguments[0];
+        string integration = await SolutionDocument
+            .IntegrationBranchOf(workspace.SolutionRoot, CancellationToken.None)
+            .ConfigureAwait(false);
+
+        PromotionVerdict verdict = Promotion.Judge(source, target, integration);
+        await Console.Error.WriteLineAsync(Promotion.Explain(verdict, source, target, integration)).ConfigureAwait(false);
+
+        if (verdict == PromotionVerdict.Refused)
+        {
+            return ExitCode.Refused;
+        }
+
+        await Console.Out.WriteLineAsync(verdict == PromotionVerdict.Allowed ? "true" : "false").ConfigureAwait(false);
+        return ExitCode.Ok;
+    }).ConfigureAwait(false);
+}
+
+// The branch policy adoption sets as its default, as the platform's own commands, for a person to run (D-136).
+// Printed rather than applied: the binary never holds a token and changes nothing on the remote, and setting a
+// policy needs an administrator.
+static async Task<int> BranchPolicyCommand(Workspace workspace)
+{
+    Result<SolutionDocument> solution = await SolutionDocument
+        .ReadFileOrDraft(workspace.SolutionRoot, CancellationToken.None)
+        .ConfigureAwait(false);
+
+    if (solution.IsFailed)
+    {
+        return await Report(solution, ExitCode.Failed).ConfigureAwait(false);
+    }
+
+    Result<BranchPolicyScript> script = BranchPolicyScript.For(
+        solution.Value.Platform,
+        solution.Value.IntegrationBranch,
+        workspace.SolutionRoot);
+
+    if (script.IsFailed)
+    {
+        return await Report(script, ExitCode.Refused).ConfigureAwait(false);
+    }
+
+    foreach ((string path, string text) in script.Value.Files)
+    {
+        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+        await File.WriteAllTextAsync(path, text).ConfigureAwait(false);
+    }
+
+    await Console.Out.WriteAsync(script.Value.Text).ConfigureAwait(false);
+    return ExitCode.Ok;
 }
 
 // Which branch a kind of work on a cycle happens on, as the one git command that gets there. The command

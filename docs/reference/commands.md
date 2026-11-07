@@ -42,6 +42,8 @@ an agent runs it, and it never decides a gate. `skills.md` lists the skills.
 | `/sdlc:pr <id>` | agent | pushes and opens the pull request. Asks first |
 | `sdlc verify-chain <id> --base <branch>` | binary | the pull-request check, and the only layer that cannot be bypassed. A plan alone gets the admission check; `slices/<slug>/plan` gets it for every cycle sliced together, with their successors and sibling plans checked; a branch that is no cycle's and changes only the pin, what `sdlc init` and `sdlc factory` write, answers in the declared stack and dependency versions gets the upgrade check |
 | `sdlc admission <id> --base <branch>` | binary | `true` when a pull request carries only a plan — or a slicing's plans — and any successors, so the pipeline skips the build and the tests |
+| `sdlc promotion <source> --base <target>` | binary | `true` when a pull request promotes the integration branch or a `release/*` branch, so the pipeline skips the chain; exits 1 when any other branch opens one into the default branch |
+| `sdlc branch-policy` | binary | the commands that set the default branch policy on GitHub or Azure DevOps: pull requests only, nobody bypassing, the pipeline required, squash into the integration branch and merge commits into the default branch. Applies nothing |
 | **At any point** | | |
 | `sdlc status <id>` | binary | the panel for the document the cycle is waiting on, or its furthest one; the gate; and the literal next command, a stage in it named as the host invokes one (`/sdlc:pr` inside Claude Code) |
 | `sdlc status <id> --brief` | binary | the same, between stages |

@@ -402,6 +402,10 @@ first cycle can open. It is read from disk, so it is right about a rename you di
 list of your own would be a second answer to the same question. Then **at most two lines of your own**:
 which mode ran, and what the origin is.
 
+**With a platform, show `sdlc branch-policy` verbatim too**, and say the person runs those commands as an
+administrator: pull requests only, nobody bypassing, the check required — the default, theirs to change
+(D-136). Do not run them yourself; they change the remote, and setting a policy is the person's.
+
 **Nothing about what any of it means.** Adoption is the stage with a standing temptation to explain the
 framework it has just installed, and `.sdlc/README.md` is the whole of that explanation — written, in the
 repository, and better than a recap. A person who wants the reasoning opens it.

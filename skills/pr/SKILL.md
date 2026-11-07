@@ -193,10 +193,10 @@ pasted the record still says `platform: local`, so `doctor` still reports no che
 this skill still stops at the question above. Hand over what `init` printed and say it is the step that
 finishes the migration.
 
-Then **tell them to make the check
-required in branch policy** — a pipeline that runs and is not required is a pipeline a merge can ignore,
-and that is the difference between the guarantee and a green tick. `sdlc doctor` marks that part
-`elsewhere` because no binary can confirm it.
+Then **tell them to set the branch policy**: `sdlc branch-policy` prints the commands, which they run as an
+administrator — pull requests only into both branches, the check required, nobody bypassing (D-136). A
+pipeline that runs and is not required is a pipeline a merge can ignore, and that is the difference between
+the guarantee and a green tick. `sdlc doctor` reads the policy back when the platform's CLI is signed in.
 
 **A local cycle can still be built, verified and committed.** Only the pull request needs a remote. What
 it does not have is the pull-request check, which `CONCEPT.md` §13 calls the only non-bypassable layer,

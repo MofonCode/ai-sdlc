@@ -128,6 +128,9 @@ public sealed class PublicSurfaceTests
         "Sdlc.Core.Artifacts.TableRow",
         "Sdlc.Core.Chain.ChainRenderer",
         "Sdlc.Core.Chain.VerifyChain",
+        // D-136: which branches may promote into the default branch, judged by 'sdlc promotion'.
+        "Sdlc.Core.Chain.Promotion",
+        "Sdlc.Core.Chain.PromotionVerdict",
         "Sdlc.Core.Chain.VerifyChain+ChainCheck",
         "Sdlc.Core.Chain.VerifyChain+Query",
         "Sdlc.Core.Chain.VerifyChain+Response",
@@ -163,6 +166,8 @@ public sealed class PublicSurfaceTests
         "Sdlc.Core.Diagnostics.Diagnose+Response",
         "Sdlc.Core.Diagnostics.DiagnosisRenderer",
         "Sdlc.Core.Diagnostics.IBranchPolicies",
+        // D-136: the default branch and how each branch merges, read back by the doctor.
+        "Sdlc.Core.Diagnostics.MergeAnswer",
         "Sdlc.Core.Diagnostics.PolicyAnswer",
         "Sdlc.Core.Diagnostics.PolicyFinding",
         "Sdlc.Core.Cycles.AbandonRecord",
@@ -401,6 +406,8 @@ public sealed class PublicSurfaceTests
         "Sdlc.Core.Hooks.TurnEnd",
         "Sdlc.Core.Hooks.TurnEndGate",
         "Sdlc.Core.Hooks.TurnEndGate+Query",
+        // D-136: the branch policy adoption sets as its default, printed by 'sdlc branch-policy'.
+        "Sdlc.Core.Init.BranchPolicyScript",
         "Sdlc.Core.Init.FrameworkStamp",
         "Sdlc.Core.Init.InitRenderer",
         "Sdlc.Core.Init.LineEndings",

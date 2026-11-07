@@ -230,7 +230,7 @@ sdlc doctor
 
 **It exits 0 when everything is in place**, and ends by naming the first cycle.
 
-## 8. Make the check required, before the first pull request
+## 8. Set the branch policy, before the first pull request
 
 **On a `local` solution, skip this: there is no pipeline to require.** Everywhere else it is the one
 thing adoption cannot do for you, and it has to be in place before the first pull request is opened.
@@ -238,10 +238,31 @@ The pipeline step is the whole promise — nothing merges unless the chain is co
 hash-matched — and it is a promise only while branch policy requires it. Until then the file is advisory and the directory looks enforced without being
 enforced, which is the failure mode this design is written against.
 
-| Platform | What to set |
-|---|---|
-| GitHub | a branch protection rule on the default branch, and on the integration branch adoption created, that requires the `verify` status check. Push the integration branch first: a rule needs a branch on the remote to name |
-| Azure DevOps | **Repos > Branches > the default branch — and the integration branch adoption created, `development`, once you have pushed it — > Branch policies > Build validation**: add the `azure-pipelines.yml` pipeline, make it **Required**, and set **Build expiration** to **Immediately when the branch is updated** |
+**Push the integration branch first**, because a policy needs a branch on the remote to name. Then:
+
+```
+sdlc branch-policy
+```
+
+It prints the commands that set the default (D-136), for you to run signed in to `gh` or `az` as an
+administrator. It applies nothing itself.
+
+| | The integration branch | The default branch |
+|---|---|---|
+| **Way in** | pull requests only | pull requests only |
+| **Merged by** | squash, so a cycle is one commit | merge commit, so the two branches keep sharing history |
+| **Required check** | the pipeline (`verify` on GitHub) | the same: on it, the pipeline runs `sdlc promotion`, which admits a pull request only from the integration branch or a `release/*` branch |
+| **Approvals** | none required | none required |
+| **Bypass** | nobody | nobody |
+
+On GitHub that is two rulesets, written as JSON under `.sdlc/reports/branch-policy/`. On Azure DevOps it is a
+merge strategy policy and a build validation policy on each branch, and one screen the CLI cannot set:
+in **Project settings > Repositories > Security**, no group may hold **Bypass policies when completing pull
+requests** or **Bypass policies when pushing**.
+
+**It is a default, and any of it may be changed.** A team that wants reviewers raises the approval count;
+none is required because nobody can approve their own pull request. **An administrator can still edit or
+switch off a policy** on either platform, and nothing a repository holds prevents that.
 
 **How often an open pull request is checked again.** A pull request is checked against the branch as it
 was when the check ran. Two pull requests can each pass and merge without a conflict and still break
@@ -250,20 +271,22 @@ that before the second does. What to set is a trade between CI minutes and how e
 
 | Setting | Re-checks | Finds the break |
 |---|---|---|
-| **Immediately when the branch is updated** (recommended) | every open pull request, each time anything merges | before the second pull request can merge |
+| **Immediately when the branch is updated** (the default `sdlc branch-policy` sets) | every open pull request, each time anything merges | before the second pull request can merge |
 | **After n hours if the branch has been updated** | a pull request whose passing check is older than n hours | before merging, unless both merge inside the window |
 | **Never** | nothing | after both have merged, at the next build that includes them |
 
-On GitHub the nearest equivalents are **Require branches to be up to date before merging** on the
-protection rule, which makes a pull request's author bring it up to date and re-run the check, and a
-**merge queue**, which checks each pull request against everything queued ahead of it. Azure DevOps has
-no merge queue.
+On GitHub the equivalent is **Require branches to be up to date before merging**, which the rulesets set and
+which makes a pull request's author bring it up to date and re-run the check; a **merge queue** checks each pull
+request against everything queued ahead of it. Azure DevOps has no merge queue.
 
-**On Azure DevOps this is not only what makes the check required — it is what runs it.** Azure Repos
-ignores a `pr:` trigger written in YAML, so the pipeline has no trigger of its own, and the file says so
-at the top. Until the policy exists, no pull request is built, tested or verified, and nothing fails to
-tell you. `sdlc doctor` asks Azure DevOps for the policy through `az`, signed in as you, and reports a
-problem under `branch policy` until it exists. When `az` is not signed in it names this step instead,
+**On Azure DevOps the build validation policy is not only what makes the check required — it is what runs
+it.** Azure Repos ignores a `pr:` trigger written in YAML, so the pipeline has no trigger of its own, and the
+file says so at the top. Until the policy exists, no pull request is built, tested or verified, and nothing
+fails to tell you.
+
+**`sdlc doctor` reads it back**, through `gh` or `az` signed in as you. A branch whose policy does not require
+the check is a problem, on the integration branch and on the default branch alike; how each branch merges is
+reported against the default and never a problem. When the CLI is not signed in it names this step instead,
 marked `elsewhere`.
 
 ## 9. Open the first cycle
