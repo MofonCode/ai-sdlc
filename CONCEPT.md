@@ -7280,7 +7280,8 @@ nuget.org version can never be deleted.
   abandoned. The change is published as a preview, the integration branch is pinned to it by a pull request that
   only moves the pin (D-133), and the cycle is run again on it.
 - **One pipeline publishes.** `ci.yml` builds every pull request, publishes a preview from a push to `development`
-  that changes what ships (any branch but master until D-136), and a release from a merge to master once a reviewer approves the `nuget`
+  that changes what ships (any branch but master until D-136) once a reviewer approves the `nuget-preview`
+  environment (unreviewed through 0.36.9-preview), and a release from a merge to master once a reviewer approves the `nuget`
   environment. Each published version is tagged as before. A pull request's packed tool is kept as a run artifact,
   which is how a branch's build reaches a machine without being published.
 
@@ -7522,8 +7523,8 @@ solution that pins nothing stops and says to run `init`.
 The binary is published to nuget.org by `.github/workflows/ci.yml`, using trusted publishing. It was `release.yml`,
 with a release cut by a pushed tag, until D-135 made one pipeline of it:
 - A merge to master publishes that release once a person approves it.
-- A push to `development` that changes what ships (another branch until D-136) publishes `<release>-preview` and tags the commit
-  with the same name. A preview carries no counter, so a version has one, and the next is the next patch; a
+- A push to `development` that changes what ships (another branch until D-136) publishes `<release>-preview` once a person
+  approves it, and tags the commit with the same name. A preview carries no counter, so a version has one, and the next is the next patch; a
   push that ships a change without moving the patch is refused rather than skipped. A run number was the
   first answer, and it gave a pin a name that said nothing about what it held.
 
