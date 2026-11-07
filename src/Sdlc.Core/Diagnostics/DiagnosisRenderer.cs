@@ -18,7 +18,10 @@ namespace Sdlc.Core.Diagnostics;
 /// </remarks>
 public static class DiagnosisRenderer
 {
+    // The narrowest the subject column is, and the gap after the longest subject. A subject can name a branch,
+    // whose length is the repository's, so the column grows to fit it rather than running into its detail.
     private const int SubjectWidth = 20;
+    private const int SubjectGap = 2;
 
     /// <summary>
     /// Renders the panel.
@@ -36,16 +39,18 @@ public static class DiagnosisRenderer
         output.AppendLine(Headline(problems).PadLeft(66 - "  sdlc doctor".Length));
         output.AppendLine();
 
+        int width = response.Checks.Select(check => check.Subject.Length + SubjectGap).Append(SubjectWidth).Max();
+
         foreach (Check check in response.Checks)
         {
             output.Append("  ");
             output.Append(Marker(check.Outcome).PadRight(11));
-            output.Append(check.Subject.PadRight(SubjectWidth));
+            output.Append(check.Subject.PadRight(width));
             output.AppendLine(check.Detail);
 
             if (check.Remedy is { Length: > 0 } remedy)
             {
-                output.Append(new string(' ', 13 + SubjectWidth));
+                output.Append(new string(' ', 13 + width));
                 output.Append("-> ");
                 output.AppendLine(remedy);
             }
