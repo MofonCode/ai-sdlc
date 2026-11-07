@@ -57,7 +57,7 @@ the cheapest way to discover that what you were about to add already lives somew
 | `tools/Sdlc.ScaffoldHarness/` | the harness that writes a scaffolded solution so it can be built |
 | `tools/Sdlc.UsageReport/` | what a host's sessions cost, read from Claude Code's transcripts: the whole-session view the per-cycle usage record leaves out |
 | [`factory/README.md`](factory/README.md) | the factory bundle: what runs unattended. Today only the factory's agent image, built from one commit (D-96) |
-| `.github/workflows/ci.yml` | build and test on every pull request, which deliberately does not govern this repository with itself (D-42); a preview from a merge into development that changes what ships, and a release from a merge to master, each tagged so the plugin can be pinned to it (D-131, D-135). See Releasing below |
+| `.github/workflows/ci.yml` | build and test on every pull request, which deliberately does not govern this repository with itself (D-42); a preview from a merge into development that changes what ships, and a release from a merge to main, each tagged so the plugin can be pinned to it (D-131, D-135). See Releasing below |
 
 ### Querying `CONCEPT.md`
 
@@ -127,17 +127,17 @@ a backstop, not the inner loop.
 ## Releasing
 
 **A release is a merge.** `VersionPrefix` in `Directory.Build.props` and the `version` in both plugin manifests
-are moved together and merged into master. `ci.yml` refuses a manifest that disagrees with the props, builds,
+are moved together and merged into main. `ci.yml` refuses a manifest that disagrees with the props, builds,
 tests, packs, checks the packed tool answers with the version it will be published as, and waits for a reviewer
 on the `nuget` environment before it pushes and tags the commit `v<that version>`. A merge whose version is
 already published and that changes nothing that ships publishes nothing; one that does change what ships is
 refused.
 
 **Both branches take pull requests only** (D-136). Work happens on a branch of your own, squashed into
-`development` by pull request; `development` is merged into `master` with a merge commit, and only `development`
+`development` by pull request; `development` is merged into `main` with a merge commit, and only `development`
 or a `release/*` branch may open that pull request, which the `promotion` job checks. Nothing is pushed straight
 to either. The rulesets are in **Settings > Rules**: `build, test and pack` required on both, `promotion` on
-`master` too, and one approval from a code owner, named in [`.github/CODEOWNERS`](.github/CODEOWNERS). GitHub
+`main` too, and one approval from a code owner, named in [`.github/CODEOWNERS`](.github/CODEOWNERS). GitHub
 never counts an author's own approval, so the one bypass is the `owners` team, on pull requests only:
 a member merges their own pull request by ticking the bypass box, **and only once the checks are green**, because
 the same box would merge past them. Nobody else bypasses, and nobody bypasses a push.
