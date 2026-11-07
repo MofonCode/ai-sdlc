@@ -148,7 +148,7 @@ against a trusted publishing policy on nuget.org. Setting it up is a person's, o
 
 | Where | What |
 |---|---|
-| nuget.org, **Trusted Publishing** | two policies, owner `MofonCode`, repository owner `MofonCode`, repository `ai-sdlc`, workflow file `ci.yml`; environment `nuget` on one and `nuget-preview` on the other |
+| nuget.org, **Trusted Publishing** | two policies, owner `MofonCode`, repository owner `MofonCode`, repository `ai-sdlc`, workflow file `ci.yml`, package `MofonCode.Sdlc.Cli` rather than `*`; environment `nuget` on one and `nuget-preview` on the other |
 | GitHub, **Settings > Environments** | `nuget` with a required reviewer; `nuget-preview` with none |
 | GitHub, **Settings > Secrets** | `NUGET_USER`: the nuget.org profile name the token exchange identifies itself as |
 
