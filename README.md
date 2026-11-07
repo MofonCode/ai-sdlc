@@ -1,5 +1,11 @@
 # ai-sdlc
 
+[![release](https://img.shields.io/nuget/v/MofonCode.Sdlc.Cli?label=release)](https://www.nuget.org/packages/MofonCode.Sdlc.Cli)
+[![preview](https://img.shields.io/nuget/vpre/MofonCode.Sdlc.Cli?label=preview&color=orange)](https://www.nuget.org/packages/MofonCode.Sdlc.Cli#versions-body-tab)
+[![downloads](https://img.shields.io/nuget/dt/MofonCode.Sdlc.Cli)](https://www.nuget.org/packages/MofonCode.Sdlc.Cli)
+[![ci](https://img.shields.io/github/actions/workflow/status/MofonCode/ai-sdlc/ci.yml?branch=main&label=ci)](https://github.com/MofonCode/ai-sdlc/actions/workflows/ci.yml)
+[![license](https://img.shields.io/github/license/MofonCode/ai-sdlc)](LICENSE)
+
 **Version 0.36.10** · iteration 4 · .NET 10 · MIT
 
 **A plugin that makes an AI coding agent work the way a careful team does** — write down what the change
