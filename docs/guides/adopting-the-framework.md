@@ -252,7 +252,7 @@ administrator. It applies nothing itself.
 | **Way in** | pull requests only | pull requests only |
 | **Merged by** | squash, so a cycle is one commit | merge commit, so the two branches keep sharing history |
 | **Required check** | the pipeline (`verify` on GitHub) | the same: on it, the pipeline runs `sdlc promotion`, which admits a pull request only from the integration branch or a `release/*` branch |
-| **Approvals** | none required | none required |
+| **Approvals** | none required, unless you ask | the same |
 | **Bypass** | nobody | nobody |
 
 On GitHub that is two rulesets, written as JSON under `.sdlc/reports/branch-policy/`. On Azure DevOps it is a
@@ -260,8 +260,17 @@ merge strategy policy and a build validation policy on each branch, and one scre
 in **Project settings > Repositories > Security**, no group may hold **Bypass policies when completing pull
 requests** or **Bypass policies when pushing**.
 
-**It is a default, and any of it may be changed.** A team that wants reviewers raises the approval count;
-none is required because nobody can approve their own pull request. **An administrator can still edit or
+**It is a default, and any of it may be changed.** None is required because nobody can approve their own
+pull request. To ask for reviewers, give the same command options, which apply to both branches:
+
+| Option | What it asks | On GitHub | On Azure DevOps |
+|---|---|---|---|
+| `--approvals <n>` | how many approvals a pull request needs | the rulesets' required approvals | a minimum reviewers policy |
+| `--owner <who>[,<who>]` | who must give one, at least one approval | code owner review, and a `CODEOWNERS` line for you to commit | a required reviewer policy; name a group to let any one member approve |
+| `--self-approve` | an author may stand in for an approval | never counted, so `--self-approve <team>` lets that team bypass the rules on a pull request, which also lets it merge past the check | the author's own vote counts |
+
+`CODEOWNERS` is GitHub's, not git's: a file GitHub reads from the branch a pull request merges into, so until
+it has merged any approval counts, and afterwards changing who must approve is a reviewed pull request too. **An administrator can still edit or
 switch off a policy** on either platform, and nothing a repository holds prevents that.
 
 **How often an open pull request is checked again.** A pull request is checked against the branch as it

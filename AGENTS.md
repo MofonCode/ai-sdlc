@@ -133,11 +133,14 @@ on the `nuget` environment before it pushes and tags the commit `v<that version>
 already published and that changes nothing that ships publishes nothing; one that does change what ships is
 refused.
 
-**Both branches take pull requests only, and nobody bypasses** (D-136). Work happens on a branch of your own,
-squashed into `development` by pull request; `development` is merged into `master` with a merge commit, and
-only `development` or a `release/*` branch may open that pull request, which the `promotion` job checks. Nothing
-is pushed straight to either. The rulesets are in **Settings > Rules**: `build, test and pack` required on both,
-`promotion` on `master` too, no approval required, and an empty bypass list.
+**Both branches take pull requests only** (D-136). Work happens on a branch of your own, squashed into
+`development` by pull request; `development` is merged into `master` with a merge commit, and only `development`
+or a `release/*` branch may open that pull request, which the `promotion` job checks. Nothing is pushed straight
+to either. The rulesets are in **Settings > Rules**: `build, test and pack` required on both, `promotion` on
+`master` too, and one approval from a code owner, named in [`.github/CODEOWNERS`](.github/CODEOWNERS). GitHub
+never counts an author's own approval, so the one bypass is the `ai-sdlc-owners` team, on pull requests only:
+a member merges their own pull request by ticking the bypass box, **and only once the checks are green**, because
+the same box would merge past them. Nobody else bypasses, and nobody bypasses a push.
 
 **A preview is a merge into `development`.** A pull request squashed into it that changes what ships publishes
 `<VersionPrefix>-preview` through the `nuget-preview` environment, which has no reviewer, and tags the

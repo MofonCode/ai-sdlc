@@ -84,6 +84,13 @@ internal static class Usage
                                      bypassing, the pipeline required, squash into the
                                      integration branch and merge commits into the default
                                      branch. Applies nothing; run them as an administrator.
+                                     --approvals <n> asks every pull request for n approvals;
+                                     --owner <who>[,<who>] names who must give one, as a
+                                     CODEOWNERS line on GitHub and a required reviewer on
+                                     Azure DevOps; --self-approve lets an author's own vote
+                                     count on Azure DevOps, and on GitHub, which never counts
+                                     it, needs a team: --self-approve <team> lets that team
+                                     bypass the rules on a pull request.
             branch <id> <kind>      Print the one git command that puts the working copy on the
                                      branch a kind of work happens on -- plan, build,
                                      build-unattended or forward -- creating it from the right

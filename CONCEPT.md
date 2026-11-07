@@ -2269,7 +2269,7 @@ they print verbatim.
 | `verify-chain <id> [--base <branch>]` | the whole chain, as the pull-request check runs it — §13. With the target branch, a pull request carrying only the cycle's planning documents gets the admission check (D-87). Given `slices/<slug>/plan`, every cycle the slicing carries gets it, with its successors and its sibling plans checked (D-125) |
 | `admission <id> --base <branch>` | `true` when a pull request carries only the cycle's planning documents, so a pipeline skips the build and the tests; `false` otherwise; on `slices/<slug>/plan`, `true` when it carries only planning and successors. Always exits 0 (D-87, D-125) |
 | `promotion <source> --base <target>` | `true` when a pull request promotes the integration branch or a `release/*` branch into another branch, so a pipeline skips the chain; `false` when it targets the integration branch or a release branch; exits 1 when anything else targets another branch (D-136) |
-| `branch-policy` | prints the platform commands that set the default branch policy: pull requests only into the integration and default branches, nobody bypassing, the pipeline required on both, squash into one and merge commits into the other. Writes the GitHub rulesets under `.sdlc/reports/`, and applies nothing (D-136) |
+| `branch-policy` | prints the platform commands that set the default branch policy: pull requests only into the integration and default branches, nobody bypassing, the pipeline required on both, squash into one and merge commits into the other. Writes the GitHub rulesets under `.sdlc/reports/`, and applies nothing. `--approvals`, `--owner` and `--self-approve` set who must approve (D-136) |
 | `scaffold <id>` | writes the solution skeleton into an approved cycle — D-35 — or, on an adopted solution, only the build settings files that cycle's plan declares — D-77 |
 | `hook --host <name>` | judges one tool call — §12 |
 | `version` | the three versions and which is which — the package, the plugin, and the artifact envelope |
@@ -7201,6 +7201,14 @@ it. **Extends D-106**, which had `doctor` read the integration branch's policy a
   as JSON under `.sdlc/reports/branch-policy/` and created with `gh api`; on Azure DevOps a merge strategy policy
   and a build validation policy per branch, created with `az repos policy`, and the one screen where no group
   may hold a bypass permission, which the CLI cannot set. A person runs them as an administrator.
+- **Reviewers are asked for, on both branches alike.** `--approvals <n>` is how many approvals a pull request
+  needs. `--owner <who>` is who must give one, whatever the count: on GitHub a code owner review and the one
+  `CODEOWNERS` line to commit, which GitHub reads from the branch merged into, so changing who must approve
+  is itself reviewed; on Azure DevOps, which has no such file, a required reviewer policy. `--self-approve`
+  lets an author stand in for an approval: on Azure DevOps the author's vote counts; GitHub never counts it,
+  so it is a named team allowed to bypass the rules on a pull request and never on a push, and refused without
+  that team rather than pretended. That bypass is the one exception to nobody bypassing, a person asks for it
+  by name, and it also lets a member merge past the required check, which GitHub does not separate.
 - **`doctor` reads it back.** It asks for the default branch, holds it to the same required check as the
   integration branch, and reports how each branch merges against the default. A required check missing on
   either branch is a problem, as D-106 has it. A merge method other than the default is reported and never a

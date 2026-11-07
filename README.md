@@ -473,7 +473,8 @@ What is honest to say about the rest:
   into the integration and default branches, nobody bypassing, the check required on both, squash into one and
   merge commits into the other, and only the integration branch or a `release/*` branch promoting, which the
   pipeline's `sdlc promotion` decides. `sdlc branch-policy` prints the commands and `doctor` reads them back
-  (D-136). This repository runs under the GitHub half. **The Azure DevOps commands have never been run**, like the
+  (D-136); `--approvals`, `--owner` and `--self-approve` add reviewers, a required approver, and an author
+  standing in for one. This repository runs under the GitHub half. **The Azure DevOps commands have never been run**, like the
   rest of that platform's path.
 
 ## Not goals

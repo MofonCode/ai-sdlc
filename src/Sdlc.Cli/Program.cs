@@ -87,7 +87,7 @@ try
         "verify-chain" => await VerifyChainCommand(line).ConfigureAwait(false),
         "admission" => await AdmissionCommand(line).ConfigureAwait(false),
         "promotion" => await PromotionCommand(line).ConfigureAwait(false),
-        "branch-policy" => await Workspace.Run(line, BranchPolicyCommand).ConfigureAwait(false),
+        "branch-policy" => await Workspace.Run(line, w => BranchPolicyCommand(w, line)).ConfigureAwait(false),
         "branch" => await BranchCommand(line).ConfigureAwait(false),
         "sitrep" => await Workspace.Run(line, SitrepCommand).ConfigureAwait(false),
         "factory" => await Workspace.Run(line, FactoryCommand).ConfigureAwait(false),
@@ -794,8 +794,33 @@ static async Task<int> PromotionCommand(CommandLine line)
 // The branch policy adoption sets as its default, as the platform's own commands, for a person to run (D-136).
 // Printed rather than applied: the binary never holds a token and changes nothing on the remote, and setting a
 // policy needs an administrator.
-static async Task<int> BranchPolicyCommand(Workspace workspace)
+static async Task<int> BranchPolicyCommand(Workspace workspace, CommandLine line)
 {
+    int approvals = 0;
+
+    if (line.HasOption("approvals")
+        && (!line.TryOption("approvals", out string? count)
+            || !int.TryParse(count, NumberStyles.Integer, CultureInfo.InvariantCulture, out approvals)))
+    {
+        await Console.Error.WriteLineAsync("--approvals takes a count, as in '--approvals 1'.").ConfigureAwait(false);
+        return ExitCode.Usage;
+    }
+
+    if (line.HasOption("owner") && !line.TryOption("owner", out _))
+    {
+        await Console.Error.WriteLineAsync("--owner takes who must approve, as in '--owner @name' or '--owner @org/team,@other'.").ConfigureAwait(false);
+        return ExitCode.Usage;
+    }
+
+    line.TryOption("owner", out string? owners);
+    line.TryOption("self-approve", out string? team);
+
+    BranchReviews reviews = new(
+        approvals,
+        [.. (owners ?? string.Empty).Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)],
+        line.HasOption("self-approve"),
+        team);
+
     Result<SolutionDocument> solution = await SolutionDocument
         .ReadFileOrDraft(workspace.SolutionRoot, CancellationToken.None)
         .ConfigureAwait(false);
@@ -808,7 +833,8 @@ static async Task<int> BranchPolicyCommand(Workspace workspace)
     Result<BranchPolicyScript> script = BranchPolicyScript.For(
         solution.Value.Platform,
         solution.Value.IntegrationBranch,
-        workspace.SolutionRoot);
+        workspace.SolutionRoot,
+        reviews);
 
     if (script.IsFailed)
     {

@@ -90,6 +90,91 @@ public sealed class PromotionTests
     }
 
     [TestMethod]
+    public void A_named_owner_on_GitHub_is_a_code_owner_review_with_the_line_to_commit()
+    {
+        using TemporaryDirectory scratch = new();
+
+        Result<BranchPolicyScript> script = BranchPolicyScript.For(
+            Platform.GitHub, "development", scratch.Path, new BranchReviews(0, ["peteralmanzar"], false, null));
+
+        Assert.IsTrue(script.IsSuccess);
+        StringAssert.Contains(script.Value.Text, "* @peteralmanzar");
+        StringAssert.Contains(script.Value.Text, ".github/CODEOWNERS");
+
+        foreach ((string _, string text) in script.Value.Files)
+        {
+            JsonNode ruleset = JsonNode.Parse(text)!;
+            Assert.AreEqual(1, Rule(ruleset, "pull_request")["required_approving_review_count"]!.GetValue<int>(), "An owner must approve, so one approval at least.");
+            Assert.IsTrue(Rule(ruleset, "pull_request")["require_code_owner_review"]!.GetValue<bool>());
+            Assert.AreEqual(0, ruleset["bypass_actors"]!.AsArray().Count);
+        }
+    }
+
+    [TestMethod]
+    public void Self_approval_on_GitHub_is_a_team_that_bypasses_on_a_pull_request_only()
+    {
+        using TemporaryDirectory scratch = new();
+
+        Result<BranchPolicyScript> script = BranchPolicyScript.For(
+            Platform.GitHub, "development", scratch.Path, new BranchReviews(1, ["@peteralmanzar"], true, "owners"));
+
+        Assert.IsTrue(script.IsSuccess);
+        StringAssert.Contains(script.Value.Text, "gh api orgs/{owner}/teams/owners --jq .id");
+        StringAssert.Contains(script.Value.Text, "* @peteralmanzar");
+
+        foreach ((string _, string text) in script.Value.Files)
+        {
+            JsonNode actor = JsonNode.Parse(text)!["bypass_actors"]![0]!;
+            Assert.AreEqual("Team", actor["actor_type"]!.GetValue<string>());
+            Assert.AreEqual("pull_request", actor["bypass_mode"]!.GetValue<string>(), "Never a push straight to the branch.");
+            Assert.AreEqual("<team id>", actor["actor_id"]!.GetValue<string>(), "A placeholder the API refuses until it is filled in.");
+        }
+    }
+
+    [TestMethod]
+    public void Self_approval_on_GitHub_without_a_team_is_refused_rather_than_pretended()
+    {
+        Result<BranchPolicyScript> script = BranchPolicyScript.For(
+            Platform.GitHub, "development", Path.GetTempPath(), new BranchReviews(1, [], true, null));
+
+        Assert.IsTrue(script.IsFailed);
+        StringAssert.Contains(script.Errors[0].Message, "never counts an author's approval");
+    }
+
+    [TestMethod]
+    [DataRow(Platform.GitHub)]
+    [DataRow(Platform.AzureDevOps)]
+    public void Self_approval_with_nothing_to_approve_and_a_negative_count_are_refused(Platform platform)
+    {
+        Assert.IsTrue(BranchPolicyScript.For(platform, "development", Path.GetTempPath(), new BranchReviews(0, [], true, "owners")).IsFailed);
+        Assert.IsTrue(BranchPolicyScript.For(platform, "development", Path.GetTempPath(), new BranchReviews(-1, [], false, null)).IsFailed);
+    }
+
+    [TestMethod]
+    public void Azure_DevOps_gets_an_approver_count_and_a_required_reviewer_on_both_branches()
+    {
+        Result<BranchPolicyScript> script = BranchPolicyScript.For(
+            Platform.AzureDevOps, "development", Path.GetTempPath(), new BranchReviews(2, ["@leads"], true, null));
+
+        Assert.IsTrue(script.IsSuccess);
+
+        foreach (string branch in (string[])["development", "<default branch>"])
+        {
+            StringAssert.Contains(script.Value.Text, $"az repos policy approver-count create --repository-id <repository id> --branch {branch} --blocking true --enabled true --minimum-approver-count 2 --creator-vote-counts true");
+            StringAssert.Contains(script.Value.Text, $"az repos policy required-reviewer create --repository-id <repository id> --branch {branch} --blocking true --enabled true --required-reviewer-ids \"leads\"");
+        }
+    }
+
+    [TestMethod]
+    public void By_default_Azure_DevOps_gets_no_reviewer_policy()
+    {
+        Result<BranchPolicyScript> script = BranchPolicyScript.For(Platform.AzureDevOps, "development", Path.GetTempPath());
+
+        Assert.DoesNotContain("approver-count", script.Value.Text);
+        Assert.DoesNotContain("required-reviewer", script.Value.Text);
+    }
+
+    [TestMethod]
     public void A_local_solution_has_no_branch_policy_to_print()
     {
         Assert.IsTrue(BranchPolicyScript.For(Platform.Local, "development", Path.GetTempPath()).IsFailed);
