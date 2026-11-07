@@ -433,6 +433,21 @@ lists what the release asks.
 
 ---
 
+## A promotion's pull request — the one way it is refused
+
+A pull request into a branch that is neither the integration branch nor a `release/*` branch — main, usually —
+is a **promotion**, and the pipeline's `verify` job asks `sdlc promotion` about it before anything else. A
+promotion has no cycle, so the chain is not asked of it; it is built and tested, and that is all (D-136).
+
+### a branch that may not promote
+
+Only the integration branch and a `release/*` branch may open a pull request into the default branch. Anything
+else would put on main code no chain judged: a cycle's branch, a feature branch, a fix made straight against
+main.
+
+**Next:** open the pull request into the integration branch instead, as a cycle, and promote from there. A fix
+a release needs now is a cycle on its `release/*` branch, which then promotes (D-88).
+
 ## `sdlc init` — the two ways adoption is refused
 
 ### an option it does not take

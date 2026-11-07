@@ -161,6 +161,27 @@ public static class Diagnose
                     platform,
                     integration,
                     await policies.Ask(platform, integration, file, solution.Path, cancellationToken).ConfigureAwait(false)));
+
+                // The default branch's half (D-136): the same check required there, because on it the
+                // pipeline runs 'sdlc promotion', and how each branch merges.
+                string? main = await policies.DefaultBranch(platform, solution.Path, cancellationToken).ConfigureAwait(false);
+
+                if (main is not null && !string.Equals(main, integration, StringComparison.Ordinal))
+                {
+                    checks.Add(BranchPolicy(
+                        platform,
+                        integration,
+                        await policies.Ask(platform, main, file, solution.Path, cancellationToken).ConfigureAwait(false),
+                        main));
+                }
+
+                checks.Add(MergeMethods(
+                    integration,
+                    await policies.MergeMethods(platform, integration, solution.Path, cancellationToken).ConfigureAwait(false),
+                    main,
+                    main is null || string.Equals(main, integration, StringComparison.Ordinal)
+                        ? null
+                        : await policies.MergeMethods(platform, main, solution.Path, cancellationToken).ConfigureAwait(false)));
             }
 
             checks.Add(Plugin());
@@ -719,9 +740,11 @@ public static class Diagnose
         /// <param name="integration">The branch cycles merge into.</param>
         /// <param name="answer">What the platform said, or why it was not asked.</param>
         /// <returns>The check.</returns>
-        private static Check BranchPolicy(Platform platform, string integration, PolicyAnswer answer)
+        private static Check BranchPolicy(Platform platform, string integration, PolicyAnswer answer, string? defaultBranch = null)
         {
-            string remedy = (platform == Platform.AzureDevOps
+            string name = defaultBranch is null ? "branch policy" : $"branch policy on {defaultBranch}";
+            string remedy = "'sdlc branch-policy' prints the commands that set the default (D-136); "
+                + (platform == Platform.AzureDevOps
                     ? "on Azure DevOps the pipeline runs only from a build validation policy, so without one "
                       + $"nothing runs: Repos > Branches > {integration} and the default branch > Branch policies > Build "
                       + "validation, add the pipeline and make it Required"
@@ -735,17 +758,54 @@ public static class Diagnose
             return answer.Finding switch
             {
                 PolicyFinding.Required => new Check(
-                    "branch policy",
+                    name,
                     CheckOutcome.Sound,
-                    answer.Detail + ". The default branch and who must review are not asked; both are yours to set"),
-                PolicyFinding.NotRequired => new Check("branch policy", CheckOutcome.Problem, answer.Detail, remedy),
+                    answer.Detail + ". Who must review is yours to set"),
+                PolicyFinding.NotRequired => new Check(name, CheckOutcome.Problem, answer.Detail, remedy),
                 _ => new Check(
-                    "branch policy",
+                    name,
                     CheckOutcome.Elsewhere,
                     "the platform holds this, and it could not be asked whether the check is required: " + answer.Detail,
                     remedy + $". Sign in with '{signIn}' and run the doctor again, and it asks for itself"),
             };
         }
+
+        /// <summary>How a pull request into each branch is merged, against the default adoption sets (D-136).</summary>
+        /// <remarks>
+        /// <para><strong>Never a problem.</strong> Squash into the integration branch and merge commits into the
+        /// default branch are where a solution starts, and a team may choose otherwise. What the guarantee
+        /// needs is the required check, which the branch policy checks hold; this says what was found and
+        /// whether it is the default, so a change is one somebody can see.</para>
+        /// <para>Elsewhere when either branch could not be asked, as the policy check is.</para>
+        /// </remarks>
+        private static Check MergeMethods(string integration, MergeAnswer onIntegration, string? defaultBranch, MergeAnswer? onDefault)
+        {
+            const string Name = "merge methods";
+
+            List<string> said = [Describe(integration, onIntegration, "squash")];
+
+            if (defaultBranch is not null && onDefault is not null)
+            {
+                said.Add(Describe(defaultBranch, onDefault, "merge"));
+            }
+
+            bool unasked = onIntegration.Finding == PolicyFinding.Unasked || onDefault?.Finding == PolicyFinding.Unasked;
+
+            return unasked
+                ? new Check(Name, CheckOutcome.Elsewhere, string.Join("; ", said), "'sdlc branch-policy' prints the default; sign in to the platform's CLI and run the doctor again, and it asks for itself")
+                : new Check(Name, CheckOutcome.Sound, string.Join("; ", said));
+        }
+
+        private static string Describe(string branch, MergeAnswer answer, string expected) => answer.Finding switch
+        {
+            PolicyFinding.Required when answer.Methods.Count == 1 && answer.Methods[0] == expected =>
+                $"{branch} takes {expected} only, the default",
+            PolicyFinding.Required =>
+                $"{branch} takes {(answer.Methods.Count == 0 ? "no method" : string.Join(", ", answer.Methods))}, where the default is {expected} only: the team's choice",
+            PolicyFinding.NotRequired =>
+                $"nothing limits how {branch} merges, where the default is {expected} only",
+            _ => $"{branch} could not be asked: {answer.Detail}",
+        };
 
         /// <summary>
         /// The other half of the install, which this cannot see.

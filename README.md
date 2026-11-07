@@ -1,6 +1,6 @@
 # ai-sdlc
 
-**Version 0.36.7** · iteration 4 · .NET 10 · MIT
+**Version 0.36.8** · iteration 4 · .NET 10 · MIT
 
 **A plugin that makes an AI coding agent work the way a careful team does** — write down what the change
 is for, agree what *done* means, plan it, have a person approve it, and only then write code.
@@ -191,7 +191,7 @@ sdlc constraints
 ```
 
 It should print the nineteen global constraints in force and say it read them from
-`global  embedded in sdlc 0.36.7`. **Use this rather than `sdlc help` as the smoke test** — `help` and
+`global  embedded in sdlc 0.36.8`. **Use this rather than `sdlc help` as the smoke test** — `help` and
 `version` are the only commands that need nothing from the installation, so they are the two that cannot
 tell you whether it worked. Then `claude plugin details sdlc@ai-sdlc` should say `Skills (18)` and
 `Hooks (3)`: **a hook count below three is a failed install**, not a detail, because the deterministic layer
@@ -463,12 +463,19 @@ What is honest to say about the rest:
   binary in `.config/dotnet-tools.json`, and the global `sdlc` hands every command on to that release. The
   release carries its own skills and hooks, and `sdlc claude` starts a session with them; plain `claude`
   loads the installed plugin, and a session-start hook says when that is another release (D-131).
-  `.github/workflows/ci.yml` publishes to nuget.org: a preview from a push that ships, one per patch from
+  `.github/workflows/ci.yml` publishes to nuget.org: a preview from each merge into development that ships, one per patch from
   `0.36.1-preview` on, and a release from each merge to master once a reviewer approves it (D-135).
 - **A cycle can run on a change to the framework nobody has published, and stops at the pull request**
   (0.36.7). `SDLC_DEV_BUILD` hands every `sdlc` in a terminal to a local build, which calls itself
   `-local`; a cycle any round of which it wrote is a test run, and `pr-ready` and the pull-request check refuse
   it (D-135). Nobody has run a whole test run through it yet.
+- **Branch policy has a default, printed rather than applied, on both platforms** (0.36.8). Pull requests only
+  into the integration and default branches, nobody bypassing, the check required on both, squash into one and
+  merge commits into the other, and only the integration branch or a `release/*` branch promoting, which the
+  pipeline's `sdlc promotion` decides. `sdlc branch-policy` prints the commands and `doctor` reads them back
+  (D-136); `--approvals`, `--owner` and `--self-approve` add reviewers, a required approver, and an author
+  standing in for one. This repository runs under the GitHub half. **The Azure DevOps commands have never been run**, like the
+  rest of that platform's path.
 
 ## Not goals
 

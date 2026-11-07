@@ -1,8 +1,8 @@
 # Build, test and publish the sdlc binary: one pipeline, three ways in (D-135).
 #
 #   a pull request                     -> build and test, and keep the packed tool as a run artifact
-#   a push to any branch but master    -> the same, then <VersionPrefix>-preview to nuget.org through
-#      that changes what ships            'nuget-preview', tagged v<that version>
+#   a push to development -- a merged  -> the same, then <VersionPrefix>-preview to nuget.org through
+#      pull request that ships          'nuget-preview', tagged v<that version>
 #   a push to master -- a merge        -> the same, then <VersionPrefix> through 'nuget', which waits for a
 #                                         reviewer, tagged v<that version>
 #
@@ -12,7 +12,11 @@
 #
 # Only pushes that change what ships make a preview: the binary, the skills, the hooks and the manifests. A
 # version on nuget.org can be unlisted but never deleted, so a preview per documentation commit would be
-# permanent noise. A push to another branch that ships nothing runs nothing here: its pull request builds it.
+# permanent noise. A push to development that ships nothing runs nothing here: its pull request built it.
+#
+# Both branches take pull requests only, with nobody bypassing (D-136): squashed into development, so one
+# merged pull request is one preview, and merged with a merge commit into master. Only development or a
+# release/* branch may open a pull request into master, which the promotion job below decides.
 #
 # A build nobody published is a local build and is never pushed anywhere. The packed tool a pull request leaves
 # as an artifact was built here, with CI set, so it carries the plain version; downloaded and used through
@@ -34,7 +38,7 @@ name: ci
 on:
   pull_request:
   push:
-    branches: ['**']
+    branches: [master, development]
 
 permissions:
   contents: read
@@ -48,7 +52,7 @@ concurrency:
 
 jobs:
   # Whether a push changes what ships. A path filter on the trigger cannot say this, because master builds
-  # every merge and another branch only a shipping one -- and a merge that ships with a version already
+  # every merge and development only a shipping one -- and a merge that ships with a version already
   # published is a mistake to refuse, which needs the answer as a value rather than as a skipped run.
   changes:
     name: what the push changes
@@ -78,6 +82,23 @@ jobs:
           fi
           echo "ships=$ships" >> "$GITHUB_OUTPUT"
           echo "Changes what ships: $ships"
+
+  # Only development or a release/* branch may open a pull request into master (D-136). A ruleset cannot say
+  # which branch a pull request comes from, so this job does, and master's ruleset requires it. Inline rather
+  # than 'sdlc promotion', because this repository is not governed by the framework it builds.
+  promotion:
+    name: promotion
+    if: github.event_name == 'pull_request' && github.base_ref == 'master'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Only development or a release branch promotes into master
+        env:
+          HEAD_REF: ${{ github.head_ref }}
+        run: |
+          case "$HEAD_REF" in
+            development|release/?*) echo "$HEAD_REF may promote into master." ;;
+            *) echo "::error::$HEAD_REF may not open a pull request into master. Open it into development, and promote from there or from a release/* branch."; exit 1 ;;
+          esac
 
   build:
     name: build, test and pack

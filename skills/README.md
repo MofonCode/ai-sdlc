@@ -1150,7 +1150,7 @@ item where the solution tracks them.
 |---|---|---|
 | `sdlc pr-ready` refuses: not verified, did not pass, escalated, the chain broken since verification, or a test run a local build judged (D-135) | refuses, and does not push past it — except `--draft`, which opens a draft for did not pass or escalated, and nothing else | [Handling refusals](../docs/guides/handling-refusals.md) |
 | `--plan` and `sdlc gate` or `sdlc verify-chain` refuses, a local build's rounds included | does not push the plan | [Handling refusals](../docs/guides/handling-refusals.md) |
-| the solution is `local` or has no remote | stops | it walks you through creating one, then re-running adoption with a platform, and making the check required in branch policy |
+| the solution is `local` or has no remote | stops | it walks you through creating one, then re-running adoption with a platform, and setting the branch policy `sdlc branch-policy` prints |
 | on Azure DevOps | shows the exact command before running it, because that path has never been run (D-32) | — |
 | with `--all`, one cycle fails | the others carry on | — |
 

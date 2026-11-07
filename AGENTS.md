@@ -57,7 +57,7 @@ the cheapest way to discover that what you were about to add already lives somew
 | `tools/Sdlc.ScaffoldHarness/` | the harness that writes a scaffolded solution so it can be built |
 | `tools/Sdlc.UsageReport/` | what a host's sessions cost, read from Claude Code's transcripts: the whole-session view the per-cycle usage record leaves out |
 | [`factory/README.md`](factory/README.md) | the factory bundle: what runs unattended. Today only the factory's agent image, built from one commit (D-96) |
-| `.github/workflows/ci.yml` | build and test on every pull request, which deliberately does not govern this repository with itself (D-42); a preview from a push to any other branch that changes what ships, and a release from a merge to master, each tagged so the plugin can be pinned to it (D-131, D-135). See Releasing below |
+| `.github/workflows/ci.yml` | build and test on every pull request, which deliberately does not govern this repository with itself (D-42); a preview from a merge into development that changes what ships, and a release from a merge to master, each tagged so the plugin can be pinned to it (D-131, D-135). See Releasing below |
 
 ### Querying `CONCEPT.md`
 
@@ -133,9 +133,18 @@ on the `nuget` environment before it pushes and tags the commit `v<that version>
 already published and that changes nothing that ships publishes nothing; one that does change what ships is
 refused.
 
-**A preview is a push.** Any other branch whose push changes what ships publishes
+**Both branches take pull requests only** (D-136). Work happens on a branch of your own, squashed into
+`development` by pull request; `development` is merged into `master` with a merge commit, and only `development`
+or a `release/*` branch may open that pull request, which the `promotion` job checks. Nothing is pushed straight
+to either. The rulesets are in **Settings > Rules**: `build, test and pack` required on both, `promotion` on
+`master` too, and one approval from a code owner, named in [`.github/CODEOWNERS`](.github/CODEOWNERS). GitHub
+never counts an author's own approval, so the one bypass is the `ai-sdlc-owners` team, on pull requests only:
+a member merges their own pull request by ticking the bypass box, **and only once the checks are green**, because
+the same box would merge past them. Nobody else bypasses, and nobody bypasses a push.
+
+**A preview is a merge into `development`.** A pull request squashed into it that changes what ships publishes
 `<VersionPrefix>-preview` through the `nuget-preview` environment, which has no reviewer, and tags the
-commit `v<that version>`. A nuget.org version can be unlisted and never deleted, so a push that touches only
+commit `v<that version>`. A branch's own pushes publish nothing; its pull request builds it. A nuget.org version can be unlisted and never deleted, so a push that touches only
 documents makes none. **There is one preview per version**: the next one is the next patch, moved in the props
 and both manifests together, and a push that ships a change without moving it is refused.
 

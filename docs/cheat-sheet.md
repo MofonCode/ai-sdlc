@@ -5,7 +5,8 @@ One cycle, one line per step. The why is in `guides/running-a-cycle.md`; every c
 
 **Before the first one:** the repository is adopted and its drafts are placed and committed —
 `guides/adopting-the-framework.md`. `sdlc doctor` exits 0. **With a remote**, the pipeline's check is
-required in branch policy — a person sets that, and until then nothing mechanical gates a merge.
+required in branch policy — `sdlc branch-policy` prints the commands and a person runs them; until then nothing
+mechanical gates a merge.
 
 ## The cycle
 
