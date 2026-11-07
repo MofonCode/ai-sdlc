@@ -2,7 +2,7 @@
 #
 #   a pull request                     -> build and test, and keep the packed tool as a run artifact
 #   a push to development -- a merged  -> the same, then <VersionPrefix>-preview to nuget.org through
-#      pull request that ships          'nuget-preview', tagged v<that version>
+#      pull request that ships          'nuget-preview', which waits for a reviewer, tagged v<that version>
 #   a push to master -- a merge        -> the same, then <VersionPrefix> through 'nuget', which waits for a
 #                                         reviewer, tagged v<that version>
 #
@@ -294,8 +294,8 @@ jobs:
       id-token: write
       contents: write
 
-    # 'nuget' carries a required reviewer, so a release waits for a person. 'nuget-preview' does not, so a
-    # preview is published when the push is. The trusted publishing policies name these, one each.
+    # Both carry a required reviewer, so nothing reaches nuget.org until a person approves it: a version there can
+    # be unlisted and never deleted, a preview included. The trusted publishing policies name these, one each.
     environment:
       name: ${{ needs.build.outputs.publish == 'preview' && 'nuget-preview' || 'nuget' }}
       url: https://www.nuget.org/packages/MofonCode.Sdlc.Cli/${{ needs.build.outputs.version }}

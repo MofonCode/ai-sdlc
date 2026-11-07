@@ -143,7 +143,7 @@ a member merges their own pull request by ticking the bypass box, **and only onc
 the same box would merge past them. Nobody else bypasses, and nobody bypasses a push.
 
 **A preview is a merge into `development`.** A pull request squashed into it that changes what ships publishes
-`<VersionPrefix>-preview` through the `nuget-preview` environment, which has no reviewer, and tags the
+`<VersionPrefix>-preview` through the `nuget-preview` environment once a reviewer approves it, and tags the
 commit `v<that version>`. A branch's own pushes publish nothing; its pull request builds it. A nuget.org version can be unlisted and never deleted, so a push that touches only
 documents makes none. **There is one preview per version**: the next one is the next patch, moved in the props
 and both manifests together, and a push that ships a change without moving it is refused.
@@ -158,7 +158,7 @@ against a trusted publishing policy on nuget.org. Setting it up is a person's, o
 | Where | What |
 |---|---|
 | nuget.org, **Trusted Publishing** | two policies, owner `MofonCode`, repository owner `MofonCode`, repository `ai-sdlc`, workflow file `ci.yml`, package `MofonCode.Sdlc.Cli` rather than `*`; environment `nuget` on one and `nuget-preview` on the other |
-| GitHub, **Settings > Environments** | `nuget` with a required reviewer; `nuget-preview` with none |
+| GitHub, **Settings > Environments** | `nuget` and `nuget-preview`, each with a required reviewer |
 | GitHub, **Settings > Secrets** | `NUGET_USER`: the nuget.org profile name the token exchange identifies itself as |
 
 ## What the suite enforces about this repository
