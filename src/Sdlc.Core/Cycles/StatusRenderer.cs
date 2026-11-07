@@ -144,6 +144,7 @@ public static class StatusRenderer
     /// <summary>The gate in one word, for the counter line.</summary>
     private static string Gate(ReadCycleStatus.Response status) => status.Gate.Refusal switch
     {
+        ApprovalGate.GateRefusal.None when status.Gate.Declared => "unapproved, by declaration",
         ApprovalGate.GateRefusal.None => "approved",
         ApprovalGate.GateRefusal.NotApproved => "not approved",
         ApprovalGate.GateRefusal.UnreadableLedger => "unreadable",
@@ -587,7 +588,10 @@ public static class StatusRenderer
     private static string Digits(string? hash) =>
         string.IsNullOrWhiteSpace(hash) ? "none".PadRight(12) : ContentHash.Abbreviate(hash);
 
-    private static string GateLine(ReadCycleStatus.Response status) => status.Gate.Refusal switch
+    private static string GateLine(ReadCycleStatus.Response status) =>
+        status.Gate.Declared ? DeclaredLine(status) : ApprovedLine(status);
+
+    private static string ApprovedLine(ReadCycleStatus.Response status) => status.Gate.Refusal switch
     {
         ApprovalGate.GateRefusal.None => "approved, and all three documents match what was approved",
         ApprovalGate.GateRefusal.NotApproved => "not approved yet",
@@ -599,6 +603,20 @@ public static class StatusRenderer
         ApprovalGate.GateRefusal.Abandoned => "abandoned, which is terminal",
         ApprovalGate.GateRefusal.MissingDocument => "cannot be approved until all three documents exist",
         ApprovalGate.GateRefusal.NoCycle => "no cycle directory yet",
+        _ => "unknown",
+    };
+
+    /// <summary>The gate line when the solution declares no approval is required and none was placed (D-137).</summary>
+    /// <remarks>
+    /// Never "approved": nobody did, and a panel that said so would tell a person the plan had been read.
+    /// </remarks>
+    private static string DeclaredLine(ReadCycleStatus.Response status) => status.Gate.Refusal switch
+    {
+        ApprovalGate.GateRefusal.None => "no approval required (approval: none), and all three documents are what their clean rounds judged",
+        ApprovalGate.GateRefusal.OpenBlocker => "no approval required, but a blocking finding is still open",
+        ApprovalGate.GateRefusal.StaleRound => "no approval required, but a document has changed since its round judged it",
+        ApprovalGate.GateRefusal.Uninterrogated => "no approval required, but a document has never been interrogated",
+        ApprovalGate.GateRefusal.UnreadableRound => "no approval required, but a findings round cannot be read",
         _ => "unknown",
     };
 
@@ -661,6 +679,13 @@ public static class StatusRenderer
             else if (status.Gate.MayBuild)
             {
                 next.Add(AfterTheGate(status, id, host));
+            }
+            else if (status.Gate.Declared)
+            {
+                // No approval to draft (D-137): the refusal is about the documents, and the gate names it.
+                next.Add((
+                    string.Create(CultureInfo.InvariantCulture, $"sdlc gate {id}"),
+                    "no approval is required, and the gate still refuses - it says why"));
             }
             else
             {

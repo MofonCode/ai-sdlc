@@ -539,6 +539,16 @@ public static class ApprovalText
 
             List<string> lines = [];
 
+            // D-137: drafting one is allowed and placing one is honoured, so the person is told what it
+            // changes rather than refused -- a refusal or a reopen is how a team under `none` stops a cycle.
+            if (status.Gate.Declared)
+            {
+                lines.Add(string.Create(
+                    CultureInfo.InvariantCulture,
+                    $"This solution does not require an approval ('approval: none' in {Cycle.SolutionFileName}). One placed here is honoured in full: once it is in place the gate reads it, and anything but an approval stops the build."));
+                lines.Add(string.Empty);
+            }
+
             if (decisions is not null)
             {
                 lines.Add(decisions.Count == 0

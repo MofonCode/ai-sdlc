@@ -55,7 +55,8 @@ A solution is one governed repository. Everything below lives in it.
 |---|---|---|
 | **solution** | the repository the framework governs, found by walking up for `.sdlc/` | — |
 | **`.sdlc/`** | everything the framework keeps about this solution | the repository root |
-| **`solution.md`** | what this solution is, in four keys — five with Operate's — and a paragraph. **A person's file** | `.sdlc/solution.md` |
+| **`solution.md`** | what this solution is, in five keys — six with Operate's — and a paragraph. **A person's file** | `.sdlc/solution.md` |
+| **a setting** | a value in `solution.md`, read by the binary, defaulted when absent. Not a *build setting*, which is a file the declared stack takes. `sdlc settings` shows each, whether it was written or defaulted, and how to change it | `.sdlc/solution.md` |
 | **`techstack.md`** / the declared stack / the stack definition | what the solution is built from, as a table of concerns and choices; which stack rules it is held to, as a table of rule ids marked `true` or `false`; and which build settings files it takes, as a table of file names marked the same way. **What is in it is exactly what binds**, and an empty one pins nothing. The second rule source a plan is read against. Adoption drafts it and places nothing: a person places it from the draft, and no cycle opens until they have. **A person's file** | `.sdlc/techstack.md` |
 | **stack default** | one row of it: a concern, and what this solution chooses for it | — |
 | **stack rule row** | one row of its second table: a `PRO_` id, `true` or `false`, and what the rule holds a plan to. `true` binds; `false`, or no row, does not | — |
@@ -201,6 +202,7 @@ One gate, covering all three planning documents, immediately before the build.
 | **the draft-and-rename pattern** | a drafter writes a complete file *beside* the real one and prints the rename. **Renaming is the decision**; a draft nobody renamed records nothing |
 | **draft file names** | `approval.<decision>.draft.md`, `solution.draft.md`, `techstack.draft.md`, `constraints.draft.md`. The decision is in the name, so a denial and an approval cannot look identical at the moment of the move. The three under `.sdlc/` are what adoption leaves a person, and git ignores them. The options menu written alongside the stack's draft is **not** a draft and is not here: it is a report, nothing renames it, and a declared stack carrying it is something `sdlc doctor` reports |
 | **the gate**, the hash-bound gate | `sdlc gate <id>`: whether the build may run. Exits 1 if not |
+| **`approval: none`** | a solution declaring that no person's approval is required. The gate asks for no ledger and keeps every other refusal, comparing each document with what its latest round judged; every report says no person approved. `required`, the default, is what an absent key reads as | `.sdlc/solution.md` |
 | **the six files only a person writes** | `approval.md`, `abandoned.md`, `constraints.md`, `decisions.md`, `solution.md`, `techstack.md`. Every agent write to one is denied, by path and by command alike. `mechanisms/protected-files.md` is how |
 | **the guard note** | the blockquote at the top of `solution.md`, `techstack.md` and `constraints.md`, and of their drafts, saying only a person changes the file — so a denied agent write is explained by the file a person opens |
 

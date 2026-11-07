@@ -108,6 +108,7 @@ try
         "decisions" => await Workspace.Run(line, w => Decisions(w, line)).ConfigureAwait(false),
         "theme" => await Workspace.Run(line, ThemeCommand).ConfigureAwait(false),
         "stack" => await Workspace.Run(line, StackCommand).ConfigureAwait(false),
+        "settings" => await Workspace.Run(line, SettingsCommand).ConfigureAwait(false),
         "doctor" => await Workspace.Run(line, Doctor).ConfigureAwait(false),
         "hook" => await Hook(line).ConfigureAwait(false),
         _ when Stages.IsSkill(line.Verb) => await Skill(line).ConfigureAwait(false),
@@ -1481,6 +1482,23 @@ static async Task<int> StackCommand(Workspace workspace)
 
     await Console.Out.WriteAsync(StackRenderer.Render(result.Value)).ConfigureAwait(false);
     return ExitCode.Ok;
+}
+
+// How this solution is set to run, every value with where it came from (D-138). One when solution.md cannot be
+// read: its values are printed as unknown, and a view that exited zero over them would read as their defaults.
+static async Task<int> SettingsCommand(Workspace workspace)
+{
+    Result<ReadSettings.Response> result = await workspace
+        .Send<ReadSettings.Query, ReadSettings.Response>(new ReadSettings.Query())
+        .ConfigureAwait(false);
+
+    if (result.IsFailed)
+    {
+        return await Report(result, ExitCode.Refused).ConfigureAwait(false);
+    }
+
+    await Console.Out.WriteAsync(SettingsRenderer.Render(result.Value)).ConfigureAwait(false);
+    return result.Value.Complete ? ExitCode.Ok : ExitCode.Refused;
 }
 
 // Both reports keep a copy, because a person works from a file rather than from scrollback and these are

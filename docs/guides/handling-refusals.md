@@ -90,7 +90,9 @@ One of `intent.md`, `spec.md`, `plan.md` is not there. All three are required, a
 
 ### not approved
 
-There is no approval ledger. Nobody has been to the gate.
+There is no approval ledger. Nobody has been to the gate. Never raised in a solution that declares
+`approval: none`, where the gate asks for no ledger and keeps its other refusals (`running-a-cycle.md`,
+under *Running without approvals*); `sdlc settings` says which the solution declares.
 
 **Next:** `sdlc draft approval <id>`, then rename the draft it writes onto the ledger beside it.
 **Asking an agent to rename it will be denied** — see the hook section below. That denial is the
@@ -186,6 +188,9 @@ A round judged its artifact against an upstream document that has since changed 
 of the artifact itself that has since been edited. The three approval hashes prove the three documents
 were approved; they do not prove the spec was derived from *this* intent, or that the plan approved is
 the plan a reader cleared. Only the round knows what it read, which is why it records both.
+
+Under `approval: none` the rounds are the only record of what was judged, so a round written before rounds
+recorded their subject is refused this way too: no person read the bytes instead.
 
 **Next:** re-interrogate the downstream artifact — `/sdlc:interrogate <id> spec`, and the plan after it
 if the spec changed. `/sdlc:steer` does this for you, which is the reason to use it rather than editing

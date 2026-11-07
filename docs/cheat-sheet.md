@@ -13,7 +13,7 @@ mechanical gates a merge.
 - `/sdlc:intent` — slices bigger work into atomic cycles once you accept, then opens each and interviews you one question at a time
 - `/sdlc:spec <id>` — testable criteria, from the intent alone
 - `/sdlc:plan <id>` — how, and what proves each criterion. **Read it closely**
-- `sdlc draft approval <id>`, then **rename the draft yourself** — that rename is the approval
+- `sdlc draft approval <id>`, then **rename the draft yourself** — that rename is the approval. Skipped when the solution declares `approval: none`
 - `/sdlc:pr <id> --plan` — only with an integration branch: admits the plan before it is built; a slicing's plans together with `/sdlc:pr <id> <id>... --plan`
 - `/sdlc:build <id>` — implements, tests, records the evidence
 - `/sdlc:verify <id>` — adjudicates from the evidence alone

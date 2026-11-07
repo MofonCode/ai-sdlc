@@ -148,6 +148,7 @@ public static class SdlcServices
         // demand and never copied into an artifact, which is what CON_09 is about.
         services.AddReadDecisionsRequestHandler();
         services.AddReadThemeRequestHandler();
+        services.AddReadSettingsRequestHandler();
 
         // And the fourth: what the solution declares it is built from, with the one comparison a file
         // listing can decide -- which build settings it takes against which are on disk.

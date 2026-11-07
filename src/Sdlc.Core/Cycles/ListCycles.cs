@@ -17,6 +17,9 @@ namespace Sdlc.Core.Cycles;
 /// <param name="Gate">Why the build may not run, or none.</param>
 /// <param name="Outcome">What the verification said, when there is one.</param>
 /// <param name="Abandoned">Whether the cycle was stopped, which is terminal.</param>
+/// <param name="Unapproved">
+/// Whether the gate lets it through with no approval, because the solution declares none is required (D-137).
+/// </param>
 public sealed record CycleSummary(
     Cycle Cycle,
     string? Headline,
@@ -26,10 +29,14 @@ public sealed record CycleSummary(
     int Suggestions,
     ApprovalGate.GateRefusal Gate,
     string? Outcome,
-    bool Abandoned)
+    bool Abandoned,
+    bool Unapproved = false)
 {
-    /// <summary>Whether a person has approved this cycle's three planning documents.</summary>
-    public bool Approved => Gate == ApprovalGate.GateRefusal.None;
+    /// <summary>
+    /// Whether a person has approved this cycle's three planning documents. Never true of a cycle the gate
+    /// lets through by declaration: nobody approved it (D-137).
+    /// </summary>
+    public bool Approved => Gate == ApprovalGate.GateRefusal.None && !Unapproved;
 
     /// <summary>Whether a verification passed.</summary>
     public bool Verified => string.Equals(Outcome, "pass", StringComparison.OrdinalIgnoreCase);
@@ -152,7 +159,8 @@ public static class ListCycles
                 ReadCycleStatus.OpenSuggestionCount(every),
                 status.Gate.Refusal,
                 status.Outcome,
-                status.Cycle.IsAbandoned);
+                status.Cycle.IsAbandoned,
+                status.Gate.Declared);
         }
     }
 }

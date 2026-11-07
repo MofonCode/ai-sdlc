@@ -329,6 +329,12 @@ internal sealed class CycleWorkspace : IDisposable
     public void WriteCleanRound(ArtifactKind kind, int round = 1, string? upstream = null) =>
         WriteRound(kind, round, findings: string.Empty, upstream);
 
+    /// <summary>Writes a clean round that records the document it judged, as rounds have since D-101.</summary>
+    /// <param name="kind">The artifact interrogated.</param>
+    /// <param name="round">The round number.</param>
+    public void WriteJudgedCleanRound(ArtifactKind kind, int round = 1) =>
+        WriteRound(kind, round, findings: string.Empty, subject: HashOf(kind));
+
     /// <summary>Writes an interrogation round holding one open blocking finding.</summary>
     /// <param name="kind">The artifact interrogated.</param>
     /// <param name="round">The round number.</param>
@@ -441,7 +447,8 @@ internal sealed class CycleWorkspace : IDisposable
         string findings,
         string? upstream = null,
         string? conflicts = null,
-        string? release = null)
+        string? release = null,
+        string? subject = null)
     {
         Directory.CreateDirectory(Cycle.FindingsDirectory);
 
@@ -466,6 +473,7 @@ internal sealed class CycleWorkspace : IDisposable
                     "interrogated_at": "2026-10-01T10:00:00Z",
                     "round": {{round}},
                     {{(release is null ? string.Empty : string.Create(CultureInfo.InvariantCulture, $"\"release\": \"{release}\","))}}
+                    {{(subject is null ? string.Empty : string.Create(CultureInfo.InvariantCulture, $"\"subject_sha256\": \"{subject}\","))}}
                     {{(conflicts is null ? string.Empty : string.Create(CultureInfo.InvariantCulture, $"\"conflicts\": [{conflicts}],"))}}
                     "findings": [{{findings}}]
                   }
@@ -565,11 +573,12 @@ internal sealed class CycleWorkspace : IDisposable
     /// A <c>profile</c> line, as a solution adopted before the declared stack listed its own rules may
     /// still carry. Nothing reads it. Null writes the three keys adoption writes now.
     /// </param>
-    public void WriteSolution(SolutionOrigin origin, string? legacyProfile = null) => WriteRaw(
+    /// <param name="approval">An <c>approval</c> line's value, or null to leave the key out.</param>
+    public void WriteSolution(SolutionOrigin origin, string? legacyProfile = null, string? approval = null) => WriteRaw(
         SolutionDocument.PathIn(Root),
         string.Create(
             CultureInfo.InvariantCulture,
-            $"---\n{(legacyProfile is null ? string.Empty : "profile: " + legacyProfile + "\n")}origin: {SolutionDocument.NameOf(origin)}\n---\n\n# a solution\n"));
+            $"---\n{(legacyProfile is null ? string.Empty : "profile: " + legacyProfile + "\n")}origin: {SolutionDocument.NameOf(origin)}\n{(approval is null ? string.Empty : "approval: " + approval + "\n")}---\n\n# a solution\n"));
 
     /// <summary>
     /// Places a declared stack, as a person would by renaming a draft.

@@ -1,6 +1,6 @@
 # ai-sdlc
 
-**Version 0.36.9** · iteration 4 · .NET 10 · MIT
+**Version 0.36.10** · iteration 4 · .NET 10 · MIT
 
 **A plugin that makes an AI coding agent work the way a careful team does** — write down what the change
 is for, agree what *done* means, plan it, have a person approve it, and only then write code.
@@ -62,7 +62,7 @@ cycles and which only fixtures.
 
 | Feature | The problem | What it does |
 |---|---|---|
-| **Hash-bound gate** | Approval is a "looks good" in chat, and the plan changes afterwards | A person approves all three planning documents together, and the approval records a hash of each. Edit one afterwards and the gate refuses until it is approved again |
+| **Hash-bound gate** | Approval is a "looks good" in chat, and the plan changes afterwards | A person approves all three planning documents together, and the approval records a hash of each. Edit one afterwards and the gate refuses until it is approved again. On by default; a team may declare it off, and `sdlc settings` shows which it is |
 | **Protected files** | An agent edits its own approval, or the rules it is judged by | Six files — the approval, an abandonment, the solution's rules, its decisions, its stack and what it is — are written only by a person. The pre-tool hook denies every agent write to them, by path and by shell command alike |
 | **Recorded evidence** | "The tests pass" is a claim, and the turn ends on a red build | The build records the diff, a normalised test summary and coverage. The turn-end hook sends the turn back while the suite has a failure or the evidence is missing or stale |
 | **Verify** | A reviewer re-reads the code and trusts the green tick | A fresh process that did not see the build judges it from the recorded evidence alone, criterion by criterion: did the named test run, pass, and actually establish the criterion? |
@@ -113,7 +113,10 @@ blocking. A stage will not run until the document before it has had such a readi
 
 **There is exactly one gate.** A person approves all three documents together, immediately before the
 build, and the approval records a hash of each. Change any of them afterwards and the gate refuses until
-they are approved again.
+they are approved again. **A team may declare that no approval is required** — `approval: none` in
+`solution.md`, which only a person writes. The gate then keeps every other check, a blocking finding still
+stops the build, and every report says no person approved; the default is `required`
+([running a cycle](docs/guides/running-a-cycle.md), under *Running without approvals*).
 
 **Two loops, one on each side of that gate.** Neither is open-ended:
 
@@ -191,7 +194,7 @@ sdlc constraints
 ```
 
 It should print the nineteen global constraints in force and say it read them from
-`global  embedded in sdlc 0.36.9`. **Use this rather than `sdlc help` as the smoke test** — `help` and
+`global  embedded in sdlc 0.36.10`. **Use this rather than `sdlc help` as the smoke test** — `help` and
 `version` are the only commands that need nothing from the installation, so they are the two that cannot
 tell you whether it worked. Then `claude plugin details sdlc@ai-sdlc` should say `Skills (18)` and
 `Hooks (3)`: **a hook count below three is a failed install**, not a detail, because the deterministic layer
@@ -361,6 +364,11 @@ What is honest to say about the rest:
 - **`standard: profile` is named after something no solution records any more.** The key still means
   what it meant — new work follows the framework's conventions rather than the surrounding code — and
   the value was left alone because every existing `solution.md` is protected and already says it.
+- **Running without approvals has not met a real cycle** (0.36.10). `approval: none` in `solution.md` lets a
+  cycle build once its rounds are clean, and the suite holds that a blocker, an uninterrogated document and a
+  document edited after its round still refuse. No solution has run that way yet. Under it, nothing local
+  anchors a findings ledger: an agent could rewrite one, and git history and the pull request are what remain
+  (`CONCEPT.md` D-137).
 - **A local solution has no mechanical check over a merge, and nothing checks a push anywhere.** The
   pre-push hook is gone (`CONCEPT.md` D-78): it was written and never installed, and where it ran it
   refused a push of work in progress. A solution adopted before 0.18.0 still has the file, and a clone

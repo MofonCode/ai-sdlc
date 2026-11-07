@@ -114,7 +114,8 @@ public static class ProposeDecisions
     /// Walks the approved cycles and collects what they stated.
     /// </summary>
     /// <param name="solution">The root of the solution being read.</param>
-    private sealed class Handler(SolutionRoot solution) : IRequestHandler<Query, Response>
+    /// <param name="mediator">How a cycle with no approval is put to the gate, under 'approval: none'.</param>
+    private sealed class Handler(SolutionRoot solution, Mediator mediator) : IRequestHandler<Query, Response>
     {
         /// <inheritdoc />
         public async Task<Result<Response>> Handle(Query request, CancellationToken cancellationToken)
@@ -136,10 +137,15 @@ public static class ProposeDecisions
 
             List<Candidate> candidates = [];
             int unapproved = 0;
+            ApprovalRequirement requirement = await SolutionDocument
+                .ApprovalOf(solution.Path, cancellationToken)
+                .ConfigureAwait(false);
 
             foreach (Cycle cycle in cycles)
             {
-                if (!await IsApproved(cycle, cancellationToken).ConfigureAwait(false))
+                if (!await IsApproved(cycle, cancellationToken).ConfigureAwait(false)
+                    && !(requirement == ApprovalRequirement.None
+                        && await AdmittedByDeclaration(cycle, cancellationToken).ConfigureAwait(false)))
                 {
                     unapproved++;
                     continue;
@@ -188,6 +194,30 @@ public static class ProposeDecisions
             Result<ApprovalLedger> ledger = ApprovalLedger.Read(text, cycle.ApprovalPath);
 
             return ledger.IsSuccess && ledger.Value.IsApproved;
+        }
+
+        /// <summary>
+        /// Whether a cycle with no approval passes the gate in a solution that declares none is required.
+        /// </summary>
+        /// <remarks>
+        /// Without this a solution under <c>approval: none</c> would never be offered a decision, because no
+        /// cycle of its has a signature. The signature this record needs is still a person's: nothing here
+        /// writes <c>decisions.md</c>, and a passage reaches it only when a person places it (D-137). A cycle
+        /// whose documents moved after their clean rounds, or that carries a blocker, is passed over exactly
+        /// as an approved-then-reopened one is.
+        /// </remarks>
+        private async Task<bool> AdmittedByDeclaration(Cycle cycle, CancellationToken cancellationToken)
+        {
+            if (cycle.IsAbandoned || File.Exists(cycle.ApprovalPath))
+            {
+                return false;
+            }
+
+            Result<ApprovalGate.Response> gate = await mediator
+                .Send<ApprovalGate.Query, ApprovalGate.Response>(new ApprovalGate.Query(cycle.Id), cancellationToken)
+                .ConfigureAwait(false);
+
+            return gate.IsSuccess && gate.Value.MayBuildUnapproved;
         }
 
         /// <summary>
