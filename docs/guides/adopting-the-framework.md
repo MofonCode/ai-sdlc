@@ -160,7 +160,7 @@ Adoption's report ends with what is left and how to place it, and `sdlc doctor` 
 whenever you ask — it reads disk, so it is right after a rename it did not see. **Your agent cannot do
 this part for you**: it may edit a draft, but placing one is yours.
 
-**`.sdlc/solution.draft.md` — the paragraph.** It holds four keys and a prompt where the paragraph goes.
+**`.sdlc/solution.draft.md` — the paragraph.** It holds its keys and a prompt where the paragraph goes.
 **The keys record facts; the paragraph is yours to write**, in place of the comment.
 
 | Key | Values | What it decides |
@@ -169,7 +169,10 @@ this part for you**: it may edit a draft, but placing one is yours.
 | `standard` | `profile`, `existing` | whether new work follows the profile's patterns or the surrounding code. Every plan reads it. **The one key you may change**, here before you place it or later with `sdlc draft solution --standard profile` |
 | `platform` | `github`, `azure-devops`, `local` | whether a pipeline is written, and so whether a check governs a merge |
 | `integration_branch` | a branch name; `development` when absent | where approved plans wait and built cycles land. The factory builds from it, and a cycle's diff is measured from where it diverged from it |
+| `approval` | `required`, `none`; `required` when absent | whether a person approves each cycle's intent, spec and plan before it is built. Leave it `required` to start; `running-a-cycle.md`, under *Running without approvals*, says what `none` keeps and what it gives up |
 | `telemetry` | `appinsights:<application id>`; absent for most | where Operate reads production's errors from, to file them as leads on the platform's tracker. Optional, and written only when set |
+
+Once it is placed, `sdlc settings` shows each key, whether it was written or defaulted, and how to change it.
 
 **Every plan reads the paragraph for what good looks like here, and `sdlc doctor` fails while it is the
 template's text.** A dice roller adopted with the placeholder left in place, built a cycle later, came out
@@ -317,7 +320,7 @@ alike — `../mechanisms/protected-files.md` is the whole of how.
 
 | File | What it holds | Changes when | How it gets written |
 |---|---|---|---|
-| `.sdlc/solution.md` | the four keys and the paragraph | the paragraph whenever it stops being true; `standard` when you choose | adoption drafts it first; after that `sdlc draft solution`. Then your rename |
+| `.sdlc/solution.md` | its keys and the paragraph | the paragraph whenever it stops being true; `standard` or `approval` when you choose | adoption drafts it first; after that `sdlc draft solution`. Then your rename |
 | `.sdlc/techstack.md` | what the solution is built from, the stack rules it is held to, the build settings it takes | a default or a rule turns out wrong for this solution | adoption drafts it first; after that `sdlc draft techstack`. Then your rename — `declaring-the-stack.md` |
 | `.sdlc/constraints.md` | this solution's own `LOC_` rules, the last word over every other tier | a rule keeps being cited across cycles, or one stops earning its place | adoption drafts it empty; `sdlc propose constraints` proposes entries; you paste and rename |
 | `.sdlc/decisions.md` | choices this solution already settled, so a cycle reads what was argued rather than arguing it again. Binds nothing | an approved cycle settles something worth not re-deciding | `sdlc propose decisions` reads approved cycles; you paste |

@@ -434,3 +434,9 @@ explain what happens next:
 
 Then stop. The build, once they approve, runs in a new session — say so in that same message. A session
 carried past its stage rebuilds its whole context after every pause (D-122).
+
+**When the gate lets the cycle through instead, read why.** If it says the solution declares
+`approval: none`, nobody has to approve: say that the three documents are clean, that the solution runs
+without approvals so the plan's pull request is the first time a person reads it, and that the build runs
+in a new session. Do not ask for an approval the solution does not require, and do not offer one as a
+step; a person who wants to sign this cycle anyway knows `sdlc draft approval <id>` from the panel.

@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Text;
 using Sdlc.Core.Approvals;
+using Sdlc.Core.Solutions;
 
 namespace Sdlc.Core.Factory;
 
@@ -28,6 +29,12 @@ public static class SitrepRenderer
             CultureInfo.InvariantCulture,
             $"{built} built: {page.Ready.Count} ready, {page.NeedsPerson.Count} needing a person | {page.Held.Count} held back | {page.Queued.Count} waiting for a build"));
         output.AppendLine();
+
+        if (page.Approval == ApprovalRequirement.None)
+        {
+            output.AppendLine("No person approves a plan here: solution.md declares 'approval: none'. Whoever reviews a pull request below is the first person to read its plan.");
+            output.AppendLine();
+        }
 
         output.AppendLine("## Ready to merge, in this order");
         output.AppendLine();

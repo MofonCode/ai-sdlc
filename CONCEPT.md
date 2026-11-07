@@ -418,6 +418,13 @@ because a person reading a plan is reading it against the spec it cites.
 **The gate is local, and only local.** A code owner merges the pull request, never the agent that
 authored it.
 
+**A solution may declare that no approval is required** — `approval: none` in `solution.md` (§8.3). The
+gate then asks for no ledger, and keeps every check that is not a person's signature: each document
+interrogated, no blocker open, each document what its latest round judged. A blocking finding still
+stops the build (D-27). An approval placed anyway is honoured in full. Every surface that reports the
+gate says no person approved, and the pull request becomes the first time a person reads the plan. The
+default, and what an absent key reads as, is `required` (D-137).
+
 `constraints.md`, `decisions.md`, `techstack.md` and `solution.md` are approved by being hand-edited — a
 person places each, and none is part of a cycle gate (§5.3). `theme.json` is the exception and is changed
 by an ordinary cycle that declares it, so the planning approval covers it like any other declared file
@@ -1203,8 +1210,9 @@ and an update's report name it, while writing nothing. That is how a release rea
 
 ### 8.3 `solution.md`
 
-Four keys. There was another, `profile`, until the declared stack listed its own rules (D-76); a
-solution adopted before that may still carry the line, and nothing reads it (D-81).
+Six keys. There was another, `profile`, until the declared stack listed its own rules (D-76); a
+solution adopted before that may still carry the line, and nothing reads it (D-81). `sdlc settings` shows
+every key's value, whether it was declared or defaulted, and how to change it (D-138).
 
 | Key | What consumes it |
 |---|---|
@@ -1213,6 +1221,7 @@ solution adopted before that may still carry the line, and nothing reads it (D-8
 | `platform` | `doctor`, to tell a local solution from a broken install, and `pr`, to know whether there is anywhere to push. Absent reads as `github` (D-53) |
 | `telemetry` | `operate`, which reads production's errors from it and files them as leads on the platform's tracker. Optional and written only when set; most solutions have none (D-89) |
 | `integration_branch` | the factory, which builds from it, `pr`, which targets it, and evidence, which measures a cycle's diff from where it diverged from it. Absent reads as `development`; a solution with no such branch measures from its default branch (D-83) |
+| `approval` | the gate, which under `none` asks for no ledger and keeps every other check; `verify-chain`, the status panel and the sitrep, which say no person approved. `required` or `none`; absent, and a document that cannot be read, read as `required` (D-137) |
 
 **`origin` and `standard` are two keys because they answer two questions and only one of them may
 move.** Where the code came from is a historical fact. Which conventions its new work follows is a
@@ -2263,6 +2272,7 @@ they print verbatim.
 | `decisions [--brief\|--all]` | the choices this solution has settled, so a cycle reads what was argued rather than arguing it again — D-70 |
 | `theme` | the roles this solution's surfaces use and the values that fill them — D-71 |
 | `stack` | what the solution declares it is built from, and which build settings files it takes that are not on disk. Names the gap and closes none — D-77 |
+| `settings` | how this solution is set to run: each `solution.md` key declared or defaulted and how to change it, what this machine overrides, and what this release fixes with the decision that fixes it. Points at `constraints`, `stack` and `decisions` rather than repeating them, writes nothing, and exits 1 when `solution.md` cannot be read — D-138 |
 | `propose decisions` | what an approved cycle stated, handed over for a person to record — D-70 |
 | `propose theme` | the roles a theme declares, or the ones left empty in the one there is — D-71 |
 | `pr-ready <id>` | whether one cycle may open a pull request, without opening one |
@@ -7176,6 +7186,88 @@ its refusal still apply.
 - *Keeping `sdlc <stage>` everywhere.* Correct and host-neutral, and costs a refusal each time.
 - *Guessing a marker for Copilot or Antigravity.* Neither documents one; a guessed marker is a panel that
   names one host's invocation to someone using another.
+
+### D-138 — `sdlc settings` shows how a solution is set to run, and the settings stay where they live
+
+**Governs:** §8.3, §15.2
+
+**Decision.** `sdlc settings` prints every value that shapes how a solution runs, each with where it came from
+and how it is changed: the `solution.md` keys, declared or defaulted; what this machine's environment overrides
+(`SDLC_CONSTRAINTS` always, `SDLC_DEV_BUILD` when set); and the values this release fixes, each with the decision
+that fixes it. For the rules, the stack and the decisions it prints one line naming the command that shows them.
+It writes nothing, and exits 1 when `solution.md` cannot be read, printing its values as unknown.
+
+**Why.** Asked how many settings the framework has and whether to consolidate them into one file, the inventory
+found about fifty things that change behaviour, spread across `solution.md`, `techstack.md`, the environment, the
+options and constants in code. Most are not settings. What a team could not do was see the ones that are, and an
+absent key reads as nothing rather than as the default it is. `approval` (D-137) is the first key whose absent
+value a reviewer has to know.
+
+**Why the decisions are a pointer.** They run to hundreds of entries in a solution that has been governed for a
+while. They have a view of their own, `sdlc decisions`, and a second rendering is a second thing to keep in step.
+
+**Rejected.**
+
+- *One settings file.* Protection is per path (D-09): a file holding values only a person may change beside ones an
+  agent may change needs a per-key hook rule, the first conditional one, which D-56 rejected as where a bypass
+  would live. And each file says one kind of thing.
+- *`sdlc config`, or `sdlc parameters`.* `config` reads as writable. *Parameters* are already what a command or skill
+  takes on one invocation, the opposite of a value that persists.
+- *`sdlc solution`.* The view carries the machine's overrides and the release's fixed values, neither of which is the
+  solution, and it would sit beside `draft solution`, which writes.
+- *A `--set` option.* A second writer on a file a person writes.
+- *Expanding the rules, the stack or the decisions inline.* Each is owned by its own command.
+- *Making the fixed values settable.* The bounds argued in D-65, D-66 and D-103 would stop meaning anything at the
+  number a team would raise them to.
+
+### D-137 — A solution may declare that no approval is required, and the gate keeps every other check
+
+**Governs:** §5.1, §5.2, §8.3, §10.5
+
+**Extends D-53:** a new `solution.md` key, absent reading as the gate behaved before. **Leaves D-27 unchanged:** no
+blocking finding becomes waivable. **Narrows D-107** under `approval: none`: with no approval, nothing anchors a
+findings ledger but git history and the pull request.
+
+**Decision.**
+
+- **The key.** `solution.md` carries `approval: required | none`. Absent reads as `required`, and so does a
+  document that cannot be read: "could not tell" must never read as the permissive answer. `init` and
+  `sdlc draft solution` always write the key. A new adopter gets `required` and is told how to change it, not
+  asked.
+- **What `none` changes.** With no `approval.md`, the gate asks for no ledger and raises none of the refusals
+  that read one. It keeps every other: each planning document exists and was interrogated, its rounds can be read,
+  no blocker is open, and each document is what its latest round judged (D-101). A round that recorded no subject
+  is refused under `none`, because no person read the bytes instead.
+- **An approval placed anyway is honoured in full.** A refusal, a request for changes or a reopen stops the build
+  as it would under `required`. The setting removes a requirement; it never ignores a decision a person made.
+- **Every surface says so.** The gate's verdict, `verify-chain` in place of its caveat about an approval, the status
+  panel, the cycles list, the sitrep and `sdlc draft approval` each say no person approved. `propose decisions` reads
+  a cycle the gate admits by declaration, since a person still places every decision.
+
+**Why.** Teams adopt at different levels of ceremony, and the person wanted users able to switch the gate on or off
+and use the framework as they are comfortable. Removing the approval for everyone was weighed on 2026-11-03 and set
+aside; a setting keeps the default and the claim while letting a team choose, in a file only a person writes, so the
+choice is the team's and never the agent's. The plan's pull request is still reviewed by a code owner (D-83).
+
+**What it costs.** Nobody reads the plan before code is written. And D-107 anchors each findings ledger in the
+approval *because* no agent can write the approval; under `none` an agent could rewrite a ledger and recompute every
+hash, and nothing local would notice.
+
+**Rejected.**
+
+- *Removing the plan approval altogether* (2026-11-03). Every solution loses the one look before code exists.
+- *Defaulting to `none`.* The framework's first claim becomes a setting most adopters never switch on, and every
+  solution adopted before the key would change behaviour silently.
+- *Asking at `init`.* One more question in an interview built to ask one, at the moment a team knows least about
+  what the gate costs.
+- *A per-cycle switch.* It would live in a file the cycle's agent writes.
+- *An environment variable or an option.* One machine or one invocation would run under rules the repository does
+  not state.
+- *`none` switching off the whole gate.* It would waive open blockers, which D-27 forbids.
+- *A third value, `on-merge`, making the plan pull request's merge the approval.* Under `none` that pull request is
+  already a code owner's review, so it would be a check on a check.
+- *A record of the hashes the binary writes at build time.* A second ledger an agent can write proves nothing the
+  round does not, and needs a command to write it.
 
 ### D-136 — Pull requests only, into both branches, with nobody bypassing, is the default
 

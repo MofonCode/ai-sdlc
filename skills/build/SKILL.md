@@ -21,7 +21,8 @@ so you can continue — the refusal names what is missing, and the next step bel
 
 There are eight ways it refuses, and each has a different next step: no cycle, abandoned, a missing
 document, nobody approved, a refusal standing, a document changed since it was approved, a blocking
-finding still open, or a round that judged a document which has moved since. Read which one.
+finding still open, or a round that judged a document which has moved since. Read which one. In a
+solution that declares `approval: none` the gate asks for no approval, and every other refusal stands.
 
 **A blocking finding cannot be waived.** If that is the refusal, there is no flag and no override. The
 finding is answered, or the cycle does not advance.

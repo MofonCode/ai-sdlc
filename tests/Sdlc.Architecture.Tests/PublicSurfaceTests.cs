@@ -455,6 +455,21 @@ public sealed class PublicSurfaceTests
         "Sdlc.Core.Solutions.ReadStackDeclaration+SettingState",
         "Sdlc.Core.Solutions.StackRenderer",
 
+        // 'sdlc settings': how a solution is set to run, each value with its source. Public for the
+        // reason every operation's request and response are; the setting's group and source are what the
+        // renderer prints from. D-138.
+        "Sdlc.Core.Solutions.ReadSettings",
+        "Sdlc.Core.Solutions.ReadSettings+Query",
+        "Sdlc.Core.Solutions.ReadSettings+Response",
+        "Sdlc.Core.Solutions.ReadSettings+Setting",
+        "Sdlc.Core.Solutions.ReadSettings+SettingGroup",
+        "Sdlc.Core.Solutions.ReadSettings+SettingSource",
+        "Sdlc.Core.Solutions.SettingsRenderer",
+
+        // Whether a person approves each cycle before it is built: a key of the solution document, read
+        // by the gate, the chain and the sitrep. D-137.
+        "Sdlc.Core.Solutions.ApprovalRequirement",
+
         // What a person still has to place before the first cycle, and the block naming the one
         // step that is next. Public because adoption's response and doctor's both carry the state,
         // and the two renderers print the same block from it. D-79.

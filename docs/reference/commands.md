@@ -77,6 +77,7 @@ an agent runs it, and it never decides a gate. `skills.md` lists the skills.
 | `sdlc propose decisions` | binary | choices approved cycles settled, as entries to adopt |
 | `sdlc theme` | binary | the roles and values the solution's surfaces use |
 | `sdlc propose theme` | binary | the roles a theme declares, for you to fill |
+| `sdlc settings` | binary | how this solution is set to run: each `solution.md` key, written or defaulted, and how to change it — `approval` among them; what this machine overrides; what this release fixes and the decision that fixes it. Points at `constraints`, `stack` and `decisions`. Writes nothing; exits 1 when `solution.md` cannot be read |
 | **Stopping** | | |
 | `sdlc draft approval <id> --reopen` | binary | withdraw an approval, with a reason, to change the documents. Once the plan is on the integration branch, refused on a build branch: reopen on `cycle/<id>/plan` |
 | `sdlc draft abandon <id>` | binary | stop the cycle for good. **You place it**. Terminal |

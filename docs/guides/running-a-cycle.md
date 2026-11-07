@@ -236,6 +236,27 @@ Helping with the easy case while withholding help from the hard one is the asymm
 plan` — and goes back as an amended plan by `/sdlc:pr <id> --plan`, never with the build.
 `handling-blockers.md`, under *After approval*, has the walk and what happens to a build already made.
 
+### Running without approvals
+
+A person's approval before each build is on by default. To turn it off for this solution, run
+`sdlc draft solution`, set `approval: none` in the draft, and rename it into place over `.sdlc/solution.md`.
+Only a person can make that change: the hook refuses an agent's edit to the file. `sdlc settings` then shows
+`approval  none  declared`.
+
+**What still holds:** every planning document is interrogated, and a blocking finding still stops the build.
+The documents built are the documents interrogated clean: one edited after its round is refused until it is
+interrogated again. `verify-chain` still runs on every pull request.
+
+**What you give up:** nobody reads the plan before code is written. The plan's pull request is the first time
+a person sees it, and `verify-chain`, `sdlc status` and the sitrep all say no person approved it. The findings
+history is no longer anchored to a file only a person writes, so git history and review are what protect it.
+
+**To turn it back on,** set `approval: required` the same way. A cycle not yet built then waits for an
+approval like any other.
+
+You can still approve a single cycle under `none` with `sdlc draft approval <id>`, and the gate honours what
+you place in full — a `--changes-requested`, `--deny` or `--reopen` stops the build as it always would.
+
 ### Admit the plan to the integration branch
 
 When the solution has an integration branch — `development`, unless `solution.md` names another — the

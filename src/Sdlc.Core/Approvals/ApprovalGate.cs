@@ -146,16 +146,27 @@ public static class ApprovalGate
     /// does not say which of the three changed leaves nothing to act on.
     /// </param>
     /// <param name="Ledger">The ledger, when there was one to read.</param>
-    /// <param name="Hashes">Each planning document, as approved and as it is now.</param>
+    /// <param name="Hashes">
+    /// Each planning document, as approved and as it is now -- or, when <paramref name="Declared"/>, as its
+    /// latest round judged it and as it is now.
+    /// </param>
+    /// <param name="Declared">
+    /// Whether the verdict was reached without an approval, because the solution declares none is required
+    /// and nobody placed one (D-137). Every surface that reports the gate says so when it is true.
+    /// </param>
     public sealed record Response(
         Cycle Cycle,
         GateRefusal Refusal,
         string Explanation,
         ApprovalLedger? Ledger,
-        IReadOnlyList<DocumentHash> Hashes)
+        IReadOnlyList<DocumentHash> Hashes,
+        bool Declared = false)
     {
         /// <summary>Whether the build may run.</summary>
         public bool MayBuild => Refusal == GateRefusal.None;
+
+        /// <summary>Whether the build may run with no person having approved it (D-137).</summary>
+        public bool MayBuildUnapproved => MayBuild && Declared;
     }
 
     /// <summary>Asks whether a cycle's build may run.</summary>
@@ -205,6 +216,17 @@ public static class ApprovalGate
                         CultureInfo.InvariantCulture,
                         $"Cycle {cycle.Id} has no {Cycle.FileNameOf(kind)}. The approval covers all three planning documents, so all three have to exist."));
                 }
+            }
+
+            ApprovalRequirement requirement = await SolutionDocument
+                .ApprovalOf(solution.Path, cancellationToken)
+                .ConfigureAwait(false);
+
+            // An approval placed under `approval: none` is read exactly as it would be under `required`:
+            // the setting removes a requirement, and never ignores a decision a person made (D-137).
+            if (!File.Exists(cycle.ApprovalPath) && requirement == ApprovalRequirement.None)
+            {
+                return await Declared(cycle, cancellationToken).ConfigureAwait(false);
             }
 
             if (!File.Exists(cycle.ApprovalPath))
@@ -353,6 +375,88 @@ public static class ApprovalGate
                 ledger,
                 hashes);
         }
+
+        /// <summary>
+        /// Decides a cycle in a solution that declares no approval is required, and none was placed.
+        /// </summary>
+        /// <remarks>
+        /// <para><strong>Every check that is not a person's signature runs, in the order it does under an
+        /// approval.</strong> A blocking finding stops the build here exactly as it does there (D-27); what is
+        /// skipped is the ledger, and the one refusal that needs it, a rewritten round, because the anchor it
+        /// compares against is the approval.</para>
+        /// <para><strong>The hashes compare against the latest clean round.</strong> Each round records the
+        /// document it judged (D-101), so a document edited after its round is a stale round, refused below.
+        /// A round that recorded no subject cannot say what was built against, so under no approval it is
+        /// refused rather than trusted: there is no person who read the bytes instead.</para>
+        /// </remarks>
+        private static async Task<Result<Response>> Declared(Cycle cycle, CancellationToken cancellationToken)
+        {
+            Result<IReadOnlyDictionary<ArtifactKind, IReadOnlyList<FindingsRound>>> interrogations =
+                await Interrogations(cycle, cancellationToken).ConfigureAwait(false);
+
+            if (interrogations.IsFailed)
+            {
+                return Verdict(cycle, GateRefusal.UnreadableRound, Unreadable(cycle, interrogations.Errors), declared: true);
+            }
+
+            List<DocumentHash> hashes = [];
+            foreach (ArtifactKind kind in Cycle.PlanningDocuments)
+            {
+                IReadOnlyList<FindingsRound> rounds = interrogations.Value[kind];
+                string actual = await ContentHash.OfFile(cycle.PathOf(kind), cancellationToken).ConfigureAwait(false);
+                hashes.Add(new DocumentHash(Cycle.FileNameOf(kind), rounds.Count == 0 ? null : rounds[^1].SubjectSha256, actual));
+            }
+
+            List<ArtifactKind> uninterrogated =
+                [.. Cycle.PlanningDocuments.Where(kind => interrogations.Value[kind].Count == 0)];
+
+            if (uninterrogated.Count > 0)
+            {
+                return Verdict(cycle, GateRefusal.Uninterrogated, Unchallenged(cycle, uninterrogated, declared: true), null, hashes, declared: true);
+            }
+
+            List<string> blockers = OpenBlockers(interrogations.Value);
+
+            if (blockers.Count > 0)
+            {
+                return Verdict(cycle, GateRefusal.OpenBlocker, Blocked(cycle, blockers, declared: true), null, hashes, declared: true);
+            }
+
+            List<string> stale =
+            [
+                .. await Stale(cycle, interrogations.Value, cancellationToken).ConfigureAwait(false),
+                .. Cycle.PlanningDocuments
+                    .Where(kind => interrogations.Value[kind][^1].SubjectSha256 is null)
+                    .Select(kind => string.Create(
+                        CultureInfo.InvariantCulture,
+                        $"  {Cycle.FileNameOf(kind)}: round {interrogations.Value[kind][^1].Round} did not record which {Cycle.FileNameOf(kind)} it judged, and without an approval nothing else does")),
+            ];
+
+            if (stale.Count > 0)
+            {
+                return Verdict(cycle, GateRefusal.StaleRound, Superseded(cycle, stale, declared: true), null, hashes, declared: true);
+            }
+
+            return Verdict(
+                cycle,
+                GateRefusal.None,
+                string.Create(
+                    CultureInfo.InvariantCulture,
+                    $"Cycle {cycle.Id} needs no person's approval: {Cycle.SolutionFileName} declares 'approval: none'. All three documents are what their latest clean rounds judged."),
+                null,
+                hashes,
+                declared: true);
+        }
+
+        /// <summary>How a refusal opens: what the cycle's standing is before what is wrong with it.</summary>
+        private static string Standing(Cycle cycle, bool declared) => declared
+            ? string.Create(CultureInfo.InvariantCulture, $"Cycle {cycle.Id} needs no approval ({Cycle.SolutionFileName} declares 'approval: none')")
+            : string.Create(CultureInfo.InvariantCulture, $"Cycle {cycle.Id} is approved");
+
+        /// <summary>How a refusal closes: what lets the cycle through once the problem is fixed.</summary>
+        private static string Again(Cycle cycle, bool declared) => declared
+            ? "the gate reads the rounds again; no approval is needed."
+            : string.Create(CultureInfo.InvariantCulture, $"approve again with 'sdlc draft approval {cycle.Id}'.");
 
         /// <summary>
         /// Finds every blocking finding still open across the three planning documents.
@@ -555,55 +659,57 @@ public static class ApprovalGate
                         $"approval again with 'sdlc draft approval {cycle.Id}'."),
                 ]);
 
-        private static string Unchallenged(Cycle cycle, List<ArtifactKind> pending) =>
+        private static string Unchallenged(Cycle cycle, List<ArtifactKind> pending, bool declared = false) =>
             string.Join(
                 Environment.NewLine,
                 [
                     string.Create(
                         CultureInfo.InvariantCulture,
-                        $"Cycle {cycle.Id} is approved, and {pending.Count} document{(pending.Count == 1 ? " has" : "s have")} never been interrogated:"),
+                        $"{Standing(cycle, declared)}, and {pending.Count} document{(pending.Count == 1 ? " has" : "s have")} never been interrogated:"),
                     string.Empty,
                     .. pending.Select(kind => "  " + Cycle.FileNameOf(kind)),
                     string.Empty,
-                    "An approval rests on three documents something has argued with. A document with no round",
+                    "A build rests on three documents something has argued with. A document with no round",
                     "at all has not been judged clean -- nothing has judged it. Run 'sdlc interrogate' on each",
-                    string.Create(
-                        CultureInfo.InvariantCulture,
-                        $"of those, then approve again with 'sdlc draft approval {cycle.Id}'."),
+                    "of those, then " + Again(cycle, declared),
                 ]);
 
-        private static string Superseded(Cycle cycle, IReadOnlyList<string> stale) =>
+        private static string Superseded(Cycle cycle, IReadOnlyList<string> stale, bool declared = false) =>
             string.Join(
                 Environment.NewLine,
                 [
                     string.Create(
                         CultureInfo.InvariantCulture,
-                        $"Cycle {cycle.Id} is approved, and {stale.Count} interrogation{(stale.Count == 1 ? " judged" : "s judged")} against a document that has changed since:"),
+                        $"{Standing(cycle, declared)}, and {stale.Count} interrogation{(stale.Count == 1 ? " judged" : "s judged")} against a document that has changed since:"),
                     string.Empty,
                     .. stale,
                     string.Empty,
-                    "The approval records that three documents were read. It cannot record that the spec was",
-                    "derived from this intent, so an upstream edited after a clean round leaves a judgement",
+                    declared
+                        ? "Without an approval, the rounds are the only record of what was judged, so a document"
+                        : "The approval records that three documents were read. It cannot record that the spec was",
+                    declared
+                        ? "edited after its round, or judged against an upstream that has moved, leaves a judgement"
+                        : "derived from this intent, so an upstream edited after a clean round leaves a judgement",
                     "about a document that no longer exists. Re-interrogate the artifact named above, then",
-                    string.Create(
-                        CultureInfo.InvariantCulture,
-                        $"approve again with 'sdlc draft approval {cycle.Id}'."),
+                    Again(cycle, declared),
                 ]);
 
-        private static string Blocked(Cycle cycle, List<string> blockers) =>
+        private static string Blocked(Cycle cycle, List<string> blockers, bool declared = false) =>
             string.Join(
                 Environment.NewLine,
                 [
                     string.Create(
                         CultureInfo.InvariantCulture,
-                        $"Cycle {cycle.Id} is approved, and {blockers.Count} blocking finding{(blockers.Count == 1 ? " is" : "s are")} still open:"),
+                        $"{Standing(cycle, declared)}, and {blockers.Count} blocking finding{(blockers.Count == 1 ? " is" : "s are")} still open:"),
                     string.Empty,
                     .. blockers,
                     string.Empty,
-                    "A blocking finding cannot be waived, accepted or overridden. Refine the artifact until",
-                    string.Create(
-                        CultureInfo.InvariantCulture,
-                        $"the finding is answered, re-interrogate, then approve again with 'sdlc draft approval {cycle.Id}'."),
+                    declared
+                        ? "A blocking finding cannot be waived, accepted or overridden, and declaring no approval waives"
+                        : "A blocking finding cannot be waived, accepted or overridden. Refine the artifact until",
+                    declared
+                        ? "nothing. Refine the artifact until the finding is answered, re-interrogate, then " + Again(cycle, declared)
+                        : "the finding is answered, re-interrogate, then " + Again(cycle, declared),
                 ]);
 
         private static string Describe(GateDecision? decision) => decision switch
@@ -650,7 +756,8 @@ public static class ApprovalGate
             GateRefusal refusal,
             string explanation,
             ApprovalLedger? ledger = null,
-            IReadOnlyList<DocumentHash>? hashes = null) =>
-            Result.Ok(new Response(cycle, refusal, explanation, ledger, hashes ?? []));
+            IReadOnlyList<DocumentHash>? hashes = null,
+            bool declared = false) =>
+            Result.Ok(new Response(cycle, refusal, explanation, ledger, hashes ?? [], declared));
     }
 }

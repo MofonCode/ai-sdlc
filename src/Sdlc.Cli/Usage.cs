@@ -235,6 +235,12 @@ internal static class Usage
                                      what this release ships that the stack never mentions: a row
                                      saying 'none' or false is an answer, no row is never asked.
                                      Names the gap and closes none: a cycle's plan does that.
+            settings                 How this solution is set to run: each key in solution.md,
+                                     declared or defaulted, and how to change it; what this
+                                     machine overrides; what this release fixes, and the decision
+                                     that fixes it. Points at constraints, stack and decisions
+                                     rather than repeating them. Writes nothing. Exits 1 when
+                                     solution.md cannot be read.
             propose convergence      Everything the record says the rules, decisions and stack are
                                      missing, in one ranked report: rules cited across cycles,
                                      findings that rested on no rule grouped by who raised them,

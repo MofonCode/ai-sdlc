@@ -316,8 +316,20 @@ public static class Diagnose
                 CheckOutcome.Sound,
                 string.Create(
                     CultureInfo.InvariantCulture,
-                    $"origin {SolutionDocument.NameOf(document.Value.Origin)}, standard {SolutionDocument.NameOf(document.Value.Standard)}, platform {SolutionDocument.NameOf(document.Value.Platform)}"));
+                    $"origin {SolutionDocument.NameOf(document.Value.Origin)}, standard {SolutionDocument.NameOf(document.Value.Standard)}, platform {SolutionDocument.NameOf(document.Value.Platform)}{Unapproved(document.Value)}"));
         }
+
+        /// <summary>
+        /// A note on the adoption line when no person approves a plan, and nothing otherwise (D-137).
+        /// </summary>
+        /// <remarks>
+        /// Sound, not a warning: it is a choice a person made, in a file only a person writes. It is said here
+        /// so nobody discovers it from a refusal that did not happen.
+        /// </remarks>
+        private static string Unapproved(SolutionDocument document) =>
+            document.Approval == ApprovalRequirement.None
+                ? "; approval none, so no person approves a plan before it is built -- 'sdlc settings'"
+                : string.Empty;
 
         /// <summary>
         /// Whether the framework's own files were written by this release.
