@@ -138,7 +138,7 @@ refused.
 or a `release/*` branch may open that pull request, which the `promotion` job checks. Nothing is pushed straight
 to either. The rulesets are in **Settings > Rules**: `build, test and pack` required on both, `promotion` on
 `master` too, and one approval from a code owner, named in [`.github/CODEOWNERS`](.github/CODEOWNERS). GitHub
-never counts an author's own approval, so the one bypass is the `ai-sdlc-owners` team, on pull requests only:
+never counts an author's own approval, so the one bypass is the `owners` team, on pull requests only:
 a member merges their own pull request by ticking the bypass box, **and only once the checks are green**, because
 the same box would merge past them. Nobody else bypasses, and nobody bypasses a push.
 
