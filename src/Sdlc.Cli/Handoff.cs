@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using FluentResults;
 using Sdlc.Core;
 
 namespace Sdlc.Cli;
@@ -28,6 +29,26 @@ internal static class Handoff
         if (Environment.GetEnvironmentVariable(PinnedRelease.HandedOnVariable) is { Length: > 0 })
         {
             return null;
+        }
+
+        // A dev build outranks the pin, everywhere, for as long as the variable is set (D-135). It never needs a
+        // feed or a version bump, and the rounds it writes call it local, so nothing it judged reaches a pull request.
+        if (PinnedRelease.DevBuild() is { } devBuild)
+        {
+            if (PinnedRelease.IsInside(AppContext.BaseDirectory, devBuild))
+            {
+                return null;
+            }
+
+            Result<string> dev = PinnedRelease.DevBuildEntry(devBuild);
+
+            if (dev.IsFailed)
+            {
+                await Console.Error.WriteLineAsync(dev.Errors[0].Message).ConfigureAwait(false);
+                return ExitCode.Usage;
+            }
+
+            return await Start(["exec", dev.Value, .. args], toStandardError: false).ConfigureAwait(false);
         }
 
         string? pinned = PinnedRelease.Find(Directory.GetCurrentDirectory());

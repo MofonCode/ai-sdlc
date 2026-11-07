@@ -73,7 +73,25 @@ internal static class Usage
                                      skip the build and tests; false for anything else. On
                                      slices/<slug>/plan, true when it carries only cycles'
                                      planning and successors. Always exits 0.
-            branch <id> <kind>       Print the one git command that puts the working copy on the
+            promotion <source> --base <target>
+                                     Print true when a pull request promotes the integration
+                                     branch or a release/* branch into another branch, so a
+                                     pipeline skips the chain; false when it targets the
+                                     integration branch or a release branch. Exits 1 when any
+                                     other branch targets another branch.
+            branch-policy            Print the commands that set the default branch policy on
+                                     this solution's platform: pull requests only, nobody
+                                     bypassing, the pipeline required, squash into the
+                                     integration branch and merge commits into the default
+                                     branch. Applies nothing; run them as an administrator.
+                                     --approvals <n> asks every pull request for n approvals;
+                                     --owner <who>[,<who>] names who must give one, as a
+                                     CODEOWNERS line on GitHub and a required reviewer on
+                                     Azure DevOps; --self-approve lets an author's own vote
+                                     count on Azure DevOps, and on GitHub, which never counts
+                                     it, needs a team: --self-approve <team> lets that team
+                                     bypass the rules on a pull request.
+            branch <id> <kind>      Print the one git command that puts the working copy on the
                                      branch a kind of work happens on -- plan, build,
                                      build-unattended or forward -- creating it from the right
                                      base: the integration branch once the plan is admitted to
@@ -135,7 +153,8 @@ internal static class Usage
                                      cycle/<id>/... branch on the remote, or an approval the
                                      gate no longer accepts. Deleting the branch re-queues it.
             pr-ready <id>            Say whether a cycle may open a pull request, without opening
-                                     one. Exits 1 if not. For every cycle, 'cycles --pr-ready'.
+                                     one. Exits 1 if not -- and always for a test run, a cycle
+                                     a local build judged. For every cycle, 'cycles --pr-ready'.
             draft approval <id>      Write the gate decision beside the ledger, for a person to
                                      rename onto it. Writes no approval.
             draft abandon <id>       Print the record that stops a cycle, for a person to place.
@@ -255,7 +274,8 @@ internal static class Usage
             version                  Which version of the gate this is, and which versions it
                                      expects beside it. Inside a solution that pins another
                                      release, every command -- this one too -- is answered by
-                                     the pinned release.
+                                     the pinned release. With SDLC_DEV_BUILD set, by that build,
+                                     which calls itself <release>-local.
             claude [args]            Start Claude Code with the skills this release carries, which
                                      in a solution that pins a release are that release's. Every
                                      argument after 'claude' is Claude Code's, passed unchanged.
@@ -263,6 +283,12 @@ internal static class Usage
 
         Common options
             --solution <path>        The solution to work in. Defaults to the working directory.
+
+        Environment
+            SDLC_DEV_BUILD           A directory holding a build of sdlc nobody published. Every
+                                     command is handed to it instead of the pinned release, it
+                                     calls itself <release>-local, and no cycle it judged opens a
+                                     pull request. For testing a change to the framework.
 
         Options for draft techstack
             --empty                  Write the draft with nothing in it. Renamed into place, it

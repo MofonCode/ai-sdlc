@@ -34,6 +34,12 @@ public static class VerifyChain
         + "recorded. It cannot prove a second person approved: the entry names whoever wrote it. "
         + "Code-owner review on the pull request is what provides that, and nothing here replaces it.";
 
+    /// <summary>
+    /// The check a cycle fails when a local build judged any of it, or its solution pins one (D-135). Named on the
+    /// holder because <c>pr-ready</c> refuses for it by name, as a reason of its own.
+    /// </summary>
+    public const string PublishedCheck = "every round was written by a published release";
+
     /// <summary>Registers this operation's handler.</summary>
     /// <param name="services">The collection to add to.</param>
     /// <returns>The same collection, for chaining.</returns>
@@ -262,6 +268,8 @@ public static class VerifyChain
 
                 return Result.Ok(new Response(cycle, checks));
             }
+
+            await Published(cycle, checks, solution.Path, cancellationToken).ConfigureAwait(false);
 
             if (request.Changed is { } changed && AdmitsAsPlan(request.Id, changed))
             {
@@ -537,6 +545,66 @@ public static class VerifyChain
                 after
                     ? string.Create(CultureInfo.InvariantCulture, $"verify round {latest.Round} ran after the approval of {approved:yyyy-MM-dd HH:mm}")
                     : string.Create(CultureInfo.InvariantCulture, $"the cycle was reopened and approved again at {approved:yyyy-MM-dd HH:mm}, and the latest verify round predates it. Delete {Cycle.FileNameOf(ArtifactKind.Verify)}, build, record the evidence again, and verify the documents approved now.")));
+        }
+
+        /// <summary>
+        /// No round was written by a local build, and the solution pins a published release (D-135).
+        /// </summary>
+        /// <remarks>
+        /// <para><strong>A local build proves a change to the framework; it never ships one.</strong> Nobody
+        /// can restore it, so a judgement it made cannot be reproduced by the reviewer, the pipeline or the factory,
+        /// and a cycle judged by one is a test run. The work is done again on a preview or a release.</para>
+        /// <para><strong>Any round, not only the one that let the cycle advance.</strong> Every round shaped what
+        /// came after it, so a cycle one local round touched is a test run all the way down. The rounds record
+        /// their release (D-131), so this reads them rather than asking anybody.</para>
+        /// <para>Silent when it holds, like the convergence report: it is a line about a test run, and a
+        /// chain that never saw one has nothing to say about it.</para>
+        /// </remarks>
+        private static async Task Published(
+            Cycle cycle,
+            List<ChainCheck> checks,
+            string solutionRoot,
+            CancellationToken cancellationToken)
+        {
+            List<string> local = [];
+
+            foreach (ArtifactKind kind in Enum.GetValues<ArtifactKind>())
+            {
+                Result<IReadOnlyList<FindingsRound>> history = await FindingsReader
+                    .ReadHistory(cycle, kind, cancellationToken)
+                    .ConfigureAwait(false);
+
+                // An unreadable ledger is the documents check's to report, with the file named.
+                if (history.IsFailed)
+                {
+                    continue;
+                }
+
+                local.AddRange(history.Value
+                    .Where(round => round.Release is { } release && PinnedRelease.IsLocal(release))
+                    .Select(round => string.Create(
+                        CultureInfo.InvariantCulture,
+                        $"{Cycle.NameOf(kind)} round {round.Round} was written by {round.Release}")));
+            }
+
+            string? pinned = PinnedRelease.Find(solutionRoot);
+
+            if (pinned is not null && PinnedRelease.IsLocal(pinned))
+            {
+                local.Add($"{PinnedRelease.ManifestPath} pins {pinned}");
+            }
+
+            if (local.Count == 0)
+            {
+                return;
+            }
+
+            checks.Add(new ChainCheck(
+                PublishedCheck,
+                false,
+                string.Create(
+                    CultureInfo.InvariantCulture,
+                    $"{string.Join("; ", local)}. A local build proves a change to the framework and never ships one: nobody else can restore it, so nothing it judged can be checked again. Publish the change as a preview, pin the integration branch to it, and run the cycle again on it.")));
         }
 
         /// <summary>Every artifact in the chain exists, and every one has a sound shape.</summary>

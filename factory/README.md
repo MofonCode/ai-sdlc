@@ -55,6 +55,10 @@ the binary's output, and a Windows checkout's are CRLF, so a binary packed from 
 feed. The stage strips the CRs, and tells `.editorconfig` it has done so, so the image is the same whichever
 machine built it.
 
+**The pack stage says it is a release.** A pack made outside a pipeline is stamped `-local` (D-135), and the
+image is built from a checkout at a release, so the stage packs with `CI=true`. CI checks the image's version
+line carries no `-local`.
+
 ## `Dockerfile.dockerignore`
 
 **What the build may read.** Build output, test results and `.git` stay out, so the binary is packed from

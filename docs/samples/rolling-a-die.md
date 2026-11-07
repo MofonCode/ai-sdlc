@@ -535,7 +535,7 @@ git push -u origin main
 ```
 
 **A remote alone installs no guarantee.** Adoption wrote no pipeline for a local solution, so re-run it
-with a platform to get one — the skill walks through it — and then require that check in branch policy.
+with a platform to get one — the skill walks through it — and then set the branch policy `sdlc branch-policy` prints.
 The pipeline step is the whole promise, and it is a promise only while a policy requires it.
 
 Then the cycle goes out like any other:

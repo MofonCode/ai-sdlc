@@ -76,4 +76,10 @@ internal sealed class UnaskedBranchPolicies : IBranchPolicies
 {
     public Task<PolicyAnswer> Ask(Platform platform, string branch, string pipelineFile, string workingDirectory, CancellationToken cancellationToken) =>
         Task.FromResult(new PolicyAnswer(PolicyFinding.Unasked, "'gh' is not signed in"));
+
+    public Task<string?> DefaultBranch(Platform platform, string workingDirectory, CancellationToken cancellationToken) =>
+        Task.FromResult<string?>(null);
+
+    public Task<MergeAnswer> MergeMethods(Platform platform, string branch, string workingDirectory, CancellationToken cancellationToken) =>
+        Task.FromResult(new MergeAnswer(PolicyFinding.Unasked, [], "'gh' is not signed in"));
 }

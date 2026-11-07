@@ -196,7 +196,7 @@ public sealed class UpgradeTests
         string template = Templates.Pipeline(Platform.AzureDevOps, "development");
         string theirs = Customised(template);
 
-        string weakened = theirs.Replace("condition: and(succeeded(), eq(variables['Build.Reason'], 'PullRequest'))", "condition: false", StringComparison.Ordinal);
+        string weakened = theirs.Replace("condition: and(succeeded(), eq(variables['Build.Reason'], 'PullRequest'), ne(variables.promotion, 'true'))", "condition: false", StringComparison.Ordinal);
         string dropped = string.Join('\n', theirs.ReplaceLineEndings("\n").Split('\n').TakeWhile(line => !line.Contains("# The guarantee.", StringComparison.Ordinal)));
 
         Assert.AreNotEqual(theirs, weakened, "The test needs the condition to move.");

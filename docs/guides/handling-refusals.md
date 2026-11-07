@@ -433,6 +433,21 @@ lists what the release asks.
 
 ---
 
+## A promotion's pull request — the one way it is refused
+
+A pull request into a branch that is neither the integration branch nor a `release/*` branch — main, usually —
+is a **promotion**, and the pipeline's `verify` job asks `sdlc promotion` about it before anything else. A
+promotion has no cycle, so the chain is not asked of it; it is built and tested, and that is all (D-136).
+
+### a branch that may not promote
+
+Only the integration branch and a `release/*` branch may open a pull request into the default branch. Anything
+else would put on main code no chain judged: a cycle's branch, a feature branch, a fix made straight against
+main.
+
+**Next:** open the pull request into the integration branch instead, as a cycle, and promote from there. A fix
+a release needs now is a cycle on its `release/*` branch, which then promotes (D-88).
+
 ## `sdlc init` — the two ways adoption is refused
 
 ### an option it does not take
@@ -520,7 +535,7 @@ one. **Next:** rename one of them, or run the projects separately.
 
 ---
 
-## `sdlc pr-ready` — the four ways a pull request is refused
+## `sdlc pr-ready` — the five ways a pull request is refused
 
 ### not verified
 
@@ -594,6 +609,21 @@ adjudicated **not met**; moving it to `## Open` as a limit of the proof is what 
 that region is for what a document cannot settle and whether a criterion was met is the one thing a
 verify is for. A real limit — what the evidence does not reach *beyond* a criterion that was met — still
 belongs there.
+
+### a test run
+
+A local build of the framework — one run through `SDLC_DEV_BUILD`, or a pack made outside the pipeline — wrote
+at least one of the cycle's rounds, or the solution pins one. Its release ends in `-local`, and the refusal names
+each round it wrote. **It refuses every form**: a verified build, a draft, and a plan through
+`sdlc verify-chain`, and the solution's pull-request check refuses it too (D-135).
+
+A local build is how a change to the framework is tried before anybody publishes it, and nobody else can restore
+it — so nothing it judged can be checked again by a reviewer, the pipeline or the factory. The cycle was a test
+run, and the refusal is final.
+
+**Next:** finish with the test run: `sdlc draft abandon <id>`. Publish the framework change as a preview, pin the
+integration branch to it by a pull request that changes only the pin, unset `SDLC_DEV_BUILD`, and run the work as
+a new cycle. [Testing a local build](testing-a-local-build.md) is the whole loop.
 
 ---
 

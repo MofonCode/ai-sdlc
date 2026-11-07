@@ -84,7 +84,7 @@ public sealed class DoctorTests
         ];
 
         CollectionAssert.AreEquivalent(
-            new[] { "branch policy", "the skills" },
+            new[] { "branch policy", "merge methods", "the skills" },
             elsewhere,
             "A binary cannot ask a host what it loaded, or a platform it is not signed in to what its branch policy requires.");
     }
@@ -647,6 +647,78 @@ public sealed class DoctorTests
     }
 
     [TestMethod]
+    public async Task The_default_branch_must_require_the_check_too_because_promotion_runs_in_it()
+    {
+        // D-136: on the default branch, 'verify' runs 'sdlc promotion', so a default branch that requires
+        // nothing admits a pull request from any branch.
+        using var solution = Scratch.Create();
+        await Adopt(solution);
+
+        Diagnose.Response report = await Diagnosis(
+            solution,
+            policies: new AnsweredBranchPolicies(
+                new PolicyAnswer(PolicyFinding.Required, "a merge into development requires the 'verify' status check"),
+                defaultBranch: "main",
+                onDefault: new PolicyAnswer(PolicyFinding.NotRequired, "main requires no status check")));
+        Check main = report.Checks.Single(check => check.Subject == "branch policy on main");
+
+        Assert.AreEqual(CheckOutcome.Problem, main.Outcome);
+        StringAssert.Contains(main.Remedy!, "sdlc branch-policy");
+        Assert.IsFalse(report.Sound);
+    }
+
+    [TestMethod]
+    public async Task A_merge_method_other_than_the_default_is_reported_and_never_a_problem()
+    {
+        // The default is where a solution starts; a team may choose otherwise, and the doctor says so.
+        using var solution = Scratch.Create();
+        await Adopt(solution);
+
+        Diagnose.Response report = await Diagnosis(
+            solution,
+            policies: new AnsweredBranchPolicies(
+                new PolicyAnswer(PolicyFinding.Required, "required"),
+                defaultBranch: "main",
+                methods: new Dictionary<string, string[]> { ["development"] = ["merge", "squash"], ["main"] = ["merge"] }));
+        Check methods = report.Checks.Single(check => check.Subject == "merge methods");
+
+        Assert.AreEqual(CheckOutcome.Sound, methods.Outcome);
+        StringAssert.Contains(methods.Detail, "development takes merge, squash, where the default is squash only");
+        StringAssert.Contains(methods.Detail, "main takes merge only, the default");
+        Assert.IsTrue(report.Sound);
+    }
+
+    [TestMethod]
+    public void A_ruleset_list_yields_the_merge_methods_every_pull_request_rule_allows()
+    {
+        const string rules = """
+            [
+              { "type": "pull_request", "parameters": { "allowed_merge_methods": ["merge", "squash"] } },
+              { "type": "pull_request", "parameters": { "allowed_merge_methods": ["squash", "rebase"] } },
+              { "type": "required_status_checks", "parameters": { } }
+            ]
+            """;
+
+        CollectionAssert.AreEqual(new[] { "squash" }, CliBranchPolicies.RulesetMergeMethods(rules)!.ToArray());
+        Assert.IsNull(CliBranchPolicies.RulesetMergeMethods("""[ { "type": "deletion" } ]"""));
+    }
+
+    [TestMethod]
+    public void An_azure_merge_strategy_policy_yields_the_methods_it_allows()
+    {
+        const string listed = """
+            [
+              { "isEnabled": true, "isBlocking": true, "type": { "displayName": "Build" }, "settings": { "buildDefinitionId": 12 } },
+              { "isEnabled": true, "isBlocking": true, "type": { "displayName": "Require a merge strategy" },
+                "settings": { "allowSquash": true, "allowNoFastForward": false, "allowRebase": false, "allowRebaseMerge": false } }
+            ]
+            """;
+
+        CollectionAssert.AreEqual(new[] { "squash" }, CliBranchPolicies.MergeStrategy(listed)!.ToArray());
+        Assert.IsNull(CliBranchPolicies.MergeStrategy("[]"));
+    }
+
+    [TestMethod]
     public void An_azure_policy_list_yields_only_enabled_blocking_build_validations()
     {
         const string listed = """
@@ -696,7 +768,7 @@ public sealed class DoctorTests
     public static IEnumerable<object[]> Hosts =>
         Enum.GetValues<HookHost>().Select(host => new object[] { host });
 
-    private static async Task<Diagnose.Response> Diagnosis(Scratch solution, FakeRepository? git = null, PolicyAnswer? platform = null)
+    private static async Task<Diagnose.Response> Diagnosis(Scratch solution, FakeRepository? git = null, PolicyAnswer? platform = null, IBranchPolicies? policies = null)
     {
         // Adoption creates the integration branch after its commit, so a repository it finished with has
         // one. A test about a missing branch passes a repository without it.
@@ -706,7 +778,11 @@ public sealed class DoctorTests
             {
                 services.AddSingleton<IRepository>(git ?? new FakeRepository { Refs = { SolutionDocument.DefaultIntegrationBranch } });
 
-                if (platform is not null)
+                if (policies is not null)
+                {
+                    services.AddSingleton(policies);
+                }
+                else if (platform is not null)
                 {
                     services.AddSingleton<IBranchPolicies>(new AnsweredBranchPolicies(platform));
                 }
@@ -793,9 +869,21 @@ public sealed class DoctorTests
         }
     }
 
-    private sealed class AnsweredBranchPolicies(PolicyAnswer answer) : IBranchPolicies
+    private sealed class AnsweredBranchPolicies(
+        PolicyAnswer answer,
+        string? defaultBranch = null,
+        PolicyAnswer? onDefault = null,
+        IReadOnlyDictionary<string, string[]>? methods = null) : IBranchPolicies
     {
         public Task<PolicyAnswer> Ask(Platform platform, string branch, string pipelineFile, string workingDirectory, CancellationToken cancellationToken) =>
-            Task.FromResult(answer);
+            Task.FromResult(branch == defaultBranch && onDefault is not null ? onDefault : answer);
+
+        public Task<string?> DefaultBranch(Platform platform, string workingDirectory, CancellationToken cancellationToken) =>
+            Task.FromResult(defaultBranch);
+
+        public Task<MergeAnswer> MergeMethods(Platform platform, string branch, string workingDirectory, CancellationToken cancellationToken) =>
+            Task.FromResult(methods is not null && methods.TryGetValue(branch, out string[]? allowed)
+                ? new MergeAnswer(PolicyFinding.Required, allowed, "ruled")
+                : new MergeAnswer(PolicyFinding.Required, branch == defaultBranch ? ["merge"] : ["squash"], "ruled"));
     }
 }

@@ -42,6 +42,31 @@ public static class PluginRelease
             "release.";
     }
 
+    /// <summary>What to tell the session and the person when the binary is a local build, or null when it is not.</summary>
+    /// <remarks>
+    /// Said every session rather than once, because a variable left set from last week is the way this goes wrong:
+    /// every solution on the machine would be judged by a build nobody published, and nothing else would say so
+    /// until a pull request was refused (D-135).
+    /// </remarks>
+    /// <param name="binary">This binary's release.</param>
+    /// <returns>The notice.</returns>
+    public static string? LocalBuild(string binary)
+    {
+        ArgumentNullException.ThrowIfNull(binary);
+
+        if (!PinnedRelease.IsLocal(binary))
+        {
+            return null;
+        }
+
+        string from = PinnedRelease.DevBuild() is { } devBuild ? $" from {devBuild}" : string.Empty;
+
+        return $"The sdlc binary running here is {binary}, a local build{from}, not the release this directory pins. " +
+            "Every round it writes is marked local, and no cycle a local build judged can open a pull request: it is a " +
+            $"test run, done again on a published release before it ships (D-135). Unset {PinnedRelease.DevBuildVariable} " +
+            "to run the pinned release.";
+    }
+
     private static string? Version(string? pluginRoot)
     {
         if (string.IsNullOrWhiteSpace(pluginRoot))

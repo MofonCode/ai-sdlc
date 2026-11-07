@@ -39,6 +39,9 @@ public static class PullRequest
 
         /// <summary>The chain does not hold, so the pull-request check would refuse it anyway.</summary>
         ChainBroken,
+
+        /// <summary>A local build judged some of it, or the solution pins one, so it was a test run (D-135).</summary>
+        LocalBuild,
     }
 
     /// <summary>Whether a cycle may open a pull request, and why not.</summary>
@@ -126,6 +129,22 @@ public static class PullRequest
             if (chain.IsFailed)
             {
                 return chain.ToResult<Response>();
+            }
+
+            // First, because nothing else matters for a test run: whatever its verdict, it is done again on a
+            // published release before any of it is offered for review (D-135).
+            VerifyChain.ChainCheck? local = chain.Value.Failures
+                .FirstOrDefault(check => check.Name == VerifyChain.PublishedCheck);
+
+            if (local is not null)
+            {
+                return Verdict(
+                    cycle,
+                    PullRequestRefusal.LocalBuild,
+                    string.Create(
+                        CultureInfo.InvariantCulture,
+                        $"Cycle {cycle.Id} was a test run. {local.Detail}"),
+                    chain.Value);
             }
 
             // The outcome is read through the chain rather than parsed again here, so the local refusal and the

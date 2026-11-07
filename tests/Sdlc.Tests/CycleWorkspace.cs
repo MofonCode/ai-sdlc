@@ -434,12 +434,14 @@ internal sealed class CycleWorkspace : IDisposable
     /// The conflicts array's contents, without its brackets, or null to omit the key -- which is what a
     /// round with no conflict looks like, and the normal case.
     /// </param>
+    /// <param name="release">The release that wrote the round, or null to omit it, as a round from before D-131.</param>
     public void WriteRound(
         ArtifactKind kind,
         int round,
         string findings,
         string? upstream = null,
-        string? conflicts = null)
+        string? conflicts = null,
+        string? release = null)
     {
         Directory.CreateDirectory(Cycle.FindingsDirectory);
 
@@ -463,6 +465,7 @@ internal sealed class CycleWorkspace : IDisposable
                     {{recorded}}
                     "interrogated_at": "2026-10-01T10:00:00Z",
                     "round": {{round}},
+                    {{(release is null ? string.Empty : string.Create(CultureInfo.InvariantCulture, $"\"release\": \"{release}\","))}}
                     {{(conflicts is null ? string.Empty : string.Create(CultureInfo.InvariantCulture, $"\"conflicts\": [{conflicts}],"))}}
                     "findings": [{{findings}}]
                   }

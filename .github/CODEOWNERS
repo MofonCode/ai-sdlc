@@ -1,0 +1,3 @@
+# Who must approve a pull request into development or master: the rulesets require a code owner review (D-136).
+# GitHub reads this from the branch a pull request merges into, so changing it is a reviewed pull request too.
+* @peteralmanzar

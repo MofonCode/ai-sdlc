@@ -35,7 +35,7 @@ internal static class ClaudeSession
         if (!File.Exists(Path.Combine(plugin, ".claude-plugin", "plugin.json")))
         {
             await Console.Error.WriteLineAsync(
-                $"sdlc {Release.Version} carries no plugin at {plugin}, so it cannot start a session with its own skills. Reinstall the tool from a package built by release.yml.").ConfigureAwait(false);
+                $"sdlc {Release.Version} carries no plugin at {plugin}, so it cannot start a session with its own skills. Reinstall the tool from a package built by ci.yml.").ConfigureAwait(false);
             return ExitCode.Usage;
         }
 

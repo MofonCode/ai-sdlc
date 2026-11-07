@@ -28,8 +28,18 @@ public static class Release
     /// the <c>VersionPrefix</c> the props set and any prerelease label with it. The SDK appends
     /// <c>+&lt;commit sha&gt;</c>, which is noise to a person asking what they have installed and is
     /// not a version NuGet would restore, so it is trimmed.
+    /// <para><strong>A dev build says it is one.</strong> Run from the directory <c>SDLC_DEV_BUILD</c> names, the
+    /// release is labelled <c>local</c> whatever the build stamped, so every round it writes says so and no pull
+    /// request carries one (D-135). It is decided here, when the process runs, rather than stamped into every build
+    /// made outside the pipeline: the suite records rounds with this version, and a suite that behaved one way on a
+    /// laptop and another on CI would be testing two products.</para>
     /// </remarks>
-    public static string Version { get; } = Read();
+    public static string Version { get; } = Label(Read());
+
+    private static string Label(string stamped) =>
+        PinnedRelease.DevBuild() is { } devBuild && PinnedRelease.IsInside(AppContext.BaseDirectory, devBuild)
+            ? PinnedRelease.AsLocal(stamped)
+            : stamped;
 
     private static string Read()
     {

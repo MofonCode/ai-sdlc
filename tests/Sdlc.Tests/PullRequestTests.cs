@@ -226,6 +226,48 @@ public sealed class PullRequestTests
     }
 
     [TestMethod]
+    [DataRow(ArtifactKind.Intent)]
+    [DataRow(ArtifactKind.Verify)]
+    public async Task A_cycle_a_local_build_judged_is_a_test_run_and_never_opens_one(ArtifactKind kind)
+    {
+        // D-135: any round, not only the one that let the cycle advance. Nobody else can restore the build,
+        // so nothing it judged can be checked again.
+        using CycleWorkspace workspace = Passing();
+        workspace.WriteRound(kind, 2, findings: string.Empty, release: "0.36.7-local.20261106-0930");
+
+        PullRequest.Response answer = await Ask(workspace);
+
+        Assert.AreEqual(PullRequest.PullRequestRefusal.LocalBuild, answer.Refusal, answer.Explanation);
+        StringAssert.Contains(answer.Explanation, Cycle.NameOf(kind) + " round 2 was written by 0.36.7-local.20261106-0930");
+    }
+
+    [TestMethod]
+    public async Task A_round_a_published_release_wrote_does_not_make_a_test_run()
+    {
+        using CycleWorkspace workspace = Passing();
+        workspace.WriteRound(ArtifactKind.Intent, 2, findings: string.Empty, release: "0.36.7-preview");
+
+        PullRequest.Response answer = await Ask(workspace);
+
+        Assert.IsTrue(answer.MayOpen, answer.Explanation);
+    }
+
+    [TestMethod]
+    public async Task A_solution_that_pins_a_local_build_never_opens_one()
+    {
+        // The pin merges with whatever carries it, and then nothing but one machine can restore the gate.
+        using CycleWorkspace workspace = Passing();
+        CycleWorkspace.WriteRaw(
+            Path.Combine(workspace.Root, ".config", "dotnet-tools.json"),
+            Sdlc.Core.PinnedRelease.Pin(null, "0.36.7-local").Value);
+
+        PullRequest.Response answer = await Ask(workspace);
+
+        Assert.AreEqual(PullRequest.PullRequestRefusal.LocalBuild, answer.Refusal, answer.Explanation);
+        StringAssert.Contains(answer.Explanation, ".config/dotnet-tools.json pins 0.36.7-local");
+    }
+
+    [TestMethod]
     public async Task A_broken_chain_is_refused_with_what_each_failed_check_found()
     {
         // The check's name alone -- "every named test passed" -- sent cycle-02 to a second command to

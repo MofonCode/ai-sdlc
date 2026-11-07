@@ -62,6 +62,8 @@ The two hooks return no exit code to you: they stop the agent's action, and the 
 | [a pipeline step the release did not write](../guides/handling-refusals.md#a-pipeline-step-the-release-did-not-write) | put the framework's step back as the release writes it, and the team's own as the base had them; change a team's step in a cycle |
 | [a dependency file that changed more than versions](../guides/handling-refusals.md#a-dependency-file-that-changed-more-than-versions) | keep only the version moves; add or remove a package in a cycle |
 | [a stack line that answers nothing](../guides/handling-refusals.md#a-stack-line-that-answers-nothing) | keep only rows the release asks about; change any other line in a cycle |
+| **A promotion's pull request — `sdlc promotion`** | |
+| [a branch that may not promote](../guides/handling-refusals.md#a-branch-that-may-not-promote) | open it into the integration branch as a cycle, and promote from there or from a `release/*` branch |
 | **Recording evidence — `sdlc evidence`** | |
 | [no cycle, or no plan](../guides/handling-refusals.md#no-cycle-or-no-plan) | check the id; the cycle needs a `plan.md` |
 | [code that is not committed](../guides/handling-refusals.md#code-that-is-not-committed) | commit the change, then record again |
@@ -75,6 +77,7 @@ The two hooks return no exit code to you: they stop the agent's action, and the 
 | [the verification did not pass](../guides/handling-refusals.md#the-verification-did-not-pass) | `/sdlc:remediate <id>` |
 | [escalated](../guides/handling-refusals.md#escalated) | a person decides: reopen the approval, or abandon the cycle |
 | [the chain does not hold](../guides/handling-refusals.md#the-chain-does-not-hold) | `sdlc verify-chain <id>` prints every check |
+| [a test run](../guides/handling-refusals.md#a-test-run) | abandon it; publish a preview, pin the integration branch to it, and run the work again |
 | **Denied to an agent — the pre-tool hook\*** | |
 | writing `approval.md` | `sdlc draft approval <id>`, then rename |
 | writing `abandoned.md` | `sdlc draft abandon <id>`, then place it |
