@@ -9,7 +9,9 @@
 **Version 0.36.10** · iteration 4 · .NET 10
 
 **A plugin that makes an AI coding agent work the way a careful team does** — write down what the change
-is for, agree what *done* means, plan it, have a person approve it, and only then write code.
+is for, agree what *done* means, plan it, have a person approve it, and only then write code. **And it
+keeps a ledger of what was decided**, so the next session, and the next model, builds on those decisions
+rather than quietly undoing them.
 
 Most agent workflows go from a sentence straight to a diff. This one does not. A change moves through six
 stages, each producing a file the next stage reads, and **each file is challenged by a fresh reader
@@ -30,6 +32,18 @@ ai-sdlc makes the agent write those things down *before* the code, has each one 
 no stake in it, has a person sign off on them, and refuses to merge anything that lacks them. **Everything
 that can be decided by a program is decided by one** — the `sdlc` binary, called from the agent's hooks and
 from CI — because an instruction the agent reads is advisory, and the agent will talk its way past it.
+
+**The decisions are what AI development loses first.** A choice settled in one conversation is gone by the
+next session; a different thread, or a different model, argues it again from nothing, or simply takes the
+alternative somebody already weighed and rejected, and nothing in the diff says so. ai-sdlc keeps
+those choices in a ledger rather than in anybody's memory. A decision a person brings is written
+into the intent with their name on it. Every plan lists the decisions it makes, for the person approving
+it. `/sdlc:propose` reads approved cycles for the choices they settled and offers each to `decisions.md`,
+the solution's standing record of what it chose and what it chose *instead of*, which a person keeps. Every
+later plan is read against that record by a fresh reader, and **anything that contradicts it is questioned,
+not let through**: a plan may depart from a decision, but departing in silence is a blocking finding. The
+code is then built from that approved plan and judged against it, so what was decided three sessions ago is
+still what the code does.
 
 ## Features
 
