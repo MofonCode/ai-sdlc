@@ -145,8 +145,20 @@ the same box would merge past them. Nobody else bypasses, and nobody bypasses a 
 **A preview is a merge into `development`.** A pull request squashed into it that changes what ships publishes
 `<VersionPrefix>-preview` through the `nuget-preview` environment once a reviewer approves it, and tags the
 commit `v<that version>`. A branch's own pushes publish nothing; its pull request builds it. A nuget.org version can be unlisted and never deleted, so a push that touches only
-documents makes none. **There is one preview per version**: the next one is the next patch, moved in the props
+documents makes none. **There is one preview per version**: the next one is a new version, moved in the props
 and both manifests together, and a push that ships a change without moving it is refused.
+
+**Which number moves** (D-140). The version is `major.minor.patch`, and the pipeline accepts any move up, so this
+is the rule rather than the check:
+
+| Move | When |
+|---|---|
+| **patch** | a change that ships and leaves an existing solution's cycles behaving as they did: a fix, a new command or option, wording, a document that ships in the package |
+| **minor**, patch to 0 | a change that can make an existing solution's cycle block where it passed before, or changes what a person or a stage must write: a rule added, superseded or newly enforced, a reader added to a round, a file's shape or a protected file changed, a command removed. A planned milestone moves it too |
+| **major** | stays 0 until the framework promises compatibility between releases. Under 0, a minor is where a break is announced |
+
+**When a branch is in doubt, take the minor.** A minor too many costs a number; a patch that changes how a cycle
+blocks is a solution's team finding out from a refused round rather than from the version they pinned.
 
 **A local build is never published** (D-135). `SDLC_DEV_BUILD` points every `sdlc` on the machine at a build of
 this repository, which calls itself `<VersionPrefix>-local`, and a cycle any local build judged never opens a pull

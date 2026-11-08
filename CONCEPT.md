@@ -7199,6 +7199,37 @@ its refusal still apply.
 - *Guessing a marker for Copilot or Antigravity.* Neither documents one; a guessed marker is a panel that
   names one host's invocation to someone using another.
 
+### D-140 — The minor moves when a solution's cycles can behave differently; the patch moves for everything else that ships
+
+**Governs:** nothing in §1–18: it is how this repository numbers its own releases, stated in `AGENTS.md` under
+Releasing.
+
+**Decision.** The release is `major.minor.patch`, and every change that ships moves one of them (D-131). **The
+patch** moves for a change that leaves an existing solution's cycles behaving as they did: a fix, a new command
+or option, wording, a shipped document. **The minor** moves, and the patch returns to 0, for a change that can
+make an existing solution's cycle block where it passed before, or that changes what a person or a stage must
+write: a rule added, superseded or newly enforced, a reader added to a round, a file's shape or a protected file
+changed, a command removed. A planned milestone moves it too. **The major** stays 0 until the framework promises
+compatibility between releases. In doubt, the minor.
+
+**Why.** A solution pins a release (D-131), and the number is what its team reads before moving the pin. Until
+this, the minor moved by roadmap and the patch for everything else, so 0.36.11, which superseded a constraint
+and added a reader that blocks, carried the same kind of number as a column widened in `sdlc doctor`. A team
+moving from 0.36.10 to 0.36.11 had no way to know a round could now refuse what it accepted, short of reading
+every commit. The minor is the one signal that costs nothing to read.
+
+**What it costs.** The judgement is a person's at merge time, and the pipeline does not hold it: whether a
+change can make a cycle block is not something a diff shows. A wrong patch is caught, if at all, in review.
+
+**Rejected.**
+
+- *Strict semantic versioning with a 1.0 now.* It promises compatibility the framework does not yet keep: the
+  rules are still moving every few releases, and a major per break would spend numbers that mean nothing.
+- *Checking it in the pipeline, for instance a minor whenever `CONSTRAINTS.md` changes.* A constraint's wording
+  can move without changing what blocks, and a reader can be added without touching that file. The check would
+  be wrong in both directions.
+- *The minor by roadmap alone.* That is what was done, and it is how 0.36.11 came to be a patch.
+
 ### D-139 — The decisions run through the whole cycle, a departure is declared where it arises, and the change is read against both
 
 **Governs:** §4.2, §7.5, §8.1.1, §15.2
