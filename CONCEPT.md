@@ -182,7 +182,9 @@ The intent's sections are the same for every type: the questions vary, the contr
 verified and merged against the integration branch as it stands, without any other open cycle. The person
 accepts it once — merging pieces, or marking one atomic — and nothing is sliced unattended. Each piece that
 needs nothing unmerged opens as a cycle of its own; a piece that needs another's code waits as a **successor**,
-a file and not a cycle, until what it succeeds has merged (§3.4).
+a file and not a cycle, until what it succeeds has merged (§3.4). **Intents already written are cut again the
+same way while none has a spec** (D-141): `intent --reslice` splits one, or joins and re-cuts several, and the first
+keeps its cycle.
 
 **And a change that arrives without a chain is refused rather than waved through** (D-45). The
 pull-request check runs on every pull request, so it also meets the ones nobody opened as a cycle — a
@@ -201,10 +203,13 @@ both.
 
 `steer <id> "comment"` interviews, records the decision in the intent's `Fixed decisions` with
 attribution, and carries the change down the chain — updating and re-interrogating the spec, and the
-plan when one exists. It requires an intent and a spec, edits rather than regenerates, reports what
-changed, and refuses on an approved cycle until a reopen is recorded (D-17).
+plan when one exists. It requires an intent, edits rather than regenerates, reports what changed, and
+refuses on an approved cycle until a reopen is recorded (D-17).
 
-Steering changes *how*, not *what* — with one exception: **a suggestion a reader raised in this cycle,
+**Before the spec, the person is still writing the intent** (D-141): nothing derives from it yet, so a correction
+in words may add, drop or reword a wanted outcome as well as settle how — never replace the problem.
+
+Once a spec exists, steering changes *how*, not *what* — with one exception: **a suggestion a reader raised in this cycle,
 named by its id, may be taken in or declined**, several in one run, and with only an intent when every
 part of the request is a finding id. A suggestion taken in sharpens a wanted outcome the intent already
 holds — written beneath it, in the person's words — and a declined one is a fixed decision, each
@@ -2209,12 +2214,12 @@ mechanical rather than promised.
 | Skill | Requires | Refuses when | Writes |
 |---|---|---|---|
 | `init` | a git repository | not a repository | the scaffolding, per mode |
-| `intent` | nothing | an intent exists, or the id it was handed is already claimed | `intent.md`, into the directory `sdlc new` opened |
+| `intent` | nothing; with `--reslice`, intents with no spec | an intent exists, or the id it was handed is already claimed; with `--reslice`, a named cycle with a spec, approved, abandoned or missing | `intent.md`, into the directory `sdlc new` opened; with `--reslice`, the edited intents, new cycles and successors |
 | `spec` | a clean intent | intent missing or not clean; a spec exists | `spec.md` |
 | `plan` | a clean spec | spec missing or not clean; a plan exists | `plan.md` |
 | `interrogate` | the artifact exists | it does not | a findings round |
 | `refine` | a round with open blockers | no blockers; cycle approved | that artifact only |
-| `steer` | an intent **and** a spec | only an intent; approved without a reopen | intent, spec, plan — whichever exist |
+| `steer` | an intent | a cut or a join, which is `intent --reslice`'s; approved without a reopen | intent, spec, plan — whichever exist |
 | `draft approval` | three documents, each with a round | any missing, uninterrogated, holding an open blocker, or judged against an upstream that has changed | nothing; it prints |
 | `build` | the gate satisfied | the gate refuses | code, evidence |
 | `verify` | evidence exists | no evidence | `verify.md` |
@@ -2901,6 +2906,10 @@ constraint, and was rejected on the decision points rather than the constraints.
 ### D-17 — `steer` re-runs the chain from an existing intent and spec
 
 **Governs:** §2.6, §3.2
+
+**Superseded in part by D-141.** An intent alone now takes a correction in words, which before the spec may
+change *what* as well as *how*. What stands: once a spec exists, steering edits rather than regenerates and carries
+the change down.
 
 **Why.** The correct path by hand is expensive enough that people will not pay it, so steering ends up
 in conversation where it is lost. **A path so costly that it pushes information out of the system is
@@ -7198,6 +7207,46 @@ its refusal still apply.
 - *Keeping `sdlc <stage>` everywhere.* Correct and host-neutral, and costs a refusal each time.
 - *Guessing a marker for Copilot or Antigravity.* Neither documents one; a guessed marker is a panel that
   names one host's invocation to someone using another.
+
+### D-141 — An intent with no spec may be changed in the person's words and cut again
+
+**Governs:** §3.1, §3.2, §15.1
+
+**Revisits D-17 and D-125.** D-17 gave `steer` an intent **and** a spec, and D-97 let finding ids through with an
+intent alone; a correction in words with only an intent was refused, sent to `refine`, which applies findings and
+nothing else. D-125 sliced work once, before any cycle opened. **Leaves D-128 unchanged:** a suggestion still only
+sharpens.
+
+**Decision.**
+
+- **`steer` takes an intent alone with a correction in words.** Before the spec, the correction may change *what*
+  as well as *how* — add, drop or reword a wanted outcome, move a line into or out of `Must not change` — written
+  in the section it belongs to, not as a fixed decision. The problem may be reworded and never replaced: a
+  different problem is a different intent. Once a spec exists, steering is what it was.
+- **`intent --reslice <id>...` cuts intents already written**, while none has a spec: one id to split it, several
+  to join or re-cut them. It is §3.1's slicing run again over what the intents hold, accepted once by the person.
+  The first id keeps its cycle and becomes the first piece, its intent edited down and its rounds kept; each
+  further piece opens as a cycle or waits as a successor; a cycle the cut empties is removed when its branch was
+  never pushed, and recommended for abandonment when it was, or when its rounds hold a choice worth keeping.
+
+**Why.** Reading the intent the interview produced is where a person finds out what it got wrong, or that it is
+two things. Both paths were missing, so the remedy was a hand edit to a governed document, or abandoning a cycle
+to open two — the cost D-17 names, a correct path so expensive that the change leaves the system. **The guard both
+rules were standing for is downstream derivation**: a spec built on an intent that then moved. Nothing derives
+from an intent with no spec, and once one exists `steer` carries a change down and `--reslice` refuses, so the
+guard is kept where it does work and dropped where it did none.
+
+**Rejected.**
+
+- *A `split` skill.* D-25's reasons stand: cutting is a scoping decision, and slicing already makes it with the
+  person accepting. A second skill would be a second place the rules of a cut live.
+- *Re-slicing a cycle with a spec, regenerating what derived from it.* It throws away the rounds a spec and plan
+  cost, and `steer` already carries a change down without doing that.
+- *Opening the re-cut pieces as new cycles and abandoning the original.* The original's rounds and fixed decisions
+  are the record of what was argued; keeping the id keeps them, and an abandonment for a cycle that was only cut
+  in two records nothing anybody stopped.
+- *Letting the intent skill run again on an existing intent.* D-18: a stage skill that can overwrite its artifact
+  is the mode people type by accident.
 
 ### D-140 — The minor moves when a solution's cycles can behave differently; the patch moves for everything else that ships
 

@@ -46,6 +46,12 @@ needs nothing unmerged opens as a cycle of its own, in its own folder, and is in
 that needs another's code is written as a **successor**, `.sdlc/successors/<slug>.md` — a file, not a cycle —
 and waits.
 
+**Once an intent is written you can still cut it** (D-141). Reading it back is where you find out it is two
+things, or that two intents are one. While none has a spec, `/sdlc:intent --reslice <id>...` proposes a new
+slicing of everything they hold and applies it once you accept: the first cycle keeps its id, each further piece
+opens as a cycle or waits as a successor, and a cycle left empty is removed. To change what an intent says
+without cutting it, `/sdlc:steer <id> "..."` — before the spec, that may add, drop or reword an outcome.
+
 **A successor starts once what it succeeds has merged.** `sdlc successors` says where each stands, and
 `sdlc status` and the sitrep name one the moment it is ready. Nothing starts it for you:
 
@@ -173,8 +179,9 @@ proof is worse than none because it produces a green verification instead of an 
 
 That edits the intent, spec and plan rather than regenerating them, records the correction with your name
 on it, and re-interrogates from the highest document it touched down, one at a time — `sdlc round` refuses
-a spec round until the intent is settled, and a plan round until the spec is. Steering changes *how*, not *what* —
-a correction that changes the problem is a different cycle, and the skill says so and offers one.
+a spec round until the intent is settled, and a plan round until the spec is. Once a spec exists, steering changes *how*, not
+*what* — a correction that changes the problem is a different cycle, and the skill says so and offers one. Before
+the spec nothing derives from the intent yet, so steering may change its outcomes too.
 
 **Once the verify passes, converge.** `/sdlc:propose convergence` reads what the cycle settled and argued
 and proposes rules, decisions and stack rows in one file; you mark what you accept, `sdlc draft

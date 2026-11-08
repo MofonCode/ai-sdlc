@@ -12,7 +12,7 @@ there is no slash form: ask in a sentence, and include the cycle id.
 | **Adoption** | | | |
 | [`init`](../../skills/README.md#init) | `[--platform github\|azure-devops\|local] [--integration-branch <name>]` | interviews you about the solution and proposes its first constraints; hands you the adoption command, and walks the drafts it leaves | a person\* |
 | **The planning chain** | | | |
-| [`intent`](../../skills/README.md#intent) | `[--type bug\|add\|change] [--from <lead>]` | slices the work into atomic cycles once you accept it, opens each, and interviews you into why the work exists, from a lead if given one — a ready successor included | a person |
+| [`intent`](../../skills/README.md#intent) | `[--type bug\|add\|change] [--from <lead>] \| --reslice <cycle id>...` | slices the work into atomic cycles once you accept it, opens each, and interviews you into why the work exists, from a lead if given one — a ready successor included; with `--reslice`, cuts again intents already written that have no spec | a person |
 | [`spec`](../../skills/README.md#spec) | `<cycle id>` | derives testable acceptance criteria from the intent alone | a person |
 | [`plan`](../../skills/README.md#plan) | `<cycle id>` | decides how, and what will prove each criterion | a person |
 | **The loop** | | | |

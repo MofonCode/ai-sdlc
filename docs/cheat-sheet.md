@@ -29,6 +29,7 @@ Each document stage runs its own interrogate-and-refine loop before it hands bac
 - **A blocking finding** the loop could not clear — `guides/handling-blockers.md`
 - **Verify says `blocked`** — `/sdlc:remediate <id>`, then verify again
 - **Changed your mind** before approval — `/sdlc:steer <id> "..."`
+- **The intent is two things**, or two are one, before a spec — `/sdlc:intent --reslice <id>...`
 - **Take in a suggestion** a reader raised, before approval — `/sdlc:steer <id> <finding id>...`
 - **After approval** — `sdlc draft approval <id> --reopen`; once the plan is on `development`, on its plan branch (`sdlc branch <id> plan`), then `/sdlc:pr <id> --plan`
 - **Something refused** — `reference/refusals.md`

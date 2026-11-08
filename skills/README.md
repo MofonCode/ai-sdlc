@@ -219,6 +219,7 @@ Interviews a person into the intent, the first artifact of a cycle, and opens th
 
 ```
 /sdlc:intent [--type bug|add|change] [--from <lead>]
+/sdlc:intent --reslice <cycle id>...
 ```
 
 #### Parameters
@@ -227,6 +228,7 @@ Interviews a person into the intent, the first artifact of a cycle, and opens th
 |---|---|
 | `--type bug\|add\|change` | the kind of change — a bug fix, a feature addition or a feature change — so the interview asks that kind's questions. Optional: without it the type comes from the lead, or a new solution is detected, or the opening answer decides it and the skill confirms. There is no `new`: a new solution is only detected. A flag the answers contradict is asked about, never followed in silence |
 | `--from <lead>` | begin from a lead — `azuredevops:1234`, `github:56`, `suggestion:<cycle>/<finding>`, `successor:<slug>`, or a path — fetched by `sdlc lead show` and recorded in the intent as `lead:`. It seeds the interview and never replaces it. A lead or a description is what a slicing is proposed from; a ready successor is started rather than sliced again |
+| `--reslice <cycle id>...` | slice again intents already written — one to split it, several to join or re-cut them — while none has a spec (D-141). The first id keeps its cycle and becomes the first piece; each further piece opens as a cycle or waits as a successor; a cycle emptied by the cut is removed if it was never pushed, or recommended for abandonment if it holds something worth keeping. The person accepts the cut, as for any slicing |
 
 #### Output
 
@@ -242,6 +244,8 @@ stack and the spec.
 | the declared stack is not in place | `sdlc new` refuses | fill in `techstack.draft.md`, which adoption wrote, and rename it into place |
 | anything is uncommitted | `sdlc new` refuses and names the files, because the cycle's branch would carry them into its diff | the skill asks what you want done with them — commit, stash or discard — and opens the cycle again |
 | `--from successor:<slug>` that is not ready | `sdlc lead show` refuses, saying what it still waits for | wait until `sdlc successors` says `ready`; the person starts it then |
+| `--reslice` names a cycle with a spec | refuses on that cycle: something already derives from its intent | `/sdlc:steer <id>`, which carries a change down instead |
+| `--reslice` names a cycle approved, abandoned or missing | refuses on that cycle, saying which | — |
 
 #### Example
 
@@ -676,7 +680,7 @@ than regenerating them — and takes in or declines suggestions a reader raised 
 
 | | |
 |---|---|
-| Stage | correction, after the spec exists and before the gate; for finding ids alone, from a clean intent |
+| Stage | correction, from a written intent until the gate. Before the spec, the person revising their own intent (D-141); after it, a change of *how* carried down |
 | Started by | a person who has changed their mind about *how* a cycle is being done, or the intent, spec or plan hand-back once a person has said which suggestions to take in |
 | Reads | the correction, each named finding, and each artifact it reaches |
 | Writes | the intent's `Fixed decisions` and `Wanted outcomes`, each artifact it reaches, and fresh rounds on everything downstream of what it touched |
@@ -697,7 +701,8 @@ than regenerating them — and takes in or declines suggestions a reader raised 
 
 #### Output
 
-Records the correction under the intent's `Fixed decisions`, with attribution. A suggestion taken in
+Records the correction under the intent's `Fixed decisions`, with attribution. Before the spec exists, a correction
+in words may also add, drop or reword a wanted outcome, written where it belongs rather than as a decision (D-141). A suggestion taken in
 goes beneath the wanted outcome it sharpens, in the person's words, and a declined one a *not in this
 cycle* fixed decision, each naming the finding. A suggestion that would add or widen an outcome is
 declined into a successor that keeps its id (D-128); the next round's reader finds it settled and records it `answered`. Edits rather
@@ -710,7 +715,7 @@ so editing the intent makes the spec's latest round stale.
 
 | Condition | Result | What to do |
 |---|---|---|
-| there is only an intent, and a correction in words | refuses | `/sdlc:refine <id> intent` instead |
+| the request cuts the intent into pieces, or joins two | refuses: that is a scoping decision | `/sdlc:intent --reslice <id>...` while there is no spec |
 | a finding id that is not an open suggestion of this cycle's latest rounds | refuses on that id, and says what it is | a blocker is `/sdlc:refine`'s; another cycle's suggestion is `/sdlc:intent --from suggestion:<cycle>/<finding>` |
 | the cycle is approved | refuses | `sdlc draft approval <id> --reopen` first, which it names |
 | the cycle is abandoned | refuses; abandoned is terminal | open a new cycle |

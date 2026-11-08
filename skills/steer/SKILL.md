@@ -17,10 +17,11 @@ This is that path, made affordable. No constraint loosens.
 
 ## Refuse early
 
-Requires an intent **and** a spec — or, when every part of the request is a finding id, an intent alone.
+Requires an intent. With only an intent, a correction in words is the person revising their own intent,
+and §"Before the spec" below says what that may change (D-141).
 
-- **Only an intent, and a correction in words?** Stop. There is nothing downstream to carry the change
-  into, so the right move is to refine the intent.
+- **The person wants the intent cut into pieces, or two intents joined?** Not this skill. That is a
+  scoping decision, and `/sdlc:intent --reslice <id>...` makes it, for intents with no spec yet.
 - **A finding id that is not an open suggestion in this cycle's latest rounds?** Stop on that id and
   name what it is. A blocking finding is `refine`'s to apply, not a person's to decline. A suggestion
   from another cycle starts a cycle of its own: `/sdlc:intent --from suggestion:<cycle>/<finding>`.
@@ -59,6 +60,26 @@ it here, naming the successor, and write `.sdlc/successors/<slug>.md` with `succ
 `## Outcome` in the person's words and its `## Why` naming the finding id — so it keeps its id and
 opens once this one merges (D-125). Say which a suggestion is when you show it, and let the person
 decide; a person may of course widen the work, through a cycle of its own.
+
+## Before the spec: the person is still writing the intent
+
+**With no spec, nothing derives from the intent yet**, so a correction in words may change *what* as well
+as *how*: add an outcome, drop one, reword one, move something into or out of `Must not change` (D-141).
+This is the person reading what the interview produced and saying what it got wrong — the same person,
+the same intent, finished later. Two limits stay:
+
+- **A different problem is a different intent.** The `## Problem` may be reworded, never replaced. Say so
+  and offer `/sdlc:intent` for the new one.
+- **Suggestions still only sharpen** (D-128). Words with a finding id behind them follow the rules below;
+  words with none are the person's own and are written as theirs.
+
+**Write the change into the section it belongs to, not into `Fixed decisions`.** An outcome the person
+added is a wanted outcome; an approach they settled is a fixed decision, with attribution as below. Then
+run the intent's loop — step 4 below, which here is the intent alone — and report.
+
+**When the intent now holds more than one atomic piece, say so in a line** and offer
+`/sdlc:intent --reslice <id>`. Every outcome multiplies what the spec and plan must prove, and an intent
+that grew while being read is the commonest way a cycle becomes two.
 
 ## What to do
 

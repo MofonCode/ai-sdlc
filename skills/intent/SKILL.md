@@ -2,7 +2,7 @@
 name: intent
 description: Interview a person into a governed intent, the first artifact of a cycle. Use when someone wants to start new work, reports a problem, or asks to turn an idea into something the process can carry.
 compatibility: Requires the sdlc binary on PATH, from the MofonCode.Sdlc.Cli dotnet tool, and a git repository. Every command here is that binary, so without it the first step fails.
-argument-hint: "[--type bug|add|change] [--from <lead>]"
+argument-hint: "[--type bug|add|change] [--from <lead>] | --reslice <cycle id>..."
 allowed-tools: Bash(sdlc *), Bash(git *), Read, Write, Edit, Glob, Grep
 ---
 
@@ -42,7 +42,7 @@ outcome. Two uses in the interview:
 If your host gives you a task list, open one before the first step, with these items, and mark each
 done as it finishes. If it does not, carry on without one — nothing below depends on it.
 
-1. propose a slicing, and have it accepted
+1. propose a slicing, and have it accepted — with `--reslice`, §0a in place of §0
 2. open the cycle and its branch — each slice's, when there are several
 3. settle the type
 4. interview, one question at a time
@@ -125,6 +125,43 @@ run its loop, and hand back once at the end with each piece's panel. A piece's i
 accepted outcome and why, so most of it is short. **Record the lead in each** — every piece is part of the
 same work item — and say in the hand-back that the slicing's plans go to the integration branch together,
 by one plan pull request, once each is approved.
+
+## 0a. Re-slice intents already written: `--reslice <id>...`
+
+**The first draft is usually where a person finds out the work is two things** — or that two intents are
+one. `--reslice` runs §0's slicing again over intents that already exist (D-141). It is the person's
+scoping decision, exactly as at §0, and nothing is cut unattended.
+
+**Refuse first**, naming each cycle that fails and what to do instead:
+
+- **It has a spec.** Something already derives from its intent, and cutting it would throw that away.
+  The move is `/sdlc:steer <id>`, which carries a change down instead.
+- **It is approved or abandoned**, or **does not exist**. Say which.
+
+**1. Read every named intent whole**, with its rounds' open suggestions — `sdlc suggestions <id>` — and
+propose the most atomic slicing of all of it together, by §0's rules: slugs, one line of outcome and of
+why, and what each piece needs. Every outcome, fixed decision and `Must not change` line of every named
+intent lands in exactly one piece, or in every piece it constrains; **say where each one went**, so the
+person can see nothing was dropped.
+
+**2. Ask once, in free text, and read back** — as §0 says. The person may merge pieces, mark one atomic,
+or keep everything as it was.
+
+**3. Apply it, editing rather than regenerating:**
+
+- **The first named cycle keeps its id** and becomes the first piece. Edit its intent down to that piece:
+  its rounds stay, and its loop judges the edit.
+- **Each further piece that needs nothing unmerged opens as a cycle** — as §1 says — and its intent is
+  written from what moved into it, then interviewed only for what that left unsaid. Record the same
+  `lead:` the original carried, if any.
+- **Each piece that needs another's code is a successor**, written as §0 says.
+- **A named cycle whose content all moved elsewhere is emptied.** Its intent, rounds and branch were
+  never part of anything a person approved. If its branch was never pushed, remove it once the person
+  confirms — `git worktree remove` on its folder, `git branch -D cycle/<id>/plan` — and say so in a line.
+  If it was pushed, or its rounds hold a fixed decision or a declined suggestion somebody may want later,
+  recommend recording it instead: `sdlc draft abandon <id>`, which a person places.
+
+**4. Run each changed intent's loop** — §5 — and **hand back once**, as §6 says, with every piece's panel.
 
 ## 1. Open the cycle and switch to its branch
 

@@ -6,7 +6,7 @@
 [![ci](https://img.shields.io/github/actions/workflow/status/MofonCode/ai-sdlc/ci.yml?branch=main&label=ci)](https://github.com/MofonCode/ai-sdlc/actions/workflows/ci.yml)
 [![license](https://img.shields.io/github/license/MofonCode/ai-sdlc)](LICENSE)
 
-**Version 0.37.0** · iteration 4 · .NET 10
+**Version 0.38.0** · iteration 4 · .NET 10
 
 **A plugin that makes an AI coding agent work the way a careful team does** — write down what the change
 is for, agree what *done* means, plan it, have a person approve it, and only then write code. **And it
@@ -218,7 +218,7 @@ sdlc constraints
 ```
 
 It should print the nineteen global constraints in force and say it read them from
-`global  embedded in sdlc 0.37.0`. **Use this rather than `sdlc help` as the smoke test** — `help` and
+`global  embedded in sdlc 0.38.0`. **Use this rather than `sdlc help` as the smoke test** — `help` and
 `version` are the only commands that need nothing from the installation, so they are the two that cannot
 tell you whether it worked. Then `claude plugin details sdlc@ai-sdlc` should say `Skills (18)` and
 `Hooks (3)`: **a hook count below three is a failed install**, not a detail, because the deterministic layer
@@ -383,6 +383,10 @@ What is honest to say about the rest:
   change's reader blocks, or whether its narrow trigger keeps it from adding rounds. A solution receives it when
   it moves its pin, and it is a minor because a round may now block what it passed before: the
   rule against changes outside the plan's purpose reached no reader until this.
+- **An intent can be changed and cut after it is written, and nobody has done either for real yet** (0.38.0).
+  Before the spec, `/sdlc:steer` takes a correction in words that may add, drop or reword an outcome, and
+  `/sdlc:intent --reslice` splits an intent or joins several. Both are skill text; the binary already refused
+  the rounds that would let a changed intent leave a stale spec behind.
 - **Declaring the stack after adoption has not been walked by anybody but its author.** Adoption no
   longer writes the declared stack or the .NET build settings: a person places the first from a draft,
   and the second arrive with the skeleton. The suite holds each step; no real adoption has gone through

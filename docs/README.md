@@ -112,7 +112,7 @@ One governed change, from why it exists to a pull request.
 | **artifact** | one of the four governed documents. Each is challenged against the rules before it advances | `<kind>.md` |
 | **abandonment** | the record that stops a cycle for good, with a reason. Terminal. **A person's file** | `abandoned.md` |
 | **atomic cycle** | a cycle that can be built, verified and merged against the integration branch as it stands, without any other open cycle. The one rule a slicing is held to; there is no floor on how small (D-125) | — |
-| **slicing**, **a slice** | `intent` proposing, before any cycle opens, how to cut a piece of work into atomic pieces — each one a **slice**. The person accepts the slicing once, merging pieces or marking one atomic; nothing is sliced unattended. Not the *reference slice* in §2, which is code | `/sdlc:intent` |
+| **slicing**, **a slice** | `intent` proposing, before any cycle opens, how to cut a piece of work into atomic pieces — each one a **slice**. The person accepts the slicing once, merging pieces or marking one atomic; nothing is sliced unattended. Intents already written are cut again with `--reslice` while none has a spec (D-141). Not the *reference slice* in §2, which is code | `/sdlc:intent` |
 | **a successor** | a slice that needs another's code, waiting as a file rather than a cycle. `succeeds:` lists what it waits for — cycle ids, or `successor:<slug>` for one not started yet — and its state, `waiting`, `ready`, `stuck` or `unresolved`, is worked out from the record on every read. A person starts a ready one with `/sdlc:intent --from successor:<slug>` | `.sdlc/successors/<slug>.md`, `sdlc successors` |
 
 ### The four artifact kinds
