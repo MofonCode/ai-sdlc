@@ -58,7 +58,7 @@ an agent runs it, and it never decides a gate. `skills.md` lists the skills.
 | `sdlc constraints --for plan --brief` | binary | the rules one stage is judged against |
 | `sdlc cycles` | binary | every cycle, newest first |
 | `sdlc branch <id> <kind>` | binary | the git command that puts you on the cycle's `plan`, `build`, `build-unattended` or `forward` branch. The skills run it for you. `plan --worktree` opens the cycle in a folder of its own beside the repository, so several are planned at once. `plan` refuses a local plan branch left over from earlier planning |
-| `sdlc factory` | binary | writes the factory's nightly pipeline for your platform. It never merges |
+| `sdlc factory` | binary | writes the factory's pipeline for your platform, which a person starts. It never merges |
 | `sdlc lead show <reference>` | binary | a work item, issue, suggestion, ready successor or file, in one shape for `intent --from` |
 | `sdlc successors` | binary | every slice waiting on another's code, and whether it is waiting, ready, stuck or unresolved — worked out, never stored |
 | `sdlc successor check` | binary | refuses a successor that cannot be read, names nothing that exists, or loops |

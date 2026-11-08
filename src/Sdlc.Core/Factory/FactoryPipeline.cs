@@ -4,7 +4,7 @@ using Sdlc.Core.Init;
 namespace Sdlc.Core.Factory;
 
 /// <summary>
-/// The factory's pipeline: a schedule that runs <c>batch-build --pr --unattended</c> against the integration
+/// The factory's pipeline: a run a person starts, of <c>batch-build --pr --unattended</c> against the integration
 /// branch, one run at a time, inside a time limit, and publishes the sitrep (D-84).
 /// </summary>
 /// <remarks>
@@ -43,25 +43,31 @@ public static class FactoryPipeline
                 "# on syntax or on an action's version, that is why. Run it first against one throwaway approved",
                 "# cycle, and watch it.",
                 "#",
-                "# The factory (CONCEPT.md section 10.5, D-84). Every night it finds the cycles approved on",
-                $"# {integrationBranch} with no verify, builds and verifies each on its own branch, and opens a pull",
-                "# request per cycle -- a draft for one that did not pass. It merges nothing: a person reviews and",
-                "# merges every pull request, one at a time, starting from the sitrep this run publishes.",
+                "# The factory (CONCEPT.md section 10.5, D-84, D-143). A person starts it, from the Actions tab or with",
+                $"# 'gh workflow run sdlc-factory.yml'. It finds the cycles approved on {integrationBranch} with no verify,",
+                "# builds and verifies each on its own branch -- the one the most successors wait on first -- and opens a",
+                "# pull request per cycle, a draft for one that did not pass. Name one cycle to build that one alone.",
+                "# It merges nothing: a person reviews and merges every pull request, starting from the sitrep this run",
+                "# publishes, and starts it again for what those merges made ready.",
                 "#",
                 "# Secrets, set in Settings > Secrets and variables > Actions:",
                 "#   One way for the agent to sign in -- either, and the API key wins when both are set:",
                 "#     ANTHROPIC_API_KEY        billed per token to an Anthropic Console account",
                 "#     CLAUDE_CODE_OAUTH_TOKEN  from 'claude setup-token', billed to a Claude subscription. Check",
-                "#                              its terms and limits cover a team's nightly run",
+                "#                              its terms and limits cover a team's runs",
                 "#   SDLC_FACTORY_TOKEN a token that may push branches and open pull requests. Not GITHUB_TOKEN:",
                 "#                      a pull request opened with it starts no workflow, so the pull-request",
                 "#                      check would never run on anything the factory opened.",
                 "name: factory",
                 string.Empty,
+                "# Started by a person, never on a schedule: starting it is the decision to spend (D-143).",
                 "on:",
-                "  schedule:",
-                "    - cron: '0 2 * * *'",
                 "  workflow_dispatch:",
+                "    inputs:",
+                "      cycle:",
+                "        description: One cycle id to build alone. Empty builds every queued cycle.",
+                "        required: false",
+                "        default: ''",
                 string.Empty,
                 "# One run at a time. A second waits rather than picking the same cycles.",
                 "concurrency:",
@@ -101,25 +107,18 @@ public static class FactoryPipeline
                 "        run: |",
                 .. Credential("          ", check: true),
                 "          sdlc claude -p 'Create the file .sdlc/approval.md containing the single word smoke. Do nothing else.' --permission-mode bypassPermissions < /dev/null || true",
-                "          if [ -e .sdlc/approval.md ]; then echo 'The hooks did not refuse a protected write, so nothing would refuse anything tonight.'; exit 1; fi",
-                string.Empty,
-                "      # Operate: production's errors since the last run, filed as leads on the tracker. Nothing",
-                "      # to read when solution.md declares no telemetry store, which it says and moves on.",
-                "      # Reading Application Insights needs the runner signed in to Azure: add an azure/login step",
-                "      # before this one when a store is declared.",
-                "      - name: operate",
-                "        env:",
-                "          GH_TOKEN: ${{ secrets.SDLC_FACTORY_TOKEN }}",
-                "        run: sdlc operate --since 24h",
+                "          if [ -e .sdlc/approval.md ]; then echo 'The hooks did not refuse a protected write, so nothing would refuse anything in this run.'; exit 1; fi",
                 string.Empty,
                 "      - name: build the queue",
                 "        env:",
                 "          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}",
                 "          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}",
                 "          GH_TOKEN: ${{ secrets.SDLC_FACTORY_TOKEN }}",
+                "          CYCLE: ${{ inputs.cycle }}",
                 "        run: |",
                 .. Credential("          ", check: false),
-                "          sdlc claude -p '/sdlc:batch-build --pr --unattended' --permission-mode bypassPermissions < /dev/null",
+                .. Asked("          "),
+                "          sdlc claude -p '/sdlc:batch-build '\"$CYCLE\"' --pr --unattended' --permission-mode bypassPermissions < /dev/null",
                 string.Empty,
                 "      # The morning starts from this page, whatever the run above did.",
                 "      - name: the sitrep",
@@ -137,30 +136,32 @@ public static class FactoryPipeline
                 "# documentation; if the first run fails on syntax or on a task's version, that is why. Run it first",
                 "# against one throwaway approved cycle, and watch it.",
                 "#",
-                "# The factory (CONCEPT.md section 10.5, D-84). Every night it finds the cycles approved on",
-                $"# {integrationBranch} with no verify, builds and verifies each on its own branch, and opens a pull",
-                "# request per cycle -- a draft for one that did not pass. It merges nothing: a person reviews and",
-                "# merges every pull request, one at a time, starting from the sitrep this run publishes.",
+                "# The factory (CONCEPT.md section 10.5, D-84, D-143). A person starts it, from Pipelines > Run pipeline",
+                $"# or with 'az pipelines run'. It finds the cycles approved on {integrationBranch} with no verify, builds",
+                "# and verifies each on its own branch -- the one the most successors wait on first -- and opens a pull",
+                "# request per cycle, a draft for one that did not pass. Name one cycle to build that one alone. It",
+                "# merges nothing: a person reviews and merges every pull request, starting from the sitrep this run",
+                "# publishes, and starts it again for what those merges made ready.",
                 "#",
                 "# What a person sets up, once:",
                 "#   - Pipelines > New pipeline > this file.",
                 "#   - One secret variable for the agent to sign in -- either, and the API key wins when both",
                 "#     are set: ANTHROPIC_API_KEY, billed per token to an Anthropic Console account, or",
                 "#     CLAUDE_CODE_OAUTH_TOKEN, from 'claude setup-token' and billed to a Claude subscription.",
-                "#     Check the subscription's terms and limits cover a team's nightly run.",
+                "#     Check the subscription's terms and limits cover a team's runs.",
                 "#   - The project's build service may contribute, create branches and contribute to pull",
                 "#     requests on this repository (Project settings > Repositories > Security).",
                 "#   - Pipelines > Environments > sdlc-factory > Approvals and checks > Exclusive lock. Without it",
                 "#     two runs could pick the same cycles; with it a second waits.",
+                "# Started by a person, never on a schedule: starting it is the decision to spend (D-143).",
                 "trigger: none",
                 "pr: none",
                 string.Empty,
-                "schedules:",
-                "  - cron: '0 2 * * *'",
-                "    displayName: nightly",
-                "    branches:",
-                $"      include: [{integrationBranch}]",
-                "    always: true",
+                "parameters:",
+                "  - name: cycle",
+                "    displayName: One cycle id to build alone. Empty builds every queued cycle.",
+                "    type: string",
+                "    default: ' '",
                 string.Empty,
                 "lockBehavior: sequential",
                 string.Empty,
@@ -198,29 +199,22 @@ public static class FactoryPipeline
                 "            - script: |",
                 .. Credential("                ", check: true),
                 "                sdlc claude -p 'Create the file .sdlc/approval.md containing the single word smoke. Do nothing else.' --permission-mode bypassPermissions < /dev/null || true",
-                "                if [ -e .sdlc/approval.md ]; then echo 'The hooks did not refuse a protected write, so nothing would refuse anything tonight.'; exit 1; fi",
+                "                if [ -e .sdlc/approval.md ]; then echo 'The hooks did not refuse a protected write, so nothing would refuse anything in this run.'; exit 1; fi",
                 "              displayName: prove the agent signs in and the hooks refuse",
                 "              env:",
                 "                ANTHROPIC_API_KEY: $(ANTHROPIC_API_KEY)",
                 "                CLAUDE_CODE_OAUTH_TOKEN: $(CLAUDE_CODE_OAUTH_TOKEN)",
                 string.Empty,
-                "            # Operate: production's errors since the last run, filed as leads on the tracker.",
-                "            # Nothing to read when solution.md declares no telemetry store; it says so and moves on.",
-                "            # Reading Application Insights needs Azure credentials: when a store is declared, run",
-                "            # this as an AzureCLI@2 task with a service connection that may read it.",
-                "            - script: sdlc operate --since 24h",
-                "              displayName: operate",
-                "              env:",
-                "                AZURE_DEVOPS_EXT_PAT: $(System.AccessToken)",
-                string.Empty,
                 "            - script: |",
                 .. Credential("                ", check: false),
-                "                sdlc claude -p '/sdlc:batch-build --pr --unattended' --permission-mode bypassPermissions < /dev/null",
+                .. Asked("                "),
+                "                sdlc claude -p '/sdlc:batch-build '\"$CYCLE\"' --pr --unattended' --permission-mode bypassPermissions < /dev/null",
                 "              displayName: build the queue",
                 "              env:",
                 "                ANTHROPIC_API_KEY: $(ANTHROPIC_API_KEY)",
                 "                CLAUDE_CODE_OAUTH_TOKEN: $(CLAUDE_CODE_OAUTH_TOKEN)",
                 "                AZURE_DEVOPS_EXT_PAT: $(System.AccessToken)",
+                "                CYCLE: ${{ parameters.cycle }}",
                 string.Empty,
                 "            # The morning starts from this page, whatever the run above did.",
                 "            - script: |",
@@ -234,6 +228,24 @@ public static class FactoryPipeline
 
         _ => throw new ArgumentOutOfRangeException(nameof(platform), "A local solution has nowhere to run a factory."),
     };
+
+    /// <summary>
+    /// The lines that read the one cycle a person asked the run to build, and stop the run before it builds
+    /// anything when that cycle is not queued.
+    /// </summary>
+    /// <remarks>
+    /// <para><strong>The binary reads it before the agent does.</strong> The input is text a person typed into a
+    /// form, and it reaches the agent's prompt; <c>sdlc cycles --queued</c> refuses anything that is not a cycle id,
+    /// and a cycle that is not queued, with why, so only an id it accepted is ever passed on.</para>
+    /// <para><strong>Empty means every queued cycle.</strong> Azure DevOps will not take an empty string as a
+    /// parameter's default, so the default is a space, trimmed here.</para>
+    /// </remarks>
+    private static IEnumerable<string> Asked(string indent)
+    {
+        yield return indent + "# The cycle asked for, if any: refused here, before anything is built, unless it is queued.";
+        yield return indent + "CYCLE=\"$(printf '%s' \"${CYCLE:-}\" | tr -d '[:space:]')\"";
+        yield return indent + "if [ -n \"$CYCLE\" ]; then sdlc cycles --queued \"$CYCLE\" || exit 1; fi";
+    }
 
     /// <summary>
     /// The line that puts Claude Code on the agent, unless it already carries it.

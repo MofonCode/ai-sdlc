@@ -225,7 +225,7 @@ problem is a different intent, and a new outcome nobody raised is a new cycle (D
 |---|---|---|---|
 | **Define** | intent, spec, plan | a person, locally | the planning approval (§5.1) |
 | **Build** | build, verify, pull request | the factory unattended, or a person by hand | a person merging the pull request |
-| **Operate** | — | a scheduled run | a lead a person may take into Define (§3.4) |
+| **Operate** | — | a person, with `sdlc operate` (D-143) | a lead a person may take into Define (§3.4) |
 
 **A phase is a label, never a command** (D-82). Nothing runs Define: each stage is still a moment where a
 person decides to continue, which is why D-16 has no `design` skill.
@@ -246,7 +246,8 @@ record on every read. `sdlc successors` lists them. `intent --from successor:<sl
 interview resumes against the code that merged, the new intent records `lead: successor:<slug>`, which is what
 resolves every other reference to the slug, and the file is deleted on the new cycle's plan branch.
 
-**Operate files work items; it writes no artifact of its own.** A scheduled run reads the solution's
+**Operate files work items; it writes no artifact of its own.** A person runs it — no pipeline does since D-143 —
+and it reads the solution's
 telemetry store, groups errors by a signature, strips personal data, and files a bug for each signature
 with no open item. The tracker then answers review, dismissal and deduplication, and nothing Operate does
 lands on `development`. The tracker and the store are declared in `solution.md`.
@@ -1534,8 +1535,11 @@ a plan approved on one machine still matches on another.
 ### 10.5 The factory
 
 **The factory finds approved plans, builds, verifies and opens pull requests — and nothing else** (D-84).
-It is `batch-build --pr` on a schedule, against `development`: the schedule is the confirmation, one run at
-a time holds a lock, and the job's timeout is the spend ceiling.
+It is `batch-build --pr` against `development`, **started by a person and never on a schedule** (D-143):
+starting it is the confirmation, one run at a time holds a lock, and the job's timeout is the spend ceiling.
+It builds the cycle the most successors wait on first, and a run started for one cycle builds that one alone.
+**It builds and nothing more**: intents and plans are a person's work with a model, and Operate is a command a
+person runs.
 
 **Every cycle it touches gets a pull request** (D-85): ready when it passed, a draft when it is `blocked` or
 `escalated`. A cycle's branches sit under `cycle/<id>/` — `plan`, `build`, `build-unattended`, `forward` —
@@ -1545,7 +1549,7 @@ and any of them on the remote holds the cycle back. Deleting the branch puts it 
 conflict and suggests a merge order; it no longer schedules. A person merges one pull request at a time,
 and resolves a conflict with `resolve-conflict` inside the cycle's declared files.
 
-**The morning starts from the sitrep**: what is ready to merge and in what order, what needs a person, what
+**What follows a run starts from the sitrep**: what is ready to merge and in what order, what needs a person, what
 was held back and why, what is going stale, and the newest stable point on `development`. It is a binary
 command, and the factory publishes it as the run's summary.
 
@@ -1558,9 +1562,9 @@ and run as a fresh container per job on a machine that exists for it (D-96). It 
 factory bundle in `factory/` holds.
 
 **What is built and what is not.** The queue, the branches, the admission check, the sitrep, `batch-build`
-and `pr` working this way, the factory's pipeline template (`sdlc factory`: the schedule, the lock, the
-headless run) and its agent image are built, and both run MarketSense's: the nightly pipeline on its
-schedule, and every pull request's check, on a local VM through an image of MarketSense's own built on
+and `pr` working this way, the factory's pipeline template (`sdlc factory`: the lock, the headless run,
+the one cycle asked for) and its agent image are built, and both run MarketSense's: the factory's pipeline,
+which ran nightly before D-143, and every pull request's check, on a local VM through an image of MarketSense's own built on
 this one.
 
 ---
@@ -6660,6 +6664,10 @@ it carries verified the release's code, not `development`'s.
 
 **Governs:** §3.4, §15
 
+**Superseded in part by D-143.** Operate is no longer a scheduled run: the factory builds and nothing more, and
+`sdlc operate` is a command a person runs. What stands: a lead is a reference to a tracker item, and Operate files
+work items rather than an artifact of its own.
+
 **Decision.** A lead is anything a person can hand `intent` to begin a cycle, named by a prefix spelled in
 full: `azuredevops:1234`, `github:56`, `jira:PROJ-123`, `suggestion:<cycle>/<finding>`, or a path. Only
 those prefixes are read as one; anything else is a path. The binary fetches and normalises a lead —
@@ -7211,6 +7219,47 @@ its refusal still apply.
 - *Keeping `sdlc <stage>` everywhere.* Correct and host-neutral, and costs a refusal each time.
 - *Guessing a marker for Copilot or Antigravity.* Neither documents one; a guessed marker is a panel that
   names one host's invocation to someone using another.
+
+### D-143 — A person starts the factory, which builds the cycle that unlocks the most first, and does nothing but build
+
+**Governs:** §3.3, §10.5
+
+**Revisits D-84 and D-89.** D-84 made the factory `batch-build --pr` on a schedule, with the schedule as the
+one-time confirmation of spend, and D-89 ran Operate as a scheduled run inside it. **Leaves D-84's four things
+and its refusal to merge unchanged.**
+
+**Decision.**
+
+- **No schedule.** The pipeline `sdlc factory` writes is started by a person — GitHub's `workflow_dispatch`,
+  Azure DevOps' `trigger: none` — and the run is the confirmation D-24 asks for, made each time.
+- **One optional input, `cycle`.** A run started for one cycle builds that one alone; the binary checks it is
+  queued before the agent reads it, and the run stops with why when it is not. Empty builds every queued cycle.
+  `batch-build` takes the same one id.
+- **The queue is ordered by what each cycle unlocks**: the cycle the most successors wait on — directly, or
+  behind another successor — first, then oldest. A run that stops on its time limit has built what starts the
+  most moving, and the queue names the successors beside each cycle.
+- **It builds and nothing more.** It never writes an intent or a plan, and Operate leaves the pipeline: `sdlc
+  operate` is a command a person runs.
+
+**Why.** The person who adopted this wanted the factory narrow: planning is a person's work with a model, read
+before code exists, and a verify is read to check the work did what it said. Unattended authoring is given up on
+purpose, because it is where AI-assisted work most often goes unreviewed. With that settled, a schedule only ever
+started runs nobody chose at the moment: idle ones with nothing queued, and ones that built what a person was
+still reconsidering. **A series of dependent cycles crosses a merge each step, and merging is a person's** (D-84),
+so a run can only ever finish the cycles that are ready; the next run is the person's to start once their merges
+made more ready.
+
+**Rejected.**
+
+- *A factory branch every cycle squashes into, so dependent cycles build unattended in series.* It runs past the
+  merge only by stacking unread code, and reopens D-84's *a cycle is the unit of review and of rejection*:
+  rejecting one would cost every cycle built on it. Picking cycles out of such a branch needs their dependencies,
+  which the declared ones give and the undeclared ones do not.
+- *The factory writing intents and plans ahead of a person*, bounded by a setting capped by the approval setting.
+  Intents and plans are the person's work, and reading the plan before code is the guarantee.
+- *Keeping the schedule beside the manual start.* A run nobody started is spend nobody chose.
+- *Operate in its own scheduled pipeline.* Weighed and set aside by the person: it is a command, run when wanted.
+- *Several ids as the input.* A skill takes one cycle at most (D-142); a run for everything is the empty input.
 
 ### D-142 — A skill takes one cycle id at most, and the binary names the cycle when it is given none
 

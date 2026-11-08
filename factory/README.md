@@ -1,9 +1,9 @@
 # The factory bundle
 
-What runs unattended or on a schedule, kept apart from what a person uses in a cycle (D-91). **Today it
+What runs unattended, kept apart from what a person uses in a cycle (D-91). **Today it
 holds one thing: the factory's agent image.** The rest that D-91 names — the bundle's own plugin manifest,
-the pipeline templates `sdlc factory` writes, and Operate's scheduled run — still lives in the `sdlc`
-plugin and the binary, and moves here when there is a second template to ship.
+and the pipeline templates `sdlc factory` writes — still live in the `sdlc`
+plugin and the binary, and move here when there is a second template to ship.
 
 | File | What it is |
 |---|---|

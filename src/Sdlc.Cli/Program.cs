@@ -933,7 +933,7 @@ static async Task<int> BranchCommand(CommandLine line)
 }
 
 // The factory's pipeline, for the platform solution.md records. Its own command rather than part of
-// adoption, because a nightly agent is a choice a team makes after running cycles by hand (D-84).
+// adoption, because a build agent is a choice a team makes after running cycles by hand (D-84).
 static async Task<int> FactoryCommand(Workspace workspace)
 {
     Result<WriteFactoryPipeline.Response> result = await workspace

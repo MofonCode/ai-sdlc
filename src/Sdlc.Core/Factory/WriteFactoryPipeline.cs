@@ -13,7 +13,7 @@ namespace Sdlc.Core.Factory;
 /// <remarks>
 /// <para><strong>Its own command, not part of adoption.</strong> A factory is a choice a team makes after it
 /// has run cycles by hand, and the pull-request check every solution needs should not arrive bundled with a
-/// nightly agent somebody did not ask for. When the factory moves to a plugin of its own, this is the command
+/// build agent somebody did not ask for. When the factory moves to a plugin of its own, this is the command
 /// it brings.</para>
 /// <para><strong>The file is framework-named, so it is the framework's to rewrite</strong>, as
 /// <c>sdlc-verify.yml</c> is (D-40): running the command again writes the current template over it.</para>
@@ -88,7 +88,7 @@ public static class WriteFactoryPipeline
         return string.Create(
             CultureInfo.InvariantCulture,
             $"""
-            {(written.Rewritten ? "Rewrote" : "Wrote")} {written.Path}: the factory, nightly, one run at a time, six hours at most.
+            {(written.Rewritten ? "Rewrote" : "Wrote")} {written.Path}: the factory, run when a person starts it, one run at a time, six hours at most.
             {setup}
             It has never run. Commit it, run it once by hand against one throwaway approved cycle, and watch it.
             docs/guides/setting-up-the-factory.md walks every step.

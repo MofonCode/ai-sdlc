@@ -100,11 +100,13 @@ internal static class Usage
                                      repository instead, so several cycles are planned at once.
                                      'plan' refuses a local plan branch whose ledger lacks the
                                      approval the integration branch holds (D-123).
-            factory                  Write the factory's pipeline for the recorded platform: every
-                                     night, batch-build --pr --unattended against the integration
-                                     branch, one run at a time, six hours at most, proving the
-                                     hooks refuse before it builds, and publishing the sitrep. It
-                                     never merges. Refuses on a local solution.
+            factory                  Write the factory's pipeline for the recorded platform: a run
+                                     a person starts, never a schedule, of batch-build --pr
+                                     --unattended against the integration branch -- every queued
+                                     cycle, or the one named as its input -- one run at a time,
+                                     six hours at most, proving the hooks refuse before it builds,
+                                     and publishing the sitrep. It never merges. Refuses on a
+                                     local solution.
             lead show <reference>    Fetch a lead and print it in one shape for 'intent --from':
                                      azuredevops:1234 or github:56 through az or gh, a
                                      suggestion:<cycle>/<finding>, a ready successor:<slug>, or a
@@ -136,6 +138,7 @@ internal static class Usage
                                      declares, grouped by signature, personal data stripped, and
                                      file each new one as a bug on the platform's tracker -- a lead.
                                      Not filed again while open, or once a person dismissed it.
+                                     A person runs it; no pipeline does.
             perspective show <name> --for <stage> [--cover]
                                      One perspective for one stage -- intent, spec, plan, build or
                                      verify: its method, the questions a fresh reader asks, its
