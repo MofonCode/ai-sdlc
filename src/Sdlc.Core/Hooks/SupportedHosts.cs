@@ -342,7 +342,7 @@ public static class SupportedHosts
     /// </summary>
     /// <remarks>
     /// Read from the environment rather than passed as a flag, because the call that needs it is the one
-    /// every stage skill makes at the end of a lap: a flag is one more argument eighteen skills have to
+    /// every stage skill makes at the end of a lap: a flag is one more argument nineteen skills have to
     /// remember, on three hosts, and the one that forgets prints the wrong form without anything failing.
     /// Null is the common case and a safe one -- the panel then names a stage the host-neutral way, which
     /// the binary answers by naming the invocation.

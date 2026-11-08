@@ -1,4 +1,4 @@
-# The eighteen skills
+# The nineteen skills
 
 Every skill in the plugin, in depth: when it runs, why it exists, how it is invoked, what it reads and
 writes, and an example.
@@ -45,16 +45,16 @@ denies an agent the command. The other is requested: `pr` is the only stage that
 repository, so it asks before every push — but no hook blocks a push, and what stops an unready cycle
 from merging is the pull-request check.
 
-**All eighteen are model-invocable.** Nothing in the manifest stops an agent reaching for one on its
+**All nineteen are model-invocable.** Nothing in the manifest stops an agent reaching for one on its
 own, and that is deliberate — what protects the decisions is the hook denying the six protected files
 and `sdlc init`, plus the pull-request check, rather than a flag in a skill's frontmatter. A guard that
 lives in the manifest is a guard the manifest can lose. `../docs/guides/handling-refusals.md` has what
 the hook actually denies today, and what it does not.
 
-**Six of them keep a task list where the host has one.** `init`, `intent`, `spec`, `plan` and `build`
+**Seven of them keep a task list where the host has one.** `init`, `intent`, `spec`, `plan` and `build`
 each list their own steps and nothing past the hand-back, so the list never shows a stage a person
 has not yet decided to run. `batch-build` lists one line per cycle, ticked only when that cycle
-passed, and `build` keeps none of its own while a batch is running it. Every one is the agent's view
+passed, `batch-plan` one per cycle ticked when its plan is clean, and `build` keeps none of its own while a batch is running it. Every one is the agent's view
 of a session and never the record — what is done is what is on disk and what `sdlc doctor`, `sdlc
 status` and `sdlc cycles --pr-ready` report — and a host without a task list loses nothing, because
 no step depends on one. `../CONCEPT.md` D-80 has why a stage's list stops at the hand-back, why the
@@ -486,6 +486,68 @@ What it runs, in order:
 - [`interrogate`](#interrogate), [`steer`](#steer)
 - [Declaring the stack](../docs/guides/declaring-the-stack.md)
 - [Running a cycle](../docs/guides/running-a-cycle.md), §3
+
+---
+
+### `batch-plan`
+
+Takes every intent this branch carries to a plan — each cycle's spec, then its plan, each with its own loop —
+and hands back once, with every panel and one question about suggestions (D-142).
+
+| | |
+|---|---|
+| Stage | the planning chain, from clean intents to plans, for several cycles at once |
+| Started by | a person who has read their intents and asks to take them to plan |
+| Reads | `sdlc cycles --here --for spec` and `--for plan` for the work; then what `spec` and `plan` read, per cycle |
+| Writes | what `spec` and `plan` write, for each cycle; one suggestions report under `.sdlc/reports/` |
+
+#### Syntax
+
+```
+/sdlc:batch-plan
+```
+
+#### Parameters
+
+None. A batch is every cycle this branch carries that is ready for a spec or a plan; one cycle is
+`/sdlc:spec <id>` and `/sdlc:plan <id>`.
+
+#### Output
+
+One line per cycle — `planned`, or stopped and why — then each planned cycle's plan panel, verbatim, and one
+free-text question about every open suggestion across the cycles, grouped by cycle and theme. It stops at the
+plan: approving is the person's, one cycle at a time.
+
+#### Refusals
+
+| Condition | Result | What to do |
+|---|---|---|
+| nothing this branch carries is ready for a spec or a plan | takes nothing, and names each carried cycle with where it stands | finish an intent's loop, or `/sdlc:steer` it |
+| one cycle's loop will not converge, a reader reports a conflict, or a question only the person can answer comes up | stops that cycle where it is and goes on to the next | answer it, then `/sdlc:spec <id>` or `/sdlc:plan <id>` for that cycle |
+
+#### Example
+
+```
+/sdlc:batch-plan
+```
+
+Expect one line per cycle it will take, then a long run with no questions, then one line per cycle, the plan
+panels, and one question about suggestions.
+
+#### Remarks
+
+**It runs in the person's session**, so its context grows with every cycle — the cost D-122 measured. Asked
+once, the person chose that over a fresh session per cycle, to keep the run able to stop and ask; the hand-back
+says the approvals are worth a fresh session.
+
+**Suggestions are asked about once, at the end.** A suggestion taken in at the spec costs one round less than
+the same one taken in after the plan; one question across every cycle is the trade, and the hand-back says so.
+
+#### See also
+
+- [`spec`](#spec), [`plan`](#plan) — what it runs for each cycle
+- [`draft`](#draft) — next, a person approves each with `/sdlc:draft approval <id>` and a rename
+- [`batch-build`](#batch-build) — the same shape for building
 
 ---
 

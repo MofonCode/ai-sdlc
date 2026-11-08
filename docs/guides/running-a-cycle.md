@@ -171,6 +171,13 @@ read for is proof adequacy. Ask of each check: *which case does it never run, an
 never read?* If either has an answer, the proof is not adequate, and an inadequate
 proof is worse than none because it produces a green verification instead of an obvious gap.
 
+**Several intents at once.** Once you have read every intent in a working copy and are happy with them,
+`/sdlc:batch-plan` takes each to a plan — its spec, then its plan, one cycle at a time, each with its own loop —
+and hands back once: a line per cycle, every plan panel, and one question about every open suggestion across
+them. A cycle that needs you stops alone and the rest carry on. It runs in your session, so read and approve
+the plans in a fresh one (D-142). **The id is optional wherever one cycle is meant**: given none, a skill asks
+`sdlc cycles --here`, and asks you which when this working copy carries more than one.
+
 **If you change your mind mid-cycle**, do not edit the documents by hand:
 
 ```

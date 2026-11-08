@@ -2184,6 +2184,7 @@ which is the ordinary case.
 | `intent` | interviews; classifies the change; writes `intent.md`; runs the loop |
 | `spec` | derives testable criteria from the intent; writes `spec.md`; runs the loop |
 | `plan` | reads the spec and the existing code; writes `plan.md`; runs the loop |
+| `batch-plan` | takes every cycle this branch carries from a clean intent to a plan, spec then plan per cycle, and hands back once — D-142 |
 | `steer` | re-runs the chain from an existing intent and spec — §3.2 |
 | `interrogate` | judges one artifact against the constraints in force; writes a round; never edits |
 | `refine` | applies an artifact's findings to that artifact |
@@ -2199,8 +2200,8 @@ which is the ordinary case.
 | `constraints` | renders the effective constraint set, all tiers |
 | `suggestions` | lists accumulated non-blocking findings |
 
-**Six of them keep a task list where the host has one.** `init`, `intent`, `spec`, `plan` and `build`
-each list their own steps and nothing past the hand-back; `batch-build` lists one line per cycle
+**Seven of them keep a task list where the host has one.** `init`, `intent`, `spec`, `plan` and `build`
+each list their own steps and nothing past the hand-back; `batch-build` and `batch-plan` list one line per cycle
 (D-80).
 
 **A skill acting on one cycle takes its id as optional, and never more than one** (D-142). Without it,
@@ -2225,6 +2226,7 @@ mechanical rather than promised.
 | `intent` | nothing; with `--reslice`, intents with no spec | an intent exists, or the id it was handed is already claimed; with `--reslice`, a named cycle with a spec, approved, abandoned or missing | `intent.md`, into the directory `sdlc new` opened; with `--reslice`, the edited intents, new cycles and successors |
 | `spec` | a clean intent | intent missing or not clean; a spec exists | `spec.md` |
 | `plan` | a clean spec | spec missing or not clean; a plan exists | `plan.md` |
+| `batch-plan` | a cycle this branch carries ready for a spec or a plan | nothing; a cycle that cannot go on stops alone, and the rest carry on | what `spec` and `plan` write, per cycle |
 | `interrogate` | the artifact exists | it does not | a findings round |
 | `refine` | a round with open blockers | no blockers; cycle approved | that artifact only |
 | `steer` | an intent | a cut or a join, which is `intent --reslice`'s; approved without a reopen | intent, spec, plan — whichever exist |
@@ -7273,6 +7275,14 @@ abandoned one — and those ready for the step. **Exactly one is the cycle: it p
 Several, or none, it lists and exits 1, and the skill asks the person which.** Nothing picks among several.
 `draft approval` and `pr` keep the id required: one is what a person signs, the other touches the remote.
 
+**And several cycles go to plan in one run.** `batch-plan` takes no id: every cycle this working copy carries that
+is ready for a spec or a plan gets its spec, then its plan, each through its own stage's skill and loop, one cycle
+at a time. It hands back once — one line per cycle, every plan panel, and one question about every open
+suggestion across them — and stops at the plan. A cycle that cannot go on stops alone and the rest carry on.
+**It runs in the person's session**, chosen over a fresh session per cycle so that a question only the person
+can answer is asked rather than turned into a halt; the cost is the growing context D-122 measured, and the
+hand-back says the approvals are worth a fresh session.
+
 **Why.** Several cycles in one working copy is about to be ordinary — a slicing, a re-cut intent, and the
 sandboxes that follow — and typing a timestamp id for each stage is the ceremony that makes a person reach for
 the wrong one. One resolver in the binary means every skill reads "which cycle" the same way, from the same
@@ -7287,6 +7297,11 @@ skill writes into is not a guess.
   written into the wrong cycle costs that cycle's rounds to undo.
 - *Each skill listing the folders itself.* Nine readings of one question, which drift.
 - *Making the id optional for `draft approval` and `pr`.* Both are acts a person should name the cycle for.
+- *`batch-plan` running each cycle's stages in a headless session of its own.* Cheaper by the margin D-122
+  measured, and weighed; the person chose to keep the run able to ask rather than halt.
+- *`batch-plan` asking about suggestions at every stage, as a single stage does.* Two questions per cycle is the
+  ceremony the batch exists to remove; one at the end costs a round where a suggestion would have been cheaper
+  taken in at the spec, and the hand-back says so.
 
 ### D-141 — An intent with no spec may be changed in the person's words and cut again
 
