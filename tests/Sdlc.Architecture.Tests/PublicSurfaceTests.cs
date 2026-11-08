@@ -59,25 +59,38 @@ public sealed class PublicSurfaceTests
         // because composing the decision and putting it on disk produce the same answer.
         "Sdlc.Core.Approvals.WriteApprovalDraft",
         "Sdlc.Core.Approvals.WriteApprovalDraft+Command",
+        "Sdlc.Core.Areas.Area",
+        "Sdlc.Core.Areas.AreaHistory",
+        "Sdlc.Core.Areas.AreaHistory+Candidate",
+        "Sdlc.Core.Areas.AreaHistory+Reading",
+        "Sdlc.Core.Areas.AreaHistory+Replay",
+        "Sdlc.Core.Areas.AreaParser",
+        "Sdlc.Core.Areas.AreaScope",
+        "Sdlc.Core.Areas.AreasRenderer",
+        "Sdlc.Core.Areas.ReadAreas",
+        "Sdlc.Core.Areas.ReadAreas+Query",
+        "Sdlc.Core.Areas.ReadAreas+Response",
+        "Sdlc.Core.Areas.ReadAreas+Standing",
+        "Sdlc.Core.Areas.ReadAreas+Unknown",
         // 'sdlc findings': the operation, the per-artifact shape it returns, and its renderer.
         "Sdlc.Core.Findings.ArtifactFindings",
         "Sdlc.Core.Findings.FindingsRenderer",
         "Sdlc.Core.Findings.ReadFindings",
         "Sdlc.Core.Findings.ReadFindings+Query",
         "Sdlc.Core.Findings.ReadFindings+Response",
-        "Sdlc.Core.Proposals.DraftConvergence",
-        "Sdlc.Core.Proposals.DraftConvergence+Command",
-        "Sdlc.Core.Proposals.DraftConvergence+Operation",
-        "Sdlc.Core.Proposals.DraftConvergence+Proposal",
-        "Sdlc.Core.Proposals.DraftConvergence+Record",
-        "Sdlc.Core.Proposals.ProposeConvergence",
-        "Sdlc.Core.Proposals.ProposeConvergence+Group",
-        "Sdlc.Core.Proposals.ProposeConvergence+Query",
-        "Sdlc.Core.Proposals.ProposeConvergence+Response",
+        "Sdlc.Core.Proposals.DraftMining",
+        "Sdlc.Core.Proposals.DraftMining+Command",
+        "Sdlc.Core.Proposals.DraftMining+Operation",
+        "Sdlc.Core.Proposals.DraftMining+Proposal",
+        "Sdlc.Core.Proposals.DraftMining+Record",
+        "Sdlc.Core.Proposals.ProposeMining",
+        "Sdlc.Core.Proposals.ProposeMining+Group",
+        "Sdlc.Core.Proposals.ProposeMining+Query",
+        "Sdlc.Core.Proposals.ProposeMining+Response",
         // How each cycle went, which the report renders (D-112). Public because Response carries them.
-        "Sdlc.Core.Proposals.ProposeConvergence+CycleRecord",
-        "Sdlc.Core.Proposals.ProposeConvergence+Reopen",
-        "Sdlc.Core.Proposals.ProposeConvergence+Verdict",
+        "Sdlc.Core.Proposals.ProposeMining+CycleRecord",
+        "Sdlc.Core.Proposals.ProposeMining+Reopen",
+        "Sdlc.Core.Proposals.ProposeMining+Verdict",
         "Sdlc.Core.Evidence.CheckEvidence",
         "Sdlc.Core.Evidence.CheckEvidence+Query",
         "Sdlc.Core.Evidence.CheckEvidence+Response",
@@ -140,6 +153,8 @@ public sealed class PublicSurfaceTests
         "Sdlc.Core.Chain.VerifyUpgrade",
         "Sdlc.Core.Chain.VerifyUpgrade+Query",
         "Sdlc.Core.Chain.VerifyUpgrade+Response",
+        "Sdlc.Core.Chain.VerifyMining",
+        "Sdlc.Core.Chain.VerifyMining+Query",
         "Sdlc.Core.Constraints.Constraint",
         "Sdlc.Core.Constraints.JudgedPer",
         "Sdlc.Core.Constraints.ConstraintDetail",
@@ -181,6 +196,39 @@ public sealed class PublicSurfaceTests
         // because the factory's skip rule and the sitrep read the remote's branches through it.
         "Sdlc.Core.Cycles.CycleBranch",
 
+        // Parking and the backlog: a plan needing another's unmerged code waits with its spec and plan kept (D-145).
+        "Sdlc.Core.Successors.BacklogRenderer",
+        "Sdlc.Core.Successors.ParkCycle",
+        "Sdlc.Core.Successors.ParkCycle+Command",
+        "Sdlc.Core.Successors.ParkCycle+Response",
+        "Sdlc.Core.Successors.Parked",
+        "Sdlc.Core.Successors.ReadSuccessors+ParkedStanding",
+        "Sdlc.Core.Successors.UnparkCycle",
+        "Sdlc.Core.Successors.UnparkCycle+Command",
+        "Sdlc.Core.Successors.UnparkCycle+Response",
+
+        // Throwing a sandbox away: what can go, and what is worth recording first (D-146).
+        "Sdlc.Core.Cycles.DiscardRenderer",
+        "Sdlc.Core.Cycles.DiscardSandbox",
+        "Sdlc.Core.Cycles.DiscardSandbox+Entry",
+        "Sdlc.Core.Cycles.DiscardSandbox+Query",
+        "Sdlc.Core.Cycles.DiscardSandbox+Response",
+        "Sdlc.Core.Cycles.DiscardVerdict",
+
+        // The sandbox: several cycles planned on one branch, and its approved ones composed for admission (D-144).
+        "Sdlc.Core.Cycles.ComposeAdmission",
+        "Sdlc.Core.Cycles.ComposeAdmission+Query",
+        "Sdlc.Core.Cycles.ComposeAdmission+Response",
+        "Sdlc.Core.Cycles.SandboxBranch",
+
+        // 'sdlc cycles --here': which cycle a skill given no id means, one used and several asked about (D-142).
+        "Sdlc.Core.Cycles.NextStep",
+        "Sdlc.Core.Cycles.ResolveCycle",
+        "Sdlc.Core.Cycles.ResolveCycle+Candidate",
+        "Sdlc.Core.Cycles.ResolveCycle+Query",
+        "Sdlc.Core.Cycles.ResolveCycle+Response",
+        "Sdlc.Core.Cycles.ResolveRenderer",
+
         // 'sdlc cycles --queued': what the factory would build and what it would pass over (D-85).
         "Sdlc.Core.Factory.QueuedRenderer",
         "Sdlc.Core.Factory.ListQueuedCycles",
@@ -214,6 +262,18 @@ public sealed class PublicSurfaceTests
         "Sdlc.Core.Leads.ReadLead+Query",
         "Sdlc.Core.Leads.ReadLead+Response",
         "Sdlc.Core.Leads.TrackerItem",
+
+        // Mining's ledger, the record of a sitting, and the husks it names (D-152).
+        "Sdlc.Core.Mining.MinedArea",
+        "Sdlc.Core.Mining.MinedCycle",
+        "Sdlc.Core.Mining.MinedDecline",
+        "Sdlc.Core.Mining.MinedLedger",
+        "Sdlc.Core.Mining.MiningRenderer",
+        "Sdlc.Core.Mining.MiningRun",
+        "Sdlc.Core.Mining.RecordMining",
+        "Sdlc.Core.Mining.RecordMining+Command",
+        "Sdlc.Core.Mining.RecordMining+Response",
+        "Sdlc.Core.Mining.Watched",
 
         // 'sdlc operate': production's errors filed as leads (D-89). The store and the filer are
         // interfaces so the suite needs neither a network nor a CLI.

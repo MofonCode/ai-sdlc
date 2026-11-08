@@ -23,7 +23,7 @@ public sealed class FactoryPipelineTests
         Assert.AreEqual(1, stream.Documents.Count);
 
         int smoke = pipeline.IndexOf("the hooks refuse", StringComparison.Ordinal);
-        int build = pipeline.IndexOf("/sdlc:batch-build --pr --unattended", StringComparison.Ordinal);
+        int build = pipeline.IndexOf("--pr --unattended", StringComparison.Ordinal);
         int sitrep = pipeline.IndexOf("sdlc sitrep", StringComparison.Ordinal);
 
         Assert.IsTrue(smoke > 0 && build > smoke, "The hooks are proved before the agent is trusted with anything.");
@@ -209,6 +209,34 @@ public sealed class FactoryPipelineTests
     }
 
     [TestMethod]
+    [DataRow(Platform.GitHub, "workflow_dispatch:")]
+    [DataRow(Platform.AzureDevOps, "trigger: none")]
+    public void A_person_starts_it_and_nothing_else_does(Platform platform, string manual)
+    {
+        // D-143: starting the run is the decision to spend, so there is no schedule to make it for anybody.
+        string pipeline = FactoryPipeline.Text(platform, "development");
+
+        StringAssert.Contains(pipeline, manual);
+        Assert.IsFalse(pipeline.Contains("cron", StringComparison.Ordinal), "No schedule starts it.");
+        Assert.IsFalse(pipeline.Contains("sdlc operate", StringComparison.Ordinal), "It builds; Operate is a person's command.");
+    }
+
+    [TestMethod]
+    [DataRow(Platform.GitHub)]
+    [DataRow(Platform.AzureDevOps)]
+    public void The_one_cycle_asked_for_is_checked_by_the_binary_before_the_agent_reads_it(Platform platform)
+    {
+        // The input is text typed into a form and it reaches a prompt, so only an id the queue accepted goes on.
+        string pipeline = FactoryPipeline.Text(platform, "development");
+
+        int check = pipeline.IndexOf("sdlc cycles --queued \"$CYCLE\" || exit 1", StringComparison.Ordinal);
+        int build = pipeline.IndexOf("/sdlc:batch-build '\"$CYCLE\"' --pr --unattended", StringComparison.Ordinal);
+
+        Assert.IsTrue(check > 0 && build > check, "The cycle is refused before anything is built.");
+        StringAssert.Contains(pipeline, "CYCLE: ${{ ", "It arrives through the environment, never pasted into the script.");
+    }
+
+    [TestMethod]
     public async Task It_is_written_for_the_recorded_platform_and_integration_branch()
     {
         using var workspace = CycleWorkspace.Create();
@@ -224,7 +252,7 @@ public sealed class FactoryPipelineTests
         Assert.AreEqual("azure-pipelines.factory.yml", result.Value.Path);
         StringAssert.Contains(
             await File.ReadAllTextAsync(Path.Combine(workspace.Root, result.Value.Path)),
-            "include: [integration]");
+            "git switch integration");
     }
 
     [TestMethod]

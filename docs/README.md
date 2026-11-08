@@ -13,7 +13,7 @@ treatment elsewhere, the entry points at it rather than repeating it.
 | [`reference/README.md`](reference/README.md) | **the reference** — every command, every skill and every refusal, one line each |
 | [`cheat-sheet.md`](cheat-sheet.md) | **the cheat sheet** — one cycle, one line per step |
 | [`samples/README.md`](samples/README.md) | **the samples** — one solution walked end to end, every command and every answer |
-| [`../skills/README.md`](../skills/README.md) | **the skills as a reference** — syntax, parameters, output, refusals and remarks for each of the eighteen |
+| [`../skills/README.md`](../skills/README.md) | **the skills as a reference** — syntax, parameters, output, refusals and remarks for each of the twenty-one |
 | [`../CONCEPT.md`](../CONCEPT.md) | the design, and every decision behind it with what each one rejected |
 | `sdlc constraints` | the rules in force, all tiers resolved. A copy here would be a second place they live |
 | `sdlc help` | every command the binary answers to, with its options |
@@ -30,7 +30,7 @@ Both have to be present and they fail differently. `guides/installing-the-plugin
 
 | | What it is | Where |
 |---|---|---|
-| **the plugin** | the eighteen skills, and on Claude Code three hooks. Without it nothing asks for a cycle | installed per machine, and packed inside every release of the binary, which `sdlc claude` loads instead |
+| **the plugin** | the twenty-one skills, and on Claude Code three hooks. Without it nothing asks for a cycle | installed per machine, and packed inside every release of the binary, which `sdlc claude` loads instead |
 | **the `sdlc` binary** | every deterministic check — the approval gate among them — every hook decision, every renderer, the constraint library. Without it every skill's first command fails | a .NET global tool named `sdlc`, from nuget.org |
 | **the pinned release** | the release of the binary a solution runs, named in its local tool manifest. The global `sdlc` hands every command on to it, and a cycle's branch carries the pin it was cut with, so a cycle runs on the release it opened on (D-131) | `.config/dotnet-tools.json`, written by adoption |
 | **a local build** / a test run | a build of the binary nobody published. Its release ends in `-local`: a build run through `SDLC_DEV_BUILD`, which every `sdlc` started from that terminal hands to instead of the pin, says so when it runs, and a pack made outside a pipeline is stamped so. A cycle any of whose rounds one wrote is a **test run**, and never opens a pull request (D-135) | `SDLC_DEV_BUILD`; [Testing a local build](guides/testing-a-local-build.md) |
@@ -112,8 +112,11 @@ One governed change, from why it exists to a pull request.
 | **artifact** | one of the four governed documents. Each is challenged against the rules before it advances | `<kind>.md` |
 | **abandonment** | the record that stops a cycle for good, with a reason. Terminal. **A person's file** | `abandoned.md` |
 | **atomic cycle** | a cycle that can be built, verified and merged against the integration branch as it stands, without any other open cycle. The one rule a slicing is held to; there is no floor on how small (D-125) | — |
-| **slicing**, **a slice** | `intent` proposing, before any cycle opens, how to cut a piece of work into atomic pieces — each one a **slice**. The person accepts the slicing once, merging pieces or marking one atomic; nothing is sliced unattended. Not the *reference slice* in §2, which is code | `/sdlc:intent` |
+| **slicing**, **a slice** | `intent` proposing, before any cycle opens, how to cut a piece of work into atomic pieces — each one a **slice**. The person accepts the slicing once, merging pieces or marking one atomic; nothing is sliced unattended. Intents already written are cut again with `--reslice` while none has a spec (D-141). Not the *reference slice* in §2, which is code | `/sdlc:intent` |
 | **a successor** | a slice that needs another's code, waiting as a file rather than a cycle. `succeeds:` lists what it waits for — cycle ids, or `successor:<slug>` for one not started yet — and its state, `waiting`, `ready`, `stuck` or `unresolved`, is worked out from the record on every read. A person starts a ready one with `/sdlc:intent --from successor:<slug>` | `.sdlc/successors/<slug>.md`, `sdlc successors` |
+| **a sandbox** | the worktree a piece of work is planned in, on `sandbox/<id>` beside the repository, named for its first cycle. Every cycle the work turns into opens inside it, and only what is approved leaves it, composed onto an admission branch by `sdlc admit` (D-144) | `sdlc branch <id> sandbox`, `sdlc admit` |
+| **a parked cycle** | a cycle whose plan needs a file only another unbuilt plan creates, found by `sdlc park` once its plan is clean. It keeps its id, spec and plan, waits in `parked.md` on the cycle that creates the file, is held out of the build queue, and comes back with `sdlc unpark` once that merged, when its spec and plan are read again (D-145) | `sdlc park`, `sdlc unpark` |
+| **the backlog** | every successor and parked cycle, in the waves they come ready in. A view worked out on every read, never a file (D-145) | `sdlc backlog` |
 
 ### The four artifact kinds
 
@@ -158,8 +161,12 @@ place the truth lives. Only the first of them binds.
 | **decision** | a choice this solution already settled, so a cycle reads what was argued rather than arguing it again. A standing criterion every cycle inherits: every stage that writes reads it, and every reader that judges is handed it. Departing is legal; `CON_24` asks a departure to be declared where it arises. **A person's file** | `.sdlc/decisions.md` |
 | **the decisions charter** | the whole of `decisions.md`: every decision the solution has settled, each with what it chose instead of, read by the intent, the spec, the plan and the build, and handed to every reader that judges them and the change, so nobody has to prompt for it. The name the README's features list uses | `.sdlc/decisions.md` |
 | **departure** | a cycle setting a recorded decision aside, declared once as one line opening `Departs from DEC_nn` — an outcome in the intent's `Fixed decisions`, with who and why; an approach in the plan's `Shape and departures`. Later stages rely on it rather than reopen it. The binary reports it first in the approval draft, beside the gate in `sdlc status`, and in the pull request, and `propose decisions` offers it as a supersede once the cycle is approved (D-139) | `sdlc status <id>` |
+| **area** | a name for a set of this solution's files, defined once in `areas.md` by globs. A rule or decision carrying an area reaches a reader in full only when the change touches those files; one carrying none reaches every reader. The intent and spec touch none; the plan's declared files decide from the plan on, the change's files on a verify. Named in plans' `## Areas` sections, and created once three cycles name one. Absent, nothing narrows | `.sdlc/areas.md`, `sdlc areas` |
+| **headline** | an entry's own title, at most fifteen words, each clause at most sixty. Every reader is handed every headline and the body only of the entries in scope, so nobody is unaware an entry exists | `sdlc decisions show <id>`, `sdlc constraints show <id>` |
 | **theme** | the roles this solution's surfaces use and the values that fill them — sixteen slots, the one place a colour or a typeface lives. Binds nothing: a departure is a linter's job | `.sdlc/theme.json` |
-| **convergence** | bringing the rules, the decisions and the declared stack up to what verified or merged cycles settled, in one sitting and outside any cycle's rounds — on a cycle's branch, a commit of its own after the passing verify (D-111): a ranked report, a proposal file of `add`, `supersede`, `reword` and `set` lines a person marks — **never remove** — drafts of the three files with only the marked lines applied, and an advisory review saying whether the approved set is *in alignment*. Binds the next cycle, never one in flight | `/sdlc:propose convergence`, `sdlc draft convergence <file>` |
+| **mining** | reading the record across cycles — bringing the rules, the decisions and the declared stack up to what verified or merged cycles settled, in one sitting and outside any cycle's rounds — on a cycle's branch, a commit of its own after the passing verify (D-111): a ranked report, a proposal file of `add`, `supersede`, `reword` and `set` lines a person marks — **never remove** — drafts of the three files with only the marked lines applied, and an advisory review saying whether the approved set is *in alignment*. Binds the next cycle, never one in flight | `/sdlc:mine`, `sdlc mine`, `sdlc draft mining <file>` |
+| **husk** | a mined cycle: finished, merged, and recorded in the mining ledger, so its folder may be deleted. Everything in it is in git at the merge commit the ledger names; a person deletes it on a branch of its own, through a pull request the check admits as mining | `sdlc mine record` |
+| **the mining ledger** | `.sdlc/mined.json`, the only thing a husk leaves in the tree: each mined cycle's merge commit, files, cited rules and proposed areas, each sitting's accepted and declined, and the concerns watched below the bar. Written only by the binary | `sdlc mine --history` |
 
 There are **17 global constraints in force**; `CON_04` and `CON_13` are superseded by `CON_16` and
 `CON_15` and kept on the page. `sdlc constraints` is the authority, and it says which.
@@ -205,7 +212,7 @@ One gate, covering all three planning documents, immediately before the build.
 | **draft file names** | `approval.<decision>.draft.md`, `solution.draft.md`, `techstack.draft.md`, `constraints.draft.md`. The decision is in the name, so a denial and an approval cannot look identical at the moment of the move. The three under `.sdlc/` are what adoption leaves a person, and git ignores them. The options menu written alongside the stack's draft is **not** a draft and is not here: it is a report, nothing renames it, and a declared stack carrying it is something `sdlc doctor` reports |
 | **the gate**, the hash-bound gate | `sdlc gate <id>`: whether the build may run. Exits 1 if not |
 | **`approval: none`** | a solution declaring that no person's approval is required. The gate asks for no ledger and keeps every other refusal, comparing each document with what its latest round judged; every report says no person approved. `required`, the default, is what an absent key reads as | `.sdlc/solution.md` |
-| **the six files only a person writes** | `approval.md`, `abandoned.md`, `constraints.md`, `decisions.md`, `solution.md`, `techstack.md`. Every agent write to one is denied, by path and by command alike. `mechanisms/protected-files.md` is how |
+| **the seven files only a person writes** | `approval.md`, `abandoned.md`, `constraints.md`, `decisions.md`, `areas.md`, `solution.md`, `techstack.md`. Every agent write to one is denied, by path and by command alike. `mechanisms/protected-files.md` is how |
 | **the guard note** | the blockquote at the top of `solution.md`, `techstack.md` and `constraints.md`, and of their drafts, saying only a person changes the file — so a denied agent write is explained by the file a person opens |
 
 **Eleven things refuse at the gate**, and `guides/handling-refusals.md` is where each is looked up: no
@@ -266,8 +273,8 @@ declining to go on, exit code 1. An open blocker causes refusals; it is not one.
 | **a cycle's branches** | `cycle/<id>/plan`, `cycle/<id>/build`, `cycle/<id>/build-unattended`, `cycle/<id>/forward` — one per kind of work, each started from the right base | `sdlc branch <id> <kind>` |
 | **a slicing's branch** | `slices/<slug>/plan`: the integration branch with each sibling's plan branch merged in, so one pull request admits every plan sliced together and the successors the slicing wrote. Composed, never worked on, and deleted on merge (D-125) | `sdlc slices <slug> <id>...`, `/sdlc:pr <id>... --plan` |
 | **the queue** | the cycles a build would take now: approved, no verify, not abandoned, and no `cycle/<id>/...` branch on the remote. A listing, never a state file; deleting a branch re-queues its cycle | `sdlc cycles --queued` |
-| **the factory** | a pipeline that runs `batch-build --pr --unattended` against the integration branch every night. It finds, builds, verifies and opens pull requests, and **never merges** | `sdlc factory` |
-| **the factory bundle** | what runs unattended or on a schedule, kept apart from what a person uses in a cycle (D-91). Today it holds only the factory agent image; the pipeline templates and Operate's scheduled run still live in the `sdlc` plugin and the binary | `factory/` |
+| **the factory** | a pipeline that runs `batch-build --pr --unattended` against the integration branch, started by a person and never on a schedule. It finds, builds, verifies and opens pull requests — the cycle the most successors wait on first, or the one cycle named — and **never merges** | `sdlc factory` |
+| **the factory bundle** | what runs unattended, kept apart from what a person uses in a cycle (D-91). Today it holds only the factory agent image; the pipeline templates still live in the `sdlc` plugin and the binary | `factory/` |
 | **the factory agent image** | a Linux container that is an Azure Pipelines agent carrying `sdlc`, Claude Code and the plugin, all built from one commit, so the binary and the plugin cannot come from different releases. Run as a service, a fresh container per job, on a machine that exists for it | [`../factory/README.md`](../factory/README.md) |
 | **a draft pull request** | what a cycle that did not pass gets: its attempted code, verify and evidence, marked not ready, so a person picks it up rather than the factory building it again | `/sdlc:pr <id> --draft` |
 | **the sitrep** | the morning's page: what is ready to merge and in what order, what needs a person, what was held back and why, what is waiting and going stale, and which successors a person can start | `sdlc sitrep` |
@@ -288,7 +295,7 @@ declining to go on, exit code 1. An open blocker causes refusals; it is not one.
 
 | | What it is |
 |---|---|
-| **the pre-tool hook** | judges a tool call before it runs and denies the eight things an agent may not do: the six protected files, a findings round, and adoption |
+| **the pre-tool hook** | judges a tool call before it runs and denies the nine things an agent may not do: the seven protected files, a findings round, and adoption |
 | **hook policy** | the rules that judgement applies. Absolute rather than conditional — no mode, no flag, no check on which skill is running, **so a rule with no exception has nowhere for a bypass to live** |
 | **tool kind** | `harmless`, `file-write`, `shell`. A write is judged by path; a shell command is judged by its text |
 | **the command-text scan** | why a command that merely *names* a protected file beside a write verb is refused. The hook reads the command string, piece by piece, not the paths it would touch — so `git commit -F` with the message in a file is how a commit mentioning one gets through |
@@ -305,7 +312,7 @@ declining to go on, exit code 1. An open blocker causes refusals; it is not one.
 
 ## 10. The skills
 
-**Eighteen skills, and the split that matters: a command is deterministic and the binary owns it; a
+**Twenty-one skills, and the split that matters: a command is deterministic and the binary owns it; a
 skill needs language and an agent runs it.** The binary never writes a planning document and a skill
 never decides a gate.
 
@@ -315,6 +322,8 @@ never decides a gate.
 | `intent` | proposes how to slice the work into atomic cycles, then interviews a person into the intent of each, and opens them |
 | `spec` | derives testable criteria from the intent alone |
 | `plan` | decides how, and what proves each criterion. The last document before a person approves |
+| `batch-plan` | takes every intent this branch carries to a plan — each cycle's spec, then its plan — and hands back once |
+| `next` | pulls the next wave from the backlog — ready successors started, ready parked cycles read again — plans it in one sandbox, and stops at the approvals |
 | `interrogate` | judges one artifact against the rules, in a fresh process. Never edits |
 | `refine` | applies a round's findings to that artifact. Never judges |
 | `steer` | carries a mid-cycle correction, or suggestions taken in or declined, down the chain, editing rather than regenerating |
@@ -326,6 +335,7 @@ never decides a gate.
 | `resolve-conflict` | brings a cycle's pull request up to date with the integration branch when it conflicts or goes red, inside its declared files, then verifies again |
 | `draft` | prints what belongs in a file only a person writes |
 | `propose` | reads the record and argues for an entry — a rule, a decision, a theme role |
+| `mine` | reads every finished cycle at once and proposes what the rules, decisions, stack and areas are missing, answering every item the cycles raised, then records the sitting so mined cycles become husks a person may delete |
 | `constraints` | shows the rules in force, all tiers resolved |
 | `status` | shows where a cycle has got to, and the next command |
 | `suggestions` | lists the open non-blocking findings a solution has accumulated, each concern once, and with `--all` whether each was accepted, declined or answered |

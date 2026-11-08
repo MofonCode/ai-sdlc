@@ -11,7 +11,7 @@ internal static class Usage
     /// the flag that makes it work, which is the confusion the whole draft pattern exists to avoid.
     /// </remarks>
     public const string Drafters =
-        "One of: approval <id>, abandon <id>, solution, techstack, convergence <file>. "
+        "One of: approval <id>, abandon <id>, solution, techstack, mining <file>. "
         + "A constraint is proposed rather than drafted: 'sdlc propose constraints'.";
 
     /// <summary>
@@ -21,7 +21,7 @@ internal static class Usage
     /// One subject today and the verb is plural-ready on purpose: the record has more than rules to say
     /// something about. Only what is built is offered, for the same reason the drafters are.
     /// </remarks>
-    public const string Proposals = "One of: convergence, constraints, decisions, theme.";
+    public const string Proposals = "One of: constraints, decisions, theme. Reading every cycle at once is 'sdlc mine'.";
 
     /// <summary>The usage text, written to standard output for help and to standard error for a
     /// usage error.</summary>
@@ -36,9 +36,10 @@ internal static class Usage
                                      Commits what it writes, creates the integration branch and
                                      switches to it, and drafts the three files only a person
                                      places -- solution, techstack, constraints -- beside them.
-            new                      Open a cycle: allocate its id and create its directory. Refuses
-                                     until a declared stack is in place, and while anything is
-                                     uncommitted. The intent skill runs it; you rarely type it.
+            new                      Open a cycle: allocate its id, claim it where every worktree of
+                                     the repository looks, and create its directory. Refuses until
+                                     a declared stack is in place. In a sandbox, the cycle opens
+                                     beside the others. The intent skill runs it; you rarely type it.
             scaffold <id>            Write the solution skeleton -- a solution file, its projects, the
                                      architecture tests and a reference slice -- and the .NET build
                                      settings it compiles under. On a solution adopted into existing
@@ -47,6 +48,11 @@ internal static class Usage
                                      there. Refuses without an approved plan: adoption writes no
                                      code and no build settings.
             constraints              Render the constraint set in force.
+            constraints show <id>    One rule in full, in force or superseded.
+            areas                    Each area areas.md defines: the files it covers today, the
+                                     rules and decisions carrying it, and entries naming an area
+                                     nobody defined. Exits 1 when an area covers no file, which
+                                     stops a round until it is fixed.
             gate <id>                Say whether a cycle's build may run. Exits 1 if not.
             verify-chain <id> [--base <branch>]
                                      Re-establish the whole chain from the repository. Exits 1 if
@@ -95,16 +101,20 @@ internal static class Usage
                                      branch a kind of work happens on -- plan, build,
                                      build-unattended or forward -- creating it from the right
                                      base: the integration branch once the plan is admitted to
-                                     it, the plan's own branch before that. 'plan --worktree'
-                                     opens the cycle in a folder of its own beside the
-                                     repository instead, so several cycles are planned at once.
-                                     'plan' refuses a local plan branch whose ledger lacks the
+                                     it, the plan's own branch before that. 'sandbox' opens a
+                                     worktree on sandbox/<id> beside the repository, where every
+                                     cycle the work turns into is planned. 'plan --worktree'
+                                     opens the one cycle in a folder of its own. 'plan' without a
+                                     worktree refuses uncommitted work, which the switch would
+                                     carry, and a local plan branch whose ledger lacks the
                                      approval the integration branch holds (D-123).
-            factory                  Write the factory's pipeline for the recorded platform: every
-                                     night, batch-build --pr --unattended against the integration
-                                     branch, one run at a time, six hours at most, proving the
-                                     hooks refuse before it builds, and publishing the sitrep. It
-                                     never merges. Refuses on a local solution.
+            factory                  Write the factory's pipeline for the recorded platform: a run
+                                     a person starts, never a schedule, of batch-build --pr
+                                     --unattended against the integration branch -- every queued
+                                     cycle, or the one named as its input -- one run at a time,
+                                     six hours at most, proving the hooks refuse before it builds,
+                                     and publishing the sitrep. It never merges. Refuses on a
+                                     local solution.
             lead show <reference>    Fetch a lead and print it in one shape for 'intent --from':
                                      azuredevops:1234 or github:56 through az or gh, a
                                      suggestion:<cycle>/<finding>, a ready successor:<slug>, or a
@@ -115,6 +125,23 @@ internal static class Usage
                                      stuck behind an abandoned cycle, or unresolved -- worked out
                                      from the record. Ready means everything it succeeds is on
                                      the integration branch with a passing verify (D-125).
+            backlog                  Every successor and every parked cycle, in the waves they come
+                                     ready in -- ready now, then after one more merge, and so on
+                                     -- each with how to start it, and apart from them the stuck
+                                     and the unresolved. A view; it writes nothing (D-145).
+            discard                  In a sandbox: what throwing it away would lose. Each cycle
+                                     is empty, can go, is worth recording -- it fixed a decision,
+                                     or its readers raised something -- or is recorded already.
+                                     Prints the removal for a person to run once nothing worth
+                                     recording is unrecorded, and exits 1 until then. Deletes
+                                     nothing.
+            park <id>                Compare a cycle's plan with every plan not yet built. A file
+                                     only another creates parks it: writes parked.md with what it
+                                     waits on, keeping its spec and plan. A file two plans both
+                                     name is reported. The plan skill runs it.
+            unpark <id>              Take a parked cycle back once everything it waits on merged
+                                     with a passing verify; its spec and plan are then read again
+                                     against what merged. Refuses one still waiting, saying why.
             successor check          Refuse a successor file that cannot be read, one naming a
                                      cycle or slug that does not exist, and a loop through
                                      succeeds:. Exits 0 when the set is sound.
@@ -131,11 +158,21 @@ internal static class Usage
                                      ledger, and a plan that needs a file only a sibling's plan
                                      creates; names the files two plans share. /sdlc:pr --plan
                                      runs it.
+            admit                    In a sandbox: print the one git command that takes its
+                                     approved cycles' folders, and the successors it wrote, onto
+                                     cycle/<id>/plan for one or slices/sandbox-<id>/plan for
+                                     several, from the integration branch, in a worktree beside
+                                     the sandbox. What the gate does not let through stays. Refuses
+                                     outside a sandbox, with nothing approved, over uncommitted
+                                     changes in an approved cycle, and a plan that needs a file
+                                     only a sibling's plan creates. Abandoned cycles go with it as
+                                     records. /sdlc:pr --plan runs it.
             operate [--since <hours>h] [--dry-run]
                                      Read production's errors from the telemetry store solution.md
                                      declares, grouped by signature, personal data stripped, and
                                      file each new one as a bug on the platform's tracker -- a lead.
                                      Not filed again while open, or once a person dismissed it.
+                                     A person runs it; no pipeline does.
             perspective show <name> --for <stage> [--cover]
                                      One perspective for one stage -- intent, spec, plan, build or
                                      verify: its method, the questions a fresh reader asks, its
@@ -145,21 +182,32 @@ internal static class Usage
             sitrep                   The morning's page, in Markdown: built cycles ready to merge
                                      and in what order, with the ones expected to conflict;
                                      what needs a person; what was held back and why; what is
-                                     waiting and going stale; the successors a person can start,
-                                     or that are stuck. Fetch the remote first: a built cycle is
-                                     read from its own branch. It starts nothing.
-            cycles --queued          What a build would take now -- approved, no verify, not
-                                     abandoned -- and every cycle held back, with why: a
-                                     cycle/<id>/... branch on the remote, or an approval the
-                                     gate no longer accepts. Deleting the branch re-queues it.
+                                     waiting and going stale; the backlog -- every successor and
+                                     parked cycle, ready, waiting or stuck -- and what it cannot
+                                     see. Fetch the remote first: a built cycle is read from its
+                                     own branch. It starts nothing.
+            cycles --here [--for <step>]
+                                     Which cycle a skill given no id means: the cycles this
+                                     branch carries -- its own on a cycle branch, otherwise
+                                     those not yet on the integration branch -- that are ready
+                                     for spec, plan, build, verify or remediate. Exactly one:
+                                     prints its id alone and exits 0. Several, or none: lists
+                                     them and exits 1, so the person is asked, never guessed for.
+            cycles --queued [<id>]   What a build would take now -- approved, no verify, not
+                                     abandoned -- in the order to build it: the cycle the most
+                                     successors wait on first, then oldest. And every cycle held
+                                     back, with why: a cycle/<id>/... branch on the remote, or an
+                                     approval the gate no longer accepts. Deleting the branch
+                                     re-queues it. With an id, that cycle alone, and exits 1 with
+                                     why when it is not queued.
             pr-ready <id>            Say whether a cycle may open a pull request, without opening
                                      one. Exits 1 if not -- and always for a test run, a cycle
                                      a local build judged. For every cycle, 'cycles --pr-ready'.
             draft approval <id>      Write the gate decision beside the ledger, for a person to
                                      rename onto it. Writes no approval.
             draft abandon <id>       Print the record that stops a cycle, for a person to place.
-            draft convergence <file> Write drafts of constraints.md, decisions.md and techstack.md
-                                     from the proposals marked [x] in a convergence proposal file:
+            draft mining <file>      Write drafts of constraints.md, decisions.md and techstack.md
+                                     from the proposals marked [x] in a mining proposal file:
                                      each a copy of the file as it stands with only those lines
                                      applied, refused if any entry or row would go missing.
             draft techstack          Write the declared stack beside itself, for an edit a person
@@ -227,8 +275,11 @@ internal static class Usage
                                      with the cycle that decided it.
             decisions                The choices this solution has already settled, so a cycle reads
                                      what was argued rather than arguing it again. CON_24 asks a cycle
-                                     departing from one to declare it where it arises.
-            theme                  The roles this solution's surfaces use and the values that
+                                     departing from one to declare it where it arises. Names
+                                     the entries over the word budget, for mining to reword.
+            decisions show <id>      One decision in full, standing or superseded: what a reader
+                                     handed only its headline asks for.
+            theme                 The roles this solution's surfaces use and the values that
                                      fill them -- the one place a colour or a typeface lives.
             stack                    What this solution declares it is built from: its defaults,
                                      the stack rules switched on, and each build settings file --
@@ -242,14 +293,24 @@ internal static class Usage
                                      that fixes it. Points at constraints, stack and decisions
                                      rather than repeating them. Writes nothing. Exits 1 when
                                      solution.md cannot be read.
-            propose convergence      Everything the record says the rules, decisions and stack are
+            mine                     Everything the record says the rules, decisions and stack are
                                      missing, in one ranked report: rules cited across cycles,
                                      findings that rested on no rule grouped by who raised them,
                                      each cycle's rounds, reopens and every verdict its verify
                                      reached, what approved cycles stated, and what the stack
                                      never mentions.
                                      Ends with the proposal file a person marks for 'draft
-                                     convergence'. Proposes; writes nothing that binds.
+                                     mining'. Proposes; writes nothing that binds.
+            mine record <file>       Once the drafts are renamed into place: record the sitting in
+                                     .sdlc/mined.json -- each finished cycle on the integration
+                                     branch becomes a husk, with its merge commit, its files, the
+                                     rules it cited and the areas it proposed -- and print the
+                                     deletion of the husks' folders, for a person to run on a
+                                     branch of its own. Deletes nothing. Refuses while a draft is
+                                     still beside its file.
+            mine --history           The mining ledger: every mined cycle, every sitting with what
+                                     was accepted and declined, and the concerns watched below the
+                                     bar of three cycles.
             propose constraints      Read this solution's whole history and say which rules its
                                      findings keep citing, with the cycles and finding ids behind
                                      each. Proposes; writes nothing that binds. Where the record
@@ -355,6 +416,10 @@ internal static class Usage
         Options for constraints
             --for <artifact>         Narrow to one artifact: intent, spec, plan, diff, verify.
             --brief                  Ids and statements only, without the clauses.
+            --cycle <id>             With --for: this solution's own rules outside the areas that
+                                     stage of the cycle touches are shown by their headline. From
+                                     the plan on; the intent and spec get every rule in full.
+                                     'constraints show <id>' prints one rule in full.
 
         Options for evidence
             --tests <path>           Where the run's results are: one results file, or the directory
@@ -382,6 +447,12 @@ internal static class Usage
             --brief                  Ids and statements only, without the clauses.
             --all                    Include the reversed entries, which stay on the page so a cycle
                                      that cited one is still readable. Without it, what stands.
+            --for <stage> --cycle <id>
+                                     Every decision's headline, and in full only the ones with no
+                                     area or in an area that stage touches: none for the intent and
+                                     spec, the plan's declared files from the plan, the change's
+                                     files on a verify. Nothing narrows without an areas.md.
+            --area <name>            Only the decisions carrying one area.
 
         Options for findings
             --stage <artifact>       One document: intent, spec, plan or verify. Defaults to all four.

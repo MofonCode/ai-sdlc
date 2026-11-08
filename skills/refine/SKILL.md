@@ -2,7 +2,7 @@
 name: refine
 description: Apply an artifact's findings to that artifact. Edits one planning document and nothing else, and never judges. Use after an interrogation round raised blocking findings.
 compatibility: Requires the sdlc binary on PATH, from the MofonCode.Sdlc.Cli dotnet tool, and a git repository. Every command here is that binary, so without it the first step fails.
-argument-hint: "<cycle id> <intent|spec|plan>"
+argument-hint: "[<cycle id>] <intent|spec|plan>"
 allowed-tools: Bash(sdlc *), Bash(git *), Read, Write, Edit, Glob, Grep
 ---
 
@@ -10,6 +10,18 @@ allowed-tools: Bash(sdlc *), Bash(git *), Read, Write, Edit, Glob, Grep
 
 This skill **edits and never judges**. The findings were decided by a reader with no stake; your job
 is to answer them, not to re-litigate them.
+
+## Which cycle
+
+**Given no cycle id, ask the binary which one is meant** (D-142):
+
+```
+sdlc cycles --here
+```
+
+It exits 0 printing the one cycle carried by this branch, and that is the cycle. Otherwise it lists the
+candidates, or says none is ready and why: ask the person which, in one question, and **never pick one
+yourself** — the cycle a skill acts on is not a guess.
 
 ## What you may and may not touch
 

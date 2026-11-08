@@ -412,50 +412,50 @@ public sealed class VerifyChainTests
     }
 
     [TestMethod]
-    [DataRow(false, "changed only after", DisplayName = "converged after the verify")]
+    [DataRow(false, "changed only after", DisplayName = "mined after the verify")]
     [DataRow(true, "changed before", DisplayName = "changed before the verify")]
     public async Task When_the_rule_files_changed_against_the_verify_is_reported_and_never_refused(
         bool changedBeforeVerify,
         string says)
     {
-        // A person changes these files inside a cycle for reasons that are not a convergence -- the stack
+        // A person changes these files inside a cycle for reasons that are not mining -- the stack
         // row a plan calls for, a decision amended mid-build -- and git cannot tell the two apart. So the
         // order is said, and the chain holds either way (D-113). MarketSense's second cycle did both.
         using CycleWorkspace workspace = Sound();
-        FakeRepository repository = Converging(workspace, changedBeforeVerify ? [".sdlc/decisions.md", "src/Thing.cs"] : ["src/Thing.cs"]);
+        FakeRepository repository = Mining(workspace, changedBeforeVerify ? [".sdlc/decisions.md", "src/Thing.cs"] : ["src/Thing.cs"]);
 
         VerifyChain.Response verdict = await Check(workspace, repository, [".sdlc/decisions.md", "src/Thing.cs"]);
-        VerifyChain.ChainCheck order = verdict.Checks.Single(check => check.Name.Contains("convergence", StringComparison.Ordinal));
+        VerifyChain.ChainCheck order = verdict.Checks.Single(check => check.Name.Contains("mining", StringComparison.Ordinal));
 
         Assert.IsTrue(order.Passed, order.Detail);
         StringAssert.Contains(order.Detail, ".sdlc/decisions.md " + says);
     }
 
     [TestMethod]
-    public async Task A_convergence_with_no_verify_written_says_the_order_cannot_be_shown()
+    public async Task Mining_with_no_verify_written_says_the_order_cannot_be_shown()
     {
         using CycleWorkspace workspace = Sound();
         FakeRepository repository = new() { Committed = [] };
 
         VerifyChain.Response verdict = await Check(workspace, repository, [".sdlc/constraints.md"]);
-        VerifyChain.ChainCheck order = verdict.Checks.Single(check => check.Name.Contains("convergence", StringComparison.Ordinal));
+        VerifyChain.ChainCheck order = verdict.Checks.Single(check => check.Name.Contains("mining", StringComparison.Ordinal));
 
         Assert.IsTrue(order.Passed, order.Detail);
         StringAssert.Contains(order.Detail, "no commit wrote");
     }
 
     [TestMethod]
-    public async Task A_pull_request_that_converges_nothing_says_nothing_about_convergence()
+    public async Task A_pull_request_that_mines_nothing_says_nothing_about_mining()
     {
         using CycleWorkspace workspace = Sound();
-        FakeRepository repository = Converging(workspace, ["src/Thing.cs"]);
+        FakeRepository repository = Mining(workspace, ["src/Thing.cs"]);
 
         VerifyChain.Response verdict = await Check(workspace, repository, ["src/Thing.cs"]);
 
-        Assert.IsFalse(verdict.Checks.Any(check => check.Name.Contains("convergence", StringComparison.Ordinal)), Describe(verdict));
+        Assert.IsFalse(verdict.Checks.Any(check => check.Name.Contains("mining", StringComparison.Ordinal)), Describe(verdict));
     }
 
-    private static FakeRepository Converging(CycleWorkspace workspace, IReadOnlyList<string> beforeVerify)
+    private static FakeRepository Mining(CycleWorkspace workspace, IReadOnlyList<string> beforeVerify)
     {
         FakeRepository repository = new() { Committed = beforeVerify };
         repository.Touched["HEAD:.sdlc/cycles/" + workspace.Cycle.Id + "/verify.md"] =
@@ -645,12 +645,44 @@ public sealed class VerifyChainTests
     [TestMethod]
     [DataRow("verify.md")]
     [DataRow("evidence/tests.json")]
-    [DataRow("abandoned.md")]
-    public void A_build_or_a_stop_is_not_planning_paperwork(string inside)
+    public void A_build_is_not_planning_paperwork(string inside)
     {
         Assert.IsTrue(CycleId.TryParse("20260929_1456_32", out CycleId? id));
 
         Assert.IsFalse(VerifyChain.AdmitsAsPlan(id.Value, [".sdlc/cycles/20260929_1456_32/" + inside]));
+    }
+
+    [TestMethod]
+    public async Task An_abandoned_cycle_is_admitted_as_a_record_with_no_approval_asked()
+    {
+        // D-146: a cycle stopped in a sandbox reaches the integration branch as the record of a choice. Nothing is
+        // built from it, so no approval or proof is asked of it.
+        using var workspace = CycleWorkspace.Create();
+        workspace.WriteArtifact(ArtifactKind.Intent);
+        workspace.WriteCleanRound(ArtifactKind.Intent);
+        workspace.Abandon();
+
+        VerifyChain.Response verdict = await Check(
+            workspace,
+            [".sdlc/cycles/" + workspace.Cycle.Id + "/intent.md", ".sdlc/cycles/" + workspace.Cycle.Id + "/abandoned.md"]);
+
+        Assert.IsTrue(verdict.Admission, Describe(verdict));
+        Assert.IsTrue(verdict.Holds, Describe(verdict));
+    }
+
+    [TestMethod]
+    public async Task An_abandonment_does_not_carry_code_past_the_check()
+    {
+        using var workspace = CycleWorkspace.Create();
+        workspace.WriteArtifact(ArtifactKind.Intent);
+        workspace.Abandon();
+
+        VerifyChain.Response verdict = await Check(
+            workspace,
+            [".sdlc/cycles/" + workspace.Cycle.Id + "/abandoned.md", "src/Orders/OrderService.cs"]);
+
+        Assert.IsFalse(verdict.Admission, Describe(verdict));
+        Assert.IsFalse(verdict.Holds, Describe(verdict));
     }
 
     [TestMethod]

@@ -86,6 +86,14 @@ public static class ReadSuccessors
     /// <param name="Waits">Each thing it waits for, in the order written.</param>
     public sealed record Standing(Successor Successor, SuccessorState State, IReadOnlyList<Wait> Waits);
 
+    /// <summary>A parked cycle, and where it stands (D-145).</summary>
+    /// <param name="Cycle">The cycle.</param>
+    /// <param name="Headline">What its intent is about, when it says.</param>
+    /// <param name="State">Where it stands: ready once everything it waits on merged with a pass.</param>
+    /// <param name="Waits">Each thing it waits for, in the order written.</param>
+    /// <param name="File">Its parked file as read.</param>
+    public sealed record ParkedStanding(CycleId Cycle, string? Headline, SuccessorState State, IReadOnlyList<Wait> Waits, Parked File);
+
     /// <summary>A successor's file that could not be read.</summary>
     /// <param name="Slug">The slug its file is named for.</param>
     /// <param name="Problems">Everything wrong with it.</param>
@@ -96,15 +104,21 @@ public static class ReadSuccessors
     /// <param name="Malformed">Each file that could not be.</param>
     /// <param name="Loops">Each loop through <c>succeeds:</c>, as the slugs around it, the first repeated last.</param>
     /// <param name="ReadAt">Where merged was read: a ref, or null for the working copy.</param>
+    /// <param name="Parked">Every parked cycle, oldest first (D-145).</param>
     public sealed record Response(
         IReadOnlyList<Standing> Successors,
         IReadOnlyList<Malformed> Malformed,
         IReadOnlyList<IReadOnlyList<string>> Loops,
-        string? ReadAt)
+        string? ReadAt,
+        IReadOnlyList<ParkedStanding>? Parked = null)
     {
+        /// <summary>Every parked cycle, oldest first; empty when none is.</summary>
+        public IReadOnlyList<ParkedStanding> Waiting => Parked ?? [];
+
         /// <summary>Whether every file is well formed, every reference resolves, and nothing loops.</summary>
         public bool Sound =>
-            Malformed.Count == 0 && Loops.Count == 0 && Successors.All(s => s.State != SuccessorState.Unresolved);
+            Malformed.Count == 0 && Loops.Count == 0 && Successors.All(s => s.State != SuccessorState.Unresolved)
+            && Waiting.All(p => p.State != SuccessorState.Unresolved);
 
         /// <summary>The successor by that slug, or null.</summary>
         /// <param name="slug">The slug.</param>
@@ -241,11 +255,59 @@ public static class ReadSuccessors
                 await Work(slug, read, started, records, looped, standing, cancellationToken).ConfigureAwait(false);
             }
 
+            List<ParkedStanding> parked = [];
+
+            foreach (Cycle cycle in CycleIndex.All(root).Where(c => !c.IsAbandoned && File.Exists(Parked.PathOf(c))).OrderBy(c => c.Id.ToString(), StringComparer.Ordinal))
+            {
+                Result<Parked> file = Parked.Parse(await File.ReadAllTextAsync(Parked.PathOf(cycle), cancellationToken).ConfigureAwait(false));
+
+                if (file.IsFailed)
+                {
+                    malformed.Add(new Malformed("cycle " + cycle.Id, [.. file.Errors.Select(e => e.Message)]));
+                    continue;
+                }
+
+                List<Wait> waits = [];
+                bool stuckBehind = false;
+
+                foreach (SuccessorReference reference in file.Value.WaitsOn)
+                {
+                    CycleId? id = reference.Cycle ?? (started.TryGetValue(reference.Slug!, out CycleId resolved) ? resolved : null);
+
+                    if (id is { } known)
+                    {
+                        waits.Add(new Wait(reference, known, await records.StateOf(known, cancellationToken).ConfigureAwait(false)));
+                    }
+                    else if (standing.TryGetValue(reference.Slug!, out Standing? behind))
+                    {
+                        waits.Add(new Wait(reference, null, WaitState.NotStarted));
+                        stuckBehind |= behind.State == SuccessorState.Stuck;
+                    }
+                    else
+                    {
+                        waits.Add(new Wait(reference, null, WaitState.Missing));
+                    }
+                }
+
+                SuccessorState state =
+                    waits.Any(w => w.State == WaitState.Missing) ? SuccessorState.Unresolved
+                    : stuckBehind || waits.Any(w => w.State == WaitState.Abandoned) ? SuccessorState.Stuck
+                    : waits.Any(w => w.State != WaitState.Merged) ? SuccessorState.Waiting
+                    : SuccessorState.Ready;
+
+                ArtifactOutline outline = await ArtifactOutlineReader
+                    .ReadFile(cycle.PathOf(ArtifactKind.Intent), cancellationToken)
+                    .ConfigureAwait(false);
+
+                parked.Add(new ParkedStanding(cycle.Id, outline.Headline, state, waits, file.Value));
+            }
+
             return Result.Ok(new Response(
                 [.. standing.Values.OrderBy(s => s.Successor.Slug, StringComparer.Ordinal)],
                 malformed,
                 loops,
-                at));
+                at,
+                parked));
         }
 
         /// <summary>Every slug an intent here records as its lead: the successors that have become cycles.</summary>
@@ -404,6 +466,14 @@ public static class ReadSuccessors
                 return known;
             }
 
+            // A mined cycle's folder may be gone, deleted as a husk; the ledger says it merged, and whether it
+            // passed or stopped, which is all readiness asks (D-152).
+            if (Ledger().Find(id.ToString()) is { } mined)
+            {
+                _known[id] = mined.Abandoned ? WaitState.Abandoned : WaitState.Merged;
+                return _known[id];
+            }
+
             Cycle cycle = new(id, root);
             string folder = string.Join('/', Cycle.SdlcDirectoryName, Cycle.CyclesDirectoryName, id.ToString()) + "/";
             string verifyPath = folder + Cycle.FileNameOf(ArtifactKind.Verify);
@@ -438,6 +508,28 @@ public static class ReadSuccessors
 
             _known[id] = state;
             return state;
+        }
+
+        private Mining.MinedLedger? _ledger;
+
+        // Read where merged is read: the integration branch, else the working copy.
+        private Mining.MinedLedger Ledger()
+        {
+            if (_ledger is not null)
+            {
+                return _ledger;
+            }
+
+            string relative = Cycle.SdlcDirectoryName + "/" + Mining.MinedLedger.FileName;
+            string? text = at is not null
+                ? repository!.ReadAt(root, at, relative)
+                : File.Exists(Mining.MinedLedger.PathIn(root)) ? File.ReadAllText(Mining.MinedLedger.PathIn(root)) : null;
+
+            _ledger = text is null
+                ? Mining.MinedLedger.Empty
+                : Mining.MinedLedger.Parse(text, relative).ValueOrDefault ?? Mining.MinedLedger.Empty;
+
+            return _ledger;
         }
 
         private static bool Passed(string verify)

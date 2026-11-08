@@ -46,6 +46,12 @@ needs nothing unmerged opens as a cycle of its own, in its own folder, and is in
 that needs another's code is written as a **successor**, `.sdlc/successors/<slug>.md` — a file, not a cycle —
 and waits.
 
+**Once an intent is written you can still cut it** (D-141). Reading it back is where you find out it is two
+things, or that two intents are one. While none has a spec, `/sdlc:intent --reslice <id>...` proposes a new
+slicing of everything they hold and applies it once you accept: the first cycle keeps its id, each further piece
+opens as a cycle or waits as a successor, and a cycle left empty is removed. To change what an intent says
+without cutting it, `/sdlc:steer <id> "..."` — before the spec, that may add, drop or reword an outcome.
+
 **A successor starts once what it succeeds has merged.** `sdlc successors` says where each stands, and
 `sdlc status` and the sitrep name one the moment it is ready. Nothing starts it for you:
 
@@ -57,18 +63,23 @@ The interview resumes from the outcome and why the slicing left, against the cod
 cycle's plan branch deletes the successor's file.
 
 **You do not open the cycle or switch branches yourself.** The skill runs `sdlc new`, which allocates the
-id and claims it, then `sdlc branch <id> plan --worktree` and the `git worktree add` it prints, and says
-the id, the branch and the folder in one line. Then it interviews you — section 3.
+id and claims it, then `sdlc branch <id> sandbox` and the `git worktree add` it prints, and says the id, the
+branch and the folder in one line. Then it interviews you — section 3.
 
-**Each cycle gets a folder of its own**, `../<repository>.cycles/<id>`, on its own branch (D-105). That is
-what lets you write several intents at once: your own checkout is never switched, and one cycle's
-half-finished documents never ride into another's. Open a session in the cycle's folder to carry on with
-it, and remove the folder with `git worktree remove` once the cycle has merged. Ask for one working copy
-and the skill switches this checkout instead.
+**The work gets a sandbox**, `../<repository>.sandboxes/<id>`, on `sandbox/<id>`, named for its first cycle
+(D-144). Every cycle the work turns into — a slicing, an intent you have it cut in two — opens beside the first,
+in the same folder and on the same branch, so one session sees all of them and `/sdlc:batch-plan` can take
+them to plan together. Your own checkout is never switched, so uncommitted work there stays where it is. Open a
+session in the sandbox to carry on, and remove it with `git worktree remove` once what it held has merged.
 
-**It refuses while anything is uncommitted**, and names the files: a switch carries uncommitted changes
-with it, so they would reach the cycle's diff as work no plan declared. Commit, stash or discard them,
-and ask again. The skill asks you which rather than choosing.
+**What leaves the sandbox is what you approved.** `/sdlc:pr --plan` in the sandbox runs `sdlc admit`, which
+takes the approved cycles' folders, and any successors the sandbox wrote, onto an admission branch —
+`cycle/<id>/plan` for one, `slices/sandbox-<id>/plan` for several — in a folder beside the sandbox. The rest
+stay and go by a later admission. **To throw a sandbox away**, ask `sdlc discard` there first: it says which cycles
+are empty or can go, and which fixed a decision or had readers raise something — worth recording with `sdlc draft
+abandon <id>`, placed by you, so `sdlc admit` takes the record to the integration branch. It prints the removal
+only once nothing worth keeping is left unrecorded (D-146). Ask for one working copy instead and the skill switches this checkout to
+`cycle/<id>/plan`, which refuses uncommitted work: the switch would carry it into the cycle.
 
 **What the skill runs, for when you need it by hand.** Opening a batch of cycles before interviewing any
 of them is the one ordinary reason:
@@ -160,10 +171,36 @@ first** — a few lines of throwaway code on a `probe/<id>/<slug>` branch, never
 the plan assumed without a probe is the one most likely to cost a reopen after the build. Its proof is a
 table, one row per case each criterion states, so you can see what will be tested at a glance.
 
+**The plan's `## Areas` section says which part of the code each declared file belongs to** (D-150): an area
+`.sdlc/areas.md` defines, a name the plan proposes, or `none`. Read the proposed names at approval — they
+become area suggestions, and once three cycles' plans name one, mining proposes it for your `areas.md`.
+Where areas exist, every reader of this cycle gets every decision's headline and, in full, only the ones
+for the areas its files touch (D-151).
+
 **It is the last document before you approve, so it is the one to read closely** — and the thing to
 read for is proof adequacy. Ask of each check: *which case does it never run, and which outcome does it
 never read?* If either has an answer, the proof is not adequate, and an inadequate
 proof is worse than none because it produces a green verification instead of an obvious gap.
+
+**A plan that needs another's unbuilt code is parked** (D-145). Once its round is clean the plan skill runs
+`sdlc park <id>`, which compares its files with every plan not yet built. A file only another plan creates means
+this one cannot be built against the integration branch as it stands: it keeps its spec and plan, waits in
+`parked.md`, and is held out of the build queue. `sdlc backlog` lists it beside the successors, in the wave it
+comes ready in. Once what it waits on has merged, `sdlc unpark <id>` takes it back, and its spec and plan are
+interrogated again against the code that merged — a round that changes nothing leaves an approval standing. A
+file two plans merely both name is only reported: their pull requests may conflict at merge.
+
+**When merges make the next wave ready**, `/sdlc:next` takes all of it: it starts each ready successor with a
+short interview, takes back each parked cycle whose predecessor merged and reads its spec and plan again, plans
+the new intents in one sandbox, and stops at the approvals with the waves still to come (D-147). Run it after
+each wave merges and a sliced piece of work reaches completion one wave at a time; merging stays yours.
+
+**Several intents at once.** Once you have read every intent in a working copy and are happy with them,
+`/sdlc:batch-plan` takes each to a plan — its spec, then its plan, one cycle at a time, each with its own loop —
+and hands back once: a line per cycle, every plan panel, and one question about every open suggestion across
+them. A cycle that needs you stops alone and the rest carry on. It runs in your session, so read and approve
+the plans in a fresh one (D-142). **The id is optional wherever one cycle is meant**: given none, a skill asks
+`sdlc cycles --here`, and asks you which when this working copy carries more than one.
 
 **If you change your mind mid-cycle**, do not edit the documents by hand:
 
@@ -173,16 +210,24 @@ proof is worse than none because it produces a green verification instead of an 
 
 That edits the intent, spec and plan rather than regenerating them, records the correction with your name
 on it, and re-interrogates from the highest document it touched down, one at a time — `sdlc round` refuses
-a spec round until the intent is settled, and a plan round until the spec is. Steering changes *how*, not *what* —
-a correction that changes the problem is a different cycle, and the skill says so and offers one.
+a spec round until the intent is settled, and a plan round until the spec is. Once a spec exists, steering changes *how*, not
+*what* — a correction that changes the problem is a different cycle, and the skill says so and offers one. Before
+the spec nothing derives from the intent yet, so steering may change its outcomes too.
 
-**Once the verify passes, converge.** `/sdlc:propose convergence` reads what the cycle settled and argued
+**Once the verify passes, mine it.** `/sdlc:mine` reads what the cycle settled and argued
 and proposes rules, decisions and stack rows in one file; you mark what you accept, `sdlc draft
-convergence` writes the three drafts, a fresh reader says whether what you approved is in alignment, and
+mining` writes the three drafts, a fresh reader says whether what you approved is in alignment, and
 you rename the drafts. It is not a cycle, and what it places binds the next cycle rather than one in flight.
 `/sdlc:pr` offers it on the cycle's branch, as a commit of its own that merges with the code; or do it on
 the integration branch after the merge. Never before the passing verify: rounds after it would read rules
 it placed. The pull-request check reports the order, and leaves keeping it to you (D-111, D-113).
+
+**Once the drafts are placed, record the sitting**: `sdlc mine record <the proposal file>`. Every cycle that
+finished and is on the integration branch becomes a **husk** — what later mining needs from it is kept in
+`.sdlc/mined.json`, and everything else is in git at the merge commit it names (D-152). It prints the
+deletion of the husks' folders for you to run on a branch of its own; the pull request carrying only that,
+the records and the ledger is admitted as mining. A cycle mined before its own pull request merged is not a
+husk yet, and is mined again next time.
 
 **Suggestions are yours to take in or leave.** A perspective's concern the intent did not ask for — keyboard
 use, where a key is kept — never becomes a criterion on its own: the spec names it in `Out of scope`, and

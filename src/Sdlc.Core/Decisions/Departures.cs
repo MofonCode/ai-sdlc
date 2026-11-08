@@ -79,7 +79,7 @@ public static partial class Departures
     /// decision, or names one the record does not hold.
     /// </summary>
     /// <remarks>
-    /// A superseded decision is accepted. Convergence may supersede the very decision a cycle departed from,
+    /// A superseded decision is accepted. Mining may supersede the very decision a cycle departed from,
     /// on the cycle's own branch after its verify (D-111), and the departure stays true of the cycle.
     /// </remarks>
     /// <param name="kind">Which document.</param>

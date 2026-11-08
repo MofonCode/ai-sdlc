@@ -2,7 +2,7 @@
 name: plan
 description: Decide how a spec will be met and what will prove it, producing the plan of a cycle. Use after a spec has a clean interrogation round. This is the last artifact before a person approves.
 compatibility: Requires the sdlc binary on PATH, from the MofonCode.Sdlc.Cli dotnet tool, and a git repository. Every command here is that binary, so without it the first step fails.
-argument-hint: "<cycle id>"
+argument-hint: "[<cycle id>]"
 allowed-tools: Bash(sdlc *), Bash(git *), Bash(dotnet *), Read, Write, Edit, Glob, Grep
 ---
 
@@ -32,6 +32,18 @@ leaves it for a later cycle.
 **A declared file can bring a perspective the intent did not name.** `sdlc perspectives <id>` says so — a
 `.razor` file brings UI/UX and accessibility. Cover it here, and expect the plan's interrogation to raise
 that the intent missed it.
+
+## Which cycle
+
+**Given no cycle id, ask the binary which one is meant** (D-142):
+
+```
+sdlc cycles --here --for plan
+```
+
+It exits 0 printing the one cycle ready for this step, and that is the cycle. Otherwise it lists the
+candidates, or says none is ready and why: ask the person which, in one question, and **never pick one
+yourself** — the cycle a skill acts on is not a guess.
 
 ## Refuse early
 
@@ -74,9 +86,14 @@ plan that cannot be built.
 
 ```
 sdlc stack
-sdlc decisions
+sdlc decisions --for plan --cycle <id>
 sdlc theme
 ```
+
+Where the solution has areas, the decisions come back as every headline and, in full, only the ones with no
+area or in an area the plan's declared files fall in — so run it again once `Files` is written, and read a
+headline in full with `sdlc decisions show DEC_nn` when the shape you are choosing reaches it (D-151).
+`sdlc constraints --for plan --cycle <id>` narrows this solution's own rules the same way.
 
 `sdlc stack` prints what this solution declares it is built from — `CON_15` judges you against it. It
 is `.sdlc/techstack.md` as the binary reads it: the defaults it pins, the stack rules switched on, and
@@ -384,8 +401,8 @@ rewritten by the thing it was checking.>
 
 <Ordering reasoning goes here too, when order matters: which file has to land first and why.>
 
-<Never name one of the six files only a person writes -- approval.md, abandoned.md, constraints.md,
-decisions.md, solution.md, techstack.md. The schema refuses a plan that declares one, because the build
+<Never name one of the seven files only a person writes -- approval.md, abandoned.md, constraints.md,
+decisions.md, areas.md, solution.md, techstack.md. The schema refuses a plan that declares one, because the build
 is denied the write and the plan could not be carried out as written. Changing the declared stack is its
 own act, outside a cycle: 'sdlc draft techstack' and a rename. The theme is not one of them -- a
 cycle may declare .sdlc/theme.json and change a value like any other file.
@@ -394,6 +411,19 @@ A file holding a rule is different: you may declare one and change it. The evide
 every such file under GOVERNING whether or not the plan declared it, and CON_18 asks Shape and
 departures to say what the rule would have cost. Those are an architecture test, Directory.Build.props,
 BannedSymbols.txt, .editorconfig, a hook configuration and the pipeline.>
+
+## Areas
+
+- <an area areas.md already defines, which these files fall in -- optional, the binary works it out>
+- new <name>: `<file or glob>`, `<file or glob>`
+- none: `<file or glob>`
+
+<Every file Files declares falls in an area 'sdlc areas' lists, or is listed here under a name you would
+give the part of the code it belongs to, or under 'none' for a one-off. A name is lower case words joined
+by hyphens, in the team's own words -- 'trade-import' before 'backend'. The round refuses a declared file
+with no answer. A proposed name is recorded as an area suggestion; once three cycles' plans name one over
+the same files, mining proposes it (D-150). It is not something this cycle delivers, so never take one in
+through 'steer'.>
 
 ## Proof
 
@@ -414,6 +444,19 @@ Interrogate, refine, interrogate again — until a round is clean, a reader repo
 panel's `Loop` line says the loop is stuck on one rule. It is the same loop the intent and spec skills
 run, and the intent skill's loop section has the table. Nothing caps the rounds; what stops the loop is
 a rule coming back three times, which is the loop going backwards rather than going slowly.
+
+**Once the round is clean, check what the plan needs from plans not yet built** (D-145):
+
+```
+sdlc park <id>
+```
+
+It compares this plan's files with every plan not yet built — the cycles beside it in the sandbox, and those
+admitted and waiting for a build. **A file only another plan creates parks this cycle**: it writes `parked.md`,
+keeps the spec and plan, and the cycle waits until that one merges. Say so in a line at the hand-back, with what
+it waits on, and that it may still be approved — it builds once `sdlc unpark <id>` takes it back and its spec and
+plan are read again against what merged. **A file two plans both name is not a dependency**: say which, since
+their pull requests may conflict, and carry on.
 
 **First, the suggestions the plan's rounds left open, if there are any.** Ask once, from a file, in
 free text (D-114) — the intent skill's hand-back has the file's shape and an example. Leaving them is an

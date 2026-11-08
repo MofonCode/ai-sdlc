@@ -7,10 +7,10 @@ using Sdlc.Core.Solutions;
 namespace Sdlc.Tests;
 
 /// <summary>
-/// Convergence (D-104): proposals a person marks, drafted as byte copies with only those lines applied.
+/// Mining (D-104, D-148): proposals a person marks, drafted as byte copies with only those lines applied.
 /// </summary>
 [TestClass]
-public sealed class ConvergenceTests
+public sealed class DraftMiningTests
 {
     private const string Rules = """
         # This solution's own constraints
@@ -37,7 +37,7 @@ public sealed class ConvergenceTests
         """;
 
     private const string Proposals = """
-        # Convergence proposals
+        # Mining proposals
 
         ## Rules
 
@@ -72,7 +72,7 @@ public sealed class ConvergenceTests
     [TestMethod]
     public void A_proposal_file_reads_every_heading_and_which_were_accepted()
     {
-        IReadOnlyList<DraftConvergence.Proposal> read = DraftConvergence.Parse(Proposals).Value;
+        IReadOnlyList<DraftMining.Proposal> read = DraftMining.Parse(Proposals).Value;
 
         Assert.AreEqual(5, read.Count);
         Assert.AreEqual(4, read.Count(proposal => proposal.Accepted));
@@ -86,7 +86,7 @@ public sealed class ConvergenceTests
         // The skill writes what goes to the framework and what it chose not to propose into the same file,
         // so the review in a fresh process can look for an item with no answer (D-112). Neither is an entry
         // in any of the three files, so a heading under either must never reach a draft.
-        IReadOnlyList<DraftConvergence.Proposal> read = DraftConvergence.Parse(
+        IReadOnlyList<DraftMining.Proposal> read = DraftMining.Parse(
             Proposals
             + "\n## For the framework\n\n### CON_08 — verify spent twelve rounds on its own wording\n> cycle 2, F_03\n"
             + "\n## Not proposed\n\n- criterion 15 — already recorded as DEC_09\n").Value;
@@ -97,7 +97,7 @@ public sealed class ConvergenceTests
     [TestMethod]
     public void There_is_no_remove()
     {
-        FluentResults.Result<IReadOnlyList<DraftConvergence.Proposal>> parsed = DraftConvergence.Parse("## Rules\n\n### [x] remove LOC_01 — gone\n");
+        FluentResults.Result<IReadOnlyList<DraftMining.Proposal>> parsed = DraftMining.Parse("## Rules\n\n### [x] remove LOC_01 — gone\n");
 
         Assert.IsTrue(parsed.IsFailed);
         StringAssert.Contains(parsed.Errors[0].Message, "There is no remove");
@@ -106,11 +106,11 @@ public sealed class ConvergenceTests
     [TestMethod]
     public void Accepted_rules_are_inserted_and_the_superseded_one_keeps_its_place()
     {
-        List<DraftConvergence.Proposal> accepted = [.. DraftConvergence.Parse(Proposals).Value
-            .Where(proposal => proposal.Accepted && proposal.Record == DraftConvergence.Record.Rules)];
+        List<DraftMining.Proposal> accepted = [.. DraftMining.Parse(Proposals).Value
+            .Where(proposal => proposal.Accepted && proposal.Record == DraftMining.Record.Rules)];
         List<string> assigned = [];
 
-        string draft = DraftConvergence.ApplyRules(Rules, accepted, assigned).Value;
+        string draft = DraftMining.ApplyRules(Rules, accepted, assigned).Value;
         IReadOnlyList<Constraint> rules = ConstraintParser.Parse(draft, "draft").Value;
 
         CollectionAssert.AreEqual(new[] { "LOC_03", "LOC_04" }, assigned);
@@ -125,9 +125,9 @@ public sealed class ConvergenceTests
     [TestMethod]
     public void A_reword_keeps_the_id_and_takes_the_next_revision()
     {
-        DraftConvergence.Proposal reword = new(DraftConvergence.Record.Rules, DraftConvergence.Operation.Reword, "LOC_01", "Every screen meets the row in full", "**Applies to:** a spec.\n\n**Forbids:** less.\n\n**Why:** the same.", Accepted: true);
+        DraftMining.Proposal reword = new(DraftMining.Record.Rules, DraftMining.Operation.Reword, "LOC_01", "Every screen meets the row in full", "**Applies to:** a spec.\n\n**Forbids:** less.\n\n**Why:** the same.", Accepted: true);
 
-        string draft = DraftConvergence.ApplyRules(Rules, [reword], []).Value;
+        string draft = DraftMining.ApplyRules(Rules, [reword], []).Value;
 
         StringAssert.Contains(draft, "## LOC_01.2 — Every screen meets the row in full");
         Assert.AreEqual(2, ConstraintParser.Parse(draft, "draft").Value.Count);
@@ -150,15 +150,15 @@ public sealed class ConvergenceTests
             **From:** 20261021_0118_04.
             """;
 
-        DraftConvergence.Proposal supersede = new(DraftConvergence.Record.Decisions, DraftConvergence.Operation.Supersede, "DEC_01", "One AppHost, two profiles", "**Decided:** two profiles.\n\n**Because:** tests collide.\n\n**Instead of:** one profile.\n\n**From:** 20261024_1205_42.", Accepted: true);
+        DraftMining.Proposal supersede = new(DraftMining.Record.Decisions, DraftMining.Operation.Supersede, "DEC_01", "One AppHost, two profiles", "**Decided:** two profiles.\n\n**Because:** tests collide.\n\n**Instead of:** one profile.\n\n**From:** 20261024_1205_42.", Accepted: true);
         List<string> assigned = [];
 
-        string draft = DraftConvergence.ApplyDecisions(record, [supersede], assigned).Value;
+        string draft = DraftMining.ApplyDecisions(record, [supersede], assigned).Value;
         IReadOnlyList<Decision> decisions = DecisionParser.Parse(draft, "draft").Value;
 
         CollectionAssert.AreEqual(new[] { "DEC_02" }, assigned);
         Assert.AreEqual("DEC_02", decisions.Single(decision => decision.Id.Number == 1).SupersededBy?.ToString());
-        Assert.IsTrue(DraftConvergence.ApplyDecisions(record, [supersede with { Operation = DraftConvergence.Operation.Reword }], []).IsFailed);
+        Assert.IsTrue(DraftMining.ApplyDecisions(record, [supersede with { Operation = DraftMining.Operation.Reword }], []).IsFailed);
     }
 
     [TestMethod]
@@ -177,10 +177,10 @@ public sealed class ConvergenceTests
             ## Rules
             """;
 
-        List<DraftConvergence.Proposal> accepted = [.. DraftConvergence.Parse(Proposals).Value
-            .Where(proposal => proposal.Accepted && proposal.Record == DraftConvergence.Record.Stack)];
+        List<DraftMining.Proposal> accepted = [.. DraftMining.Parse(Proposals).Value
+            .Where(proposal => proposal.Accepted && proposal.Record == DraftMining.Record.Stack)];
 
-        string draft = DraftConvergence.ApplyStack(stack, accepted).Value;
+        string draft = DraftMining.ApplyStack(stack, accepted).Value;
         IReadOnlyList<StackTable.Row> rows = StackTable.Rows(draft);
 
         Assert.AreEqual(3, rows.Count);
@@ -199,12 +199,48 @@ public sealed class ConvergenceTests
         await File.WriteAllTextAsync(proposals, Proposals);
 
         using var gate = Gate.For(workspace.Root);
-        DraftResult drafted = (await gate.Send<DraftConvergence.Command, DraftResult>(new DraftConvergence.Command(proposals))).Value;
+        DraftResult drafted = (await gate.Send<DraftMining.Command, DraftResult>(new DraftMining.Command(proposals))).Value;
 
         Assert.IsTrue(drafted.MayDraft, drafted.Instructions);
         Assert.IsTrue(File.Exists(Path.Combine(workspace.Root, ".sdlc", "constraints.draft.md")));
         Assert.IsTrue(File.Exists(Path.Combine(workspace.Root, ".sdlc", "techstack.draft.md")));
         StringAssert.Contains(drafted.Instructions, "Move-Item -Force .sdlc/constraints.draft.md .sdlc/constraints.md");
         StringAssert.Contains(drafted.Entry!, "1 proposal(s) not accepted.");
+    }
+
+    [TestMethod]
+    public async Task A_new_entry_over_the_word_budget_is_refused_and_named()
+    {
+        // D-149. Every reader gets every headline, so a thirty-word title is a body nobody asked for. The
+        // drafter names the overrun and writes nothing; the person shortens it and runs it again.
+        using var workspace = CycleWorkspace.Create();
+        CycleWorkspace.WriteRaw(Path.Combine(workspace.Root, ".sdlc", "constraints.md"), Rules);
+        string proposals = Path.Combine(workspace.Root, "proposed.md");
+        string title = string.Join(' ', Enumerable.Repeat("word", 15 + 5));
+        await File.WriteAllTextAsync(proposals, "## Rules\n\n### [x] add — " + title + "\n**Applies to:** a plan.\n\n**Forbids:** a secret.\n\n**Why:** it leaks.\n");
+
+        using var gate = Gate.For(workspace.Root);
+        DraftResult drafted = (await gate.Send<DraftMining.Command, DraftResult>(new DraftMining.Command(proposals))).Value;
+
+        Assert.IsFalse(drafted.MayDraft);
+        StringAssert.Contains(drafted.Instructions, "LOC_03 (title 20 of 15)");
+        Assert.IsFalse(File.Exists(Path.Combine(workspace.Root, ".sdlc", "constraints.draft.md")));
+    }
+
+    [TestMethod]
+    public async Task An_entry_already_on_the_page_is_never_held_to_the_budget_by_the_drafter()
+    {
+        // A long rule the person placed is theirs; a draft that adds something else must still be written.
+        using var workspace = CycleWorkspace.Create();
+        CycleWorkspace.WriteRaw(
+            Path.Combine(workspace.Root, ".sdlc", "constraints.md"),
+            Rules.Replace("**Forbids:** a screen without it.", "**Forbids:** " + string.Join(' ', Enumerable.Repeat("word", 60 + 10)) + ".", StringComparison.Ordinal));
+        string proposals = Path.Combine(workspace.Root, "proposed.md");
+        await File.WriteAllTextAsync(proposals, "## Rules\n\n### [x] add — A secret never appears in source\n**Applies to:** a plan.\n\n**Forbids:** a secret.\n\n**Why:** it leaks.\n");
+
+        using var gate = Gate.For(workspace.Root);
+        DraftResult drafted = (await gate.Send<DraftMining.Command, DraftResult>(new DraftMining.Command(proposals))).Value;
+
+        Assert.IsTrue(drafted.MayDraft, drafted.Instructions);
     }
 }

@@ -4,9 +4,11 @@ using FluentResults;
 using Microsoft.Extensions.DependencyInjection;
 using MofonCode.Core;
 using Sdlc.Core.Approvals;
+using Sdlc.Core.Areas;
 using Sdlc.Core.Constraints;
 using Sdlc.Core.Artifacts;
 using Sdlc.Core.Cycles;
+using Sdlc.Core.Decisions;
 using Sdlc.Core.Findings;
 using Sdlc.Core.Git;
 using Sdlc.Core.Solutions;
@@ -27,7 +29,7 @@ namespace Sdlc.Core.Proposals;
 /// distinct cycles, with the shortest few statements each as a sample -- a pointer for the skill, which
 /// reads the rounds for the rest.</para>
 /// </remarks>
-public static class ProposeConvergence
+public static class ProposeMining
 {
     /// <summary>Statements quoted per group, at most.</summary>
     public const int Sample = 5;
@@ -35,7 +37,7 @@ public static class ProposeConvergence
     /// <summary>Registers this operation's handler.</summary>
     /// <param name="services">The collection to add to.</param>
     /// <returns>The same collection, for chaining.</returns>
-    public static IServiceCollection AddProposeConvergenceRequestHandler(this IServiceCollection services)
+    public static IServiceCollection AddProposeMiningRequestHandler(this IServiceCollection services)
     {
         ArgumentNullException.ThrowIfNull(services);
 
@@ -86,12 +88,27 @@ public static class ProposeConvergence
     /// reopens, verdicts -- and two of the three, the reopen reasons and every verdict but the last, are
     /// read nowhere else.
     /// </param>
+    /// <param name="OverBudget">
+    /// The standing decisions and this solution's rules in force whose title or a clause runs past its word
+    /// budget, each with its overrun: candidates for a <c>reword</c> or a superseding entry (D-149).
+    /// </param>
+    /// <param name="Areas">
+    /// What the cycles say about the areas: the names plans proposed, how often each area would have matched,
+    /// and changed files no area covers (D-150).
+    /// </param>
+    /// <param name="Mined">
+    /// The mining ledger: the cycles already mined, and the concerns watched below the bar, whose counts carry
+    /// across sittings because the folders they came from are gone (D-152).
+    /// </param>
     public sealed record Response(
         ProposeConstraints.Response Rules,
         IReadOnlyList<Group> Groups,
         ProposeDecisions.Response Decisions,
         StackCoverage.Unmentioned Stack,
-        IReadOnlyList<CycleRecord>? Record = null);
+        IReadOnlyList<CycleRecord>? Record = null,
+        IReadOnlyList<string>? OverBudget = null,
+        AreaHistory.Reading? Areas = null,
+        Mining.MinedLedger? Mined = null);
 
     /// <summary>Asks for the report.</summary>
     public sealed record Query : IRequest<Response>;
@@ -105,7 +122,7 @@ public static class ProposeConvergence
         ArgumentNullException.ThrowIfNull(response);
 
         StringBuilder text = new();
-        text.AppendLine("Convergence: what the record says the rules, decisions and stack are missing");
+        text.AppendLine("Mining: what the record says the rules, decisions and stack are missing");
         text.AppendLine();
         text.AppendLine(string.Create(CultureInfo.InvariantCulture, $"Rules   next free {response.Rules.NextId}, {response.Rules.InForce} in force, {response.Rules.Cycles} cycles read"));
 
@@ -183,6 +200,39 @@ public static class ProposeConvergence
             text.AppendLine(string.Create(CultureInfo.InvariantCulture, $"  {cycle.Key}: {cycle.Count()} passages -- 'sdlc propose decisions' prints them in full"));
         }
 
+        if (response.OverBudget is { Count: > 0 } overBudget)
+        {
+            text.AppendLine();
+            text.AppendLine(string.Create(
+                CultureInfo.InvariantCulture,
+                $"Over the word budget   {overBudget.Count} entries past a {EntryBudget.Headline}-word title or {EntryBudget.Clause} words a clause -- reword a rule, supersede a decision"));
+
+            foreach (string entry in overBudget)
+            {
+                text.AppendLine("  " + entry);
+            }
+        }
+
+        Areas(text, response.Areas);
+
+        // What earlier sittings left: the cycles already mined, and the concerns watched below the bar, which
+        // a cycle mined now may carry over it (D-152).
+        if (response.Mined is { } mined && (mined.Cycles.Count > 0 || mined.Watch.Count > 0))
+        {
+            text.AppendLine();
+            text.AppendLine(string.Create(CultureInfo.InvariantCulture, $"Mined before   {mined.Cycles.Count} cycles in .sdlc/{Mining.MinedLedger.FileName}, {mined.Watch.Count} concerns watched"));
+
+            foreach (Mining.Watched watched in mined.Watch)
+            {
+                text.AppendLine(string.Create(CultureInfo.InvariantCulture, $"  watched: {watched.Gist} -- {watched.Cycles.Count} of {ProposeConstraints.Bar} cycles ({string.Join(", ", watched.Cycles)})"));
+            }
+
+            foreach (Mining.MinedCycle husk in mined.Cycles.Where(husk => response.Record?.Any(record => record.Cycle.ToString() == husk.Cycle) == true))
+            {
+                text.AppendLine("  " + husk.Cycle + " is mined and still here: a husk, waiting for its folder to be deleted");
+            }
+        }
+
         text.AppendLine();
         text.AppendLine("Stack");
 
@@ -207,12 +257,57 @@ public static class ProposeConvergence
         text.AppendLine("  ## Rules        ### [ ] add — <statement>   ### [ ] supersede LOC_02 — <statement>   ### [ ] reword LOC_01 — <statement>");
         text.AppendLine("  ## Decisions    ### [ ] add — <statement>   ### [ ] supersede DEC_02 — <statement>");
         text.AppendLine("  ## Stack        ### [ ] set <concern> — <choice, or none>");
+        text.AppendLine("  ## Areas        ### [ ] add <name> — <what it is>   ### [ ] rename <old> <new> — <why>   ### [ ] merge <from> into <to> — <why>");
+        text.AppendLine("                  ### [ ] remove <name> — <why>   ### [ ] files <name> — <globs>   ### [ ] tag DEC_04 — <area, area, or none>");
+        text.AppendLine("  ## Successors   ### [ ] add <slug> — <what it makes possible>, with **Succeeds:**, **Outcome:** and **Why it matters:** beneath");
+        text.AppendLine("  ## Watch        - <a concern below the bar> — <cycle>, <cycle>");
+        text.AppendLine("  ## Declined     - <suggestion id>: <why>");
         text.AppendLine();
         text.AppendLine("  Under each heading, the entry's clauses as they would be pasted, and '> ' lines for the evidence.");
         text.AppendLine("  There is no remove: supersede a rule or decision, and set a stack concern to none.");
-        text.AppendLine("  Then 'sdlc draft convergence " + proposals + "' writes the drafts from what was marked [x].");
+        text.AppendLine("  Then 'sdlc draft mining " + proposals + "' writes the drafts from what was marked [x],");
+        text.AppendLine("  and once they are renamed into place, 'sdlc mine record " + proposals + "' records the sitting and names the husks.");
 
         return text.ToString();
+    }
+
+    /// <summary>
+    /// What the cycles say about the areas (D-150): names plans proposed, at the three-cycle bar or below it;
+    /// how often each defined area would have matched a plan; and changed files no area covers.
+    /// </summary>
+    private static void Areas(StringBuilder text, AreaHistory.Reading? areas)
+    {
+        if (areas is null || (areas.Candidates.Count == 0 && areas.Defined.Count == 0))
+        {
+            return;
+        }
+
+        text.AppendLine();
+        text.AppendLine(string.Create(CultureInfo.InvariantCulture, $"Areas   {areas.Defined.Count} defined, {areas.Candidates.Count} names proposed, {areas.Plans} plans replayed"));
+
+        foreach (AreaHistory.Candidate candidate in areas.Candidates)
+        {
+            string bar = candidate.Cycles.Count >= ProposeConstraints.Bar ? "at the bar" : "below the bar";
+            text.AppendLine(string.Create(
+                CultureInfo.InvariantCulture,
+                $"  proposed: {candidate.Name} in {candidate.Cycles.Count} cycle{(candidate.Cycles.Count == 1 ? string.Empty : "s")} ({bar}) -- would match {candidate.Plans} of {areas.Plans} plans -- {string.Join(", ", candidate.Files)}"));
+        }
+
+        foreach (AreaHistory.Replay replay in areas.Defined)
+        {
+            string note = areas.Plans > 0 && replay.Plans == areas.Plans ? " -- every plan touches it, so it hides nothing" : replay.Plans == 0 ? " -- no plan touched it" : string.Empty;
+            text.AppendLine(string.Create(CultureInfo.InvariantCulture, $"  defined: {replay.Name} matched {replay.Plans} of {areas.Plans} plans{note}"));
+        }
+
+        foreach (string file in areas.Unmatched.Take(20))
+        {
+            text.AppendLine("  changed, in no area: " + file);
+        }
+
+        if (areas.Unmatched.Count > 20)
+        {
+            text.AppendLine(string.Create(CultureInfo.InvariantCulture, $"  ...and {areas.Unmatched.Count - 20} more changed files in no area"));
+        }
     }
 
     /// <summary>
@@ -346,7 +441,52 @@ public static class ProposeConvergence
                 record.Add(await Recorded(cycle, cancellationToken).ConfigureAwait(false));
             }
 
-            return Result.Ok(new Response(rules.Value, groups, decisions.Value, unmentioned, record));
+            Result<IReadOnlyList<Area>> defined = await AreaScope.ReadDefined(solution.Path, cancellationToken).ConfigureAwait(false);
+
+            if (defined.IsFailed)
+            {
+                return defined.ToResult<Response>();
+            }
+
+            return Result.Ok(new Response(
+                rules.Value,
+                groups,
+                decisions.Value,
+                unmentioned,
+                record,
+                await OverBudget(decisions.Value.Standing, cancellationToken).ConfigureAwait(false),
+                await AreaHistory.Read(solution.Path, defined.Value, cancellationToken).ConfigureAwait(false),
+                (await Mining.MinedLedger.Read(solution.Path, cancellationToken).ConfigureAwait(false)).ValueOrDefault));
+        }
+
+        /// <summary>
+        /// The entries a reader handed only the headline would get too much of: never refused, because the
+        /// files are a person's, and proposed for rewording here (D-149).
+        /// </summary>
+        private async Task<IReadOnlyList<string>> OverBudget(IReadOnlyList<Decision> standing, CancellationToken cancellationToken)
+        {
+            List<string> over = [];
+            string path = Path.Combine(solution.Path, Cycle.SdlcDirectoryName, FileConstraintDocuments.SolutionConstraintsFileName);
+
+            if (File.Exists(path))
+            {
+                IReadOnlyList<Constraint> local = ConstraintParser
+                    .Parse(await File.ReadAllTextAsync(path, cancellationToken).ConfigureAwait(false), path)
+                    .ValueOrDefault ?? [];
+
+                over.AddRange(local
+                    .Where(rule => rule.IsInForce)
+                    .Select(rule => (Id: rule.Id.ToString(), Overruns: EntryBudget.Of(rule)))
+                    .Where(entry => entry.Overruns.Count > 0)
+                    .Select(entry => entry.Id + " (" + EntryBudget.Describe(entry.Overruns) + ")"));
+            }
+
+            over.AddRange(standing
+                .Select(decision => (Id: decision.Id.ToString(), Overruns: EntryBudget.Of(decision)))
+                .Where(entry => entry.Overruns.Count > 0)
+                .Select(entry => entry.Id + " (" + EntryBudget.Describe(entry.Overruns) + ")"));
+
+            return over;
         }
 
         /// <summary>Reads how one cycle went, from its ledgers, its approval and its verify's history.</summary>

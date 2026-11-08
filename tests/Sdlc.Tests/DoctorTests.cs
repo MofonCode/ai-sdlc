@@ -2,6 +2,7 @@ using FluentResults;
 using Microsoft.Extensions.DependencyInjection;
 using Sdlc.Core.Cycles;
 using Sdlc.Core.Diagnostics;
+using Sdlc.Core.Factory;
 using Sdlc.Core.Git;
 using Sdlc.Core.Hooks;
 using Sdlc.Core.Init;
@@ -110,6 +111,29 @@ public sealed class DoctorTests
 
         Assert.AreEqual(CheckOutcome.Problem, check.Outcome);
         StringAssert.Contains(check.Detail, "there is no");
+    }
+
+    [TestMethod]
+    public async Task A_factory_pipeline_still_on_a_schedule_is_a_problem_and_one_a_person_starts_is_sound()
+    {
+        // D-143: a pipeline written before it builds on a schedule nobody chose at the moment, and runs Operate.
+        using var solution = Scratch.Create();
+        await Adopt(solution, Platform.AzureDevOps);
+
+        Assert.IsFalse(
+            (await Diagnosis(solution)).Checks.Any(check => check.Subject == "the factory"),
+            "A solution with no factory is told nothing about one.");
+
+        string path = Path.Combine(solution.Root, FactoryPipeline.PathOf(Platform.AzureDevOps));
+        await File.WriteAllTextAsync(path, "trigger: none\nschedules:\n  - cron: '0 2 * * *'\n");
+        Check scheduled = (await Diagnosis(solution)).Checks.Single(check => check.Subject == "the factory");
+
+        await File.WriteAllTextAsync(path, FactoryPipeline.Text(Platform.AzureDevOps, "development"));
+        Check started = (await Diagnosis(solution)).Checks.Single(check => check.Subject == "the factory");
+
+        Assert.AreEqual(CheckOutcome.Problem, scheduled.Outcome);
+        StringAssert.Contains(scheduled.Remedy!, "sdlc factory");
+        Assert.AreEqual(CheckOutcome.Sound, started.Outcome);
     }
 
     [TestMethod]

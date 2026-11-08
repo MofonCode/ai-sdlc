@@ -2,7 +2,7 @@
 name: pr
 description: Push a cycle's branch and open its pull request into the integration branch. The only stage that touches the remote. Use after a verification passed, with --plan to admit an approved plan before it is built, with --draft for a cycle that did not pass, or with --all to sweep every cycle that is ready.
 compatibility: Requires the sdlc binary on PATH, from the MofonCode.Sdlc.Cli dotnet tool, and a git repository. Every command here is that binary, so without it the first step fails.
-argument-hint: "<cycle id>... [--plan | --draft] | --all"
+argument-hint: "<cycle id>... [--plan | --draft] | --plan | --all"
 allowed-tools: Bash(sdlc *), Bash(git *), Bash(gh *), Bash(az *), Read, Glob, Grep
 ---
 
@@ -19,6 +19,7 @@ happened.
 | `pr <id>` | a verified build | `sdlc pr-ready <id>` |
 | `pr <id> --plan` | an approved plan, before it is built — admission to the integration branch | `sdlc gate <id>` |
 | `pr <id> <id>... --plan` | every approved plan of one slicing, and the successors it wrote, by one pull request | `sdlc gate <id>` for each, then `sdlc slices` |
+| `pr --plan`, in a sandbox | every approved plan the sandbox carries, and the successors it wrote, by one pull request | `sdlc admit`, which names each before you are asked to push |
 | `pr <id> --draft` | a build that did not pass: `blocked` or `escalated` | `sdlc pr-ready <id>`, which must refuse for exactly that: did not pass, or escalated |
 
 ## Where it goes
@@ -102,6 +103,29 @@ The slug is the slicing's — the successors' `sliced_from:` lead, or the one th
 plan's — the problem, the criteria, the shape, the tier — and then each successor with what it waits for, from
 `sdlc successors`. The reviewer is reading the rest of the work beside its first plans.
 
+### A sandbox: `--plan` with no ids
+
+**In a sandbox, what leaves is what the person approved** (D-144). No id is named: the sandbox's approved cycles
+are the set, and a cycle still being planned stays behind for a later admission.
+
+1. **Compose the branch**, in the sandbox:
+
+   ```
+   sdlc admit
+   ```
+
+   Run the one command it prints: it opens the admission branch — `cycle/<id>/plan` for one approved cycle,
+   `slices/sandbox-<id>/plan` for several — in a folder beside the sandbox, from the integration branch, with
+   each approved cycle's folder and every successor the sandbox wrote. It refuses outside a sandbox, with
+   nothing approved, with uncommitted changes in an approved cycle's folder, and with a plan needing a file
+   only a sibling's plan creates; show the refusal and stop. On standard error it names what stays behind and
+   the files two plans share.
+2. **Check it before pushing**, in that folder: `sdlc verify-chain <branch> --base <integration>`.
+3. **Name every cycle it takes when you ask to push**, by id and headline, and what stays. That read-back is
+   where the person sees what they are admitting, since they named no id.
+4. **Push and open** as for one plan, or as for a slicing when it carries several, with the branch deleted on
+   merge. Once it has merged, `git worktree remove` the folder; the sandbox carries on with what stayed.
+
 ## A cycle that did not pass: `--draft`
 
 Opened for a `blocked` or `escalated` cycle, usually by `batch-build` (D-85). **Refuse if `sdlc pr-ready`
@@ -132,23 +156,23 @@ It refuses for five reasons, and each is final rather than advisory:
 **Do not push past a refusal.** The chain-broken one in particular: the pull-request check would refuse
 it anyway, so pushing would cost a round trip through CI to learn what you were just told.
 
-## Converge now, or after the merge
+## Mine now, or after the merge
 
 Once `pr-ready` holds, ask the person once — not in a sweep, which runs with nobody to mark proposals:
-**converge on this branch before the pull request, or after it merges?** (D-111.) Either is right, and
-skipping it here is an answer: `/sdlc:propose convergence` on the integration branch afterwards is the
+**mine on this branch before the pull request, or after it merges?** (D-111.) Either is right, and
+skipping it here is an answer: `/sdlc:mine` on the integration branch afterwards is the
 same act.
 
-Now, it runs exactly as `/sdlc:propose convergence` describes, on this branch. The person marks the
+Now, it runs exactly as `/sdlc:mine` describes, on this branch. The person marks the
 proposals, renames the drafts, and **commits that themselves, as a commit of its own** — the three files
 are theirs (`! git add .sdlc/constraints.md .sdlc/decisions.md .sdlc/techstack.md` and a
 `git commit -F` message). Then `sdlc pr-ready <id>` again, and on.
 
 **Only after the passing verify, and nothing in the cycle moves after it**, because rounds after a rule
 changed read the rule (D-104's twenty blockers). The pull-request check reports the order and refuses
-nothing for it — git cannot tell a convergence from a person's own edit in the cycle — so keeping it is
+nothing for it — git cannot tell mining from a person's own edit in the cycle — so keeping it is
 this skill's job (D-113). If review sends the build back and the verify is
-written again, the convergence commit comes out and goes back on top afterwards.
+written again, the mining commit comes out and goes back on top afterwards.
 
 ## First: is there anywhere to push?
 
@@ -275,6 +299,6 @@ Then:
 ## Report
 
 **One line per cycle**, carrying three things: its id, its branch, and the pull request's link. For a
-verified build, one more line: *once this merges, `/sdlc:propose convergence` brings the rules, decisions
+verified build, one more line: *once this merges, `/sdlc:mine` brings the rules, decisions
 and stack up to what it settled* (D-104). Then stop. Nothing after this is yours — the merge belongs to a
 reviewer, and a summary of what they are about to read is a reviewer being told what to think.

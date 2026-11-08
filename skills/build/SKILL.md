@@ -2,13 +2,25 @@
 name: build
 description: Implement an approved plan, build, test, and record the evidence a verification will read. Use after a person has approved a cycle's three planning documents.
 compatibility: Requires the sdlc binary on PATH, from the MofonCode.Sdlc.Cli dotnet tool, and a git repository. Every command here is that binary, so without it the first step fails.
-argument-hint: "<cycle id>"
+argument-hint: "[<cycle id>]"
 allowed-tools: Bash(sdlc *), Bash(git *), Bash(dotnet *), Read, Write, Edit, Glob, Grep
 ---
 
 # Build an approved plan
 
 The first stage that writes code, and the first one a person is not expected to watch.
+
+## Which cycle
+
+**Given no cycle id, ask the binary which one is meant** (D-142):
+
+```
+sdlc cycles --here --for build
+```
+
+It exits 0 printing the one cycle ready for this step, and that is the cycle. Otherwise it lists the
+candidates, or says none is ready and why: ask the person which, in one question, and **never pick one
+yourself** — the cycle a skill acts on is not a guess.
 
 ## The gate decides, not you
 
@@ -84,7 +96,10 @@ perspective when `sdlc propose constraints` reads the history.
 
 Read `plan.md`. Implement what `Shape and departures` decided and what `Proof` committed to.
 
-**Then run `sdlc decisions`, and build to it where the plan is silent.** The plan describes an approach;
+**Then run `sdlc decisions --for plan --cycle <id>`, and build to it where the plan is silent.** Where the
+solution has areas, a decision outside the plan's areas comes back as its headline; `sdlc decisions show
+DEC_nn` prints it in full when the code you are writing reaches it, which is also a sign the change touches
+an area its plan did not declare (D-151). The plan describes an approach;
 most of what decisions settle — how errors are returned, what is logged, how time is stored, what things
 are named — shows only in code. The diff reader at verify reads the change against the decisions, and code
 that takes what a decision set aside with no `Departs from DEC_nn` line in the intent or the plan is a

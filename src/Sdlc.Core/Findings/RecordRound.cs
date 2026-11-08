@@ -4,6 +4,7 @@ using System.Text;
 using FluentResults;
 using Microsoft.Extensions.DependencyInjection;
 using MofonCode.Core;
+using Sdlc.Core.Areas;
 using Sdlc.Core.Artifacts;
 using Sdlc.Core.Cycles;
 using Sdlc.Core.Evidence;
@@ -302,6 +303,97 @@ public static class RecordRound
         return Result.Ok(ids);
     }
 
+    /// <summary>
+    /// Reads a plan's <c>## Areas</c> section and refuses one that leaves a declared file without an area
+    /// (D-150). A plan with no section is checked only when its cycle was opened since areas.
+    /// </summary>
+    internal static async Task<Result<IReadOnlyList<PlanArea>>> PlanAreasChecked(Cycle cycle, string plan, CancellationToken cancellationToken)
+    {
+        Result<IReadOnlyList<PlanArea>> lines = PlanAreas.Read(plan);
+
+        if (lines.IsFailed
+            || (!PlanAreas.Has(plan) && !await NewerRules.Since(cycle, NewerRules.Areas, cancellationToken).ConfigureAwait(false)))
+        {
+            return lines;
+        }
+
+        Result<IReadOnlyList<Area>> defined = await AreaScope.ReadDefined(cycle.SolutionRoot, cancellationToken).ConfigureAwait(false);
+
+        if (defined.IsFailed)
+        {
+            return defined.ToResult<IReadOnlyList<PlanArea>>();
+        }
+
+        IReadOnlyList<string> unaccounted = PlanAreas.Unaccounted(DeclaredFiles.Read(plan), defined.Value, lines.Value);
+
+        return unaccounted.Count == 0
+            ? lines
+            : Result.Fail<IReadOnlyList<PlanArea>>(string.Create(
+                CultureInfo.InvariantCulture,
+                $"plan.md declares files no area covers and its '## Areas' section does not account for: {string.Join(", ", unaccounted)}. Add '- new <name>: <files>' naming what you would call the area, or '- none: <files>' for files that belong to none (D-150)."));
+    }
+
+    /// <summary>
+    /// The area suggestions one plan round raises and withdraws: a name the plan proposes is raised against the
+    /// plan, and one it no longer proposes is withdrawn there (D-150).
+    /// </summary>
+    internal static IReadOnlyList<Finding> AreaSuggestions(SuggestionLedger ledger, IReadOnlyList<PlanArea> lines, IReadOnlyList<Finding> alreadyGiven)
+    {
+        ArgumentNullException.ThrowIfNull(ledger);
+        ArgumentNullException.ThrowIfNull(lines);
+        ArgumentNullException.ThrowIfNull(alreadyGiven);
+
+        const string Prefix = PlanAreas.Perspective + ".S_";
+        List<Finding> found = [];
+        int next = ledger.Suggestions.Select(suggestion => suggestion.Id)
+            .Concat(alreadyGiven.Select(finding => finding.Id))
+            .Where(id => id.StartsWith(Prefix, StringComparison.Ordinal))
+            .Select(id => int.TryParse(id[Prefix.Length..], NumberStyles.None, CultureInfo.InvariantCulture, out int number) ? number : 0)
+            .DefaultIfEmpty(0)
+            .Max() + 1;
+
+        HashSet<string> proposed = new(StringComparer.Ordinal);
+
+        foreach (PlanArea line in lines.Where(line => line.Kind == PlanAreaKind.Proposed))
+        {
+            if (!proposed.Add(line.Name!))
+            {
+                continue;
+            }
+
+            string statement = AreaStatement(line.Name!);
+            LedgerSuggestion? known = ledger.Suggestions.FirstOrDefault(suggestion =>
+                suggestion.Perspective == PlanAreas.Perspective && suggestion.Statement == statement);
+
+            found.Add(new Finding(
+                known?.Id ?? string.Create(CultureInfo.InvariantCulture, $"{Prefix}{next++:D2}"),
+                Severity.Suggestion,
+                Disposition.Open,
+                null,
+                statement,
+                "## " + PlanAreas.Section,
+                known?.Remedy ?? "Mining proposes it once three cycles' plans name an area over these files: " + string.Join(", ", line.Files) + ".",
+                Perspective: PlanAreas.Perspective,
+                Gist: statement));
+        }
+
+        foreach (LedgerSuggestion stale in ledger.Suggestions.Where(suggestion =>
+            suggestion.Perspective == PlanAreas.Perspective
+            && suggestion.LatestOn(ArtifactKind.Plan)?.Event == SuggestionEventKind.Raised
+            && !found.Any(finding => finding.Id == suggestion.Id)))
+        {
+            found.Add(stale.AsFinding(stale.LatestOn(ArtifactKind.Plan)!) with { Disposition = Disposition.Withdrawn });
+        }
+
+        return found;
+    }
+
+    /// <summary>The fixed wording of an area suggestion, so a later round restates it under the same id.</summary>
+    /// <param name="name">The proposed name.</param>
+    /// <returns>The statement.</returns>
+    internal static string AreaStatement(string name) =>
+        "The plan's files read as one area this solution does not name yet: " + name + ".";
+
     private sealed class Handler(SolutionRoot solution, TimeProvider clock, IRepository repository) : IRequestHandler<Command, Response>
     {
         public async Task<Result<Response>> Handle(Command request, CancellationToken cancellationToken)
@@ -370,6 +462,18 @@ public static class RecordRound
             }
 
             string text = await File.ReadAllTextAsync(artifact, cancellationToken).ConfigureAwait(false);
+
+            // Every file a plan declares has an area, a proposed name, or 'none'. Which files are left over is a
+            // listing, so it is checked here, where areas.md can be read (D-150).
+            Result<IReadOnlyList<PlanArea>> planAreas = request.Artifact == ArtifactKind.Plan
+                ? await PlanAreasChecked(cycle, text, cancellationToken).ConfigureAwait(false)
+                : Result.Ok<IReadOnlyList<PlanArea>>([]);
+
+            if (planAreas.IsFailed)
+            {
+                return Result.Fail<Response>(planAreas.Errors);
+            }
+
             // A verify round's upstream is the plan, which commits to the proof per criterion -- the
             // hash the status panel compares a verify round against.
             ArtifactKind? above = request.Artifact == ArtifactKind.Verify
@@ -441,6 +545,13 @@ public static class RecordRound
             if (appended.IsFailed)
             {
                 return Result.Fail<Response>(appended.Errors);
+            }
+
+            // A name the plan proposes is a suggestion of kind area, raised by the plan itself rather than a
+            // reader; one the plan stops proposing is withdrawn. Mining collects them (D-150).
+            if (request.Artifact == ArtifactKind.Plan)
+            {
+                toSuggestions.AddRange(AreaSuggestions(suggestions.Value, planAreas.Value, toSuggestions));
             }
 
             Result<SuggestionLedger> recorded = suggestions.Value.Record(request.Artifact, written.Round, toSuggestions, taken.Value);

@@ -2,7 +2,7 @@
 name: batch-build
 description: Complete every queued cycle -- build and verify each on its own branch, independently, and report the sitrep. With --pr, open a pull request for each; with --unattended, run as the factory does, asking nothing. Use when several cycles are approved and waiting.
 compatibility: Requires the sdlc binary on PATH, from the MofonCode.Sdlc.Cli dotnet tool, and a git repository. Every command here is that binary, so without it the first step fails.
-argument-hint: "[--pr] [--unattended]"
+argument-hint: "[<cycle id>] [--pr] [--unattended]"
 allowed-tools: Bash(sdlc *), Bash(git *), Bash(dotnet *), Bash(gh *), Bash(az *), Read, Write, Edit, Glob, Grep
 ---
 
@@ -10,7 +10,7 @@ allowed-tools: Bash(sdlc *), Bash(git *), Bash(dotnet *), Bash(gh *), Bash(az *)
 
 It collects the cycles waiting for a build, builds and verifies each on a branch of its own, and reports.
 Run by a person, it works from this working copy. Run by the factory, it works from a fresh checkout of the
-integration branch, on a schedule, asking nothing (`CONCEPT.md` §10.5, D-84).
+integration branch, in a run a person started, asking nothing (`CONCEPT.md` §10.5, D-84).
 
 ## Read this first
 
@@ -27,12 +27,16 @@ which is why the factory's pipeline job has a timeout, and why the first few run
 
 ```
 git fetch origin
-sdlc cycles --queued
+sdlc cycles --queued [<id>]
 sdlc cycles --claims
 ```
 
+**Given a cycle id, pass it**: the queue is then that cycle alone, and a cycle that is not queued is refused with
+why. Stop there and report it; never build the rest instead.
+
 The first lists what to build — approved, no verify, not abandoned, and no `cycle/<id>/...` branch on the
-remote — and every cycle held back, with why. **Build exactly the queued ones.** A held-back cycle is
+remote — and every cycle held back, with why. **Build exactly the queued ones, in the order listed.** The cycle the most successors wait on comes
+first, so a run that stops on its time limit has built what starts the most moving. A held-back cycle is
 somebody else's or still moving; the sitrep at the end names it, and a person decides.
 
 The second marks the cycles whose plans stand up a backing service, which is what caps concurrency
@@ -128,8 +132,8 @@ branch is the record of the attempt.
 ## 5. With `--pr`: a pull request for every cycle
 
 **Ask once, before the run** — not at the end — because the question is about volume and the person should
-answer it before waiting rather than after. With `--unattended`, ask nothing: the schedule that started the
-run was that decision, taken once by a person where it can be read (D-84).
+answer it before waiting rather than after. With `--unattended`, ask nothing: starting the run was that
+decision, taken by a person where it can be read (D-84, D-143).
 
 As each cycle finishes:
 

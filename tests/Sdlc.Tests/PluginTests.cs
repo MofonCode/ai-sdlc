@@ -359,15 +359,15 @@ public sealed class PluginTests
     [TestMethod]
     public void A_skill_that_keeps_a_task_list_ends_it_at_the_hand_back_and_never_calls_it_the_record()
     {
-        // Six long skills open a task list where the host has one. Two sentences are what keep that
+        // Seven long skills open a task list where the host has one. Two sentences are what keep that
         // from undoing the design: a stage's list holds nothing past its hand-back, so it never shows a
         // stage a person has not decided to run, and every list is a view rather than the record, so a
         // tick is never mistaken for a placed file or recorded evidence. Held per skill, because each
         // skill is loaded alone and a rule stated only in the index is one an agent never reads. D-80.
         //
-        // The batch has no hand-back between cycles to protect, and a different way to mislead: four
-        // outcomes shown in a tick box with two states. So its two sentences are its own.
-        string[] keeping = ["batch-build", "build", "init", "intent", "plan", "spec"];
+        // A batch has no hand-back between cycles to protect, and a different way to mislead: four
+        // outcomes shown in a tick box with two states. So their two sentences are their own.
+        string[] keeping = ["batch-build", "batch-plan", "build", "init", "intent", "plan", "spec"];
 
         List<string> found = [];
 
@@ -392,6 +392,11 @@ public sealed class PluginTests
                 StringAssert.Contains(text, "**One line per cycle.**", name);
                 StringAssert.Contains(text, "**A tick means `passed`, and nothing else does.**", name);
             }
+            else if (name == "batch-plan")
+            {
+                StringAssert.Contains(text, "**One line per cycle.**", name);
+                StringAssert.Contains(text, "**A tick means planned, and nothing else does.**", name);
+            }
             else
             {
                 StringAssert.Contains(text, "**This stage only.**", name);
@@ -411,11 +416,11 @@ public sealed class PluginTests
         CollectionAssert.AreEqual(
             keeping,
             found,
-            "The skills index and CONCEPT.md D-80 name these six. A seventh is a decision, not an edit.");
+            "The skills index and CONCEPT.md name these seven. An eighth is a decision, not an edit.");
 
         string index = File.ReadAllText(Path.Combine(Root, "skills", "README.md"));
 
-        StringAssert.Contains(index, "**Six of them keep a task list where the host has one.**");
+        StringAssert.Contains(index, "**Seven of them keep a task list where the host has one.**");
     }
 
     [TestMethod]
@@ -564,7 +569,7 @@ public sealed class PluginTests
     [TestMethod]
     [DataRow("interrogate")]
     [DataRow("verify")]
-    [DataRow("propose")]
+    [DataRow("mine")]
     public void Every_skill_that_judges_starts_a_fresh_process_it_may_run(string skill)
     {
         // D-109. The verdict used to be written by whichever session typed /sdlc:verify, which was usually
@@ -1099,10 +1104,10 @@ public sealed class PluginTests
 
         int constraints = parsed.Value.Count(constraint => constraint.IsInForce);
 
-        Assert.AreEqual(18, skills, "The readme says eighteen skills.");
+        Assert.AreEqual(21, skills, "The readme says twenty-one skills.");
         Assert.AreEqual(19, constraints, "The readme says nineteen global constraints.");
 
-        StringAssert.Contains(readme, "eighteen skills");
+        StringAssert.Contains(readme, "twenty-one skills");
         StringAssert.Contains(readme, "nineteen global constraints");
     }
 

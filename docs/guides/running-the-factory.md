@@ -1,10 +1,10 @@
 # Running the factory
 
-Many cycles, built overnight: the integration branch, the factory's pipeline, and the morning that
-follows it. `running-a-cycle.md` is one cycle by hand; this is what changes when a pipeline builds them.
+Many cycles, built unattended: the integration branch, the factory's pipeline, the run you start, and what
+you do with what it opened. `running-a-cycle.md` is one cycle by hand; this is what changes when a pipeline builds them.
 
 **The factory automates four things and nothing else** — finding approved plans, building, verifying,
-opening pull requests (`CONCEPT.md` D-84). Everything after the pull request is yours: reviewing,
+opening pull requests (`CONCEPT.md` D-84) — and **you start every run**; nothing schedules it (D-143). Everything after the pull request is yours: reviewing,
 resolving conflicts, merging, and promoting to main. It never merges, and it never writes a file only a
 person writes.
 
@@ -40,6 +40,9 @@ skips any cycle with a `cycle/<id>/...` branch there, and the sitrep says which 
 sdlc cycles --queued
 ```
 
+That is also the order a run builds in: the cycle the most successors wait on first, so a run that stops on its
+time limit has built what starts the most moving, then oldest first.
+
 ## 3. Write the pipeline
 
 ```pwsh
@@ -56,10 +59,14 @@ It writes `azure-pipelines.factory.yml` or `.github/workflows/sdlc-factory.yml` 
    build all night with nothing refusing anything. The sign-in comes first because an agent that cannot sign
    in writes nothing either, and would pass
 3. runs `/sdlc:batch-build --pr --unattended`: every queued cycle on its own `cycle/<id>/build-unattended`
-   branch, independently, and a pull request for each — **a draft for one that did not pass**
+   branch, independently, and a pull request for each — **a draft for one that did not pass**. Given one cycle
+   id, that cycle alone: the binary checks it is queued before the agent sees it, and the run stops with why
+   if it is not
 4. publishes the sitrep as the run's summary, whatever happened above
 
-Before the build it runs **Operate** — `sdlc operate`, below — when `solution.md` declares a telemetry store.
+**Start it** from the Actions tab or Pipelines > Run pipeline, or from a terminal — `gh workflow run
+sdlc-factory.yml`, `az pipelines run --name <its name>` — with `cycle` set to build one alone. There is no
+schedule: starting it is the decision to spend, made each time by the person who can see what is queued.
 
 **On the factory's agent image, upgrading is a rebuild.** A new release reaches the agent when you build
 the image again from it and `sudo systemctl restart sdlc-factory-agent`. Until then the run finds the
@@ -76,7 +83,7 @@ it, once, is `setting-up-the-factory.md`, and the command prints the short versi
 **Who reviews is your branch policy, not the framework's.** With no required reviewer on `development`,
 code the factory wrote reaches it read by nobody but whoever clicks merge.
 
-## 4. The morning
+## 4. After a run
 
 ```pwsh
 git fetch origin
@@ -92,7 +99,7 @@ The same page the run published, against the state now. In the order it lists:
 | **Needs a person** | a draft: `/sdlc:remediate <id>` on its branch for `blocked`; for `escalated`, `steer`, a reopen, or `sdlc draft abandon <id>`. *Built before its plan was amended*: merge `development` into it to continue by hand, or delete it to rebuild — whatever its verify says, it is never ready |
 | **Held back, not built** | each with its reason. Delete a forgotten plan branch to put its cycle back. A build branch made before its plan was amended is named with the same two choices; the factory never resumes it |
 | **Waiting for a build** | its age, and *going stale* when a file its plan declares changed on `development` since approval — read the plan again before it builds |
-| **Successors a person can start** | a successor whose predecessors merged, with `/sdlc:intent --from successor:<slug>` to start it — the factory never does; one *stuck* behind an abandoned cycle wants its `succeeds:` corrected or the file deleted |
+| **Backlog** | always shown, empty or not. *Ready now*: a successor whose predecessors merged, with `/sdlc:intent --from successor:<slug>`, and a parked cycle whose predecessor merged, with `sdlc unpark <id>` — `/sdlc:next` takes all of them, and the factory never does. *Still waiting*: each with what it waits on. *No merge makes these ready*: stuck behind an abandoned cycle, or naming something that does not exist — correct its `succeeds:` or `waits_on:`. It ends by naming what it cannot see: cycles still being planned in a sandbox are on no branch it reads until admitted, so `sdlc backlog` in the sandbox is where they show |
 
 **When a pull request conflicts, or goes red after an earlier merge:**
 
@@ -108,7 +115,9 @@ evidence and verifies again in a fresh process. It never merges the pull request
 *Immediately* — the adoption guide sets out the cheaper settings. That is what catches two pull requests
 that each pass and break together, before the second one lands.
 
-Then define the next batch, and admit each approved plan with `/sdlc:pr <id> --plan`.
+Then define the next batch, and admit each approved plan with `/sdlc:pr <id> --plan`. **What your merges made
+ready is built by the next run you start**: the sitrep's successors become cycles through you, and a cycle
+waiting on another builds once that one has merged.
 
 ## Operate: production's errors as leads
 
@@ -119,7 +128,7 @@ and a rename:
 telemetry: appinsights:<application id>
 ```
 
-Then try it without filing anything:
+It is a command you run — no pipeline runs it. Try it without filing anything first:
 
 ```pwsh
 sdlc operate --dry-run

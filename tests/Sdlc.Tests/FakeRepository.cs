@@ -69,6 +69,11 @@ internal sealed class FakeRepository : IRepository
 
     public string? CurrentBranch(string workingDirectory) => Branch;
 
+    /// <summary>What <see cref="CommonDirectory"/> reports; null, the default, claims nothing shared.</summary>
+    public string? Common { get; init; }
+
+    public string? CommonDirectory(string workingDirectory) => Common;
+
     public Result Commit(string workingDirectory, IReadOnlyList<string> paths, string message)
     {
         Commits.Add(paths);

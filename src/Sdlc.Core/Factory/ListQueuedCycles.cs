@@ -8,6 +8,7 @@ using Sdlc.Core.Cycles;
 using Sdlc.Core.Evidence;
 using Sdlc.Core.Git;
 using Sdlc.Core.Solutions;
+using Sdlc.Core.Successors;
 
 namespace Sdlc.Core.Factory;
 
@@ -42,7 +43,11 @@ public static class ListQueuedCycles
     /// <summary>A cycle the factory would build.</summary>
     /// <param name="Id">The cycle.</param>
     /// <param name="Headline">What its intent is about, when it says.</param>
-    public sealed record Queued(CycleId Id, string? Headline);
+    /// <param name="Unlocks">
+    /// The successors waiting on it, directly or behind another successor that is, by slug: what merging it
+    /// starts moving, and why it is built first.
+    /// </param>
+    public sealed record Queued(CycleId Id, string? Headline, IReadOnlyList<string> Unlocks);
 
     /// <summary>A cycle the factory would pass over, and why.</summary>
     /// <param name="Id">The cycle.</param>
@@ -51,16 +56,59 @@ public static class ListQueuedCycles
     public sealed record HeldBack(CycleId Id, string? Headline, string Reason);
 
     /// <summary>Asks for the queue.</summary>
-    public sealed record Query : IRequest<Response>;
+    /// <param name="Only">
+    /// The one cycle a run was asked to build. The queue is then that cycle alone, and one that is not queued is
+    /// refused with why, so a run started for it stops before it builds anything.
+    /// </param>
+    public sealed record Query(CycleId? Only = null) : IRequest<Response>;
 
     /// <summary>The queue.</summary>
-    /// <param name="Cycles">What would be built, oldest first.</param>
+    /// <param name="Cycles">
+    /// What would be built, in the order to build it: the cycle the most successors wait on first, so the time a
+    /// run has goes where it starts the most moving, then oldest first.
+    /// </param>
     /// <param name="Held">What would be passed over, oldest first.</param>
     /// <param name="RemoteRead">
     /// Whether the remote's branches could be read. False on a solution with no remote, or when git could
     /// not reach it — and then nothing is held back by a branch, which the renderer says.
     /// </param>
     public sealed record Response(IReadOnlyList<Queued> Cycles, IReadOnlyList<HeldBack> Held, bool RemoteRead);
+
+    /// <summary>
+    /// Every successor waiting on a cycle, directly or behind another successor that is, by slug.
+    /// </summary>
+    /// <param name="successors">Where every successor stands.</param>
+    /// <param name="cycle">The cycle.</param>
+    /// <returns>The slugs, in the order they were reached.</returns>
+    public static IReadOnlyList<string> Waiting(ReadSuccessors.Response successors, CycleId cycle)
+    {
+        ArgumentNullException.ThrowIfNull(successors);
+
+        // What a successor names resolves to a cycle once one started from it; until then it is the slug.
+        HashSet<string> reached = new(StringComparer.Ordinal) { cycle.ToString() };
+        List<string> waiting = [];
+        bool grew = true;
+
+        while (grew)
+        {
+            grew = false;
+
+            foreach (ReadSuccessors.Standing standing in successors.Successors)
+            {
+                string slug = standing.Successor.Slug;
+
+                if (!waiting.Contains(slug, StringComparer.Ordinal)
+                    && standing.Waits.Any(wait => reached.Contains(wait.Cycle?.ToString() ?? wait.Reference.ToString())))
+                {
+                    waiting.Add(slug);
+                    reached.Add(SuccessorReference.Prefix + slug);
+                    grew = true;
+                }
+            }
+        }
+
+        return waiting;
+    }
 
     private sealed class Handler(SolutionRoot solution, Mediator mediator, IRepository repository)
         : IRequestHandler<Query, Response>
@@ -76,6 +124,15 @@ public static class ListQueuedCycles
             if (graph.IsFailed)
             {
                 return graph.ToResult<Response>();
+            }
+
+            Result<ReadSuccessors.Response> successors = await mediator
+                .Send<ReadSuccessors.Query, ReadSuccessors.Response>(new ReadSuccessors.Query(), cancellationToken)
+                .ConfigureAwait(false);
+
+            if (successors.IsFailed)
+            {
+                return successors.ToResult<Response>();
             }
 
             IReadOnlyList<string>? remote = repository.RemoteBranches(solution.Path, CycleId.BranchPrefix);
@@ -101,9 +158,21 @@ public static class ListQueuedCycles
                     continue;
                 }
 
+                // D-145: a parked plan needs code another cycle has not merged, so building it now cannot work.
+                if (successors.Value.Waiting.FirstOrDefault(p => p.Cycle == claim.Cycle) is { } parked)
+                {
+                    held.Add(new HeldBack(
+                        claim.Cycle,
+                        headline,
+                        string.Create(
+                            CultureInfo.InvariantCulture,
+                            $"it is parked, waiting on {string.Join(", ", parked.Waits.Select(ReadSuccessors.Describe))}; once each has merged, 'sdlc unpark {claim.Cycle}' and read its spec and plan again")));
+                    continue;
+                }
+
                 if (taken.Length == 0)
                 {
-                    queued.Add(new Queued(claim.Cycle, headline));
+                    queued.Add(new Queued(claim.Cycle, headline, Waiting(successors.Value, claim.Cycle)));
                     continue;
                 }
 
@@ -128,7 +197,28 @@ public static class ListQueuedCycles
                 }
             }
 
-            return Result.Ok(new Response(queued, held, remote is not null));
+            // Most waiting first: a run that stops on its time limit has then built what starts the most
+            // moving. The claims were read oldest first, and the sort is stable, so age breaks a tie.
+            Queued[] ordered = [.. queued.OrderByDescending(cycle => cycle.Unlocks.Count)];
+
+            if (request.Only is not { } only)
+            {
+                return Result.Ok(new Response(ordered, held, remote is not null));
+            }
+
+            if (ordered.FirstOrDefault(cycle => cycle.Id == only) is { } asked)
+            {
+                return Result.Ok(new Response([asked], [], remote is not null));
+            }
+
+            string why = held.FirstOrDefault(cycle => cycle.Id == only)?.Reason
+                ?? (Directory.Exists(new Cycle(only, solution.Path).Directory)
+                    ? "it is not approved for a build, or it already has a verify - 'sdlc status " + only + "' says where it stands"
+                    : "there is no such cycle here");
+
+            return Result.Fail(string.Create(
+                CultureInfo.InvariantCulture,
+                $"Nothing was built: {only} is not queued, because {why}."));
         }
 
         /// <summary>The reason for a build branch older than the approval standing here, or null when none is.</summary>

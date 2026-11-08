@@ -130,6 +130,34 @@ public sealed class DecisionsTests
     }
 
     [TestMethod]
+    public async Task An_entry_over_the_word_budget_is_named_and_nothing_is_refused()
+    {
+        // D-149. The file is a person's: the record still renders, and the long entry is named for mining
+        // to propose a rewording.
+        using var workspace = CycleWorkspace.Create();
+        string longTitle = string.Join(' ', Enumerable.Repeat("word", 15 + 3));
+        Record(workspace, Entry("DEC_01"), Entry("DEC_02").Replace("publishing goes through an outbox", longTitle, StringComparison.Ordinal));
+
+        string rendered = DecisionsRenderer.Render(await ReadRecord(workspace), DecisionDetail.Full);
+
+        StringAssert.Contains(rendered, "DEC_02 (title 18 of 15)");
+        Assert.IsFalse(rendered.Contains("DEC_01 (", StringComparison.Ordinal), "An entry within budget is not named.");
+        StringAssert.Contains(rendered, "nothing is refused");
+    }
+
+    [TestMethod]
+    public void One_entry_renders_in_full_with_its_provenance()
+    {
+        Decision decision = Parsed("# d" + Environment.NewLine + Entry("DEC_04", supersededBy: "DEC_05"))[0];
+
+        string rendered = DecisionsRenderer.RenderOne(decision);
+
+        StringAssert.StartsWith(rendered, "DEC_04 publishing goes through an outbox  (superseded by DEC_05)");
+        StringAssert.Contains(rendered, "instead of");
+        StringAssert.Contains(rendered, "20260901_0900_01");
+    }
+
+    [TestMethod]
     public async Task A_reversed_entry_is_withheld_unless_it_is_asked_for()
     {
         using var workspace = CycleWorkspace.Create();

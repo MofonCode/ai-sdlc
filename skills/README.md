@@ -1,4 +1,4 @@
-# The eighteen skills
+# The twenty-one skills
 
 Every skill in the plugin, in depth: when it runs, why it exists, how it is invoked, what it reads and
 writes, and an example.
@@ -45,16 +45,16 @@ denies an agent the command. The other is requested: `pr` is the only stage that
 repository, so it asks before every push — but no hook blocks a push, and what stops an unready cycle
 from merging is the pull-request check.
 
-**All eighteen are model-invocable.** Nothing in the manifest stops an agent reaching for one on its
-own, and that is deliberate — what protects the decisions is the hook denying the six protected files
+**All twenty-one are model-invocable.** Nothing in the manifest stops an agent reaching for one on its
+own, and that is deliberate — what protects the decisions is the hook denying the seven protected files
 and `sdlc init`, plus the pull-request check, rather than a flag in a skill's frontmatter. A guard that
 lives in the manifest is a guard the manifest can lose. `../docs/guides/handling-refusals.md` has what
 the hook actually denies today, and what it does not.
 
-**Six of them keep a task list where the host has one.** `init`, `intent`, `spec`, `plan` and `build`
+**Seven of them keep a task list where the host has one.** `init`, `intent`, `spec`, `plan` and `build`
 each list their own steps and nothing past the hand-back, so the list never shows a stage a person
 has not yet decided to run. `batch-build` lists one line per cycle, ticked only when that cycle
-passed, and `build` keeps none of its own while a batch is running it. Every one is the agent's view
+passed, `batch-plan` one per cycle ticked when its plan is clean, and `build` keeps none of its own while a batch is running it. Every one is the agent's view
 of a session and never the record — what is done is what is on disk and what `sdlc doctor`, `sdlc
 status` and `sdlc cycles --pr-ready` report — and a host without a task list loses nothing, because
 no step depends on one. `../CONCEPT.md` D-80 has why a stage's list stops at the hand-back, why the
@@ -110,7 +110,7 @@ with the person from what the repository holds, in a draft they rename.
   branch and switches to it, and drafts `solution.draft.md`, `techstack.draft.md` and
   `constraints.draft.md` beside where each goes — each with a note saying only a person changes the real
   file. A person fills them in, renames them into place and commits them, because `solution.md`,
-  `techstack.md` and `constraints.md` are three of the six files only a person writes. The drafts are
+  `techstack.md` and `constraints.md` are three of the seven files only a person writes. The drafts are
   ignored by git.
 - **`--platform local`** writes no pipeline. No pull-request check then governs a merge and nothing
   mechanical decides what reaches the default branch — the choice is recorded in `solution.md` so
@@ -219,6 +219,7 @@ Interviews a person into the intent, the first artifact of a cycle, and opens th
 
 ```
 /sdlc:intent [--type bug|add|change] [--from <lead>]
+/sdlc:intent --reslice <cycle id>...
 ```
 
 #### Parameters
@@ -227,10 +228,11 @@ Interviews a person into the intent, the first artifact of a cycle, and opens th
 |---|---|
 | `--type bug\|add\|change` | the kind of change — a bug fix, a feature addition or a feature change — so the interview asks that kind's questions. Optional: without it the type comes from the lead, or a new solution is detected, or the opening answer decides it and the skill confirms. There is no `new`: a new solution is only detected. A flag the answers contradict is asked about, never followed in silence |
 | `--from <lead>` | begin from a lead — `azuredevops:1234`, `github:56`, `suggestion:<cycle>/<finding>`, `successor:<slug>`, or a path — fetched by `sdlc lead show` and recorded in the intent as `lead:`. It seeds the interview and never replaces it. A lead or a description is what a slicing is proposed from; a ready successor is started rather than sliced again |
+| `--reslice <cycle id>...` | slice again intents already written — one to split it, several to join or re-cut them — while none has a spec (D-141). The first id keeps its cycle and becomes the first piece; each further piece opens as a cycle or waits as a successor; a cycle emptied by the cut is removed if it was never pushed, or recommended for abandonment if it holds something worth keeping. The person accepts the cut, as for any slicing |
 
 #### Output
 
-A cycle id, its plan branch `cycle/<id>/plan`, and `intent.md` — problem, wanted outcomes, fixed decisions, what
+A cycle id, the sandbox it lives in — `sandbox/<id>`, in `../<repository>.sandboxes/<id>`, or the one it was opened in (D-144) — and `intent.md` — problem, wanted outcomes, fixed decisions, what
 must not change, and a `## Open` section that is required even when empty. It never asks how to build the
 thing, anything about the stack, or criteria in testable form; those belong to the plan, the declared
 stack and the spec.
@@ -240,8 +242,11 @@ stack and the spec.
 | Condition | Result | What to do |
 |---|---|---|
 | the declared stack is not in place | `sdlc new` refuses | fill in `techstack.draft.md`, which adoption wrote, and rename it into place |
-| anything is uncommitted | `sdlc new` refuses and names the files, because the cycle's branch would carry them into its diff | the skill asks what you want done with them — commit, stash or discard — and opens the cycle again |
+| a placed file is not committed | the sandbox starts from the integration branch as committed, so it lacks the file, and a command there says so | commit it on the integration branch, and open the sandbox again |
+| one working copy was asked for, and anything is uncommitted | `sdlc branch <id> plan` refuses and names the files, because the switch would carry them into the cycle | the skill asks what you want done with them — commit, stash or discard |
 | `--from successor:<slug>` that is not ready | `sdlc lead show` refuses, saying what it still waits for | wait until `sdlc successors` says `ready`; the person starts it then |
+| `--reslice` names a cycle with a spec | refuses on that cycle: something already derives from its intent | `/sdlc:steer <id>`, which carries a change down instead |
+| `--reslice` names a cycle approved, abandoned or missing | refuses on that cycle, saying which | — |
 
 #### Example
 
@@ -249,7 +254,7 @@ stack and the spec.
 /sdlc:intent
 ```
 
-Expect a cycle id and the branch the skill switched to, then one question — *what is this cycle for?*, or
+Expect a cycle id and the sandbox it opened, then one question — *what is this cycle for?*, or
 for a new solution *what should someone be able to do first?* — with example answers under it, and then
 one question at a time, each depending on your last answer. *Not sure* is always an answer, and the skill
 says where it records it. Nothing is written until the interview is done, because the intent is written
@@ -318,14 +323,14 @@ Derives testable acceptance criteria from a clean intent, producing the spec of 
 #### Syntax
 
 ```
-/sdlc:spec <cycle id>
+/sdlc:spec [<cycle id>]
 ```
 
 #### Parameters
 
 | Parameter | Description |
 |---|---|
-| `<cycle id>` | the cycle whose intent the spec is derived from |
+| `<cycle id>` | the cycle whose intent the spec is derived from. Optional: without it, `sdlc cycles --here` names the one this branch carries, or the skill asks which (D-142) |
 
 #### Output
 
@@ -397,14 +402,14 @@ last document before a person approves.
 #### Syntax
 
 ```
-/sdlc:plan <cycle id>
+/sdlc:plan [<cycle id>]
 ```
 
 #### Parameters
 
 | Parameter | Description |
 |---|---|
-| `<cycle id>` | the cycle whose spec the plan meets |
+| `<cycle id>` | the cycle whose spec the plan meets. Optional: without it, `sdlc cycles --here` names the one this branch carries, or the skill asks which (D-142) |
 
 #### Output
 
@@ -420,7 +425,7 @@ confirms each one ran and passed.
 | there is no spec | refuses | `/sdlc:spec <id>` |
 | the spec is not clean | refuses | `/sdlc:refine <id> spec`, then a fresh interrogation |
 | a plan already exists | refuses | `/sdlc:interrogate <id> plan` or `/sdlc:steer`, which it names |
-| the plan would declare one of the six files only a person writes | never declares one; the schema refuses a plan that does | — |
+| the plan would declare one of the seven files only a person writes | never declares one; the schema refuses a plan that does | — |
 
 #### Example
 
@@ -485,6 +490,124 @@ What it runs, in order:
 
 ---
 
+### `batch-plan`
+
+Takes every intent this branch carries to a plan — each cycle's spec, then its plan, each with its own loop —
+and hands back once, with every panel and one question about suggestions (D-142).
+
+| | |
+|---|---|
+| Stage | the planning chain, from clean intents to plans, for several cycles at once |
+| Started by | a person who has read their intents and asks to take them to plan |
+| Reads | `sdlc cycles --here --for spec` and `--for plan` for the work; then what `spec` and `plan` read, per cycle |
+| Writes | what `spec` and `plan` write, for each cycle; one suggestions report under `.sdlc/reports/` |
+
+#### Syntax
+
+```
+/sdlc:batch-plan
+```
+
+#### Parameters
+
+None. A batch is every cycle this branch carries that is ready for a spec or a plan; one cycle is
+`/sdlc:spec <id>` and `/sdlc:plan <id>`.
+
+#### Output
+
+One line per cycle — `planned`, or stopped and why — then each planned cycle's plan panel, verbatim, and one
+free-text question about every open suggestion across the cycles, grouped by cycle and theme. It stops at the
+plan: approving is the person's, one cycle at a time.
+
+#### Refusals
+
+| Condition | Result | What to do |
+|---|---|---|
+| nothing this branch carries is ready for a spec or a plan | takes nothing, and names each carried cycle with where it stands | finish an intent's loop, or `/sdlc:steer` it |
+| one cycle's loop will not converge, a reader reports a conflict, or a question only the person can answer comes up | stops that cycle where it is and goes on to the next | answer it, then `/sdlc:spec <id>` or `/sdlc:plan <id>` for that cycle |
+
+#### Example
+
+```
+/sdlc:batch-plan
+```
+
+Expect one line per cycle it will take, then a long run with no questions, then one line per cycle, the plan
+panels, and one question about suggestions.
+
+#### Remarks
+
+**It runs in the person's session**, so its context grows with every cycle — the cost D-122 measured. Asked
+once, the person chose that over a fresh session per cycle, to keep the run able to stop and ask; the hand-back
+says the approvals are worth a fresh session.
+
+**Suggestions are asked about once, at the end.** A suggestion taken in at the spec costs one round less than
+the same one taken in after the plan; one question across every cycle is the trade, and the hand-back says so.
+
+#### See also
+
+- [`spec`](#spec), [`plan`](#plan) — what it runs for each cycle
+- [`draft`](#draft) — next, a person approves each with `/sdlc:draft approval <id>` and a rename
+- [`batch-build`](#batch-build) — the same shape for building
+
+---
+
+### `next`
+
+Pulls the next wave from the backlog — every successor ready now started, every parked cycle whose predecessor
+merged taken back and read again — plans them in one sandbox, and stops at the approvals (D-147).
+
+| | |
+|---|---|
+| Stage | the planning chain, for whatever the last merges made ready |
+| Started by | a person, after merges land, or asking what is next for a piece of work |
+| Reads | `sdlc backlog` for the wave; then what `intent`, `interrogate`, `spec` and `plan` read, per item |
+| Writes | what `intent`, `spec` and `plan` write, per item; removes a parked cycle's `parked.md` through `sdlc unpark` |
+
+#### Syntax
+
+```
+/sdlc:next
+```
+
+#### Parameters
+
+None. The wave is everything `sdlc backlog` lists as ready now.
+
+#### Output
+
+One line per item — planned, read again and unchanged or changed, parked, or stopped and why — then the plan panels,
+one question about suggestions, and the backlog still to come. It stops at the approvals.
+
+#### Refusals
+
+| Condition | Result | What to do |
+|---|---|---|
+| nothing in the backlog is ready | shows the backlog and the queue, and stops | merge what the queue says unlocks the most, then ask again |
+
+#### Example
+
+```
+/sdlc:next
+```
+
+Expect one line per item it will take, a short interview for each successor, a long run with no questions, then
+one line per item, the plan panels, one question, and the waves still to come.
+
+#### Remarks
+
+**It is local, and the factory never runs it.** An intent is an interview and a plan is read before it is approved;
+the factory builds what a person approved and nothing more (D-143). Run after each wave merges, it carries a sliced
+piece of work to completion one wave at a time.
+
+#### See also
+
+- [`batch-plan`](#batch-plan) — what it runs for the intents it opened
+- [`intent`](#intent) — `--from successor:<slug>`, what it runs for each successor
+- [Running a cycle](../docs/guides/running-a-cycle.md)
+
+---
+
 ## The loop
 
 The two skills every stage above runs in turn until a round is clean. A person can also run either
@@ -506,14 +629,14 @@ round. Never edits.
 #### Syntax
 
 ```
-/sdlc:interrogate <cycle id> <intent|spec|plan|verify>
+/sdlc:interrogate [<cycle id>] <intent|spec|plan|verify>
 ```
 
 #### Parameters
 
 | Parameter | Description |
 |---|---|
-| `<cycle id>` | the cycle the artifact belongs to |
+| `<cycle id>` | the cycle the artifact belongs to. Optional: without it, `sdlc cycles --here` names the one this branch carries, or the skill asks which (D-142) |
 | `<intent\|spec\|plan\|verify>` | the artifact to judge |
 
 #### Output
@@ -601,14 +724,14 @@ judges.
 #### Syntax
 
 ```
-/sdlc:refine <cycle id> <intent|spec|plan>
+/sdlc:refine [<cycle id>] <intent|spec|plan>
 ```
 
 #### Parameters
 
 | Parameter | Description |
 |---|---|
-| `<cycle id>` | the cycle the artifact belongs to |
+| `<cycle id>` | the cycle the artifact belongs to. Optional: without it, `sdlc cycles --here` names the one this branch carries, or the skill asks which (D-142) |
 | `<intent\|spec\|plan>` | the planning document to edit |
 
 #### Output
@@ -676,7 +799,7 @@ than regenerating them — and takes in or declines suggestions a reader raised 
 
 | | |
 |---|---|
-| Stage | correction, after the spec exists and before the gate; for finding ids alone, from a clean intent |
+| Stage | correction, from a written intent until the gate. Before the spec, the person revising their own intent (D-141); after it, a change of *how* carried down |
 | Started by | a person who has changed their mind about *how* a cycle is being done, or the intent, spec or plan hand-back once a person has said which suggestions to take in |
 | Reads | the correction, each named finding, and each artifact it reaches |
 | Writes | the intent's `Fixed decisions` and `Wanted outcomes`, each artifact it reaches, and fresh rounds on everything downstream of what it touched |
@@ -684,20 +807,21 @@ than regenerating them — and takes in or declines suggestions a reader raised 
 #### Syntax
 
 ```
-/sdlc:steer <cycle id> [<finding id>...] ["what to change"]
+/sdlc:steer [<cycle id>] [<finding id>...] ["what to change"]
 ```
 
 #### Parameters
 
 | Parameter | Description |
 |---|---|
-| `<cycle id>` | the cycle in progress |
+| `<cycle id>` | the cycle in progress. Optional: without it, `sdlc cycles --here` names the one this branch carries, or the skill asks which (D-142) |
 | `<finding id>...` | open suggestions from this cycle's latest rounds — `F_03`, `accessibility.F_01` — each to be taken in or declined. Name every one in one run: the chain is re-interrogated once |
 | `"what to change"` | the correction, in the person's words |
 
 #### Output
 
-Records the correction under the intent's `Fixed decisions`, with attribution. A suggestion taken in
+Records the correction under the intent's `Fixed decisions`, with attribution. Before the spec exists, a correction
+in words may also add, drop or reword a wanted outcome, written where it belongs rather than as a decision (D-141). A suggestion taken in
 goes beneath the wanted outcome it sharpens, in the person's words, and a declined one a *not in this
 cycle* fixed decision, each naming the finding. A suggestion that would add or widen an outcome is
 declined into a successor that keeps its id (D-128); the next round's reader finds it settled and records it `answered`. Edits rather
@@ -710,7 +834,7 @@ so editing the intent makes the spec's latest round stale.
 
 | Condition | Result | What to do |
 |---|---|---|
-| there is only an intent, and a correction in words | refuses | `/sdlc:refine <id> intent` instead |
+| the request cuts the intent into pieces, or joins two | refuses: that is a scoping decision | `/sdlc:intent --reslice <id>...` while there is no spec |
 | a finding id that is not an open suggestion of this cycle's latest rounds | refuses on that id, and says what it is | a blocker is `/sdlc:refine`'s; another cycle's suggestion is `/sdlc:intent --from suggestion:<cycle>/<finding>` |
 | the cycle is approved | refuses | `sdlc draft approval <id> --reopen` first, which it names |
 | the cycle is abandoned | refuses; abandoned is terminal | open a new cycle |
@@ -823,8 +947,8 @@ cannot.
 
 #### Remarks
 
-Six files are written only by a person — `approval.md`, `abandoned.md`, `constraints.md`,
-`decisions.md`, `solution.md` and `techstack.md` — and **a recorded decision means something precisely
+Seven files are written only by a person — `approval.md`, `abandoned.md`, `constraints.md`,
+`decisions.md`, `areas.md`, `solution.md` and `techstack.md` — and **a recorded decision means something precisely
 because no tool could have recorded it.** Every agent write to them is denied at the tool call, by file
 path and by shell command alike. There is no flag, no mode, and no approve command for an exception to be
 carved out of. But a person who has to look a format up is a person who gets it wrong or puts it off, so
@@ -837,8 +961,9 @@ A refusal at the gate is drafted on the same terms as an approval — `--changes
 `--reopen` — because rejecting is what a person does when they are least inclined to look a format up,
 and helping with the easy case while withholding help from the hard one is the asymmetry people resent.
 
-**The other two are `propose`'s, and the verbs split on it.** A constraint's wording *is* the decision,
-so there is no finished entry to hand back.
+**The other three are `propose`'s and `mine`'s, and the verbs split on it.** A constraint's wording *is*
+the decision, so there is no finished entry to hand back; the areas are drafted only by `sdlc draft
+mining`, from what three cycles' plans proposed (D-150).
 
 **A blocking finding cannot be waived by any mechanism** (D-27): there is no field for it in the entry
 and no refusal code at the gate that acceptance would clear. It is answered, or the cycle does not
@@ -881,14 +1006,14 @@ Implements an approved plan, builds, tests, and records the evidence a verificat
 #### Syntax
 
 ```
-/sdlc:build <cycle id>
+/sdlc:build [<cycle id>]
 ```
 
 #### Parameters
 
 | Parameter | Description |
 |---|---|
-| `<cycle id>` | the approved cycle to build |
+| `<cycle id>` | the approved cycle to build. Optional: without it, `sdlc cycles --here` names the one this branch carries, or the skill asks which (D-142) |
 
 #### Output
 
@@ -970,14 +1095,14 @@ see the build. Never edits code.
 #### Syntax
 
 ```
-/sdlc:verify <cycle id>
+/sdlc:verify [<cycle id>]
 ```
 
 #### Parameters
 
 | Parameter | Description |
 |---|---|
-| `<cycle id>` | the built cycle to adjudicate |
+| `<cycle id>` | the built cycle to adjudicate. Optional: without it, `sdlc cycles --here` names the one this branch carries, or the skill asks which (D-142) |
 
 #### Output
 
@@ -1051,14 +1176,14 @@ planning document.
 #### Syntax
 
 ```
-/sdlc:remediate <cycle id>
+/sdlc:remediate [<cycle id>]
 ```
 
 #### Parameters
 
 | Parameter | Description |
 |---|---|
-| `<cycle id>` | the blocked cycle |
+| `<cycle id>` | the blocked cycle. Optional: without it, `sdlc cycles --here` names the one this branch carries, or the skill asks which (D-142) |
 
 #### Output
 
@@ -1129,6 +1254,7 @@ touches the remote.
 
 ```
 /sdlc:pr <cycle id>... [--plan | --draft] | --all
+/sdlc:pr --plan
 ```
 
 #### Parameters
@@ -1136,7 +1262,7 @@ touches the remote.
 | Parameter | Description |
 |---|---|
 | `<cycle id>` | the verified cycle to push — or, with `--plan`, every cycle of one slicing |
-| `--plan` | an approved plan, before it is built: admission to the integration branch, asked of `sdlc gate`. Merging it deletes the branch. A plan already there and approved again is opened as an *amended plan*, leading with each reopen's reason (D-123). Given several ids, the approved plans of one slicing and its successors, by one pull request from `slices/<slug>/plan` that `sdlc slices` composes; a plan that needs a file only a sibling creates is refused, because that piece is a successor (D-125) |
+| `--plan` | an approved plan, before it is built: admission to the integration branch, asked of `sdlc gate`. Merging it deletes the branch. A plan already there and approved again is opened as an *amended plan*, leading with each reopen's reason (D-123). Given several ids, the approved plans of one slicing and its successors, by one pull request from `slices/<slug>/plan` that `sdlc slices` composes; a plan that needs a file only a sibling creates is refused, because that piece is a successor (D-125). Given no id, in a sandbox, every approved plan the sandbox carries and the successors it wrote, composed by `sdlc admit` onto `cycle/<id>/plan` or `slices/sandbox-<id>/plan`; what is not approved stays, and each cycle taken is named before the push is asked for (D-144) |
 | `--draft` | a `blocked` or `escalated` build, as a draft carrying the attempted code, the verify and the evidence, its body leading with the criteria marked Not met and each open blocker's rule, gist, place and fix |
 | `--all` | every cycle that is ready, asking once before the first push |
 
@@ -1182,7 +1308,7 @@ not look, and they are different jobs.
 
 It runs `sdlc pr-ready <id>`, then `sdlc doctor` and `git remote -v` to check there is somewhere to push,
 then `git push -u origin cycle/<id>` and the platform's own tool — `gh pr create` or
-`az repos pr create`. Before pushing a verified build it asks once whether to converge on the branch now,
+`az repos pr create`. Before pushing a verified build it asks once whether to mine on the branch now,
 as the person's own commit, or after the merge (D-111); a sweep never asks. With `--all` it shows `sdlc cycles --pr-ready` verbatim and asks once before the
 first push; the question is about volume rather than permission, because every cycle that ever passed is
 eligible, including one somebody has forgotten.
@@ -1201,22 +1327,23 @@ sitrep. Run by the factory, it is the whole of what the factory does (D-84).
 | | |
 |---|---|
 | Stage | unattended runs, when several cycles are approved and waiting |
-| Started by | a person, or the factory on a schedule |
+| Started by | a person, here or by starting the factory's pipeline |
 | Reads | `sdlc cycles --queued` for the work, and `sdlc cycles --claims` for which plans stand up services |
 | Writes | what `build`, `verify` and `remediate` write, for each cycle, each in its own worktree on `cycle/<id>/build-unattended` |
 
 #### Syntax
 
 ```
-/sdlc:batch-build [--pr] [--unattended]
+/sdlc:batch-build [<cycle id>] [--pr] [--unattended]
 ```
 
 #### Parameters
 
 | Parameter | Description |
 |---|---|
+| `<cycle id>` | builds that cycle alone, and stops with why when it is not queued. Without it, every queued cycle, the one the most successors wait on first |
 | `--pr` | opens a pull request for every cycle that reached an outcome — ready when it passed, a draft when it is `blocked` or `escalated` — asking once before the run |
-| `--unattended` | asks nothing: the schedule that started the run was the decision. Used by the factory's pipeline |
+| `--unattended` | asks nothing: the person who started the run made the decision. Used by the factory's pipeline |
 
 #### Output
 
@@ -1234,6 +1361,7 @@ question is about volume and a person should answer it before waiting rather tha
 |---|---|---|
 | a cycle cannot be made to pass | stops that cycle, and with `--pr` opens a draft rather than a ready pull request | [Handling blockers](../docs/guides/handling-blockers.md) |
 | a cycle is held back by a branch on the remote | does not build it; the sitrep says why | delete the branch to put it back in the queue |
+| the cycle named is not queued | builds nothing, and says why | `sdlc status <id>`, or run without an id |
 
 #### Example
 
@@ -1338,7 +1466,7 @@ lands.
 
 ## Reading and deciding
 
-Five skills that read the record and change nothing in a cycle. Anyone may run them at any time.
+Six skills that read the record and change nothing in a cycle. Anyone may run them at any time.
 
 ### `status`
 
@@ -1354,14 +1482,14 @@ Shows where a cycle has got to — the stage panel, its checks, the gate, and th
 #### Syntax
 
 ```
-/sdlc:status <cycle id> [intent|spec|plan]
+/sdlc:status [<cycle id>] [intent|spec|plan]
 ```
 
 #### Parameters
 
 | Parameter | Description |
 |---|---|
-| `<cycle id>` | the cycle to show |
+| `<cycle id>` | the cycle to show. Optional: without it, `sdlc cycles --here` names the one this branch carries, or the skill asks which (D-142) |
 | `intent\|spec\|plan` | the artifact whose panel to show. Optional; without it, the panel is for whichever artifact the cycle is waiting on, which is what a person wants after any stage finishes |
 
 #### Output
@@ -1544,34 +1672,23 @@ never places.
 #### Syntax
 
 ```
-/sdlc:propose convergence | constraints | decisions | theme
+/sdlc:propose constraints | decisions | theme
 ```
 
 #### Parameters
 
 | Parameter | Description |
 |---|---|
-| `convergence` | the rules, decisions and stack together, once a verify passes — on the cycle's branch or after the merge: a ranked report, a proposal file a person marks, drafts of the three files from what was marked, and an advisory review of the approved set |
-| `constraints` | candidate rules for this solution, mined from the findings |
+| `constraints` | candidate rules for this solution, earned from the findings |
 | `decisions` | candidate `DEC_` entries, from what approved cycles stated |
 | `theme` | the roles a theme declares, never a value |
 
 #### Output
 
-Four subjects, three different records. **None is placed by the skill** — `constraints.md`,
+Three subjects, three different records. **None is placed by the skill** — `constraints.md`,
 `decisions.md` and `techstack.md` are written only by a person, who pastes or renames what they accept.
 
-- **`convergence` is the three together** (D-104), and it is not a cycle. `sdlc propose convergence`
-  prints one ranked report — rules cited across cycles, the rules argued longest inside one, findings
-  that rested on no rule grouped by who raised them, what approved cycles stated, what the stack never
-  mentions. The skill writes a proposal file of `add`, `supersede`, `reword` and `set` headings with the
-  evidence beneath each, and **no remove**. The person marks `[x]` on what they accept, `sdlc draft
-  convergence` writes each file's draft as a copy with only those lines applied and refuses one that would
-  lose an entry or a row, a fresh process reviews the approved set against the proposals and
-  `solution.md` and says *in alignment* or *deviates*, and the person renames the drafts. It binds the
-  next cycle, never one in flight.
-
-- **`constraints` is mined backward from the findings.** A rule cited in **three or more distinct
+- **`constraints` is earned backward from the findings.** A rule cited in **three or more distinct
   cycles** is a pattern — distinct *cycles*, not findings, because three findings inside one cycle is one
   artifact going round the loop. It reads what `suggestions` deliberately cannot, closed findings and
   blocking ones. Candidates come in four sections — add, reword, supersede, and *belongs below a
@@ -1584,11 +1701,11 @@ Four subjects, three different records. **None is placed by the skill** — `con
   heading, which the command reads and stays quiet about. **Empty-handed is an ordinary answer**: it
   prints the next free `LOC_` id with its four parts empty and the three admission tests beside them.
 - **`decisions` is captured forward**, because a choice that never collided with a rule produced no
-  finding to mine. It reads what **approved** cycles stated, from an intent's `Fixed decisions` and a
+  finding to earn it from. It reads what **approved** cycles stated, from an intent's `Fixed decisions` and a
   plan's `Shape and departures`, and skips a cycle whose approval was reopened or whose work was stopped.
   The approval is the whole provenance story: it hashes the three planning documents against a person's
   name. Each candidate becomes a `DEC_` entry with `Decided`, `Because`, `Instead of` and `From`.
-- **`theme` is neither mined nor captured.** A theme is a register, so what gets proposed is the shape —
+- **`theme` is neither earned nor captured.** A theme is a register, so what gets proposed is the shape —
   the roles — and never a value: a colour is a brand's, and a tool inventing one is the only proposal
   here nobody asked for. `.sdlc/theme.json` is not protected, so a cycle may declare it and change a
   value.
@@ -1619,16 +1736,6 @@ finding ids behind it, so a person refuses one on the record rather than on tast
 It is the second verb beside `draft`, split by who made the decision: `draft` is for one somebody already
 took and hands back a finished file; `propose` is for one they have not, and argues from the record.
 
-**Convergence runs once a verify has passed** — on the cycle's branch before its pull request, or on the
-integration branch after the merge — and never earlier (D-111). `sdlc verify-chain` reports one committed
-ahead of the passing verify and does not refuse it, so the order is the skills' to keep (D-113).
-
-**It accounts for every item the record raised** (D-112). The report adds each cycle's rounds, reopens with
-their reasons, and every verdict the verify reached; fresh processes group each document's findings by the
-problem underneath; every argued rule, reopen, repeated failure and perspective at the bar gets a
-proposal, *already recorded*, a note for the framework, or a reason under `## Not proposed`; and a second
-fresh process names any item left without one.
-
 **Departing is legal from two of the three, and silence is what gets caught.** `CON_24` asks a
 departure from a recorded decision to be declared where it arises, and holds the intent, the spec, the
 plan and the change to it; `CON_15` asks a plan the same of the declared stack. The theme is the one nothing in governance objects to, because a colour
@@ -1639,7 +1746,88 @@ headings of its own.
 
 #### See also
 
-- [`draft`](#draft), [`suggestions`](#suggestions), [`constraints`](#constraints)
+- [`draft`](#draft), [`suggestions`](#suggestions), [`constraints`](#constraints), [`mine`](#mine)
+
+---
+
+### `mine`
+
+Reads what every finished cycle argued, settled and raised, proposes the rules, decisions, stack rows, areas
+and successors the solution is missing, answering every item, and records the sitting so each mined cycle
+becomes a husk a person may delete. Proposes and never places. **Mining is reading the record across cycles;
+converging is a document's rounds settling** — the two were once both called convergence, and this was
+`/sdlc:propose convergence` (D-148).
+
+| | |
+|---|---|
+| Stage | none. Once a verify passes — on the cycle's branch before its pull request, or on the integration branch after the merge (D-111) |
+| Started by | a person, or `pr` asking whether to mine on the branch now |
+| Reads | `sdlc mine`, every cycle's findings rounds, its reopens and the verify history git holds, and the mining ledger |
+| Writes | the proposal file under `.sdlc/reports/`. The drafts and successors are written by `sdlc draft mining`, the ledger by `sdlc mine record`; **never** the files a person places, and never a husk's deletion |
+
+#### Syntax
+
+```
+/sdlc:mine
+```
+
+#### Parameters
+
+None.
+
+#### Output
+
+**The rules, the decisions and the stack together** (D-104), and it is not a cycle. `sdlc mine` prints one
+ranked report — rules cited across cycles, the rules argued longest inside one, findings that rested on no
+rule grouped by who raised them, each cycle's rounds, reopens and every verdict, what approved cycles
+stated, what the stack never mentions. The skill writes a proposal file of `add`, `supersede`, `reword`
+and `set` headings with the evidence beneath each, and **no remove**. The person marks `[x]` on what they
+accept, `sdlc draft mining` writes each file's draft as a copy with only those lines applied and refuses
+one that would lose an entry or a row, a fresh process reviews the approved set against the proposals and
+`solution.md` and says *in alignment* or *deviates*, and the person renames the drafts. It binds the next
+cycle, never one in flight.
+
+**Areas and successors come from the same file** (D-150, D-152). `## Areas` adds an area once three cycles'
+plans name it, renames, merges, removes, re-globs and tags entries; `## Successors` turns a suggestion worth
+doing into a successor of the cycle it came from, its text copied in. Entries over the word budget are
+proposed for rewording (D-149).
+
+**Then the sitting is recorded and the husks named** (D-152). Once the drafts are placed, `sdlc mine record`
+writes `.sdlc/mined.json`: every finished cycle on the integration branch becomes a husk, with what later
+mining reads from it kept there, the concerns under `## Watch` carried with their cycles, and the suggestions
+under `## Declined` with why. It prints the deletion of the husks' folders for the person to run on a branch of
+its own; the check admits that pull request as mining.
+
+#### Refusals
+
+| Condition | Result | What to do |
+|---|---|---|
+| on a cycle branch whose verify has not passed | stops and says so | finish the cycle first (D-111) |
+| a draft still beside its file at `sdlc mine record` | records nothing | rename it into place or delete it, then record |
+
+#### Example
+
+```
+/sdlc:mine
+```
+
+Expect the report verbatim, then the path of the proposal file to mark, and nothing placed.
+
+#### Remarks
+
+**Mining runs once a verify has passed** — on the cycle's branch before its pull request, or on the
+integration branch after the merge — and never earlier (D-111). `sdlc verify-chain` reports mining
+committed ahead of the passing verify and does not refuse it, so the order is the skills' to keep (D-113).
+
+**It accounts for every item the record raised** (D-112). The report adds each cycle's rounds, reopens with
+their reasons, and every verdict the verify reached; fresh processes group each document's findings by the
+problem underneath; every argued rule, reopen, repeated failure and perspective at the bar gets a
+proposal, *already recorded*, a note for the framework, or a reason under `## Not proposed`; and a second
+fresh process names any item left without one.
+
+#### See also
+
+- [`propose`](#propose), [`pr`](#pr), [`draft`](#draft)
 
 ---
 

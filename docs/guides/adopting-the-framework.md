@@ -222,10 +222,9 @@ git add .sdlc
 git commit -m "Place the solution, its stack and its constraints"
 ```
 
-**A cycle does not open over uncommitted work.** The intent skill switches to the cycle's own branch, and
-a switch carries uncommitted changes with it, so a placed file left uncommitted would reach the first
-cycle's diff as work no plan declared. `sdlc new` refuses instead, and names the files. You are on the
-integration branch adoption created, which is where these belong.
+**Commit them before the first cycle.** The intent skill plans in a sandbox, a worktree that starts from the
+integration branch as committed, so a placed file left uncommitted is one the sandbox — and every cycle in it —
+cannot see. You are on the integration branch adoption created, which is where these belong.
 
 ```pwsh
 sdlc doctor
@@ -314,8 +313,8 @@ takes it from there.
 
 ## What your solution owns
 
-**Six files only a person writes**, and every tool that could write one prints or drafts what belongs in
-it instead. The pre-tool hook denies every agent write to all six, by file path and by shell command
+**Seven files only a person writes**, and every tool that could write one prints or drafts what belongs in
+it instead. The pre-tool hook denies every agent write to all seven, by file path and by shell command
 alike — `../mechanisms/protected-files.md` is the whole of how.
 
 | File | What it holds | Changes when | How it gets written |
@@ -324,6 +323,7 @@ alike — `../mechanisms/protected-files.md` is the whole of how.
 | `.sdlc/techstack.md` | what the solution is built from, the stack rules it is held to, the build settings it takes | a default or a rule turns out wrong for this solution | adoption drafts it first; after that `sdlc draft techstack`. Then your rename — `declaring-the-stack.md` |
 | `.sdlc/constraints.md` | this solution's own `LOC_` rules, the last word over every other tier | a rule keeps being cited across cycles, or one stops earning its place | adoption drafts it empty; `sdlc propose constraints` proposes entries; you paste and rename |
 | `.sdlc/decisions.md` | choices this solution already settled, so a cycle reads what was argued rather than arguing it again. Binds nothing | an approved cycle settles something worth not re-deciding | `sdlc propose decisions` reads approved cycles; you paste |
+| `.sdlc/areas.md` | the parts of the code, each a name for a set of files, so a reader gets in full only the rules and decisions its change reaches. Absent until three cycles' plans name an area | mining proposes an area, a rename, a merge, or globs for files that moved | `/sdlc:mine` proposes; `sdlc draft mining` drafts; you rename |
 | `.sdlc/cycles/<id>/approval.md` | the decision on one cycle's three planning documents | at the gate, and again if a document changes | `sdlc draft approval <id>`, then your rename |
 | `.sdlc/cycles/<id>/abandoned.md` | why one cycle stopped for good | once, and it is terminal | `sdlc draft abandon <id>`, then your rename |
 
@@ -331,8 +331,8 @@ alike — `../mechanisms/protected-files.md` is the whole of how.
 you asked for, and show you the line that places it. Then it stops, and you run that line — which on
 Claude Code is the same line with a `!` in front.
 
-**Commit what you place.** A cycle does not open over uncommitted work, so a file you placed and did not
-commit is the next thing `sdlc new` names.
+**Commit what you place.** A sandbox starts from what the integration branch committed, so a file you placed
+and did not commit is missing from every cycle you open next.
 
 **One solution file is deliberately not on that list.** `.sdlc/theme.json` holds the roles this
 solution's surfaces use and the values that fill them. Nobody is judged against a colour, so an ordinary

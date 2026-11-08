@@ -1,6 +1,6 @@
 # The reference
 
-Three lists for when you already know why and need the line. **One line per thing, and a link for the
+Four lists for when you already know why and need the line. **One line per thing, and a link for the
 reasoning** — a list that explains itself has become a guide.
 
 | List | Holds |
@@ -8,6 +8,7 @@ reasoning** — a list that explains itself has become a guide.
 | [`commands.md`](commands.md) | every command, grouped by when you run it, and whether the binary or an agent runs it |
 | [`skills.md`](skills.md) | every skill: what each takes, what it does, who starts it |
 | [`refusals.md`](refusals.md) | every refusal and hook denial: what you were told, and what to do |
+| [`data-views.md`](data-views.md) | every piece of data the framework keeps: where it lives, the command that shows it, and who writes it |
 
 **Each is held to its source by the suite**, because a short list that silently loses a line reads
 complete. The skills list is checked against the skills on disk and each one's arguments; the refusals
@@ -38,6 +39,14 @@ what refused. Each name links to its entry in `../guides/handling-refusals.md`.
 
 What it does not cover: answering a blocking finding or a blocked verification, which is a walk rather
 than a line — `../guides/handling-blockers.md`.
+
+## `data-views.md`
+
+**Data views**: every piece of data the framework keeps, one row each — the solution's records, one
+cycle's, what spans cycles, and mining's ledger — with the file it lives in, the command that shows it, and
+whether a person, the binary or a stage writes it. Each row links to the document that owns that data. The
+suite holds that every command it names is one the binary has, and that every file only a person writes has
+a row.
 
 ## See also
 

@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Text;
 using System.Text.RegularExpressions;
 using FluentResults;
+using Sdlc.Core.Areas;
 
 namespace Sdlc.Core.Decisions;
 
@@ -26,7 +27,7 @@ public static class DecisionParser
         TimeSpan.FromSeconds(1));
 
     private static readonly Regex _clausePattern = new(
-        @"^\*\*(?<label>Decided|Because|Instead of|From|Superseded-by):\*\*\s*(?<body>.*)$",
+        @"^\*\*(?<label>Decided|Because|Instead of|From|Superseded-by|Areas):\*\*\s*(?<body>.*)$",
         RegexOptions.CultureInvariant | RegexOptions.ExplicitCapture,
         TimeSpan.FromSeconds(1));
 
@@ -119,7 +120,8 @@ public static class DecisionParser
                 because,
                 insteadOf,
                 from,
-                supersededBy));
+                supersededBy,
+                AreaParser.Names(block.Clause("Areas"))));
         }
 
         return errors.Count > 0

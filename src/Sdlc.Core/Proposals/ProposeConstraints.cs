@@ -208,7 +208,7 @@ public static class ProposeConstraints
     /// <param name="Cited">
     /// Every rule any blocking finding cited, whatever the number of cycles. Not this report's to render --
     /// one cycle is not a pattern for a rule -- but a rule argued over dozens of findings in one cycle is
-    /// where convergence looks for a decision nobody recorded (D-104).
+    /// where mining looks for a decision nobody recorded (D-104).
     /// </param>
     /// <param name="Withdrawn">
     /// The findings a later reader took back, which no proposal rests on, kept so a reader that keeps
@@ -308,6 +308,27 @@ public static class ProposeConstraints
             if (errors.Count > 0)
             {
                 return Result.Fail<Response>(errors);
+            }
+
+            // A mined cycle whose folder is gone still counts toward a rule's three cycles: the ledger kept
+            // which rules its findings cited (D-152). One whose folder is still here was counted above.
+            Result<Mining.MinedLedger> mined = await Mining.MinedLedger.Read(solution.Path, cancellationToken).ConfigureAwait(false);
+
+            foreach (Mining.MinedCycle husk in (mined.ValueOrDefault ?? Mining.MinedLedger.Empty).Cycles
+                .Where(husk => !cycles.Any(cycle => cycle.Id.ToString() == husk.Cycle)))
+            {
+                if (!CycleId.TryParse(husk.Cycle, out CycleId? id))
+                {
+                    continue;
+                }
+
+                foreach (string rule in husk.Cited)
+                {
+                    if (ConstraintId.TryParse(rule, out ConstraintId? ruleId))
+                    {
+                        cited.Add(new Cited(ruleId.Value, null, id.Value, "(mined)", 1));
+                    }
+                }
             }
 
             List<Recurrence> grouped = [.. Group(cited)];

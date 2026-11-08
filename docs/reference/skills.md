@@ -12,29 +12,32 @@ there is no slash form: ask in a sentence, and include the cycle id.
 | **Adoption** | | | |
 | [`init`](../../skills/README.md#init) | `[--platform github\|azure-devops\|local] [--integration-branch <name>]` | interviews you about the solution and proposes its first constraints; hands you the adoption command, and walks the drafts it leaves | a person\* |
 | **The planning chain** | | | |
-| [`intent`](../../skills/README.md#intent) | `[--type bug\|add\|change] [--from <lead>]` | slices the work into atomic cycles once you accept it, opens each, and interviews you into why the work exists, from a lead if given one — a ready successor included | a person |
-| [`spec`](../../skills/README.md#spec) | `<cycle id>` | derives testable acceptance criteria from the intent alone | a person |
-| [`plan`](../../skills/README.md#plan) | `<cycle id>` | decides how, and what will prove each criterion | a person |
+| [`intent`](../../skills/README.md#intent) | `[--type bug\|add\|change] [--from <lead>] \| --reslice <cycle id>...` | slices the work into atomic cycles once you accept it, opens each, and interviews you into why the work exists, from a lead if given one — a ready successor included; with `--reslice`, cuts again intents already written that have no spec | a person |
+| [`spec`](../../skills/README.md#spec) | `[<cycle id>]` | derives testable acceptance criteria from the intent alone | a person |
+| [`plan`](../../skills/README.md#plan) | `[<cycle id>]` | decides how, and what will prove each criterion | a person |
+| [`batch-plan`](../../skills/README.md#batch-plan) | `` | takes every intent this branch carries to a plan — each cycle's spec, then its plan — and hands back once | a person |
+| [`next`](../../skills/README.md#next) | `` | pulls the next wave from the backlog, plans it in one sandbox, and stops at the approvals | a person |
 | **The loop** | | | |
-| [`interrogate`](../../skills/README.md#interrogate) | `<cycle id> <intent\|spec\|plan\|verify>` | judges one document against the rules, in a fresh process. Never edits | a stage skill, or a person |
-| [`refine`](../../skills/README.md#refine) | `<cycle id> <intent\|spec\|plan>` | applies a round's findings to that document. Never judges | a stage skill, or a person |
+| [`interrogate`](../../skills/README.md#interrogate) | `[<cycle id>] <intent\|spec\|plan\|verify>` | judges one document against the rules, in a fresh process. Never edits | a stage skill, or a person |
+| [`refine`](../../skills/README.md#refine) | `[<cycle id>] <intent\|spec\|plan>` | applies a round's findings to that document. Never judges | a stage skill, or a person |
 | **Correction** | | | |
-| [`steer`](../../skills/README.md#steer) | `<cycle id> [<finding id>...] ["what to change"]` | carries a change of mind, or suggestions taken in or declined, down the intent, spec and plan | a person, or a stage's hand-back |
+| [`steer`](../../skills/README.md#steer) | `[<cycle id>] [<finding id>...] ["what to change"]` | carries a change of mind, or suggestions taken in or declined, down the intent, spec and plan | a person, or a stage's hand-back |
 | **The gate** | | | |
 | [`draft`](../../skills/README.md#draft) | `approval <id> \| abandon <id> \| solution [--standard profile\|existing] \| techstack [--empty]` | prints what belongs in a file only a person writes | a person |
 | **Build and verify** | | | |
-| [`build`](../../skills/README.md#build) | `<cycle id>` | implements the approved plan, builds, tests, records the evidence | a person, or `batch-build` |
-| [`verify`](../../skills/README.md#verify) | `<cycle id>` | judges the build against the spec from the evidence alone, in a fresh process | a person, or `batch-build` |
-| [`remediate`](../../skills/README.md#remediate) | `<cycle id>` | fixes source and tests after a `blocked` verification | a person, or `batch-build` |
+| [`build`](../../skills/README.md#build) | `[<cycle id>]` | implements the approved plan, builds, tests, records the evidence | a person, or `batch-build` |
+| [`verify`](../../skills/README.md#verify) | `[<cycle id>]` | judges the build against the spec from the evidence alone, in a fresh process | a person, or `batch-build` |
+| [`remediate`](../../skills/README.md#remediate) | `[<cycle id>]` | fixes source and tests after a `blocked` verification | a person, or `batch-build` |
 | **Pull requests and unattended runs** | | | |
-| [`pr`](../../skills/README.md#pr) | `<cycle id>... [--plan \| --draft] \| --all` | pushes the cycle's branch and opens its pull request into the integration branch: a verified build, an approved plan — or a slicing's plans together — or a draft; asks before every push | a person\*, or `batch-build` |
-| [`batch-build`](../../skills/README.md#batch-build) | `[--pr] [--unattended]` | builds and verifies every queued cycle, each on its own branch, then reports the sitrep | a person, or the factory |
+| [`pr`](../../skills/README.md#pr) | `<cycle id>... [--plan \| --draft] \| --plan \| --all` | pushes the cycle's branch and opens its pull request into the integration branch: a verified build, an approved plan — or a slicing's plans together, or a sandbox's approved plans with `--plan` alone — or a draft; asks before every push | a person\*, or `batch-build` |
+| [`batch-build`](../../skills/README.md#batch-build) | `[<cycle id>] [--pr] [--unattended]` | builds and verifies every queued cycle — or the one named — each on its own branch, then reports the sitrep | a person, or the factory |
 | [`resolve-conflict`](../../skills/README.md#resolve-conflict) | `<cycle id>` | brings a pull request up to date with the integration branch when it conflicts or goes red, inside the declared files, then verifies again | a person |
 | **Reading and deciding** | | | |
-| [`status`](../../skills/README.md#status) | `<cycle id> [intent\|spec\|plan]` | where a cycle stands, and the next command | anyone |
+| [`status`](../../skills/README.md#status) | `[<cycle id>] [intent\|spec\|plan]` | where a cycle stands, and the next command | anyone |
 | [`constraints`](../../skills/README.md#constraints) | `[intent\|spec\|plan\|diff\|verify]` | the rules in force, all tiers resolved | every stage skill, first |
 | [`suggestions`](../../skills/README.md#suggestions) | `[cycle id] [--all]` | what was noticed and not acted on, each concern once; with `--all`, what became of each | a person |
-| [`propose`](../../skills/README.md#propose) | `convergence \| constraints \| decisions \| theme` | proposes entries for a person to adopt, with the evidence behind each — `convergence` the rules, decisions and stack together, once a verify passes — on the cycle's branch or after the merge | a person |
+| [`propose`](../../skills/README.md#propose) | `constraints \| decisions \| theme` | proposes entries for a person to adopt, with the evidence behind each | a person |
+| [`mine`](../../skills/README.md#mine) | `` | reads every finished cycle at once, proposes the rules, decisions, stack, areas and successors together, and records the sitting so mined cycles become husks — once a verify passes, on the cycle's branch or after the merge | a person |
 
 \* **A person must start these two.** Every other skill may be started by an agent as well — nothing in
 the plugin stops one — so *started by* there is who normally decides. These two are different, because
