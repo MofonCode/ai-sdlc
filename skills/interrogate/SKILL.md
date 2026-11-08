@@ -2,7 +2,7 @@
 name: interrogate
 description: Judge one artifact against the constraints in force, in a fresh process, and write a findings round. Never edits. Use to challenge an intent, spec, plan or verify document.
 compatibility: Requires the sdlc binary on PATH, from the MofonCode.Sdlc.Cli dotnet tool, and a git repository. Every command here is that binary, so without it the first step fails.
-argument-hint: "<cycle id> <intent|spec|plan|verify>"
+argument-hint: "[<cycle id>] <intent|spec|plan|verify>"
 allowed-tools: Bash(sdlc *), Bash(claude *), Bash(git *), Read, Write, Glob, Grep
 ---
 
@@ -11,6 +11,18 @@ allowed-tools: Bash(sdlc *), Bash(claude *), Bash(git *), Read, Write, Glob, Gre
 This skill **judges and never edits**. If you find yourself about to improve the artifact, stop: that
 is `refine`, and the separation is the point. An interrogation that could also fix things would grade
 its own corrections.
+
+## Which cycle
+
+**Given no cycle id, ask the binary which one is meant** (D-142):
+
+```
+sdlc cycles --here
+```
+
+It exits 0 printing the one cycle carried by this branch, and that is the cycle. Otherwise it lists the
+candidates, or says none is ready and why: ask the person which, in one question, and **never pick one
+yourself** — the cycle a skill acts on is not a guess.
 
 ## The fresh process is the whole mechanism
 

@@ -322,14 +322,14 @@ Derives testable acceptance criteria from a clean intent, producing the spec of 
 #### Syntax
 
 ```
-/sdlc:spec <cycle id>
+/sdlc:spec [<cycle id>]
 ```
 
 #### Parameters
 
 | Parameter | Description |
 |---|---|
-| `<cycle id>` | the cycle whose intent the spec is derived from |
+| `<cycle id>` | the cycle whose intent the spec is derived from. Optional: without it, `sdlc cycles --here` names the one this branch carries, or the skill asks which (D-142) |
 
 #### Output
 
@@ -401,14 +401,14 @@ last document before a person approves.
 #### Syntax
 
 ```
-/sdlc:plan <cycle id>
+/sdlc:plan [<cycle id>]
 ```
 
 #### Parameters
 
 | Parameter | Description |
 |---|---|
-| `<cycle id>` | the cycle whose spec the plan meets |
+| `<cycle id>` | the cycle whose spec the plan meets. Optional: without it, `sdlc cycles --here` names the one this branch carries, or the skill asks which (D-142) |
 
 #### Output
 
@@ -510,14 +510,14 @@ round. Never edits.
 #### Syntax
 
 ```
-/sdlc:interrogate <cycle id> <intent|spec|plan|verify>
+/sdlc:interrogate [<cycle id>] <intent|spec|plan|verify>
 ```
 
 #### Parameters
 
 | Parameter | Description |
 |---|---|
-| `<cycle id>` | the cycle the artifact belongs to |
+| `<cycle id>` | the cycle the artifact belongs to. Optional: without it, `sdlc cycles --here` names the one this branch carries, or the skill asks which (D-142) |
 | `<intent\|spec\|plan\|verify>` | the artifact to judge |
 
 #### Output
@@ -605,14 +605,14 @@ judges.
 #### Syntax
 
 ```
-/sdlc:refine <cycle id> <intent|spec|plan>
+/sdlc:refine [<cycle id>] <intent|spec|plan>
 ```
 
 #### Parameters
 
 | Parameter | Description |
 |---|---|
-| `<cycle id>` | the cycle the artifact belongs to |
+| `<cycle id>` | the cycle the artifact belongs to. Optional: without it, `sdlc cycles --here` names the one this branch carries, or the skill asks which (D-142) |
 | `<intent\|spec\|plan>` | the planning document to edit |
 
 #### Output
@@ -688,14 +688,14 @@ than regenerating them — and takes in or declines suggestions a reader raised 
 #### Syntax
 
 ```
-/sdlc:steer <cycle id> [<finding id>...] ["what to change"]
+/sdlc:steer [<cycle id>] [<finding id>...] ["what to change"]
 ```
 
 #### Parameters
 
 | Parameter | Description |
 |---|---|
-| `<cycle id>` | the cycle in progress |
+| `<cycle id>` | the cycle in progress. Optional: without it, `sdlc cycles --here` names the one this branch carries, or the skill asks which (D-142) |
 | `<finding id>...` | open suggestions from this cycle's latest rounds — `F_03`, `accessibility.F_01` — each to be taken in or declined. Name every one in one run: the chain is re-interrogated once |
 | `"what to change"` | the correction, in the person's words |
 
@@ -886,14 +886,14 @@ Implements an approved plan, builds, tests, and records the evidence a verificat
 #### Syntax
 
 ```
-/sdlc:build <cycle id>
+/sdlc:build [<cycle id>]
 ```
 
 #### Parameters
 
 | Parameter | Description |
 |---|---|
-| `<cycle id>` | the approved cycle to build |
+| `<cycle id>` | the approved cycle to build. Optional: without it, `sdlc cycles --here` names the one this branch carries, or the skill asks which (D-142) |
 
 #### Output
 
@@ -975,14 +975,14 @@ see the build. Never edits code.
 #### Syntax
 
 ```
-/sdlc:verify <cycle id>
+/sdlc:verify [<cycle id>]
 ```
 
 #### Parameters
 
 | Parameter | Description |
 |---|---|
-| `<cycle id>` | the built cycle to adjudicate |
+| `<cycle id>` | the built cycle to adjudicate. Optional: without it, `sdlc cycles --here` names the one this branch carries, or the skill asks which (D-142) |
 
 #### Output
 
@@ -1056,14 +1056,14 @@ planning document.
 #### Syntax
 
 ```
-/sdlc:remediate <cycle id>
+/sdlc:remediate [<cycle id>]
 ```
 
 #### Parameters
 
 | Parameter | Description |
 |---|---|
-| `<cycle id>` | the blocked cycle |
+| `<cycle id>` | the blocked cycle. Optional: without it, `sdlc cycles --here` names the one this branch carries, or the skill asks which (D-142) |
 
 #### Output
 
@@ -1361,14 +1361,14 @@ Shows where a cycle has got to — the stage panel, its checks, the gate, and th
 #### Syntax
 
 ```
-/sdlc:status <cycle id> [intent|spec|plan]
+/sdlc:status [<cycle id>] [intent|spec|plan]
 ```
 
 #### Parameters
 
 | Parameter | Description |
 |---|---|
-| `<cycle id>` | the cycle to show |
+| `<cycle id>` | the cycle to show. Optional: without it, `sdlc cycles --here` names the one this branch carries, or the skill asks which (D-142) |
 | `intent\|spec\|plan` | the artifact whose panel to show. Optional; without it, the panel is for whichever artifact the cycle is waiting on, which is what a person wants after any stage finishes |
 
 #### Output

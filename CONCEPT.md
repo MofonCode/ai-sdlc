@@ -2199,6 +2199,10 @@ which is the ordinary case.
 each list their own steps and nothing past the hand-back; `batch-build` lists one line per cycle
 (D-80).
 
+**A skill acting on one cycle takes its id as optional, and never more than one** (D-142). Without it,
+`sdlc cycles --here` names the one cycle this working copy carries that is ready for the step, or lists them
+for the person to choose from; nothing picks among several. `draft approval` and `pr` keep the id required.
+
 **Every stage's hand-back names a new session** for the next stage, and so does `sdlc status` beside the
 next command. A session carried past one stage rebuilds its whole context on every turn after an idle
 wait, and that, not the judging, was most of what one solution's cycles cost (D-122).
@@ -7207,6 +7211,33 @@ its refusal still apply.
 - *Keeping `sdlc <stage>` everywhere.* Correct and host-neutral, and costs a refusal each time.
 - *Guessing a marker for Copilot or Antigravity.* Neither documents one; a guessed marker is a panel that
   names one host's invocation to someone using another.
+
+### D-142 — A skill takes one cycle id at most, and the binary names the cycle when it is given none
+
+**Governs:** §15, §15.1
+
+**Decision.** Every stage skill that acts on one cycle — `spec`, `plan`, `build`, `verify`, `remediate`,
+`interrogate`, `refine`, `steer`, `status` — takes its cycle id as optional, and never more than one. Without
+it the skill asks `sdlc cycles --here [--for <step>]`, which reads the cycles this working copy **carries** —
+on a cycle's own branch that cycle, anywhere else every cycle not yet on the integration branch, never an
+abandoned one — and those ready for the step. **Exactly one is the cycle: it prints the id alone and exits 0.
+Several, or none, it lists and exits 1, and the skill asks the person which.** Nothing picks among several.
+`draft approval` and `pr` keep the id required: one is what a person signs, the other touches the remote.
+
+**Why.** Several cycles in one working copy is about to be ordinary — a slicing, a re-cut intent, and the
+sandboxes that follow — and typing a timestamp id for each stage is the ceremony that makes a person reach for
+the wrong one. One resolver in the binary means every skill reads "which cycle" the same way, from the same
+record; a skill that worked it out by listing folders would come out differently each run, and the cycle a
+skill writes into is not a guess.
+
+**Rejected.**
+
+- *Skills taking several ids.* A stage is one cycle's: its rounds, its hand-back and its refusals are about
+  one. Doing several is a batch skill's job, which takes none and calls the single-cycle skill once per cycle.
+- *Picking the newest when several are ready.* The newest is the likeliest and still a guess, and a spec
+  written into the wrong cycle costs that cycle's rounds to undo.
+- *Each skill listing the folders itself.* Nine readings of one question, which drift.
+- *Making the id optional for `draft approval` and `pr`.* Both are acts a person should name the cycle for.
 
 ### D-141 — An intent with no spec may be changed in the person's words and cut again
 

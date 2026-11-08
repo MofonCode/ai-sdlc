@@ -2,7 +2,7 @@
 name: plan
 description: Decide how a spec will be met and what will prove it, producing the plan of a cycle. Use after a spec has a clean interrogation round. This is the last artifact before a person approves.
 compatibility: Requires the sdlc binary on PATH, from the MofonCode.Sdlc.Cli dotnet tool, and a git repository. Every command here is that binary, so without it the first step fails.
-argument-hint: "<cycle id>"
+argument-hint: "[<cycle id>]"
 allowed-tools: Bash(sdlc *), Bash(git *), Bash(dotnet *), Read, Write, Edit, Glob, Grep
 ---
 
@@ -32,6 +32,18 @@ leaves it for a later cycle.
 **A declared file can bring a perspective the intent did not name.** `sdlc perspectives <id>` says so — a
 `.razor` file brings UI/UX and accessibility. Cover it here, and expect the plan's interrogation to raise
 that the intent missed it.
+
+## Which cycle
+
+**Given no cycle id, ask the binary which one is meant** (D-142):
+
+```
+sdlc cycles --here --for plan
+```
+
+It exits 0 printing the one cycle ready for this step, and that is the cycle. Otherwise it lists the
+candidates, or says none is ready and why: ask the person which, in one question, and **never pick one
+yourself** — the cycle a skill acts on is not a guess.
 
 ## Refuse early
 

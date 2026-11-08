@@ -2,7 +2,7 @@
 name: spec
 description: Derive testable acceptance criteria from an approved-shape intent, producing the spec of a cycle. Use after an intent has a clean interrogation round.
 compatibility: Requires the sdlc binary on PATH, from the MofonCode.Sdlc.Cli dotnet tool, and a git repository. Every command here is that binary, so without it the first step fails.
-argument-hint: "<cycle id>"
+argument-hint: "[<cycle id>]"
 allowed-tools: Bash(sdlc *), Bash(git *), Read, Write, Edit, Glob, Grep
 ---
 
@@ -29,6 +29,18 @@ user's path through an interaction the intent asked for, the hostile input to a 
 the intent* — with the perspective's name, so the approval shows the gap and the person can take it in
 with `/sdlc:steer`. Writing the criterion anyway is the scope creep `CON_05` blocks: a list that arrives
 with every cycle is not the person asking.
+
+## Which cycle
+
+**Given no cycle id, ask the binary which one is meant** (D-142):
+
+```
+sdlc cycles --here --for spec
+```
+
+It exits 0 printing the one cycle ready for this step, and that is the cycle. Otherwise it lists the
+candidates, or says none is ready and why: ask the person which, in one question, and **never pick one
+yourself** — the cycle a skill acts on is not a guess.
 
 ## Refuse early
 

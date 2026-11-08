@@ -2,7 +2,7 @@
 name: status
 description: Show where a cycle has got to -- the stage panel, its checks, the gate, and the next command. Use after any stage, or when someone asks where something stands.
 compatibility: Requires the sdlc binary on PATH, from the MofonCode.Sdlc.Cli dotnet tool, and a git repository. Every command here is that binary, so without it the first step fails.
-argument-hint: "<cycle id> [intent|spec|plan]"
+argument-hint: "[<cycle id>] [intent|spec|plan]"
 allowed-tools: Bash(sdlc *)
 ---
 
@@ -16,6 +16,18 @@ Show what it prints **verbatim**.
 
 Without `--stage`, the panel is for whichever artifact the cycle is waiting on, which is what a person
 wants after any stage finishes.
+
+## Which cycle
+
+**Given no cycle id, ask the binary which one is meant** (D-142):
+
+```
+sdlc cycles --here
+```
+
+It exits 0 printing the one cycle carried by this branch, and that is the cycle. Otherwise it lists the
+candidates, or says none is ready and why: ask the person which, in one question, and **never pick one
+yourself** — the cycle a skill acts on is not a guess.
 
 ## Do not rewrite it
 

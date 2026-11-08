@@ -2,7 +2,7 @@
 name: steer
 description: Carry a person's mid-cycle correction down the artifact chain, editing the intent, spec and plan rather than regenerating them. Use when someone wants to change how a cycle in progress is being done, or to take in or decline suggestions a reader raised in it.
 compatibility: Requires the sdlc binary on PATH, from the MofonCode.Sdlc.Cli dotnet tool, and a git repository. Every command here is that binary, so without it the first step fails.
-argument-hint: "<cycle id> [<finding id>...] [\"what to change\"]"
+argument-hint: "[<cycle id>] [<finding id>...] [\"what to change\"]"
 allowed-tools: Bash(sdlc *), Bash(git *), Read, Write, Edit, Glob, Grep
 ---
 
@@ -14,6 +14,18 @@ the plan. Nobody pays that, so the correction ends up in conversation where it i
 costly that it pushes information out of the system is worse than no path.
 
 This is that path, made affordable. No constraint loosens.
+
+## Which cycle
+
+**Given no cycle id, ask the binary which one is meant** (D-142):
+
+```
+sdlc cycles --here
+```
+
+It exits 0 printing the one cycle carried by this branch, and that is the cycle. Otherwise it lists the
+candidates, or says none is ready and why: ask the person which, in one question, and **never pick one
+yourself** — the cycle a skill acts on is not a guess.
 
 ## Refuse early
 
