@@ -69,6 +69,38 @@ public sealed class DocumentCopyTests
     }
 
     [TestMethod]
+    public void Every_command_the_data_list_names_is_one_the_binary_has()
+    {
+        // A list of where to see what, pointing at a command that was renamed, sends somebody looking for data
+        // that is still there.
+        string data = File.ReadAllText(Path.Combine(Root, "docs", "reference", "data.md"));
+        string[] named = [.. Regex.Matches(data, @"`sdlc (?<verb>[a-z-]+)")
+            .Select(match => match.Groups["verb"].Value)
+            .Distinct(StringComparer.Ordinal)];
+
+        Assert.IsTrue(named.Length > 5, "The data list names almost no command, so this checked nothing.");
+
+        foreach (string verb in named)
+        {
+            Assert.IsTrue(Lists(verb), $"The data list names 'sdlc {verb}', and 'sdlc help' lists no such command.");
+        }
+    }
+
+    [TestMethod]
+    public void The_data_list_has_a_row_for_every_file_only_a_person_writes_and_for_each_ledger()
+    {
+        string data = File.ReadAllText(Path.Combine(Root, "docs", "reference", "data.md"));
+
+        foreach (string name in Sdlc.Core.Hooks.ProtectedPaths.Names
+            .Append(Sdlc.Core.Mining.MinedLedger.FileName)
+            .Append(Sdlc.Core.Findings.SuggestionLedger.FileName)
+            .Append(Sdlc.Core.Findings.UsageLedger.FileName))
+        {
+            StringAssert.Contains(data, name, $"The data list does not say where {name} is or how to see it.");
+        }
+    }
+
+    [TestMethod]
     public void Reading_across_cycles_is_listed_as_mining_and_convergence_is_gone_from_help()
     {
         // D-148. 'converge' is a document's rounds settling; the cross-cycle act is mining. The old names are

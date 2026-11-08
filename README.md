@@ -303,10 +303,11 @@ refusal with its remedy.
 | [`docs/mechanisms/protected-files.md`](docs/mechanisms/protected-files.md) | the files only a person changes, and how the hook guards them |
 | [`docs/mechanisms/perspectives.md`](docs/mechanisms/perspectives.md) | what examines a change beyond the rules, when each perspective steers and judges, and how to read what it found |
 | [`docs/cheat-sheet.md`](docs/cheat-sheet.md) | **the cheat sheet** — one cycle, one line per step |
-| [`docs/reference/README.md`](docs/reference/README.md) | **the reference** — every command, skill and refusal, one line each |
+| [`docs/reference/README.md`](docs/reference/README.md) | **the reference** — every command, skill, refusal and piece of data, one line each |
 | [`docs/reference/commands.md`](docs/reference/commands.md) | every command, on one screen |
 | [`docs/reference/skills.md`](docs/reference/skills.md) | the twenty-one skills, one line each |
 | [`docs/reference/refusals.md`](docs/reference/refusals.md) | every refusal, one line each |
+| [`docs/reference/data.md`](docs/reference/data.md) | where to see what: every piece of data, where it lives, and the command that shows it |
 | [`docs/samples/rolling-a-die.md`](docs/samples/rolling-a-die.md) | **the whole walk with one solution in it** — a d6 rolled from a page, every command, in a repository with no remote |
 | [`skills/README.md`](skills/README.md) | the twenty-one skills as a reference: syntax, parameters, output, refusals and remarks for each |
 | `sdlc constraints` | the rules in force, all tiers resolved. Run it rather than reading a copy of them |
