@@ -171,6 +171,12 @@ first** — a few lines of throwaway code on a `probe/<id>/<slug>` branch, never
 the plan assumed without a probe is the one most likely to cost a reopen after the build. Its proof is a
 table, one row per case each criterion states, so you can see what will be tested at a glance.
 
+**The plan's `## Areas` section says which part of the code each declared file belongs to** (D-150): an area
+`.sdlc/areas.md` defines, a name the plan proposes, or `none`. Read the proposed names at approval — they
+become area suggestions, and once three cycles' plans name one, mining proposes it for your `areas.md`.
+Where areas exist, every reader of this cycle gets every decision's headline and, in full, only the ones
+for the areas its files touch (D-151).
+
 **It is the last document before you approve, so it is the one to read closely** — and the thing to
 read for is proof adequacy. Ask of each check: *which case does it never run, and which outcome does it
 never read?* If either has an answer, the proof is not adequate, and an inadequate
@@ -208,13 +214,20 @@ a spec round until the intent is settled, and a plan round until the spec is. On
 *what* — a correction that changes the problem is a different cycle, and the skill says so and offers one. Before
 the spec nothing derives from the intent yet, so steering may change its outcomes too.
 
-**Once the verify passes, converge.** `/sdlc:propose convergence` reads what the cycle settled and argued
+**Once the verify passes, mine it.** `/sdlc:mine` reads what the cycle settled and argued
 and proposes rules, decisions and stack rows in one file; you mark what you accept, `sdlc draft
-convergence` writes the three drafts, a fresh reader says whether what you approved is in alignment, and
+mining` writes the three drafts, a fresh reader says whether what you approved is in alignment, and
 you rename the drafts. It is not a cycle, and what it places binds the next cycle rather than one in flight.
 `/sdlc:pr` offers it on the cycle's branch, as a commit of its own that merges with the code; or do it on
 the integration branch after the merge. Never before the passing verify: rounds after it would read rules
 it placed. The pull-request check reports the order, and leaves keeping it to you (D-111, D-113).
+
+**Once the drafts are placed, record the sitting**: `sdlc mine record <the proposal file>`. Every cycle that
+finished and is on the integration branch becomes a **husk** — what later mining needs from it is kept in
+`.sdlc/mined.json`, and everything else is in git at the merge commit it names (D-152). It prints the
+deletion of the husks' folders for you to run on a branch of its own; the pull request carrying only that,
+the records and the ledger is admitted as mining. A cycle mined before its own pull request merged is not a
+husk yet, and is mined again next time.
 
 **Suggestions are yours to take in or leave.** A perspective's concern the intent did not ask for — keyboard
 use, where a key is kept — never becomes a criterion on its own: the spec names it in `Out of scope`, and

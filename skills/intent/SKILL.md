@@ -19,8 +19,10 @@ force for this solution, which is not the same as the set you remember.
 person's words, and an interview that asks what they already wrote there spends their attention on
 nothing. Ask from where it leaves off.
 
-**Then run `sdlc decisions`.** It prints what this solution already settled, and what each decision set
-aside under `Instead of`. They are standing criteria this cycle inherits: the spec, the plan and the code
+**Then run `sdlc decisions --for intent`.** It prints what this solution already settled, and what each decision set
+aside under `Instead of`. Where the solution has areas, an intent touches none of them — it is the business
+case, not the design — so it gets every decision that applies everywhere in full and the rest by headline;
+`sdlc decisions show DEC_nn` prints one when the interview reaches it (D-151). They are standing criteria this cycle inherits: the spec, the plan and the code
 are each judged against them, and `CON_24` asks a departure to be declared where it arises — here, for an
 outcome. Two uses in the interview:
 

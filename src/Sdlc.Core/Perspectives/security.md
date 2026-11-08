@@ -1,7 +1,7 @@
 ---
 name: security
 always: true
-areas:
+switches-on:
 files:
 ---
 

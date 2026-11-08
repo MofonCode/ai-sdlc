@@ -1,4 +1,4 @@
-# The twenty skills
+# The twenty-one skills
 
 Every skill in the plugin, in depth: when it runs, why it exists, how it is invoked, what it reads and
 writes, and an example.
@@ -45,8 +45,8 @@ denies an agent the command. The other is requested: `pr` is the only stage that
 repository, so it asks before every push — but no hook blocks a push, and what stops an unready cycle
 from merging is the pull-request check.
 
-**All twenty are model-invocable.** Nothing in the manifest stops an agent reaching for one on its
-own, and that is deliberate — what protects the decisions is the hook denying the six protected files
+**All twenty-one are model-invocable.** Nothing in the manifest stops an agent reaching for one on its
+own, and that is deliberate — what protects the decisions is the hook denying the seven protected files
 and `sdlc init`, plus the pull-request check, rather than a flag in a skill's frontmatter. A guard that
 lives in the manifest is a guard the manifest can lose. `../docs/guides/handling-refusals.md` has what
 the hook actually denies today, and what it does not.
@@ -110,7 +110,7 @@ with the person from what the repository holds, in a draft they rename.
   branch and switches to it, and drafts `solution.draft.md`, `techstack.draft.md` and
   `constraints.draft.md` beside where each goes — each with a note saying only a person changes the real
   file. A person fills them in, renames them into place and commits them, because `solution.md`,
-  `techstack.md` and `constraints.md` are three of the six files only a person writes. The drafts are
+  `techstack.md` and `constraints.md` are three of the seven files only a person writes. The drafts are
   ignored by git.
 - **`--platform local`** writes no pipeline. No pull-request check then governs a merge and nothing
   mechanical decides what reaches the default branch — the choice is recorded in `solution.md` so
@@ -425,7 +425,7 @@ confirms each one ran and passed.
 | there is no spec | refuses | `/sdlc:spec <id>` |
 | the spec is not clean | refuses | `/sdlc:refine <id> spec`, then a fresh interrogation |
 | a plan already exists | refuses | `/sdlc:interrogate <id> plan` or `/sdlc:steer`, which it names |
-| the plan would declare one of the six files only a person writes | never declares one; the schema refuses a plan that does | — |
+| the plan would declare one of the seven files only a person writes | never declares one; the schema refuses a plan that does | — |
 
 #### Example
 
@@ -947,8 +947,8 @@ cannot.
 
 #### Remarks
 
-Six files are written only by a person — `approval.md`, `abandoned.md`, `constraints.md`,
-`decisions.md`, `solution.md` and `techstack.md` — and **a recorded decision means something precisely
+Seven files are written only by a person — `approval.md`, `abandoned.md`, `constraints.md`,
+`decisions.md`, `areas.md`, `solution.md` and `techstack.md` — and **a recorded decision means something precisely
 because no tool could have recorded it.** Every agent write to them is denied at the tool call, by file
 path and by shell command alike. There is no flag, no mode, and no approve command for an exception to be
 carved out of. But a person who has to look a format up is a person who gets it wrong or puts it off, so
@@ -961,8 +961,9 @@ A refusal at the gate is drafted on the same terms as an approval — `--changes
 `--reopen` — because rejecting is what a person does when they are least inclined to look a format up,
 and helping with the easy case while withholding help from the hard one is the asymmetry people resent.
 
-**The other two are `propose`'s, and the verbs split on it.** A constraint's wording *is* the decision,
-so there is no finished entry to hand back.
+**The other three are `propose`'s and `mine`'s, and the verbs split on it.** A constraint's wording *is*
+the decision, so there is no finished entry to hand back; the areas are drafted only by `sdlc draft
+mining`, from what three cycles' plans proposed (D-150).
 
 **A blocking finding cannot be waived by any mechanism** (D-27): there is no field for it in the entry
 and no refusal code at the gate that acceptance would clear. It is answered, or the cycle does not
@@ -1307,7 +1308,7 @@ not look, and they are different jobs.
 
 It runs `sdlc pr-ready <id>`, then `sdlc doctor` and `git remote -v` to check there is somewhere to push,
 then `git push -u origin cycle/<id>` and the platform's own tool — `gh pr create` or
-`az repos pr create`. Before pushing a verified build it asks once whether to converge on the branch now,
+`az repos pr create`. Before pushing a verified build it asks once whether to mine on the branch now,
 as the person's own commit, or after the merge (D-111); a sweep never asks. With `--all` it shows `sdlc cycles --pr-ready` verbatim and asks once before the
 first push; the question is about volume rather than permission, because every cycle that ever passed is
 eligible, including one somebody has forgotten.
@@ -1465,7 +1466,7 @@ lands.
 
 ## Reading and deciding
 
-Five skills that read the record and change nothing in a cycle. Anyone may run them at any time.
+Six skills that read the record and change nothing in a cycle. Anyone may run them at any time.
 
 ### `status`
 
@@ -1671,34 +1672,23 @@ never places.
 #### Syntax
 
 ```
-/sdlc:propose convergence | constraints | decisions | theme
+/sdlc:propose constraints | decisions | theme
 ```
 
 #### Parameters
 
 | Parameter | Description |
 |---|---|
-| `convergence` | the rules, decisions and stack together, once a verify passes — on the cycle's branch or after the merge: a ranked report, a proposal file a person marks, drafts of the three files from what was marked, and an advisory review of the approved set |
-| `constraints` | candidate rules for this solution, mined from the findings |
+| `constraints` | candidate rules for this solution, earned from the findings |
 | `decisions` | candidate `DEC_` entries, from what approved cycles stated |
 | `theme` | the roles a theme declares, never a value |
 
 #### Output
 
-Four subjects, three different records. **None is placed by the skill** — `constraints.md`,
+Three subjects, three different records. **None is placed by the skill** — `constraints.md`,
 `decisions.md` and `techstack.md` are written only by a person, who pastes or renames what they accept.
 
-- **`convergence` is the three together** (D-104), and it is not a cycle. `sdlc propose convergence`
-  prints one ranked report — rules cited across cycles, the rules argued longest inside one, findings
-  that rested on no rule grouped by who raised them, what approved cycles stated, what the stack never
-  mentions. The skill writes a proposal file of `add`, `supersede`, `reword` and `set` headings with the
-  evidence beneath each, and **no remove**. The person marks `[x]` on what they accept, `sdlc draft
-  convergence` writes each file's draft as a copy with only those lines applied and refuses one that would
-  lose an entry or a row, a fresh process reviews the approved set against the proposals and
-  `solution.md` and says *in alignment* or *deviates*, and the person renames the drafts. It binds the
-  next cycle, never one in flight.
-
-- **`constraints` is mined backward from the findings.** A rule cited in **three or more distinct
+- **`constraints` is earned backward from the findings.** A rule cited in **three or more distinct
   cycles** is a pattern — distinct *cycles*, not findings, because three findings inside one cycle is one
   artifact going round the loop. It reads what `suggestions` deliberately cannot, closed findings and
   blocking ones. Candidates come in four sections — add, reword, supersede, and *belongs below a
@@ -1711,11 +1701,11 @@ Four subjects, three different records. **None is placed by the skill** — `con
   heading, which the command reads and stays quiet about. **Empty-handed is an ordinary answer**: it
   prints the next free `LOC_` id with its four parts empty and the three admission tests beside them.
 - **`decisions` is captured forward**, because a choice that never collided with a rule produced no
-  finding to mine. It reads what **approved** cycles stated, from an intent's `Fixed decisions` and a
+  finding to earn it from. It reads what **approved** cycles stated, from an intent's `Fixed decisions` and a
   plan's `Shape and departures`, and skips a cycle whose approval was reopened or whose work was stopped.
   The approval is the whole provenance story: it hashes the three planning documents against a person's
   name. Each candidate becomes a `DEC_` entry with `Decided`, `Because`, `Instead of` and `From`.
-- **`theme` is neither mined nor captured.** A theme is a register, so what gets proposed is the shape —
+- **`theme` is neither earned nor captured.** A theme is a register, so what gets proposed is the shape —
   the roles — and never a value: a colour is a brand's, and a tool inventing one is the only proposal
   here nobody asked for. `.sdlc/theme.json` is not protected, so a cycle may declare it and change a
   value.
@@ -1746,16 +1736,6 @@ finding ids behind it, so a person refuses one on the record rather than on tast
 It is the second verb beside `draft`, split by who made the decision: `draft` is for one somebody already
 took and hands back a finished file; `propose` is for one they have not, and argues from the record.
 
-**Convergence runs once a verify has passed** — on the cycle's branch before its pull request, or on the
-integration branch after the merge — and never earlier (D-111). `sdlc verify-chain` reports one committed
-ahead of the passing verify and does not refuse it, so the order is the skills' to keep (D-113).
-
-**It accounts for every item the record raised** (D-112). The report adds each cycle's rounds, reopens with
-their reasons, and every verdict the verify reached; fresh processes group each document's findings by the
-problem underneath; every argued rule, reopen, repeated failure and perspective at the bar gets a
-proposal, *already recorded*, a note for the framework, or a reason under `## Not proposed`; and a second
-fresh process names any item left without one.
-
 **Departing is legal from two of the three, and silence is what gets caught.** `CON_24` asks a
 departure from a recorded decision to be declared where it arises, and holds the intent, the spec, the
 plan and the change to it; `CON_15` asks a plan the same of the declared stack. The theme is the one nothing in governance objects to, because a colour
@@ -1766,7 +1746,88 @@ headings of its own.
 
 #### See also
 
-- [`draft`](#draft), [`suggestions`](#suggestions), [`constraints`](#constraints)
+- [`draft`](#draft), [`suggestions`](#suggestions), [`constraints`](#constraints), [`mine`](#mine)
+
+---
+
+### `mine`
+
+Reads what every finished cycle argued, settled and raised, proposes the rules, decisions, stack rows, areas
+and successors the solution is missing, answering every item, and records the sitting so each mined cycle
+becomes a husk a person may delete. Proposes and never places. **Mining is reading the record across cycles;
+converging is a document's rounds settling** — the two were once both called convergence, and this was
+`/sdlc:propose convergence` (D-148).
+
+| | |
+|---|---|
+| Stage | none. Once a verify passes — on the cycle's branch before its pull request, or on the integration branch after the merge (D-111) |
+| Started by | a person, or `pr` asking whether to mine on the branch now |
+| Reads | `sdlc mine`, every cycle's findings rounds, its reopens and the verify history git holds, and the mining ledger |
+| Writes | the proposal file under `.sdlc/reports/`. The drafts and successors are written by `sdlc draft mining`, the ledger by `sdlc mine record`; **never** the files a person places, and never a husk's deletion |
+
+#### Syntax
+
+```
+/sdlc:mine
+```
+
+#### Parameters
+
+None.
+
+#### Output
+
+**The rules, the decisions and the stack together** (D-104), and it is not a cycle. `sdlc mine` prints one
+ranked report — rules cited across cycles, the rules argued longest inside one, findings that rested on no
+rule grouped by who raised them, each cycle's rounds, reopens and every verdict, what approved cycles
+stated, what the stack never mentions. The skill writes a proposal file of `add`, `supersede`, `reword`
+and `set` headings with the evidence beneath each, and **no remove**. The person marks `[x]` on what they
+accept, `sdlc draft mining` writes each file's draft as a copy with only those lines applied and refuses
+one that would lose an entry or a row, a fresh process reviews the approved set against the proposals and
+`solution.md` and says *in alignment* or *deviates*, and the person renames the drafts. It binds the next
+cycle, never one in flight.
+
+**Areas and successors come from the same file** (D-150, D-152). `## Areas` adds an area once three cycles'
+plans name it, renames, merges, removes, re-globs and tags entries; `## Successors` turns a suggestion worth
+doing into a successor of the cycle it came from, its text copied in. Entries over the word budget are
+proposed for rewording (D-149).
+
+**Then the sitting is recorded and the husks named** (D-152). Once the drafts are placed, `sdlc mine record`
+writes `.sdlc/mined.json`: every finished cycle on the integration branch becomes a husk, with what later
+mining reads from it kept there, the concerns under `## Watch` carried with their cycles, and the suggestions
+under `## Declined` with why. It prints the deletion of the husks' folders for the person to run on a branch of
+its own; the check admits that pull request as mining.
+
+#### Refusals
+
+| Condition | Result | What to do |
+|---|---|---|
+| on a cycle branch whose verify has not passed | stops and says so | finish the cycle first (D-111) |
+| a draft still beside its file at `sdlc mine record` | records nothing | rename it into place or delete it, then record |
+
+#### Example
+
+```
+/sdlc:mine
+```
+
+Expect the report verbatim, then the path of the proposal file to mark, and nothing placed.
+
+#### Remarks
+
+**Mining runs once a verify has passed** — on the cycle's branch before its pull request, or on the
+integration branch after the merge — and never earlier (D-111). `sdlc verify-chain` reports mining
+committed ahead of the passing verify and does not refuse it, so the order is the skills' to keep (D-113).
+
+**It accounts for every item the record raised** (D-112). The report adds each cycle's rounds, reopens with
+their reasons, and every verdict the verify reached; fresh processes group each document's findings by the
+problem underneath; every argued rule, reopen, repeated failure and perspective at the bar gets a
+proposal, *already recorded*, a note for the framework, or a reason under `## Not proposed`; and a second
+fresh process names any item left without one.
+
+#### See also
+
+- [`propose`](#propose), [`pr`](#pr), [`draft`](#draft)
 
 ---
 

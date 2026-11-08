@@ -86,9 +86,14 @@ plan that cannot be built.
 
 ```
 sdlc stack
-sdlc decisions
+sdlc decisions --for plan --cycle <id>
 sdlc theme
 ```
+
+Where the solution has areas, the decisions come back as every headline and, in full, only the ones with no
+area or in an area the plan's declared files fall in — so run it again once `Files` is written, and read a
+headline in full with `sdlc decisions show DEC_nn` when the shape you are choosing reaches it (D-151).
+`sdlc constraints --for plan --cycle <id>` narrows this solution's own rules the same way.
 
 `sdlc stack` prints what this solution declares it is built from — `CON_15` judges you against it. It
 is `.sdlc/techstack.md` as the binary reads it: the defaults it pins, the stack rules switched on, and
@@ -396,8 +401,8 @@ rewritten by the thing it was checking.>
 
 <Ordering reasoning goes here too, when order matters: which file has to land first and why.>
 
-<Never name one of the six files only a person writes -- approval.md, abandoned.md, constraints.md,
-decisions.md, solution.md, techstack.md. The schema refuses a plan that declares one, because the build
+<Never name one of the seven files only a person writes -- approval.md, abandoned.md, constraints.md,
+decisions.md, areas.md, solution.md, techstack.md. The schema refuses a plan that declares one, because the build
 is denied the write and the plan could not be carried out as written. Changing the declared stack is its
 own act, outside a cycle: 'sdlc draft techstack' and a rename. The theme is not one of them -- a
 cycle may declare .sdlc/theme.json and change a value like any other file.
@@ -406,6 +411,19 @@ A file holding a rule is different: you may declare one and change it. The evide
 every such file under GOVERNING whether or not the plan declared it, and CON_18 asks Shape and
 departures to say what the rule would have cost. Those are an architecture test, Directory.Build.props,
 BannedSymbols.txt, .editorconfig, a hook configuration and the pipeline.>
+
+## Areas
+
+- <an area areas.md already defines, which these files fall in -- optional, the binary works it out>
+- new <name>: `<file or glob>`, `<file or glob>`
+- none: `<file or glob>`
+
+<Every file Files declares falls in an area 'sdlc areas' lists, or is listed here under a name you would
+give the part of the code it belongs to, or under 'none' for a one-off. A name is lower case words joined
+by hyphens, in the team's own words -- 'trade-import' before 'backend'. The round refuses a declared file
+with no answer. A proposed name is recorded as an area suggestion; once three cycles' plans name one over
+the same files, mining proposes it (D-150). It is not something this cycle delivers, so never take one in
+through 'steer'.>
 
 ## Proof
 

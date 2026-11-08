@@ -23,6 +23,8 @@ an agent runs it, and it never decides a gate. `skills.md` lists the skills.
 | `sdlc propose constraints` | binary | the next free `LOC_` id, or rules the findings keep citing |
 | **The cycle, in order** | | |
 | `sdlc constraints` | binary | the rules in force, all tiers resolved |
+| `sdlc constraints show <id>` | binary | one rule in full, in force or superseded |
+| `sdlc areas` | binary | each area: the files it covers, the entries carrying it, and names nobody defined. Exits 1 when an area covers no file |
 | `sdlc new` | binary | allocates the id, claims it across every worktree, and makes the directory; in a sandbox, the cycle opens beside the others. `/sdlc:intent` runs it for you |
 | `/sdlc:intent` | agent | interviews you into `intent.md` |
 | `/sdlc:interrogate <id> <artifact>` | agent, fresh process | judges one document, adds a round to `findings/<artifact>.json` |
@@ -49,8 +51,10 @@ an agent runs it, and it never decides a gate. `skills.md` lists the skills.
 | `sdlc status <id> --brief` | binary | the same, between stages |
 | `sdlc status <id> --stage spec` | binary | one artifact's panel: intent, spec, plan or verify |
 | `sdlc findings <id>` | binary | what the interrogations said, each finding at the disposition that stands, with where it was found; `--blocking` for the open blockers alone, `--finding <fid>` for one |
-| `sdlc propose convergence` | binary | what the record says the rules, decisions and stack are missing, in one ranked report — with each cycle's rounds, reopens and every verdict — ending with the proposal file to mark. `/sdlc:propose convergence` runs it |
-| `sdlc draft convergence <file>` | binary | drafts of `constraints.md`, `decisions.md` and `techstack.md` from the proposals marked `[x]`: copies with only those lines applied, refused if anything would go missing |
+| `sdlc mine` | binary | what the record says the rules, decisions and stack are missing, in one ranked report — with each cycle's rounds, reopens and every verdict — ending with the proposal file to mark. `/sdlc:mine` runs it |
+| `sdlc mine record <file>` | binary | once the drafts are placed: records the sitting in `.sdlc/mined.json`, names each finished, merged cycle a husk with its merge commit, and prints the deletion of their folders for a person to run. Deletes nothing |
+| `sdlc mine --history` | binary | the mining ledger: mined cycles, each sitting, and the concerns watched below the bar |
+| `sdlc draft mining <file>` | binary | drafts of `constraints.md`, `decisions.md`, `techstack.md` and `areas.md` from the proposals marked `[x]`: copies with only those lines applied, refused if anything would go missing, a new entry is over its word budget, or an entry names an area nobody defines. Writes accepted successors to `.sdlc/successors/` |
 | `sdlc round <id> <artifact> --from <file>` | binary | appends the next round to the artifact's findings ledger, stamped, hashed and chained to the round before, with its suggestions in the cycle's suggestions ledger, and refuses it while anything above is unsettled, a known finding comes back in other words, a new blocker has no one-line gist, or a suggestion does not fit the cycle's. `/sdlc:interrogate` runs it; `--changed` lists the sections moved since the last round |
 | `sdlc round prompt <id> <artifact> --dir <directory>` | binary | writes every reader's prompt for one round, the block they share first and each reader's own part last; `--reader` writes one, `--list` names them; a verify round adds the diff reader, which reads the change against the plan and the decisions. `/sdlc:interrogate` and `/sdlc:verify` run it |
 | `sdlc round collect <id> <artifact> --dir <directory>` | binary | reads every reader's answer and drafts the round file: new ids numbered, restatements carried, each reader's usage beside them; lists the open findings no reader raised, for you to dispose of. `/sdlc:interrogate` runs it |
@@ -79,7 +83,8 @@ an agent runs it, and it never decides a gate. `skills.md` lists the skills.
 | `sdlc cycles --pr-ready` | binary | which cycles may open a pull request |
 | `sdlc suggestions [<id>] [--all]` | binary | what was noticed and not acted on, each concern once; `--all` adds what became of each and which cycle decided it |
 | `sdlc propose constraints` | binary | rules cited across three or more cycles |
-| `sdlc decisions` | binary | what this solution already settled |
+| `sdlc decisions` | binary | what this solution already settled, naming the entries over the word budget. `--for <stage> --cycle <id>` gives every headline and, in full, only the entries in the areas that stage touches |
+| `sdlc decisions show <id>` | binary | one decision in full, standing or superseded |
 | `sdlc propose decisions` | binary | choices approved cycles settled, as entries to adopt |
 | `sdlc theme` | binary | the roles and values the solution's surfaces use |
 | `sdlc propose theme` | binary | the roles a theme declares, for you to fill |

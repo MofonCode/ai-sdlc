@@ -904,8 +904,8 @@ public sealed class InitTests
             StringAssert.Contains(agents, "`" + name + "`");
         }
 
-        StringAssert.Contains(agents, "**Six files are a person's to write**");
-        Assert.AreEqual(6, ProtectedPaths.Names.Count, "The count in the sentence is written out, so it moves with the list.");
+        StringAssert.Contains(agents, "**Seven files are a person's to write**");
+        Assert.AreEqual(7, ProtectedPaths.Names.Count, "The count in the sentence is written out, so it moves with the list.");
     }
 
     [TestMethod]
@@ -925,10 +925,10 @@ public sealed class InitTests
                 name + " has no row saying a person writes it.");
         }
 
-        StringAssert.Contains(readme, "Six of those are written only by a person.");
-        StringAssert.Contains(readme, "denies every agent write to all six");
-        StringAssert.Contains(readme, "one of the six files only a");
-        Assert.AreEqual(6, ProtectedPaths.Names.Count, "The counts in those sentences are written out, so they move with the list.");
+        StringAssert.Contains(readme, "Seven of those are written only by a person.");
+        StringAssert.Contains(readme, "denies every agent write to all seven");
+        StringAssert.Contains(readme, "one of the seven files only a");
+        Assert.AreEqual(7, ProtectedPaths.Names.Count, "The counts in those sentences are written out, so they move with the list.");
     }
 
     [TestMethod]

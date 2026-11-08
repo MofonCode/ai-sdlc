@@ -156,23 +156,23 @@ It refuses for five reasons, and each is final rather than advisory:
 **Do not push past a refusal.** The chain-broken one in particular: the pull-request check would refuse
 it anyway, so pushing would cost a round trip through CI to learn what you were just told.
 
-## Converge now, or after the merge
+## Mine now, or after the merge
 
 Once `pr-ready` holds, ask the person once — not in a sweep, which runs with nobody to mark proposals:
-**converge on this branch before the pull request, or after it merges?** (D-111.) Either is right, and
-skipping it here is an answer: `/sdlc:propose convergence` on the integration branch afterwards is the
+**mine on this branch before the pull request, or after it merges?** (D-111.) Either is right, and
+skipping it here is an answer: `/sdlc:mine` on the integration branch afterwards is the
 same act.
 
-Now, it runs exactly as `/sdlc:propose convergence` describes, on this branch. The person marks the
+Now, it runs exactly as `/sdlc:mine` describes, on this branch. The person marks the
 proposals, renames the drafts, and **commits that themselves, as a commit of its own** — the three files
 are theirs (`! git add .sdlc/constraints.md .sdlc/decisions.md .sdlc/techstack.md` and a
 `git commit -F` message). Then `sdlc pr-ready <id>` again, and on.
 
 **Only after the passing verify, and nothing in the cycle moves after it**, because rounds after a rule
 changed read the rule (D-104's twenty blockers). The pull-request check reports the order and refuses
-nothing for it — git cannot tell a convergence from a person's own edit in the cycle — so keeping it is
+nothing for it — git cannot tell mining from a person's own edit in the cycle — so keeping it is
 this skill's job (D-113). If review sends the build back and the verify is
-written again, the convergence commit comes out and goes back on top afterwards.
+written again, the mining commit comes out and goes back on top afterwards.
 
 ## First: is there anywhere to push?
 
@@ -299,6 +299,6 @@ Then:
 ## Report
 
 **One line per cycle**, carrying three things: its id, its branch, and the pull request's link. For a
-verified build, one more line: *once this merges, `/sdlc:propose convergence` brings the rules, decisions
+verified build, one more line: *once this merges, `/sdlc:mine` brings the rules, decisions
 and stack up to what it settled* (D-104). Then stop. Nothing after this is yours — the merge belongs to a
 reviewer, and a summary of what they are about to read is a reviewer being told what to think.

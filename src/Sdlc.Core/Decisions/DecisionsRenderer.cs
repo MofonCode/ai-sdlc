@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Text;
+using Sdlc.Core.Areas;
 
 namespace Sdlc.Core.Decisions;
 
@@ -40,10 +41,15 @@ public static class DecisionsRenderer
     /// </summary>
     /// <param name="response">What the record holds.</param>
     /// <param name="detail">How much of each entry to include.</param>
+    /// <param name="scope">
+    /// The areas the stage touches: an entry outside them is rendered by its headline alone (D-151). Null, or
+    /// a scope that narrows nothing, renders every entry at <paramref name="detail"/>.
+    /// </param>
     /// <returns>The rendered text, ending in a newline.</returns>
-    public static string Render(ReadDecisions.Response response, DecisionDetail detail)
+    public static string Render(ReadDecisions.Response response, DecisionDetail detail, AreaScope? scope = null)
     {
         ArgumentNullException.ThrowIfNull(response);
+        scope ??= AreaScope.Everything;
 
         StringBuilder output = new();
 
@@ -59,9 +65,12 @@ public static class DecisionsRenderer
             return output.ToString();
         }
 
-        output.AppendLine(string.Create(
-            CultureInfo.InvariantCulture,
-            $"Decisions standing: {response.Decisions.Count(decision => decision.IsStanding)}"));
+        int standing = response.Decisions.Count(decision => decision.IsStanding);
+        int inFull = response.Decisions.Count(decision => decision.IsStanding && scope.InFull(decision.InAreas));
+
+        output.AppendLine(scope.Narrowed
+            ? string.Create(CultureInfo.InvariantCulture, $"Decisions standing: {standing}. {inFull} apply here in full -- {Touched(scope)} and every decision with no area -- and the rest by headline.")
+            : string.Create(CultureInfo.InvariantCulture, $"Decisions standing: {standing}"));
 
         if (response.Decisions.Count == 0)
         {
@@ -79,11 +88,15 @@ public static class DecisionsRenderer
                 ? string.Empty
                 : string.Create(CultureInfo.InvariantCulture, $"  (superseded by {decision.SupersededBy})");
 
+            string areas = decision.InAreas.Count == 0
+                ? string.Empty
+                : " [" + string.Join(", ", decision.InAreas) + "]";
+
             output.AppendLine(string.Create(
                 CultureInfo.InvariantCulture,
-                $"{Indent}{decision.Id,-9} {decision.Statement}{marker}"));
+                $"{Indent}{decision.Id,-9} {decision.Statement}{areas}{marker}"));
 
-            if (detail == DecisionDetail.Brief)
+            if (detail == DecisionDetail.Brief || !scope.InFull(decision.InAreas))
             {
                 continue;
             }
@@ -100,6 +113,18 @@ public static class DecisionsRenderer
             Clause(output, "from", decision.From);
         }
 
+        // A reader handed a headline asks for the rest, rather than being unaware the entry exists (D-151).
+        if (detail != DecisionDetail.Brief && inFull < standing)
+        {
+            output.AppendLine();
+            output.AppendLine("An entry shown by its headline alone is outside the areas this stage touches.");
+
+            // A reader runs with no tools, so it cannot ask for the body; what it can do is say so.
+            output.AppendLine(detail == DecisionDetail.Judged
+                ? "If the document reaches one anyway, raise that as a finding naming the entry: it is a sign the change touches an area its files do not show."
+                : "Read one in full with 'sdlc decisions show DEC_nn' when what you are writing reaches it.");
+        }
+
         // A reader is told how to judge the record in its own instructions; this paragraph is for a writer.
         if (detail == DecisionDetail.Judged)
         {
@@ -114,6 +139,23 @@ public static class DecisionsRenderer
         output.AppendLine("is legal; departing in silence is not. The spec, the plan and the code are each read");
         output.AppendLine("against this record, and rely on a departure declared above them.");
 
+        // Information, never a refusal: the file is a person's, and mining proposes the rewording (D-149).
+        List<string> overBudget = [.. response.Decisions
+            .Where(decision => decision.IsStanding)
+            .Select(decision => (decision.Id, Overruns: EntryBudget.Of(decision)))
+            .Where(entry => entry.Overruns.Count > 0)
+            .Select(entry => string.Create(CultureInfo.InvariantCulture, $"{entry.Id} ({EntryBudget.Describe(entry.Overruns)})"))];
+
+        if (overBudget.Count > 0)
+        {
+            output.AppendLine();
+            output.AppendLine(string.Create(
+                CultureInfo.InvariantCulture,
+                $"Over the word budget -- a {EntryBudget.Headline}-word title, {EntryBudget.Clause} words a clause -- so a reader"));
+            output.AppendLine("handed only the headline gets less than it should: " + string.Join("; ", overBudget) + ".");
+            output.AppendLine("'/sdlc:mine' proposes rewording them; nothing is refused.");
+        }
+
         if (response.Superseded > 0 && detail == DecisionDetail.Brief)
         {
             output.AppendLine();
@@ -124,6 +166,32 @@ public static class DecisionsRenderer
 
         return output.ToString();
     }
+
+    /// <summary>
+    /// Renders one entry in full: what a reader handed only its headline asks for (D-149).
+    /// </summary>
+    /// <param name="decision">The entry, standing or superseded.</param>
+    /// <returns>The rendered text, ending in a newline.</returns>
+    public static string RenderOne(Decision decision)
+    {
+        ArgumentNullException.ThrowIfNull(decision);
+
+        StringBuilder output = new();
+        string marker = decision.IsStanding
+            ? string.Empty
+            : string.Create(CultureInfo.InvariantCulture, $"  (superseded by {decision.SupersededBy})");
+
+        output.AppendLine(string.Create(CultureInfo.InvariantCulture, $"{decision.Id} {decision.Statement}{marker}"));
+        Clause(output, "decided", decision.Decided);
+        Clause(output, "because", decision.Because);
+        Clause(output, "instead of", decision.InsteadOf);
+        Clause(output, "from", decision.From);
+
+        return output.ToString();
+    }
+
+    private static string Touched(AreaScope scope) =>
+        scope.Touched.Count == 0 ? "no area" : string.Join(", ", scope.Touched);
 
     private static void Clause(StringBuilder output, string label, string body)
     {

@@ -2,6 +2,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using MofonCode.Core;
 using Sdlc.Core.Approvals;
+using Sdlc.Core.Areas;
 using Sdlc.Core.Chain;
 using Sdlc.Core.Constraints;
 using Sdlc.Core.Cycles;
@@ -12,6 +13,7 @@ using Sdlc.Core.Factory;
 using Sdlc.Core.Findings;
 using Sdlc.Core.Git;
 using Sdlc.Core.Leads;
+using Sdlc.Core.Mining;
 using Sdlc.Core.Operate;
 using Sdlc.Core.Perspectives;
 using Sdlc.Core.Hooks;
@@ -145,8 +147,11 @@ public static class SdlcServices
         // never collided with a rule produced no finding to mine. A theme is neither -- it is a
         // register, and what is proposed is the shape rather than the values.
         services.AddProposeDecisionsRequestHandler();
-        services.AddProposeConvergenceRequestHandler();
-        services.AddDraftConvergenceRequestHandler();
+        services.AddProposeMiningRequestHandler();
+        services.AddDraftMiningRequestHandler();
+        services.AddReadAreasRequestHandler();
+        services.AddRecordMiningRequestHandler();
+        services.AddVerifyMiningRequestHandler();
 
         // The reading halves. A constraint stops a cycle doing something; a decision stops it
         // re-deciding something, and a theme stops it inventing a colour. All three are rendered on

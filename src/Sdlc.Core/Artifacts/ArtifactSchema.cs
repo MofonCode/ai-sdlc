@@ -142,8 +142,12 @@ public static partial class ArtifactSchema
     /// before them, which
     /// <see cref="Findings.NewerRules"/> decides.
     /// </param>
+    /// <param name="areas">
+    /// Whether a plan must carry an <c>## Areas</c> section: true for a cycle opened since areas (D-150), which
+    /// <see cref="Findings.NewerRules.Since"/> decides. A plan that has one is held to its shape either way.
+    /// </param>
     /// <returns>What is wrong with its shape, which may be nothing.</returns>
-    public static ArtifactValidation Validate(ArtifactKind kind, string markdown, CycleId cycle, bool newerRules = true)
+    public static ArtifactValidation Validate(ArtifactKind kind, string markdown, CycleId cycle, bool newerRules = true, bool areas = false)
     {
         ArgumentNullException.ThrowIfNull(markdown);
 
@@ -177,6 +181,8 @@ public static partial class ArtifactSchema
             CheckAssumptions(kind, markdown, violations);
             CheckCases(kind, markdown, violations);
         }
+
+        CheckAreas(kind, markdown, areas, violations);
 
         return new ArtifactValidation(kind, violations);
     }
@@ -574,6 +580,40 @@ public static partial class ArtifactSchema
         }
     }
 
+    /// <summary>
+    /// Refuses a plan's <c>## Areas</c> section whose lines cannot be read, and its absence where it is required.
+    /// </summary>
+    /// <remarks>
+    /// Whether every declared file has an area needs the solution's <c>areas.md</c>, so the round checks that;
+    /// the shape of the lines is the document's own (D-150).
+    /// </remarks>
+    private static void CheckAreas(ArtifactKind kind, string markdown, bool required, List<SchemaViolation> violations)
+    {
+        if (kind != ArtifactKind.Plan)
+        {
+            return;
+        }
+
+        if (!Areas.PlanAreas.Has(markdown))
+        {
+            if (required)
+            {
+                violations.Add(new SchemaViolation(
+                    "## " + Areas.PlanAreas.Section,
+                    "is missing. Say which area each declared file falls in: '- new <name>: <files>' for files no area covers, '- none: <files>' for files that belong to none (D-150)."));
+            }
+
+            return;
+        }
+
+        Result<IReadOnlyList<Areas.PlanArea>> read = Areas.PlanAreas.Read(markdown);
+
+        foreach (IError error in read.Errors)
+        {
+            violations.Add(new SchemaViolation("## " + Areas.PlanAreas.Section, error.Message));
+        }
+    }
+
     private static void CheckSections(
         ArtifactKind kind,
         string markdown,
@@ -622,7 +662,8 @@ public static partial class ArtifactSchema
             // written before it is not refused for lacking one, nor one written since for having it.
             if (!expected.Contains(section, StringComparer.Ordinal)
                 && !string.Equals(section, OpenSection, StringComparison.Ordinal)
-                && !(kind == ArtifactKind.Plan && string.Equals(section, AssumptionsSection, StringComparison.Ordinal)))
+                && !(kind == ArtifactKind.Plan && string.Equals(section, AssumptionsSection, StringComparison.Ordinal))
+                && !(kind == ArtifactKind.Plan && string.Equals(section, Areas.PlanAreas.Section, StringComparison.Ordinal)))
             {
                 violations.Add(new SchemaViolation(
                     "## " + section,

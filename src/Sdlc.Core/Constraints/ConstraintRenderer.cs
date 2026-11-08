@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Text;
+using Sdlc.Core.Areas;
 
 namespace Sdlc.Core.Constraints;
 
@@ -37,10 +38,16 @@ public static class ConstraintRenderer
     /// <param name="set">The set to render.</param>
     /// <param name="detail">How much of each constraint to include.</param>
     /// <param name="artifact">The artifact the set was narrowed to, when it was.</param>
+    /// <param name="scope">
+    /// The areas the stage touches: one of this solution's own rules outside them is rendered by its headline
+    /// alone (D-151). Null renders every rule at <paramref name="detail"/>; a framework or stack rule always is.
+    /// </param>
     /// <returns>The rendered text, ending in a newline.</returns>
-    public static string Render(EffectiveConstraints.Response set, ConstraintDetail detail, string? artifact = null)
+    public static string Render(EffectiveConstraints.Response set, ConstraintDetail detail, string? artifact = null, AreaScope? scope = null)
     {
         ArgumentNullException.ThrowIfNull(set);
+        scope ??= AreaScope.Everything;
+        int headlinesOnly = 0;
 
         StringBuilder output = new();
 
@@ -63,12 +70,22 @@ public static class ConstraintRenderer
         foreach (Constraint constraint in set.Constraints)
         {
             output.AppendLine();
+            string areas = constraint.InAreas.Count == 0
+                ? string.Empty
+                : " [" + string.Join(", ", constraint.InAreas) + "]";
+
             output.AppendLine(string.Create(
                 CultureInfo.InvariantCulture,
-                $"{Indent}{constraint.Id,-10} {constraint.Statement}"));
+                $"{Indent}{constraint.Id,-10} {constraint.Statement}{areas}"));
 
             if (detail == ConstraintDetail.Brief)
             {
+                continue;
+            }
+
+            if (constraint.Id.Tier == ConstraintTier.Solution && !scope.InFull(constraint.InAreas))
+            {
+                headlinesOnly++;
                 continue;
             }
 
@@ -80,6 +97,15 @@ public static class ConstraintRenderer
             {
                 Clause(output, "judged", judged == JudgedPer.Criterion ? "per criterion" : "per outcome");
             }
+        }
+
+        if (headlinesOnly > 0)
+        {
+            output.AppendLine();
+            output.AppendLine(string.Create(
+                CultureInfo.InvariantCulture,
+                $"{headlinesOnly} of this solution's rules are shown by their headline alone: they apply to areas this"));
+            output.AppendLine("stage does not touch. 'sdlc constraints show LOC_nn' prints one in full.");
         }
 
         output.AppendLine();
@@ -103,6 +129,24 @@ public static class ConstraintRenderer
             }
         }
 
+        return output.ToString();
+    }
+
+    /// <summary>Renders one rule in full: what a stage handed only its headline asks for (D-151).</summary>
+    /// <param name="constraint">The rule, in force or superseded.</param>
+    /// <returns>The rendered text, ending in a newline.</returns>
+    public static string RenderOne(Constraint constraint)
+    {
+        ArgumentNullException.ThrowIfNull(constraint);
+
+        StringBuilder output = new();
+        string areas = constraint.InAreas.Count == 0 ? string.Empty : " [" + string.Join(", ", constraint.InAreas) + "]";
+        string marker = constraint.IsInForce ? string.Empty : "  (superseded by " + constraint.SupersededBy + ")";
+
+        output.AppendLine(string.Create(CultureInfo.InvariantCulture, $"{constraint.Id} {constraint.Statement}{areas}{marker}"));
+        Clause(output, "applies to", constraint.AppliesTo);
+        Clause(output, "forbids", constraint.Forbids);
+        Clause(output, "why", constraint.Why);
         return output.ToString();
     }
 

@@ -91,7 +91,9 @@ public static partial class SuggestionDecisions
 
             string intent = await File.ReadAllTextAsync(path, cancellationToken).ConfigureAwait(false);
 
-            foreach (string id in Accepted(intent, cycle.Id))
+            // An area suggestion is never taken in: an area is not something a cycle delivers (D-128), and it is
+            // placed between cycles by mining (D-150). An intent naming one accepts nothing.
+            foreach (string id in Accepted(intent, cycle.Id).Where(id => !id[(id.IndexOf('/', StringComparison.Ordinal) + 1)..].StartsWith(Areas.PlanAreas.Perspective + ".", StringComparison.Ordinal)))
             {
                 decisions[Qualified(cycle.Id, id)] = new SuggestionDecision(SuggestionStatus.Accepted, cycle.Id);
             }

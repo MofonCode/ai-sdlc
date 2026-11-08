@@ -5,6 +5,7 @@ using System.Text.Json;
 using FluentResults;
 using Microsoft.Extensions.DependencyInjection;
 using MofonCode.Core;
+using Sdlc.Core.Areas;
 using Sdlc.Core.Constraints;
 using Sdlc.Core.Cycles;
 using Sdlc.Core.Decisions;
@@ -130,7 +131,7 @@ public static class ReaderPrompts
         // The decisions are standing criteria every stage inherits, judged by CON_24 at every one (D-139):
         // a reader not handed them can only catch a departure the document admits to.
         block.Append("What this solution has already decided, and what each decision set aside:\n\n");
-        await Decisions(block, cycle, cancellationToken).ConfigureAwait(false);
+        await Decisions(block, cycle, artifact, cancellationToken).ConfigureAwait(false);
 
         // A verify's document above is the plan, which commits to the proof per criterion.
         ArtifactKind? above = artifact == ArtifactKind.Verify ? ArtifactKind.Plan : Cycle.UpstreamOf(artifact);
@@ -202,7 +203,7 @@ public static class ReaderPrompts
     /// <param name="cycle">The cycle, for the solution's root.</param>
     /// <param name="cancellationToken">Token observed while reading.</param>
     /// <returns>A task that completes when the block is appended.</returns>
-    internal static async Task Decisions(StringBuilder block, Cycle cycle, CancellationToken cancellationToken)
+    internal static async Task Decisions(StringBuilder block, Cycle cycle, ArtifactKind artifact, CancellationToken cancellationToken)
     {
         string path = Path.Combine(cycle.SolutionRoot, Cycle.SdlcDirectoryName, DecisionParser.FileName);
         block.Append("<file name=\".sdlc/").Append(DecisionParser.FileName).Append("\" form=\"standing decisions, id, statement and instead of\">\n");
@@ -216,11 +217,16 @@ public static class ReaderPrompts
             string markdown = await System.IO.File.ReadAllTextAsync(path, cancellationToken).ConfigureAwait(false);
             Result<IReadOnlyList<Decision>> read = DecisionParser.Parse(markdown, path);
 
+            // Narrowed to the areas this stage touches; an area file that does not parse narrows nothing here,
+            // because the round refuses before it gets this far (D-150, D-151).
+            AreaScope scope = (await AreaScope.Of(cycle, artifact, cancellationToken).ConfigureAwait(false)).ValueOrDefault ?? AreaScope.Everything;
+
             block.Append(read.IsFailed
                 ? "decisions.md does not parse, so nothing in it can be judged against: " + string.Join("; ", read.Errors.Select(error => error.Message)) + "\n"
                 : DecisionsRenderer.Render(
                     new ReadDecisions.Response([.. read.Value.Where(decision => decision.IsStanding)], read.Value.Count(decision => !decision.IsStanding), Recorded: true),
-                    DecisionDetail.Judged).ReplaceLineEndings("\n"));
+                    DecisionDetail.Judged,
+                    scope).ReplaceLineEndings("\n"));
         }
 
         block.Append("</file>\n\n");
@@ -262,6 +268,26 @@ public static class ReaderPrompts
                 return Result.Fail<Response>(string.Create(
                     CultureInfo.InvariantCulture,
                     $"Cycle {cycle.Id} has no directory at {cycle.Directory}. 'sdlc cycles' lists every cycle this solution holds."));
+            }
+
+            // An area whose files moved covers nothing, and every entry carrying it would quietly stop reaching a
+            // reader in full. That is the failure areas exist to avoid, so it stops the round rather than warning
+            // in a corner of it (D-150).
+            Result<IReadOnlyList<Area>> areas = await AreaScope.ReadDefined(solution.Path, cancellationToken).ConfigureAwait(false);
+
+            if (areas.IsFailed)
+            {
+                return Result.Fail<Response>(".sdlc/areas.md does not parse, so no reader can be told what applies to this cycle: "
+                    + string.Join("; ", areas.Errors.Select(error => error.Message)));
+            }
+
+            IReadOnlyList<string> covering = AreaScope.CoveringNothing(areas.Value, solution.Path);
+
+            if (covering.Count > 0)
+            {
+                return Result.Fail<Response>(string.Create(
+                    CultureInfo.InvariantCulture,
+                    $"{string.Join(", ", covering)} in .sdlc/areas.md cover{(covering.Count == 1 ? "s" : string.Empty)} no file in this solution, so the entries carrying {(covering.Count == 1 ? "it" : "them")} would reach no reader in full. The files probably moved: '/sdlc:mine' proposes the new globs, or a person corrects the Files line by hand. 'sdlc areas' shows what each area covers."));
             }
 
             bool adjudicating = string.Equals(request.Reader, ReaderAnswers.Adjudicate, StringComparison.Ordinal);
@@ -356,10 +382,17 @@ public static class ReaderPrompts
             return Result.Ok(new Response(cycle, request.Artifact, request.Directory, readers, written, unwritten));
         }
 
-        private Task<Result<string>> Constraints(ArtifactKind artifact, CancellationToken cancellationToken) =>
-            Constraints(Cycle.NameOf(artifact), cancellationToken);
+        private async Task<Result<string>> Constraints(Cycle cycle, ArtifactKind artifact, CancellationToken cancellationToken) =>
+            await Constraints(Cycle.NameOf(artifact), await RuleScope(cycle, artifact, cancellationToken).ConfigureAwait(false), cancellationToken).ConfigureAwait(false);
 
-        private async Task<Result<string>> Constraints(string name, CancellationToken cancellationToken)
+        // A solution rule is narrowed only from the plan on. Before it no file is declared, so every area-tagged
+        // rule would fall to a headline, and a rule applying to specs would never reach a spec in full (D-151).
+        private static async Task<AreaScope> RuleScope(Cycle cycle, ArtifactKind artifact, CancellationToken cancellationToken) =>
+            artifact is ArtifactKind.Intent or ArtifactKind.Spec
+                ? AreaScope.Everything
+                : (await AreaScope.Of(cycle, artifact, cancellationToken).ConfigureAwait(false)).ValueOrDefault ?? AreaScope.Everything;
+
+        private async Task<Result<string>> Constraints(string name, AreaScope scope, CancellationToken cancellationToken)
         {
             Result<EffectiveConstraints.Response> set = await mediator
                 .Send<EffectiveConstraints.Query, EffectiveConstraints.Response>(new EffectiveConstraints.Query(name), cancellationToken)
@@ -372,7 +405,7 @@ public static class ReaderPrompts
 
         private async Task<Result<string>> ForRules(Command request, string shared, CancellationToken cancellationToken)
         {
-            Result<string> rules = await Constraints(request.Artifact, cancellationToken).ConfigureAwait(false);
+            Result<string> rules = await Constraints(new Cycle(request.Id, solution.Path), request.Artifact, cancellationToken).ConfigureAwait(false);
 
             if (rules.IsFailed)
             {
@@ -415,7 +448,7 @@ public static class ReaderPrompts
         /// </remarks>
         private async Task<Result<string>> ForDiff(Cycle cycle, CancellationToken cancellationToken)
         {
-            Result<string> rules = await Constraints("diff", cancellationToken).ConfigureAwait(false);
+            Result<string> rules = await Constraints("diff", await RuleScope(cycle, ArtifactKind.Verify, cancellationToken).ConfigureAwait(false), cancellationToken).ConfigureAwait(false);
 
             if (rules.IsFailed)
             {
@@ -428,7 +461,7 @@ public static class ReaderPrompts
             await File(block, Cycle.FileNameOf(ArtifactKind.Intent), cycle.PathOf(ArtifactKind.Intent), "It does not exist.", cancellationToken).ConfigureAwait(false);
             await File(block, Cycle.FileNameOf(ArtifactKind.Plan), cycle.PathOf(ArtifactKind.Plan), "It does not exist.", cancellationToken).ConfigureAwait(false);
             block.Append("What this solution has already decided, and what each decision set aside:\n\n");
-            await Decisions(block, cycle, cancellationToken).ConfigureAwait(false);
+            await Decisions(block, cycle, ArtifactKind.Verify, cancellationToken).ConfigureAwait(false);
             block.Append("The change to judge:\n\n");
             await File(block, "evidence/diff.patch", Path.Combine(cycle.EvidenceDirectory, "diff.patch"), "It was not recorded.", cancellationToken).ConfigureAwait(false);
 
@@ -553,7 +586,7 @@ public static class ReaderPrompts
             IReadOnlyList<string> readers,
             CancellationToken cancellationToken)
         {
-            Result<string> rules = await Constraints(ArtifactKind.Verify, cancellationToken).ConfigureAwait(false);
+            Result<string> rules = await Constraints(cycle, ArtifactKind.Verify, cancellationToken).ConfigureAwait(false);
 
             if (rules.IsFailed)
             {

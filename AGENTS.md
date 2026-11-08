@@ -32,11 +32,11 @@ the cheapest way to discover that what you were about to add already lives somew
 
 | Index | Describes |
 |---|---|
-| [`skills/README.md`](skills/README.md) | the twenty skills as a reference: syntax, parameters, output, refusals and remarks for each |
+| [`skills/README.md`](skills/README.md) | the twenty-one skills as a reference: syntax, parameters, output, refusals and remarks for each |
 | [`docs/README.md`](docs/README.md) | the components: every concept the framework names, defined once. Start here when a term is unfamiliar |
 | [`docs/guides/README.md`](docs/guides/README.md) | the guides, one task each: what each covers, when to read it, what it leaves to another |
 | [`docs/mechanisms/README.md`](docs/mechanisms/README.md) | the mechanisms, one page each: how it works and why, for a person using it rather than doing a task |
-| [`docs/reference/README.md`](docs/reference/README.md) | the reference lists: one line per command, skill and refusal, each held to its source by the suite |
+| [`docs/reference/README.md`](docs/reference/README.md) | the reference lists: one line per command, skill, refusal and piece of data, each held to its source by the suite |
 | [`docs/samples/README.md`](docs/samples/README.md) | the worked examples: one solution, every command, every answer |
 | [`tools/README.md`](tools/README.md) | the three tools: two that check what the suite cannot, one that measures what sessions cost, and when to run each |
 | [`src/README.md`](src/README.md) | what `Sdlc.Core` and `Sdlc.Cli` are, how one invocation flows, where a new thing goes |
@@ -197,16 +197,17 @@ the response-factory ban has a test of its own.
 cannot be decided that way. Typing a stage name at the binary — `sdlc spec <id>` — is answered rather
 than refused: it says the stage is a skill and names the invocation.
 
-**Six files only a person writes**, in a governed solution: `approval.md`, `abandoned.md`,
-`constraints.md`, `decisions.md`, `solution.md`, `techstack.md`. No tool writes them. A tool prints what
+**Seven files only a person writes**, in a governed solution: `approval.md`, `abandoned.md`,
+`constraints.md`, `decisions.md`, `areas.md`, `solution.md`, `techstack.md`. No tool writes them. A tool prints what
 belongs in them — `sdlc draft approval`, `draft abandon`, `draft solution`, `draft techstack` — and a
 person places it. **Two are proposed rather than drafted**, because their
 wording is argued from the record rather than dictated: `sdlc propose constraints` from the findings, and
-`sdlc propose decisions` from what an approved cycle stated.
+`sdlc propose decisions` from what an approved cycle stated. **The areas are mined**: `sdlc draft mining`
+drafts `areas.md` from what three cycles' plans proposed.
 
 `.sdlc/theme.json` is a solution file and is **not** on that list: nobody is judged against a colour, so
 a cycle may declare it and change a value like any other file. The pre-tool
-hook denies every agent write to all six, by file path and by shell command alike, with no exception.
+hook denies every agent write to all seven, by file path and by shell command alike, with no exception.
 **A refusal there is the design working, not a configuration problem to route around.** The hook matches
 the text of the command, not the paths it resolves, so a commit message with a write verb beside a
 protected file's name -- *Move techstack.md into place* -- is refused too: pass it with `git commit -F`.
@@ -222,6 +223,7 @@ a follow-up is a thing somebody has to remember, and the document is wrong in th
 | adds, removes or renames a skill, or changes what one takes or refuses | [`skills/README.md`](skills/README.md) — its own section, and the count in the heading if it moved — **and the skills table in [`docs/README.md`](docs/README.md) and the row in [`docs/reference/skills.md`](docs/reference/skills.md)**, both held by the suite against disk, and the skills list's `Takes` against the skill's `argument-hint` |
 | adds or renames a concept the framework has a name for | [`docs/README.md`](docs/README.md), which defines each one once. A concept defined nowhere is one the next session works out from the code |
 | changes a command's behaviour or options | `src/Sdlc.Cli/Usage.cs`, which is what `sdlc help` prints, and [`docs/reference/commands.md`](docs/reference/commands.md) |
+| adds, moves or removes data the framework keeps — a file under `.sdlc/`, a ledger — or changes which command shows it | [`docs/reference/data-views.md`](docs/reference/data-views.md), one row each: where it lives, the command that shows it, who writes it. The suite holds its commands to the binary and its rows to the files only a person writes |
 | changes what a correct install produces — a hook, a skill count, a version, either plugin manifest | [`docs/guides/installing-the-plugin.md`](docs/guides/installing-the-plugin.md), **including the table at the top**, and the Getting started steps in [`README.md`](README.md) |
 | adds, removes or reworks a refusal | [`docs/guides/handling-refusals.md`](docs/guides/handling-refusals.md), and its row in [`docs/reference/refusals.md`](docs/reference/refusals.md), which the suite holds against the guide's entries |
 | changes how a blocking finding or a blocked verification is answered — the loops, refine, remediate, escalation | [`docs/guides/handling-blockers.md`](docs/guides/handling-blockers.md) |

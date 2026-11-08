@@ -172,7 +172,7 @@ public interface IRepository
 
     /// <summary>Every commit reachable from a reference that touched a path, oldest first.</summary>
     /// <remarks>
-    /// What the convergence report reads a cycle's verify history from: each verdict was a commit of
+    /// What the mining report reads a cycle's verify history from: each verdict was a commit of
     /// <c>verify.md</c>, and only the last survives on disk.
     /// </remarks>
     /// <param name="workingDirectory">Where to ask from.</param>

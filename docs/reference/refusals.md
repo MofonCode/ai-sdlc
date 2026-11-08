@@ -42,6 +42,8 @@ The two hooks return no exit code to you: they stop the agent's action, and the 
 | [a known finding comes back in other words](../guides/handling-refusals.md#a-known-finding-comes-back-in-other-words) | carry the finding as the ledger holds it; a new objection takes a new id |
 | [a new blocker has no gist](../guides/handling-refusals.md#a-new-blocker-has-no-gist) | have the reader that raised it give one plain sentence; never write it in this session |
 | [a suggestion does not fit the cycle's suggestions](../guides/handling-refusals.md#a-suggestion-does-not-fit-the-cycles-suggestions) | number a new one past the cycle's `S_` ids, carry a restated one under its id, answer it only where it was raised |
+| [a declared file with no area](../guides/handling-refusals.md#a-declared-file-with-no-area) | name its area in the plan's `## Areas`: `- new <name>: <files>`, or `- none: <files>` |
+| [an area covers no file](../guides/handling-refusals.md#an-area-covers-no-file) | `sdlc areas`, then `/sdlc:mine` for new globs, or correct the `Files:` line by hand |
 | **Writing the skeleton — `sdlc scaffold`** | |
 | [the gate refuses the cycle](../guides/handling-refusals.md#the-gate-refuses-the-cycle) | whichever gate remedy above matches the message |
 | [an adopted solution whose plan declares no build settings](../guides/handling-refusals.md#an-adopted-solution-whose-plan-declares-no-build-settings) | `sdlc stack`; a cycle whose plan declares the files brings them |
@@ -64,6 +66,9 @@ The two hooks return no exit code to you: they stop the agent's action, and the 
 | [a stack line that answers nothing](../guides/handling-refusals.md#a-stack-line-that-answers-nothing) | keep only rows the release asks about; change any other line in a cycle |
 | **A promotion's pull request — `sdlc promotion`** | |
 | [a branch that may not promote](../guides/handling-refusals.md#a-branch-that-may-not-promote) | open it into the integration branch as a cycle, and promote from there or from a `release/*` branch |
+| **Mining — `sdlc mine record`, and its pull request** | |
+| [a draft is still beside its file](../guides/handling-refusals.md#a-draft-is-still-beside-its-file) | rename each draft into place or delete it, then record again |
+| [a mining pull request carries something that is not mining's](../guides/handling-refusals.md#a-mining-pull-request-carries-something-that-is-not-minings) | take out what is not a husk's deletion, and fix the record the check names |
 | **Recording evidence — `sdlc evidence`** | |
 | [no cycle, or no plan](../guides/handling-refusals.md#no-cycle-or-no-plan) | check the id; the cycle needs a `plan.md` |
 | [code that is not committed](../guides/handling-refusals.md#code-that-is-not-committed) | commit the change, then record again |
@@ -83,6 +88,7 @@ The two hooks return no exit code to you: they stop the agent's action, and the 
 | writing `abandoned.md` | `sdlc draft abandon <id>`, then place it |
 | writing `constraints.md` | `sdlc propose constraints`, then paste |
 | writing `decisions.md` | `sdlc propose decisions`, then paste |
+| writing `areas.md` | `/sdlc:mine`, then `sdlc draft mining <file>` and rename |
 | writing `solution.md` | `sdlc draft solution`, then rename |
 | writing `techstack.md` | `sdlc draft techstack`, then rename |
 | running the adoption command | run it yourself; `sdlc help` for its options |

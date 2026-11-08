@@ -196,9 +196,11 @@ public static class FindingsReader
         // A perspective a finding names has to be one the binary carries. Recurrence is counted by
         // perspective name, so a misspelt one would be a perspective of its own with a count of one,
         // and the real one would read as recurring less than it did.
+        // The one exception is an area suggestion, which the plan raises rather than a reader (D-150).
         foreach (Finding finding in round.Findings.Where(finding => finding.Perspective is not null))
         {
-            if (!_perspectives.Value.Contains(finding.Perspective!))
+            if (!_perspectives.Value.Contains(finding.Perspective!)
+                && !string.Equals(finding.Perspective, Areas.PlanAreas.Perspective, StringComparison.Ordinal))
             {
                 return Result.Fail<FindingsRound>(string.Create(
                     CultureInfo.InvariantCulture,
