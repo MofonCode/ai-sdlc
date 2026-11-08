@@ -77,6 +77,7 @@ public static class CyclesRenderer
 
         return summary.Gate switch
         {
+            ApprovalGate.GateRefusal.None when summary.Unapproved => "ready, unapproved",
             ApprovalGate.GateRefusal.None => "approved",
             ApprovalGate.GateRefusal.NotApproved => "not approved",
             ApprovalGate.GateRefusal.UnreadableLedger => "ledger unreadable",

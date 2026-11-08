@@ -379,14 +379,19 @@ pasting it is the person's act.
 
 ## What the record does not do
 
-**It does not forbid departing.** `CON_19` asks a plan whose approach contradicts a standing entry to say
-in `Shape and departures` what the recorded decision would have cost here — the same shape `CON_15` takes
-for the declared stack. A decision that cannot be revisited is a cage, and the first case it genuinely
+**It does not forbid departing.** `CON_24` asks a departure from a standing entry to be declared once,
+where it arises — an outcome in the intent, an approach in the plan — and holds the intent, the spec, the
+plan and the change to it. A decision that cannot be revisited is a cage, and the first case it genuinely
 does not fit would see the record ignored rather than amended.
 
-So when you write an entry, remember a plan will be judged against it. `Instead of` is what makes that
-judgement possible: a reader deciding whether a plan contradicts this entry needs to know which
-alternatives it already weighed.
+So when you write an entry, remember every stage will be judged against it, the code included.
+`Instead of` is what makes that judgement possible: a reader deciding whether a document or a change
+contradicts this entry needs to know which alternatives it already weighed.
+
+**A departure an approved cycle declared is listed apart**, as *departs from a standing decision*. Propose
+it as a supersede — a new entry for what the cycle chose, and `Superseded-by` on the one it departed from —
+unless the departure was plainly meant for that cycle alone. Left standing, the record says one thing and
+the code another, and the next cycle is judged by the decision this one set aside.
 
 ---
 

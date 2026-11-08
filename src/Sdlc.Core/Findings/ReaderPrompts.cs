@@ -7,6 +7,7 @@ using Microsoft.Extensions.DependencyInjection;
 using MofonCode.Core;
 using Sdlc.Core.Constraints;
 using Sdlc.Core.Cycles;
+using Sdlc.Core.Decisions;
 using Sdlc.Core.Evidence;
 using Sdlc.Core.Git;
 using Sdlc.Core.Perspectives;
@@ -24,10 +25,12 @@ namespace Sdlc.Core.Findings;
 /// deterministic, so it is the binary's. The judging stays in a fresh process the skill starts: D-58
 /// kept the binary away from the verdict, and this does not go near it.</para>
 /// <para><strong>The shared block first, byte for byte the same for every reader of the round</strong> —
-/// the stack file on a plan, the document above, the spec and the evidence on a verify, then the document
+/// the stack file on a plan, the standing decisions, the document above, the spec and the evidence on a
+/// verify, then the document
 /// — and each reader's own part last. A prefix the readers share is one a host can cache, and one a
 /// replay can compare. The rules are in the rules reader's part rather than the shared block, because a
-/// perspective is not handed the constraint set and putting it there would change what it judges.</para>
+/// perspective is not handed the constraint set and putting it there would change what it judges. The
+/// verify round's diff reader is composed apart from the shared block, from what its question needs.</para>
 /// </remarks>
 public static class ReaderPrompts
 {
@@ -124,6 +127,11 @@ public static class ReaderPrompts
             await File(block, ".sdlc/" + Cycle.TechStackFileName, stack, "This solution has no techstack.md: it declares nothing.", cancellationToken).ConfigureAwait(false);
         }
 
+        // The decisions are standing criteria every stage inherits, judged by CON_24 at every one (D-139):
+        // a reader not handed them can only catch a departure the document admits to.
+        block.Append("What this solution has already decided, and what each decision set aside:\n\n");
+        await Decisions(block, cycle, cancellationToken).ConfigureAwait(false);
+
         // A verify's document above is the plan, which commits to the proof per criterion.
         ArtifactKind? above = artifact == ArtifactKind.Verify ? ArtifactKind.Plan : Cycle.UpstreamOf(artifact);
 
@@ -181,6 +189,42 @@ public static class ReaderPrompts
             finding.Locus,
         }),
         _listing);
+
+    /// <summary>
+    /// The standing decisions in the short form a reader judges against: id, statement and <c>Instead of</c>.
+    /// </summary>
+    /// <remarks>
+    /// An absent record is said to be absent, as the stack file is: a reader handed nothing cannot tell
+    /// "settled nothing" from "nobody showed me". A record that does not parse is said so too, rather than
+    /// failing the round: the round judges the document, and the record's own shape is not its subject.
+    /// </remarks>
+    /// <param name="block">Where to append.</param>
+    /// <param name="cycle">The cycle, for the solution's root.</param>
+    /// <param name="cancellationToken">Token observed while reading.</param>
+    /// <returns>A task that completes when the block is appended.</returns>
+    internal static async Task Decisions(StringBuilder block, Cycle cycle, CancellationToken cancellationToken)
+    {
+        string path = Path.Combine(cycle.SolutionRoot, Cycle.SdlcDirectoryName, DecisionParser.FileName);
+        block.Append("<file name=\".sdlc/").Append(DecisionParser.FileName).Append("\" form=\"standing decisions, id, statement and instead of\">\n");
+
+        if (!System.IO.File.Exists(path))
+        {
+            block.Append("This solution has no decisions.md: it has settled nothing.\n");
+        }
+        else
+        {
+            string markdown = await System.IO.File.ReadAllTextAsync(path, cancellationToken).ConfigureAwait(false);
+            Result<IReadOnlyList<Decision>> read = DecisionParser.Parse(markdown, path);
+
+            block.Append(read.IsFailed
+                ? "decisions.md does not parse, so nothing in it can be judged against: " + string.Join("; ", read.Errors.Select(error => error.Message)) + "\n"
+                : DecisionsRenderer.Render(
+                    new ReadDecisions.Response([.. read.Value.Where(decision => decision.IsStanding)], read.Value.Count(decision => !decision.IsStanding), Recorded: true),
+                    DecisionDetail.Judged).ReplaceLineEndings("\n"));
+        }
+
+        block.Append("</file>\n\n");
+    }
 
     private static async Task File(StringBuilder block, string name, string path, string absent, CancellationToken cancellationToken)
     {
@@ -250,7 +294,7 @@ public static class ReaderPrompts
                 return active.ToResult<Response>();
             }
 
-            List<string> readers = [ReaderAnswers.Rules, .. active.Value.Perspectives.Where(p => p.Written).Select(p => p.Name)];
+            IReadOnlyList<string> readers = ReaderAnswers.Blind(request.Artifact, active.Value.Perspectives.Where(p => p.Written).Select(p => p.Name));
             List<string> unwritten = [.. active.Value.Perspectives.Where(p => !p.Written).Select(p => p.Name)];
 
             if (request.List)
@@ -293,6 +337,7 @@ public static class ReaderPrompts
                 Result<string> composed = reader switch
                 {
                     ReaderAnswers.Rules => await ForRules(request, shared, cancellationToken).ConfigureAwait(false),
+                    ReaderAnswers.Diff => await ForDiff(cycle, cancellationToken).ConfigureAwait(false),
                     ReaderAnswers.Reconcile => await ForReconciler(cycle, request, readers, cancellationToken).ConfigureAwait(false),
                     ReaderAnswers.Adjudicate => await ForAdjudicator(cycle, request, shared, readers, cancellationToken).ConfigureAwait(false),
                     _ => await ForPerspective(request, reader, shared, cancellationToken).ConfigureAwait(false),
@@ -311,9 +356,11 @@ public static class ReaderPrompts
             return Result.Ok(new Response(cycle, request.Artifact, request.Directory, readers, written, unwritten));
         }
 
-        private async Task<Result<string>> Constraints(ArtifactKind artifact, CancellationToken cancellationToken)
+        private Task<Result<string>> Constraints(ArtifactKind artifact, CancellationToken cancellationToken) =>
+            Constraints(Cycle.NameOf(artifact), cancellationToken);
+
+        private async Task<Result<string>> Constraints(string name, CancellationToken cancellationToken)
         {
-            string name = Cycle.NameOf(artifact);
             Result<EffectiveConstraints.Response> set = await mediator
                 .Send<EffectiveConstraints.Query, EffectiveConstraints.Response>(new EffectiveConstraints.Query(name), cancellationToken)
                 .ConfigureAwait(false);
@@ -355,6 +402,38 @@ public static class ReaderPrompts
                 .Replace("{{verify}}", verify, StringComparison.Ordinal)
                 .Replace("{{rows}}", rows, StringComparison.Ordinal)
                 .Replace("{{rowsShape}}", rowsShape, StringComparison.Ordinal));
+        }
+
+        /// <summary>
+        /// The diff reader's prompt: the intent and the plan, which declare what the change may do and every
+        /// departure; the decisions; the change; and the rules whose subject is the diff (D-139).
+        /// </summary>
+        /// <remarks>
+        /// Not the shared block. The spec, the test summary and the build log are the adjudicator's
+        /// material, and this reader's question is a different one: not whether the criteria are met, but
+        /// whether the change did anything it was not given leave to.
+        /// </remarks>
+        private async Task<Result<string>> ForDiff(Cycle cycle, CancellationToken cancellationToken)
+        {
+            Result<string> rules = await Constraints("diff", cancellationToken).ConfigureAwait(false);
+
+            if (rules.IsFailed)
+            {
+                return rules;
+            }
+
+            StringBuilder block = new();
+            block.Append("# What the diff reader is given\n\n");
+            block.Append("The intent and the plan, which say what the change was given leave to do, and declare every departure:\n\n");
+            await File(block, Cycle.FileNameOf(ArtifactKind.Intent), cycle.PathOf(ArtifactKind.Intent), "It does not exist.", cancellationToken).ConfigureAwait(false);
+            await File(block, Cycle.FileNameOf(ArtifactKind.Plan), cycle.PathOf(ArtifactKind.Plan), "It does not exist.", cancellationToken).ConfigureAwait(false);
+            block.Append("What this solution has already decided, and what each decision set aside:\n\n");
+            await Decisions(block, cycle, cancellationToken).ConfigureAwait(false);
+            block.Append("The change to judge:\n\n");
+            await File(block, "evidence/diff.patch", Path.Combine(cycle.EvidenceDirectory, "diff.patch"), "It was not recorded.", cancellationToken).ConfigureAwait(false);
+
+            return Result.Ok(block + Template("diff")
+                .Replace("{{constraints}}", rules.Value, StringComparison.Ordinal));
         }
 
         private async Task<Result<string>> ForPerspective(Command request, string reader, string shared, CancellationToken cancellationToken)
@@ -408,8 +487,7 @@ public static class ReaderPrompts
                     return answer.ToResult<string>();
                 }
 
-                Perspective? perspective = reader == ReaderAnswers.Rules ? null : PerspectiveLibrary.Find(reader).ValueOrDefault;
-                Result<ReadBody> body = ReaderAnswers.FindingsOf(answer.Value, perspective);
+                Result<ReadBody> body = ReaderAnswers.FindingsOf(answer.Value, reader);
 
                 if (body.IsFailed)
                 {
@@ -484,7 +562,7 @@ public static class ReaderPrompts
 
             StringBuilder perspectives = new();
 
-            foreach (string reader in readers.Where(reader => reader != ReaderAnswers.Rules))
+            foreach (string reader in readers.Where(reader => reader is not ReaderAnswers.Rules and not ReaderAnswers.Diff))
             {
                 Result<Perspective> perspective = PerspectiveLibrary.Find(reader);
 

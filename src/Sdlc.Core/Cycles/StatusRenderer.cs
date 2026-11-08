@@ -115,6 +115,7 @@ public static class StatusRenderer
         }
 
         Spent(output, status, state);
+        Departing(output, status);
 
         Amended(output, status);
         Successors(output, status, host);
@@ -144,6 +145,7 @@ public static class StatusRenderer
     /// <summary>The gate in one word, for the counter line.</summary>
     private static string Gate(ReadCycleStatus.Response status) => status.Gate.Refusal switch
     {
+        ApprovalGate.GateRefusal.None when status.Gate.Declared => "unapproved, by declaration",
         ApprovalGate.GateRefusal.None => "approved",
         ApprovalGate.GateRefusal.NotApproved => "not approved",
         ApprovalGate.GateRefusal.UnreadableLedger => "unreadable",
@@ -214,6 +216,12 @@ public static class StatusRenderer
 
         Field(output, "Gate", GateLine(status));
         Hashes(output, status);
+
+        if (Departing(output, status))
+        {
+            Field(output, string.Empty, "Approving this cycle approves each of these.");
+        }
+
         output.AppendLine();
 
         if (Amended(output, status) | Successors(output, status, host))
@@ -230,6 +238,29 @@ public static class StatusRenderer
     /// Writes that the plan was amended after this build started, and nothing when it was not (D-123).
     /// </summary>
     /// <returns>Whether anything was written.</returns>
+    /// <summary>
+    /// The recorded decisions this cycle departs from, one line each, and nothing when there are none (D-139).
+    /// </summary>
+    /// <remarks>
+    /// On both panels, beside the gate: a departure is the one thing in a cycle that sets aside something a
+    /// person already decided, and the panel is what they read before they approve.
+    /// </remarks>
+    /// <returns>Whether anything was written.</returns>
+    private static bool Departing(StringBuilder output, ReadCycleStatus.Response status)
+    {
+        if (status.Departures is not { Count: > 0 } departures)
+        {
+            return false;
+        }
+
+        for (int index = 0; index < departures.Count; index++)
+        {
+            Field(output, index == 0 ? "Departs" : string.Empty, departures[index]);
+        }
+
+        return true;
+    }
+
     /// <summary>
     /// The successors a person can act on — ready to start, or stuck — and nothing when there are none (D-125).
     /// </summary>
@@ -587,7 +618,10 @@ public static class StatusRenderer
     private static string Digits(string? hash) =>
         string.IsNullOrWhiteSpace(hash) ? "none".PadRight(12) : ContentHash.Abbreviate(hash);
 
-    private static string GateLine(ReadCycleStatus.Response status) => status.Gate.Refusal switch
+    private static string GateLine(ReadCycleStatus.Response status) =>
+        status.Gate.Declared ? DeclaredLine(status) : ApprovedLine(status);
+
+    private static string ApprovedLine(ReadCycleStatus.Response status) => status.Gate.Refusal switch
     {
         ApprovalGate.GateRefusal.None => "approved, and all three documents match what was approved",
         ApprovalGate.GateRefusal.NotApproved => "not approved yet",
@@ -599,6 +633,20 @@ public static class StatusRenderer
         ApprovalGate.GateRefusal.Abandoned => "abandoned, which is terminal",
         ApprovalGate.GateRefusal.MissingDocument => "cannot be approved until all three documents exist",
         ApprovalGate.GateRefusal.NoCycle => "no cycle directory yet",
+        _ => "unknown",
+    };
+
+    /// <summary>The gate line when the solution declares no approval is required and none was placed (D-137).</summary>
+    /// <remarks>
+    /// Never "approved": nobody did, and a panel that said so would tell a person the plan had been read.
+    /// </remarks>
+    private static string DeclaredLine(ReadCycleStatus.Response status) => status.Gate.Refusal switch
+    {
+        ApprovalGate.GateRefusal.None => "no approval required (approval: none), and all three documents are what their clean rounds judged",
+        ApprovalGate.GateRefusal.OpenBlocker => "no approval required, but a blocking finding is still open",
+        ApprovalGate.GateRefusal.StaleRound => "no approval required, but a document has changed since its round judged it",
+        ApprovalGate.GateRefusal.Uninterrogated => "no approval required, but a document has never been interrogated",
+        ApprovalGate.GateRefusal.UnreadableRound => "no approval required, but a findings round cannot be read",
         _ => "unknown",
     };
 
@@ -624,6 +672,16 @@ public static class StatusRenderer
             next.Add((
                 Stage(host, string.Create(CultureInfo.InvariantCulture, $"interrogate {id} {name}")),
                 "nothing has argued with it yet"));
+        }
+        else if (state.Kind == ArtifactKind.Verify && state.OpenBlockers.Any(Findings.ReaderAnswers.IsAboutTheChange))
+        {
+            // The diff reader's blockers are about the code, not the verdict, so no adjudication answers them
+            // (D-139). Remediate changes the code, or steer declares the departure in the plan.
+            next.Add((
+                Stage(host, string.Create(CultureInfo.InvariantCulture, $"remediate {id}")),
+                string.Create(
+                    CultureInfo.InvariantCulture,
+                    $"the change does what it was not given leave to: {string.Join(", ", state.OpenBlockers.Where(Findings.ReaderAnswers.IsAboutTheChange).Select(f => f.Id))} - in a new session")));
         }
         else if (state.Kind == ArtifactKind.Verify && state.OpenBlockers.Count > 0)
         {
@@ -661,6 +719,13 @@ public static class StatusRenderer
             else if (status.Gate.MayBuild)
             {
                 next.Add(AfterTheGate(status, id, host));
+            }
+            else if (status.Gate.Declared)
+            {
+                // No approval to draft (D-137): the refusal is about the documents, and the gate names it.
+                next.Add((
+                    string.Create(CultureInfo.InvariantCulture, $"sdlc gate {id}"),
+                    "no approval is required, and the gate still refuses - it says why"));
             }
             else
             {

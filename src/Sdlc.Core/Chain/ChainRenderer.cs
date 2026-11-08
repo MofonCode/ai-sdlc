@@ -109,7 +109,7 @@ public static class ChainRenderer
             output.AppendLine(Indent + "The plan may be admitted. Nothing is built yet; its build gets the full chain.");
             output.AppendLine();
 
-            foreach (string line in Wrap(VerifyChain.Caveat))
+            foreach (string line in Wrap(verdict.Unapproved ? VerifyChain.UnapprovedCaveat : VerifyChain.Caveat))
             {
                 output.AppendLine(Indent + line);
             }
@@ -124,7 +124,7 @@ public static class ChainRenderer
 
             // Stated on a pass rather than only on a failure. A team reads this line when the check is
             // green, which is the moment they are deciding how much it proved.
-            foreach (string line in Wrap(VerifyChain.Caveat))
+            foreach (string line in Wrap(verdict.Unapproved ? VerifyChain.UnapprovedCaveat : VerifyChain.Caveat))
             {
                 output.AppendLine(Indent + line);
             }

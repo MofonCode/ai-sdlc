@@ -5,6 +5,7 @@ using Microsoft.Extensions.DependencyInjection;
 using MofonCode.Core;
 using Sdlc.Core.Artifacts;
 using Sdlc.Core.Cycles;
+using Sdlc.Core.Decisions;
 using Sdlc.Core.Findings;
 using Sdlc.Core.Git;
 using Sdlc.Core.Solutions;
@@ -222,9 +223,18 @@ public static class ApprovalText
 
             string draftPath = status.Cycle.ApprovalDraftPath(ApprovalLedger.NameOf(request.Decision));
 
-            IReadOnlyList<string>? decisions = request.Decision == GateDecision.Approved
-                ? PlanDecisions(await File.ReadAllTextAsync(status.Cycle.PathOf(ArtifactKind.Plan), cancellationToken).ConfigureAwait(false))
-                : null;
+            IReadOnlyList<string>? decisions = null;
+            IReadOnlyList<string> departing = [];
+
+            // Departures first and apart from the plan's other choices (D-139): approving one sets a recorded
+            // decision aside for this cycle, and that is the line a person must not miss among the rest.
+            if (request.Decision == GateDecision.Approved)
+            {
+                IReadOnlyList<Departure> departures = await Departures.Of(status.Cycle, cancellationToken).ConfigureAwait(false);
+                departing = Departures.Report(departures, await Departures.Recorded(status.Cycle.SolutionRoot, cancellationToken).ConfigureAwait(false));
+                decisions = [.. PlanDecisions(await File.ReadAllTextAsync(status.Cycle.PathOf(ArtifactKind.Plan), cancellationToken).ConfigureAwait(false))
+                    .Where(made => !made.StartsWith(Departures.Opening, StringComparison.Ordinal))];
+            }
 
             return Result.Ok(new Response(
                 status,
@@ -232,7 +242,7 @@ public static class ApprovalText
                 file.Value.Text,
                 draftPath,
                 file.Value.CarriesForward,
-                Instructions(status, request.Decision, draftPath, file.Value, decisions),
+                Instructions(status, request.Decision, draftPath, file.Value, decisions, departing),
                 MayApprove: true,
                 request.Decision));
         }
@@ -530,7 +540,8 @@ public static class ApprovalText
             GateDecision decision,
             string draftPath,
             LedgerFile file,
-            IReadOnlyList<string>? decisions)
+            IReadOnlyList<string>? decisions,
+            IReadOnlyList<string> departing)
         {
             string draft = FromRoot(status.Cycle, draftPath);
             string target = FromRoot(status.Cycle, status.Cycle.ApprovalPath);
@@ -538,6 +549,22 @@ public static class ApprovalText
             bool overwriting = file.CarriesForward > 0 || file.Replacing;
 
             List<string> lines = [];
+
+            // D-137: drafting one is allowed and placing one is honoured, so the person is told what it
+            // changes rather than refused -- a refusal or a reopen is how a team under `none` stops a cycle.
+            if (status.Gate.Declared)
+            {
+                lines.Add(string.Create(
+                    CultureInfo.InvariantCulture,
+                    $"This solution does not require an approval ('approval: none' in {Cycle.SolutionFileName}). One placed here is honoured in full: once it is in place the gate reads it, and anything but an approval stops the build."));
+                lines.Add(string.Empty);
+            }
+
+            if (departing.Count > 0)
+            {
+                lines.AddRange(departing);
+                lines.Add(string.Empty);
+            }
 
             if (decisions is not null)
             {

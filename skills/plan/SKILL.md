@@ -81,10 +81,11 @@ sdlc theme
 `sdlc stack` prints what this solution declares it is built from — `CON_15` judges you against it. It
 is `.sdlc/techstack.md` as the binary reads it: the defaults it pins, the stack rules switched on, and
 each build settings file with whether the stack takes it and whether it is on disk.
-`sdlc decisions` prints the choices somebody already settled and **`CON_19` judges you against those**:
-a plan whose approach contradicts a standing entry says what the recorded decision would have cost. Read
-it before you choose a shape rather than after, because a plan that has not read it cannot tell whether
-it is departing — and that is the whole failure the rule exists to catch.
+`sdlc decisions` prints the choices somebody already settled and **`CON_24` judges you against those**:
+the plan's reader is handed the same record, and so is the diff reader that judges the change at verify.
+Read it before you choose a shape rather than after, because a plan that has not read it cannot tell
+whether it is departing — and that is the whole failure the rule exists to catch. A departure the intent
+already declared is settled: rely on it, do not argue it again.
 
 `sdlc theme` is the one nothing judges. Read it anyway if this change touches a surface or a report:
 it holds the roles and values somebody chose, and a value invented beside them is the drift a register
@@ -146,7 +147,7 @@ it after the build, it belongs on the list.
 
 | Section | Kind | Judged by |
 |---|---|---|
-| `Shape and departures` | a **decision** — which approach | `CON_21`, `CON_15`, `CON_19` |
+| `Shape and departures` | a **decision** — which approach | `CON_21`, `CON_15`, `CON_24` |
 | `Files` | an **estimate** — which files, how large | nothing; it is a signal |
 
 That distinction matters when you are tempted to pad the file table defensively. Declaring files you
@@ -171,8 +172,24 @@ in `Shape and departures`.
 message bus by failing to mention it. A plan standing up an HTTP surface is silent about the api
 description row by failing to mention that.
 
-`CON_19` is the same shape, pointed at the decision record. If your approach takes an alternative a
-standing `DEC_` entry weighed and set aside, say what the recorded decision would have cost here.
+`CON_24` is the same shape, pointed at the decision record. If your approach takes an alternative a
+standing `DEC_` entry weighed and set aside, and the intent has not already declared that departure,
+declare it under `Decisions this plan makes:` as one line in this form, then say in the prose what the
+recorded decision would have cost here:
+
+```markdown
+- Departs from DEC_05 (one upstream stream per process, fanned out over SignalR): a second stream for
+  the options feed, which the provider serves on a separate connection.
+```
+
+The opening is fixed because the binary reads it: `sdlc draft approval` lists departures first and apart
+from the other choices, `sdlc status` names them beside the gate, and the shape check refuses one naming a
+decision the record does not hold. A departure written any other way is one the person approves without
+being told.
+
+**The build is held to this too.** The diff reader at verify reads the change against the decisions, and a
+change that takes what a decision set aside with no departure here or in the intent is a blocking finding.
+A plan silent about something a decision covers leaves the build to follow the decision.
 
 **Departing is legal — that is the half to hold on to.** A decision that cannot be revisited is a cage,
 and a record nobody may contradict would be ignored the first time it genuinely did not fit. What the
@@ -338,9 +355,11 @@ Decisions this plan makes:
 
 - <one line per choice a person approving this would want to know before the build: the approach,
   each package or library it reaches for, how the processes are hosted, what it builds by hand that a
-  declared library would draw, each departure from techstack.md or decisions.md. Plain words, no
-  section references. 'sdlc draft approval' prints this list at the rename, so a choice left out of it
-  is one the person approves without reading.>
+  declared library would draw, each departure from techstack.md. Plain words, no section references.
+  'sdlc draft approval' prints this list at the rename, so a choice left out of it is one the person
+  approves without reading.>
+- Departs from DEC_nn (<the decision in brief>): <what this plan does instead>. <Only for a departure
+  from a recorded decision the intent did not already declare; omit the line otherwise.>
 
 <which approach, and why this one. Any departure from techstack.md, with what the
 declared default would have cost here.
@@ -434,3 +453,9 @@ explain what happens next:
 
 Then stop. The build, once they approve, runs in a new session — say so in that same message. A session
 carried past its stage rebuilds its whole context after every pause (D-122).
+
+**When the gate lets the cycle through instead, read why.** If it says the solution declares
+`approval: none`, nobody has to approve: say that the three documents are clean, that the solution runs
+without approvals so the plan's pull request is the first time a person reads it, and that the build runs
+in a new session. Do not ask for an approval the solution does not require, and do not offer one as a
+step; a person who wants to sign this cycle anyway knows `sdlc draft approval <id>` from the panel.

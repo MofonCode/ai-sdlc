@@ -77,6 +77,10 @@ public static class Sitrep
     /// <param name="IntegrationHead">Its head commit, abbreviated, or null when it does not exist.</param>
     /// <param name="RemoteRead">Whether the remote's branches could be listed.</param>
     /// <param name="Successors">The successors ready to start, or stuck, for a person to act on (D-125). Read only.</param>
+    /// <param name="Approval">
+    /// Whether the solution requires a person's approval. Under <c>none</c> the page says so at the top: every
+    /// cycle on it was built without a person reading its plan, and whoever merges is the first who does (D-137).
+    /// </param>
     public sealed record Response(
         IReadOnlyList<Built> Ready,
         IReadOnlyList<Built> NeedsPerson,
@@ -86,7 +90,8 @@ public static class Sitrep
         string IntegrationBranch,
         string? IntegrationHead,
         bool RemoteRead,
-        IReadOnlyList<Successors.ReadSuccessors.Standing> Successors);
+        IReadOnlyList<Successors.ReadSuccessors.Standing> Successors,
+        ApprovalRequirement Approval = ApprovalRequirement.Required);
 
     private sealed class Handler(SolutionRoot solution, Mediator mediator, IRepository repository, TimeProvider time)
         : IRequestHandler<Query, Response>
@@ -147,7 +152,8 @@ public static class Sitrep
                 integration,
                 integrationRef is null ? null : repository.ShortCommit(root, integrationRef),
                 remote is not null,
-                [.. successors.Where(s => s.State is Successors.SuccessorState.Ready or Successors.SuccessorState.Stuck)]));
+                [.. successors.Where(s => s.State is Successors.SuccessorState.Ready or Successors.SuccessorState.Stuck)],
+                await SolutionDocument.ApprovalOf(root, cancellationToken).ConfigureAwait(false)));
         }
 
         private async Task<Built> Read(string root, CycleBranch branch, CancellationToken cancellationToken)

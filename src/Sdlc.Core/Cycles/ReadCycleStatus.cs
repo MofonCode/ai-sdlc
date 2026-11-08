@@ -162,6 +162,10 @@ public static class ReadCycleStatus
     /// Where the solution's successors stand, when a caller asked (D-125). The panel names the ready and the
     /// stuck beside the next command; not read here, for the reason <paramref name="AmendedOn"/> is not.
     /// </param>
+    /// <param name="Departures">
+    /// The recorded decisions this cycle declares it departs from, when a caller asked (D-139): each the
+    /// decision's own words with its id after. Not read here, for the reason <paramref name="AmendedOn"/> is not.
+    /// </param>
     public sealed record Response(
         Cycle Cycle,
         IReadOnlyList<ArtifactState> Artifacts,
@@ -172,7 +176,8 @@ public static class ReadCycleStatus
         Sdlc.Core.Chain.VerifyChain.Response? Chain = null,
         Findings.UsageLedger? Usage = null,
         string? AmendedOn = null,
-        Successors.ReadSuccessors.Response? Successors = null)
+        Successors.ReadSuccessors.Response? Successors = null,
+        IReadOnlyList<string>? Departures = null)
     {
         /// <summary>The artifact the cycle is waiting on, or null when all three are clear.</summary>
         public ArtifactState? Blocking => Artifacts.FirstOrDefault(artifact => !artifact.IsClear);

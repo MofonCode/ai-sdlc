@@ -1,9 +1,17 @@
 # ai-sdlc
 
-**Version 0.36.9** · iteration 4 · .NET 10 · MIT
+[![release](https://img.shields.io/nuget/v/MofonCode.Sdlc.Cli?label=release)](https://www.nuget.org/packages/MofonCode.Sdlc.Cli)
+[![preview](https://img.shields.io/nuget/vpre/MofonCode.Sdlc.Cli?label=preview&color=orange)](https://www.nuget.org/packages/MofonCode.Sdlc.Cli#versions-body-tab)
+[![downloads](https://img.shields.io/nuget/dt/MofonCode.Sdlc.Cli)](https://www.nuget.org/packages/MofonCode.Sdlc.Cli)
+[![ci](https://img.shields.io/github/actions/workflow/status/MofonCode/ai-sdlc/ci.yml?branch=main&label=ci)](https://github.com/MofonCode/ai-sdlc/actions/workflows/ci.yml)
+[![license](https://img.shields.io/github/license/MofonCode/ai-sdlc)](LICENSE)
+
+**Version 0.37.0** · iteration 4 · .NET 10
 
 **A plugin that makes an AI coding agent work the way a careful team does** — write down what the change
-is for, agree what *done* means, plan it, have a person approve it, and only then write code.
+is for, agree what *done* means, plan it, have a person approve it, and only then write code. **And it
+keeps a ledger of what was decided**, so the next session, and the next model, builds on those decisions
+rather than quietly undoing them.
 
 Most agent workflows go from a sentence straight to a diff. This one does not. A change moves through six
 stages, each producing a file the next stage reads, and **each file is challenged by a fresh reader
@@ -24,6 +32,22 @@ ai-sdlc makes the agent write those things down *before* the code, has each one 
 no stake in it, has a person sign off on them, and refuses to merge anything that lacks them. **Everything
 that can be decided by a program is decided by one** — the `sdlc` binary, called from the agent's hooks and
 from CI — because an instruction the agent reads is advisory, and the agent will talk its way past it.
+
+**The decisions are what AI development loses first.** A choice settled in one conversation is gone by the
+next session; a different thread, or a different model, argues it again from nothing, or simply takes the
+alternative somebody already weighed and rejected, and nothing in the diff says so. ai-sdlc keeps
+those choices in a ledger rather than in anybody's memory: `decisions.md`, the solution's standing record of
+what it chose and what it chose *instead of*, which a person keeps. **Every stage works from it.** The
+intent interview reads it before asking anything, so it does not re-ask what is settled, and when you ask
+for something a decision set aside it tells you then, in a sentence, and asks whether to keep the decision
+or depart from it. The spec, the plan and the build read it too, and **a fresh reader holds each of them,
+and the code itself, against it**: anything that contradicts a decision is questioned, not let through. A
+cycle may depart from a decision, but it declares the departure once, where it arises, with a name and a
+reason on it — and you are told, at the approval, beside the gate and in the pull request. Once the cycle
+is approved, `/sdlc:propose` offers each departure as an update to the record, and the choices the cycle
+settled as new entries, so the ledger keeps saying what the solution does. What was decided three sessions
+ago, in another thread, by another model, is still what the code does — or the change says plainly why
+not.
 
 ## Features
 
@@ -54,7 +78,7 @@ cycles and which only fixtures.
 | Feature | The problem | What it does |
 |---|---|---|
 | **Constraints** | A rule written into a prompt is forgotten next session, and the agent bends it when it is inconvenient | Rules have ids and four clauses, including what each one **forbids**. Three tiers — global, the stack's, and the solution's own — are resolved and rendered fresh into every reading, never copied into a document where they go stale |
-| **Decisions charter** | Each new session re-argues choices made weeks ago, unless somebody remembers to prompt it | `decisions.md` records what the solution chose and what it chose *instead of*, and every cycle reads it without anybody asking. A plan may depart from a decision, but not silently: it has to say what the recorded choice would have cost |
+| **Decisions charter** | Each new session re-argues choices made weeks ago, unless somebody remembers to prompt it | `decisions.md` records what the solution chose and what it chose *instead of*. Every stage reads it without anybody asking, and every reader is handed it — the intent's, the spec's, the plan's, and the one that reads the code at verify. A cycle may depart from a decision, but not silently: it declares the departure where it arises, and the person is shown it at the approval, in `sdlc status` and in the pull request |
 | **Stack definition** | The agent picks frameworks and packages ad hoc, and every cycle drifts a little | `techstack.md` declares what the solution is built from, which stack rules hold it, and which build settings it takes. What is in the file is exactly what binds, and a plan is read against it |
 | **Propose** | The same mistake recurs across cycles, and nobody turns it into a rule | `/sdlc:propose` reads the findings for the rule a solution keeps reaching for, and approved cycles for the choices they settled, and argues each as an entry a person may adopt |
 
@@ -62,10 +86,10 @@ cycles and which only fixtures.
 
 | Feature | The problem | What it does |
 |---|---|---|
-| **Hash-bound gate** | Approval is a "looks good" in chat, and the plan changes afterwards | A person approves all three planning documents together, and the approval records a hash of each. Edit one afterwards and the gate refuses until it is approved again |
+| **Hash-bound gate** | Approval is a "looks good" in chat, and the plan changes afterwards | A person approves all three planning documents together, and the approval records a hash of each. Edit one afterwards and the gate refuses until it is approved again. On by default; a team may declare it off, and `sdlc settings` shows which it is |
 | **Protected files** | An agent edits its own approval, or the rules it is judged by | Six files — the approval, an abandonment, the solution's rules, its decisions, its stack and what it is — are written only by a person. The pre-tool hook denies every agent write to them, by path and by shell command alike |
 | **Recorded evidence** | "The tests pass" is a claim, and the turn ends on a red build | The build records the diff, a normalised test summary and coverage. The turn-end hook sends the turn back while the suite has a failure or the evidence is missing or stale |
-| **Verify** | A reviewer re-reads the code and trusts the green tick | A fresh process that did not see the build judges it from the recorded evidence alone, criterion by criterion: did the named test run, pass, and actually establish the criterion? |
+| **Verify** | A reviewer re-reads the code and trusts the green tick | A fresh process that did not see the build judges it from the recorded evidence alone, criterion by criterion: did the named test run, pass, and actually establish the criterion? Beside it, another reads the change itself for anything the plan did not describe or a recorded decision set aside |
 | **Bounded remediation** | A fix loop either thrashes forever or gives up after an arbitrary count | `/sdlc:remediate` runs while each pass reduces what is open. When a pass undoes an earlier answer, or two reduce nothing, the cycle escalates to a person and never opens a pull request |
 
 ### Merging and running
@@ -113,7 +137,10 @@ blocking. A stage will not run until the document before it has had such a readi
 
 **There is exactly one gate.** A person approves all three documents together, immediately before the
 build, and the approval records a hash of each. Change any of them afterwards and the gate refuses until
-they are approved again.
+they are approved again. **A team may declare that no approval is required** — `approval: none` in
+`solution.md`, which only a person writes. The gate then keeps every other check, a blocking finding still
+stops the build, and every report says no person approved; the default is `required`
+([running a cycle](docs/guides/running-a-cycle.md), under *Running without approvals*).
 
 **Two loops, one on each side of that gate.** Neither is open-ended:
 
@@ -191,7 +218,7 @@ sdlc constraints
 ```
 
 It should print the nineteen global constraints in force and say it read them from
-`global  embedded in sdlc 0.36.9`. **Use this rather than `sdlc help` as the smoke test** — `help` and
+`global  embedded in sdlc 0.37.0`. **Use this rather than `sdlc help` as the smoke test** — `help` and
 `version` are the only commands that need nothing from the installation, so they are the two that cannot
 tell you whether it worked. Then `claude plugin details sdlc@ai-sdlc` should say `Skills (18)` and
 `Hooks (3)`: **a hook count below three is a failed install**, not a detail, because the deterministic layer
@@ -349,6 +376,13 @@ What is honest to say about the rest:
   versions in `Directory.Packages.props`, `global.json` or the tool manifest is checked by comparing everything
   else; a package added or removed is still a cycle's. Held by the suite and by MarketSense's ASP.NET Core
   security fix, checked locally and not yet merged.
+- **The decisions run through the whole cycle, and nothing real has run that way yet** (0.37.0). Every reader
+  of an intent, a spec, a plan and a verify is handed the decision record, a departure is declared where it
+  arises and reported at the gate, and a new reader at verify holds the change itself to the plan and the
+  decisions. The suite holds each piece. No cycle has been judged this way, so nobody yet knows how often the
+  change's reader blocks, or whether its narrow trigger keeps it from adding rounds. A solution receives it when
+  it moves its pin, and it is a minor because a round may now block what it passed before: the
+  rule against changes outside the plan's purpose reached no reader until this.
 - **Declaring the stack after adoption has not been walked by anybody but its author.** Adoption no
   longer writes the declared stack or the .NET build settings: a person places the first from a draft,
   and the second arrive with the skeleton. The suite holds each step; no real adoption has gone through
@@ -361,6 +395,11 @@ What is honest to say about the rest:
 - **`standard: profile` is named after something no solution records any more.** The key still means
   what it meant — new work follows the framework's conventions rather than the surrounding code — and
   the value was left alone because every existing `solution.md` is protected and already says it.
+- **Running without approvals has not met a real cycle** (0.36.10). `approval: none` in `solution.md` lets a
+  cycle build once its rounds are clean, and the suite holds that a blocker, an uninterrogated document and a
+  document edited after its round still refuse. No solution has run that way yet. Under it, nothing local
+  anchors a findings ledger: an agent could rewrite one, and git history and the pull request are what remain
+  (`CONCEPT.md` D-137).
 - **A local solution has no mechanical check over a merge, and nothing checks a push anywhere.** The
   pre-push hook is gone (`CONCEPT.md` D-78): it was written and never installed, and where it ran it
   refused a push of work in progress. A solution adopted before 0.18.0 still has the file, and a clone
@@ -464,7 +503,7 @@ What is honest to say about the rest:
   release carries its own skills and hooks, and `sdlc claude` starts a session with them; plain `claude`
   loads the installed plugin, and a session-start hook says when that is another release (D-131).
   `.github/workflows/ci.yml` publishes to nuget.org: a preview from each merge into development that ships, one per patch from
-  `0.36.1-preview` on, and a release from each merge to master once a reviewer approves it (D-135).
+  `0.36.1-preview` on, and a release from each merge to main once a reviewer approves it (D-135).
 - **A cycle can run on a change to the framework nobody has published, and stops at the pull request**
   (0.36.7). `SDLC_DEV_BUILD` hands every `sdlc` in a terminal to a local build, which calls itself
   `-local`; a cycle any round of which it wrote is a test run, and `pr-ready` and the pull-request check refuse

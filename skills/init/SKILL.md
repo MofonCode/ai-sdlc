@@ -212,7 +212,7 @@ tests.** Sort before you propose:
 
 | An answer about | Goes in | Because |
 |---|---|---|
-| what the solution is and who for | the paragraph in `.sdlc/solution.draft.md`, under the four keys | every plan reads it for what good looks like here, and `sdlc doctor` fails while it is the template's text |
+| what the solution is and who for | the paragraph in `.sdlc/solution.draft.md`, under its keys | every plan reads it for what good looks like here, and `sdlc doctor` fails while it is the template's text |
 | which component library, which packages, which project may reference what | an architecture test | test two below rejects it — an analyzer *can* decide it, so a constraint is the wrong tier |
 | the names a visual treatment is expressed in | a theme, which `sdlc propose theme` drafts | roles survive a rebrand where values do not, and a stage can look a role up |
 | whether a judgement was made and recorded — that a visual treatment was considered | a `LOC_` constraint | it needs reading comprehension, which is exactly what test two admits |
@@ -405,6 +405,16 @@ which mode ran, and what the origin is.
 **With a platform, show `sdlc branch-policy` verbatim too**, and say the person runs those commands as an
 administrator: pull requests only, nobody bypassing, the check required — the default, theirs to change
 (D-136). Do not run them yourself; they change the remote, and setting a policy is the person's.
+
+**Then tell them the approval is on, in these words, and do not ask about it:**
+
+> Before any code is written, each cycle waits for you to approve its intent, spec and plan together. That
+> is on for this solution. If your team would rather review at the pull request only, set `approval: none`
+> in `.sdlc/solution.md` with `sdlc draft solution`; the running-a-cycle guide says what that gives up.
+
+It is told rather than asked because a question invites a team to switch the gate off before it has run a
+single cycle, which is when it knows least about what the gate costs (D-137). If the person raises it
+earlier in the interview, answer with the same paragraph.
 
 **Nothing about what any of it means.** Adoption is the stage with a standing temptation to explain the
 framework it has just installed, and `.sdlc/README.md` is the whole of that explanation — written, in the

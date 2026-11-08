@@ -87,6 +87,20 @@ Attribution is what makes it a decision rather than a preference, and what stops
 re-litigating it. `CON_01` routes decisions-already-taken here precisely so the intent stays a problem
 statement.
 
+**A correction that sets aside a recorded decision is a departure, and it is declared in the marked form**
+(D-139) — the route a spec, a build or a verify's diff reader sends a person down when the work cannot keep
+a decision. Ask the person in a sentence which decision, in its own words, and whether they want to depart
+from it; keeping it is an answer too. An outcome departs in the intent; an approach in the plan's `Shape
+and departures`, under `Decisions this plan makes:`:
+
+```markdown
+- Departs from DEC_08 (market data is the 15-minute-delayed feed): the real-time feed for the
+  watchlist. Peter, 2026-11-07: the trial account now includes it.
+```
+
+The opening is fixed because the binary reads it — the approval draft lists it first, `sdlc status` names
+it beside the gate — and every later stage relies on it rather than reopening it.
+
 **A suggestion taken in is written beneath the outcome it sharpens, in the person's words, and a
 declined one is a fixed decision.** Both name the finding:
 

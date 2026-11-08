@@ -450,8 +450,9 @@ build settings gap is closed only by a plan whose intent asks for it, which decl
 and plans for what they break; a plan about anything else names the gap in a sentence and leaves it.
 
 **Departing is legal; departing in silence is not.** `CON_15` asks a plan to say what the declared stack
-would have cost when it departs from it, in either direction, and `CON_19` asks the same about a recorded
-decision.
+would have cost when it departs from it, in either direction, and `CON_24` asks a departure from a recorded
+decision to be declared where it arises: the intent for an outcome, the plan for an approach. The plan's
+reader is handed the decisions, and so is the diff reader that judges the change at verify.
 
 **It probes what the platform does before planning on it** (D-129). Each behaviour the shape rests on that
 nobody in the cycle has observed is run on a throwaway `probe/<id>/<slug>` branch outside the cycle's
@@ -1020,7 +1021,9 @@ with `sdlc round verdict`, which refuses an answer that is not a verify document
 `sdlc evidence check` reports what the verdict cites that the evidence does not hold, and refuses nothing
 (D-120). It interrogates the verify document like any other artifact, and
 a blocking finding is answered by a new adjudication given the findings, never by `refine` or an edit in
-the session. Then it shows `sdlc status <id>` and `sdlc pr-ready <id>` verbatim with at most two lines of
+the session. The verify round also runs the **diff reader**, which reads the change itself against the
+intent, the plan and the decisions; its findings, ids under `diff.`, go to `remediate` whatever the outcome
+reads (D-139). Then it shows `sdlc status <id>` and `sdlc pr-ready <id>` verbatim with at most two lines of
 its own.
 
 Per criterion: which test did the plan name, does the summary say it ran and passed, and does that test
@@ -1040,7 +1043,7 @@ planning document.
 
 | | |
 |---|---|
-| Stage | build and verify, after verify recorded `blocked` |
+| Stage | build and verify, after verify recorded `blocked`, or left a `diff.` finding open |
 | Started by | a person, or `batch-build` |
 | Reads | the criteria `verify.md` marks Not met, the verify findings, `sdlc pr-ready <id>`, and the code |
 | Writes | source and tests, fresh evidence, and a commit on the cycle's branch |
@@ -1626,9 +1629,9 @@ problem underneath; every argued rule, reopen, repeated failure and perspective 
 proposal, *already recorded*, a note for the framework, or a reason under `## Not proposed`; and a second
 fresh process names any item left without one.
 
-**Departing is legal from two of the three, and silence is what gets caught.** `CON_19` asks a plan
-contradicting a recorded decision to say what that decision would have cost, the same shape `CON_15`
-takes for the declared stack. The theme is the one nothing in governance objects to, because a colour
+**Departing is legal from two of the three, and silence is what gets caught.** `CON_24` asks a
+departure from a recorded decision to be declared where it arises, and holds the intent, the spec, the
+plan and the change to it; `CON_15` asks a plan the same of the declared stack. The theme is the one nothing in governance objects to, because a colour
 outside the theme is mechanical and belongs to a linter.
 
 It runs `sdlc propose <subject>`, shows it verbatim, then does the reading the command cannot under

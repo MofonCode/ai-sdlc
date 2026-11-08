@@ -128,7 +128,7 @@ public sealed class ShippedLibraryTests
     public void The_library_holds_the_entries_iteration_four_carries()
     {
         Assert.AreEqual(
-            23,
+            24,
             Library.Count,
             "Nine came across from iteration 3 unchanged, CON_10 was rebound to a gate refusal, and "
             + "CON_12, CON_13 and CON_14 were added in iteration 4. Two supersessions followed, each "
@@ -139,7 +139,9 @@ public sealed class ShippedLibraryTests
             + "failure leaves for whoever investigates it, beside CON_17's what the person is told. CON_21 "
             + "and CON_22 then superseded CON_06 and CON_08, narrowing both proof rules to what is wrong "
             + "rather than what a reader can imagine fooled (D-127). CON_23 asks a criterion that ranges over cases "
-            + "to list them, so the cases a proof is held to end somewhere (D-132). A deliberate addition updates this number; an accident fails here.");
+            + "to list them, so the cases a proof is held to end somewhere (D-132). CON_24 superseded CON_19, carrying a "
+            + "departure from a recorded decision through the intent, the spec, the plan and the change (D-139). A "
+            + "deliberate addition updates this number; an accident fails here.");
 
         Assert.AreEqual(
             19,
@@ -164,7 +166,7 @@ public sealed class ShippedLibraryTests
             .Order(StringComparer.Ordinal)];
 
         CollectionAssert.AreEqual(
-            new[] { "CON_04 -> CON_16", "CON_06 -> CON_21", "CON_08 -> CON_22", "CON_13 -> CON_15" },
+            new[] { "CON_04 -> CON_16", "CON_06 -> CON_21", "CON_08 -> CON_22", "CON_13 -> CON_15", "CON_19 -> CON_24" },
             pairs,
             "Every superseded rule names its replacement, and a new supersession is added here "
             + "deliberately. A rule that stopped binding without naming what replaced it would leave "

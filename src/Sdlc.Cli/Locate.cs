@@ -14,7 +14,7 @@ internal static class Locate
     /// The environment variable that overrides where the library is read from. Set by the test
     /// suite, and by anyone running a build of the gate against a library that is not beside it.
     /// </summary>
-    public const string LibraryVariable = "SDLC_CONSTRAINTS";
+    public const string LibraryVariable = Sdlc.Core.Solutions.ReadSettings.LibraryVariable;
 
     /// <summary>
     /// Finds the global constraint library, where a file supplies it.

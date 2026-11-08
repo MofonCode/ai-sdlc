@@ -108,6 +108,7 @@ try
         "decisions" => await Workspace.Run(line, w => Decisions(w, line)).ConfigureAwait(false),
         "theme" => await Workspace.Run(line, ThemeCommand).ConfigureAwait(false),
         "stack" => await Workspace.Run(line, StackCommand).ConfigureAwait(false),
+        "settings" => await Workspace.Run(line, SettingsCommand).ConfigureAwait(false),
         "doctor" => await Workspace.Run(line, Doctor).ConfigureAwait(false),
         "hook" => await Hook(line).ConfigureAwait(false),
         _ when Stages.IsSkill(line.Verb) => await Skill(line).ConfigureAwait(false),
@@ -1483,6 +1484,23 @@ static async Task<int> StackCommand(Workspace workspace)
     return ExitCode.Ok;
 }
 
+// How this solution is set to run, every value with where it came from (D-138). One when solution.md cannot be
+// read: its values are printed as unknown, and a view that exited zero over them would read as their defaults.
+static async Task<int> SettingsCommand(Workspace workspace)
+{
+    Result<ReadSettings.Response> result = await workspace
+        .Send<ReadSettings.Query, ReadSettings.Response>(new ReadSettings.Query())
+        .ConfigureAwait(false);
+
+    if (result.IsFailed)
+    {
+        return await Report(result, ExitCode.Refused).ConfigureAwait(false);
+    }
+
+    await Console.Out.WriteAsync(SettingsRenderer.Render(result.Value)).ConfigureAwait(false);
+    return result.Value.Complete ? ExitCode.Ok : ExitCode.Refused;
+}
+
 // Both reports keep a copy, because a person works from a file rather than from scrollback and these are
 // long. Nothing reads one back, which is the whole difference between a report and a record -- so a
 // failure to write one is said and never fatal: the answer was already printed.
@@ -1870,6 +1888,13 @@ static async Task<int> Status(Workspace workspace, CommandLine line, CycleId id)
         status = status with { Successors = successors.Value };
     }
 
+    // The recorded decisions this cycle departs from, beside the gate that approves them (D-139).
+    IReadOnlyList<Decision> recorded = await Departures.Recorded(status.Cycle.SolutionRoot, CancellationToken.None).ConfigureAwait(false);
+    status = status with
+    {
+        Departures = Departures.Named(await Departures.Of(status.Cycle, CancellationToken.None).ConfigureAwait(false), recorded),
+    };
+
     ArtifactKind kind = state.Kind;
     ArtifactOutline outline = await ArtifactOutlineReader
         .ReadFile(state.Path, CancellationToken.None)
@@ -1883,7 +1908,10 @@ static async Task<int> Status(Workspace workspace, CommandLine line, CycleId id)
         : null;
     ArtifactValidation? shape = text is null
         ? null
-        : ArtifactSchema.Validate(kind, text, id, await NewerRules.Hold(status.Cycle, CancellationToken.None).ConfigureAwait(false));
+        : Departures.Checked(
+            ArtifactSchema.Validate(kind, text, id, await NewerRules.Hold(status.Cycle, CancellationToken.None).ConfigureAwait(false)),
+            text,
+            recorded);
 
     StagePanel panel = new(state, outline, shape, text is null ? null : ArtifactSize.Describe(kind, text));
     SupportedHost? host = SupportedHosts.Running(Environment.GetEnvironmentVariable);

@@ -35,6 +35,18 @@ public static class VerifyChain
         + "Code-owner review on the pull request is what provides that, and nothing here replaces it.";
 
     /// <summary>
+    /// What the check says in place of <see cref="Caveat"/> when no person approved the plan (D-137).
+    /// </summary>
+    /// <remarks>
+    /// Stated on a pass for the reason the caveat is: the reviewer reads the green check when deciding how
+    /// much it proved, and under <c>approval: none</c> their review is the first time a person reads the plan.
+    /// </remarks>
+    public const string UnapprovedCaveat =
+        "No person approved this plan: the solution declares 'approval: none' in solution.md. This proves "
+        + "every planning document was interrogated clean and is what its latest round judged, and no more. "
+        + "Code-owner review on this pull request is the first time a person reads the plan.";
+
+    /// <summary>
     /// The check a cycle fails when a local build judged any of it, or its solution pins one (D-135). Named on the
     /// holder because <c>pr-ready</c> refuses for it by name, as a reason of its own.
     /// </summary>
@@ -63,7 +75,11 @@ public static class VerifyChain
     /// Whether this was the admission check: the pull request carried only this cycle's planning documents,
     /// so it was checked up to the approval and asked for no verify (D-87).
     /// </param>
-    public sealed record Response(Cycle Cycle, IReadOnlyList<ChainCheck> Checks, bool Admission = false)
+    /// <param name="Unapproved">
+    /// Whether the gate let the cycle through with no approval, because its solution declares none is
+    /// required (D-137). The renderer states it in place of <see cref="Caveat"/>, which describes an approval.
+    /// </param>
+    public sealed record Response(Cycle Cycle, IReadOnlyList<ChainCheck> Checks, bool Admission = false, bool Unapproved = false)
     {
         /// <summary>Whether every check held.</summary>
         public bool Holds => Checks.All(check => check.Passed);
@@ -285,7 +301,7 @@ public static class VerifyChain
 
                 await Documents(cycle, checks, request.Id, [.. Cycle.PlanningDocuments], cancellationToken)
                     .ConfigureAwait(false);
-                await Gate(cycle, checks, cancellationToken).ConfigureAwait(false);
+                bool unapproved = await Gate(cycle, checks, cancellationToken).ConfigureAwait(false);
                 await Proof(cycle, checks, cancellationToken).ConfigureAwait(false);
 
                 if (changed.Any(Successors.Successor.IsSuccessorPath))
@@ -293,12 +309,12 @@ public static class VerifyChain
                     checks.Add(await SuccessorsSound(mediator, cancellationToken).ConfigureAwait(false));
                 }
 
-                return Result.Ok(new Response(cycle, checks, Admission: true));
+                return Result.Ok(new Response(cycle, checks, Admission: true, Unapproved: unapproved));
             }
 
             await Documents(cycle, checks, request.Id, [.. Cycle.PlanningDocuments, ArtifactKind.Verify], cancellationToken)
                 .ConfigureAwait(false);
-            await Gate(cycle, checks, cancellationToken).ConfigureAwait(false);
+            bool declared = await Gate(cycle, checks, cancellationToken).ConfigureAwait(false);
             await Proof(cycle, checks, cancellationToken).ConfigureAwait(false);
             await Proven(cycle, checks, cancellationToken).ConfigureAwait(false);
             await Adjudicated(cycle, checks, cancellationToken).ConfigureAwait(false);
@@ -308,7 +324,7 @@ public static class VerifyChain
             await Outcome(cycle, checks, cancellationToken).ConfigureAwait(false);
             ConvergedAfterVerify(cycle, request, checks);
 
-            return Result.Ok(new Response(cycle, checks));
+            return Result.Ok(new Response(cycle, checks, Unapproved: declared));
         }
 
         /// <summary>
@@ -618,6 +634,7 @@ public static class VerifyChain
             List<string> missing = [];
             List<string> misshapen = [];
             bool fence = await NewerRules.Hold(cycle, cancellationToken).ConfigureAwait(false);
+            IReadOnlyList<Decisions.Decision> recorded = await Decisions.Departures.Recorded(cycle.SolutionRoot, cancellationToken).ConfigureAwait(false);
 
             foreach (ArtifactKind kind in required)
             {
@@ -630,7 +647,7 @@ public static class VerifyChain
                 }
 
                 string text = await File.ReadAllTextAsync(path, cancellationToken).ConfigureAwait(false);
-                ArtifactValidation shape = ArtifactSchema.Validate(kind, text, id, fence);
+                ArtifactValidation shape = Decisions.Departures.Checked(ArtifactSchema.Validate(kind, text, id, fence), text, recorded);
 
                 misshapen.AddRange(shape.Violations.Select(violation => string.Create(
                     CultureInfo.InvariantCulture,
@@ -665,7 +682,8 @@ public static class VerifyChain
         /// to agree about what "approved" means, and the only way two implementations stay in agreement is
         /// by there being one.
         /// </remarks>
-        private async Task Gate(Cycle cycle, List<ChainCheck> checks, CancellationToken cancellationToken)
+        /// <returns>Whether the gate held with no approval, because the solution declares none (D-137).</returns>
+        private async Task<bool> Gate(Cycle cycle, List<ChainCheck> checks, CancellationToken cancellationToken)
         {
             Result<ApprovalGate.Response> read = await mediator
                 .Send<ApprovalGate.Query, ApprovalGate.Response>(
@@ -679,7 +697,7 @@ public static class VerifyChain
                     "the approval",
                     false,
                     "could not be read. " + string.Join("; ", read.Errors.Select(e => e.Message))));
-                return;
+                return false;
             }
 
             ApprovalGate.Response gate = read.Value;
@@ -692,6 +710,8 @@ public static class VerifyChain
                     : string.Create(CultureInfo.InvariantCulture, $"{gate.Refusal}.")
                         + Environment.NewLine
                         + gate.Explanation));
+
+            return gate.MayBuildUnapproved;
         }
 
         /// <summary>

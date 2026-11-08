@@ -340,7 +340,13 @@ public static class Initialise
                 // solution is the platform.
                 printed[document] = string.Join(
                     Environment.NewLine,
-                    SolutionDocument.Keys(origin, standard, wantedPlatform))
+                    SolutionDocument.Keys(
+                        origin,
+                        standard,
+                        wantedPlatform,
+                        integration,
+                        recorded?.Telemetry,
+                        recorded?.Approval ?? ApprovalRequirement.Required))
                     + Environment.NewLine;
             }
 

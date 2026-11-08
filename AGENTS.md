@@ -57,7 +57,7 @@ the cheapest way to discover that what you were about to add already lives somew
 | `tools/Sdlc.ScaffoldHarness/` | the harness that writes a scaffolded solution so it can be built |
 | `tools/Sdlc.UsageReport/` | what a host's sessions cost, read from Claude Code's transcripts: the whole-session view the per-cycle usage record leaves out |
 | [`factory/README.md`](factory/README.md) | the factory bundle: what runs unattended. Today only the factory's agent image, built from one commit (D-96) |
-| `.github/workflows/ci.yml` | build and test on every pull request, which deliberately does not govern this repository with itself (D-42); a preview from a merge into development that changes what ships, and a release from a merge to master, each tagged so the plugin can be pinned to it (D-131, D-135). See Releasing below |
+| `.github/workflows/ci.yml` | build and test on every pull request, which deliberately does not govern this repository with itself (D-42); a preview from a merge into development that changes what ships, and a release from a merge to main, each tagged so the plugin can be pinned to it (D-131, D-135). See Releasing below |
 
 ### Querying `CONCEPT.md`
 
@@ -127,17 +127,17 @@ a backstop, not the inner loop.
 ## Releasing
 
 **A release is a merge.** `VersionPrefix` in `Directory.Build.props` and the `version` in both plugin manifests
-are moved together and merged into master. `ci.yml` refuses a manifest that disagrees with the props, builds,
+are moved together and merged into main. `ci.yml` refuses a manifest that disagrees with the props, builds,
 tests, packs, checks the packed tool answers with the version it will be published as, and waits for a reviewer
 on the `nuget` environment before it pushes and tags the commit `v<that version>`. A merge whose version is
 already published and that changes nothing that ships publishes nothing; one that does change what ships is
 refused.
 
 **Both branches take pull requests only** (D-136). Work happens on a branch of your own, squashed into
-`development` by pull request; `development` is merged into `master` with a merge commit, and only `development`
+`development` by pull request; `development` is merged into `main` with a merge commit, and only `development`
 or a `release/*` branch may open that pull request, which the `promotion` job checks. Nothing is pushed straight
 to either. The rulesets are in **Settings > Rules**: `build, test and pack` required on both, `promotion` on
-`master` too, and one approval from a code owner, named in [`.github/CODEOWNERS`](.github/CODEOWNERS). GitHub
+`main` too, and one approval from a code owner, named in [`.github/CODEOWNERS`](.github/CODEOWNERS). GitHub
 never counts an author's own approval, so the one bypass is the `owners` team, on pull requests only:
 a member merges their own pull request by ticking the bypass box, **and only once the checks are green**, because
 the same box would merge past them. Nobody else bypasses, and nobody bypasses a push.
@@ -145,8 +145,20 @@ the same box would merge past them. Nobody else bypasses, and nobody bypasses a 
 **A preview is a merge into `development`.** A pull request squashed into it that changes what ships publishes
 `<VersionPrefix>-preview` through the `nuget-preview` environment once a reviewer approves it, and tags the
 commit `v<that version>`. A branch's own pushes publish nothing; its pull request builds it. A nuget.org version can be unlisted and never deleted, so a push that touches only
-documents makes none. **There is one preview per version**: the next one is the next patch, moved in the props
+documents makes none. **There is one preview per version**: the next one is a new version, moved in the props
 and both manifests together, and a push that ships a change without moving it is refused.
+
+**Which number moves** (D-140). The version is `major.minor.patch`, and the pipeline accepts any move up, so this
+is the rule rather than the check:
+
+| Move | When |
+|---|---|
+| **patch** | a change that ships and leaves an existing solution's cycles behaving as they did: a fix, a new command or option, wording, a document that ships in the package |
+| **minor**, patch to 0 | a change that can make an existing solution's cycle block where it passed before, or changes what a person or a stage must write: a rule added, superseded or newly enforced, a reader added to a round, a file's shape or a protected file changed, a command removed. A planned milestone moves it too |
+| **major** | stays 0 until the framework promises compatibility between releases. Under 0, a minor is where a break is announced |
+
+**When a branch is in doubt, take the minor.** A minor too many costs a number; a patch that changes how a cycle
+blocks is a solution's team finding out from a refused round rather than from the version they pinned.
 
 **A local build is never published** (D-135). `SDLC_DEV_BUILD` points every `sdlc` on the machine at a build of
 this repository, which calls itself `<VersionPrefix>-local`, and a cycle any local build judged never opens a pull

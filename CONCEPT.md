@@ -301,12 +301,12 @@ separating "the part that is judged".
 |---|---|---|
 | `intent` | `Problem` | `CON_01`; `spec` derives criteria from it |
 | | `Wanted outcomes` | `CON_16` — this is its left-hand side |
-| | `Fixed decisions` | `CON_01` routes decisions-already-taken here; `plan` cites them; `steer` writes here |
+| | `Fixed decisions` | `CON_01` routes decisions-already-taken here, and `CON_24` a departure from a recorded one; `plan` cites them; `steer` writes here |
 | | `Must not change` | `CON_16`, which names it |
 | | `type` | the change classification; later artifacts read it |
 | `spec` | `Acceptance criteria` | `CON_03`, `CON_05`, `CON_12`, `CON_16`, `CON_17`, `CON_20`, `CON_23`, `CON_21`, and `verify`; a criterion that ranges over cases lists them under `Cases:` (D-132) |
 | | `Out of scope` | `CON_05`, `CON_16`; a disposal destination (§5.4) |
-| `plan` | `Shape and departures` | `CON_15`, `CON_18`, `CON_19` |
+| `plan` | `Shape and departures` | `CON_15`, `CON_18`, `CON_24` |
 | | `Assumptions proven` | the person at the gate: each platform behaviour the shape rests on, what a probe showed and its commit, or `None.` (D-129) |
 | | `Files` | the blast-radius signal and the claim graph; ordering reasoning lives here |
 | | `Proof` | `CON_21`, and `verify`'s criterion table |
@@ -360,7 +360,7 @@ carries the check.
 
 | Section | Kind | Judged by |
 |---|---|---|
-| `Shape and departures` | a **decision** — which approach | `CON_15`, `CON_18`, `CON_19` |
+| `Shape and departures` | a **decision** — which approach | `CON_15`, `CON_18`, `CON_24` |
 | `Files` | an **estimate** — which files, how large | nothing; it is a signal |
 
 A plan holds a file table, never diffs. Line-level change is the build artifact — the branch and
@@ -417,6 +417,13 @@ because a person reading a plan is reading it against the spec it cites.
 
 **The gate is local, and only local.** A code owner merges the pull request, never the agent that
 authored it.
+
+**A solution may declare that no approval is required** — `approval: none` in `solution.md` (§8.3). The
+gate then asks for no ledger, and keeps every check that is not a person's signature: each document
+interrogated, no blocker open, each document what its latest round judged. A blocking finding still
+stops the build (D-27). An approval placed anyway is honoured in full. Every surface that reports the
+gate says no person approved, and the pull request becomes the first time a person reads the plan. The
+default, and what an absent key reads as, is `required` (D-137).
 
 `constraints.md`, `decisions.md`, `techstack.md` and `solution.md` are approved by being hand-edited — a
 person places each, and none is part of a cycle gate (§5.3). `theme.json` is the exception and is changed
@@ -1015,13 +1022,13 @@ nobody.
 | `CON_16` | a spec covers every outcome its intent asks for, and all of each one | spec |
 | `CON_17` | a spec says what somebody is told when the action fails | spec |
 | `CON_18` | a plan that changes a rule the cycle is judged by says what the rule would have cost | plan |
-| `CON_19` | a plan says why it departs from a decision the solution has recorded | plan |
 | `CON_20` | a spec says what is recorded when the action fails | spec |
 | `CON_21` | a plan's proof reaches the criterion it claims to prove | plan |
 | `CON_22` | a verify claim the verdict relies on rests on evidence that shows it | verify |
 | `CON_23` | a criterion that ranges over cases lists them | spec |
+| `CON_24` | a departure from a recorded decision is declared where it arises, and later stages rely on it | intent, spec, plan, diff |
 
-**Four ids are absent because they no longer bind**, and each is explained once below.
+**Five ids are absent because they no longer bind**, and each is explained once below.
 
 `CON_04` required every
 stated outcome to have a criterion and said nothing about a criterion covering only part of one,
@@ -1044,6 +1051,12 @@ would miss, so a fresh reader found a new one every round, and one plan took 44 
 outcome, or cannot fail on a defect the reader names in this change. `CON_22` blocks a claim the
 verdict relies on. What a reader can only imagine is a suggestion. Both stay on the page verbatim for
 the findings that cited them (D-127).
+
+`CON_19` asked a plan to say why it departed from a recorded decision, and held nothing else to the
+record: an intent could ask for what a decision set aside, a spec could require it, and a change could do
+it, with no rule broken until a plan happened to reach for it. `CON_24` replaces it and carries one
+principle through the chain — a departure is declared once, where it arises, and every later stage relies
+on it — judged at the intent, the spec, the plan and the change (D-139).
 
 `CON_06`, now `CON_21`, was the one to watch: it drew a blocking finding in roughly half of twelve runs on a golden
 sample, the cause was traced to the sample rather than the constraint, and the fix was made by
@@ -1144,11 +1157,17 @@ something nobody chose. **A decision forbids nothing** — where a choice does, 
 or an architecture test, and the two are separate artifacts of one choice. Ids are monotonic and a
 reversed entry takes a new id while the old one stays on the page, as §20's own preamble has it.
 
-**Departing is legal; departing in silence is not.** `CON_19` asks a plan whose approach contradicts a
-standing entry to say in `Shape and departures` what the recorded decision would have cost here — the
-same shape `CON_15` takes for the declared stack, and a separate rule rather than a reworded one because
-what is forbidden changed (§7.4). D-72, which reverses the half of D-70 that shipped the record binding
-nothing.
+**Departing is legal; departing in silence is not.** The decisions are standing criteria every cycle
+inherits, as it inherits the constraints, so every stage that writes reads them and every reader that
+judges is handed them, in short form: id, statement and `Instead of`. `CON_24` asks a departure to be
+declared once, where it arises — an outcome in the intent's `Fixed decisions`, with who and why; an
+approach in the plan's `Shape and departures`, with what the decision would have cost — as one line
+opening `Departs from DEC_nn`. A spec, a plan or a change taking what a decision set aside with no such
+line above it is a blocking finding; one that merely seems relevant is a suggestion. The verify round's
+diff reader holds the change to it. The binary parses the lines and reports them — first and apart
+in the approval draft, in `sdlc status`, in the pull request — and `propose decisions` offers each one an
+approved cycle declared as a supersede, so the record keeps saying what the solution does (D-139, which
+supersedes the plan-only rule of D-72).
 
 ### 8.1.2 `theme.json`
 
@@ -1203,8 +1222,9 @@ and an update's report name it, while writing nothing. That is how a release rea
 
 ### 8.3 `solution.md`
 
-Four keys. There was another, `profile`, until the declared stack listed its own rules (D-76); a
-solution adopted before that may still carry the line, and nothing reads it (D-81).
+Six keys. There was another, `profile`, until the declared stack listed its own rules (D-76); a
+solution adopted before that may still carry the line, and nothing reads it (D-81). `sdlc settings` shows
+every key's value, whether it was declared or defaulted, and how to change it (D-138).
 
 | Key | What consumes it |
 |---|---|
@@ -1213,6 +1233,7 @@ solution adopted before that may still carry the line, and nothing reads it (D-8
 | `platform` | `doctor`, to tell a local solution from a broken install, and `pr`, to know whether there is anywhere to push. Absent reads as `github` (D-53) |
 | `telemetry` | `operate`, which reads production's errors from it and files them as leads on the platform's tracker. Optional and written only when set; most solutions have none (D-89) |
 | `integration_branch` | the factory, which builds from it, `pr`, which targets it, and evidence, which measures a cycle's diff from where it diverged from it. Absent reads as `development`; a solution with no such branch measures from its default branch (D-83) |
+| `approval` | the gate, which under `none` asks for no ledger and keeps every other check; `verify-chain`, the status panel and the sitrep, which say no person approved. `required` or `none`; absent, and a document that cannot be read, read as `required` (D-137) |
 
 **`origin` and `standard` are two keys because they answer two questions and only one of them may
 move.** Where the code came from is a historical fact. Which conventions its new work follows is a
@@ -2234,7 +2255,7 @@ they print verbatim.
 | `status <id> [--stage] [--brief]` | the stage panel — §14. `--brief` is the between-stages form: the counts, what the artifact says, each open blocker's gist, and the next command (D-126) |
 | `findings <id> [--stage] [--round] [--blocking] [--finding <fid>]` | what the interrogations said about one cycle, per artifact, each finding at the disposition that stands, with every place it was found; `--blocking` for the open blockers alone, `--finding` for one (D-126) |
 | `round <id> <artifact> --from <file>` | appends the next round to the artifact's findings ledger: the readers' new findings and the session's dispositions merged in, with the round number, the time, and the hashes of what was judged, what it was judged against, each section, and on a verify the evidence, stamped by the binary and chained to the round before. Refuses while anything above it in the chain is unsettled, a known id restated with different words, and a new blocker without a one-line gist (D-110). `--changed` lists the sections moved since the last round instead — D-101, D-107 |
-| `round prompt <id> <artifact> --dir <directory>` | writes every reader's prompt for a round: the block every reader shares first, in one order, and each reader's own part last. `--reader` writes one — the rules reader, a perspective, the reconciler once the others have answered, or the adjudicator on a verify; `--list` names them — D-117 |
+| `round prompt <id> <artifact> --dir <directory>` | writes every reader's prompt for a round: the block every reader shares first, in one order, and each reader's own part last. `--reader` writes one — the rules reader, the diff reader on a verify, a perspective, the reconciler once the others have answered, or the adjudicator on a verify; `--list` names them — D-117, D-139 |
 | `round collect <id> <artifact> --dir <directory>` | reads every reader's answer, validates it, numbers new ids past the ledgers, applies the reconciler's restatements and pairs, and drafts the round file with each reader's usage; the session adds the dispositions of earlier findings (D-49) — D-117, D-121 |
 | `round verdict <id> --from <file>` | writes `verify.md` from the adjudicator's answer byte for byte, refusing one that is not a verify document — D-117 |
 | `gate <id>` | whether a cycle's build may run. Exits 1 if not |
@@ -2263,6 +2284,7 @@ they print verbatim.
 | `decisions [--brief\|--all]` | the choices this solution has settled, so a cycle reads what was argued rather than arguing it again — D-70 |
 | `theme` | the roles this solution's surfaces use and the values that fill them — D-71 |
 | `stack` | what the solution declares it is built from, and which build settings files it takes that are not on disk. Names the gap and closes none — D-77 |
+| `settings` | how this solution is set to run: each `solution.md` key declared or defaulted and how to change it, what this machine overrides, and what this release fixes with the decision that fixes it. Points at `constraints`, `stack` and `decisions` rather than repeating them, writes nothing, and exits 1 when `solution.md` cannot be read — D-138 |
 | `propose decisions` | what an approved cycle stated, handed over for a person to record — D-70 |
 | `propose theme` | the roles a theme declares, or the ones left empty in the one there is — D-71 |
 | `pr-ready <id>` | whether one cycle may open a pull request, without opening one |
@@ -7177,6 +7199,192 @@ its refusal still apply.
 - *Guessing a marker for Copilot or Antigravity.* Neither documents one; a guessed marker is a panel that
   names one host's invocation to someone using another.
 
+### D-140 — The minor moves when a solution's cycles can behave differently; the patch moves for everything else that ships
+
+**Governs:** nothing in §1–18: it is how this repository numbers its own releases, stated in `AGENTS.md` under
+Releasing.
+
+**Decision.** The release is `major.minor.patch`, and every change that ships moves one of them (D-131). **The
+patch** moves for a change that leaves an existing solution's cycles behaving as they did: a fix, a new command
+or option, wording, a shipped document. **The minor** moves, and the patch returns to 0, for a change that can
+make an existing solution's cycle block where it passed before, or that changes what a person or a stage must
+write: a rule added, superseded or newly enforced, a reader added to a round, a file's shape or a protected file
+changed, a command removed. A planned milestone moves it too. **The major** stays 0 until the framework promises
+compatibility between releases. In doubt, the minor.
+
+**Why.** A solution pins a release (D-131), and the number is what its team reads before moving the pin. Until
+this, the minor moved by roadmap and the patch for everything else, so 0.36.11, which superseded a constraint
+and added a reader that blocks, carried the same kind of number as a column widened in `sdlc doctor`. A team
+moving from 0.36.10 to 0.36.11 had no way to know a round could now refuse what it accepted, short of reading
+every commit. The minor is the one signal that costs nothing to read.
+
+**What it costs.** The judgement is a person's at merge time, and the pipeline does not hold it: whether a
+change can make a cycle block is not something a diff shows. A wrong patch is caught, if at all, in review.
+
+**Rejected.**
+
+- *Strict semantic versioning with a 1.0 now.* It promises compatibility the framework does not yet keep: the
+  rules are still moving every few releases, and a major per break would spend numbers that mean nothing.
+- *Checking it in the pipeline, for instance a minor whenever `CONSTRAINTS.md` changes.* A constraint's wording
+  can move without changing what blocks, and a reader can be added without touching that file. The check would
+  be wrong in both directions.
+- *The minor by roadmap alone.* That is what was done, and it is how 0.36.11 came to be a patch.
+
+### D-139 — The decisions run through the whole cycle, a departure is declared where it arises, and the change is read against both
+
+**Governs:** §4.2, §7.5, §8.1.1, §15.2
+
+**Decision.** A solution's recorded decisions are standing criteria every cycle inherits, as it inherits the
+constraints. Five parts:
+
+- **Every stage that writes reads them.** The intent interview reads `sdlc decisions` before it asks anything,
+  does not re-ask what is settled, and says at once, in a sentence or two, when the person asks for what a
+  decision set aside — then asks whether to keep the decision or depart. The spec, the plan and the build read
+  them too. A departure the build discovers is not made in code: it stops and hands back, and the route is
+  `steer`.
+- **Every reader that judges is handed them.** `sdlc round prompt` puts the standing decisions in the block every
+  reader of an intent, a spec, a plan and a verify shares, in short form: id, statement and `Instead of`. Until
+  now no reader was handed the record at all, so `CON_19` could fire only on a plan that admitted its own
+  departure.
+- **`CON_24` supersedes `CON_19`.** A departure is declared once, where it arises — an outcome in the intent's
+  `Fixed decisions`, with who and why; an approach in the plan's `Shape and departures`, with what the decision
+  would have cost — and every later stage relies on it. It blocks only on an actual contradiction of an
+  `Instead of` with no declaration at or above it; a decision that merely seems relevant is a suggestion.
+- **A departure is one marked line**, `- Departs from DEC_nn (the decision in brief): what this cycle does
+  instead`, which the binary parses. The shape check refuses one naming a decision the record does not hold.
+  The approval draft lists departures first and apart from the plan's other choices, `sdlc status` names them
+  beside the gate, the pull request carries them, and `propose decisions` offers each one an approved cycle
+  declared as a supersede of the decision it departed from.
+- **The verify round gains a diff reader**, beside the rules reader and the perspectives. It is handed the
+  intent, the plan, the decisions and `diff.patch` — not the spec, the test summary or the build log — and every
+  rule whose subject is the diff: `CON_07.2`, `CON_11` and `CON_24`. It judges scope by purpose, never by the
+  plan's file list, which stays a signal. Its findings are the verify round's, so `remediate` works them.
+
+**Why.** Two of the record's promises were not kept. The plan's reader was never handed the record, so the rule
+that was meant to catch a silent departure could only catch an announced one; and nothing read the change
+against the record, so a build could take what a decision set aside wherever the plan was silent — and plans
+are silent about most of what decisions are about: error handling, logging, time, naming. Judging only the change
+would have been the opposite mistake: holding the build to something no earlier stage was told about. A
+departure is cheapest where it arises — one question to the person who wants it, at the intent — and dearest
+where it is found late: an approved spec unsettled at the plan, or code to undo. `CON_07.2` was in the same
+state: its subject is the diff, and no reader was ever handed a diff rule, because `Applies to` is matched by
+the artifact's name and nothing judged the diff by name. The same reader holds both.
+
+**Why one rule across four stages rather than three.** The principle is the point — declared once, relied on
+after — and a person should read it once. Three rules would state it only to someone who read all three. The
+cost is moving every citation of `CON_19`, which D-72 counted against a different merger.
+
+**Why a reader of its own rather than the adjudicator.** The adjudicator's job is narrow and exacting — quote
+the assertion, judge the criterion — in the largest prompt of the cycle, and its output is a criterion table
+with no place for a finding about scope. A separate reader runs in parallel, is handed a third of what the
+adjudicator is, and leaves the adjudicator as it was. It costs one more prompt per verify round, carrying the
+plan and the diff.
+
+**What it does not do.** It does not select which decisions a reader is handed: every standing entry goes, in
+short form, about a hundred tokens each. Past a hundred standing entries the cost is attention rather than
+context, and `sdlc doctor` says so. Selecting by the paths a decision covers is the remedy, deferred because it
+changes the shape of a person's file and no solution is near the line. **Evidence on the loops is partial**: in
+the cycles still in MarketSense's history the plan rule raised at most one blocker per cycle, and the long plan
+loops were proof adequacy — cases the spec never listed, which D-132 answered. This decision is for correctness,
+and its narrow trigger is so it adds no loops of its own.
+
+**Rejected.**
+
+- *Checking only at the plan* — what shipped, and the plan's reader was not even handed the record.
+- *Checking only the change* — judging the build against something no earlier stage was told about.
+- *The decisions check inside the adjudicator* — above.
+- *Three rules, keeping `CON_19`* — above.
+- *Copying the decisions into each document* — a copy goes stale, which is why constraints are rendered fresh
+  and never copied (`CON_09`). A document cites a decision by id when it relies on one or departs from it.
+- *A mechanical check of the change against the record* — whether a hunk contradicts a paragraph is a judgement
+  about language, D-72's own argument.
+- *Letting the plan choose which decisions a reader is handed* — the decision the plan's author did not think of
+  is the one that slips.
+- *Holding the diff to the plan's file list* — the list is the author's best guess before the code existed, and
+  a reader blocking on it would make a loop out of every guess.
+
+### D-138 — `sdlc settings` shows how a solution is set to run, and the settings stay where they live
+
+**Governs:** §8.3, §15.2
+
+**Decision.** `sdlc settings` prints every value that shapes how a solution runs, each with where it came from
+and how it is changed: the `solution.md` keys, declared or defaulted; what this machine's environment overrides
+(`SDLC_CONSTRAINTS` always, `SDLC_DEV_BUILD` when set); and the values this release fixes, each with the decision
+that fixes it. For the rules, the stack and the decisions it prints one line naming the command that shows them.
+It writes nothing, and exits 1 when `solution.md` cannot be read, printing its values as unknown.
+
+**Why.** Asked how many settings the framework has and whether to consolidate them into one file, the inventory
+found about fifty things that change behaviour, spread across `solution.md`, `techstack.md`, the environment, the
+options and constants in code. Most are not settings. What a team could not do was see the ones that are, and an
+absent key reads as nothing rather than as the default it is. `approval` (D-137) is the first key whose absent
+value a reviewer has to know.
+
+**Why the decisions are a pointer.** They run to hundreds of entries in a solution that has been governed for a
+while. They have a view of their own, `sdlc decisions`, and a second rendering is a second thing to keep in step.
+
+**Rejected.**
+
+- *One settings file.* Protection is per path (D-09): a file holding values only a person may change beside ones an
+  agent may change needs a per-key hook rule, the first conditional one, which D-56 rejected as where a bypass
+  would live. And each file says one kind of thing.
+- *`sdlc config`, or `sdlc parameters`.* `config` reads as writable. *Parameters* are already what a command or skill
+  takes on one invocation, the opposite of a value that persists.
+- *`sdlc solution`.* The view carries the machine's overrides and the release's fixed values, neither of which is the
+  solution, and it would sit beside `draft solution`, which writes.
+- *A `--set` option.* A second writer on a file a person writes.
+- *Expanding the rules, the stack or the decisions inline.* Each is owned by its own command.
+- *Making the fixed values settable.* The bounds argued in D-65, D-66 and D-103 would stop meaning anything at the
+  number a team would raise them to.
+
+### D-137 — A solution may declare that no approval is required, and the gate keeps every other check
+
+**Governs:** §5.1, §5.2, §8.3, §10.5
+
+**Extends D-53:** a new `solution.md` key, absent reading as the gate behaved before. **Leaves D-27 unchanged:** no
+blocking finding becomes waivable. **Narrows D-107** under `approval: none`: with no approval, nothing anchors a
+findings ledger but git history and the pull request.
+
+**Decision.**
+
+- **The key.** `solution.md` carries `approval: required | none`. Absent reads as `required`, and so does a
+  document that cannot be read: "could not tell" must never read as the permissive answer. `init` and
+  `sdlc draft solution` always write the key. A new adopter gets `required` and is told how to change it, not
+  asked.
+- **What `none` changes.** With no `approval.md`, the gate asks for no ledger and raises none of the refusals
+  that read one. It keeps every other: each planning document exists and was interrogated, its rounds can be read,
+  no blocker is open, and each document is what its latest round judged (D-101). A round that recorded no subject
+  is refused under `none`, because no person read the bytes instead.
+- **An approval placed anyway is honoured in full.** A refusal, a request for changes or a reopen stops the build
+  as it would under `required`. The setting removes a requirement; it never ignores a decision a person made.
+- **Every surface says so.** The gate's verdict, `verify-chain` in place of its caveat about an approval, the status
+  panel, the cycles list, the sitrep and `sdlc draft approval` each say no person approved. `propose decisions` reads
+  a cycle the gate admits by declaration, since a person still places every decision.
+
+**Why.** Teams adopt at different levels of ceremony, and the person wanted users able to switch the gate on or off
+and use the framework as they are comfortable. Removing the approval for everyone was weighed on 2026-11-03 and set
+aside; a setting keeps the default and the claim while letting a team choose, in a file only a person writes, so the
+choice is the team's and never the agent's. The plan's pull request is still reviewed by a code owner (D-83).
+
+**What it costs.** Nobody reads the plan before code is written. And D-107 anchors each findings ledger in the
+approval *because* no agent can write the approval; under `none` an agent could rewrite a ledger and recompute every
+hash, and nothing local would notice.
+
+**Rejected.**
+
+- *Removing the plan approval altogether* (2026-11-03). Every solution loses the one look before code exists.
+- *Defaulting to `none`.* The framework's first claim becomes a setting most adopters never switch on, and every
+  solution adopted before the key would change behaviour silently.
+- *Asking at `init`.* One more question in an interview built to ask one, at the moment a team knows least about
+  what the gate costs.
+- *A per-cycle switch.* It would live in a file the cycle's agent writes.
+- *An environment variable or an option.* One machine or one invocation would run under rules the repository does
+  not state.
+- *`none` switching off the whole gate.* It would waive open blockers, which D-27 forbids.
+- *A third value, `on-merge`, making the plan pull request's merge the approval.* Under `none` that pull request is
+  already a code owner's review, so it would be a check on a check.
+- *A record of the hashes the binary writes at build time.* A second ledger an agent can write proves nothing the
+  round does not, and needs a command to write it.
+
 ### D-136 — Pull requests only, into both branches, with nobody bypassing, is the default
 
 **Governs:** §10.4, §13, §15.2
@@ -7281,7 +7489,7 @@ nuget.org version can never be deleted.
   only moves the pin (D-133), and the cycle is run again on it.
 - **One pipeline publishes.** `ci.yml` builds every pull request, publishes a preview from a push to `development`
   that changes what ships (any branch but master until D-136) once a reviewer approves the `nuget-preview`
-  environment (unreviewed through 0.36.9-preview), and a release from a merge to master once a reviewer approves the `nuget`
+  environment (unreviewed through 0.36.9-preview), and a release from a merge to main (master until 0.36.9) once a reviewer approves the `nuget`
   environment. Each published version is tagged as before. A pull request's packed tool is kept as a run artifact,
   which is how a branch's build reaches a machine without being published.
 
@@ -7522,7 +7730,7 @@ solution that pins nothing stops and says to run `init`.
 
 The binary is published to nuget.org by `.github/workflows/ci.yml`, using trusted publishing. It was `release.yml`,
 with a release cut by a pushed tag, until D-135 made one pipeline of it:
-- A merge to master publishes that release once a person approves it.
+- A merge to main (master until 0.36.9) publishes that release once a person approves it.
 - A push to `development` that changes what ships (another branch until D-136) publishes `<release>-preview` once a person
   approves it, and tags the commit with the same name. A preview carries no counter, so a version has one, and the next is the next patch; a
   push that ships a change without moving the patch is refused rather than skipped. A run number was the

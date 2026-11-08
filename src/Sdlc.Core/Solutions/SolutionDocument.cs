@@ -45,11 +45,29 @@ public enum SolutionStandard
     Profile,
 }
 
+/// <summary>Whether a person's approval is required before a cycle is built.</summary>
+/// <remarks>
+/// <para><strong>It switches the person's signature, never the gate.</strong> Under
+/// <see cref="None"/> every planning document is still interrogated and a blocking finding still stops the
+/// build (D-27); what is not required is an <c>approval.md</c>. An approval a person places anyway is
+/// honoured in full, a refusal included (D-137).</para>
+/// <para>A key in <c>solution.md</c> because a person writes that file. Anywhere an agent writes -- a cycle's
+/// documents, an environment variable, an option -- would be a gate the agent could open itself.</para>
+/// </remarks>
+public enum ApprovalRequirement
+{
+    /// <summary>A person approves the three planning documents before the build. The default.</summary>
+    Required,
+
+    /// <summary>The documents interrogated clean are what is built, and no person signs them.</summary>
+    None,
+}
+
 /// <summary>
 /// What a solution is, where its code came from, and where it is pushed.
 /// </summary>
 /// <remarks>
-/// <para>Four keys and no more. There is deliberately no baseline field: constraints govern a change
+/// <para>A few keys and no more. There is deliberately no baseline field: constraints govern a change
 /// rather than code that predates adoption, so an existing repository is not in violation on its first
 /// day and has nothing to record as forgiven. <c>standard</c> is not one either -- it says which
 /// conventions new work follows, and nothing at all about the code already there.</para>
@@ -74,12 +92,18 @@ public enum SolutionStandard
 /// solution declares none (D-89). Optional, and written only when set: most solutions have no Operate run.
 /// The tracker Operate files into is the platform's own, so it needs no key of its own.
 /// </param>
+/// <param name="Approval">
+/// Whether a person approves each cycle before it is built. Absent reads as
+/// <see cref="ApprovalRequirement.Required"/>, for the reason every added key does (D-53): a solution adopted
+/// before the key existed keeps the gate it had (D-137).
+/// </param>
 public sealed record SolutionDocument(
     SolutionOrigin Origin,
     SolutionStandard Standard,
     Platform Platform = Platform.GitHub,
     string IntegrationBranch = SolutionDocument.DefaultIntegrationBranch,
-    string? Telemetry = null)
+    string? Telemetry = null,
+    ApprovalRequirement Approval = ApprovalRequirement.Required)
 {
     /// <summary>The integration branch a solution has when it names none. D-83.</summary>
     public const string DefaultIntegrationBranch = "development";
@@ -117,18 +141,24 @@ public sealed record SolutionDocument(
     /// <param name="platform">Where it is pushed.</param>
     /// <param name="integrationBranch">Where approved plans wait and built cycles land.</param>
     /// <param name="telemetry">Where production's errors are read from, or null to leave the key out.</param>
+    /// <param name="approval">
+    /// Whether a person approves each cycle. Always written, unlike telemetry: the default is the one a team
+    /// may want to change, and a key it cannot see is one it does not know it has.
+    /// </param>
     /// <returns>One line per key, without the fences.</returns>
     public static string[] Keys(
         SolutionOrigin origin,
         SolutionStandard standard,
         Platform platform,
         string integrationBranch = DefaultIntegrationBranch,
-        string? telemetry = null) =>
+        string? telemetry = null,
+        ApprovalRequirement approval = ApprovalRequirement.Required) =>
     [
         "origin: " + NameOf(origin),
         "standard: " + NameOf(standard),
         "platform: " + NameOf(platform),
         "integration_branch: " + integrationBranch,
+        "approval: " + NameOf(approval),
         .. telemetry is null ? Array.Empty<string>() : ["telemetry: " + telemetry],
     ];
 
@@ -206,6 +236,16 @@ public sealed record SolutionDocument(
                 $"{source}: integration_branch is '{integration}', which git would not take as a branch name.")));
         }
 
+        // Absent is required, the gate every solution had before the key existed. A value nobody recognises
+        // fails rather than reading as either: `approval: no` is a typo of something, and guessing which
+        // would either open a gate a person meant shut or shut one they meant open.
+        if (!TryReadApproval(shape?.Approval, out ApprovalRequirement approval))
+        {
+            errors.Add(new Error(string.Create(
+                CultureInfo.InvariantCulture,
+                $"{source}: approval is '{shape?.Approval}'. Expected required or none.")));
+        }
+
         return errors.Count > 0
             ? Result.Fail<SolutionDocument>(errors)
             : Result.Ok(new SolutionDocument(
@@ -213,7 +253,8 @@ public sealed record SolutionDocument(
                 standard,
                 platform,
                 integration,
-                string.IsNullOrWhiteSpace(shape?.Telemetry) ? null : shape.Telemetry.Trim()));
+                string.IsNullOrWhiteSpace(shape?.Telemetry) ? null : shape.Telemetry.Trim(),
+                approval));
     }
 
     /// <summary>
@@ -298,6 +339,30 @@ public sealed record SolutionDocument(
         return read.IsSuccess ? read.Value.IntegrationBranch : DefaultIntegrationBranch;
     }
 
+    /// <summary>
+    /// Whether a solution on disk requires a person's approval, reading as required when it cannot tell.
+    /// </summary>
+    /// <remarks>
+    /// <strong>Never a failure, and never <see cref="ApprovalRequirement.None"/> by default.</strong> The
+    /// gate asks this, and "could not tell" must never read as the permissive answer: a missing, unplaced
+    /// or malformed document reads as required, which is the gate the solution had before the key existed.
+    /// A malformed document is reported by <c>doctor</c> and by every command that reads the whole file.
+    /// The draft adoption wrote is not read: a key nobody has placed is not one a person has decided.
+    /// </remarks>
+    /// <param name="solutionRoot">The solution's root.</param>
+    /// <param name="cancellationToken">Token observed while reading.</param>
+    /// <returns>The requirement.</returns>
+    public static async Task<ApprovalRequirement> ApprovalOf(string solutionRoot, CancellationToken cancellationToken)
+    {
+        if (!File.Exists(PathIn(solutionRoot)))
+        {
+            return ApprovalRequirement.Required;
+        }
+
+        Result<SolutionDocument> read = await ReadFile(solutionRoot, cancellationToken).ConfigureAwait(false);
+        return read.IsSuccess ? read.Value.Approval : ApprovalRequirement.Required;
+    }
+
     /// <summary>Where the solution document lives inside a solution.</summary>
     /// <param name="solutionRoot">The solution's root.</param>
     /// <returns>The path, whether or not the file is there.</returns>
@@ -334,6 +399,43 @@ public sealed record SolutionDocument(
         Platform.Local => "local",
         _ => throw new ArgumentOutOfRangeException(nameof(platform)),
     };
+
+    /// <summary>How an approval requirement is written in the file.</summary>
+    /// <param name="approval">The requirement.</param>
+    /// <returns>Its name.</returns>
+    public static string NameOf(ApprovalRequirement approval) => approval switch
+    {
+        ApprovalRequirement.Required => "required",
+        ApprovalRequirement.None => "none",
+        _ => throw new ArgumentOutOfRangeException(nameof(approval)),
+    };
+
+    /// <summary>
+    /// Reads the approval key, treating its absence as required.
+    /// </summary>
+    /// <param name="text">The value, or null when the key is absent.</param>
+    /// <param name="approval">The requirement read.</param>
+    /// <returns>True unless a value was given that is neither of the two.</returns>
+    private static bool TryReadApproval(string? text, out ApprovalRequirement approval)
+    {
+        approval = ApprovalRequirement.Required;
+
+        if (string.IsNullOrWhiteSpace(text))
+        {
+            return true;
+        }
+
+        switch (text.Trim())
+        {
+            case string required when required.Equals("required", StringComparison.OrdinalIgnoreCase):
+                return true;
+            case string none when none.Equals("none", StringComparison.OrdinalIgnoreCase):
+                approval = ApprovalRequirement.None;
+                return true;
+            default:
+                return false;
+        }
+    }
 
     /// <summary>
     /// Reads the platform key, treating its absence as GitHub.
@@ -458,5 +560,7 @@ public sealed record SolutionDocument(
         public string? IntegrationBranch { get; set; }
 
         public string? Telemetry { get; set; }
+
+        public string? Approval { get; set; }
     }
 }

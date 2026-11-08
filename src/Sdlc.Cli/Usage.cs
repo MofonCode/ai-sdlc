@@ -190,8 +190,9 @@ internal static class Usage
                                      Reports only; always exits 0.
             cycles                   List every cycle this solution holds, newest first: what each
                                      is about, where it stands, and what it is owed.
-            status <id>              Show the panel for a stage. Ends with the next command, and
-                                     names beside it any successor that is ready or stuck.
+            status <id>              Show the panel for a stage. Names beside the gate any recorded
+                                     decision the cycle departs from, and ends with the next
+                                     command and any successor that is ready or stuck.
             findings <id>            What the interrogations said, per artifact, each finding at the
                                      disposition that stands.
             round <id> <artifact>    Append the next round to the artifact's findings ledger from
@@ -207,9 +208,9 @@ internal static class Usage
                                      Write every reader's prompt for a round into a directory
                                      outside the repository, as <reader>.prompt.md: the block every
                                      reader shares first, then each reader's own part. --reader
-                                     <name> writes one -- rules, a perspective, reconcile once the
-                                     others have answered, or adjudicate on a verify. --list names
-                                     the readers and writes nothing.
+                                     <name> writes one -- rules, diff on a verify, a perspective,
+                                     reconcile once the others have answered, or adjudicate on a
+                                     verify. --list names the readers and writes nothing.
             round collect <id> <artifact> --dir <directory>
                                      Read every reader's answer from that directory and draft
                                      round.json beside them: new ids numbered past the ledgers,
@@ -225,8 +226,8 @@ internal static class Usage
                                      every status -- accepted, declined, answered, withdrawn --
                                      with the cycle that decided it.
             decisions                The choices this solution has already settled, so a cycle reads
-                                     what was argued rather than arguing it again. CON_19 asks a plan
-                                     departing from one to say what it would have cost.
+                                     what was argued rather than arguing it again. CON_24 asks a cycle
+                                     departing from one to declare it where it arises.
             theme                  The roles this solution's surfaces use and the values that
                                      fill them -- the one place a colour or a typeface lives.
             stack                    What this solution declares it is built from: its defaults,
@@ -235,6 +236,12 @@ internal static class Usage
                                      what this release ships that the stack never mentions: a row
                                      saying 'none' or false is an answer, no row is never asked.
                                      Names the gap and closes none: a cycle's plan does that.
+            settings                 How this solution is set to run: each key in solution.md,
+                                     declared or defaulted, and how to change it; what this
+                                     machine overrides; what this release fixes, and the decision
+                                     that fixes it. Points at constraints, stack and decisions
+                                     rather than repeating them. Writes nothing. Exits 1 when
+                                     solution.md cannot be read.
             propose convergence      Everything the record says the rules, decisions and stack are
                                      missing, in one ranked report: rules cited across cycles,
                                      findings that rested on no rule grouped by who raised them,
@@ -256,6 +263,7 @@ internal static class Usage
                                      none, or name the ones left empty in the one it has. Never
                                      proposes a value: a colour is a brand's, not a tool's.
             doctor                   Check this installation and this repository: the rules, git,
+                                     how many decisions every reader is handed,
                                      adoption, which release wrote adoption's files against this
                                      binary, line endings, every host's hook config, and the
                                      pipeline that is the guarantee, and asks the platform
@@ -432,7 +440,7 @@ internal static class Usage
             decide -- which build settings the stack takes against which are on disk.
 
             A plan may depart from any of the three. Departing from a rule is impossible, from a
-            recorded decision it is legal but CON_19 asks what the decision would have cost, and
+            recorded decision it is legal but CON_24 asks it to be declared where it arises, and
             from the theme nothing in governance objects at all -- that one is a linter's job,
             because it is mechanical. Silence is what the rules catch, never the departure.
 

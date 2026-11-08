@@ -327,6 +327,8 @@ one row among thirty-nine in a file table, with nothing said about what the rule
 
 ## CON_19 — A plan says why it departs from a decision the solution has recorded
 
+**Superseded-by:** CON_24
+
 **Applies to:** a plan, at approval.
 
 **Forbids:** a plan whose approach contradicts a standing entry in the solution's `decisions.md` —
@@ -412,3 +414,29 @@ leaves out a case the intent asked for is `CON_16`'s, judged here once, where th
 and the person approving the spec sees the list (D-132).
 
 **Judged:** per criterion.
+
+## CON_24 — A departure from a recorded decision is declared where it arises, and later stages rely on it
+
+**Applies to:** an intent, a spec and a plan, at approval; and a diff, at verification.
+
+**Forbids:** a document or change that takes the alternative a standing entry in the solution's
+`decisions.md` set aside — the thing its `Instead of` names — where no departure from that entry is
+declared at or above it. An intent asking for that outcome without a line under `Fixed decisions`
+opening `Departs from DEC_nn`, with who decided it and why. A spec criterion requiring it where the
+intent declares no such departure. A plan taking it without that line under `Shape and departures`,
+saying what the recorded decision would have cost here. A change doing it where neither the intent nor
+the plan declares it.
+
+**Why:** a decision is recorded so a later cycle does not argue it again from nothing, and the cost of
+the record going unread is not that somebody disagrees with it. It is that nobody knows they are
+disagreeing — and the later the disagreement surfaces, the more it costs. Asked for in the intent, a
+departure is one question to the person who wants it; discovered at the plan, it unsettles a spec that
+was already approved; found in the code, it is work to undo. Declared once, where it arises, every later
+stage can rely on it rather than reopen it, and the person at each gate is told what they are agreeing
+to depart from. **Departing stays legal**: a decision that cannot be revisited is a cage, and the first
+case it does not fit would see the record ignored rather than amended. What this forbids is departing in
+silence. It blocks only on an actual contradiction of an `Instead of`; a decision that merely seems
+relevant, or a document that could have cited one, is a suggestion, because a rule read at four stages
+that blocked on a maybe would be a loop at all four. No analyzer can decide it — whether a passage or a
+hunk contradicts a paragraph of prose is a judgement about language, and the entry's `Instead of` is
+what makes the judgement possible rather than a guess.

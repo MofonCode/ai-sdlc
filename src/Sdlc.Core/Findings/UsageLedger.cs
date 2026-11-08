@@ -23,7 +23,7 @@ public sealed record UsageRound(
 /// <summary>What a document's recorded rounds cost, weighted.</summary>
 /// <param name="Rounds">How many rounds recorded usage.</param>
 /// <param name="Weighted">Weighted tokens across every reader.</param>
-/// <param name="ByRole">Weighted tokens per role: rules, perspectives, reconcile, adjudicate.</param>
+/// <param name="ByRole">Weighted tokens per role: rules, diff, perspectives, reconcile, adjudicate.</param>
 /// <param name="Unreported">Readers whose host reported nothing, so they add nothing here.</param>
 public sealed record UsageSummary(int Rounds, double Weighted, IReadOnlyDictionary<string, double> ByRole, int Unreported)
 {
@@ -166,7 +166,7 @@ public sealed record UsageLedger(IReadOnlyList<UsageRound> Rounds)
 
             string role = reader.Role switch
             {
-                ReaderAnswers.Rules or ReaderAnswers.Reconcile or ReaderAnswers.Adjudicate => reader.Role,
+                ReaderAnswers.Rules or ReaderAnswers.Diff or ReaderAnswers.Reconcile or ReaderAnswers.Adjudicate => reader.Role,
                 _ => "perspectives",
             };
 

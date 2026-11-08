@@ -71,7 +71,15 @@ round finds.
 Interrogate the verify document like any other artifact — `CON_22` applies to it, and the rounds it
 accumulates are also what counts remediation passes.
 
-**A round's blocking findings are answered by a new adjudication, not by an edit.** Changing a verdict
+**The verify round has one reader no other round has: the diff reader** (D-139). `sdlc round prompt
+--list` names it beside the rules reader and the perspectives, and it is started like them. It reads the
+change itself — not the verdict — against the intent, the plan and the decisions, and holds it to `CON_07.2`
+(nothing the plan did not describe) and `CON_24` (nothing a decision set aside without a declared
+departure). **Its findings are about the code, so no adjudication answers them**: their ids start
+`diff.`, and the route is `/sdlc:remediate`, which `sdlc status` names. A departure the work genuinely
+needs is declared in the plan through `/sdlc:steer`, for a person to approve.
+
+**Every other blocking finding in the round is answered by a new adjudication, not by an edit.** Changing a verdict
 is adjudicating, so it happens where adjudicating happens: start a fresh adjudicator from a prompt written
 anew. The binary hands it the verdict before it — the current `verify.md`, or, once a new run has been
 recorded and that file removed, the last one committed — with any blockers still open, and asks it to

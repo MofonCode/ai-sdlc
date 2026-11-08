@@ -113,7 +113,10 @@ and how they manage today, a change for who relies on it as it is. **_Not sure_ 
 the skill tells you where it records it. Expect a request shaped as a solution to be turned back into a
 problem: "add a cache" becomes "the dashboard takes fourteen seconds and people stop opening it". If you
 have already decided something, say so — it is recorded under `Fixed decisions` with your name on it
-rather than argued with. **The last question is the perspectives' concerns** — keyboard use, who may see
+rather than argued with. **The skill reads what the solution already decided first**, so it does not ask
+what is settled; if you ask for something a recorded decision set aside, it says so then, in a sentence,
+and asks whether to keep the decision or depart from it. A departure is recorded with your name and reason,
+and every later stage relies on it instead of reopening it. **The last question is the perspectives' concerns** — keyboard use, who may see
 it, who hears when it fails. The skill writes them to a file under `.sdlc/reports/`, each explained for
 this change with a suggested answer and why, and you answer in your own words: *"anyone may use it, no
 sign-in; keyboard yes, and the result read out"*. A good answer names a person and an outcome, or says
@@ -206,9 +209,11 @@ sdlc draft approval 20260929_1456_32
 
 It writes the complete file — not a fragment — to
 `.sdlc/cycles/<id>/approval.approved.draft.md`, and prints it with the rename that records it, written
-to be typed from the repository root. Above the rename it lists **the decisions the plan says it makes**
-— the approach, the libraries, the hosting, anything built by hand — so a choice you did not ask for is in
-front of you before you approve rather than found after the build:
+to be typed from the repository root. Above the rename it lists, first and on their own, **any recorded
+decisions this cycle departs from** — each in the decision's own words, with what the cycle does instead —
+and then **the decisions the plan says it makes** — the approach, the libraries, the hosting, anything
+built by hand — so a choice you did not ask for is in front of you before you approve rather than found
+after the build. `sdlc status` shows the departures beside the gate too, and the pull request carries them:
 
 ```pwsh
 Move-Item .sdlc/cycles/20260929_1456_32/approval.approved.draft.md .sdlc/cycles/20260929_1456_32/approval.md
@@ -235,6 +240,27 @@ Helping with the easy case while withholding help from the hard one is the asymm
 **A reopen after the plan reached the integration branch happens on its plan branch** — `sdlc branch <id>
 plan` — and goes back as an amended plan by `/sdlc:pr <id> --plan`, never with the build.
 `handling-blockers.md`, under *After approval*, has the walk and what happens to a build already made.
+
+### Running without approvals
+
+A person's approval before each build is on by default. To turn it off for this solution, run
+`sdlc draft solution`, set `approval: none` in the draft, and rename it into place over `.sdlc/solution.md`.
+Only a person can make that change: the hook refuses an agent's edit to the file. `sdlc settings` then shows
+`approval  none  declared`.
+
+**What still holds:** every planning document is interrogated, and a blocking finding still stops the build.
+The documents built are the documents interrogated clean: one edited after its round is refused until it is
+interrogated again. `verify-chain` still runs on every pull request.
+
+**What you give up:** nobody reads the plan before code is written. The plan's pull request is the first time
+a person sees it, and `verify-chain`, `sdlc status` and the sitrep all say no person approved it. The findings
+history is no longer anchored to a file only a person writes, so git history and review are what protect it.
+
+**To turn it back on,** set `approval: required` the same way. A cycle not yet built then waits for an
+approval like any other.
+
+You can still approve a single cycle under `none` with `sdlc draft approval <id>`, and the gate honours what
+you place in full — a `--changes-requested`, `--deny` or `--reopen` stops the build as it always would.
 
 ### Admit the plan to the integration branch
 
