@@ -92,12 +92,11 @@ public readonly record struct DecisionId
 /// says why, the rule forbids the alternative. Expect roughly one <c>LOC_</c> for every five or six of
 /// these.</para>
 ///
-/// <para><strong>Departing is legal; departing in silence is not.</strong> <c>CON_19</c> asks a plan
-/// whose approach contradicts a standing entry to say in <c>Shape and departures</c> what the recorded
-/// decision would have cost here — the same shape <c>CON_15</c> takes for the declared stack, and a
-/// separate rule rather than a reworded one because what is forbidden changed (§7.4). A decision that
-/// cannot be revisited is a cage; what the rule catches is a plan reaching for the alternative this
-/// entry already weighed without anyone noticing that is what it did (D-72).</para>
+/// <para><strong>Departing is legal; departing in silence is not.</strong> <c>CON_24</c> asks a
+/// departure from a standing entry to be declared once, where it arises -- an outcome in the intent, an
+/// approach in the plan -- and holds the intent, the spec, the plan and the change to it. A decision that
+/// cannot be revisited is a cage; what the rule catches is a document or a change reaching for the
+/// alternative this entry already weighed without anyone noticing that is what it did (D-72, D-139).</para>
 /// </remarks>
 /// <param name="Id">The decision's identity.</param>
 /// <param name="Statement">The choice in one line, as the heading states it.</param>

@@ -7,6 +7,7 @@ using Sdlc.Core.Cycles;
 using Sdlc.Core.Git;
 using Sdlc.Core.Hooks;
 using Sdlc.Core.Init;
+using Sdlc.Core.Decisions;
 using Sdlc.Core.Solutions;
 
 namespace Sdlc.Core.Diagnostics;
@@ -135,6 +136,7 @@ public static class Diagnose
             checks.Add(await IntegrationBranch(cancellationToken).ConfigureAwait(false));
             checks.Add(await Stamp(cancellationToken).ConfigureAwait(false));
             checks.Add(await DeclaredStack(cancellationToken).ConfigureAwait(false));
+            checks.Add(await DecisionRecord(cancellationToken).ConfigureAwait(false));
 
             if (await BuildSettingsDeclared(cancellationToken).ConfigureAwait(false) is { } settings)
             {
@@ -264,6 +266,33 @@ public static class Diagnose
                     CultureInfo.InvariantCulture,
                     $"{count} in force. 'sdlc constraints' renders them"));
         }
+
+        /// <summary>The standing decisions every reader is handed, and when there are enough to thin.</summary>
+        /// <remarks>
+        /// Every reader of an intent, a spec, a plan and a change is handed the whole record in short form
+        /// (D-139). Past <see cref="DecisionsReadWhole"/> standing entries, the cost is not the context but the
+        /// reader's attention: one weighing hundreds of decisions against a document will miss some. Sound
+        /// either way, because a long record is not a broken install; above the line the detail says so.
+        /// </remarks>
+        private async Task<Check> DecisionRecord(CancellationToken cancellationToken)
+        {
+            IReadOnlyList<Decision> recorded = await Departures.Recorded(solution.Path, cancellationToken).ConfigureAwait(false);
+            int standing = recorded.Count(decision => decision.IsStanding);
+
+            return new Check(
+                "decisions",
+                CheckOutcome.Sound,
+                standing > DecisionsReadWhole
+                    ? string.Create(
+                        CultureInfo.InvariantCulture,
+                        $"{standing} standing, past the {DecisionsReadWhole} every reader is handed whole, so a reader may miss one. Supersede entries that no longer bind")
+                    : string.Create(
+                        CultureInfo.InvariantCulture,
+                        $"{standing} standing. Every reader is handed them; 'sdlc decisions' renders them"));
+        }
+
+        /// <summary>How many standing decisions every reader can be handed whole before attention thins (D-139).</summary>
+        internal const int DecisionsReadWhole = 100;
 
         /// <summary>
         /// Whether git is here, which everything else rests on.

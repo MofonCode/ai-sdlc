@@ -84,10 +84,19 @@ perspective when `sdlc propose constraints` reads the history.
 
 Read `plan.md`. Implement what `Shape and departures` decided and what `Proof` committed to.
 
+**Then run `sdlc decisions`, and build to it where the plan is silent.** The plan describes an approach;
+most of what decisions settle — how errors are returned, what is logged, how time is stored, what things
+are named — shows only in code. The diff reader at verify reads the change against the decisions, and code
+that takes what a decision set aside with no `Departs from DEC_nn` line in the intent or the plan is a
+blocking finding under `CON_24`. **If the work cannot be done without departing, do not depart in code.**
+Stop and hand back with one plain line — which decision, in its own words, and why the build cannot keep
+it — and the route is `/sdlc:steer`, which declares the departure in the plan for a person to approve.
+
 `CON_07.2` forbids a change within a declared file that the plan did not describe — an unrelated
-refactor, a drive-by rename, a fix to something else you noticed in passing. The file set is checked
-mechanically; **creep inside an approved file is what reaches review dressed as approved work**, which
-is exactly where it is least likely to be questioned.
+refactor, a drive-by rename, a fix to something else you noticed in passing. The file set is a signal,
+not a contract; **creep inside an approved file is what reaches review dressed as approved work**, which
+is exactly where it is least likely to be questioned. The diff reader at verify judges it, by what each
+change is for rather than by which files it touched.
 
 So when you notice something worth fixing that the plan did not describe: **leave it, and record it as a
 `Noticed:` line in the commit message.** That is a suggestion for a later cycle, not a thing to slip in —

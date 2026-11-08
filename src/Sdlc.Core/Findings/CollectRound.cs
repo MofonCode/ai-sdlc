@@ -109,7 +109,7 @@ public static class CollectRound
                 return active.ToResult<Response>();
             }
 
-            List<string> readers = [ReaderAnswers.Rules, .. active.Value.Perspectives.Where(p => p.Written).Select(p => p.Name)];
+            IReadOnlyList<string> readers = ReaderAnswers.Blind(request.Artifact, active.Value.Perspectives.Where(p => p.Written).Select(p => p.Name));
             List<Finding> raised = [];
             List<Conflict> conflicts = [];
             List<string> demoted = [];
@@ -136,8 +136,7 @@ public static class CollectRound
                     return answer.ToResult<Response>();
                 }
 
-                Perspective? perspective = reader == ReaderAnswers.Rules ? null : PerspectiveLibrary.Find(reader).ValueOrDefault;
-                Result<ReadBody> body = ReaderAnswers.FindingsOf(answer.Value, perspective);
+                Result<ReadBody> body = ReaderAnswers.FindingsOf(answer.Value, reader);
 
                 if (body.IsFailed)
                 {

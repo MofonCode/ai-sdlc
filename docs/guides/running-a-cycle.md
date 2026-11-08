@@ -113,7 +113,10 @@ and how they manage today, a change for who relies on it as it is. **_Not sure_ 
 the skill tells you where it records it. Expect a request shaped as a solution to be turned back into a
 problem: "add a cache" becomes "the dashboard takes fourteen seconds and people stop opening it". If you
 have already decided something, say so — it is recorded under `Fixed decisions` with your name on it
-rather than argued with. **The last question is the perspectives' concerns** — keyboard use, who may see
+rather than argued with. **The skill reads what the solution already decided first**, so it does not ask
+what is settled; if you ask for something a recorded decision set aside, it says so then, in a sentence,
+and asks whether to keep the decision or depart from it. A departure is recorded with your name and reason,
+and every later stage relies on it instead of reopening it. **The last question is the perspectives' concerns** — keyboard use, who may see
 it, who hears when it fails. The skill writes them to a file under `.sdlc/reports/`, each explained for
 this change with a suggested answer and why, and you answer in your own words: *"anyone may use it, no
 sign-in; keyboard yes, and the result read out"*. A good answer names a person and an outcome, or says
@@ -206,9 +209,11 @@ sdlc draft approval 20260929_1456_32
 
 It writes the complete file — not a fragment — to
 `.sdlc/cycles/<id>/approval.approved.draft.md`, and prints it with the rename that records it, written
-to be typed from the repository root. Above the rename it lists **the decisions the plan says it makes**
-— the approach, the libraries, the hosting, anything built by hand — so a choice you did not ask for is in
-front of you before you approve rather than found after the build:
+to be typed from the repository root. Above the rename it lists, first and on their own, **any recorded
+decisions this cycle departs from** — each in the decision's own words, with what the cycle does instead —
+and then **the decisions the plan says it makes** — the approach, the libraries, the hosting, anything
+built by hand — so a choice you did not ask for is in front of you before you approve rather than found
+after the build. `sdlc status` shows the departures beside the gate too, and the pull request carries them:
 
 ```pwsh
 Move-Item .sdlc/cycles/20260929_1456_32/approval.approved.draft.md .sdlc/cycles/20260929_1456_32/approval.md

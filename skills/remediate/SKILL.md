@@ -81,6 +81,16 @@ Working only the findings is the easy mistake, because the command lists them an
 criteria. A pass that answers every finding and leaves a Not met criterion standing has fixed nothing the
 outcome was about.
 
+**A finding whose id starts `diff.` is about the change, not the verdict**, and it is yours even when the
+outcome reads `pass` (D-139). Two kinds:
+
+- **`CON_07.2` — the change does something the plan did not describe.** Take it back out. If it is worth
+  keeping, it is a `Noticed:` line in the commit message for a later cycle.
+- **`CON_24` — the change takes what a recorded decision set aside, and nothing declared the departure.**
+  The finding quotes the decision in its own words. Make the code keep the decision. **If the work cannot
+  be done without departing, stop and hand back** with one plain line — which decision, and why — because
+  a departure is declared in the plan for a person to approve, through `/sdlc:steer`, never made in code.
+
 Fix the **cause**, not the symptom. The failure modes to avoid, in order of how tempting they are:
 
 | Tempting | Why it is wrong |

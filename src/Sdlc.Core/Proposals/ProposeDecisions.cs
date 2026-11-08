@@ -30,6 +30,16 @@ public enum DecisionSource
     /// a default that has actually moved, and only a reader can tell which.
     /// </remarks>
     Plan,
+
+    /// <summary>
+    /// A departure an approved cycle declared from a recorded decision (D-139).
+    /// </summary>
+    /// <remarks>
+    /// The one candidate whose proposal is already known: a supersede of the decision it names. Left
+    /// standing, the record says one thing and the code another, and the next cycle is judged by the decision
+    /// this one set aside.
+    /// </remarks>
+    Departure,
 }
 
 /// <summary>
@@ -156,6 +166,15 @@ public static class ProposeDecisions
 
                 await Collect(cycle, ArtifactKind.Plan, "Shape and departures", DecisionSource.Plan, candidates, cancellationToken)
                     .ConfigureAwait(false);
+
+                // A departure from a decision still standing: the record no longer says what the solution does.
+                foreach (Departure departure in await Departures.Of(cycle, cancellationToken).ConfigureAwait(false))
+                {
+                    if (recorded.Value.Any(decision => decision.Id == departure.Decision && decision.IsStanding))
+                    {
+                        candidates.Add(new Candidate(cycle.Id, DecisionSource.Departure, $"{Departures.Opening}{departure.Decision} {departure.Text}"));
+                    }
+                }
             }
 
             return Result.Ok(new Response(

@@ -115,6 +115,7 @@ public static class StatusRenderer
         }
 
         Spent(output, status, state);
+        Departing(output, status);
 
         Amended(output, status);
         Successors(output, status, host);
@@ -215,6 +216,12 @@ public static class StatusRenderer
 
         Field(output, "Gate", GateLine(status));
         Hashes(output, status);
+
+        if (Departing(output, status))
+        {
+            Field(output, string.Empty, "Approving this cycle approves each of these.");
+        }
+
         output.AppendLine();
 
         if (Amended(output, status) | Successors(output, status, host))
@@ -231,6 +238,29 @@ public static class StatusRenderer
     /// Writes that the plan was amended after this build started, and nothing when it was not (D-123).
     /// </summary>
     /// <returns>Whether anything was written.</returns>
+    /// <summary>
+    /// The recorded decisions this cycle departs from, one line each, and nothing when there are none (D-139).
+    /// </summary>
+    /// <remarks>
+    /// On both panels, beside the gate: a departure is the one thing in a cycle that sets aside something a
+    /// person already decided, and the panel is what they read before they approve.
+    /// </remarks>
+    /// <returns>Whether anything was written.</returns>
+    private static bool Departing(StringBuilder output, ReadCycleStatus.Response status)
+    {
+        if (status.Departures is not { Count: > 0 } departures)
+        {
+            return false;
+        }
+
+        for (int index = 0; index < departures.Count; index++)
+        {
+            Field(output, index == 0 ? "Departs" : string.Empty, departures[index]);
+        }
+
+        return true;
+    }
+
     /// <summary>
     /// The successors a person can act on — ready to start, or stuck — and nothing when there are none (D-125).
     /// </summary>
@@ -642,6 +672,16 @@ public static class StatusRenderer
             next.Add((
                 Stage(host, string.Create(CultureInfo.InvariantCulture, $"interrogate {id} {name}")),
                 "nothing has argued with it yet"));
+        }
+        else if (state.Kind == ArtifactKind.Verify && state.OpenBlockers.Any(Findings.ReaderAnswers.IsAboutTheChange))
+        {
+            // The diff reader's blockers are about the code, not the verdict, so no adjudication answers them
+            // (D-139). Remediate changes the code, or steer declares the departure in the plan.
+            next.Add((
+                Stage(host, string.Create(CultureInfo.InvariantCulture, $"remediate {id}")),
+                string.Create(
+                    CultureInfo.InvariantCulture,
+                    $"the change does what it was not given leave to: {string.Join(", ", state.OpenBlockers.Where(Findings.ReaderAnswers.IsAboutTheChange).Select(f => f.Id))} - in a new session")));
         }
         else if (state.Kind == ArtifactKind.Verify && state.OpenBlockers.Count > 0)
         {

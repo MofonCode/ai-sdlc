@@ -27,7 +27,8 @@ done; wait
 ```
 
 `<scratch>` is any directory outside the repository that your host gives you to write in. What the
-command prints names every reader the round runs — the rules reader, then one per active perspective — and
+command prints names every reader the round runs — the rules reader, the diff reader on a verify, then one
+per active perspective — and
 the path each answer goes to. They run concurrently, because they share nothing.
 
 **The launch line is fixed, flag for flag** (D-118). **`--tools=`** — no tools, because everything a
@@ -71,6 +72,13 @@ kind: it assembles, and judges nothing.
 
 **The rules reader** judges the document against every rule in force, and answers with findings in JSON,
 each citing one rule by its id and the line its heading states, copied rather than summarised.
+
+**The diff reader**, on a verify only, judges the change itself rather than the verdict: handed the intent,
+the plan, the decisions and `diff.patch`, it asks whether the change did anything it was not given leave to
+do — `CON_07.2`, `CON_11`, `CON_24` (D-139). Its ids start `diff.`, and its blockers go to `remediate`.
+
+**Every reader of an intent, a spec, a plan and a verify is handed the standing decisions**, in short form,
+so a document is judged against what the solution already settled and not only against the rules.
 
 **A reader per perspective** brings a way of looking — security traces trust boundaries, operability asks
 what a person on call could tell at 3 a.m. — each in a fresh process of its own (`CONCEPT.md` §6.5, D-90).

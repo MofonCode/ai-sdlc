@@ -227,6 +227,10 @@ extension, that is why — say so plainly instead of trying variations. The gene
 - the tier, so a reviewer knows how reversible this is
 - a link to or quote of the `Risk` section, which is the part written for them
 - anything in a `## Open` region, because a reviewer should meet the limits before they approve
+- **a `Departures` section when the cycle departs from a recorded decision**: the lines `sdlc status
+  <id>` prints under `Departs`, copied as they stand — the decision in its own words, its id after — and
+  nothing when there are none. A reviewer is approving those too, and it is the one thing in the change that
+  sets aside something a person already decided
 
 **Link the work item.** When the intent's frontmatter records a `lead`, close it from the body: `AB#1234`
 for `azuredevops:1234`, `Fixes #56` for `github:56`. **Link a sliced work item without closing it** while any

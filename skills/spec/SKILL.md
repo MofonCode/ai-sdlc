@@ -67,6 +67,13 @@ Read `intent.md`. That is the source. Do not read the request that started the c
 conversation, and do not read the codebase for requirements — the codebase tells you what *is*, and a
 spec says what *should be*.
 
+**Then run `sdlc decisions`.** What the solution already settled is a standing criterion this spec
+inherits, and the spec's reader is handed the same record. A criterion requiring what a decision set aside
+is a blocking finding under `CON_24` unless the intent declares that departure with a line opening
+`Departs from DEC_nn` — and a spec declares none of its own, because the intent is where an outcome is
+settled with a person. If a criterion you need contradicts a decision and the intent is silent, stop and
+say so: the route is `/sdlc:steer`, not a criterion that quietly overrides the record.
+
 The intent's `type` tells you how to derive:
 
 | type | Where criteria come from |

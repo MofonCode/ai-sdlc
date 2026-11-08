@@ -19,6 +19,24 @@ force for this solution, which is not the same as the set you remember.
 person's words, and an interview that asks what they already wrote there spends their attention on
 nothing. Ask from where it leaves off.
 
+**Then run `sdlc decisions`.** It prints what this solution already settled, and what each decision set
+aside under `Instead of`. They are standing criteria this cycle inherits: the spec, the plan and the code
+are each judged against them, and `CON_24` asks a departure to be declared where it arises — here, for an
+outcome. Two uses in the interview:
+
+- **Do not ask what is settled.** A question a decision already answers spends the person's attention on
+  nothing; build on the answer instead.
+- **When the person asks for what a decision set aside, say so at once, in a sentence or two**, in the
+  decision's own words and not its id alone, then ask whether to keep the decision or depart from it:
+
+  > That goes against a choice this solution already made: market data is the 15-minute-delayed feed
+  > (DEC_08), chosen over the real-time feed because of its cost. Keep the delayed feed, or depart from it
+  > for this work?
+
+  Keeping it is an answer, and the outcome changes to fit. Departing is legal: write it under `Fixed
+  decisions` in the marked form below, with their name, the date and their reason. Raised here it is one
+  question; found at the plan it unsettles an approved spec, and found in the code it is work to undo.
+
 ## Keep a task list, if your host has one
 
 If your host gives you a task list, open one before the first step, with these items, and mark each
@@ -477,6 +495,9 @@ often. Their words where you can.
 ## Fixed decisions
 
 - <the decision>. <who>, <date>: <why they decided it>.
+- Departs from DEC_nn (<the decision in brief>): <what this cycle wants instead>. <who>, <date>: <why>.
+  <Only for a departure the person chose in the interview; the opening is fixed, because the binary reads
+  it and reports it at the gate.>
 
 ## Must not change
 
