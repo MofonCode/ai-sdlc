@@ -81,6 +81,10 @@ public static class Sitrep
     /// Whether the solution requires a person's approval. Under <c>none</c> the page says so at the top: every
     /// cycle on it was built without a person reading its plan, and whoever merges is the first who does (D-137).
     /// </param>
+    /// <param name="Backlog">
+    /// Every successor and parked cycle, as <c>sdlc backlog</c> reads them (D-145): what is ready, what still waits
+    /// and on what, and what no merge makes ready. Null when they could not be read.
+    /// </param>
     public sealed record Response(
         IReadOnlyList<Built> Ready,
         IReadOnlyList<Built> NeedsPerson,
@@ -91,7 +95,8 @@ public static class Sitrep
         string? IntegrationHead,
         bool RemoteRead,
         IReadOnlyList<Successors.ReadSuccessors.Standing> Successors,
-        ApprovalRequirement Approval = ApprovalRequirement.Required);
+        ApprovalRequirement Approval = ApprovalRequirement.Required,
+        Successors.ReadSuccessors.Response? Backlog = null);
 
     private sealed class Handler(SolutionRoot solution, Mediator mediator, IRepository repository, TimeProvider time)
         : IRequestHandler<Query, Response>
@@ -153,7 +158,8 @@ public static class Sitrep
                 integrationRef is null ? null : repository.ShortCommit(root, integrationRef),
                 remote is not null,
                 [.. successors.Where(s => s.State is Successors.SuccessorState.Ready or Successors.SuccessorState.Stuck)],
-                await SolutionDocument.ApprovalOf(root, cancellationToken).ConfigureAwait(false)));
+                await SolutionDocument.ApprovalOf(root, cancellationToken).ConfigureAwait(false),
+                read.IsSuccess ? read.Value : null));
         }
 
         private async Task<Built> Read(string root, CycleBranch branch, CancellationToken cancellationToken)

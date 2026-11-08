@@ -367,8 +367,51 @@ public sealed class SuccessorTests
 
         Assert.AreEqual("totals", page.Value.Successors.Single().Successor.Slug);
         string text = SitrepRenderer.Render(page.Value);
-        StringAssert.Contains(text, "## Successors a person can start");
+        StringAssert.Contains(text, "## Backlog");
+        StringAssert.Contains(text, "**Ready now**");
         StringAssert.Contains(text, "Start it with `/sdlc:intent --from successor:totals`");
+
+        // What still waits is on the page too, with what it waits on, and so is what the page cannot see.
+        StringAssert.Contains(text, "**Still waiting**");
+        StringAssert.Contains(text, "`successor:chart`");
+        StringAssert.Contains(text, "Not on this page: cycles still being planned in a sandbox");
+    }
+
+    [TestMethod]
+    public async Task The_sitrep_says_so_when_the_backlog_is_empty_rather_than_leaving_the_section_out()
+    {
+        using CycleWorkspace workspace = Solution();
+
+        using var gate = Gate.For(workspace.Root, services => services.AddSingleton<IRepository>(Git()));
+        Result<Sitrep.Response> page = await gate.Send<Sitrep.Query, Sitrep.Response>(new Sitrep.Query());
+        Assert.IsTrue(page.IsSuccess, string.Join("; ", page.Errors.Select(e => e.Message)));
+
+        string text = SitrepRenderer.Render(page.Value);
+
+        StringAssert.Contains(text, "## Backlog");
+        StringAssert.Contains(text, "Nothing waits here");
+        StringAssert.Contains(text, "Not on this page");
+    }
+
+    [TestMethod]
+    public async Task The_sitrep_names_a_parked_cycle_and_what_it_waits_on()
+    {
+        using CycleWorkspace workspace = Solution();
+        Opened(workspace, First);
+        Opened(workspace, Second);
+        Assert.IsTrue(CycleId.TryParse(Second, out CycleId? second));
+        await System.IO.File.WriteAllTextAsync(
+            Parked.PathOf(new Cycle(second.Value, workspace.Root)),
+            "---\nwaits_on: " + First + "\n---\n\nIt needs src/Totals.cs, which only " + First + " creates.\n");
+
+        using var gate = Gate.For(workspace.Root, services => services.AddSingleton<IRepository>(Git()));
+        Result<Sitrep.Response> page = await gate.Send<Sitrep.Query, Sitrep.Response>(new Sitrep.Query());
+        Assert.IsTrue(page.IsSuccess, string.Join("; ", page.Errors.Select(e => e.Message)));
+
+        string text = SitrepRenderer.Render(page.Value);
+
+        StringAssert.Contains(text, "`" + Second + "`");
+        StringAssert.Contains(text, "parked, waits on " + First);
     }
 
     internal static string File(string succeeds, string extra = "") =>

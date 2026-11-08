@@ -72,7 +72,7 @@ an agent runs it, and it never decides a gate. `skills.md` lists the skills.
 | `sdlc operate --dry-run` | binary | what production raised, grouped and scrubbed, and what would be filed as a lead |
 | `sdlc perspectives <id>` | binary | which perspectives a cycle gets, and why |
 | `sdlc perspective show <name> --for <stage>` | binary | a perspective's method and questions for one stage; `--cover` for an author's list |
-| `sdlc sitrep` | binary | the morning's page: ready to merge and in what order, needs a person, held back, going stale, and the successors a person can start |
+| `sdlc sitrep` | binary | the morning's page: ready to merge and in what order, needs a person, held back, going stale, and the backlog — successors and parked cycles ready, waiting or stuck, and what the page cannot see |
 | `sdlc cycles --here [--for <step>]` | binary | which cycle a skill given no id means: the one this branch carries that is ready for the step, or the list to ask from |
 | `sdlc cycles --queued [<id>]` | binary | what a build would take now, in the order to build it, and what is held back and why; with an id, that cycle alone or why not |
 | `sdlc cycles --claims` | binary | which files each cycle claims |

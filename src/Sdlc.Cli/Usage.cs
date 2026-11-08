@@ -177,9 +177,10 @@ internal static class Usage
             sitrep                   The morning's page, in Markdown: built cycles ready to merge
                                      and in what order, with the ones expected to conflict;
                                      what needs a person; what was held back and why; what is
-                                     waiting and going stale; the successors a person can start,
-                                     or that are stuck. Fetch the remote first: a built cycle is
-                                     read from its own branch. It starts nothing.
+                                     waiting and going stale; the backlog -- every successor and
+                                     parked cycle, ready, waiting or stuck -- and what it cannot
+                                     see. Fetch the remote first: a built cycle is read from its
+                                     own branch. It starts nothing.
             cycles --here [--for <step>]
                                      Which cycle a skill given no id means: the cycles this
                                      branch carries -- its own on a cycle branch, otherwise

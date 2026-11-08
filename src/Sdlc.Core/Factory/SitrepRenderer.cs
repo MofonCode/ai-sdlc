@@ -131,24 +131,7 @@ public static class SitrepRenderer
                 $"- `{cycle.Id}` {cycle.Headline ?? "(no headline)"} - waiting {Days(cycle.Days)}{stale}"));
         }
 
-        // D-125: what the merges made ready, for a person to start. The factory starts none of them.
-        if (page.Successors.Count > 0)
-        {
-            output.AppendLine();
-            output.AppendLine("## Successors a person can start");
-            output.AppendLine();
-
-            foreach (Successors.ReadSuccessors.Standing successor in page.Successors)
-            {
-                output.AppendLine(successor.State == Successors.SuccessorState.Ready
-                    ? string.Create(
-                        CultureInfo.InvariantCulture,
-                        $"- `successor:{successor.Successor.Slug}` {successor.Successor.Headline ?? string.Empty} - **ready**: everything it succeeds has merged. Start it with `/sdlc:intent --from successor:{successor.Successor.Slug}`")
-                    : string.Create(
-                        CultureInfo.InvariantCulture,
-                        $"- `successor:{successor.Successor.Slug}` {successor.Successor.Headline ?? string.Empty} - **stuck**: {string.Join(", ", successor.Waits.Select(Successors.ReadSuccessors.Describe))}. Correct its `succeeds:`, or delete it"));
-            }
-        }
+        Backlog(output, page);
 
         output.AppendLine();
         output.AppendLine("## " + page.IntegrationBranch);
@@ -167,6 +150,96 @@ public static class SitrepRenderer
 
         return output.ToString();
     }
+
+    /// <summary>
+    /// The backlog: every successor and parked cycle this checkout holds — ready, still waiting, or stuck — and what
+    /// the page cannot see (D-125, D-145).
+    /// </summary>
+    /// <remarks>
+    /// Always shown, empty or not, so an absent section never reads as an empty backlog. It ends by naming what is
+    /// not on the page: cycles still being planned in a sandbox are on no branch this reads until they are admitted.
+    /// </remarks>
+    private static void Backlog(StringBuilder output, Sitrep.Response page)
+    {
+        output.AppendLine();
+        output.AppendLine("## Backlog");
+        output.AppendLine();
+
+        if (page.Backlog is not { } backlog)
+        {
+            output.AppendLine("The successors and parked cycles could not be read; `sdlc backlog` says why.");
+            return;
+        }
+
+        List<(string Line, Successors.SuccessorState State)> items =
+        [
+            .. backlog.Successors.Select(s => (Successor(s), s.State)),
+            .. backlog.Waiting.Select(p => (Parked(p), p.State)),
+        ];
+
+        if (items.Count == 0)
+        {
+            output.AppendLine(string.Create(CultureInfo.InvariantCulture, $"Nothing waits here: no successor, and no parked cycle on {page.IntegrationBranch}."));
+        }
+
+        Group(output, "**Ready now** — what the merges made ready. `/sdlc:next` takes all of it; the factory starts none.", items, Successors.SuccessorState.Ready);
+        Group(output, "**Still waiting**", items, Successors.SuccessorState.Waiting);
+        Group(output, "**No merge makes these ready**", items, Successors.SuccessorState.Stuck, Successors.SuccessorState.Unresolved);
+
+        output.AppendLine();
+        output.AppendLine(
+            "Not on this page: cycles still being planned in a sandbox, and anything sliced or parked there, are on no branch "
+            + "this reads until they are admitted — `sdlc backlog` in the sandbox shows them. The waves in full: `sdlc backlog`.");
+    }
+
+    private static void Group(StringBuilder output, string heading, List<(string Line, Successors.SuccessorState State)> items, params Successors.SuccessorState[] states)
+    {
+        string[] lines = [.. items.Where(i => states.Contains(i.State)).Select(i => i.Line)];
+
+        if (lines.Length == 0)
+        {
+            return;
+        }
+
+        output.AppendLine(heading);
+        output.AppendLine();
+
+        foreach (string line in lines)
+        {
+            output.AppendLine(line);
+        }
+
+        output.AppendLine();
+    }
+
+    private static string Successor(Successors.ReadSuccessors.Standing successor) => successor.State switch
+    {
+        Successors.SuccessorState.Ready => string.Create(
+            CultureInfo.InvariantCulture,
+            $"- `successor:{successor.Successor.Slug}` {successor.Successor.Headline ?? string.Empty} - **ready**: everything it succeeds has merged. Start it with `/sdlc:intent --from successor:{successor.Successor.Slug}`"),
+        Successors.SuccessorState.Waiting => string.Create(
+            CultureInfo.InvariantCulture,
+            $"- `successor:{successor.Successor.Slug}` {successor.Successor.Headline ?? string.Empty} - waits on {string.Join(", ", successor.Waits.Select(Successors.ReadSuccessors.Describe))}"),
+        Successors.SuccessorState.Stuck => string.Create(
+            CultureInfo.InvariantCulture,
+            $"- `successor:{successor.Successor.Slug}` {successor.Successor.Headline ?? string.Empty} - **stuck**: {string.Join(", ", successor.Waits.Select(Successors.ReadSuccessors.Describe))}. Correct its `succeeds:`, or delete it"),
+        _ => string.Create(
+            CultureInfo.InvariantCulture,
+            $"- `successor:{successor.Successor.Slug}` {successor.Successor.Headline ?? string.Empty} - **unresolved**: {string.Join(", ", successor.Waits.Select(Successors.ReadSuccessors.Describe))}. Correct its `succeeds:`"),
+    };
+
+    private static string Parked(Successors.ReadSuccessors.ParkedStanding parked) => parked.State switch
+    {
+        Successors.SuccessorState.Ready => string.Create(
+            CultureInfo.InvariantCulture,
+            $"- `{parked.Cycle}` {parked.Headline ?? string.Empty} - **parked, ready**: what it waited on has merged. `sdlc unpark {parked.Cycle}`, then read its spec and plan again"),
+        Successors.SuccessorState.Waiting => string.Create(
+            CultureInfo.InvariantCulture,
+            $"- `{parked.Cycle}` {parked.Headline ?? string.Empty} - parked, waits on {string.Join(", ", parked.Waits.Select(Successors.ReadSuccessors.Describe))}"),
+        _ => string.Create(
+            CultureInfo.InvariantCulture,
+            $"- `{parked.Cycle}` {parked.Headline ?? string.Empty} - parked, **{(parked.State == Successors.SuccessorState.Stuck ? "stuck" : "unresolved")}**: {string.Join(", ", parked.Waits.Select(Successors.ReadSuccessors.Describe))}. Correct its `waits_on:`"),
+    };
 
     private static string Files(IReadOnlyList<string> files) => files.Count switch
     {

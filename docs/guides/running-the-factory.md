@@ -99,7 +99,7 @@ The same page the run published, against the state now. In the order it lists:
 | **Needs a person** | a draft: `/sdlc:remediate <id>` on its branch for `blocked`; for `escalated`, `steer`, a reopen, or `sdlc draft abandon <id>`. *Built before its plan was amended*: merge `development` into it to continue by hand, or delete it to rebuild — whatever its verify says, it is never ready |
 | **Held back, not built** | each with its reason. Delete a forgotten plan branch to put its cycle back. A build branch made before its plan was amended is named with the same two choices; the factory never resumes it |
 | **Waiting for a build** | its age, and *going stale* when a file its plan declares changed on `development` since approval — read the plan again before it builds |
-| **Successors a person can start** | a successor whose predecessors merged, with `/sdlc:intent --from successor:<slug>` to start it — the factory never does; one *stuck* behind an abandoned cycle wants its `succeeds:` corrected or the file deleted |
+| **Backlog** | always shown, empty or not. *Ready now*: a successor whose predecessors merged, with `/sdlc:intent --from successor:<slug>`, and a parked cycle whose predecessor merged, with `sdlc unpark <id>` — `/sdlc:next` takes all of them, and the factory never does. *Still waiting*: each with what it waits on. *No merge makes these ready*: stuck behind an abandoned cycle, or naming something that does not exist — correct its `succeeds:` or `waits_on:`. It ends by naming what it cannot see: cycles still being planned in a sandbox are on no branch it reads until admitted, so `sdlc backlog` in the sandbox is where they show |
 
 **When a pull request conflicts, or goes red after an earlier merge:**
 
