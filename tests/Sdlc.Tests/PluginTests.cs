@@ -569,7 +569,7 @@ public sealed class PluginTests
     [TestMethod]
     [DataRow("interrogate")]
     [DataRow("verify")]
-    [DataRow("propose")]
+    [DataRow("mine")]
     public void Every_skill_that_judges_starts_a_fresh_process_it_may_run(string skill)
     {
         // D-109. The verdict used to be written by whichever session typed /sdlc:verify, which was usually
@@ -1104,10 +1104,10 @@ public sealed class PluginTests
 
         int constraints = parsed.Value.Count(constraint => constraint.IsInForce);
 
-        Assert.AreEqual(20, skills, "The readme says twenty skills.");
+        Assert.AreEqual(21, skills, "The readme says twenty-one skills.");
         Assert.AreEqual(19, constraints, "The readme says nineteen global constraints.");
 
-        StringAssert.Contains(readme, "twenty skills");
+        StringAssert.Contains(readme, "twenty-one skills");
         StringAssert.Contains(readme, "nineteen global constraints");
     }
 

@@ -68,6 +68,16 @@ public sealed class DocumentCopyTests
         }
     }
 
+    [TestMethod]
+    public void Reading_across_cycles_is_listed_as_mining_and_convergence_is_gone_from_help()
+    {
+        // D-148. 'converge' is a document's rounds settling; the cross-cycle act is mining. The old names are
+        // answered for a release, so they must not also be offered as commands.
+        Assert.IsTrue(Lists("mine"), "'sdlc help' does not list 'sdlc mine'.");
+        Assert.IsTrue(Lists("draft mining <file>"), "'sdlc help' does not list 'sdlc draft mining <file>'.");
+        Assert.IsFalse(Usage.Text.Contains("convergence", StringComparison.OrdinalIgnoreCase), "'sdlc help' still offers convergence.");
+    }
+
     // Whether the usage text has a line opening with the command, which is how it lists one.
     private static bool Lists(string command) =>
         Regex.IsMatch(Usage.Text, @"^[ \t]+" + Regex.Escape(command) + @"(?:[ \t]|$)", RegexOptions.Multiline);

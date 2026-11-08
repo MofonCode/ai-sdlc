@@ -7,6 +7,7 @@ using Sdlc.Core.Approvals;
 using Sdlc.Core.Constraints;
 using Sdlc.Core.Artifacts;
 using Sdlc.Core.Cycles;
+using Sdlc.Core.Decisions;
 using Sdlc.Core.Findings;
 using Sdlc.Core.Git;
 using Sdlc.Core.Solutions;
@@ -27,7 +28,7 @@ namespace Sdlc.Core.Proposals;
 /// distinct cycles, with the shortest few statements each as a sample -- a pointer for the skill, which
 /// reads the rounds for the rest.</para>
 /// </remarks>
-public static class ProposeConvergence
+public static class ProposeMining
 {
     /// <summary>Statements quoted per group, at most.</summary>
     public const int Sample = 5;
@@ -35,7 +36,7 @@ public static class ProposeConvergence
     /// <summary>Registers this operation's handler.</summary>
     /// <param name="services">The collection to add to.</param>
     /// <returns>The same collection, for chaining.</returns>
-    public static IServiceCollection AddProposeConvergenceRequestHandler(this IServiceCollection services)
+    public static IServiceCollection AddProposeMiningRequestHandler(this IServiceCollection services)
     {
         ArgumentNullException.ThrowIfNull(services);
 
@@ -86,12 +87,17 @@ public static class ProposeConvergence
     /// reopens, verdicts -- and two of the three, the reopen reasons and every verdict but the last, are
     /// read nowhere else.
     /// </param>
+    /// <param name="OverBudget">
+    /// The standing decisions and this solution's rules in force whose title or a clause runs past its word
+    /// budget, each with its overrun: candidates for a <c>reword</c> or a superseding entry (D-149).
+    /// </param>
     public sealed record Response(
         ProposeConstraints.Response Rules,
         IReadOnlyList<Group> Groups,
         ProposeDecisions.Response Decisions,
         StackCoverage.Unmentioned Stack,
-        IReadOnlyList<CycleRecord>? Record = null);
+        IReadOnlyList<CycleRecord>? Record = null,
+        IReadOnlyList<string>? OverBudget = null);
 
     /// <summary>Asks for the report.</summary>
     public sealed record Query : IRequest<Response>;
@@ -105,7 +111,7 @@ public static class ProposeConvergence
         ArgumentNullException.ThrowIfNull(response);
 
         StringBuilder text = new();
-        text.AppendLine("Convergence: what the record says the rules, decisions and stack are missing");
+        text.AppendLine("Mining: what the record says the rules, decisions and stack are missing");
         text.AppendLine();
         text.AppendLine(string.Create(CultureInfo.InvariantCulture, $"Rules   next free {response.Rules.NextId}, {response.Rules.InForce} in force, {response.Rules.Cycles} cycles read"));
 
@@ -183,6 +189,19 @@ public static class ProposeConvergence
             text.AppendLine(string.Create(CultureInfo.InvariantCulture, $"  {cycle.Key}: {cycle.Count()} passages -- 'sdlc propose decisions' prints them in full"));
         }
 
+        if (response.OverBudget is { Count: > 0 } overBudget)
+        {
+            text.AppendLine();
+            text.AppendLine(string.Create(
+                CultureInfo.InvariantCulture,
+                $"Over the word budget   {overBudget.Count} entries past a {EntryBudget.Headline}-word title or {EntryBudget.Clause} words a clause -- reword a rule, supersede a decision"));
+
+            foreach (string entry in overBudget)
+            {
+                text.AppendLine("  " + entry);
+            }
+        }
+
         text.AppendLine();
         text.AppendLine("Stack");
 
@@ -210,7 +229,7 @@ public static class ProposeConvergence
         text.AppendLine();
         text.AppendLine("  Under each heading, the entry's clauses as they would be pasted, and '> ' lines for the evidence.");
         text.AppendLine("  There is no remove: supersede a rule or decision, and set a stack concern to none.");
-        text.AppendLine("  Then 'sdlc draft convergence " + proposals + "' writes the drafts from what was marked [x].");
+        text.AppendLine("  Then 'sdlc draft mining " + proposals + "' writes the drafts from what was marked [x].");
 
         return text.ToString();
     }
@@ -346,7 +365,37 @@ public static class ProposeConvergence
                 record.Add(await Recorded(cycle, cancellationToken).ConfigureAwait(false));
             }
 
-            return Result.Ok(new Response(rules.Value, groups, decisions.Value, unmentioned, record));
+            return Result.Ok(new Response(rules.Value, groups, decisions.Value, unmentioned, record, await OverBudget(decisions.Value.Standing, cancellationToken).ConfigureAwait(false)));
+        }
+
+        /// <summary>
+        /// The entries a reader handed only the headline would get too much of: never refused, because the
+        /// files are a person's, and proposed for rewording here (D-149).
+        /// </summary>
+        private async Task<IReadOnlyList<string>> OverBudget(IReadOnlyList<Decision> standing, CancellationToken cancellationToken)
+        {
+            List<string> over = [];
+            string path = Path.Combine(solution.Path, Cycle.SdlcDirectoryName, FileConstraintDocuments.SolutionConstraintsFileName);
+
+            if (File.Exists(path))
+            {
+                IReadOnlyList<Constraint> local = ConstraintParser
+                    .Parse(await File.ReadAllTextAsync(path, cancellationToken).ConfigureAwait(false), path)
+                    .ValueOrDefault ?? [];
+
+                over.AddRange(local
+                    .Where(rule => rule.IsInForce)
+                    .Select(rule => (Id: rule.Id.ToString(), Overruns: EntryBudget.Of(rule)))
+                    .Where(entry => entry.Overruns.Count > 0)
+                    .Select(entry => entry.Id + " (" + EntryBudget.Describe(entry.Overruns) + ")"));
+            }
+
+            over.AddRange(standing
+                .Select(decision => (Id: decision.Id.ToString(), Overruns: EntryBudget.Of(decision)))
+                .Where(entry => entry.Overruns.Count > 0)
+                .Select(entry => entry.Id + " (" + EntryBudget.Describe(entry.Overruns) + ")"));
+
+            return over;
         }
 
         /// <summary>Reads how one cycle went, from its ledgers, its approval and its verify's history.</summary>

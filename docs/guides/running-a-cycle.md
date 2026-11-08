@@ -208,9 +208,9 @@ a spec round until the intent is settled, and a plan round until the spec is. On
 *what* — a correction that changes the problem is a different cycle, and the skill says so and offers one. Before
 the spec nothing derives from the intent yet, so steering may change its outcomes too.
 
-**Once the verify passes, converge.** `/sdlc:propose convergence` reads what the cycle settled and argued
+**Once the verify passes, mine it.** `/sdlc:mine` reads what the cycle settled and argued
 and proposes rules, decisions and stack rows in one file; you mark what you accept, `sdlc draft
-convergence` writes the three drafts, a fresh reader says whether what you approved is in alignment, and
+mining` writes the three drafts, a fresh reader says whether what you approved is in alignment, and
 you rename the drafts. It is not a cycle, and what it places binds the next cycle rather than one in flight.
 `/sdlc:pr` offers it on the cycle's branch, as a commit of its own that merges with the code; or do it on
 the integration branch after the merge. Never before the passing verify: rounds after it would read rules

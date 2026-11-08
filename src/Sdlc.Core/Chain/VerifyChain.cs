@@ -104,9 +104,9 @@ public static class VerifyChain
         : IRequest<Response>;
 
     /// <summary>
-    /// The three files a convergence changes, relative to the root (D-104, D-111).
+    /// The files mining changes, relative to the root (D-104, D-111).
     /// </summary>
-    public static IReadOnlyList<string> Converged { get; } =
+    public static IReadOnlyList<string> Mined { get; } =
     [
         Cycle.SdlcDirectoryName + "/" + FileConstraintDocuments.SolutionConstraintsFileName,
         Cycle.SdlcDirectoryName + "/" + DecisionParser.FileName,
@@ -339,7 +339,7 @@ public static class VerifyChain
             await Covered(cycle, checks, cancellationToken).ConfigureAwait(false);
             await AfterReopen(cycle, checks, cancellationToken).ConfigureAwait(false);
             await Outcome(cycle, checks, cancellationToken).ConfigureAwait(false);
-            ConvergedAfterVerify(cycle, request, checks);
+            MinedAfterVerify(cycle, request, checks);
 
             return Result.Ok(new Response(cycle, checks, Unapproved: declared));
         }
@@ -351,11 +351,11 @@ public static class VerifyChain
         /// <remarks>
         /// <para><strong>Why it is said at all.</strong> A rule placed while a cycle is still being judged
         /// re-judges what was already argued -- about twenty blockers, the one time it happened (D-104).
-        /// After the passing verify nothing in the cycle is judged again, so a convergence committed then
+        /// After the passing verify nothing in the cycle is judged again, so mining committed then
         /// binds only what comes next. Somebody reading the pull request should see which of the two it
         /// was.</para>
         /// <para><strong>Why it never fails the chain.</strong> All three files are a person's, and a
-        /// person changes them inside a cycle for reasons that are not a convergence: the stack row the
+        /// person changes them inside a cycle for reasons that are not mining: the stack row the
         /// plan calls for, a decision amended mid-build, the last cycle's decisions placed before this
         /// one's first round. Git says that a file changed before the verify; it cannot say why. Refused,
         /// MarketSense's second cycle -- which did exactly the first two -- would have failed a chain it
@@ -363,7 +363,7 @@ public static class VerifyChain
         /// <para>Silent when the pull request changes none of the three, and when nothing said what it
         /// changes.</para>
         /// </remarks>
-        private void ConvergedAfterVerify(Cycle cycle, Query request, List<ChainCheck> checks)
+        private void MinedAfterVerify(Cycle cycle, Query request, List<ChainCheck> checks)
         {
             if (request.Changed is not { } changed || request.Divergence is not { } divergence)
             {
@@ -371,14 +371,14 @@ public static class VerifyChain
             }
 
             HashSet<string> carried = [.. changed.Select(path => path.Replace('\\', '/').TrimStart('/'))];
-            List<string> converged = [.. Converged.Where(carried.Contains)];
+            List<string> mined = [.. Mined.Where(carried.Contains)];
 
-            if (converged.Count == 0)
+            if (mined.Count == 0)
             {
                 return;
             }
 
-            const string Name = "when the convergence it carries was committed";
+            const string Name = "when the mining it carries was committed";
             string verify = Cycle.SdlcDirectoryName + "/" + Cycle.CyclesDirectoryName + "/" + cycle.Id + "/"
                 + Cycle.FileNameOf(ArtifactKind.Verify);
 
@@ -389,7 +389,7 @@ public static class VerifyChain
                     true,
                     string.Create(
                         CultureInfo.InvariantCulture,
-                        $"it changes {string.Join(", ", converged)}, and no commit wrote {verify}, so the order cannot be shown. Reported, not refused (D-113).")));
+                        $"it changes {string.Join(", ", mined)}, and no commit wrote {verify}, so the order cannot be shown. Reported, not refused (D-113).")));
                 return;
             }
 
@@ -405,7 +405,7 @@ public static class VerifyChain
             }
 
             HashSet<string> early = [.. before.Select(path => path.Replace('\\', '/'))];
-            List<string> premature = [.. converged.Where(early.Contains)];
+            List<string> premature = [.. mined.Where(early.Contains)];
             string at = verdict.Commit[..Math.Min(8, verdict.Commit.Length)];
 
             checks.Add(new ChainCheck(
@@ -414,10 +414,10 @@ public static class VerifyChain
                 premature.Count == 0
                     ? string.Create(
                         CultureInfo.InvariantCulture,
-                        $"{string.Join(", ", converged)} changed only after {at} wrote the verify, so it binds the next cycle and judged nothing in this one")
+                        $"{string.Join(", ", mined)} changed only after {at} wrote the verify, so it binds the next cycle and judged nothing in this one")
                     : string.Create(
                         CultureInfo.InvariantCulture,
-                        $"{string.Join(", ", premature)} changed before {at} wrote the verify, so rounds after that change read it. A person's change in the cycle, or a convergence placed early: reported, not refused, because git cannot say which (D-113).")));
+                        $"{string.Join(", ", premature)} changed before {at} wrote the verify, so rounds after that change read it. A person's change in the cycle, or mining placed early: reported, not refused, because git cannot say which (D-113).")));
         }
 
         /// <summary>
@@ -590,7 +590,7 @@ public static class VerifyChain
         /// <para><strong>Any round, not only the one that let the cycle advance.</strong> Every round shaped what
         /// came after it, so a cycle one local round touched is a test run all the way down. The rounds record
         /// their release (D-131), so this reads them rather than asking anybody.</para>
-        /// <para>Silent when it holds, like the convergence report: it is a line about a test run, and a
+        /// <para>Silent when it holds, like the mining report: it is a line about a test run, and a
         /// chain that never saw one has nothing to say about it.</para>
         /// </remarks>
         private static async Task Published(

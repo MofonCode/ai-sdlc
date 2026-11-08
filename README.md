@@ -220,7 +220,7 @@ sdlc constraints
 It should print the nineteen global constraints in force and say it read them from
 `global  embedded in sdlc 0.38.0`. **Use this rather than `sdlc help` as the smoke test** — `help` and
 `version` are the only commands that need nothing from the installation, so they are the two that cannot
-tell you whether it worked. Then `claude plugin details sdlc@ai-sdlc` should say `Skills (18)` and
+tell you whether it worked. Then `claude plugin details sdlc@ai-sdlc` should say `Skills (21)` and
 `Hooks (3)`: **a hook count below three is a failed install**, not a detail, because the deterministic layer
 is simply not loaded and every cycle will still appear to work.
 
@@ -304,10 +304,10 @@ refusal with its remedy.
 | [`docs/cheat-sheet.md`](docs/cheat-sheet.md) | **the cheat sheet** — one cycle, one line per step |
 | [`docs/reference/README.md`](docs/reference/README.md) | **the reference** — every command, skill and refusal, one line each |
 | [`docs/reference/commands.md`](docs/reference/commands.md) | every command, on one screen |
-| [`docs/reference/skills.md`](docs/reference/skills.md) | the twenty skills, one line each |
+| [`docs/reference/skills.md`](docs/reference/skills.md) | the twenty-one skills, one line each |
 | [`docs/reference/refusals.md`](docs/reference/refusals.md) | every refusal, one line each |
 | [`docs/samples/rolling-a-die.md`](docs/samples/rolling-a-die.md) | **the whole walk with one solution in it** — a d6 rolled from a page, every command, in a repository with no remote |
-| [`skills/README.md`](skills/README.md) | the twenty skills as a reference: syntax, parameters, output, refusals and remarks for each |
+| [`skills/README.md`](skills/README.md) | the twenty-one skills as a reference: syntax, parameters, output, refusals and remarks for each |
 | `sdlc constraints` | the rules in force, all tiers resolved. Run it rather than reading a copy of them |
 
 One more worth knowing about. `.sdlc/README.md`, written into your repository by `sdlc init`, is the whole flow on one page that
@@ -429,9 +429,9 @@ What is honest to say about the rest:
 - **A solution adopted before 0.16.0 that never listed its stack rules is held to none from 0.20.0.**
   Its old `profile:` line in `solution.md` is no longer read (`CONCEPT.md` D-81). `sdlc doctor` says
   so; `sdlc draft techstack` and a rename put the rules back.
-- **Converging on a cycle's branch has not been walked.** The report's new reading of a cycle's record
+- **Mining on a cycle's branch has not been walked.** The report's new reading of a cycle's record
   was checked against one solution's history, and `verify-chain` reports the order rather than refusing
-  it (D-113); no cycle has yet converged before its pull request. **A cycle opened before 0.32.0 keeps its committed `.trx`
+  it (D-113); no cycle has yet been mined before its pull request. **A cycle opened before 0.32.0 keeps its committed `.trx`
   and `build.log` tracked**: the ignore patterns stop new ones only, and `git rm --cached` removes the old.
 - **Adoption drafting all three files and creating the integration branch has been read by its author
   and by nobody else.** The suite holds the drafts, the renames the report names, the commit, the branch
@@ -486,7 +486,7 @@ What is honest to say about the rest:
   whose added lines are under 70% covered or that lowers the codebase's coverage, so a build records
   `--coverage` (D-103). The run mode `batch` is now `test`: an AppHost reading `SDLC_RUN_MODE=batch` has
   to read `test`, and the architecture suite a solution was scaffolded with before 0.29.0 does not carry
-  the launch-profile test (D-102). `/sdlc:propose convergence` and `sdlc draft convergence` are new
+  the launch-profile test (D-102). Convergence, now `/sdlc:mine` and `sdlc draft mining` (D-148), is new
   (D-104), and `/sdlc:intent` plans each cycle in a worktree of its own (D-105). The .NET profile's new
   *fake data and seeding* row reaches no existing stack until a person answers it. 0.30.0 adds host tests
   to the skeleton, which a solution scaffolded earlier does not have, and `doctor` asks the platform

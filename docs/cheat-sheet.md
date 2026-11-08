@@ -18,7 +18,7 @@ mechanical gates a merge.
 - `/sdlc:pr <id> --plan` — only with an integration branch: admits the plan before it is built; a slicing's plans together with `/sdlc:pr <id> <id>... --plan`
 - `/sdlc:build <id>` — implements, tests, records the evidence
 - `/sdlc:verify <id>` — adjudicates from the evidence alone
-- `/sdlc:propose convergence` — optional, after a pass: rules, decisions and stack the cycle settled, as your own commit. Or after the merge
+- `/sdlc:mine` — optional, after a pass: rules, decisions and stack the cycle settled, as your own commit. Or after the merge
 - `/sdlc:pr <id>` — pushes and opens the pull request. Asks first
 
 Each document stage runs its own interrogate-and-refine loop before it hands back. **Run each step in a new session**

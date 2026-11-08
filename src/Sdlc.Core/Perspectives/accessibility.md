@@ -1,7 +1,7 @@
 ---
 name: accessibility
 always: false
-areas: ui
+switches-on: ui
 files: "*.razor, *.cshtml, *.css, wwwroot/"
 ---
 

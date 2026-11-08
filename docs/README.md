@@ -13,7 +13,7 @@ treatment elsewhere, the entry points at it rather than repeating it.
 | [`reference/README.md`](reference/README.md) | **the reference** — every command, every skill and every refusal, one line each |
 | [`cheat-sheet.md`](cheat-sheet.md) | **the cheat sheet** — one cycle, one line per step |
 | [`samples/README.md`](samples/README.md) | **the samples** — one solution walked end to end, every command and every answer |
-| [`../skills/README.md`](../skills/README.md) | **the skills as a reference** — syntax, parameters, output, refusals and remarks for each of the twenty |
+| [`../skills/README.md`](../skills/README.md) | **the skills as a reference** — syntax, parameters, output, refusals and remarks for each of the twenty-one |
 | [`../CONCEPT.md`](../CONCEPT.md) | the design, and every decision behind it with what each one rejected |
 | `sdlc constraints` | the rules in force, all tiers resolved. A copy here would be a second place they live |
 | `sdlc help` | every command the binary answers to, with its options |
@@ -30,7 +30,7 @@ Both have to be present and they fail differently. `guides/installing-the-plugin
 
 | | What it is | Where |
 |---|---|---|
-| **the plugin** | the twenty skills, and on Claude Code three hooks. Without it nothing asks for a cycle | installed per machine, and packed inside every release of the binary, which `sdlc claude` loads instead |
+| **the plugin** | the twenty-one skills, and on Claude Code three hooks. Without it nothing asks for a cycle | installed per machine, and packed inside every release of the binary, which `sdlc claude` loads instead |
 | **the `sdlc` binary** | every deterministic check — the approval gate among them — every hook decision, every renderer, the constraint library. Without it every skill's first command fails | a .NET global tool named `sdlc`, from nuget.org |
 | **the pinned release** | the release of the binary a solution runs, named in its local tool manifest. The global `sdlc` hands every command on to it, and a cycle's branch carries the pin it was cut with, so a cycle runs on the release it opened on (D-131) | `.config/dotnet-tools.json`, written by adoption |
 | **a local build** / a test run | a build of the binary nobody published. Its release ends in `-local`: a build run through `SDLC_DEV_BUILD`, which every `sdlc` started from that terminal hands to instead of the pin, says so when it runs, and a pack made outside a pipeline is stamped so. A cycle any of whose rounds one wrote is a **test run**, and never opens a pull request (D-135) | `SDLC_DEV_BUILD`; [Testing a local build](guides/testing-a-local-build.md) |
@@ -162,7 +162,7 @@ place the truth lives. Only the first of them binds.
 | **the decisions charter** | the whole of `decisions.md`: every decision the solution has settled, each with what it chose instead of, read by the intent, the spec, the plan and the build, and handed to every reader that judges them and the change, so nobody has to prompt for it. The name the README's features list uses | `.sdlc/decisions.md` |
 | **departure** | a cycle setting a recorded decision aside, declared once as one line opening `Departs from DEC_nn` — an outcome in the intent's `Fixed decisions`, with who and why; an approach in the plan's `Shape and departures`. Later stages rely on it rather than reopen it. The binary reports it first in the approval draft, beside the gate in `sdlc status`, and in the pull request, and `propose decisions` offers it as a supersede once the cycle is approved (D-139) | `sdlc status <id>` |
 | **theme** | the roles this solution's surfaces use and the values that fill them — sixteen slots, the one place a colour or a typeface lives. Binds nothing: a departure is a linter's job | `.sdlc/theme.json` |
-| **convergence** | bringing the rules, the decisions and the declared stack up to what verified or merged cycles settled, in one sitting and outside any cycle's rounds — on a cycle's branch, a commit of its own after the passing verify (D-111): a ranked report, a proposal file of `add`, `supersede`, `reword` and `set` lines a person marks — **never remove** — drafts of the three files with only the marked lines applied, and an advisory review saying whether the approved set is *in alignment*. Binds the next cycle, never one in flight | `/sdlc:propose convergence`, `sdlc draft convergence <file>` |
+| **mining** | reading the record across cycles — bringing the rules, the decisions and the declared stack up to what verified or merged cycles settled, in one sitting and outside any cycle's rounds — on a cycle's branch, a commit of its own after the passing verify (D-111): a ranked report, a proposal file of `add`, `supersede`, `reword` and `set` lines a person marks — **never remove** — drafts of the three files with only the marked lines applied, and an advisory review saying whether the approved set is *in alignment*. Binds the next cycle, never one in flight | `/sdlc:mine`, `sdlc mine`, `sdlc draft mining <file>` |
 
 There are **17 global constraints in force**; `CON_04` and `CON_13` are superseded by `CON_16` and
 `CON_15` and kept on the page. `sdlc constraints` is the authority, and it says which.
@@ -308,7 +308,7 @@ declining to go on, exit code 1. An open blocker causes refusals; it is not one.
 
 ## 10. The skills
 
-**Twenty skills, and the split that matters: a command is deterministic and the binary owns it; a
+**Twenty-one skills, and the split that matters: a command is deterministic and the binary owns it; a
 skill needs language and an agent runs it.** The binary never writes a planning document and a skill
 never decides a gate.
 
@@ -331,6 +331,7 @@ never decides a gate.
 | `resolve-conflict` | brings a cycle's pull request up to date with the integration branch when it conflicts or goes red, inside its declared files, then verifies again |
 | `draft` | prints what belongs in a file only a person writes |
 | `propose` | reads the record and argues for an entry — a rule, a decision, a theme role |
+| `mine` | reads every merged cycle at once and proposes what the rules, decisions and stack are missing, answering every item the cycles raised |
 | `constraints` | shows the rules in force, all tiers resolved |
 | `status` | shows where a cycle has got to, and the next command |
 | `suggestions` | lists the open non-blocking findings a solution has accumulated, each concern once, and with `--all` whether each was accepted, declined or answered |

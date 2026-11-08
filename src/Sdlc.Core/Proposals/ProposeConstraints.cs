@@ -208,7 +208,7 @@ public static class ProposeConstraints
     /// <param name="Cited">
     /// Every rule any blocking finding cited, whatever the number of cycles. Not this report's to render --
     /// one cycle is not a pattern for a rule -- but a rule argued over dozens of findings in one cycle is
-    /// where convergence looks for a decision nobody recorded (D-104).
+    /// where mining looks for a decision nobody recorded (D-104).
     /// </param>
     /// <param name="Withdrawn">
     /// The findings a later reader took back, which no proposal rests on, kept so a reader that keeps

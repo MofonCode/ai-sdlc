@@ -11,7 +11,7 @@ internal static class Usage
     /// the flag that makes it work, which is the confusion the whole draft pattern exists to avoid.
     /// </remarks>
     public const string Drafters =
-        "One of: approval <id>, abandon <id>, solution, techstack, convergence <file>. "
+        "One of: approval <id>, abandon <id>, solution, techstack, mining <file>. "
         + "A constraint is proposed rather than drafted: 'sdlc propose constraints'.";
 
     /// <summary>
@@ -21,7 +21,7 @@ internal static class Usage
     /// One subject today and the verb is plural-ready on purpose: the record has more than rules to say
     /// something about. Only what is built is offered, for the same reason the drafters are.
     /// </remarks>
-    public const string Proposals = "One of: convergence, constraints, decisions, theme.";
+    public const string Proposals = "One of: constraints, decisions, theme. Reading every cycle at once is 'sdlc mine'.";
 
     /// <summary>The usage text, written to standard output for help and to standard error for a
     /// usage error.</summary>
@@ -201,8 +201,8 @@ internal static class Usage
             draft approval <id>      Write the gate decision beside the ledger, for a person to
                                      rename onto it. Writes no approval.
             draft abandon <id>       Print the record that stops a cycle, for a person to place.
-            draft convergence <file> Write drafts of constraints.md, decisions.md and techstack.md
-                                     from the proposals marked [x] in a convergence proposal file:
+            draft mining <file>      Write drafts of constraints.md, decisions.md and techstack.md
+                                     from the proposals marked [x] in a mining proposal file:
                                      each a copy of the file as it stands with only those lines
                                      applied, refused if any entry or row would go missing.
             draft techstack          Write the declared stack beside itself, for an edit a person
@@ -270,8 +270,11 @@ internal static class Usage
                                      with the cycle that decided it.
             decisions                The choices this solution has already settled, so a cycle reads
                                      what was argued rather than arguing it again. CON_24 asks a cycle
-                                     departing from one to declare it where it arises.
-            theme                  The roles this solution's surfaces use and the values that
+                                     departing from one to declare it where it arises. Names
+                                     the entries over the word budget, for mining to reword.
+            decisions show <id>      One decision in full, standing or superseded: what a reader
+                                     handed only its headline asks for.
+            theme                 The roles this solution's surfaces use and the values that
                                      fill them -- the one place a colour or a typeface lives.
             stack                    What this solution declares it is built from: its defaults,
                                      the stack rules switched on, and each build settings file --
@@ -285,14 +288,14 @@ internal static class Usage
                                      that fixes it. Points at constraints, stack and decisions
                                      rather than repeating them. Writes nothing. Exits 1 when
                                      solution.md cannot be read.
-            propose convergence      Everything the record says the rules, decisions and stack are
+            mine                     Everything the record says the rules, decisions and stack are
                                      missing, in one ranked report: rules cited across cycles,
                                      findings that rested on no rule grouped by who raised them,
                                      each cycle's rounds, reopens and every verdict its verify
                                      reached, what approved cycles stated, and what the stack
                                      never mentions.
                                      Ends with the proposal file a person marks for 'draft
-                                     convergence'. Proposes; writes nothing that binds.
+                                     mining'. Proposes; writes nothing that binds.
             propose constraints      Read this solution's whole history and say which rules its
                                      findings keep citing, with the cycles and finding ids behind
                                      each. Proposes; writes nothing that binds. Where the record

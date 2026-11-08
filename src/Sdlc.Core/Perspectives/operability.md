@@ -1,7 +1,7 @@
 ---
 name: operability
 always: true
-areas:
+switches-on:
 files:
 ---
 

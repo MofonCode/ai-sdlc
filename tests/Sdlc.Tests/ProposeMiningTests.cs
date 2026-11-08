@@ -7,7 +7,7 @@ using Sdlc.Core.Proposals;
 namespace Sdlc.Tests;
 
 /// <summary>
-/// The convergence report's reading of how each cycle went (D-112): what the findings alone never held.
+/// The mining report's reading of how each cycle went (D-112): what the findings alone never held.
 /// </summary>
 /// <remarks>
 /// MarketSense's second cycle is the case. Its findings showed a verify that argued about wording; what
@@ -16,7 +16,7 @@ namespace Sdlc.Tests;
 /// in git's history of <c>verify.md</c>, one in the approval ledger -- and the report read neither.
 /// </remarks>
 [TestClass]
-public sealed class ProposeConvergenceTests
+public sealed class ProposeMiningTests
 {
     [TestMethod]
     public async Task Every_verdict_the_verify_reached_is_read_from_git_and_a_repeated_failure_is_named()
@@ -78,6 +78,21 @@ public sealed class ProposeConvergenceTests
     }
 
     [TestMethod]
+    public async Task An_entry_past_its_word_budget_is_listed_for_rewording()
+    {
+        // D-149. Mining is where a long entry already on the page gets shortened: proposed, never refused.
+        using var workspace = CycleWorkspace.Create();
+        CycleWorkspace.WriteRaw(
+            Path.Combine(workspace.Root, ".sdlc", "decisions.md"),
+            "# Decisions\n\n## DEC_01 — " + string.Join(' ', Enumerable.Repeat("long", 20)) + "\n\n**Decided:** one.\n\n**Because:** two.\n\n**Instead of:** three.\n\n**From:** here.\n");
+
+        string report = await Render(workspace, new FakeRepository());
+
+        StringAssert.Contains(report, "Over the word budget");
+        StringAssert.Contains(report, "DEC_01 (title 20 of 15)");
+    }
+
+    [TestMethod]
     public async Task The_rounds_each_document_took_are_counted()
     {
         using var workspace = CycleWorkspace.Create();
@@ -119,10 +134,10 @@ public sealed class ProposeConvergenceTests
 
         using var gate = Gate.For(workspace.Root, services => services.AddSingleton<IRepository>(git));
 
-        Result<ProposeConvergence.Response> result = await gate
-            .Send<ProposeConvergence.Query, ProposeConvergence.Response>(new ProposeConvergence.Query());
+        Result<ProposeMining.Response> result = await gate
+            .Send<ProposeMining.Query, ProposeMining.Response>(new ProposeMining.Query());
 
         Assert.IsTrue(result.IsSuccess, string.Join("; ", result.Errors.Select(error => error.Message)));
-        return ProposeConvergence.Render(result.Value, "proposals.md");
+        return ProposeMining.Render(result.Value, "proposals.md");
     }
 }

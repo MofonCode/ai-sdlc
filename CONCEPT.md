@@ -1489,7 +1489,7 @@ and each pull request is reported individually.
 is `blocked` or `escalated` (D-85) — and asks before the run rather than at the end (D-24); with
 `--unattended` the schedule was that question (D-84). Plain `batch-build` never pushes.
 
-**Before pushing a verified build, `pr` asks once whether to converge on the branch now** — as the
+**Before pushing a verified build, `pr` asks once whether to mine on the branch now** — as the
 person's own commit, which merges with the code — or after the merge; a sweep never asks (D-111).
 
 **`pr --plan`** admits an approved plan to the integration branch before it is built, asked of the gate
@@ -2070,7 +2070,7 @@ implies.
 
 When the pull request changes `constraints.md`, `decisions.md` or `techstack.md`, it also **reports**
 whether that change was committed before or after the commit that wrote the verify, and never fails on it:
-a person changes those files inside a cycle for reasons git cannot tell from a convergence (D-111, D-113).
+a person changes those files inside a cycle for reasons git cannot tell from mining (D-111, D-113).
 
 **What it deliberately does not check.** The comparison of declared files against changed files.
 `D-15` moved that to the hook and made it a suggestion, because `CON_07.2` exists precisely *because*
@@ -2198,6 +2198,7 @@ which is the ordinary case.
 | `pr` | pushes the cycle's branch, opens the pull request into the integration branch, links the work item; `--plan` admits an approved plan, `--draft` a build that did not pass — D-85 |
 | `draft` | prints a protected file's entry for a person to place — §5.3 |
 | `propose` | reads the whole history and proposes `LOC_` entries, with the evidence — D-69 |
+| `mine` | reads every merged cycle at once and proposes the rules, decisions and stack rows they settled, answering every item — D-104, D-148 |
 | `status` | prints the stage panel, and the state of a cycle or of all cycles |
 | `constraints` | renders the effective constraint set, all tiers |
 | `suggestions` | lists accumulated non-blocking findings |
@@ -2278,8 +2279,8 @@ they print verbatim.
 | `round verdict <id> --from <file>` | writes `verify.md` from the adjudicator's answer byte for byte, refusing one that is not a verify document — D-117 |
 | `gate <id>` | whether a cycle's build may run. Exits 1 if not |
 | `draft approval\|abandon\|profile\|solution\|techstack` | prints or writes what belongs in a file only a person writes — §5.3 |
-| `propose convergence` | what the record says the rules, decisions and stack are missing, in one ranked report — with each cycle's rounds per document, its reopens and their reasons, and every verdict its verify reached — ending with the proposal file a person marks. Runs once a verify passes, on the cycle's branch or after the merge — D-104, D-111, D-112, D-113 |
-| `draft convergence <file>` | drafts of the three record files from the proposals marked accepted: each a copy of the file as it stands with only those lines applied, refused if an entry or a row would go missing — D-104 |
+| `mine` | what the record says the rules, decisions and stack are missing, in one ranked report — with each cycle's rounds per document, its reopens and their reasons, and every verdict its verify reached — ending with the proposal file a person marks. Runs once a verify passes, on the cycle's branch or after the merge — D-104, D-111, D-112, D-113, D-148 |
+| `draft mining <file>` | drafts of the three record files from the proposals marked accepted: each a copy of the file as it stands with only those lines applied, refused if an entry or a row would go missing — D-104 |
 | `propose constraints` | what the history says the rules are missing, with the cycles and finding ids behind each — D-69 |
 | `evidence <id>` | records the diff, its base commit, and the normalised test summary — §4.5 |
 | `evidence check <id>` | lists what `verify.md` cites in backticks that none of the recorded evidence holds, and tests it claims passed that did not. Reports and never refuses — D-120 |
@@ -5579,6 +5580,9 @@ problem was caused at, which is the `caused-by` half of §19 item 3 and still op
 
 **Governs:** §5.3, §8, §8.1.1, §15.2, §16, §19
 
+**Corrected 2026-11-08 by D-148:** *mined* below means a rule earned backward from the findings. Mining now names
+the whole act of reading cycles for what they settled; the distinction drawn here stands under those words.
+
 **Decision.** A solution records its settled choices in `.sdlc/decisions.md`, a sixth protected file.
 `sdlc decisions` renders what stands so a stage can read it; `sdlc propose decisions` reads what the
 solution's **approved** cycles stated — an intent's `Fixed decisions`, a plan's `Shape and departures` —
@@ -7233,6 +7237,61 @@ its refusal still apply.
 - *Keeping `sdlc <stage>` everywhere.* Correct and host-neutral, and costs a refusal each time.
 - *Guessing a marker for Copilot or Antigravity.* Neither documents one; a guessed marker is a panel that
   names one host's invocation to someone using another.
+
+### D-149 — An entry's title is its headline, and a title and each clause have a word budget
+
+**Governs:** §8, §15
+
+**Extends D-104 and D-70.** Mining's drafter gains a check; a decision is still never reworded in place.
+
+**Decision.** A recorded decision's or solution rule's title takes at most **15 words** and each clause at most
+**60** (`From` is provenance and is not counted). `sdlc draft mining` refuses a draft that would place a new or
+reworded entry over either, naming the entry and its overrun. An entry already on the page is never refused:
+`sdlc decisions` names it, `sdlc mine` lists it under *Over the word budget*, and mining proposes a `reword` for a
+rule or a `supersede` with the shorter wording for a decision. `sdlc decisions show <id>` prints one entry in full,
+standing or superseded.
+
+**Why.** The person found the decision record already hard to read four cycles in: MarketSense's
+`decisions.md` held 15 entries in 17.5 KB, its first entry about 350 words with a 30-word title. Mining more out
+of cycles makes the record grow, and the next change hands each reader every headline but only some bodies, so a
+title is what most readers get of most entries. It is already there as the entry's heading; it only has to be
+kept short. Counting words is the binary's; whether shorter wording still says what was decided is the person's.
+
+**Rejected.**
+
+- *A separate summary field.* A second statement of the same choice, to drift from the first.
+- *Refusing an existing entry over budget.* The file is a person's; refusing what they placed refuses the record.
+- *Budgets enforced at every read.* A reader's round would fail on the record's shape, which is not its subject.
+
+### D-148 — Reading the record across cycles is mining, and converging is only a document's rounds settling
+
+**Governs:** §10.3, §13, §15
+
+**Renames D-104, D-111 and D-112's convergence**; what each decided stands. **Corrects D-70's wording, dated
+2026-11-08:** D-70 says a decision is "captured rather than mined" and uses *mined* for a rule earned from the
+findings. *Mining* now names the whole act of reading cycles for what they settled, rules and decisions alike;
+D-70's distinction between earning a rule backward and capturing a decision forward stands under those words.
+
+**Decision.** The cross-cycle act is **mining**: `/sdlc:mine` is a skill of its own, `sdlc mine` prints the
+report `sdlc propose convergence` printed, and `sdlc draft mining <file>` writes the drafts `sdlc draft
+convergence` wrote. *Converge* keeps one meaning, a document's rounds settling — a round raising nothing new.
+The old commands are answered for one release with the name each now has, exiting as a usage error, the way a
+stage typed at the binary is answered with its skill.
+
+**Why.** The person found one word doing two jobs: stages say a loop "converges" when its rounds stop raising
+anything, and `propose convergence` read every cycle at once. Thirty-five files used one sense or the other, and
+a person reading "converge" could not tell whether a cycle's rounds or the solution's records were meant. Mining
+is also about to end in something proposing never did — a cycle folder deleted once everything in it has an
+answer — which is more than a subject of `propose`, so it is a skill of its own rather than a fourth subject.
+
+**Rejected.**
+
+- *Renaming the rounds' sense instead.* Every stage, the oscillation guard and the status panel use it, and it is
+  the ordinary meaning of the word.
+- *Keeping it under `propose`, as `propose mining`.* "Propose" says the act ends in proposals; mining ends with a
+  person deleting what was mined.
+- *Removing the old commands outright.* What somebody types from memory should get them there for a release.
+- *Rewriting D-70.* A commit citing it should still mean what it meant (D-73).
 
 ### D-147 — `next` pulls the backlog's ready wave into one sandbox and plans it, locally, stopping at the approvals
 

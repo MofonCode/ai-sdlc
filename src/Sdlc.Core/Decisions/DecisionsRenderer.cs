@@ -114,6 +114,23 @@ public static class DecisionsRenderer
         output.AppendLine("is legal; departing in silence is not. The spec, the plan and the code are each read");
         output.AppendLine("against this record, and rely on a departure declared above them.");
 
+        // Information, never a refusal: the file is a person's, and mining proposes the rewording (D-149).
+        List<string> overBudget = [.. response.Decisions
+            .Where(decision => decision.IsStanding)
+            .Select(decision => (decision.Id, Overruns: EntryBudget.Of(decision)))
+            .Where(entry => entry.Overruns.Count > 0)
+            .Select(entry => string.Create(CultureInfo.InvariantCulture, $"{entry.Id} ({EntryBudget.Describe(entry.Overruns)})"))];
+
+        if (overBudget.Count > 0)
+        {
+            output.AppendLine();
+            output.AppendLine(string.Create(
+                CultureInfo.InvariantCulture,
+                $"Over the word budget -- a {EntryBudget.Headline}-word title, {EntryBudget.Clause} words a clause -- so a reader"));
+            output.AppendLine("handed only the headline gets less than it should: " + string.Join("; ", overBudget) + ".");
+            output.AppendLine("'/sdlc:mine' proposes rewording them; nothing is refused.");
+        }
+
         if (response.Superseded > 0 && detail == DecisionDetail.Brief)
         {
             output.AppendLine();
@@ -121,6 +138,29 @@ public static class DecisionsRenderer
                 CultureInfo.InvariantCulture,
                 $"{response.Superseded} reversed and kept on the page. 'sdlc decisions --all' shows them."));
         }
+
+        return output.ToString();
+    }
+
+    /// <summary>
+    /// Renders one entry in full: what a reader handed only its headline asks for (D-149).
+    /// </summary>
+    /// <param name="decision">The entry, standing or superseded.</param>
+    /// <returns>The rendered text, ending in a newline.</returns>
+    public static string RenderOne(Decision decision)
+    {
+        ArgumentNullException.ThrowIfNull(decision);
+
+        StringBuilder output = new();
+        string marker = decision.IsStanding
+            ? string.Empty
+            : string.Create(CultureInfo.InvariantCulture, $"  (superseded by {decision.SupersededBy})");
+
+        output.AppendLine(string.Create(CultureInfo.InvariantCulture, $"{decision.Id} {decision.Statement}{marker}"));
+        Clause(output, "decided", decision.Decided);
+        Clause(output, "because", decision.Because);
+        Clause(output, "instead of", decision.InsteadOf);
+        Clause(output, "from", decision.From);
 
         return output.ToString();
     }

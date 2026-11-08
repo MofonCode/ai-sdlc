@@ -1,7 +1,7 @@
 ---
 name: maintainability
 always: true
-areas:
+switches-on:
 files:
 ---
 

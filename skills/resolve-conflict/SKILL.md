@@ -74,7 +74,7 @@ git rm .sdlc/cycles/<id>/verify.md
 sdlc evidence <id> --tests TestResults --build-log <path> --coverage TestResults
 ```
 
-**If the branch carries a convergence** — the person's own commit changing the solution's constraints,
+**If the branch carries mining** — the person's own commit changing the solution's constraints,
 decisions or declared stack after the old verify — it comes out before the verify is written again, and
 goes back on top once the new one passes. Ask the person to revert it; the files are theirs. Left in, the
 new verify's rounds read rules it placed — which the pull-request check reports but does not refuse, so

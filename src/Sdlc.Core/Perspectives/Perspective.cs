@@ -20,7 +20,7 @@ namespace Sdlc.Core.Perspectives;
 /// <param name="Title">Its heading.</param>
 /// <param name="Purpose">What it asks of a change, in a paragraph.</param>
 /// <param name="Always">Whether every cycle gets it.</param>
-/// <param name="Areas">The areas an intent names that switch it on: <c>ui</c>, <c>api</c>, <c>data</c>, <c>infrastructure</c>.</param>
+/// <param name="SwitchesOn">The kinds of change an intent names that switch it on: <c>ui</c>, <c>api</c>, <c>data</c>, <c>infrastructure</c>. Not an area: an area is a part of one solution's code, named in its <c>areas.md</c> (D-148).</param>
 /// <param name="Files">File patterns in a plan's declared files that switch it on, as <c>*.razor</c> or <c>infra/</c>.</param>
 /// <param name="Method">How to examine a change.</param>
 /// <param name="Cover">What an author covers, per stage.</param>
@@ -32,7 +32,7 @@ public sealed record Perspective(
     string Title,
     string Purpose,
     bool Always,
-    IReadOnlyList<string> Areas,
+    IReadOnlyList<string> SwitchesOn,
     IReadOnlyList<string> Files,
     string Method,
     IReadOnlyDictionary<string, string> Cover,
@@ -113,7 +113,7 @@ public sealed record Perspective(
             title,
             purpose,
             string.Equals(keys.Value.GetValueOrDefault("always")?.Trim(), "true", StringComparison.OrdinalIgnoreCase),
-            List(keys.Value.GetValueOrDefault("areas")),
+            List(keys.Value.GetValueOrDefault("switches-on")),
             List(keys.Value.GetValueOrDefault("files")),
             sections["Method"],
             cover,

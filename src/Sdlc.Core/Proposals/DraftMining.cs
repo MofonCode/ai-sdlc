@@ -12,7 +12,7 @@ using Sdlc.Core.Solutions;
 namespace Sdlc.Core.Proposals;
 
 /// <summary>
-/// Turns the lines a person accepted in a convergence proposal into drafts of the three record files
+/// Turns the lines a person accepted in a mining proposal into drafts of the three record files
 /// (D-104).
 /// </summary>
 /// <remarks>
@@ -26,12 +26,12 @@ namespace Sdlc.Core.Proposals;
 /// <c>Superseded-by</c>; a reversed decision takes a new id and the old one is marked the same way; a stack
 /// concern no longer used is set to <c>none</c>. The person still places every draft by renaming it.</para>
 /// </remarks>
-public static class DraftConvergence
+public static class DraftMining
 {
     /// <summary>Registers this operation's handler.</summary>
     /// <param name="services">The collection to add to.</param>
     /// <returns>The same collection, for chaining.</returns>
-    public static IServiceCollection AddDraftConvergenceRequestHandler(this IServiceCollection services)
+    public static IServiceCollection AddDraftMiningRequestHandler(this IServiceCollection services)
     {
         ArgumentNullException.ThrowIfNull(services);
 
@@ -77,7 +77,7 @@ public static class DraftConvergence
     public sealed record Proposal(Record Record, Operation Operation, string? Target, string Statement, string Body, bool Accepted);
 
     /// <summary>Drafts the accepted lines of one proposal file.</summary>
-    /// <param name="From">The proposal file, as <c>/sdlc:propose convergence</c> wrote it and the person marked it.</param>
+    /// <param name="From">The proposal file, as <c>/sdlc:mine</c> wrote it and the person marked it.</param>
     public sealed record Command(string From) : IRequest<DraftResult>;
 
     /// <summary>
@@ -475,7 +475,7 @@ public static class DraftConvergence
 
             if (!File.Exists(request.From))
             {
-                return Result.Ok(DraftResult.Refused(string.Create(CultureInfo.InvariantCulture, $"There is no proposal file at {request.From}. '/sdlc:propose convergence' writes one.")));
+                return Result.Ok(DraftResult.Refused(string.Create(CultureInfo.InvariantCulture, $"There is no proposal file at {request.From}. '/sdlc:mine' writes one.")));
             }
 
             Result<IReadOnlyList<Proposal>> parsed = Parse(await File.ReadAllTextAsync(request.From, cancellationToken).ConfigureAwait(false));
@@ -539,6 +539,13 @@ public static class DraftConvergence
                     return Result.Ok(DraftResult.Refused(string.Create(CultureInfo.InvariantCulture, $"The draft of {file} would lose {lost}, so nothing was written. A draft is the file as it stands with the accepted lines applied, and nothing may go missing on the way.")));
                 }
 
+                string? over = OverBudget(record, draft.Value, assigned);
+
+                if (over is not null)
+                {
+                    return Result.Ok(DraftResult.Refused(string.Create(CultureInfo.InvariantCulture, $"The draft of {file} would place {over}, so nothing was written. A new entry's title takes at most {EntryBudget.Headline} words and each clause {EntryBudget.Clause}, so every reader can be handed its headline and the ones in scope its body (D-149). Shorten it in {request.From} and run this again.")));
+                }
+
                 string draftName = Path.GetFileNameWithoutExtension(file) + ".draft.md";
                 await File.WriteAllTextAsync(Path.Combine(directory, draftName), draft.Value, cancellationToken).ConfigureAwait(false);
 
@@ -572,6 +579,28 @@ public static class DraftConvergence
                 ]);
 
             return Result.Ok(DraftResult.Drafted(report.ToString(), instructions));
+        }
+
+        // Only the entries this draft writes are held to the budget. One already on the page is the person's,
+        // and mining proposes rewording it rather than refusing it (D-149).
+        private static string? OverBudget(Record record, string draft, IReadOnlyCollection<string> assigned)
+        {
+            List<string> over = record switch
+            {
+                Record.Rules => [.. (ConstraintParser.Parse(draft, "constraints.draft.md").ValueOrDefault ?? [])
+                    .Where(rule => assigned.Contains(rule.Id.ToString()))
+                    .Select(rule => (Id: rule.Id.ToString(), Overruns: EntryBudget.Of(rule)))
+                    .Where(entry => entry.Overruns.Count > 0)
+                    .Select(entry => entry.Id + " (" + EntryBudget.Describe(entry.Overruns) + ")")],
+                Record.Decisions => [.. (DecisionParser.Parse(draft, "decisions.draft.md").ValueOrDefault ?? [])
+                    .Where(decision => assigned.Contains(decision.Id.ToString()))
+                    .Select(decision => (Id: decision.Id.ToString(), Overruns: EntryBudget.Of(decision)))
+                    .Where(entry => entry.Overruns.Count > 0)
+                    .Select(entry => entry.Id + " (" + EntryBudget.Describe(entry.Overruns) + ")")],
+                _ => [],
+            };
+
+            return over.Count == 0 ? null : string.Join("; ", over);
         }
 
         private static string? Lost(Record record, string original, string draft)

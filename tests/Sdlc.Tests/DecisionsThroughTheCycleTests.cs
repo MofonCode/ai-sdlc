@@ -64,7 +64,7 @@ public sealed class DecisionsThroughTheCycleTests
     [TestMethod]
     public void A_departure_from_a_decision_since_superseded_still_stands()
     {
-        // Convergence may supersede the very decision a cycle departed from, on the cycle's own branch (D-111).
+        // Mining may supersede the very decision a cycle departed from, on the cycle's own branch (D-111).
         IReadOnlyList<Decision> recorded = [Recorded(8) with { SupersededBy = DecisionId.Of(9) }, Recorded(9)];
 
         Assert.AreEqual(0, Departures.Check(ArtifactKind.Intent, "## Fixed decisions\n\n- Departs from DEC_08 (x): y.\n", recorded).Count);

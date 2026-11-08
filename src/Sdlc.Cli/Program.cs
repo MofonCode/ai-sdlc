@@ -107,6 +107,7 @@ try
         "pr-ready" => await AskPrReady(line).ConfigureAwait(false),
         "draft" => await Draft(line).ConfigureAwait(false),
         "propose" => await Propose(line).ConfigureAwait(false),
+        "mine" => await Workspace.Run(line, Mine).ConfigureAwait(false),
         "status" => await WithCycle(line, "status", (w, id) => Status(w, line, id)).ConfigureAwait(false),
         "findings" => await WithCycle(line, "findings", (w, id) => Findings(w, line, id)).ConfigureAwait(false),
         "round" => await RoundVerb(line).ConfigureAwait(false),
@@ -1347,7 +1348,8 @@ static async Task<int> Draft(CommandLine line)
             .ConfigureAwait(false),
         "solution" => await DraftSolution(rest).ConfigureAwait(false),
         "techstack" => await Workspace.Run(rest, w => DraftTechStack(w, rest)).ConfigureAwait(false),
-        "convergence" => await Workspace.Run(rest, w => DraftConverged(w, rest)).ConfigureAwait(false),
+        "mining" => await Workspace.Run(rest, w => DraftMined(w, rest)).ConfigureAwait(false),
+        "convergence" => await Renamed("draft convergence", "draft mining <file>").ConfigureAwait(false),
         _ => await UnknownDraft(line.Arguments[0]).ConfigureAwait(false),
     };
 }
@@ -1438,29 +1440,29 @@ static async Task<int> DraftSolution(CommandLine line)
 
 // --empty is a flag because its absence is the answer everybody already gave, and a stack that pins
 // nothing is a decision somebody should have to type.
-static async Task<int> DraftConverged(Workspace workspace, CommandLine line)
+static async Task<int> DraftMined(Workspace workspace, CommandLine line)
 {
     if (line.Arguments.Count == 0)
     {
         await Console.Error.WriteLineAsync(
-            "Which proposal file? 'sdlc draft convergence <file>', the file '/sdlc:propose convergence' wrote and you marked.")
+            "Which proposal file? 'sdlc draft mining <file>', the file '/sdlc:mine' wrote and you marked.")
             .ConfigureAwait(false);
 
         return ExitCode.Usage;
     }
 
     return await PrintDraft(await workspace
-        .Send<DraftConvergence.Command, DraftResult>(new DraftConvergence.Command(Path.GetFullPath(line.Arguments[0])))
+        .Send<DraftMining.Command, DraftResult>(new DraftMining.Command(Path.GetFullPath(line.Arguments[0])))
         .ConfigureAwait(false)).ConfigureAwait(false);
 }
 
-// One report for all three records, so a person converges them together rather than in three sittings.
+// One report for every record, so a person mines the cycles in one sitting rather than three (D-104, D-148).
 // Kept like the others, and it names the proposal file beside it with the same timestamp, which is the
 // one file a skill writes and a person edits.
-static async Task<int> ProposeConverged(Workspace workspace)
+static async Task<int> Mine(Workspace workspace)
 {
-    Result<ProposeConvergence.Response> result = await workspace
-        .Send<ProposeConvergence.Query, ProposeConvergence.Response>(new ProposeConvergence.Query())
+    Result<ProposeMining.Response> result = await workspace
+        .Send<ProposeMining.Query, ProposeMining.Response>(new ProposeMining.Query())
         .ConfigureAwait(false);
 
     if (result.IsFailed)
@@ -1471,11 +1473,11 @@ static async Task<int> ProposeConverged(Workspace workspace)
     DateTimeOffset now = TimeProvider.System.GetUtcNow();
     string proposals = string.Create(
         CultureInfo.InvariantCulture,
-        $"{Cycle.SdlcDirectoryName}/{ReportFile.DirectoryName}/{now:yyyyMMdd_HHmm_ss}-convergence.proposed.md");
+        $"{Cycle.SdlcDirectoryName}/{ReportFile.DirectoryName}/{now:yyyyMMdd_HHmm_ss}-mining.proposed.md");
 
-    string report = ProposeConvergence.Render(result.Value, proposals);
+    string report = ProposeMining.Render(result.Value, proposals);
     await Console.Out.WriteAsync(report).ConfigureAwait(false);
-    return await Kept(workspace, "convergence", report).ConfigureAwait(false);
+    return await Kept(workspace, "mining", report).ConfigureAwait(false);
 }
 
 static async Task<int> DraftTechStack(Workspace workspace, CommandLine line) =>
@@ -1499,12 +1501,22 @@ static async Task<int> Propose(CommandLine line)
 
     return line.Arguments[0].ToLowerInvariant() switch
     {
-        "convergence" => await Workspace.Run(rest, ProposeConverged).ConfigureAwait(false),
+        "convergence" => await Renamed("propose convergence", "mine").ConfigureAwait(false),
         "constraints" or "constraint" => await Workspace.Run(rest, ProposeRules).ConfigureAwait(false),
         "decisions" or "decision" => await Workspace.Run(rest, ProposeChoices).ConfigureAwait(false),
         "theme" => await Workspace.Run(rest, ProposeTheme).ConfigureAwait(false),
         _ => await UnknownProposal(line.Arguments[0]).ConfigureAwait(false),
     };
+}
+
+// A command renamed rather than removed is answered for one release with the name it now has, the way a
+// stage typed at the binary is answered with its skill: what somebody typed from memory still gets them
+// there (D-148).
+static async Task<int> Renamed(string was, string now)
+{
+    await Console.Error.WriteLineAsync(
+        $"'sdlc {was}' is now 'sdlc {now}'. Reading the record across cycles is called mining, so 'converge' means only a document's rounds settling.").ConfigureAwait(false);
+    return ExitCode.Usage;
 }
 
 static async Task<int> UnknownProposal(string what)
@@ -1596,7 +1608,8 @@ static async Task<int> ProposeTheme(Workspace workspace)
 // artifact, for the reason the constraint set is not: a copy is a second place the truth lives.
 static async Task<int> Decisions(Workspace workspace, CommandLine line)
 {
-    bool all = line.HasOption("all");
+    bool show = line.Arguments.Count > 0 && string.Equals(line.Arguments[0], "show", StringComparison.OrdinalIgnoreCase);
+    bool all = line.HasOption("all") || show;
 
     Result<ReadDecisions.Response> result = await workspace
         .Send<ReadDecisions.Query, ReadDecisions.Response>(new ReadDecisions.Query(all))
@@ -1605,6 +1618,28 @@ static async Task<int> Decisions(Workspace workspace, CommandLine line)
     if (result.IsFailed)
     {
         return await Report(result, ExitCode.Refused).ConfigureAwait(false);
+    }
+
+    // One entry in full, superseded or standing: what a reader handed only the headline asks for (D-149).
+    if (show)
+    {
+        if (line.Arguments.Count < 2 || !DecisionId.TryParse(line.Arguments[1], out DecisionId? wanted))
+        {
+            await Console.Error.WriteLineAsync("Which decision? 'sdlc decisions show DEC_nn'.").ConfigureAwait(false);
+            return ExitCode.Usage;
+        }
+
+        Decision? found = result.Value.Decisions.FirstOrDefault(decision => decision.Id == wanted.Value);
+
+        if (found is null)
+        {
+            await Console.Error.WriteLineAsync(
+                $"This solution records no {wanted}. 'sdlc decisions --brief' lists every entry it holds.").ConfigureAwait(false);
+            return ExitCode.Refused;
+        }
+
+        await Console.Out.WriteAsync(DecisionsRenderer.RenderOne(found)).ConfigureAwait(false);
+        return ExitCode.Ok;
     }
 
     await Console.Out.WriteAsync(DecisionsRenderer.Render(

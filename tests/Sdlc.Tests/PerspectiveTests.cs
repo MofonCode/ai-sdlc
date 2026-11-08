@@ -92,7 +92,7 @@ public sealed class PerspectiveTests
     public void A_perspective_is_switched_on_by_a_declared_file_matching_its_patterns()
     {
         Result<Perspective> read = Perspective.Read(
-            "---\nname: ui-ux\nalways: false\nareas: ui\nfiles: \"*.razor, Pages/\"\n---\n\n# UI\n\nWhy.\n\n## Method\n\nm\n\n## Cover this\n\n"
+            "---\nname: ui-ux\nalways: false\nswitches-on: ui\nfiles: \"*.razor, Pages/\"\n---\n\n# UI\n\nWhy.\n\n## Method\n\nm\n\n## Cover this\n\n"
             + string.Concat(Perspective.Stages.Select(s => "### " + s + "\n\n- c\n\n"))
             + "## Questions\n\n"
             + string.Concat(Perspective.Stages.Select(s => "### " + s + "\n\n- q\n\n"))
