@@ -69,34 +69,34 @@ public sealed class DocumentCopyTests
     }
 
     [TestMethod]
-    public void Every_command_the_data_list_names_is_one_the_binary_has()
+    public void Every_command_the_data_views_name_is_one_the_binary_has()
     {
-        // A list of where to see what, pointing at a command that was renamed, sends somebody looking for data
+        // The data views, pointing at a command that was renamed, sends somebody looking for data
         // that is still there.
-        string data = File.ReadAllText(Path.Combine(Root, "docs", "reference", "data.md"));
+        string data = File.ReadAllText(Path.Combine(Root, "docs", "reference", "data-views.md"));
         string[] named = [.. Regex.Matches(data, @"`sdlc (?<verb>[a-z-]+)")
             .Select(match => match.Groups["verb"].Value)
             .Distinct(StringComparer.Ordinal)];
 
-        Assert.IsTrue(named.Length > 5, "The data list names almost no command, so this checked nothing.");
+        Assert.IsTrue(named.Length > 5, "The data views name almost no command, so this checked nothing.");
 
         foreach (string verb in named)
         {
-            Assert.IsTrue(Lists(verb), $"The data list names 'sdlc {verb}', and 'sdlc help' lists no such command.");
+            Assert.IsTrue(Lists(verb), $"The data views name 'sdlc {verb}', and 'sdlc help' lists no such command.");
         }
     }
 
     [TestMethod]
-    public void The_data_list_has_a_row_for_every_file_only_a_person_writes_and_for_each_ledger()
+    public void The_data_views_have_a_row_for_every_file_only_a_person_writes_and_for_each_ledger()
     {
-        string data = File.ReadAllText(Path.Combine(Root, "docs", "reference", "data.md"));
+        string data = File.ReadAllText(Path.Combine(Root, "docs", "reference", "data-views.md"));
 
         foreach (string name in Sdlc.Core.Hooks.ProtectedPaths.Names
             .Append(Sdlc.Core.Mining.MinedLedger.FileName)
             .Append(Sdlc.Core.Findings.SuggestionLedger.FileName)
             .Append(Sdlc.Core.Findings.UsageLedger.FileName))
         {
-            StringAssert.Contains(data, name, $"The data list does not say where {name} is or how to see it.");
+            StringAssert.Contains(data, name, $"The data views do not say where {name} is or how to see it.");
         }
     }
 

@@ -1,4 +1,4 @@
-# Where to see what
+# Data views
 
 **Every piece of data the framework keeps, one line each**: what it is, where it lives, the command that shows
 it, and who writes it. Read the command's output rather than the file where there is one: the command is what a
