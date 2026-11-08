@@ -98,6 +98,11 @@ public static class SdlcServices
         services.AddWriteVerdictRequestHandler();
 
         services.AddListCyclesRequestHandler();
+        services.AddResolveCycleRequestHandler();
+        services.AddComposeAdmissionRequestHandler();
+        services.AddDiscardSandboxRequestHandler();
+        services.AddParkCycleRequestHandler();
+        services.AddUnparkCycleRequestHandler();
 
         services.AddApprovalTextRequestHandler();
 

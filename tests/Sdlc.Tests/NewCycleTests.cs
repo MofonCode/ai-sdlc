@@ -219,11 +219,10 @@ public sealed class NewCycleTests
     }
 
     [TestMethod]
-    public async Task No_cycle_opens_over_uncommitted_work_and_the_refusal_names_it()
+    public async Task A_cycle_opens_over_uncommitted_work_because_opening_one_switches_nothing()
     {
-        // The intent skill switches to the cycle's branch next, and a switch carries uncommitted changes
-        // with it -- so whatever was lying in the working tree would reach the cycle's diff as work no
-        // plan declared. Refused before an id is spent, naming the files, deciding nothing about them.
+        // D-144: a sandbox is a worktree, so nothing rides from this checkout into the cycle. The switch that
+        // would carry it is 'sdlc branch <id> plan', which refuses instead -- StartBranchTests holds that.
         using var workspace = CycleWorkspace.Create();
         workspace.WriteTechStack(string.Empty);
 
@@ -235,36 +234,37 @@ public sealed class NewCycleTests
 
         Result<Cycle> result = await gate.Send<NewCycle.Command, Cycle>(new NewCycle.Command());
 
-        Assert.IsTrue(result.IsFailed, "A cycle opened over uncommitted work.");
-
-        string message = string.Join("; ", result.Errors.Select(error => error.Message));
-
-        StringAssert.Contains(message, ".sdlc/techstack.md");
-        StringAssert.Contains(message, "src/Half.cs");
-        StringAssert.Contains(message, "Commit, stash or discard");
-
-        Assert.IsFalse(
-            Directory.Exists(Path.Combine(workspace.Root, Cycle.SdlcDirectoryName, Cycle.CyclesDirectoryName, "20261009_1407_09")),
-            "Nothing was claimed.");
+        Assert.IsTrue(result.IsSuccess, string.Join("; ", result.Errors.Select(error => error.Message)));
     }
 
     [TestMethod]
-    public async Task The_frameworks_own_ignore_files_do_not_hold_a_cycle_shut()
+    public async Task An_id_is_claimed_where_every_worktree_looks_so_two_sandboxes_collide()
     {
-        // This command writes the cycles directory's ignore on the first cycle. Counting it would have the
-        // second cycle refused over a file the first one created.
-        using var workspace = CycleWorkspace.Create();
+        // Two sandboxes are two folders, and a claim in each alone would let both win the same second.
+        using var first = CycleWorkspace.Create();
+        using var second = CycleWorkspace.Create();
+        string common = Path.Combine(first.Root, "shared-git-directory");
+        Directory.CreateDirectory(common);
+
+        Result<Cycle> one = await OpenIn(first, common);
+        Result<Cycle> two = await OpenIn(second, common);
+
+        Assert.IsTrue(one.IsSuccess, string.Join("; ", one.Errors.Select(error => error.Message)));
+        Assert.IsTrue(two.IsFailed, "Two worktrees opened the same id.");
+        StringAssert.Contains(two.Errors[0].Message, "another worktree");
+    }
+
+    private static async Task<Result<Cycle>> OpenIn(CycleWorkspace workspace, string common)
+    {
         workspace.WriteTechStack(string.Empty);
 
         using var gate = Gate.For(
             workspace.Root,
             services => services
                 .AddSingleton<TimeProvider>(new FakeClock(Instant))
-                .AddSingleton<IRepository>(new FakeRepository { Uncommitted = [".sdlc/cycles/.gitignore", ".sdlc/reports/.gitignore"] }));
+                .AddSingleton<IRepository>(new FakeRepository { Common = common }));
 
-        Result<Cycle> result = await gate.Send<NewCycle.Command, Cycle>(new NewCycle.Command());
-
-        Assert.IsTrue(result.IsSuccess, string.Join("; ", result.Errors.Select(error => error.Message)));
+        return await gate.Send<NewCycle.Command, Cycle>(new NewCycle.Command());
     }
 
     /// <summary>Opens a cycle in a solution whose stack a person has declared.</summary>

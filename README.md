@@ -6,7 +6,7 @@
 [![ci](https://img.shields.io/github/actions/workflow/status/MofonCode/ai-sdlc/ci.yml?branch=main&label=ci)](https://github.com/MofonCode/ai-sdlc/actions/workflows/ci.yml)
 [![license](https://img.shields.io/github/license/MofonCode/ai-sdlc)](LICENSE)
 
-**Version 0.37.0** · iteration 4 · .NET 10
+**Version 0.38.0** · iteration 4 · .NET 10
 
 **A plugin that makes an AI coding agent work the way a careful team does** — write down what the change
 is for, agree what *done* means, plan it, have a person approve it, and only then write code. **And it
@@ -98,7 +98,7 @@ cycles and which only fixtures.
 |---|---|---|
 | **Chain check** | The process is skipped and the change merged anyway | `sdlc verify-chain` runs as a required pull-request check and refuses a change whose chain is not complete, approved and hash-matched, or whose new lines are under 70% covered |
 | **The pull request from the cycle** | A pull request description is a summary somebody invented | The body is the cycle itself: the problem in the intent's words, each criterion with its verdict, the risk tier, and anything still open |
-| **Batch build and the factory** | Approved work sits waiting for somebody to supervise each build | `/sdlc:batch-build` builds every approved cycle on its own branch; the factory runs it unattended every night and **never merges**. The morning's sitrep says what is ready, in what order, and what needs a person |
+| **Batch build and the factory** | Approved work sits waiting for somebody to supervise each build | `/sdlc:batch-build` builds every approved cycle on its own branch; the factory runs it unattended whenever you start it and **never merges**. The sitrep it ends on says what is ready, in what order, and what needs a person |
 | **Leads** | Work arrives in a tracker and is retyped into a prompt | `/sdlc:intent --from` starts from an Azure DevOps or GitHub work item, a suggestion or a ready successor. Operate reads production's errors and files them as leads |
 | **Init** | Bringing governance into a repository is a week of setup nobody finishes | `/sdlc:init` interviews the team about what matters here and proposes its first rules. Adoption writes the hooks for every supported agent and the pipeline, drafts the files only a person writes, and creates the integration branch |
 | **Pinned release** | Upgrading the tool halfway through a change moves the rules under it, and moving to a new release costs a whole cycle about nothing | A solution pins its release, and a cycle runs on the one it opened on — the binary, its skills and its hooks together. Moving the pin needs no cycle: the pull-request check writes the framework's files again as the new release and merges the upgrade only if they match |
@@ -218,7 +218,7 @@ sdlc constraints
 ```
 
 It should print the nineteen global constraints in force and say it read them from
-`global  embedded in sdlc 0.37.0`. **Use this rather than `sdlc help` as the smoke test** — `help` and
+`global  embedded in sdlc 0.38.0`. **Use this rather than `sdlc help` as the smoke test** — `help` and
 `version` are the only commands that need nothing from the installation, so they are the two that cannot
 tell you whether it worked. Then `claude plugin details sdlc@ai-sdlc` should say `Skills (18)` and
 `Hooks (3)`: **a hook count below three is a failed install**, not a detail, because the deterministic layer
@@ -304,10 +304,10 @@ refusal with its remedy.
 | [`docs/cheat-sheet.md`](docs/cheat-sheet.md) | **the cheat sheet** — one cycle, one line per step |
 | [`docs/reference/README.md`](docs/reference/README.md) | **the reference** — every command, skill and refusal, one line each |
 | [`docs/reference/commands.md`](docs/reference/commands.md) | every command, on one screen |
-| [`docs/reference/skills.md`](docs/reference/skills.md) | the eighteen skills, one line each |
+| [`docs/reference/skills.md`](docs/reference/skills.md) | the twenty skills, one line each |
 | [`docs/reference/refusals.md`](docs/reference/refusals.md) | every refusal, one line each |
 | [`docs/samples/rolling-a-die.md`](docs/samples/rolling-a-die.md) | **the whole walk with one solution in it** — a d6 rolled from a page, every command, in a repository with no remote |
-| [`skills/README.md`](skills/README.md) | the eighteen skills as a reference: syntax, parameters, output, refusals and remarks for each |
+| [`skills/README.md`](skills/README.md) | the twenty skills as a reference: syntax, parameters, output, refusals and remarks for each |
 | `sdlc constraints` | the rules in force, all tiers resolved. Run it rather than reading a copy of them |
 
 One more worth knowing about. `.sdlc/README.md`, written into your repository by `sdlc init`, is the whole flow on one page that
@@ -383,6 +383,28 @@ What is honest to say about the rest:
   change's reader blocks, or whether its narrow trigger keeps it from adding rounds. A solution receives it when
   it moves its pin, and it is a minor because a round may now block what it passed before: the
   rule against changes outside the plan's purpose reached no reader until this.
+- **An intent can be changed and cut after it is written, and nobody has done either for real yet** (0.38.0).
+  Before the spec, `/sdlc:steer` takes a correction in words that may add, drop or reword an outcome, and
+  `/sdlc:intent --reslice` splits an intent or joins several. Both are skill text; the binary already refused
+  the rounds that would let a changed intent leave a stale spec behind. A skill acting on one cycle takes its
+  id as optional, and `sdlc cycles --here` names the cycle or lists the ones to ask about.
+- **Planning in a sandbox has only met the suite** (0.38.0). The intent skill opens one worktree on
+  `sandbox/<id>` for every cycle a piece of work turns into, and `sdlc admit` composes what is approved onto an
+  admission branch the check already knows. The commands it prints are held as strings: nobody has yet run a
+  sandbox through to an admitted pull request, and `sdlc new` no longer refuses uncommitted work, which the plan
+  switch refuses instead. `sdlc discard` says what throwing a sandbox away would lose, and an abandoned cycle now
+  reaches the integration branch as a record by `sdlc admit`.
+- **A plan needing another's unbuilt code is parked, and nothing has been parked for real** (0.38.0). `sdlc
+  park` runs at the plan and keeps the spec and plan; `sdlc backlog` shows the parked and the successors in the
+  waves they come ready in; `sdlc unpark` takes one back once its predecessor merged. The re-reading on unpark is
+  where a plan written before its code existed meets that code, and nobody has watched one yet. `/sdlc:next`
+  takes whatever the last merges made ready, plans it in one sandbox, and stops at the approvals; it is skill
+  text, and no piece of work has been carried through it wave by wave yet.
+- **The factory is started by a person and has not been started that way yet** (0.38.0). Its pipeline has no
+  schedule and no Operate step, takes one optional cycle to build alone, and builds the cycle the most
+  successors wait on first. A solution with a factory pipeline from an earlier release keeps its schedule
+  until somebody runs `sdlc factory` again and commits it; `sdlc doctor` names it a problem until then.
+  `sdlc operate` is a command a person runs.
 - **Declaring the stack after adoption has not been walked by anybody but its author.** Adoption no
   longer writes the declared stack or the .NET build settings: a person places the first from a draft,
   and the second arrive with the skeleton. The suite holds each step; no real adoption has gone through
@@ -434,7 +456,7 @@ What is honest to say about the rest:
 - **The binary is not on a feed.** Installing means cloning and packing — the single thing that would
   most improve a teammate's first hour. CI installs the packed tool to a temporary path on every pull
   request; `--global` on a clean machine has not been tried.
-- **The factory runs every night against one solution, MarketSense**, on the agent image in `factory/`
+- **The factory has run against one solution, MarketSense**, on the agent image in `factory/`
   under a local VM. Its first run built one cycle unattended and opened its pull request, and found
   0.28.1's fix: the verify went uninterrogated because the `claude` the agent starts had no credential.
   Nobody has yet spent a morning on a sitrep of more than one cycle (`CONCEPT.md` §10.4, §10.5).

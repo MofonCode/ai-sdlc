@@ -2,7 +2,7 @@
 name: intent
 description: Interview a person into a governed intent, the first artifact of a cycle. Use when someone wants to start new work, reports a problem, or asks to turn an idea into something the process can carry.
 compatibility: Requires the sdlc binary on PATH, from the MofonCode.Sdlc.Cli dotnet tool, and a git repository. Every command here is that binary, so without it the first step fails.
-argument-hint: "[--type bug|add|change] [--from <lead>]"
+argument-hint: "[--type bug|add|change] [--from <lead>] | --reslice <cycle id>..."
 allowed-tools: Bash(sdlc *), Bash(git *), Read, Write, Edit, Glob, Grep
 ---
 
@@ -42,7 +42,7 @@ outcome. Two uses in the interview:
 If your host gives you a task list, open one before the first step, with these items, and mark each
 done as it finishes. If it does not, carry on without one — nothing below depends on it.
 
-1. propose a slicing, and have it accepted
+1. propose a slicing, and have it accepted — with `--reslice`, §0a in place of §0
 2. open the cycle and its branch — each slice's, when there are several
 3. settle the type
 4. interview, one question at a time
@@ -91,11 +91,11 @@ and never past what they accepted**: splitting is a scoping decision, and it is 
 
 **3. Open it.** For several pieces, choose a slug for the slicing as a whole — usually the lead's.
 
-- **Each piece that needs nothing unmerged is a cycle.** Open each as §1 says — `sdlc new`, then
-  `sdlc branch <id> plan --worktree` — a second apart, since two cycles opened in the same second collide.
-  Each gets its own folder.
+- **Each piece that needs nothing unmerged is a cycle.** The first opens the sandbox, as §1 says; every
+  other is opened **inside it** — `sdlc new`, run in the sandbox, and nothing more, since the sandbox's branch
+  is already theirs. A second apart: two cycles opened in the same second collide.
 - **Each piece that needs another's code is a successor**, a file and not a cycle. Write it in the
-  **first** piece's folder, as `.sdlc/successors/<slug>.md`:
+  sandbox, as `.sdlc/successors/<slug>.md`:
 
   ```markdown
   ---
@@ -117,19 +117,57 @@ and never past what they accepted**: splitting is a scoping decision, and it is 
   `succeeds:` names what it waits for: the cycle id of a piece you just opened, or `successor:<slug>` for
   one that is itself a successor. `sliced_from:` is the lead, when there was one; `mirror:` may name a
   work item standing for it on a board. **Nothing else** — no spec, no plan, no criteria: those would
-  describe code that does not exist yet. Then `sdlc successor check` from that folder, and correct what it
+  describe code that does not exist yet. Then `sdlc successor check` in the sandbox, and correct what it
   refuses.
 
-**4. Interview each opened piece in turn**, from §2 on, each in its own folder: write its intent there,
-run its loop, and hand back once at the end with each piece's panel. A piece's interview starts from its
+**4. Interview each opened piece in turn**, from §2 on, in the sandbox: write each intent under its own
+`.sdlc/cycles/<id>/`, run its loop, and hand back once at the end with each piece's panel. A piece's interview starts from its
 accepted outcome and why, so most of it is short. **Record the lead in each** — every piece is part of the
-same work item — and say in the hand-back that the slicing's plans go to the integration branch together,
-by one plan pull request, once each is approved.
+same work item — and say in the hand-back that `/sdlc:batch-plan` takes them all to plan, and that what is
+approved goes to the integration branch together by one plan pull request, `/sdlc:pr --plan` in the sandbox.
 
-## 1. Open the cycle and switch to its branch
+## 0a. Re-slice intents already written: `--reslice <id>...`
 
-**This is yours to do, all of it.** The person asked for an intent; opening the cycle and moving the
-working copy onto its branch are the mechanics of that, and a person who is shown a command here
+**The first draft is usually where a person finds out the work is two things** — or that two intents are
+one. `--reslice` runs §0's slicing again over intents that already exist (D-141). It is the person's
+scoping decision, exactly as at §0, and nothing is cut unattended.
+
+**Refuse first**, naming each cycle that fails and what to do instead:
+
+- **It has a spec.** Something already derives from its intent, and cutting it would throw that away.
+  The move is `/sdlc:steer <id>`, which carries a change down instead.
+- **It is approved or abandoned**, or **does not exist**. Say which.
+
+**1. Read every named intent whole**, with its rounds' open suggestions — `sdlc suggestions <id>` — and
+propose the most atomic slicing of all of it together, by §0's rules: slugs, one line of outcome and of
+why, and what each piece needs. Every outcome, fixed decision and `Must not change` line of every named
+intent lands in exactly one piece, or in every piece it constrains; **say where each one went**, so the
+person can see nothing was dropped.
+
+**2. Ask once, in free text, and read back** — as §0 says. The person may merge pieces, mark one atomic,
+or keep everything as it was.
+
+**3. Apply it, editing rather than regenerating:**
+
+- **The first named cycle keeps its id** and becomes the first piece. Edit its intent down to that piece:
+  its rounds stay, and its loop judges the edit.
+- **Each further piece that needs nothing unmerged opens as a cycle** — as §1 says — and its intent is
+  written from what moved into it, then interviewed only for what that left unsaid. Record the same
+  `lead:` the original carried, if any.
+- **Each piece that needs another's code is a successor**, written as §0 says.
+- **A named cycle whose content all moved elsewhere is emptied.** Its intent and rounds were never part
+  of anything a person approved. If nothing of it was ever pushed, remove it once the person confirms — in a
+  sandbox, `git rm -r` its folder there and commit; a cycle opened in a worktree of its own, `git worktree
+  remove` on its folder and `git branch -D cycle/<id>/plan` — and say so in a line. If it was pushed, or its
+  rounds hold a fixed decision or a declined suggestion somebody may want later, recommend recording it
+  instead: `sdlc draft abandon <id>`, which a person places.
+
+**4. Run each changed intent's loop** — §5 — and **hand back once**, as §6 says, with every piece's panel.
+
+## 1. Open the cycle and its sandbox
+
+**This is yours to do, all of it.** The person asked for an intent; opening the cycle and giving it a
+working copy are the mechanics of that, and a person who is shown a command here
 reasonably runs it a second time.
 
 ```
@@ -141,32 +179,35 @@ it allocates it, and that claim is the collision check — two cycles opened in 
 otherwise write into one directory. Creating the directory is not the check and cannot be, because it
 succeeds on a directory that is already there.
 
-**It refuses while anything is uncommitted**, and names the files. The next step switches branches, and a
-switch carries uncommitted changes with it, so they would ride into this cycle as work no plan declared.
-**Show the person the files and ask what they want done with them** — commit, stash or discard — and
-then open the cycle again. Do not choose for them, and do not stash on their behalf: work you moved out of
-sight is work they have to find. A file they just placed, like a declared stack, usually wants committing
-on the branch it is on.
+**Already in a sandbox?** — `git branch --show-current` reads `sandbox/<id>` — then `sdlc new` is all: the
+cycle opens beside the others on the sandbox's branch, and you carry on there.
 
-Then give the cycle its own working copy, on its plan branch:
+Otherwise, give the work a sandbox, named for this cycle:
 
 ```
-sdlc branch <id> plan --worktree
+sdlc branch <id> sandbox
 ```
 
-Run the one command it prints. It creates `cycle/<id>/plan` from the integration branch — or from what is
-checked out when there is none — in a worktree beside the repository, `../<repository>.cycles/<id>`, so
-this cycle's documents never share a folder with another's (D-105). **Do the rest of this cycle there**:
-write the intent, spec and plan under that folder's `.sdlc/cycles/<id>/`, and run every `sdlc` command
-from it. The person's own checkout stays as it is, and a second intent opened meanwhile gets a folder of
-its own. Its pull request — `pr <id> --plan`, once a person has approved — admits the plan to the
-integration branch, and `git worktree remove` clears the folder once the cycle has merged.
+Run the one command it prints. It creates `sandbox/<id>` from the integration branch — or from what is
+checked out when there is none — in a worktree beside the repository, `../<repository>.sandboxes/<id>`
+(D-144). **Do the rest of this work there**: write each intent, spec and plan under that folder's
+`.sdlc/cycles/<id>/`, and run every `sdlc` command from it. Every cycle the work turns into — a slicing, an
+intent cut in two — opens in the same sandbox, so one session sees them all. The person's own checkout is never
+switched, so nothing uncommitted rides in. **A sandbox starts from what the integration branch committed**: a
+file the person placed and did not commit — a declared stack, say — is not in it, so if a command there says
+one is missing, ask them to commit it and open the sandbox again.
 
-**Without `--worktree`** it prints the `git switch` that moves this checkout instead. Use that only when
-the person asks to keep one working copy.
+What the person approves leaves by `/sdlc:pr --plan` in the sandbox, and `git worktree remove` clears it once
+what it held has merged.
+
+**Only when the person asks to keep one working copy**, `sdlc branch <id> plan` prints the `git switch` that
+moves this checkout instead. It refuses while anything is uncommitted, naming the files: the switch would
+carry them into the cycle. **Show the person the files and ask what they want done with them** — commit,
+stash or discard. Do not choose for them, and do not stash on their behalf: work you moved out of sight is
+work they have to find.
 
 Then say all three in one line — the cycle's id, its branch, and the folder it lives in — so nobody runs
-either step again, and the person knows where to open a session for this cycle.
+either step again, and the person knows where to open a session for this work.
 
 ## 1a. Begin from a lead, when given one
 
@@ -196,8 +237,8 @@ answers. Skip those, and say so.
 not ready** — something it succeeds has not merged with a passing verify — and says what. Show the person
 that, and stop: a cycle opened now could not be built alone. `sdlc successors` lists where each stands.
 
-A ready one opens like any other — `sdlc new`, then `sdlc branch <id> plan --worktree` — and then, **from the
-new cycle's folder**:
+A ready one opens like any other — `sdlc new`, then its sandbox, as §1 says — and then, **from the
+sandbox**:
 
 ```
 sdlc successor start <slug> <id>

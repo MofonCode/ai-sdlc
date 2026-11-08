@@ -23,7 +23,7 @@ The two hooks return no exit code to you: they stop the agent's action, and the 
 | [an integration branch the record disagrees with](../guides/handling-refusals.md#an-integration-branch-the-record-disagrees-with) | leave the option out, or change the key with `sdlc draft solution` and a rename |
 | **Opening a cycle — `sdlc new`** | |
 | [no declared stack](../guides/handling-refusals.md#no-declared-stack) | fill in `techstack.draft.md`, rename it into place, commit it |
-| [uncommitted work](../guides/handling-refusals.md#uncommitted-work) | commit, stash or discard the files it names, then open again |
+| [uncommitted work](../guides/handling-refusals.md#uncommitted-work) | commit, stash or discard the files it names and switch again, or plan in a sandbox, which switches nothing |
 | **Before a build — `sdlc gate`** | |
 | [no cycle](../guides/handling-refusals.md#no-cycle) | `sdlc new`, or check the id |
 | [abandoned](../guides/handling-refusals.md#abandoned) | open a new cycle; an abandoned one does not reopen |

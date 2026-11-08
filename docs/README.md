@@ -13,7 +13,7 @@ treatment elsewhere, the entry points at it rather than repeating it.
 | [`reference/README.md`](reference/README.md) | **the reference** — every command, every skill and every refusal, one line each |
 | [`cheat-sheet.md`](cheat-sheet.md) | **the cheat sheet** — one cycle, one line per step |
 | [`samples/README.md`](samples/README.md) | **the samples** — one solution walked end to end, every command and every answer |
-| [`../skills/README.md`](../skills/README.md) | **the skills as a reference** — syntax, parameters, output, refusals and remarks for each of the eighteen |
+| [`../skills/README.md`](../skills/README.md) | **the skills as a reference** — syntax, parameters, output, refusals and remarks for each of the twenty |
 | [`../CONCEPT.md`](../CONCEPT.md) | the design, and every decision behind it with what each one rejected |
 | `sdlc constraints` | the rules in force, all tiers resolved. A copy here would be a second place they live |
 | `sdlc help` | every command the binary answers to, with its options |
@@ -30,7 +30,7 @@ Both have to be present and they fail differently. `guides/installing-the-plugin
 
 | | What it is | Where |
 |---|---|---|
-| **the plugin** | the eighteen skills, and on Claude Code three hooks. Without it nothing asks for a cycle | installed per machine, and packed inside every release of the binary, which `sdlc claude` loads instead |
+| **the plugin** | the twenty skills, and on Claude Code three hooks. Without it nothing asks for a cycle | installed per machine, and packed inside every release of the binary, which `sdlc claude` loads instead |
 | **the `sdlc` binary** | every deterministic check — the approval gate among them — every hook decision, every renderer, the constraint library. Without it every skill's first command fails | a .NET global tool named `sdlc`, from nuget.org |
 | **the pinned release** | the release of the binary a solution runs, named in its local tool manifest. The global `sdlc` hands every command on to it, and a cycle's branch carries the pin it was cut with, so a cycle runs on the release it opened on (D-131) | `.config/dotnet-tools.json`, written by adoption |
 | **a local build** / a test run | a build of the binary nobody published. Its release ends in `-local`: a build run through `SDLC_DEV_BUILD`, which every `sdlc` started from that terminal hands to instead of the pin, says so when it runs, and a pack made outside a pipeline is stamped so. A cycle any of whose rounds one wrote is a **test run**, and never opens a pull request (D-135) | `SDLC_DEV_BUILD`; [Testing a local build](guides/testing-a-local-build.md) |
@@ -112,8 +112,11 @@ One governed change, from why it exists to a pull request.
 | **artifact** | one of the four governed documents. Each is challenged against the rules before it advances | `<kind>.md` |
 | **abandonment** | the record that stops a cycle for good, with a reason. Terminal. **A person's file** | `abandoned.md` |
 | **atomic cycle** | a cycle that can be built, verified and merged against the integration branch as it stands, without any other open cycle. The one rule a slicing is held to; there is no floor on how small (D-125) | — |
-| **slicing**, **a slice** | `intent` proposing, before any cycle opens, how to cut a piece of work into atomic pieces — each one a **slice**. The person accepts the slicing once, merging pieces or marking one atomic; nothing is sliced unattended. Not the *reference slice* in §2, which is code | `/sdlc:intent` |
+| **slicing**, **a slice** | `intent` proposing, before any cycle opens, how to cut a piece of work into atomic pieces — each one a **slice**. The person accepts the slicing once, merging pieces or marking one atomic; nothing is sliced unattended. Intents already written are cut again with `--reslice` while none has a spec (D-141). Not the *reference slice* in §2, which is code | `/sdlc:intent` |
 | **a successor** | a slice that needs another's code, waiting as a file rather than a cycle. `succeeds:` lists what it waits for — cycle ids, or `successor:<slug>` for one not started yet — and its state, `waiting`, `ready`, `stuck` or `unresolved`, is worked out from the record on every read. A person starts a ready one with `/sdlc:intent --from successor:<slug>` | `.sdlc/successors/<slug>.md`, `sdlc successors` |
+| **a sandbox** | the worktree a piece of work is planned in, on `sandbox/<id>` beside the repository, named for its first cycle. Every cycle the work turns into opens inside it, and only what is approved leaves it, composed onto an admission branch by `sdlc admit` (D-144) | `sdlc branch <id> sandbox`, `sdlc admit` |
+| **a parked cycle** | a cycle whose plan needs a file only another unbuilt plan creates, found by `sdlc park` once its plan is clean. It keeps its id, spec and plan, waits in `parked.md` on the cycle that creates the file, is held out of the build queue, and comes back with `sdlc unpark` once that merged, when its spec and plan are read again (D-145) | `sdlc park`, `sdlc unpark` |
+| **the backlog** | every successor and parked cycle, in the waves they come ready in. A view worked out on every read, never a file (D-145) | `sdlc backlog` |
 
 ### The four artifact kinds
 
@@ -266,8 +269,8 @@ declining to go on, exit code 1. An open blocker causes refusals; it is not one.
 | **a cycle's branches** | `cycle/<id>/plan`, `cycle/<id>/build`, `cycle/<id>/build-unattended`, `cycle/<id>/forward` — one per kind of work, each started from the right base | `sdlc branch <id> <kind>` |
 | **a slicing's branch** | `slices/<slug>/plan`: the integration branch with each sibling's plan branch merged in, so one pull request admits every plan sliced together and the successors the slicing wrote. Composed, never worked on, and deleted on merge (D-125) | `sdlc slices <slug> <id>...`, `/sdlc:pr <id>... --plan` |
 | **the queue** | the cycles a build would take now: approved, no verify, not abandoned, and no `cycle/<id>/...` branch on the remote. A listing, never a state file; deleting a branch re-queues its cycle | `sdlc cycles --queued` |
-| **the factory** | a pipeline that runs `batch-build --pr --unattended` against the integration branch every night. It finds, builds, verifies and opens pull requests, and **never merges** | `sdlc factory` |
-| **the factory bundle** | what runs unattended or on a schedule, kept apart from what a person uses in a cycle (D-91). Today it holds only the factory agent image; the pipeline templates and Operate's scheduled run still live in the `sdlc` plugin and the binary | `factory/` |
+| **the factory** | a pipeline that runs `batch-build --pr --unattended` against the integration branch, started by a person and never on a schedule. It finds, builds, verifies and opens pull requests — the cycle the most successors wait on first, or the one cycle named — and **never merges** | `sdlc factory` |
+| **the factory bundle** | what runs unattended, kept apart from what a person uses in a cycle (D-91). Today it holds only the factory agent image; the pipeline templates still live in the `sdlc` plugin and the binary | `factory/` |
 | **the factory agent image** | a Linux container that is an Azure Pipelines agent carrying `sdlc`, Claude Code and the plugin, all built from one commit, so the binary and the plugin cannot come from different releases. Run as a service, a fresh container per job, on a machine that exists for it | [`../factory/README.md`](../factory/README.md) |
 | **a draft pull request** | what a cycle that did not pass gets: its attempted code, verify and evidence, marked not ready, so a person picks it up rather than the factory building it again | `/sdlc:pr <id> --draft` |
 | **the sitrep** | the morning's page: what is ready to merge and in what order, what needs a person, what was held back and why, what is waiting and going stale, and which successors a person can start | `sdlc sitrep` |
@@ -305,7 +308,7 @@ declining to go on, exit code 1. An open blocker causes refusals; it is not one.
 
 ## 10. The skills
 
-**Eighteen skills, and the split that matters: a command is deterministic and the binary owns it; a
+**Twenty skills, and the split that matters: a command is deterministic and the binary owns it; a
 skill needs language and an agent runs it.** The binary never writes a planning document and a skill
 never decides a gate.
 
@@ -315,6 +318,8 @@ never decides a gate.
 | `intent` | proposes how to slice the work into atomic cycles, then interviews a person into the intent of each, and opens them |
 | `spec` | derives testable criteria from the intent alone |
 | `plan` | decides how, and what proves each criterion. The last document before a person approves |
+| `batch-plan` | takes every intent this branch carries to a plan — each cycle's spec, then its plan — and hands back once |
+| `next` | pulls the next wave from the backlog — ready successors started, ready parked cycles read again — plans it in one sandbox, and stops at the approvals |
 | `interrogate` | judges one artifact against the rules, in a fresh process. Never edits |
 | `refine` | applies a round's findings to that artifact. Never judges |
 | `steer` | carries a mid-cycle correction, or suggestions taken in or declined, down the chain, editing rather than regenerating |

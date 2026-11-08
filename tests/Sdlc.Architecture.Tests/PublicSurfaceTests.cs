@@ -181,6 +181,39 @@ public sealed class PublicSurfaceTests
         // because the factory's skip rule and the sitrep read the remote's branches through it.
         "Sdlc.Core.Cycles.CycleBranch",
 
+        // Parking and the backlog: a plan needing another's unmerged code waits with its spec and plan kept (D-145).
+        "Sdlc.Core.Successors.BacklogRenderer",
+        "Sdlc.Core.Successors.ParkCycle",
+        "Sdlc.Core.Successors.ParkCycle+Command",
+        "Sdlc.Core.Successors.ParkCycle+Response",
+        "Sdlc.Core.Successors.Parked",
+        "Sdlc.Core.Successors.ReadSuccessors+ParkedStanding",
+        "Sdlc.Core.Successors.UnparkCycle",
+        "Sdlc.Core.Successors.UnparkCycle+Command",
+        "Sdlc.Core.Successors.UnparkCycle+Response",
+
+        // Throwing a sandbox away: what can go, and what is worth recording first (D-146).
+        "Sdlc.Core.Cycles.DiscardRenderer",
+        "Sdlc.Core.Cycles.DiscardSandbox",
+        "Sdlc.Core.Cycles.DiscardSandbox+Entry",
+        "Sdlc.Core.Cycles.DiscardSandbox+Query",
+        "Sdlc.Core.Cycles.DiscardSandbox+Response",
+        "Sdlc.Core.Cycles.DiscardVerdict",
+
+        // The sandbox: several cycles planned on one branch, and its approved ones composed for admission (D-144).
+        "Sdlc.Core.Cycles.ComposeAdmission",
+        "Sdlc.Core.Cycles.ComposeAdmission+Query",
+        "Sdlc.Core.Cycles.ComposeAdmission+Response",
+        "Sdlc.Core.Cycles.SandboxBranch",
+
+        // 'sdlc cycles --here': which cycle a skill given no id means, one used and several asked about (D-142).
+        "Sdlc.Core.Cycles.NextStep",
+        "Sdlc.Core.Cycles.ResolveCycle",
+        "Sdlc.Core.Cycles.ResolveCycle+Candidate",
+        "Sdlc.Core.Cycles.ResolveCycle+Query",
+        "Sdlc.Core.Cycles.ResolveCycle+Response",
+        "Sdlc.Core.Cycles.ResolveRenderer",
+
         // 'sdlc cycles --queued': what the factory would build and what it would pass over (D-85).
         "Sdlc.Core.Factory.QueuedRenderer",
         "Sdlc.Core.Factory.ListQueuedCycles",

@@ -21,6 +21,7 @@ using Sdlc.Core.Themes;
 using Sdlc.Core.Proposals;
 using Sdlc.Core.Reports;
 using Sdlc.Core.Solutions;
+using Sdlc.Core.Successors;
 
 // Constraint and artifact text is passed through verbatim, so the stream has to carry what the files
 // hold. On Windows the default is the console codepage, which turns an em dash into a question mark -
@@ -95,6 +96,11 @@ try
         "successors" => await Workspace.Run(line, SuccessorsCommand).ConfigureAwait(false),
         "successor" => await SuccessorCommand(line).ConfigureAwait(false),
         "slices" => await SlicesCommand(line).ConfigureAwait(false),
+        "admit" => await Workspace.Run(line, AdmitCommand).ConfigureAwait(false),
+        "park" => await WithCycle(line, "park", ParkCommand).ConfigureAwait(false),
+        "unpark" => await WithCycle(line, "unpark", UnparkCommand).ConfigureAwait(false),
+        "backlog" => await Workspace.Run(line, BacklogCommand).ConfigureAwait(false),
+        "discard" => await Workspace.Run(line, DiscardCommand).ConfigureAwait(false),
         "operate" => await Workspace.Run(line, w => OperateCommand(w, line)).ConfigureAwait(false),
         "perspective" => await PerspectiveCommand(line).ConfigureAwait(false),
         "perspectives" => await WithCycle(line, "perspectives", PerspectivesCommand).ConfigureAwait(false),
@@ -422,15 +428,54 @@ static async Task<int> Cycles(Workspace workspace, CommandLine line)
         return await Sweep(workspace).ConfigureAwait(false);
     }
 
+    if (line.HasOption("here"))
+    {
+        // A skill given no cycle id asks which one it means (D-142). Zero only when exactly one is ready for
+        // the step, so "use the id it printed" is the exit code and nothing has to parse prose.
+        NextStep step = NextStep.Any;
+
+        if (line.TryOption("for", out string? forStep) && !ResolveCycle.TryParseStep(forStep, out step))
+        {
+            await Console.Error.WriteLineAsync("--for takes spec, plan, build, verify or remediate.").ConfigureAwait(false);
+            return ExitCode.Usage;
+        }
+
+        Result<ResolveCycle.Response> resolved = await workspace
+            .Send<ResolveCycle.Query, ResolveCycle.Response>(new ResolveCycle.Query(step))
+            .ConfigureAwait(false);
+
+        if (resolved.IsFailed)
+        {
+            return await Report(resolved, ExitCode.Failed).ConfigureAwait(false);
+        }
+
+        await Console.Out.WriteAsync(ResolveRenderer.Render(resolved.Value)).ConfigureAwait(false);
+
+        return resolved.Value.Only is not null ? ExitCode.Ok : ExitCode.Refused;
+    }
+
     if (line.HasOption("queued"))
     {
+        // One cycle named: a run started for it. Anything else after --queued is a mistake worth saying.
+        CycleId? only = null;
+
+        if (line.Arguments.Count > 0)
+        {
+            if (line.Arguments.Count > 1 || !CycleId.TryParse(line.Arguments[0], out only))
+            {
+                await Console.Error.WriteLineAsync("'sdlc cycles --queued [<id>]' takes at most one cycle id.").ConfigureAwait(false);
+                return ExitCode.Usage;
+            }
+        }
+
         Result<ListQueuedCycles.Response> queue = await workspace
-            .Send<ListQueuedCycles.Query, ListQueuedCycles.Response>(new ListQueuedCycles.Query())
+            .Send<ListQueuedCycles.Query, ListQueuedCycles.Response>(new ListQueuedCycles.Query(only))
             .ConfigureAwait(false);
 
         if (queue.IsFailed)
         {
-            return await Report(queue, ExitCode.Failed).ConfigureAwait(false);
+            // A named cycle that is not queued is refused with why; with none named, a failure is the gate's.
+            return await Report(queue, only is null ? ExitCode.Failed : ExitCode.Refused).ConfigureAwait(false);
         }
 
         await Console.Out.WriteAsync(QueuedRenderer.Render(queue.Value)).ConfigureAwait(false);
@@ -859,19 +904,24 @@ static async Task<int> BranchCommand(CommandLine line)
     if (line.Arguments.Count < 2)
     {
         await Console.Error.WriteLineAsync(
-            "Which cycle, and which kind of work? As in 'sdlc branch 20260929_1456_32 build' -- plan, build, build-unattended or forward.")
+            "Which cycle, and which kind of work? As in 'sdlc branch 20260929_1456_32 build' -- sandbox, plan, build, build-unattended or forward.")
             .ConfigureAwait(false);
         return ExitCode.Usage;
     }
 
-    CycleBranchKind? kind = CycleBranch.Named.Cast<CycleBranchKind?>().FirstOrDefault(k =>
-        string.Equals(CycleBranch.NameOf(k!.Value), line.Arguments[1], StringComparison.OrdinalIgnoreCase));
+    // A sandbox is planning on a branch of its own kind, sandbox/<id>, in a worktree (D-144).
+    bool sandbox = string.Equals(line.Arguments[1], "sandbox", StringComparison.OrdinalIgnoreCase);
+
+    CycleBranchKind? kind = sandbox
+        ? CycleBranchKind.Plan
+        : CycleBranch.Named.Cast<CycleBranchKind?>().FirstOrDefault(k =>
+            string.Equals(CycleBranch.NameOf(k!.Value), line.Arguments[1], StringComparison.OrdinalIgnoreCase));
 
     if (kind is null)
     {
         await Console.Error.WriteLineAsync(string.Create(
             CultureInfo.InvariantCulture,
-            $"'{line.Arguments[1]}' is not a kind of work. Ask for plan, build, build-unattended or forward."))
+            $"'{line.Arguments[1]}' is not a kind of work. Ask for sandbox, plan, build, build-unattended or forward."))
             .ConfigureAwait(false);
         return ExitCode.Usage;
     }
@@ -879,7 +929,7 @@ static async Task<int> BranchCommand(CommandLine line)
     return await WithCycle(line, "branch", async (workspace, id) =>
     {
         Result<StartBranch.Response> result = await workspace
-            .Send<StartBranch.Query, StartBranch.Response>(new StartBranch.Query(id, kind.Value, line.HasOption("worktree")))
+            .Send<StartBranch.Query, StartBranch.Response>(new StartBranch.Query(id, kind.Value, line.HasOption("worktree"), sandbox))
             .ConfigureAwait(false);
 
         if (result.IsFailed)
@@ -894,7 +944,7 @@ static async Task<int> BranchCommand(CommandLine line)
 }
 
 // The factory's pipeline, for the platform solution.md records. Its own command rather than part of
-// adoption, because a nightly agent is a choice a team makes after running cycles by hand (D-84).
+// adoption, because a build agent is a choice a team makes after running cycles by hand (D-84).
 static async Task<int> FactoryCommand(Workspace workspace)
 {
     Result<WriteFactoryPipeline.Response> result = await workspace
@@ -949,6 +999,121 @@ static async Task<int> LeadCommand(CommandLine line)
 // The one git command that composes slices/<slug>/plan from the siblings' plan branches, so one pull request
 // admits every plan sliced together (D-125). The command alone on standard output, as 'branch' prints it;
 // the shared files, and why, on standard error.
+// The plan-time claim check (D-145). Zero either way: parked or not is an answer, and the first line says which.
+static async Task<int> ParkCommand(Workspace workspace, CycleId id)
+{
+    Result<ParkCycle.Response> result = await workspace
+        .Send<ParkCycle.Command, ParkCycle.Response>(new ParkCycle.Command(id))
+        .ConfigureAwait(false);
+
+    if (result.IsFailed)
+    {
+        return await Report(result, ExitCode.Refused).ConfigureAwait(false);
+    }
+
+    ParkCycle.Response park = result.Value;
+
+    if (park.AlreadyParked)
+    {
+        await Console.Out.WriteLineAsync(string.Create(CultureInfo.InvariantCulture, $"{id} is parked already. 'sdlc backlog' says what it waits on.")).ConfigureAwait(false);
+        return ExitCode.Ok;
+    }
+
+    await Console.Out.WriteLineAsync(park.Written is { } written
+        ? string.Create(CultureInfo.InvariantCulture, $"{id} is parked: {written.Why} Its spec and plan are kept; it waits on {string.Join(", ", written.WaitsOn)}, and 'sdlc unpark {id}' takes it back once each has merged.")
+        : string.Create(CultureInfo.InvariantCulture, $"{id} needs nothing another unbuilt plan creates, so it can be built alone.")).ConfigureAwait(false);
+
+    foreach (ComputeClaimGraph.Collision shared in park.Shared)
+    {
+        CycleId other = shared.First == id ? shared.Second : shared.First;
+        await Console.Out.WriteLineAsync(string.Create(
+            CultureInfo.InvariantCulture,
+            $"It names {string.Join(", ", shared.Files)}, which {other} names too: their pull requests may conflict, and the second to merge resolves it.")).ConfigureAwait(false);
+    }
+
+    return ExitCode.Ok;
+}
+
+// A parked cycle back on its way, once everything it waited on has merged with a pass (D-145).
+static async Task<int> UnparkCommand(Workspace workspace, CycleId id)
+{
+    Result<UnparkCycle.Response> result = await workspace
+        .Send<UnparkCycle.Command, UnparkCycle.Response>(new UnparkCycle.Command(id))
+        .ConfigureAwait(false);
+
+    if (result.IsFailed)
+    {
+        return await Report(result, ExitCode.Refused).ConfigureAwait(false);
+    }
+
+    await Console.Out.WriteLineAsync(string.Create(
+        CultureInfo.InvariantCulture,
+        $"{id} is unparked. Its plan was written before {string.Join(", ", result.Value.File.WaitsOn)} merged: read it again against what did -- '/sdlc:interrogate {id} spec', then plan -- before it is approved or built.")).ConfigureAwait(false);
+    return ExitCode.Ok;
+}
+
+// What throwing a sandbox away would lose (D-146). It reports and deletes nothing; zero once nothing worth
+// recording is left unrecorded, so the removal it prints is safe to offer.
+static async Task<int> DiscardCommand(Workspace workspace)
+{
+    Result<DiscardSandbox.Response> result = await workspace
+        .Send<DiscardSandbox.Query, DiscardSandbox.Response>(new DiscardSandbox.Query())
+        .ConfigureAwait(false);
+
+    if (result.IsFailed)
+    {
+        return await Report(result, ExitCode.Refused).ConfigureAwait(false);
+    }
+
+    await Console.Out.WriteAsync(DiscardRenderer.Render(result.Value)).ConfigureAwait(false);
+    return result.Value.Remove is null ? ExitCode.Refused : ExitCode.Ok;
+}
+
+// Every successor and parked cycle, in the waves they come ready in (D-145). A view: it writes nothing.
+static async Task<int> BacklogCommand(Workspace workspace)
+{
+    Result<ReadSuccessors.Response> result = await workspace
+        .Send<ReadSuccessors.Query, ReadSuccessors.Response>(new ReadSuccessors.Query())
+        .ConfigureAwait(false);
+
+    if (result.IsFailed)
+    {
+        return await Report(result, ExitCode.Failed).ConfigureAwait(false);
+    }
+
+    await Console.Out.WriteAsync(BacklogRenderer.Render(result.Value)).ConfigureAwait(false);
+    return ExitCode.Ok;
+}
+
+// What a sandbox has approved, composed onto an admission branch the check already knows (D-144). The command
+// alone on standard output, so the pr skill runs exactly what was decided; what stays behind, on standard error.
+static async Task<int> AdmitCommand(Workspace workspace)
+{
+    Result<ComposeAdmission.Response> result = await workspace
+        .Send<ComposeAdmission.Query, ComposeAdmission.Response>(new ComposeAdmission.Query())
+        .ConfigureAwait(false);
+
+    if (result.IsFailed)
+    {
+        return await Report(result, ExitCode.Refused).ConfigureAwait(false);
+    }
+
+    ComposeAdmission.Response admission = result.Value;
+
+    await Console.Out.WriteLineAsync(admission.Command).ConfigureAwait(false);
+    await Console.Error.WriteLineAsync(string.Create(
+        CultureInfo.InvariantCulture,
+        $"{admission.Branch} takes {string.Join(", ", admission.Admitted)}{(admission.Successors.Count == 0 ? string.Empty : " and " + admission.Successors.Count + " successor" + (admission.Successors.Count == 1 ? string.Empty : "s"))} onto the integration branch, in {admission.Folder}. {VerifySlicing.Shared(admission.Comparison).Detail} Check it with 'sdlc verify-chain {admission.Branch} --base <integration branch>' before it is pushed, and remove the folder once it merges."))
+        .ConfigureAwait(false);
+
+    foreach ((CycleId id, string why) in admission.Staying)
+    {
+        await Console.Error.WriteLineAsync(string.Create(CultureInfo.InvariantCulture, $"Staying in the sandbox: {id} - {why}.")).ConfigureAwait(false);
+    }
+
+    return ExitCode.Ok;
+}
+
 static async Task<int> SlicesCommand(CommandLine line)
 {
     List<CycleId> ids = [];

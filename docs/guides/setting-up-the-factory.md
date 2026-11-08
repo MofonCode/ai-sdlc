@@ -1,12 +1,13 @@
 # Setting up the factory
 
-From an adopted solution to a pipeline that builds your approved plans every night, step by step. Allow
+From an adopted solution to a pipeline that builds your approved plans whenever you start it, step by step. Allow
 an hour the first time. `running-the-factory.md` is what you do every day once it is running; this is the
 part you do once.
 
-**What you will have at the end:** a nightly pipeline that takes every plan you approved and admitted,
-builds and verifies each one on its own branch, and opens a pull request per cycle — a draft for any that
-did not pass. In the morning you read one page, the sitrep, and merge. **It never merges anything itself,
+**What you will have at the end:** a pipeline you start, which takes every plan you approved and admitted —
+or the one cycle you name — builds and verifies each on its own branch, and opens a pull request per cycle,
+a draft for any that did not pass. When it finishes you read one page, the sitrep, and merge. Nothing
+schedules it: starting it is the decision to spend (D-143). **It never merges anything itself,
 and it never writes a file only a person writes.**
 
 **Step 7 is a watched first run against a cycle you do not care about.** A pipeline that is wrong
@@ -33,8 +34,8 @@ It needs one credential, and **either of these works**:
 | Secret name | `ANTHROPIC_API_KEY` | `CLAUDE_CODE_OAUTH_TOKEN` |
 | Where it comes from | the Anthropic Console: **API keys > Create key** | run `claude setup-token` on your machine and sign in with your Claude account |
 | Who pays | the Console account, per token | your Claude subscription, inside its usage limits |
-| Good for | a team that depends on the nightly run | trying the factory out, on your own plan |
-| Watch out for | the bill: a run is bounded by its six-hour limit, not by a budget | **the plan's usage limits** — a long night can run out partway, and those cycles end *did not finish* — and whether its terms allow a team's shared pipeline |
+| Good for | a team that depends on the factory's runs | trying the factory out, on your own plan |
+| Watch out for | the bill: a run is bounded by its six-hour limit, not by a budget | **the plan's usage limits** — a long run can run out partway, and those cycles end *did not finish* — and whether its terms allow a team's shared pipeline |
 
 **Set one.** If both are set, the pipeline uses the API key and ignores the token, so who pays never
 depends on anything else.
@@ -205,20 +206,20 @@ step of this guide to revisit:
 |---|---|
 | install sdlc and the agent | each is installed at your version, or reported as already on this agent |
 | prove the agent signs in and the hooks refuse | the agent answers, a `claude` the agent starts answers too, then the agent is refused a write to `.sdlc/approval.md`, and the file never appears |
-| operate | *This solution declares no telemetry store*, unless you declared one |
 | build the queue | one cycle built on `cycle/<id>/build-unattended`, and a pull request opened into `development` |
 | the sitrep | the run's summary: the cycle under **Ready to merge** — or under **Needs a person**, as a draft |
 
 **It worked when** the pull request exists, its check has run on it, and the run's summary shows the
 sitrep. Review the pull request as you would a person's, and merge it — or close it; it was a throwaway.
 
-## 8. Let it run every night
+## 8. Start it when there is work
 
-Nothing to switch on: the schedule is in the file, at **02:00 UTC** every day, and only on `development`.
-To change the time, edit the `cron` line — `'0 2 * * *'` is minute, hour, day, month, weekday, in UTC —
-and commit it as a cycle, since `development` is protected now.
+There is no schedule to switch on. When `sdlc cycles --queued` lists what you want built, start the pipeline —
+from the Actions tab or Pipelines > Run pipeline, or `gh workflow run sdlc-factory.yml` / `az pipelines run
+--name <its name>` — and set `cycle` to build one alone. Start it before you leave and it has run by the
+morning; start it again once your merges have made the next cycles ready.
 
-From here, `running-the-factory.md` is the routine: admit plans in the day, read the sitrep in the morning.
+From here, `running-the-factory.md` is the routine: admit plans, start a run, read the sitrep, merge.
 
 ## When something goes wrong
 
@@ -227,7 +228,7 @@ From here, `running-the-factory.md` is the routine: admit plans in the day, read
 | *Set ANTHROPIC_API_KEY or CLAUDE_CODE_OAUTH_TOKEN as a secret* | the pipeline has no credential | step 6b — and check the variable is on **this** pipeline, spelled exactly |
 | *The agent did not answer, so its credential does not work* | the key was revoked, the token expired, or the subscription is out of usage | make a new one (step 1) and replace the secret |
 | *A claude the agent starts could not sign in* | the credential did not reach `~/.claude/settings.json` on the agent, where every `claude` reads it; the agent's own sign-in passed, so the secret is fine. Claude Code hands its commands no credential, so without that file `interrogate`'s fresh reader signs in with nothing | the lines after it name the reader's error. Check `jq` is on the agent and its home is writable; the factory image carries both |
-| *The hooks did not refuse a protected write* | the plugin's hooks did not load, so nothing would refuse anything tonight | the agent is started with `sdlc claude`, which loads the plugin packed in the pinned release: check the install step restored that release and `sdlc claude --version` answers on the agent. The run stopped before building, which is the point |
+| *The hooks did not refuse a protected write* | the plugin's hooks did not load, so nothing would refuse anything in this run | the agent is started with `sdlc claude`, which loads the plugin packed in the pinned release: check the install step restored that release and `sdlc claude --version` answers on the agent. The run stopped before building, which is the point |
 | the `sdlc` install fails: *pins no sdlc release* or *no feed this run can reach* | the integration branch has no `.config/dotnet-tools.json` yet, or the solution's `nuget.config` hides nuget.org | run adoption on the integration branch and commit the manifest; otherwise add nuget.org back to the sources (step 2) |
 | the image's agent never shows *Online* | the token is wrong, expired, or not scoped to Agent Pools, or `AZP_POOL` names a pool that does not exist | `journalctl -u sdlc-factory-agent`: *VS30063* is the token; a pool error names the pool |
 | a step fails with *permission denied* on `/var/run/docker.sock` | the container is not in the socket's group | run it through the service file, which adds the group, rather than a bare `docker run` |

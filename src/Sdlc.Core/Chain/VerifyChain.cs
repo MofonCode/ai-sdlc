@@ -141,6 +141,8 @@ public static class VerifyChain
             Cycle.FileNameOf(ArtifactKind.Spec),
             Cycle.FileNameOf(ArtifactKind.Plan),
             "approval.md",
+            "abandoned.md",
+            Successors.Parked.FileName,
             ".gitignore",
         };
 
@@ -286,6 +288,21 @@ public static class VerifyChain
             }
 
             await Published(cycle, checks, solution.Path, cancellationToken).ConfigureAwait(false);
+
+            // D-146: a cycle stopped in a sandbox reaches the integration branch as the record of a choice. Its
+            // documents and its abandonment are admitted as they are; nothing is ever built from it, so nothing a
+            // build would need is asked of it.
+            if (request.Changed is { } record && cycle.IsAbandoned && AdmitsAsPlan(request.Id, record))
+            {
+                checks.Add(new ChainCheck(
+                    "this pull request carries an abandoned cycle's record",
+                    true,
+                    string.Create(
+                        CultureInfo.InvariantCulture,
+                        $"{record.Count} changed, all under the cycle's own directory, and the cycle holds a person's abandonment. It is admitted as the record of what was argued and stopped; no approval or proof is asked, because nothing is built from it.")));
+
+                return Result.Ok(new Response(cycle, checks, Admission: true));
+            }
 
             if (request.Changed is { } changed && AdmitsAsPlan(request.Id, changed))
             {

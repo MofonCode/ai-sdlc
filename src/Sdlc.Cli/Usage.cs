@@ -36,9 +36,10 @@ internal static class Usage
                                      Commits what it writes, creates the integration branch and
                                      switches to it, and drafts the three files only a person
                                      places -- solution, techstack, constraints -- beside them.
-            new                      Open a cycle: allocate its id and create its directory. Refuses
-                                     until a declared stack is in place, and while anything is
-                                     uncommitted. The intent skill runs it; you rarely type it.
+            new                      Open a cycle: allocate its id, claim it where every worktree of
+                                     the repository looks, and create its directory. Refuses until
+                                     a declared stack is in place. In a sandbox, the cycle opens
+                                     beside the others. The intent skill runs it; you rarely type it.
             scaffold <id>            Write the solution skeleton -- a solution file, its projects, the
                                      architecture tests and a reference slice -- and the .NET build
                                      settings it compiles under. On a solution adopted into existing
@@ -95,16 +96,20 @@ internal static class Usage
                                      branch a kind of work happens on -- plan, build,
                                      build-unattended or forward -- creating it from the right
                                      base: the integration branch once the plan is admitted to
-                                     it, the plan's own branch before that. 'plan --worktree'
-                                     opens the cycle in a folder of its own beside the
-                                     repository instead, so several cycles are planned at once.
-                                     'plan' refuses a local plan branch whose ledger lacks the
+                                     it, the plan's own branch before that. 'sandbox' opens a
+                                     worktree on sandbox/<id> beside the repository, where every
+                                     cycle the work turns into is planned. 'plan --worktree'
+                                     opens the one cycle in a folder of its own. 'plan' without a
+                                     worktree refuses uncommitted work, which the switch would
+                                     carry, and a local plan branch whose ledger lacks the
                                      approval the integration branch holds (D-123).
-            factory                  Write the factory's pipeline for the recorded platform: every
-                                     night, batch-build --pr --unattended against the integration
-                                     branch, one run at a time, six hours at most, proving the
-                                     hooks refuse before it builds, and publishing the sitrep. It
-                                     never merges. Refuses on a local solution.
+            factory                  Write the factory's pipeline for the recorded platform: a run
+                                     a person starts, never a schedule, of batch-build --pr
+                                     --unattended against the integration branch -- every queued
+                                     cycle, or the one named as its input -- one run at a time,
+                                     six hours at most, proving the hooks refuse before it builds,
+                                     and publishing the sitrep. It never merges. Refuses on a
+                                     local solution.
             lead show <reference>    Fetch a lead and print it in one shape for 'intent --from':
                                      azuredevops:1234 or github:56 through az or gh, a
                                      suggestion:<cycle>/<finding>, a ready successor:<slug>, or a
@@ -115,6 +120,23 @@ internal static class Usage
                                      stuck behind an abandoned cycle, or unresolved -- worked out
                                      from the record. Ready means everything it succeeds is on
                                      the integration branch with a passing verify (D-125).
+            backlog                  Every successor and every parked cycle, in the waves they come
+                                     ready in -- ready now, then after one more merge, and so on
+                                     -- each with how to start it, and apart from them the stuck
+                                     and the unresolved. A view; it writes nothing (D-145).
+            discard                  In a sandbox: what throwing it away would lose. Each cycle
+                                     is empty, can go, is worth recording -- it fixed a decision,
+                                     or its readers raised something -- or is recorded already.
+                                     Prints the removal for a person to run once nothing worth
+                                     recording is unrecorded, and exits 1 until then. Deletes
+                                     nothing.
+            park <id>                Compare a cycle's plan with every plan not yet built. A file
+                                     only another creates parks it: writes parked.md with what it
+                                     waits on, keeping its spec and plan. A file two plans both
+                                     name is reported. The plan skill runs it.
+            unpark <id>              Take a parked cycle back once everything it waits on merged
+                                     with a passing verify; its spec and plan are then read again
+                                     against what merged. Refuses one still waiting, saying why.
             successor check          Refuse a successor file that cannot be read, one naming a
                                      cycle or slug that does not exist, and a loop through
                                      succeeds:. Exits 0 when the set is sound.
@@ -131,11 +153,21 @@ internal static class Usage
                                      ledger, and a plan that needs a file only a sibling's plan
                                      creates; names the files two plans share. /sdlc:pr --plan
                                      runs it.
+            admit                    In a sandbox: print the one git command that takes its
+                                     approved cycles' folders, and the successors it wrote, onto
+                                     cycle/<id>/plan for one or slices/sandbox-<id>/plan for
+                                     several, from the integration branch, in a worktree beside
+                                     the sandbox. What the gate does not let through stays. Refuses
+                                     outside a sandbox, with nothing approved, over uncommitted
+                                     changes in an approved cycle, and a plan that needs a file
+                                     only a sibling's plan creates. Abandoned cycles go with it as
+                                     records. /sdlc:pr --plan runs it.
             operate [--since <hours>h] [--dry-run]
                                      Read production's errors from the telemetry store solution.md
                                      declares, grouped by signature, personal data stripped, and
                                      file each new one as a bug on the platform's tracker -- a lead.
                                      Not filed again while open, or once a person dismissed it.
+                                     A person runs it; no pipeline does.
             perspective show <name> --for <stage> [--cover]
                                      One perspective for one stage -- intent, spec, plan, build or
                                      verify: its method, the questions a fresh reader asks, its
@@ -145,13 +177,24 @@ internal static class Usage
             sitrep                   The morning's page, in Markdown: built cycles ready to merge
                                      and in what order, with the ones expected to conflict;
                                      what needs a person; what was held back and why; what is
-                                     waiting and going stale; the successors a person can start,
-                                     or that are stuck. Fetch the remote first: a built cycle is
-                                     read from its own branch. It starts nothing.
-            cycles --queued          What a build would take now -- approved, no verify, not
-                                     abandoned -- and every cycle held back, with why: a
-                                     cycle/<id>/... branch on the remote, or an approval the
-                                     gate no longer accepts. Deleting the branch re-queues it.
+                                     waiting and going stale; the backlog -- every successor and
+                                     parked cycle, ready, waiting or stuck -- and what it cannot
+                                     see. Fetch the remote first: a built cycle is read from its
+                                     own branch. It starts nothing.
+            cycles --here [--for <step>]
+                                     Which cycle a skill given no id means: the cycles this
+                                     branch carries -- its own on a cycle branch, otherwise
+                                     those not yet on the integration branch -- that are ready
+                                     for spec, plan, build, verify or remediate. Exactly one:
+                                     prints its id alone and exits 0. Several, or none: lists
+                                     them and exits 1, so the person is asked, never guessed for.
+            cycles --queued [<id>]   What a build would take now -- approved, no verify, not
+                                     abandoned -- in the order to build it: the cycle the most
+                                     successors wait on first, then oldest. And every cycle held
+                                     back, with why: a cycle/<id>/... branch on the remote, or an
+                                     approval the gate no longer accepts. Deleting the branch
+                                     re-queues it. With an id, that cycle alone, and exits 1 with
+                                     why when it is not queued.
             pr-ready <id>            Say whether a cycle may open a pull request, without opening
                                      one. Exits 1 if not -- and always for a test run, a cycle
                                      a local build judged. For every cycle, 'cycles --pr-ready'.

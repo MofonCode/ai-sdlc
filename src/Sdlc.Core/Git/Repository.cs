@@ -218,6 +218,17 @@ public interface IRepository
     /// <param name="from">The commit to measure from.</param>
     /// <returns>The messages, newest first, or none when git cannot say.</returns>
     IReadOnlyList<string> CommitMessages(string workingDirectory, string branch, string from);
+
+    /// <summary>
+    /// The directory every worktree of this repository shares: git's own, whichever worktree asks.
+    /// </summary>
+    /// <remarks>
+    /// Where a cycle id is claimed, so two sandboxes opening a cycle in the same second collide there rather
+    /// than each succeeding in its own folder (D-144).
+    /// </remarks>
+    /// <param name="workingDirectory">Where to ask from.</param>
+    /// <returns>Its full path, or null outside a repository.</returns>
+    string? CommonDirectory(string workingDirectory);
 }
 
 /// <summary>
@@ -252,6 +263,14 @@ public sealed class GitRepository : IRepository
     {
         string? name = Run(workingDirectory, "config user.name")?.Trim();
         return string.IsNullOrWhiteSpace(name) ? null : name;
+    }
+
+    /// <inheritdoc />
+    public string? CommonDirectory(string workingDirectory)
+    {
+        string? common = Run(workingDirectory, "rev-parse --git-common-dir")?.Trim();
+
+        return string.IsNullOrWhiteSpace(common) ? null : Path.GetFullPath(Path.Combine(workingDirectory, common));
     }
 
     /// <inheritdoc />

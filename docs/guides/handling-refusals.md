@@ -46,12 +46,14 @@ opens a cycle; a missing one does not, because one is a decision and the other i
 
 ### uncommitted work
 
-Something in the working tree is not committed, and the refusal names the files. Opening a cycle is
-followed by switching to its plan branch, and a switch carries uncommitted changes with it — so they
-would ride into the cycle and reach its diff as work no plan declared. The commonest case is the first
-cycle, straight after placing the files adoption drafted.
+`sdlc branch <id> plan` was asked to switch this checkout, and something in the working tree is not committed;
+the refusal names the files. A switch carries uncommitted changes with it — so they would ride into the cycle
+and reach its diff as work no plan declared. Opening a cycle no longer refuses: the intent skill plans in a
+sandbox, a worktree of its own, which switches nothing (D-144). This meets you only when you asked for one
+working copy.
 
-**Next:** decide what each file is — commit it, stash it, or discard it — and open the cycle again. The
+**Next:** decide what each file is — commit it, stash it, or discard it — and ask again; or plan in a
+sandbox instead, `sdlc branch <id> sandbox`, which the refusal names. The
 intent skill asks you rather than choosing, because work moved out of sight is work you have to find. The
 framework's own ignore files under `.sdlc/` never count, and neither does anything git ignores, which
 includes the drafts.

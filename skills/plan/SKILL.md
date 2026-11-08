@@ -2,7 +2,7 @@
 name: plan
 description: Decide how a spec will be met and what will prove it, producing the plan of a cycle. Use after a spec has a clean interrogation round. This is the last artifact before a person approves.
 compatibility: Requires the sdlc binary on PATH, from the MofonCode.Sdlc.Cli dotnet tool, and a git repository. Every command here is that binary, so without it the first step fails.
-argument-hint: "<cycle id>"
+argument-hint: "[<cycle id>]"
 allowed-tools: Bash(sdlc *), Bash(git *), Bash(dotnet *), Read, Write, Edit, Glob, Grep
 ---
 
@@ -32,6 +32,18 @@ leaves it for a later cycle.
 **A declared file can bring a perspective the intent did not name.** `sdlc perspectives <id>` says so — a
 `.razor` file brings UI/UX and accessibility. Cover it here, and expect the plan's interrogation to raise
 that the intent missed it.
+
+## Which cycle
+
+**Given no cycle id, ask the binary which one is meant** (D-142):
+
+```
+sdlc cycles --here --for plan
+```
+
+It exits 0 printing the one cycle ready for this step, and that is the cycle. Otherwise it lists the
+candidates, or says none is ready and why: ask the person which, in one question, and **never pick one
+yourself** — the cycle a skill acts on is not a guess.
 
 ## Refuse early
 
@@ -414,6 +426,19 @@ Interrogate, refine, interrogate again — until a round is clean, a reader repo
 panel's `Loop` line says the loop is stuck on one rule. It is the same loop the intent and spec skills
 run, and the intent skill's loop section has the table. Nothing caps the rounds; what stops the loop is
 a rule coming back three times, which is the loop going backwards rather than going slowly.
+
+**Once the round is clean, check what the plan needs from plans not yet built** (D-145):
+
+```
+sdlc park <id>
+```
+
+It compares this plan's files with every plan not yet built — the cycles beside it in the sandbox, and those
+admitted and waiting for a build. **A file only another plan creates parks this cycle**: it writes `parked.md`,
+keeps the spec and plan, and the cycle waits until that one merges. Say so in a line at the hand-back, with what
+it waits on, and that it may still be approved — it builds once `sdlc unpark <id>` takes it back and its spec and
+plan are read again against what merged. **A file two plans both name is not a dependency**: say which, since
+their pull requests may conflict, and carry on.
 
 **First, the suggestions the plan's rounds left open, if there are any.** Ask once, from a file, in
 free text (D-114) — the intent skill's hand-back has the file's shape and an example. Leaving them is an

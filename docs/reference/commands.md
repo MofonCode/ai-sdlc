@@ -23,7 +23,7 @@ an agent runs it, and it never decides a gate. `skills.md` lists the skills.
 | `sdlc propose constraints` | binary | the next free `LOC_` id, or rules the findings keep citing |
 | **The cycle, in order** | | |
 | `sdlc constraints` | binary | the rules in force, all tiers resolved |
-| `sdlc new` | binary | allocates the id and the directory; refuses over uncommitted work. `/sdlc:intent` runs it for you |
+| `sdlc new` | binary | allocates the id, claims it across every worktree, and makes the directory; in a sandbox, the cycle opens beside the others. `/sdlc:intent` runs it for you |
 | `/sdlc:intent` | agent | interviews you into `intent.md` |
 | `/sdlc:interrogate <id> <artifact>` | agent, fresh process | judges one document, adds a round to `findings/<artifact>.json` |
 | `/sdlc:refine <id> <artifact>` | agent | applies those findings to the document |
@@ -57,18 +57,24 @@ an agent runs it, and it never decides a gate. `skills.md` lists the skills.
 | `sdlc round verdict <id> --from <file>` | binary | writes `verify.md` from the adjudicator's answer, byte for byte, and refuses one that is not a verify document. `/sdlc:verify` runs it |
 | `sdlc constraints --for plan --brief` | binary | the rules one stage is judged against |
 | `sdlc cycles` | binary | every cycle, newest first |
-| `sdlc branch <id> <kind>` | binary | the git command that puts you on the cycle's `plan`, `build`, `build-unattended` or `forward` branch. The skills run it for you. `plan --worktree` opens the cycle in a folder of its own beside the repository, so several are planned at once. `plan` refuses a local plan branch left over from earlier planning |
-| `sdlc factory` | binary | writes the factory's nightly pipeline for your platform. It never merges |
+| `sdlc branch <id> <kind>` | binary | the git command that puts you on the cycle's `plan`, `build`, `build-unattended` or `forward` branch. The skills run it for you. `sandbox` opens a worktree on `sandbox/<id>` where every cycle the work turns into is planned; `plan --worktree` opens the one cycle in a folder of its own. `plan` without a worktree refuses uncommitted work, and a local plan branch left over from earlier planning |
+| `sdlc factory` | binary | writes the factory's pipeline for your platform, which a person starts. It never merges |
 | `sdlc lead show <reference>` | binary | a work item, issue, suggestion, ready successor or file, in one shape for `intent --from` |
 | `sdlc successors` | binary | every slice waiting on another's code, and whether it is waiting, ready, stuck or unresolved — worked out, never stored |
+| `sdlc backlog` | binary | every successor and parked cycle, in the waves they come ready in, each with how to start it |
+| `sdlc park <id>` | binary | the plan-time claim check: parks a plan that needs a file only another unbuilt plan creates, keeping its spec and plan. `/sdlc:plan` runs it |
+| `sdlc unpark <id>` | binary | takes a parked cycle back once what it waits on has merged with a pass |
 | `sdlc successor check` | binary | refuses a successor that cannot be read, names nothing that exists, or loops |
 | `sdlc slices <slug> <id> <id>...` | binary | the git command that composes `slices/<slug>/plan` from the siblings' plan branches, so one pull request admits a slicing's plans. Refuses a plan that needs what only a sibling creates. `/sdlc:pr <id>... --plan` runs it |
+| `sdlc admit` | binary | in a sandbox, the git command that takes its approved cycles and the successors it wrote onto an admission branch beside it; what is not approved stays. `/sdlc:pr --plan` runs it |
+| `sdlc discard` | binary | in a sandbox, what throwing it away would lose; prints the removal once nothing worth recording is left unrecorded |
 | `sdlc successor start <slug> <id>` | binary | in the new cycle's folder: refuses unless the successor is ready, then deletes its file there. `/sdlc:intent --from successor:<slug>` runs it |
 | `sdlc operate --dry-run` | binary | what production raised, grouped and scrubbed, and what would be filed as a lead |
 | `sdlc perspectives <id>` | binary | which perspectives a cycle gets, and why |
 | `sdlc perspective show <name> --for <stage>` | binary | a perspective's method and questions for one stage; `--cover` for an author's list |
-| `sdlc sitrep` | binary | the morning's page: ready to merge and in what order, needs a person, held back, going stale, and the successors a person can start |
-| `sdlc cycles --queued` | binary | what a build would take now, and what is held back and why |
+| `sdlc sitrep` | binary | the morning's page: ready to merge and in what order, needs a person, held back, going stale, and the backlog — successors and parked cycles ready, waiting or stuck, and what the page cannot see |
+| `sdlc cycles --here [--for <step>]` | binary | which cycle a skill given no id means: the one this branch carries that is ready for the step, or the list to ask from |
+| `sdlc cycles --queued [<id>]` | binary | what a build would take now, in the order to build it, and what is held back and why; with an id, that cycle alone or why not |
 | `sdlc cycles --claims` | binary | which files each cycle claims |
 | `sdlc cycles --pr-ready` | binary | which cycles may open a pull request |
 | `sdlc suggestions [<id>] [--all]` | binary | what was noticed and not acted on, each concern once; `--all` adds what became of each and which cycle decided it |

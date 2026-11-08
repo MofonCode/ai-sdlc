@@ -42,7 +42,26 @@ public static class StartBranch
     /// <summary>Asks where a kind of work on a cycle starts.</summary>
     /// <param name="Id">The cycle.</param>
     /// <param name="Kind">The kind of work. Not the bare kind, which nothing new creates.</param>
-    public sealed record Query(CycleId Id, CycleBranchKind Kind, bool Worktree = false) : IRequest<Response>;
+    /// <param name="Worktree">Whether the cycle gets a worktree of its own rather than switching this checkout.</param>
+    /// <param name="Sandbox">
+    /// Whether the cycle opens a sandbox: a worktree on <c>sandbox/&lt;id&gt;</c>, where every cycle the work turns
+    /// into is planned beside it (D-144). Planning only.
+    /// </param>
+    public sealed record Query(CycleId Id, CycleBranchKind Kind, bool Worktree = false, bool Sandbox = false) : IRequest<Response>;
+
+    /// <summary>
+    /// Where a sandbox's working copy goes: beside the repository, in a directory named for its first cycle.
+    /// </summary>
+    /// <param name="solutionRoot">The repository's root.</param>
+    /// <param name="primary">The cycle it opens with.</param>
+    /// <returns>The path, forward-slashed, relative to the repository's root.</returns>
+    public static string SandboxPath(string solutionRoot, CycleId primary)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(solutionRoot);
+
+        string name = Path.GetFileName(Path.TrimEndingDirectorySeparator(Path.GetFullPath(solutionRoot)));
+        return "../" + name + ".sandboxes/" + primary;
+    }
 
     /// <summary>
     /// Where a cycle's own working copy goes: beside the repository, in a directory named for it.
@@ -104,6 +123,25 @@ public static class StartBranch
                     $"{branch} is left over from earlier planning: {integrationRef} holds an approval it does not. Delete it with 'git branch -D {branch}' and ask again, so the amendment starts from {integrationRef}."));
             }
 
+            if (request.Sandbox)
+            {
+                if (request.Kind != CycleBranchKind.Plan)
+                {
+                    return Result.Fail<Response>("A sandbox is for planning. A cycle builds on a branch of its own: 'sdlc branch <id> build'.");
+                }
+
+                string sandbox = SandboxBranch.NameOf(request.Id);
+                string place = SandboxPath(root, request.Id);
+                string folder = string.Join('/', Cycle.SdlcDirectoryName, Cycle.CyclesDirectoryName, request.Id.ToString());
+
+                return Result.Ok(repository.RefExists(root, sandbox)
+                    ? new Response(sandbox, "git worktree add " + place + " " + sandbox, string.Create(CultureInfo.InvariantCulture, $"{sandbox} already exists, so its worktree opens on it at {place}."))
+                    : new Response(
+                        sandbox,
+                        "git worktree add -b " + sandbox + " " + place + (integrationRef is null ? string.Empty : " " + integrationRef) + " && mkdir -p " + place + "/" + folder,
+                        string.Create(CultureInfo.InvariantCulture, $"This work gets a sandbox at {place}, on {sandbox} from {integrationRef ?? "what is checked out"}. Every cycle it turns into is planned there, beside this one; this checkout stays as it is.")));
+            }
+
             if (request.Worktree)
             {
                 if (request.Kind != CycleBranchKind.Plan)
@@ -120,6 +158,18 @@ public static class StartBranch
                         branch,
                         "git worktree add -b " + branch + " " + path + (integrationRef is null ? string.Empty : " " + integrationRef) + " && mkdir -p " + path + "/" + directory,
                         string.Create(CultureInfo.InvariantCulture, $"This cycle gets its own working copy at {path}, on {branch} from {integrationRef ?? "what is checked out"}. Work on it there, in a session opened there; this checkout stays as it is.")));
+            }
+
+            // A switch carries uncommitted changes with it, so a plan branch switched to over them would take them
+            // into the cycle as work no plan declared. Refused here, where the carrying happens: 'sdlc new' did
+            // it before sandboxes, which switch nothing (D-144). What to do with them is the person's.
+            if (request.Kind == CycleBranchKind.Plan
+                && repository.IsRepository(root)
+                && repository.UncommittedChanges(root).Where(path => !IsBookkeeping(path)).ToArray() is { Length: > 0 } changed)
+            {
+                return Result.Fail<Response>(string.Create(
+                    CultureInfo.InvariantCulture,
+                    $"Nothing was switched: {changed.Length} {(changed.Length == 1 ? "file has" : "files have")} uncommitted changes, and {branch} would carry {(changed.Length == 1 ? "it" : "them")} into the cycle as work no plan declared -- {string.Join(", ", changed.Take(8))}{(changed.Length > 8 ? ", and more" : string.Empty)}. Commit, stash or discard {(changed.Length == 1 ? "it" : "them")} -- or plan in a sandbox, which switches nothing: 'sdlc branch {request.Id} sandbox'."));
             }
 
             if (repository.RefExists(root, branch))
@@ -197,6 +247,22 @@ public static class StartBranch
                         CultureInfo.InvariantCulture,
                         $"The plan for {request.Id} is on no branch this can find: not on {integration}, not on {planBranch}. Merge its plan's pull request, or push its plan branch, then ask again."));
             }
+        }
+
+        /// <summary>
+        /// Whether an uncommitted path is an ignore file the framework writes into its own directory.
+        /// </summary>
+        /// <remarks>
+        /// <c>sdlc new</c> writes the cycles directory's on the first cycle and a report writes its own, so counting
+        /// them would have the plan branch refused over a file opening the cycle created. They hold nobody's work,
+        /// which is the only thing the refusal exists to protect.
+        /// </remarks>
+        private static bool IsBookkeeping(string path)
+        {
+            string normalised = path.Replace('\\', '/');
+
+            return normalised.StartsWith(Cycle.SdlcDirectoryName + "/", StringComparison.Ordinal)
+                && normalised.EndsWith("/.gitignore", StringComparison.Ordinal);
         }
 
         private static Response Create(string branch, string from, string why) =>

@@ -177,12 +177,15 @@ flag and is detected, as a scaffolded solution with no cycle yet approved. The i
 question at a time, by type, each with example answers, and *not sure* is an answer with a place to go.
 The intent's sections are the same for every type: the questions vary, the contract downstream does not.
 
-**Work is sliced into atomic cycles before any opens, and the person decides the slicing** (D-25, D-125).
+**Work is sliced into atomic cycles before any opens, and the person decides the slicing** (D-25, D-125). **The
+pieces are planned together, in one sandbox** (D-144), and what is approved leaves it by `sdlc admit`.
 `intent` may first propose the most atomic slicing it can find: a piece is **atomic** when it can be built,
 verified and merged against the integration branch as it stands, without any other open cycle. The person
 accepts it once — merging pieces, or marking one atomic — and nothing is sliced unattended. Each piece that
 needs nothing unmerged opens as a cycle of its own; a piece that needs another's code waits as a **successor**,
-a file and not a cycle, until what it succeeds has merged (§3.4).
+a file and not a cycle, until what it succeeds has merged (§3.4). **Intents already written are cut again the
+same way while none has a spec** (D-141): `intent --reslice` splits one, or joins and re-cuts several, and the first
+keeps its cycle.
 
 **And a change that arrives without a chain is refused rather than waved through** (D-45). The
 pull-request check runs on every pull request, so it also meets the ones nobody opened as a cycle — a
@@ -201,10 +204,13 @@ both.
 
 `steer <id> "comment"` interviews, records the decision in the intent's `Fixed decisions` with
 attribution, and carries the change down the chain — updating and re-interrogating the spec, and the
-plan when one exists. It requires an intent and a spec, edits rather than regenerates, reports what
-changed, and refuses on an approved cycle until a reopen is recorded (D-17).
+plan when one exists. It requires an intent, edits rather than regenerates, reports what changed, and
+refuses on an approved cycle until a reopen is recorded (D-17).
 
-Steering changes *how*, not *what* — with one exception: **a suggestion a reader raised in this cycle,
+**Before the spec, the person is still writing the intent** (D-141): nothing derives from it yet, so a correction
+in words may add, drop or reword a wanted outcome as well as settle how — never replace the problem.
+
+Once a spec exists, steering changes *how*, not *what* — with one exception: **a suggestion a reader raised in this cycle,
 named by its id, may be taken in or declined**, several in one run, and with only an intent when every
 part of the request is a finding id. A suggestion taken in sharpens a wanted outcome the intent already
 holds — written beneath it, in the person's words — and a declined one is a fixed decision, each
@@ -220,7 +226,7 @@ problem is a different intent, and a new outcome nobody raised is a new cycle (D
 |---|---|---|---|
 | **Define** | intent, spec, plan | a person, locally | the planning approval (§5.1) |
 | **Build** | build, verify, pull request | the factory unattended, or a person by hand | a person merging the pull request |
-| **Operate** | — | a scheduled run | a lead a person may take into Define (§3.4) |
+| **Operate** | — | a person, with `sdlc operate` (D-143) | a lead a person may take into Define (§3.4) |
 
 **A phase is a label, never a command** (D-82). Nothing runs Define: each stage is still a moment where a
 person decides to continue, which is why D-16 has no `design` skill.
@@ -241,7 +247,8 @@ record on every read. `sdlc successors` lists them. `intent --from successor:<sl
 interview resumes against the code that merged, the new intent records `lead: successor:<slug>`, which is what
 resolves every other reference to the slug, and the file is deleted on the new cycle's plan branch.
 
-**Operate files work items; it writes no artifact of its own.** A scheduled run reads the solution's
+**Operate files work items; it writes no artifact of its own.** A person runs it — no pipeline does since D-143 —
+and it reads the solution's
 telemetry store, groups errors by a signature, strips personal data, and files a bug for each signature
 with no open item. The tracker then answers review, dismissal and deduplication, and nothing Operate does
 lands on `development`. The tracker and the store are declared in `solution.md`.
@@ -1529,8 +1536,11 @@ a plan approved on one machine still matches on another.
 ### 10.5 The factory
 
 **The factory finds approved plans, builds, verifies and opens pull requests — and nothing else** (D-84).
-It is `batch-build --pr` on a schedule, against `development`: the schedule is the confirmation, one run at
-a time holds a lock, and the job's timeout is the spend ceiling.
+It is `batch-build --pr` against `development`, **started by a person and never on a schedule** (D-143):
+starting it is the confirmation, one run at a time holds a lock, and the job's timeout is the spend ceiling.
+It builds the cycle the most successors wait on first, and a run started for one cycle builds that one alone.
+**It builds and nothing more**: intents and plans are a person's work with a model, and Operate is a command a
+person runs.
 
 **Every cycle it touches gets a pull request** (D-85): ready when it passed, a draft when it is `blocked` or
 `escalated`. A cycle's branches sit under `cycle/<id>/` — `plan`, `build`, `build-unattended`, `forward` —
@@ -1540,7 +1550,7 @@ and any of them on the remote holds the cycle back. Deleting the branch puts it 
 conflict and suggests a merge order; it no longer schedules. A person merges one pull request at a time,
 and resolves a conflict with `resolve-conflict` inside the cycle's declared files.
 
-**The morning starts from the sitrep**: what is ready to merge and in what order, what needs a person, what
+**What follows a run starts from the sitrep**: what is ready to merge and in what order, what needs a person, what
 was held back and why, what is going stale, and the newest stable point on `development`. It is a binary
 command, and the factory publishes it as the run's summary.
 
@@ -1553,9 +1563,9 @@ and run as a fresh container per job on a machine that exists for it (D-96). It 
 factory bundle in `factory/` holds.
 
 **What is built and what is not.** The queue, the branches, the admission check, the sitrep, `batch-build`
-and `pr` working this way, the factory's pipeline template (`sdlc factory`: the schedule, the lock, the
-headless run) and its agent image are built, and both run MarketSense's: the nightly pipeline on its
-schedule, and every pull request's check, on a local VM through an image of MarketSense's own built on
+and `pr` working this way, the factory's pipeline template (`sdlc factory`: the lock, the headless run,
+the one cycle asked for) and its agent image are built, and both run MarketSense's: the factory's pipeline,
+which ran nightly before D-143, and every pull request's check, on a local VM through an image of MarketSense's own built on
 this one.
 
 ---
@@ -2175,6 +2185,8 @@ which is the ordinary case.
 | `intent` | interviews; classifies the change; writes `intent.md`; runs the loop |
 | `spec` | derives testable criteria from the intent; writes `spec.md`; runs the loop |
 | `plan` | reads the spec and the existing code; writes `plan.md`; runs the loop |
+| `batch-plan` | takes every cycle this branch carries from a clean intent to a plan, spec then plan per cycle, and hands back once — D-142 |
+| `next` | takes every backlog item ready now — successors started, parked cycles unparked and read again — plans them in one sandbox, and stops at the approvals — D-147 |
 | `steer` | re-runs the chain from an existing intent and spec — §3.2 |
 | `interrogate` | judges one artifact against the constraints in force; writes a round; never edits |
 | `refine` | applies an artifact's findings to that artifact |
@@ -2190,9 +2202,13 @@ which is the ordinary case.
 | `constraints` | renders the effective constraint set, all tiers |
 | `suggestions` | lists accumulated non-blocking findings |
 
-**Six of them keep a task list where the host has one.** `init`, `intent`, `spec`, `plan` and `build`
-each list their own steps and nothing past the hand-back; `batch-build` lists one line per cycle
+**Seven of them keep a task list where the host has one.** `init`, `intent`, `spec`, `plan` and `build`
+each list their own steps and nothing past the hand-back; `batch-build` and `batch-plan` list one line per cycle
 (D-80).
+
+**A skill acting on one cycle takes its id as optional, and never more than one** (D-142). Without it,
+`sdlc cycles --here` names the one cycle this working copy carries that is ready for the step, or lists them
+for the person to choose from; nothing picks among several. `draft approval` and `pr` keep the id required — `pr --plan` in a sandbox excepted, which names every cycle it takes (D-144).
 
 **Every stage's hand-back names a new session** for the next stage, and so does `sdlc status` beside the
 next command. A session carried past one stage rebuilds its whole context on every turn after an idle
@@ -2209,12 +2225,14 @@ mechanical rather than promised.
 | Skill | Requires | Refuses when | Writes |
 |---|---|---|---|
 | `init` | a git repository | not a repository | the scaffolding, per mode |
-| `intent` | nothing | an intent exists, or the id it was handed is already claimed | `intent.md`, into the directory `sdlc new` opened |
+| `intent` | nothing; with `--reslice`, intents with no spec | an intent exists, or the id it was handed is already claimed; with `--reslice`, a named cycle with a spec, approved, abandoned or missing | `intent.md`, into the directory `sdlc new` opened; with `--reslice`, the edited intents, new cycles and successors |
 | `spec` | a clean intent | intent missing or not clean; a spec exists | `spec.md` |
 | `plan` | a clean spec | spec missing or not clean; a plan exists | `plan.md` |
+| `batch-plan` | a cycle this branch carries ready for a spec or a plan | nothing; a cycle that cannot go on stops alone, and the rest carry on | what `spec` and `plan` write, per cycle |
+| `next` | a backlog item ready now | nothing; with nothing ready it shows the backlog and stops | what `intent`, `spec` and `plan` write, per item; removes a parked file |
 | `interrogate` | the artifact exists | it does not | a findings round |
 | `refine` | a round with open blockers | no blockers; cycle approved | that artifact only |
-| `steer` | an intent **and** a spec | only an intent; approved without a reopen | intent, spec, plan — whichever exist |
+| `steer` | an intent | a cut or a join, which is `intent --reslice`'s; approved without a reopen | intent, spec, plan — whichever exist |
 | `draft approval` | three documents, each with a round | any missing, uninterrogated, holding an open blocker, or judged against an upstream that has changed | nothing; it prints |
 | `build` | the gate satisfied | the gate refuses | code, evidence |
 | `verify` | evidence exists | no evidence | `verify.md` |
@@ -2250,7 +2268,7 @@ they print verbatim.
 | Command | Does |
 |---|---|
 | `init` | adopts the framework — three modes, §9. Human-invoked; the hook denies an agent running it |
-| `new` | opens a cycle: allocates the id, creates its directory, and **claims** the id with a marker the filesystem refuses to create twice — the claim is the collision check, not the directory (D-10) |
+| `new` | opens a cycle: allocates the id, creates its directory, and **claims** the id with a marker the filesystem refuses to create twice — the claim is the collision check, not the directory (D-10), in the directory every worktree of the repository shares (D-144) |
 | `constraints [--for <artifact>]` | renders the effective set, all tiers. How the rules reach a session |
 | `status <id> [--stage] [--brief]` | the stage panel — §14. `--brief` is the between-stages form: the counts, what the artifact says, each open blocker's gist, and the next command (D-126) |
 | `findings <id> [--stage] [--round] [--blocking] [--finding <fid>]` | what the interrogations said about one cycle, per artifact, each finding at the disposition that stands, with every place it was found; `--blocking` for the open blockers alone, `--finding` for one (D-126) |
@@ -2268,13 +2286,18 @@ they print verbatim.
 | `cycles [--stage\|--approved\|--verified]` | every cycle this solution holds, newest first, with what each is about and where it stands |
 | `cycles --claims` | which cycles may be built together, and what collides — §10.1 |
 | `cycles --pr-ready` | every cycle, saying which may open a pull request |
-| `branch <id> <kind>` | the one git command that puts the working copy on the branch a kind of work happens on — `plan`, `build`, `build-unattended`, `forward` — from the right base (D-85). `plan --worktree` opens the cycle in a worktree of its own beside the repository instead (D-105) |
+| `branch <id> <kind>` | the one git command that puts the working copy on the branch a kind of work happens on — `plan`, `build`, `build-unattended`, `forward` — from the right base (D-85). `plan --worktree` opens the cycle in a worktree of its own beside the repository instead (D-105). `sandbox` opens a worktree on `sandbox/<id>`, where every cycle the work turns into is planned beside it; `plan` without a worktree refuses uncommitted work, which the switch would carry (D-144) |
 | `factory` | writes the factory's pipeline for the recorded platform: nightly `batch-build --pr --unattended` against the integration branch, one run at a time, inside a time limit, proving the gate refuses before it builds (D-84) |
 | `lead show <reference>` | a lead — `azuredevops:`, `github:`, `suggestion:`, a ready `successor:` or a path — fetched and printed in one shape, its outside text fenced as untrusted, for `intent --from` (D-89) |
 | `successors` | every slice waiting on another's code as a file, and where each stands — `waiting`, `ready`, `stuck`, `unresolved` — worked out from the record and never stored (D-125) |
 | `successor check` | refuses a successor that cannot be read, names nothing that exists, or loops through `succeeds:`; the admission check runs it (D-125) |
 | `successor start <slug> <id>` | in a cycle opened for a successor, on its plan branch: refuses unless it is ready, then deletes its file there (D-125) |
 | `slices <slug> <id> <id>...` | the one git command that composes `slices/<slug>/plan` from the siblings' plan branches onto the integration branch, so one pull request admits every plan sliced together. Refuses a sibling with no plan branch, plan or ledger, and a plan needing a file only a sibling creates (D-125) |
+| `admit` | in a sandbox, the one git command that takes its approved cycles' folders, and the successors it wrote, onto `cycle/<id>/plan` for one or `slices/sandbox-<id>/plan` for several, from the integration branch, in a worktree beside the sandbox. What the gate does not let through stays behind (D-144) |
+| `park <id>` | the plan-time claim check: compares the cycle's plan with every plan not yet built; a file only another creates parks it, writing `parked.md` with what it waits on and the commit it was planned against, and a file two plans name is reported (D-145) |
+| `unpark <id>` | takes a parked cycle back once everything it waits on merged with a passing verify, and says to read its spec and plan again against what merged (D-145) |
+| `backlog` | every successor and parked cycle, in the waves they come ready in, each with how to start it. A view; writes nothing (D-145) |
+| `discard` | in a sandbox, what throwing it away would lose: each cycle it carries is empty, can go, is worth recording — it fixed a decision or its readers raised something — or is recorded already. Prints the removal, for a person to run, only once nothing worth recording is unrecorded (D-146) |
 | `operate [--since <hours>h] [--dry-run]` | Operate: production's errors from the declared telemetry store, grouped by signature, scrubbed of personal data, deduplicated against what is filed, and filed as bugs on the platform's tracker (D-89) |
 | `perspective show <name> --for <stage> [--cover]` | one perspective for one stage: its method and the questions a fresh reader asks, or with `--cover` the author's short list (D-90) |
 | `perspectives <id>` | which perspectives a cycle gets and why — always on, named by the intent, or brought by the plan's declared files (D-90) |
@@ -2901,6 +2924,10 @@ constraint, and was rejected on the decision points rather than the constraints.
 ### D-17 — `steer` re-runs the chain from an existing intent and spec
 
 **Governs:** §2.6, §3.2
+
+**Superseded in part by D-141.** An intent alone now takes a correction in words, which before the spec may
+change *what* as well as *how*. What stands: once a spec exists, steering edits rather than regenerates and carries
+the change down.
 
 **Why.** The correct path by hand is expensive enough that people will not pay it, so steering ends up
 in conversation where it is lost. **A path so costly that it pushes information out of the system is
@@ -6647,6 +6674,10 @@ it carries verified the release's code, not `development`'s.
 
 **Governs:** §3.4, §15
 
+**Superseded in part by D-143.** Operate is no longer a scheduled run: the factory builds and nothing more, and
+`sdlc operate` is a command a person runs. What stands: a lead is a reference to a tracker item, and Operate files
+work items rather than an artifact of its own.
+
 **Decision.** A lead is anything a person can hand `intent` to begin a cycle, named by a prefix spelled in
 full: `azuredevops:1234`, `github:56`, `jira:PROJ-123`, `suggestion:<cycle>/<finding>`, or a path. Only
 those prefixes are read as one; anything else is a path. The binary fetches and normalises a lead —
@@ -6858,6 +6889,10 @@ once with `none`, and the list is quiet after that. The `init` skill says so bef
 ### D-94 — Adoption drafts all three files a person places, commits, and creates the integration branch
 
 **Governs:** §5.3, §8.2, §9, §15.2, §16
+
+**Superseded in part by D-144.** The refusal of uncommitted work moved from `sdlc new` to `sdlc branch <id> plan`
+without a worktree, the one step that switches a checkout. What stands: adoption drafts the three files, commits,
+and creates the integration branch.
 
 **Decision.** Five parts, from one walked adoption.
 
@@ -7198,6 +7233,285 @@ its refusal still apply.
 - *Keeping `sdlc <stage>` everywhere.* Correct and host-neutral, and costs a refusal each time.
 - *Guessing a marker for Copilot or Antigravity.* Neither documents one; a guessed marker is a panel that
   names one host's invocation to someone using another.
+
+### D-147 — `next` pulls the backlog's ready wave into one sandbox and plans it, locally, stopping at the approvals
+
+**Governs:** §3.4, §15
+
+**Revisits D-125's *nothing starts a successor on its own*.** A person still starts it — by asking for the next
+wave — and the skill then starts every one that is ready, rather than the person naming each. **Not D-79's
+rejected `sdlc next`**, which would have been a second answer to "what state is adoption in" beside `doctor`; this
+is a skill that does the next wave's work.
+
+**Decision.** `/sdlc:next` takes no id. It reads `sdlc backlog`, and for everything ready now: opens one sandbox for
+the wave (D-144); starts each ready successor through the intent skill's `--from successor:<slug>` interview; takes
+back each ready parked cycle with `sdlc unpark` and interrogates its spec and plan again against what merged
+(D-145); then runs `batch-plan` over the new intents, whose park check may park one behind a sibling — the next
+wave forming. It hands back once, with the backlog still to come, and stops at the approvals. With nothing ready,
+it shows the backlog and the queue and stops. **It runs locally; the factory never runs it** (D-143).
+
+**Why.** The person wanted a loop that carries work to completion while keeping them informed and taking every
+decision that is theirs: what to build, whether a plan is right, when to merge. Between those, the steps are
+mechanical — which successors are ready, which parked plans may come back, what to plan — and a person doing them
+by hand meets the cost D-17 names. Merging stays the person's, so each wave crosses one merge, which is where the
+person is.
+
+**Rejected.**
+
+- *Running it in the factory.* Writing an intent is an interview and a plan is read before code; D-143.
+- *A command rather than a skill.* Starting a successor is an interview and reading a plan again is a round: both
+  need language. What a listing decides — the backlog, readiness, the park check — is already the binary's.
+- *Starting each ready item in its own sandbox.* A wave is planned together for the reason D-144 gives: one
+  session, one `batch-plan`, one admission.
+- *Unparking without reading the plan again.* Rounds hash documents, not the base; the code the plan assumed now
+  exists, and only a reader can say whether the plan still fits it (D-145).
+
+### D-146 — A sandbox thrown away keeps what is worth recording, and a stopped cycle reaches the integration branch as a record
+
+**Governs:** §5.3, §15.2
+
+**Extends D-144 and D-87.** D-144 deletes a cycle the work was cut away from when nothing of it was pushed; the
+admission check (D-87) admitted planning paperwork and nothing a stop wrote, so an abandonment had no way onto
+the integration branch short of the full chain, which it could never pass.
+
+**Decision.**
+
+- **`sdlc discard`, in a sandbox, says what throwing it away would lose**, cycle by cycle: *empty* — no intent, or
+  one no round judged and no decision fixed; *can go* — judged and nothing argued; *worth recording* — a fixed
+  decision, or a reader raised something; *recorded* — a person's abandonment is there. It deletes nothing, and
+  prints the removal, for the person to run, only once nothing worth recording is unrecorded.
+- **A stopped cycle is a record, and admission takes it.** An abandoned cycle's folder rides with `sdlc admit` —
+  alone when nothing in the sandbox is approved — and the check admits it as the record of what was argued and
+  stopped: no approval and no proof are asked, because nothing is ever built from it. A path outside its folder
+  still runs the full chain.
+
+**Why.** The person who adopted this wanted cycles that are only scratch to go without ceremony, and cycles that
+argued something to stay as evidence for later automated decisions: `propose` and `decisions` read the record, and
+a cycle deleted from a sandbox is one they never see. The first cut is a file listing, so the binary makes it;
+the abandonment that records the rest stays a person's file (§5.3).
+
+**Rejected.**
+
+- *Recording every cycle.* An abandonment for a scratch intent records a choice nobody made, and buries the ones
+  somebody did.
+- *Deleting every cycle a person throws away.* What was argued is the material later proposals are built from.
+- *The model alone deciding what is worth keeping.* Whether a decision was fixed or a reader raised something is
+  on disk; a judgement is needed only past that, and it is the person's when they read the review.
+- *Leaving abandonments off the integration branch.* Then the record exists only in a folder about to be removed.
+
+### D-145 — A plan needing another's unbuilt code is parked with its spec and plan kept, and the backlog is a view of the parked and the successors
+
+**Governs:** §3.1, §3.4, §10.1, §15.2
+
+**Extends D-125.** D-125 compares the plans of one slicing at admission, refuses a plan needing a sibling's
+unmerged code, and keeps what waits as a successor: an outcome and a why, never a plan. **Leaves D-86 unchanged:**
+two plans naming one file still meet at merge, reported and not serialised.
+
+**Decision.**
+
+- **The claim check runs at the plan.** `sdlc park <id>`, run by the plan skill once a round is clean, compares the
+  plan with every plan not yet built — the cycles beside it in a sandbox, and those admitted and waiting for a build
+  — by D-125's comparison.
+- **A dependency parks the cycle.** A file only another plan creates writes `parked.md` in the cycle's folder: what
+  it waits on, the commit it was planned against, and why. The cycle keeps its id, spec and plan; it may be
+  approved and admitted; and the build queue holds it back, naming what it waits on.
+- **It comes back by `sdlc unpark`**, once everything it waits on has merged into the integration branch with a
+  passing verify — ready meaning what a successor's ready means, worked out by the same reader. Its spec and plan
+  are then interrogated again against the code that merged; a round that changes nothing leaves its approval
+  standing, and one that changes the plan sends it back to the person.
+- **The backlog is a view, `sdlc backlog`**: every successor and every parked cycle, grouped in the waves they come
+  ready in — ready now, after one more merge, and so on — with the stuck and the unresolved apart. Nothing stores
+  it.
+- **`parked.md` travels with a plan** through admission, as planning paperwork.
+
+**Why.** The person who adopted this would not throw away planned work to redo it later: a spec and plan are paid
+for in rounds. A successor is right for a piece never planned; a piece the slicing cut wrong was planned, and
+discarding that plan to write it again from an outcome spends the rounds twice. **The risk parking carries is
+drift**: the plan was written before the code it needs existed, and rounds hash documents, not the base. Unparking
+is where that is answered, by reading the plan again against what merged rather than trusting it.
+
+**Rejected.**
+
+- *Demoting the cycle to a successor, discarding its spec and plan.* Simpler, and the cost the person declined.
+- *A `backlog.md`.* One file edited from many sandboxes conflicts, and a stored readiness is stale the moment
+  something merges (D-115's reasoning).
+- *Refusing approval of a parked cycle.* An approval covers the bytes of three documents; if the re-reading
+  changes nothing they still match, and a person who read the plan should not have to sign it twice.
+- *The gate refusing a parked cycle.* The build queue is what picks work, and it holds a parked cycle back with
+  the reason; a person building one by hand is told by the backlog and the queue, and the gate stays about the
+  documents.
+- *Serialising cycles that merely share a file.* D-86: a conflict is met at merge, where a person is.
+
+### D-144 — Work is planned in a sandbox, one worktree holding every cycle it turns into, and only what is approved leaves it
+
+**Governs:** §3.1, §15.2
+
+**Revisits D-105 and D-94; extends D-125.** D-105 gave each cycle a worktree and a plan branch of its own from its
+first question, and left D-94's refusal of uncommitted work in `sdlc new` because the person's checkout was still
+where the id was claimed. D-125 composes `slices/<slug>/plan` from siblings' plan branches. **Leaves D-83 and D-87
+unchanged:** what reaches the integration branch is still an admitted plan, by a reviewed pull request, checked by
+the diff it carries.
+
+**Decision.**
+
+- **A sandbox.** `sdlc branch <id> sandbox` prints the worktree for `sandbox/<id>`, beside the repository in
+  `../<repository>.sandboxes/<id>`, from the integration branch, named for the work's first cycle. Every cycle the
+  work turns into — a slicing's pieces, an intent cut in two (D-141) — is opened **inside** it by `sdlc new`, on
+  the same branch and in the same folder. The intent skill opens one by default; a person who asks for one
+  working copy still gets the switch to `cycle/<id>/plan`.
+- **An id is claimed where every worktree looks.** `sdlc new` claims it in git's shared directory as well as in
+  the cycle's folder, so two sandboxes opening a cycle in the same second collide, where two folders' claims
+  would each have won.
+- **The refusal of uncommitted work moves to the switch.** `sdlc new` no longer refuses it; `sdlc branch <id>
+  plan` without a worktree does, naming the files and offering a sandbox, because that is the only step that
+  carries them. A sandbox starts from what the integration branch committed, so a placed file left uncommitted
+  is missing from it rather than ridden into it.
+- **Only what is approved leaves.** `sdlc admit`, in a sandbox, composes an admission branch beside it from the
+  integration branch: each cycle the gate lets through, its folder as the sandbox committed it, and every
+  successor the sandbox wrote — on `cycle/<id>/plan` for one, `slices/sandbox-<id>/plan` for several. Those are
+  branches the pull-request check already admits, so a sandbox adds no new admission. A cycle still being planned
+  stays and goes later. `/sdlc:pr --plan`, given no id in a sandbox, runs it and names every cycle it takes before
+  asking to push — the one place `pr` goes without an id (D-142), because the set is what the person approved.
+
+**Why.** One problem usually becomes several intents, and with a worktree and a branch per intent from the first
+question, a person reviewing their intents together had them in as many folders, sessions and plan pull requests.
+The sandbox is D-105's isolation at the grain the work arrives in: the person's checkout is never switched, and
+nothing uncommitted rides anywhere, while the cycles of one piece of work sit where one session and
+`batch-plan` see them all. Admission composed from the sandbox, rather than a pull request of the sandbox itself,
+is what lets one cycle leave while its sibling is still being argued over.
+
+**Rejected.**
+
+- *A pull request of `sandbox/<id>` itself.* Everything in it would have to be approved before any of it could be
+  admitted, and the check would need a new kind of branch to read.
+- *Keeping a worktree and plan branch per cycle and grouping them afterwards.* What D-105 built, and the ceremony
+  this removes: several folders and sessions for one piece of work.
+- *Keeping the uncommitted refusal in `sdlc new`.* Its reason was the switch, which a sandbox does not make; it
+  would refuse a cycle over work that cannot reach it.
+- *Composing admission from the working copy.* What is admitted must be what the sandbox committed, so an
+  uncommitted change in an approved cycle refuses instead.
+- *Naming the admission branch `sandbox/<id>/admit`.* A branch and a branch beneath it cannot coexist in git.
+
+### D-143 — A person starts the factory, which builds the cycle that unlocks the most first, and does nothing but build
+
+**Governs:** §3.3, §10.5
+
+**Revisits D-84 and D-89.** D-84 made the factory `batch-build --pr` on a schedule, with the schedule as the
+one-time confirmation of spend, and D-89 ran Operate as a scheduled run inside it. **Leaves D-84's four things
+and its refusal to merge unchanged.**
+
+**Decision.**
+
+- **No schedule.** The pipeline `sdlc factory` writes is started by a person — GitHub's `workflow_dispatch`,
+  Azure DevOps' `trigger: none` — and the run is the confirmation D-24 asks for, made each time.
+- **One optional input, `cycle`.** A run started for one cycle builds that one alone; the binary checks it is
+  queued before the agent reads it, and the run stops with why when it is not. Empty builds every queued cycle.
+  `batch-build` takes the same one id.
+- **The queue is ordered by what each cycle unlocks**: the cycle the most successors wait on — directly, or
+  behind another successor — first, then oldest. A run that stops on its time limit has built what starts the
+  most moving, and the queue names the successors beside each cycle.
+- **It builds and nothing more.** It never writes an intent or a plan, and Operate leaves the pipeline: `sdlc
+  operate` is a command a person runs.
+
+**Why.** The person who adopted this wanted the factory narrow: planning is a person's work with a model, read
+before code exists, and a verify is read to check the work did what it said. Unattended authoring is given up on
+purpose, because it is where AI-assisted work most often goes unreviewed. With that settled, a schedule only ever
+started runs nobody chose at the moment: idle ones with nothing queued, and ones that built what a person was
+still reconsidering. **A series of dependent cycles crosses a merge each step, and merging is a person's** (D-84),
+so a run can only ever finish the cycles that are ready; the next run is the person's to start once their merges
+made more ready.
+
+**Rejected.**
+
+- *A factory branch every cycle squashes into, so dependent cycles build unattended in series.* It runs past the
+  merge only by stacking unread code, and reopens D-84's *a cycle is the unit of review and of rejection*:
+  rejecting one would cost every cycle built on it. Picking cycles out of such a branch needs their dependencies,
+  which the declared ones give and the undeclared ones do not.
+- *The factory writing intents and plans ahead of a person*, bounded by a setting capped by the approval setting.
+  Intents and plans are the person's work, and reading the plan before code is the guarantee.
+- *Keeping the schedule beside the manual start.* A run nobody started is spend nobody chose.
+- *Operate in its own scheduled pipeline.* Weighed and set aside by the person: it is a command, run when wanted.
+- *Several ids as the input.* A skill takes one cycle at most (D-142); a run for everything is the empty input.
+
+### D-142 — A skill takes one cycle id at most, and the binary names the cycle when it is given none
+
+**Governs:** §15, §15.1
+
+**Decision.** Every stage skill that acts on one cycle — `spec`, `plan`, `build`, `verify`, `remediate`,
+`interrogate`, `refine`, `steer`, `status` — takes its cycle id as optional, and never more than one. Without
+it the skill asks `sdlc cycles --here [--for <step>]`, which reads the cycles this working copy **carries** —
+on a cycle's own branch that cycle, anywhere else every cycle not yet on the integration branch, never an
+abandoned one — and those ready for the step. **Exactly one is the cycle: it prints the id alone and exits 0.
+Several, or none, it lists and exits 1, and the skill asks the person which.** Nothing picks among several.
+`draft approval` and `pr` keep the id required: one is what a person signs, the other touches the remote.
+
+**And several cycles go to plan in one run.** `batch-plan` takes no id: every cycle this working copy carries that
+is ready for a spec or a plan gets its spec, then its plan, each through its own stage's skill and loop, one cycle
+at a time. It hands back once — one line per cycle, every plan panel, and one question about every open
+suggestion across them — and stops at the plan. A cycle that cannot go on stops alone and the rest carry on.
+**It runs in the person's session**, chosen over a fresh session per cycle so that a question only the person
+can answer is asked rather than turned into a halt; the cost is the growing context D-122 measured, and the
+hand-back says the approvals are worth a fresh session.
+
+**Why.** Several cycles in one working copy is about to be ordinary — a slicing, a re-cut intent, and the
+sandboxes that follow — and typing a timestamp id for each stage is the ceremony that makes a person reach for
+the wrong one. One resolver in the binary means every skill reads "which cycle" the same way, from the same
+record; a skill that worked it out by listing folders would come out differently each run, and the cycle a
+skill writes into is not a guess.
+
+**Rejected.**
+
+- *Skills taking several ids.* A stage is one cycle's: its rounds, its hand-back and its refusals are about
+  one. Doing several is a batch skill's job, which takes none and calls the single-cycle skill once per cycle.
+- *Picking the newest when several are ready.* The newest is the likeliest and still a guess, and a spec
+  written into the wrong cycle costs that cycle's rounds to undo.
+- *Each skill listing the folders itself.* Nine readings of one question, which drift.
+- *Making the id optional for `draft approval` and `pr`.* Both are acts a person should name the cycle for.
+- *`batch-plan` running each cycle's stages in a headless session of its own.* Cheaper by the margin D-122
+  measured, and weighed; the person chose to keep the run able to ask rather than halt.
+- *`batch-plan` asking about suggestions at every stage, as a single stage does.* Two questions per cycle is the
+  ceremony the batch exists to remove; one at the end costs a round where a suggestion would have been cheaper
+  taken in at the spec, and the hand-back says so.
+
+### D-141 — An intent with no spec may be changed in the person's words and cut again
+
+**Governs:** §3.1, §3.2, §15.1
+
+**Revisits D-17 and D-125.** D-17 gave `steer` an intent **and** a spec, and D-97 let finding ids through with an
+intent alone; a correction in words with only an intent was refused, sent to `refine`, which applies findings and
+nothing else. D-125 sliced work once, before any cycle opened. **Leaves D-128 unchanged:** a suggestion still only
+sharpens.
+
+**Decision.**
+
+- **`steer` takes an intent alone with a correction in words.** Before the spec, the correction may change *what*
+  as well as *how* — add, drop or reword a wanted outcome, move a line into or out of `Must not change` — written
+  in the section it belongs to, not as a fixed decision. The problem may be reworded and never replaced: a
+  different problem is a different intent. Once a spec exists, steering is what it was.
+- **`intent --reslice <id>...` cuts intents already written**, while none has a spec: one id to split it, several
+  to join or re-cut them. It is §3.1's slicing run again over what the intents hold, accepted once by the person.
+  The first id keeps its cycle and becomes the first piece, its intent edited down and its rounds kept; each
+  further piece opens as a cycle or waits as a successor; a cycle the cut empties is removed when its branch was
+  never pushed, and recommended for abandonment when it was, or when its rounds hold a choice worth keeping.
+
+**Why.** Reading the intent the interview produced is where a person finds out what it got wrong, or that it is
+two things. Both paths were missing, so the remedy was a hand edit to a governed document, or abandoning a cycle
+to open two — the cost D-17 names, a correct path so expensive that the change leaves the system. **The guard both
+rules were standing for is downstream derivation**: a spec built on an intent that then moved. Nothing derives
+from an intent with no spec, and once one exists `steer` carries a change down and `--reslice` refuses, so the
+guard is kept where it does work and dropped where it did none.
+
+**Rejected.**
+
+- *A `split` skill.* D-25's reasons stand: cutting is a scoping decision, and slicing already makes it with the
+  person accepting. A second skill would be a second place the rules of a cut live.
+- *Re-slicing a cycle with a spec, regenerating what derived from it.* It throws away the rounds a spec and plan
+  cost, and `steer` already carries a change down without doing that.
+- *Opening the re-cut pieces as new cycles and abandoning the original.* The original's rounds and fixed decisions
+  are the record of what was argued; keeping the id keeps them, and an abandonment for a cycle that was only cut
+  in two records nothing anybody stopped.
+- *Letting the intent skill run again on an existing intent.* D-18: a stage skill that can overwrite its artifact
+  is the mode people type by accident.
 
 ### D-140 — The minor moves when a solution's cycles can behave differently; the patch moves for everything else that ships
 
@@ -8024,6 +8338,10 @@ ends on said "blockers 3" and nothing a person could act on.
 ### D-125 — Work is sliced into atomic cycles before any opens, and what waits is a successor, not a cycle
 
 **Governs:** §3.1, §3.4, §10.4, §16
+
+**Superseded in part by D-147.** A person asking for the next wave starts every successor that is ready, through
+`/sdlc:next`, rather than naming each; nothing starts one unasked. And by D-145: a plan found at the plan to need a
+sibling's code is parked, keeping its spec and plan, rather than becoming a successor.
 
 **Revisits D-25.** D-25 rejected a `split` skill, and deferred rather than rejected *"a read-only advisor that
 proposes how to cut an intent and writes nothing"*. This is that advisor, with the definition D-25 did not
@@ -8970,6 +9288,11 @@ and a pipeline grants access the same way a person does.
 ### D-105 — Each cycle is planned in a worktree of its own
 
 **Governs:** §15.2
+
+**Superseded in part by D-144.** The intent skill opens a sandbox — one worktree on `sandbox/<id>` for every cycle
+the work turns into — rather than a worktree per cycle, and `sdlc new` no longer refuses uncommitted work. What
+stands: planning happens beside the repository, and the person's checkout is never switched; `plan --worktree`
+still opens one cycle alone.
 
 **Decision.** `sdlc branch <id> plan --worktree` prints `git worktree add -b cycle/<id>/plan
 ../<repository>.cycles/<id> <integration>` and creates the cycle's directory there. The intent skill uses

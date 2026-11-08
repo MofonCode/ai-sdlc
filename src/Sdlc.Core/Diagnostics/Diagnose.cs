@@ -8,6 +8,7 @@ using Sdlc.Core.Git;
 using Sdlc.Core.Hooks;
 using Sdlc.Core.Init;
 using Sdlc.Core.Decisions;
+using Sdlc.Core.Factory;
 using Sdlc.Core.Solutions;
 
 namespace Sdlc.Core.Diagnostics;
@@ -155,6 +156,11 @@ public static class Diagnose
 
             checks.Add(pipeline);
 
+            if (await Factory(platform, cancellationToken).ConfigureAwait(false) is { } factory)
+            {
+                checks.Add(factory);
+            }
+
             if (pipeline.Outcome == CheckOutcome.Sound && PipelineFile() is { } file)
             {
                 string integration = await SolutionDocument.IntegrationBranchOf(solution.Path, cancellationToken).ConfigureAwait(false);
@@ -202,6 +208,39 @@ public static class Diagnose
         /// where there is no file, so this fires for a solution adopted before it did, or one whose own
         /// file leaves it out.
         /// </remarks>
+        /// <summary>
+        /// Whether the factory's pipeline, where a solution has one, is the kind a person starts.
+        /// </summary>
+        /// <remarks>
+        /// A problem rather than a note: a pipeline written before D-143 still builds on a schedule nobody chose
+        /// at the moment, runs Operate inside it, and cannot be started for one cycle. Nothing when there is no
+        /// factory, which most solutions never want.
+        /// </remarks>
+        private async Task<Check?> Factory(Platform platform, CancellationToken cancellationToken)
+        {
+            if (platform == Platform.Local)
+            {
+                return null;
+            }
+
+            string path = Path.Combine(solution.Path, FactoryPipeline.PathOf(platform));
+
+            if (!File.Exists(path))
+            {
+                return null;
+            }
+
+            string text = await File.ReadAllTextAsync(path, cancellationToken).ConfigureAwait(false);
+
+            return text.Contains("cron:", StringComparison.Ordinal)
+                ? new Check(
+                    "the factory",
+                    CheckOutcome.Problem,
+                    FactoryPipeline.PathOf(platform).Replace('\\', '/') + " still runs on a schedule; this release's factory is started by a person, for every queued cycle or one named (D-143)",
+                    "run 'sdlc factory', which rewrites it, and commit it")
+                : new Check("the factory", CheckOutcome.Sound, "started by a person, never on a schedule");
+        }
+
         private async Task<Check> LineEndingsCheck(CancellationToken cancellationToken)
         {
             string path = Path.Combine(solution.Path, LineEndings.FileName);

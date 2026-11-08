@@ -182,8 +182,8 @@ each file is.
 
 Adoption places none of the files only a person writes. It drafts three of them beside where each goes,
 each with a note at the top saying an agent cannot change the real file, and its report ends with what to
-fill in and the rename for each. **Do this before the cycle, not after** — the cycle will not open
-without the stack, or over anything uncommitted.
+fill in and the rename for each. **Do this before the cycle, and commit it** — the cycle will not open
+without the stack, and its sandbox starts from what is committed.
 
 **`.sdlc/solution.draft.md`.** Replace the comment under the heading with the paragraph. For this
 solution it is about a line:

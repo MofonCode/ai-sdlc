@@ -222,10 +222,9 @@ git add .sdlc
 git commit -m "Place the solution, its stack and its constraints"
 ```
 
-**A cycle does not open over uncommitted work.** The intent skill switches to the cycle's own branch, and
-a switch carries uncommitted changes with it, so a placed file left uncommitted would reach the first
-cycle's diff as work no plan declared. `sdlc new` refuses instead, and names the files. You are on the
-integration branch adoption created, which is where these belong.
+**Commit them before the first cycle.** The intent skill plans in a sandbox, a worktree that starts from the
+integration branch as committed, so a placed file left uncommitted is one the sandbox — and every cycle in it —
+cannot see. You are on the integration branch adoption created, which is where these belong.
 
 ```pwsh
 sdlc doctor
@@ -331,8 +330,8 @@ alike — `../mechanisms/protected-files.md` is the whole of how.
 you asked for, and show you the line that places it. Then it stops, and you run that line — which on
 Claude Code is the same line with a `!` in front.
 
-**Commit what you place.** A cycle does not open over uncommitted work, so a file you placed and did not
-commit is the next thing `sdlc new` names.
+**Commit what you place.** A sandbox starts from what the integration branch committed, so a file you placed
+and did not commit is missing from every cycle you open next.
 
 **One solution file is deliberately not on that list.** `.sdlc/theme.json` holds the roles this
 solution's surfaces use and the values that fill them. Nobody is judged against a colour, so an ordinary
