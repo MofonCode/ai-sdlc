@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Text;
+using Sdlc.Core.Areas;
 
 namespace Sdlc.Core.Decisions;
 
@@ -40,10 +41,15 @@ public static class DecisionsRenderer
     /// </summary>
     /// <param name="response">What the record holds.</param>
     /// <param name="detail">How much of each entry to include.</param>
+    /// <param name="scope">
+    /// The areas the stage touches: an entry outside them is rendered by its headline alone (D-151). Null, or
+    /// a scope that narrows nothing, renders every entry at <paramref name="detail"/>.
+    /// </param>
     /// <returns>The rendered text, ending in a newline.</returns>
-    public static string Render(ReadDecisions.Response response, DecisionDetail detail)
+    public static string Render(ReadDecisions.Response response, DecisionDetail detail, AreaScope? scope = null)
     {
         ArgumentNullException.ThrowIfNull(response);
+        scope ??= AreaScope.Everything;
 
         StringBuilder output = new();
 
@@ -59,9 +65,12 @@ public static class DecisionsRenderer
             return output.ToString();
         }
 
-        output.AppendLine(string.Create(
-            CultureInfo.InvariantCulture,
-            $"Decisions standing: {response.Decisions.Count(decision => decision.IsStanding)}"));
+        int standing = response.Decisions.Count(decision => decision.IsStanding);
+        int inFull = response.Decisions.Count(decision => decision.IsStanding && scope.InFull(decision.InAreas));
+
+        output.AppendLine(scope.Narrowed
+            ? string.Create(CultureInfo.InvariantCulture, $"Decisions standing: {standing}. {inFull} apply here in full -- {Touched(scope)} and every decision with no area -- and the rest by headline.")
+            : string.Create(CultureInfo.InvariantCulture, $"Decisions standing: {standing}"));
 
         if (response.Decisions.Count == 0)
         {
@@ -79,11 +88,15 @@ public static class DecisionsRenderer
                 ? string.Empty
                 : string.Create(CultureInfo.InvariantCulture, $"  (superseded by {decision.SupersededBy})");
 
+            string areas = decision.InAreas.Count == 0
+                ? string.Empty
+                : " [" + string.Join(", ", decision.InAreas) + "]";
+
             output.AppendLine(string.Create(
                 CultureInfo.InvariantCulture,
-                $"{Indent}{decision.Id,-9} {decision.Statement}{marker}"));
+                $"{Indent}{decision.Id,-9} {decision.Statement}{areas}{marker}"));
 
-            if (detail == DecisionDetail.Brief)
+            if (detail == DecisionDetail.Brief || !scope.InFull(decision.InAreas))
             {
                 continue;
             }
@@ -98,6 +111,18 @@ public static class DecisionsRenderer
             Clause(output, "because", decision.Because);
             Clause(output, "instead of", decision.InsteadOf);
             Clause(output, "from", decision.From);
+        }
+
+        // A reader handed a headline asks for the rest, rather than being unaware the entry exists (D-151).
+        if (detail != DecisionDetail.Brief && inFull < standing)
+        {
+            output.AppendLine();
+            output.AppendLine("An entry shown by its headline alone is outside the areas this stage touches.");
+
+            // A reader runs with no tools, so it cannot ask for the body; what it can do is say so.
+            output.AppendLine(detail == DecisionDetail.Judged
+                ? "If the document reaches one anyway, raise that as a finding naming the entry: it is a sign the change touches an area its files do not show."
+                : "Read one in full with 'sdlc decisions show DEC_nn' when what you are writing reaches it.");
         }
 
         // A reader is told how to judge the record in its own instructions; this paragraph is for a writer.
@@ -164,6 +189,9 @@ public static class DecisionsRenderer
 
         return output.ToString();
     }
+
+    private static string Touched(AreaScope scope) =>
+        scope.Touched.Count == 0 ? "no area" : string.Join(", ", scope.Touched);
 
     private static void Clause(StringBuilder output, string label, string body)
     {

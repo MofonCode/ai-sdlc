@@ -23,6 +23,8 @@ an agent runs it, and it never decides a gate. `skills.md` lists the skills.
 | `sdlc propose constraints` | binary | the next free `LOC_` id, or rules the findings keep citing |
 | **The cycle, in order** | | |
 | `sdlc constraints` | binary | the rules in force, all tiers resolved |
+| `sdlc constraints show <id>` | binary | one rule in full, in force or superseded |
+| `sdlc areas` | binary | each area: the files it covers, the entries carrying it, and names nobody defined. Exits 1 when an area covers no file |
 | `sdlc new` | binary | allocates the id, claims it across every worktree, and makes the directory; in a sandbox, the cycle opens beside the others. `/sdlc:intent` runs it for you |
 | `/sdlc:intent` | agent | interviews you into `intent.md` |
 | `/sdlc:interrogate <id> <artifact>` | agent, fresh process | judges one document, adds a round to `findings/<artifact>.json` |
@@ -79,7 +81,7 @@ an agent runs it, and it never decides a gate. `skills.md` lists the skills.
 | `sdlc cycles --pr-ready` | binary | which cycles may open a pull request |
 | `sdlc suggestions [<id>] [--all]` | binary | what was noticed and not acted on, each concern once; `--all` adds what became of each and which cycle decided it |
 | `sdlc propose constraints` | binary | rules cited across three or more cycles |
-| `sdlc decisions` | binary | what this solution already settled, naming the entries over the word budget |
+| `sdlc decisions` | binary | what this solution already settled, naming the entries over the word budget. `--for <stage> --cycle <id>` gives every headline and, in full, only the entries in the areas that stage touches |
 | `sdlc decisions show <id>` | binary | one decision in full, standing or superseded |
 | `sdlc propose decisions` | binary | choices approved cycles settled, as entries to adopt |
 | `sdlc theme` | binary | the roles and values the solution's surfaces use |

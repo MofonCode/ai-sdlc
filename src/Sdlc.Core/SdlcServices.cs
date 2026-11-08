@@ -2,6 +2,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using MofonCode.Core;
 using Sdlc.Core.Approvals;
+using Sdlc.Core.Areas;
 using Sdlc.Core.Chain;
 using Sdlc.Core.Constraints;
 using Sdlc.Core.Cycles;
@@ -147,6 +148,7 @@ public static class SdlcServices
         services.AddProposeDecisionsRequestHandler();
         services.AddProposeMiningRequestHandler();
         services.AddDraftMiningRequestHandler();
+        services.AddReadAreasRequestHandler();
 
         // The reading halves. A constraint stops a cycle doing something; a decision stops it
         // re-deciding something, and a theme stops it inventing a colour. All three are rendered on

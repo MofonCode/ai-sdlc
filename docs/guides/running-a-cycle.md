@@ -171,6 +171,12 @@ first** — a few lines of throwaway code on a `probe/<id>/<slug>` branch, never
 the plan assumed without a probe is the one most likely to cost a reopen after the build. Its proof is a
 table, one row per case each criterion states, so you can see what will be tested at a glance.
 
+**The plan's `## Areas` section says which part of the code each declared file belongs to** (D-150): an area
+`.sdlc/areas.md` defines, a name the plan proposes, or `none`. Read the proposed names at approval — they
+become area suggestions, and once three cycles' plans name one, mining proposes it for your `areas.md`.
+Where areas exist, every reader of this cycle gets every decision's headline and, in full, only the ones
+for the areas its files touch (D-151).
+
 **It is the last document before you approve, so it is the one to read closely** — and the thing to
 read for is proof adequacy. Ask of each check: *which case does it never run, and which outcome does it
 never read?* If either has an answer, the proof is not adequate, and an inadequate

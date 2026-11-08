@@ -198,13 +198,14 @@ recorded their subject is refused this way too: no person read the bytes instead
 if the spec changed. `/sdlc:steer` does this for you, which is the reason to use it rather than editing
 documents by hand.
 
-## `sdlc round` — the four ways a round is refused
+## `sdlc round` — the six ways a round is refused
 
 `sdlc round` writes every findings round (D-101): blockers into the artifact's findings ledger (D-107),
 suggestions into the cycle's suggestions ledger (D-115). `/sdlc:interrogate` runs it; you meet the first
 when the order of the chain was skipped, the second when a finding was carried forward in different
 words, the third when a reader raised a blocker without saying in a sentence what set it off, and the
-fourth when a suggestion's id or its move does not fit the cycle's suggestions.
+fourth when a suggestion's id or its move does not fit the cycle's suggestions. The last two are about areas (D-150):
+a plan that leaves a declared file without one, and an area whose files have moved.
 
 ### something above it is unsettled
 
@@ -251,6 +252,27 @@ usual cause is a perspective reader numbering from `F_01`.
 `accessibility.S_04` — and carry a restated one under its standing id, which the reconciler finds among
 every document's open suggestions. Answer a suggestion only on the documents that raised it. A suggestion
 that has become a blocker is handed back `withdrawn`, and the blocker takes a new `F_` id of its own.
+
+### a declared file with no area
+
+A plan round is refused when the plan declares a file that no area in `.sdlc/areas.md` covers and its
+`## Areas` section does not account for either. Every declared file has an answer: an area the solution
+defines, a name the plan proposes for the part of the code it belongs to, or `none` for a one-off. Which
+files are left over is a listing; what to call them is the plan's to say (D-150). A plan of a cycle opened
+before areas is not held to it.
+
+**Next:** add the files the refusal names to the plan's `## Areas` section — `- new <name>: <files>`,
+with the name the team would use, or `- none: <files>` — and record the round again.
+
+### an area covers no file
+
+Writing a round's prompts is refused while an area in `.sdlc/areas.md` has globs that match no file in
+the solution. Its rules and decisions would reach no reader in full, which is the one thing areas must
+never do. The files usually moved in a refactor (D-150).
+
+**Next:** `sdlc areas` shows what each area covers. `/sdlc:mine` proposes the new globs as a `files`
+line, `sdlc draft mining` writes the draft and you rename it — or correct the `Files:` line by hand, since
+the file is yours.
 
 ## `sdlc scaffold` — the two ways it is refused
 
@@ -634,7 +656,7 @@ a new cycle. [Testing a local build](testing-a-local-build.md) is the whole loop
 
 ---
 
-## The pre-tool hook — the eight things an agent is denied
+## The pre-tool hook — the nine things an agent is denied
 
 These are denied at the tool call, by file path and by shell command alike. `../mechanisms/protected-files.md` says
 how the hook decides and what it deliberately leaves alone; this is why each one is a person's. The rules are absolute rather
@@ -647,6 +669,7 @@ running, so a rule with no exception has nowhere for a bypass to live.
 | writing `abandoned.md` | an agent stuck on a blocking finding has an obvious escape — abandon and start clean. A hand-written reason keeps the objections that killed it on the record |
 | writing `constraints.md` | a cycle judged by the constraints it is changing is the same deadlock as the framework governing itself. `sdlc propose constraints` reads the history and proposes an entry; pasting it is the decision |
 | writing `decisions.md` | a stage reads the decision record for alignment, so an agent that could write it could invent doctrine and then align to it. `sdlc propose decisions` reads the approved cycles and proposes an entry; pasting it is the decision |
+| writing `areas.md` | the areas decide which rules and decisions reach each reader in full, so an agent that could write them could move a rule out of its own judge's sight. `/sdlc:mine` proposes areas once three cycles' plans name one, and `sdlc draft mining` writes the draft; renaming it is the decision |
 | writing `solution.md` | the origin is a historical fact that must never change. Per-key protection would be the first conditional rule, which is where a bypass would live. Adoption drafts it; after that `sdlc draft solution` does |
 | writing `techstack.md` | it is the second rule source a plan is read against, and `CON_15` judges every plan against it — so an agent able to edit it could satisfy that rule by adding the row it wanted instead of arguing for it, or drop a stack rule by switching its row off. `sdlc draft techstack` writes a draft beside it; renaming the draft is the decision |
 | running the adoption command | adoption writes the hook configuration that constrains the agent, the pipeline that gates the merge, and the file saying where this code came from |
@@ -654,7 +677,7 @@ running, so a rule with no exception has nowhere for a bypass to live.
 
 **If your agent reports one of these as a broken tool, it is reading the mechanism as a malfunction.** The
 refusal message names the command to run instead — a drafter for four of these files, `propose` for the
-rule file and the decision record. Run it yourself, and place what it produces.
+rule file and the decision record, and mining's drafter for the areas. Run it yourself, and place what it produces.
 
 **The last one matches the verb rather than parsing the line**, so even asking the adoption command for
 its own help is refused and `sdlc help` is the way to read its options. The same scan is why a refusal

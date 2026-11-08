@@ -69,14 +69,14 @@ more**, and every entry the report lists **over the word budget** gets one of:
 - *no proposal, because* — one line, and a real reason: a one-off, a mistake the rule caught correctly,
   a choice already in the code that nothing will revisit
 
-This list goes in the proposal file under `## Not proposed`, after the three sections the drafter reads;
+This list goes in the proposal file under `## Not proposed`, after the four sections the drafter reads;
 it ignores any other heading. **An item with no answer is a hole in the review**, and step 4 is told to
 look for exactly that.
 
 ## 2. Write the proposal file
 
 At the path the report names, one heading per proposal, in exactly this shape — `sdlc draft mining`
-parses the first three sections and ignores the rest:
+parses the first four sections and ignores the rest:
 
 ```markdown
 # Mining proposals — <date>
@@ -117,6 +117,18 @@ each a bold label and a colon, exactly as constraints.md writes them, so the dra
 ### [ ] set <concern> — <the choice, or none>
 > <what in the record asks for it>
 
+## Areas
+
+### [ ] add <name> — <what the area is, in one line>
+**Files:** <glob>, <glob>
+> <the cycles whose plans proposed it, and how many plans the replay says it matches>
+
+### [ ] rename <old> <new> — <why the new word is the team's>
+### [ ] merge <from> into <to> — <why they always match together>
+### [ ] remove <name> — <why it never narrows anything>
+### [ ] files <name> — <the new globs, after the files moved>
+### [ ] tag DEC_04 — <area, area -- or none>
+
 ## For the framework
 
 ### <the framework rule> — <what it cost here, in one line>
@@ -135,6 +147,17 @@ accepted, so a declined proposal leaves no gap.
 Every proposal arrives with its evidence on `>` lines. A proposal you cannot evidence from the record is
 one the person cannot refuse on the record, so leave it out.
 
+**Areas are proposed from what the plans named, at the bar a rule meets** (D-150). The report's *Areas*
+section lists each name plans proposed in their `## Areas` sections and in how many cycles: one is an
+instance, two a coincidence, three a pattern, so `add` an area only at three. Names that differ over the
+same files are one area — reconcile them, and use the word the team would use. Answer the rest of the
+section too: an area every plan touches hides nothing, so `merge` or `remove` it; one no plan touched in
+many cycles is a candidate for `remove`; changed files in no area are where a new area, or `files` for an
+area whose files moved, belongs. A decision or rule that only one area's work reaches gets a `tag`; one
+that is about the business, not a part of the code, stays global and gets none. Every `tag` names an area
+that exists or is added in the same file — the drafter refuses one that does not. An area may be removed,
+unlike a rule or a decision: nothing cites an area's name, and its entries become global.
+
 **Short enough to be read as a headline** (D-149). Every reader is handed every entry's title, and the full
 body only of the entries in scope, so a title takes at most **15 words** — what was decided, not why — and
 each clause at most **60**. `sdlc draft mining` refuses a new entry over either and names it. An entry the
@@ -149,9 +172,11 @@ Tell them where the file is and stop. They mark `[x]` on what they accept and ed
 sdlc draft mining <the proposal file>
 ```
 
-It writes `constraints.draft.md`, `decisions.draft.md` and `techstack.draft.md` beside the real ones —
-each a copy of the file as it stands with only the accepted lines applied — and refuses if any entry or
-row would go missing. Show what it prints verbatim.
+It writes `constraints.draft.md`, `decisions.draft.md`, `techstack.draft.md` and `areas.draft.md` beside the
+real ones, each only where something reached it — a copy of the file as it stands with only the accepted
+lines applied, a renamed or removed area carried onto every entry naming it — and refuses if any entry or
+row would go missing, a new entry is over its word budget, or an entry would name an area nobody defines.
+Show what it prints verbatim.
 
 ## 4. Review what was approved, in a fresh process
 

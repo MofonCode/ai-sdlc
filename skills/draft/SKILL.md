@@ -8,9 +8,10 @@ allowed-tools: Bash(sdlc *), Bash(git *)
 
 # Draft a file only a person writes
 
-Six protected files, one rule: **a tool never places them, a person does.** This drafter serves four
-of them. The other two — this solution's own rules and its decision record — are served by `propose`
-rather than drafted, for the reason at the foot of this page.
+Seven protected files, one rule: **a tool never places them, a person does.** This drafter serves four
+of them. Two more — this solution's own rules and its decision record — are served by `propose`
+rather than drafted, for the reason at the foot of this page. The seventh, `areas.md`, is drafted only
+by `sdlc draft mining` from what `/sdlc:mine` proposed (D-150).
 
 ```
 sdlc draft approval <id>     [--changes-requested | --deny | --reopen]
@@ -134,7 +135,7 @@ them, because such a plan cannot be carried out as written — the build is deni
 evidence comparison would report it as undelivered, which reads as a missing edit rather than an
 impossible declaration.
 
-**Two of the six are not drafted, and that is the asymmetry here.** Every drafter above hands back a
+**Two of the seven are not drafted, and that is the asymmetry here.** Every drafter above hands back a
 finished file for a decision somebody already took. A rule is the opposite: its wording *is* the
 decision, so there was nothing to hand back and this printed a blank form — the one member of the
 family that did. A recorded decision has the same shape. Both moved to `propose`, which argues from the

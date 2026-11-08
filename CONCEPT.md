@@ -494,7 +494,7 @@ mtimes, so a clone sets every file's to the moment of checkout.
 
 ### 5.3 No skill writes a protected file. A skill drafts it.
 
-Six files only a person writes:
+Seven files only a person writes:
 
 | File | What is drafted |
 |---|---|
@@ -502,6 +502,7 @@ Six files only a person writes:
 | `abandoned.md` | why the cycle stopped |
 | `constraints.md` | a proposed `LOC_nn` — **proposed rather than drafted**, D-69. Adoption drafts the file itself with its header and no rule, D-94 |
 | `decisions.md` | a proposed `DEC_nn` — proposed from the approved record, D-70 |
+| `areas.md` | the area file copied beside itself, or the empty form for a solution's first area, with only the accepted area changes applied — drafted by `sdlc draft mining` from what three cycles' plans proposed, D-150 |
 | `techstack.md` | the declared stack — the file copied beside itself, or the framework's default where none is placed yet, for a person to rename, D-67 and D-76. Adoption writes the first draft, D-94 |
 | `solution.md` | the whole document, beside itself — its four keys carried through and its prose unchanged, D-62. Adoption writes the first draft, D-94 |
 
@@ -514,7 +515,7 @@ One verb drafts four of them: `sdlc draft approval <id>`, `draft abandon <id>`, 
 (D-76). `draft approval` also takes `--deny` and `--changes-requested`
 (D-11). Each produces a ready-made entry; the person reads it, decides, and places it.
 
-**Two of the six are the exception, and the verbs split on them (D-69, D-70).** A constraint's wording
+**Two of the seven are the exception, and the verbs split on them (D-69, D-70).** A constraint's wording
 *is* the decision, so there is no finished entry to hand back and the drafter printed a blank form — the
 one member of the family that did. A recorded decision has the same shape, and is proposed from the
 approved record rather than drafted. `sdlc propose constraints` replaces the drafter: it reads the solution's whole
@@ -529,7 +530,7 @@ writes the complete ledger — `approval.<decision>.draft.md`, named for what it
 ledger it would replace, and prints it with the rename. Where a decision already stands, the draft
 reproduces it above the new entry fence to fence, so the rename cannot lose history.
 
-**The pre-tool hook denies every agent write to all six, with no exception** — and every agent command
+**The pre-tool hook denies every agent write to all seven, with no exception** — and every agent command
 that would move anything onto one. There is no approve command for an exception to be carved out for, so
 every hook rule stays absolute (D-09).
 
@@ -1111,24 +1112,27 @@ somewhere and trusted everywhere. A signal like the other two, under D-15: it re
 
 ## 8. The solution's own files
 
-Five files in `.sdlc/`, split by **protection** — four only a person writes, and one an ordinary cycle
-changes. Mutability was the stated axis for a while and stopped separating anything once D-67 and D-70
-protected two more:
+Six files in `.sdlc/`, split by **protection** — five only a person writes, and one an ordinary cycle
+changes. Mutability was the stated axis for a while and stopped separating anything once D-67, D-70 and
+D-150 protected three more:
 
 | File | Changed by | Protection |
 |---|---|---|
 | `constraints.md` | a person, by hand | the hook denies every agent write |
 | `decisions.md` | a person, by hand | the hook denies every agent write (D-70) |
+| `areas.md` | a person, by renaming mining's draft — nothing creates it until three cycles' plans name an area (D-150) | the hook denies every agent write (D-150) |
 | `techstack.md` | a person, by renaming a draft — `init` does not create it (D-76) | the hook denies every agent write (D-67) |
 | `solution.md` | `init` creates it; a person, by hand, after that | the hook denies every agent write |
 | `theme.json` | a cycle whose plan declares it | the ordinary declared-file gate (D-71) |
 
-**Protection is decided by two questions, and the rows split four to one.**
+**Protection is decided by two questions, and the rows split five to one.**
 
 *Is something judged against it?* `constraints.md` and `techstack.md` are the two rule sources a plan is
 read against, so an agent able to write either could satisfy a rule by editing it rather than arguing for
 it. *Does a stage take its brief from it?* `decisions.md`, which is the sharper case — nothing judges a
 plan against the record, and an agent that could write it could invent doctrine and then align to it.
+`areas.md` answers yes to both at one remove: it decides which rules and decisions each reader is handed in
+full, so an agent that could write it could move a rule out of its own judge's sight (D-150).
 
 **`solution.md` answers no to both and is protected anyway, for the reason that makes every hook rule
 absolute (D-09, generalised by D-43).** The origin is a historical fact that must never change, and the
@@ -1175,6 +1179,14 @@ diff reader holds the change to it. The binary parses the lines and reports them
 in the approval draft, in `sdlc status`, in the pull request — and `propose decisions` offers each one an
 approved cycle declared as a supersede, so the record keeps saying what the solution does (D-139, which
 supersedes the plan-only rule of D-72).
+
+**An entry's title is its headline**, at most fifteen words, and each clause at most sixty: mining's drafter
+refuses a new entry past either, and an entry already on the page is named and proposed for rewording, never
+refused (D-149). **An entry may carry an `Areas:` line** naming the parts of the code it applies to, which
+`areas.md` defines by file globs (D-150). Where there are areas, every reader is handed every headline and, in
+full, only the entries with no area or in an area its stage touches — none at the intent and spec, the plan's
+declared files from the plan, the change's files at verify — and an entry whose areas cover nothing reaches
+everyone in full (D-151).
 
 ### 8.1.2 `theme.json`
 
@@ -2270,7 +2282,7 @@ they print verbatim.
 |---|---|
 | `init` | adopts the framework — three modes, §9. Human-invoked; the hook denies an agent running it |
 | `new` | opens a cycle: allocates the id, creates its directory, and **claims** the id with a marker the filesystem refuses to create twice — the claim is the collision check, not the directory (D-10), in the directory every worktree of the repository shares (D-144) |
-| `constraints [--for <artifact>]` | renders the effective set, all tiers. How the rules reach a session |
+| `constraints [--for <artifact>] [--cycle <id>]` | renders the effective set, all tiers. How the rules reach a session. With `--cycle`, this solution's own rules outside the areas the stage touches are rendered by their headline, from the plan on; `constraints show <id>` prints one in full — D-151 |
 | `status <id> [--stage] [--brief]` | the stage panel — §14. `--brief` is the between-stages form: the counts, what the artifact says, each open blocker's gist, and the next command (D-126) |
 | `findings <id> [--stage] [--round] [--blocking] [--finding <fid>]` | what the interrogations said about one cycle, per artifact, each finding at the disposition that stands, with every place it was found; `--blocking` for the open blockers alone, `--finding` for one (D-126) |
 | `round <id> <artifact> --from <file>` | appends the next round to the artifact's findings ledger: the readers' new findings and the session's dispositions merged in, with the round number, the time, and the hashes of what was judged, what it was judged against, each section, and on a verify the evidence, stamped by the binary and chained to the round before. Refuses while anything above it in the chain is unsettled, a known id restated with different words, and a new blocker without a one-line gist (D-110). `--changed` lists the sections moved since the last round instead — D-101, D-107 |
@@ -2305,7 +2317,8 @@ they print verbatim.
 | `sitrep` | the morning's page: what is ready to merge and in what order, what needs a person, what was held back, what is waiting and going stale (D-84, D-86) |
 | `cycles --queued` | what a build would take now, and every cycle held back with why — a `cycle/<id>/...` branch on the remote, or an approval the gate no longer accepts (D-85) |
 | `suggestions [<id>]` | the open non-blocking findings, across cycles |
-| `decisions [--brief\|--all]` | the choices this solution has settled, so a cycle reads what was argued rather than arguing it again — D-70 |
+| `decisions [--brief\|--all] [--for <stage> --cycle <id>] [--area <name>]` | the choices this solution has settled, so a cycle reads what was argued rather than arguing it again. With `--cycle`, an entry outside the areas the stage touches is rendered by its headline; `decisions show <id>` prints one in full — D-70, D-149, D-151 |
+| `areas` | each area `areas.md` defines: the files it covers today, the entries carrying it, and an entry naming an area nobody defined. Exits 1 when an area covers nothing, which refuses a round until fixed — D-150 |
 | `theme` | the roles this solution's surfaces use and the values that fill them — D-71 |
 | `stack` | what the solution declares it is built from, and which build settings files it takes that are not on disk. Names the gap and closes none — D-77 |
 | `settings` | how this solution is set to run: each `solution.md` key declared or defaulted and how to change it, what this machine overrides, and what this release fixes with the decision that fixes it. Points at `constraints`, `stack` and `decisions` rather than repeating them, writes nothing, and exits 1 when `solution.md` cannot be read — D-138 |
@@ -7237,6 +7250,86 @@ its refusal still apply.
 - *Keeping `sdlc <stage>` everywhere.* Correct and host-neutral, and costs a refusal each time.
 - *Guessing a marker for Copilot or Antigravity.* Neither documents one; a guessed marker is a panel that
   names one host's invocation to someone using another.
+
+### D-151 — A reader gets every headline, and in full only the entries in the areas its stage touches
+
+**Governs:** §6.5, §15
+
+**Extends D-139**, which handed every stage the decision record whole; **leaves D-58 unchanged**: what a reader
+judges is still decided by the binary's prompt, not the reader.
+
+**Decision.** Where a solution has areas (D-150), each stage's view of the decisions and of this solution's own
+rules is narrowed. **The intent and the spec touch no area**, because the intent is the product owner's,
+business-led, and the spec QA's; **the plan touches the areas its declared files fall in**, and the build reads the
+same; **a verification touches the areas of the files the change actually touched**. An entry with no area, or one
+in an area the stage touches, reaches it in full — `Instead of` for a reader, every clause for an author — and every
+other entry is rendered by its headline. **A solution rule is narrowed only from the plan on**: before it no file is
+declared, so a rule applying to specs and tagged with an area would never reach a spec in full. The framework's
+global rules and the stack rules are never narrowed. **It fails open**: no areas, an entry naming no area, an entry
+whose areas are all undefined or cover no file — each reaches every reader in full. An author asks for one entry
+with `sdlc decisions show` or `sdlc constraints show`; a reader, which runs with no tools, is told to raise a finding
+naming the entry if the document reaches one anyway. `sdlc decisions --for <stage> --cycle <id>` and `sdlc
+constraints --for <stage> --cycle <id>` give the same view to an author.
+
+**Why.** The person wanted readers handed what they need rather than everything, and the record to stay worth
+reading as mining makes it grow; and decided the intent stays business-led and names no area, with the plan the
+first place areas are known. Readers judging against only what they are shown is the risk, and was accepted with
+every headline as the safety net: no reader is unaware an entry exists.
+
+**Rejected.**
+
+- *Full bodies for every reader, narrowing only authors.* Safer, and saves little of what readers cost; the person
+  chose to narrow readers.
+- *Narrowing rules at the intent and spec.* Would quietly drop a spec rule tagged with an area.
+- *The intent naming its areas.* The intent is the business case; the plan is the first technical document.
+- *Telling a reader to run `sdlc decisions show`.* It has no tools.
+
+### D-150 — Areas: a person's file of names for sets of files, carried by rules and decisions, named by plans
+
+**Governs:** §5.3, §8, §15
+
+**Extends D-104** — mining drafts a fourth file — **and D-115** — the suggestions ledger holds a kind no reader
+raises.
+
+**Decision.** `.sdlc/areas.md` is the **seventh file only a person writes**: each area a heading, a `Files:` line of
+globs and an `Is:` line. A glob is small enough to predict — `*` within a folder, `**` across folders, a glob with no
+slash matches a file name anywhere, one ending `/` is everything under it. A decision or a solution rule carries
+the names of the areas it applies to on an `Areas:` line; the globs live only in the area file, and which files and
+entries an area covers is worked out by `sdlc areas` and never stored. **A solution starts with none, and none
+narrows nothing.** **Names come from the plan**: a plan of a cycle opened since this release has an `## Areas`
+section, and its round refuses a declared file that is in no defined area, not listed under `- new <name>:`, and not
+listed under `- none:`. Each proposed name is recorded in the suggestions ledger as an area suggestion, raised by the
+plan rather than a reader; one the plan stops naming is withdrawn; `steer` never takes one in, and a `taking in`
+line naming one accepts nothing. **Mining proposes an area once three cycles' plans name it** — one is an instance,
+two a coincidence, three a pattern — and the report replays every plan against each area so a proposal can be
+judged on whether it would ever narrow anything. `sdlc draft mining` takes `## Areas` headings — `add`, `rename`,
+`merge … into`, `remove`, `files`, `tag` — and writes `areas.draft.md`, carrying a rename, merge or remove onto every
+entry naming the area, and refusing a draft in which an entry names an area nobody defines. An area may be removed,
+unlike a rule or a decision: nothing cites an area's name, and its entries become global. **An area whose globs
+cover no file stops every round** until it is fixed, because its entries would otherwise quietly reach nobody in
+full. The perspectives' unread `areas:` field became `switches-on:` (D-148), so "area" has this one meaning.
+
+**Why.** Mining makes the record grow, and every reader was handed all of it. The person wanted entries scoped so a
+reader gets what it needs, chose tags over a single category, then file globs over a taxonomy, a file of its own
+drafted and renamed into place, names built up from the cycles rather than seeded at adoption, and three cycles as
+the bar for a new one.
+
+**Rejected.**
+
+- *A single category per entry.* An outbox rule belongs to persistence and to messaging.
+- *A fixed framework taxonomy* — backend, database, infrastructure, frontend. Somebody files every entry by judgement,
+  and a misfiled rule is a silent hole in the gate.
+- *Free-form tags with no vocabulary.* `db`, `database` and `persistence` drift apart and hide entries silently.
+- *Areas chosen by the model.* One left out is a reader gone blind; areas are worked out from files.
+- *The vocabulary in `techstack.md`.* Considered first; what areas exist is not a stack choice.
+- *A directory of decisions per area.* An entry in two areas is copied or misfiled, every rename moves entries
+  between files, and the globs are restated beside rules and decisions alike. `sdlc decisions --area` is the
+  per-area view.
+- *A third file mapping entries to areas.* A second copy of what the entries carry.
+- *Ids behind area names, or aliases.* A second name to keep in step with the first.
+- *Seeding areas at adoption.* Empty is safe, and names drawn from evidence beat names guessed on day one.
+- *Taking an area suggestion in through `steer`.* An area is not an outcome (D-128), and changing what readers see
+  mid-cycle is what mining was placed outside the cycle to avoid (D-104).
 
 ### D-149 — An entry's title is its headline, and a title and each clause have a word budget
 

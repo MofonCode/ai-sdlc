@@ -197,16 +197,17 @@ the response-factory ban has a test of its own.
 cannot be decided that way. Typing a stage name at the binary — `sdlc spec <id>` — is answered rather
 than refused: it says the stage is a skill and names the invocation.
 
-**Six files only a person writes**, in a governed solution: `approval.md`, `abandoned.md`,
-`constraints.md`, `decisions.md`, `solution.md`, `techstack.md`. No tool writes them. A tool prints what
+**Seven files only a person writes**, in a governed solution: `approval.md`, `abandoned.md`,
+`constraints.md`, `decisions.md`, `areas.md`, `solution.md`, `techstack.md`. No tool writes them. A tool prints what
 belongs in them — `sdlc draft approval`, `draft abandon`, `draft solution`, `draft techstack` — and a
 person places it. **Two are proposed rather than drafted**, because their
 wording is argued from the record rather than dictated: `sdlc propose constraints` from the findings, and
-`sdlc propose decisions` from what an approved cycle stated.
+`sdlc propose decisions` from what an approved cycle stated. **The areas are mined**: `sdlc draft mining`
+drafts `areas.md` from what three cycles' plans proposed.
 
 `.sdlc/theme.json` is a solution file and is **not** on that list: nobody is judged against a colour, so
 a cycle may declare it and change a value like any other file. The pre-tool
-hook denies every agent write to all six, by file path and by shell command alike, with no exception.
+hook denies every agent write to all seven, by file path and by shell command alike, with no exception.
 **A refusal there is the design working, not a configuration problem to route around.** The hook matches
 the text of the command, not the paths it resolves, so a commit message with a write verb beside a
 protected file's name -- *Move techstack.md into place* -- is refused too: pass it with `git commit -F`.

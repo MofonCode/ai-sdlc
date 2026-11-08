@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Text;
 using System.Text.RegularExpressions;
 using FluentResults;
+using Sdlc.Core.Areas;
 
 namespace Sdlc.Core.Constraints;
 
@@ -22,7 +23,7 @@ public static class ConstraintParser
         TimeSpan.FromSeconds(1));
 
     private static readonly Regex _clausePattern = new(
-        @"^\*\*(?<label>Applies to|Forbids|Why|Superseded-by|Judged):\*\*\s*(?<body>.*)$",
+        @"^\*\*(?<label>Applies to|Forbids|Why|Superseded-by|Judged|Areas):\*\*\s*(?<body>.*)$",
         RegexOptions.CultureInvariant | RegexOptions.ExplicitCapture,
         TimeSpan.FromSeconds(1));
 
@@ -154,7 +155,8 @@ public static class ConstraintParser
                 forbids,
                 why,
                 supersededBy,
-                judged));
+                judged,
+                AreaParser.Names(block.Clause("Areas"))));
         }
 
         return errors.Count > 0

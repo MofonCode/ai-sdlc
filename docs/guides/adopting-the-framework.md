@@ -313,8 +313,8 @@ takes it from there.
 
 ## What your solution owns
 
-**Six files only a person writes**, and every tool that could write one prints or drafts what belongs in
-it instead. The pre-tool hook denies every agent write to all six, by file path and by shell command
+**Seven files only a person writes**, and every tool that could write one prints or drafts what belongs in
+it instead. The pre-tool hook denies every agent write to all seven, by file path and by shell command
 alike — `../mechanisms/protected-files.md` is the whole of how.
 
 | File | What it holds | Changes when | How it gets written |
@@ -323,6 +323,7 @@ alike — `../mechanisms/protected-files.md` is the whole of how.
 | `.sdlc/techstack.md` | what the solution is built from, the stack rules it is held to, the build settings it takes | a default or a rule turns out wrong for this solution | adoption drafts it first; after that `sdlc draft techstack`. Then your rename — `declaring-the-stack.md` |
 | `.sdlc/constraints.md` | this solution's own `LOC_` rules, the last word over every other tier | a rule keeps being cited across cycles, or one stops earning its place | adoption drafts it empty; `sdlc propose constraints` proposes entries; you paste and rename |
 | `.sdlc/decisions.md` | choices this solution already settled, so a cycle reads what was argued rather than arguing it again. Binds nothing | an approved cycle settles something worth not re-deciding | `sdlc propose decisions` reads approved cycles; you paste |
+| `.sdlc/areas.md` | the parts of the code, each a name for a set of files, so a reader gets in full only the rules and decisions its change reaches. Absent until three cycles' plans name an area | mining proposes an area, a rename, a merge, or globs for files that moved | `/sdlc:mine` proposes; `sdlc draft mining` drafts; you rename |
 | `.sdlc/cycles/<id>/approval.md` | the decision on one cycle's three planning documents | at the gate, and again if a document changes | `sdlc draft approval <id>`, then your rename |
 | `.sdlc/cycles/<id>/abandoned.md` | why one cycle stopped for good | once, and it is terminal | `sdlc draft abandon <id>`, then your rename |
 

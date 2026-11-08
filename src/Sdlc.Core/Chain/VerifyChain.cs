@@ -651,6 +651,7 @@ public static class VerifyChain
             List<string> missing = [];
             List<string> misshapen = [];
             bool fence = await NewerRules.Hold(cycle, cancellationToken).ConfigureAwait(false);
+            bool areas = await NewerRules.Since(cycle, NewerRules.Areas, cancellationToken).ConfigureAwait(false);
             IReadOnlyList<Decisions.Decision> recorded = await Decisions.Departures.Recorded(cycle.SolutionRoot, cancellationToken).ConfigureAwait(false);
 
             foreach (ArtifactKind kind in required)
@@ -664,7 +665,7 @@ public static class VerifyChain
                 }
 
                 string text = await File.ReadAllTextAsync(path, cancellationToken).ConfigureAwait(false);
-                ArtifactValidation shape = Decisions.Departures.Checked(ArtifactSchema.Validate(kind, text, id, fence), text, recorded);
+                ArtifactValidation shape = Decisions.Departures.Checked(ArtifactSchema.Validate(kind, text, id, fence, areas), text, recorded);
 
                 misshapen.AddRange(shape.Violations.Select(violation => string.Create(
                     CultureInfo.InvariantCulture,

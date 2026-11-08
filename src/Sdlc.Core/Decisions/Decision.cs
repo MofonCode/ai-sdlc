@@ -116,6 +116,10 @@ public readonly record struct DecisionId
 /// a cycle that cited it remains readable, the same discipline §20's own preamble states for the
 /// framework's decisions.
 /// </param>
+/// <param name="Areas">
+/// The areas it applies to, as its <c>Areas:</c> line names them; null or empty for a decision that applies
+/// everywhere, which every reader is handed in full (D-150).
+/// </param>
 public sealed record Decision(
     DecisionId Id,
     string Statement,
@@ -123,8 +127,12 @@ public sealed record Decision(
     string Because,
     string InsteadOf,
     string From,
-    DecisionId? SupersededBy = null)
+    DecisionId? SupersededBy = null,
+    IReadOnlyList<string>? Areas = null)
 {
+    /// <summary>The areas it applies to; empty when it applies everywhere.</summary>
+    public IReadOnlyList<string> InAreas => Areas ?? [];
+
     /// <summary>
     /// Whether this decision still stands. A superseded one is kept for the record and is not current.
     /// </summary>

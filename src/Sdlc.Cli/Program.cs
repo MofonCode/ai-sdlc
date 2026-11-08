@@ -4,6 +4,7 @@ using System.Text;
 using FluentResults;
 using Sdlc.Cli;
 using Sdlc.Core.Approvals;
+using Sdlc.Core.Areas;
 using Sdlc.Core.Artifacts;
 using Sdlc.Core.Chain;
 using Sdlc.Core.Constraints;
@@ -113,6 +114,7 @@ try
         "round" => await RoundVerb(line).ConfigureAwait(false),
         "suggestions" => await Workspace.Run(line, w => Suggestions(w, line)).ConfigureAwait(false),
         "decisions" => await Workspace.Run(line, w => Decisions(w, line)).ConfigureAwait(false),
+        "areas" => await Workspace.Run(line, AreasCommand).ConfigureAwait(false),
         "theme" => await Workspace.Run(line, ThemeCommand).ConfigureAwait(false),
         "stack" => await Workspace.Run(line, StackCommand).ConfigureAwait(false),
         "settings" => await Workspace.Run(line, SettingsCommand).ConfigureAwait(false),
@@ -143,12 +145,98 @@ static async Task<int> Constraints(Workspace workspace, CommandLine line)
         return await Report(result, ExitCode.Refused).ConfigureAwait(false);
     }
 
+    // One rule in full, in force or superseded: what a stage handed only the headline asks for (D-151).
+    if (line.Arguments.Count > 0 && string.Equals(line.Arguments[0], "show", StringComparison.OrdinalIgnoreCase))
+    {
+        Constraint? found = line.Arguments.Count < 2
+            ? null
+            : result.Value.Constraints.Concat(result.Value.Superseded)
+                .FirstOrDefault(rule => string.Equals(rule.Id.ToString(), line.Arguments[1], StringComparison.OrdinalIgnoreCase));
+
+        if (found is null)
+        {
+            await Console.Error.WriteLineAsync("Which rule? 'sdlc constraints show LOC_nn', one 'sdlc constraints --brief' lists.").ConfigureAwait(false);
+            return ExitCode.Usage;
+        }
+
+        await Console.Out.WriteAsync(ConstraintRenderer.RenderOne(found)).ConfigureAwait(false);
+        return ExitCode.Ok;
+    }
+
+    Result<AreaScope> scope = await ScopeFor(workspace, line, artifact, rules: true).ConfigureAwait(false);
+
+    if (scope.IsFailed)
+    {
+        return await Report(scope, ExitCode.Refused).ConfigureAwait(false);
+    }
+
     ConstraintDetail detail = line.HasOption("brief") ? ConstraintDetail.Brief : ConstraintDetail.Full;
 
-    await Console.Out.WriteAsync(ConstraintRenderer.Render(result.Value, detail, artifact))
+    await Console.Out.WriteAsync(ConstraintRenderer.Render(result.Value, detail, artifact, scope.Value))
         .ConfigureAwait(false);
 
     return ExitCode.Ok;
+}
+
+// The areas one stage of a cycle touches, for '--cycle <id> --for <stage>': entries outside them are rendered
+// by their headline (D-151). Without --cycle nothing is narrowed. A rule is narrowed only from the plan on,
+// because before it no file is declared and a rule applying to specs would never reach one in full.
+static async Task<Result<AreaScope>> ScopeFor(Workspace workspace, CommandLine line, string? stage, bool rules)
+{
+    // The intent and the spec touch no area, so their scope needs no cycle: every headline, and in full only
+    // what applies everywhere. A rule is not narrowed there at all.
+    if (!rules && (string.Equals(stage, "intent", StringComparison.OrdinalIgnoreCase) || string.Equals(stage, "spec", StringComparison.OrdinalIgnoreCase)))
+    {
+        Result<IReadOnlyList<Area>> defined = await AreaScope.ReadDefined(workspace.SolutionRoot, CancellationToken.None).ConfigureAwait(false);
+
+        return defined.IsFailed
+            ? defined.ToResult<AreaScope>()
+            : Result.Ok(AreaScope.For(defined.Value, [], AreaScope.CoveringNothing(defined.Value, workspace.SolutionRoot)));
+    }
+
+    if (!line.TryOption("cycle", out string? given))
+    {
+        return Result.Ok(AreaScope.Everything);
+    }
+
+    if (!CycleId.TryParse(given, out CycleId? id))
+    {
+        return Result.Fail<AreaScope>($"'{given}' is not a cycle id. 'sdlc cycles' lists them.");
+    }
+
+    ArtifactKind kind = string.Equals(stage, "diff", StringComparison.OrdinalIgnoreCase)
+        ? ArtifactKind.Verify
+        : Cycle.TryParseKind(stage, out ArtifactKind parsed)
+            ? parsed
+            : ArtifactKind.Intent;
+
+    if (stage is null)
+    {
+        return Result.Fail<AreaScope>("--cycle says whose areas; --for says which stage: intent, spec, plan, diff or verify.");
+    }
+
+    if (rules && kind is ArtifactKind.Intent or ArtifactKind.Spec)
+    {
+        return Result.Ok(AreaScope.Everything);
+    }
+
+    return await AreaScope.Of(new Cycle(id.Value, workspace.SolutionRoot), kind, CancellationToken.None).ConfigureAwait(false);
+}
+
+// What each area covers today and which entries carry it, worked out on every read (D-150).
+static async Task<int> AreasCommand(Workspace workspace)
+{
+    Result<ReadAreas.Response> result = await workspace
+        .Send<ReadAreas.Query, ReadAreas.Response>(new ReadAreas.Query())
+        .ConfigureAwait(false);
+
+    if (result.IsFailed)
+    {
+        return await Report(result, ExitCode.Refused).ConfigureAwait(false);
+    }
+
+    await Console.Out.WriteAsync(AreasRenderer.Render(result.Value)).ConfigureAwait(false);
+    return result.Value.Areas.Any(area => area.Files == 0) ? ExitCode.Refused : ExitCode.Ok;
 }
 
 // Human-invoked and never model-invoked: adopting a process is a decision about how a team works, so
@@ -1642,9 +1730,24 @@ static async Task<int> Decisions(Workspace workspace, CommandLine line)
         return ExitCode.Ok;
     }
 
+    line.TryOption("for", out string? stage);
+    Result<AreaScope> scope = await ScopeFor(workspace, line, stage, rules: false).ConfigureAwait(false);
+
+    if (scope.IsFailed)
+    {
+        return await Report(scope, ExitCode.Refused).ConfigureAwait(false);
+    }
+
+    // One area's entries, for a person reading the record a part at a time.
+    if (line.TryOption("area", out string? area))
+    {
+        result = Result.Ok(result.Value with { Decisions = [.. result.Value.Decisions.Where(decision => decision.InAreas.Contains(area!))] });
+    }
+
     await Console.Out.WriteAsync(DecisionsRenderer.Render(
         result.Value,
-        line.HasOption("brief") ? DecisionDetail.Brief : DecisionDetail.Full)).ConfigureAwait(false);
+        line.HasOption("brief") ? DecisionDetail.Brief : DecisionDetail.Full,
+        scope.Value)).ConfigureAwait(false);
 
     return ExitCode.Ok;
 }
@@ -2109,7 +2212,7 @@ static async Task<int> Status(Workspace workspace, CommandLine line, CycleId id)
     ArtifactValidation? shape = text is null
         ? null
         : Departures.Checked(
-            ArtifactSchema.Validate(kind, text, id, await NewerRules.Hold(status.Cycle, CancellationToken.None).ConfigureAwait(false)),
+            ArtifactSchema.Validate(kind, text, id, await NewerRules.Hold(status.Cycle, CancellationToken.None).ConfigureAwait(false), await NewerRules.Since(status.Cycle, NewerRules.Areas, CancellationToken.None).ConfigureAwait(false)),
             text,
             recorded);
 

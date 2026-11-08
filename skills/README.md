@@ -46,7 +46,7 @@ repository, so it asks before every push — but no hook blocks a push, and what
 from merging is the pull-request check.
 
 **All twenty-one are model-invocable.** Nothing in the manifest stops an agent reaching for one on its
-own, and that is deliberate — what protects the decisions is the hook denying the six protected files
+own, and that is deliberate — what protects the decisions is the hook denying the seven protected files
 and `sdlc init`, plus the pull-request check, rather than a flag in a skill's frontmatter. A guard that
 lives in the manifest is a guard the manifest can lose. `../docs/guides/handling-refusals.md` has what
 the hook actually denies today, and what it does not.
@@ -110,7 +110,7 @@ with the person from what the repository holds, in a draft they rename.
   branch and switches to it, and drafts `solution.draft.md`, `techstack.draft.md` and
   `constraints.draft.md` beside where each goes — each with a note saying only a person changes the real
   file. A person fills them in, renames them into place and commits them, because `solution.md`,
-  `techstack.md` and `constraints.md` are three of the six files only a person writes. The drafts are
+  `techstack.md` and `constraints.md` are three of the seven files only a person writes. The drafts are
   ignored by git.
 - **`--platform local`** writes no pipeline. No pull-request check then governs a merge and nothing
   mechanical decides what reaches the default branch — the choice is recorded in `solution.md` so
@@ -425,7 +425,7 @@ confirms each one ran and passed.
 | there is no spec | refuses | `/sdlc:spec <id>` |
 | the spec is not clean | refuses | `/sdlc:refine <id> spec`, then a fresh interrogation |
 | a plan already exists | refuses | `/sdlc:interrogate <id> plan` or `/sdlc:steer`, which it names |
-| the plan would declare one of the six files only a person writes | never declares one; the schema refuses a plan that does | — |
+| the plan would declare one of the seven files only a person writes | never declares one; the schema refuses a plan that does | — |
 
 #### Example
 
@@ -947,8 +947,8 @@ cannot.
 
 #### Remarks
 
-Six files are written only by a person — `approval.md`, `abandoned.md`, `constraints.md`,
-`decisions.md`, `solution.md` and `techstack.md` — and **a recorded decision means something precisely
+Seven files are written only by a person — `approval.md`, `abandoned.md`, `constraints.md`,
+`decisions.md`, `areas.md`, `solution.md` and `techstack.md` — and **a recorded decision means something precisely
 because no tool could have recorded it.** Every agent write to them is denied at the tool call, by file
 path and by shell command alike. There is no flag, no mode, and no approve command for an exception to be
 carved out of. But a person who has to look a format up is a person who gets it wrong or puts it off, so
@@ -961,8 +961,9 @@ A refusal at the gate is drafted on the same terms as an approval — `--changes
 `--reopen` — because rejecting is what a person does when they are least inclined to look a format up,
 and helping with the easy case while withholding help from the hard one is the asymmetry people resent.
 
-**The other two are `propose`'s, and the verbs split on it.** A constraint's wording *is* the decision,
-so there is no finished entry to hand back.
+**The other three are `propose`'s and `mine`'s, and the verbs split on it.** A constraint's wording *is*
+the decision, so there is no finished entry to hand back; the areas are drafted only by `sdlc draft
+mining`, from what three cycles' plans proposed (D-150).
 
 **A blocking finding cannot be waived by any mechanism** (D-27): there is no field for it in the entry
 and no refusal code at the gate that acceptance would clear. It is answered, or the cycle does not

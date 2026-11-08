@@ -4,6 +4,7 @@ using FluentResults;
 using Microsoft.Extensions.DependencyInjection;
 using MofonCode.Core;
 using Sdlc.Core.Approvals;
+using Sdlc.Core.Areas;
 using Sdlc.Core.Constraints;
 using Sdlc.Core.Artifacts;
 using Sdlc.Core.Cycles;
@@ -91,13 +92,18 @@ public static class ProposeMining
     /// The standing decisions and this solution's rules in force whose title or a clause runs past its word
     /// budget, each with its overrun: candidates for a <c>reword</c> or a superseding entry (D-149).
     /// </param>
+    /// <param name="Areas">
+    /// What the cycles say about the areas: the names plans proposed, how often each area would have matched,
+    /// and changed files no area covers (D-150).
+    /// </param>
     public sealed record Response(
         ProposeConstraints.Response Rules,
         IReadOnlyList<Group> Groups,
         ProposeDecisions.Response Decisions,
         StackCoverage.Unmentioned Stack,
         IReadOnlyList<CycleRecord>? Record = null,
-        IReadOnlyList<string>? OverBudget = null);
+        IReadOnlyList<string>? OverBudget = null,
+        AreaHistory.Reading? Areas = null);
 
     /// <summary>Asks for the report.</summary>
     public sealed record Query : IRequest<Response>;
@@ -202,6 +208,8 @@ public static class ProposeMining
             }
         }
 
+        Areas(text, response.Areas);
+
         text.AppendLine();
         text.AppendLine("Stack");
 
@@ -226,12 +234,53 @@ public static class ProposeMining
         text.AppendLine("  ## Rules        ### [ ] add — <statement>   ### [ ] supersede LOC_02 — <statement>   ### [ ] reword LOC_01 — <statement>");
         text.AppendLine("  ## Decisions    ### [ ] add — <statement>   ### [ ] supersede DEC_02 — <statement>");
         text.AppendLine("  ## Stack        ### [ ] set <concern> — <choice, or none>");
+        text.AppendLine("  ## Areas        ### [ ] add <name> — <what it is>   ### [ ] rename <old> <new> — <why>   ### [ ] merge <from> into <to> — <why>");
+        text.AppendLine("                  ### [ ] remove <name> — <why>   ### [ ] files <name> — <globs>   ### [ ] tag DEC_04 — <area, area, or none>");
         text.AppendLine();
         text.AppendLine("  Under each heading, the entry's clauses as they would be pasted, and '> ' lines for the evidence.");
         text.AppendLine("  There is no remove: supersede a rule or decision, and set a stack concern to none.");
         text.AppendLine("  Then 'sdlc draft mining " + proposals + "' writes the drafts from what was marked [x].");
 
         return text.ToString();
+    }
+
+    /// <summary>
+    /// What the cycles say about the areas (D-150): names plans proposed, at the three-cycle bar or below it;
+    /// how often each defined area would have matched a plan; and changed files no area covers.
+    /// </summary>
+    private static void Areas(StringBuilder text, AreaHistory.Reading? areas)
+    {
+        if (areas is null || (areas.Candidates.Count == 0 && areas.Defined.Count == 0))
+        {
+            return;
+        }
+
+        text.AppendLine();
+        text.AppendLine(string.Create(CultureInfo.InvariantCulture, $"Areas   {areas.Defined.Count} defined, {areas.Candidates.Count} names proposed, {areas.Plans} plans replayed"));
+
+        foreach (AreaHistory.Candidate candidate in areas.Candidates)
+        {
+            string bar = candidate.Cycles.Count >= ProposeConstraints.Bar ? "at the bar" : "below the bar";
+            text.AppendLine(string.Create(
+                CultureInfo.InvariantCulture,
+                $"  proposed: {candidate.Name} in {candidate.Cycles.Count} cycle{(candidate.Cycles.Count == 1 ? string.Empty : "s")} ({bar}) -- would match {candidate.Plans} of {areas.Plans} plans -- {string.Join(", ", candidate.Files)}"));
+        }
+
+        foreach (AreaHistory.Replay replay in areas.Defined)
+        {
+            string note = areas.Plans > 0 && replay.Plans == areas.Plans ? " -- every plan touches it, so it hides nothing" : replay.Plans == 0 ? " -- no plan touched it" : string.Empty;
+            text.AppendLine(string.Create(CultureInfo.InvariantCulture, $"  defined: {replay.Name} matched {replay.Plans} of {areas.Plans} plans{note}"));
+        }
+
+        foreach (string file in areas.Unmatched.Take(20))
+        {
+            text.AppendLine("  changed, in no area: " + file);
+        }
+
+        if (areas.Unmatched.Count > 20)
+        {
+            text.AppendLine(string.Create(CultureInfo.InvariantCulture, $"  ...and {areas.Unmatched.Count - 20} more changed files in no area"));
+        }
     }
 
     /// <summary>
@@ -365,7 +414,21 @@ public static class ProposeMining
                 record.Add(await Recorded(cycle, cancellationToken).ConfigureAwait(false));
             }
 
-            return Result.Ok(new Response(rules.Value, groups, decisions.Value, unmentioned, record, await OverBudget(decisions.Value.Standing, cancellationToken).ConfigureAwait(false)));
+            Result<IReadOnlyList<Area>> defined = await AreaScope.ReadDefined(solution.Path, cancellationToken).ConfigureAwait(false);
+
+            if (defined.IsFailed)
+            {
+                return defined.ToResult<Response>();
+            }
+
+            return Result.Ok(new Response(
+                rules.Value,
+                groups,
+                decisions.Value,
+                unmentioned,
+                record,
+                await OverBudget(decisions.Value.Standing, cancellationToken).ConfigureAwait(false),
+                await AreaHistory.Read(solution.Path, defined.Value, cancellationToken).ConfigureAwait(false)));
         }
 
         /// <summary>

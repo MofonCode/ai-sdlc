@@ -159,6 +159,11 @@ joined by commas or *and*, a decline's reason after a colon. `sdlc suggestions` 
 other to say which were accepted and which declined, and by which cycle (D-115); *"taking in the
 keyboard one"* is a decision the listing cannot see.
 
+**An area suggestion — an id starting `areas.` — is never taken in.** The plan raised it by naming the
+part of the code its files belong to, and an area is not something this cycle delivers (D-128): it is
+placed between cycles, by `/sdlc:mine`, once three cycles' plans name it (D-150). A `taking in` line naming
+one accepts nothing. Declining one is allowed, and says the name was wrong.
+
 **No finding's disposition is set here.** A disposition moves only on a fresh reader's silence (D-49):
 the next round's reader finds the outcome stated, or the matter decided, and does not raise it again, so
 the round records it `answered`. A reader that raises it anyway is saying the wording did not settle it,

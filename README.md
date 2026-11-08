@@ -6,7 +6,7 @@
 [![ci](https://img.shields.io/github/actions/workflow/status/MofonCode/ai-sdlc/ci.yml?branch=main&label=ci)](https://github.com/MofonCode/ai-sdlc/actions/workflows/ci.yml)
 [![license](https://img.shields.io/github/license/MofonCode/ai-sdlc)](LICENSE)
 
-**Version 0.38.0** · iteration 4 · .NET 10
+**Version 0.39.0** · iteration 4 · .NET 10
 
 **A plugin that makes an AI coding agent work the way a careful team does** — write down what the change
 is for, agree what *done* means, plan it, have a person approve it, and only then write code. **And it
@@ -87,7 +87,7 @@ cycles and which only fixtures.
 | Feature | The problem | What it does |
 |---|---|---|
 | **Hash-bound gate** | Approval is a "looks good" in chat, and the plan changes afterwards | A person approves all three planning documents together, and the approval records a hash of each. Edit one afterwards and the gate refuses until it is approved again. On by default; a team may declare it off, and `sdlc settings` shows which it is |
-| **Protected files** | An agent edits its own approval, or the rules it is judged by | Six files — the approval, an abandonment, the solution's rules, its decisions, its stack and what it is — are written only by a person. The pre-tool hook denies every agent write to them, by path and by shell command alike |
+| **Protected files** | An agent edits its own approval, or the rules it is judged by | Seven files — the approval, an abandonment, the solution's rules, its decisions, its areas, its stack and what it is — are written only by a person. The pre-tool hook denies every agent write to them, by path and by shell command alike |
 | **Recorded evidence** | "The tests pass" is a claim, and the turn ends on a red build | The build records the diff, a normalised test summary and coverage. The turn-end hook sends the turn back while the suite has a failure or the evidence is missing or stale |
 | **Verify** | A reviewer re-reads the code and trusts the green tick | A fresh process that did not see the build judges it from the recorded evidence alone, criterion by criterion: did the named test run, pass, and actually establish the criterion? Beside it, another reads the change itself for anything the plan did not describe or a recorded decision set aside |
 | **Bounded remediation** | A fix loop either thrashes forever or gives up after an arbitrary count | `/sdlc:remediate` runs while each pass reduces what is open. When a pass undoes an earlier answer, or two reduce nothing, the cycle escalates to a person and never opens a pull request |
@@ -168,10 +168,11 @@ Three layers, and only the last is a guarantee:
 The promise made to a team is the third one. The local layer exists to make it cheap to satisfy, not to
 be the proof.
 
-**And six files only a person ever writes:** `approval.md` the gate decision, `abandoned.md` why a cycle
-stopped, `constraints.md` the solution's own rules, `decisions.md` the choices it has settled,
-`solution.md` what it is, and `techstack.md` what it is built from. A tool prints what belongs in them
-and a person puts it there. Every agent write to all six is denied at the tool call, by file path and by
+**And seven files only a person ever writes:** `approval.md` the gate decision, `abandoned.md` why a cycle
+stopped, `constraints.md` the solution's own rules, `decisions.md` the choices it has settled, `areas.md`
+the parts of its code that decide which of those reach a reader in full, `solution.md` what it is, and
+`techstack.md` what it is built from. A tool prints what belongs in them
+and a person puts it there. Every agent write to all seven is denied at the tool call, by file path and by
 shell command alike, with no exception and no flag to carve one out of.
 
 **A blocking objection cannot be waived by any mechanism.** It is answered, or the cycle does not
@@ -218,7 +219,7 @@ sdlc constraints
 ```
 
 It should print the nineteen global constraints in force and say it read them from
-`global  embedded in sdlc 0.38.0`. **Use this rather than `sdlc help` as the smoke test** — `help` and
+`global  embedded in sdlc 0.39.0`. **Use this rather than `sdlc help` as the smoke test** — `help` and
 `version` are the only commands that need nothing from the installation, so they are the two that cannot
 tell you whether it worked. Then `claude plugin details sdlc@ai-sdlc` should say `Skills (21)` and
 `Hooks (3)`: **a hook count below three is a failed install**, not a detail, because the deterministic layer

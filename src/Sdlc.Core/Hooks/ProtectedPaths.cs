@@ -1,4 +1,5 @@
 using System.Globalization;
+using Sdlc.Core.Areas;
 using Sdlc.Core.Constraints;
 using Sdlc.Core.Cycles;
 using Sdlc.Core.Decisions;
@@ -110,6 +111,16 @@ public static class ProtectedPaths
                 + "person's signature. Run 'sdlc propose decisions' and hand back what it prints.");
         }
 
+        if (string.Equals(fileName, AreaParser.FileName, StringComparison.OrdinalIgnoreCase))
+        {
+            return new ProtectedFile(
+                "the parts of this solution's code, and the files each covers",
+                "The areas decide which rules and decisions reach each reader in full, so an agent that "
+                + "could write them could move a rule out of its own judge's sight. Areas are proposed "
+                + "from what three cycles' plans named by '/sdlc:mine'. Run 'sdlc draft mining <file>', which writes "
+                + "the draft a person renames.");
+        }
+
         if (string.Equals(fileName, Cycle.SolutionFileName, StringComparison.OrdinalIgnoreCase))
         {
             return new ProtectedFile(
@@ -130,6 +141,7 @@ public static class ProtectedPaths
         "abandoned.md",
         FileConstraintDocuments.SolutionConstraintsFileName,
         DecisionParser.FileName,
+        AreaParser.FileName,
         Cycle.SolutionFileName,
         Cycle.TechStackFileName,
     ];

@@ -3,10 +3,12 @@ using System.Text;
 using FluentResults;
 using Microsoft.Extensions.DependencyInjection;
 using MofonCode.Core;
+using Sdlc.Core.Areas;
 using Sdlc.Core.Constraints;
 using Sdlc.Core.Cycles;
 using Sdlc.Core.Decisions;
 using Sdlc.Core.Drafts;
+using Sdlc.Core.Hooks;
 using Sdlc.Core.Solutions;
 
 namespace Sdlc.Core.Proposals;
@@ -52,6 +54,21 @@ public static class DraftMining
 
         /// <summary>A stack concern's choice, set or changed.</summary>
         Set,
+
+        /// <summary>An area renamed, in <c>areas.md</c> and on every entry carrying it (D-150).</summary>
+        Rename,
+
+        /// <summary>One area folded into another: its globs joined to the other's, its entries carried over.</summary>
+        Merge,
+
+        /// <summary>An area taken out, its entries left global. The one record that has a remove.</summary>
+        Remove,
+
+        /// <summary>An area's globs replaced, when its files moved.</summary>
+        Files,
+
+        /// <summary>The areas one rule or decision carries, set or cleared.</summary>
+        Tag,
     }
 
     /// <summary>Which record a proposal changes.</summary>
@@ -65,6 +82,9 @@ public static class DraftMining
 
         /// <summary>The declared stack's defaults.</summary>
         Stack,
+
+        /// <summary>The solution's areas, and which area each entry carries (D-150).</summary>
+        Areas,
     }
 
     /// <summary>One proposal, as the file holds it.</summary>
@@ -121,6 +141,7 @@ public static class DraftMining
                     "RULES" => Record.Rules,
                     "DECISIONS" => Record.Decisions,
                     "STACK" => Record.Stack,
+                    "AREAS" => Record.Areas,
                     _ => null,
                 };
                 continue;
@@ -355,6 +376,11 @@ public static class DraftMining
         string statement = rest[(dash + 3)..].Trim().TrimStart('-').Trim();
         string? target = words.Length > 1 ? words[1] : null;
 
+        if (record == Record.Areas)
+        {
+            return AreaHeading(heading, words, statement, accepted);
+        }
+
         Operation? operation = words.Length == 0 ? null : words[0].ToUpperInvariant() switch
         {
             "ADD" => Operation.Add,
@@ -384,11 +410,299 @@ public static class DraftMining
         return Result.Ok((operation.Value, target, statement, accepted));
     }
 
+    // An area may be removed, unlike a rule or a decision: nothing cites an area's name the way a finding
+    // cites a rule, and its entries simply become global (D-150).
+    private static Result<(Operation, string?, string, bool)> AreaHeading(string heading, string[] words, string statement, bool accepted)
+    {
+        Operation? operation = words.Length == 0 ? null : words[0].ToUpperInvariant() switch
+        {
+            "ADD" => Operation.Add,
+            "RENAME" => Operation.Rename,
+            "MERGE" => Operation.Merge,
+            "REMOVE" => Operation.Remove,
+            "FILES" => Operation.Files,
+            "TAG" => Operation.Tag,
+            _ => null,
+        };
+
+        string? target = words.Length > 1 ? words[1] : null;
+
+        if (operation is null || target is null)
+        {
+            return Result.Fail(string.Create(CultureInfo.InvariantCulture, $"'### {heading}': an area proposal is 'add <name>', 'rename <old> <new>', 'merge <from> into <to>', 'remove <name>', 'files <name>' or 'tag <entry id>', then ' — ' and what it says."));
+        }
+
+        string[] parts = target.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        bool shaped = operation switch
+        {
+            Operation.Rename => parts.Length == 2 && parts.All(AreaParser.IsName),
+            Operation.Merge => parts.Length == 3 && parts[1] == "into" && AreaParser.IsName(parts[0]) && AreaParser.IsName(parts[2]),
+            Operation.Tag => parts.Length == 1 && parts[0].Contains('_', StringComparison.Ordinal),
+            _ => parts.Length == 1 && AreaParser.IsName(parts[0]),
+        };
+
+        return shaped
+            ? Result.Ok((operation.Value, (string?)target, statement, accepted))
+            : Result.Fail(string.Create(CultureInfo.InvariantCulture, $"'### {heading}': '{target}' is not what '{words[0]}' takes. An area's name is lower case words joined by hyphens."));
+    }
+
+    /// <summary>
+    /// Applies accepted area proposals to the area file and to the rules and decisions that carry areas.
+    /// </summary>
+    /// <param name="areas">The area file as it stands, or the empty form for a solution with none.</param>
+    /// <param name="rules">The rule file's text, after any rule proposals, or null when there is none.</param>
+    /// <param name="decisions">The decision record's text, after any decision proposals, or null.</param>
+    /// <param name="proposals">The accepted area proposals.</param>
+    /// <returns>The three texts, each changed only where a proposal reached it, or a failure.</returns>
+    public static Result<(string Areas, string? Rules, string? Decisions)> ApplyAreas(string areas, string? rules, string? decisions, IReadOnlyList<Proposal> proposals)
+    {
+        ArgumentNullException.ThrowIfNull(areas);
+        ArgumentNullException.ThrowIfNull(proposals);
+
+        string newline = areas.Contains("\r\n", StringComparison.Ordinal) ? "\r\n" : "\n";
+        List<string> lines = [.. areas.Replace("\r\n", "\n", StringComparison.Ordinal).Split('\n')];
+
+        foreach (Proposal proposal in proposals)
+        {
+            string[] parts = proposal.Target!.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+
+            switch (proposal.Operation)
+            {
+                case Operation.Add:
+                    if (AreaBlock(lines, parts[0]).Start >= 0)
+                    {
+                        return Result.Fail<(string, string?, string?)>(string.Create(CultureInfo.InvariantCulture, $"There is already an area called {parts[0]}."));
+                    }
+
+                    string files = proposal.Body.Replace("\r\n", "\n", StringComparison.Ordinal).Split('\n')
+                        .FirstOrDefault(line => line.StartsWith("**Files:**", StringComparison.Ordinal)) ?? string.Empty;
+
+                    if (files.Length == 0)
+                    {
+                        return Result.Fail<(string, string?, string?)>(string.Create(CultureInfo.InvariantCulture, $"'add {parts[0]}' has no '**Files:**' line beneath it. An area is the files it covers."));
+                    }
+
+                    while (lines.Count > 0 && lines[^1].Trim().Length == 0)
+                    {
+                        lines.RemoveAt(lines.Count - 1);
+                    }
+
+                    lines.AddRange([string.Empty, "## " + parts[0], string.Empty, files, string.Empty, "**Is:** " + proposal.Statement, string.Empty]);
+                    break;
+
+                case Operation.Rename:
+                    {
+                        (int start, _) = AreaBlock(lines, parts[0]);
+                        if (start < 0)
+                        {
+                            return NoArea(parts[0]);
+                        }
+
+                        lines[start] = "## " + parts[1];
+                        rules = Retag(rules, names => [.. names.Select(name => name == parts[0] ? parts[1] : name)]);
+                        decisions = Retag(decisions, names => [.. names.Select(name => name == parts[0] ? parts[1] : name)]);
+                        break;
+                    }
+
+                case Operation.Merge:
+                    {
+                        (int start, int end) = AreaBlock(lines, parts[0]);
+                        (int into, int intoEnd) = AreaBlock(lines, parts[2]);
+                        if (start < 0)
+                        {
+                            return NoArea(parts[0]);
+                        }
+
+                        if (into < 0)
+                        {
+                            return NoArea(parts[2]);
+                        }
+
+                        string moved = lines.Skip(start).Take(end - start).FirstOrDefault(line => line.StartsWith("**Files:**", StringComparison.Ordinal))?["**Files:**".Length..].Trim() ?? string.Empty;
+                        int filesAt = lines.FindIndex(into, intoEnd - into, line => line.StartsWith("**Files:**", StringComparison.Ordinal));
+                        lines[filesAt] = lines[filesAt].TrimEnd() + ", " + moved;
+                        (start, end) = AreaBlock(lines, parts[0]);
+                        lines.RemoveRange(start, end - start);
+                        rules = Retag(rules, names => [.. names.Select(name => name == parts[0] ? parts[2] : name).Distinct(StringComparer.Ordinal)]);
+                        decisions = Retag(decisions, names => [.. names.Select(name => name == parts[0] ? parts[2] : name).Distinct(StringComparer.Ordinal)]);
+                        break;
+                    }
+
+                case Operation.Remove:
+                    {
+                        (int start, int end) = AreaBlock(lines, parts[0]);
+                        if (start < 0)
+                        {
+                            return NoArea(parts[0]);
+                        }
+
+                        lines.RemoveRange(start, end - start);
+                        rules = Retag(rules, names => [.. names.Where(name => name != parts[0])]);
+                        decisions = Retag(decisions, names => [.. names.Where(name => name != parts[0])]);
+                        break;
+                    }
+
+                case Operation.Files:
+                    {
+                        (int start, int end) = AreaBlock(lines, parts[0]);
+                        if (start < 0)
+                        {
+                            return NoArea(parts[0]);
+                        }
+
+                        int filesAt = lines.FindIndex(start, end - start, line => line.StartsWith("**Files:**", StringComparison.Ordinal));
+                        lines[filesAt] = "**Files:** " + proposal.Statement;
+                        break;
+                    }
+
+                case Operation.Tag:
+                    {
+                        IReadOnlyList<string> names = string.Equals(proposal.Statement.Trim(), "none", StringComparison.OrdinalIgnoreCase)
+                            ? []
+                            : AreaParser.Names(proposal.Statement);
+                        bool isDecision = parts[0].StartsWith("DEC_", StringComparison.Ordinal);
+                        Result<string> tagged = Tag(isDecision ? decisions : rules, parts[0], names);
+
+                        if (tagged.IsFailed)
+                        {
+                            return tagged.ToResult<(string, string?, string?)>();
+                        }
+
+                        if (isDecision)
+                        {
+                            decisions = tagged.Value;
+                        }
+                        else
+                        {
+                            rules = tagged.Value;
+                        }
+
+                        break;
+                    }
+
+                default:
+                    return Result.Fail<(string, string?, string?)>("An area is added, renamed, merged, removed, given new files, or tagged onto an entry.");
+            }
+        }
+
+        return Result.Ok((string.Join(newline, lines), rules, decisions));
+    }
+
+    /// <summary>The empty area file, for a solution placing its first area.</summary>
+    public static string EmptyAreas { get; } = string.Join(
+        "\n",
+        [
+            "# The parts of this solution's code",
+            string.Empty,
+            .. ProtectedPaths.Note,
+            string.Empty,
+            "Each area is a name for a set of files. A rule or decision carrying an area's name reaches a reader",
+            "in full only when the change touches those files; one carrying none reaches every reader (D-150).",
+            string.Empty,
+        ]);
+
+    private static Result<(string, string?, string?)> NoArea(string name) =>
+        Result.Fail<(string, string?, string?)>(string.Create(CultureInfo.InvariantCulture, $"There is no area called {name}."));
+
+    private static (int Start, int End) AreaBlock(List<string> lines, string name)
+    {
+        int start = lines.FindIndex(line => line.TrimEnd() == "## " + name);
+
+        if (start < 0)
+        {
+            return (-1, -1);
+        }
+
+        int end = lines.FindIndex(start + 1, line => line.StartsWith("## ", StringComparison.Ordinal) || line.StartsWith("# ", StringComparison.Ordinal));
+        return (start, end < 0 ? lines.Count : end);
+    }
+
+    // Rewrites every entry's Areas line through a function, dropping a line left empty.
+    private static string? Retag(string? text, Func<IReadOnlyList<string>, IReadOnlyList<string>> change)
+    {
+        if (text is null)
+        {
+            return null;
+        }
+
+        string newline = text.Contains("\r\n", StringComparison.Ordinal) ? "\r\n" : "\n";
+        List<string> lines = [.. text.Replace("\r\n", "\n", StringComparison.Ordinal).Split('\n')];
+
+        for (int index = lines.Count - 1; index >= 0; index--)
+        {
+            if (!lines[index].StartsWith("**Areas:**", StringComparison.Ordinal))
+            {
+                continue;
+            }
+
+            IReadOnlyList<string> names = change(AreaParser.Names(lines[index]["**Areas:**".Length..]));
+
+            if (names.Count == 0)
+            {
+                lines.RemoveAt(index);
+
+                if (index < lines.Count && lines[index].Trim().Length == 0 && index > 0 && lines[index - 1].Trim().Length == 0)
+                {
+                    lines.RemoveAt(index);
+                }
+            }
+            else
+            {
+                lines[index] = "**Areas:** " + string.Join(", ", names);
+            }
+        }
+
+        return string.Join(newline, lines);
+    }
+
+    // Sets one entry's Areas line: replaced where it has one, added beneath its heading where it has none.
+    private static Result<string> Tag(string? text, string id, IReadOnlyList<string> names)
+    {
+        if (text is null)
+        {
+            return Result.Fail<string>(string.Create(CultureInfo.InvariantCulture, $"There is no file holding {id} to tag."));
+        }
+
+        string newline = text.Contains("\r\n", StringComparison.Ordinal) ? "\r\n" : "\n";
+        List<string> lines = [.. text.Replace("\r\n", "\n", StringComparison.Ordinal).Split('\n')];
+        (int start, int end) = Block(lines, id);
+
+        if (start < 0)
+        {
+            return Result.Fail<string>(string.Create(CultureInfo.InvariantCulture, $"There is no {id} to tag."));
+        }
+
+        int existing = lines.FindIndex(start, end - start, line => line.StartsWith("**Areas:**", StringComparison.Ordinal));
+
+        if (existing >= 0)
+        {
+            if (names.Count == 0)
+            {
+                lines.RemoveRange(existing, existing + 1 < lines.Count && lines[existing + 1].Trim().Length == 0 ? 2 : 1);
+            }
+            else
+            {
+                lines[existing] = "**Areas:** " + string.Join(", ", names);
+            }
+        }
+        else if (names.Count > 0)
+        {
+            lines.InsertRange(start + 1, [string.Empty, "**Areas:** " + string.Join(", ", names)]);
+        }
+
+        return Result.Ok(string.Join(newline, lines));
+    }
+
     private static string Verb(Operation operation) => operation switch
     {
         Operation.Add => "add",
         Operation.Supersede => "supersede",
         Operation.Reword => "reword",
+        Operation.Rename => "rename",
+        Operation.Merge => "merge",
+        Operation.Remove => "remove",
+        Operation.Files => "files",
+        Operation.Tag => "tag",
         _ => "set",
     };
 
@@ -467,6 +781,9 @@ public static class DraftMining
         return Result.Ok(string.Join(newline, lines));
     }
 
+    // One record's file on its way to a draft: as it stands, as drafted, what it assigned, what reached it.
+    private sealed record Pending(string File, string? Original, string? Draft, List<string> Assigned, List<Proposal> Mine);
+
     private sealed class Handler(SolutionRoot solution) : IRequestHandler<Command, DraftResult>
     {
         public async Task<Result<DraftResult>> Handle(Command request, CancellationToken cancellationToken)
@@ -495,36 +812,42 @@ public static class DraftMining
             string directory = Path.Combine(solution.Path, Cycle.SdlcDirectoryName);
             StringBuilder report = new();
             List<string> renames = [];
+            Dictionary<Record, Pending> drafts = [];
 
             foreach ((Record record, string file) in new[]
             {
                 (Record.Rules, FileConstraintDocuments.SolutionConstraintsFileName),
                 (Record.Decisions, DecisionParser.FileName),
                 (Record.Stack, Cycle.TechStackFileName),
+                (Record.Areas, AreaParser.FileName),
             })
             {
+                string path = Path.Combine(directory, file);
+                string? original = File.Exists(path) ? await File.ReadAllTextAsync(path, cancellationToken).ConfigureAwait(false) : null;
                 List<Proposal> mine = [.. accepted.Where(proposal => proposal.Record == record)];
+                drafts[record] = new Pending(file, original, original, [], mine);
 
-                if (mine.Count == 0)
+                // A solution places its first area from mining, so the area file is the one that may be absent.
+                if (mine.Count > 0 && original is null && record != Record.Areas)
+                {
+                    return Result.Ok(DraftResult.Refused(string.Create(CultureInfo.InvariantCulture, $"{mine.Count} accepted proposal(s) change {file}, and there is no {file} to copy. Place it first.")));
+                }
+            }
+
+            foreach (Record record in new[] { Record.Rules, Record.Decisions, Record.Stack })
+            {
+                Pending entry = drafts[record];
+
+                if (entry.Mine.Count == 0)
                 {
                     continue;
                 }
 
-                string path = Path.Combine(directory, file);
-
-                if (!File.Exists(path))
-                {
-                    return Result.Ok(DraftResult.Refused(string.Create(CultureInfo.InvariantCulture, $"{mine.Count} accepted proposal(s) change {file}, and there is no {file} to copy. Place it first.")));
-                }
-
-                string original = await File.ReadAllTextAsync(path, cancellationToken).ConfigureAwait(false);
-                List<string> assigned = [];
-
                 Result<string> draft = record switch
                 {
-                    Record.Rules => ApplyRules(original, mine, assigned),
-                    Record.Decisions => ApplyDecisions(original, mine, assigned),
-                    _ => ApplyStack(original, mine),
+                    Record.Rules => ApplyRules(entry.Original!, entry.Mine, entry.Assigned),
+                    Record.Decisions => ApplyDecisions(entry.Original!, entry.Mine, entry.Assigned),
+                    _ => ApplyStack(entry.Original!, entry.Mine),
                 };
 
                 if (draft.IsFailed)
@@ -532,36 +855,84 @@ public static class DraftMining
                     return Result.Ok(DraftResult.Refused(string.Join(Environment.NewLine, draft.Errors.Select(error => error.Message))));
                 }
 
-                string? lost = Lost(record, original, draft.Value);
+                drafts[record] = entry with { Draft = draft.Value };
+            }
+
+            // Areas last: a rename or a tag reaches the rule and decision drafts as they now stand (D-150).
+            if (drafts[Record.Areas].Mine.Count > 0)
+            {
+                Pending areas = drafts[Record.Areas];
+                Result<(string Areas, string? Rules, string? Decisions)> applied = ApplyAreas(
+                    areas.Original ?? EmptyAreas,
+                    drafts[Record.Rules].Draft,
+                    drafts[Record.Decisions].Draft,
+                    areas.Mine);
+
+                if (applied.IsFailed)
+                {
+                    return Result.Ok(DraftResult.Refused(string.Join(Environment.NewLine, applied.Errors.Select(error => error.Message))));
+                }
+
+                drafts[Record.Areas] = areas with { Draft = applied.Value.Areas };
+                drafts[Record.Rules] = drafts[Record.Rules] with { Draft = applied.Value.Rules };
+                drafts[Record.Decisions] = drafts[Record.Decisions] with { Draft = applied.Value.Decisions };
+            }
+
+            if (Unplaced(drafts[Record.Areas].Draft, drafts[Record.Rules].Draft, drafts[Record.Decisions].Draft) is { } unplaced)
+            {
+                return Result.Ok(DraftResult.Refused(unplaced));
+            }
+
+            foreach ((Record record, Pending entry) in drafts)
+            {
+                if (entry.Draft is null || string.Equals(entry.Draft, entry.Original, StringComparison.Ordinal))
+                {
+                    continue;
+                }
+
+                string? lost = entry.Original is null || record == Record.Areas ? null : Lost(record, entry.Original, entry.Draft);
 
                 if (lost is not null)
                 {
-                    return Result.Ok(DraftResult.Refused(string.Create(CultureInfo.InvariantCulture, $"The draft of {file} would lose {lost}, so nothing was written. A draft is the file as it stands with the accepted lines applied, and nothing may go missing on the way.")));
+                    return Result.Ok(DraftResult.Refused(string.Create(CultureInfo.InvariantCulture, $"The draft of {entry.File} would lose {lost}, so nothing was written. A draft is the file as it stands with the accepted lines applied, and nothing may go missing on the way.")));
                 }
 
-                string? over = OverBudget(record, draft.Value, assigned);
+                string? over = OverBudget(record, entry.Draft, entry.Assigned);
 
                 if (over is not null)
                 {
-                    return Result.Ok(DraftResult.Refused(string.Create(CultureInfo.InvariantCulture, $"The draft of {file} would place {over}, so nothing was written. A new entry's title takes at most {EntryBudget.Headline} words and each clause {EntryBudget.Clause}, so every reader can be handed its headline and the ones in scope its body (D-149). Shorten it in {request.From} and run this again.")));
+                    return Result.Ok(DraftResult.Refused(string.Create(CultureInfo.InvariantCulture, $"The draft of {entry.File} would place {over}, so nothing was written. A new entry's title takes at most {EntryBudget.Headline} words and each clause {EntryBudget.Clause}, so every reader can be handed its headline and the ones in scope its body (D-149). Shorten it in {request.From} and run this again.")));
+                }
+            }
+
+            foreach ((Record record, Pending entry) in drafts)
+            {
+                if (entry.Draft is null || string.Equals(entry.Draft, entry.Original, StringComparison.Ordinal))
+                {
+                    continue;
                 }
 
-                string draftName = Path.GetFileNameWithoutExtension(file) + ".draft.md";
-                await File.WriteAllTextAsync(Path.Combine(directory, draftName), draft.Value, cancellationToken).ConfigureAwait(false);
+                string draftName = Path.GetFileNameWithoutExtension(entry.File) + ".draft.md";
+                await File.WriteAllTextAsync(Path.Combine(directory, draftName), entry.Draft, cancellationToken).ConfigureAwait(false);
 
                 report.AppendLine(string.Create(
                     CultureInfo.InvariantCulture,
-                    $"{file}: {mine.Count} accepted{(assigned.Count > 0 ? " -- " + string.Join(", ", assigned) : string.Empty)}"));
+                    $"{entry.File}: {entry.Mine.Count} accepted{(entry.Assigned.Count > 0 ? " -- " + string.Join(", ", entry.Assigned) : string.Empty)}"));
 
-                foreach (Proposal proposal in mine)
+                foreach (Proposal proposal in entry.Mine)
                 {
                     report.AppendLine(string.Create(
                         CultureInfo.InvariantCulture,
                         $"  {Verb(proposal.Operation)}{(proposal.Target is null ? string.Empty : " " + proposal.Target)} — {proposal.Statement}"));
                 }
 
+                if (entry.Mine.Count == 0)
+                {
+                    report.AppendLine("  carried along: an area renamed, merged, removed or tagged reaches the entries here");
+                }
+
                 string from = Cycle.SdlcDirectoryName + "/" + draftName;
-                string to = Cycle.SdlcDirectoryName + "/" + file;
+                string to = Cycle.SdlcDirectoryName + "/" + entry.File;
                 renames.Add(string.Create(CultureInfo.InvariantCulture, $"    Move-Item -Force {from} {to}"));
             }
 
@@ -579,6 +950,29 @@ public static class DraftMining
                 ]);
 
             return Result.Ok(DraftResult.Drafted(report.ToString(), instructions));
+        }
+
+        // An entry naming an area nobody defines would be shown in full everywhere -- harmless, and a typo nobody
+        // notices -- so a draft that would place one says so instead (D-150).
+        private static string? Unplaced(string? areas, string? rules, string? decisions)
+        {
+            HashSet<string> defined = new(
+                areas is null ? [] : (AreaParser.Parse(areas, AreaParser.FileName).ValueOrDefault ?? []).Select(area => area.Name),
+                StringComparer.Ordinal);
+
+            List<string> unknown =
+            [
+                .. (rules is null ? [] : ConstraintParser.Parse(rules, "constraints.draft.md").ValueOrDefault ?? [])
+                    .Where(rule => rule.IsInForce)
+                    .SelectMany(rule => rule.InAreas.Where(name => !defined.Contains(name)).Select(name => rule.Id + " names '" + name + "'")),
+                .. (decisions is null ? [] : DecisionParser.Parse(decisions, "decisions.draft.md").ValueOrDefault ?? [])
+                    .Where(decision => decision.IsStanding)
+                    .SelectMany(decision => decision.InAreas.Where(name => !defined.Contains(name)).Select(name => decision.Id + " names '" + name + "'")),
+            ];
+
+            return unknown.Count == 0
+                ? null
+                : "The drafts would carry areas that are not defined: " + string.Join("; ", unknown) + ". Add the area under '## Areas', or tag the entry with one that exists, and run this again.";
         }
 
         // Only the entries this draft writes are held to the budget. One already on the page is the person's,

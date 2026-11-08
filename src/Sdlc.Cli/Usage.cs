@@ -48,6 +48,11 @@ internal static class Usage
                                      there. Refuses without an approved plan: adoption writes no
                                      code and no build settings.
             constraints              Render the constraint set in force.
+            constraints show <id>    One rule in full, in force or superseded.
+            areas                    Each area areas.md defines: the files it covers today, the
+                                     rules and decisions carrying it, and entries naming an area
+                                     nobody defined. Exits 1 when an area covers no file, which
+                                     stops a round until it is fixed.
             gate <id>                Say whether a cycle's build may run. Exits 1 if not.
             verify-chain <id> [--base <branch>]
                                      Re-establish the whole chain from the repository. Exits 1 if
@@ -401,6 +406,10 @@ internal static class Usage
         Options for constraints
             --for <artifact>         Narrow to one artifact: intent, spec, plan, diff, verify.
             --brief                  Ids and statements only, without the clauses.
+            --cycle <id>             With --for: this solution's own rules outside the areas that
+                                     stage of the cycle touches are shown by their headline. From
+                                     the plan on; the intent and spec get every rule in full.
+                                     'constraints show <id>' prints one rule in full.
 
         Options for evidence
             --tests <path>           Where the run's results are: one results file, or the directory
@@ -428,6 +437,12 @@ internal static class Usage
             --brief                  Ids and statements only, without the clauses.
             --all                    Include the reversed entries, which stay on the page so a cycle
                                      that cited one is still readable. Without it, what stands.
+            --for <stage> --cycle <id>
+                                     Every decision's headline, and in full only the ones with no
+                                     area or in an area that stage touches: none for the intent and
+                                     spec, the plan's declared files from the plan, the change's
+                                     files on a verify. Nothing narrows without an areas.md.
+            --area <name>            Only the decisions carrying one area.
 
         Options for findings
             --stage <artifact>       One document: intent, spec, plan or verify. Defaults to all four.

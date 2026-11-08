@@ -28,6 +28,10 @@ public enum JudgedPer
 /// document whole. A reader answers such a rule with a row per item, so every instance of a repeated
 /// gap surfaces in one round rather than one a round (D-119).
 /// </param>
+/// <param name="Areas">
+/// The areas a solution rule applies to, as its <c>Areas:</c> line names them; null or empty for a rule that
+/// applies everywhere. Only this solution's own rules carry one (D-150).
+/// </param>
 public sealed record Constraint(
     ConstraintId Id,
     string Statement,
@@ -35,8 +39,12 @@ public sealed record Constraint(
     string Forbids,
     string Why,
     ConstraintId? SupersededBy = null,
-    JudgedPer? Judged = null)
+    JudgedPer? Judged = null,
+    IReadOnlyList<string>? Areas = null)
 {
+    /// <summary>The areas it applies to; empty when it applies everywhere.</summary>
+    public IReadOnlyList<string> InAreas => Areas ?? [];
+
     /// <summary>
     /// Whether this constraint still binds. A superseded constraint is kept for the record and is
     /// not part of an effective set.

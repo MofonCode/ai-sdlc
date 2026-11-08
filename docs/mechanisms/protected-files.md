@@ -10,7 +10,7 @@ one of them is a task, and it lives in What your solution owns in
 
 ## What is guarded
 
-**Six files, and one command.**
+**Seven files, and one command.**
 
 | Guarded | Where | What it holds |
 |---|---|---|
@@ -18,6 +18,7 @@ one of them is a task, and it lives in What your solution owns in
 | `techstack.md` | `.sdlc/` | what the solution is built from, which stack rules it is held to, and which build settings files it takes |
 | `constraints.md` | `.sdlc/` | this solution's own `LOC_` rules |
 | `decisions.md` | `.sdlc/` | the choices this solution has settled |
+| `areas.md` | `.sdlc/` | the parts of this solution's code and the files each covers, which decide which rules and decisions reach a reader in full |
 | `approval.md` | `.sdlc/cycles/<id>/` | the gate decisions on one cycle's three planning documents |
 | `abandoned.md` | `.sdlc/cycles/<id>/` | why one cycle stopped |
 | the adoption command | — | it writes the hook configuration that does the guarding |
@@ -42,8 +43,8 @@ never gets to make the call.
 
 | The agent is about to | Denied when |
 |---|---|
-| write or edit a file | the path has a `.sdlc` segment anywhere in it, and its last segment is one of the six names — or it is a findings ledger, `findings/<artifact>.json`, which only `sdlc round` writes (D-101, D-107), or a round file from before the ledger, `findings/<artifact>.r<n>.json`. Absolute, relative, either separator |
-| run a shell command | the command names the adoption verb; or a **redirect points at** one of the six files; or one piece of the command — between `;`, `&&`, `\|\|`, `\|` and newlines, outside quotes — runs a **write verb** (a move, a copy, a delete, an in-place edit) **and names one of the six as a whole name** |
+| write or edit a file | the path has a `.sdlc` segment anywhere in it, and its last segment is one of the seven names — or it is a findings ledger, `findings/<artifact>.json`, which only `sdlc round` writes (D-101, D-107), or a round file from before the ledger, `findings/<artifact>.r<n>.json`. Absolute, relative, either separator |
+| run a shell command | the command names the adoption verb; or a **redirect points at** one of the seven files; or one piece of the command — between `;`, `&&`, `\|\|`, `\|` and newlines, outside quotes — runs a **write verb** (a move, a copy, a delete, an in-place edit) **and names one of the seven as a whole name** |
 
 **The shell rule reads the text of the command, not the paths it would touch.** It does not parse the
 line or require `.sdlc` to appear, because a command can change directory first. That makes it broad on
@@ -59,7 +60,7 @@ will meet:
 
 **The rules are absolute.** There is no mode, no flag, no environment variable and no check on which
 skill is running, so there is nowhere for an exception to be carved out — and nowhere for a bypass to
-live. That is also why the whole rule states in one sentence: every agent write to these six files is
+live. That is also why the whole rule states in one sentence: every agent write to these seven files is
 denied.
 
 ## What is not guarded
@@ -81,6 +82,6 @@ made required.
 | | |
 |---|---|
 | why each file is a person's, and every other denial | `../guides/handling-refusals.md` |
-| placing the first three, and changing any of the six | `../guides/adopting-the-framework.md` |
+| placing the first three, and changing any of the seven | `../guides/adopting-the-framework.md` |
 | changing the declared stack | `../guides/declaring-the-stack.md` |
 | approving or abandoning a cycle | `../guides/running-a-cycle.md` |
